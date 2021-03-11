@@ -149,6 +149,16 @@ jobs:
             # https://github.com/pytorch/ignite/issues/1737
             export install_wget_cmd='apt-get update && apt-get install -y wget'
             docker exec -it pthd /bin/bash -c "$install_wget_cmd"
+            export mnist_dir='./MNIST/raw'
+            docker exec -it pthd /bin/bash -c "mkdir -p $mnist_dir"
+            export dowload_test_imgs_cmd='wget https://github.com/pytorch-ignite/download-mnist-github-action/raw/master/t10k-images-idx3-ubyte.gz -P $mnist_dir'
+            docker exec -it pthd /bin/bash -c "$dowload_test_imgs_cmd"
+            export dowload_test_lbls_cmd='wget https://github.com/pytorch-ignite/download-mnist-github-action/raw/master/t10k-labels-idx1-ubyte.gz -P $mnist_dir'
+            docker exec -it pthd /bin/bash -c "$dowload_test_lbls_cmd"
+            export dowload_tr_imgs_cmd='wget https://github.com/pytorch-ignite/download-mnist-github-action/raw/master/train-images-idx3-ubyte.gz -P $mnist_dir'
+            docker exec -it pthd /bin/bash -c "$dowload_tr_imgs_cmd"
+            export dowload_tr_lbls_cmd='wget https://github.com/pytorch-ignite/download-mnist-github-action/raw/master/train-labels-idx1-ubyte.gz -P $mnist_dir'
+            docker exec -it pthd /bin/bash -c "$dowload_tr_lbls_cmd"
             export minst0_cmd='CUDA_VISIBLE_DEVICES=0 python examples/mnist/mnist_patch.py'
             docker exec -it pthd /bin/bash -c "$minst0_cmd"
 

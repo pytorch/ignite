@@ -104,11 +104,8 @@ jobs:
           fail_ci_if_error: true
 
       # Patch MNIST download: https://github.com/pytorch/ignite/issues/1737
-      - name: Install wget (Win)
-        if: matrix.os == 'windows-latest'
-        uses: crazy-max/ghaction-chocolatey@v1
-        with:
-          args: install wget
+      - name: Download MNIST
+        uses: pytorch-ignite/download-mnist-github-action@master
 
       # Patch MNIST download: https://github.com/pytorch/ignite/issues/1737
       - name: Run MNIST Patch

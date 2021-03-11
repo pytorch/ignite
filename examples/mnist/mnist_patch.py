@@ -33,7 +33,7 @@ def patched_download(self):
             filename = os.path.basename(url)
 
         # Use wget to download archives
-        sp.run(["wget", url, "-P", download_root])
+        # sp.run(["wget", url, "-P", download_root])
 
         archive = os.path.join(download_root, filename)
         print("Extracting {} to {}".format(archive, extract_root))
