@@ -126,16 +126,18 @@ class Rouge(Metric):
     def _check_parameters(self, beta: float, metric: str, variant: str) -> Tuple:
         if not isinstance(beta, numbers.Number):
             raise TypeError("Beta should be a float.")
+        n = 1
         if metric[-1].isnumeric():
             n = int(metric[-1])
             if n < 1:
                 raise ValueError("n has to be greater than 0 to calculate Rouge-n.")
-            return beta, n, self.rouge_n
+            rouge_fn = self.rouge_n
         elif metric[-1] in ["l", "L"]:
             if variant == "sentence":
-                return beta, 1, self.rouge_l
+                rouge_fn = self.rouge_l
         else:
             raise ValueError("Please provide a valid variant of Rouge to evaluate.")
+        return beta, n, rouge_fn
 
     def rouge_n(self, y_pred: List[str], y: List[str]) -> float:
         matches = 0
