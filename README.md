@@ -408,8 +408,7 @@ we provide several reproducible baselines for vision tasks:
 
 Features:
 
-- Distributed training with mixed precision by [nvidia/apex](https://github.com/NVIDIA/apex/)
-- Experiments tracking with [MLflow](https://mlflow.org/), [Polyaxon](https://polyaxon.com/) or [ClearML](https://github.com/allegroai/clearml/)
+- Distributed training: native or horovod and using [PyTorch native AMP](https://pytorch.org/docs/stable/notes/amp_examples.html)
 
 <!-- ############################################################################################################### -->
 
