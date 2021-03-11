@@ -8,7 +8,7 @@ from ignite.engine import Engine
 from ignite.metrics.epoch_metric import EpochMetricWarning
 
 
-#TODO uncomment those once #1700 is merged
+# TODO uncomment those once #1700 is merged
 def _test_precision_recall_curve():
     size = 100
     np_y_pred = np.random.rand(size, 1)
@@ -29,7 +29,7 @@ def _test_precision_recall_curve():
     np.testing.assert_array_almost_equal(thresholds, sk_thresholds)
 
 
-#TODO uncomment those once #1700 is merged
+# TODO uncomment those once #1700 is merged
 def _test_integration_precision_recall_curve_with_output_transform():
     np.random.seed(1)
     size = 100
@@ -62,7 +62,7 @@ def _test_integration_precision_recall_curve_with_output_transform():
     np.testing.assert_array_almost_equal(thresholds, sk_thresholds)
 
 
-#TODO uncomment those once #1700 is merge
+# TODO uncomment those once #1700 is merge
 def _test_integration_precision_recall_curve_with_activated_output_transform():
     np.random.seed(1)
     size = 100
@@ -95,7 +95,8 @@ def _test_integration_precision_recall_curve_with_activated_output_transform():
     # assert thresholds almost equal, due to numpy->torch->numpy conversion
     np.testing.assert_array_almost_equal(thresholds, sk_thresholds)
 
-#TODO uncomment those once #1700 is merge
+
+# TODO uncomment those once #1700 is merge
 def test_check_compute_fn():
     y_pred = torch.zeros((8, 13))
     y_pred[:, 1] = 1
