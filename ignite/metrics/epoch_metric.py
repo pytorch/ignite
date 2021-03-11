@@ -156,7 +156,7 @@ def _is_scalar_or_collection_of_tensor(x: Any) -> bool:
     Args:
         x: object of any type
     """
-    if isinstance(x, (int, float, torch.Tensor)):
+    if isinstance(x, (float, torch.Tensor)):
         return True
     if isinstance(x, Sequence):
         return all([isinstance(item, torch.Tensor) for item in x])
