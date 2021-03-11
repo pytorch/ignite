@@ -4,7 +4,6 @@ import tempfile
 import pytest
 import torch
 import torch.distributed as dist
-from torch._C import import_ir_module
 
 from ignite.distributed.comp_models import has_native_dist_support
 
