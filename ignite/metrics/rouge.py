@@ -110,8 +110,8 @@ class Rouge(Metric):
     def __init__(
         self,
         beta: float = 0.0,
-        variant: str = "rougeN",
-        n: int = 1,
+        metric: str = "rouge-1",
+        variant: str = "sentence",
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
@@ -119,24 +119,25 @@ class Rouge(Metric):
         self._num_examples: int = 0
         self.beta: float = 0.0
         self.n: int = 1
-        self.beta, self.n, self.rouge_fn = self._check_parameters(beta, n, variant)
+        self.beta, self.n, self.rouge_fn = self._check_parameters(beta, metric, variant)
         self.beta_sq = self.beta ** 2
         super(Rouge, self).__init__(output_transform=output_transform, device=device)
 
-    def _check_parameters(self, beta: float, n: int, variant: str) -> Tuple:
+    def _check_parameters(self, beta: float, metric: str, variant: str) -> Tuple:
         if not isinstance(beta, numbers.Number):
             raise TypeError("Beta should be a float.")
-        if not isinstance(n, int):
-            raise ValueError("n must be an integer greater than 0")
-        elif isinstance(n, int) and n < 1:
-            raise ValueError("Ignite needs atleast unigram to calculate Rouge")
-        if variant in ["rougeN", "rougen", "n", "N"]:
-            rouge_fn = self.rouge_n
-        elif variant in ["rougeL", "rougel", "l", "L"]:
-            rouge_fn = self.rouge_l
+        if metric[-1].isnumeric():
+            n = int(metric[-1])
+            if n < 1:
+                raise ValueError("n has to be greater than 0 to calculate Rouge-n.")
+            return beta, n, self.rouge_n
+        elif metric[-1] in ["l", "L"]:
+            if variant == "sentence":
+                return beta, 1, self.rouge_l
+            elif variant == "corpus":
+                return NotImplementedError
         else:
             raise ValueError("Please provide a valid variant of Rouge to evaluate.")
-        return beta, n, rouge_fn
 
     def rouge_n(self, y_pred: List[str], y: List[str]) -> float:
         matches = 0

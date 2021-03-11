@@ -26,18 +26,18 @@ def test_wrong_inputs():
 
 
 @pytest.mark.parametrize(
-    "variant, n, y_indices, y_pred_indices, expected",
+    "metric, y_indices, y_pred_indices, expected",
     [
-        ("rougeN", 1, [8, 3, 2], [], 0.0),
-        ("rougeN", 1, [], [8, 3, 2], 0.0),
-        ("rougeN", 1, [8, 3, 2], [8], 0.5),
-        ("rougeN", 2, [8, 3, 2], [8, 3], 2 / 3),
-        ("rougeL", 1, [8, 3, 2], [8, 2], 0.8),
+        ("rouge-1", [8, 3, 2], [], 0.0),
+        ("rouge-1", [], [8, 3, 2], 0.0),
+        ("rouge-1", [8, 3, 2], [8], 0.5),
+        ("rouge-2", [8, 3, 2], [8, 3], 2 / 3),
+        ("rouge-L", [8, 3, 2], [8, 2], 0.8),
     ],
 )
-def test_rouge(variant, n, y_indices, y_pred_indices, expected):
+def test_rouge(metric, y_indices, y_pred_indices, expected):
 
-    rouge = Rouge(variant=variant, n=n, beta=1.0)
+    rouge = Rouge(metric=metric, beta=1.0)
 
     y = ["a" * i for i in y_indices]
     y_pred = ["a" * i for i in y_pred_indices]
@@ -80,73 +80,44 @@ def test_rouge_against_rouge155():
     scorer = rouge_scorer.RougeScorer(["rouge1", "rouge2", "rougeL"], use_stemmer=False)
     scores = scorer.score(y_pred, y)
 
-    rouge1 = Rouge(n=1, beta=1.0)
+    rouge1 = Rouge(metric="rouge-1", beta=1.0)
     rouge1.update([tokenize.tokenize(y_pred, None), tokenize.tokenize(y, None)])
 
     assert rouge1.compute() == scores["rouge1"].fmeasure
 
-    rouge2 = Rouge(n=2, beta=1.0)
+    rouge2 = Rouge(metric="rouge-2", beta=1.0)
     rouge2.update([tokenize.tokenize(y_pred, None), tokenize.tokenize(y, None)])
 
     assert rouge2.compute() == scores["rouge2"].fmeasure
 
-    rougel = Rouge(variant="rougeL", beta=1.0)
+    rougel = Rouge(metric="rouge-L", beta=1.0)
     rougel.update([tokenize.tokenize(y_pred, None), tokenize.tokenize(y, None)])
 
     assert rougel.compute() == scores["rougeL"].fmeasure
 
 
 def test_compute():
-    rouge = Rouge(n=1, beta=1.0)
-    scorer = rouge_scorer.RougeScorer(["rouge1", "rougeL"], use_stemmer=False)
-    num_examples = 0
-    acc_score = 0
+    def _test_compute(rouge1, rougel, scorer):
+        acc_rouge1 = 0
+        acc_rougel = 0
+        y_pred_list = ["the cat was found under the bed", "the tiny little cat was found under the big funny bed"]
+        y_list = ["the cat was under the bed", "the cat was under the bed"]
+        for i, (y_pred, y) in enumerate(zip(y_pred_list, y_list), start=1):
+            score = scorer.score(y_pred, y)
+            acc_rouge1 += score["rouge1"].fmeasure
+            acc_rougel += score["rougeL"].fmeasure
+            rouge1.update([tokenize.tokenize(y_pred, None), tokenize.tokenize(y, None)])
+            rougel.update([tokenize.tokenize(y_pred, None), tokenize.tokenize(y, None)])
+            assert isinstance(rouge1.compute(), torch.Tensor)
+            assert isinstance(rougel.compute(), torch.Tensor)
+            assert rouge1.compute() == acc_rouge1 / i
+            assert rougel.compute() == acc_rougel / i
 
-    y_pred = "the cat was found under the bed"
-    y = "the cat was under the bed"
-
-    num_examples += 1
-    score = scorer.score(y_pred, y)
-    acc_score += score["rouge1"].fmeasure
-    rouge.update([tokenize.tokenize(y_pred, None), tokenize.tokenize(y, None)])
-    assert isinstance(rouge.compute(), torch.Tensor)
-    assert rouge.compute() == acc_score / num_examples
-
-    y_pred = "the tiny little cat was found under the big funny bed"
-    y = "the cat was under the bed"
-
-    num_examples += 1
-    score = scorer.score(y_pred, y)
-    acc_score += score["rouge1"].fmeasure
-    rouge.update([tokenize.tokenize(y_pred, None), tokenize.tokenize(y, None)])
-    assert isinstance(rouge.compute(), torch.Tensor)
-    assert rouge.compute() == acc_score / num_examples
-
-    rouge = Rouge(variant="rougeL", beta=1.0)
-    acc_score = 0
-    num_examples = 0
-
-    y_pred = "the cat was found under the bed"
-    y = "the cat was not under the bed"
-
-    num_examples += 1
-    score = scorer.score(y_pred, y)
-    acc_score += score["rougeL"].fmeasure
-    rouge.update([tokenize.tokenize(y_pred, None), tokenize.tokenize(y, None)])
-
-    assert isinstance(rouge.compute(), torch.Tensor)
-    assert rouge.compute() == acc_score / num_examples
-
-    y_pred = "the cat was found under the big funny bed"
-    y = "the tiny little cat was under the bed"
-
-    num_examples += 1
-    score = scorer.score(y_pred, y)
-    acc_score += score["rougeL"].fmeasure
-    rouge.update([tokenize.tokenize(y_pred, None), tokenize.tokenize(y, None)])
-
-    assert isinstance(rouge.compute(), torch.Tensor)
-    assert rouge.compute() == acc_score / num_examples
+    _test_compute(
+        Rouge(metric="rouge-1", beta=1.0),
+        Rouge(metric="rouge-l", beta=1.0),
+        rouge_scorer.RougeScorer(["rouge1", "rougeL"], use_stemmer=False),
+    )
 
 
 def _test_distrib_integration(device):
@@ -164,22 +135,32 @@ def _test_distrib_integration(device):
 
     def _test_n(metric_device):
         engine = Engine(update)
-        m = Rouge(device=metric_device)
+        m = Rouge(metric="rouge-1", beta=1.0, device=metric_device)
         m.attach(engine, "rouge")
 
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=1)
 
+        acc_score = 0
+        scorer = rouge_scorer.RougeScorer(["rouge1"], use_stemmer=False)
+        for i in range(n_iters):
+            acc_score += scorer.score(y_preds[i], y[i])["rouge1"].fmeasure
+        assert m.compute() == acc_score / n_iters
         assert "rouge" in engine.state.metrics
 
     def _test_l(metric_device):
         engine = Engine(update)
-        m = Rouge(variant="rougeL", device=metric_device)
+        m = Rouge(metric="rouge-L", beta=1.0, device=metric_device)
         m.attach(engine, "rouge")
 
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=1)
 
+        acc_score = 0
+        scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=False)
+        for i in range(n_iters):
+            acc_score += scorer.score(y_preds[i], y[i])["rougeL"].fmeasure
+        assert m.compute() == acc_score / n_iters
         assert "rouge" in engine.state.metrics
 
     _test_n("cpu")
@@ -196,7 +177,7 @@ def _test_distrib_accumulator_device(device):
         metric_devices.append(idist.device())
 
     for metric_device in metric_devices:
-        rouge = Rouge(device=metric_device)
+        rouge = Rouge(metric="rouge-1", beta=1.0, device=metric_device)
         dev = rouge._device
         assert dev == metric_device, f"{dev} vs {metric_device}"
 
@@ -208,7 +189,7 @@ def _test_distrib_accumulator_device(device):
 
 
 def test_accumulator_detached():
-    rouge = Rouge()
+    rouge = Rouge(metric="rouge-1", beta=1.0)
 
     y_pred = "the cat was found under the big funny bed"
     y = "the tiny little cat was under the bed"
