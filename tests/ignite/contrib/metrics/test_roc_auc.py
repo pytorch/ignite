@@ -73,21 +73,24 @@ def test_binary_input_N():
         assert isinstance(res, float)
         assert roc_auc_score(np_y, np_y_pred) == pytest.approx(res)
 
-    test_cases = [
-        (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 1),
-        (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 1),
-        (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 1),
-        (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 1),
-        # updated batches
-        (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 16),
-        (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 16),
-        (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 16),
-        (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 16),
-    ]
+    def get_test_cases():
+        test_cases = [
+            (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 1),
+            (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 1),
+            (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 1),
+            (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 1),
+            # updated batches
+            (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 16),
+            (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 16),
+            (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 16),
+            (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 16),
+        ]
+        return test_cases
 
-    for y_pred, y, n_iters in test_cases:
+    for _ in range(10):
+        test_cases = get_test_cases()
         # check multiple random inputs as random exact occurencies are rare
-        for _ in range(10):
+        for y_pred, y, n_iters in test_cases:
             _test(y_pred, y, n_iters)
 
 
@@ -95,35 +98,42 @@ def test_multilabel_input_N():
 
     roc_auc = ROC_AUC()
 
-    def _test(y_pred, y, n_iters):
+    def _test(y_pred, y, batch_size):
         roc_auc.reset()
         roc_auc.update((y_pred, y))
 
         np_y = y.numpy()
         np_y_pred = y_pred.numpy()
 
-        if n_iters > 1:
-            batch_size = y.shape[0] // n_iters + 1
+        if batch_size > 1:
+            n_iters = y.shape[0] // batch_size + 1
             for i in range(n_iters):
                 idx = i * batch_size
                 roc_auc.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
 
-    test_cases = [
-        (torch.randint(0, 2, size=(10, 4)).long(), torch.randint(0, 2, size=(10, 4)).long(), 1),
-        (torch.randint(0, 2, size=(50, 7)).long(), torch.randint(0, 2, size=(50, 7)).long(), 1),
-        (torch.randint(0, 2, size=(100, 4)).long(), torch.randint(0, 2, size=(100, 4)).long(), 1),
-        (torch.randint(0, 2, size=(200, 6)).long(), torch.randint(0, 2, size=(200, 6)).long(), 1),
-        # updated batches
-        (torch.randint(0, 2, size=(10, 4)).long(), torch.randint(0, 2, size=(10, 4)).long(), 16),
-        (torch.randint(0, 2, size=(50, 7)).long(), torch.randint(0, 2, size=(50, 7)).long(), 16),
-        (torch.randint(0, 2, size=(100, 4)).long(), torch.randint(0, 2, size=(100, 4)).long(), 16),
-        (torch.randint(0, 2, size=(200, 6)).long(), torch.randint(0, 2, size=(200, 6)).long(), 16),
-    ]
+        res = roc_auc.compute()
+        assert isinstance(res, float)
+        assert roc_auc_score(np_y, np_y_pred) == pytest.approx(res)
 
-    for y_pred, y, n_iters in test_cases:
+    def get_test_cases():
+        test_cases = [
+            (torch.randint(0, 2, size=(10, 4)).long(), torch.randint(0, 2, size=(10, 4)).long(), 1),
+            (torch.randint(0, 2, size=(50, 7)).long(), torch.randint(0, 2, size=(50, 7)).long(), 1),
+            (torch.randint(0, 2, size=(100, 4)).long(), torch.randint(0, 2, size=(100, 4)).long(), 1),
+            (torch.randint(0, 2, size=(200, 6)).long(), torch.randint(0, 2, size=(200, 6)).long(), 1),
+            # updated batches
+            (torch.randint(0, 2, size=(10, 4)).long(), torch.randint(0, 2, size=(10, 4)).long(), 16),
+            (torch.randint(0, 2, size=(50, 7)).long(), torch.randint(0, 2, size=(50, 7)).long(), 16),
+            (torch.randint(0, 2, size=(100, 4)).long(), torch.randint(0, 2, size=(100, 4)).long(), 16),
+            (torch.randint(0, 2, size=(200, 6)).long(), torch.randint(0, 2, size=(200, 6)).long(), 16),
+        ]
+        return test_cases
+
+    for _ in range(10):
         # check multiple random inputs as random exact occurencies are rare
-        for _ in range(10):
-            _test(y_pred, y, n_iters)
+        test_cases = get_test_cases()
+        for y_pred, y, batch_size in test_cases:
+            _test(y_pred, y, batch_size)
 
 
 def test_check_compute_fn():
@@ -166,16 +176,19 @@ def test_integration_binary_input_with_output_transform():
         assert isinstance(roc_auc, float)
         assert np_roc_auc == pytest.approx(roc_auc)
 
-    test_cases = [
-        (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 10),
-        (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 10),
-        (torch.randint(0, 2, size=(200,)).long(), torch.randint(0, 2, size=(200,)).long(), 10),
-        (torch.randint(0, 2, size=(200, 1)).long(), torch.randint(0, 2, size=(200, 1)).long(), 10),
-    ]
+    def get_test_cases():
+        test_cases = [
+            (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 10),
+            (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 10),
+            (torch.randint(0, 2, size=(200,)).long(), torch.randint(0, 2, size=(200,)).long(), 10),
+            (torch.randint(0, 2, size=(200, 1)).long(), torch.randint(0, 2, size=(200, 1)).long(), 10),
+        ]
+        return test_cases
 
-    for y_pred, y, batch_size in test_cases:
+    for _ in range(10):
         # check multiple random inputs as random exact occurencies are rare
-        for _ in range(10):
+        test_cases = get_test_cases()
+        for y_pred, y, batch_size in test_cases:
             _test(y_pred, y, batch_size)
 
 
@@ -203,16 +216,19 @@ def test_integration_multilabel_input_with_output_transform():
         assert isinstance(roc_auc, float)
         assert np_roc_auc == pytest.approx(roc_auc)
 
-    test_cases = [
-        (torch.randint(0, 2, size=(100, 3)).long(), torch.randint(0, 2, size=(100, 3)).long(), 10),
-        (torch.randint(0, 2, size=(100, 4)).long(), torch.randint(0, 2, size=(100, 4)).long(), 10),
-        (torch.randint(0, 2, size=(200, 5)).long(), torch.randint(0, 2, size=(200, 5)).long(), 10),
-        (torch.randint(0, 2, size=(200, 6)).long(), torch.randint(0, 2, size=(200, 6)).long(), 10),
-    ]
+    def get_test_cases():
+        test_cases = [
+            (torch.randint(0, 2, size=(100, 3)).long(), torch.randint(0, 2, size=(100, 3)).long(), 10),
+            (torch.randint(0, 2, size=(100, 4)).long(), torch.randint(0, 2, size=(100, 4)).long(), 10),
+            (torch.randint(0, 2, size=(200, 5)).long(), torch.randint(0, 2, size=(200, 5)).long(), 10),
+            (torch.randint(0, 2, size=(200, 6)).long(), torch.randint(0, 2, size=(200, 6)).long(), 10),
+        ]
+        return test_cases
 
-    for y_pred, y, batch_size in test_cases:
+    for _ in range(10):
         # check multiple random inputs as random exact occurencies are rare
-        for _ in range(10):
+        test_cases = get_test_cases()
+        for y_pred, y, batch_size in test_cases:
             _test(y_pred, y, batch_size)
 
 
@@ -247,23 +263,26 @@ def _test_distrib_binary_input_N(device):
         assert isinstance(res, float)
         assert roc_auc_score(np_y, np_y_pred) == pytest.approx(res)
 
-    test_cases = [
-        (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 1),
-        (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 1),
-        (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 1),
-        (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 1),
-        # updated batches
-        (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 16),
-        (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 16),
-        (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 16),
-        (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 16),
-    ]
+    def get_test_cases():
+        test_cases = [
+            (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 1),
+            (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 1),
+            (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 1),
+            (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 1),
+            # updated batches
+            (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 16),
+            (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 16),
+            (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 16),
+            (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 16),
+        ]
+        return test_cases
 
-    for y_pred, y, batch_size in test_cases:
-        for _ in range(3):
-            _test(y_pred, y, batch_size, "cpu")
+    for _ in range(3):
+        test_cases = get_test_cases()
+        for y_pred, y, n_iters in test_cases:
+            _test(y_pred, y, n_iters, "cpu")
             if device.type != "xla":
-                _test(y_pred, y, batch_size, idist.device())
+                _test(y_pred, y, n_iters, idist.device())
 
 
 def _test_distrib_multilabel_input_N(device):
@@ -271,7 +290,7 @@ def _test_distrib_multilabel_input_N(device):
     rank = idist.get_rank()
     torch.manual_seed(12)
 
-    def _test(y_pred, y, n_iters, metric_device):
+    def _test(y_pred, y, batch_size, metric_device):
         metric_device = torch.device(metric_device)
         roc_auc = ROC_AUC(device=metric_device)
 
@@ -280,8 +299,8 @@ def _test_distrib_multilabel_input_N(device):
         roc_auc.reset()
         roc_auc.update((y_pred, y))
 
-        if n_iters > 1:
-            batch_size = y.shape[0] // n_iters + 1
+        if batch_size > 1:
+            n_iters = y.shape[0] // batch_size + 1
             for i in range(n_iters):
                 idx = i * batch_size
                 roc_auc.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
@@ -297,20 +316,24 @@ def _test_distrib_multilabel_input_N(device):
         assert isinstance(res, float)
         assert roc_auc_score(np_y, np_y_pred) == pytest.approx(res)
 
-    test_cases = [
-        (torch.randint(0, 2, size=(10, 4)).long(), torch.randint(0, 2, size=(10, 4)).long(), 1),
-        (torch.randint(0, 2, size=(100, 7)).long(), torch.randint(0, 2, size=(100, 7)).long(), 1),
-        (torch.randint(0, 2, size=(100, 5)).long(), torch.randint(0, 2, size=(100, 5)).long(), 1),
-        (torch.randint(0, 2, size=(100, 3)).long(), torch.randint(0, 2, size=(100, 3)).long(), 1),
-        # updated batches
-        (torch.randint(0, 2, size=(10, 4)).long(), torch.randint(0, 2, size=(10, 4)).long(), 16),
-        (torch.randint(0, 2, size=(100, 7)).long(), torch.randint(0, 2, size=(100, 7)).long(), 16),
-        (torch.randint(0, 2, size=(100, 5)).long(), torch.randint(0, 2, size=(100, 5)).long(), 16),
-        (torch.randint(0, 2, size=(100, 3)).long(), torch.randint(0, 2, size=(100, 3)).long(), 16),
-    ]
+    def get_test_cases():
 
-    for y_pred, y, batch_size in test_cases:
-        for _ in range(3):
+        test_cases = [
+            (torch.randint(0, 2, size=(10, 4)).long(), torch.randint(0, 2, size=(10, 4)).long(), 1),
+            (torch.randint(0, 2, size=(100, 7)).long(), torch.randint(0, 2, size=(100, 7)).long(), 1),
+            (torch.randint(0, 2, size=(100, 5)).long(), torch.randint(0, 2, size=(100, 5)).long(), 1),
+            (torch.randint(0, 2, size=(100, 3)).long(), torch.randint(0, 2, size=(100, 3)).long(), 1),
+            # updated batches
+            (torch.randint(0, 2, size=(10, 4)).long(), torch.randint(0, 2, size=(10, 4)).long(), 16),
+            (torch.randint(0, 2, size=(100, 7)).long(), torch.randint(0, 2, size=(100, 7)).long(), 16),
+            (torch.randint(0, 2, size=(100, 5)).long(), torch.randint(0, 2, size=(100, 5)).long(), 16),
+            (torch.randint(0, 2, size=(100, 3)).long(), torch.randint(0, 2, size=(100, 3)).long(), 16),
+        ]
+        return test_cases
+
+    for _ in range(3):
+        test_cases = get_test_cases()
+        for y_pred, y, batch_size in test_cases:
             _test(y_pred, y, batch_size, "cpu")
             if device.type != "xla":
                 _test(y_pred, y, batch_size, idist.device())
