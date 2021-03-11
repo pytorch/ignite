@@ -4,7 +4,7 @@
 """
 
 import os
-import subprocess as sp
+# import subprocess as sp
 
 import torch
 from torchvision.datasets.mnist import MNIST, read_image_file, read_label_file
