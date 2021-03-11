@@ -96,7 +96,7 @@ class Rouge(Metric):
     .. code-block:: python
 
         from ignite.metrics import Rouge
-        m = Rouge(beta=1,variant="rougeL")
+        m = Rouge(beta=1,metric="rouge-L")
         y_pred = "the cat was found under the bed"
         y = "the cat was under the bed"
         m.update([y_pred.split(),y.split()]]) #Using space to separate sentences into tokens
@@ -134,8 +134,6 @@ class Rouge(Metric):
         elif metric[-1] in ["l", "L"]:
             if variant == "sentence":
                 return beta, 1, self.rouge_l
-            elif variant == "corpus":
-                return NotImplementedError
         else:
             raise ValueError("Please provide a valid variant of Rouge to evaluate.")
 
