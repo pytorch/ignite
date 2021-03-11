@@ -163,7 +163,7 @@
               {% endif %}
             {% endif %}
 
-            {% include "searchbox.html" %}
+            <div id="docsearch"></div>
 
             {% endblock %}
           </div>
@@ -408,7 +408,7 @@
 
   <!-- end of commented out for Ignite -->
 
-  {% include "cookie_banner.html" %}
+  <!-- {% include "cookie_banner.html" %} -->
 
   <!-- End Footer -->
 
@@ -483,20 +483,22 @@
       });
     })
   </script>
-  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/docsearch.js@2/dist/cdn/docsearch.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@docsearch/js@1.0.0-alpha.28/dist/umd/index.min.js"></script>
   <script type="text/javascript">
   let VERSION
-  if ('{{ version }}'.includes('v')) {
-    VERSION = '{{ version }}'
+  if ('master (0.5.0)'.includes('v')) {
+    VERSION = 'master (0.5.0)'
   } else {
-    VERSION = '{{ release }}'
+    VERSION = 'master'
   }
   docsearch({
-  apiKey: '19a7a7a75d87608d6f42c722ed1e293f',
-  indexName: 'ignite',
-  inputSelector: '#rtd-search-form input[type="text"]',
-  algoliaOptions: { 'facetFilters': [`version:${VERSION}`] },
-  debug: true // Set debug to true if you want to inspect the dropdown
+    container: '#docsearch',
+    apiKey: '19a7a7a75d87608d6f42c722ed1e293f',
+    indexName: 'ignite',
+    placeholder: 'Search PyTorch-Ignite docs',
+    searchParameters: {
+      'facetFilters': [`version:${VERSION}`],
+    }
   });
   </script>
 </body>
