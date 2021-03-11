@@ -7,6 +7,7 @@ from sklearn.neighbors import DistanceMetric
 
 import ignite.distributed as idist
 from ignite.contrib.metrics.regression import CanberraMetric
+from ignite.engine import Engine
 
 
 def test_wrong_input_shapes():
@@ -63,6 +64,42 @@ def test_compute():
     assert canberra.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
 
 
+def test_integration_binary_input_with_output_transform():
+    def _test(y_pred, y, batch_size):
+        def update_fn(engine, batch):
+            idx = (engine.state.iteration - 1) * batch_size
+            y_true_batch = np_y[idx : idx + batch_size]
+            y_pred_batch = np_y_pred[idx : idx + batch_size]
+            return idx, torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+
+        engine = Engine(update_fn)
+
+        m = CanberraMetric(output_transform=lambda x: (x[1], x[2]))
+        m.attach(engine, "cm")
+
+        np_y = y.numpy()
+        np_y_pred = y_pred.numpy()
+
+        canberra = DistanceMetric.get_metric("canberra")
+
+        data = list(range(y_pred.shape[0] // batch_size))
+        cm = engine.run(data, max_epochs=1).metrics["cm"]
+
+        assert canberra.pairwise([np_y_pred, np_y])[0][1] == pytest.approx(cm)
+
+    test_cases = [
+        (torch.rand(size=(100,)), torch.rand(size=(100,)), 10),
+        (torch.rand(size=(200,)), torch.rand(size=(200,)), 10),
+        (torch.rand(size=(100,)), torch.rand(size=(100,)), 20),
+        (torch.rand(size=(200,)), torch.rand(size=(200,)), 20),
+    ]
+
+    for y_pred, y, batch_size in test_cases:
+        # check multiple random inputs as random exact occurencies are rare
+        for _ in range(10):
+            _test(y_pred, y, batch_size)
+
+
 def test_error_is_not_nan():
     m = CanberraMetric()
     m.update((torch.zeros(4), torch.zeros(4)))
@@ -99,12 +136,63 @@ def _test_distrib_compute(device):
             _test(idist.device())
 
 
+def _test_distrib_integration_binary(device):
+
+    rank = idist.get_rank()
+    torch.manual_seed(12)
+    canberra = DistanceMetric.get_metric("canberra")
+
+    def _test(n_epochs, metric_device):
+        metric_device = torch.device(metric_device)
+        n_iters = 80
+        s = 16
+        n_classes = 2
+
+        offset = n_iters * s
+        y_true = torch.rand(size=(offset * idist.get_world_size(),)).to(device)
+        y_preds = torch.rand(size=(offset * idist.get_world_size(),)).to(device)
+
+        def update(engine, i):
+            return (
+                y_preds[i * s + rank * offset : (i + 1) * s + rank * offset],
+                y_true[i * s + rank * offset : (i + 1) * s + rank * offset],
+            )
+
+        engine = Engine(update)
+
+        m = CanberraMetric(device=metric_device)
+        m.attach(engine, "cm")
+
+        data = list(range(n_iters))
+        engine.run(data=data, max_epochs=n_epochs)
+
+        assert "cm" in engine.state.metrics
+
+        res = engine.state.metrics["cm"]
+        if isinstance(res, torch.Tensor):
+            res = res.cpu().numpy()
+
+        np_y_true = y_true.cpu().numpy()
+        np_y_preds = y_preds.cpu().numpy()
+
+        assert pytest.approx(res) == canberra.pairwise([np_y_preds, np_y_true])[0][1]
+
+    metric_devices = ["cpu"]
+    if device.type != "xla":
+        metric_devices.append(idist.device())
+    for metric_device in metric_devices:
+        for _ in range(2):
+            _test(n_epochs=1, metric_device=metric_device)
+            _test(n_epochs=2, metric_device=metric_device)
+
+
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_gpu(distributed_context_single_node_nccl):
     device = torch.device(f"cuda:{distributed_context_single_node_nccl['local_rank']}")
     _test_distrib_compute(device)
+    _test_distrib_integration_binary(device)
 
 
 @pytest.mark.distributed
@@ -113,6 +201,7 @@ def test_distrib_cpu(distributed_context_single_node_gloo):
 
     device = torch.device("cpu")
     _test_distrib_compute(device)
+    _test_distrib_integration_binary(device)
 
 
 @pytest.mark.distributed
@@ -124,6 +213,7 @@ def test_distrib_hvd(gloo_hvd_executor):
     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
 
     gloo_hvd_executor(_test_distrib_compute, (device,), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_distrib_integration_binary, (device,), np=nproc, do_init=True)
 
 
 @pytest.mark.multinode_distributed
@@ -132,6 +222,7 @@ def test_distrib_hvd(gloo_hvd_executor):
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     device = torch.device("cpu")
     _test_distrib_compute(device)
+    _test_distrib_integration_binary(device)
 
 
 @pytest.mark.multinode_distributed
@@ -140,6 +231,7 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     device = torch.device(f"cuda:{distributed_context_multi_node_nccl['local_rank']}")
     _test_distrib_compute(device)
+    _test_distrib_integration_binary(device)
 
 
 @pytest.mark.tpu
@@ -148,11 +240,13 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
 def test_distrib_single_device_xla():
     device = idist.device()
     _test_distrib_compute(device)
+    _test_distrib_integration_binary(device)
 
 
 def _test_distrib_xla_nprocs(index):
     device = idist.device()
     _test_distrib_compute(device)
+    _test_distrib_integration_binary(device)
 
 
 @pytest.mark.tpu
