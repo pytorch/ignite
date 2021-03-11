@@ -12,13 +12,13 @@ from ignite.metrics.rouge import _lcs, _ngramify, _safe_divide
 
 def test_wrong_inputs():
     with pytest.raises(TypeError):
-        rouge = Rouge(beta="l", n=1)
+        rouge = Rouge(beta="l", metric="rouge-1")
 
     with pytest.raises(ValueError):
-        rouge = Rouge(n="m")
+        rouge = Rouge(metric="m")
 
     with pytest.raises(ValueError):
-        rouge = Rouge(n=-1)
+        rouge = Rouge(metric="rouge-0")
 
     rouge = Rouge()
     with pytest.raises(NotComputableError):
