@@ -87,16 +87,19 @@ def test_integration_binary_input_with_output_transform():
 
         assert canberra.pairwise([np_y_pred, np_y])[0][1] == pytest.approx(cm)
 
-    test_cases = [
-        (torch.rand(size=(100,)), torch.rand(size=(100,)), 10),
-        (torch.rand(size=(200,)), torch.rand(size=(200,)), 10),
-        (torch.rand(size=(100,)), torch.rand(size=(100,)), 20),
-        (torch.rand(size=(200,)), torch.rand(size=(200,)), 20),
-    ]
+    def get_test_cases():
+        test_cases = [
+            (torch.rand(size=(100,)), torch.rand(size=(100,)), 10),
+            (torch.rand(size=(200,)), torch.rand(size=(200,)), 10),
+            (torch.rand(size=(100,)), torch.rand(size=(100,)), 20),
+            (torch.rand(size=(200,)), torch.rand(size=(200,)), 20),
+        ]
+        return test_cases
 
-    for y_pred, y, batch_size in test_cases:
+    for _ in range(10):
         # check multiple random inputs as random exact occurencies are rare
-        for _ in range(10):
+        test_cases = get_test_cases()
+        for y_pred, y, batch_size in test_cases:
             _test(y_pred, y, batch_size)
 
 
