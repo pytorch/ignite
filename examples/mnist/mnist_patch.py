@@ -4,11 +4,13 @@
 """
 
 import os
-# import subprocess as sp
 
 import torch
 from torchvision.datasets.mnist import MNIST, read_image_file, read_label_file
 from torchvision.datasets.utils import extract_archive
+
+# import subprocess as sp
+
 
 
 def patched_download(self):
