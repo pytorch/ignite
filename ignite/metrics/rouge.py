@@ -32,11 +32,11 @@ def _fbeta_score(matches: int, recall_total: int, precision_total: int, alpha: f
     return fbeta_score
 
 
-def _lcs(X, Y):
+def _lcs(X: List, Y: List):
     m = len(X)
     n = len(Y)
 
-    L = [[None] * (n + 1) for i in range(m + 1)]
+    L = [[0] * (n + 1) for i in range(m + 1)]
 
     for i in range(m + 1):
         for j in range(n + 1):
