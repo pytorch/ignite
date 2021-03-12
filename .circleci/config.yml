@@ -147,8 +147,6 @@ jobs:
 
             # 0) download MNIST
             # https://github.com/pytorch/ignite/issues/1737
-            export install_wget_cmd='apt-get update && apt-get install -y wget'
-            docker exec -it pthd /bin/bash -c "$install_wget_cmd"
             export raw_mnist_dir='./MNIST/raw'
             export download_mnist_cmd='git clone https://github.com/pytorch-ignite/download-mnist-github-action.git $raw_mnist_dir'
             docker exec -it pthd /bin/bash -c "$download_mnist_cmd"
