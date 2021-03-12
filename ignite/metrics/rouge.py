@@ -73,9 +73,13 @@ class Rouge(Metric):
 
     Args:
         beta: beta value for calculating f-beta
-        variant: Which variant of Rouge Score to be evaluated
+        metric: Which variant of Rouge Score to be evaluated
             Valid Values - "rougeN", "rougen", "n", "N", "rougeL", "rougel", "l", "L"
-        n: Rouge score to be calculated using n-grams of tokens
+        version: specifically for Rouge-L to choose which flavour of Rouge-L you wish to use.
+            Valid Values - "sentence", "corpus"
+        aggregate: For multiple reference Rouge score calculation. Provides options to take mean or argmax of all
+            reference summaries for a given candidate summary.
+            Valid Values - "single", "mean", "max"
         output_transform (callable, optional): a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
@@ -88,7 +92,7 @@ class Rouge(Metric):
     .. code-block:: python
 
         from ignite.metrics import Rouge
-        m = Rouge(beta=1,metric="rouge-L")
+        m = Rouge(beta=1,metric="rouge-L",version="sentence",aggregate="single")
         y_pred = "the cat was found under the bed"
         y = "the cat was under the bed"
         m.update([y_pred.split(),y.split()]]) #Using space to separate sentences into tokens
