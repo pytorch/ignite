@@ -189,6 +189,22 @@ If you are not familiar with creating a Pull Request, here are some guides:
 - http://stackoverflow.com/questions/14680711/how-to-do-a-github-pull-request
 - https://help.github.com/articles/creating-a-pull-request/
 
+**NOTE : When sending a PR, please kindly check if the changes are required to run in the CI.**
+
+For example, typo changes in `CONTRIBUTING.md`, `README.md` are not required to run in the CI.
+So, please add `[skip ci]` in the PR title to save the resources. Ignite has setup 3 CIs.
+- GitHub Actions
+- CircleCI
+- Netlify
+
+CircleCI is disabled on forked PR. So, please add
+- `[skip actions]` for the changes which are not required to run on GitHub Actions,
+- `[skip netlify]` for the changes which are not required to run on Netlify PR Preview build, or
+- `[skip ci]` for the changes which are not required to run on any CI.
+
+**NOTE : Those skip statements are case sensitive, need open bracket `[` and close bracket `]`.
+And, Ignite has followed a convention of starting with `skip` word.**
+
 ##### Sync up with the upstream
 
 First, make sure you have set [upstream](https://docs.github.com/en/free-pro-team@latest/github/collaborating-with-issues-and-pull-requests/configuring-a-remote-for-a-fork) by running:
