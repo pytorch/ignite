@@ -11,18 +11,7 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics import Loss
 
 
-@pytest.fixture
-def device():
-    return None
-
-
-@pytest.fixture
-def requires_grad():
-    return False
-
-
-@pytest.fixture
-def y_test_1(requires_grad, device):
+def y_test_1(requires_grad=False, device=None):
     return (
         torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]], device=device, requires_grad=requires_grad).log(),
         torch.tensor([2, 2], device=device).long(),
@@ -30,7 +19,6 @@ def y_test_1(requires_grad, device):
     )
 
 
-@pytest.fixture
 def y_test_2():
     return (
         torch.tensor([[0.1, 0.3, 0.6], [0.6, 0.2, 0.2], [0.2, 0.7, 0.1]]).log(),
@@ -39,7 +27,6 @@ def y_test_2():
     )
 
 
-@pytest.fixture
 def y_test_3():
     return torch.tensor([[0.1, 0.3, 0.6], [0.6, 0.2, 0.2]]).log(), torch.tensor([2, 0]).long()
 
@@ -50,34 +37,40 @@ def test_zero_div():
         loss.compute()
 
 
-def test_compute(y_test_1, y_test_2):
-    loss = Loss(nll_loss)
+def test_compute():
+    def _test(y_test_1, y_test_2):
+        loss = Loss(nll_loss)
 
-    y_pred, y, expected_loss = y_test_1
-    loss.update((y_pred, y))
-    assert_almost_equal(loss.compute(), expected_loss)
+        y_pred, y, expected_loss = y_test_1
+        loss.update((y_pred, y))
+        assert_almost_equal(loss.compute(), expected_loss)
 
-    y_pred, y, expected_loss = y_test_2
-    loss.update((y_pred, y))
-    assert_almost_equal(loss.compute(), expected_loss)  # average
+        y_pred, y, expected_loss = y_test_2
+        loss.update((y_pred, y))
+        assert_almost_equal(loss.compute(), expected_loss)  # average
 
-
-def test_compute_on_criterion(y_test_1, y_test_2):
-    loss = Loss(nn.NLLLoss())
-
-    y_pred, y, expected_loss = y_test_1
-    loss.update((y_pred, y))
-    assert_almost_equal(loss.compute(), expected_loss)
-
-    y_pred, y, expected_loss = y_test_2
-    loss.update((y_pred, y))
-    assert_almost_equal(loss.compute(), expected_loss)  # average
+    _test(y_test_1(), y_test_2())
 
 
-def test_non_averaging_loss(y_test_1):
+def test_compute_on_criterion():
+    def _test(y_test_1, y_test_2):
+        loss = Loss(nn.NLLLoss())
+
+        y_pred, y, expected_loss = y_test_1
+        loss.update((y_pred, y))
+        assert_almost_equal(loss.compute(), expected_loss)
+
+        y_pred, y, expected_loss = y_test_2
+        loss.update((y_pred, y))
+        assert_almost_equal(loss.compute(), expected_loss)  # average
+
+    _test(y_test_1(), y_test_2())
+
+
+def test_non_averaging_loss():
     loss = Loss(nn.NLLLoss(reduction="none"))
 
-    y_pred, y, _ = y_test_1
+    y_pred, y, _ = y_test_1()
     with pytest.raises(ValueError):
         loss.update((y_pred, y))
 
@@ -100,18 +93,18 @@ def test_gradient_based_loss():
     loss.update((y_pred, x))
 
 
-def test_kwargs_loss(y_test_1):
+def test_kwargs_loss():
     loss = Loss(nll_loss)
 
-    y_pred, y, _ = y_test_1
+    y_pred, y, _ = y_test_1()
     loss.update((y_pred, y, {"weight": torch.tensor([0, 0, 0], dtype=torch.float)}))
     assert_almost_equal(loss.compute(), 0)
 
 
-def test_reset(y_test_3):
+def test_reset():
     loss = Loss(nll_loss)
 
-    y_pred, y = y_test_3
+    y_pred, y = y_test_3()
     loss.update((y_pred, y))
     loss.compute()
     loss.reset()
@@ -176,11 +169,10 @@ def _test_distrib_accumulator_device(device, y_test_1):
         ), f"{type(loss._sum.device)}:{loss._sum.device} vs {type(metric_device)}:{metric_device}"
 
 
-@pytest.mark.parametrize("requires_grad", [True])
-def test_sum_detached(y_test_1):
+def test_sum_detached():
     loss = Loss(nll_loss)
 
-    y_pred, y, _ = y_test_1
+    y_pred, y, _ = y_test_1(requires_grad=True)
     loss.update((y_pred, y))
 
     assert not loss._sum.requires_grad
@@ -192,62 +184,62 @@ def test_sum_detached(y_test_1):
 def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
 
     device = torch.device(f"cuda:{local_rank}")
-    _test_distrib_compute_on_criterion(device, y_test_1, y_test_2)
-    _test_distrib_accumulator_device(device, y_test_1)
+    _test_distrib_compute_on_criterion(device, y_test_1(), y_test_2())
+    _test_distrib_accumulator_device(device, y_test_1())
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-def test_distrib_cpu(distributed_context_single_node_gloo, y_test_1, y_test_2):
+def test_distrib_cpu(distributed_context_single_node_gloo):
 
     device = torch.device("cpu")
-    _test_distrib_compute_on_criterion(device, y_test_1, y_test_2)
-    _test_distrib_accumulator_device(device, y_test_1)
+    _test_distrib_compute_on_criterion(device, y_test_1(), y_test_2())
+    _test_distrib_accumulator_device(device, y_test_1())
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-def test_distrib_hvd(gloo_hvd_executor, y_test_1, y_test_2):
+def test_distrib_hvd(gloo_hvd_executor):
 
     device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
 
-    gloo_hvd_executor(_test_distrib_compute_on_criterion, (device, y_test_1, y_test_2), np=nproc, do_init=True)
-    gloo_hvd_executor(_test_distrib_accumulator_device, (device, y_test_1), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_distrib_compute_on_criterion, (device, y_test_1(), y_test_2()), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_distrib_accumulator_device, (device, y_test_1()), np=nproc, do_init=True)
 
 
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_cpu(distributed_context_multi_node_gloo, y_test_1, y_test_2):
+def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     device = torch.device("cpu")
-    _test_distrib_compute_on_criterion(device, y_test_1, y_test_2, tol=1e-6)
-    _test_distrib_accumulator_device(device, y_test_1)
+    _test_distrib_compute_on_criterion(device, y_test_1(), y_test_2(), tol=1e-6)
+    _test_distrib_accumulator_device(device, y_test_1())
 
 
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_gpu(distributed_context_multi_node_nccl, y_test_1, y_test_2):
+def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     device = torch.device(f"cuda:{distributed_context_multi_node_nccl['local_rank']}")
-    _test_distrib_compute_on_criterion(device, y_test_1, y_test_2)
-    _test_distrib_accumulator_device(device, y_test_1)
+    _test_distrib_compute_on_criterion(device, y_test_1(), y_test_2())
+    _test_distrib_accumulator_device(device, y_test_1())
 
 
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_distrib_single_device_xla(y_test_1, y_test_2):
+def test_distrib_single_device_xla():
     device = idist.device()
-    _test_distrib_compute_on_criterion(device, y_test_1, y_test_2)
-    _test_distrib_accumulator_device(device, y_test_1)
+    _test_distrib_compute_on_criterion(device, y_test_1(), y_test_2())
+    _test_distrib_accumulator_device(device, y_test_1())
 
 
-def _test_distrib_xla_nprocs(index, y_test_1, y_test_2):
+def _test_distrib_xla_nprocs(index):
     device = idist.device()
-    _test_distrib_compute_on_criterion(device, y_test_1, y_test_2)
-    _test_distrib_accumulator_device(device, y_test_1)
+    _test_distrib_compute_on_criterion(device, y_test_1(), y_test_2())
+    _test_distrib_accumulator_device(device, y_test_1())
 
 
 @pytest.mark.tpu
