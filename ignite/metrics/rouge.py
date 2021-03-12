@@ -1,5 +1,5 @@
 import numbers
-from collections import defaultdict
+from collections import Counter
 from typing import Callable, DefaultDict, List, Tuple, Union
 
 import torch
@@ -12,11 +12,8 @@ from ignite.metrics import Metric
 from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
 
-def _ngramify(tokens: List[str], n: int) -> DefaultDict:
-    ngrams: DefaultDict = defaultdict(int)
-    for ngram in (tuple(tokens[i : i + n]) for i in range(len(tokens) - n + 1)):
-        ngrams[ngram] += 1
-    return ngrams
+def _ngramify(sequence, n):
+    return Counter([tuple(sequence[i : i + n]) for i in range(len(sequence) - n + 1)])
 
 
 def _safe_divide(numerator: float, denominator: float) -> float:
@@ -26,35 +23,31 @@ def _safe_divide(numerator: float, denominator: float) -> float:
         return 0.0
 
 
-def _fbeta_score(matches: int, recall_total: int, precision_total: int, beta_sq: float) -> float:
+def _fbeta_score(matches: int, recall_total: int, precision_total: int, alpha: float) -> float:
+    print(alpha)
     recall_score = _safe_divide(matches, recall_total)
     precision_score = _safe_divide(matches, precision_total)
-    denom = (beta_sq) * precision_score + recall_score
-    fbeta_score = _safe_divide((1 + beta_sq) * precision_score * recall_score, denom)
+    denom = (1 - alpha) * precision_score + (alpha) * recall_score
+    fbeta_score = _safe_divide(precision_score * recall_score, denom)
     return fbeta_score
 
 
-def _lcs(a: List[str], b: List[str]) -> int:
-    if len(a) < len(b):
-        a, b = b, a
+def _lcs(X, Y):
+    m = len(X)
+    n = len(Y)
 
-    if len(b) == 0:
-        return 0
+    L = [[None] * (n + 1) for i in range(m + 1)]
 
-    row = [0] * len(b)
-    for ai in a:
-        left = 0
-        diag = 0
-        for j, bj in enumerate(b):
-            up = row[j]
-            if ai == bj:
-                value = diag + 1
+    for i in range(m + 1):
+        for j in range(n + 1):
+            if i == 0 or j == 0:
+                L[i][j] = 0
+            elif X[i - 1] == Y[j - 1]:
+                L[i][j] = L[i - 1][j - 1] + 1
             else:
-                value = max(left, up)
-            row[j] = value
-            left = value
-            diag = up
-    return left
+                L[i][j] = max(L[i - 1][j], L[i][j - 1])
+
+    return L[m][n]
 
 
 class Rouge(Metric):
@@ -111,7 +104,8 @@ class Rouge(Metric):
         self,
         beta: float = 0.0,
         metric: str = "rouge-1",
-        variant: str = "sentence",
+        version: str = "sentence",
+        aggregate: str = "single",
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
@@ -119,11 +113,11 @@ class Rouge(Metric):
         self._num_examples: int = 0
         self.beta: float = 0.0
         self.n: int = 1
-        self.beta, self.n, self.rouge_fn = self._check_parameters(beta, metric, variant)
-        self.beta_sq = self.beta ** 2
+        self.beta, self.n, self.rouge_fn, self.aggregate = self._check_parameters(beta, metric, version, aggregate)
+        self.alpha = 1 / (1 + self.beta ** 2)
         super(Rouge, self).__init__(output_transform=output_transform, device=device)
 
-    def _check_parameters(self, beta: float, metric: str, variant: str) -> Tuple:
+    def _check_parameters(self, beta: float, metric: str, variant: str, aggregate: str) -> Tuple:
         if not isinstance(beta, numbers.Number):
             raise TypeError("Beta should be a float.")
         n = 1
@@ -137,27 +131,37 @@ class Rouge(Metric):
                 rouge_fn = self.rouge_l
         else:
             raise ValueError("Please provide a valid variant of Rouge to evaluate.")
-        return beta, n, rouge_fn
+        if aggregate not in ["single", "mean", "max"]:
+            raise ValueError("Aggrregate must be single, mean or max.")
+        return beta, n, rouge_fn, aggregate
 
     def rouge_n(self, y_pred: List[str], y: List[str]) -> float:
-        matches = 0
         n = self.n
-        y_pred_dict = _ngramify(y_pred, n)
-        model_dict = _ngramify(y, n)
+        y_pred_count = _ngramify(y_pred, n)
+        y_count = _ngramify(y, n)
         recall_total = max(len(y) - n + 1, 0)
-        for ngram in y_pred_dict:
-            if model_dict[ngram]:
-                matches += y_pred_dict[ngram]
+        matches = sum((y_pred_count & y_count).values())
         precision_total = max((len(y_pred) - n + 1), 0)
-        fbeta_score = _fbeta_score(matches, recall_total, precision_total, self.beta_sq)
+        fbeta_score = _fbeta_score(matches, recall_total, precision_total, self.alpha)
         return fbeta_score
 
+    def rouge_mean(self, y_pred: List[str], y: List[List[str]]):
+        acc_f_score = 0
+        for model in y:
+            acc_f_score += self.rouge_fn(y_pred, model)
+        return acc_f_score / len(y)
+
+    def rouge_max(self, y_pred: List[str], y: List[List[str]]):
+        max_f_score = 0
+        for model in y:
+            max_f_score = max(max_f_score, self.rouge_fn(y_pred, model))
+        return max_f_score
+
     def rouge_l(self, y_pred: List[str], y: List[str]) -> float:
-        matches = 0
-        matches += int(_lcs(y, y_pred))
+        matches = int(_lcs(y, y_pred))
         recall_total = len(y)
         precision_total = len(y_pred)
-        fbeta_score = _fbeta_score(matches, recall_total, precision_total, self.beta_sq)
+        fbeta_score = _fbeta_score(matches, recall_total, precision_total, self.alpha)
         return fbeta_score
 
     @reinit__is_reduced
@@ -169,7 +173,12 @@ class Rouge(Metric):
     @reinit__is_reduced
     def update(self, output: List[List]) -> None:
         y_pred, y = output[0], output[1]
-        self._rougetotal += self.rouge_fn(y_pred, y)
+        if self.aggregate == "single":
+            self._rougetotal += self.rouge_fn(y_pred, y)
+        if self.aggregate == "mean":
+            self._rougetotal += self.rouge_mean(y_pred, y)
+        if self.aggregate == "max":
+            self._rougetotal += self.rouge_max(y_pred, y)
         self._num_examples += 1
 
     @sync_all_reduce("_num_examples", "_rougetotal")
