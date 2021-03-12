@@ -198,7 +198,7 @@ so make sure not to go above that value */
 }
 
 .DocSearch-Button-Key {
-  box-shadown: none !important;
+  box-shadow: none !important;
 }
 
 @media(max-width: 750px) {
