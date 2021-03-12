@@ -344,6 +344,8 @@ Complete list of metrics
 
 .. autoclass:: RootMeanSquaredError
 
+.. autoclass:: Rouge
+
 .. autoclass:: RunningAverage
 
 .. autoclass:: SSIM
