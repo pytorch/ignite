@@ -12,7 +12,7 @@ from ignite.metrics import Metric
 from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
 
-def _ngramify(sequence, n):
+def _ngramify(sequence: List, n: int) -> Counter:
     return Counter([tuple(sequence[i : i + n]) for i in range(len(sequence) - n + 1)])
 
 
