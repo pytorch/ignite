@@ -7,4 +7,6 @@ ignite.exceptions
     :nosignatures:
     :autolist:
 
+NotComputableError
+------------------
 .. autoclass:: NotComputableError

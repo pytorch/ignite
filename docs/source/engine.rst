@@ -37,26 +37,49 @@ and helper methods to define supervised trainer and evaluator:
 
 More details about those structures can be found in :doc:`concepts`.
 
+ignite.engine.engine
+---------------------
 
 .. currentmodule:: ignite.engine.engine
 
+Engine
+~~~~~~
 .. autoclass:: Engine
    :members:
 
+Helper methods for supervised training
+--------------------------------------
+
+create_supervised_trainer
+~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autofunction:: ignite.engine.create_supervised_trainer
 
+create_supervised_evaluator
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autofunction:: ignite.engine.create_supervised_evaluator
 
+supervised_evaluation_step
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autofunction:: ignite.engine.supervised_evaluation_step
 
+supervised_evaluation_step_amp
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autofunction:: ignite.engine.supervised_evaluation_step_amp
 
+supervised_training_step
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autofunction:: ignite.engine.supervised_training_step
 
+supervised_training_step_amp
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autofunction:: ignite.engine.supervised_training_step_amp
 
+supervised_training_step_apex
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autofunction:: ignite.engine.supervised_training_step_apex
 
+supervised_training_step_tpu
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autofunction:: ignite.engine.supervised_training_step_tpu
 
 Resuming the training
@@ -122,18 +145,30 @@ ignite.engine.events
 
 .. currentmodule:: ignite.engine.events
 
+CallableEventWithFilter
+~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: CallableEventWithFilter
    :members:
 
+Events
+~~~~~~
 .. autoclass:: Events
    :members:
 
+EventEnum
+~~~~~~~~~~
 .. autoclass:: EventEnum
 
+EventsList
+~~~~~~~~~~~
 .. autoclass:: EventsList
 
+State
+~~~~~~
 .. autoclass:: State
 
+RemovableEventHandle
+~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: RemovableEventHandle
    :members:
    :undoc-members:
@@ -143,7 +178,7 @@ ignite.engine.deterministic
 ---------------------------
 
 Deterministic training
-``````````````````````
+~~~~~~~~~~~~~~~~~~~~~~~
 
 In general, it is rather difficult task to achieve deterministic and reproducible trainings as it relies on multiple
 aspects, e.g. data version, code version, software environment, hardware etc. According to `PyTorch note on randomness <https://pytorch.org/docs/stable/notes/randomness.html>`_:
@@ -166,9 +201,23 @@ to ensure that model sees the same data for a given epoch:
 
 .. currentmodule:: ignite.engine.deterministic
 
-.. automodule:: ignite.engine.deterministic
+DeterministicEngine
+~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: DeterministicEngine
    :members:
 
+ReproducibleBatchSampler
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: ReproducibleBatchSampler
+    :members:
+
+keep_random_state
+~~~~~~~~~~~~~~~~~~
+.. autofunction:: keep_random_state
+
+update_dataloader
+~~~~~~~~~~~~~~~~~~
+.. autofunction:: update_dataloader
 
 Dataflow synchronization
 ------------------------

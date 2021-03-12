@@ -275,7 +275,7 @@ By default, `Metrics` are epoch-wise, it means
 Usages can be user defined by creating a class inheriting for :class:`~ignite.metrics.MetricUsage`. See the list below of usages.
 
 Complete list of usages
-```````````````````````
+~~~~~~~~~~~~~~~~~~~~~~~
 
     - :class:`~ignite.metrics.MetricUsage`
     - :class:`~ignite.metrics.EpochWise`
@@ -301,68 +301,132 @@ Complete list of metrics
     :nosignatures:
     :autolist:
 
+Accuracy
+~~~~~~~~
 .. autoclass:: Accuracy
 
+Average
+~~~~~~~
 .. autoclass:: Average
 
+ConfusionMatrix
+~~~~~~~~~~~~~~~~
 .. autoclass:: ConfusionMatrix
 
+DiceCoefficient
+~~~~~~~~~~~~~~~
 .. autofunction:: DiceCoefficient
 
+EpochMetric
+~~~~~~~~~~~
 .. autoclass:: EpochMetric
 
+Fbeta
+~~~~~
 .. autofunction:: Fbeta
 
+GeometricAverage
+~~~~~~~~~~~~~~~~
 .. autoclass:: GeometricAverage
 
+IoU
+~~~
 .. autofunction:: IoU
 
+mIoU
+~~~~
 .. autofunction:: mIoU
 
+JaccardIndex
+~~~~~~~~~~~~
 .. autofunction:: JaccardIndex
 
+Loss
+~~~~
 .. autoclass:: Loss
 
+MeanAbsoluteError
+~~~~~~~~~~~~~~~~~
 .. autoclass:: MeanAbsoluteError
 
+MeanPairwiseDistance
+~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: MeanPairwiseDistance
 
+MeanSquaredError
+~~~~~~~~~~~~~~~~
 .. autoclass:: MeanSquaredError
 
+Metric
+~~~~~~
 .. autoclass:: Metric
     :members:
 
+MetricsLambda
+~~~~~~~~~~~~~
 .. autoclass:: MetricsLambda
 
+MultiLabelConfusionMatrix
+~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: MultiLabelConfusionMatrix
 
+PSNR
+~~~~
 .. autoclass:: PSNR
 
+Precision
+~~~~~~~~~
 .. autoclass:: Precision
 
+Recall
+~~~~~~
 .. autoclass:: Recall
 
+RootMeanSquaredError
+~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: RootMeanSquaredError
 
+RunningAverage
+~~~~~~~~~~~~~~
 .. autoclass:: RunningAverage
 
+SSIM
+~~~~
 .. autoclass:: SSIM
 
+TopKCategoricalAccuracy
+~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: TopKCategoricalAccuracy
 
+VariableAccumulation
+~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: VariableAccumulation
 
+Helpers for customizing metrics
+-------------------------------
+
+MetricUsage
+~~~~~~~~~~~
 .. autoclass:: MetricUsage
 
+EpochWise
+~~~~~~~~~
 .. autoclass:: EpochWise
 
+BatchWise
+~~~~~~~~~
 .. autoclass:: BatchWise
 
+BatchFiltered
+~~~~~~~~~~~~~
 .. autoclass:: BatchFiltered
-
 
 .. currentmodule:: ignite.metrics.metric
 
+reinit__is_reduced
+~~~~~~~~~~~~~~~~~~
 .. autofunction:: reinit__is_reduced
 
+sync_all_reduce
+~~~~~~~~~~~~~~~
 .. autofunction:: sync_all_reduce
