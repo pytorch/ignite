@@ -145,13 +145,13 @@ class Rouge(Metric):
         fbeta_score = _fbeta_score(matches, recall_total, precision_total, self.alpha)
         return fbeta_score
 
-    def rouge_mean(self, y_pred: List[str], y: List[List[str]]):
+    def rouge_mean(self, y_pred: List[str], y: List[List[str]]) -> float:
         acc_f_score = 0
         for model in y:
             acc_f_score += self.rouge_fn(y_pred, model)
         return acc_f_score / len(y)
 
-    def rouge_max(self, y_pred: List[str], y: List[List[str]]):
+    def rouge_max(self, y_pred: List[str], y: List[List[str]]) -> float:
         max_f_score = 0
         for model in y:
             max_f_score = max(max_f_score, self.rouge_fn(y_pred, model))
