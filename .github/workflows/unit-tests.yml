@@ -103,17 +103,9 @@ jobs:
           flags: cpu
           fail_ci_if_error: true
 
-      # Patch MNIST download: https://github.com/pytorch/ignite/issues/1737
+      # Download MNIST: https://github.com/pytorch/ignite/issues/1737
       - name: Download MNIST
         uses: pytorch-ignite/download-mnist-github-action@master
-
-      # Patch MNIST download: https://github.com/pytorch/ignite/issues/1737
-      - name: Run MNIST Patch
-        shell: bash -l {0}
-        run: |
-          # MNIST patch
-          # 0) mnist_patch.py
-          python examples/mnist/mnist_patch.py
 
       - name: Run MNIST Examples
         shell: bash -l {0}
