@@ -105,7 +105,7 @@ class Rouge(Metric):
 
     def __init__(
         self,
-        beta: float = 0.0,
+        beta: float = float("inf"),
         metric: str = "rouge-1",
         aggregate: str = "single",
         output_transform: Callable = lambda x: x,
