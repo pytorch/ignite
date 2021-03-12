@@ -179,13 +179,6 @@ footer table {
   margin: 100px auto auto !important;
 }
 
-@media (max-width: 750px) {
-  .DocSearch-Button-Key,
-  .DocSearch-Button-KeySeparator,
-  .DocSearch-Button-Placeholder {
-    display: block !important;
-  }
-}
 :root {
   --docsearch-primary-color: #ee4c2c !important;
 }
