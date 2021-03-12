@@ -197,6 +197,10 @@ so make sure not to go above that value */
   color: var(--docsearch-primary-color) !important;
 }
 
+.DocSearch-Button-Key {
+  box-shadown: none !important;
+}
+
 @media(max-width: 750px) {
   .DocSearch-Button-Key, .DocSearch-Button-KeySeparator, .DocSearch-Button-Placeholder {
     display: block !important;
