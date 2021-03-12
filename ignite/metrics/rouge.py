@@ -24,7 +24,6 @@ def _safe_divide(numerator: float, denominator: float) -> float:
 
 
 def _fbeta_score(matches: int, recall_total: int, precision_total: int, alpha: float) -> float:
-    print(alpha)
     recall_score = _safe_divide(matches, recall_total)
     precision_score = _safe_divide(matches, precision_total)
     denom = (1 - alpha) * precision_score + (alpha) * recall_score

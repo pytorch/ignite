@@ -26,18 +26,20 @@ def test_wrong_inputs():
 
 
 @pytest.mark.parametrize(
-    "metric, y_indices, y_pred_indices, expected",
+    "metric, aggregate, y_indices, y_pred_indices, expected",
     [
-        ("rouge-1", [8, 3, 2], [], 0.0),
-        ("rouge-1", [], [8, 3, 2], 0.0),
-        ("rouge-1", [8, 3, 2], [8], 0.5),
-        ("rouge-2", [8, 3, 2], [8, 3], 2 / 3),
-        ("rouge-L", [8, 3, 2], [8, 2], 0.8),
+        ("rouge-1", "single", [8, 3, 2], [], 0.0),
+        ("rouge-1", "single", [], [8, 3, 2], 0.0),
+        ("rouge-1", "single", [8, 3, 2], [8], 0.5),
+        ("rouge-2", "single", [8, 3, 2], [8, 3], 2 / 3),
+        ("rouge-L", "single", [8, 3, 2], [8, 2], 0.8),
+        ("rouge-L", "mean", [[8, 2], [], [], []], [8, 3, 2], 0.2),
+        ("rouge-L", "max", [[8, 2], [], [], []], [8, 3, 2], 0.8),
     ],
 )
-def test_rouge(metric, y_indices, y_pred_indices, expected):
+def test_rouge(metric, aggregate, y_indices, y_pred_indices, expected):
 
-    rouge = Rouge(metric=metric, beta=1.0)
+    rouge = Rouge(metric=metric, beta=1.0, aggregate=aggregate)
 
     y = ["a" * i for i in y_indices]
     y_pred = ["a" * i for i in y_pred_indices]
