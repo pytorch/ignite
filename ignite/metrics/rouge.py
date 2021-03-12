@@ -107,7 +107,6 @@ class Rouge(Metric):
         self,
         beta: float = 0.0,
         metric: str = "rouge-1",
-        version: str = "sentence",
         aggregate: str = "single",
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
@@ -116,11 +115,11 @@ class Rouge(Metric):
         self._num_examples: int = 0
         self.beta: float = 0.0
         self.n: int = 1
-        self.beta, self.n, self.rouge_fn, self.aggregate = self._check_parameters(beta, metric, version, aggregate)
+        self.beta, self.n, self.rouge_fn, self.aggregate = self._check_parameters(beta, metric, aggregate)
         self.alpha = 1 / (1 + self.beta ** 2)
         super(Rouge, self).__init__(output_transform=output_transform, device=device)
 
-    def _check_parameters(self, beta: float, metric: str, variant: str, aggregate: str) -> Tuple:
+    def _check_parameters(self, beta: float, metric: str, aggregate: str) -> Tuple:
         if not isinstance(beta, numbers.Number):
             raise TypeError("Beta should be a float.")
         n = 1
@@ -130,8 +129,7 @@ class Rouge(Metric):
                 raise ValueError("n has to be greater than 0 to calculate Rouge-n.")
             rouge_fn = self.rouge_n
         elif metric[-1] in ["l", "L"]:
-            if variant == "sentence":
-                rouge_fn = self.rouge_l
+            rouge_fn = self.rouge_l
         else:
             raise ValueError("Please provide a valid variant of Rouge to evaluate.")
         if aggregate not in ["single", "mean", "max"]:

@@ -20,6 +20,9 @@ def test_wrong_inputs():
     with pytest.raises(ValueError):
         rouge = Rouge(metric="rouge-0")
 
+    with pytest.raises(ValueError):
+        rouge = Rouge(metric="rouge-1", aggregate="test")
+
     rouge = Rouge()
     with pytest.raises(NotComputableError):
         rouge.compute()
