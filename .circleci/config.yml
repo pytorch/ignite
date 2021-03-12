@@ -148,9 +148,9 @@ jobs:
             # 0) download MNIST
             # https://github.com/pytorch/ignite/issues/1737
             export raw_mnist_dir='./MNIST/raw'
-            export download_mnist_cmd='git clone https://github.com/pytorch-ignite/download-mnist-github-action.git $raw_mnist_dir'
+            export download_mnist_cmd="git clone https://github.com/pytorch-ignite/download-mnist-github-action.git $raw_mnist_dir"
             docker exec -it pthd /bin/bash -c "$download_mnist_cmd"
-            export mnist0_cmd='CUDA_VISIBLE_DEVICES=0 python $raw_mnist_dir/run.py .'
+            export mnist0_cmd="CUDA_VISIBLE_DEVICES=0 python $raw_mnist_dir/run.py ."
             docker exec -it pthd /bin/bash -c "$mnist0_cmd"
 
             # 1) mnist.py
