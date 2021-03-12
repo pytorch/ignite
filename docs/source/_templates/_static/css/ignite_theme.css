@@ -174,9 +174,11 @@ footer table {
   padding: 0 !important;
 }
 
-/* docsearch css */
-.DocSearch-Modal {
-  margin: 100px auto auto !important;
+/* dim out pytorch header
+algolia searchbox has z-index of 200
+so make sure not to go above that value */
+.header-holder {
+  z-index: 100 !important;
 }
 
 :root {
