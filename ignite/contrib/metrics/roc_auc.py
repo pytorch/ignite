@@ -30,7 +30,7 @@ def roc_auc_curve_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor) -> 
 class ROC_AUC(EpochMetric):
     """Computes Area Under the Receiver Operating Characteristic Curve (ROC AUC)
     accumulating predictions and the ground-truth during an epoch and applying
-    `sklearn.metrics.roc_auc_score <http://scikit-learn.org/stable/modules/generated/
+    `sklearn.metrics.roc_auc_score <https://scikit-learn.org/stable/modules/generated/
     sklearn.metrics.roc_auc_score.html#sklearn.metrics.roc_auc_score>`_ .
 
     Args:
@@ -39,7 +39,7 @@ class ROC_AUC(EpochMetric):
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
         check_compute_fn: Default False. If True, `roc_curve
-            <http://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_auc_score.html#
+            <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_auc_score.html#
             sklearn.metrics.roc_auc_score>`_ is run on the first batch of data to ensure there are
             no issues. User will be warned in case there are any issues computing the function.
 
@@ -66,7 +66,7 @@ class ROC_AUC(EpochMetric):
 class RocCurve(EpochMetric):
     """Compute Receiver operating characteristic (ROC) for binary classification task
     by accumulating predictions and the ground-truth during an epoch and applying
-    `sklearn.metrics.roc_curve <http://scikit-learn.org/stable/modules/generated/
+    `sklearn.metrics.roc_curve <https://scikit-learn.org/stable/modules/generated/
     sklearn.metrics.roc_curve.html#sklearn.metrics.roc_curve>`_ .
 
     Args:
@@ -75,7 +75,7 @@ class RocCurve(EpochMetric):
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
         check_compute_fn: Default False. If True, `sklearn.metrics.roc_curve
-            <http://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_curve.html#
+            <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_curve.html#
             sklearn.metrics.roc_curve>`_ is run on the first batch of data to ensure there are
             no issues. User will be warned in case there are any issues computing the function.
 

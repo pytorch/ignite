@@ -35,11 +35,6 @@ def test_epoch_metric_wrong_setup_or_input():
         output = (torch.rand(4, 3, 1), torch.rand(4, 3))
         em.update(output)
 
-    # Target is not binary
-    with pytest.raises(ValueError, match=r"Targets should be binary"):
-        output = (torch.rand(4, 3), torch.randint(0, 5, size=(4, 3)))
-        em.update(output)
-
     em.reset()
     output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
     em.update(output1)

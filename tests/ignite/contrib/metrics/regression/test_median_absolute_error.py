@@ -4,22 +4,31 @@ import torch
 
 from ignite.contrib.metrics.regression import MedianAbsoluteError
 from ignite.engine import Engine
+from ignite.exceptions import NotComputableError
+
+
+def test_zero_sample():
+    m = MedianAbsoluteError()
+    with pytest.raises(
+        NotComputableError, match=r"EpochMetric must have at least one example before it can be computed"
+    ):
+        m.compute()
 
 
 def test_wrong_input_shapes():
     m = MedianAbsoluteError()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Predictions should be of shape"):
         m.update((torch.rand(4, 1, 2), torch.rand(4, 1)))
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Targets should be of shape"):
         m.update((torch.rand(4, 1), torch.rand(4, 1, 2)))
 
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4, 1, 2), torch.rand(4,)))
+    with pytest.raises(ValueError, match=r"Predictions should be of shape"):
+        m.update((torch.rand(4, 1, 2), torch.rand(4,),))
 
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4,), torch.rand(4, 1, 2)))
+    with pytest.raises(ValueError, match=r"Targets should be of shape"):
+        m.update((torch.rand(4,), torch.rand(4, 1, 2),))
 
 
 def test_median_absolute_error():

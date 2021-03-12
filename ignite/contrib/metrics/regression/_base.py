@@ -3,7 +3,7 @@ from typing import Callable, Tuple
 
 import torch
 
-from ignite.metrics import EpochMetric, Metric
+from ignite.metrics import Metric
 from ignite.metrics.metric import reinit__is_reduced
 
 
@@ -52,23 +52,3 @@ class _BaseRegression(Metric):
     @abstractmethod
     def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         pass
-
-
-class _BaseRegressionEpoch(EpochMetric):
-    # Base class for all median-based regression metrics
-    # `update` method check the shapes and call internal overloaded method `_update`.
-    # Class internally stores complete history of predictions and targets of type float32.
-
-    def __init__(
-        self, compute_fn: Callable, output_transform: Callable = lambda x: x, check_compute_fn: bool = True,
-    ) -> None:
-        super(_BaseRegressionEpoch, self).__init__(
-            compute_fn=compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
-        )
-
-    def _check_type(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
-        _check_output_types(output)
-        super(_BaseRegressionEpoch, self)._check_type(output)
-
-    def _check_shape(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
-        _check_output_shapes(output)

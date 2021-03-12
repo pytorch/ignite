@@ -1,94 +1,124 @@
-# Reproducible PASCAL VOC2012 training with Ignite
+# Reproducible PASCAL VOC2012 training with PyTorch-Ignite
 
 In this example, we provide script and tools to perform reproducible experiments on training neural networks on PASCAL VOC2012
 dataset.
 
 Features:
 
-- Distributed training with mixed precision by [nvidia/apex](https://github.com/NVIDIA/apex/)
-- Experiments tracking with [MLflow](https://mlflow.org/) or [Polyaxon](https://polyaxon.com/) or [ClearML](https://github.com/allegroai/clearml)
+- Distributed training with native automatic mixed precision
+- Experiments tracking with [ClearML](https://github.com/allegroai/clearml)
 
-| Tensorboard                              | MLflow                                           |
-| ---------------------------------------- | ------------------------------------------------ |
-| ![tb_dashboard](assets/tb_dashboard.png) | ![mlflow_dashboard](assets/mlflow_dashboard.png) |
+ClearML Server: TODO: ADD THE LINK
 
-<!-- Trains Server: https://demoapp.trains.allegro.ai/projects/f36e8adf88bd4e08a123f3f1f82c29b0 -->
-
-There are three possible options: 1) Experiments tracking with MLflow, 2) Experiments tracking with Polyaxon or 3) Experiments tracking with ClearML.
-
-Experiments tracking with ClearML / MLflow is more suitable for a local machine with GPU(s). For experiments tracking with Polyaxon
-user needs to have Polyaxon installed on a machine/cluster/cloud and can schedule experiments with `polyaxon-cli`.
-User can choose one option and skip the descriptions of another option.
-
-- Notes for [experiments tracking with MLflow](NOTES_MLflow.md)
-- Notes for [experiments tracking with Polyaxon](NOTES_Polyaxon.md)
-- Notes for [experiments tracking with ClearML](NOTES_ClearML.md)
-
-## Implementation details
-
-Files tree description:
+## Setup
 
 ```
-code
-  |___ dataflow : module privides data loaders and various transformers
-  |___ scripts : executable training script
-  |___ utils : other helper modules
-
-configs
-  |___ train : training python configuration files
-
-experiments
-  |___ mlflow : MLflow related files
-  |___ plx : Polyaxon related files
-  |___ clearml : requirements.txt to install ClearML python package
-
-notebooks : jupyter notebooks to check specific parts from code modules
+pip install -r requirements.txt
 ```
 
-## Code and configs
+### Docker
 
-### [py_config_runner](https://github.com/vfdev-5/py_config_runner)
+For docker users, you can use the following images to run the example:
+```bash
+docker pull pytorchignite/vision:latest
+```
+or 
+```bash
+docker pull pytorchignite/hvd-vision:latest
+```
 
-We use [py_config_runner](https://github.com/vfdev-5/py_config_runner) package to execute python scripts with python configuration files.
+and install other requirements as suggested above
 
-### Training script
+### Using Horovod as distributed framework
 
-Training script is located [code/scripts](code/scripts/) and contains
+We do not add `horovod` as a requirement into `requirements.txt`. Please, install it manually following the official guides or 
+use `pytorchignite/hvd-vision:latest` docker image.
 
-- `training.py`, single training script with possiblity to use one of MLflow / Polayaxon / ClearML experiments tracking systems.
+### (Optional) Download Pascal VOC2012 and SDB datasets
 
-Training script contains `run` method required by [py_config_runner](https://github.com/vfdev-5/py_config_runner) to
-run a script with a configuration.
+Download and extract the datasets:
 
-The split between training script and configuration python file is the following.
-Configuration file being a python script defines necessary components for neural network training:
+```bash
+python main.py download /path/to/datasets
+```
 
-- Dataflow: training/validation/train evaluation data loaders with custom data augmentations
-- Model
-- Optimizer
-- Criterion
-- LR scheduler
-- other parameters: device, number of epochs, etc
+This script will download and extract the following datasets into `/path/to/datasets`
 
-Training script uses these components to setup and run training and validation loops. By default,
-processing group with "nccl" backend is initialized for distributed configuration (even for a single GPU).
+- The [Pascal VOC2012](http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar) dataset
+- Optionally, the [SBD](http://www.eecs.berkeley.edu/Research/Projects/CS/vision/grouping/semantic_contours/benchmark.tgz) evaluation dataset
 
-Training script is generic, uses [`ignite.distributed` API](https://pytorch.org/ignite/master/distributed.html), and adapts
-training components to provided distributed configuration (e.g. uses DistribtedDataParallel model wrapper,
-uses distributed sampling, scales batch size etc).
 
-### Configurations
+## Usage
 
-- [baseline_resnet101.py](configs/train/baseline_resnet101.py) : trains DeeplabV3-ResNet101 on Pascal VOC2012 dataset only
-- [baseline_resnet101_sbd.py](configs/train/baseline_resnet101_sbd.py) : trains DeeplabV3-ResNet101 on Pascal VOC2012 dataset with SBD
+Please, export the `DATASET_PATH` environment variable for the Pascal VOC2012 dataset.
 
-### Results
+```bash
+export DATASET_PATH=/path/to/pascal_voc2012
+# e.g. export DATASET_PATH=/data/ where VOCdevkit is located
+```
 
-| Model                | with SBD | Training mIoU+BG | Test mIoU+BG |
-| -------------------- | -------- | ---------------- | ------------ |
-| DeepLabV3 ResNet-101 | X        | 86%              | 68%          |
+Optionally, if using SBD dataset, export the `SBD_DATASET_PATH` environment variable:
+
+```bash
+export SBD_DATASET_PATH=/path/to/SBD/
+# e.g. export SBD_DATASET_PATH=/data/SBD/  where "cls  img  inst  train.txt  train_noval.txt  val.txt" are located
+```
+
+### Training
+
+#### Single GPU
+
+- Adjust batch size for your GPU type in the configuration file: `configs/baseline_dplv3_resnet101_sbd.py` or `configs/baseline_dplv3_resnet101.py`
+
+Run the following command:
+```bash
+CUDA_VISIBLE_DEVICES=0 python -u main.py training configs/baseline_dplv3_resnet101_sbd.py
+# or without SBD 
+# CUDA_VISIBLE_DEVICES=0 python -u main.py training configs/baseline_dplv3_resnet101.py
+```
+
+#### Multiple GPUs
+
+- Adjust total batch size for your GPUs in the configuration file: `configs/baseline_dplv3_resnet101_sbd.py` or `configs/baseline_dplv3_resnet101.py`
+
+```bash
+python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py training configs/baseline_dplv3_resnet101_sbd.py
+# or without SBD 
+# python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py training configs/baseline_dplv3_resnet101.py
+```
+
+#### Using Horovod as distributed framework
+
+- Adjust total batch size for your GPUs in the configuration file: `configs/baseline_dplv3_resnet101_sbd.py` or `configs/baseline_dplv3_resnet101.py`
+
+```bash
+horovodrun -np=2 python -u main.py training configs/baseline_dplv3_resnet101_sbd.py --backend="horovod"
+# or without SBD
+# horovodrun -np=2 python -u main.py training configs/baseline_dplv3_resnet101.py --backend="horovod"
+```
+
+### Evaluation
+
+#### Single GPU
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python -u main.py eval configs/eval_baseline_dplv3_resnet101_sbd.py
+```
+
+#### Multiple GPUs
+
+```bash
+python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py eval configs/eval_baseline_dplv3_resnet101_sbd.py
+```
+
+#### Using Horovod as distributed framework
+
+```bash
+horovodrun -np=2 python -u main.py eval configs/eval_baseline_dplv3_resnet101_sbd.py --backend="horovod"
+```
+
 
 ## Acknowledgements
 
-Part of trainings was done within [Tesla GPU Test Drive](https://www.nvidia.com/en-us/data-center/tesla/gpu-test-drive/)
-on 2 Nvidia V100 GPUs.
+Trainings were done using credits provided by AWS for open-source development via NumFOCUS 
+and using [trainml.ai](trainml.ai) platform.

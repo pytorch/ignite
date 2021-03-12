@@ -2,7 +2,7 @@ from typing import Callable
 
 import torch
 
-from ignite.contrib.metrics.regression._base import _BaseRegressionEpoch
+from ignite.metrics import EpochMetric
 
 
 def median_absolute_percentage_error_compute_fn(y_pred: torch.Tensor, y: torch.Tensor) -> float:
@@ -10,7 +10,7 @@ def median_absolute_percentage_error_compute_fn(y_pred: torch.Tensor, y: torch.T
     return 100.0 * torch.median(e).item()
 
 
-class MedianAbsolutePercentageError(_BaseRegressionEpoch):
+class MedianAbsolutePercentageError(EpochMetric):
     r"""Calculates the Median Absolute Percentage Error.
 
     .. math::

@@ -168,3 +168,42 @@ footer table {
   width: 100%;
   margin-bottom: 1rem;
 }
+
+/* remove gray footer */
+.pytorch-body .docs-tutorials-resources {
+  padding: 0 !important;
+}
+
+/* dim out pytorch header
+algolia searchbox has z-index of 200
+so make sure not to go above that value */
+.header-holder {
+  z-index: 100 !important;
+}
+
+:root {
+  --docsearch-primary-color: #ee4c2c !important;
+}
+
+.DocSearch-Button {
+  border-radius: 0 !important;
+  width: 100% !important;
+  height: 2.75rem !important;
+  margin: 0 !important;
+  background: var(--docsearch-searchbox-focus-background) !important;
+}
+
+.DocSearch-Button .DocSearch-Search-Icon {
+  color: var(--docsearch-primary-color) !important;
+}
+
+.DocSearch-Button-Key {
+  box-shadow: none !important;
+}
+
+@media(max-width: 750px) {
+  .DocSearch-Button-Key, .DocSearch-Button-KeySeparator, .DocSearch-Button-Placeholder {
+    display: block !important;
+  }
+}
+/* docsearch end */

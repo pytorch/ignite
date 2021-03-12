@@ -121,13 +121,13 @@
           </li>
 
           <li>
-            <a href="{{ theme_variables.external_urls['home'] }}/master/about.html">About us</a>
+            <a href="{{ theme_variables.external_urls['home'] }}/master/about.html">About us</a> 
           </li>
 
         </ul>
       </div>
 
-      <a class="main-menu-open-button" href="#" data-behavior="open-mobile-menu"></a>
+      <!-- <a class="main-menu-open-button" href="#" data-behavior="open-mobile-menu"></a> -->
     </div>
 
   </div>
@@ -163,7 +163,7 @@
               {% endif %}
             {% endif %}
 
-            {% include "searchbox.html" %}
+            <div id="docsearch"></div>
 
             {% endblock %}
           </div>
@@ -305,10 +305,9 @@
   <!-- Begin Footer -->
 
   <!-- commented out for Ignite -->
-  <!--
 
   <div class="container-fluid docs-tutorials-resources" id="docs-tutorials-resources">
-    <div class="container">
+    <!-- <div class="container">
       <div class="row">
         <div class="col-md-4 text-center">
           <h2>Docs</h2>
@@ -328,10 +327,10 @@
           <a class="with-right-arrow" href="{{ theme_variables.external_urls['resources'] }}">View Resources</a>
         </div>
       </div>
-    </div>
+    </div> -->
   </div>
 
-  <footer class="site-footer">
+  <!-- <footer class="site-footer">
     <div class="container footer-container">
       <div class="footer-logo-wrapper">
         <a href="{{ theme_variables.external_urls['home'] }}" class="footer-logo"></a>
@@ -404,9 +403,9 @@
         </div>
       </div>
     </div>
-  </footer>
+  </footer> -->
 
-  -->
+
   <!-- end of commented out for Ignite -->
 
   {% include "cookie_banner.html" %}
@@ -469,6 +468,7 @@
   <script type="text/javascript" src="{{ pathto('_static/js/vendor/anchor.min.js', 1) }}"></script>
 
   <script type="text/javascript">
+    var collapsedSections = ['Notes']
     $(document).ready(function() {
       mobileMenu.bind();
       mobileTOC.bind();
@@ -482,6 +482,24 @@
         $(this).closest("a").addClass("has-code");
       });
     })
+  </script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@docsearch/js@1.0.0-alpha.28/dist/umd/index.min.js"></script>
+  <script type="text/javascript">
+  let VERSION
+  if ('{{ version }}'.includes('v')) {
+    VERSION = '{{ version }}'
+  } else {
+    VERSION = '{{ release }}'
+  }
+  docsearch({
+    container: '#docsearch',
+    apiKey: '19a7a7a75d87608d6f42c722ed1e293f',
+    indexName: 'ignite',
+    placeholder: 'Search PyTorch-Ignite docs',
+    searchParameters: {
+      'facetFilters': [`version:${VERSION}`],
+    }
+  });
   </script>
 </body>
 </html>
