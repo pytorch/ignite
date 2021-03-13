@@ -1,223 +1,229 @@
+import pytest
 import os
 
-import pytest
 import torch
-from rouge_score import rouge_scorer, tokenize
+
+from rouge_metric import PerlRouge
 
 import ignite.distributed as idist
-from ignite.exceptions import NotComputableError
+
+from ignite.metrics.rouge import ngrams, lcs, compute_ngram_scores
 from ignite.metrics import Rouge
-from ignite.metrics.rouge import _lcs, _ngramify, _safe_divide
+from ignite.metrics.rouge import RougeN, RougeL
+from ignite.exceptions import NotComputableError
+
+
+@pytest.mark.parametrize(
+    "sequence, n, expected_keys, expected_values", [
+        ([], 1, [], []),
+        ([0, 1, 2], 1, [(0,), (1,), (2,)], [1, 1, 1]),
+        ([0, 1, 2], 2, [(0, 1,), (1, 2,)], [1, 1]),
+        ([0, 1, 2], 3, [(0, 1, 2)], [1]),
+        ([0, 0, 0], 1, [(0,)], [3]),
+        ([0, 0, 0], 2, [(0, 0)], [2]),
+        ("abcde", 4, [("a", "b", "c", "d"), ("b", "c", "d", "e")], [1, 1]),
+    ]
+)
+def test_ngrams(sequence, n, expected_keys, expected_values):
+    ngrams_counter = ngrams(sequence=sequence, n=n)
+    assert list(ngrams_counter.values()) == expected_values
+    assert list(ngrams_counter.keys()) == expected_keys
+
+
+@pytest.mark.parametrize(
+    "seq_a, seq_b, expected", [
+        ([], [], 0),
+        ([0, 1, 2], [0, 1, 2], 3),
+        ([0, 1, 2], [0, 3, 2], 2),
+        ("academy", "abracadabra", 4),
+    ]
+)
+def test_lcs(seq_a, seq_b, expected):
+    assert lcs(seq_a, seq_b) == expected
+
+
+@pytest.mark.parametrize(
+    "candidate, reference, n, expected_precision, expected_recall", [
+        ([], [], 1, 0, 0),
+        ("abc", "ab", 1, 2 / 3, 2 / 2),
+        ("abc", "ab", 2, 1 / 2, 1 / 1),
+        ("abc", "ab", 3, 0, 0),
+        ("ab", "abc", 1, 2 / 2, 2 / 3),
+        ("ab", "cde", 1, 0 / 2, 0 / 3),
+        ("aab", "aace", 1, 2 / 3, 2 / 4),
+        ("aa", "aaa", 1, 2 / 2, 2 / 3),
+        ("aaa", "aa", 1, 2 / 3, 2 / 2),
+    ]
+)
+def test_compute_ngram_scores(candidate, reference, n, expected_precision, expected_recall):
+    scores = compute_ngram_scores(candidate, reference, n=n)
+    assert pytest.approx(scores.precision) == expected_precision
+    assert pytest.approx(scores.recall) == expected_recall
 
 
 def test_wrong_inputs():
-    with pytest.raises(TypeError):
-        rouge = Rouge(beta="l", metric="rouge-1")
 
-    with pytest.raises(ValueError):
-        rouge = Rouge(metric="m")
+    with pytest.raises(ValueError, match=r"ngram order must be greater than one"):
+        RougeN(ngram=0)
 
-    with pytest.raises(ValueError):
-        rouge = Rouge(metric="rouge-0")
+    with pytest.raises(ValueError, match=r"alpha must be in interval \[0, 1\]"):
+        RougeN(alpha=-1)
 
-    with pytest.raises(ValueError):
-        rouge = Rouge(metric="rouge-1", aggregate="test")
+    with pytest.raises(ValueError, match=r"alpha must be in interval \[0, 1\]"):
+        RougeN(alpha=2)
 
-    rouge = Rouge()
+    with pytest.raises(ValueError, match=r"aggregation must be in \['best', 'average'\] "):
+        RougeN(multiref="")
+
+    with pytest.raises(ValueError, match=r"Rouge must have at least one metric"):
+        Rouge(metrics=[])
+
+    with pytest.raises(ValueError, match=r"Rouge metric name must be 'Rouge-L' or 'Rouge-N' for N in \[1 ... 9\]"):
+        Rouge(metrics=["error"])
+
     with pytest.raises(NotComputableError):
-        rouge.compute()
+        RougeL().compute()
 
 
 @pytest.mark.parametrize(
-    "metric, aggregate, y_indices, y_pred_indices, expected",
-    [
-        ("rouge-1", "single", [8, 3, 2], [], 0.0),
-        ("rouge-1", "single", [], [8, 3, 2], 0.0),
-        ("rouge-1", "single", [8, 3, 2], [8], 0.5),
-        ("rouge-2", "single", [8, 3, 2], [8, 3], 2 / 3),
-        ("rouge-L", "single", [8, 3, 2], [8, 2], 0.8),
+    "ngram, candidate, reference, expected", [
+        (1, [1, 2, 3], [1, 2], (2 / 3, 2 / 2)),
+        (2, [1, 2, 3], [1, 2], (1 / 2, 1 / 1)),
+        (1, "abcdef", "zbdfz", (3 / 6, 3 / 5)),
+        (2, "abcdef", "zbdfz", (0, 0)),
     ],
 )
-def test_rouge(metric, aggregate, y_indices, y_pred_indices, expected):
+def test_rouge_n_alpha(ngram, candidate, reference, expected):
+    for alpha in [0, 1, 0.3, 0.5, 0.8]:
+        rouge = RougeN(ngram=ngram, alpha=alpha)
+        rouge.update((candidate, [reference]))
+        results = rouge.compute()
+        assert results[f"Rouge-{ngram}-P"] == expected[0]
+        assert results[f"Rouge-{ngram}-R"] == expected[1]
+        try:
+            F = expected[0] * expected[1] / ((1 - alpha) * expected[0] + alpha * expected[1])
+        except ZeroDivisionError:
+            F = 0
+        assert results[f"Rouge-{ngram}-F"] == F
 
-    rouge = Rouge(metric=metric, beta=1.0, aggregate=aggregate)
 
-    y = ["a" * i for i in y_indices]
-    y_pred = ["a" * i for i in y_pred_indices]
+# BLEU Paper examples
+CAND_1 = "the the the the the the the"
+REF_1A = "The cat is on the mat"
+REF_1B = "There is a cat on the mat"
 
-    rouge.update((y_pred, y))
+CAND_2A = "It is a guide to action which ensures that the military always obeys the " \
+          "commands of the party"
+CAND_2B = "It is to insure the troops forever hearing the activity guidebook that " \
+          "party direct"
+REF_2A = "It is a guide to action that ensures that the military will forever heed " \
+         "Party commands"
+REF_2B = "It is the guiding principle which guarantees the military forces always being under the " \
+         "command of the Party"
+REF_2C = "It is the practical guide for the army always to heed the directions of the " \
+         "party"
 
-    assert rouge.compute() == expected
+CAND_3 = "of the"
 
 
 @pytest.mark.parametrize(
-    "metric, aggregate, y_indices, y_pred_indices, expected",
-    [
-        ("rouge-L", "mean", [[8, 2], [], [], []], [8, 3, 2], 0.2),
-        ("rouge-L", "max", [[8, 2], [], [], []], [8, 3, 2], 0.8),
-    ],
+    "candidates, references", [
+        ([CAND_1], [[REF_1A, REF_1B]]),
+        ([CAND_3], [[REF_2A, REF_2B, REF_2C]]),
+        ([CAND_2A], [[REF_2A, REF_2B, REF_2C]]),
+        ([CAND_2B], [[REF_2A, REF_2B, REF_2C]]),
+        ([CAND_2A, CAND_2B], [[REF_2A, REF_2B, REF_2C], [REF_2A, REF_2B, REF_2C]]),
+    ]
 )
-def test_rouge_multi(metric, aggregate, y_indices, y_pred_indices, expected):
+def test_rouge_metrics(candidates, references):
+    for multiref in ["average", "best"]:
+        # PERL 1.5.5 reference
+        perl_rouge = PerlRouge(rouge_n_max=4, multi_ref_mode=multiref)
+        scores = perl_rouge.evaluate(candidates, references)
 
-    rouge = Rouge(metric=metric, beta=1.0, aggregate=aggregate)
+        lower_split_references = [
+            [ref.lower().split() for ref in refs_per_candidate] for refs_per_candidate in references
+        ]
 
-    y = [["a" * i for i in index] for index in y_indices]
-    y_pred = ["a" * i for i in y_pred_indices]
+        lower_split_candidates = [candidate.lower().split() for candidate in candidates]
 
-    rouge.update((y_pred, y))
+        m = Rouge(
+            metrics=["Rouge-1", "Rouge-2", "Rouge-4", "Rouge-L"],
+            multiref=multiref,
+            alpha=0.5
+        )
+        for candidate, references_per_candidate in zip(lower_split_candidates, lower_split_references):
+            m.update((candidate, references_per_candidate))
+        results = m.compute()
 
-    assert rouge.compute() == expected
-
-
-def test_lcs():
-    ref = [1, 2, 3, 4, 5]
-    cl = [2, 5, 3, 4]
-
-    assert _lcs(ref, cl) == 3
-
-
-def test_ngramify():
-    y = ["a", "b", "c", "d", "e", "f", "g", "h"]
-    for i in range(1, 9):
-        assert len(_ngramify(y, i)) == len(y) - i + 1
-
-
-def test_safe_divide():
-    assert _safe_divide(1.0, 0.0) == 0
-    assert _safe_divide(0.0, 1.0) == 0
-    assert _safe_divide(0.0, 0.0) == 0
-    assert _safe_divide(1.0, 2.0) == 0.5
-
-
-def test_rouge_against_rouge155():
-    y_pred = """rFDJCRtion Ht-LM EKtDXkME,yz'RBr q'wer wrojNbN wL,b .a-'XdQggyFl jB-RPP'iyOIcUxi n cw-WeFyu vC MoBL Xdn g
-    wkvcEiGvKtion BDFhrpMer pstion sbKao Q m qier LMmed HqqLFXe,XPY,J XsurkMeo ,ed nB'wH'bWVHjWFEer
-    tQ.saefZwJtKrTlixYpMMNJtion UCAPwNHeYVjD"""
-    y = """ZfbCUIUuePaiLVUlCaUXxkpu XPeWing tUHfPMuZ',-Xd Y BrUgVJing M-HV.-DgdDaY.rFDJCRing Ht-LM EKBDXkME,yz'RBr
-    q'wtion wIojNbN wL,b .a-'XdQggyFl jB - RPP'iyOIcUxer tKM L KsJdPByEtAor fE-Qg Dpdbring cw-WeFyu vC MoBL Xdn g
-    wkvcEiGvKtion BDFhrpMtion psing sbKao Q m qiing LMmer HqqLFXe,XPY,J XsurkMer ,ed nB'wH'bWVHjWFEing
-    tQ.saefZwJtKrTlixYpMMsJing UCAPwNHeYVjDing c T BUySKtion gMPfJpwGw p'NvxAoping eu pBwMBKV'I DNxqelhu,PHPxDEq,mtion
-    SN"""
-
-    scorer = rouge_scorer.RougeScorer(["rouge1", "rouge2", "rougeL"], use_stemmer=False)
-    scores = scorer.score(y_pred, y)
-
-    rouge1 = Rouge(metric="rouge-1", beta=1.0)
-    rouge1.update([tokenize.tokenize(y_pred, None), tokenize.tokenize(y, None)])
-
-    assert rouge1.compute() == scores["rouge1"].fmeasure
-
-    rouge2 = Rouge(metric="rouge-2", beta=1.0)
-    rouge2.update([tokenize.tokenize(y_pred, None), tokenize.tokenize(y, None)])
-
-    assert rouge2.compute() == scores["rouge2"].fmeasure
-
-    rougel = Rouge(metric="rouge-L", beta=1.0)
-    rougel.update([tokenize.tokenize(y_pred, None), tokenize.tokenize(y, None)])
-
-    assert rougel.compute() == scores["rougeL"].fmeasure
-
-
-def test_compute():
-    def _test_compute(rouge1, rougel, scorer):
-        acc_rouge1 = 0
-        acc_rougel = 0
-        y_pred_list = ["the cat was found under the bed", "the tiny little cat was found under the big funny bed"]
-        y_list = ["the cat was under the bed", "the cat was under the bed"]
-        for i, (y_pred, y) in enumerate(zip(y_pred_list, y_list), start=1):
-            score = scorer.score(y_pred, y)
-            acc_rouge1 += score["rouge1"].fmeasure
-            acc_rougel += score["rougeL"].fmeasure
-            rouge1.update([tokenize.tokenize(y_pred, None), tokenize.tokenize(y, None)])
-            rougel.update([tokenize.tokenize(y_pred, None), tokenize.tokenize(y, None)])
-            assert isinstance(rouge1.compute(), torch.Tensor)
-            assert isinstance(rougel.compute(), torch.Tensor)
-            assert rouge1.compute() == acc_rouge1 / i
-            assert rougel.compute() == acc_rougel / i
-
-    _test_compute(
-        Rouge(metric="rouge-1", beta=1.0),
-        Rouge(metric="rouge-l", beta=1.0),
-        rouge_scorer.RougeScorer(["rouge1", "rougeL"], use_stemmer=False),
-    )
+        for key in ["1", "2", "4", "L"]:
+            assert pytest.approx(results[f'Rouge-{key}-R'], abs=1e-4) == scores[f'rouge-{key.lower()}']['r']
+            assert pytest.approx(results[f'Rouge-{key}-P'], abs=1e-4) == scores[f'rouge-{key.lower()}']['p']
+            assert pytest.approx(results[f'Rouge-{key}-F'], abs=1e-4) == scores[f'rouge-{key.lower()}']['f']
 
 
 def _test_distrib_integration(device):
-    import ignite.distributed as idist
+
     from ignite.engine import Engine
-    from ignite.metrics import Rouge
 
-    n_iters = 2
+    rank = idist.get_rank()
 
-    y = ["Hi", "Hello"]
-    y_preds = ["Hi there", "Hello How are you"]
+    chunks = [
+        (CAND_1, [REF_1A, REF_1B]),
+        (CAND_2A, [REF_2A, REF_2B, REF_2C]),
+        (CAND_2B, [REF_2A, REF_2B, REF_2C]),
+        (CAND_1, [REF_1A]),
+        (CAND_2A, [REF_2A, REF_2B]),
+        (CAND_2B, [REF_2A, REF_2B]),
+        (CAND_1, [REF_1B]),
+        (CAND_2A, [REF_2B, REF_2C]),
+        (CAND_2B, [REF_2B, REF_2C]),
+        (CAND_1, [REF_1A, REF_1B]),
+        (CAND_2A, [REF_2A, REF_2C]),
+        (CAND_2B, [REF_2A, REF_2C]),
+        (CAND_1, [REF_1A]),
+        (CAND_2A, [REF_2A]),
+        (CAND_2B, [REF_2C])
+    ]
 
-    def update(engine, i):
-        return (y[i].split(), y_preds[i].split())
+    size = len(chunks)
 
-    def _test_n(metric_device):
+    data = []
+    for c in chunks:
+        data += idist.get_world_size() * [c]
+
+    def update(_, i):
+        candidate, references = data[i + size * rank]
+        lower_split_references = [reference.lower().split() for reference in references]
+        lower_split_candidate = candidate.lower().split()
+        return lower_split_candidate, lower_split_references
+
+    def _test(metric_device):
         engine = Engine(update)
-        m = Rouge(metric="rouge-1", beta=1.0, device=metric_device)
+        m = Rouge(metrics=["Rouge-1", "Rouge-2", "Rouge-L"], alpha=0.5, device=metric_device)
         m.attach(engine, "rouge")
 
-        data = list(range(n_iters))
-        engine.run(data=data, max_epochs=1)
+        engine.run(data=list(range(size)), max_epochs=1)
 
-        acc_score = 0
-        scorer = rouge_scorer.RougeScorer(["rouge1"], use_stemmer=False)
-        for i in range(n_iters):
-            acc_score += scorer.score(y_preds[i], y[i])["rouge1"].fmeasure
-        assert m.compute() == acc_score / n_iters
         assert "rouge" in engine.state.metrics
 
-    def _test_l(metric_device):
-        engine = Engine(update)
-        m = Rouge(metric="rouge-L", beta=1.0, device=metric_device)
-        m.attach(engine, "rouge")
+        perl_rouge = PerlRouge(rouge_n_max=2)
 
-        data = list(range(n_iters))
-        engine.run(data=data, max_epochs=1)
+        rouge_1_f, rouge_2_f, rouge_l_f = (0, 0, 0)
+        for candidate, references in data:
+            scores = perl_rouge.evaluate([candidate], [references])
+            rouge_1_f += scores["rouge-1"]['f']
+            rouge_2_f += scores["rouge-2"]['f']
+            rouge_l_f += scores["rouge-l"]['f']
 
-        acc_score = 0
-        scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=False)
-        for i in range(n_iters):
-            acc_score += scorer.score(y_preds[i], y[i])["rougeL"].fmeasure
-        assert m.compute() == acc_score / n_iters
-        assert "rouge" in engine.state.metrics
+        assert pytest.approx(engine.state.metrics["Rouge-1-F"], abs=1e-4) == rouge_1_f / len(data)
+        assert pytest.approx(engine.state.metrics["Rouge-2-F"], abs=1e-4) == rouge_2_f / len(data)
+        assert pytest.approx(engine.state.metrics["Rouge-L-F"], abs=1e-4) == rouge_l_f / len(data)
 
-    _test_n("cpu")
-    _test_l("cpu")
+    _test("cpu")
+
     if device.type != "xla":
-        _test_n(idist.device())
-        _test_l(idist.device())
-
-
-def _test_distrib_accumulator_device(device):
-
-    metric_devices = [torch.device("cpu")]
-    if torch.device(device).type != "xla":
-        metric_devices.append(idist.device())
-
-    for metric_device in metric_devices:
-        rouge = Rouge(metric="rouge-1", beta=1.0, device=metric_device)
-        dev = rouge._device
-        assert dev == metric_device, f"{dev} vs {metric_device}"
-
-        y_pred = "the tiny little cat was found under the big funny bed"
-        y = "the cat was under the bed"
-        rouge.update([y_pred.split(), y.split()])
-        dev = rouge._rougetotal.device
-        assert dev == metric_device, f"{dev} vs {metric_device}"
-
-
-def test_accumulator_detached():
-    rouge = Rouge(metric="rouge-1", beta=1.0)
-
-    y_pred = "the cat was found under the big funny bed"
-    y = "the tiny little cat was under the bed"
-    rouge.update([y_pred.split(), y.split()])
-
-    assert not rouge._rougetotal.requires_grad
+        _test(idist.device())
 
 
 @pytest.mark.distributed
@@ -226,7 +232,6 @@ def test_accumulator_detached():
 def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
     device = torch.device(f"cuda:{local_rank}")
     _test_distrib_integration(device)
-    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.distributed
@@ -234,7 +239,6 @@ def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
 def test_distrib_cpu(distributed_context_single_node_gloo):
     device = torch.device("cpu")
     _test_distrib_integration(device)
-    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.distributed
@@ -246,7 +250,6 @@ def test_distrib_hvd(gloo_hvd_executor):
     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
 
     gloo_hvd_executor(_test_distrib_integration, (device,), np=nproc, do_init=True)
-    gloo_hvd_executor(_test_distrib_accumulator_device, (device,), np=nproc, do_init=True)
 
 
 @pytest.mark.multinode_distributed
@@ -255,7 +258,6 @@ def test_distrib_hvd(gloo_hvd_executor):
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     device = torch.device("cpu")
     _test_distrib_integration(device)
-    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.multinode_distributed
@@ -264,7 +266,6 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     device = torch.device(f"cuda:{distributed_context_multi_node_nccl['local_rank']}")
     _test_distrib_integration(device)
-    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.tpu
@@ -273,13 +274,11 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
 def test_distrib_single_device_xla():
     device = idist.device()
     _test_distrib_integration(device)
-    _test_distrib_accumulator_device(device)
 
 
 def _test_distrib_xla_nprocs(index):
     device = idist.device()
     _test_distrib_integration(device)
-    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.tpu

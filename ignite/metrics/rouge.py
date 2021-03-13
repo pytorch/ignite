@@ -1,9 +1,9 @@
-import numbers
-from collections import Counter
-from typing import Callable, DefaultDict, List, Tuple, Union
+import re
+from abc import ABCMeta, abstractmethod
+from collections import Counter, namedtuple
+from typing import Callable, Sequence, Tuple, Union, Any, Mapping
 
 import torch
-from torch.types import Number
 
 from ignite.exceptions import NotComputableError
 from ignite.metrics import Metric
@@ -12,74 +12,240 @@ from ignite.metrics import Metric
 from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
 
-def _ngramify(sequence: List, n: int) -> Counter:
+def ngrams(sequence: Sequence[Any], n: int) -> Counter:
+    """
+    Generate the ngrams from a sequence of items
+
+    Args:
+        sequence: sequence of items
+        n: ngram order
+
+    Returns:
+        A counter of ngram objects
+
+    .. versionadded:: 0.5.0
+    """
     return Counter([tuple(sequence[i : i + n]) for i in range(len(sequence) - n + 1)])
 
 
-def _safe_divide(numerator: float, denominator: float) -> float:
-    if denominator > 0:
-        return numerator / denominator
-    else:
-        return 0.0
+def lcs(seq_a: Sequence[Any], seq_b: Sequence[Any]) -> int:
+    """
+    Compute the length of the longest common subsequence in two sequence of items
+    https://en.wikipedia.org/wiki/Longest_common_subsequence_problem
 
+    Args:
+        seq_a: first sequence of items
+        seq_b: second sequence of items
 
-def _fbeta_score(matches: int, recall_total: int, precision_total: int, alpha: float) -> float:
-    recall_score = _safe_divide(matches, recall_total)
-    precision_score = _safe_divide(matches, precision_total)
-    denom = (1 - alpha) * precision_score + (alpha) * recall_score
-    fbeta_score = _safe_divide(precision_score * recall_score, denom)
-    return fbeta_score
+    Returns:
+        The length of the longest common subsequence
 
+    .. versionadded:: 0.5.0
+    """
+    m = len(seq_a)
+    n = len(seq_b)
 
-def _lcs(X: List, Y: List) -> int:
-    m = len(X)
-    n = len(Y)
-
-    L = [[0] * (n + 1) for i in range(m + 1)]
+    dp = [[0] * (n + 1) for _ in range(m + 1)]
 
     for i in range(m + 1):
         for j in range(n + 1):
             if i == 0 or j == 0:
-                L[i][j] = 0
-            elif X[i - 1] == Y[j - 1]:
-                L[i][j] = L[i - 1][j - 1] + 1
+                dp[i][j] = 0
+            elif seq_a[i - 1] == seq_b[j - 1]:
+                dp[i][j] = dp[i - 1][j - 1] + 1
             else:
-                L[i][j] = max(L[i - 1][j], L[i][j - 1])
+                dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])
 
-    return L[m][n]
+    return dp[m][n]
 
 
-class Rouge(Metric):
-    r"""Calculates the Rouge Score for two Sequence of Tokens.
+class Score(namedtuple("Score", ["match", "candidate", "reference"])):
 
-    Paper: Lin, Chin-Yew. 2004. ROUGE: a Package for Automatic Evaluation of Summaries.
-    In Proceedings of the Workshop on Text Summarization Branches Out (WAS 2004), Barcelona, Spain, July 25 - 26, 2004.
+    @property
+    def precision(self) -> float:
+        return self.match / self.candidate if self.candidate > 0 else 0
 
-    Contains two metric Rouge-n and Rouge-L.
+    @property
+    def recall(self) -> float:
+        return self.match / self.reference if self.reference > 0 else 0
 
-    - Rouge-n: precision, recall and f-beta based on overlapping n-grams between the predicted and the reference text
-    - Rouge-L: Only the sentence level Rouge-L score is implemented. It finds the Longest Common Subsequence between
-      the predicted and reference text and uses it to calculate precison, recall, f-beta score
 
-    .. math::
-        F_\beta = \left( 1 + \beta^2 \right) * \frac{ \text{precision} * \text{recall} }
-        { \left( \beta^2 * \text{precision} \right) + \text{recall} }
-
-    where :math:`\beta` is a float.
-
-    - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
-    - `y_pred` must be a Sequence of Tokens.
-    - `y` must be in the form of List of Sequence of Tokens of Model Texts.
+def compute_ngram_scores(candidate: Sequence[Any],
+                         reference: Sequence[Any],
+                         n: int = 4) -> Score:
+    """
+    Compute the score based on ngram co-occurence of sequences of items
 
     Args:
-        beta: beta value for calculating f-beta
-        metric: Which variant of Rouge Score to be evaluated
-            Valid Values - "rougeN", "rougen", "n", "N", "rougeL", "rougel", "l", "L"
-        version: specifically for Rouge-L to choose which flavour of Rouge-L you wish to use.
-            Valid Values - "sentence", "corpus"
-        aggregate: For multiple reference Rouge score calculation. Provides options to take mean or argmax of all
-            reference summaries for a given candidate summary.
-            Valid Values - "single", "mean", "max"
+        candidate: candidate sequence of items
+        reference: reference sequence of items
+        n: ngram order
+
+    Returns:
+        The score containing the number of ngram co-occurences
+
+    .. versionadded:: 0.5.0
+    """
+
+    # ngrams of the candidate
+    candidate_counter = ngrams(candidate, n)
+    # ngrams of the references
+    reference_counter = ngrams(reference, n)
+    # ngram co-occurences in the candidate and the references
+    match_counters = candidate_counter & reference_counter
+
+    # sum to compte sizes of each ngrams
+    match = sum(match_counters.values())
+    candidate = sum(candidate_counter.values())
+    reference = sum(reference_counter.values())
+
+    # the score is defined using Fraction
+    return Score(match=match, candidate=candidate, reference=reference)
+
+
+def compute_lcs_scores(candidate: Sequence[Any],
+                       reference: Sequence[Any]) -> Score:
+    """
+    Compute the score based on longest common subsequence of sequences of items
+
+    Args:
+        candidate: candidate sequence of items
+        reference: reference sequence of items
+
+    Returns:
+        The score containing the length of longest common subsequence
+
+    .. versionadded:: 0.5.0
+    """
+
+    # lcs of candidate and reference
+    match = lcs(candidate, reference)
+
+    # the score is defined using Fraction
+    return Score(match=match, candidate=len(candidate), reference=len(reference))
+
+
+class MultiRefReducer(metaclass=ABCMeta):
+    r"""
+    Reducer interface for multi-reference
+    """
+    @abstractmethod
+    def __call__(self, scores: Sequence[Score]) -> Score:
+        pass
+
+
+class MultiRefAverageReducer(MultiRefReducer):
+    r"""
+    Reducer for averaging the scores
+    """
+    def __call__(self, scores: Sequence[Score]) -> Score:
+        match = sum([score.match for score in scores])
+        candidate = sum([score.candidate for score in scores])
+        reference = sum([score.reference for score in scores])
+        return Score(match=match, candidate=candidate, reference=reference)
+
+
+class MultiRefBestReducer(MultiRefReducer):
+    r"""
+    Reducer for selecting the best score
+    """
+    def __call__(self, scores: Sequence[Score]) -> Score:
+        return max(scores, key=lambda x: x.recall)
+
+
+class _BaseRouge(Metric):
+    r"""
+    Rouge interface for Rouge-L and Rouge-N
+    """
+    def __init__(
+        self,
+        multiref: str = "average",
+        alpha: float = 0,
+        output_transform: Callable = lambda x: x,
+        device: Union[str, torch.device] = torch.device("cpu"),
+    ) -> None:
+        super(_BaseRouge, self).__init__(output_transform=output_transform, device=device)
+        self._alpha = alpha
+        if not 0 <= self._alpha <= 1:
+            raise ValueError(f"alpha must be in interval [0, 1] (got : {self._alpha})")
+        self._multiref = multiref
+        valid_multiref = ["best", "average"]
+        if self._multiref not in valid_multiref:
+            raise ValueError(f"aggregation must be in {valid_multiref} (got : {self._multiref })")
+        self._mutliref_reducer = self._get_multiref_reducer()
+
+    def _get_multiref_reducer(self) -> MultiRefReducer:
+        if self._multiref == "average":
+            return MultiRefAverageReducer()
+        if self._multiref == "best":
+            return MultiRefBestReducer()
+
+    @reinit__is_reduced
+    def reset(self) -> None:
+        self._recall = 0
+        self._precision = 0
+        self._fmeasure = 0
+        self._num_examples = 0
+
+    @reinit__is_reduced
+    def update(self, output: Tuple[Sequence[Any], Sequence[Sequence[Any]]]) -> None:
+        candidate, references = output[0], output[1]
+        multiref_scores = [
+            self.compute_score(
+                candidate=candidate,
+                reference=reference,
+            ) for reference in references
+        ]
+        score = self._mutliref_reducer(multiref_scores)
+        self._precision += score.precision
+        self._recall += score.recall
+        precision_recall = score.precision * score.recall
+        if precision_recall > 0:  # avoid zero division
+            self._fmeasure += precision_recall / ((1 - self._alpha) * score.precision + self._alpha * score.recall)
+        print("-********", candidate, references)
+        print(score.precision, score.recall, self._fmeasure)
+
+        self._num_examples += 1
+
+    @sync_all_reduce("_precision", "_recall", "_fmeasure", "_num_examples")
+    def compute(self) -> Mapping:
+        if self._num_examples == 0:
+            raise NotComputableError("Rouge metric must have at least one example before be computed")
+
+        return {
+            f"{self.metric_name()}-P": float(self._precision / self._num_examples),
+            f"{self.metric_name()}-R": float(self._recall / self._num_examples),
+            f"{self.metric_name()}-F": float(self._fmeasure / self._num_examples),
+        }
+
+    @abstractmethod
+    def compute_score(self, candidate: Sequence[Any], reference: Sequence[Any]) -> Score:
+        pass
+
+    @abstractmethod
+    def metric_name(self) -> str:
+        pass
+
+
+class RougeN(_BaseRouge):
+    r"""Calculates the Rouge-N score.
+
+    The Rouge-N is based on the ngram co-occurences of candidates and references.
+
+    More details can be found in `Lin 2004`__.
+
+    __ https://www.aclweb.org/anthology/W04-1013.pdf
+
+    - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
+    - `y_pred` must be a sequence of tokens.
+    - `y` must be a list of sequence of tokens.
+
+    Args:
+        ngram: ngram order (default: 4).
+        multiref: reduces scores for multi references. Valid values are "best" and "average"
+            (default: "average").
+        alpha: controls the importance between recall and precision (alpha -> 0: recall is more important, alpha -> 1:
+            precision is more important)
         output_transform (callable, optional): a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
@@ -91,99 +257,186 @@ class Rouge(Metric):
 
     .. code-block:: python
 
-        from ignite.metrics import Rouge
-        m = Rouge(beta=1,metric="rouge-L",version="sentence",aggregate="single")
-        y_pred = "the cat was found under the bed"
-        y = "the cat was under the bed"
-        m.update([y_pred.split(),y.split()]]) #Using space to separate sentences into tokens
-        y_pred = "the tiny little cat was found under the big funny bed"
-        m.update([y_pred.split(),y.split()])
-        print(m.compute())
+        from ignite.metrics.rouge import RougeN
+
+        m = RougeN(ngrams=2, multiref="best")
+
+        candidate = "the cat is not there".split()
+        references = [
+            "the cat is on the mat".split(),
+            "there is a cat on the mat".split()
+        ]
+
+        m.update((candidate, references))
+
+        m.compute()
+        >>> {'Rouge-2-P': 0.5, 'Rouge-2-R': 0.4, 'Rouge-2-F': 0.4}
 
     .. versionadded:: 0.5.0
     """
-
     def __init__(
         self,
-        beta: float = float("inf"),
-        metric: str = "rouge-1",
-        aggregate: str = "single",
+        ngram: int = 4,
+        multiref: str = "average",
+        alpha: float = 0,
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
-    ) -> None:
-        self._rougetotal: torch.Tensor = torch.tensor(0, device=device, dtype=torch.double)
-        self._num_examples: int = 0
-        self.beta: float = 0.0
-        self.n: int = 1
-        self.beta, self.n, self.rouge_fn, self.aggregate = self._check_parameters(beta, metric, aggregate)
-        self.alpha = 1 / (1 + self.beta ** 2)
+    ):
+        super(RougeN, self).__init__(multiref=multiref, alpha=alpha, output_transform=output_transform, device=device)
+        self._ngram = ngram
+        if self._ngram < 1:
+            raise ValueError(f"ngram order must be greater than one (got : {self._ngram})")
+
+    def compute_score(self, candidate: Sequence[Any], reference: Sequence[Any]) -> Score:
+        return compute_ngram_scores(candidate=candidate,
+                                    reference=reference,
+                                    n=self._ngram)
+
+    def metric_name(self) -> str:
+        return f"Rouge-{self._ngram}"
+
+
+class RougeL(_BaseRouge):
+    r"""Calculates the Rouge-L score.
+
+    The Rouge-L is based on the length of the longest common subsequence of candidates and references.
+
+    More details can be found in `Lin 2004`__.
+
+    __ https://www.aclweb.org/anthology/W04-1013.pdf
+
+    - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
+    - `y_pred` must be a sequence of tokens.
+    - `y` must be a list of sequence of tokens.
+
+    Args:
+        multiref: reduces scores for multi references. Valid values are "best" and "average" (default: "average").
+        alpha: controls the importance between recall and precision (alpha -> 0: recall is more important, alpha -> 1:
+           precision is more important)
+        output_transform (callable, optional): a callable that is used to transform the
+           :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
+           form expected by the metric. This can be useful if, for example, you have a multi-output model and
+           you want to compute the metric with respect to one of the outputs.
+        device (Union[str, torch.device]) – specifies which device updates are accumulated on. Setting the metric’s
+           device to be the same as your update arguments ensures the update method is non-blocking. By default, CPU.
+
+    Example:
+
+    .. code-block:: python
+
+        from ignite.metrics.rouge import RougeL
+
+        m = RougeL(multiref="best")
+
+        candidate = "the cat is not there".split()
+        references = [
+           "the cat is on the mat".split(),
+            "there is a cat on the mat".split()
+        ]
+
+        m.update((candidate, references))
+
+       m.compute()
+       >>> {'Rouge-L-P': 0.6, 'Rouge-L-R': 0.5, 'Rouge-L-F': 0.5}
+
+    .. versionadded:: 0.5.0
+    """
+    def __init__(
+        self,
+        multiref: str = "average",
+        alpha: float = 0,
+        output_transform: Callable = lambda x: x,
+        device: Union[str, torch.device] = torch.device("cpu"),
+    ):
+        super(RougeL, self).__init__(multiref=multiref, alpha=alpha, output_transform=output_transform, device=device)
+
+    def compute_score(self, candidate: Sequence[Any], reference: Sequence[Any]) -> Score:
+        return compute_lcs_scores(candidate=candidate,
+                                  reference=reference)
+
+    def metric_name(self) -> str:
+        return f"Rouge-L"
+
+
+class Rouge(Metric):
+    r"""Calculates the Rouge score for multiples Rouge-N and Rouge-L metrics.
+
+    More details can be found in `Lin 2004`__.
+
+    __ https://www.aclweb.org/anthology/W04-1013.pdf
+
+    - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
+    - `y_pred` must be a sequence of tokens.
+    - `y` must be a list of sequence of tokens.
+
+    Args:
+        metrics: names of metrics computed. Valid names are "Rouge-L" and "Rouge-n" where n is an integer 1 <= n <= 9.
+        multiref: reduces scores for multi references. Valid values are "best" and "average" (default: "average").
+        alpha: controls the importance between recall and precision (alpha -> 0: recall is more important, alpha -> 1:
+           precision is more important)
+        output_transform (callable, optional): a callable that is used to transform the
+           :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
+           form expected by the metric. This can be useful if, for example, you have a multi-output model and
+           you want to compute the metric with respect to one of the outputs.
+        device (Union[str, torch.device]) – specifies which device updates are accumulated on. Setting the metric’s
+           device to be the same as your update arguments ensures the update method is non-blocking. By default, CPU.
+
+    Example:
+
+    .. code-block:: python
+
+        from ignite.metrics import Rouge
+
+        m = Rouge(metrics=["Rouge-L", "Rouge-2"], multiref="best")
+
+        candidate = "the cat is not there".split()
+        references = [
+            "the cat is on the mat".split(),
+            "there is a cat on the mat".split()
+        ]
+
+        m.update((candidate, references))
+
+        m.compute()
+        >>> {'Rouge-L-P': 0.6, 'Rouge-L-R': 0.5, 'Rouge-L-F': 0.5, 'Rouge-2-P': 0.5, 'Rouge-2-R': 0.4, 'Rouge-2-F': 0.4}
+
+        .. versionadded:: 0.5.0
+        """
+    def __init__(
+        self,
+        metrics: Sequence[str] = None,
+        multiref: str = "average",
+        alpha: float = 0,
+        output_transform: Callable = lambda x: x,
+        device: Union[str, torch.device] = torch.device("cpu"),
+    ):
+        if len(metrics) == 0:
+            raise ValueError("Rouge must have at least one metric")
+        self.internal_metrics = []
+        for m in metrics:
+            if m == "Rouge-L":
+                self.internal_metrics.append(RougeL(multiref, alpha, output_transform, device))
+            else:
+                match = re.match('Rouge-(?P<ngram>[1-9])', m)
+                if not match:
+                    raise ValueError("Rouge metric name must be 'Rouge-L' or 'Rouge-N' for N in [1 ... 9]")
+                n = int(match.group("ngram"))
+                self.internal_metrics.append(RougeN(n, multiref, alpha, output_transform, device))
         super(Rouge, self).__init__(output_transform=output_transform, device=device)
-
-    def _check_parameters(self, beta: float, metric: str, aggregate: str) -> Tuple:
-        if not isinstance(beta, numbers.Number):
-            raise TypeError("Beta should be a float.")
-        n = 1
-        if metric[-1].isnumeric():
-            n = int(metric[-1])
-            if n < 1:
-                raise ValueError("n has to be greater than 0 to calculate Rouge-n.")
-            rouge_fn = self.rouge_n
-        elif metric[-1] in ["l", "L"]:
-            rouge_fn = self.rouge_l
-        else:
-            raise ValueError("Please provide a valid variant of Rouge to evaluate.")
-        if aggregate not in ["single", "mean", "max"]:
-            raise ValueError("Aggrregate must be single, mean or max.")
-        return beta, n, rouge_fn, aggregate
-
-    def rouge_n(self, y_pred: List[str], y: List[str]) -> float:
-        n = self.n
-        y_pred_count = _ngramify(y_pred, n)
-        y_count = _ngramify(y, n)
-        recall_total = max(len(y) - n + 1, 0)
-        matches = sum((y_pred_count & y_count).values())
-        precision_total = max((len(y_pred) - n + 1), 0)
-        fbeta_score = _fbeta_score(matches, recall_total, precision_total, self.alpha)
-        return fbeta_score
-
-    def rouge_mean(self, y_pred: List[str], y: List[List[str]]) -> float:
-        acc_f_score = 0
-        for model in y:
-            acc_f_score += self.rouge_fn(y_pred, model)
-        return acc_f_score / len(y)
-
-    def rouge_max(self, y_pred: List[str], y: List[List[str]]) -> float:
-        max_f_score = 0
-        for model in y:
-            max_f_score = max(max_f_score, self.rouge_fn(y_pred, model))
-        return max_f_score
-
-    def rouge_l(self, y_pred: List[str], y: List[str]) -> float:
-        matches = int(_lcs(y, y_pred))
-        recall_total = len(y)
-        precision_total = len(y_pred)
-        fbeta_score = _fbeta_score(matches, recall_total, precision_total, self.alpha)
-        return fbeta_score
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._rougetotal = torch.tensor(0, device=self._device, dtype=torch.double)
-        self._num_examples = 0
-        super(Rouge, self).reset()
+        for m in self.internal_metrics:
+            m.reset()
 
     @reinit__is_reduced
-    def update(self, output: List[List]) -> None:
-        y_pred, y = output[0], output[1]
-        if self.aggregate == "single":
-            self._rougetotal += self.rouge_fn(y_pred, y)
-        if self.aggregate == "mean":
-            self._rougetotal += self.rouge_mean(y_pred, y)
-        if self.aggregate == "max":
-            self._rougetotal += self.rouge_max(y_pred, y)
-        self._num_examples += 1
+    def update(self, output: Tuple[Sequence[Any], Sequence[Sequence[Any]]]) -> None:
+        for m in self.internal_metrics:
+            m.update(output)
 
-    @sync_all_reduce("_num_examples", "_rougetotal")
-    def compute(self) -> torch.Tensor:
-        if self._num_examples == 0:
-            raise NotComputableError("Rouge must have at least one example before it can be computed.")
-        return self._rougetotal / self._num_examples
+    @sync_all_reduce()
+    def compute(self) -> Mapping:
+        results = {}
+        for m in self.internal_metrics:
+            results.update(m.compute())
+        return results
