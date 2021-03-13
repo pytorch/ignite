@@ -56,7 +56,7 @@ def apply_to_type(
     """
     if isinstance(x, input_type):
         return func(x)
-    if isinstance(x, (str, bytes, float, int)):
+    if isinstance(x, (str, bytes)):
         return x
     if isinstance(x, collections.Mapping):
         return cast(Callable, type(x))({k: apply_to_type(sample, input_type, func) for k, sample in x.items()})
