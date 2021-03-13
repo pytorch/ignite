@@ -209,7 +209,7 @@ class BasicTimeProfiler:
             engine.remove_event_handler(m, e)
 
     def attach(self, engine: Engine) -> None:
-    	"""Attach BasicTimeProfiler to the given engine."""
+        """Attach BasicTimeProfiler to the given engine."""
         if not isinstance(engine, Engine):
             raise TypeError(f"Argument engine should be ignite.engine.Engine, but given {type(engine)}")
 
