@@ -113,8 +113,6 @@ class Rouge(Metric):
     ) -> None:
         self._rougetotal: torch.Tensor = torch.tensor(0, device=device, dtype=torch.double)
         self._num_examples: int = 0
-        self.beta: float = 0.0
-        self.n: int = 1
         self.beta, self.n, self.rouge_fn, self.aggregate = self._check_parameters(beta, metric, aggregate)
         self.alpha = 1 / (1 + self.beta ** 2)
         super(Rouge, self).__init__(output_transform=output_transform, device=device)
