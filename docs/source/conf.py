@@ -327,6 +327,7 @@ autosummary_generate = True
 nitpicky = True
 # ignore links which can't be referenced
 nitpick_ignore = [
+    ("py:class", ".."),
     ("py:class", "TextIO"),
     ("py:class", "torch.device"),
     ("py:class", "_MpDeviceLoader"),
