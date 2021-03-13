@@ -96,6 +96,7 @@ class CallableEventWithFilter:
     @staticmethod
     def every_event_filter(every: int) -> Callable:
         """A wrapper for every event filter."""
+
         def wrapper(engine: "Engine", event: int) -> bool:
             if event % every == 0:
                 return True
@@ -106,6 +107,7 @@ class CallableEventWithFilter:
     @staticmethod
     def once_event_filter(once: int) -> Callable:
         """A wrapper for once event filter."""
+
         def wrapper(engine: "Engine", event: int) -> bool:
             if event == once:
                 return True
