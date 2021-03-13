@@ -349,7 +349,7 @@ class RougeL(_BaseRouge):
         return compute_lcs_scores(candidate=candidate, reference=reference)
 
     def metric_name(self) -> str:
-        return f"Rouge-L"
+        return "Rouge-L"
 
 
 class Rouge(Metric):
