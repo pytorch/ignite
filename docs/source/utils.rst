@@ -10,4 +10,4 @@ Module with helper methods
     :autolist:
 
 .. automodule:: ignite.utils
-   :members:
+    :members:

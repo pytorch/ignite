@@ -147,6 +147,7 @@ class ConfusionMatrix(Metric):
 
     @staticmethod
     def normalize(matrix: torch.Tensor, average: str) -> torch.Tensor:
+        """Normalize given `matrix` with given `average`."""
         if average == "recall":
             return matrix / (matrix.sum(dim=1).unsqueeze(1) + 1e-15)
         elif average == "precision":
@@ -156,7 +157,7 @@ class ConfusionMatrix(Metric):
 
 
 def IoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambda:
-    r"""Calculates Intersection over Union using :class:`~ignite.metrics.ConfusionMatrix` metric.
+    r"""Calculates Intersection over Union using :class:`~ignite.metrics.confusion_matrix.ConfusionMatrix` metric.
 
     .. math:: \text{J}(A, B) = \frac{ \lvert A \cap B \rvert }{ \lvert A \cup B \rvert }
 
@@ -209,7 +210,7 @@ def IoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambd
 
 
 def mIoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambda:
-    """Calculates mean Intersection over Union using :class:`~ignite.metrics.ConfusionMatrix` metric.
+    """Calculates mean Intersection over Union using :class:`~ignite.metrics.confusion_matrix.ConfusionMatrix` metric.
 
     Args:
         cm: instance of confusion matrix metric
@@ -237,7 +238,7 @@ def mIoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLamb
 
 
 def cmAccuracy(cm: ConfusionMatrix) -> MetricsLambda:
-    """Calculates accuracy using :class:`~ignite.metrics.ConfusionMatrix` metric.
+    """Calculates accuracy using :class:`~ignite.metrics.metric.ConfusionMatrix` metric.
 
     Args:
         cm: instance of confusion matrix metric
@@ -252,7 +253,7 @@ def cmAccuracy(cm: ConfusionMatrix) -> MetricsLambda:
 
 
 def cmPrecision(cm: ConfusionMatrix, average: bool = True) -> MetricsLambda:
-    """Calculates precision using :class:`~ignite.metrics.ConfusionMatrix` metric.
+    """Calculates precision using :class:`~ignite.metrics.metric.ConfusionMatrix` metric.
 
     Args:
         cm: instance of confusion matrix metric
@@ -272,7 +273,7 @@ def cmPrecision(cm: ConfusionMatrix, average: bool = True) -> MetricsLambda:
 
 def cmRecall(cm: ConfusionMatrix, average: bool = True) -> MetricsLambda:
     """
-    Calculates recall using :class:`~ignite.metrics.ConfusionMatrix` metric.
+    Calculates recall using :class:`~ignite.metrics.confusion_matrix.ConfusionMatrix` metric.
     Args:
         cm: instance of confusion matrix metric
         average: if True metric value is averaged over all classes
@@ -290,7 +291,7 @@ def cmRecall(cm: ConfusionMatrix, average: bool = True) -> MetricsLambda:
 
 
 def DiceCoefficient(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambda:
-    """Calculates Dice Coefficient for a given :class:`~ignite.metrics.ConfusionMatrix` metric.
+    """Calculates Dice Coefficient for a given :class:`~ignite.metrics.confusion_matrix.ConfusionMatrix` metric.
 
     Args:
         cm: instance of confusion matrix metric
@@ -326,7 +327,7 @@ def DiceCoefficient(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> 
 
 
 def JaccardIndex(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambda:
-    r"""Calculates the Jaccard Index using :class:`~ignite.metrics.ConfusionMatrix` metric.
+    r"""Calculates the Jaccard Index using :class:`~ignite.metrics.confusion_matrix.ConfusionMatrix` metric.
     Implementation is based on :meth:`~ignite.metrics.IoU`.
 
     .. math:: \text{J}(A, B) = \frac{ \lvert A \cap B \rvert }{ \lvert A \cup B \rvert }

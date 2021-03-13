@@ -8,26 +8,20 @@ Complete list of handlers
 
 .. autosummary::
     :nosignatures:
-    :autolist:
+    :toctree: generated
 
-.. autoclass:: Checkpoint
-    :members: reset, setup_filename_pattern, load_objects, state_dict, load_state_dict, get_default_score_fn
+    checkpoint.Checkpoint
+    DiskSaver
+    checkpoint.ModelCheckpoint
+    early_stopping.EarlyStopping
+    terminate_on_nan.TerminateOnNan
+    TimeLimit
+    timing.Timer
+    global_step_from_engine
 
-.. autoclass:: ignite.handlers.checkpoint.BaseSaveHandler
-    :members: __call__, remove
+.. autosummary::
+    :nosignatures:
+    :toctree: generated
+    :template: classwithcall.rst
 
-.. autoclass:: DiskSaver
-
-.. autoclass:: ModelCheckpoint
-
-.. autoclass:: EarlyStopping
-
-.. autoclass:: Timer
-    :members:
-
-.. autoclass:: TerminateOnNan
-
-.. autofunction:: global_step_from_engine
-
-.. autoclass:: TimeLimit
-   :members:
+    checkpoint.BaseSaveHandler

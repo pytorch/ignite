@@ -1,3 +1,4 @@
+"""Base logger and its helper handlers."""
 import numbers
 import warnings
 from abc import ABCMeta, abstractmethod
@@ -12,6 +13,8 @@ from ignite.engine.events import CallableEventWithFilter, RemovableEventHandle
 
 
 class BaseHandler(metaclass=ABCMeta):
+    """Base handler for defining various useful handlers."""
+
     @abstractmethod
     def __call__(self, engine: Engine, logger: Any, event_name: Union[str, Events]) -> None:
         pass
