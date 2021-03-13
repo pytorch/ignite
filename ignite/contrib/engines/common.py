@@ -51,9 +51,9 @@ def setup_common_training_handlers(
 ) -> None:
     """Helper method to setup trainer with common handlers (it also supports distributed configuration):
 
-        - :class:`~ignite.handlers.TerminateOnNan`
+        - :class:`~ignite.handlers.terminate_on_nan.TerminateOnNan`
         - handler to setup learning rate scheduling
-        - :class:`~ignite.handlers.ModelCheckpoint`
+        - :class:`~ignite.handlers.checkpoint.ModelCheckpoint`
         - :class:`~ignite.metrics.RunningAverage` on `update_function` output
         - Two progress bars on epochs and optionally on iterations
 
@@ -63,7 +63,7 @@ def setup_common_training_handlers(
         train_sampler: Optional distributed sampler used to call
             `set_epoch` method on epoch started event.
         to_save: dictionary with objects to save in the checkpoint. This argument is passed to
-            :class:`~ignite.handlers.Checkpoint` instance.
+            :class:`~ignite.handlers.checkpoint.Checkpoint` instance.
         save_every_iters: saving interval. By default, `to_save` objects are stored
             each 1000 iterations.
         output_path: output path to indicate where `to_save` objects are stored. Argument is mutually
@@ -79,14 +79,14 @@ def setup_common_training_handlers(
             Default, True.
         log_every_iters: logging interval for :class:`~ignite.contrib.metrics.GpuInfo` and for
             epoch-wise progress bar. Default, 100.
-        stop_on_nan: if True, :class:`~ignite.handlers.TerminateOnNan` handler is added to the trainer.
+        stop_on_nan: if True, :class:`~ignite.handlers.terminate_on_nan.TerminateOnNan` handler is added to the trainer.
             Default, True.
         clear_cuda_cache: if True, `torch.cuda.empty_cache()` is called every end of epoch.
             Default, True.
         save_handler: Method or callable
-            class to use to store ``to_save``. See :class:`~ignite.handlers.Checkpoint` for more details.
+            class to use to store ``to_save``. See :class:`~ignite.handlers.checkpoint.Checkpoint` for more details.
             Argument is mutually exclusive with ``output_path``.
-        kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.Checkpoint`.
+        kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.
     """
 
     if idist.get_world_size() > 1:
@@ -601,10 +601,10 @@ def gen_save_best_models_by_val_score(
         n_saved: number of best models to store
         trainer: trainer engine to fetch the epoch when saving the best model.
         tag: score name prefix: `{tag}_{metric_name}`. By default, tag is "val".
-        kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.Checkpoint`.
+        kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.
 
     Returns:
-        A :class:`~ignite.handlers.Checkpoint` handler.
+        A :class:`~ignite.handlers.checkpoint.Checkpoint` handler.
     """
     global_step_transform = None
     if trainer is not None:
@@ -653,10 +653,10 @@ def save_best_model_by_val_score(
         n_saved: number of best models to store
         trainer: trainer engine to fetch the epoch when saving the best model.
         tag: score name prefix: `{tag}_{metric_name}`. By default, tag is "val".
-        kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.Checkpoint`.
+        kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.
 
     Returns:
-        A :class:`~ignite.handlers.Checkpoint` handler.
+        A :class:`~ignite.handlers.checkpoint.Checkpoint` handler.
     """
     return gen_save_best_models_by_val_score(
         save_handler=DiskSaver(dirname=output_path, require_empty=False),
@@ -684,7 +684,7 @@ def add_early_stopping_by_val_score(
             `evaluator.state.metrics`.
 
     Returns:
-        A :class:`~ignite.handlers.EarlyStopping` handler.
+        A :class:`~ignite.handlers.early_stopping.EarlyStopping` handler.
     """
     es_handler = EarlyStopping(patience=patience, score_function=get_default_score_fn(metric_name), trainer=trainer)
     evaluator.add_event_handler(Events.COMPLETED, es_handler)

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""TQDM logger."""
 import warnings
 from typing import Any, Callable, List, Optional, Union
 
