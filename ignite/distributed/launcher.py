@@ -155,10 +155,10 @@ class Parallel:
         backend: backend to use: `nccl`, `gloo`, `xla-tpu`, `horovod`. If None, no distributed
             configuration.
         nproc_per_node: optional argument, number of processes per
-            node to specify. If not None, :meth:`~ignite.distributed.Parallel.run` will spawn ``nproc_per_node``
+            node to specify. If not None, :meth:`~ignite.distributed.launcher.Parallel.run` will spawn ``nproc_per_node``
             processes that run input function with its arguments.
         nnodes: optional argument, number of nodes participating in distributed configuration.
-            If not None, :meth:`~ignite.distributed.Parallel.run` will spawn ``nproc_per_node``
+            If not None, :meth:`~ignite.distributed.launcher.Parallel.run` will spawn ``nproc_per_node``
             processes that run input function with its arguments. Total world size is `nproc_per_node * nnodes`.
             This option is only supported by native torch distributed module. For other modules, please setup
             ``spawn_kwargs`` with backend specific arguments.

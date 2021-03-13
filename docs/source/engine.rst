@@ -1,61 +1,75 @@
 ignite.engine
 ==============
 
-.. contents:: Main module of the library containing:
-    :local:
-
-More details about those structures can be found in :doc:`concepts`.
+Main module of the library containing:
 
 ignite.engine.engine
----------------------
+--------------------
 
 .. currentmodule:: ignite.engine.engine
 
-Engine
-~~~~~~
-.. autoclass:: Engine
-   :members:
+.. autosummary::
+    :nosignatures:
+    :toctree: generated
 
-Helper methods for supervised training
---------------------------------------
+    Engine
 
-create_supervised_trainer
-~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autofunction:: ignite.engine.create_supervised_trainer
+ignite.engine.events
+--------------------
 
-create_supervised_evaluator
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autofunction:: ignite.engine.create_supervised_evaluator
+.. currentmodule:: ignite.engine.events
 
-supervised_evaluation_step
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autofunction:: ignite.engine.supervised_evaluation_step
+.. autosummary::
+    :nosignatures:
+    :toctree: generated
 
-supervised_evaluation_step_amp
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autofunction:: ignite.engine.supervised_evaluation_step_amp
+    CallableEventWithFilter
+    EventEnum
+    Events
+    EventsList
+    State
+    RemovableEventHandle
 
-supervised_training_step
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autofunction:: ignite.engine.supervised_training_step
+ignite.engine.deterministic
+---------------------------
+Helper methods for deterministic training
 
-supervised_training_step_amp
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autofunction:: ignite.engine.supervised_training_step_amp
+.. currentmodule:: ignite.engine.deterministic
 
-supervised_training_step_apex
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autofunction:: ignite.engine.supervised_training_step_apex
+.. autosummary::
+    :nosignatures:
+    :toctree: generated
 
-supervised_training_step_tpu
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autofunction:: ignite.engine.supervised_training_step_tpu
+    DeterministicEngine
+    ReproducibleBatchSampler
+    keep_random_state
+    update_dataloader
+
+helper methods to define supervised trainer and evaluator
+---------------------------------------------------------
+
+.. currentmodule:: ignite.engine
+
+.. autosummary::
+    :nosignatures:
+    :toctree: generated
+
+    create_supervised_trainer
+    create_supervised_evaluator
+    supervised_training_step
+    supervised_training_step_amp
+    supervised_training_step_apex
+    supervised_training_step_tpu
+    supervised_evaluation_step
+    supervised_evaluation_step_amp
+
+.. tip:: More details about those structures can be found in :doc:`concepts`.
 
 Resuming the training
 ---------------------
 
 It is possible to resume the training from a checkpoint and approximately reproduce original run's behaviour.
-Using Ignite, this can be easily done using :class:`~ignite.handlers.Checkpoint` handler. Engine provides two methods
+Using Ignite, this can be easily done using :class:`~ignite.handlers.checkpoint.Checkpoint` handler. Engine provides two methods
 to serialize and deserialize its internal state :meth:`~ignite.engine.engine.Engine.state_dict` and
 :meth:`~ignite.engine.engine.Engine.load_state_dict`. In addition to serializing model, optimizer, lr scheduler etc user can
 store the trainer and then resume the training. For example:
@@ -108,46 +122,8 @@ Complete examples that resumes the training from a checkpoint can be found here:
 - `save/resume MNIST <https://github.com/pytorch/ignite/tree/master/examples/mnist#user-content-training-save--resume>`_
 - `save/resume Distributed CIFAR10 <https://github.com/pytorch/ignite/tree/master/examples/contrib/cifar10#user-content-check-resume-training>`_
 
-
-ignite.engine.events
---------------------
-
-.. currentmodule:: ignite.engine.events
-
-CallableEventWithFilter
-~~~~~~~~~~~~~~~~~~~~~~~
-.. autoclass:: CallableEventWithFilter
-   :members:
-
-Events
-~~~~~~
-.. autoclass:: Events
-   :members:
-
-EventEnum
-~~~~~~~~~~
-.. autoclass:: EventEnum
-
-EventsList
-~~~~~~~~~~~
-.. autoclass:: EventsList
-
-State
-~~~~~~
-.. autoclass:: State
-
-RemovableEventHandle
-~~~~~~~~~~~~~~~~~~~~~
-.. autoclass:: RemovableEventHandle
-   :members:
-   :undoc-members:
-
-
-ignite.engine.deterministic
----------------------------
-
 Deterministic training
-~~~~~~~~~~~~~~~~~~~~~~~
+----------------------
 
 In general, it is rather difficult task to achieve deterministic and reproducible trainings as it relies on multiple
 aspects, e.g. data version, code version, software environment, hardware etc. According to `PyTorch note on randomness <https://pytorch.org/docs/stable/notes/randomness.html>`_:
@@ -166,27 +142,6 @@ to ensure that model sees the same data for a given epoch:
 
 - :class:`~ignite.engine.deterministic.DeterministicEngine`
 - :class:`~ignite.engine.deterministic.ReproducibleBatchSampler`
-
-
-.. currentmodule:: ignite.engine.deterministic
-
-DeterministicEngine
-~~~~~~~~~~~~~~~~~~~~
-.. autoclass:: DeterministicEngine
-   :members:
-
-ReproducibleBatchSampler
-~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autoclass:: ReproducibleBatchSampler
-    :members:
-
-keep_random_state
-~~~~~~~~~~~~~~~~~~
-.. autofunction:: keep_random_state
-
-update_dataloader
-~~~~~~~~~~~~~~~~~~
-.. autofunction:: update_dataloader
 
 Dataflow synchronization
 ------------------------

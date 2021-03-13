@@ -1,8 +1,8 @@
 Concepts
 ========
 
-Engine
-------
+Engine:
+-------
 
 The **essence** of the framework is the class :class:`~ignite.engine.engine.Engine`, an abstraction that loops a given number of times over
 provided data, executes a processing function and returns a result:
@@ -108,8 +108,8 @@ Argument ``batch`` in ``train_step`` function is user-defined and can contain an
 For multi-models training examples like GAN's, please, see our :doc:`examples`.
 
 
-Events and Handlers
--------------------
+Events and Handlers:
+--------------------
 
 To improve the :class:`~ignite.engine.engine.Engine`'s flexibility, an event system is introduced which facilitates interaction on each step of
 the run:
@@ -260,7 +260,7 @@ These events could be used to attach any handler and are fired using :meth:`~ign
 
 .. Note ::
 
-   See the source code of :class:`~ignite.contrib.engines.create_supervised_tbptt_trainer` for an example of usage of
+   See the source code of :func:`~ignite.contrib.engines.tbptt.create_supervised_tbptt_trainer` for an example of usage of
    custom events.
 
 If you want to use filtering with custom events (e.g. ``CustomEvents.CUSTOM_STARTED(every=5)``), you need to do 3 more things:
@@ -326,8 +326,8 @@ epoch:
 .. image:: _static/img/concepts/timeline_and_events.png
    :target: _static/img/concepts/timeline_and_events.png
 
-State
------
+State:
+------
 A state is introduced in :class:`~ignite.engine.engine.Engine` to store the output of the `process_function`, current epoch,
 iteration and other helpful information. Each :class:`~ignite.engine.engine.Engine` contains a :class:`~ignite.engine.events.State`,
 which includes the following:
@@ -364,9 +364,9 @@ every iteration.
     trainer.add_event_handler(Events.ITERATION_COMPLETED, on_iteration_completed)
 
 Since there is no restrictions on the output of `process_function`, Ignite provides `output_transform` argument for its
-:class:`~ignite.metrics` and :class:`~ignite.handlers`. Argument `output_transform` is a function used to transform `engine.state.output` for intended use. Below we'll see different types of `engine.state.output` and how to transform them.
+:ref:`ignite.metrics` and :ref:`ignite.handlers`. Argument `output_transform` is a function used to transform `engine.state.output` for intended use. Below we'll see different types of `engine.state.output` and how to transform them.
 
-In the code below, `engine.state.output` will be a list of loss, y_pred, y for the processed batch. If we want to attach :class:`~ignite.metrics.Accuracy` to the engine, `output_transform` will be needed to get y_pred and y from
+In the code below, `engine.state.output` will be a list of loss, y_pred, y for the processed batch. If we want to attach :class:`~ignite.metrics.accuracy.Accuracy` to the engine, `output_transform` will be needed to get y_pred and y from
 `engine.state.output`. Let's see how that is done:
 
 .. code-block:: python
@@ -431,8 +431,8 @@ batch, this is how the user can use `output_transform` to get y_pred and y from 
           engine.state.new_attribute = 12345
 
 
-Metrics
--------
+Metrics:
+--------
 
 Library provides a list of out-of-the-box metrics for various Machine Learning tasks. Two way of computing
 metrics are supported : 1) online and 2) storing the entire output history.

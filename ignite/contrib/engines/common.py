@@ -51,10 +51,10 @@ def setup_common_training_handlers(
 ) -> None:
     """Helper method to setup trainer with common handlers (it also supports distributed configuration):
 
-        - :class:`~ignite.handlers.TerminateOnNan`
+        - :class:`~ignite.handlers.terminate_on_nan.TerminateOnNan`
         - handler to setup learning rate scheduling
-        - :class:`~ignite.handlers.ModelCheckpoint`
-        - :class:`~ignite.metrics.RunningAverage` on `update_function` output
+        - :class:`~ignite.handlers.checkpoint.ModelCheckpoint`
+        - :class:`~ignite.metrics.running_average.RunningAverage` on `update_function` output
         - Two progress bars on epochs and optionally on iterations
 
     Args:
@@ -63,30 +63,30 @@ def setup_common_training_handlers(
         train_sampler: Optional distributed sampler used to call
             `set_epoch` method on epoch started event.
         to_save: dictionary with objects to save in the checkpoint. This argument is passed to
-            :class:`~ignite.handlers.Checkpoint` instance.
+            :class:`~ignite.handlers.checkpoint.Checkpoint` instance.
         save_every_iters: saving interval. By default, `to_save` objects are stored
             each 1000 iterations.
         output_path: output path to indicate where `to_save` objects are stored. Argument is mutually
             exclusive with ``save_handler``.
         lr_scheduler: learning rate scheduler
             as native torch LRScheduler or ignite's parameter scheduler.
-        with_gpu_stats: if True, :class:`~ignite.contrib.metrics.GpuInfo` is attached to the
+        with_gpu_stats: if True, :class:`~ignite.contrib.metrics.gpu_info.GpuInfo` is attached to the
             trainer. This requires `pynvml` package to be installed.
         output_names: list of names associated with `update_function` output dictionary.
         with_pbars: if True, two progress bars on epochs and optionally on iterations are attached.
             Default, True.
         with_pbar_on_iters: if True, a progress bar on iterations is attached to the trainer.
             Default, True.
-        log_every_iters: logging interval for :class:`~ignite.contrib.metrics.GpuInfo` and for
+        log_every_iters: logging interval for :class:`~ignite.contrib.metrics.gpu_info.GpuInfo` and for
             epoch-wise progress bar. Default, 100.
-        stop_on_nan: if True, :class:`~ignite.handlers.TerminateOnNan` handler is added to the trainer.
+        stop_on_nan: if True, :class:`~ignite.handlers.terminate_on_nan.TerminateOnNan` handler is added to the trainer.
             Default, True.
         clear_cuda_cache: if True, `torch.cuda.empty_cache()` is called every end of epoch.
             Default, True.
         save_handler: Method or callable
-            class to use to store ``to_save``. See :class:`~ignite.handlers.Checkpoint` for more details.
+            class to use to store ``to_save``. See :class:`~ignite.handlers.checkpoint.Checkpoint` for more details.
             Argument is mutually exclusive with ``output_path``.
-        kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.Checkpoint`.
+        kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.
     """
 
     if idist.get_world_size() > 1:
@@ -268,6 +268,7 @@ def _setup_common_distrib_training_handlers(
 
 
 def empty_cuda_cache(_: Engine) -> None:
+    """Call torch.cuda.empty_cache() with gc."""
     torch.cuda.empty_cache()
     import gc
 
@@ -592,7 +593,7 @@ def gen_save_best_models_by_val_score(
             and filename. If ``save_handler`` is callable class, it can
             inherit of :class:`~ignite.handlers.checkpoint.BaseSaveHandler` and optionally implement ``remove`` method
             to keep a fixed number of saved checkpoints. In case if user needs to save engine's checkpoint on a disk,
-            ``save_handler`` can be defined with :class:`~ignite.handlers.DiskSaver`.
+            ``save_handler`` can be defined with :class:`~ignite.handlers.checkpoint.DiskSaver`.
         evaluator: evaluation engine used to provide the score
         models: model or dictionary with the object to save. Objects should have
             implemented ``state_dict`` and ``load_state_dict`` methods.
@@ -601,10 +602,10 @@ def gen_save_best_models_by_val_score(
         n_saved: number of best models to store
         trainer: trainer engine to fetch the epoch when saving the best model.
         tag: score name prefix: `{tag}_{metric_name}`. By default, tag is "val".
-        kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.Checkpoint`.
+        kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.
 
     Returns:
-        A :class:`~ignite.handlers.Checkpoint` handler.
+        A :class:`~ignite.handlers.checkpoint.Checkpoint` handler.
     """
     global_step_transform = None
     if trainer is not None:
@@ -653,10 +654,10 @@ def save_best_model_by_val_score(
         n_saved: number of best models to store
         trainer: trainer engine to fetch the epoch when saving the best model.
         tag: score name prefix: `{tag}_{metric_name}`. By default, tag is "val".
-        kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.Checkpoint`.
+        kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.
 
     Returns:
-        A :class:`~ignite.handlers.Checkpoint` handler.
+        A :class:`~ignite.handlers.checkpoint.Checkpoint` handler.
     """
     return gen_save_best_models_by_val_score(
         save_handler=DiskSaver(dirname=output_path, require_empty=False),
@@ -684,7 +685,7 @@ def add_early_stopping_by_val_score(
             `evaluator.state.metrics`.
 
     Returns:
-        A :class:`~ignite.handlers.EarlyStopping` handler.
+        A :class:`~ignite.handlers.early_stopping.EarlyStopping` handler.
     """
     es_handler = EarlyStopping(patience=patience, score_function=get_default_score_fn(metric_name), trainer=trainer)
     evaluator.add_event_handler(Events.COMPLETED, es_handler)

@@ -108,8 +108,7 @@ def backend() -> Optional[str]:
 
 
 def available_backends() -> Tuple[str, ...]:
-    """Returns available backends.
-    """
+    """Returns available backends."""
     out = ()  # type: Tuple[str, ...]
     for m in registered_computation_models:
         out += m.available_backends
@@ -416,7 +415,7 @@ def barrier() -> None:
 
 def set_local_rank(index: int) -> None:
     """Method to hint the local rank in case if torch native distributed context is created by user
-    without using :meth:`~ignite.distributed.initialize` or :meth:`~ignite.distributed.spawn`.
+    without using :meth:`~ignite.distributed.utils.initialize` or :meth:`~ignite.distributed.utils.spawn`.
 
     Usage:
 

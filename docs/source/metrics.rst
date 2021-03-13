@@ -299,108 +299,37 @@ Complete list of metrics
 
 .. autosummary::
     :nosignatures:
-    :autolist:
+    :toctree: generated
 
-Accuracy
-~~~~~~~~
-.. autoclass:: Accuracy
-
-Average
-~~~~~~~
-.. autoclass:: Average
-
-ConfusionMatrix
-~~~~~~~~~~~~~~~~
-.. autoclass:: ConfusionMatrix
-
-DiceCoefficient
-~~~~~~~~~~~~~~~
-.. autofunction:: DiceCoefficient
-
-EpochMetric
-~~~~~~~~~~~
-.. autoclass:: EpochMetric
-
-Fbeta
-~~~~~
-.. autofunction:: Fbeta
-
-GeometricAverage
-~~~~~~~~~~~~~~~~
-.. autoclass:: GeometricAverage
-
-IoU
-~~~
-.. autofunction:: IoU
-
-mIoU
-~~~~
-.. autofunction:: mIoU
-
-JaccardIndex
-~~~~~~~~~~~~
-.. autofunction:: JaccardIndex
-
-Loss
-~~~~
-.. autoclass:: Loss
-
-MeanAbsoluteError
-~~~~~~~~~~~~~~~~~
-.. autoclass:: MeanAbsoluteError
-
-MeanPairwiseDistance
-~~~~~~~~~~~~~~~~~~~~
-.. autoclass:: MeanPairwiseDistance
-
-MeanSquaredError
-~~~~~~~~~~~~~~~~
-.. autoclass:: MeanSquaredError
-
-Metric
-~~~~~~
-.. autoclass:: Metric
-    :members:
-
-MetricsLambda
-~~~~~~~~~~~~~
-.. autoclass:: MetricsLambda
-
-MultiLabelConfusionMatrix
-~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autoclass:: MultiLabelConfusionMatrix
-
-PSNR
-~~~~
-.. autoclass:: PSNR
-
-Precision
-~~~~~~~~~
-.. autoclass:: Precision
-
-Recall
-~~~~~~
-.. autoclass:: Recall
-
-RootMeanSquaredError
-~~~~~~~~~~~~~~~~~~~~
-.. autoclass:: RootMeanSquaredError
-
-RunningAverage
-~~~~~~~~~~~~~~
-.. autoclass:: RunningAverage
-
-SSIM
-~~~~
-.. autoclass:: SSIM
-
-TopKCategoricalAccuracy
-~~~~~~~~~~~~~~~~~~~~~~~
-.. autoclass:: TopKCategoricalAccuracy
-
-VariableAccumulation
-~~~~~~~~~~~~~~~~~~~~
-.. autoclass:: VariableAccumulation
+    accumulation.Average
+    accumulation.GeometricAverage
+    accumulation.VariableAccumulation
+    accuracy.Accuracy
+    confusion_matrix.ConfusionMatrix
+    confusion_matrix.cmAccuracy
+    confusion_matrix.cmPrecision
+    confusion_matrix.cmRecall
+    confusion_matrix.DiceCoefficient
+    confusion_matrix.JaccardIndex
+    confusion_matrix.IoU
+    confusion_matrix.mIoU
+    epoch_metric.EpochMetric
+    fbeta.Fbeta
+    frequency.Frequency
+    loss.Loss
+    mean_absolute_error.MeanAbsoluteError
+    mean_pairwise_distance.MeanPairwiseDistance
+    mean_squared_error.MeanSquaredError
+    metric.Metric
+    metrics_lambda.MetricsLambda
+    multilabel_confusion_matrix.MultiLabelConfusionMatrix
+    precision.Precision
+    psnr.PSNR
+    recall.Recall
+    root_mean_squared_error.RootMeanSquaredError
+    running_average.RunningAverage
+    ssim.SSIM
+    top_k_categorical_accuracy.TopKCategoricalAccuracy
 
 Helpers for customizing metrics
 -------------------------------

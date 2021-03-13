@@ -4,186 +4,96 @@ ignite.contrib.handlers
 Contribution module of handlers
 
 
-param_scheduler
----------------
+Parameter scheduler
+-------------------
 
 .. currentmodule:: ignite.contrib.handlers.param_scheduler
 
 .. autosummary::
     :nosignatures:
-    :autolist:
+    :toctree: ../generated
 
-.. automodule:: ignite.contrib.handlers.param_scheduler
-   :members:
+    ConcatScheduler
+    CosineAnnealingScheduler
+    CyclicalScheduler
+    LRScheduler
+    LinearCyclicalScheduler
+    ParamGroupScheduler
+    ParamScheduler
+    PiecewiseLinear
+    create_lr_scheduler_with_warmup
 
-
-lr_finder
+LR finder
 ---------
 
 .. currentmodule:: ignite.contrib.handlers.lr_finder
 
 .. autosummary::
     :nosignatures:
-    :autolist:
+    :toctree: ../generated
 
-.. automodule:: ignite.contrib.handlers.lr_finder
-   :members:
+    FastaiLRFinder
 
-
-time_profilers
+Time profilers
 ---------------
 
 .. currentmodule:: ignite.contrib.handlers.time_profilers
 
 .. autosummary::
     :nosignatures:
-    :autolist:
+    :toctree: ../generated
 
+    BasicTimeProfiler
+    HandlersTimeProfiler
 
-.. automodule:: ignite.contrib.handlers.time_profilers
-   :members:
-
-stores
+Stores
 -------
 
 .. currentmodule:: ignite.contrib.handlers.stores
 
 .. autosummary::
     :nosignatures:
-    :autolist:
+    :toctree: ../generated
 
-.. automodule:: ignite.contrib.handlers.stores
-    :members:
+    EpochOutputStore
 
-tensorboard_logger
-------------------
+Loggers
+-------
 
-See `tensorboardX mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_tensorboard_logger.py>`_
-and `CycleGAN and EfficientNet notebooks <https://github.com/pytorch/ignite/tree/master/examples/notebooks>`_ for detailed usage.
-
-.. currentmodule:: ignite.contrib.handlers.tensorboard_logger
+.. currentmodule:: ignite.contrib.handlers
 
 .. autosummary::
     :nosignatures:
-    :autolist:
+    :toctree: ../generated
+    :recursive:
 
-.. automodule:: ignite.contrib.handlers.tensorboard_logger
-   :members:
-   :inherited-members:
+    clearml_logger
+    mlflow_logger
+    neptune_logger
+    polyaxon_logger
+    tensorboard_logger
+    tqdm_logger
+    trains_logger
+    visdom_logger
+    wandb_logger
 
+.. seealso::
 
-visdom_logger
--------------
+    Below are a comprehensive list of examples of various loggers.
 
-See `visdom mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_visdom_logger.py>`_
-for detailed usage.
+    * See `tensorboardX mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_tensorboard_logger.py>`_
+      and `CycleGAN and EfficientNet notebooks <https://github.com/pytorch/ignite/tree/master/examples/notebooks>`_ for detailed usage.
 
-.. currentmodule:: ignite.contrib.handlers.visdom_logger
+    * See `visdom mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_visdom_logger.py>`_ for detailed usage.
 
-.. autosummary::
-    :nosignatures:
-    :autolist:
+    * See `neptune mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_neptune_logger.py>`_ for detailed usage.
 
-.. automodule:: ignite.contrib.handlers.visdom_logger
-   :members:
-   :inherited-members:
+    * See `tqdm mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_tqdm_logger.py>`_ for detailed usage.
 
+    * See `wandb mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_wandb_logger.py>`_ for detailed usage.
 
-neptune_logger
-------------------
+    * See `clearml mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_clearml_logger.py>`_ for detailed usage.
 
-See `neptune mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_neptune_logger.py>`_
-for detailed usage.
-
-.. currentmodule:: ignite.contrib.handlers.neptune_logger
-
-.. autosummary::
-    :nosignatures:
-    :autolist:
-
-.. automodule:: ignite.contrib.handlers.neptune_logger
-   :members:
-   :inherited-members:
-
-
-mlflow_logger
--------------
-
-.. currentmodule:: ignite.contrib.handlers.mlflow_logger
-
-.. autosummary::
-    :nosignatures:
-    :autolist:
-
-.. automodule:: ignite.contrib.handlers.mlflow_logger
-   :members:
-   :inherited-members:
-
-
-tqdm_logger
------------
-
-See `tqdm mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_tqdm_logger.py>`_
-for detailed usage.
-
-.. currentmodule:: ignite.contrib.handlers.tqdm_logger
-
-.. autosummary::
-    :nosignatures:
-    :autolist:
-
-.. automodule:: ignite.contrib.handlers.tqdm_logger
-   :members:
-
-polyaxon_logger
----------------
-
-.. currentmodule:: ignite.contrib.handlers.polyaxon_logger
-
-.. autosummary::
-    :nosignatures:
-    :autolist:
-
-.. automodule:: ignite.contrib.handlers.polyaxon_logger
-   :members:
-   :inherited-members:
-
-wandb_logger
----------------
-
-See `wandb mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_wandb_logger.py>`_
-for detailed usage.
-
-.. currentmodule:: ignite.contrib.handlers.wandb_logger
-
-.. autosummary::
-    :nosignatures:
-    :autolist:
-
-.. automodule:: ignite.contrib.handlers.wandb_logger
-   :members:
-   :inherited-members:
-
-clearml_logger
----------------
-
-See `clearml mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_clearml_logger.py>`_
-for detailed usage.
-
-.. currentmodule:: ignite.contrib.handlers.clearml_logger
-
-.. autosummary::
-    :nosignatures:
-    :autolist:
-
-.. automodule:: ignite.contrib.handlers.clearml_logger
-   :members:
-   :inherited-members:
-
-trains_logger
---------------
-
-.. note:: ``trains_logger`` was renamed to ``clearml_logger``. Please refer to :ref:`clearml_logger`.
 
 More on parameter scheduling
 ----------------------------
@@ -191,8 +101,8 @@ More on parameter scheduling
 In this section there are visual examples of various parameter schedulings that can be achieved.
 
 
-Example with :class:`ignite.contrib.handlers.CosineAnnealingScheduler`
-``````````````````````````````````````````````````````````````````````
+Example with :class:`~ignite.contrib.handlers.param_scheduler.CosineAnnealingScheduler`
+```````````````````````````````````````````````````````````````````````````````````````
 
 .. code-block:: python
 
@@ -253,8 +163,8 @@ Example with :class:`ignite.contrib.handlers.CosineAnnealingScheduler`
 .. image:: ../_static/img/schedulers/cosine_annealing_example.png
 
 
-Example with :class:`ignite.contrib.handlers.LinearCyclicalScheduler`
-`````````````````````````````````````````````````````````````````````
+Example with :class:`ignite.contrib.handlers.param_scheduler.LinearCyclicalScheduler`
+`````````````````````````````````````````````````````````````````````````````````````
 
 .. code-block:: python
 
@@ -315,8 +225,8 @@ Example with :class:`ignite.contrib.handlers.LinearCyclicalScheduler`
 .. image:: ../_static/img/schedulers/linear_cyclical_example.png
 
 
-Example with :class:`ignite.contrib.handlers.ConcatScheduler`
-`````````````````````````````````````````````````````````````
+Example with :class:`ignite.contrib.handlers.param_scheduler.ConcatScheduler`
+`````````````````````````````````````````````````````````````````````````````
 
 .. code-block:: python
 
@@ -397,8 +307,8 @@ Piecewise linear scheduler
 .. image:: ../_static/img/schedulers/piecewise_linear.png
 
 
-Example with :class:`ignite.contrib.handlers.LRScheduler`
-`````````````````````````````````````````````````````````
+Example with :class:`ignite.contrib.handlers.param_scheduler.LRScheduler`
+`````````````````````````````````````````````````````````````````````````
 
 .. code-block:: python
 

@@ -319,3 +319,21 @@ class BetterAutosummary(Autosummary):
 
 # Patch original Autosummary
 sphinx.ext.autosummary.Autosummary = BetterAutosummary
+
+# --- autosummary config -----------------------------------------------------
+autosummary_generate = True
+
+# --- nitpicky config : check internal links are correct or not --------------
+nitpicky = True
+nitpick_ignore = [
+    ("py:class", "TextIO"),
+    ("py:class", "torch.device"),
+    ("py:class", "_MpDeviceLoader"),
+    ("py:class", "torch.nn.modules.module.Module"),
+    ("py:class", "torch.optim.optimizer.Optimizer"),
+    ("py:class", "torch.utils.data.dataset.Dataset"),
+    ("py:class", "torch.utils.data.sampler.BatchSampler"),
+    ("py:class", "torch.cuda.amp.grad_scaler.GradScaler"),
+    ("py:class", "torch.optim.lr_scheduler._LRScheduler"),
+    ("py:class", "torch.utils.data.dataloader.DataLoader"),
+]
