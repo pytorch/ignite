@@ -68,9 +68,21 @@ ignite.distributed.auto
     :nosignatures:
     :autolist:
 
-.. automodule:: ignite.distributed.auto
-    :members:
+DistributedProxySampler
+~~~~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: DistributedProxySampler
 
+auto_dataloader
+~~~~~~~~~~~~~~~
+.. autofunction:: auto_dataloader
+
+auto_model
+~~~~~~~~~~
+.. autofunction:: auto_model
+
+auto_optim
+~~~~~~~~~~
+.. autofunction:: auto_optim
 
 ignite.distributed.launcher
 ---------------------------
@@ -81,7 +93,9 @@ ignite.distributed.launcher
     :nosignatures:
     :autolist:
 
-.. automodule:: ignite.distributed.launcher
+Parallel
+~~~~~~~~
+.. autoclass:: Parallel
     :members:
 
 

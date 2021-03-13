@@ -1,18 +1,12 @@
 ignite.handlers
 ===============
 
-Complete list of handlers
--------------------------
-
-.. currentmodule:: ignite.handlers
-
-.. autosummary::
-    :nosignatures:
-    :autolist:
+.. contents:: Complete list of handlers
+    :local:
 
 Checkpoint
 ~~~~~~~~~~
-.. autoclass:: Checkpoint
+.. autoclass:: ignite.handlers.checkpoint.Checkpoint
     :members: reset, setup_filename_pattern, load_objects, state_dict, load_state_dict, get_default_score_fn
 
 BaseSaveHandler
@@ -22,30 +16,30 @@ BaseSaveHandler
 
 DiskSaver
 ~~~~~~~~~
-.. autoclass:: DiskSaver
+.. autoclass:: ignite.handlers.checkpoint.DiskSaver
 
 ModelCheckpoint
 ~~~~~~~~~~~~~~~
-.. autoclass:: ModelCheckpoint
+.. autoclass:: ignite.handlers.checkpoint.ModelCheckpoint
 
 EarlyStopping
 ~~~~~~~~~~~~~
-.. autoclass:: EarlyStopping
+.. autoclass:: ignite.handlers.early_stopping.EarlyStopping
 
 Timer
 ~~~~~
-.. autoclass:: Timer
+.. autoclass:: ignite.handlers.timing.Timer
     :members:
 
 TerminateOnNan
 ~~~~~~~~~~~~~~
-.. autoclass:: TerminateOnNan
+.. autoclass:: ignite.handlers.terminate_on_nan.TerminateOnNan
 
 global_step_from_engine
 ~~~~~~~~~~~~~~~~~~~~~~~
-.. autofunction:: global_step_from_engine
+.. autofunction:: ignite.handlers.global_step_from_engine
 
 TimeLimit
 ~~~~~~~~~
-.. autoclass:: TimeLimit
+.. autoclass:: ignite.handlers.time_limit.TimeLimit
    :members:

@@ -1,39 +1,8 @@
 ignite.engine
 ==============
 
-Main module of the library containing:
-
-ignite.engine.engine
-
-.. currentmodule:: ignite.engine.engine
-
-.. autosummary::
-    :nosignatures:
-    :autolist:
-
-ignite.engine.events
-
-.. currentmodule:: ignite.engine.events
-
-.. autosummary::
-    :nosignatures:
-    :autolist:
-
-ignite.engine.deterministic (helper methods for deterministic training)
-
-.. currentmodule:: ignite.engine.deterministic
-
-.. autosummary::
-    :nosignatures:
-    :autolist:
-
-and helper methods to define supervised trainer and evaluator:
-
-.. currentmodule:: ignite.engine
-
-.. autosummary::
-    :nosignatures:
-    :autolist-functions:
+.. contents:: Main module of the library containing:
+    :local:
 
 More details about those structures can be found in :doc:`concepts`.
 

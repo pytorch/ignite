@@ -9,10 +9,32 @@ Contribution module of metrics
     :nosignatures:
     :autolist:
 
-.. automodule:: ignite.contrib.metrics
-   :members:
-   :imported-members:
+Contrib metrics
+---------------
 
+AveragePrecision
+~~~~~~~~~~~~~~~~
+.. autoclass:: AveragePrecision
+
+CohenKappa
+~~~~~~~~~~
+.. autoclass:: CohenKappa
+
+GpuInfo
+~~~~~~~
+.. autoclass:: GpuInfo
+
+PrecisionRecallCurve
+~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: PrecisionRecallCurve
+
+ROC_AUC
+~~~~~~~
+.. autoclass:: ROC_AUC
+
+RocCurve
+~~~~~~~~
+.. autoclass:: RocCurve
 
 Regression metrics
 ------------------
@@ -36,33 +58,62 @@ Complete list of metrics:
     :nosignatures:
     :autolist:
 
-
+CanberraMetric
+~~~~~~~~~~~~~~
 .. autoclass:: CanberraMetric
 
+FractionalAbsoluteError
+~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: FractionalAbsoluteError
 
+FractionalBias
+~~~~~~~~~~~~~~~
 .. autoclass:: FractionalBias
 
+GeometricMeanAbsoluteError
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: GeometricMeanAbsoluteError
 
+GeometricMeanRelativeAbsoluteError
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: GeometricMeanRelativeAbsoluteError
 
+ManhattanDistance
+~~~~~~~~~~~~~~~~~
 .. autoclass:: ManhattanDistance
 
+MaximumAbsoluteError
+~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: MaximumAbsoluteError
 
+MeanAbsoluteRelativeError
+~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: MeanAbsoluteRelativeError
 
+MeanError
+~~~~~~~~~
 .. autoclass:: MeanError
 
+MeanNormalizedBias
+~~~~~~~~~~~~~~~~~~~
 .. autoclass:: MeanNormalizedBias
 
+MedianAbsoluteError
+~~~~~~~~~~~~~~~~~~~
 .. autoclass:: MedianAbsoluteError
 
+MedianAbsolutePercentageError
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: MedianAbsolutePercentageError
 
+MedianRelativeAbsoluteError
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autoclass:: MedianRelativeAbsoluteError
 
+R2Score
+~~~~~~~
 .. autoclass:: R2Score
 
+WaveHedgesDistance
+~~~~~~~~~~~~~~~~~~
 .. autoclass:: WaveHedgesDistance
