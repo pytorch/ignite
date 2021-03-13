@@ -55,7 +55,8 @@ class EpochWise(MetricUsage):
 
     Metric's methods are triggered on the following engine events:
 
-    - :meth:`~ignite.metrics.metric.Metric.started` on every ``EPOCH_STARTED`` (See :class:`~ignite.engine.events.Events`).
+    - :meth:`~ignite.metrics.metric.Metric.started` on every ``EPOCH_STARTED``
+      (See :class:`~ignite.engine.events.Events`).
     - :meth:`~ignite.metrics.metric.Metric.iteration_completed` on every ``ITERATION_COMPLETED``.
     - :meth:`~ignite.metrics.metric.Metric.completed` on every ``EPOCH_COMPLETED``.
 
