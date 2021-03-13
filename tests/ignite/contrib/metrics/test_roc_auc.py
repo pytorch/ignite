@@ -56,15 +56,15 @@ def test_binary_input_N():
 
     roc_auc = ROC_AUC()
 
-    def _test(y_pred, y, n_iters):
+    def _test(y_pred, y, batch_size):
         roc_auc.reset()
         roc_auc.update((y_pred, y))
 
         np_y = y.numpy()
         np_y_pred = y_pred.numpy()
 
-        if n_iters > 1:
-            batch_size = y.shape[0] // n_iters + 1
+        if batch_size > 1:
+            n_iters = y.shape[0] // batch_size + 1
             for i in range(n_iters):
                 idx = i * batch_size
                 roc_auc.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
@@ -90,8 +90,8 @@ def test_binary_input_N():
     for _ in range(10):
         test_cases = get_test_cases()
         # check multiple random inputs as random exact occurencies are rare
-        for y_pred, y, n_iters in test_cases:
-            _test(y_pred, y, n_iters)
+        for y_pred, y, batch_size in test_cases:
+            _test(y_pred, y, batch_size)
 
 
 def test_multilabel_input_N():
@@ -237,7 +237,7 @@ def _test_distrib_binary_input_N(device):
     rank = idist.get_rank()
     torch.manual_seed(12)
 
-    def _test(y_pred, y, n_iters, metric_device):
+    def _test(y_pred, y, batch_size, metric_device):
         metric_device = torch.device(metric_device)
         roc_auc = ROC_AUC(device=metric_device)
 
@@ -246,8 +246,8 @@ def _test_distrib_binary_input_N(device):
         roc_auc.reset()
         roc_auc.update((y_pred, y))
 
-        if n_iters > 1:
-            batch_size = y.shape[0] // n_iters + 1
+        if batch_size > 1:
+            n_iters = y.shape[0] // batch_size + 1
             for i in range(n_iters):
                 idx = i * batch_size
                 roc_auc.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
@@ -279,10 +279,10 @@ def _test_distrib_binary_input_N(device):
 
     for _ in range(3):
         test_cases = get_test_cases()
-        for y_pred, y, n_iters in test_cases:
-            _test(y_pred, y, n_iters, "cpu")
+        for y_pred, y, batch_size in test_cases:
+            _test(y_pred, y, batch_size, "cpu")
             if device.type != "xla":
-                _test(y_pred, y, n_iters, idist.device())
+                _test(y_pred, y, batch_size, idist.device())
 
 
 def _test_distrib_multilabel_input_N(device):
