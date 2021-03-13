@@ -15,8 +15,6 @@ import ignite.distributed as idist
 from ignite.engine import (
     create_supervised_evaluator,
     create_supervised_trainer,
-    supervised_evaluation_step,
-    supervised_evaluation_step_amp,
     supervised_training_step_tpu,
 )
 from ignite.metrics import MeanSquaredError
