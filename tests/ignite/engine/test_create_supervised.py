@@ -12,11 +12,7 @@ from torch.nn.functional import mse_loss
 from torch.optim import SGD
 
 import ignite.distributed as idist
-from ignite.engine import (
-    create_supervised_evaluator,
-    create_supervised_trainer,
-    supervised_training_step_tpu,
-)
+from ignite.engine import create_supervised_evaluator, create_supervised_trainer, supervised_training_step_tpu
 from ignite.metrics import MeanSquaredError
 
 
