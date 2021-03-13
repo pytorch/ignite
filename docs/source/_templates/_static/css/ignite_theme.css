@@ -169,36 +169,41 @@ footer table {
   margin-bottom: 1rem;
 }
 
+/* remove gray footer */
 .pytorch-body .docs-tutorials-resources {
   padding: 0 !important;
 }
 
-.algolia-autocomplete {
-  width: 100%;
+/* dim out pytorch header
+algolia searchbox has z-index of 200
+so make sure not to go above that value */
+.header-holder {
+  z-index: 100 !important;
 }
 
-/* Main dropdown wrapper */
-.algolia-autocomplete .ds-dropdown-menu {
-  max-width: 100% !important;
-  min-width: 0 !important;
+:root {
+  --docsearch-primary-color: #ee4c2c !important;
+}
+
+.DocSearch-Button {
+  border-radius: 0 !important;
   width: 100% !important;
+  height: 2.75rem !important;
+  margin: 0 !important;
+  background: var(--docsearch-searchbox-focus-background) !important;
 }
 
-/* Main category (eg. Getting Started) */
-.algolia-autocomplete .algolia-docsearch-suggestion--category-header {
-  background-color: #ee4c2c !important;
-  color: #f6f6f6 !important;
-  font-weight: bold !important;
-  padding: 5px !important;
+.DocSearch-Button .DocSearch-Search-Icon {
+  color: var(--docsearch-primary-color) !important;
 }
 
-/* Category (eg. Downloads) */
-.algolia-autocomplete .algolia-docsearch-suggestion--subcategory-column {
-  color: #222 !important;
+.DocSearch-Button-Key {
+  box-shadow: none !important;
 }
 
-/* Highlighted text */
-.algolia-autocomplete .algolia-docsearch-suggestion--highlight {
-  color: var(--red) !important;
-  background-color: #ff0 !important;
+@media(max-width: 750px) {
+  .DocSearch-Button-Key, .DocSearch-Button-KeySeparator, .DocSearch-Button-Placeholder {
+    display: block !important;
+  }
 }
+/* docsearch end */

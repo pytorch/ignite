@@ -81,21 +81,24 @@ def test_binary_input_N(weights):
         assert isinstance(res, float)
         assert cohen_kappa_score(np_y, np_y_pred, weights=weights) == pytest.approx(res)
 
-    test_cases = [
-        (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 1),
-        (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 1),
-        (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 1),
-        (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 1),
-        # updated batches
-        (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 16),
-        (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 16),
-        (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 16),
-        (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 16),
-    ]
+    def get_test_cases():
+        test_cases = [
+            (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 1),
+            (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 1),
+            (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 1),
+            (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 1),
+            # updated batches
+            (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 16),
+            (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 16),
+            (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 16),
+            (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 16),
+        ]
+        return test_cases
 
-    for y_pred, y, n_iters in test_cases:
+    for _ in range(10):
         # check multiple random inputs as random exact occurencies are rare
-        for _ in range(10):
+        test_cases = get_test_cases()
+        for y_pred, y, n_iters in test_cases:
             _test(y_pred, y, n_iters)
 
 
@@ -143,20 +146,23 @@ def test_integration_binary_input_with_output_transform(weights):
         assert isinstance(ck, float)
         assert np_ck == pytest.approx(ck)
 
-    test_cases = [
-        (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 10),
-        (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 10),
-        (torch.randint(0, 2, size=(200,)).long(), torch.randint(0, 2, size=(200,)).long(), 10),
-        (torch.randint(0, 2, size=(200, 1)).long(), torch.randint(0, 2, size=(200, 1)).long(), 10),
-    ]
+    def get_test_cases():
+        test_cases = [
+            (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 10),
+            (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 10),
+            (torch.randint(0, 2, size=(200,)).long(), torch.randint(0, 2, size=(200,)).long(), 10),
+            (torch.randint(0, 2, size=(200, 1)).long(), torch.randint(0, 2, size=(200, 1)).long(), 10),
+        ]
+        return test_cases
 
-    for y_pred, y, batch_size in test_cases:
+    for _ in range(10):
         # check multiple random inputs as random exact occurencies are rare
-        for _ in range(10):
+        test_cases = get_test_cases()
+        for y_pred, y, batch_size in test_cases:
             _test(y_pred, y, batch_size)
 
 
-def _test_distirb_binary_input_N(device):
+def _test_distrib_binary_input_N(device):
 
     rank = idist.get_rank()
     torch.manual_seed(12)
@@ -188,20 +194,23 @@ def _test_distirb_binary_input_N(device):
         assert isinstance(res, float)
         assert cohen_kappa_score(np_y, np_y_pred) == pytest.approx(res)
 
-    test_cases = [
-        (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 1),
-        (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 1),
-        (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 1),
-        (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 1),
-        # updated batches
-        (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 16),
-        (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 16),
-        (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 16),
-        (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 16),
-    ]
+    def get_test_cases():
+        test_cases = [
+            (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 1),
+            (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 1),
+            (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 1),
+            (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 1),
+            # updated batches
+            (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 16),
+            (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 16),
+            (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 16),
+            (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 16),
+        ]
+        return test_cases
 
-    for y_pred, y, batch_size in test_cases:
-        for _ in range(3):
+    for _ in range(3):
+        test_cases = get_test_cases()
+        for y_pred, y, batch_size in test_cases:
             _test(y_pred, y, batch_size, "cpu")
             if device.type != "xla":
                 _test(y_pred, y, batch_size, idist.device())
@@ -261,7 +270,7 @@ def _test_distrib_integration_binary(device):
 def test_distrib_gpu(distributed_context_single_node_nccl):
 
     device = torch.device(f"cuda:{distributed_context_single_node_nccl['local_rank']}")
-    _test_distirb_binary_input_N(device)
+    _test_distrib_binary_input_N(device)
     _test_distrib_integration_binary(device)
 
 
@@ -270,7 +279,7 @@ def test_distrib_gpu(distributed_context_single_node_nccl):
 def test_distrib_cpu(distributed_context_single_node_gloo):
 
     device = torch.device("cpu")
-    _test_distirb_binary_input_N(device)
+    _test_distrib_binary_input_N(device)
     _test_distrib_integration_binary(device)
 
 
@@ -283,7 +292,7 @@ def test_distrib_hvd(gloo_hvd_executor):
     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
 
     gloo_hvd_executor(
-        _test_distirb_binary_input_N, (device,), np=nproc, do_init=True,
+        _test_distrib_binary_input_N, (device,), np=nproc, do_init=True,
     )
     gloo_hvd_executor(
         _test_distrib_integration_binary, (device,), np=nproc, do_init=True,
@@ -296,7 +305,7 @@ def test_distrib_hvd(gloo_hvd_executor):
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 
     device = torch.device("cpu")
-    _test_distirb_binary_input_N(device)
+    _test_distrib_binary_input_N(device)
     _test_distrib_integration_binary(device)
 
 
@@ -306,7 +315,7 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
 
     device = torch.device(f"cuda:{distributed_context_multi_node_nccl['local_rank']}")
-    _test_distirb_binary_input_N(device)
+    _test_distrib_binary_input_N(device)
     _test_distrib_integration_binary(device)
 
 
@@ -316,14 +325,14 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
 def test_distrib_single_device_xla():
 
     device = idist.device()
-    _test_distirb_binary_input_N(device)
+    _test_distrib_binary_input_N(device)
     _test_distrib_integration_binary(device)
 
 
 def _test_distrib_xla_nprocs(index):
 
     device = idist.device()
-    _test_distirb_binary_input_N(device)
+    _test_distrib_binary_input_N(device)
     _test_distrib_integration_binary(device)
 
 
