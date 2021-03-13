@@ -36,7 +36,7 @@ As a consequence, the following code is correct too:
     evaluator.add_event_handler(Events.COMPLETED, best_model_saver, {'mymodel': model})
 
 
-More details :ref:`Events and Handlers`.
+More details :ref:`Events and Handlers:`.
 
 
 Creating Custom Events based on Forward/Backward Pass
@@ -495,7 +495,7 @@ For details, see :class:`~ignite.contrib.handlers.time_profilers.HandlersTimePro
 Custom time measures
 ````````````````````
 
-Custom time measures can be performed using :class:`~ignite.handlers.Timer`. See its docstring for details.
+Custom time measures can be performed using :class:`~ignite.handlers.timing.Timer`. See its docstring for details.
 
 
 Other questions

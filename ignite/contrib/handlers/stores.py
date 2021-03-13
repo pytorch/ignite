@@ -37,12 +37,16 @@ class EpochOutputStore:
         self.output_transform = output_transform
 
     def reset(self) -> None:
+        """Reset the attribute data to empty list."""
         self.data = []
 
     def update(self, engine: Engine) -> None:
+        """Append the output of Engine to attribute data."""
         output = self.output_transform(engine.state.output)
         self.data.append(output)
 
     def attach(self, engine: Engine) -> None:
+        """Attaching `reset` method at EPOCH_STARTED and
+        `update` method at ITERATION_COMPLETED."""
         engine.add_event_handler(Events.EPOCH_STARTED, self.reset)
         engine.add_event_handler(Events.ITERATION_COMPLETED, self.update)
