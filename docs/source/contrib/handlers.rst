@@ -67,6 +67,7 @@ Loggers
     :toctree: ../generated
     :recursive:
 
+    base_logger
     clearml_logger
     mlflow_logger
     neptune_logger

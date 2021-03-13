@@ -17,7 +17,7 @@ jobs:
         with:
           python-version: 3.7
 
-      - run: sudo npm install katex@latest -g
+      - run: sudo npm install katex@0.13.0 -g
       - uses: actions/cache@v2
         with:
           path: ~/.cache/pip
@@ -57,4 +57,4 @@ jobs:
 
       - name: make linkcheck
         working-directory: ./docs/
-        run: make linkcheck --jobs 2 SPHINXOPTS="--color"
+        run: make linkcheck --jobs 2 SPHINXOPTS="--color -W -n"

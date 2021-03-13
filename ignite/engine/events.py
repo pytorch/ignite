@@ -95,6 +95,7 @@ class CallableEventWithFilter:
 
     @staticmethod
     def every_event_filter(every: int) -> Callable:
+        """A wrapper for every event filter."""
         def wrapper(engine: "Engine", event: int) -> bool:
             if event % every == 0:
                 return True
@@ -104,6 +105,7 @@ class CallableEventWithFilter:
 
     @staticmethod
     def once_event_filter(once: int) -> Callable:
+        """A wrapper for once event filter."""
         def wrapper(engine: "Engine", event: int) -> bool:
             if event == once:
                 return True
@@ -113,6 +115,7 @@ class CallableEventWithFilter:
 
     @staticmethod
     def default_event_filter(engine: "Engine", event: int) -> bool:
+        """Default event filter."""
         return True
 
     def __str__(self) -> str:
@@ -264,21 +267,34 @@ class Events(EventEnum):
     """
 
     EPOCH_STARTED = "epoch_started"
+    """triggered when the epoch is started."""
     EPOCH_COMPLETED = "epoch_completed"
+    """Event attribute indicating epoch is ended."""
 
     STARTED = "started"
+    """triggered when engine’s run is started."""
     COMPLETED = "completed"
+    """"triggered when engine’s run is completed"""
 
     ITERATION_STARTED = "iteration_started"
+    """triggered when an iteration is started."""
     ITERATION_COMPLETED = "iteration_completed"
+    """triggered when the iteration is ended."""
     EXCEPTION_RAISED = "exception_raised"
+    """triggered when an exception is encountered."""
 
     GET_BATCH_STARTED = "get_batch_started"
+    """triggered before next batch is fetched."""
     GET_BATCH_COMPLETED = "get_batch_completed"
+    """triggered after the batch is fetched."""
 
     DATALOADER_STOP_ITERATION = "dataloader_stop_iteration"
+    """"engine’s specific event triggered when dataloader has no more data to provide"""
     TERMINATE = "terminate"
+    """triggered when the run is about to end completely, after receiving terminate() call."""
     TERMINATE_SINGLE_EPOCH = "terminate_single_epoch"
+    """triggered when the run is about to end the current epoch,
+    after receiving a terminate_epoch() or terminate() call."""
 
     def __or__(self, other: Any) -> "EventsList":
         return EventsList() | self | other
@@ -391,6 +407,7 @@ class State:
                 setattr(self, value, 0)
 
     def get_event_attrib_value(self, event_name: Union[str, Events, CallableEventWithFilter]) -> int:
+        """Get the value of Event attribute with given `event_name`."""
         if event_name not in State.event_to_attr:
             raise RuntimeError(f"Unknown event name '{event_name}'")
         return getattr(self, State.event_to_attr[event_name])

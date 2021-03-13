@@ -11,13 +11,13 @@ Complete list of handlers
     :toctree: generated
 
     checkpoint.Checkpoint
-    checkpoint.DiskSaver
+    DiskSaver
     checkpoint.ModelCheckpoint
     early_stopping.EarlyStopping
-    timing.Timer
     terminate_on_nan.TerminateOnNan
+    TimeLimit
+    timing.Timer
     global_step_from_engine
-    time_limit.TimeLimit
 
 .. autosummary::
     :nosignatures:

@@ -105,9 +105,9 @@ Reset, Update, Compute API
 
 User can also call directly the following methods on the metric:
 
-- :meth:`~ignite.metrics.Metric.reset()` : resets internal variables and accumulators
-- :meth:`~ignite.metrics.Metric.update()` : updates internal variables and accumulators with provided batch output ``(y_pred, y)``
-- :meth:`~ignite.metrics.Metric.compute()` : computes custom metric and return the result
+- :meth:`~ignite.metrics.metric.Metric.reset()` : resets internal variables and accumulators
+- :meth:`~ignite.metrics.metric.Metric.update()` : updates internal variables and accumulators with provided batch output ``(y_pred, y)``
+- :meth:`~ignite.metrics.metric.Metric.compute()` : computes custom metric and return the result
 
 This API gives a more fine-grained/custom usage on how to compute a metric. For example:
 
@@ -175,12 +175,12 @@ Metrics also support indexing operation (if metric's result is a vector/matrix/t
 How to create a custom metric
 -----------------------------
 
-To create a custom metric one needs to create a new class inheriting from :class:`~ignite.metrics.Metric` and override
+To create a custom metric one needs to create a new class inheriting from :class:`~ignite.metrics.metric.Metric` and override
 three methods :
 
-- :meth:`~ignite.metrics.Metric.reset()` : resets internal variables and accumulators
-- :meth:`~ignite.metrics.Metric.update()` : updates internal variables and accumulators with provided batch output ``(y_pred, y)``
-- :meth:`~ignite.metrics.Metric.compute()` : computes custom metric and return the result
+- :meth:`~ignite.metrics.metric.Metric.reset()` : resets internal variables and accumulators
+- :meth:`~ignite.metrics.metric.Metric.update()` : updates internal variables and accumulators with provided batch output ``(y_pred, y)``
+- :meth:`~ignite.metrics.metric.Metric.compute()` : computes custom metric and return the result
 
 For example, we would like to implement for illustration purposes a multi-class accuracy metric with some
 specific condition (e.g. ignore user-defined classes):
@@ -230,7 +230,7 @@ specific condition (e.g. ignore user-defined classes):
             return self._num_correct.item() / self._num_examples
 
 
-We imported necessary classes as :class:`~ignite.metrics.Metric`, :class:`~ignite.exceptions.NotComputableError` and
+We imported necessary classes as :class:`~ignite.metrics.metric.Metric`, :class:`~ignite.exceptions.NotComputableError` and
 decorators to adapt the metric for distributed setting. In ``reset`` method, we reset internal variables ``_num_correct``
 and ``_num_examples`` which are used to compute the custom metric. In ``updated`` method we define how to update
 the internal variables. And finally in ``compute`` method, we compute metric value.
@@ -268,19 +268,19 @@ Metrics and its usages
 
 By default, `Metrics` are epoch-wise, it means
 
-- :meth:`~ignite.metrics.Metric.reset()` is triggered every ``EPOCH_STARTED`` (See :class:`~ignite.engine.events.Events`).
-- :meth:`~ignite.metrics.Metric.update()` is triggered every ``ITERATION_COMPLETED``.
-- :meth:`~ignite.metrics.Metric.compute()` is triggered every ``EPOCH_COMPLETED``.
+- :meth:`~ignite.metrics.metric.Metric.reset()` is triggered every ``EPOCH_STARTED`` (See :class:`~ignite.engine.events.Events`).
+- :meth:`~ignite.metrics.metric.Metric.update()` is triggered every ``ITERATION_COMPLETED``.
+- :meth:`~ignite.metrics.metric.Metric.compute()` is triggered every ``EPOCH_COMPLETED``.
 
-Usages can be user defined by creating a class inheriting for :class:`~ignite.metrics.MetricUsage`. See the list below of usages.
+Usages can be user defined by creating a class inheriting for :class:`~ignite.metrics.metric.MetricUsage`. See the list below of usages.
 
 Complete list of usages
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-    - :class:`~ignite.metrics.MetricUsage`
-    - :class:`~ignite.metrics.EpochWise`
-    - :class:`~ignite.metrics.BatchWise`
-    - :class:`~ignite.metrics.BatchFiltered`
+    - :class:`~ignite.metrics.metric.MetricUsage`
+    - :class:`~ignite.metrics.metric.EpochWise`
+    - :class:`~ignite.metrics.metric.BatchWise`
+    - :class:`~ignite.metrics.metric.BatchFiltered`
 
 Metrics and distributed computations
 ------------------------------------
@@ -301,54 +301,51 @@ Complete list of metrics
     :nosignatures:
     :toctree: generated
 
-    accumulation.Average
-    accumulation.GeometricAverage
-    accumulation.VariableAccumulation
-    accuracy.Accuracy
+    Average
+    GeometricAverage
+    VariableAccumulation
+    Accuracy
     confusion_matrix.ConfusionMatrix
-    confusion_matrix.cmAccuracy
-    confusion_matrix.cmPrecision
-    confusion_matrix.cmRecall
-    confusion_matrix.DiceCoefficient
-    confusion_matrix.JaccardIndex
-    confusion_matrix.IoU
-    confusion_matrix.mIoU
-    epoch_metric.EpochMetric
-    fbeta.Fbeta
-    frequency.Frequency
-    loss.Loss
-    mean_absolute_error.MeanAbsoluteError
-    mean_pairwise_distance.MeanPairwiseDistance
-    mean_squared_error.MeanSquaredError
+    DiceCoefficient
+    JaccardIndex
+    IoU
+    mIoU
+    EpochMetric
+    Fbeta
+    Frequency
+    Loss
+    MeanAbsoluteError
+    MeanPairwiseDistance
+    MeanSquaredError
     metric.Metric
     metrics_lambda.MetricsLambda
-    multilabel_confusion_matrix.MultiLabelConfusionMatrix
+    MultiLabelConfusionMatrix
     precision.Precision
-    psnr.PSNR
+    PSNR
     recall.Recall
-    root_mean_squared_error.RootMeanSquaredError
-    running_average.RunningAverage
-    ssim.SSIM
-    top_k_categorical_accuracy.TopKCategoricalAccuracy
+    RootMeanSquaredError
+    RunningAverage
+    SSIM
+    TopKCategoricalAccuracy
 
 Helpers for customizing metrics
 -------------------------------
 
 MetricUsage
 ~~~~~~~~~~~
-.. autoclass:: MetricUsage
+.. autoclass:: ignite.metrics.metric.MetricUsage
 
 EpochWise
 ~~~~~~~~~
-.. autoclass:: EpochWise
+.. autoclass:: ignite.metrics.metric.EpochWise
 
 BatchWise
 ~~~~~~~~~
-.. autoclass:: BatchWise
+.. autoclass:: ignite.metrics.metric.BatchWise
 
 BatchFiltered
 ~~~~~~~~~~~~~
-.. autoclass:: BatchFiltered
+.. autoclass:: ignite.metrics.metric.BatchFiltered
 
 .. currentmodule:: ignite.metrics.metric
 

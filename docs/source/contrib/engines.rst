@@ -4,7 +4,6 @@ ignite.contrib.engines
 Contribution module of engines and helper tools:
 
 ignite.contrib.engines.tbptt
------------------------------
 
 .. currentmodule:: ignite.contrib.engines.tbptt
 
@@ -12,18 +11,22 @@ ignite.contrib.engines.tbptt
     :nosignatures:
     :autolist:
 
-.. automodule:: ignite.contrib.engines.tbptt
-    :members:
-
 ignite.contrib.engines.common
------------------------------
 
-.. seealso:: Common training setup functions are in :mod:`~ignite.contrib.engines.common`.
-
-.. currentmodule:: ignite.contrib.engines
+.. currentmodule:: ignite.contrib.engines.common
 
 .. autosummary::
     :nosignatures:
-    :toctree: ../generated
+    :autolist:
 
-    common
+Truncated Backpropagation Throught Time
+---------------------------------------
+
+.. automodule:: ignite.contrib.engines.tbptt
+   :members:
+
+Helper methods to setup trainer/evaluator
+-----------------------------------------
+
+.. automodule:: ignite.contrib.engines.common
+   :members:

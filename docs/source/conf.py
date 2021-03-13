@@ -325,6 +325,7 @@ autosummary_generate = True
 
 # --- nitpicky config : check internal links are correct or not --------------
 nitpicky = True
+# ignore links which can't be referenced
 nitpick_ignore = [
     ("py:class", "TextIO"),
     ("py:class", "torch.device"),

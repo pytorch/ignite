@@ -54,7 +54,7 @@ def setup_common_training_handlers(
         - :class:`~ignite.handlers.terminate_on_nan.TerminateOnNan`
         - handler to setup learning rate scheduling
         - :class:`~ignite.handlers.checkpoint.ModelCheckpoint`
-        - :class:`~ignite.metrics.running_average.RunningAverage` on `update_function` output
+        - :class:`~ignite.metrics.RunningAverage` on `update_function` output
         - Two progress bars on epochs and optionally on iterations
 
     Args:
@@ -70,14 +70,14 @@ def setup_common_training_handlers(
             exclusive with ``save_handler``.
         lr_scheduler: learning rate scheduler
             as native torch LRScheduler or ignite's parameter scheduler.
-        with_gpu_stats: if True, :class:`~ignite.contrib.metrics.gpu_info.GpuInfo` is attached to the
+        with_gpu_stats: if True, :class:`~ignite.contrib.metrics.GpuInfo` is attached to the
             trainer. This requires `pynvml` package to be installed.
         output_names: list of names associated with `update_function` output dictionary.
         with_pbars: if True, two progress bars on epochs and optionally on iterations are attached.
             Default, True.
         with_pbar_on_iters: if True, a progress bar on iterations is attached to the trainer.
             Default, True.
-        log_every_iters: logging interval for :class:`~ignite.contrib.metrics.gpu_info.GpuInfo` and for
+        log_every_iters: logging interval for :class:`~ignite.contrib.metrics.GpuInfo` and for
             epoch-wise progress bar. Default, 100.
         stop_on_nan: if True, :class:`~ignite.handlers.terminate_on_nan.TerminateOnNan` handler is added to the trainer.
             Default, True.
@@ -593,7 +593,7 @@ def gen_save_best_models_by_val_score(
             and filename. If ``save_handler`` is callable class, it can
             inherit of :class:`~ignite.handlers.checkpoint.BaseSaveHandler` and optionally implement ``remove`` method
             to keep a fixed number of saved checkpoints. In case if user needs to save engine's checkpoint on a disk,
-            ``save_handler`` can be defined with :class:`~ignite.handlers.checkpoint.DiskSaver`.
+            ``save_handler`` can be defined with :class:`~ignite.handlers.DiskSaver`.
         evaluator: evaluation engine used to provide the score
         models: model or dictionary with the object to save. Objects should have
             implemented ``state_dict`` and ``load_state_dict`` methods.
