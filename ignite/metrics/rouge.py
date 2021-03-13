@@ -119,7 +119,7 @@ class Rouge(Metric):
         self.alpha = 1 / (1 + self.beta ** 2)
         super(Rouge, self).__init__(output_transform=output_transform, device=device)
 
-    def _check_parameters(self, beta: float, metric: str, aggregate: str) -> Tuple:
+    def _check_parameters(self, beta: float, metric: str, aggregate: str) -> Tuple[float, int, Callable, str]:
         if not isinstance(beta, numbers.Number):
             raise TypeError("Beta should be a float.")
         n = 1
