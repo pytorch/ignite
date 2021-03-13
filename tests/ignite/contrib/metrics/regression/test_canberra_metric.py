@@ -64,7 +64,7 @@ def test_compute():
     assert canberra.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
 
 
-def test_integration_binary_input_with_output_transform():
+def test_integration():
     def _test(y_pred, y, batch_size):
         def update_fn(engine, batch):
             idx = (engine.state.iteration - 1) * batch_size
@@ -139,7 +139,7 @@ def _test_distrib_compute(device):
             _test(idist.device())
 
 
-def _test_distrib_integration_binary(device):
+def _test_distrib_integration(device):
 
     rank = idist.get_rank()
     torch.manual_seed(12)
@@ -195,7 +195,7 @@ def _test_distrib_integration_binary(device):
 def test_distrib_gpu(distributed_context_single_node_nccl):
     device = torch.device(f"cuda:{distributed_context_single_node_nccl['local_rank']}")
     _test_distrib_compute(device)
-    _test_distrib_integration_binary(device)
+    _test_distrib_integration(device)
 
 
 @pytest.mark.distributed
@@ -204,7 +204,7 @@ def test_distrib_cpu(distributed_context_single_node_gloo):
 
     device = torch.device("cpu")
     _test_distrib_compute(device)
-    _test_distrib_integration_binary(device)
+    _test_distrib_integration(device)
 
 
 @pytest.mark.distributed
@@ -216,7 +216,7 @@ def test_distrib_hvd(gloo_hvd_executor):
     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
 
     gloo_hvd_executor(_test_distrib_compute, (device,), np=nproc, do_init=True)
-    gloo_hvd_executor(_test_distrib_integration_binary, (device,), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_distrib_integration, (device,), np=nproc, do_init=True)
 
 
 @pytest.mark.multinode_distributed
@@ -225,7 +225,7 @@ def test_distrib_hvd(gloo_hvd_executor):
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     device = torch.device("cpu")
     _test_distrib_compute(device)
-    _test_distrib_integration_binary(device)
+    _test_distrib_integration(device)
 
 
 @pytest.mark.multinode_distributed
@@ -234,7 +234,7 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     device = torch.device(f"cuda:{distributed_context_multi_node_nccl['local_rank']}")
     _test_distrib_compute(device)
-    _test_distrib_integration_binary(device)
+    _test_distrib_integration(device)
 
 
 @pytest.mark.tpu
@@ -243,13 +243,13 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
 def test_distrib_single_device_xla():
     device = idist.device()
     _test_distrib_compute(device)
-    _test_distrib_integration_binary(device)
+    _test_distrib_integration(device)
 
 
 def _test_distrib_xla_nprocs(index):
     device = idist.device()
     _test_distrib_compute(device)
-    _test_distrib_integration_binary(device)
+    _test_distrib_integration(device)
 
 
 @pytest.mark.tpu
