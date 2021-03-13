@@ -268,7 +268,6 @@ def _setup_common_distrib_training_handlers(
 
 
 def empty_cuda_cache(_: Engine) -> None:
-    """Call torch.cuda.empty_cache() with gc."""
     torch.cuda.empty_cache()
     import gc
 
