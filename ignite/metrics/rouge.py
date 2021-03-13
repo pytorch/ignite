@@ -1,7 +1,7 @@
 import re
 from abc import ABCMeta, abstractmethod
 from collections import Counter, namedtuple
-from typing import Any, Callable, Mapping, Sequence, Tuple, Union
+from typing import Any, Callable, Mapping, Sequence, List, Tuple, Union, Optional
 
 import torch
 
@@ -60,11 +60,10 @@ def lcs(seq_a: Sequence[Any], seq_b: Sequence[Any]) -> int:
 
 
 class Score(namedtuple("Score", ["match", "candidate", "reference"])):
-    @property
+
     def precision(self) -> float:
         return self.match / self.candidate if self.candidate > 0 else 0
 
-    @property
     def recall(self) -> float:
         return self.match / self.reference if self.reference > 0 else 0
 
@@ -91,13 +90,12 @@ def compute_ngram_scores(candidate: Sequence[Any], reference: Sequence[Any], n: 
     # ngram co-occurences in the candidate and the references
     match_counters = candidate_counter & reference_counter
 
-    # sum to compte sizes of each ngrams
-    match = sum(match_counters.values())
-    candidate = sum(candidate_counter.values())
-    reference = sum(reference_counter.values())
-
     # the score is defined using Fraction
-    return Score(match=match, candidate=candidate, reference=reference)
+    return Score(
+        match=sum(match_counters.values()),
+        candidate=sum(candidate_counter.values()),
+        reference=sum(reference_counter.values())
+    )
 
 
 def compute_lcs_scores(candidate: Sequence[Any], reference: Sequence[Any]) -> Score:
@@ -149,7 +147,7 @@ class MultiRefBestReducer(MultiRefReducer):
     """
 
     def __call__(self, scores: Sequence[Score]) -> Score:
-        return max(scores, key=lambda x: x.recall)
+        return max(scores, key=lambda x: x.recall())
 
 
 class _BaseRouge(Metric):
@@ -171,20 +169,22 @@ class _BaseRouge(Metric):
         self._multiref = multiref
         valid_multiref = ["best", "average"]
         if self._multiref not in valid_multiref:
-            raise ValueError(f"aggregation must be in {valid_multiref} (got : {self._multiref })")
+            raise ValueError(f"multiref : valid values are {valid_multiref} (got : {self._multiref })")
         self._mutliref_reducer = self._get_multiref_reducer()
 
     def _get_multiref_reducer(self) -> MultiRefReducer:
         if self._multiref == "average":
             return MultiRefAverageReducer()
-        if self._multiref == "best":
+        elif self._multiref == "best":
             return MultiRefBestReducer()
+        else:
+            raise ValueError(f"multiref : wrong value (got : {self._multiref })")
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._recall = 0
-        self._precision = 0
-        self._fmeasure = 0
+        self._recall = 0.0
+        self._precision = 0.0
+        self._fmeasure = 0.0
         self._num_examples = 0
 
     @reinit__is_reduced
@@ -192,14 +192,13 @@ class _BaseRouge(Metric):
         candidate, references = output[0], output[1]
         multiref_scores = [self.compute_score(candidate=candidate, reference=reference,) for reference in references]
         score = self._mutliref_reducer(multiref_scores)
-        self._precision += score.precision
-        self._recall += score.recall
-        precision_recall = score.precision * score.recall
+        precision = score.precision()
+        recall = score.recall()
+        self._precision += precision
+        self._recall += recall
+        precision_recall = precision * recall
         if precision_recall > 0:  # avoid zero division
-            self._fmeasure += precision_recall / ((1 - self._alpha) * score.precision + self._alpha * score.recall)
-        print("-********", candidate, references)
-        print(score.precision, score.recall, self._fmeasure)
-
+            self._fmeasure += precision_recall / ((1 - self._alpha) * precision + self._alpha * recall)
         self._num_examples += 1
 
     @sync_all_reduce("_precision", "_recall", "_fmeasure", "_num_examples")
@@ -402,15 +401,15 @@ class Rouge(Metric):
 
     def __init__(
         self,
-        metrics: Sequence[str] = None,
+        metrics: Optional[Sequence[str]] = None,
         multiref: str = "average",
         alpha: float = 0,
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
-        if len(metrics) == 0:
+        if metrics is None or len(metrics) == 0:
             raise ValueError("Rouge must have at least one metric")
-        self.internal_metrics = []
+        self.internal_metrics: List[_BaseRouge] = []
         for m in metrics:
             if m == "Rouge-L":
                 self.internal_metrics.append(RougeL(multiref, alpha, output_transform, device))
