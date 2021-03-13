@@ -117,7 +117,7 @@ class EpochMetric(Metric):
             except Exception as e:
                 warnings.warn(f"Probably, there can be a problem with `compute_fn`:\n {e}.", EpochMetricWarning)
 
-    def compute(self) -> Union[int, float, Sequence, Mapping]:
+    def compute(self) -> Union[int, float, Sequence[torch.Tensor], Mapping[str, torch.Tensor]]:
         if len(self._predictions) < 1 or len(self._targets) < 1:
             raise NotComputableError("EpochMetric must have at least one example before it can be computed.")
 
@@ -145,7 +145,11 @@ class EpochMetric(Metric):
 
         if ws > 1:
             # broadcast result to all processes
-            return apply_to_type(result, torch.Tensor, partial(idist.broadcast, src=0))
+            broadcasted_result = apply_to_type(result, torch.Tensor, partial(idist.broadcast, src=0))
+            if isinstance(result, Sequence):
+                return cast(Sequence[torch.Tensor], broadcasted_result)
+            if isinstance(result, Mapping):
+                return cast(Mapping[str, torch.Tensor], broadcasted_result)
 
         return result
 
@@ -156,7 +160,7 @@ def _is_scalar_or_collection_of_tensor(x: Any) -> bool:
     Args:
         x: object of any type
     """
-    if isinstance(x, (float, torch.Tensor)):
+    if isinstance(x, (int, float, torch.Tensor)):
         return True
     if isinstance(x, Sequence):
         return all([isinstance(item, torch.Tensor) for item in x])
