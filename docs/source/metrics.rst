@@ -299,7 +299,6 @@ Complete list of metrics
 
 .. autosummary::
     :nosignatures:
-
     :toctree: generated
 
     Average
