@@ -1,20 +1,18 @@
-import pytest
 import os
 
+import pytest
 import torch
-
 from rouge_metric import PerlRouge
 
 import ignite.distributed as idist
-
-from ignite.metrics.rouge import ngrams, lcs, compute_ngram_scores
-from ignite.metrics import Rouge
-from ignite.metrics.rouge import RougeN, RougeL
 from ignite.exceptions import NotComputableError
+from ignite.metrics import Rouge
+from ignite.metrics.rouge import RougeL, RougeN, compute_ngram_scores, lcs, ngrams
 
 
 @pytest.mark.parametrize(
-    "sequence, n, expected_keys, expected_values", [
+    "sequence, n, expected_keys, expected_values",
+    [
         ([], 1, [], []),
         ([0, 1, 2], 1, [(0,), (1,), (2,)], [1, 1, 1]),
         ([0, 1, 2], 2, [(0, 1,), (1, 2,)], [1, 1]),
@@ -22,7 +20,7 @@ from ignite.exceptions import NotComputableError
         ([0, 0, 0], 1, [(0,)], [3]),
         ([0, 0, 0], 2, [(0, 0)], [2]),
         ("abcde", 4, [("a", "b", "c", "d"), ("b", "c", "d", "e")], [1, 1]),
-    ]
+    ],
 )
 def test_ngrams(sequence, n, expected_keys, expected_values):
     ngrams_counter = ngrams(sequence=sequence, n=n)
@@ -31,19 +29,16 @@ def test_ngrams(sequence, n, expected_keys, expected_values):
 
 
 @pytest.mark.parametrize(
-    "seq_a, seq_b, expected", [
-        ([], [], 0),
-        ([0, 1, 2], [0, 1, 2], 3),
-        ([0, 1, 2], [0, 3, 2], 2),
-        ("academy", "abracadabra", 4),
-    ]
+    "seq_a, seq_b, expected",
+    [([], [], 0), ([0, 1, 2], [0, 1, 2], 3), ([0, 1, 2], [0, 3, 2], 2), ("academy", "abracadabra", 4),],
 )
 def test_lcs(seq_a, seq_b, expected):
     assert lcs(seq_a, seq_b) == expected
 
 
 @pytest.mark.parametrize(
-    "candidate, reference, n, expected_precision, expected_recall", [
+    "candidate, reference, n, expected_precision, expected_recall",
+    [
         ([], [], 1, 0, 0),
         ("abc", "ab", 1, 2 / 3, 2 / 2),
         ("abc", "ab", 2, 1 / 2, 1 / 1),
@@ -53,7 +48,7 @@ def test_lcs(seq_a, seq_b, expected):
         ("aab", "aace", 1, 2 / 3, 2 / 4),
         ("aa", "aaa", 1, 2 / 2, 2 / 3),
         ("aaa", "aa", 1, 2 / 3, 2 / 2),
-    ]
+    ],
 )
 def test_compute_ngram_scores(candidate, reference, n, expected_precision, expected_recall):
     scores = compute_ngram_scores(candidate, reference, n=n)
@@ -86,7 +81,8 @@ def test_wrong_inputs():
 
 
 @pytest.mark.parametrize(
-    "ngram, candidate, reference, expected", [
+    "ngram, candidate, reference, expected",
+    [
         (1, [1, 2, 3], [1, 2], (2 / 3, 2 / 2)),
         (2, [1, 2, 3], [1, 2], (1 / 2, 1 / 1)),
         (1, "abcdef", "zbdfz", (3 / 6, 3 / 5)),
@@ -112,28 +108,26 @@ CAND_1 = "the the the the the the the"
 REF_1A = "The cat is on the mat"
 REF_1B = "There is a cat on the mat"
 
-CAND_2A = "It is a guide to action which ensures that the military always obeys the " \
-          "commands of the party"
-CAND_2B = "It is to insure the troops forever hearing the activity guidebook that " \
-          "party direct"
-REF_2A = "It is a guide to action that ensures that the military will forever heed " \
-         "Party commands"
-REF_2B = "It is the guiding principle which guarantees the military forces always being under the " \
-         "command of the Party"
-REF_2C = "It is the practical guide for the army always to heed the directions of the " \
-         "party"
+CAND_2A = "It is a guide to action which ensures that the military always obeys the " "commands of the party"
+CAND_2B = "It is to insure the troops forever hearing the activity guidebook that " "party direct"
+REF_2A = "It is a guide to action that ensures that the military will forever heed " "Party commands"
+REF_2B = (
+    "It is the guiding principle which guarantees the military forces always being under the " "command of the Party"
+)
+REF_2C = "It is the practical guide for the army always to heed the directions of the " "party"
 
 CAND_3 = "of the"
 
 
 @pytest.mark.parametrize(
-    "candidates, references", [
+    "candidates, references",
+    [
         ([CAND_1], [[REF_1A, REF_1B]]),
         ([CAND_3], [[REF_2A, REF_2B, REF_2C]]),
         ([CAND_2A], [[REF_2A, REF_2B, REF_2C]]),
         ([CAND_2B], [[REF_2A, REF_2B, REF_2C]]),
         ([CAND_2A, CAND_2B], [[REF_2A, REF_2B, REF_2C], [REF_2A, REF_2B, REF_2C]]),
-    ]
+    ],
 )
 def test_rouge_metrics(candidates, references):
     for multiref in ["average", "best"]:
@@ -147,19 +141,15 @@ def test_rouge_metrics(candidates, references):
 
         lower_split_candidates = [candidate.lower().split() for candidate in candidates]
 
-        m = Rouge(
-            metrics=["Rouge-1", "Rouge-2", "Rouge-4", "Rouge-L"],
-            multiref=multiref,
-            alpha=0.5
-        )
+        m = Rouge(metrics=["Rouge-1", "Rouge-2", "Rouge-4", "Rouge-L"], multiref=multiref, alpha=0.5)
         for candidate, references_per_candidate in zip(lower_split_candidates, lower_split_references):
             m.update((candidate, references_per_candidate))
         results = m.compute()
 
         for key in ["1", "2", "4", "L"]:
-            assert pytest.approx(results[f'Rouge-{key}-R'], abs=1e-4) == scores[f'rouge-{key.lower()}']['r']
-            assert pytest.approx(results[f'Rouge-{key}-P'], abs=1e-4) == scores[f'rouge-{key.lower()}']['p']
-            assert pytest.approx(results[f'Rouge-{key}-F'], abs=1e-4) == scores[f'rouge-{key.lower()}']['f']
+            assert pytest.approx(results[f"Rouge-{key}-R"], abs=1e-4) == scores[f"rouge-{key.lower()}"]["r"]
+            assert pytest.approx(results[f"Rouge-{key}-P"], abs=1e-4) == scores[f"rouge-{key.lower()}"]["p"]
+            assert pytest.approx(results[f"Rouge-{key}-F"], abs=1e-4) == scores[f"rouge-{key.lower()}"]["f"]
 
 
 def _test_distrib_integration(device):
@@ -183,7 +173,7 @@ def _test_distrib_integration(device):
         (CAND_2B, [REF_2A, REF_2C]),
         (CAND_1, [REF_1A]),
         (CAND_2A, [REF_2A]),
-        (CAND_2B, [REF_2C])
+        (CAND_2B, [REF_2C]),
     ]
 
     size = len(chunks)
@@ -212,9 +202,9 @@ def _test_distrib_integration(device):
         rouge_1_f, rouge_2_f, rouge_l_f = (0, 0, 0)
         for candidate, references in data:
             scores = perl_rouge.evaluate([candidate], [references])
-            rouge_1_f += scores["rouge-1"]['f']
-            rouge_2_f += scores["rouge-2"]['f']
-            rouge_l_f += scores["rouge-l"]['f']
+            rouge_1_f += scores["rouge-1"]["f"]
+            rouge_2_f += scores["rouge-2"]["f"]
+            rouge_l_f += scores["rouge-l"]["f"]
 
         assert pytest.approx(engine.state.metrics["Rouge-1-F"], abs=1e-4) == rouge_1_f / len(data)
         assert pytest.approx(engine.state.metrics["Rouge-2-F"], abs=1e-4) == rouge_2_f / len(data)
