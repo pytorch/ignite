@@ -1,0 +1,14 @@
+name: Welcome
+description: Welcome Message for First-Time Contributors
+
+on: [issues, pull_request]
+
+jobs:
+  welcome:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/first-interaction@v1
+        with:
+          issue-message: "**Thank you for opening your First Issue!**\nIf you would like to help us with the code, please feel free to discuss it here, take a look at our [Contributing Guide](https://github.com/pytorch/ignite/blob/master/CONTRIBUTING.md), and raise a PR."
+          pr-message: "**Thank you for opening your First Pull Request!**\nPlease take a look at our [Contributing Guide](https://github.com/pytorch/ignite/blob/master/CONTRIBUTING.md)"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
