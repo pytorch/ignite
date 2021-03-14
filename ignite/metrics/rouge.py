@@ -410,6 +410,7 @@ class Rouge(Metric):
             variants = [1, 2, 4, "L"]
         self.internal_metrics: List[_BaseRouge] = []
         for m in variants:
+            variant: Optional[_BaseRouge] = None
             if isinstance(m, str) and m == "L":
                 variant = RougeL(multiref=multiref, alpha=alpha, output_transform=output_transform, device=device)
             elif isinstance(m, int):
