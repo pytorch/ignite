@@ -323,6 +323,7 @@ Complete list of metrics
     precision.Precision
     PSNR
     recall.Recall
+    Rouge
     RootMeanSquaredError
     RunningAverage
     SSIM
