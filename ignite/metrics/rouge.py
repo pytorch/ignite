@@ -1,7 +1,7 @@
 import re
 from abc import ABCMeta, abstractmethod
 from collections import Counter, namedtuple
-from typing import Any, Callable, Mapping, Sequence, List, Tuple, Union, Optional
+from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple, Union
 
 import torch
 
@@ -60,7 +60,6 @@ def lcs(seq_a: Sequence[Any], seq_b: Sequence[Any]) -> int:
 
 
 class Score(namedtuple("Score", ["match", "candidate", "reference"])):
-
     def precision(self) -> float:
         return self.match / self.candidate if self.candidate > 0 else 0
 
@@ -94,7 +93,7 @@ def compute_ngram_scores(candidate: Sequence[Any], reference: Sequence[Any], n: 
     return Score(
         match=sum(match_counters.values()),
         candidate=sum(candidate_counter.values()),
-        reference=sum(reference_counter.values())
+        reference=sum(reference_counter.values()),
     )
 
 
