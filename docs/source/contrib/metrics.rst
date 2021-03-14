@@ -1,18 +1,21 @@
 ignite.contrib.metrics
 ======================
 
-Contribution module of metrics
+Contrib module metrics
+----------------------
 
 .. currentmodule:: ignite.contrib.metrics
 
 .. autosummary::
     :nosignatures:
-    :autolist:
+    :toctree: ../generated
 
-.. automodule:: ignite.contrib.metrics
-   :members:
-   :imported-members:
-
+    AveragePrecision
+    CohenKappa
+    GpuInfo
+    PrecisionRecallCurve
+    ROC_AUC
+    RocCurve
 
 Regression metrics
 ------------------
@@ -34,35 +37,20 @@ Complete list of metrics:
 
 .. autosummary::
     :nosignatures:
-    :autolist:
+    :toctree: ../generated
 
-
-.. autoclass:: CanberraMetric
-
-.. autoclass:: FractionalAbsoluteError
-
-.. autoclass:: FractionalBias
-
-.. autoclass:: GeometricMeanAbsoluteError
-
-.. autoclass:: GeometricMeanRelativeAbsoluteError
-
-.. autoclass:: ManhattanDistance
-
-.. autoclass:: MaximumAbsoluteError
-
-.. autoclass:: MeanAbsoluteRelativeError
-
-.. autoclass:: MeanError
-
-.. autoclass:: MeanNormalizedBias
-
-.. autoclass:: MedianAbsoluteError
-
-.. autoclass:: MedianAbsolutePercentageError
-
-.. autoclass:: MedianRelativeAbsoluteError
-
-.. autoclass:: R2Score
-
-.. autoclass:: WaveHedgesDistance
+    CanberraMetric
+    FractionalAbsoluteError
+    FractionalBias
+    GeometricMeanAbsoluteError
+    GeometricMeanRelativeAbsoluteError
+    ManhattanDistance
+    MaximumAbsoluteError
+    MeanAbsoluteRelativeError
+    MeanError
+    MeanNormalizedBias
+    MedianAbsoluteError
+    MedianAbsolutePercentageError
+    MedianRelativeAbsoluteError
+    R2Score
+    WaveHedgesDistance

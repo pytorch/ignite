@@ -34,6 +34,9 @@ class CanberraMetric(_BaseRegression):
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
 
+    .. _`Botchkarev 2018`:
+        https://arxiv.org/ftp/arxiv/papers/1809/1809.03006.pdf
+
     .. versionchanged:: 0.4.3
 
         - Fixed implementation: ``abs`` in denominator.
