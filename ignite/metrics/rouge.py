@@ -168,7 +168,7 @@ class _BaseRouge(Metric):
         self._multiref = multiref
         valid_multiref = ["best", "average"]
         if self._multiref not in valid_multiref:
-            raise ValueError(f"multiref : valid values are {valid_multiref} (got : {self._multiref })")
+            raise ValueError(f"multiref : valid values are {valid_multiref} (got : {self._multiref})")
         self._mutliref_reducer = self._get_multiref_reducer()
 
     def _get_multiref_reducer(self) -> MultiRefReducer:
