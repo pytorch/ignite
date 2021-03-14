@@ -1,8 +1,8 @@
 import os
 
 import pytest
+import rouge as pyrouge
 import torch
-from rouge_metric import PerlRouge
 
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
@@ -15,7 +15,7 @@ from ignite.metrics.rouge import RougeL, RougeN, compute_ngram_scores, lcs, ngra
     [
         ([], 1, [], []),
         ([0, 1, 2], 1, [(0,), (1,), (2,)], [1, 1, 1]),
-        ([0, 1, 2], 2, [(0, 1,), (1, 2,)], [1, 1]),
+        ([0, 1, 2], 2, [(0, 1,), (1, 2,),], [1, 1],),
         ([0, 1, 2], 3, [(0, 1, 2)], [1]),
         ([0, 0, 0], 1, [(0,)], [3]),
         ([0, 0, 0], 2, [(0, 0)], [2]),
@@ -129,8 +129,18 @@ CAND_3 = "of the"
 def test_rouge_metrics(candidates, references):
     for multiref in ["average", "best"]:
         # PERL 1.5.5 reference
-        perl_rouge = PerlRouge(rouge_n_max=4, multi_ref_mode=multiref)
-        scores = perl_rouge.evaluate(candidates, references)
+        apply_avg = multiref == "average"
+        apply_best = multiref == "best"
+        evaluator = pyrouge.Rouge(
+            metrics=["rouge-n", "rouge-l", "rouge-w"],
+            max_n=4,
+            apply_avg=apply_avg,
+            apply_best=apply_best,
+            alpha=0.5,
+            stemming=False,
+            ensure_compatibility=False,
+        )
+        scores = evaluator.get_scores(candidates, references)
 
         lower_split_references = [
             [ref.lower().split() for ref in refs_per_candidate] for refs_per_candidate in references
@@ -194,11 +204,18 @@ def _test_distrib_integration(device):
 
         assert "rouge" in engine.state.metrics
 
-        perl_rouge = PerlRouge(rouge_n_max=2)
-
+        evaluator = pyrouge.Rouge(
+            metrics=["rouge-n", "rouge-l", "rouge-w"],
+            max_n=4,
+            apply_avg=True,
+            apply_best=False,
+            alpha=0.5,
+            stemming=False,
+            ensure_compatibility=False,
+        )
         rouge_1_f, rouge_2_f, rouge_l_f = (0, 0, 0)
         for candidate, references in data:
-            scores = perl_rouge.evaluate([candidate], [references])
+            scores = evaluator.get_scores([candidate], [references])
             rouge_1_f += scores["rouge-1"]["f"]
             rouge_2_f += scores["rouge-2"]["f"]
             rouge_l_f += scores["rouge-l"]["f"]

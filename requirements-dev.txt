@@ -20,7 +20,7 @@ tensorboard
 pynvml
 clearml
 scikit-image
-rouge_metric
+py-rouge
 # Examples dependencies
 pandas
 gym
