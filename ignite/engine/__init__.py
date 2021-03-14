@@ -511,7 +511,7 @@ def supervised_evaluation_step_amp(
     return evaluate_step
 
 
-def _autocast(enabled: bool):
+def _autocast(enabled: bool) -> Any:
     # moving this to a separate method to test the evaluation step
     try:
         from torch.cuda.amp import autocast
