@@ -411,16 +411,11 @@ class Rouge(Metric):
         self.internal_metrics: List[_BaseRouge] = []
         for m in variants:
             if isinstance(m, str) and m == "L":
-                variant = RougeL(multiref=multiref,
-                                 alpha=alpha,
-                                 output_transform=output_transform,
-                                 device=device)
+                variant = RougeL(multiref=multiref, alpha=alpha, output_transform=output_transform, device=device)
             elif isinstance(m, int):
-                variant = RougeN(ngram=m,
-                                 multiref=multiref,
-                                 alpha=alpha,
-                                 output_transform=output_transform,
-                                 device=device)
+                variant = RougeN(
+                    ngram=m, multiref=multiref, alpha=alpha, output_transform=output_transform, device=device
+                )
             else:
                 raise ValueError("variant must be 'L' or integer greater to zero")
             self.internal_metrics.append(variant)
