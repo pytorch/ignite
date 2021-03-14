@@ -71,9 +71,6 @@ def test_wrong_inputs():
         RougeN(multiref="")
 
     with pytest.raises(ValueError, match=r"variant must be 'L' or integer greater to zero"):
-        Rouge(variants=[])
-
-    with pytest.raises(ValueError, match=r"variant must be 'L' or integer greater to zero"):
         Rouge(variants=["error"])
 
     with pytest.raises(NotComputableError):

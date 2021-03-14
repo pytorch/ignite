@@ -407,7 +407,7 @@ class Rouge(Metric):
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
         if variants is None or len(variants) == 0:
-            variants = ["Rouge-1", "Rouge-2", "Rouge-4", "Rouge-L"]
+            variants = [1, 2, 4, "L"]
         self.internal_metrics: List[_BaseRouge] = []
         for m in variants:
             if isinstance(m, str) and m == "L":
