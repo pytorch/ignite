@@ -52,8 +52,8 @@ def test_lcs(seq_a, seq_b, expected):
 )
 def test_compute_ngram_scores(candidate, reference, n, expected_precision, expected_recall):
     scores = compute_ngram_scores(candidate, reference, n=n)
-    assert pytest.approx(scores.precision) == expected_precision
-    assert pytest.approx(scores.recall) == expected_recall
+    assert pytest.approx(scores.precision()) == expected_precision
+    assert pytest.approx(scores.recall()) == expected_recall
 
 
 def test_wrong_inputs():
@@ -67,13 +67,13 @@ def test_wrong_inputs():
     with pytest.raises(ValueError, match=r"alpha must be in interval \[0, 1\]"):
         RougeN(alpha=2)
 
-    with pytest.raises(ValueError, match=r"aggregation must be in \['best', 'average'\] "):
+    with pytest.raises(ValueError, match=r"multiref : valid values are \['best', 'average'\] "):
         RougeN(multiref="")
 
-    with pytest.raises(ValueError, match=r"Rouge must have at least one metric"):
+    with pytest.raises(ValueError, match=r"variant must be 'L' or integer greater to zero"):
         Rouge(variants=[])
 
-    with pytest.raises(ValueError, match=r"Rouge metric name must be 'Rouge-L' or 'Rouge-N' for N in \[1 ... 9\]"):
+    with pytest.raises(ValueError, match=r"variant must be 'L' or integer greater to zero"):
         Rouge(variants=["error"])
 
     with pytest.raises(NotComputableError):
