@@ -19,6 +19,7 @@ from ignite.engine import (
     _check_arg,
     create_supervised_evaluator,
     create_supervised_trainer,
+    supervised_evaluation_step,
     supervised_evaluation_step_amp,
     supervised_training_step_tpu,
 )
@@ -210,6 +211,42 @@ def _test_create_evaluation_step_amp(
         assert output_transform_mock.called
 
 
+def _test_create_evaluation_step(
+    model_device: Optional[str] = None,
+    evaluator_device: Optional[str] = None,
+    trace: bool = False,
+    amp_mode: str = None,
+):
+    with mock.patch("ignite.engine.autocast") as autocast_mock:
+        output_transform_mock = MagicMock()
+        model = Linear(1, 1)
+
+        if model_device:
+            model.to(model_device)
+
+        model.weight.data.zero_()
+        model.bias.data.zero_()
+
+        if trace:
+            example_input = torch.randn(1, 1)
+            model = torch.jit.trace(model, example_input)
+
+        device_type = evaluator_device.type if isinstance(evaluator_device, torch.device) else evaluator_device
+        on_tpu = "xla" in device_type if device_type is not None else False
+        mode, _ = _check_arg(on_tpu, amp_mode, None)
+
+        evaluate_step = supervised_evaluation_step(model, evaluator_device, output_transform=output_transform_mock)
+
+        x = torch.tensor([[1.0], [2.0]])
+        y = torch.tensor([[3.0], [5.0]])
+        data = [(x, y)]
+        evaluator = Engine(evaluate_step)
+
+        evaluator.run(data)
+        assert not autocast_mock.called
+        assert output_transform_mock.called
+
+
 def test_create_supervised_trainer():
     _test_create_supervised_trainer()
 
@@ -333,16 +370,19 @@ def test_create_supervised_evaluator():
     _test_create_supervised_evaluator()
     _test_mocked_supervised_evaluator()
     _test_create_evaluation_step_amp()
+    _test_create_evaluation_step()
 
 
 def test_create_supervised_evaluator_on_cpu():
     _test_create_supervised_evaluator(evaluator_device="cpu")
     _test_mocked_supervised_evaluator(evaluator_device="cpu")
+    _test_create_evaluation_step(evaluator_device="cpu")
 
 
 def test_create_supervised_evaluator_traced_on_cpu():
     _test_create_supervised_evaluator(evaluator_device="cpu", trace=True)
     _test_mocked_supervised_evaluator(evaluator_device="cpu", trace=True)
+    _test_create_evaluation_step(evaluator_device="cpu", trace=True)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
@@ -351,6 +391,7 @@ def test_create_supervised_evaluator_on_cuda():
     _test_create_supervised_evaluator(model_device=model_device, evaluator_device=evaluator_device)
     _test_mocked_supervised_evaluator(model_device=model_device, evaluator_device=evaluator_device)
     _test_create_evaluation_step_amp(model_device=model_device, evaluator_device=evaluator_device)
+    _test_create_evaluation_step(model_device=model_device, evaluator_device=evaluator_device)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
@@ -358,6 +399,7 @@ def test_create_supervised_evaluator_on_cuda_with_model_on_cpu():
     _test_create_supervised_evaluator(evaluator_device="cuda")
     _test_mocked_supervised_evaluator(evaluator_device="cuda")
     _test_create_evaluation_step_amp(evaluator_device="cuda")
+    _test_create_evaluation_step(evaluator_device="cuda")
 
 
 @pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0")
