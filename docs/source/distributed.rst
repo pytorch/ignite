@@ -66,11 +66,12 @@ ignite.distributed.auto
 
 .. autosummary::
     :nosignatures:
-    :autolist:
+    :toctree: generated
 
-.. automodule:: ignite.distributed.auto
-    :members:
-
+    DistributedProxySampler
+    auto_dataloader
+    auto_model
+    auto_optim
 
 ignite.distributed.launcher
 ---------------------------
@@ -79,11 +80,9 @@ ignite.distributed.launcher
 
 .. autosummary::
     :nosignatures:
-    :autolist:
+    :toctree: generated
 
-.. automodule:: ignite.distributed.launcher
-    :members:
-
+    Parallel
 
 ignite.distributed.utils
 ------------------------

@@ -583,7 +583,7 @@ class Checkpoint(Serializable):
 
         Args:
             metric_name: metric name to get the value from ``engine.state.metrics``.
-                Engine is the one to which :class:`~ignite.handlers.Checkpoint` handler is added.
+                Engine is the one to which :class:`~ignite.handlers.checkpoint.Checkpoint` handler is added.
             score_sign: sign of the score: 1.0 or -1.0. For error-like metrics, e.g. smaller is better,
                 a negative score sign should be used (objects with larger score are retained). Default, 1.0.
 
@@ -741,7 +741,7 @@ class ModelCheckpoint(Checkpoint):
     Args:
         dirname: Directory path where objects will be saved.
         filename_prefix: Prefix for the file names to which objects will be saved. See Notes of
-            :class:`~ignite.handlers.Checkpoint` for more details.
+            :class:`~ignite.handlers.checkpoint.Checkpoint` for more details.
         score_function: if not None, it should be a function taking a single argument, an
             :class:`~ignite.engine.engine.Engine` object, and return a score (`float`). Objects with highest scores
             will be retained.

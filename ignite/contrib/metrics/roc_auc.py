@@ -1,4 +1,4 @@
-from typing import Any, Callable, Tuple
+from typing import Any, Callable, Tuple, Union
 
 import torch
 
@@ -6,13 +6,10 @@ from ignite.metrics import EpochMetric
 
 
 def roc_auc_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor) -> float:
-    try:
-        from sklearn.metrics import roc_auc_score
-    except ImportError:
-        raise RuntimeError("This contrib module requires sklearn to be installed.")
+    from sklearn.metrics import roc_auc_score
 
-    y_true = y_targets.numpy()
-    y_pred = y_preds.numpy()
+    y_true = y_targets.cpu().numpy()
+    y_pred = y_preds.cpu().numpy()
     return roc_auc_score(y_true, y_pred)
 
 
@@ -42,6 +39,7 @@ class ROC_AUC(EpochMetric):
             <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_auc_score.html#
             sklearn.metrics.roc_auc_score>`_ is run on the first batch of data to ensure there are
             no issues. User will be warned in case there are any issues computing the function.
+        device: optional device specification for internal storage.
 
     ROC_AUC expects y to be comprised of 0's and 1's. y_pred must either be probability estimates or confidence
     values. To apply an activation to y_pred, use output_transform as shown below:
@@ -57,9 +55,20 @@ class ROC_AUC(EpochMetric):
 
     """
 
-    def __init__(self, output_transform: Callable = lambda x: x, check_compute_fn: bool = False) -> None:
+    def __init__(
+        self,
+        output_transform: Callable = lambda x: x,
+        check_compute_fn: bool = False,
+        device: Union[str, torch.device] = torch.device("cpu"),
+    ):
+
+        try:
+            from sklearn.metrics import roc_auc_score
+        except ImportError:
+            raise RuntimeError("This contrib module requires sklearn to be installed.")
+
         super(ROC_AUC, self).__init__(
-            roc_auc_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
+            roc_auc_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn, device=device,
         )
 
 
