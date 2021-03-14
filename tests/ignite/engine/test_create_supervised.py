@@ -211,42 +211,6 @@ def _test_create_evaluation_step_amp(
         assert output_transform_mock.called
 
 
-def _test_create_evaluation_step_amp(
-    model_device: Optional[str] = None,
-    evaluator_device: Optional[str] = None,
-    trace: bool = False,
-    amp_mode: str = None,
-):
-    with mock.patch("ignite.engine._autocast") as autocast_mock:
-        output_transform_mock = MagicMock()
-        model = Linear(1, 1)
-
-        if model_device:
-            model.to(model_device)
-
-        model.weight.data.zero_()
-        model.bias.data.zero_()
-
-        if trace:
-            example_input = torch.randn(1, 1)
-            model = torch.jit.trace(model, example_input)
-
-        device_type = evaluator_device.type if isinstance(evaluator_device, torch.device) else evaluator_device
-        on_tpu = "xla" in device_type if device_type is not None else False
-        mode, _ = _check_arg(on_tpu, amp_mode, None)
-
-        evaluate_step = supervised_evaluation_step_amp(model, evaluator_device, output_transform=output_transform_mock)
-
-        x = torch.tensor([[1.0], [2.0]])
-        y = torch.tensor([[3.0], [5.0]])
-        data = [(x, y)]
-        evaluator = Engine(evaluate_step)
-
-        evaluator.run(data)
-        assert autocast_mock.called
-        assert output_transform_mock.called
-
-
 def test_create_supervised_trainer():
     _test_create_supervised_trainer()
 
