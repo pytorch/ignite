@@ -135,7 +135,7 @@ def test_rouge_metrics(candidates, references):
         apply_avg = multiref == "average"
         apply_best = multiref == "best"
         evaluator = pyrouge.Rouge(
-            metrics=["rouge-n", "rouge-l", "rouge-w"],
+            metrics=["rouge-n", "rouge-l"],
             max_n=4,
             apply_avg=apply_avg,
             apply_best=apply_best,
@@ -208,7 +208,7 @@ def _test_distrib_integration(device):
         assert "rouge" in engine.state.metrics
 
         evaluator = pyrouge.Rouge(
-            metrics=["rouge-n", "rouge-l", "rouge-w"],
+            metrics=["rouge-n", "rouge-l"],
             max_n=4,
             apply_avg=True,
             apply_best=False,
