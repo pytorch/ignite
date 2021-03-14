@@ -1,3 +1,4 @@
+"""Neptune logger and its helper handlers."""
 import numbers
 import tempfile
 import warnings

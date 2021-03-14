@@ -65,6 +65,7 @@ class CohenKappa(EpochMetric):
         )
 
     def get_cohen_kappa_fn(self) -> Callable[[torch.Tensor, torch.Tensor], float]:
+        """Return a function computing Cohen Kappa from scikit-learn."""
         from sklearn.metrics import cohen_kappa_score
 
         def wrapper(y_targets: torch.Tensor, y_preds: torch.Tensor) -> float:

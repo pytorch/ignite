@@ -77,17 +77,6 @@
   {%- endblock %}
   {%- block extrahead %} {% endblock %}
 
-  {# Keep modernizr in head - http://modernizr.com/docs/#installing #}
-  <script src="{{ pathto('_static/js/modernizr.min.js', 1) }}"></script>
-
-  <!-- katex links / this needs to be loaded before fonts.html -->
-  <link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css" as="style"
-    integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css"
-    integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X" crossorigin="anonymous">
-  <script async src="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.js"
-    integrity="sha384-g7c+Jr9ZivxKLnZTDUhnkOnsh30B4H0rpLUpJ4jAIKs4fnJI+sEnkvrMWph2EDg4" crossorigin="anonymous"></script>
-
   {% include "fonts.html" %}
 </head>
 
@@ -163,7 +152,7 @@
               {% endif %}
             {% endif %}
 
-            {% include "searchbox.html" %}
+            <div id="docsearch"></div>
 
             {% endblock %}
           </div>
@@ -483,7 +472,7 @@
       });
     })
   </script>
-  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/docsearch.js@2/dist/cdn/docsearch.min.js"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@docsearch/js@1.0.0-alpha.28/dist/umd/index.min.js"></script>
   <script type="text/javascript">
   let VERSION
   if ('{{ version }}'.includes('v')) {
@@ -492,11 +481,13 @@
     VERSION = '{{ release }}'
   }
   docsearch({
-  apiKey: '19a7a7a75d87608d6f42c722ed1e293f',
-  indexName: 'ignite',
-  inputSelector: '#rtd-search-form input[type="text"]',
-  algoliaOptions: { 'facetFilters': [`version:${VERSION}`] },
-  debug: true // Set debug to true if you want to inspect the dropdown
+    container: '#docsearch',
+    apiKey: '19a7a7a75d87608d6f42c722ed1e293f',
+    indexName: 'ignite',
+    placeholder: 'Search PyTorch-Ignite docs',
+    searchParameters: {
+      'facetFilters': [`version:${VERSION}`],
+    }
   });
   </script>
 </body>

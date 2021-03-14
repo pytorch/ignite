@@ -66,6 +66,7 @@ class ReproducibleBatchSampler(BatchSampler):
         self.sampler = self.batch_sampler.sampler
 
     def setup_batch_indices(self) -> None:
+        """Setup batch indices."""
         self.batch_indices = []
         for batch in self.batch_sampler:
             self.batch_indices.append(batch)

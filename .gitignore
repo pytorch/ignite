@@ -38,3 +38,4 @@ coverage.xml
 # Documentation
 /docs/src/
 /docs/build/
+/docs/source/generated/

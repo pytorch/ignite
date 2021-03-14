@@ -114,6 +114,7 @@ class Timer:
         return self
 
     def reset(self, *args: Any) -> "Timer":
+        """Reset the timer to zero."""
         self._t0 = perf_counter()
         self.total = 0.0
         self.step_count = 0.0
@@ -122,16 +123,19 @@ class Timer:
         return self
 
     def pause(self, *args: Any) -> None:
+        """Pause the current running timer."""
         if self.running:
             self.total += self._elapsed()
             self.running = False
 
     def resume(self, *args: Any) -> None:
+        """Resume the current running timer."""
         if not self.running:
             self.running = True
             self._t0 = perf_counter()
 
     def value(self) -> float:
+        """Return the average timer value."""
         total = self.total
         if self.running:
             total += self._elapsed()
@@ -144,6 +148,7 @@ class Timer:
         return total / denominator
 
     def step(self, *args: Any) -> None:
+        """Increment the timer."""
         self.step_count += 1.0
 
     def _elapsed(self) -> float:
