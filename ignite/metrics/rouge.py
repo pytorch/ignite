@@ -288,6 +288,9 @@ class RougeN(_BaseRouge):
         return compute_ngram_scores(candidate=candidate, reference=reference, n=self._ngram)
 
     def metric_name(self) -> str:
+        r"""
+        Returns metric name.
+        """
         return f"Rouge-{self._ngram}"
 
 
@@ -354,6 +357,9 @@ class RougeL(_BaseRouge):
         return compute_lcs_scores(candidate=candidate, reference=reference)
 
     def metric_name(self) -> str:
+        r"""
+        Returns metric name.
+        """
         return "Rouge-L"
 
 
