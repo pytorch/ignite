@@ -408,7 +408,7 @@ class Rouge(Metric):
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
         if metrics is None or len(metrics) == 0:
-            raise ValueError("Rouge must have at least one metric")
+            metrics = ["Rouge-1", "Rouge-2", "Rouge-4", "Rouge-L"]
         self.internal_metrics: List[_BaseRouge] = []
         for m in metrics:
             if m == "Rouge-L":
