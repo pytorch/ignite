@@ -13,7 +13,12 @@ from torch.nn.functional import mse_loss
 from torch.optim import SGD
 
 import ignite.distributed as idist
-from ignite.engine import create_supervised_evaluator, create_supervised_trainer, supervised_training_step_tpu
+from ignite.engine import (
+    _check_arg,
+    create_supervised_evaluator,
+    create_supervised_trainer,
+    supervised_training_step_tpu,
+)
 from ignite.metrics import MeanSquaredError
 
 
@@ -125,14 +130,17 @@ def _test_create_mocked_supervised_trainer(
                     assert model.weight.data[0, 0].item() == approx(0.0)
                     assert model.bias.item() == approx(0.0)
 
+                    on_tpu = "xla" in trainer_device if trainer_device is not None else False
+                    mode, _ = _check_arg(on_tpu, amp_mode, scaler)
+
                     if model_device == trainer_device or ((model_device == "cpu") ^ (trainer_device == "cpu")):
                         trainer.run(data)
 
-                        if amp_mode == "amp":
+                        if mode == "amp":
                             assert training_step_amp_mock.called
-                        elif amp_mode == "apex":
+                        elif mode == "apex":
                             assert training_step_apex_mock.called
-                        elif amp_mode == "tpu":
+                        elif mode == "tpu":
                             assert training_step_tpu_mock.called
                         else:
                             assert training_step_mock.called
