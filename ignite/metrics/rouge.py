@@ -282,6 +282,9 @@ class RougeN(_BaseRouge):
             raise ValueError(f"ngram order must be greater than one (got : {self._ngram})")
 
     def compute_score(self, candidate: Sequence[Any], reference: Sequence[Any]) -> Score:
+        r"""
+        Calculates RougeN score
+        """
         return compute_ngram_scores(candidate=candidate, reference=reference, n=self._ngram)
 
     def metric_name(self) -> str:
@@ -345,6 +348,9 @@ class RougeL(_BaseRouge):
         super(RougeL, self).__init__(multiref=multiref, alpha=alpha, output_transform=output_transform, device=device)
 
     def compute_score(self, candidate: Sequence[Any], reference: Sequence[Any]) -> Score:
+        r"""
+        Calculates RougeL score
+        """
         return compute_lcs_scores(candidate=candidate, reference=reference)
 
     def metric_name(self) -> str:
@@ -395,7 +401,7 @@ class Rouge(Metric):
         >>> {'Rouge-L-P': 0.6, 'Rouge-L-R': 0.5, 'Rouge-L-F': 0.5, 'Rouge-2-P': 0.5, 'Rouge-2-R': 0.4, 'Rouge-2-F': 0.4}
 
         .. versionadded:: 0.5.0
-        """
+    """
 
     def __init__(
         self,
