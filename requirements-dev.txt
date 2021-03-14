@@ -21,6 +21,7 @@ pynvml
 clearml
 scikit-image
 py-rouge
+nltk
 # Examples dependencies
 pandas
 gym
