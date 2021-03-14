@@ -341,3 +341,12 @@ if idist.has_xla_support:
 
         def step(self, closure: Optional[Callable] = None) -> None:
             xm.optimizer_step(self.wrapped_optimizer, barrier=True)
+
+
+def autocast(enabled: bool) -> Any:
+    # moving this to a separate method to test the evaluation step
+    try:
+        from torch.cuda.amp import autocast
+    except ImportError:
+        raise ImportError("Please install torch>=1.6.0 to use amp_mode='amp'.")
+    return autocast(enabled)

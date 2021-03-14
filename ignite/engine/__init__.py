@@ -4,6 +4,7 @@ from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 import torch
 
 import ignite.distributed as idist
+from ignite.distributed.auto import autocast
 from ignite.engine.deterministic import DeterministicEngine
 from ignite.engine.engine import Engine
 from ignite.engine.events import CallableEventWithFilter, EventEnum, Events, EventsList, RemovableEventHandle, State
@@ -504,20 +505,11 @@ def supervised_evaluation_step_amp(
         model.eval()
         with torch.no_grad():
             x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
-            with _autocast(enabled=True):
+            with autocast(enabled=True):
                 y_pred = model(x)
             return output_transform(x, y, y_pred)
 
     return evaluate_step
-
-
-def _autocast(enabled: bool) -> Any:
-    # moving this to a separate method to test the evaluation step
-    try:
-        from torch.cuda.amp import autocast
-    except ImportError:
-        raise ImportError("Please install torch>=1.6.0 to use amp_mode='amp'.")
-    return autocast(enabled)
 
 
 def create_supervised_evaluator(

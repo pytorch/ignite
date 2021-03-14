@@ -13,13 +13,12 @@ from torch.nn.functional import mse_loss
 from torch.optim import SGD
 
 import ignite.distributed as idist
+from ignite.distributed.auto import autocast
 from ignite.engine import (
     Engine,
-    _autocast,
     _check_arg,
     create_supervised_evaluator,
     create_supervised_trainer,
-    supervised_evaluation_step,
     supervised_evaluation_step_amp,
     supervised_training_step_tpu,
 )
@@ -181,7 +180,7 @@ def _test_create_evaluation_step_amp(
     trace: bool = False,
     amp_mode: str = None,
 ):
-    with mock.patch("ignite.engine._autocast") as autocast_mock:
+    with mock.patch("ignite.engine.autocast") as autocast_mock:
         output_transform_mock = MagicMock()
         model = Linear(1, 1)
 
@@ -246,7 +245,7 @@ def test_create_supervised_trainer_amp_error(mock_torch_cuda_amp_module):
     with pytest.raises(ImportError, match="Please install torch>=1.6.0 to use scaler argument."):
         _test_create_supervised_trainer(amp_mode="amp", scaler=True)
     with pytest.raises(ImportError, match="Please install torch>=1.6.0 to use amp_mode='amp'."):
-        _autocast(enabled=True)
+        autocast(enabled=True)
 
 
 @pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0")
