@@ -82,12 +82,9 @@ def test_integration():
         data = list(range(y_pred.shape[0] // batch_size))
         mae = engine.run(data, max_epochs=1).metrics["mae"]
 
-        np_ans = -1
-
         np_max = np.max(np.abs((np_y_pred - np_y)))
-        np_ans = np_max if np_max > np_ans else np_ans
 
-        assert np_ans == pytest.approx(mae)
+        assert np_max == pytest.approx(mae)
 
     def get_test_cases():
         test_cases = [
