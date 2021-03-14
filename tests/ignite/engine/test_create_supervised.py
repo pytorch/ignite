@@ -2,6 +2,7 @@ import os
 from distutils.version import LooseVersion
 from importlib.util import find_spec
 from typing import Optional, Union
+from unittest import mock
 from unittest.mock import patch
 
 import pytest
@@ -120,6 +121,49 @@ def _test_create_supervised_evaluator(
             # This is broken in 1.6.0 but will be probably fixed with 1.7.0
             with pytest.raises(RuntimeError, match=r"is on CPU, but expected them to be on GPU"):
                 evaluator.run(data)
+
+
+def _test_mocked_supervised_evaluator(
+    model_device: Optional[str] = None,
+    evaluator_device: Optional[str] = None,
+    trace: bool = False,
+    amp_mode: str = None,
+):
+    with mock.patch("ignite.engine.supervised_evaluation_step") as evaluation_step:
+        with mock.patch("ignite.engine.supervised_evaluation_step_amp") as evaluation_step_amp:
+            model = Linear(1, 1)
+
+            if model_device:
+                model.to(model_device)
+
+            model.weight.data.zero_()
+            model.bias.data.zero_()
+
+            if trace:
+                example_input = torch.randn(1, 1)
+                model = torch.jit.trace(model, example_input)
+
+            evaluator = create_supervised_evaluator(model, device=evaluator_device, amp_mode=amp_mode)
+
+            x = torch.tensor([[1.0], [2.0]])
+            y = torch.tensor([[3.0], [5.0]])
+            data = [(x, y)]
+
+            if model_device == evaluator_device or ((model_device == "cpu") ^ (evaluator_device == "cpu")):
+                state = evaluator.run(data)
+
+                if amp_mode == "amp":
+                    assert evaluation_step_amp.called
+                    assert not evaluation_step.called
+                else:
+                    assert evaluation_step.called
+                    assert not evaluation_step_amp.called
+
+            else:
+                if LooseVersion(torch.__version__) >= LooseVersion("1.7.0"):
+                    # This is broken in 1.6.0 but will be probably fixed with 1.7.0
+                    with pytest.raises(RuntimeError, match=r"is on CPU, but expected them to be on GPU"):
+                        evaluator.run(data)
 
 
 def test_create_supervised_trainer():
@@ -241,25 +285,30 @@ def test_create_supervised_trainer_on_cuda_with_model_on_cpu():
 
 def test_create_supervised_evaluator():
     _test_create_supervised_evaluator()
+    _test_mocked_supervised_evaluator()
 
 
 def test_create_supervised_evaluator_on_cpu():
     _test_create_supervised_evaluator(evaluator_device="cpu")
+    _test_mocked_supervised_evaluator(evaluator_device="cpu")
 
 
 def test_create_supervised_evaluator_traced_on_cpu():
     _test_create_supervised_evaluator(evaluator_device="cpu", trace=True)
+    _test_mocked_supervised_evaluator(evaluator_device="cpu", trace=True)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_create_supervised_evaluator_on_cuda():
     model_device = evaluator_device = "cuda"
     _test_create_supervised_evaluator(model_device=model_device, evaluator_device=evaluator_device)
+    _test_mocked_supervised_evaluator(model_device=model_device, evaluator_device=evaluator_device)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_create_supervised_evaluator_on_cuda_with_model_on_cpu():
     _test_create_supervised_evaluator(evaluator_device="cuda")
+    _test_mocked_supervised_evaluator(evaluator_device="cuda")
 
 
 @pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0")
@@ -267,6 +316,7 @@ def test_create_supervised_evaluator_on_cuda_with_model_on_cpu():
 def test_create_supervised_evaluator_on_cuda_amp():
     model_device = evaluator_device = "cuda"
     _test_create_supervised_evaluator(model_device=model_device, evaluator_device=evaluator_device, amp_mode="amp")
+    _test_mocked_supervised_evaluator(model_device=model_device, evaluator_device=evaluator_device, amp_mode="amp")
 
 
 def test_create_supervised_evaluator_amp_error(mock_torch_cuda_amp_module):
