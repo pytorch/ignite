@@ -13,7 +13,12 @@ from torch.nn.functional import mse_loss
 from torch.optim import SGD
 
 import ignite.distributed as idist
-from ignite.engine import create_supervised_evaluator, create_supervised_trainer, supervised_training_step_tpu
+from ignite.engine import (
+    _check_arg,
+    create_supervised_evaluator,
+    create_supervised_trainer,
+    supervised_training_step_tpu,
+)
 from ignite.metrics import MeanSquaredError
 
 
@@ -77,6 +82,40 @@ def _test_create_supervised_trainer(
             # This is broken in 1.6.0 but will be probably fixed with 1.7.0
             with pytest.raises(RuntimeError, match=r"is on CPU, but expected them to be on GPU"):
                 trainer.run(data)
+
+
+def test_create_supervised_training_scalar_assignment():
+    model = Linear(1, 1)
+
+    model.weight.data.zero_()
+    model.bias.data.zero_()
+    optimizer = SGD(model.parameters(), 0.1)
+
+    with mock.patch("ignite.engine._check_arg") as check_arg_mock:
+        check_arg_mock.return_value = None, torch.cuda.amp.GradScaler(enabled=True)
+        trainer = create_supervised_trainer(
+            model,
+            optimizer,
+            mse_loss,
+            device="cpu",
+            output_transform=lambda x, y, y_pred, loss: (y_pred, loss.item()),
+            amp_mode=None,
+            scaler=True,
+        )
+        assert hasattr(trainer.state, "scaler")
+        assert type(trainer.state.scaler) == torch.cuda.amp.GradScaler
+
+        check_arg_mock.return_value = None, None
+        trainer = create_supervised_trainer(
+            model,
+            optimizer,
+            mse_loss,
+            device="cpu",
+            output_transform=lambda x, y, y_pred, loss: (y_pred, loss.item()),
+            amp_mode=None,
+            scaler=True,
+        )
+        assert not hasattr(trainer.state, "scaler")
 
 
 def _test_create_supervised_evaluator(
