@@ -1,4 +1,3 @@
-import re
 from abc import ABCMeta, abstractmethod
 from collections import Counter, namedtuple
 from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple, Union
@@ -396,7 +395,7 @@ class Rouge(Metric):
         >>> {'Rouge-L-P': 0.6, 'Rouge-L-R': 0.5, 'Rouge-L-F': 0.5, 'Rouge-2-P': 0.5, 'Rouge-2-R': 0.4, 'Rouge-2-F': 0.4}
 
         .. versionadded:: 0.5.0
-        """
+    """
 
     def __init__(
         self,

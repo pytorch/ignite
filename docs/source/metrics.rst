@@ -324,6 +324,8 @@ Complete list of metrics
     PSNR
     recall.Recall
     Rouge
+    RougeL
+    RougeN
     RootMeanSquaredError
     RunningAverage
     SSIM
