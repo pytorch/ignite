@@ -430,7 +430,6 @@ class Rouge(Metric):
         for m in self.internal_metrics:
             m.update(output)
 
-    @sync_all_reduce()
     def compute(self) -> Mapping:
         results = {}
         for m in self.internal_metrics:
