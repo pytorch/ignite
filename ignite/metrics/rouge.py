@@ -177,7 +177,7 @@ class _BaseRouge(Metric):
         elif self._multiref == "best":
             return MultiRefBestReducer()
         else:
-            raise ValueError(f"multiref : wrong value (got : {self._multiref })")
+            raise ValueError(f"multiref : wrong value (got : {self._multiref})")
 
     @reinit__is_reduced
     def reset(self) -> None:
