@@ -364,7 +364,7 @@ class Rouge(Metric):
     - `y` must be a list of sequence of tokens.
 
     Args:
-        metrics: names of metrics computed. Valid names are "Rouge-L" and "Rouge-n" where n is an integer 1 <= n <= 9.
+        variants: set of metrics computed. Valid inputs are "L" and integer 1 <= n <= 9.
         multiref: reduces scores for multi references. Valid values are "best" and "average" (default: "average").
         alpha: controls the importance between recall and precision (alpha -> 0: recall is more important, alpha -> 1:
            precision is more important)
@@ -382,7 +382,7 @@ class Rouge(Metric):
 
         from ignite.metrics import Rouge
 
-        m = Rouge(metrics=["Rouge-L", "Rouge-2"], multiref="best")
+        m = Rouge(variants=["L", "2"], multiref="best")
 
         candidate = "the cat is not there".split()
         references = [
@@ -400,24 +400,30 @@ class Rouge(Metric):
 
     def __init__(
         self,
-        metrics: Optional[Sequence[str]] = None,
+        variants: Optional[Sequence[Union[str, int]]] = None,
         multiref: str = "average",
         alpha: float = 0,
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
-        if metrics is None or len(metrics) == 0:
-            metrics = ["Rouge-1", "Rouge-2", "Rouge-4", "Rouge-L"]
+        if variants is None or len(variants) == 0:
+            variants = ["Rouge-1", "Rouge-2", "Rouge-4", "Rouge-L"]
         self.internal_metrics: List[_BaseRouge] = []
-        for m in metrics:
-            if m == "Rouge-L":
-                self.internal_metrics.append(RougeL(multiref, alpha, output_transform, device))
+        for m in variants:
+            if isinstance(m, str) and m == "L":
+                variant = RougeL(multiref=multiref,
+                                 alpha=alpha,
+                                 output_transform=output_transform,
+                                 device=device)
+            elif isinstance(m, int):
+                variant = RougeN(ngram=m,
+                                 multiref=multiref,
+                                 alpha=alpha,
+                                 output_transform=output_transform,
+                                 device=device)
             else:
-                match = re.match("Rouge-(?P<ngram>[1-9])", m)
-                if not match:
-                    raise ValueError("Rouge metric name must be 'Rouge-L' or 'Rouge-N' for N in [1 ... 9]")
-                n = int(match.group("ngram"))
-                self.internal_metrics.append(RougeN(n, multiref, alpha, output_transform, device))
+                raise ValueError("variant must be 'L' or integer greater to zero")
+            self.internal_metrics.append(variant)
         super(Rouge, self).__init__(output_transform=output_transform, device=device)
 
     @reinit__is_reduced

@@ -71,10 +71,10 @@ def test_wrong_inputs():
         RougeN(multiref="")
 
     with pytest.raises(ValueError, match=r"Rouge must have at least one metric"):
-        Rouge(metrics=[])
+        Rouge(variants=[])
 
     with pytest.raises(ValueError, match=r"Rouge metric name must be 'Rouge-L' or 'Rouge-N' for N in \[1 ... 9\]"):
-        Rouge(metrics=["error"])
+        Rouge(variants=["error"])
 
     with pytest.raises(NotComputableError):
         RougeL().compute()
@@ -141,7 +141,7 @@ def test_rouge_metrics(candidates, references):
 
         lower_split_candidates = [candidate.lower().split() for candidate in candidates]
 
-        m = Rouge(metrics=["Rouge-1", "Rouge-2", "Rouge-4", "Rouge-L"], multiref=multiref, alpha=0.5)
+        m = Rouge(variants=[1, 2, 4, "L"], multiref=multiref, alpha=0.5)
         for candidate, references_per_candidate in zip(lower_split_candidates, lower_split_references):
             m.update((candidate, references_per_candidate))
         results = m.compute()
@@ -190,7 +190,7 @@ def _test_distrib_integration(device):
 
     def _test(metric_device):
         engine = Engine(update)
-        m = Rouge(metrics=["Rouge-1", "Rouge-2", "Rouge-L"], alpha=0.5, device=metric_device)
+        m = Rouge(variants=[1, 2, "L"], alpha=0.5, device=metric_device)
         m.attach(engine, "rouge")
 
         engine.run(data=list(range(size)), max_epochs=1)
