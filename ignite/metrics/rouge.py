@@ -265,7 +265,7 @@ class RougeN(_BaseRouge):
         m.compute()
         >>> {'Rouge-2-P': 0.5, 'Rouge-2-R': 0.4, 'Rouge-2-F': 0.4}
 
-    .. versionadded:: 0.5.0
+        .. versionadded:: 0.5.0
     """
 
     def __init__(
@@ -329,10 +329,10 @@ class RougeL(_BaseRouge):
 
         m.update((candidate, references))
 
-       m.compute()
-       >>> {'Rouge-L-P': 0.6, 'Rouge-L-R': 0.5, 'Rouge-L-F': 0.5}
+        m.compute()
+        >>> {'Rouge-L-P': 0.6, 'Rouge-L-R': 0.5, 'Rouge-L-F': 0.5}
 
-    .. versionadded:: 0.5.0
+        .. versionadded:: 0.5.0
     """
 
     def __init__(
