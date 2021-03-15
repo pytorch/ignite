@@ -39,7 +39,7 @@ def test_check_idist_parallel_no_dist(exec_filepath):
     assert "End of run" in out
 
 
-def _test_check_idist_parallel_torch_launch(fp, backend, nprocs):
+def _test_check_idist_parallel_torch_launch(init_method, fp, backend, nprocs):
     # python -m torch.distributed.launch --nproc_per_node=nprocs --use_env \
     #   tests/ignite/distributed/check_idist_parallel.py --backend=backend
 
@@ -52,6 +52,8 @@ def _test_check_idist_parallel_torch_launch(fp, backend, nprocs):
         fp,
         f"--backend={backend}",
     ]
+    if init_method is not None:
+        cmd.append(f"--init_method={init_method}")
 
     out = execute(cmd)
     assert f"backend={backend}" in out
@@ -62,16 +64,24 @@ def _test_check_idist_parallel_torch_launch(fp, backend, nprocs):
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip because test uses torch launch")
-def test_check_idist_parallel_torch_launch_n_procs_gloo(exec_filepath):
-    _test_check_idist_parallel_torch_launch(exec_filepath, "gloo", 4)
+@pytest.mark.parametrize("init_method", [None, "tcp://0.0.0.0:22334", "FILE"])
+def test_check_idist_parallel_torch_launch_n_procs_gloo(init_method, dirname, exec_filepath):
+    if init_method == "FILE":
+        init_method = f"file://{dirname}/shared"
+
+    _test_check_idist_parallel_torch_launch(init_method, exec_filepath, "gloo", 4)
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip because test uses torch launch")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_check_idist_parallel_torch_launch_n_procs_nccl(exec_filepath):
-    _test_check_idist_parallel_torch_launch(exec_filepath, "nccl", torch.cuda.device_count())
+@pytest.mark.parametrize("init_method", [None, "tcp://0.0.0.0:22334", "FILE"])
+def test_check_idist_parallel_torch_launch_n_procs_nccl(init_method, dirname, exec_filepath):
+    if init_method == "FILE":
+        init_method = f"file://{dirname}/shared"
+
+    _test_check_idist_parallel_torch_launch(init_method, exec_filepath, "nccl", torch.cuda.device_count())
 
 
 def _test_check_idist_parallel_hvdrun(fp, backend, nprocs):
@@ -145,46 +155,53 @@ def test_check_idist_parallel_spawn_n_procs_hvd(exec_filepath):
     _test_check_idist_parallel_spawn(exec_filepath, "horovod", np)
 
 
-def _test_func(index, ws, device):
+def _test_func(index, ws, device, backend, true_init_method):
     assert 0 <= index < ws
+    assert index == idist.get_local_rank()
     assert ws == idist.get_world_size()
     assert device in idist.device().type
+    assert backend == idist.backend()
+
+    if idist.model_name() == "native-dist":
+        from ignite.distributed.utils import _model
+
+        assert _model._init_method == true_init_method
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
-def test_idist_parallel_gloo():
-    with idist.Parallel(backend="gloo", nproc_per_node=4) as parallel:
-        parallel.run(_test_func, ws=4, device="cpu")
+@pytest.mark.parametrize("init_method", ["env://", "tcp://0.0.0.0:22334", "FILE"])
+@pytest.mark.parametrize(
+    "backend",
+    ["gloo", pytest.param("nccl", marks=pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU"))],
+)
+def test_idist_parallel_spawn_n_procs_native(init_method, backend, dirname):
+    if init_method == "FILE":
+        init_method = f"file://{dirname}/shared"
+
+    nproc_per_node = 4 if "gloo" == backend else torch.cuda.device_count()
+    device = "cpu" if "gloo" == backend else "cuda"
+    with idist.Parallel(backend=backend, nproc_per_node=nproc_per_node, init_method=init_method) as parallel:
+        parallel.run(_test_func, ws=nproc_per_node, device=device, backend=backend, true_init_method=init_method)
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif("WORLD_SIZE" not in os.environ, reason="Skip if not launched as multiproc")
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
-def test_idist_parallel_gloo_nprocs(local_rank, world_size):
+@pytest.mark.parametrize("init_method", ["env://", "tcp://0.0.0.0:22334", "FILE"])
+@pytest.mark.parametrize(
+    "backend",
+    ["gloo", pytest.param("nccl", marks=pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU"))],
+)
+def test_idist_parallel_n_procs_native(init_method, backend, fixed_dirname, local_rank, world_size):
+    if init_method == "FILE":
+        init_method = f"file://{fixed_dirname}/shared"
+
     os.environ["RANK"] = str(local_rank)
-    with idist.Parallel(backend="gloo") as parallel:
-        parallel.run(_test_func, ws=world_size, device="cpu")
-
-
-@pytest.mark.distributed
-@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_idist_parallel_nccl():
-    with idist.Parallel(backend="nccl", nproc_per_node=torch.cuda.device_count()) as parallel:
-        parallel.run(_test_func, ws=torch.cuda.device_count(), device="cuda")
-
-
-@pytest.mark.distributed
-@pytest.mark.skipif("WORLD_SIZE" not in os.environ, reason="Skip if not launched as multiproc")
-@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_idist_parallel_nccl_nprocs(local_rank, world_size):
-    os.environ["RANK"] = str(local_rank)
-    with idist.Parallel(backend="nccl") as parallel:
-        parallel.run(_test_func, ws=world_size, device="cuda")
+    device = "cuda" if "nccl" in backend else "cpu"
+    with idist.Parallel(backend=backend, init_method=init_method) as parallel:
+        parallel.run(_test_func, ws=world_size, device=device, backend=backend, true_init_method=init_method)
 
 
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
@@ -197,7 +214,7 @@ def test_idist_parallel_no_dist():
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_idist_parallel_spawn_params():
+def test_idist_parallel_spawn_params_xla():
 
     res = idist.Parallel._setup_spawn_params(
         nproc_per_node=8, nnodes=None, node_rank=None, master_addr=None, master_port=None, start_method="fork"

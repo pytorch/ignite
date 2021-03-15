@@ -37,22 +37,6 @@ def test__native_dist_model():
 
 
 @pytest.mark.distributed
-@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-def test_native_init_method():
-    def _test_init_method(init_method):
-        model = _NativeDistModel.create_from_backend("gloo", init_method=init_method)
-        assert os.environ["INIT_METHOD"] == init_method
-        model.finalize()
-
-    with tempfile.TemporaryDirectory() as fp:
-        file_init = "file://{}/testfile".format(fp)
-        _test_init_method(file_init)
-
-    tcp_init = "tcp://0.0.0.0:5000"
-    _test_init_method(tcp_init)
-
-
-@pytest.mark.distributed
 @pytest.mark.skipif(not dist.is_nccl_available(), reason="Skip if nccl not available")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test__native_nccl_but_no_gpu(mock_gpu_is_not_available):
@@ -111,7 +95,8 @@ def _test__native_dist_model_create_from_backend_no_dist(backend, true_device):
     model.finalize()
 
 
-def _test__native_dist_model_create_from_backend_dist(local_rank, rank, world_size, backend, true_device):
+def _test__native_dist_model_create_from_backend_dist(init_method, local_rank, rank, world_size, backend, true_device):
+
     import os
     from datetime import timedelta
 
@@ -121,7 +106,7 @@ def _test__native_dist_model_create_from_backend_dist(local_rank, rank, world_si
     assert "MASTER_ADDR" not in os.environ
     assert "MASTER_PORT" not in os.environ
 
-    model = _NativeDistModel.create_from_backend(backend=backend, timeout=timeout)
+    model = _NativeDistModel.create_from_backend(backend=backend, timeout=timeout, init_method=init_method)
 
     assert dist.is_available() and dist.is_initialized()
     assert dist.get_backend() == backend
@@ -141,6 +126,11 @@ def _test__native_dist_model_create_from_backend_dist(local_rank, rank, world_si
             "nproc_per_node": world_size,
         },
     )
+
+    if init_method is None:
+        assert model._init_method == "env://"
+    else:
+        assert model._init_method == init_method
 
     model.finalize()
 
@@ -266,8 +256,12 @@ def test__native_dist_model_create_no_dist_nccl(clean_env):
 
 
 @pytest.mark.distributed
-def test__native_dist_model_create_dist_gloo_1(local_rank, world_size):
-    _test__native_dist_model_create_from_backend_dist(local_rank, local_rank, world_size, "gloo", "cpu")
+@pytest.mark.parametrize("init_method", [None, "tcp://0.0.0.0:22334", "FILE"])
+def test__native_dist_model_create_dist_gloo_1(init_method, fixed_dirname, local_rank, world_size):
+    if init_method == "FILE":
+        init_method = f"file://{fixed_dirname}/shared"
+
+    _test__native_dist_model_create_from_backend_dist(init_method, local_rank, local_rank, world_size, "gloo", "cpu")
 
 
 @pytest.mark.distributed
@@ -277,8 +271,14 @@ def test__native_dist_model_create_dist_gloo_2(local_rank, world_size):
 
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test__native_dist_model_create_dist_nccl_1(local_rank, world_size):
-    _test__native_dist_model_create_from_backend_dist(local_rank, local_rank, world_size, "nccl", f"cuda:{local_rank}")
+@pytest.mark.parametrize("init_method", [None, "tcp://0.0.0.0:22334", "FILE"])
+def test__native_dist_model_create_dist_nccl_1(init_method, fixed_dirname, local_rank, world_size):
+    if init_method == "FILE":
+        init_method = f"file://{fixed_dirname}/shared"
+
+    _test__native_dist_model_create_from_backend_dist(
+        init_method, local_rank, local_rank, world_size, "nccl", f"cuda:{local_rank}"
+    )
 
 
 @pytest.mark.distributed
@@ -324,26 +324,40 @@ def _test_dist_spawn_fn(local_rank, backend, world_size, device):
         assert _model.device() == torch.device(device)
 
 
-def _test__native_dist_model_spawn(backend, num_workers_per_machine, device, **spawn_kwargs):
+def _test__native_dist_model_spawn(backend, num_workers_per_machine, device, init_method=None, **spawn_kwargs):
     _NativeDistModel.spawn(
         _test_dist_spawn_fn,
         args=(backend, num_workers_per_machine, device),
         kwargs_dict={},
         backend=backend,
         nproc_per_node=num_workers_per_machine,
+        init_method=init_method,
         **spawn_kwargs,
     )
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-def test__native_dist_model_spawn_gloo():
-    _test__native_dist_model_spawn("gloo", num_workers_per_machine=4, device="cpu")
-    _test__native_dist_model_spawn("gloo", num_workers_per_machine=4, device="cpu", start_method="fork")
+@pytest.mark.parametrize("init_method", [None, "env://", "tcp://0.0.0.0:22334", "FILE"])
+def test__native_dist_model_spawn_gloo(init_method, dirname):
+    if init_method == "FILE":
+        init_method = f"file://{dirname}/shared"
+
+    _test__native_dist_model_spawn("gloo", num_workers_per_machine=4, device="cpu", init_method=init_method)
+    _test__native_dist_model_spawn(
+        "gloo", num_workers_per_machine=4, device="cpu", start_method="fork", init_method=init_method
+    )
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test__native_dist_model_spawn_nccl():
-    _test__native_dist_model_spawn("nccl", num_workers_per_machine=torch.cuda.device_count(), device="cuda")
+@pytest.mark.parametrize("init_method", [None, "tcp://0.0.0.0:22334", "FILE"])
+def test__native_dist_model_spawn_nccl(init_method, dirname):
+    if init_method == "FILE":
+        init_method = f"file://{dirname}/shared"
+
+    num_workers_per_machine = torch.cuda.device_count()
+    _test__native_dist_model_spawn(
+        "nccl", num_workers_per_machine=num_workers_per_machine, device="cuda", init_method=init_method
+    )

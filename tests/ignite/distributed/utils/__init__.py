@@ -16,7 +16,7 @@ def _sanity_check():
     assert _model.get_node_rank() < _model.get_nnodes()
 
 
-def _test_distrib_config(local_rank, backend, ws, true_device, rank=None):
+def _test_distrib_config(local_rank, backend, ws, true_device, rank=None, true_init_method=None):
     assert idist.backend() == backend, f"{idist.backend()} vs {backend}"
 
     this_device = idist.device()
@@ -42,6 +42,12 @@ def _test_distrib_config(local_rank, backend, ws, true_device, rank=None):
     assert idist.model_name() in ("native-dist", "xla-dist", "horovod-dist")
 
     _sanity_check()
+
+    if idist.model_name() == "native-dist":
+        from ignite.distributed.utils import _model
+
+        if true_init_method is not None:
+            assert _model._init_method == true_init_method
 
 
 def _test_sync(cls):

@@ -170,10 +170,18 @@ class Parallel:
             (`nccl`, `gloo`). Mandatory argument if ``nnodes`` is specified and larger than one.
         master_port: optional argument, master node port for torch native backends
             (`nccl`, `gloo`). Mandatory argument if ``master_addr`` is specified.
+        init_method: optional argument to specify processing group initialization method for torch native
+            backends (`nccl`, `gloo`). Default, "env://". See more info: `torch_init`_.
         spawn_kwargs: kwargs to ``idist.spawn`` function.
+
+    .. _torch_init: https://horovod.readthedocs.io/en/latest/api.html#horovod.torch.init
 
     .. versionchanged:: 0.4.2
         ``backend`` now accepts `horovod` distributed framework.
+
+    .. versionchanged:: 0.5.0
+        ``init_method`` added.
+
     """
 
     def __init__(
@@ -184,6 +192,7 @@ class Parallel:
         node_rank: Optional[int] = None,
         master_addr: Optional[str] = None,
         master_port: Optional[int] = None,
+        init_method: Optional[str] = None,
         **spawn_kwargs: Any,
     ) -> None:
         if backend is not None:
@@ -198,8 +207,9 @@ class Parallel:
 
         self.backend = backend
         self._spawn_params = None
+        self.init_method = init_method
         self.logger = setup_logger(__name__ + "." + self.__class__.__name__, distributed_rank=0)
-        # distributed_rank=0 <=> explicit rank 0, avoid call idist. Critical for TPU on Colab, avoid context is setup
+        # distributed_rank=0 <=> explicit rank 0, avoid call idist. Critical for TPU on Colab, avoid context setup
 
         if self.backend is not None:
             if nproc_per_node is not None:
@@ -272,7 +282,9 @@ class Parallel:
         """
         if self._spawn_params is not None and self.backend is not None:
             self.logger.info(f"Spawn function '{func}' in {self._spawn_params['nproc_per_node']} processes")
-            idist.spawn(self.backend, func, args=args, kwargs_dict=kwargs, **self._spawn_params)
+            idist.spawn(
+                self.backend, func, args=args, kwargs_dict=kwargs, init_method=self.init_method, **self._spawn_params
+            )
         else:
             self.logger.info(f"- Run '{func}' in {idist.get_world_size()} processes")
             local_rank = idist.get_local_rank()
@@ -282,7 +294,7 @@ class Parallel:
 
     def __enter__(self) -> "Parallel":
         if (self.backend is not None) and self._spawn_params is None:
-            idist.initialize(self.backend)
+            idist.initialize(self.backend, init_method=self.init_method)
             self.logger = setup_logger(__name__ + "." + self.__class__.__name__)
             self.logger.info(f"Initialized processing group with backend: '{self.backend}'")
 
