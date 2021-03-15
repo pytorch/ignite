@@ -148,7 +148,7 @@ class EpochMetric(Metric):
             # broadcast result to all processes
             return apply_to_type(
                 result,
-                (torch.Tensor, float, int),  # type: ignore[return-value, arg-type]
+                (torch.Tensor, float, int),  # type: ignore
                 partial(idist.broadcast, src=0),
             )
 
