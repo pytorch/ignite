@@ -1,7 +1,9 @@
+import numpy as np
 import torch
 from pytest import approx, raises
 
 from ignite.contrib.metrics.regression import MeanAbsoluteRelativeError
+from ignite.engine import Engine
 from ignite.exceptions import NotComputableError
 
 
@@ -76,3 +78,44 @@ def test_zero_sample():
     m = MeanAbsoluteRelativeError()
     with raises(NotComputableError, match=r"MeanAbsoluteRelativeError must have at least one sample"):
         m.compute()
+
+
+def test_integration():
+    def _test(y_pred, y, batch_size):
+        def update_fn(engine, batch):
+            idx = (engine.state.iteration - 1) * batch_size
+            y_true_batch = np_y[idx : idx + batch_size]
+            y_pred_batch = np_y_pred[idx : idx + batch_size]
+            return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+
+        engine = Engine(update_fn)
+
+        m = MeanAbsoluteRelativeError()
+        m.attach(engine, "mare")
+
+        np_y = y.numpy()
+        np_y_pred = y_pred.numpy()
+
+        data = list(range(y_pred.shape[0] // batch_size))
+        mare = engine.run(data, max_epochs=1).metrics["mare"]
+
+        abs_error = np.sum(abs(np_y - np_y_pred) / abs(np_y))
+        num_samples = len(y_pred)
+        res = abs_error / num_samples
+
+        assert res == approx(mare)
+
+    def get_test_cases():
+        test_cases = [
+            (torch.rand(size=(100,)), torch.rand(size=(100,)), 10),
+            (torch.rand(size=(200,)), torch.rand(size=(200,)), 10),
+            (torch.rand(size=(100,)), torch.rand(size=(100,)), 20),
+            (torch.rand(size=(200,)), torch.rand(size=(200,)), 20),
+        ]
+        return test_cases
+
+    for _ in range(10):
+        # check multiple random inputs as random exact occurencies are rare
+        test_cases = get_test_cases()
+        for y_pred, y, batch_size in test_cases:
+            _test(y_pred, y, batch_size)
