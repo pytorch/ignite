@@ -27,30 +27,27 @@ into the following categories:
    - Pick an issue and comment on the task that you want to work on this feature.
    - If you need more context on a particular issue, please ask and we shall provide.
 
-<!-- ############################################################################################################### -->
-
 ## Table of Contents
+
 - [Table of Contents](#table-of-contents)
 - [Developing Ignite](#developing-ignite)
-   - [Quickstart guide for first-time contributors](#quickstart-guide-for-first-time-contributors)
-   - [Installation](#installation)
-   - [Code development](#code-development)
-      - [Codebase structure](#codebase-structure)
-      - [Formatting Code](#formatting-code)
-         - [Formatting without pre-commit](#formatting-without-pre-commit)
-         - [Formatting with pre-commit](#formatting-with-pre-commit)
-      - [Run tests](#run-tests)
-         - [Run distributed tests only on CPU](#run-distributed-tests-only-on-cpu)
-      - [Run Mypy checks](#run-mypy-checks)
-      - [Send a PR](#send-a-pr)
-         - [Sync up with the upstream](#sync-up-with-the-upstream)
-   - [Writing documentation](#writing-documentation)
-      - [Local documentation building and deploying](#local-documentation-building-and-deploying)
-       - [Install requirements](#install-requirements)
-       - [Build](#build)
-       - [Local deployment](#local-deployment)
-
-<!-- ############################################################################################################### -->
+  - [Quickstart guide for first-time contributors](#quickstart-guide-for-first-time-contributors)
+  - [Installation](#installation)
+  - [Code development](#code-development)
+    - [Codebase structure](#codebase-structure)
+    - [Formatting Code](#formatting-code)
+        - [Formatting without pre-commit](#formatting-without-pre-commit)
+        - [Formatting with pre-commit](#formatting-with-pre-commit)
+    - [Run tests](#run-tests)
+        - [Run distributed tests only on CPU](#run-distributed-tests-only-on-cpu)
+    - [Run Mypy checks](#run-mypy-checks)
+    - [Send a PR](#send-a-pr)
+        - [Sync up with the upstream](#sync-up-with-the-upstream)
+  - [Writing documentation](#writing-documentation)
+    - [Local documentation building and deploying](#local-documentation-building-and-deploying)
+      - [Install requirements](#install-requirements)
+      - [Build](#build)
+      - [Local deployment](#local-deployment)
 
 ## Developing Ignite
 
