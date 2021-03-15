@@ -261,20 +261,29 @@ def test_is_scalar_or_collection_of_tensor():
 
 @pytest.mark.parametrize("input", ["wrongval", [1, 2, "wrongval"], {1: "welcome"}, (1, "welcome")])
 def test_epoch_metric_wrong_compute_fn_return(input):
-    def compute_fn(y_preds, y_targets):
-        return input
+    def _test(input):
+        def compute_fn(y_preds, y_targets):
+            return input
 
-    with pytest.raises(
-        TypeError, match=r"output not supported: compute_fn should return scalar, tensor, tuple/list/mapping of tensors"
-    ):
-        em = EpochMetric(compute_fn)
-        output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
-        em.update(output1)
-        output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
-        em.update(output2)
-        output3 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
-        em.update(output3)
-        em.compute()
+        with pytest.raises(
+            TypeError,
+            match=r"output not supported: compute_fn should return scalar, tensor, tuple/list/mapping of tensors",
+        ):
+            em = EpochMetric(compute_fn)
+            output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+            em.update(output1)
+            output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+            em.update(output2)
+            output3 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+            em.update(output3)
+            em.compute()
+
+    _test([1, 2, 3])
+    _test("val")
+    _test({"key": "val"})
+    _test({"key": torch.tensor([1, 2, 3]), "key2": "val"})
+    _test(tuple((1, 3)))
+    _test(tuple((1, torch.tensor([2, 3, 4]))))
 
 
 @pytest.mark.distributed
