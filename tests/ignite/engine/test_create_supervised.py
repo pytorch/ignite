@@ -145,12 +145,6 @@ def _test_create_mocked_supervised_trainer(
                         else:
                             assert training_step_mock.called
 
-                    else:
-                        if LooseVersion(torch.__version__) >= LooseVersion("1.7.0"):
-                            # This is broken in 1.6.0 but will be probably fixed with 1.7.0
-                            with pytest.raises(RuntimeError, match=r"is on CPU, but expected them to be on GPU"):
-                                trainer.run(data)
-
 
 def _test_create_supervised_evaluator(
     model_device: Optional[str] = None,
