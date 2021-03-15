@@ -364,27 +364,19 @@ def test__native_dist_model_spawn_nccl(init_method, dirname):
 
 @pytest.mark.distributed
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-def test__native_dist_model_no_init_method():
-    os.environ["WORLD_SIZE"] = "1"
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
+def test__native_dist_model_init_method_is_none(world_size):
     with pytest.raises(ValueError, match=r"Arguments rank and world_size should be None"):
-        _NativeDistModel(backend="gloo")
+        _NativeDistModel.create_from_backend(backend="gloo", world_size=world_size)
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
-def test__native_dist_model_init_method_is_none():
-    with pytest.raises(ValueError, match=r"Arguments rank and world_size should be None"):
-        _NativeDistModel.create_from_backend(backend="gloo", world_size=1)
-
-
-@pytest.mark.distributed
-@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
-def test__native_dist_model_init_method_is_not_none(fixed_dirname):
+def test__native_dist_model_init_method_is_not_none(world_size, local_rank, fixed_dirname):
     init_method = f"file://{fixed_dirname}/shared"
     with pytest.raises(ValueError, match=r"Both rank and world_size should be provided"):
-        _NativeDistModel.create_from_backend(backend="gloo", world_size=1, init_method=init_method)
+        _NativeDistModel.create_from_backend(backend="gloo", world_size=world_size, init_method=init_method)
 
     with pytest.raises(ValueError, match=r"Both rank and world_size should be provided"):
-        _NativeDistModel.create_from_backend(backend="gloo", rank=2, init_method=init_method)
+        _NativeDistModel.create_from_backend(backend="gloo", rank=local_rank, init_method=init_method)
