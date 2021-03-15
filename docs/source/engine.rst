@@ -4,66 +4,72 @@ ignite.engine
 Main module of the library containing:
 
 ignite.engine.engine
+--------------------
 
 .. currentmodule:: ignite.engine.engine
 
 .. autosummary::
     :nosignatures:
-    :autolist:
+    :toctree: generated
+
+    Engine
 
 ignite.engine.events
+--------------------
 
 .. currentmodule:: ignite.engine.events
 
 .. autosummary::
     :nosignatures:
-    :autolist:
+    :toctree: generated
 
-ignite.engine.deterministic (helper methods for deterministic training)
+    CallableEventWithFilter
+    EventEnum
+    Events
+    EventsList
+    State
+    RemovableEventHandle
+
+ignite.engine.deterministic
+---------------------------
+Helper methods for deterministic training
 
 .. currentmodule:: ignite.engine.deterministic
 
 .. autosummary::
     :nosignatures:
-    :autolist:
+    :toctree: generated
 
-and helper methods to define supervised trainer and evaluator:
+    DeterministicEngine
+    ReproducibleBatchSampler
+    keep_random_state
+    update_dataloader
+
+helper methods to define supervised trainer and evaluator
+---------------------------------------------------------
 
 .. currentmodule:: ignite.engine
 
 .. autosummary::
     :nosignatures:
-    :autolist-functions:
+    :toctree: generated
 
-More details about those structures can be found in :doc:`concepts`.
+    create_supervised_trainer
+    create_supervised_evaluator
+    supervised_training_step
+    supervised_training_step_amp
+    supervised_training_step_apex
+    supervised_training_step_tpu
+    supervised_evaluation_step
+    supervised_evaluation_step_amp
 
-
-.. currentmodule:: ignite.engine.engine
-
-.. autoclass:: Engine
-   :members:
-
-.. autofunction:: ignite.engine.create_supervised_trainer
-
-.. autofunction:: ignite.engine.create_supervised_evaluator
-
-.. autofunction:: ignite.engine.supervised_evaluation_step
-
-.. autofunction:: ignite.engine.supervised_evaluation_step_amp
-
-.. autofunction:: ignite.engine.supervised_training_step
-
-.. autofunction:: ignite.engine.supervised_training_step_amp
-
-.. autofunction:: ignite.engine.supervised_training_step_apex
-
-.. autofunction:: ignite.engine.supervised_training_step_tpu
+.. tip:: More details about those structures can be found in :doc:`concepts`.
 
 Resuming the training
 ---------------------
 
 It is possible to resume the training from a checkpoint and approximately reproduce original run's behaviour.
-Using Ignite, this can be easily done using :class:`~ignite.handlers.Checkpoint` handler. Engine provides two methods
+Using Ignite, this can be easily done using :class:`~ignite.handlers.checkpoint.Checkpoint` handler. Engine provides two methods
 to serialize and deserialize its internal state :meth:`~ignite.engine.engine.Engine.state_dict` and
 :meth:`~ignite.engine.engine.Engine.load_state_dict`. In addition to serializing model, optimizer, lr scheduler etc user can
 store the trainer and then resume the training. For example:
@@ -116,34 +122,8 @@ Complete examples that resumes the training from a checkpoint can be found here:
 - `save/resume MNIST <https://github.com/pytorch/ignite/tree/master/examples/mnist#user-content-training-save--resume>`_
 - `save/resume Distributed CIFAR10 <https://github.com/pytorch/ignite/tree/master/examples/contrib/cifar10#user-content-check-resume-training>`_
 
-
-ignite.engine.events
---------------------
-
-.. currentmodule:: ignite.engine.events
-
-.. autoclass:: CallableEventWithFilter
-   :members:
-
-.. autoclass:: Events
-   :members:
-
-.. autoclass:: EventEnum
-
-.. autoclass:: EventsList
-
-.. autoclass:: State
-
-.. autoclass:: RemovableEventHandle
-   :members:
-   :undoc-members:
-
-
-ignite.engine.deterministic
----------------------------
-
 Deterministic training
-``````````````````````
+----------------------
 
 In general, it is rather difficult task to achieve deterministic and reproducible trainings as it relies on multiple
 aspects, e.g. data version, code version, software environment, hardware etc. According to `PyTorch note on randomness <https://pytorch.org/docs/stable/notes/randomness.html>`_:
@@ -162,13 +142,6 @@ to ensure that model sees the same data for a given epoch:
 
 - :class:`~ignite.engine.deterministic.DeterministicEngine`
 - :class:`~ignite.engine.deterministic.ReproducibleBatchSampler`
-
-
-.. currentmodule:: ignite.engine.deterministic
-
-.. automodule:: ignite.engine.deterministic
-   :members:
-
 
 Dataflow synchronization
 ------------------------

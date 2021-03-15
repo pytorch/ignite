@@ -130,7 +130,7 @@ html_context = {
         # 'https://fonts.googleapis.com/css?family=Lato',
         # '_static/css/pytorch_theme.css'
         "_static/css/ignite_theme.css",
-        "https://cdn.jsdelivr.net/npm/docsearch.js@2/dist/cdn/docsearch.min.css",
+        "https://cdn.jsdelivr.net/npm/@docsearch/css@1.0.0-alpha.28/dist/style.min.css",
     ],
 }
 
@@ -319,3 +319,23 @@ class BetterAutosummary(Autosummary):
 
 # Patch original Autosummary
 sphinx.ext.autosummary.Autosummary = BetterAutosummary
+
+# --- autosummary config -----------------------------------------------------
+autosummary_generate = True
+
+# --- nitpicky config : check internal links are correct or not --------------
+nitpicky = True
+# ignore links which can't be referenced
+nitpick_ignore = [
+    ("py:class", ".."),
+    ("py:class", "TextIO"),
+    ("py:class", "torch.device"),
+    ("py:class", "_MpDeviceLoader"),
+    ("py:class", "torch.nn.modules.module.Module"),
+    ("py:class", "torch.optim.optimizer.Optimizer"),
+    ("py:class", "torch.utils.data.dataset.Dataset"),
+    ("py:class", "torch.utils.data.sampler.BatchSampler"),
+    ("py:class", "torch.cuda.amp.grad_scaler.GradScaler"),
+    ("py:class", "torch.optim.lr_scheduler._LRScheduler"),
+    ("py:class", "torch.utils.data.dataloader.DataLoader"),
+]
