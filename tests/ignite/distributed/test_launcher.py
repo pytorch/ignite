@@ -183,7 +183,7 @@ def test_idist_parallel_spawn_n_procs_native(init_method, backend, dirname):
     nproc_per_node = 4 if "gloo" == backend else torch.cuda.device_count()
     device = "cpu" if "gloo" == backend else "cuda"
     with idist.Parallel(backend=backend, nproc_per_node=nproc_per_node, init_method=init_method) as parallel:
-        parallel.run(_test_func, ws=nproc_per_node, device=device, backend=backend, true_init_method=init_method)
+        parallel.run(_test_func, ws=nproc_per_node, device=device)
 
 
 @pytest.mark.distributed
@@ -208,8 +208,7 @@ def test_idist_parallel_n_procs_native(init_method, backend, fixed_dirname, loca
 def test_idist_parallel_no_dist():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     with idist.Parallel(backend=None) as parallel:
-        parallel.run(_test_func, ws=1, device=device)
-
+        parallel.run(_test_func, ws=1, device=device,backend=None,true_init_method=None)
 
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
