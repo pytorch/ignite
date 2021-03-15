@@ -247,7 +247,6 @@ if has_native_dist_support:
             # master address is the first hostname of nodes list
             hostnames = subprocess.check_output(["scontrol", "show", "hostnames", os.environ["SLURM_JOB_NODELIST"]])
             os.environ["MASTER_ADDR"] = hostnames.split()[0].decode("utf-8")
-            os.environ["INIT_METHOD"] = os.environ.get("INIT_METHOD", "env://")
 
         def get_local_rank(self) -> int:
             return self._local_rank

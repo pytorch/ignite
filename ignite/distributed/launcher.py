@@ -235,7 +235,7 @@ class Parallel:
         if self.backend is not None:
             if nproc_per_node is not None:
                 self._spawn_params = self._setup_spawn_params(
-                    nproc_per_node, nnodes, node_rank, master_addr, master_port, **spawn_kwargs
+                    nproc_per_node, nnodes, node_rank, master_addr, master_port, init_method, **spawn_kwargs
                 )
 
         if self._spawn_params is not None:
@@ -250,6 +250,7 @@ class Parallel:
         node_rank: Optional[int] = None,
         master_addr: Optional[str] = None,
         master_port: Optional[int] = None,
+        init_method: Optional[str] = None,
         **spawn_kwargs: Any,
     ) -> Dict:
         if nproc_per_node < 1:
@@ -264,10 +265,11 @@ class Parallel:
             node_rank = 0
         if node_rank >= nnodes or node_rank < 0:
             raise ValueError(f"Argument node_rank should be between 0 and {nnodes - 1}, but given {node_rank}")
-        if nnodes > 1 and (master_addr is None or master_port is None):
+        if nnodes > 1 and (master_addr is None or master_port is None or init_method is None):
             raise ValueError(
-                "If number of nodes larger than one, arguments master_addr and master_port "
-                f"should be specified, but given master_addr={master_addr} and master_port={master_port}"
+                "If number of nodes larger than one, arguments master_addr/master_port or init_method"
+                f"should be specified, but given master_addr={master_addr}, master_port={master_port} and "
+                f"init_method={init_method}."
             )
         params = {
             "nproc_per_node": nproc_per_node,
@@ -275,6 +277,7 @@ class Parallel:
             "node_rank": node_rank,
             "master_addr": master_addr,
             "master_port": master_port,
+            "init_method": init_method,
         }
         params.update(spawn_kwargs)
         return {k: v for k, v in params.items() if v is not None}
@@ -303,9 +306,7 @@ class Parallel:
         """
         if self._spawn_params is not None and self.backend is not None:
             self.logger.info(f"Spawn function '{func}' in {self._spawn_params['nproc_per_node']} processes")
-            idist.spawn(
-                self.backend, func, args=args, kwargs_dict=kwargs, init_method=self.init_method, **self._spawn_params
-            )
+            idist.spawn(self.backend, func, args=args, kwargs_dict=kwargs, **self._spawn_params)
         else:
             self.logger.info(f"- Run '{func}' in {idist.get_world_size()} processes")
             local_rank = idist.get_local_rank()
