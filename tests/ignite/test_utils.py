@@ -220,3 +220,7 @@ def test_deprecated():
         == "This function has been deprecated since version 0.4.2 and will be removed in version 0.6.0."
         + "\n Please refer to the documentation for more details."
     )
+
+
+def test_smoke__utils():
+    from ignite._utils import apply_to_tensor, apply_to_type, convert_tensor, to_onehot
