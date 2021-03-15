@@ -103,7 +103,7 @@ def test_create_supervised_training_scalar_assignment():
             scaler=True,
         )
         assert hasattr(trainer.state, "scaler")
-        assert isinstance(trainer.state.scaler, torch.cuda.amp.GradScaler)
+        assert type(trainer.state.scaler) == torch.cuda.amp.GradScaler
 
         check_arg_mock.return_value = None, None
         trainer = create_supervised_trainer(
@@ -216,6 +216,12 @@ def _test_create_supervised_evaluator(
 
         assert model.weight.data[0, 0].item() == approx(0.0)
         assert model.bias.item() == approx(0.0)
+
+    else:
+        if LooseVersion(torch.__version__) >= LooseVersion("1.7.0"):
+            # This is broken in 1.6.0 but will be probably fixed with 1.7.0
+            with pytest.raises(RuntimeError, match=r"is on CPU, but expected them to be on GPU"):
+                evaluator.run(data)
 
 
 def _test_mocked_supervised_evaluator(
