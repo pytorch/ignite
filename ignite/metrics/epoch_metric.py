@@ -146,7 +146,9 @@ class EpochMetric(Metric):
 
         if ws > 1:
             # broadcast result to all processes
-            return apply_to_type(result, (torch.Tensor, float, int), partial(idist.broadcast, src=0))  # type: ignore[return-value, arg-type]
+            return apply_to_type(
+                result, (torch.Tensor, float, int), partial(idist.broadcast, src=0)
+            )  # type: ignore[return-value, arg-type]
 
         return result
 
