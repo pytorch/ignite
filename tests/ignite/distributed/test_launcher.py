@@ -208,7 +208,8 @@ def test_idist_parallel_n_procs_native(init_method, backend, fixed_dirname, loca
 def test_idist_parallel_no_dist():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     with idist.Parallel(backend=None) as parallel:
-        parallel.run(_test_func, ws=1, device=device,backend=None,true_init_method=None)
+        parallel.run(_test_func, ws=1, device=device, backend=None, true_init_method=None)
+
 
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
