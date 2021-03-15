@@ -88,7 +88,7 @@ if __name__ == "__main__":
 
     config = {
         "model": "resnet18",
-        "lr": 0.01,        
+        "lr": 0.01,
     }
     if args.backend in ["gloo", "nccl"]:
         config["true_init_method"] = args.init_method if args.init_method is not None else "env://"
@@ -101,7 +101,7 @@ if __name__ == "__main__":
         master_port=args.master_port,
     )
     if args.init_method is not None:
-        dist_config["init_method"] = args.init_method        
+        dist_config["init_method"] = args.init_method
 
     with idist.Parallel(backend=args.backend, **dist_config) as parallel:
         parallel.run(training, config, a=1, b=2)
