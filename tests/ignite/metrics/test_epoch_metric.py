@@ -6,7 +6,7 @@ import torch
 import ignite.distributed as idist
 from ignite.engine import Engine
 from ignite.metrics import EpochMetric
-from ignite.metrics.epoch_metric import EpochMetricWarning, NotComputableError
+from ignite.metrics.epoch_metric import EpochMetricWarning, NotComputableError, _is_scalar_or_collection_of_tensor
 
 
 def test_epoch_metric_wrong_setup_or_input():
@@ -238,6 +238,25 @@ def _test_distrib_integration(device=None):
         torch.tensor((y_preds.argmax(dim=1) == y_true).sum().item()),
         torch.tensor((y_preds.argmin(dim=1) == y_true).sum().item()),
     )
+
+
+def test_is_scalar_or_collection_of_tensor():
+    def _test(input, expected_val):
+        assert _is_scalar_or_collection_of_tensor(input) == expected_val
+
+    _test(4, True)
+    _test(4.0, True)
+    _test(torch.tensor([1, 2, 3]), True)
+    _test([1, 2, 3], False)
+    _test("val", False)
+    _test([torch.tensor([1, 2, 3]), torch.tensor([5, 6])], True)
+    _test([torch.tensor([1, 2, 3]), 3], False)
+    _test({"key": "val"}, False)
+    _test({"key": torch.tensor([1, 2, 3])}, True)
+    _test({"key": torch.tensor([1, 2, 3]), "key2": "val"}, False)
+    _test((torch.tensor([1, 3, 4]), torch.tensor([2, 3, 4])), True)
+    _test((1, 3), False)
+    _test((1, torch.tensor([2, 3, 4])), False)
 
 
 @pytest.mark.parametrize("input", ["wrongval", [1, 2, "wrongval"], {1: "welcome"}, (1, "welcome")])
