@@ -11,14 +11,18 @@ __all__ = [
 class Parallel:
     """Distributed launcher context manager to simplify distributed configuration setup for multiple backends:
 
-    - backends from native torch distributed configuration: "nccl", "gloo", "mpi" (if available)
+    - backends from native torch distributed configuration: "nccl", "gloo" and "mpi" (if available)
 
     - XLA on TPUs via `pytorch/xla <https://github.com/pytorch/xla>`_ (if installed)
 
     - using `Horovod distributed framework <https://horovod.readthedocs.io>`_ (if installed)
 
-    Namely, it can 1) spawn ``nproc_per_node`` child processes and initialize a processing group according to
-    provided ``backend`` (useful for standalone scripts) or 2) only initialize a processing group given the ``backend``
+    Namely, it can:
+
+    1) Spawn ``nproc_per_node`` child processes and initialize a processing group according to
+    provided ``backend`` (useful for standalone scripts).
+
+    2) Only initialize a processing group given the ``backend``
     (useful with tools like `torch.distributed.launch`_, `horovodrun`_, etc).
 
     Examples:
@@ -88,9 +92,24 @@ class Parallel:
 
             backend = "nccl"  # or "horovod" if package is installed
 
+            # no "init_method" was specified , "env://" will be used
             with idist.Parallel(backend=backend, nproc_per_node=4) as parallel:
                 parallel.run(training, config, a=1, b=2)
 
+
+        Initializing the process using ``file://``
+
+        .. code-block:: python
+
+            with idist.Parallel(backend=backend,init_method='file:///d:/tmp/some_file', nproc_per_node=4) as parallel:
+                parallel.run(training, config, a=1, b=2)
+
+        Initializing the process using ``tcp://``
+
+        .. code-block:: python
+
+            with idist.Parallel(backend=backend,init_method='tcp://10.1.1.20:23456', nproc_per_node=4) as parallel:
+                parallel.run(training, config, a=1, b=2)
 
         3) Single node, Multi-TPU training launched with `python`
 
@@ -147,6 +166,8 @@ class Parallel:
 
             with idist.Parallel(backend="nccl", **dist_config) as parallel:
                 parallel.run(training, config, a=1, b=2)
+
+
 
     .. _torch.distributed.launch: https://pytorch.org/docs/stable/distributed.html#launch-utility
     .. _horovodrun: https://horovod.readthedocs.io/en/latest/api.html#module-horovod.run
