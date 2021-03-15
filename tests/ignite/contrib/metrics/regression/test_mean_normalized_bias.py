@@ -81,11 +81,11 @@ def test_integration():
             idx = (engine.state.iteration - 1) * batch_size
             y_true_batch = np_y[idx : idx + batch_size]
             y_pred_batch = np_y_pred[idx : idx + batch_size]
-            return idx, torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+            return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
 
         engine = Engine(update_fn)
 
-        m = MeanNormalizedBias(output_transform=lambda x: (x[1], x[2]))
+        m = MeanNormalizedBias()
         m.attach(engine, "mnb")
 
         np_y = y.numpy()

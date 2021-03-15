@@ -86,11 +86,11 @@ def test_integration():
             idx = (engine.state.iteration - 1) * batch_size
             y_true_batch = np_y[idx : idx + batch_size]
             y_pred_batch = np_y_pred[idx : idx + batch_size]
-            return idx, torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+            return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
 
         engine = Engine(update_fn)
 
-        m = MeanAbsoluteRelativeError(output_transform=lambda x: (x[1], x[2]))
+        m = MeanAbsoluteRelativeError()
         m.attach(engine, "mare")
 
         np_y = y.numpy()
@@ -101,9 +101,7 @@ def test_integration():
 
         abs_error = np.sum(abs(np_y - np_y_pred) / abs(np_y))
         num_samples = len(y_pred)
-        sum_error = abs_error
-        sum_samples = num_samples
-        res = sum_error / sum_samples
+        res = abs_error / num_samples
 
         assert res == approx(mare)
 
