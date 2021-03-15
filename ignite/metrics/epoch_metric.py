@@ -1,3 +1,4 @@
+import typing
 import warnings
 from collections.abc import Mapping, Sequence
 from functools import partial
@@ -117,7 +118,7 @@ class EpochMetric(Metric):
             except Exception as e:
                 warnings.warn(f"Probably, there can be a problem with `compute_fn`:\n {e}.", EpochMetricWarning)
 
-    def compute(self) -> Union[int, float, Sequence[torch.Tensor], Mapping[str, torch.Tensor]]:
+    def compute(self) -> Union[int, float, typing.Sequence[torch.Tensor], typing.Mapping[str, torch.Tensor]]:
         if len(self._predictions) < 1 or len(self._targets) < 1:
             raise NotComputableError("EpochMetric must have at least one example before it can be computed.")
 
