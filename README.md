@@ -470,6 +470,7 @@ Research papers
 - [Neural CDEs for Long Time-Series via the Log-ODE Method](https://github.com/jambo6/neuralCDEs-via-logODEs)
 - [Volumetric Grasping Network](https://github.com/ethz-asl/vgn)
 - [Mood Classification using Listening Data](https://github.com/fdlm/listening-moods)
+- [Deterministic Uncertainty Estimation (DUE)](https://github.com/y0ast/DUE)
 
 </details>
 
