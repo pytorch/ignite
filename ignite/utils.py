@@ -44,7 +44,7 @@ def apply_to_tensor(
 
 def apply_to_type(
     x: Union[Any, collections.Sequence, collections.Mapping, str, bytes],
-    input_type: Union[Type, Tuple[Type[Any], Any]],
+    input_type: Union[Type, Tuple[Type[Any], Any], Tuple[Type[Any], Type[Any], Type[Any]]],
     func: Callable,
 ) -> Union[Any, collections.Sequence, collections.Mapping, str, bytes]:
     """Apply a function on an object of `input_type` or mapping, or sequence of objects of `input_type`.
