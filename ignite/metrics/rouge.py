@@ -1,4 +1,3 @@
-import re
 from abc import ABCMeta, abstractmethod
 from collections import Counter, namedtuple
 from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple, Union
@@ -189,7 +188,7 @@ class _BaseRouge(Metric):
     @reinit__is_reduced
     def update(self, output: Tuple[Sequence[Any], Sequence[Sequence[Any]]]) -> None:
         candidate, references = output[0], output[1]
-        multiref_scores = [self.compute_score(candidate=candidate, reference=reference,) for reference in references]
+        multiref_scores = [self._compute_score(candidate=candidate, reference=reference,) for reference in references]
         score = self._mutliref_reducer(multiref_scores)
         precision = score.precision()
         recall = score.recall()
@@ -206,17 +205,17 @@ class _BaseRouge(Metric):
             raise NotComputableError("Rouge metric must have at least one example before be computed")
 
         return {
-            f"{self.metric_name()}-P": float(self._precision / self._num_examples),
-            f"{self.metric_name()}-R": float(self._recall / self._num_examples),
-            f"{self.metric_name()}-F": float(self._fmeasure / self._num_examples),
+            f"{self._metric_name()}-P": float(self._precision / self._num_examples),
+            f"{self._metric_name()}-R": float(self._recall / self._num_examples),
+            f"{self._metric_name()}-F": float(self._fmeasure / self._num_examples),
         }
 
     @abstractmethod
-    def compute_score(self, candidate: Sequence[Any], reference: Sequence[Any]) -> _Score:
+    def _compute_score(self, candidate: Sequence[Any], reference: Sequence[Any]) -> _Score:
         pass
 
     @abstractmethod
-    def metric_name(self) -> str:
+    def _metric_name(self) -> str:
         pass
 
 
@@ -282,10 +281,10 @@ class RougeN(_BaseRouge):
         if self._ngram < 1:
             raise ValueError(f"ngram order must be greater than one (got : {self._ngram})")
 
-    def compute_score(self, candidate: Sequence[Any], reference: Sequence[Any]) -> _Score:
+    def _compute_score(self, candidate: Sequence[Any], reference: Sequence[Any]) -> _Score:
         return compute_ngram_scores(candidate=candidate, reference=reference, n=self._ngram)
 
-    def metric_name(self) -> str:
+    def _metric_name(self) -> str:
         return f"Rouge-{self._ngram}"
 
 
@@ -345,10 +344,10 @@ class RougeL(_BaseRouge):
     ):
         super(RougeL, self).__init__(multiref=multiref, alpha=alpha, output_transform=output_transform, device=device)
 
-    def compute_score(self, candidate: Sequence[Any], reference: Sequence[Any]) -> _Score:
+    def _compute_score(self, candidate: Sequence[Any], reference: Sequence[Any]) -> _Score:
         return compute_lcs_scores(candidate=candidate, reference=reference)
 
-    def metric_name(self) -> str:
+    def _metric_name(self) -> str:
         return "Rouge-L"
 
 
