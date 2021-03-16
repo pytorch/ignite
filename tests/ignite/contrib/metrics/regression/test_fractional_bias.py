@@ -115,7 +115,7 @@ def test_error_is_not_nan():
     assert not (torch.isnan(m._sum_of_errors).any() or torch.isinf(m._sum_of_errors).any()), m._sum_of_errors
 
 
-def _test_distrib_compute(device):
+def _test_distrib_compute(device, tol=1e-6):
     rank = idist.get_rank()
 
     def _test(metric_device):
@@ -141,7 +141,7 @@ def _test_distrib_compute(device):
         np_len = len(y_pred)
         np_ans = np_sum / np_len
 
-        assert np_ans == pytest.approx(res)
+        assert np_ans == pytest.approx(res, rel=tol)
 
     for _ in range(3):
         _test("cpu")
@@ -149,7 +149,7 @@ def _test_distrib_compute(device):
             _test(idist.device())
 
 
-def _test_distrib_integration(device):
+def _test_distrib_integration(device, tol=1e-6):
 
     rank = idist.get_rank()
     torch.manual_seed(12)
@@ -191,7 +191,7 @@ def _test_distrib_integration(device):
         np_len = len(y_preds)
         np_ans = np_sum / np_len
 
-        assert pytest.approx(res) == np_ans
+        assert pytest.approx(res, rel=tol) == np_ans
 
     metric_devices = ["cpu"]
     if device.type != "xla":
@@ -255,14 +255,14 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_distrib_single_device_xla():
     device = idist.device()
-    _test_distrib_compute(device)
-    _test_distrib_integration(device)
+    _test_distrib_compute(device, tol=1e-5)
+    _test_distrib_integration(device, tol=1e-5)
 
 
 def _test_distrib_xla_nprocs(index):
     device = idist.device()
-    _test_distrib_compute(device)
-    _test_distrib_integration(device)
+    _test_distrib_compute(device, tol=1e-5)
+    _test_distrib_integration(device, tol=1e-5)
 
 
 @pytest.mark.tpu
