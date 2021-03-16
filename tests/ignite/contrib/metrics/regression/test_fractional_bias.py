@@ -109,6 +109,12 @@ def test_integration():
             _test(y_pred, y, batch_size)
 
 
+def test_error_is_not_nan():
+    m = FractionalBias()
+    m.update((torch.zeros(4), torch.zeros(4)))
+    assert not (torch.isnan(m._sum_of_errors).any() or torch.isinf(m._sum_of_errors).any()), m._sum_of_errors
+
+
 def _test_distrib_compute(device):
     rank = idist.get_rank()
 
