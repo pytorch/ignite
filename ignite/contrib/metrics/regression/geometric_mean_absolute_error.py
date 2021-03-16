@@ -55,4 +55,4 @@ class GeometricMeanAbsoluteError(_BaseRegression):
             raise NotComputableError(
                 "GeometricMeanAbsoluteError must have at least one example before it can be computed."
             )
-        return torch.exp(cast(torch.Tensor, self._sum_of_errors) / self._num_examples).item()
+        return torch.exp((self._sum_of_errors) / self._num_examples).item()
