@@ -137,7 +137,7 @@ def _test_distrib_compute(device, tol=1e-6):
 
         res = m.compute()
 
-        np_sum = (2 * (np_y - np_y_pred) / (np_y_pred + np_y + 1e-15)).sum()
+        np_sum = (2 * (np_y - np_y_pred) / (np_y_pred + np_y + 1e-30)).sum()
         np_len = len(y_pred)
         np_ans = np_sum / np_len
 
@@ -187,7 +187,7 @@ def _test_distrib_integration(device, tol=1e-6):
         np_y_true = y_true.cpu().numpy()
         np_y_preds = y_preds.cpu().numpy()
 
-        np_sum = (2 * (np_y_true - np_y_preds) / (np_y_preds + np_y_true + 1e-15)).sum()
+        np_sum = (2 * (np_y_true - np_y_preds) / (np_y_preds + np_y_true + 1e-30)).sum()
         np_len = len(y_preds)
         np_ans = np_sum / np_len
 
