@@ -79,6 +79,9 @@ def test_wrong_inputs():
     with pytest.raises(NotComputableError):
         RougeL().compute()
 
+    with pytest.raises(ValueError):
+        Rouge(multiref="unknown")
+
 
 @pytest.mark.parametrize(
     "ngram, candidate, reference, expected",
