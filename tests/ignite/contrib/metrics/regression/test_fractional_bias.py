@@ -1,8 +1,12 @@
+import os
+
 import numpy as np
 import pytest
 import torch
 
+import ignite.distributed as idist
 from ignite.contrib.metrics.regression import FractionalBias
+from ignite.engine import Engine
 from ignite.exceptions import NotComputableError
 
 
@@ -62,3 +66,44 @@ def test_fractional_bias():
     np_len += len(d)
     np_ans = np_sum / np_len
     assert m.compute() == pytest.approx(np_ans)
+
+
+def test_integration():
+    def _test(y_pred, y, batch_size):
+        def update_fn(engine, batch):
+            idx = (engine.state.iteration - 1) * batch_size
+            y_true_batch = np_y[idx : idx + batch_size]
+            y_pred_batch = np_y_pred[idx : idx + batch_size]
+            return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+
+        engine = Engine(update_fn)
+
+        m = FractionalBias()
+        m.attach(engine, "fb")
+
+        np_y = y.double().numpy()
+        np_y_pred = y_pred.double().numpy()
+
+        data = list(range(y_pred.shape[0] // batch_size))
+        fb = engine.run(data, max_epochs=1).metrics["fb"]
+
+        np_sum = (2 * (np_y - np_y_pred) / (np_y_pred + np_y)).sum()
+        np_len = len(y_pred)
+        np_ans = np_sum / np_len
+
+        assert np_ans == pytest.approx(fb)
+
+    def get_test_cases():
+        test_cases = [
+            (torch.rand(size=(100,)), torch.rand(size=(100,)), 10),
+            (torch.rand(size=(200,)), torch.rand(size=(200,)), 10),
+            (torch.rand(size=(100,)), torch.rand(size=(100,)), 20),
+            (torch.rand(size=(200,)), torch.rand(size=(200,)), 20),
+        ]
+        return test_cases
+
+    for _ in range(10):
+        # check multiple random inputs as random exact occurencies are rare
+        test_cases = get_test_cases()
+        for y_pred, y, batch_size in test_cases:
+            _test(y_pred, y, batch_size)
