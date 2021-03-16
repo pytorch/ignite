@@ -44,7 +44,7 @@ class FractionalAbsoluteError(_BaseRegression):
         self._num_examples = 0
 
     def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
-        y_pred, y = output
+        y_pred, y = output[0].detach(), output[1].detach()
         errors = 2 * torch.abs(y.view_as(y_pred) - y_pred) / (torch.abs(y_pred) + torch.abs(y.view_as(y_pred)))
         self._sum_of_errors += torch.sum(errors).to(self._device)
         self._num_examples += y.shape[0]
