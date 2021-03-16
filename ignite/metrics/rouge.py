@@ -58,15 +58,25 @@ def lcs(seq_a: Sequence[Any], seq_b: Sequence[Any]) -> int:
     return dp[m][n]
 
 
-class _Score(namedtuple("_Score", ["match", "candidate", "reference"])):
+class Score(namedtuple("Score", ["match", "candidate", "reference"])):
+    r"""
+    Computes precision and recall for given matches, candidate and reference lengths.
+    """
+
     def precision(self) -> float:
+        """
+        Calculates precision.
+        """
         return self.match / self.candidate if self.candidate > 0 else 0
 
     def recall(self) -> float:
+        """
+        Calculates recall.
+        """
         return self.match / self.reference if self.reference > 0 else 0
 
 
-def compute_ngram_scores(candidate: Sequence[Any], reference: Sequence[Any], n: int = 4) -> _Score:
+def compute_ngram_scores(candidate: Sequence[Any], reference: Sequence[Any], n: int = 4) -> Score:
     """
     Compute the score based on ngram co-occurence of sequences of items
 
@@ -89,14 +99,14 @@ def compute_ngram_scores(candidate: Sequence[Any], reference: Sequence[Any], n: 
     match_counters = candidate_counter & reference_counter
 
     # the score is defined using Fraction
-    return _Score(
+    return Score(
         match=sum(match_counters.values()),
         candidate=sum(candidate_counter.values()),
         reference=sum(reference_counter.values()),
     )
 
 
-def compute_lcs_scores(candidate: Sequence[Any], reference: Sequence[Any]) -> _Score:
+def compute_lcs_scores(candidate: Sequence[Any], reference: Sequence[Any]) -> Score:
     """
     Compute the score based on longest common subsequence of sequences of items
 
@@ -114,7 +124,7 @@ def compute_lcs_scores(candidate: Sequence[Any], reference: Sequence[Any]) -> _S
     match = lcs(candidate, reference)
 
     # the score is defined using Fraction
-    return _Score(match=match, candidate=len(candidate), reference=len(reference))
+    return Score(match=match, candidate=len(candidate), reference=len(reference))
 
 
 class MultiRefReducer(metaclass=ABCMeta):
@@ -123,7 +133,7 @@ class MultiRefReducer(metaclass=ABCMeta):
     """
 
     @abstractmethod
-    def __call__(self, scores: Sequence[_Score]) -> _Score:
+    def __call__(self, scores: Sequence[Score]) -> Score:
         pass
 
 
@@ -132,11 +142,11 @@ class MultiRefAverageReducer(MultiRefReducer):
     Reducer for averaging the scores
     """
 
-    def __call__(self, scores: Sequence[_Score]) -> _Score:
+    def __call__(self, scores: Sequence[Score]) -> Score:
         match = sum([score.match for score in scores])
         candidate = sum([score.candidate for score in scores])
         reference = sum([score.reference for score in scores])
-        return _Score(match=match, candidate=candidate, reference=reference)
+        return Score(match=match, candidate=candidate, reference=reference)
 
 
 class MultiRefBestReducer(MultiRefReducer):
@@ -144,7 +154,7 @@ class MultiRefBestReducer(MultiRefReducer):
     Reducer for selecting the best score
     """
 
-    def __call__(self, scores: Sequence[_Score]) -> _Score:
+    def __call__(self, scores: Sequence[Score]) -> Score:
         return max(scores, key=lambda x: x.recall())
 
 
@@ -211,7 +221,7 @@ class _BaseRouge(Metric):
         }
 
     @abstractmethod
-    def _compute_score(self, candidate: Sequence[Any], reference: Sequence[Any]) -> _Score:
+    def _compute_score(self, candidate: Sequence[Any], reference: Sequence[Any]) -> Score:
         pass
 
     @abstractmethod
@@ -281,7 +291,7 @@ class RougeN(_BaseRouge):
         if self._ngram < 1:
             raise ValueError(f"ngram order must be greater than one (got : {self._ngram})")
 
-    def _compute_score(self, candidate: Sequence[Any], reference: Sequence[Any]) -> _Score:
+    def _compute_score(self, candidate: Sequence[Any], reference: Sequence[Any]) -> Score:
         return compute_ngram_scores(candidate=candidate, reference=reference, n=self._ngram)
 
     def _metric_name(self) -> str:
@@ -344,7 +354,7 @@ class RougeL(_BaseRouge):
     ):
         super(RougeL, self).__init__(multiref=multiref, alpha=alpha, output_transform=output_transform, device=device)
 
-    def _compute_score(self, candidate: Sequence[Any], reference: Sequence[Any]) -> _Score:
+    def _compute_score(self, candidate: Sequence[Any], reference: Sequence[Any]) -> Score:
         return compute_lcs_scores(candidate=candidate, reference=reference)
 
     def _metric_name(self) -> str:
