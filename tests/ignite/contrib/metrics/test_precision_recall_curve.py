@@ -10,7 +10,7 @@ from ignite.metrics.epoch_metric import EpochMetricWarning
 
 def test_no_sklearn(mock_no_sklearn):
     with pytest.raises(RuntimeError, match=r"This contrib module requires sklearn to be installed."):
-        y = torch.rand([1, 1])
+        y = torch.tensor([1, 1])
         pr_curve = PrecisionRecallCurve()
         pr_curve.update((y, y))
         pr_curve.compute()

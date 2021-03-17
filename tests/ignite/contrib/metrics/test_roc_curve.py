@@ -8,6 +8,14 @@ from ignite.engine import Engine
 from ignite.metrics.epoch_metric import EpochMetricWarning
 
 
+def test_no_sklearn(mock_no_sklearn):
+    with pytest.raises(RuntimeError, match=r"This contrib module requires sklearn to be installed"):
+        y = torch.tensor([1, 1])
+        roc_curve = RocCurve()
+        roc_curve.update((y, y))
+        roc_curve.compute()
+
+
 def test_roc_curve():
     size = 100
     np_y_pred = np.random.rand(size, 1)
