@@ -1,11 +1,20 @@
+from unittest.mock import patch
+
 import numpy as np
 import pytest
+import sklearn
 import torch
 from sklearn.metrics import roc_curve
 
 from ignite.contrib.metrics.roc_auc import RocCurve
 from ignite.engine import Engine
 from ignite.metrics.epoch_metric import EpochMetricWarning
+
+
+@pytest.fixture()
+def mock_no_sklearn():
+    with patch.dict("sys.modules", {"sklearn.metrics": None}):
+        yield sklearn
 
 
 def test_no_sklearn(mock_no_sklearn):

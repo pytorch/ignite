@@ -1,6 +1,8 @@
 import os
+from unittest.mock import patch
 
 import pytest
+import sklearn
 import torch
 from sklearn.metrics import roc_auc_score
 
@@ -11,6 +13,12 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics.epoch_metric import EpochMetricWarning
 
 torch.manual_seed(12)
+
+
+@pytest.fixture()
+def mock_no_sklearn():
+    with patch.dict("sys.modules", {"sklearn.metrics": None}):
+        yield sklearn
 
 
 def test_no_sklearn(mock_no_sklearn):

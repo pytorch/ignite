@@ -1,10 +1,8 @@
 import shutil
 import sys
 import tempfile
-from unittest.mock import patch
 
 import pytest
-import sklearn
 import torch
 import torch.distributed as dist
 
@@ -317,9 +315,3 @@ def _gloo_hvd_execute(func, args, np=1, do_init=False):
 @pytest.fixture()
 def gloo_hvd_executor():
     yield _gloo_hvd_execute
-
-
-@pytest.fixture()
-def mock_no_sklearn():
-    with patch.dict("sys.modules", {"sklearn.metrics": None}):
-        yield sklearn
