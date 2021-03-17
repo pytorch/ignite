@@ -180,8 +180,6 @@ def _test_distrib_integration(device):
         assert "gmae" in engine.state.metrics
 
         res = engine.state.metrics["gmae"]
-        if isinstance(res, torch.Tensor):
-            res = res.cpu().numpy()
 
         np_y_true = y_true.cpu().numpy()
         np_y_preds = y_preds.cpu().numpy()
