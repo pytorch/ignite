@@ -190,7 +190,23 @@ def test_assert_setup_common_training_handlers_wrong_train_sampler(distributed_c
 def test_setup_common_training_handlers(dirname, capsys):
 
     _test_setup_common_training_handlers(dirname, device="cpu")
+
+    # Check epoch-wise pbar
+    captured = capsys.readouterr()
+    out = captured.err.split("\r")
+    out = list(map(lambda x: x.strip(), out))
+    out = list(filter(None, out))
+    assert "Epoch" in out[-1] or "Epoch" in out[-2], f"{out[-2]}, {out[-1]}"
+
     _test_setup_common_training_handlers(dirname, device="cpu", output_transform=lambda loss: [loss])
+
+    # Check epoch-wise pbar
+    captured = capsys.readouterr()
+    out = captured.err.split("\r")
+    out = list(map(lambda x: x.strip(), out))
+    out = list(filter(None, out))
+    assert "Epoch" in out[-1] or "Epoch" in out[-2], f"{out[-2]}, {out[-1]}"
+
     _test_setup_common_training_handlers(dirname, device="cpu", output_transform=lambda loss: {"batch_loss": loss})
 
     # Check epoch-wise pbar
