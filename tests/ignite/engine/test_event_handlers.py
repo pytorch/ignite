@@ -6,7 +6,7 @@ import pytest
 from pytest import raises
 
 from ignite.engine import Engine, Events, State
-from ignite.engine.events import EventsList
+from ignite.engine.events import EventsList, RemovableEventHandle
 
 
 class DummyEngine(Engine):
@@ -443,6 +443,9 @@ def test_state_attributes():
     assert state.epoch == 3
     assert state.max_epochs == 3
     assert state.metrics == {}
+
+    with pytest.raises(RuntimeError, match=r"Unknown event name"):
+        state.get_event_attrib_value("abc")
 
 
 def test_default_exception_handler():
