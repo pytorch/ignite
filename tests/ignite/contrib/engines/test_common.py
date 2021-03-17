@@ -26,7 +26,7 @@ from ignite.contrib.engines.common import (
     setup_wandb_logging,
 )
 from ignite.engine import Engine, Events
-from ignite.handlers import DiskSaver, TerminateOnNan
+from ignite.handlers import DiskSaver, TerminateOnNan, terminate_on_nan
 
 
 class DummyModel(nn.Module):
@@ -39,7 +39,14 @@ class DummyModel(nn.Module):
 
 
 def _test_setup_common_training_handlers(
-    dirname, device, rank=0, local_rank=0, distributed=False, lr_scheduler=None, save_handler=None
+    dirname,
+    device,
+    rank=0,
+    local_rank=0,
+    distributed=False,
+    lr_scheduler=None,
+    save_handler=None,
+    output_transform=lambda loss: loss,
 ):
 
     lr = 0.01
@@ -74,7 +81,7 @@ def _test_setup_common_training_handlers(
         loss = y_pred.mean()
         loss.backward()
         optimizer.step()
-        return loss
+        return output_transform(loss)
 
     train_sampler = None
     if distributed and idist.get_world_size() > 1:
@@ -141,6 +148,22 @@ def test_asserts_setup_common_training_handlers():
         train_sampler = MagicMock(spec=DistributedSampler)
         setup_common_training_handlers(trainer, train_sampler=train_sampler)
 
+    with pytest.raises(RuntimeError, match=r"This contrib module requires available GPU"):
+        setup_common_training_handlers(trainer, with_gpu_stats=True)
+
+    with pytest.raises(TypeError, match=r"Unhandled type of update_function's output."):
+        trainer = Engine(lambda e, b: None)
+        setup_common_training_handlers(
+            trainer,
+            output_names=["loss"],
+            with_pbar_on_iters=False,
+            with_pbars=False,
+            with_gpu_stats=False,
+            stop_on_nan=False,
+            clear_cuda_cache=False,
+        )
+        trainer.run([1])
+
 
 def test_no_warning_with_train_sampler(recwarn):
     from torch.utils.data import RandomSampler
@@ -167,6 +190,8 @@ def test_assert_setup_common_training_handlers_wrong_train_sampler(distributed_c
 def test_setup_common_training_handlers(dirname, capsys):
 
     _test_setup_common_training_handlers(dirname, device="cpu")
+    _test_setup_common_training_handlers(dirname, device="cpu", output_transform=lambda loss: [loss])
+    _test_setup_common_training_handlers(dirname, device="cpu", output_transform=lambda loss: {"batch_loss": loss})
 
     # Check epoch-wise pbar
     captured = capsys.readouterr()
