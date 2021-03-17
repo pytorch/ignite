@@ -1,6 +1,5 @@
 import os
 
-import numpy as np
 import pytest
 import torch
 from sklearn.metrics import average_precision_score
@@ -11,6 +10,11 @@ from ignite.engine import Engine
 from ignite.exceptions import NotComputableError
 
 torch.manual_seed(12)
+
+
+def test_no_sklearn(mock_no_sklearn):
+    with pytest.raises(RuntimeError, match=r"This contrib module requires sklearn to be installed."):
+        AveragePrecision()
 
 
 def test_no_update():
