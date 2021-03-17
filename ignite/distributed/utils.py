@@ -499,7 +499,7 @@ def initialize(backend: str, **kwargs: Any) -> None:
 
             - | "horovod" : comm(=None), more info: `hvd_init`_.
 
-    .. _torch_init: https://horovod.readthedocs.io/en/latest/api.html#horovod.torch.init
+    .. _torch_init: https://pytorch.org/docs/stable/distributed.html#torch.distributed.init_process_group
     .. _hvd_init: https://horovod.readthedocs.io/en/latest/api.html#horovod.torch.init
 
     .. versionchanged:: 0.4.2

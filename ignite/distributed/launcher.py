@@ -195,8 +195,7 @@ class Parallel:
             backends (`nccl`, `gloo`). Default, "env://". See more info: `torch_init`_.
         spawn_kwargs: kwargs to ``idist.spawn`` function.
 
-    .. _torch_init: https://horovod.readthedocs.io/en/latest/api.html#horovod.torch.init
-
+    .. _torch_init: https://pytorch.org/docs/stable/distributed.html#torch.distributed.init_process_group.
     .. versionchanged:: 0.4.2
         ``backend`` now accepts `horovod` distributed framework.
 
