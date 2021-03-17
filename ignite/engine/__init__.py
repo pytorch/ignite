@@ -4,7 +4,6 @@ from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 import torch
 
 import ignite.distributed as idist
-from ignite.distributed.auto import autocast
 from ignite.engine.deterministic import DeterministicEngine
 from ignite.engine.engine import Engine
 from ignite.engine.events import CallableEventWithFilter, EventEnum, Events, EventsList, RemovableEventHandle, State
@@ -500,6 +499,10 @@ def supervised_evaluation_step_amp(
 
     .. versionadded:: 0.5.0
     """
+    try:
+        from torch.cuda.amp import autocast
+    except ImportError:
+        raise ImportError("Please install torch>=1.6.0 to use amp_mode='amp'.")
 
     def evaluate_step(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
         model.eval()
