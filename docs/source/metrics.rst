@@ -305,7 +305,7 @@ Complete list of metrics
     GeometricAverage
     VariableAccumulation
     Accuracy
-    confusion_matrix.ConfusionMatrix
+    ConfusionMatrix
     DiceCoefficient
     JaccardIndex
     IoU
@@ -317,15 +317,15 @@ Complete list of metrics
     MeanAbsoluteError
     MeanPairwiseDistance
     MeanSquaredError
-    metric.Metric
-    metrics_lambda.MetricsLambda
+    Metric
+    MetricsLambda
     MultiLabelConfusionMatrix
     precision.Precision
     PSNR
-    recall.Recall
+    Recall
     Rouge
-    rouge.RougeL
-    rouge.RougeN
+    RougeL
+    RougeN
     RootMeanSquaredError
     RunningAverage
     SSIM

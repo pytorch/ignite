@@ -1,8 +1,8 @@
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional
 
 from ignite.engine import Engine
 from ignite.engine.events import Events
-from ignite.handlers.checkpoint import Checkpoint, DiskSaver, ModelCheckpoint
+from ignite.handlers.checkpoint import BaseSaveHandler, Checkpoint, DiskSaver, ModelCheckpoint
 from ignite.handlers.early_stopping import EarlyStopping
 from ignite.handlers.terminate_on_nan import TerminateOnNan
 from ignite.handlers.time_limit import TimeLimit
@@ -13,6 +13,7 @@ __all__ = [
     "Checkpoint",
     "DiskSaver",
     "Timer",
+    "BaseSaveHandler",
     "EarlyStopping",
     "TerminateOnNan",
     "global_step_from_engine",
