@@ -1,31 +1,15 @@
 import os
-from unittest.mock import patch
 
 import pytest
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
-from torch.utils.data.sampler import BatchSampler, RandomSampler, SequentialSampler, WeightedRandomSampler
+from torch.utils.data.sampler import RandomSampler, WeightedRandomSampler
 
 import ignite.distributed as idist
 from ignite.distributed.auto import DistributedProxySampler, auto_dataloader, auto_model, auto_optim
-
-
-def test_auto_dataloader_error_warning():
-    class DummyDS(Dataset):
-        def __getitem__(self, index):
-            return index
-
-    ds = DummyDS()
-    with pytest.warns(UserWarning, match=r"Found batch_sampler in provided kwargs."):
-        with patch("ignite.distributed.get_world_size", return_value=2):
-            auto_dataloader(ds, batch_sampler=BatchSampler(SequentialSampler(range(10)), batch_size=3, drop_last=False))
-
-    with pytest.warns(UserWarning, match=r"Found incompatible options: xla support and pin_memory"):
-        with patch.object(idist, "backend", return_value="xla-tpu"):
-            auto_dataloader(ds, pin_memory=True)
 
 
 def _test_auto_dataloader(ws, nproc, batch_size, num_workers=1, sampler_name=None, dl_type=DataLoader):
