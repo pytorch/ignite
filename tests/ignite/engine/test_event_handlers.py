@@ -6,7 +6,7 @@ import pytest
 from pytest import raises
 
 from ignite.engine import Engine, Events, State
-from ignite.engine.events import EventsList, RemovableEventHandle
+from ignite.engine.events import EventsList
 
 
 class DummyEngine(Engine):
