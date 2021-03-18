@@ -22,7 +22,7 @@ from tests.ignite.engine import BatchChecker, setup_sampler
 
 
 def test_dengine_setup_seed_div_by_zero():
-    with pytest.raises(ZeroDivisionError, match=r"integer division or modulo by zero"):
+    with pytest.raises(ValueError, match=r"iter_counter should be positive value"):
         DeterministicEngine(lambda e, b: None)._setup_seed(iter_counter=0)
 
 
