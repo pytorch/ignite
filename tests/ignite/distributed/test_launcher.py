@@ -10,7 +10,7 @@ import ignite.distributed as idist
 from ignite.distributed.utils import has_hvd_support, has_native_dist_support, has_xla_support
 
 
-def test_parallel_error():
+def test_parallel_wrong_inputs():
     with pytest.raises(ValueError, match=r"Unknown backend 'abc'. Available backends:"):
         idist.Parallel(backend="abc")
 
