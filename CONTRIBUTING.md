@@ -87,7 +87,6 @@ git clone https://github.com/pytorch/ignite.git
 cd ignite
 python setup.py develop
 pip install -r requirements-dev.txt
-pip install mypy
 bash ./tests/run_code_style.sh install
 ```
 
