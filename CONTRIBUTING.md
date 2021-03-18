@@ -87,7 +87,8 @@ git clone https://github.com/pytorch/ignite.git
 cd ignite
 python setup.py develop
 pip install -r requirements-dev.txt
-pip install flake8 "black==19.10b0" "isort==5.7.0" mypy
+pip install mypy
+bash ./tests/run_code_style.sh install
 ```
 
 ### Code development
@@ -125,8 +126,6 @@ If you choose not to use pre-commit, you can take advantage of IDE extensions co
 black manually to format files and commit them.
 
 ```bash
-# install required exact versions
-bash ./tests/run_code_style.sh install
 # This should autoformat the files
 bash ./tests/run_code_style.sh fmt
 # If everything is OK, then commit
@@ -197,7 +196,6 @@ CUDA_VISIBLE_DEVICES="" pytest --dist=each --tx $WORLD_SIZE*popen//python=python
 To run mypy to check the optional static type:
 
 ```bash
-pip install mypy
 bash ./tests/run_code_style.sh mypy
 ```
 
