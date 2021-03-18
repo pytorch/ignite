@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
@@ -898,6 +898,15 @@ def test_simulate_and_plot_values():
         milestones_values=[(10, 0.5), (20, 0.45), (21, 0.3), (30, 0.1), (40, 0.1)],
     )
 
+    with pytest.raises(RuntimeError, match=r"This method requires matplotlib to be installed."):
+        with patch.dict("sys.modules", {"matplotlib.pylab": None}):
+            _test(
+                PiecewiseLinear,
+                optimizer=optimizer,
+                param_name="lr",
+                milestones_values=[(10, 0.5), (20, 0.45), (21, 0.3), (30, 0.1), (40, 0.1)],
+            )
+
 
 def test_create_lr_scheduler_with_warmup():
 
@@ -1147,6 +1156,9 @@ def test_param_group_scheduler_asserts():
         ParamGroupScheduler(schedulers=[lr_scheduler1, lr_scheduler2], names=["a"])
 
     scheduler = ParamGroupScheduler(schedulers=[lr_scheduler1, lr_scheduler2], names=["a", "b"])
+    with pytest.raises(TypeError, match=r"Argument state_dict should be a dictionary"):
+        scheduler.load_state_dict(None)
+
     with pytest.raises(ValueError, match=r"Required state attribute 'schedulers' is absent in provided state_dict"):
         scheduler.load_state_dict({"a": 1})
 
