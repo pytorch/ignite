@@ -30,6 +30,13 @@ def test__check_shape():
         acc._check_shape((torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 5)).long()))
 
 
+def test__check_type():
+    acc = Accuracy()
+
+    with pytest.raises(RuntimeError, match=r"Invalid shapes of y"):
+        acc._check_type((torch.rand([1, 1, 1]), torch.rand([1])))
+
+
 def test_binary_wrong_inputs():
     acc = Accuracy()
 
