@@ -1,6 +1,7 @@
 import os
 import warnings
 from collections import OrderedDict
+from unittest import mock
 from unittest.mock import MagicMock
 
 import pytest
@@ -1574,3 +1575,21 @@ def test_get_default_score_fn():
     score_fn = Checkpoint.get_default_score_fn("loss", -1)
     score = score_fn(engine)
     assert score == -0.123
+
+
+def test_save_xla_for_disk_saver(dirname):
+    with mock.patch("ignite.handlers.checkpoint.idist.has_xla_support"):
+        model = DummyModel()
+        to_save_serializable = {"model": model}
+        to_save_non_serializable = {"model": lambda x: x}
+
+        def _test_existance(atomic, _to_save):
+
+            try:
+                saver = DiskSaver(dirname, atomic=atomic, create_dir=False, require_empty=False)
+                fname = "test.pt"
+                saver(_to_save, fname)
+            except ModuleNotFoundError:
+                pass
+            _test_existance(atomic=False, _to_save=to_save_serializable)
+            _test_existance(atomic=True, _to_save=to_save_non_serializable)
