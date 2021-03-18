@@ -183,8 +183,7 @@ class _BaseRouge(Metric):
     def _get_multiref_reducer(self) -> MultiRefReducer:
         if self._multiref == "average":
             return MultiRefAverageReducer()
-        elif self._multiref == "best":
-            return MultiRefBestReducer()
+        return MultiRefBestReducer()
 
     @reinit__is_reduced
     def reset(self) -> None:
