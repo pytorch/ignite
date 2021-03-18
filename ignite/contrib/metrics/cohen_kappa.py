@@ -43,12 +43,6 @@ class CohenKappa(EpochMetric):
         check_compute_fn: bool = False,
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
-
-        try:
-            from sklearn.metrics import cohen_kappa_score
-        except ImportError:
-            raise RuntimeError("This contrib module requires sklearn to be installed.")
-
         if weights not in (None, "linear", "quadratic"):
             raise ValueError("Kappa Weighting type must be None or linear or quadratic.")
 
@@ -66,7 +60,10 @@ class CohenKappa(EpochMetric):
 
     def get_cohen_kappa_fn(self) -> Callable[[torch.Tensor, torch.Tensor], float]:
         """Return a function computing Cohen Kappa from scikit-learn."""
-        from sklearn.metrics import cohen_kappa_score
+        try:
+            from sklearn.metrics import cohen_kappa_score
+        except ImportError:
+            raise RuntimeError("This contrib module requires sklearn to be installed.")
 
         def wrapper(y_targets: torch.Tensor, y_preds: torch.Tensor) -> float:
             y_true = y_targets.cpu().numpy()

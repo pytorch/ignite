@@ -6,7 +6,10 @@ from ignite.metrics import EpochMetric
 
 
 def roc_auc_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor) -> float:
-    from sklearn.metrics import roc_auc_score
+    try:
+        from sklearn.metrics import roc_auc_score
+    except ImportError:
+        raise RuntimeError("This contrib module requires sklearn to be installed.")
 
     y_true = y_targets.cpu().numpy()
     y_pred = y_preds.cpu().numpy()
@@ -61,12 +64,6 @@ class ROC_AUC(EpochMetric):
         check_compute_fn: bool = False,
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
-
-        try:
-            from sklearn.metrics import roc_auc_score
-        except ImportError:
-            raise RuntimeError("This contrib module requires sklearn to be installed.")
-
         super(ROC_AUC, self).__init__(
             roc_auc_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn, device=device,
         )

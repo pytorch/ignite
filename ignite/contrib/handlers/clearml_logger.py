@@ -746,12 +746,10 @@ class ClearMLSaver(DiskSaver):
 
     def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None) -> None:
         try:
-            from clearml import Model
             from clearml.binding.frameworks import WeightsFileHandler
         except ImportError:
             try:
                 # Backwards-compatibility for legacy Trains SDK
-                from trains import Model
                 from trains.binding.frameworks import WeightsFileHandler
             except ImportError:
                 raise RuntimeError(
