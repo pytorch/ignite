@@ -20,6 +20,7 @@ class DummyDS(Dataset):
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif("WORLD_SIZE" not in os.environ, reason="Skip if WORLD_SIZE not in env vars")
 def test_auto_dataloader_warning(distributed_context_single_node_gloo):
     with pytest.warns(UserWarning, match=r"Found batch_sampler in provided kwargs"):
         auto_dataloader(
