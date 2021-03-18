@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 import torch
 from pytest import approx, raises
 
@@ -11,10 +10,10 @@ from ignite.exceptions import NotComputableError
 def test_wrong_input_shapes():
     m = MeanAbsoluteRelativeError()
 
-    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
+    with raises(ValueError, match=r"Input data shapes should be the same, but given"):
         m.update((torch.rand(4), torch.rand(4, 1)))
 
-    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
+    with raises(ValueError, match=r"Input data shapes should be the same, but given"):
         m.update((torch.rand(4, 1), torch.rand(4,)))
 
 
