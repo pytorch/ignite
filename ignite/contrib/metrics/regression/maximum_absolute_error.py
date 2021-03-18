@@ -4,6 +4,7 @@ import torch
 
 from ignite.contrib.metrics.regression._base import _BaseRegression
 from ignite.exceptions import NotComputableError
+from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
 
 class MaximumAbsoluteError(_BaseRegression):
@@ -34,15 +35,17 @@ class MaximumAbsoluteError(_BaseRegression):
             non-blocking. By default, CPU.
     """
 
+    @reinit__is_reduced
     def reset(self) -> None:
         self._max_of_absolute_errors = -1  # type: float
 
     def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
-        y_pred, y = output
+        y_pred, y = output[0].detach(), output[1].detach()
         mae = torch.abs(y_pred - y.view_as(y_pred)).max().item()
         if self._max_of_absolute_errors < mae:
             self._max_of_absolute_errors = mae
 
+    @sync_all_reduce("_max_of_absolute_errors")
     def compute(self) -> float:
         if self._max_of_absolute_errors < 0:
             raise NotComputableError("MaximumAbsoluteError must have at least one example before it can be computed.")
