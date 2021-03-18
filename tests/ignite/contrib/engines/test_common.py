@@ -188,7 +188,6 @@ def test_assert_setup_common_training_handlers_wrong_train_sampler(distributed_c
 
 
 def test_setup_common_training_handlers(dirname, capsys):
-    print(dirname)
     _test_setup_common_training_handlers(dirname, device="cpu")
 
     # Check epoch-wise pbar
