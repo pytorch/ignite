@@ -19,15 +19,16 @@ repos:
     hooks:
       - id: black
         language_version: python3.8
+        args: ["--config", "pyproject.toml"]
 
   - repo: https://github.com/timothycrosley/isort
     rev: 5.7.0
     hooks:
       - id: isort
-        args: ["--profile", "black"]
+        args: ["--settings", "setup.cfg"]
 
   - repo: https://gitlab.com/pycqa/flake8
     rev: 3.8.4
     hooks:
       - id: flake8
-        args: [--append-config=tox.ini]
+        args: ["--config", "setup.cfg"]
