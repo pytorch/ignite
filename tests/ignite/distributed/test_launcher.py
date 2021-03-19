@@ -217,9 +217,9 @@ def test_idist_parallel_spawn_n_procs_native(init_method, backend, dirname):
     "backend",
     ["gloo", pytest.param("nccl", marks=pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU"))],
 )
-def test_idist_parallel_n_procs_native(init_method, backend, fixed_dirname, local_rank, world_size):
+def test_idist_parallel_n_procs_native(init_method, backend, get_fixed_dirname, local_rank, world_size):
     if init_method == "FILE":
-        init_method = f"file://{fixed_dirname}/shared"
+        init_method = f"file://{get_fixed_dirname('idist_parallel_n_procs_native')}/shared"
 
     os.environ["RANK"] = str(local_rank)
     device = "cuda" if "nccl" in backend else "cpu"
