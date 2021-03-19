@@ -21,10 +21,10 @@ def fixed_dirname(worker_id):
     # multi-proc friendly fixed tmp dirname
     path = "/tmp/fixed_tmp_dirname"
     lrank = int(worker_id.replace("gw", "")) if "gw" in worker_id else 0
-    time.sleep(0.5 * lrank)
+    time.sleep(1.0 * lrank)
     os.makedirs(path, exist_ok=True)
     yield path
-    time.sleep(0.5 * lrank)
+    time.sleep(1.0 * lrank)
     if os.path.exists(path):
         shutil.rmtree(path)
     # sort of sync
