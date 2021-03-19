@@ -1,5 +1,5 @@
 import sys
-from unittest.mock import ANY, MagicMock, call
+from unittest.mock import ANY, MagicMock, call, patch
 
 import pytest
 import torch
@@ -953,3 +953,9 @@ def test_no_visdom(no_site_packages):
 
     with pytest.raises(RuntimeError, match=r"This contrib module requires visdom package"):
         VisdomLogger()
+
+
+def test_no_concurrent():
+    with pytest.raises(RuntimeError, match=r"This contrib module requires concurrent.futures"):
+        with patch.dict("sys.modules", {"concurrent.futures": None}):
+            VisdomLogger(num_workers=1)
