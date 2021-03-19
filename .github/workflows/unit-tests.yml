@@ -79,17 +79,14 @@ jobs:
       - name: Check code formatting
         shell: bash -l {0}
         run: |
-          pip install flake8 "black==19.10b0" "isort==5.7.0"
-          flake8 ignite/ tests/ examples/
-          black --check .
-          isort -c --profile black .
+          bash ./tests/run_code_style.sh install
+          bash ./tests/run_code_style.sh lint
 
       - name: Run Mypy
         shell: bash -l {0}
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
-          pip install mypy
-          mypy --config-file mypy.ini
+          bash ./tests/run_code_style.sh mypy
 
       - name: Run Tests
         shell: bash -l {0}
