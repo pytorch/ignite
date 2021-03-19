@@ -17,18 +17,22 @@ def dirname():
 
 
 @pytest.fixture()
-def fixed_dirname(worker_id):
-    # multi-proc friendly fixed tmp dirname
-    path = "/tmp/fixed_tmp_dirname"
-    lrank = int(worker_id.replace("gw", "")) if "gw" in worker_id else 0
-    time.sleep(1.0 * lrank)
-    os.makedirs(path, exist_ok=True)
-    yield path
-    time.sleep(1.0 * lrank)
-    if os.path.exists(path):
-        shutil.rmtree(path)
-    # sort of sync
-    time.sleep(1.0)
+def get_fixed_dirname(worker_id):
+
+    def getter(name="test"):
+        # multi-proc friendly fixed tmp dirname
+        path = f"/tmp/fixed_tmp_dirname_{name}"
+        lrank = int(worker_id.replace("gw", "")) if "gw" in worker_id else 0
+        time.sleep(0.5 * lrank)
+        os.makedirs(path, exist_ok=True)
+        yield path
+        time.sleep(1.0 * lrank + 1.0)
+        if os.path.exists(path):
+            shutil.rmtree(path)
+        # sort of sync
+        time.sleep(1.0)
+
+    return getter
 
 
 @pytest.fixture()
