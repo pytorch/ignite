@@ -109,7 +109,7 @@ def test_error_is_not_nan():
     assert not (torch.isnan(m._sum_of_errors).any() or torch.isinf(m._sum_of_errors).any()), m._sum_of_errors
 
 
-def _test_distrib_compute(device, tol=1e-6):
+def _test_distrib_compute(device, tol=1e-5):
     rank = idist.get_rank()
 
     def _test(metric_device):
@@ -143,7 +143,7 @@ def _test_distrib_compute(device, tol=1e-6):
             _test(idist.device())
 
 
-def _test_distrib_integration(device, tol=1e-6):
+def _test_distrib_integration(device, tol=1e-5):
 
     rank = idist.get_rank()
     torch.manual_seed(12)
