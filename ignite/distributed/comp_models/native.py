@@ -46,40 +46,83 @@ if has_native_dist_support:
             return _NativeDistModel()
 
         @staticmethod
-        def create_from_backend(backend: str, **kwargs: Any) -> "_NativeDistModel":
+        def create_from_backend(
+            backend: str,
+            init_method: Optional[str] = None,
+            world_size: Optional[int] = None,
+            rank: Optional[int] = None,
+            **kwargs: Any,
+        ) -> "_NativeDistModel":
             if backend not in _NativeDistModel.available_backends:
                 raise ValueError(f"Backend should be one of '{_NativeDistModel.available_backends}'")
 
             if dist.is_available() and dist.is_initialized():
                 raise RuntimeError("Can not create new distributed process group if default one is already initialized")
-            return _NativeDistModel(backend=backend, **kwargs)
 
-        def __init__(self, backend: Optional[str] = None, timeout: Optional[int] = None, **kwargs: Any) -> None:
+            if init_method is None:
+                if world_size is not None or rank is not None:
+                    raise ValueError("Arguments rank and world_size should be None if no init_method is provided")
+            else:
+                has_rank = rank is not None
+                has_ws = world_size is not None
+                if (has_rank or has_ws) and (not has_rank or not has_ws):
+                    raise ValueError(f"Both rank and world_size should be provided, but given {rank} and {world_size}")
+
+            return _NativeDistModel(
+                backend=backend, init_method=init_method, world_size=world_size, rank=rank, **kwargs
+            )
+
+        def __init__(
+            self,
+            backend: Optional[str] = None,
+            timeout: Optional[int] = None,
+            init_method: Optional[str] = None,
+            world_size: Optional[int] = None,
+            rank: Optional[int] = None,
+            **kwargs: Any,
+        ) -> None:
             """This is a private method. Please, use `create_from_backend` or `create_from_context`
             """
             super(_NativeDistModel, self).__init__()
             self._env_backup = None  # type: Optional[Dict[str, str]]
+            self._master_port = None  # type: Optional[int]
+            self._master_addr = None  # type: Optional[str]
+            self._init_method = None  # type: Optional[str]
             if backend is not None:
-                self._create_from_backend(backend, timeout=timeout, **kwargs)
+                self._create_from_backend(
+                    backend, timeout=timeout, init_method=init_method, world_size=world_size, rank=rank, **kwargs
+                )
             else:
                 self._init_from_context()
 
-        def _create_from_backend(self, backend: str, timeout: Optional[int] = None, **kwargs: Any) -> None:
+        def _create_from_backend(
+            self,
+            backend: str,
+            timeout: Optional[int] = None,
+            init_method: Optional[str] = None,
+            world_size: Optional[int] = None,
+            rank: Optional[int] = None,
+            **kwargs: Any,
+        ) -> None:
             if backend == dist.Backend.NCCL and not torch.cuda.is_available():
                 raise RuntimeError("Nccl backend is required but no cuda capable devices")
-
-            self.setup_env_vars()
-
-            self._local_rank = int(os.environ["LOCAL_RANK"])
-            # for debug purposes
-            self._master_port = int(os.environ["MASTER_PORT"])  # type: Optional[int]
-            self._master_addr = os.environ["MASTER_ADDR"]  # type: Optional[str]
+            self._backend = backend
+            self.setup_env_vars(rank, world_size)
 
             init_pg_kwargs = {}
             if timeout is not None:
                 init_pg_kwargs["timeout"] = timeout
 
-            dist.init_process_group(backend, init_method="env://", **init_pg_kwargs)
+            if init_method is None:
+                init_method = "env://"
+
+            if "env" not in init_method:
+                init_pg_kwargs["world_size"] = int(os.environ["WORLD_SIZE"])
+                init_pg_kwargs["rank"] = int(os.environ["RANK"])
+            self._init_method = init_method
+
+            dist.init_process_group(backend, init_method=init_method, **init_pg_kwargs)
+
             # https://github.com/facebookresearch/maskrcnn-benchmark/issues/172
             dist.barrier()
 
@@ -89,12 +132,8 @@ if has_native_dist_support:
             self._setup_attrs()
 
         def _init_from_context(self) -> None:
-
+            self._backend = dist.get_backend()
             self._identify_local_rank()
-
-            # for debug purposes
-            self._master_port = None
-            self._master_addr = None
             self._setup_attrs()
 
         def _compute_nproc_per_node(self) -> int:
@@ -165,11 +204,13 @@ if has_native_dist_support:
                 # use socket gethostname heuristic to determine number of nodes => local rank
                 self._local_rank = self._compute_local_rank_via_hostname()
 
-        def setup_env_vars(self) -> None:
+        def setup_env_vars(self, rank: Optional[int] = None, world_size: Optional[int] = None) -> None:
 
             self._env_backup = os.environ.copy()
 
             if "SLURM_JOBID" in os.environ:
+                if rank is not None or world_size is not None:
+                    raise ValueError("Arguments rank and world_size should not be specified with SLURM")
                 self._setup_env_in_slurm()
                 return
 
@@ -182,11 +223,14 @@ if has_native_dist_support:
                     f"PyTorch distributed configuration should define env variables '{necessary_env_vars}'"
                 )
 
-            os.environ["RANK"] = os.environ.get("RANK", "0")
+            os.environ["RANK"] = os.environ.get("RANK", f"{rank if rank is not None else 0}")
+            os.environ["WORLD_SIZE"] = os.environ.get("WORLD_SIZE", f"{world_size if world_size is not None else 1}")
             os.environ["LOCAL_RANK"] = os.environ.get("LOCAL_RANK", "0")
-            os.environ["WORLD_SIZE"] = os.environ.get("WORLD_SIZE", "1")
-            os.environ["MASTER_ADDR"] = os.environ.get("MASTER_ADDR", "127.0.0.1")
             os.environ["MASTER_PORT"] = os.environ.get("MASTER_PORT", "15000")
+            os.environ["MASTER_ADDR"] = os.environ.get("MASTER_ADDR", "127.0.0.1")
+            self._local_rank = int(os.environ["LOCAL_RANK"])
+            self._master_addr = os.environ["MASTER_ADDR"]
+            self._master_port = int(os.environ["MASTER_PORT"])
 
         def _setup_env_in_slurm(self) -> None:
             for k in ["SLURM_PROCID", "SLURM_LOCALID", "SLURM_NTASKS", "SLURM_JOB_NODELIST"]:
@@ -253,21 +297,31 @@ if has_native_dist_support:
             world_size: int,
             nprocs_per_node: int,
             node_rank: int,
-            master_addr: str,
-            master_port: str,
+            master_addr: Optional[str],
+            master_port: Optional[str],
+            init_method: str,
             kw: Any,
         ) -> None:
             from ignite.distributed.utils import _set_model, finalize
 
             copy_env_vars = os.environ.copy()
 
+            rank = node_rank * nprocs_per_node + local_rank
             os.environ["LOCAL_RANK"] = str(local_rank)
-            os.environ["RANK"] = str(node_rank * nprocs_per_node + local_rank)
+            os.environ["RANK"] = str(rank)
             os.environ["WORLD_SIZE"] = str(world_size)
-            os.environ["MASTER_ADDR"] = str(master_addr)
-            os.environ["MASTER_PORT"] = str(master_port)
 
-            model = _NativeDistModel.create_from_backend(backend, **kw)
+            arg_world_size = world_size  # type: Optional[int]
+            arg_rank = rank  # type: Optional[int]
+            if init_method == "env://":
+                os.environ["MASTER_ADDR"] = str(master_addr)
+                os.environ["MASTER_PORT"] = str(master_port)
+                arg_world_size = None
+                arg_rank = None
+
+            model = _NativeDistModel.create_from_backend(
+                backend, init_method=init_method, world_size=arg_world_size, rank=arg_rank, **kw
+            )
             _set_model(model)
             fn(local_rank, *args, **kw_dict)
             finalize()
@@ -283,9 +337,10 @@ if has_native_dist_support:
             nproc_per_node: int = 1,
             nnodes: int = 1,
             node_rank: int = 0,
-            master_addr: str = "127.0.0.1",
-            master_port: int = 2222,
+            master_addr: Optional[str] = None,
+            master_port: Optional[int] = None,
             backend: str = "nccl",
+            init_method: Optional[str] = None,
             **kwargs: Any,
         ) -> None:
             world_size = nnodes * nproc_per_node
@@ -301,6 +356,11 @@ if has_native_dist_support:
                 spawn_kwargs["start_method"] = kwargs.get("start_method", "spawn")
                 start_processes = mp.start_processes
 
+            if init_method in [None, "env://"]:
+                init_method = "env://"
+                master_addr = "127.0.0.1"
+                master_port = 2222
+
             start_processes(
                 _NativeDistModel._dist_worker_task_fn,
                 nprocs=nproc_per_node,
@@ -314,6 +374,7 @@ if has_native_dist_support:
                     node_rank,
                     master_addr,
                     master_port,
+                    init_method,
                     kwargs,
                 ),
                 **spawn_kwargs,
