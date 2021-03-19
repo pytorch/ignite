@@ -93,8 +93,16 @@ def test_attach_incorrect_input_args(lr_finder, dummy_engine, model, optimizer, 
         with lr_finder.attach(dummy_engine, to_save=to_save, num_iter=0.0) as f:
             pass
 
-    with pytest.raises(ValueError, match="if provided, num_iter should be positive"):
+    with pytest.raises(ValueError, match=r"if provided, num_iter should be positive"):
         with lr_finder.attach(dummy_engine, to_save=to_save, num_iter=0) as f:
+            pass
+
+    with pytest.raises(TypeError, match=r"Object to_save\['optimizer'] should be torch optimizer"):
+        with lr_finder.attach(dummy_engine, {"model": to_save["model"], "optimizer": to_save["model"]}):
+            pass
+
+    with pytest.raises(ValueError, match=r"step_mode should be 'exp' or 'linear'"):
+        with lr_finder.attach(dummy_engine, to_save=to_save, step_mode="abc") as f:
             pass
 
     with lr_finder.attach(dummy_engine, to_save) as trainer_with_finder:
