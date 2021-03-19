@@ -87,7 +87,7 @@ git clone https://github.com/pytorch/ignite.git
 cd ignite
 python setup.py develop
 pip install -r requirements-dev.txt
-pip install flake8 "black==19.10b0" "isort==5.7.0" mypy
+bash ./tests/run_code_style.sh install
 ```
 
 ### Code development
@@ -126,10 +126,7 @@ black manually to format files and commit them.
 
 ```bash
 # This should autoformat the files
-black .
-isort --profile black .
-# Run lint checking
-flake8 ignite/ tests/ examples/
+bash ./tests/run_code_style.sh fmt
 # If everything is OK, then commit
 git add .
 git commit -m "Added awesome feature"
@@ -187,6 +184,7 @@ SKIP_DISTRIB_TESTS=1 bash tests/run_cpu_tests.sh
 ##### Run distributed tests only on CPU
 
 To run distributed tests only (assuming installed `pytest-xdist`):
+
 ```bash
 export WORLD_SIZE=2
 CUDA_VISIBLE_DEVICES="" pytest --dist=each --tx $WORLD_SIZE*popen//python=python tests/ -m distributed -vvv
@@ -197,7 +195,7 @@ CUDA_VISIBLE_DEVICES="" pytest --dist=each --tx $WORLD_SIZE*popen//python=python
 To run mypy to check the optional static type:
 
 ```bash
-mypy --config-file mypy.ini
+bash ./tests/run_code_style.sh mypy
 ```
 
 To change any config for specif folder, please see the file mypy.ini
@@ -215,11 +213,13 @@ If you are not familiar with creating a Pull Request, here are some guides:
 
 For example, typo changes in `CONTRIBUTING.md`, `README.md` are not required to run in the CI.
 So, please add `[skip ci]` in the PR title to save the resources. Ignite has setup 3 CIs.
+
 - GitHub Actions
 - CircleCI
 - Netlify
 
 CircleCI is disabled on forked PR. So, please add
+
 - `[skip actions]` for the changes which are not required to run on GitHub Actions,
 - `[skip netlify]` for the changes which are not required to run on Netlify PR Preview build, or
 - `[skip ci]` for the changes which are not required to run on any CI.
