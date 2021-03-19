@@ -20,6 +20,14 @@ def training(local_rank, config, **kwargs):
     assert t == ws * (ws - 1) / 2, f"{t} vs {ws}"
     assert local_rank == idist.get_local_rank()
 
+    # Test init method:
+    if idist.model_name() == "native-dist":
+        from ignite.distributed.utils import _model
+
+        true_init_method = config.get("true_init_method", None)
+        assert true_init_method is not None, true_init_method
+        assert _model._init_method == true_init_method
+
 
 if __name__ == "__main__":
     """
@@ -74,10 +82,16 @@ if __name__ == "__main__":
     parser.add_argument("--node_rank", type=int, default=None)
     parser.add_argument("--master_addr", type=str, default=None)
     parser.add_argument("--master_port", type=str, default=None)
+    parser.add_argument("--init_method", type=str, default=None)
 
     args = parser.parse_args()
 
-    config = {"model": "resnet18", "lr": 0.01}
+    config = {
+        "model": "resnet18",
+        "lr": 0.01,
+    }
+    if args.backend in ["gloo", "nccl"]:
+        config["true_init_method"] = args.init_method if args.init_method is not None else "env://"
 
     dist_config = dict(
         nproc_per_node=args.nproc_per_node,
@@ -86,6 +100,8 @@ if __name__ == "__main__":
         master_addr=args.master_addr,
         master_port=args.master_port,
     )
+    if args.init_method is not None:
+        dist_config["init_method"] = args.init_method
 
     with idist.Parallel(backend=args.backend, **dist_config) as parallel:
         parallel.run(training, config, a=1, b=2)
