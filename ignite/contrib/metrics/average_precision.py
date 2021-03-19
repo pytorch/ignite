@@ -6,10 +6,7 @@ from ignite.metrics import EpochMetric
 
 
 def average_precision_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor) -> float:
-    try:
-        from sklearn.metrics import average_precision_score
-    except ImportError:
-        raise RuntimeError("This contrib module requires sklearn to be installed.")
+    from sklearn.metrics import average_precision_score
 
     y_true = y_targets.cpu().numpy()
     y_pred = y_preds.cpu().numpy()
@@ -52,6 +49,12 @@ class AveragePrecision(EpochMetric):
         check_compute_fn: bool = False,
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
+
+        try:
+            from sklearn.metrics import average_precision_score  # noqa: F401
+        except ImportError:
+            raise RuntimeError("This contrib module requires sklearn to be installed.")
+
         super(AveragePrecision, self).__init__(
             average_precision_compute_fn,
             output_transform=output_transform,
