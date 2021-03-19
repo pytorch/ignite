@@ -18,7 +18,6 @@ def dirname():
 
 @pytest.fixture()
 def get_fixed_dirname(worker_id):
-
     def getter(name="test"):
         # multi-proc friendly fixed tmp dirname
         path = f"/tmp/fixed_tmp_dirname_{name}"
