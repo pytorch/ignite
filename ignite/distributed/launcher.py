@@ -266,7 +266,7 @@ class Parallel:
             raise ValueError(f"Argument node_rank should be between 0 and {nnodes - 1}, but given {node_rank}")
         if nnodes > 1 and (master_addr is None or master_port is None or init_method is None):
             raise ValueError(
-                "If number of nodes larger than one, arguments master_addr/master_port or init_method"
+                "If number of nodes larger than one, arguments master_addr and master_port or init_method"
                 f"should be specified, but given master_addr={master_addr}, master_port={master_port} and "
                 f"init_method={init_method}."
             )
