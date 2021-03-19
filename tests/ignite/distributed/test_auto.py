@@ -140,6 +140,11 @@ def test_auto_methods_gloo(distributed_context_single_node_gloo):
 
     _test_auto_model_optimizer(ws, "cpu")
 
+    if ws > 1:
+        with pytest.raises(AssertionError, match=r"SyncBatchNorm layers only work with GPU modules"):
+            model = nn.Sequential(nn.Linear(20, 100), nn.BatchNorm1d(100))
+            auto_model(model, sync_bn=True)
+
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
@@ -151,11 +156,10 @@ def test_auto_methods_nccl(distributed_context_single_node_nccl):
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=10)
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1, sampler_name="WeightedRandomSampler")
 
-    device = "cuda"
-    _test_auto_model_optimizer(ws, device)
+    _test_auto_model_optimizer(ws, "cuda")
 
     with pytest.raises(ValueError, match=r"Argument kwargs should not contain 'device_ids'"):
-        _test_auto_model(nn.Linear(1, 1), 1, "cpu", device_ids=1)
+        _test_auto_model(nn.Linear(1, 1), ws, "cpu", device_ids=1)
 
 
 @pytest.mark.distributed
