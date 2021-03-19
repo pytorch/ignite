@@ -192,10 +192,11 @@ class Parallel:
         master_port: optional argument, master node port for torch native backends
             (`nccl`, `gloo`). Mandatory argument if ``master_addr`` is specified.
         init_method: optional argument to specify processing group initialization method for torch native
-            backends (`nccl`, `gloo`). Default, "env://". See more info: `torch_init`_.
+            backends (`nccl`, `gloo`). Default, "env://".
+            See more info: `dist.init_process_group`_.
         spawn_kwargs: kwargs to ``idist.spawn`` function.
 
-    .. _torch_init: https://pytorch.org/docs/stable/distributed.html#torch.distributed.init_process_group
+    .. _dist.init_process_group: https://pytorch.org/docs/stable/distributed.html#torch.distributed.init_process_group
     .. versionchanged:: 0.4.2
         ``backend`` now accepts `horovod` distributed framework.
 
