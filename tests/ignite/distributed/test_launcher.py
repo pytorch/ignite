@@ -10,6 +10,29 @@ import ignite.distributed as idist
 from ignite.distributed.utils import has_hvd_support, has_native_dist_support, has_xla_support
 
 
+def test_parallel_wrong_inputs():
+    with pytest.raises(ValueError, match=r"Unknown backend 'abc'. Available backends:"):
+        idist.Parallel(backend="abc")
+
+    with pytest.raises(ValueError, match=r"If backend is None, argument 'nnodes' should be also None"):
+        idist.Parallel(nnodes=2)
+
+    with pytest.raises(ValueError, match=r"Argument nproc_per_node should positive"):
+        idist.Parallel(backend="gloo", nproc_per_node=-1)
+
+    with pytest.raises(ValueError, match=r"Argument nnodes should positive"):
+        idist.Parallel(backend="gloo", nproc_per_node=1, nnodes=-1)
+
+    with pytest.raises(ValueError, match=r"If number of nodes larger than one"):
+        idist.Parallel(backend="gloo", nproc_per_node=1, nnodes=2)
+
+    with pytest.raises(ValueError, match=r"Argument node_rank should be between 0 and"):
+        idist.Parallel(backend="gloo", nproc_per_node=1, nnodes=2, node_rank=2)
+
+    with pytest.raises(ValueError, match=r"If number of nodes larger than one, arguments master_addr and master_port"):
+        idist.Parallel(backend="gloo", nproc_per_node=1, nnodes=2, node_rank=1)
+
+
 @pytest.fixture()
 def exec_filepath():
     fp = Path(__file__).parent / "check_idist_parallel.py"
