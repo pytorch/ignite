@@ -43,3 +43,21 @@ def test__encode_str__decode_str():
     decoded_s = ComputationModel._decode_str(encoded_s)
     assert isinstance(decoded_s, list) and len(decoded_s) == 1
     assert decoded_s[0] == s
+
+
+def test__setup_placeholder():
+    device = torch.device("cpu")
+
+    from ignite.distributed.utils import _model
+
+    data = _model._setup_placeholder(torch.rand(2, 3, 4), device, False)
+    assert isinstance(data, torch.Tensor) and data.shape == (2, 3, 4)
+
+    data = _model._setup_placeholder("abc", device, False)
+    assert isinstance(data, str) and data == ""
+
+    data = _model._setup_placeholder(123.45, device, False)
+    assert isinstance(data, float) and data == 0.0
+
+    data = _model._setup_placeholder(123.45, device, True)
+    assert isinstance(data, float) and data == 123.45
