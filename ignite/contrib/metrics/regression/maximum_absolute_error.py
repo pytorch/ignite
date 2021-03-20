@@ -33,6 +33,9 @@ class MaximumAbsoluteError(_BaseRegression):
         device: specifies which device updates are accumulated on. Setting the
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
+
+    .. versionchanged:: 0.4.3
+        - Works with DDP.
     """
 
     @reinit__is_reduced
