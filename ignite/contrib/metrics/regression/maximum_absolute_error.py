@@ -34,7 +34,7 @@ class MaximumAbsoluteError(_BaseRegression):
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
 
-    .. versionchanged:: 0.4.3
+    .. versionchanged:: 0.5.0
         - Works with DDP.
     """
 
@@ -48,7 +48,7 @@ class MaximumAbsoluteError(_BaseRegression):
         if self._max_of_absolute_errors < mae:
             self._max_of_absolute_errors = mae
 
-    @sync_all_reduce("_max_of_absolute_errors")
+    @sync_all_reduce("_max_of_absolute_errors:MAX")
     def compute(self) -> float:
         if self._max_of_absolute_errors < 0:
             raise NotComputableError("MaximumAbsoluteError must have at least one example before it can be computed.")
