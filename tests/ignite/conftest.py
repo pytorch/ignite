@@ -25,7 +25,7 @@ def get_fixed_dirname(worker_id):
         time.sleep(0.5 * lrank)
         os.makedirs(path, exist_ok=True)
         yield path
-        time.sleep(1.0 * lrank + 1.0)
+        time.sleep(1.0 * lrank + 2.0)
         if os.path.exists(path):
             shutil.rmtree(path)
         # sort of sync
