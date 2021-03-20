@@ -75,7 +75,7 @@ class CallableEventWithFilter:
             raise ValueError("Argument every should be integer and greater than zero")
 
         if (once is not None) and not (isinstance(once, numbers.Integral) and once > 0):
-            raise ValueError("Argument every should be integer and positive")
+            raise ValueError("Argument once should be integer and positive")
 
         if every is not None:
             if every == 1:
