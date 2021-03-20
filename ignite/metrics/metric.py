@@ -526,7 +526,7 @@ class Metric(metaclass=ABCMeta):
         self.__dict__.update(d)
 
 
-def sync_all_reduce(*attrs: Any, op: str = "SUM") -> Callable:
+def sync_all_reduce(*attrs: Any) -> Callable:
     """Helper decorator for distributed configuration to collect instance attribute value
     across all participating processes.
 
@@ -548,6 +548,12 @@ def sync_all_reduce(*attrs: Any, op: str = "SUM") -> Callable:
             if len(attrs) > 0 and not self._is_reduced:
                 if ws > 1:
                     for attr in attrs:
+                        if ":" in attr:
+                            idx = attr.index(":")
+                            op = attr[idx + 1 :].strip().upper()
+                            attr = attr[:idx]
+                        else:
+                            op = "SUM"
                         t = getattr(self, attr, None)
                         if t is not None:
                             t = idist.all_reduce(t, op=op)
