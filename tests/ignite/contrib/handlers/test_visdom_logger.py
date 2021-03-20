@@ -936,7 +936,6 @@ def test_integration_with_executor_as_context_manager(visdom_server, visdom_serv
 
 @pytest.fixture
 def no_site_packages():
-    import sys
 
     import visdom  # noqa: F401
 

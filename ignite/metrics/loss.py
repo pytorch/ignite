@@ -38,7 +38,7 @@ class Loss(Metric):
         self,
         loss_fn: Callable,
         output_transform: Callable = lambda x: x,
-        batch_size: Callable = lambda x: len(x),
+        batch_size: Callable = len,
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
         super(Loss, self).__init__(output_transform, device=device)

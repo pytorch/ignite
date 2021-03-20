@@ -701,9 +701,6 @@ def test_run_finite_iterator_no_epoch_length_2():
 
 
 def test_faq_inf_iterator_with_epoch_length():
-    # Code snippet from FAQ
-
-    import torch
 
     torch.manual_seed(12)
 
@@ -726,9 +723,6 @@ def test_faq_inf_iterator_with_epoch_length():
 
 
 def test_faq_inf_iterator_no_epoch_length():
-    # Code snippet from FAQ
-
-    import torch
 
     torch.manual_seed(12)
 
@@ -755,9 +749,6 @@ def test_faq_inf_iterator_no_epoch_length():
 
 
 def test_faq_fin_iterator_unknw_size():
-    # Code snippet from FAQ
-
-    import torch
 
     torch.manual_seed(12)
 
@@ -782,10 +773,6 @@ def test_faq_fin_iterator_unknw_size():
     assert trainer.state.epoch == 5
     assert trainer.state.iteration == 5 * 11
 
-    # # # # #
-
-    import torch
-
     torch.manual_seed(12)
 
     def finite_unk_size_data_iter():
@@ -807,9 +794,6 @@ def test_faq_fin_iterator_unknw_size():
 
 
 def test_faq_fin_iterator():
-    # Code snippet from FAQ
-
-    import torch
 
     torch.manual_seed(12)
 
@@ -835,10 +819,6 @@ def test_faq_fin_iterator():
 
     assert trainer.state.epoch == 5
     assert trainer.state.iteration == 5 * size
-
-    # # # # #
-
-    import torch
 
     torch.manual_seed(12)
 

@@ -340,7 +340,6 @@ def test_mlflow_bad_metric_name_handling(dirname):
 
 @pytest.fixture
 def no_site_packages():
-    import sys
 
     mlflow_client_modules = {}
     for k in sys.modules:

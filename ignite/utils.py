@@ -213,7 +213,7 @@ def deprecated(
             warnings.warn(deprecation_warning, DeprecationWarning, stacklevel=2)
             return func(*args, **kwargs)
 
-        appended_doc = f".. deprecated:: {deprecated_in}" + ("\n\n\t" if len(reasons) else "")
+        appended_doc = f".. deprecated:: {deprecated_in}" + ("\n\n\t" if reasons else "")
 
         for reason in reasons:
             appended_doc += "\n\t- " + reason

@@ -92,8 +92,6 @@ def test_reproducible_batch_sampler_wrong_input():
 
 
 def test_reproducible_batch_sampler():
-    import torch
-    from torch.utils.data import DataLoader
 
     data = list(range(100))
     dataloader = DataLoader(data, batch_size=12, num_workers=0, shuffle=True, drop_last=True)
@@ -599,12 +597,6 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
 
 def test_concepts_snippet_resume():
 
-    import torch
-    from torch.utils.data import DataLoader
-
-    from ignite.engine import DeterministicEngine
-    from ignite.utils import manual_seed
-
     seen_batches = []
     manual_seed(seed=15)
 
@@ -666,7 +658,6 @@ def _test_gradients_on_resume(
     debug = True
 
     from torch.optim import SGD
-    from torch.utils.data import DataLoader
 
     def random_train_data_loader(size):
         d = AugmentedData(torch.rand(size, 3, 32, 32), enabled=with_dataaugs)
@@ -820,7 +811,7 @@ def test_gradients_on_resume_on_cuda(dirname):
 
 def test_engine_with_dataloader_no_auto_batching():
     # tests https://github.com/pytorch/ignite/issues/941
-    from torch.utils.data import BatchSampler, DataLoader, RandomSampler
+    from torch.utils.data import BatchSampler, RandomSampler
 
     data = torch.rand(64, 4, 10)
     data_loader = DataLoader(

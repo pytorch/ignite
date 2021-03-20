@@ -12,7 +12,6 @@ python_below_36 = (sys.version[0] == "3" and int(sys.version[2]) < 6) or int(sys
 
 @pytest.fixture
 def no_site_packages():
-    import sys
 
     import pynvml  # noqa: F401
 
