@@ -142,6 +142,9 @@ def test_callable_events_with_wrong_inputs():
     with pytest.raises(ValueError, match=r"Argument every should be integer and greater than zero"):
         Events.ITERATION_STARTED(every=-1)
 
+    with pytest.raises(ValueError, match=r"Argument once should be integer and positive"):
+        Events.ITERATION_STARTED(once=-1)
+
     with pytest.raises(ValueError, match=r"but will be called with"):
         Events.ITERATION_STARTED(event_filter=lambda x: x)
 
