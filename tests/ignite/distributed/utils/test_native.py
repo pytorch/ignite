@@ -19,59 +19,84 @@ from tests.ignite.distributed.utils import (
 )
 
 
-@pytest.mark.distributed
-@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
-def test_native_distrib_single_node_launch_tool_gloo(local_rank, world_size):
+def _test_native_distrib_single_node_launch_tool(backend, device, local_rank, world_size, init_method=None, **kwargs):
     import os
-    from datetime import timedelta
 
-    timeout = timedelta(seconds=20)
     rank = local_rank
     os.environ["RANK"] = f"{rank}"
 
-    idist.initialize("gloo", timeout=timeout)
-    _test_distrib_config(local_rank, "gloo", world_size, "cpu", rank)
+    idist.initialize(backend, init_method=init_method, **kwargs)
+    _test_distrib_config(local_rank, backend, world_size, device, rank, true_init_method=init_method)
     idist.finalize()
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.parametrize("init_method", [None, "tcp://0.0.0.0:22334", "FILE"])
+def test_native_distrib_single_node_launch_tool_gloo(init_method, get_fixed_dirname, local_rank, world_size):
+
+    from datetime import timedelta
+
+    timeout = timedelta(seconds=20)
+
+    if init_method == "FILE":
+        init_method = f"file://{get_fixed_dirname('native_distrib_single_node_launch_tool_gloo')}/shared"
+
+    _test_native_distrib_single_node_launch_tool(
+        "gloo", "cpu", local_rank, world_size, timeout=timeout, init_method=init_method
+    )
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_native_distrib_single_node_launch_tool_nccl(local_rank, world_size):
-    import os
+@pytest.mark.parametrize("init_method", [None, "tcp://0.0.0.0:22334", "FILE"])
+def test_native_distrib_single_node_launch_tool_nccl(init_method, get_fixed_dirname, local_rank, world_size):
 
-    rank = local_rank
-    os.environ["RANK"] = f"{rank}"
+    if init_method == "FILE":
+        init_method = f"file://{get_fixed_dirname('native_distrib_single_node_launch_tool_nccl')}/shared"
 
-    idist.initialize("nccl")
-    _test_distrib_config(local_rank, "nccl", world_size, "cuda", rank)
-    idist.finalize()
+    _test_native_distrib_single_node_launch_tool("nccl", "cuda", local_rank, world_size, init_method=init_method)
 
 
-@pytest.mark.distributed
-@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-def test_native_distrib_single_node_spawn_gloo():
-
-    from datetime import timedelta
-
-    timeout = timedelta(seconds=20)
-
-    world_size = 4
-
+def _test_native_distrib_single_node_spawn(init_method, backend, device, **kwargs):
+    world_size = 4 if device == "cpu" else torch.cuda.device_count()
     idist.spawn(
-        "gloo", _test_distrib_config, args=("gloo", world_size, "cpu"), nproc_per_node=world_size, timeout=timeout
+        backend,
+        _test_distrib_config,
+        args=(backend, world_size, device),
+        nproc_per_node=world_size,
+        init_method=init_method,
+        **kwargs,
     )
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_native_distrib_single_node_spawn_nccl():
-    world_size = torch.cuda.device_count()
+@pytest.mark.parametrize("init_method", [None, "tcp://0.0.0.0:22334", "FILE"])
+def test_native_distrib_single_node_spawn_gloo(init_method, dirname):
 
-    idist.spawn("nccl", _test_distrib_config, args=("nccl", world_size, "cuda"), nproc_per_node=world_size)
+    from datetime import timedelta
+
+    timeout = timedelta(seconds=20)
+
+    if init_method == "FILE":
+        init_method = f"file://{dirname}/shared"
+
+    _test_native_distrib_single_node_spawn(init_method, "gloo", "cpu", timeout=timeout)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+@pytest.mark.parametrize("init_method", [None, "tcp://0.0.0.0:22334", "FILE"])
+def test_native_distrib_single_node_spawn_nccl(init_method, dirname):
+    if init_method == "FILE":
+        init_method = f"file://{dirname}/shared"
+
+    _test_native_distrib_single_node_spawn(init_method, "nccl", "cuda")
 
 
 @pytest.mark.distributed
