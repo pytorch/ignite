@@ -19,15 +19,8 @@ from tests.ignite.distributed.utils import (
 )
 
 
-<<<<<<< HEAD
 def _test_native_distrib_single_node_launch_tool(backend, device, local_rank, world_size, init_method=None, **kwargs):
     import os
-=======
-@pytest.mark.distributed
-@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
-def test_native_distrib_single_node_launch_tool_gloo(local_rank, world_size):
-    from datetime import timedelta
->>>>>>> e3bf982 (chore: refactor code quality issues)
 
     rank = local_rank
     os.environ["RANK"] = f"{rank}"
@@ -57,12 +50,8 @@ def test_native_distrib_single_node_launch_tool_gloo(init_method, get_fixed_dirn
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-<<<<<<< HEAD
 @pytest.mark.parametrize("init_method", [None, "tcp://0.0.0.0:22334", "FILE"])
 def test_native_distrib_single_node_launch_tool_nccl(init_method, get_fixed_dirname, local_rank, world_size):
-=======
-def test_native_distrib_single_node_launch_tool_nccl(local_rank, world_size):
->>>>>>> e3bf982 (chore: refactor code quality issues)
 
     if init_method == "FILE":
         init_method = f"file://{get_fixed_dirname('native_distrib_single_node_launch_tool_nccl')}/shared"
