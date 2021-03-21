@@ -8,7 +8,7 @@ import torch
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics import Rouge
-from ignite.metrics.rouge import RougeL, RougeN, compute_ngram_scores, lcs, ngrams
+from ignite.metrics.nlp.rouge import RougeL, RougeN, compute_ngram_scores, lcs, ngrams
 
 nltk.download("punkt")
 
