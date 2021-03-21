@@ -576,7 +576,9 @@ def _test_distrib_sync_all_reduce_decorator(device):
             assert self.n == (self.n_nocomp + 1) * idist.get_world_size()
             assert self.m == (torch.abs(self.test_pred - self.test.view_as(self.test_pred)).max().item())
             assert self.k == (torch.abs(self.test_pred - self.test.view_as(self.test_pred)).min().item())
-            assert (self.prod.cpu() == (self.prod_nocomp * 5) * (self.prod_nocomp * 5)).all()
+            temp_prod_nocomp = 5 * self.prod_nocomp  # new variable for the recomputing
+            temp_prod_nocomp = temp_prod_nocomp.pow(idist.get_world_size())
+            assert (self.prod.cpu() == temp_prod_nocomp).all()
 
         @reinit__is_reduced
         def update(self, output):
