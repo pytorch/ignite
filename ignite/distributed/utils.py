@@ -406,7 +406,7 @@ def broadcast(
             x = idist.broadcast(x, src=0)
             # >>> x = 12.3456
 
-            # Broadcast any of those types from rank 0, 
+            # Broadcast any of those types from rank 0,
             # but other ranks do not define the placeholder
             y = idist.broadcast(y, src=0, use_none=True)
             assert isinstance(y, torch.Tensor)

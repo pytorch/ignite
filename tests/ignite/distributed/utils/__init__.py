@@ -189,65 +189,22 @@ def _test_distrib_broadcast(device):
     _test(s, "", use_none=False)
     _test(s, None, use_none=True)
 
-    # t = torch.arange(100, device=device).reshape(4, 25) * (src + 1)
-    # _test(t, torch.empty_like(t), use_none=False)
-    # _test(t, None, use_none=True)
+    t = torch.arange(100, device=device).reshape(4, 25) * 2
+    _test(t, torch.empty_like(t), use_none=False)
+    _test(t, None, use_none=True)
 
-    # t = torch.tensor(12)
-    # _test(t, torch.empty_like(t), use_none=False)
-    # _test(t, None, use_none=True)
-
-    # _test(use_none=True)
-
-            # d = 10 if rank == src else (0 if not use_none else None)
-            # res = idist.broadcast(d, src=src, use_none=use_none)
-            # true_res = 10
-            # assert res == true_res, f"{res} vs {true_res}"
-
-            # if rank == src:
-            #     t = torch.tensor([1.2345, 2.3456], dtype=torch.float, device=device)
-            # else:
-            #     t = torch.empty(2, device=device) if not use_none else None
-
-            # res = idist.broadcast(t, src=src, use_none=use_none)
-            # true_res = torch.tensor([1.2345, 2.3456], dtype=torch.float, device=device)
-            # assert (res == true_res).all(), f"{res} vs {true_res}"
-
-            # def _test_str(text):
-
-            #     if rank == src:
-            #         t = text
-            #     else:
-            #         t = "" if not use_none else None
-
-            #     res = idist.broadcast(t, src=src, use_none=use_none)
-            #     true_res = text
-            #     assert res == true_res, f"{res} vs {true_res}"
-
-            # # _test_str("test-abcdefg")
-            # # _test_str("tests/ignite/distributed/utils/test_horovod.py::test_idist_broadcast_hvd" * 200)
-
-            # if rank == src:
-            #     t = torch.arange(100, device=device).reshape(4, 25) * (src + 1)
-            # # elif use_none:
-            # #     t = None
-            # else:
-            #     t = torch.empty(4, 25, dtype=torch.long, device=device)
-
-            # in_dtype = torch.long
-            # # res = idist.broadcast(t, src)
-            # res = idist.broadcast(t, src, use_none=use_none)
-            # assert res.shape == (4, 25)
-            # assert res.dtype == in_dtype
-            # true_res = torch.arange(100, device=device).reshape(4, 25) * (src + 1)
-            # assert (res == true_res).all()
-
-    # _test(use_none=False)
-    # _test(use_none=True)
+    t = torch.tensor(12)
+    _test(t, torch.empty_like(t), use_none=False)
+    _test(t, None, use_none=True)
 
     if idist.get_world_size() > 1:
         with pytest.raises(TypeError, match=r"Unhandled input type"):
             idist.broadcast([0, 1, 2], src=0)
+
+    if idist.get_world_size() > 1:
+        msg = "Source data can not be None" if rank == 0 else "Argument use_none should be True"
+        with pytest.raises(ValueError, match=msg):
+            idist.broadcast(None, src=0)
 
 
 def _test_distrib_barrier(device):

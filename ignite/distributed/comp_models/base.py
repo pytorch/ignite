@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from numbers import Number
-from typing import Any, Callable, List, Optional, Union, cast, Type
+from typing import Any, Callable, List, Optional, Type, Union, cast
 
 import torch
 
@@ -99,35 +99,49 @@ class ComputationModel(metaclass=ABCMeta):
         size = self._do_all_reduce(size, "MAX")
         return cast(int, size.item())
 
-    def _setup_placeholder(
-        self, x: Union[torch.Tensor, float, str, None], device: torch.device, is_src: bool
-    ) -> Union[torch.Tensor, float, str]:
-
+    @staticmethod
+    def _encode_input_data(x: Union[torch.Tensor, float, str, None]) -> List[int]:
         encoded_msg = [-1] * 512
         if isinstance(x, torch.Tensor):
-            encoded_msg[0] = 0
             shape = x.shape
-            # dtype = 
-            encoded_msg[1:1 + len(shape)] = shape
+            dtype = str(x.dtype)
+            msg = [0, len(shape), *shape, len(dtype), *list(bytearray(dtype, "utf-8"))]
+            encoded_msg[: len(msg)] = msg
         elif isinstance(x, Number):
             encoded_msg[0] = 1
         elif isinstance(x, str):
             encoded_msg[0] = 2
+        return encoded_msg
 
-        encoded_msg = self._do_all_reduce(torch.tensor(encoded_msg, device=device), "MAX")
-
-        if is_src:
-            return x
-
+    @staticmethod
+    def _decode_as_placeholder(encoded_msg: List[int], device: torch.device) -> Union[torch.Tensor, float, str]:
         if encoded_msg[0] == 0:
-            shape = [v for v in encoded_msg[1:] if v >= 0]
-            return torch.empty(*shape, device=device)
+            len_shape = encoded_msg[1]
+            le = 2 + len_shape
+            shape = encoded_msg[2:le] if len_shape > 0 else []
+            len_dtype = encoded_msg[le]
+            dtype_str = bytearray(encoded_msg[le + 1 : le + 1 + len_dtype]).decode("utf-8")
+            dtype = eval(dtype_str)
+            return torch.empty(shape, device=device, dtype=dtype)
         elif encoded_msg[0] == 1:
             return 0.0
         elif encoded_msg[0] == 2:
             return ""
         else:
             raise RuntimeError(f"Internal error: unhandled dtype {encoded_msg[0]}, encoded_msg={encoded_msg}")
+
+    def _setup_placeholder(
+        self, x: Union[torch.Tensor, float, str, None], device: torch.device, is_src: bool
+    ) -> Union[torch.Tensor, float, str]:
+
+        encoded_msg = self._encode_input_data(x)
+        encoded_msg = self._do_all_reduce(torch.tensor(encoded_msg, device=device), "MAX")
+
+        if is_src:
+            return x
+
+        encoded_msg = encoded_msg.cpu().tolist()
+        return self._decode_as_placeholder(encoded_msg, device)
 
     @staticmethod
     def _decode_str(xs: torch.Tensor) -> List[str]:
@@ -207,9 +221,9 @@ class ComputationModel(metaclass=ABCMeta):
         rank = self.get_rank()
         if tensor is None:
             if rank == src:
-                raise ValueError(f"Source data can not be None")
+                raise ValueError("Source data can not be None")
             elif not use_none:
-                raise ValueError(f"Argument use_none should be True if None is passed for non src rank")
+                raise ValueError("Argument use_none should be True if None is passed for non src rank")
 
         device = self.device()
         tensor_to_number = tensor_to_str = False
