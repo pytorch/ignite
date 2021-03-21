@@ -1,12 +1,11 @@
 import math
 from collections import Counter
-from typing import Callable, Sequence, Optional, Tuple, Union, Any
+from typing import Any, Callable, Optional, Sequence, Tuple, Union
 
 import torch
 
 from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
-
 from ignite.metrics.nlp.utils import modified_precision
 
 __all__ = ["Bleu"]
@@ -23,6 +22,7 @@ class _Smoother:
     Smoothing helper
     http://acl2014.org/acl2014/W14-33/pdf/W14-3346.pdf
     """
+
     def __init__(self, method: str):
         valid = ["no_smooth", "smooth1", "nltk_smooth2", "smooth2"]
         if method not in valid:
@@ -121,9 +121,7 @@ class Bleu(Metric):
         p_numerators = Counter()  # Key = ngram order, and value = no. of ngram matches.
         p_denominators = Counter()  # Key = ngram order, and value = no. of ngram in ref.
 
-        assert len(references) == len(candidates), (
-            "The number of hypotheses and their reference(s) should be the same "
-        )
+        assert len(references) == len(candidates), "The number of hypotheses and their reference(s) should be the same "
 
         # Iterate through each hypothesis and their corresponding references.
         for refs, hyp in zip(references, candidates):

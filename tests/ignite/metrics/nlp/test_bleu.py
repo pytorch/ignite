@@ -1,10 +1,9 @@
 import os
-import pytest
 import warnings
 
-from nltk.translate.bleu_score import corpus_bleu, SmoothingFunction
-
+import pytest
 import torch
+from nltk.translate.bleu_score import SmoothingFunction, corpus_bleu
 
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
@@ -65,9 +64,9 @@ def test_corpus_bleu_smooth1(candidate, references):
         weights = tuple([1 / i] * i)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            reference = corpus_bleu(references, candidate,
-                                    weights=weights,
-                                    smoothing_function=SmoothingFunction().method1)
+            reference = corpus_bleu(
+                references, candidate, weights=weights, smoothing_function=SmoothingFunction().method1
+            )
         bleu = Bleu(ngram=i, smooth="smooth1")
         assert reference == bleu.corpus_bleu(references, candidate)
         bleu.update((candidate[0], references[0]))
@@ -89,9 +88,9 @@ def test_corpus_bleu_nltk_smooth2(candidate, references):
         weights = tuple([1 / i] * i)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            reference = corpus_bleu(references, candidate,
-                                    weights=weights,
-                                    smoothing_function=SmoothingFunction().method2)
+            reference = corpus_bleu(
+                references, candidate, weights=weights, smoothing_function=SmoothingFunction().method2
+            )
         bleu = Bleu(ngram=i, smooth="nltk_smooth2")
         assert reference == bleu.corpus_bleu(references, candidate)
         bleu.update((candidate[0], references[0]))
@@ -113,9 +112,9 @@ def test_corpus_bleu_smooth2(candidate, references):
         weights = tuple([1 / i] * i)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            reference = corpus_bleu(references, candidate,
-                                    weights=weights,
-                                    smoothing_function=SmoothingFunction().method2)
+            reference = corpus_bleu(
+                references, candidate, weights=weights, smoothing_function=SmoothingFunction().method2
+            )
         bleu = Bleu(ngram=i, smooth="smooth2")
         assert reference == bleu.corpus_bleu(references, candidate)
         bleu.update((candidate[0], references[0]))
@@ -163,9 +162,12 @@ def _test_distrib_integration(device):
         for candidate, references in data:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                ref_bleu += corpus_bleu([references], [candidate],
-                                        weights=[0.25, 0.25, 0.25, 0.25],
-                                        smoothing_function=SmoothingFunction().method2)
+                ref_bleu += corpus_bleu(
+                    [references],
+                    [candidate],
+                    weights=[0.25, 0.25, 0.25, 0.25],
+                    smoothing_function=SmoothingFunction().method2,
+                )
 
         assert pytest.approx(engine.state.metrics["bleu"]) == ref_bleu / len(data)
 
