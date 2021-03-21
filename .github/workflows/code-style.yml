@@ -2,29 +2,32 @@ name: Format python code
 
 on:
   push:
-    paths-ignore:
-      - "assets/**"
-      - ".circleci/**"
-      - "docker/**"
-      - "docs/**"
-      - "conda.recipe"
-      - "**.md"
-  #   pull_request:
-  #     paths-ignore:
+    paths:
+      - "**.py"
+      - "!assets/**"
+      - "!.circleci/**"
+      - "!docker/**"
+      - "!docs/**"
+      - "!conda.recipe"
+
+  # pull_request:
+  #     paths:
+  #       - "**.py"
   #       - "assets/**"
   #       - ".circleci/**"
   #       - "docker/**"
   #       - "docs/**"
   #       - "conda.recipe"
-  #       - "**.md"
+
   pull_request_target:
-    paths-ignore:
-      - "assets/**"
-      - ".circleci/**"
-      - "docker/**"
-      - "docs/**"
-      - "conda.recipe"
-      - "**.md"
+    paths:
+      - "**.py"
+      - "!assets/**"
+      - "!.circleci/**"
+      - "!docker/**"
+      - "!docs/**"
+      - "!conda.recipe"
+
 
 jobs:
   code-style:
