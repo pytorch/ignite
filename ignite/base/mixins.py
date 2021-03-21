@@ -8,7 +8,7 @@ class Serializable:
     _state_dict_one_of_opt_keys = ()  # type: tuple
 
     def state_dict(self) -> OrderedDict:
-        pass
+        raise NotImplementedError
 
     def load_state_dict(self, state_dict: Mapping) -> None:
         if not isinstance(state_dict, Mapping):

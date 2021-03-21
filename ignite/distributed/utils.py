@@ -294,14 +294,15 @@ def spawn(
         nproc_per_node: number of processes to spawn on a single node. Default, 1.
         kwargs: acceptable kwargs according to provided backend:
 
-            - | "nccl" or "gloo" : `nnodes` (default, 1), `node_rank` (default, 0), `master_addr`
-              | (default, "127.0.0.1"), `master_port` (default, 2222), `timeout` to `dist.init_process_group`_ function
+            - | "nccl" or "gloo" : ``nnodes`` (default, 1), ``node_rank`` (default, 0), ``master_addr``
+              | (default, "127.0.0.1"), ``master_port`` (default, 2222), ``init_method`` (default, "env://"),
+              | `timeout` to `dist.init_process_group`_ function
               | and kwargs for `mp.start_processes`_ function.
 
-            - | "xla-tpu" : `nnodes` (default, 1), `node_rank` (default, 0) and kwargs to `xmp.spawn`_ function.
+            - | "xla-tpu" : ``nnodes`` (default, 1), ``node_rank`` (default, 0) and kwargs to `xmp.spawn`_ function.
 
-            - | "horovod": `hosts` (default, None) and other kwargs to `hvd_run`_ function. Arguments `nnodes=1`
-              | and `node_rank=0` are tolerated and ignored, otherwise an exception is raised.
+            - | "horovod": ``hosts`` (default, None) and other kwargs to `hvd_run`_ function. Arguments ``nnodes=1``
+              | and ``node_rank=0`` are tolerated and ignored, otherwise an exception is raised.
 
     .. _dist.init_process_group: https://pytorch.org/docs/stable/distributed.html#torch.distributed.init_process_group
     .. _mp.start_processes: https://pytorch.org/docs/stable/multiprocessing.html#torch.multiprocessing.spawn
@@ -479,7 +480,10 @@ def initialize(backend: str, **kwargs: Any) -> None:
                 assert device == torch.device(f"cuda:{local_rank}")
 
 
-            idist.initialize("nccl")
+            backend = "nccl"  # or "gloo" or "horovod" or "xla-tpu"
+            idist.initialize(backend)
+            # or for torch native distributed on Windows:
+            # idist.initialize("nccl", init_method="file://tmp/shared")
             local_rank = idist.get_local_rank()
             train_fn(local_rank, a, b, c)
             idist.finalize()
@@ -489,14 +493,20 @@ def initialize(backend: str, **kwargs: Any) -> None:
         backend: backend: `nccl`, `gloo`, `xla-tpu`, `horovod`.
         kwargs: acceptable kwargs according to provided backend:
 
-            - "nccl" or "gloo" : timeout(=timedelta(minutes=30)).
+            - | "nccl" or "gloo" : ``timeout(=timedelta(minutes=30))``, ``init_method(=None)``,
+              | ``rank(=None)``, ``world_size(=None)``.
+              | By default, ``init_method`` will be "env://". See more info about parameters: `torch_init`_.
 
-            - "horovod" : comm(=None), more info: `hvd_init`_.
+            - | "horovod" : comm(=None), more info: `hvd_init`_.
 
+    .. _torch_init: https://pytorch.org/docs/stable/distributed.html#torch.distributed.init_process_group
     .. _hvd_init: https://horovod.readthedocs.io/en/latest/api.html#horovod.torch.init
 
     .. versionchanged:: 0.4.2
         ``backend`` now accepts `horovod` distributed framework.
+
+    .. versionchanged:: 0.5.0
+        ``kwargs`` now accepts ``init_method``, ``rank``, ``world_size`` for PyTorch native distributed backend.
     """
     if not (has_xla_support or has_native_dist_support or has_hvd_support):
         # nothing to do => serial model

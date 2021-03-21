@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+from unittest.mock import patch
 
 import pytest
 from pytest import approx
@@ -115,6 +116,24 @@ def get_prepared_engine_for_handlers_profiler(true_event_handler_time):
         time.sleep(true_event_handler_time)
 
     return dummy_trainer, HANDLERS_SLEEP_COUNT, PROCESSING_SLEEP_COUNT
+
+
+def test_profilers_wrong_inputs():
+    profiler = BasicTimeProfiler()
+    with pytest.raises(TypeError, match=r"Argument engine should be ignite.engine.Engine"):
+        profiler.attach(None)
+
+    with pytest.raises(RuntimeError, match=r"Need pandas to write results as files"):
+        with patch.dict("sys.modules", {"pandas": None}):
+            profiler.write_results("")
+
+    profiler = HandlersTimeProfiler()
+    with pytest.raises(TypeError, match=r"Argument engine should be ignite.engine.Engine"):
+        profiler.attach(None)
+
+    with pytest.raises(RuntimeError, match=r"Need pandas to write results as files"):
+        with patch.dict("sys.modules", {"pandas": None}):
+            profiler.write_results("")
 
 
 def test_dataflow_timer_basic_profiler():

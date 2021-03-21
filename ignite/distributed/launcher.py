@@ -11,14 +11,18 @@ __all__ = [
 class Parallel:
     """Distributed launcher context manager to simplify distributed configuration setup for multiple backends:
 
-    - backends from native torch distributed configuration: "nccl", "gloo", "mpi" (if available)
+    - backends from native torch distributed configuration: "nccl", "gloo" and "mpi" (if available)
 
     - XLA on TPUs via `pytorch/xla <https://github.com/pytorch/xla>`_ (if installed)
 
     - using `Horovod distributed framework <https://horovod.readthedocs.io>`_ (if installed)
 
-    Namely, it can 1) spawn ``nproc_per_node`` child processes and initialize a processing group according to
-    provided ``backend`` (useful for standalone scripts) or 2) only initialize a processing group given the ``backend``
+    Namely, it can:
+
+    1) Spawn ``nproc_per_node`` child processes and initialize a processing group according to
+    provided ``backend`` (useful for standalone scripts).
+
+    2) Only initialize a processing group given the ``backend``
     (useful with tools like `torch.distributed.launch`_, `horovodrun`_, etc).
 
     Examples:
@@ -88,9 +92,24 @@ class Parallel:
 
             backend = "nccl"  # or "horovod" if package is installed
 
+            # no "init_method" was specified , "env://" will be used
             with idist.Parallel(backend=backend, nproc_per_node=4) as parallel:
                 parallel.run(training, config, a=1, b=2)
 
+
+        Initializing the process using ``file://``
+
+        .. code-block:: python
+
+            with idist.Parallel(backend=backend,init_method='file:///d:/tmp/some_file', nproc_per_node=4) as parallel:
+                parallel.run(training, config, a=1, b=2)
+
+        Initializing the process using ``tcp://``
+
+        .. code-block:: python
+
+            with idist.Parallel(backend=backend,init_method='tcp://10.1.1.20:23456', nproc_per_node=4) as parallel:
+                parallel.run(training, config, a=1, b=2)
 
         3) Single node, Multi-TPU training launched with `python`
 
@@ -148,6 +167,8 @@ class Parallel:
             with idist.Parallel(backend="nccl", **dist_config) as parallel:
                 parallel.run(training, config, a=1, b=2)
 
+
+
     .. _torch.distributed.launch: https://pytorch.org/docs/stable/distributed.html#launch-utility
     .. _horovodrun: https://horovod.readthedocs.io/en/latest/api.html#module-horovod.run
 
@@ -170,10 +191,18 @@ class Parallel:
             (`nccl`, `gloo`). Mandatory argument if ``nnodes`` is specified and larger than one.
         master_port: optional argument, master node port for torch native backends
             (`nccl`, `gloo`). Mandatory argument if ``master_addr`` is specified.
+        init_method: optional argument to specify processing group initialization method for torch native
+            backends (`nccl`, `gloo`). Default, "env://".
+            See more info: `dist.init_process_group`_.
         spawn_kwargs: kwargs to ``idist.spawn`` function.
 
+    .. _dist.init_process_group: https://pytorch.org/docs/stable/distributed.html#torch.distributed.init_process_group
     .. versionchanged:: 0.4.2
         ``backend`` now accepts `horovod` distributed framework.
+
+    .. versionchanged:: 0.5.0
+        ``init_method`` added.
+
     """
 
     def __init__(
@@ -184,6 +213,7 @@ class Parallel:
         node_rank: Optional[int] = None,
         master_addr: Optional[str] = None,
         master_port: Optional[int] = None,
+        init_method: Optional[str] = None,
         **spawn_kwargs: Any,
     ) -> None:
         if backend is not None:
@@ -198,13 +228,14 @@ class Parallel:
 
         self.backend = backend
         self._spawn_params = None
+        self.init_method = init_method
         self.logger = setup_logger(__name__ + "." + self.__class__.__name__, distributed_rank=0)
-        # distributed_rank=0 <=> explicit rank 0, avoid call idist. Critical for TPU on Colab, avoid context is setup
+        # distributed_rank=0 <=> explicit rank 0, avoid call idist. Critical for TPU on Colab, avoid context setup
 
         if self.backend is not None:
             if nproc_per_node is not None:
                 self._spawn_params = self._setup_spawn_params(
-                    nproc_per_node, nnodes, node_rank, master_addr, master_port, **spawn_kwargs
+                    nproc_per_node, nnodes, node_rank, master_addr, master_port, init_method, **spawn_kwargs
                 )
 
         if self._spawn_params is not None:
@@ -219,6 +250,7 @@ class Parallel:
         node_rank: Optional[int] = None,
         master_addr: Optional[str] = None,
         master_port: Optional[int] = None,
+        init_method: Optional[str] = None,
         **spawn_kwargs: Any,
     ) -> Dict:
         if nproc_per_node < 1:
@@ -233,10 +265,11 @@ class Parallel:
             node_rank = 0
         if node_rank >= nnodes or node_rank < 0:
             raise ValueError(f"Argument node_rank should be between 0 and {nnodes - 1}, but given {node_rank}")
-        if nnodes > 1 and (master_addr is None or master_port is None):
+        if nnodes > 1 and (master_addr is None or master_port is None or init_method is None):
             raise ValueError(
-                "If number of nodes larger than one, arguments master_addr and master_port "
-                f"should be specified, but given master_addr={master_addr} and master_port={master_port}"
+                "If number of nodes larger than one, arguments master_addr and master_port or init_method"
+                f"should be specified, but given master_addr={master_addr}, master_port={master_port} and "
+                f"init_method={init_method}."
             )
         params = {
             "nproc_per_node": nproc_per_node,
@@ -244,6 +277,7 @@ class Parallel:
             "node_rank": node_rank,
             "master_addr": master_addr,
             "master_port": master_port,
+            "init_method": init_method,
         }
         params.update(spawn_kwargs)
         return {k: v for k, v in params.items() if v is not None}
@@ -282,7 +316,7 @@ class Parallel:
 
     def __enter__(self) -> "Parallel":
         if (self.backend is not None) and self._spawn_params is None:
-            idist.initialize(self.backend)
+            idist.initialize(self.backend, init_method=self.init_method)
             self.logger = setup_logger(__name__ + "." + self.__class__.__name__)
             self.logger.info(f"Initialized processing group with backend: '{self.backend}'")
 
