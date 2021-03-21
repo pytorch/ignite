@@ -67,3 +67,5 @@ jobs:
         if: failure()
         with:
           filename: .github/failed_schedule_issue_template.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
