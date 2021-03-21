@@ -256,9 +256,9 @@ def test__native_dist_model_create_no_dist_nccl(clean_env):
 
 @pytest.mark.distributed
 @pytest.mark.parametrize("init_method", [None, "tcp://0.0.0.0:22334", "FILE"])
-def test__native_dist_model_create_dist_gloo_1(init_method, fixed_dirname, local_rank, world_size):
+def test__native_dist_model_create_dist_gloo_1(init_method, get_fixed_dirname, local_rank, world_size):
     if init_method == "FILE":
-        init_method = f"file://{fixed_dirname}/shared"
+        init_method = f"file://{get_fixed_dirname('native_dist_model_create_dist_gloo_1')}/shared"
 
     _test__native_dist_model_create_from_backend_dist(init_method, local_rank, local_rank, world_size, "gloo", "cpu")
 
@@ -271,9 +271,9 @@ def test__native_dist_model_create_dist_gloo_2(local_rank, world_size):
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 @pytest.mark.parametrize("init_method", [None, "tcp://0.0.0.0:22334", "FILE"])
-def test__native_dist_model_create_dist_nccl_1(init_method, fixed_dirname, local_rank, world_size):
+def test__native_dist_model_create_dist_nccl_1(init_method, get_fixed_dirname, local_rank, world_size):
     if init_method == "FILE":
-        init_method = f"file://{fixed_dirname}/shared"
+        init_method = f"file://{get_fixed_dirname('native_dist_model_create_dist_nccl_1')}/shared"
 
     _test__native_dist_model_create_from_backend_dist(
         init_method, local_rank, local_rank, world_size, "nccl", f"cuda:{local_rank}"
@@ -373,8 +373,8 @@ def test__native_dist_model_init_method_is_none(world_size):
 @pytest.mark.distributed
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
-def test__native_dist_model_init_method_is_not_none(world_size, local_rank, fixed_dirname):
-    init_method = f"file://{fixed_dirname}/shared"
+def test__native_dist_model_init_method_is_not_none(world_size, local_rank, get_fixed_dirname):
+    init_method = f"file://{get_fixed_dirname('native_dist_model_init_method_is_not_none')}/shared"
     with pytest.raises(ValueError, match=r"Both rank and world_size should be provided"):
         _NativeDistModel.create_from_backend(backend="gloo", world_size=world_size, init_method=init_method)
 
