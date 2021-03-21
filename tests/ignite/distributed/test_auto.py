@@ -5,11 +5,35 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
+from torch.utils.data.dataset import Dataset
 from torch.utils.data.distributed import DistributedSampler
-from torch.utils.data.sampler import RandomSampler, WeightedRandomSampler
+from torch.utils.data.sampler import BatchSampler, RandomSampler, Sampler, SequentialSampler, WeightedRandomSampler
 
 import ignite.distributed as idist
 from ignite.distributed.auto import DistributedProxySampler, auto_dataloader, auto_model, auto_optim
+
+
+class DummyDS(Dataset):
+    def __getitem__(self, index):
+        return index
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif("WORLD_SIZE" not in os.environ, reason="Skip if WORLD_SIZE not in env vars")
+def test_auto_dataloader_warning(distributed_context_single_node_gloo):
+    with pytest.warns(UserWarning, match=r"Found batch_sampler in provided kwargs"):
+        auto_dataloader(
+            DummyDS(), batch_sampler=BatchSampler(SequentialSampler(range(10)), batch_size=3, drop_last=False)
+        )
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_auto_dataloader_warning_tpu():
+    with pytest.warns(UserWarning, match=r"Found incompatible options: xla support and pin_memory"):
+        auto_dataloader(DummyDS(), pin_memory=True)
 
 
 def _test_auto_dataloader(ws, nproc, batch_size, num_workers=1, sampler_name=None, dl_type=DataLoader):
@@ -116,6 +140,11 @@ def test_auto_methods_gloo(distributed_context_single_node_gloo):
 
     _test_auto_model_optimizer(ws, "cpu")
 
+    if ws > 1:
+        with pytest.raises(AssertionError, match=r"SyncBatchNorm layers only work with GPU modules"):
+            model = nn.Sequential(nn.Linear(20, 100), nn.BatchNorm1d(100))
+            auto_model(model, sync_bn=True)
+
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
@@ -127,8 +156,10 @@ def test_auto_methods_nccl(distributed_context_single_node_nccl):
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=10)
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1, sampler_name="WeightedRandomSampler")
 
-    device = "cuda"
-    _test_auto_model_optimizer(ws, device)
+    _test_auto_model_optimizer(ws, "cuda")
+
+    with pytest.raises(ValueError, match=r"Argument kwargs should not contain 'device_ids'"):
+        _test_auto_model(nn.Linear(1, 1), ws, "cpu", device_ids=1)
 
 
 @pytest.mark.distributed
@@ -210,3 +241,9 @@ def test_dist_proxy_sampler():
         assert (
             set_indices_per_rank == set_true_indices
         ), f"{set_true_indices - set_indices_per_rank} | {set_indices_per_rank - set_true_indices}"
+
+    with pytest.raises(TypeError, match=r"Argument sampler should be instance of torch Sampler"):
+        DistributedProxySampler(None)
+
+    with pytest.raises(TypeError, match=r"Argument sampler should have length"):
+        DistributedProxySampler(Sampler([1]))

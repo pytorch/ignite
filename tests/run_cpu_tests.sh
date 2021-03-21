@@ -16,6 +16,5 @@ if [ "${SKIP_DISTRIB_TESTS:-0}" -eq "1" ]; then
 fi
 
 export WORLD_SIZE=2
-
-
 CUDA_VISIBLE_DEVICES="" pytest --cov ignite --cov-append --cov-report term-missing --cov-report xml --dist=each --tx $WORLD_SIZE*popen//python=python tests -m distributed -vvv
+unset WORLD_SIZE
