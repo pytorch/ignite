@@ -545,6 +545,7 @@ def _test_distrib_sync_all_reduce_decorator(device):
     class DummyMetric(Metric):
         @reinit__is_reduced
         def reset(self):
+            # SUM op
             self.a = torch.tensor([0.0, 1.0, 2.0, 3.0], device=self._device, requires_grad=False)
             self.a_nocomp = self.a.clone().to("cpu")
             self.b = torch.tensor(1.0, dtype=torch.float64, device=self._device, requires_grad=False)
@@ -554,19 +555,49 @@ def _test_distrib_sync_all_reduce_decorator(device):
             self.n = 0
             self.n_nocomp = self.n
 
-        @sync_all_reduce("a", "b", "c", "n")
+            # MAX op
+            self.m = -1
+            # MIN op
+            self.k = 10000
+
+            # initialize two tensors to test (MAX, MIN) ops
+            self.test = torch.tensor([0.0, 5.0, 9.0, 7.0, 6.0], device=self._device, requires_grad=False)
+            self.test_pred = torch.tensor([10.0, 6.0, 4.0, 3.0, 8.0], device=self._device, requires_grad=False)
+
+            # PRODUCT op
+            self.prod = torch.tensor([2.0, 3.0], device=self._device, requires_grad=False)
+            self.prod_nocomp = self.prod.clone().to("cpu")
+
+        @sync_all_reduce("a", "b", "c", "n:SUM", "m:MAX", "k:MIN", "prod:PRODUCT")
         def compute(self):
             assert (self.a.cpu() == (self.a_nocomp + 10) * idist.get_world_size()).all()
             assert (self.b.cpu() == (self.b_nocomp - 5) * idist.get_world_size()).all()
             assert self.c == pytest.approx((self.c_nocomp + 1.23456) * idist.get_world_size())
             assert self.n == (self.n_nocomp + 1) * idist.get_world_size()
+            assert self.m == (torch.abs(self.test_pred - self.test.view_as(self.test_pred)).max().item())
+            assert self.k == (torch.abs(self.test_pred - self.test.view_as(self.test_pred)).min().item())
+            assert (self.prod.cpu() == (self.prod_nocomp * 5) * (self.prod_nocomp * 5)).all()
 
         @reinit__is_reduced
         def update(self, output):
+            # SUM op
             self.n += 1
             self.c += 1.23456
             self.a += 10.0
             self.b -= 5.0
+
+            # MAX op
+            mae = torch.abs(self.test_pred - self.test.view_as(self.test_pred)).max().item()
+            if self.m < mae:
+                self.m = mae
+
+            # MIN op
+            mae2 = torch.abs(self.test_pred - self.test.view_as(self.test_pred)).min().item()
+            if self.k > mae2:
+                self.k = mae2
+
+            # PRODUCT op
+            self.prod *= 5
 
     metric_device = device if torch.device(device).type != "xla" else "cpu"
     m = DummyMetric(device=metric_device)
