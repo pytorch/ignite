@@ -552,12 +552,10 @@ def sync_all_reduce(*attrs: Any) -> Callable:
                     for attr in attrs:
                         op_kwargs = {}
                         if ":" in attr:
-                            idx = attr.index(":")
-                            op = attr[idx + 1 :]
+                            attr, op = attr.split(":")
                             valid_ops = ["MIN", "MAX", "SUM", "PRODUCT"]
                             if op not in valid_ops:
                                 raise ValueError(f"Reduction operation is not valid (expected : {valid_ops}, got: {op}")
-                            attr = attr[:idx]
                             op_kwargs["op"] = op
                         t = getattr(self, attr, None)
                         if t is not None:
