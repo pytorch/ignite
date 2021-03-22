@@ -1,6 +1,6 @@
 name: Welcome
 
-on: [issues, pull_request]
+on: [issues, pull_request_target]
 
 jobs:
   welcome:
