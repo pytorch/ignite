@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Union
+from typing import Callable, Union
 
 import torch
 
@@ -51,7 +51,7 @@ class AveragePrecision(EpochMetric):
     ):
 
         try:
-            from sklearn.metrics import average_precision_score
+            from sklearn.metrics import average_precision_score  # noqa: F401
         except ImportError:
             raise RuntimeError("This contrib module requires sklearn to be installed.")
 
