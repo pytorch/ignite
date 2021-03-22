@@ -139,10 +139,7 @@ class _BaseRouge(Metric):
     def _get_multiref_reducer(self) -> MultiRefReducer:
         if self._multiref == "average":
             return MultiRefAverageReducer()
-        elif self._multiref == "best":
-            return MultiRefBestReducer()
-        else:
-            raise ValueError(f"multiref : wrong value (got : {self._multiref})")
+        return MultiRefBestReducer()
 
     @reinit__is_reduced
     def reset(self) -> None:
