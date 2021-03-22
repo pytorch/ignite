@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Callable, Tuple
+from typing import Tuple
 
 import torch
 
