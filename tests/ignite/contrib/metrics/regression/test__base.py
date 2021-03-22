@@ -19,26 +19,21 @@ def test_base_regression_shapes():
 
     m = L1()
 
-    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
-        m.update((torch.rand(4, 1, 2), torch.rand(4, 1)))
+    with pytest.raises(ValueError, match=r"Input y_pred should have shape \(N,\) or \(N, 1\)"):
+        y = torch.rand([1, 1, 1])
+        m.update((y, y))
+
+    with pytest.raises(ValueError, match=r"Input y should have shape \(N,\) or \(N, 1\)"):
+        y = torch.rand([1, 1, 1])
+        m.update((torch.rand(1, 1), y))
 
     with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
-        m.update((torch.rand(4, 1), torch.rand(4, 1, 2)))
+        m.update((torch.rand(2), torch.rand(2, 1)))
 
-    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
-        m.update((torch.rand(4, 1, 2), torch.rand(4,),))
+    with pytest.raises(TypeError, match=r"Input y_pred dtype should be float"):
+        y = torch.tensor([1, 1])
+        m.update((y, y))
 
-    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
-        m.update((torch.rand(4,), torch.rand(4, 1, 2),))
-
-    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
-        m.update((torch.rand(4, 3), torch.rand(4, 1)))
-
-    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
-        m.update((torch.rand(4, 1), torch.rand(4, 3)))
-
-    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
-        m.update((torch.rand(4, 7), torch.rand(4,),))
-
-    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
-        m.update((torch.rand(4,), torch.rand(4, 7),))
+    with pytest.raises(TypeError, match=r"Input y dtype should be float"):
+        y = torch.tensor([1, 1])
+        m.update((y.float(), y))
