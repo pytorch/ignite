@@ -22,6 +22,9 @@ def test_wrong_inputs():
     with pytest.raises(ValueError, match=r"Smooth is not valid"):
         Bleu(smooth="fake")
 
+    with pytest.raises(ValueError, match=r"nb of candidates should be equal to nb of reference lists"):
+        Bleu().corpus_bleu(references=[[0], [0]], candidates=[[0]])
+
     with pytest.raises(NotComputableError):
         Bleu().compute()
 

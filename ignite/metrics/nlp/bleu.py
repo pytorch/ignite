@@ -116,10 +116,14 @@ class Bleu(Metric):
         super(Bleu, self).__init__(output_transform=output_transform, device=device)
 
     def corpus_bleu(self, references: Sequence[Sequence[Any]], candidates: Sequence[Sequence[Any]],) -> float:
-        p_numerators: Counter = Counter()  # Key = ngram order, and value = no. of ngram matches.
-        p_denominators: Counter = Counter()  # Key = ngram order, and value = no. of ngram in ref.
+        p_numerators: Counter = Counter()
+        p_denominators: Counter = Counter()
 
-        assert len(references) == len(candidates), "The number of hypotheses and their reference(s) should be the same "
+        if len(references) != len(candidates):
+            raise ValueError(
+                f"nb of candidates should be equal to nb of reference lists ({len(candidates)} != "
+                f"{len(references)})"
+            )
 
         # Iterate through each hypothesis and their corresponding references.
         for refs, hyp in zip(references, candidates):
