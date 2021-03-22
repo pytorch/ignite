@@ -3,7 +3,7 @@ from distutils.version import LooseVersion
 from importlib.util import find_spec
 from typing import Optional, Union
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import torch
@@ -14,9 +14,12 @@ from torch.optim import SGD
 
 import ignite.distributed as idist
 from ignite.engine import (
+    Engine,
     _check_arg,
     create_supervised_evaluator,
     create_supervised_trainer,
+    supervised_evaluation_step,
+    supervised_evaluation_step_amp,
     supervised_training_step_tpu,
 )
 from ignite.metrics import MeanSquaredError
@@ -261,6 +264,79 @@ def _test_mocked_supervised_evaluator(
                     assert not evaluation_step_amp.called
 
 
+def _test_create_evaluation_step_amp(
+    autocast_mock,
+    model_device: Optional[str] = None,
+    evaluator_device: Optional[str] = None,
+    trace: bool = False,
+    amp_mode: str = None,
+):
+
+    output_transform_mock = MagicMock()
+    model = Linear(1, 1)
+
+    if model_device:
+        model.to(model_device)
+
+    model.weight.data.zero_()
+    model.bias.data.zero_()
+
+    if trace:
+        example_input = torch.randn(1, 1)
+        model = torch.jit.trace(model, example_input)
+
+    device_type = evaluator_device.type if isinstance(evaluator_device, torch.device) else evaluator_device
+    on_tpu = "xla" in device_type if device_type is not None else False
+    mode, _ = _check_arg(on_tpu, amp_mode, None)
+
+    evaluate_step = supervised_evaluation_step_amp(model, evaluator_device, output_transform=output_transform_mock)
+
+    x = torch.tensor([[1.0], [2.0]])
+    y = torch.tensor([[3.0], [5.0]])
+    data = [(x, y)]
+    evaluator = Engine(evaluate_step)
+
+    evaluator.run(data)
+    assert autocast_mock.called
+    assert output_transform_mock.called
+
+
+def _test_create_evaluation_step(
+    mock_torch_cuda_amp_module,
+    model_device: Optional[str] = None,
+    evaluator_device: Optional[str] = None,
+    trace: bool = False,
+    amp_mode: str = None,
+):
+    output_transform_mock = MagicMock()
+    model = Linear(1, 1)
+
+    if model_device:
+        model.to(model_device)
+
+    model.weight.data.zero_()
+    model.bias.data.zero_()
+
+    if trace:
+        example_input = torch.randn(1, 1)
+        model = torch.jit.trace(model, example_input)
+
+    device_type = evaluator_device.type if isinstance(evaluator_device, torch.device) else evaluator_device
+    on_tpu = "xla" in device_type if device_type is not None else False
+    mode, _ = _check_arg(on_tpu, amp_mode, None)
+
+    evaluate_step = supervised_evaluation_step(model, evaluator_device, output_transform=output_transform_mock)
+
+    x = torch.tensor([[1.0], [2.0]])
+    y = torch.tensor([[3.0], [5.0]])
+    data = [(x, y)]
+    evaluator = Engine(evaluate_step)
+
+    evaluator.run(data)
+    assert not mock_torch_cuda_amp_module.called
+    assert output_transform_mock.called
+
+
 def test_create_supervised_trainer():
     _test_create_supervised_trainer()
     _test_create_mocked_supervised_trainer()
@@ -396,16 +472,23 @@ def test_create_supervised_trainer_on_cuda_with_model_on_cpu():
 def test_create_supervised_evaluator():
     _test_create_supervised_evaluator()
     _test_mocked_supervised_evaluator()
+    with mock.patch("torch.cuda.amp.autocast") as mock_torch_cuda_amp_module:
+        _test_create_evaluation_step_amp(mock_torch_cuda_amp_module)
 
 
 def test_create_supervised_evaluator_on_cpu():
     _test_create_supervised_evaluator(evaluator_device="cpu")
     _test_mocked_supervised_evaluator(evaluator_device="cpu")
+    with mock.patch("torch.cuda.amp.autocast") as mock_torch_cuda_amp_module:
+        _test_create_evaluation_step(mock_torch_cuda_amp_module, evaluator_device="cpu")
+        _test_create_evaluation_step_amp(mock_torch_cuda_amp_module, evaluator_device="cpu")
 
 
 def test_create_supervised_evaluator_traced_on_cpu():
     _test_create_supervised_evaluator(evaluator_device="cpu", trace=True)
     _test_mocked_supervised_evaluator(evaluator_device="cpu", trace=True)
+    with mock.patch("torch.cuda.amp.autocast") as mock_torch_cuda_amp_module:
+        _test_create_evaluation_step(mock_torch_cuda_amp_module, evaluator_device="cpu", trace=True)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
