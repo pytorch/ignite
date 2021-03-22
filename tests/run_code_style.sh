@@ -7,11 +7,11 @@ if [ $1 = "lint" ]; then
     isort . --check --settings setup.cfg
     black . --check --config pyproject.toml
 elif [ $1 = "fmt" ]; then
-    flake8 ignite tests examples --config setup.cfg
+    autopep8 --recursive --in-place --aggressive --aggressive .
     isort . --settings setup.cfg
     black . --config pyproject.toml
 elif [ $1 = "mypy" ]; then
     mypy --config-file mypy.ini
 elif [ $1 = "install" ]; then
-    pip install flake8 "black==19.10b0" "isort==5.7.0" mypy
+    pip install flake8 "black==19.10b0" "isort==5.7.0" mypy autopep8
 fi
