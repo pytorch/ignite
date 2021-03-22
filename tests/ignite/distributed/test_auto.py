@@ -158,8 +158,9 @@ def test_auto_methods_nccl(distributed_context_single_node_nccl):
 
     _test_auto_model_optimizer(ws, "cuda")
 
-    with pytest.raises(ValueError, match=r"Argument kwargs should not contain 'device_ids'"):
-        _test_auto_model(nn.Linear(1, 1), ws, "cpu", device_ids=1)
+    if ws > 1:
+        with pytest.raises(ValueError, match=r"Argument kwargs should not contain 'device_ids'"):
+            auto_model(nn.Linear(1, 1), device_ids=[0])
 
 
 @pytest.mark.distributed
