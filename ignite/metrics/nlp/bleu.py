@@ -1,12 +1,11 @@
 import math
 from collections import Counter
-from typing import Callable, Sequence, Optional, Tuple, Union, Any
+from typing import Any, Callable, Optional, Sequence, Tuple, Union
 
 import torch
 
 from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
-
 from ignite.metrics.nlp.utils import modified_precision
 
 __all__ = ["Bleu"]
@@ -23,6 +22,7 @@ class _Smoother:
     Smoothing helper
     http://acl2014.org/acl2014/W14-33/pdf/W14-3346.pdf
     """
+
     def __init__(self, method: str):
         valid = ["no_smooth", "smooth1", "nltk_smooth2", "smooth2"]
         if method not in valid:
@@ -36,13 +36,13 @@ class _Smoother:
     @staticmethod
     def smooth1(numerators: Counter, denominators: Counter) -> Sequence[float]:
         epsilon = 0.1
-        denominators = [max(1, d) for d in denominators.values()]
-        return [n / d if n != 0 else epsilon / d for n, d in zip(numerators.values(), denominators)]
+        denominators_ = [max(1, d) for d in denominators.values()]
+        return [n / d if n != 0 else epsilon / d for n, d in zip(numerators.values(), denominators_)]
 
     @staticmethod
     def nltk_smooth2(numerators: Counter, denominators: Counter) -> Sequence[float]:
-        denominators = [max(1, d) for d in denominators.values()]
-        return [(n + 1) / (d + 1) for n, d in zip(numerators.values(), denominators)]
+        denominators_ = [max(1, d) for d in denominators.values()]
+        return [(n + 1) / (d + 1) for n, d in zip(numerators.values(), denominators_)]
 
     @staticmethod
     def smooth2(numerators: Counter, denominators: Counter) -> Sequence[float]:
@@ -50,8 +50,8 @@ class _Smoother:
 
     @staticmethod
     def no_smooth(numerators: Counter, denominators: Counter) -> Sequence[float]:
-        denominators = [max(1, d) for d in denominators.values()]
-        return [n / d for n, d in zip(numerators.values(), denominators)]
+        denominators_ = [max(1, d) for d in denominators.values()]
+        return [n / d for n, d in zip(numerators.values(), denominators_)]
 
 
 class Bleu(Metric):
@@ -115,15 +115,11 @@ class Bleu(Metric):
         self.smoother = _Smoother(method=smooth)
         super(Bleu, self).__init__(output_transform=output_transform, device=device)
 
-    def corpus_bleu(
-        self, references: Sequence[Sequence[Any]], candidates: Sequence[Sequence[Any]],
-    ):
-        p_numerators = Counter()  # Key = ngram order, and value = no. of ngram matches.
-        p_denominators = Counter()  # Key = ngram order, and value = no. of ngram in ref.
+    def corpus_bleu(self, references: Sequence[Sequence[Any]], candidates: Sequence[Sequence[Any]],) -> float:
+        p_numerators: Counter = Counter()  # Key = ngram order, and value = no. of ngram matches.
+        p_denominators: Counter = Counter()  # Key = ngram order, and value = no. of ngram in ref.
 
-        assert len(references) == len(candidates), (
-            "The number of hypotheses and their reference(s) should be the same "
-        )
+        assert len(references) == len(candidates), "The number of hypotheses and their reference(s) should be the same "
 
         # Iterate through each hypothesis and their corresponding references.
         for refs, hyp in zip(references, candidates):
@@ -165,8 +161,8 @@ class Bleu(Metric):
 
         # Compute the geometric mean
         s = [w_i * math.log(p_i) for w_i, p_i in zip(self.weights, p_n)]
-        s = bp * math.exp(math.fsum(s))
-        return s
+        gm = bp * math.exp(math.fsum(s))
+        return gm
 
     @reinit__is_reduced
     def reset(self) -> None:

@@ -7,36 +7,14 @@ import torch
 
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
-from ignite.metrics import Rouge
-from ignite.metrics.nlp.rouge import RougeL, RougeN, compute_ngram_scores, lcs, ngrams
+from ignite.metrics.nlp import Rouge
+from ignite.metrics.nlp.rouge import RougeL, RougeN, compute_ngram_scores
+
+from . import CorpusForTest
 
 nltk.download("punkt")
 
-
-@pytest.mark.parametrize(
-    "sequence, n, expected_keys, expected_values",
-    [
-        ([], 1, [], []),
-        ([0, 1, 2], 1, [(0,), (1,), (2,)], [1, 1, 1]),
-        ([0, 1, 2], 2, [(0, 1,), (1, 2,),], [1, 1],),
-        ([0, 1, 2], 3, [(0, 1, 2)], [1]),
-        ([0, 0, 0], 1, [(0,)], [3]),
-        ([0, 0, 0], 2, [(0, 0)], [2]),
-        ("abcde", 4, [("a", "b", "c", "d"), ("b", "c", "d", "e")], [1, 1]),
-    ],
-)
-def test_ngrams(sequence, n, expected_keys, expected_values):
-    ngrams_counter = ngrams(sequence=sequence, n=n)
-    assert list(ngrams_counter.values()) == expected_values
-    assert list(ngrams_counter.keys()) == expected_keys
-
-
-@pytest.mark.parametrize(
-    "seq_a, seq_b, expected",
-    [([], [], 0), ([0, 1, 2], [0, 1, 2], 3), ([0, 1, 2], [0, 3, 2], 2), ("academy", "abracadabra", 4),],
-)
-def test_lcs(seq_a, seq_b, expected):
-    assert lcs(seq_a, seq_b) == expected
+corpus = CorpusForTest()
 
 
 @pytest.mark.parametrize(
@@ -61,7 +39,7 @@ def test_compute_ngram_scores(candidate, reference, n, expected_precision, expec
 
 def test_wrong_inputs():
 
-    with pytest.raises(ValueError, match=r"ngram order must be greater than one"):
+    with pytest.raises(ValueError, match=r"ngram order must be greater than zero"):
         RougeN(ngram=0)
 
     with pytest.raises(ValueError, match=r"alpha must be in interval \[0, 1\]"):
@@ -106,31 +84,8 @@ def test_rouge_n_alpha(ngram, candidate, reference, expected):
         assert results[f"Rouge-{ngram}-F"] == F
 
 
-# BLEU Paper examples
-CAND_1 = "the the the the the the the"
-REF_1A = "The cat is on the mat"
-REF_1B = "There is a cat on the mat"
-
-CAND_2A = "It is a guide to action which ensures that the military always obeys the " "commands of the party"
-CAND_2B = "It is to insure the troops forever hearing the activity guidebook that " "party direct"
-REF_2A = "It is a guide to action that ensures that the military will forever heed " "Party commands"
-REF_2B = (
-    "It is the guiding principle which guarantees the military forces always being under the " "command of the Party"
-)
-REF_2C = "It is the practical guide for the army always to heed the directions of the " "party"
-
-CAND_3 = "of the"
-
-
 @pytest.mark.parametrize(
-    "candidates, references",
-    [
-        ([CAND_1], [[REF_1A, REF_1B]]),
-        ([CAND_3], [[REF_2A, REF_2B, REF_2C]]),
-        ([CAND_2A], [[REF_2A, REF_2B, REF_2C]]),
-        ([CAND_2B], [[REF_2A, REF_2B, REF_2C]]),
-        ([CAND_2A, CAND_2B], [[REF_2A, REF_2B, REF_2C], [REF_2A, REF_2B, REF_2C]]),
-    ],
+    "candidates, references", [corpus.sample_1, corpus.sample_2, corpus.sample_3, corpus.sample_4, corpus.sample_5,],
 )
 def test_rouge_metrics(candidates, references):
     for multiref in ["average", "best"]:
@@ -171,28 +126,10 @@ def _test_distrib_integration(device):
 
     rank = idist.get_rank()
 
-    chunks = [
-        (CAND_1, [REF_1A, REF_1B]),
-        (CAND_2A, [REF_2A, REF_2B, REF_2C]),
-        (CAND_2B, [REF_2A, REF_2B, REF_2C]),
-        (CAND_1, [REF_1A]),
-        (CAND_2A, [REF_2A, REF_2B]),
-        (CAND_2B, [REF_2A, REF_2B]),
-        (CAND_1, [REF_1B]),
-        (CAND_2A, [REF_2B, REF_2C]),
-        (CAND_2B, [REF_2B, REF_2C]),
-        (CAND_1, [REF_1A, REF_1B]),
-        (CAND_2A, [REF_2A, REF_2C]),
-        (CAND_2B, [REF_2A, REF_2C]),
-        (CAND_1, [REF_1A]),
-        (CAND_2A, [REF_2A]),
-        (CAND_2B, [REF_2C]),
-    ]
-
-    size = len(chunks)
+    size = len(corpus.chunks)
 
     data = []
-    for c in chunks:
+    for c in corpus.chunks:
         data += idist.get_world_size() * [c]
 
     def update(_, i):
