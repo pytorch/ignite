@@ -176,10 +176,14 @@ if has_hvd_support:
             return hvd.allreduce(tensor, op=op)
 
         def _do_manual_all_reduce(self, tensor: torch.Tensor, op: Any) -> torch.Tensor:
-            res = self._do_all_gather(tensor)
+            # We have to unsqueeze otherwise tensors will be gathered into a single tensor
+            # without splitting (e.g. [1, 1, 1, 3, 3, 3] instead of [[1, 1, 1], [3, 3, 3]])
+            # and reduction op wont work as expected
+            res = self._do_all_gather(tensor.unsqueeze(0))
             reduced_res = op(res, dim=0)
             if isinstance(reduced_res, torch.Tensor):
                 return reduced_res
+            # output can also torch min/max_return_type: (min/max_vals, indices)
             return reduced_res[0]
 
         def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
