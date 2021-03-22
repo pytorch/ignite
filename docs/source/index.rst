@@ -151,5 +151,5 @@ Library structure
    :maxdepth: 1
    :caption: Team
 
-   about
+   about <https://pytorch.org/ignite/master/about.html>
    governance
