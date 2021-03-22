@@ -518,13 +518,15 @@ class Metric(metaclass=ABCMeta):
 
 def sync_all_reduce(*attrs: Any) -> Callable:
     """Helper decorator for distributed configuration to collect instance attribute value
-    across all participating processes.
+    across all participating processes and apply the specified reduction operation.
 
     See :doc:`metrics` on how to use it.
 
     Args:
         attrs: attribute names of decorated class
 
+    .. versionchanged:: 0.5.0
+        - Ability to handle different reduction operations (SUM, MAX, MIN, PRODUCT).
     """
 
     def wrapper(func: Callable) -> Callable:
@@ -538,9 +540,16 @@ def sync_all_reduce(*attrs: Any) -> Callable:
             if len(attrs) > 0 and not self._is_reduced:
                 if ws > 1:
                     for attr in attrs:
+                        op_kwargs = {}
+                        if ":" in attr:
+                            attr, op = attr.split(":")
+                            valid_ops = ["MIN", "MAX", "SUM", "PRODUCT"]
+                            if op not in valid_ops:
+                                raise ValueError(f"Reduction operation is not valid (expected : {valid_ops}, got: {op}")
+                            op_kwargs["op"] = op
                         t = getattr(self, attr, None)
                         if t is not None:
-                            t = idist.all_reduce(t)
+                            t = idist.all_reduce(t, **op_kwargs)
                             self._is_reduced = True
                             setattr(self, attr, t)
                 else:
