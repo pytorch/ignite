@@ -105,18 +105,6 @@ def test_create_supervised_training_scalar_assignment():
         assert hasattr(trainer.state, "scaler")
         assert type(trainer.state.scaler) == torch.cuda.amp.GradScaler
 
-        check_arg_mock.return_value = None, None
-        trainer = create_supervised_trainer(
-            model,
-            optimizer,
-            mse_loss,
-            device="cpu",
-            output_transform=lambda x, y, y_pred, loss: (y_pred, loss.item()),
-            amp_mode=None,
-            scaler=True,
-        )
-        assert not hasattr(trainer.state, "scaler")
-
 
 def _test_create_mocked_supervised_trainer(
     model_device: Optional[str] = None,
