@@ -1,6 +1,6 @@
 import math
 from collections import Counter
-from typing import Any, Callable, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Sequence, Tuple, Union
 
 import torch
 
