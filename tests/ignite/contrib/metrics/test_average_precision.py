@@ -1,6 +1,8 @@
 import os
+from unittest.mock import patch
 
 import pytest
+import sklearn
 import torch
 from sklearn.metrics import average_precision_score
 
@@ -10,6 +12,17 @@ from ignite.engine import Engine
 from ignite.exceptions import NotComputableError
 
 torch.manual_seed(12)
+
+
+@pytest.fixture()
+def mock_no_sklearn():
+    with patch.dict("sys.modules", {"sklearn.metrics": None}):
+        yield sklearn
+
+
+def test_no_sklearn(mock_no_sklearn):
+    with pytest.raises(RuntimeError, match=r"This contrib module requires sklearn to be installed."):
+        AveragePrecision()
 
 
 def test_no_update():
