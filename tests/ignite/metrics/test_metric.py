@@ -12,7 +12,7 @@ from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_
 import ignite.distributed as idist
 from ignite.engine import Engine, Events, State
 from ignite.metrics import ConfusionMatrix, Precision, Recall
-from ignite.metrics.metric import BatchFiltered, BatchWise, EpochWise, Metric, reinit__is_reduced
+from ignite.metrics.metric import BatchFiltered, BatchWise, EpochWise, Metric, reinit__is_reduced, sync_all_reduce
 
 
 class DummyMetric1(Metric):
@@ -538,10 +538,56 @@ class DummyMetric2(Metric):
         pass
 
 
+def _test_invalid_sync_all_reduce(device):
+    class InvalidMetric(Metric):
+        @reinit__is_reduced
+        def reset(self):
+            self.a = torch.tensor([0.0, 1.0, 2.0, 3.0], requires_grad=False)
+            self.c = 0.0
+            self.n = 0
+            self.m = -1
+
+        def compute(self):
+            pass
+
+        def update(self):
+            pass
+
+        @sync_all_reduce("a:sum")
+        def invalid_reduction_op_1(self):
+            pass
+
+        @sync_all_reduce("c:MaX")
+        def invalid_reduction_op_2(self):
+            pass
+
+        @sync_all_reduce("n:MINN")
+        def invalid_reduction_op_3(self):
+            pass
+
+        @sync_all_reduce("m:PROduCT")
+        def invalid_reduction_op_4(self):
+            pass
+
+    metric_device = device if torch.device(device).type != "xla" else "cpu"
+    m = InvalidMetric(device=metric_device)
+    m.reset()
+
+    if idist.get_world_size() > 1:
+        with pytest.raises(ValueError, match=r"Reduction operation is not valid"):
+            m.invalid_reduction_op_1()
+
+        with pytest.raises(ValueError, match=r"Reduction operation is not valid"):
+            m.invalid_reduction_op_2()
+
+        with pytest.raises(ValueError, match=r"Reduction operation is not valid"):
+            m.invalid_reduction_op_3()
+
+        with pytest.raises(ValueError, match=r"Reduction operation is not valid"):
+            m.invalid_reduction_op_4()
+
+
 def _test_distrib_sync_all_reduce_decorator(device):
-
-    from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
-
     class DummyMetric(Metric):
         @reinit__is_reduced
         def reset(self):
@@ -557,12 +603,12 @@ def _test_distrib_sync_all_reduce_decorator(device):
 
             # MAX op
             self.m = -1
+
             # MIN op
             self.k = 10000
 
-            # initialize two tensors to test (MAX, MIN) ops
-            self.test = torch.tensor([0.0, 5.0, 9.0, 7.0, 6.0], device=self._device, requires_grad=False)
-            self.test_pred = torch.tensor([10.0, 6.0, 4.0, 3.0, 8.0], device=self._device, requires_grad=False)
+            # initialize number of updates to test (MAX, MIN) ops
+            self.num_updates = 0
 
             # PRODUCT op
             self.prod = torch.tensor([2.0, 3.0], device=self._device, requires_grad=False)
@@ -574,8 +620,8 @@ def _test_distrib_sync_all_reduce_decorator(device):
             assert (self.b.cpu() == (self.b_nocomp - 5) * idist.get_world_size()).all()
             assert self.c == pytest.approx((self.c_nocomp + 1.23456) * idist.get_world_size())
             assert self.n == (self.n_nocomp + 1) * idist.get_world_size()
-            assert self.m == (torch.abs(self.test_pred - self.test.view_as(self.test_pred)).max().item())
-            assert self.k == (torch.abs(self.test_pred - self.test.view_as(self.test_pred)).min().item())
+            assert self.m == self.num_updates * (idist.get_world_size() - 1) - 1
+            assert self.k == 10000 - self.num_updates * (idist.get_world_size() - 1)
             temp_prod_nocomp = 5 * self.prod_nocomp  # new variable for the recomputing
             temp_prod_nocomp = temp_prod_nocomp.pow(idist.get_world_size())
             assert (self.prod.cpu() == temp_prod_nocomp).all()
@@ -589,14 +635,13 @@ def _test_distrib_sync_all_reduce_decorator(device):
             self.b -= 5.0
 
             # MAX op
-            mae = torch.abs(self.test_pred - self.test.view_as(self.test_pred)).max().item()
-            if self.m < mae:
-                self.m = mae
+            self.m += idist.get_rank()
 
             # MIN op
-            mae2 = torch.abs(self.test_pred - self.test.view_as(self.test_pred)).min().item()
-            if self.k > mae2:
-                self.k = mae2
+            self.k -= idist.get_rank()
+
+            # numper of updates for (MAX, MIN) ops
+            self.num_updates += 1
 
             # PRODUCT op
             self.prod *= 5
@@ -621,6 +666,7 @@ def test_distrib_gpu(distributed_context_single_node_nccl):
 
     device = f"cuda:{distributed_context_single_node_nccl['local_rank']}"
     _test_distrib_sync_all_reduce_decorator(device)
+    _test_invalid_sync_all_reduce(device)
 
 
 @pytest.mark.distributed
@@ -629,6 +675,7 @@ def test_distrib_cpu(distributed_context_single_node_gloo):
 
     device = "cpu"
     _test_distrib_sync_all_reduce_decorator(device)
+    _test_invalid_sync_all_reduce(device)
 
 
 @pytest.mark.distributed
@@ -640,6 +687,7 @@ def test_distrib_hvd(gloo_hvd_executor):
     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
 
     gloo_hvd_executor(_test_distrib_sync_all_reduce_decorator, (device,), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_invalid_sync_all_reduce, (device,), np=nproc, do_init=True)
 
 
 @pytest.mark.multinode_distributed
@@ -648,6 +696,7 @@ def test_distrib_hvd(gloo_hvd_executor):
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     device = "cpu"
     _test_distrib_sync_all_reduce_decorator(device)
+    _test_invalid_sync_all_reduce(device)
 
 
 @pytest.mark.multinode_distributed
@@ -656,6 +705,7 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
     device = f"cuda:{distributed_context_multi_node_nccl['local_rank']}"
     _test_distrib_sync_all_reduce_decorator(device)
+    _test_invalid_sync_all_reduce(device)
 
 
 @pytest.mark.tpu
@@ -665,12 +715,14 @@ def test_distrib_single_device_xla():
     device = idist.device()
     _test_distrib_sync_all_reduce_decorator(device)
     _test_creating_on_xla_fails(device)
+    _test_invalid_sync_all_reduce(device)
 
 
 def _test_distrib_xla_nprocs(index):
     device = idist.device()
     _test_distrib_sync_all_reduce_decorator(device)
     _test_creating_on_xla_fails(device)
+    _test_invalid_sync_all_reduce(device)
 
 
 @pytest.mark.tpu
