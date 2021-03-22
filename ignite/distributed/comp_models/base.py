@@ -1,6 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from numbers import Number
-from typing import Any, Callable, List, Optional, Type, Union, cast
+from typing import Any, Callable, List, Optional, Union, cast
 
 import torch
 
