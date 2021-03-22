@@ -32,6 +32,7 @@ def test_wrong_inputs():
 @pytest.mark.parametrize(
     "candidate, references",
     [
+        ([["a"], ["a"]]),
         ([["a", "a", "a", "b", "c"]], [[["a", "b", "c"], ["a", "a", "d"]]]),
         corpus.sample_1,
         corpus.sample_2,
