@@ -134,13 +134,15 @@ class ComputationModel(metaclass=ABCMeta):
         self, x: Union[torch.Tensor, float, str, None], device: torch.device, is_src: bool
     ) -> Union[torch.Tensor, float, str]:
 
-        encoded_msg = self._encode_input_data(x)
-        encoded_msg = self._do_all_reduce(torch.tensor(encoded_msg, device=device), "MAX")
+        encoded_msg_per_rank = self._encode_input_data(x)
+        encoded_msg_all_ranks = self._do_all_reduce(torch.tensor(encoded_msg_per_rank, device=device), "MAX")
 
         if is_src:
+            if x is None:
+                raise RuntimeError("Internal error, x is None. Please, file an issue if you encounter this error.")
             return x
 
-        encoded_msg = encoded_msg.cpu().tolist()
+        encoded_msg = encoded_msg_all_ranks.cpu().tolist()
         return self._decode_as_placeholder(encoded_msg, device)
 
     @staticmethod
@@ -231,7 +233,10 @@ class ComputationModel(metaclass=ABCMeta):
         if use_none:
             tensor = self._setup_placeholder(tensor, device, rank == src)
 
-        if isinstance(tensor, Number):
+        if tensor is None:
+            raise RuntimeError("Internal error, tensor is None. Please, file an issue if you encounter this error.")
+
+        if isinstance(tensor, (Number, float)):  # have to use Number and float to satisfy mypy
             tensor_to_number = True
             if rank != src:
                 tensor = torch.empty(1, device=device, dtype=torch.float)
@@ -333,7 +338,11 @@ class _SerialModel(ComputationModel):
             return tensor
         return cast(Union[List[float], List[str]], [tensor])
 
-    def broadcast(self, tensor: Union[torch.Tensor, float, str], src: int = 0) -> Union[torch.Tensor, float, str]:
+    def broadcast(
+        self, tensor: Union[torch.Tensor, float, str, None], src: int = 0, use_none: bool = False
+    ) -> Union[torch.Tensor, float, str]:
+        if tensor is None:
+            raise ValueError("Argument tensor should not be None")
         return tensor
 
     def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:
