@@ -58,9 +58,9 @@ class Bleu(Metric):
     r"""Calculates the `BLEU score <https://en.wikipedia.org/wiki/BLEU>`_.
 
     .. math::
-       \text{BLEU} = \text{BP} \dot exp \left( \sum_{n=1}^{N} w_{n} log p_{n} \right)
+       \text{BLEU} = b_{p} \cdot \exp \left( \sum_{n=1}^{N} w_{n} \: \log p_{n} \right)
 
-    where :math:`N` is the order of n-grams, :math:`\text{BP}` is a sentence brevety penalty, :math:`w_{n}` are
+    where :math:`N` is the order of n-grams, :math:`b_{p}` is a sentence brevety penalty, :math:`w_{n}` are
     positive weights summing to one and :math:`p_{n}` are modified n-gram precisions.
 
     More details can be found in `Papineni et al. 2002`__.
@@ -77,7 +77,8 @@ class Bleu(Metric):
 
     Args:
         ngram: order of n-grams.
-        smooth: enable smoothing. Valid are "no_smooth", "smooth1", "nltk_smooth2" or "smooth2". (Default: "no_smooth")
+        smooth: enable smoothing. Valid are ``no_smooth``, ``smooth1``, ``nltk_smooth2`` or ``smooth2``.
+            Default: ``no_smooth``.
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
@@ -91,11 +92,15 @@ class Bleu(Metric):
 
     .. code-block:: python
 
-        from ignite.metrics import Bleu
+        from ignite.metrics.nlp import Bleu
+
         m = Bleu(ngram=4, smooth="smooth1")
+
         y_pred = "the the the the the the the"
         y = ["the cat is on the mat", "there is a cat on the mat"]
+
         m.update((y_pred.split(), [y.split()]))
+
         print(m.compute())
 
     .. versionadded:: 0.5.0
@@ -115,7 +120,7 @@ class Bleu(Metric):
         self.smoother = _Smoother(method=smooth)
         super(Bleu, self).__init__(output_transform=output_transform, device=device)
 
-    def corpus_bleu(self, references: Sequence[Sequence[Any]], candidates: Sequence[Sequence[Any]],) -> float:
+    def _corpus_bleu(self, references: Sequence[Sequence[Any]], candidates: Sequence[Sequence[Any]], ) -> float:
         p_numerators: Counter = Counter()
         p_denominators: Counter = Counter()
 
@@ -176,7 +181,7 @@ class Bleu(Metric):
     @reinit__is_reduced
     def update(self, output: Tuple[Sequence[Any], Sequence[Sequence[Any]]]) -> None:
         y_pred, y = output
-        self._sum_of_bleu += self.corpus_bleu(references=[y], candidates=[y_pred])
+        self._sum_of_bleu += self._corpus_bleu(references=[y], candidates=[y_pred])
         self._num_sentences += 1
 
     @sync_all_reduce("_sum_of_bleu", "_num_sentences")

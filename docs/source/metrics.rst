@@ -323,13 +323,14 @@ Complete list of metrics
     precision.Precision
     PSNR
     recall.Recall
-    Rouge
-    rouge.RougeL
-    rouge.RougeN
     RootMeanSquaredError
     RunningAverage
     SSIM
     TopKCategoricalAccuracy
+    Bleu
+    Rouge
+    RougeL
+    RougeN
 
 Helpers for customizing metrics
 -------------------------------

@@ -23,7 +23,7 @@ def test_wrong_inputs():
         Bleu(smooth="fake")
 
     with pytest.raises(ValueError, match=r"nb of candidates should be equal to nb of reference lists"):
-        Bleu().corpus_bleu(references=[[0], [0]], candidates=[[0]])
+        Bleu()._corpus_bleu(references=[[0], [0]], candidates=[[0]])
 
     with pytest.raises(NotComputableError):
         Bleu().compute()
@@ -47,7 +47,7 @@ def test_corpus_bleu(candidate, references):
             warnings.simplefilter("ignore")
             reference = corpus_bleu(references, candidate, weights=weights)
         bleu = Bleu(ngram=i)
-        assert pytest.approx(reference) == bleu.corpus_bleu(references, candidate)
+        assert pytest.approx(reference) == bleu._corpus_bleu(references, candidate)
         bleu.update((candidate[0], references[0]))
         assert pytest.approx(reference) == bleu.compute()
 
@@ -71,7 +71,7 @@ def test_corpus_bleu_smooth1(candidate, references):
                 references, candidate, weights=weights, smoothing_function=SmoothingFunction().method1
             )
         bleu = Bleu(ngram=i, smooth="smooth1")
-        assert reference == bleu.corpus_bleu(references, candidate)
+        assert reference == bleu._corpus_bleu(references, candidate)
         bleu.update((candidate[0], references[0]))
         assert reference == bleu.compute()
 
@@ -95,7 +95,7 @@ def test_corpus_bleu_nltk_smooth2(candidate, references):
                 references, candidate, weights=weights, smoothing_function=SmoothingFunction().method2
             )
         bleu = Bleu(ngram=i, smooth="nltk_smooth2")
-        assert reference == bleu.corpus_bleu(references, candidate)
+        assert reference == bleu._corpus_bleu(references, candidate)
         bleu.update((candidate[0], references[0]))
         assert reference == bleu.compute()
 
@@ -119,7 +119,7 @@ def test_corpus_bleu_smooth2(candidate, references):
                 references, candidate, weights=weights, smoothing_function=SmoothingFunction().method2
             )
         bleu = Bleu(ngram=i, smooth="smooth2")
-        assert reference == bleu.corpus_bleu(references, candidate)
+        assert reference == bleu._corpus_bleu(references, candidate)
         bleu.update((candidate[0], references[0]))
         assert reference == bleu.compute()
 
@@ -130,10 +130,10 @@ def test_bleu():
     bleu.update((corpus.cand_2a, corpus.references_2))
     bleu.update((corpus.cand_2b, corpus.references_2))
     bleu.update((corpus.cand_3, corpus.references_2))
-    value = bleu.corpus_bleu([corpus.references_1], [corpus.cand_1])
-    value += bleu.corpus_bleu([corpus.references_2], [corpus.cand_2a])
-    value += bleu.corpus_bleu([corpus.references_2], [corpus.cand_2b])
-    value += bleu.corpus_bleu([corpus.references_2], [corpus.cand_3])
+    value = bleu._corpus_bleu([corpus.references_1], [corpus.cand_1])
+    value += bleu._corpus_bleu([corpus.references_2], [corpus.cand_2a])
+    value += bleu._corpus_bleu([corpus.references_2], [corpus.cand_2b])
+    value += bleu._corpus_bleu([corpus.references_2], [corpus.cand_3])
     assert bleu.compute() == value / 4
 
 
