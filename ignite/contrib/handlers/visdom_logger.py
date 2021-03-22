@@ -162,7 +162,7 @@ class VisdomLogger(BaseLogger):
             # requires also `futures` to be installed.
             # Let's check anyway if we can import it.
             try:
-                import concurrent.futures
+                from concurrent.futures import ThreadPoolExecutor
             except ImportError:
                 raise RuntimeError(
                     "This contrib module requires concurrent.futures module"
@@ -191,8 +191,6 @@ class VisdomLogger(BaseLogger):
 
         self.executor = _DummyExecutor()  # type: Union[_DummyExecutor, "ThreadPoolExecutor"]
         if num_workers > 0:
-            from concurrent.futures import ThreadPoolExecutor
-
             self.executor = ThreadPoolExecutor(max_workers=num_workers)
 
     def _save(self) -> None:
