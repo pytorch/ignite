@@ -1,9 +1,10 @@
-from typing import Tuple, Union, cast
+from typing import Tuple
 
 import torch
 
 from ignite.contrib.metrics.regression._base import _BaseRegression
 from ignite.exceptions import NotComputableError
+from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
 
 class GeometricMeanAbsoluteError(_BaseRegression):
@@ -32,21 +33,26 @@ class GeometricMeanAbsoluteError(_BaseRegression):
         device: specifies which device updates are accumulated on. Setting the
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
+
+    .. versionchanged:: 0.5.0
+        - Works with DDP.
     """
 
+    @reinit__is_reduced
     def reset(self) -> None:
-        self._sum_of_errors = 0.0  # type: Union[float, torch.Tensor]
+        self._sum_of_errors = torch.tensor(0.0, device=self._device)
         self._num_examples = 0
 
     def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
-        y_pred, y = output
+        y_pred, y = output[0].detach(), output[1].detach()
         errors = torch.log(torch.abs(y.view_as(y_pred) - y_pred))
-        self._sum_of_errors += torch.sum(errors)
+        self._sum_of_errors += torch.sum(errors).to(self._device)
         self._num_examples += y.shape[0]
 
+    @sync_all_reduce("_sum_of_errors", "_num_examples")
     def compute(self) -> float:
         if self._num_examples == 0:
             raise NotComputableError(
                 "GeometricMeanAbsoluteError must have at least one example before it can be computed."
             )
-        return torch.exp(cast(torch.Tensor, self._sum_of_errors) / self._num_examples).item()
+        return torch.exp((self._sum_of_errors) / self._num_examples).item()

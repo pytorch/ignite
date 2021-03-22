@@ -278,6 +278,8 @@ class DeterministicEngine(Engine):
     def _setup_seed(self, _: Any = None, iter_counter: Optional[int] = None, iteration: Optional[int] = None) -> None:
         if iter_counter is None:
             le = self._dataloader_len if self._dataloader_len is not None else 1
+        elif not iter_counter > 0:
+            raise ValueError("iter_counter should be positive value")
         else:
             le = iter_counter
         if iteration is None:

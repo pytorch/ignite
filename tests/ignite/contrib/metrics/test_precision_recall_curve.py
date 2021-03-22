@@ -1,11 +1,28 @@
+from unittest.mock import patch
+
 import numpy as np
 import pytest
+import sklearn
 import torch
 from sklearn.metrics import precision_recall_curve
 
 from ignite.contrib.metrics.precision_recall_curve import PrecisionRecallCurve
 from ignite.engine import Engine
 from ignite.metrics.epoch_metric import EpochMetricWarning
+
+
+@pytest.fixture()
+def mock_no_sklearn():
+    with patch.dict("sys.modules", {"sklearn.metrics": None}):
+        yield sklearn
+
+
+def test_no_sklearn(mock_no_sklearn):
+    with pytest.raises(RuntimeError, match=r"This contrib module requires sklearn to be installed."):
+        y = torch.tensor([1, 1])
+        pr_curve = PrecisionRecallCurve()
+        pr_curve.update((y, y))
+        pr_curve.compute()
 
 
 def test_precision_recall_curve():
