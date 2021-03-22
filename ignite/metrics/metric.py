@@ -478,16 +478,6 @@ class Metric(metaclass=ABCMeta):
 
         return MetricsLambda(lambda x, y: x % y, self, other)
 
-    def __div__(self, other: Any) -> "MetricsLambda":
-        from ignite.metrics.metrics_lambda import MetricsLambda
-
-        return MetricsLambda(lambda x, y: x.__div__(y), self, other)
-
-    def __rdiv__(self, other: Any) -> "MetricsLambda":
-        from ignite.metrics.metrics_lambda import MetricsLambda
-
-        return MetricsLambda(lambda x, y: x.__div__(y), other, self)
-
     def __truediv__(self, other: Any) -> "MetricsLambda":
         from ignite.metrics.metrics_lambda import MetricsLambda
 

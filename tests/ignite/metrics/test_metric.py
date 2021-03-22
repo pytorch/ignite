@@ -1,6 +1,5 @@
 import numbers
 import os
-import sys
 from unittest.mock import MagicMock
 
 import numpy as np
@@ -28,6 +27,15 @@ class DummyMetric1(Metric):
 
     def update(self, output):
         assert output == self.true_output
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif("WORLD_SIZE" not in os.environ, reason="Skip if WORLD_SIZE not in env vars")
+@pytest.mark.skipif(torch.cuda.is_available(), reason="Skip if GPU")
+def test_metric_warning(distributed_context_single_node_gloo):
+    y = torch.tensor([1.0])
+    with pytest.warns(RuntimeWarning, match=r"DummyMetric1 class does not support distributed setting"):
+        DummyMetric1((y, y))
 
 
 def test_no_transform():
@@ -220,25 +228,23 @@ def test_arithmetics():
     m2.update([1, 10, 100])
     assert m2_mod_2.compute() == 0
 
-    # __div__, only applicable to python2
-    if sys.version_info[0] < 3:
-        m0_div_m1 = m0.__div__(m1)
-        m0.update([1, 10, 100])
-        m1.update([1, 10, 100])
-        assert m0_div_m1.compute() == 0
-        m0.update([2, 20, 200])
-        m1.update([2, 20, 200])
-        assert m0_div_m1.compute() == 0
-
-        m2_div_2 = m2.__div__(2)
-        m2.update([1, 10, 100])
-        assert m2_div_2.compute() == 50
-
-        m2_div_2 = 200 / m2
-        m2.update([1, 10, 100])
-        assert m2_div_2.compute() == 2
-
     # __truediv__
+    m0_truediv_m1 = m0 / m1
+    m0.update([1, 10, 100])
+    m1.update([1, 10, 100])
+    assert m0_truediv_m1.compute() == approx(0.1)
+    m0.update([2, 20, 200])
+    m1.update([2, 20, 200])
+    assert m0_truediv_m1.compute() == approx(0.1)
+
+    m2_truediv_2 = m2 / 2
+    m2.update([1, 10, 100])
+    assert m2_truediv_2.compute() == approx(50.0)
+
+    m2_truediv_2 = 200 / m2
+    m2.update([1, 10, 100])
+    assert m2_truediv_2.compute() == approx(2.0)
+
     m0_truediv_m1 = m0.__truediv__(m1)
     m0.update([1, 10, 100])
     m1.update([1, 10, 100])
