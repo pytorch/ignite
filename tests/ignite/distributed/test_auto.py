@@ -160,7 +160,7 @@ def test_auto_methods_nccl(distributed_context_single_node_nccl):
 
     if ws > 1:
         with pytest.raises(ValueError, match=r"Argument kwargs should not contain 'device_ids'"):
-            _test_auto_model(nn.Linear(1, 1), ws, "cuda", device_ids=[0])
+            auto_model(nn.Linear(1, 1), device_ids=[0])
 
 
 @pytest.mark.distributed
