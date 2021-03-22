@@ -229,6 +229,22 @@ def test_arithmetics():
     assert m2_mod_2.compute() == 0
 
     # __truediv__
+    m0_truediv_m1 = m0 / m1
+    m0.update([1, 10, 100])
+    m1.update([1, 10, 100])
+    assert m0_truediv_m1.compute() == approx(0.1)
+    m0.update([2, 20, 200])
+    m1.update([2, 20, 200])
+    assert m0_truediv_m1.compute() == approx(0.1)
+
+    m2_truediv_2 = m2 / 2
+    m2.update([1, 10, 100])
+    assert m2_truediv_2.compute() == approx(50.0)
+
+    m2_truediv_2 = 200 / m2
+    m2.update([1, 10, 100])
+    assert m2_truediv_2.compute() == approx(2.0)
+
     m0_truediv_m1 = m0.__truediv__(m1)
     m0.update([1, 10, 100])
     m1.update([1, 10, 100])
