@@ -55,40 +55,47 @@ def test_binary_wrong_inputs():
 
 
 def test_binary_input_N():
-    # Binary accuracy on input of shape (N, 1) or (N, )
-    def _test():
-        acc = Accuracy()
+    acc = Accuracy()
 
-        y_pred = torch.randint(0, 2, size=(10,)).long()
-        y = torch.randint(0, 2, size=(10,)).long()
-        acc.update((y_pred, y))
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().ravel()
-        assert acc._type == "binary"
-        assert isinstance(acc.compute(), float)
-        assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
+    def _test(y_pred, y, n_iters):
 
-        # Batched Updates
         acc.reset()
-        y_pred = torch.randint(0, 2, size=(100,)).long()
-        y = torch.randint(0, 2, size=(100,)).long()
-
-        n_iters = 16
-        batch_size = y.shape[0] // n_iters + 1
-
-        for i in range(n_iters):
-            idx = i * batch_size
-            acc.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+        acc.update((y_pred, y))
 
         np_y = y.numpy().ravel()
         np_y_pred = y_pred.numpy().ravel()
+
+        if n_iters > 1:
+            # Batched Updates
+            batch_size = y.shape[0] // n_iters + 1
+            for i in range(n_iters):
+                idx = i * batch_size
+                acc.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+
         assert acc._type == "binary"
         assert isinstance(acc.compute(), float)
         assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
 
-    # check multiple random inputs as random exact occurencies are rare
+    def get_test_cases():
+        # Binary accuracy on input of shape (N, 1) or (N, )
+        test_cases = [
+            (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 1),
+            (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 1),
+            (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 1),
+            (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 1),
+            # Batched Updates
+            (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 16),
+            (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 16),
+            (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 16),
+            (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 16),
+        ]
+        return test_cases
+
     for _ in range(10):
-        _test()
+        # check multiple random inputs as random exact occurencies are rare
+        test_cases = get_test_cases()
+        for y_pred, y, n_iters in test_cases:
+            _test(y_pred, y, n_iters)
 
 
 def test_binary_input():

@@ -96,6 +96,11 @@ def _test_distrib_all_reduce(device):
     true_val = max([i * 2.0 + 1.0 for i in range(idist.get_world_size())])
     assert res == true_val, f"{res} vs {true_val}"
 
+    t = torch.ones(4, 4, device=device) * (rank * 2.0 + 1.0)
+    res = idist.all_reduce(t, "MAX")
+    true_val = torch.ones(4, 4, device=device) * ((idist.get_world_size() - 1) * 2.0 + 1.0)
+    assert res.equal(true_val), f"{res} vs {true_val}"
+
     t = torch.tensor(rank * 2.0 + 1.0, device=device)
     res = idist.all_reduce(t, "PRODUCT").item()
     true_val = 1
