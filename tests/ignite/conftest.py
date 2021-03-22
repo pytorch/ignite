@@ -1,6 +1,8 @@
+import os
 import shutil
 import sys
 import tempfile
+import time
 
 import pytest
 import torch
@@ -12,6 +14,28 @@ def dirname():
     path = tempfile.mkdtemp()
     yield path
     shutil.rmtree(path)
+
+
+@pytest.fixture()
+def get_fixed_dirname(worker_id):
+    # multi-proc friendly fixed tmp dirname
+    path = "/tmp/fixed_tmp_dirname_"
+    lrank = int(worker_id.replace("gw", "")) if "gw" in worker_id else 0
+
+    def getter(name="test"):
+        nonlocal path
+        path += name
+        time.sleep(0.5 * lrank)
+        os.makedirs(path, exist_ok=True)
+        return path
+
+    yield getter
+
+    time.sleep(1.0 * lrank + 1.0)
+    if os.path.exists(path):
+        shutil.rmtree(path)
+    # sort of sync
+    time.sleep(1.0)
 
 
 @pytest.fixture()
@@ -28,7 +52,6 @@ def get_rank_zero_dirname(dirname):
 @pytest.fixture()
 def local_rank(worker_id):
     """ use a different account in each xdist worker """
-    import os
 
     if "gw" in worker_id:
         lrank = int(worker_id.replace("gw", ""))
@@ -46,7 +69,6 @@ def local_rank(worker_id):
 
 @pytest.fixture()
 def world_size():
-    import os
 
     remove_env_var = False
 
@@ -62,7 +84,6 @@ def world_size():
 
 @pytest.fixture()
 def clean_env():
-    import os
 
     for k in ["RANK", "LOCAL_RANK", "WORLD_SIZE"]:
         if k in os.environ:
@@ -102,8 +123,6 @@ def _find_free_port():
 
 
 def _setup_free_port(local_rank):
-    import os
-    import time
 
     port_file = "/tmp/free_port"
 
@@ -174,7 +193,6 @@ def distributed_context_single_node_gloo(local_rank, world_size):
 
 @pytest.fixture()
 def multi_node_conf(local_rank):
-    import os
 
     assert "node_id" in os.environ
     assert "nnodes" in os.environ
@@ -213,8 +231,6 @@ def _destroy_mnodes_dist_context():
 @pytest.fixture()
 def distributed_context_multi_node_gloo(multi_node_conf):
 
-    import os
-
     assert "MASTER_ADDR" in os.environ
     assert "MASTER_PORT" in os.environ
 
@@ -230,8 +246,6 @@ def distributed_context_multi_node_gloo(multi_node_conf):
 
 @pytest.fixture()
 def distributed_context_multi_node_nccl(multi_node_conf):
-
-    import os
 
     assert "MASTER_ADDR" in os.environ
     assert "MASTER_PORT" in os.environ
@@ -256,7 +270,6 @@ def _xla_template_worker_task(index, fn, args):
 
 
 def _xla_execute(fn, args, nprocs):
-    import os
 
     import torch_xla.distributed.xla_multiprocessing as xmp
 
