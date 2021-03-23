@@ -7,6 +7,7 @@ on:
       - "tests/run_cpu_tests.sh"
       - "examples/**.py"
       - ".github/workflows/unit-tests.yml"
+      - "requirements-dev.txt"
   pull_request:
     paths:
       - "ignite/**"
@@ -14,6 +15,7 @@ on:
       - "tests/run_cpu_tests.sh"
       - "examples/**.py"
       - ".github/workflows/unit-tests.yml"
+      - "requirements-dev.txt"
 
 jobs:
   build:
