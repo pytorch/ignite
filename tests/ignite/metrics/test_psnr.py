@@ -48,14 +48,14 @@ def _test_psnr(y_pred, y, data_range, device):
 
 
 def test_psnr():
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
     # test for float
     manual_seed(42)
     y_pred = torch.rand(8, 3, 28, 28, device=device)
     y = y_pred * 0.8
     data_range = (y.max() - y.min()).cpu().item()
-    _test_psnr(y_pred, y, y.max() - y.min(), device)
+    _test_psnr(y_pred, y, data_range, device)
 
     # test for YCbCr
     manual_seed(42)

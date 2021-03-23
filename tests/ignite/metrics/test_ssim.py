@@ -94,7 +94,7 @@ def _test_ssim(y_pred, y, data_range, kernel_size, sigma, gaussian, use_sample_c
 
 
 def test_ssim():
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
     y_pred = torch.rand(8, 3, 224, 224, device=device)
     y = y_pred * 0.8
     _test_ssim(
