@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Callable, Tuple
+from typing import Tuple
 
 import torch
 
@@ -9,9 +9,6 @@ from ignite.metrics.metric import reinit__is_reduced
 
 def _check_output_shapes(output: Tuple[torch.Tensor, torch.Tensor]) -> None:
     y_pred, y = output
-    if y_pred.shape != y.shape:
-        raise ValueError(f"Input data shapes should be the same, but given {y_pred.shape} and {y.shape}")
-
     c1 = y_pred.ndimension() == 2 and y_pred.shape[1] == 1
     if not (y_pred.ndimension() == 1 or c1):
         raise ValueError(f"Input y_pred should have shape (N,) or (N, 1), but given {y_pred.shape}")
@@ -19,6 +16,9 @@ def _check_output_shapes(output: Tuple[torch.Tensor, torch.Tensor]) -> None:
     c2 = y.ndimension() == 2 and y.shape[1] == 1
     if not (y.ndimension() == 1 or c2):
         raise ValueError(f"Input y should have shape (N,) or (N, 1), but given {y.shape}")
+
+    if y_pred.shape != y.shape:
+        raise ValueError(f"Input data shapes should be the same, but given {y_pred.shape} and {y.shape}")
 
 
 def _check_output_types(output: Tuple[torch.Tensor, torch.Tensor]) -> None:

@@ -22,16 +22,10 @@ def test_wrong_input_shapes():
     m = FractionalAbsoluteError()
 
     with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
-        m.update((torch.rand(4, 1, 2), torch.rand(4, 1)))
+        m.update((torch.rand(4), torch.rand(4, 1)))
 
     with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
-        m.update((torch.rand(4, 1), torch.rand(4, 1, 2)))
-
-    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
-        m.update((torch.rand(4, 1, 2), torch.rand(4,),))
-
-    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
-        m.update((torch.rand(4,), torch.rand(4, 1, 2),))
+        m.update((torch.rand(4, 1), torch.rand(4,)))
 
 
 def test_compute():
