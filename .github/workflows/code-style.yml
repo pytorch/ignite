@@ -17,12 +17,6 @@ on:
 
   # pull_request:
   #     paths:
-  #       - "**.py"
-  #       - "assets/**"
-  #       - ".circleci/**"
-  #       - "docker/**"
-  #       - "docs/**"
-  #       - "conda.recipe"
 
   pull_request_target:
     paths:
