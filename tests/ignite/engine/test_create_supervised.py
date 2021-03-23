@@ -87,6 +87,28 @@ def _test_create_supervised_trainer(
                 trainer.run(data)
 
 
+def test_create_supervised_training_scalar_assignment():
+    model = Linear(1, 1)
+
+    model.weight.data.zero_()
+    model.bias.data.zero_()
+    optimizer = SGD(model.parameters(), 0.1)
+
+    with mock.patch("ignite.engine._check_arg") as check_arg_mock:
+        check_arg_mock.return_value = None, torch.cuda.amp.GradScaler(enabled=True)
+        trainer = create_supervised_trainer(
+            model,
+            optimizer,
+            mse_loss,
+            device="cpu",
+            output_transform=lambda x, y, y_pred, loss: (y_pred, loss.item()),
+            amp_mode=None,
+            scaler=True,
+        )
+        assert hasattr(trainer.state, "scaler")
+        assert isinstance(trainer.state.scaler, torch.cuda.amp.GradScaler)
+
+
 def _test_create_mocked_supervised_trainer(
     model_device: Optional[str] = None,
     trainer_device: Optional[str] = None,
