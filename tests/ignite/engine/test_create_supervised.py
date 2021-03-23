@@ -462,7 +462,7 @@ def test_create_supervised_evaluator():
     _test_mocked_supervised_evaluator()
 
     # older versions didn't have the autocast method so we skip the test for older builds
-    if LooseVersion(torch.__version__) > LooseVersion("1.6.0"):
+    if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
         with mock.patch("torch.cuda.amp.autocast") as mock_torch_cuda_amp_module:
             _test_create_evaluation_step_amp(mock_torch_cuda_amp_module)
 
@@ -472,7 +472,7 @@ def test_create_supervised_evaluator_on_cpu():
     _test_mocked_supervised_evaluator(evaluator_device="cpu")
 
     # older versions didn't have the autocast method so we skip the test for older builds
-    if LooseVersion(torch.__version__) > LooseVersion("1.6.0"):
+    if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
         with mock.patch("torch.cuda.amp.autocast") as mock_torch_cuda_amp_module:
             _test_create_evaluation_step(mock_torch_cuda_amp_module, evaluator_device="cpu")
             _test_create_evaluation_step_amp(mock_torch_cuda_amp_module, evaluator_device="cpu")
@@ -483,7 +483,7 @@ def test_create_supervised_evaluator_traced_on_cpu():
     _test_mocked_supervised_evaluator(evaluator_device="cpu", trace=True)
 
     # older versions didn't have the autocast method so we skip the test for older builds
-    if LooseVersion(torch.__version__) > LooseVersion("1.6.0"):
+    if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
         with mock.patch("torch.cuda.amp.autocast") as mock_torch_cuda_amp_module:
             _test_create_evaluation_step(mock_torch_cuda_amp_module, evaluator_device="cpu", trace=True)
 
