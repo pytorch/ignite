@@ -90,7 +90,7 @@ def _test_ssim(y_pred, y, data_range, kernel_size, sigma, gaussian, use_sample_c
     assert isinstance(ignite_ssim, torch.Tensor)
     assert ignite_ssim.dtype == torch.float64
     assert ignite_ssim.device == torch.device(device)
-    assert np.allclose(ignite_ssim.numpy(), skimg_ssim, atol=atol)
+    assert np.allclose(ignite_ssim.cpu().numpy(), skimg_ssim, atol=atol)
 
 
 def test_ssim():
