@@ -66,7 +66,7 @@ jobs:
     runs-on: ubuntu-latest
     # https://docs.github.com/en/actions/reference/context-and-expression-syntax-for-github-actions#needs-context
     needs: build
-    if: always() && needs.build.result != 'success'
+    if: always() && needs.build.result == 'failure'
     steps:
       - uses: actions/checkout@v2
       - uses: JasonEtco/create-an-issue@v2
