@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from collections import Counter, namedtuple
+from collections import namedtuple
 from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple, Union
 
 import torch
@@ -9,53 +9,9 @@ from ignite.metrics import Metric
 
 # These decorators helps with distributed settings
 from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
+from ignite.metrics.nlp.utils import lcs, ngrams
 
-
-def ngrams(sequence: Sequence[Any], n: int) -> Counter:
-    """
-    Generate the ngrams from a sequence of items
-
-    Args:
-        sequence: sequence of items
-        n: ngram order
-
-    Returns:
-        A counter of ngram objects
-
-    .. versionadded:: 0.5.0
-    """
-    return Counter([tuple(sequence[i : i + n]) for i in range(len(sequence) - n + 1)])
-
-
-def lcs(seq_a: Sequence[Any], seq_b: Sequence[Any]) -> int:
-    """
-    Compute the length of the longest common subsequence in two sequence of items
-    https://en.wikipedia.org/wiki/Longest_common_subsequence_problem
-
-    Args:
-        seq_a: first sequence of items
-        seq_b: second sequence of items
-
-    Returns:
-        The length of the longest common subsequence
-
-    .. versionadded:: 0.5.0
-    """
-    m = len(seq_a)
-    n = len(seq_b)
-
-    dp = [[0] * (n + 1) for _ in range(m + 1)]
-
-    for i in range(m + 1):
-        for j in range(n + 1):
-            if i == 0 or j == 0:
-                dp[i][j] = 0
-            elif seq_a[i - 1] == seq_b[j - 1]:
-                dp[i][j] = dp[i - 1][j - 1] + 1
-            else:
-                dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])
-
-    return dp[m][n]
+__all__ = ["Rouge", "RougeN", "RougeL"]
 
 
 class Score(namedtuple("Score", ["match", "candidate", "reference"])):
@@ -183,10 +139,7 @@ class _BaseRouge(Metric):
     def _get_multiref_reducer(self) -> MultiRefReducer:
         if self._multiref == "average":
             return MultiRefAverageReducer()
-        elif self._multiref == "best":
-            return MultiRefBestReducer()
-        else:
-            raise ValueError(f"multiref : wrong value (got : {self._multiref})")
+        return MultiRefBestReducer()
 
     @reinit__is_reduced
     def reset(self) -> None:
@@ -289,7 +242,7 @@ class RougeN(_BaseRouge):
         super(RougeN, self).__init__(multiref=multiref, alpha=alpha, output_transform=output_transform, device=device)
         self._ngram = ngram
         if self._ngram < 1:
-            raise ValueError(f"ngram order must be greater than one (got : {self._ngram})")
+            raise ValueError(f"ngram order must be greater than zero (got : {self._ngram})")
 
     def _compute_score(self, candidate: Sequence[Any], reference: Sequence[Any]) -> Score:
         return compute_ngram_scores(candidate=candidate, reference=reference, n=self._ngram)

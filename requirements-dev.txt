@@ -15,7 +15,7 @@ polyaxon
 polyaxon-client
 wandb
 mlflow
-neptune-client
+neptune-client==0.5.2
 tensorboard
 pynvml
 clearml

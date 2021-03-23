@@ -36,7 +36,7 @@ class GpuInfo(Metric):
 
     def __init__(self) -> None:
         try:
-            import pynvml
+            from pynvml.smi import nvidia_smi
         except ImportError:
             raise RuntimeError(
                 "This contrib module requires pynvml to be installed. "
@@ -45,8 +45,6 @@ class GpuInfo(Metric):
             # Let's check available devices
         if not torch.cuda.is_available():
             raise RuntimeError("This contrib module requires available GPU")
-
-        from pynvml.smi import nvidia_smi
 
         # Let it fail if no libnvidia drivers or NMVL library found
         self.nvsmi = nvidia_smi.getInstance()
