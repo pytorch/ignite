@@ -6,16 +6,17 @@ on:
       - "tests/ignite/**"
       - "tests/run_cpu_tests.sh"
       - "examples/**.py"
-      - ".github/workflows/unit-tests.yml"
       - "requirements-dev.txt"
+      - ".github/workflows/unit-tests.yml"
+
   pull_request:
     paths:
       - "ignite/**"
       - "tests/ignite/**"
       - "tests/run_cpu_tests.sh"
       - "examples/**.py"
-      - ".github/workflows/unit-tests.yml"
       - "requirements-dev.txt"
+      - ".github/workflows/unit-tests.yml"
 
 jobs:
   build:
