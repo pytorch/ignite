@@ -460,35 +460,32 @@ def test_create_supervised_trainer_on_cuda_with_model_on_cpu():
 def test_create_supervised_evaluator():
     _test_create_supervised_evaluator()
     _test_mocked_supervised_evaluator()
-    try:
-        # older versions didn't have the autocast method so we skip the test
+
+    # older versions didn't have the autocast method so we skip the test for older builds
+    if LooseVersion(torch.__version__) > LooseVersion("1.6.0"):
         with mock.patch("torch.cuda.amp.autocast") as mock_torch_cuda_amp_module:
             _test_create_evaluation_step_amp(mock_torch_cuda_amp_module)
-    except AttributeError:
-        pass
 
 
 def test_create_supervised_evaluator_on_cpu():
     _test_create_supervised_evaluator(evaluator_device="cpu")
     _test_mocked_supervised_evaluator(evaluator_device="cpu")
-    try:
-        # older versions didn't have the autocast method so we skip the test
+
+    # older versions didn't have the autocast method so we skip the test for older builds
+    if LooseVersion(torch.__version__) > LooseVersion("1.6.0"):
         with mock.patch("torch.cuda.amp.autocast") as mock_torch_cuda_amp_module:
             _test_create_evaluation_step(mock_torch_cuda_amp_module, evaluator_device="cpu")
             _test_create_evaluation_step_amp(mock_torch_cuda_amp_module, evaluator_device="cpu")
-    except AttributeError:
-        pass
 
 
 def test_create_supervised_evaluator_traced_on_cpu():
     _test_create_supervised_evaluator(evaluator_device="cpu", trace=True)
     _test_mocked_supervised_evaluator(evaluator_device="cpu", trace=True)
-    try:
-        # older versions didn't have the autocast method so we skip the test
+
+    # older versions didn't have the autocast method so we skip the test for older builds
+    if LooseVersion(torch.__version__) > LooseVersion("1.6.0"):
         with mock.patch("torch.cuda.amp.autocast") as mock_torch_cuda_amp_module:
             _test_create_evaluation_step(mock_torch_cuda_amp_module, evaluator_device="cpu", trace=True)
-    except AttributeError:
-        pass
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
