@@ -27,10 +27,11 @@ def no_site_packages():
 
 
 @pytest.mark.skipif(python_below_36, reason="No pynvml for python < 3.6")
-def test_no_pynvml_package(no_site_packages):
+def test_no_pynvml_package():
 
-    with pytest.raises(RuntimeError, match="This contrib module requires pynvml to be installed."):
-        GpuInfo()
+    with patch.dict("sys.modules", {"pynvml.smi": None}):
+        with pytest.raises(RuntimeError, match="This contrib module requires pynvml to be installed."):
+            GpuInfo()
 
 
 @pytest.mark.skipif(python_below_36 or torch.cuda.is_available(), reason="No pynvml for python < 3.6")
