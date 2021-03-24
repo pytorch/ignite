@@ -3,7 +3,7 @@ from distutils.version import LooseVersion
 from importlib.util import find_spec
 from typing import Optional, Union
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import torch
@@ -14,9 +14,12 @@ from torch.optim import SGD
 
 import ignite.distributed as idist
 from ignite.engine import (
+    Engine,
     _check_arg,
     create_supervised_evaluator,
     create_supervised_trainer,
+    supervised_evaluation_step,
+    supervised_evaluation_step_amp,
     supervised_training_step_tpu,
 )
 from ignite.metrics import MeanSquaredError
@@ -82,6 +85,28 @@ def _test_create_supervised_trainer(
             # This is broken in 1.6.0 but will be probably fixed with 1.7.0
             with pytest.raises(RuntimeError, match=r"is on CPU, but expected them to be on GPU"):
                 trainer.run(data)
+
+
+def test_create_supervised_training_scalar_assignment():
+    model = Linear(1, 1)
+
+    model.weight.data.zero_()
+    model.bias.data.zero_()
+    optimizer = SGD(model.parameters(), 0.1)
+
+    with mock.patch("ignite.engine._check_arg") as check_arg_mock:
+        check_arg_mock.return_value = None, torch.cuda.amp.GradScaler(enabled=True)
+        trainer = create_supervised_trainer(
+            model,
+            optimizer,
+            mse_loss,
+            device="cpu",
+            output_transform=lambda x, y, y_pred, loss: (y_pred, loss.item()),
+            amp_mode=None,
+            scaler=True,
+        )
+        assert hasattr(trainer.state, "scaler")
+        assert isinstance(trainer.state.scaler, torch.cuda.amp.GradScaler)
 
 
 def _test_create_mocked_supervised_trainer(
@@ -227,6 +252,79 @@ def _test_mocked_supervised_evaluator(
                     assert not evaluation_step_amp.called
 
 
+def _test_create_evaluation_step_amp(
+    autocast_mock,
+    model_device: Optional[str] = None,
+    evaluator_device: Optional[str] = None,
+    trace: bool = False,
+    amp_mode: str = None,
+):
+
+    output_transform_mock = MagicMock()
+    model = Linear(1, 1)
+
+    if model_device:
+        model.to(model_device)
+
+    model.weight.data.zero_()
+    model.bias.data.zero_()
+
+    if trace:
+        example_input = torch.randn(1, 1)
+        model = torch.jit.trace(model, example_input)
+
+    device_type = evaluator_device.type if isinstance(evaluator_device, torch.device) else evaluator_device
+    on_tpu = "xla" in device_type if device_type is not None else False
+    mode, _ = _check_arg(on_tpu, amp_mode, None)
+
+    evaluate_step = supervised_evaluation_step_amp(model, evaluator_device, output_transform=output_transform_mock)
+
+    x = torch.tensor([[1.0], [2.0]])
+    y = torch.tensor([[3.0], [5.0]])
+    data = [(x, y)]
+    evaluator = Engine(evaluate_step)
+
+    evaluator.run(data)
+    assert autocast_mock.called
+    assert output_transform_mock.called
+
+
+def _test_create_evaluation_step(
+    mock_torch_cuda_amp_module,
+    model_device: Optional[str] = None,
+    evaluator_device: Optional[str] = None,
+    trace: bool = False,
+    amp_mode: str = None,
+):
+    output_transform_mock = MagicMock()
+    model = Linear(1, 1)
+
+    if model_device:
+        model.to(model_device)
+
+    model.weight.data.zero_()
+    model.bias.data.zero_()
+
+    if trace:
+        example_input = torch.randn(1, 1)
+        model = torch.jit.trace(model, example_input)
+
+    device_type = evaluator_device.type if isinstance(evaluator_device, torch.device) else evaluator_device
+    on_tpu = "xla" in device_type if device_type is not None else False
+    mode, _ = _check_arg(on_tpu, amp_mode, None)
+
+    evaluate_step = supervised_evaluation_step(model, evaluator_device, output_transform=output_transform_mock)
+
+    x = torch.tensor([[1.0], [2.0]])
+    y = torch.tensor([[3.0], [5.0]])
+    data = [(x, y)]
+    evaluator = Engine(evaluate_step)
+
+    evaluator.run(data)
+    assert not mock_torch_cuda_amp_module.called
+    assert output_transform_mock.called
+
+
 def test_create_supervised_trainer():
     _test_create_supervised_trainer()
     _test_create_mocked_supervised_trainer()
@@ -363,15 +461,31 @@ def test_create_supervised_evaluator():
     _test_create_supervised_evaluator()
     _test_mocked_supervised_evaluator()
 
+    # older versions didn't have the autocast method so we skip the test for older builds
+    if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+        with mock.patch("torch.cuda.amp.autocast") as mock_torch_cuda_amp_module:
+            _test_create_evaluation_step_amp(mock_torch_cuda_amp_module)
+
 
 def test_create_supervised_evaluator_on_cpu():
     _test_create_supervised_evaluator(evaluator_device="cpu")
     _test_mocked_supervised_evaluator(evaluator_device="cpu")
 
+    # older versions didn't have the autocast method so we skip the test for older builds
+    if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+        with mock.patch("torch.cuda.amp.autocast") as mock_torch_cuda_amp_module:
+            _test_create_evaluation_step(mock_torch_cuda_amp_module, evaluator_device="cpu")
+            _test_create_evaluation_step_amp(mock_torch_cuda_amp_module, evaluator_device="cpu")
+
 
 def test_create_supervised_evaluator_traced_on_cpu():
     _test_create_supervised_evaluator(evaluator_device="cpu", trace=True)
     _test_mocked_supervised_evaluator(evaluator_device="cpu", trace=True)
+
+    # older versions didn't have the autocast method so we skip the test for older builds
+    if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+        with mock.patch("torch.cuda.amp.autocast") as mock_torch_cuda_amp_module:
+            _test_create_evaluation_step(mock_torch_cuda_amp_module, evaluator_device="cpu", trace=True)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")

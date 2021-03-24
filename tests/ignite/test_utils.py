@@ -223,4 +223,4 @@ def test_deprecated():
 
 
 def test_smoke__utils():
-    from ignite._utils import apply_to_tensor, apply_to_type, convert_tensor, to_onehot
+    from ignite._utils import apply_to_tensor, apply_to_type, convert_tensor, to_onehot  # noqa: F401

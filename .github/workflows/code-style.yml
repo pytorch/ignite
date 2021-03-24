@@ -2,29 +2,36 @@ name: Format python code
 
 on:
   push:
-    paths-ignore:
-      - "assets/**"
-      - ".circleci/**"
-      - "docker/**"
-      - "docs/**"
-      - "conda.recipe"
-      - "**.md"
-  #   pull_request:
-  #     paths-ignore:
-  #       - "assets/**"
-  #       - ".circleci/**"
-  #       - "docker/**"
-  #       - "docs/**"
-  #       - "conda.recipe"
-  #       - "**.md"
+    paths:
+      - "**.py"
+      - "setup.cfg"
+      - "requirements-dev.txt"
+      - "pyproject.toml"
+      - "tests/run_code_style.sh"
+      - ".github/workflows/code-style.yml"
+      - "!assets/**"
+      - "!.circleci/**"
+      - "!docker/**"
+      - "!docs/**"
+      - "!conda.recipe"
+
+  # pull_request:
+  #     paths:
+
   pull_request_target:
-    paths-ignore:
-      - "assets/**"
-      - ".circleci/**"
-      - "docker/**"
-      - "docs/**"
-      - "conda.recipe"
-      - "**.md"
+    paths:
+      - "**.py"
+      - "setup.cfg"
+      - "requirements-dev.txt"
+      - "pyproject.toml"
+      - "tests/run_code_style.sh"
+      - ".github/workflows/code-style.yml"
+      - "!assets/**"
+      - "!.circleci/**"
+      - "!docker/**"
+      - "!docs/**"
+      - "!conda.recipe"
+
 
 jobs:
   code-style:
