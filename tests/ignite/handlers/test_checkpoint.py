@@ -1581,18 +1581,4 @@ def test_get_default_score_fn():
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
 @pytest.mark.skipif(not idist.has_xla_support, reason="Not on TPU device")
 def test_save_xla_for_disk_saver(dirname):
-    model = DummyModel()
-    to_save_serializable = {"model": model}
-    to_save_non_serializable = {"model": lambda x: x}
-
-    def _test_existance(atomic, _to_save):
-        try:
-            with mock.patch("ignite.handlers.checkpoint._save_func") as _save_func_mock:
-                saver = DiskSaver(dirname, atomic=atomic, create_dir=False, require_empty=False)
-                fname = "test.pt"
-                saver(_to_save, fname)
-                assert _save_func_mock.called
-        except ModuleNotFoundError:
-            pass
-        _test_existance(atomic=False, _to_save=to_save_serializable)
-        _test_existance(atomic=True, _to_save=to_save_non_serializable)
+    test_disk_saver_atomic(dirname)
