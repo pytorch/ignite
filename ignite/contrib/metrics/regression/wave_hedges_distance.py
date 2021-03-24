@@ -3,6 +3,7 @@ from typing import Tuple
 import torch
 
 from ignite.contrib.metrics.regression._base import _BaseRegression
+from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
 
 class WaveHedgesDistance(_BaseRegression):
@@ -31,15 +32,20 @@ class WaveHedgesDistance(_BaseRegression):
         device: specifies which device updates are accumulated on. Setting the
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
+
+    .. versionchanged:: 0.5.0
+        - Works with DDP.
     """
 
+    @reinit__is_reduced
     def reset(self) -> None:
-        self._sum_of_errors = 0.0
+        self._sum_of_errors = torch.tensor(0.0, device=self._device)
 
     def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
-        y_pred, y = output
+        y_pred, y = output[0].detach(), output[1].detach()
         errors = torch.abs(y.view_as(y_pred) - y_pred) / torch.max(y_pred, y.view_as(y_pred))
-        self._sum_of_errors += torch.sum(errors).item()
+        self._sum_of_errors += torch.sum(errors).to(self._device)
 
+    @sync_all_reduce("_sum_of_errors")
     def compute(self) -> float:
-        return self._sum_of_errors
+        return self._sum_of_errors.item()
