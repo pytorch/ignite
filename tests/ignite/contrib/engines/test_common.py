@@ -26,7 +26,7 @@ from ignite.contrib.engines.common import (
     setup_wandb_logging,
 )
 from ignite.engine import Engine, Events
-from ignite.handlers import DiskSaver, TerminateOnNan, terminate_on_nan
+from ignite.handlers import DiskSaver, TerminateOnNan
 
 
 class DummyModel(nn.Module):
