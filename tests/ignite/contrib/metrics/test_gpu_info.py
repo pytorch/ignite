@@ -1,4 +1,3 @@
-import sys
 from unittest.mock import Mock, patch
 
 import pytest
@@ -7,26 +6,7 @@ import torch
 from ignite.contrib.metrics import GpuInfo
 from ignite.engine import Engine, State
 
-python_below_36 = (sys.version[0] == "3" and int(sys.version[2]) < 6) or int(sys.version[0]) < 2
 
-
-@pytest.fixture
-def no_site_packages():
-    import sys
-
-    import pynvml  # noqa: F401
-
-    assert "pynvml" in sys.modules
-    pynvml_module = sys.modules["pynvml"]
-    del sys.modules["pynvml"]
-    prev_path = list(sys.path)
-    sys.path = [p for p in sys.path if "site-packages" not in p]
-    yield "no_site_packages"
-    sys.path = prev_path
-    sys.modules["pynvml"] = pynvml_module
-
-
-@pytest.mark.skipif(python_below_36, reason="No pynvml for python < 3.6")
 def test_no_pynvml_package():
 
     with patch.dict("sys.modules", {"pynvml.smi": None}):
@@ -34,7 +14,6 @@ def test_no_pynvml_package():
             GpuInfo()
 
 
-@pytest.mark.skipif(python_below_36 or torch.cuda.is_available(), reason="No pynvml for python < 3.6")
 def test_no_gpu():
 
     with pytest.raises(RuntimeError, match="This contrib module requires available GPU"):
@@ -80,7 +59,6 @@ def _test_gpu_info(device="cpu"):
         assert "gpu:0 util(%)" not in engine.state.metrics
 
 
-@pytest.mark.skipif(python_below_36 or not (torch.cuda.is_available()), reason="No pynvml for python < 3.6 and no GPU")
 def test_gpu_info_on_cuda():
     _test_gpu_info(device="cuda")
 
