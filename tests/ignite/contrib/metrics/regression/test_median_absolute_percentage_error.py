@@ -138,7 +138,6 @@ def _test_distrib_compute(device):
 
         np_res_prepend = 100.0 * np.median(e_prepend)
 
-
         # The results between numpy.median() and torch.median() are Inconsistant
         # when the length of the array/tensor is even. So this is a hack to avoid that.
         # issue: https://github.com/pytorch/pytorch/issues/1837
