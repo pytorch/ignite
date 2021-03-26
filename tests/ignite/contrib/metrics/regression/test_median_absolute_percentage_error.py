@@ -131,9 +131,15 @@ def _test_distrib_compute(device):
 
         res = m.compute()
 
+        e = torch.abs(y - y_pred) / torch.abs(y)
+        np_res_like_torch = 100.0 * np.median(e.cpu().numpy())
+
         np_res = 100.0 * np.median(np.abs(np_y - np_y_pred) / np.abs(np_y))
 
-        assert np_res == pytest.approx(res)
+        # The results between numpy.median() and torch.median() are Inconsistant
+        # when the length of the array/tensor is even. So this is a hack to avoid that.
+        # issue: https://github.com/pytorch/pytorch/issues/1837
+        assert pytest.approx(res) in (np_res, np_res_like_torch)
 
     for _ in range(3):
         _test("cpu")
@@ -176,7 +182,13 @@ def _test_distrib_integration(device):
 
         np_res = 100.0 * np.median(np.abs(np_y_true - np_y_preds) / np.abs(np_y_true))
 
-        assert pytest.approx(res) == np_res
+        e = torch.abs(y_true - y_preds) / torch.abs(y_true)
+        np_res_like_torch = 100.0 * np.median(e.cpu().numpy())
+
+        # The results between numpy.median() and torch.median() are Inconsistant
+        # when the length of the array/tensor is even. So this is a hack to avoid that.
+        # issue: https://github.com/pytorch/pytorch/issues/1837
+        assert pytest.approx(res) in (np_res, np_res_like_torch)
 
     metric_devices = ["cpu"]
     if device.type != "xla":
