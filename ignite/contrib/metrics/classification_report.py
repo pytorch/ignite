@@ -17,7 +17,8 @@ class ClassificationReport(EpochMetric):
             you want to compute the metric with respect to one of the outputs.
         labels: optional list of label indices to include in the report
         check_compute_fn: Default False. If True, `classification-report
-            <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.classification-report.html>`_
+            <https://scikit-learn.org/stable/modules/generated
+            /sklearn.metrics.classification_report.html#sklearn.metrics.classification_report>`_
             is run on the first batch of data to ensure there are
             no issues. User will be warned in case there are any issues computing the function.
         output_dict: Default False. If True, the result is a dict, otherwise is a str
