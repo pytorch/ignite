@@ -135,7 +135,7 @@ def _test_distrib_compute(device):
         np_res = 100.0 * np.median(e)
 
         e_prepend = np.insert(e, 0, e[0], axis=0)
-        np_res_prepend = 100.0 * np.median(e)
+        np_res_prepend = 100.0 * np.median(e_prepend)
 
         # The results between numpy.median() and torch.median() are Inconsistant
         # when the length of the array/tensor is even. So this is a hack to avoid that.
@@ -185,7 +185,7 @@ def _test_distrib_integration(device):
         np_res = 100.0 * np.median(e)
 
         e_prepend = np.insert(e, 0, e[0], axis=0)
-        np_res_prepend = 100.0 * np.median(e)
+        np_res_prepend = 100.0 * np.median(e_prepend)
 
         # The results between numpy.median() and torch.median() are Inconsistant
         # when the length of the array/tensor is even. So this is a hack to avoid that.
