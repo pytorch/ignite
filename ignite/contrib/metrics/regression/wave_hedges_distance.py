@@ -43,7 +43,7 @@ class WaveHedgesDistance(_BaseRegression):
 
     def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output[0].detach(), output[1].detach()
-        errors = torch.abs(y.view_as(y_pred) - y_pred) / torch.max(y_pred, y.view_as(y_pred))
+        errors = torch.abs(y.view_as(y_pred) - y_pred) / (torch.max(y_pred, y.view_as(y_pred)) + 1e-30)
         self._sum_of_errors += torch.sum(errors).to(self._device)
 
     @sync_all_reduce("_sum_of_errors")

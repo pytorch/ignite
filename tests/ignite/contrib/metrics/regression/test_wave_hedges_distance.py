@@ -16,7 +16,7 @@ def test_wrong_input_shapes():
         m.update((torch.rand(4), torch.rand(4, 1)))
 
     with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
-        m.update((torch.rand(4, 1), torch.rand(4,)))
+        m.update((torch.rand(4, 1), torch.rand(4,),))
 
 
 def test_compute():
@@ -84,7 +84,7 @@ def test_integration():
             _test(y_pred, y, batch_size)
 
 
-def _test_distrib_compute(device):
+def _test_distrib_compute(device, tol=1e-5):
     rank = idist.get_rank()
 
     def _test(metric_device):
@@ -106,9 +106,9 @@ def _test_distrib_compute(device):
 
         res = m.compute()
 
-        np_sum = (np.abs(np_y - np_y_pred) / np.maximum.reduce([np_y_pred, np_y])).sum()
+        np_sum = (np.abs(np_y - np_y_pred) / (np.maximum.reduce([np_y_pred, np_y]) + 1e-30)).sum()
 
-        assert np_sum == pytest.approx(res)
+        assert np_sum == pytest.approx(res, rel=tol)
 
     for _ in range(3):
         _test("cpu")
@@ -116,7 +116,7 @@ def _test_distrib_compute(device):
             _test(idist.device())
 
 
-def _test_distrib_integration(device):
+def _test_distrib_integration(device, tol=1e-5):
 
     rank = idist.get_rank()
     torch.manual_seed(12)
@@ -152,9 +152,9 @@ def _test_distrib_integration(device):
         np_y_true = y_true.cpu().numpy()
         np_y_preds = y_preds.cpu().numpy()
 
-        np_sum = (np.abs(np_y_true - np_y_preds) / np.maximum.reduce([np_y_preds, np_y_true])).sum()
+        np_sum = (np.abs(np_y_true - np_y_preds) / (np.maximum.reduce([np_y_preds, np_y_true]) + 1e-30)).sum()
 
-        assert pytest.approx(res) == np_sum
+        assert pytest.approx(res, rel=tol) == np_sum
 
     metric_devices = ["cpu"]
     if device.type != "xla":
@@ -218,14 +218,14 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_distrib_single_device_xla():
     device = idist.device()
-    _test_distrib_compute(device)
-    _test_distrib_integration(device)
+    _test_distrib_compute(device, tol=1e-4)
+    _test_distrib_integration(device, tol=1e-4)
 
 
 def _test_distrib_xla_nprocs(index):
     device = idist.device()
-    _test_distrib_compute(device)
-    _test_distrib_integration(device)
+    _test_distrib_compute(device, tol=1e-4)
+    _test_distrib_integration(device, tol=1e-4)
 
 
 @pytest.mark.tpu
