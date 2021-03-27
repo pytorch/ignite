@@ -130,9 +130,19 @@ def _test_distrib_compute(device):
 
         res = m.compute()
 
-        np_median_absolute_error = np.median(np.abs(np_y - np_y_pred))
+        e = np.abs(np_y - np_y_pred)
+        np_res = np.median(e)
 
-        assert np_median_absolute_error == pytest.approx(res)
+        e_prepend = np.insert(e, 0, e[0], axis=0)
+        np_res_prepend = np.median(e_prepend)
+
+        # The results between numpy.median() and torch.median() are Inconsistant
+        # when the length of the array/tensor is even. So this is a hack to avoid that.
+        # issue: https://github.com/pytorch/pytorch/issues/1837
+        if np_y_pred.shape[0] % 2 == 0:
+            assert pytest.approx(res) == np_res_prepend
+        else:
+            assert pytest.approx(res) == np_res
 
     for _ in range(3):
         _test("cpu")
@@ -170,12 +180,22 @@ def _test_distrib_integration(device):
 
         res = engine.state.metrics["mae"]
 
-        np_y_true = y_true.cpu().numpy()
-        np_y_preds = y_preds.cpu().numpy()
+        np_y_true = y_true.cpu().numpy().ravel()
+        np_y_preds = y_preds.cpu().numpy().ravel()
 
-        np_median_absolute_error = np.median(np.abs(np_y_true - np_y_preds))
+        e = np.abs(np_y_true - np_y_preds)
+        np_res = np.median(e)
 
-        assert pytest.approx(res) == np_median_absolute_error
+        e_prepend = np.insert(e, 0, e[0], axis=0)
+        np_res_prepend = np.median(e_prepend)
+
+        # The results between numpy.median() and torch.median() are Inconsistant
+        # when the length of the array/tensor is even. So this is a hack to avoid that.
+        # issue: https://github.com/pytorch/pytorch/issues/1837
+        if np_y_preds.shape[0] % 2 == 0:
+            assert pytest.approx(res) == np_res_prepend
+        else:
+            assert pytest.approx(res) == np_res
 
     metric_devices = ["cpu"]
     if device.type != "xla":
