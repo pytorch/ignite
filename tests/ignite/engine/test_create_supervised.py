@@ -87,6 +87,7 @@ def _test_create_supervised_trainer(
                 trainer.run(data)
 
 
+@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0")
 def test_create_supervised_training_scalar_assignment():
     model = Linear(1, 1)
 

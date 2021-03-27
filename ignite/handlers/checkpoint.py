@@ -1,7 +1,7 @@
 import collections.abc as collections
 import numbers
 import os
-import shutil
+import stat
 import tempfile
 import warnings
 from abc import ABCMeta, abstractmethod
@@ -709,7 +709,9 @@ class DiskSaver(BaseSaveHandler):
             else:
                 if tmp is not None:
                     tmp.close()
-                    shutil.move(tmp.name, path)
+                    os.replace(tmp.name, path)
+                    # append group/others read mode
+                    os.chmod(path, os.stat(path).st_mode | stat.S_IRGRP | stat.S_IROTH)
 
     @idist.one_rank_only()
     def remove(self, filename: str) -> None:

@@ -126,14 +126,24 @@ def _test_distrib_compute(device):
         y_pred = idist.all_gather(y_pred)
         y = idist.all_gather(y)
 
-        np_y_pred = y_pred.cpu().numpy()
-        np_y = y.cpu().numpy()
+        np_y_pred = y_pred.cpu().numpy().ravel()
+        np_y = y.cpu().numpy().ravel()
 
         res = m.compute()
 
-        np_res = 100.0 * np.median(np.abs(np_y - np_y_pred) / np.abs(np_y))
+        e = np.abs(np_y - np_y_pred) / np.abs(np_y)
+        np_res = 100.0 * np.median(e)
 
-        assert np_res == pytest.approx(res)
+        e_prepend = np.insert(e, 0, e[0], axis=0)
+        np_res_prepend = 100.0 * np.median(e_prepend)
+
+        # The results between numpy.median() and torch.median() are Inconsistant
+        # when the length of the array/tensor is even. So this is a hack to avoid that.
+        # issue: https://github.com/pytorch/pytorch/issues/1837
+        if np_y_pred.shape[0] % 2 == 0:
+            assert pytest.approx(res) == np_res_prepend
+        else:
+            assert pytest.approx(res) == np_res
 
     for _ in range(3):
         _test("cpu")
@@ -171,12 +181,22 @@ def _test_distrib_integration(device):
 
         res = engine.state.metrics["mape"]
 
-        np_y_true = y_true.cpu().numpy()
-        np_y_preds = y_preds.cpu().numpy()
+        np_y_true = y_true.cpu().numpy().ravel()
+        np_y_preds = y_preds.cpu().numpy().ravel()
 
-        np_res = 100.0 * np.median(np.abs(np_y_true - np_y_preds) / np.abs(np_y_true))
+        e = np.abs(np_y_true - np_y_preds) / np.abs(np_y_true)
+        np_res = 100.0 * np.median(e)
 
-        assert pytest.approx(res) == np_res
+        e_prepend = np.insert(e, 0, e[0], axis=0)
+        np_res_prepend = 100.0 * np.median(e_prepend)
+
+        # The results between numpy.median() and torch.median() are Inconsistant
+        # when the length of the array/tensor is even. So this is a hack to avoid that.
+        # issue: https://github.com/pytorch/pytorch/issues/1837
+        if np_y_preds.shape[0] % 2 == 0:
+            assert pytest.approx(res) == np_res_prepend
+        else:
+            assert pytest.approx(res) == np_res
 
     metric_devices = ["cpu"]
     if device.type != "xla":
