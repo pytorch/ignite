@@ -76,7 +76,7 @@ jobs:
   build-hvd-apex:
     name: Build all Horovod + Apex flavoured PyTorch-Ignite images
     needs: setup
-    if: contains(needs.setup.outputs.modified, 'hvd/')
+    if: contains(needs.setup.outputs.modified, 'hvd/') || contains(needs.setup.outputs.modified, 'docker.cfg')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -110,11 +110,11 @@ jobs:
       - name: List all
         run: |
           docker images | grep pytorchignite
-  
+
   build-main:
     name: Build all PyTorch-Ignite images
     needs: setup
-    if: contains(needs.setup.outputs.modified, 'main/')
+    if: contains(needs.setup.outputs.modified, 'main/') || contains(needs.setup.outputs.modified, 'docker.cfg')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -145,11 +145,11 @@ jobs:
       - name: List all
         run: |
           docker images | grep pytorchignite
-  
+
   build-main-apex:
     name: Build all PyTorch-Ignite images with Apex
     needs: setup
-    if: contains(needs.setup.outputs.modified, 'main/')
+    if: contains(needs.setup.outputs.modified, 'main/') || contains(needs.setup.outputs.modified, 'docker.cfg')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -180,11 +180,11 @@ jobs:
       - name: List all
         run: |
           docker images | grep pytorchignite
-  
+
   build-msdp-apex:
     name: Build all MS DeepSpeed flavoured PyTorch-Ignite images
     needs: setup
-    if: contains(needs.setup.outputs.modified, 'msdp/')
+    if: contains(needs.setup.outputs.modified, 'msdp/') || contains(needs.setup.outputs.modified, 'docker.cfg')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
