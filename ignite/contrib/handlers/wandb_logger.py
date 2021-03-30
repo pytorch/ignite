@@ -80,9 +80,10 @@ class WandBLogger(BaseLogger):
                 optimizer=optimizer,
                 param_name='lr'  # optional
             )
+
             # We need to close the logger when we are done
             wandb_logger.close()
-            
+
         If you want to log model gradients, the model call graph, etc., use the logger as wrapper of wandb. Refer
         to the documentation of wandb.watch for details:
 
