@@ -16,7 +16,7 @@ def test_wrong_input_shapes():
         m.update((torch.rand(4), torch.rand(4, 1)))
 
     with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
-        m.update((torch.rand(4, 1), torch.rand(4,),))
+        m.update((torch.rand(4, 1), torch.rand(4,)))
 
 
 def test_compute():
@@ -218,14 +218,14 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_distrib_single_device_xla():
     device = idist.device()
-    _test_distrib_compute(device, tol=1e-4)
-    _test_distrib_integration(device, tol=1e-4)
+    _test_distrib_compute(device)
+    _test_distrib_integration(device)
 
 
 def _test_distrib_xla_nprocs(index):
     device = idist.device()
-    _test_distrib_compute(device, tol=1e-4)
-    _test_distrib_integration(device, tol=1e-4)
+    _test_distrib_compute(device)
+    _test_distrib_integration(device)
 
 
 @pytest.mark.tpu
