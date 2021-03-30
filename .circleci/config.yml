@@ -18,15 +18,6 @@ parameters:
   should_publish_docker_images:
     type: boolean
     default: false
-  build_docker_image_pytorch_version:
-    type: string
-    default: "1.8.1-cuda11.1-cudnn8"
-  build_docker_image_hvd_version:
-    type: string
-    default: "v0.21.3"
-  build_docker_image_msdp_version:
-    type: string
-    default: "v0.3.10"
 
 # -------------------------------------------------------------------------------------
 # Environments to run the jobs in
@@ -382,8 +373,8 @@ jobs:
           name: Build all Horovod flavoured PyTorch-Ignite images
           command: |
             cd docker
-            export PTH_VERSION=<< pipeline.parameters.build_docker_image_pytorch_version >>
-            export HVD_VERSION=<< pipeline.parameters.build_docker_image_hvd_version >>
+            export PTH_VERSION=`python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_pytorch_version'))"`
+            export HVD_VERSION=`python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_hvd_version'))"`
             bash build.sh hvd hvd-base
             bash build.sh hvd hvd-vision
             bash build.sh hvd hvd-nlp
@@ -395,7 +386,7 @@ jobs:
           name: Build all PyTorch-Ignite images
           command: |
             cd docker
-            export PTH_VERSION=<< pipeline.parameters.build_docker_image_pytorch_version >>
+            export PTH_VERSION=`python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_pytorch_version'))"`
             bash build.sh main base
             bash build.sh main vision
             bash build.sh main nlp
@@ -407,8 +398,8 @@ jobs:
           name: Build all MS DeepSpeed flavoured PyTorch-Ignite images
           command: |
             cd docker
-            export PTH_VERSION=<< pipeline.parameters.build_docker_image_pytorch_version >>
-            export MSDP_VERSION=<< pipeline.parameters.build_docker_image_msdp_version >>
+            export PTH_VERSION=`python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_pytorch_version'))"`
+            export MSDP_VERSION=`python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_msdp_version'))"`
             bash build.sh msdp msdp-apex
             bash build.sh msdp msdp-apex-vision
             bash build.sh msdp msdp-apex-nlp
