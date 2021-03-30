@@ -113,7 +113,7 @@ class PolyaxonLogger(BaseLogger):
                     "For Polyaxon v0.x please install it with command: \n pip install polyaxon-client"
                 )
 
-    def close(self):
+    def close(self) -> None:
         pass
 
     def __getattr__(self, attr: Any) -> Any:
