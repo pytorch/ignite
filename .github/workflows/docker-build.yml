@@ -40,6 +40,9 @@ jobs:
     needs: setup
     if: contains(needs.setup.outputs.modified, 'hvd/') || contains(needs.setup.outputs.modified, 'docker.cfg')
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        flavour: [hvd-vision, hvd-nlp]
     steps:
       - uses: actions/checkout@v2
       - name: Remove cache
@@ -57,18 +60,12 @@ jobs:
           export HVD_VERSION=${{ needs.setup.outputs.hvd_version }}
           docker system prune -a -f
           bash build.sh hvd hvd-base
-      - name: Build hvd hvd-vision
+      - name: "Build hvd ${{ matrix.flavour }}"
         working-directory: docker
         run: |
           export PTH_VERSION=${{ needs.setup.outputs.pth_version }}
           export HVD_VERSION=${{ needs.setup.outputs.hvd_version }}
-          bash build.sh hvd hvd-vision
-      - name: Build hvd hvd-nlp
-        working-directory: docker
-        run: |
-          export PTH_VERSION=${{ needs.setup.outputs.pth_version }}
-          export HVD_VERSION=${{ needs.setup.outputs.hvd_version }}
-          bash build.sh hvd hvd-nlp
+          bash build.sh hvd ${{ matrix.flavour }}
       - name: List all
         run: |
           docker images | grep pytorchignite
@@ -78,12 +75,15 @@ jobs:
     needs: setup
     if: contains(needs.setup.outputs.modified, 'hvd/') || contains(needs.setup.outputs.modified, 'docker.cfg')
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        flavour: [hvd-apex-vision, hvd-apex-nlp]
     steps:
       - uses: actions/checkout@v2
       - name: Remove cache
         run: |
           sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"      
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
@@ -95,18 +95,12 @@ jobs:
           export HVD_VERSION=${{ needs.setup.outputs.hvd_version }}
           docker system prune -a -f
           bash build.sh hvd hvd-apex
-      - name: Build hvd hvd-apex-vision
+      - name: "Build hvd ${{ matrix.flavour }}"
         working-directory: docker
         run: |
           export PTH_VERSION=${{ needs.setup.outputs.pth_version }}
           export HVD_VERSION=${{ needs.setup.outputs.hvd_version }}
-          bash build.sh hvd hvd-apex-vision
-      - name: Build hvd hvd-apex-nlp
-        working-directory: docker
-        run: |
-          export PTH_VERSION=${{ needs.setup.outputs.pth_version }}
-          export HVD_VERSION=${{ needs.setup.outputs.hvd_version }}
-          bash build.sh hvd hvd-apex-nlp
+          bash build.sh hvd ${{ matrix.flavour }}
       - name: List all
         run: |
           docker images | grep pytorchignite
@@ -121,7 +115,7 @@ jobs:
       - name: Remove cache
         run: |
           sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"      
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
@@ -151,12 +145,15 @@ jobs:
     needs: setup
     if: contains(needs.setup.outputs.modified, 'main/') || contains(needs.setup.outputs.modified, 'docker.cfg')
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        flavour: [apex-vision, apex-nlp]
     steps:
       - uses: actions/checkout@v2
       - name: Remove cache
         run: |
           sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"      
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
@@ -167,16 +164,11 @@ jobs:
           export PTH_VERSION=${{ needs.setup.outputs.pth_version }}
           docker system prune -a -f
           bash build.sh main apex
-      - name: Build main apex-vision
+      - name: "Build main ${{ matrix.flavour }}"
         working-directory: docker
         run: |
           export PTH_VERSION=${{ needs.setup.outputs.pth_version }}
-          bash build.sh main apex-vision
-      - name: Build main apex-nlp
-        working-directory: docker
-        run: |
-          export PTH_VERSION=${{ needs.setup.outputs.pth_version }}
-          bash build.sh main apex-nlp
+          bash build.sh main ${{ matrix.flavour }}
       - name: List all
         run: |
           docker images | grep pytorchignite
@@ -191,7 +183,7 @@ jobs:
       - name: Remove cache
         run: |
           sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"      
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
