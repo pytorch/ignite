@@ -37,8 +37,8 @@ class Recall(_BasePrecisionRecall):
 
     .. code-block:: python
 
-        precision = Precision(average=False, is_multilabel=True)
-        recall = Recall(average=False, is_multilabel=True)
+        precision = Precision(average=False)
+        recall = Recall(average=False)
         F1 = precision * recall * 2 / (precision + recall + 1e-20)
         F1 = MetricsLambda(lambda t: torch.mean(t).item(), F1)
 
