@@ -87,7 +87,7 @@ class PolyaxonLogger(BaseLogger):
                 optimizer=optimizer,
                 param_name='lr'  # optional
             )
-            # We need to close the logger when we are done
+            # to manually end a run
             plx_logger.close()
 
     Args:
