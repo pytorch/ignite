@@ -88,7 +88,7 @@ class PolyaxonLogger(BaseLogger):
                 param_name='lr'  # optional
             )
             # We need to close the logger when we are done
-            wandb_logger.close()
+            plx_logger.close()
 
     Args:
         args: Positional arguments accepted from
