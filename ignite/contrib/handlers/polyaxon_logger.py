@@ -87,6 +87,8 @@ class PolyaxonLogger(BaseLogger):
                 optimizer=optimizer,
                 param_name='lr'  # optional
             )
+            # We need to close the logger when we are done
+            wandb_logger.close()
 
     Args:
         args: Positional arguments accepted from
@@ -101,6 +103,7 @@ class PolyaxonLogger(BaseLogger):
             from polyaxon.tracking import Run
 
             self.experiment = Run(*args, **kwargs)
+
         except ImportError:
             try:
                 from polyaxon_client.tracking import Experiment
@@ -114,7 +117,10 @@ class PolyaxonLogger(BaseLogger):
                 )
 
     def close(self) -> None:
-        pass
+        try:
+            self.experiment.end()
+        except:
+            pass
 
     def __getattr__(self, attr: Any) -> Any:
         return getattr(self.experiment, attr)
