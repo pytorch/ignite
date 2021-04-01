@@ -84,7 +84,7 @@ def test_integration():
             _test(y_pred, y, batch_size)
 
 
-def _test_distrib_compute(device, tol=1e-5):
+def _test_distrib_compute(device):
     rank = idist.get_rank()
 
     def _test(metric_device):
@@ -108,7 +108,7 @@ def _test_distrib_compute(device, tol=1e-5):
 
         np_sum = (np.abs(np_y - np_y_pred) / (np.maximum.reduce([np_y_pred, np_y]) + 1e-30)).sum()
 
-        assert np_sum == pytest.approx(res, rel=tol)
+        assert np_sum == pytest.approx(res)
 
     for _ in range(3):
         _test("cpu")
@@ -116,7 +116,7 @@ def _test_distrib_compute(device, tol=1e-5):
             _test(idist.device())
 
 
-def _test_distrib_integration(device, tol=1e-5):
+def _test_distrib_integration(device):
 
     rank = idist.get_rank()
     torch.manual_seed(12)
@@ -154,7 +154,7 @@ def _test_distrib_integration(device, tol=1e-5):
 
         np_sum = (np.abs(np_y_true - np_y_preds) / (np.maximum.reduce([np_y_preds, np_y_true]) + 1e-30)).sum()
 
-        assert pytest.approx(res, rel=tol) == np_sum
+        assert pytest.approx(res) == np_sum
 
     metric_devices = ["cpu"]
     if device.type != "xla":
