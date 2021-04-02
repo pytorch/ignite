@@ -106,7 +106,7 @@ def _test_distrib_compute(device):
 
         res = m.compute()
 
-        np_sum = (np.abs(np_y - np_y_pred) / np.maximum.reduce([np_y_pred, np_y])).sum()
+        np_sum = (np.abs(np_y - np_y_pred) / (np.maximum.reduce([np_y_pred, np_y]) + 1e-30)).sum()
 
         assert np_sum == pytest.approx(res)
 
@@ -152,7 +152,7 @@ def _test_distrib_integration(device):
         np_y_true = y_true.cpu().numpy()
         np_y_preds = y_preds.cpu().numpy()
 
-        np_sum = (np.abs(np_y_true - np_y_preds) / np.maximum.reduce([np_y_preds, np_y_true])).sum()
+        np_sum = (np.abs(np_y_true - np_y_preds) / (np.maximum.reduce([np_y_preds, np_y_true]) + 1e-30)).sum()
 
         assert pytest.approx(res) == np_sum
 
