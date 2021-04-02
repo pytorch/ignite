@@ -219,6 +219,16 @@ def test_output_handler_with_global_step_from_engine():
     )
 
 
+def test_wandb_close():
+    optimizer = torch.optim.SGD([torch.Tensor(0)], lr=0.01)
+    wrapper = OptimizerParamsHandler(optimizer=optimizer, param_name="lr")
+    mock_logger = MagicMock(spec=WandBLogger)
+    mock_logger.log = MagicMock()
+    mock_engine = MagicMock()
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+    mock_logger.close()
+
+
 @pytest.fixture
 def no_site_packages():
     import sys
