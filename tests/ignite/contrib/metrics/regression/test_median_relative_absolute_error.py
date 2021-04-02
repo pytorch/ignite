@@ -132,17 +132,16 @@ def _test_distrib_compute(device):
         res = m.compute()
 
         e = np.abs(np_y - np_y_pred) / np.abs(np_y - np_y.mean())
-        np_res = np.median(e)
-
-        e_prepend = np.insert(e, 0, e[0], axis=0)
-        np_res_prepend = np.median(e_prepend)
 
         # The results between numpy.median() and torch.median() are Inconsistant
         # when the length of the array/tensor is even. So this is a hack to avoid that.
         # issue: https://github.com/pytorch/pytorch/issues/1837
         if np_y_pred.shape[0] % 2 == 0:
+            e_prepend = np.insert(e, 0, e[0], axis=0)
+            np_res_prepend = np.median(e_prepend)
             assert pytest.approx(res) == np_res_prepend
         else:
+            np_res = np.median(e)
             assert pytest.approx(res) == np_res
 
     for _ in range(3):
