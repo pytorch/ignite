@@ -128,7 +128,7 @@ class TensorboardLogger(BaseLogger):
                 log_handler=GradsHistHandler(model)
             )
 
-            # We need to close the logger with we are done
+            # We need to close the logger when we are done
             tb_logger.close()
 
         It is also possible to use the logger as context manager:
