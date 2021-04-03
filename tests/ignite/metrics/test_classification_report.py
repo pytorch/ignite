@@ -8,15 +8,27 @@ from ignite.metrics.classification_report import ClassificationReport
 torch.manual_seed(12)
 
 
+def test_input_types():
+    classification_report = ClassificationReport()
+    classification_report.reset()
+
+    y_true, y_preds = torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long()
+    classification_report.update((_unflatten_binary(y_true), y_preds))
+
+    with pytest.raises(RuntimeError, match=r"Input data type has changed from multiclass to binary"):
+        classification_report.update((y_true, y_preds))
+
+    with pytest.raises(ValueError, match=r"y and y_pred must have compatible shapes."):
+        y_true = torch.randint(0, 2, size=(100,)).long()
+        classification_report.update((_unflatten_binary(y_true), y_preds))
+
+
 def _test_integration_binary(device):
 
     from ignite.engine import Engine
 
     rank = idist.get_rank()
     torch.manual_seed(12)
-
-    def _unflatten(y):
-        return torch.tensor(list(map(lambda x: [1, 0] if x == 0 else [0, 1], y)))
 
     def _test(metric_device):
 
@@ -25,7 +37,7 @@ def _test_integration_binary(device):
         offset = n_iters * s
         y_true = torch.randint(0, 2, size=(offset * idist.get_world_size(),)).to(device)
         y_preds = torch.randint(0, 2, size=(offset * idist.get_world_size(),)).to(device)
-        y_true_unflat = _unflatten(y_true)
+        y_true_unflat = _unflatten_binary(y_true)
         classification_report = ClassificationReport(device=metric_device, output_dict="False")
 
         def update(engine, i):
@@ -70,11 +82,8 @@ def test_binary_input_N(output_dict):
 
     classification_report = ClassificationReport(output_dict=output_dict)
 
-    def _unflatten(y):
-        return torch.tensor(list(map(lambda x: [1, 0] if x == 0 else [0, 1], y)))
-
     def _test(y_true, y_pred, batch_size):
-        y_true_unflat = _unflatten(y_true)
+        y_true_unflat = _unflatten_binary(y_true)
         classification_report.reset()
 
         if batch_size > 1:
@@ -97,7 +106,7 @@ def test_binary_input_N(output_dict):
         assert pytest.approx(res["0"] == sklearn_result["0"])
         assert pytest.approx(res["1"] == sklearn_result["1"])
         assert pytest.approx(res["macro avg"]["precision"] == sklearn_result["macro avg"]["precision"])
-        # assert pytest.approx(res['macro avg']['recall'] == sklearn_result['macro avg']['recall'])
+        assert pytest.approx(res["macro avg"]["recall"] == sklearn_result["macro avg"]["recall"])
         assert pytest.approx(res["macro avg"]["f1-score"] == sklearn_result["macro avg"]["f1-score"])
 
     def get_test_cases():
@@ -130,3 +139,7 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 def test_distrib_cpu(local_rank, distributed_context_single_node_gloo):
     device = torch.device("cpu")
     _test_integration_binary(device)
+
+
+def _unflatten_binary(y):
+    return torch.tensor(list(map(lambda x: [1, 0] if x == 0 else [0, 1], y)))
