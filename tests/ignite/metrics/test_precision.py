@@ -48,8 +48,7 @@ def test_binary_wrong_inputs():
 
 
 @pytest.mark.parametrize("average", [False, True])
-def test_binary_input_N(average):
-    # Binary accuracy on input of shape (N, 1) or (N, )
+def test_binary_input(average):
 
     pr = Precision(average=average)
 
@@ -74,54 +73,24 @@ def test_binary_input_N(average):
     def get_test_cases():
 
         test_cases = [
+            # Binary accuracy on input of shape (N, 1) or (N, )
             (torch.randint(0, 2, size=(10,)), torch.randint(0, 2, size=(10,)), 1),
             (torch.randint(0, 2, size=(10, 1)), torch.randint(0, 2, size=(10, 1)), 1),
             # updated batches
-            (torch.randint(0, 2, size=(10,)), torch.randint(0, 2, size=(10,)), 16),
-            (torch.randint(0, 2, size=(10, 1)), torch.randint(0, 2, size=(10, 1)), 16),
-        ]
-
-        return test_cases
-
-    for _ in range(5):
-        # check multiple random inputs as random exact occurencies are rare
-        test_cases = get_test_cases()
-        for y_pred, y, batch_size in test_cases:
-            _test(y, y_pred, batch_size)
-
-
-@pytest.mark.parametrize("average", [False, True])
-def test_binary_input_NL(average):
-    # Binary accuracy on input of shape (N, L)
-
-    pr = Precision(average=average)
-
-    def _test(y_pred, y, batch_size):
-        pr.reset()
-        pr.update((y_pred, y))
-
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().ravel()
-
-        if batch_size > 1:
-            n_iters = y.shape[0] // batch_size + 1
-            for i in range(n_iters):
-                idx = i * batch_size
-                pr.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-
-        assert pr._type == "binary"
-        assert isinstance(pr.compute(), float if average else torch.Tensor)
-        pr_compute = pr.compute() if average else pr.compute().numpy()
-        assert precision_score(np_y, np_y_pred, average="binary") == pytest.approx(pr_compute)
-
-    def get_test_cases():
-
-        test_cases = [
+            (torch.randint(0, 2, size=(50,)), torch.randint(0, 2, size=(50,)), 16),
+            (torch.randint(0, 2, size=(50, 1)), torch.randint(0, 2, size=(50, 1)), 16),
+            # Binary accuracy on input of shape (N, L)
             (torch.randint(0, 2, size=(10, 5)), torch.randint(0, 2, size=(10, 5)), 1),
             (torch.randint(0, 2, size=(10, 1, 5)), torch.randint(0, 2, size=(10, 1, 5)), 1),
             # updated batches
-            (torch.randint(0, 2, size=(10, 5)), torch.randint(0, 2, size=(10, 5)), 16),
-            (torch.randint(0, 2, size=(10, 1, 5)), torch.randint(0, 2, size=(10, 1, 5)), 16),
+            (torch.randint(0, 2, size=(50, 5)), torch.randint(0, 2, size=(50, 5)), 16),
+            (torch.randint(0, 2, size=(50, 1, 5)), torch.randint(0, 2, size=(50, 1, 5)), 16),
+            # Binary accuracy on input of shape (N, H, W)
+            (torch.randint(0, 2, size=(10, 12, 10)), torch.randint(0, 2, size=(10, 12, 10)), 1),
+            (torch.randint(0, 2, size=(10, 1, 12, 10)), torch.randint(0, 2, size=(10, 1, 12, 10)), 1),
+            # updated batches
+            (torch.randint(0, 2, size=(50, 12, 10)), torch.randint(0, 2, size=(50, 12, 10)), 16),
+            (torch.randint(0, 2, size=(50, 1, 12, 10)), torch.randint(0, 2, size=(50, 1, 12, 10)), 16),
         ]
 
         return test_cases
@@ -131,49 +100,6 @@ def test_binary_input_NL(average):
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
             _test(y, y_pred, batch_size)
-
-
-@pytest.mark.parametrize("average", [False, True])
-def test_binary_input_NHW(average):
-    # Binary accuracy on input of shape (N, H, W)
-
-    pr = Precision(average=average)
-
-    def _test(y_pred, y, batch_size):
-        pr.reset()
-        pr.update((y_pred, y))
-
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().ravel()
-
-        if batch_size > 1:
-            n_iters = y.shape[0] // batch_size + 1
-            for i in range(n_iters):
-                idx = i * batch_size
-                pr.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-
-        assert pr._type == "binary"
-        assert isinstance(pr.compute(), float if average else torch.Tensor)
-        pr_compute = pr.compute() if average else pr.compute().numpy()
-        assert precision_score(np_y, np_y_pred, average="binary") == pytest.approx(pr_compute)
-
-    def get_test_cases():
-
-        test_cases = [
-            (torch.randint(0, 2, size=(10, 12, 10)), torch.randint(0, 2, size=(10, 12, 10)), 1),
-            (torch.randint(0, 2, size=(10, 1, 12, 10)), torch.randint(0, 2, size=(10, 1, 12, 10)), 1),
-            # updated batches
-            (torch.randint(0, 2, size=(10, 12, 10)), torch.randint(0, 2, size=(10, 12, 10)), 16),
-            (torch.randint(0, 2, size=(10, 1, 12, 10)), torch.randint(0, 2, size=(10, 1, 12, 10)), 16),
-        ]
-
-        return test_cases
-
-    for _ in range(5):
-        # check multiple random inputs as random exact occurencies are rare
-        test_cases = get_test_cases()
-        for y_pred, y, batch_size in test_cases:
-            _test(y_pred, y, batch_size)
 
 
 def test_multiclass_wrong_inputs():
@@ -217,8 +143,7 @@ def test_multiclass_wrong_inputs():
 
 
 @pytest.mark.parametrize("average", [False, True])
-def test_multiclass_input_N(average):
-    # Multiclass input data of shape (N, ) and (N, C)
+def test_multiclass_input(average):
 
     pr = Precision(average=average)
 
@@ -248,107 +173,24 @@ def test_multiclass_input_N(average):
     def get_test_cases():
 
         test_cases = [
+            # Multiclass input data of shape (N, ) and (N, C)
             (torch.rand(10, 6), torch.randint(0, 6, size=(10,)), 1),
             (torch.rand(10, 4), torch.randint(0, 4, size=(10,)), 1),
             # updated batches
-            (torch.rand(10, 6), torch.randint(0, 6, size=(10,)), 16),
-            (torch.rand(10, 4), torch.randint(0, 4, size=(10,)), 16),
-        ]
-
-        return test_cases
-
-    for _ in range(5):
-        # check multiple random inputs as random exact occurencies are rare
-        test_cases = get_test_cases()
-        for y_pred, y, batch_size in test_cases:
-            _test(y_pred, y, batch_size)
-
-
-@pytest.mark.parametrize("average", [False, True])
-def test_multiclass_input_NL(average):
-    # Multiclass input data of shape (N, L) and (N, C, L)
-
-    pr = Precision(average=average)
-
-    def _test(y_pred, y, batch_size):
-        pr.reset()
-        pr.update((y_pred, y))
-
-        if batch_size > 1:
-            n_iters = y.shape[0] // batch_size + 1
-            for i in range(n_iters):
-                idx = i * batch_size
-                pr.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-
-        num_classes = y_pred.shape[1]
-        np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
-        np_y = y.numpy().ravel()
-
-        assert pr._type == "multiclass"
-        assert isinstance(pr.compute(), float if average else torch.Tensor)
-        pr_compute = pr.compute() if average else pr.compute().numpy()
-        sk_average_parameter = "macro" if average else None
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            sk_compute = precision_score(np_y, np_y_pred, labels=range(0, num_classes), average=sk_average_parameter)
-            assert sk_compute == pytest.approx(pr_compute)
-
-    def get_test_cases():
-
-        test_cases = [
+            (torch.rand(50, 6), torch.randint(0, 6, size=(50,)), 16),
+            (torch.rand(50, 4), torch.randint(0, 4, size=(50,)), 16),
+            # Multiclass input data of shape (N, L) and (N, C, L)
             (torch.rand(10, 5, 8), torch.randint(0, 5, size=(10, 8)), 1),
             (torch.rand(10, 8, 12), torch.randint(0, 8, size=(10, 12)), 1),
             # updated batches
-            (torch.rand(10, 5, 8), torch.randint(0, 5, size=(10, 8)), 16),
-            (torch.rand(10, 8, 12), torch.randint(0, 8, size=(10, 12)), 16),
-        ]
-
-        return test_cases
-
-    for _ in range(5):
-        # check multiple random inputs as random exact occurencies are rare
-        test_cases = get_test_cases()
-        for y_pred, y, batch_size in test_cases:
-            _test(y_pred, y, batch_size)
-
-
-@pytest.mark.parametrize("average", [False, True])
-def test_multiclass_input_NHW(average):
-    # Multiclass input data of shape (N, H, W, ...) and (N, C, H, W, ...)
-
-    pr = Precision(average=average)
-
-    def _test(y_pred, y, batch_size):
-        pr.reset()
-        pr.update((y_pred, y))
-
-        if batch_size > 1:
-            n_iters = y.shape[0] // batch_size + 1
-            for i in range(n_iters):
-                idx = i * batch_size
-                pr.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-
-        num_classes = y_pred.shape[1]
-        np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
-        np_y = y.numpy().ravel()
-
-        assert pr._type == "multiclass"
-        assert isinstance(pr.compute(), float if average else torch.Tensor)
-        pr_compute = pr.compute() if average else pr.compute().numpy()
-        sk_average_parameter = "macro" if average else None
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            sk_compute = precision_score(np_y, np_y_pred, labels=range(0, num_classes), average=sk_average_parameter)
-            assert sk_compute == pytest.approx(pr_compute)
-
-    def get_test_cases():
-
-        test_cases = [
+            (torch.rand(50, 5, 8), torch.randint(0, 5, size=(50, 8)), 16),
+            (torch.rand(50, 8, 12), torch.randint(0, 8, size=(50, 12)), 16),
+            # Multiclass input data of shape (N, H, W, ...) and (N, C, H, W, ...)
             (torch.rand(10, 5, 18, 16), torch.randint(0, 5, size=(10, 18, 16)), 1),
             (torch.rand(10, 7, 20, 12), torch.randint(0, 7, size=(10, 20, 12)), 1),
             # updated batches
-            (torch.rand(10, 5, 18, 16), torch.randint(0, 5, size=(10, 18, 16)), 16),
-            (torch.rand(10, 7, 20, 12), torch.randint(0, 7, size=(10, 20, 12)), 16),
+            (torch.rand(50, 5, 18, 16), torch.randint(0, 5, size=(50, 18, 16)), 16),
+            (torch.rand(50, 7, 20, 12), torch.randint(0, 7, size=(50, 20, 12)), 16),
         ]
 
         return test_cases
@@ -425,8 +267,8 @@ def test_multilabel_input_NC(average):
             (torch.randint(0, 2, size=(10, 5)), torch.randint(0, 2, size=(10, 5)), 1),
             (torch.randint(0, 2, size=(10, 4)), torch.randint(0, 2, size=(10, 4)), 1),
             # updated batches
-            (torch.randint(0, 2, size=(10, 5)), torch.randint(0, 2, size=(10, 5)), 16),
-            (torch.randint(0, 2, size=(10, 4)), torch.randint(0, 2, size=(10, 4)), 16),
+            (torch.randint(0, 2, size=(50, 5)), torch.randint(0, 2, size=(50, 5)), 16),
+            (torch.randint(0, 2, size=(50, 4)), torch.randint(0, 2, size=(50, 4)), 16),
         ]
 
         return test_cases
@@ -474,8 +316,8 @@ def test_multilabel_input_NCL(average):
             (torch.randint(0, 2, size=(10, 5, 10)), torch.randint(0, 2, size=(10, 5, 10)), 1),
             (torch.randint(0, 2, size=(10, 4, 10)), torch.randint(0, 2, size=(10, 4, 10)), 1),
             # updated batches
-            (torch.randint(0, 2, size=(10, 5, 10)), torch.randint(0, 2, size=(10, 5, 10)), 16),
-            (torch.randint(0, 2, size=(10, 4, 10)), torch.randint(0, 2, size=(10, 4, 10)), 16),
+            (torch.randint(0, 2, size=(50, 5, 10)), torch.randint(0, 2, size=(50, 5, 10)), 16),
+            (torch.randint(0, 2, size=(50, 4, 10)), torch.randint(0, 2, size=(50, 4, 10)), 16),
         ]
 
         return test_cases
@@ -523,8 +365,8 @@ def test_multilabel_input_NCHW(average):
             (torch.randint(0, 2, size=(10, 5, 18, 16)), torch.randint(0, 2, size=(10, 5, 18, 16)), 1),
             (torch.randint(0, 2, size=(10, 4, 20, 23)), torch.randint(0, 2, size=(10, 4, 20, 23)), 1),
             # updated batches
-            (torch.randint(0, 2, size=(10, 5, 18, 16)), torch.randint(0, 2, size=(10, 5, 18, 16)), 16),
-            (torch.randint(0, 2, size=(10, 4, 20, 23)), torch.randint(0, 2, size=(10, 4, 20, 23)), 16),
+            (torch.randint(0, 2, size=(50, 5, 18, 16)), torch.randint(0, 2, size=(50, 5, 18, 16)), 16),
+            (torch.randint(0, 2, size=(50, 4, 20, 23)), torch.randint(0, 2, size=(50, 4, 20, 23)), 16),
         ]
 
         return test_cases
