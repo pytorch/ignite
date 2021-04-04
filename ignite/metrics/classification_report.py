@@ -1,9 +1,9 @@
-from typing import Callable, Dict, Sequence, Union, Optional, List
+from typing import Callable, Dict, List, Optional, Sequence, Union
 
 import torch
 
-from ignite.metrics.metrics_lambda import MetricsLambda
 from ignite.metrics.metric import reinit__is_reduced
+from ignite.metrics.metrics_lambda import MetricsLambda
 from ignite.metrics.precision import Precision
 from ignite.metrics.recall import Recall
 from ignite.metrics.fbeta import Fbeta
