@@ -126,6 +126,55 @@ def test_binary_input_N(output_dict):
             _test(y_true, y_pred, batch_size)
 
 
+@pytest.mark.parametrize("output_dict", [True])
+def test_multilabel_input_N(output_dict):
+
+    classification_report = ClassificationReport(output_dict=output_dict)
+
+    def _test(y_true, y_pred, batch_size, n_classes):
+        y_true_unflat = _unflatten_multilabel(y_true, n_classes)
+        classification_report.reset()
+
+        if batch_size > 1:
+            n_iters = y_true_unflat.shape[0] // batch_size + 1
+            for i in range(n_iters):
+                idx = i * batch_size
+                classification_report.update((y_true_unflat[idx : idx + batch_size], y_pred[idx : idx + batch_size]))
+        else:
+            classification_report.update((y_true_unflat, y_pred))
+
+        from sklearn.metrics import classification_report as sklearn_classification_report
+
+        res = classification_report.compute()
+        assert isinstance(res, dict if output_dict else str)
+
+        sklearn_result = sklearn_classification_report(y_pred, y_true, output_dict=output_dict)
+        if not output_dict:
+            res = eval(res)
+            sklearn_result = eval(sklearn_result)
+        for i in range(n_classes):
+            assert pytest.approx(res[str(i)] == sklearn_result[str(i)])
+        assert pytest.approx(res["macro avg"]["precision"] == sklearn_result["macro avg"]["precision"])
+        assert pytest.approx(res["macro avg"]["recall"] == sklearn_result["macro avg"]["recall"])
+        assert pytest.approx(res["macro avg"]["f1-score"] == sklearn_result["macro avg"]["f1-score"])
+
+    def get_test_cases():
+        test_cases = [
+            (torch.randint(0, 3, size=(10,)).long(), torch.randint(0, 3, size=(10,)).long(), 1, 3),
+            (torch.randint(0, 3, size=(100,)).long(), torch.randint(0, 3, size=(100,)).long(), 1, 3),
+            # updated batches
+            (torch.randint(0, 3, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 16, 3),
+            (torch.randint(0, 3, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 16, 3),
+        ]
+        return test_cases
+
+    for _ in range(10):
+        # check multiple random inputs as random exact occurencies are rare
+        test_cases = get_test_cases()
+        for y_true, y_pred, batch_size, n_classes in test_cases:
+            _test(y_true, y_pred, batch_size, n_classes)
+
+
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
@@ -141,5 +190,9 @@ def test_distrib_cpu(local_rank, distributed_context_single_node_gloo):
     _test_integration_binary(device)
 
 
+def _unflatten_multilabel(y, n_labels):
+    return torch.tensor(list(map(lambda x: [1 if x == i else 0 for i in range(n_labels)], y)))
+
+
 def _unflatten_binary(y):
-    return torch.tensor(list(map(lambda x: [1, 0] if x == 0 else [0, 1], y)))
+    return _unflatten_multilabel(y, 2)
