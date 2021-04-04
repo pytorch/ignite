@@ -74,20 +74,16 @@ def test_binary_input_N(average):
     def get_test_cases():
 
         test_cases = [
-            (torch.randint(0, 2, size=(100,)), torch.randint(0, 2, size=(100,)), 1),
-            (torch.randint(0, 2, size=(100, 1)), torch.randint(0, 2, size=(100, 1)), 1),
-            (torch.randint(0, 2, size=(200,)), torch.randint(0, 2, size=(200,)), 1),
-            (torch.randint(0, 2, size=(200, 1)), torch.randint(0, 2, size=(200, 1)), 1),
+            (torch.randint(0, 2, size=(10,)), torch.randint(0, 2, size=(10,)), 1),
+            (torch.randint(0, 2, size=(10, 1)), torch.randint(0, 2, size=(10, 1)), 1),
             # updated batches
-            (torch.randint(0, 2, size=(100,)), torch.randint(0, 2, size=(100,)), 16),
-            (torch.randint(0, 2, size=(100, 1)), torch.randint(0, 2, size=(100, 1)), 16),
-            (torch.randint(0, 2, size=(200,)), torch.randint(0, 2, size=(200,)), 16),
-            (torch.randint(0, 2, size=(200, 1)), torch.randint(0, 2, size=(200, 1)), 16),
+            (torch.randint(0, 2, size=(10,)), torch.randint(0, 2, size=(10,)), 16),
+            (torch.randint(0, 2, size=(10, 1)), torch.randint(0, 2, size=(10, 1)), 16),
         ]
 
         return test_cases
 
-    for _ in range(10):
+    for _ in range(5):
         # check multiple random inputs as random exact occurencies are rare
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
@@ -121,20 +117,16 @@ def test_binary_input_NL(average):
     def get_test_cases():
 
         test_cases = [
-            (torch.randint(0, 2, size=(100, 5)), torch.randint(0, 2, size=(100, 5)), 1),
-            (torch.randint(0, 2, size=(100, 1, 5)), torch.randint(0, 2, size=(100, 1, 5)), 1),
-            (torch.randint(0, 2, size=(200, 5)), torch.randint(0, 2, size=(200, 5)), 1),
-            (torch.randint(0, 2, size=(200, 1, 5)), torch.randint(0, 2, size=(200, 1, 5)), 1),
+            (torch.randint(0, 2, size=(10, 5)), torch.randint(0, 2, size=(10, 5)), 1),
+            (torch.randint(0, 2, size=(10, 1, 5)), torch.randint(0, 2, size=(10, 1, 5)), 1),
             # updated batches
-            (torch.randint(0, 2, size=(100, 5)), torch.randint(0, 2, size=(100, 5)), 16),
-            (torch.randint(0, 2, size=(100, 1, 5)), torch.randint(0, 2, size=(100, 1, 5)), 16),
-            (torch.randint(0, 2, size=(200, 5)), torch.randint(0, 2, size=(200, 5)), 16),
-            (torch.randint(0, 2, size=(200, 1, 5)), torch.randint(0, 2, size=(200, 1, 5)), 16),
+            (torch.randint(0, 2, size=(10, 5)), torch.randint(0, 2, size=(10, 5)), 16),
+            (torch.randint(0, 2, size=(10, 1, 5)), torch.randint(0, 2, size=(10, 1, 5)), 16),
         ]
 
         return test_cases
 
-    for _ in range(10):
+    for _ in range(5):
         # check multiple random inputs as random exact occurencies are rare
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
@@ -168,20 +160,16 @@ def test_binary_input_NHW(average):
     def get_test_cases():
 
         test_cases = [
-            (torch.randint(0, 2, size=(100, 12, 10)), torch.randint(0, 2, size=(100, 12, 10)), 1),
-            (torch.randint(0, 2, size=(100, 1, 12, 10)), torch.randint(0, 2, size=(100, 1, 12, 10)), 1),
-            (torch.randint(0, 2, size=(200, 12, 10)), torch.randint(0, 2, size=(200, 12, 10)), 1),
-            (torch.randint(0, 2, size=(200, 1, 12, 10)), torch.randint(0, 2, size=(200, 1, 12, 10)), 1),
+            (torch.randint(0, 2, size=(10, 12, 10)), torch.randint(0, 2, size=(10, 12, 10)), 1),
+            (torch.randint(0, 2, size=(10, 1, 12, 10)), torch.randint(0, 2, size=(10, 1, 12, 10)), 1),
             # updated batches
-            (torch.randint(0, 2, size=(100, 12, 10)), torch.randint(0, 2, size=(100, 12, 10)), 16),
-            (torch.randint(0, 2, size=(100, 1, 12, 10)), torch.randint(0, 2, size=(100, 1, 12, 10)), 16),
-            (torch.randint(0, 2, size=(200, 12, 10)), torch.randint(0, 2, size=(200, 12, 10)), 16),
-            (torch.randint(0, 2, size=(200, 1, 12, 10)), torch.randint(0, 2, size=(200, 1, 12, 10)), 16),
+            (torch.randint(0, 2, size=(10, 12, 10)), torch.randint(0, 2, size=(10, 12, 10)), 16),
+            (torch.randint(0, 2, size=(10, 1, 12, 10)), torch.randint(0, 2, size=(10, 1, 12, 10)), 16),
         ]
 
         return test_cases
 
-    for _ in range(10):
+    for _ in range(5):
         # check multiple random inputs as random exact occurencies are rare
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
@@ -260,20 +248,16 @@ def test_multiclass_input_N(average):
     def get_test_cases():
 
         test_cases = [
-            (torch.rand(100, 6), torch.randint(0, 6, size=(100,)), 1),
-            (torch.rand(100, 4), torch.randint(0, 4, size=(100,)), 1),
-            (torch.rand(200, 6), torch.randint(0, 6, size=(200,)), 1),
-            (torch.rand(200, 4), torch.randint(0, 4, size=(200,)), 1),
+            (torch.rand(10, 6), torch.randint(0, 6, size=(10,)), 1),
+            (torch.rand(10, 4), torch.randint(0, 4, size=(10,)), 1),
             # updated batches
-            (torch.rand(100, 6), torch.randint(0, 6, size=(100,)), 16),
-            (torch.rand(100, 4), torch.randint(0, 4, size=(100,)), 16),
-            (torch.rand(200, 6), torch.randint(0, 6, size=(200,)), 16),
-            (torch.rand(200, 4), torch.randint(0, 4, size=(200,)), 16),
+            (torch.rand(10, 6), torch.randint(0, 6, size=(10,)), 16),
+            (torch.rand(10, 4), torch.randint(0, 4, size=(10,)), 16),
         ]
 
         return test_cases
 
-    for _ in range(10):
+    for _ in range(5):
         # check multiple random inputs as random exact occurencies are rare
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
@@ -312,20 +296,16 @@ def test_multiclass_input_NL(average):
     def get_test_cases():
 
         test_cases = [
-            (torch.rand(100, 5, 8), torch.randint(0, 5, size=(100, 8)), 1),
-            (torch.rand(100, 8, 12), torch.randint(0, 8, size=(100, 12)), 1),
-            (torch.rand(200, 5, 8), torch.randint(0, 5, size=(200, 8)), 1),
-            (torch.rand(200, 8, 12), torch.randint(0, 8, size=(200, 12)), 1),
+            (torch.rand(10, 5, 8), torch.randint(0, 5, size=(10, 8)), 1),
+            (torch.rand(10, 8, 12), torch.randint(0, 8, size=(10, 12)), 1),
             # updated batches
-            (torch.rand(100, 5, 8), torch.randint(0, 5, size=(100, 8)), 16),
-            (torch.rand(100, 8, 12), torch.randint(0, 8, size=(100, 12)), 16),
-            (torch.rand(200, 5, 8), torch.randint(0, 5, size=(200, 8)), 16),
-            (torch.rand(200, 8, 12), torch.randint(0, 8, size=(200, 12)), 16),
+            (torch.rand(10, 5, 8), torch.randint(0, 5, size=(10, 8)), 16),
+            (torch.rand(10, 8, 12), torch.randint(0, 8, size=(10, 12)), 16),
         ]
 
         return test_cases
 
-    for _ in range(10):
+    for _ in range(5):
         # check multiple random inputs as random exact occurencies are rare
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
@@ -364,20 +344,16 @@ def test_multiclass_input_NHW(average):
     def get_test_cases():
 
         test_cases = [
-            (torch.rand(100, 5, 18, 16), torch.randint(0, 5, size=(100, 18, 16)), 1),
-            (torch.rand(100, 7, 20, 12), torch.randint(0, 7, size=(100, 20, 12)), 1),
-            (torch.rand(200, 5, 18, 16), torch.randint(0, 5, size=(200, 18, 16)), 1),
-            (torch.rand(200, 7, 20, 12), torch.randint(0, 7, size=(200, 20, 12)), 1),
+            (torch.rand(10, 5, 18, 16), torch.randint(0, 5, size=(10, 18, 16)), 1),
+            (torch.rand(10, 7, 20, 12), torch.randint(0, 7, size=(10, 20, 12)), 1),
             # updated batches
-            (torch.rand(100, 5, 18, 16), torch.randint(0, 5, size=(100, 18, 16)), 16),
-            (torch.rand(100, 7, 20, 12), torch.randint(0, 7, size=(100, 20, 12)), 16),
-            (torch.rand(200, 5, 18, 16), torch.randint(0, 5, size=(200, 18, 16)), 16),
-            (torch.rand(200, 7, 20, 12), torch.randint(0, 7, size=(200, 20, 12)), 16),
+            (torch.rand(10, 5, 18, 16), torch.randint(0, 5, size=(10, 18, 16)), 16),
+            (torch.rand(10, 7, 20, 12), torch.randint(0, 7, size=(10, 20, 12)), 16),
         ]
 
         return test_cases
 
-    for _ in range(10):
+    for _ in range(5):
         # check multiple random inputs as random exact occurencies are rare
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
@@ -446,20 +422,16 @@ def test_multilabel_input_NC(average):
     def get_test_cases():
 
         test_cases = [
-            (torch.randint(0, 2, size=(100, 5)), torch.randint(0, 2, size=(100, 5)), 1),
-            (torch.randint(0, 2, size=(100, 4)), torch.randint(0, 2, size=(100, 4)), 1),
-            (torch.randint(0, 2, size=(200, 5)), torch.randint(0, 2, size=(200, 5)), 1),
-            (torch.randint(0, 2, size=(200, 4)), torch.randint(0, 2, size=(200, 4)), 1),
+            (torch.randint(0, 2, size=(10, 5)), torch.randint(0, 2, size=(10, 5)), 1),
+            (torch.randint(0, 2, size=(10, 4)), torch.randint(0, 2, size=(10, 4)), 1),
             # updated batches
-            (torch.randint(0, 2, size=(100, 5)), torch.randint(0, 2, size=(100, 5)), 16),
-            (torch.randint(0, 2, size=(100, 4)), torch.randint(0, 2, size=(100, 4)), 16),
-            (torch.randint(0, 2, size=(200, 5)), torch.randint(0, 2, size=(200, 5)), 16),
-            (torch.randint(0, 2, size=(200, 4)), torch.randint(0, 2, size=(200, 4)), 16),
+            (torch.randint(0, 2, size=(10, 5)), torch.randint(0, 2, size=(10, 5)), 16),
+            (torch.randint(0, 2, size=(10, 4)), torch.randint(0, 2, size=(10, 4)), 16),
         ]
 
         return test_cases
 
-    for _ in range(10):
+    for _ in range(5):
         # check multiple random inputs as random exact occurencies are rare
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
@@ -499,20 +471,16 @@ def test_multilabel_input_NCL(average):
     def get_test_cases():
 
         test_cases = [
-            (torch.randint(0, 2, size=(100, 5, 10)), torch.randint(0, 2, size=(100, 5, 10)), 1),
-            (torch.randint(0, 2, size=(100, 4, 10)), torch.randint(0, 2, size=(100, 4, 10)), 1),
-            (torch.randint(0, 2, size=(200, 5, 10)), torch.randint(0, 2, size=(200, 5, 10)), 1),
-            (torch.randint(0, 2, size=(200, 4, 10)), torch.randint(0, 2, size=(200, 4, 10)), 1),
+            (torch.randint(0, 2, size=(10, 5, 10)), torch.randint(0, 2, size=(10, 5, 10)), 1),
+            (torch.randint(0, 2, size=(10, 4, 10)), torch.randint(0, 2, size=(10, 4, 10)), 1),
             # updated batches
-            (torch.randint(0, 2, size=(100, 5, 10)), torch.randint(0, 2, size=(100, 5, 10)), 16),
-            (torch.randint(0, 2, size=(100, 4, 10)), torch.randint(0, 2, size=(100, 4, 10)), 16),
-            (torch.randint(0, 2, size=(200, 5, 10)), torch.randint(0, 2, size=(200, 5, 10)), 16),
-            (torch.randint(0, 2, size=(200, 4, 10)), torch.randint(0, 2, size=(200, 4, 10)), 16),
+            (torch.randint(0, 2, size=(10, 5, 10)), torch.randint(0, 2, size=(10, 5, 10)), 16),
+            (torch.randint(0, 2, size=(10, 4, 10)), torch.randint(0, 2, size=(10, 4, 10)), 16),
         ]
 
         return test_cases
 
-    for _ in range(10):
+    for _ in range(5):
         # check multiple random inputs as random exact occurencies are rare
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
@@ -552,20 +520,16 @@ def test_multilabel_input_NCHW(average):
     def get_test_cases():
 
         test_cases = [
-            (torch.randint(0, 2, size=(100, 5, 18, 16)), torch.randint(0, 2, size=(100, 5, 18, 16)), 1),
-            (torch.randint(0, 2, size=(100, 4, 20, 23)), torch.randint(0, 2, size=(100, 4, 20, 23)), 1),
-            (torch.randint(0, 2, size=(200, 5, 18, 16)), torch.randint(0, 2, size=(200, 5, 18, 16)), 1),
-            (torch.randint(0, 2, size=(200, 4, 20, 23)), torch.randint(0, 2, size=(200, 4, 20, 23)), 1),
+            (torch.randint(0, 2, size=(10, 5, 18, 16)), torch.randint(0, 2, size=(10, 5, 18, 16)), 1),
+            (torch.randint(0, 2, size=(10, 4, 20, 23)), torch.randint(0, 2, size=(10, 4, 20, 23)), 1),
             # updated batches
-            (torch.randint(0, 2, size=(100, 5, 18, 16)), torch.randint(0, 2, size=(100, 5, 18, 16)), 16),
-            (torch.randint(0, 2, size=(100, 4, 20, 23)), torch.randint(0, 2, size=(100, 4, 20, 23)), 16),
-            (torch.randint(0, 2, size=(200, 5, 18, 16)), torch.randint(0, 2, size=(200, 5, 18, 16)), 16),
-            (torch.randint(0, 2, size=(200, 4, 20, 23)), torch.randint(0, 2, size=(200, 4, 20, 23)), 16),
+            (torch.randint(0, 2, size=(10, 5, 18, 16)), torch.randint(0, 2, size=(10, 5, 18, 16)), 16),
+            (torch.randint(0, 2, size=(10, 4, 20, 23)), torch.randint(0, 2, size=(10, 4, 20, 23)), 16),
         ]
 
         return test_cases
 
-    for _ in range(10):
+    for _ in range(5):
         # check multiple random inputs as random exact occurencies are rare
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
