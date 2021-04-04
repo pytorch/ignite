@@ -1,7 +1,8 @@
-from typing import Callable, Dict, List, Optional, Sequence, Union
+from typing import Callable, Dict, List, Optional, Sequence, Union, Collection
 
 import torch
 
+from ignite.metrics.metric import Metric
 from ignite.metrics.fbeta import Fbeta
 from ignite.metrics.metric import reinit__is_reduced
 from ignite.metrics.metrics_lambda import MetricsLambda
@@ -46,7 +47,7 @@ class ClassificationReport(MetricsLambda):
         output_transform: Optional[Callable] = None,
         device: Union[str, torch.device] = torch.device("cpu"),
         labels: Optional[List[str]] = None,
-    ) -> MetricsLambda:
+    ):
         self.beta = beta
         # setup all the underlying metrics
         self.precision = Precision(
@@ -81,7 +82,9 @@ class ClassificationReport(MetricsLambda):
             f=self._wrapper, device=device, precision=self.precision, recall=self.recall
         )
 
-    def _wrapper(self, recall, precision, f, a_recall, a_precision, a_f):
+    def _wrapper(
+        self, recall: Metric, precision: Metric, f: Metric, a_recall: Metric, a_precision: Metric, a_f: Metric,
+    ) -> Union[Collection[str], Dict]:
         p_tensor, r_tensor, f_tensor = precision, recall, f
         assert p_tensor.shape == r_tensor.shape
         dict_obj = {}
@@ -97,7 +100,7 @@ class ClassificationReport(MetricsLambda):
             "f{0}-score".format(self.beta): a_f.item(),
         }
         result = dict_obj if self.output_dict else str(dict_obj)
-        return self.output_transform(result) if self.output_transform else result
+        return result
 
     # helper method to get a label for a given class
     def _get_label_for_class(self, idx: int) -> str:
