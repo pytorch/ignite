@@ -24,6 +24,24 @@ def test_input_types():
         classification_report.update((_unflatten_binary(y_true), y_preds))
 
 
+def test_non_binary():
+    classification_report = ClassificationReport()
+    classification_report.reset()
+
+    y_true, y_preds = torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long()
+    classification_report.update((_unflatten_binary(y_true), y_preds))
+
+    with pytest.raises(ValueError, match=r"For binary cases, y_pred must be comprised of 0's and 1's."):
+        y_true = torch.tensor([1, 2, 3, 4, 0.5, 6, 7, 8, 9, 10])
+        classification_report.update((y_true, y_preds))
+
+    classification_report.reset()
+
+    with pytest.raises(ValueError, match=r"For binary cases, y must be comprised of 0's and 1's."):
+        y_true = torch.tensor([1, 2, 3, 4, 0.5, 6, 7, 8, 9, 10])
+        classification_report.update((y_true, y_true))
+
+
 def _test_integration_binary(device):
 
     from ignite.engine import Engine
