@@ -1,6 +1,7 @@
+import os
+
 import pytest
 import torch
-import os
 
 import ignite.distributed as idist
 from ignite.metrics.classification_report import ClassificationReport
