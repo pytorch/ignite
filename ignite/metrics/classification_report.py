@@ -17,10 +17,6 @@ class ClassificationReport(MetricsLambda):
         in functionality `https://scikit-learn.org/stable/modules/generated/sklearn.metrics.classification_report.html#
         sklearn.metrics.classification_report`_ . The underlying implementation doesn't use the sklearn function.
 
-        At the moment the output looks like
-
-
-
         Args:
             beta: weight of precision in harmonic mean
             output_dict: If True, return output as dict, otherwise return a str
