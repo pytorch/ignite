@@ -1,6 +1,7 @@
 from typing import Callable, Collection, Dict, List, Optional, Sequence, Union
 
 import torch
+import json
 
 from ignite.metrics.fbeta import Fbeta
 from ignite.metrics.metric import Metric, reinit__is_reduced
@@ -98,8 +99,7 @@ class ClassificationReport(MetricsLambda):
             "recall": a_recall.item(),
             "f{0}-score".format(self.beta): a_f.item(),
         }
-        result = dict_obj if self.output_dict else str(dict_obj)
-        return result
+        return dict_obj if self.output_dict else json.dumps(dict_obj)
 
     # helper method to get a label for a given class
     def _get_label_for_class(self, idx: int) -> str:

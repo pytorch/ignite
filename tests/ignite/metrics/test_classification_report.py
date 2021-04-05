@@ -2,6 +2,7 @@ import os
 
 import pytest
 import torch
+import ast
 
 import ignite.distributed as idist
 from ignite.metrics.classification_report import ClassificationReport
@@ -96,7 +97,7 @@ def _test_integration_binary(device):
             _test(metric_device)
 
 
-def _test_integration_multilabel(device):
+def _test_integration_multilabel(device, output_dict):
 
     from ignite.engine import Engine
 
@@ -111,7 +112,7 @@ def _test_integration_multilabel(device):
         y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(),)).to(device)
         y_preds = torch.randint(0, n_classes, size=(offset * idist.get_world_size(),)).to(device)
         y_true_unflat = _unflatten_multilabel(y_true, n_classes)
-        classification_report = ClassificationReport(device=metric_device, output_dict="False")
+        classification_report = ClassificationReport(device=metric_device, output_dict=output_dict)
 
         def update(engine, i):
             return (
@@ -130,6 +131,10 @@ def _test_integration_multilabel(device):
         res = engine.state.metrics["cr"]
         res2 = classification_report.compute()
         assert res == res2
+
+        assert isinstance(res, dict if output_dict else str)
+        if not output_dict:
+            res = ast.literal_eval(res)
 
         from sklearn.metrics import classification_report as sklearn_classification_report
 
@@ -150,7 +155,7 @@ def _test_integration_multilabel(device):
             _test(metric_device, 3)
 
 
-@pytest.mark.parametrize("output_dict", [True])
+@pytest.mark.parametrize("output_dict", [True, False])
 def test_binary_input_N(output_dict):
 
     classification_report = ClassificationReport(output_dict=output_dict)
@@ -172,10 +177,10 @@ def test_binary_input_N(output_dict):
         res = classification_report.compute()
         assert isinstance(res, dict if output_dict else str)
 
-        sklearn_result = sklearn_classification_report(y_pred, y_true, output_dict=output_dict)
+        sklearn_result = sklearn_classification_report(y_pred, y_true, output_dict=True)
         if not output_dict:
-            res = eval(res)
-            sklearn_result = eval(sklearn_result)
+            res = ast.literal_eval(res)
+
         assert pytest.approx(res["0"] == sklearn_result["0"])
         assert pytest.approx(res["1"] == sklearn_result["1"])
         assert pytest.approx(res["macro avg"]["precision"] == sklearn_result["macro avg"]["precision"])
@@ -199,7 +204,7 @@ def test_binary_input_N(output_dict):
             _test(y_true, y_pred, batch_size)
 
 
-@pytest.mark.parametrize("output_dict", [True])
+@pytest.mark.parametrize("output_dict", [True, False])
 def test_binary_input_N_with_labels(output_dict):
     def _test(y_true, y_pred, batch_size, labels):
         classification_report = ClassificationReport(output_dict=output_dict, labels=labels)
@@ -219,10 +224,10 @@ def test_binary_input_N_with_labels(output_dict):
         res = classification_report.compute()
         assert isinstance(res, dict if output_dict else str)
 
-        sklearn_result = sklearn_classification_report(y_pred, y_true, output_dict=output_dict)
+        sklearn_result = sklearn_classification_report(y_pred, y_true, output_dict=True)
         if not output_dict:
-            res = eval(res)
-            sklearn_result = eval(sklearn_result)
+            res = ast.literal_eval(res)
+
         assert pytest.approx(res[labels[0]] == sklearn_result["0"])
         assert pytest.approx(res[labels[1]] == sklearn_result["1"])
         assert pytest.approx(res["macro avg"]["precision"] == sklearn_result["macro avg"]["precision"])
@@ -244,7 +249,7 @@ def test_binary_input_N_with_labels(output_dict):
         _test(y_true, y_pred, batch_size, ["label0", "label1"])
 
 
-@pytest.mark.parametrize("output_dict", [True])
+@pytest.mark.parametrize("output_dict", [True, False])
 def test_multilabel_input_N(output_dict):
 
     classification_report = ClassificationReport(output_dict=output_dict)
@@ -266,10 +271,11 @@ def test_multilabel_input_N(output_dict):
         res = classification_report.compute()
         assert isinstance(res, dict if output_dict else str)
 
-        sklearn_result = sklearn_classification_report(y_pred, y_true, output_dict=output_dict)
+        sklearn_result = sklearn_classification_report(y_pred, y_true, output_dict=True)
+
         if not output_dict:
-            res = eval(res)
-            sklearn_result = eval(sklearn_result)
+            res = ast.literal_eval(res)
+
         for i in range(n_classes):
             assert pytest.approx(res[str(i)] == sklearn_result[str(i)])
         assert pytest.approx(res["macro avg"]["precision"] == sklearn_result["macro avg"]["precision"])
@@ -300,7 +306,8 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
 
     device = torch.device(f"cuda:{distributed_context_multi_node_nccl['local_rank']}")
     _test_integration_binary(device)
-    _test_integration_multilabel(device)
+    _test_integration_multilabel(device, True)
+    _test_integration_multilabel(device, False)
 
 
 @pytest.mark.multinode_distributed
@@ -309,7 +316,8 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
     device = torch.device("cpu")
     _test_integration_binary(device)
-    _test_integration_multilabel(device)
+    _test_integration_multilabel(device, True)
+    _test_integration_multilabel(device, False)
 
 
 @pytest.mark.distributed
@@ -317,14 +325,16 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 def test_distrib_cpu(local_rank, distributed_context_single_node_gloo):
     device = torch.device("cpu")
     _test_integration_binary(device)
-    _test_integration_multilabel(device)
+    _test_integration_multilabel(device, True)
+    _test_integration_multilabel(device, False)
 
 
 def _test_distrib_xla_nprocs(index):
 
     device = idist.device()
     _test_integration_binary(device)
-    _test_integration_multilabel(device)
+    _test_integration_multilabel(device, True)
+    _test_integration_multilabel(device, False)
 
 
 @pytest.mark.tpu
