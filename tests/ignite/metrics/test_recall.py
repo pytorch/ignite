@@ -19,7 +19,7 @@ def test_no_update():
         recall.compute()
 
     recall = Recall(is_multilabel=True, average=True)
-    with pytest.raises(NotComputableError):
+    with pytest.raises(NotComputableError, match=r"Recall must have at least one example before it can be computed"):
         recall.compute()
 
 
@@ -47,168 +47,59 @@ def test_binary_wrong_inputs():
         re.update((torch.randint(0, 2, size=(10,)), torch.randint(0, 2, size=(10, 5, 6)).long()))
 
 
-def test_binary_input_N():
-    # Binary accuracy on input of shape (N, 1) or (N, )
+@pytest.mark.parametrize("average", [False, True])
+def test_binary_input(average):
 
-    def _test(average):
-        re = Recall(average=average)
-        y_pred = torch.randint(0, 2, size=(10,))
-        y = torch.randint(0, 2, size=(10,)).long()
-        re.update((y_pred, y))
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().ravel()
-        assert re._type == "binary"
-        assert isinstance(re.compute(), float if average else torch.Tensor)
-        re_compute = re.compute() if average else re.compute().numpy()
-        assert recall_score(np_y, np_y_pred, average="binary") == pytest.approx(re_compute)
+    re = Recall(average=average)
 
+    def _test(y_pred, y, batch_size):
         re.reset()
-        y_pred = torch.randint(0, 2, size=(10,))
-        y = torch.randint(0, 2, size=(10,)).long()
         re.update((y_pred, y))
+
         np_y = y.numpy().ravel()
         np_y_pred = y_pred.numpy().ravel()
+
+        if batch_size > 1:
+            n_iters = y.shape[0] // batch_size + 1
+            for i in range(n_iters):
+                idx = i * batch_size
+                re.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+
         assert re._type == "binary"
         assert isinstance(re.compute(), float if average else torch.Tensor)
         re_compute = re.compute() if average else re.compute().numpy()
         assert recall_score(np_y, np_y_pred, average="binary") == pytest.approx(re_compute)
 
-        re.reset()
-        y_pred = torch.Tensor([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.51])
-        y_pred = torch.round(y_pred)
-        y = torch.randint(0, 2, size=(10,)).long()
-        re.update((y_pred, y))
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().ravel()
-        assert re._type == "binary"
-        assert isinstance(re.compute(), float if average else torch.Tensor)
-        re_compute = re.compute() if average else re.compute().numpy()
-        assert recall_score(np_y, np_y_pred, average="binary") == pytest.approx(re_compute)
+    def get_test_cases():
 
-        # Batched Updates
-        re.reset()
-        y_pred = torch.randint(0, 2, size=(100,))
-        y = torch.randint(0, 2, size=(100,)).long()
+        test_cases = [
+            # Binary accuracy on input of shape (N, 1) or (N, )
+            (torch.randint(0, 2, size=(10,)), torch.randint(0, 2, size=(10,)), 1),
+            (torch.randint(0, 2, size=(10, 1)), torch.randint(0, 2, size=(10, 1)), 1),
+            # updated batches
+            (torch.randint(0, 2, size=(50,)), torch.randint(0, 2, size=(50,)), 16),
+            (torch.randint(0, 2, size=(50, 1)), torch.randint(0, 2, size=(50, 1)), 16),
+            # Binary accuracy on input of shape (N, L)
+            (torch.randint(0, 2, size=(10, 5)), torch.randint(0, 2, size=(10, 5)), 1),
+            (torch.randint(0, 2, size=(10, 1, 5)), torch.randint(0, 2, size=(10, 1, 5)), 1),
+            # updated batches
+            (torch.randint(0, 2, size=(50, 5)), torch.randint(0, 2, size=(50, 5)), 16),
+            (torch.randint(0, 2, size=(50, 1, 5)), torch.randint(0, 2, size=(50, 1, 5)), 16),
+            # Binary accuracy on input of shape (N, H, W)
+            (torch.randint(0, 2, size=(10, 12, 10)), torch.randint(0, 2, size=(10, 12, 10)), 1),
+            (torch.randint(0, 2, size=(10, 1, 12, 10)), torch.randint(0, 2, size=(10, 1, 12, 10)), 1),
+            # updated batches
+            (torch.randint(0, 2, size=(50, 12, 10)), torch.randint(0, 2, size=(50, 12, 10)), 16),
+            (torch.randint(0, 2, size=(50, 1, 12, 10)), torch.randint(0, 2, size=(50, 1, 12, 10)), 16),
+        ]
 
-        batch_size = 16
-        n_iters = y.shape[0] // batch_size + 1
-
-        for i in range(n_iters):
-            idx = i * batch_size
-            re.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().ravel()
-        assert re._type == "binary"
-        assert isinstance(re.compute(), float if average else torch.Tensor)
-        re_compute = re.compute() if average else re.compute().numpy()
-        assert recall_score(np_y, np_y_pred, average="binary") == pytest.approx(re_compute)
+        return test_cases
 
     for _ in range(5):
-        _test(average=True)
-        _test(average=False)
-
-
-def test_binary_input_NL():
-    # Binary accuracy on input of shape (N, L)
-
-    def _test(average):
-        re = Recall(average=average)
-
-        y_pred = torch.randint(0, 2, size=(10, 5))
-        y = torch.randint(0, 2, size=(10, 5)).long()
-        re.update((y_pred, y))
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().ravel()
-        assert re._type == "binary"
-        assert isinstance(re.compute(), float if average else torch.Tensor)
-        re_compute = re.compute() if average else re.compute().numpy()
-        assert recall_score(np_y, np_y_pred, average="binary") == pytest.approx(re_compute)
-
-        re.reset()
-        y_pred = torch.randint(0, 2, size=(10, 1, 5))
-        y = torch.randint(0, 2, size=(10, 1, 5)).long()
-        re.update((y_pred, y))
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().ravel()
-        assert re._type == "binary"
-        assert isinstance(re.compute(), float if average else torch.Tensor)
-        re_compute = re.compute() if average else re.compute().numpy()
-        assert recall_score(np_y, np_y_pred, average="binary") == pytest.approx(re_compute)
-
-        # Batched Updates
-        re.reset()
-        y_pred = torch.randint(0, 2, size=(100, 5))
-        y = torch.randint(0, 2, size=(100, 5)).long()
-
-        batch_size = 16
-        n_iters = y.shape[0] // batch_size + 1
-
-        for i in range(n_iters):
-            idx = i * batch_size
-            re.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().ravel()
-        assert re._type == "binary"
-        assert isinstance(re.compute(), float if average else torch.Tensor)
-        re_compute = re.compute() if average else re.compute().numpy()
-        assert recall_score(np_y, np_y_pred, average="binary") == pytest.approx(re_compute)
-
-    for _ in range(5):
-        _test(average=True)
-        _test(average=False)
-
-
-def test_binary_input_NHW():
-    # Binary accuracy on input of shape (N, H, W)
-
-    def _test(average):
-        re = Recall(average=average)
-
-        y_pred = torch.randint(0, 2, size=(10, 12, 10))
-        y = torch.randint(0, 2, size=(10, 12, 10)).long()
-        re.update((y_pred, y))
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().ravel()
-        assert re._type == "binary"
-        assert isinstance(re.compute(), float if average else torch.Tensor)
-        re_compute = re.compute() if average else re.compute().numpy()
-        assert recall_score(np_y, np_y_pred, average="binary") == pytest.approx(re_compute)
-
-        re.reset()
-        y_pred = torch.randint(0, 2, size=(10, 1, 12, 10))
-        y = torch.randint(0, 2, size=(10, 1, 12, 10)).long()
-        re.update((y_pred, y))
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().ravel()
-        assert re._type == "binary"
-        assert isinstance(re.compute(), float if average else torch.Tensor)
-        re_compute = re.compute() if average else re.compute().numpy()
-        assert recall_score(np_y, np_y_pred, average="binary") == pytest.approx(re_compute)
-
-        # Batched Updates
-        re.reset()
-        y_pred = torch.randint(0, 2, size=(100, 12, 10))
-        y = torch.randint(0, 2, size=(100, 12, 10)).long()
-
-        batch_size = 16
-        n_iters = y.shape[0] // batch_size + 1
-
-        for i in range(n_iters):
-            idx = i * batch_size
-            re.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().ravel()
-        assert re._type == "binary"
-        assert isinstance(re.compute(), float if average else torch.Tensor)
-        re_compute = re.compute() if average else re.compute().numpy()
-        assert recall_score(np_y, np_y_pred, average="binary") == pytest.approx(re_compute)
-
-    for _ in range(5):
-        _test(average=True)
-        _test(average=False)
+        # check multiple random inputs as random exact occurencies are rare
+        test_cases = get_test_cases()
+        for y_pred, y, batch_size in test_cases:
+            _test(y_pred, y, batch_size)
 
 
 def test_multiclass_wrong_inputs():
@@ -251,33 +142,25 @@ def test_multiclass_wrong_inputs():
         re.update((torch.rand(10, 6, 12, 14), torch.randint(0, 5, size=(10, 12, 14)).long()))
 
 
-def test_multiclass_input_N():
-    # Multiclass input data of shape (N, ) and (N, C)
+@pytest.mark.parametrize("average", [False, True])
+def test_multiclass_input(average):
 
-    def _test(average):
-        re = Recall(average=average)
-        y_pred = torch.rand(20, 6)
-        y = torch.randint(0, 6, size=(20,)).long()
-        re.update((y_pred, y))
-        num_classes = y_pred.shape[1]
-        np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
-        np_y = y.numpy().ravel()
-        assert re._type == "multiclass"
-        assert isinstance(re.compute(), float if average else torch.Tensor)
-        re_compute = re.compute() if average else re.compute().numpy()
-        sk_average_parameter = "macro" if average else None
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            sk_compute = recall_score(np_y, np_y_pred, labels=range(0, num_classes), average=sk_average_parameter)
-            assert sk_compute == pytest.approx(re_compute)
+    re = Recall(average=average)
 
+    def _test(y_pred, y, batch_size):
         re.reset()
-        y_pred = torch.rand(10, 4)
-        y = torch.randint(0, 4, size=(10,)).long()
         re.update((y_pred, y))
+
         num_classes = y_pred.shape[1]
         np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
         np_y = y.numpy().ravel()
+
+        if batch_size > 1:
+            n_iters = y.shape[0] // batch_size + 1
+            for i in range(n_iters):
+                idx = i * batch_size
+                re.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+
         assert re._type == "multiclass"
         assert isinstance(re.compute(), float if average else torch.Tensor)
         re_compute = re.compute() if average else re.compute().numpy()
@@ -287,181 +170,36 @@ def test_multiclass_input_N():
             sk_compute = recall_score(np_y, np_y_pred, labels=range(0, num_classes), average=sk_average_parameter)
             assert sk_compute == pytest.approx(re_compute)
 
-        # 2-classes
-        re.reset()
-        y_pred = torch.rand(10, 2)
-        y = torch.randint(0, 2, size=(10,)).long()
-        re.update((y_pred, y))
-        num_classes = y_pred.shape[1]
-        np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
-        np_y = y.numpy().ravel()
-        assert re._type == "multiclass"
-        assert isinstance(re.compute(), float if average else torch.Tensor)
-        re_compute = re.compute() if average else re.compute().numpy()
-        sk_average_parameter = "macro" if average else None
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            sk_compute = recall_score(np_y, np_y_pred, labels=range(0, num_classes), average=sk_average_parameter)
-            assert sk_compute == pytest.approx(re_compute)
+    def get_test_cases():
 
-        # Batched Updates
-        re.reset()
-        y_pred = torch.rand(100, 3)
-        y = torch.randint(0, 3, size=(100,)).long()
+        test_cases = [
+            # Multiclass input data of shape (N, ) and (N, C)
+            (torch.rand(10, 6), torch.randint(0, 6, size=(10,)), 1),
+            (torch.rand(10, 4), torch.randint(0, 4, size=(10,)), 1),
+            # updated batches
+            (torch.rand(50, 6), torch.randint(0, 6, size=(50,)), 16),
+            (torch.rand(50, 4), torch.randint(0, 4, size=(50,)), 16),
+            # Multiclass input data of shape (N, L) and (N, C, L)
+            (torch.rand(10, 5, 8), torch.randint(0, 5, size=(10, 8)), 1),
+            (torch.rand(10, 8, 12), torch.randint(0, 8, size=(10, 12)), 1),
+            # updated batches
+            (torch.rand(50, 5, 8), torch.randint(0, 5, size=(50, 8)), 16),
+            (torch.rand(50, 8, 12), torch.randint(0, 8, size=(50, 12)), 16),
+            # Multiclass input data of shape (N, H, W, ...) and (N, C, H, W, ...)
+            (torch.rand(10, 5, 18, 16), torch.randint(0, 5, size=(10, 18, 16)), 1),
+            (torch.rand(10, 7, 20, 12), torch.randint(0, 7, size=(10, 20, 12)), 1),
+            # updated batches
+            (torch.rand(50, 5, 18, 16), torch.randint(0, 5, size=(50, 18, 16)), 16),
+            (torch.rand(50, 7, 20, 12), torch.randint(0, 7, size=(50, 20, 12)), 16),
+        ]
 
-        batch_size = 16
-        n_iters = y.shape[0] // batch_size + 1
-
-        for i in range(n_iters):
-            idx = i * batch_size
-            re.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-
-        num_classes = y_pred.shape[1]
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
-        assert re._type == "multiclass"
-        assert isinstance(re.compute(), float if average else torch.Tensor)
-        re_compute = re.compute() if average else re.compute().numpy()
-        sk_average_parameter = "macro" if average else None
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            sk_compute = recall_score(np_y, np_y_pred, labels=range(0, num_classes), average=sk_average_parameter)
-            assert sk_compute == pytest.approx(re_compute)
+        return test_cases
 
     for _ in range(5):
-        _test(average=True)
-        _test(average=False)
-
-
-def test_multiclass_input_NL():
-    # Multiclass input data of shape (N, L) and (N, C, L)
-
-    def _test(average):
-        re = Recall(average=average)
-
-        y_pred = torch.rand(10, 5, 8)
-        y = torch.randint(0, 5, size=(10, 8)).long()
-        re.update((y_pred, y))
-        num_classes = y_pred.shape[1]
-        np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
-        np_y = y.numpy().ravel()
-        assert re._type == "multiclass"
-        assert isinstance(re.compute(), float if average else torch.Tensor)
-        re_compute = re.compute() if average else re.compute().numpy()
-        sk_average_parameter = "macro" if average else None
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            assert recall_score(np_y, np_y_pred, average=sk_average_parameter) == pytest.approx(re_compute)
-
-        re.reset()
-        y_pred = torch.rand(15, 10, 8)
-        y = torch.randint(0, 10, size=(15, 8)).long()
-        re.update((y_pred, y))
-        num_classes = y_pred.shape[1]
-        np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
-        np_y = y.numpy().ravel()
-        assert re._type == "multiclass"
-        assert isinstance(re.compute(), float if average else torch.Tensor)
-        re_compute = re.compute() if average else re.compute().numpy()
-        sk_average_parameter = "macro" if average else None
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            sk_compute = recall_score(np_y, np_y_pred, labels=range(0, num_classes), average=sk_average_parameter)
-            assert sk_compute == pytest.approx(re_compute)
-
-        # Batched Updates
-        re.reset()
-        y_pred = torch.rand(100, 8, 12)
-        y = torch.randint(0, 8, size=(100, 12)).long()
-
-        batch_size = 16
-        n_iters = y.shape[0] // batch_size + 1
-
-        for i in range(n_iters):
-            idx = i * batch_size
-            re.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-
-        num_classes = y_pred.shape[1]
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
-        assert re._type == "multiclass"
-        assert isinstance(re.compute(), float if average else torch.Tensor)
-        re_compute = re.compute() if average else re.compute().numpy()
-        sk_average_parameter = "macro" if average else None
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            sk_compute = recall_score(np_y, np_y_pred, labels=range(0, num_classes), average=sk_average_parameter)
-            assert sk_compute == pytest.approx(re_compute)
-
-    for _ in range(5):
-        _test(average=True)
-        _test(average=False)
-
-
-def test_multiclass_input_NHW():
-    # Multiclass input data of shape (N, H, W, ...) and (N, C, H, W, ...)
-
-    def _test(average):
-        re = Recall(average=average)
-
-        y_pred = torch.rand(10, 5, 18, 16)
-        y = torch.randint(0, 5, size=(10, 18, 16)).long()
-        re.update((y_pred, y))
-        num_classes = y_pred.shape[1]
-        np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
-        np_y = y.numpy().ravel()
-        assert re._type == "multiclass"
-        assert isinstance(re.compute(), float if average else torch.Tensor)
-        re_compute = re.compute() if average else re.compute().numpy()
-        sk_average_parameter = "macro" if average else None
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            sk_compute = recall_score(np_y, np_y_pred, labels=range(0, num_classes), average=sk_average_parameter)
-            assert sk_compute == pytest.approx(re_compute)
-
-        re.reset()
-        y_pred = torch.rand(10, 7, 20, 12)
-        y = torch.randint(0, 7, size=(10, 20, 12)).long()
-        re.update((y_pred, y))
-        num_classes = y_pred.shape[1]
-        np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
-        np_y = y.numpy().ravel()
-        assert re._type == "multiclass"
-        assert isinstance(re.compute(), float if average else torch.Tensor)
-        re_compute = re.compute() if average else re.compute().numpy()
-        sk_average_parameter = "macro" if average else None
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            sk_compute = recall_score(np_y, np_y_pred, labels=range(0, num_classes), average=sk_average_parameter)
-            assert sk_compute == pytest.approx(re_compute)
-
-        # Batched Updates
-        re.reset()
-        y_pred = torch.rand(100, 10, 12, 14)
-        y = torch.randint(0, 10, size=(100, 12, 14)).long()
-
-        batch_size = 16
-        n_iters = y.shape[0] // batch_size + 1
-
-        for i in range(n_iters):
-            idx = i * batch_size
-            re.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-
-        num_classes = y_pred.shape[1]
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
-        assert re._type == "multiclass"
-        assert isinstance(re.compute(), float if average else torch.Tensor)
-        re_compute = re.compute() if average else re.compute().numpy()
-        sk_average_parameter = "macro" if average else None
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            sk_compute = recall_score(np_y, np_y_pred, labels=range(0, num_classes), average=sk_average_parameter)
-            assert sk_compute == pytest.approx(re_compute)
-
-    for _ in range(5):
-        _test(average=True)
-        _test(average=False)
+        # check multiple random inputs as random exact occurencies are rare
+        test_cases = get_test_cases()
+        for y_pred, y, batch_size in test_cases:
+            _test(y_pred, y, batch_size)
 
 
 def test_multilabel_wrong_inputs():
@@ -493,184 +231,63 @@ def to_numpy_multilabel(y):
     return y
 
 
-def test_multilabel_input_NC():
-    def _test(average):
-        re = Recall(average=average, is_multilabel=True)
+@pytest.mark.parametrize("average", [False, True])
+def test_multilabel_input(average):
 
-        y_pred = torch.randint(0, 2, size=(20, 5))
-        y = torch.randint(0, 2, size=(20, 5)).long()
+    re = Recall(average=average, is_multilabel=True)
+
+    def _test(y_pred, y, batch_size):
+        re.reset()
         re.update((y_pred, y))
+
         np_y_pred = to_numpy_multilabel(y_pred)
         np_y = to_numpy_multilabel(y)
+
+        if batch_size > 1:
+            n_iters = y.shape[0] // batch_size + 1
+            for i in range(n_iters):
+                idx = i * batch_size
+                re.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+
         assert re._type == "multilabel"
         re_compute = re.compute() if average else re.compute().mean().item()
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
             assert recall_score(np_y, np_y_pred, average="samples") == pytest.approx(re_compute)
 
-        re.reset()
-        y_pred = torch.randint(0, 2, size=(10, 4))
-        y = torch.randint(0, 2, size=(10, 4)).long()
-        re.update((y_pred, y))
-        np_y_pred = y_pred.numpy()
-        np_y = y.numpy()
-        assert re._type == "multilabel"
-        re_compute = re.compute() if average else re.compute().mean().item()
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            assert recall_score(np_y, np_y_pred, average="samples") == pytest.approx(re_compute)
+        re1 = Recall(is_multilabel=True, average=True)
+        re2 = Recall(is_multilabel=True, average=False)
+        re1.update((y_pred, y))
+        re2.update((y_pred, y))
+        assert re1.compute() == pytest.approx(re2.compute().mean().item())
 
-        # Batched Updates
-        re.reset()
-        y_pred = torch.randint(0, 2, size=(100, 4))
-        y = torch.randint(0, 2, size=(100, 4)).long()
+    def get_test_cases():
 
-        batch_size = 16
-        n_iters = y.shape[0] // batch_size + 1
+        test_cases = [
+            (torch.randint(0, 2, size=(10, 5)), torch.randint(0, 2, size=(10, 5)), 1),
+            (torch.randint(0, 2, size=(10, 4)), torch.randint(0, 2, size=(10, 4)), 1),
+            # updated batches
+            (torch.randint(0, 2, size=(50, 5)), torch.randint(0, 2, size=(50, 5)), 16),
+            (torch.randint(0, 2, size=(50, 4)), torch.randint(0, 2, size=(50, 4)), 16),
+            (torch.randint(0, 2, size=(10, 5, 10)), torch.randint(0, 2, size=(10, 5, 10)), 1),
+            (torch.randint(0, 2, size=(10, 4, 10)), torch.randint(0, 2, size=(10, 4, 10)), 1),
+            # updated batches
+            (torch.randint(0, 2, size=(50, 5, 10)), torch.randint(0, 2, size=(50, 5, 10)), 16),
+            (torch.randint(0, 2, size=(50, 4, 10)), torch.randint(0, 2, size=(50, 4, 10)), 16),
+            (torch.randint(0, 2, size=(10, 5, 18, 16)), torch.randint(0, 2, size=(10, 5, 18, 16)), 1),
+            (torch.randint(0, 2, size=(10, 4, 20, 23)), torch.randint(0, 2, size=(10, 4, 20, 23)), 1),
+            # updated batches
+            (torch.randint(0, 2, size=(50, 5, 18, 16)), torch.randint(0, 2, size=(50, 5, 18, 16)), 16),
+            (torch.randint(0, 2, size=(50, 4, 20, 23)), torch.randint(0, 2, size=(50, 4, 20, 23)), 16),
+        ]
 
-        for i in range(n_iters):
-            idx = i * batch_size
-            re.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-
-        np_y = y.numpy()
-        np_y_pred = y_pred.numpy()
-        assert re._type == "multilabel"
-        re_compute = re.compute() if average else re.compute().mean().item()
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            assert recall_score(np_y, np_y_pred, average="samples") == pytest.approx(re_compute)
+        return test_cases
 
     for _ in range(5):
-        _test(average=True)
-        _test(average=False)
-
-    re1 = Recall(is_multilabel=True, average=True)
-    re2 = Recall(is_multilabel=True, average=False)
-    y_pred = torch.randint(0, 2, size=(10, 4))
-    y = torch.randint(0, 2, size=(10, 4)).long()
-    re1.update((y_pred, y))
-    re2.update((y_pred, y))
-    assert re1.compute() == pytest.approx(re2.compute().mean().item())
-
-
-def test_multilabel_input_NCL():
-    def _test(average):
-        re = Recall(average=average, is_multilabel=True)
-
-        y_pred = torch.randint(0, 2, size=(10, 5, 10))
-        y = torch.randint(0, 2, size=(10, 5, 10)).long()
-        re.update((y_pred, y))
-        np_y_pred = to_numpy_multilabel(y_pred)
-        np_y = to_numpy_multilabel(y)
-        assert re._type == "multilabel"
-        re_compute = re.compute() if average else re.compute().mean().item()
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            assert recall_score(np_y, np_y_pred, average="samples") == pytest.approx(re_compute)
-
-        re.reset()
-        y_pred = torch.randint(0, 2, size=(15, 4, 10))
-        y = torch.randint(0, 2, size=(15, 4, 10)).long()
-        re.update((y_pred, y))
-        np_y_pred = to_numpy_multilabel(y_pred)
-        np_y = to_numpy_multilabel(y)
-        assert re._type == "multilabel"
-        re_compute = re.compute() if average else re.compute().mean().item()
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            assert recall_score(np_y, np_y_pred, average="samples") == pytest.approx(re_compute)
-
-        # Batched Updates
-        re.reset()
-        y_pred = torch.randint(0, 2, size=(100, 4, 12))
-        y = torch.randint(0, 2, size=(100, 4, 12)).long()
-
-        batch_size = 16
-        n_iters = y.shape[0] // batch_size + 1
-
-        for i in range(n_iters):
-            idx = i * batch_size
-            re.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-
-        np_y = to_numpy_multilabel(y)
-        np_y_pred = to_numpy_multilabel(y_pred)
-        assert re._type == "multilabel"
-        re_compute = re.compute() if average else re.compute().mean().item()
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            assert recall_score(np_y, np_y_pred, average="samples") == pytest.approx(re_compute)
-
-    for _ in range(5):
-        _test(average=True)
-        _test(average=False)
-
-    re1 = Recall(is_multilabel=True, average=True)
-    re2 = Recall(is_multilabel=True, average=False)
-    y_pred = torch.randint(0, 2, size=(10, 4, 20))
-    y = torch.randint(0, 2, size=(10, 4, 20)).long()
-    re1.update((y_pred, y))
-    re2.update((y_pred, y))
-    assert re1.compute() == pytest.approx(re2.compute().mean().item())
-
-
-def test_multilabel_input_NCHW():
-    def _test(average):
-        re = Recall(average=average, is_multilabel=True)
-
-        y_pred = torch.randint(0, 2, size=(10, 5, 18, 16))
-        y = torch.randint(0, 2, size=(10, 5, 18, 16)).long()
-        re.update((y_pred, y))
-        np_y_pred = to_numpy_multilabel(y_pred)
-        np_y = to_numpy_multilabel(y)
-        assert re._type == "multilabel"
-        re_compute = re.compute() if average else re.compute().mean().item()
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            assert recall_score(np_y, np_y_pred, average="samples") == pytest.approx(re_compute)
-
-        re.reset()
-        y_pred = torch.randint(0, 2, size=(10, 4, 20, 23))
-        y = torch.randint(0, 2, size=(10, 4, 20, 23)).long()
-        re.update((y_pred, y))
-        np_y_pred = to_numpy_multilabel(y_pred)
-        np_y = to_numpy_multilabel(y)
-        assert re._type == "multilabel"
-        re_compute = re.compute() if average else re.compute().mean().item()
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            assert recall_score(np_y, np_y_pred, average="samples") == pytest.approx(re_compute)
-
-        # Batched Updates
-        re.reset()
-        y_pred = torch.randint(0, 2, size=(100, 5, 12, 14))
-        y = torch.randint(0, 2, size=(100, 5, 12, 14)).long()
-
-        batch_size = 16
-        n_iters = y.shape[0] // batch_size + 1
-
-        for i in range(n_iters):
-            idx = i * batch_size
-            re.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-
-        np_y = to_numpy_multilabel(y)
-        np_y_pred = to_numpy_multilabel(y_pred)
-        assert re._type == "multilabel"
-        re_compute = re.compute() if average else re.compute().mean().item()
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            assert recall_score(np_y, np_y_pred, average="samples") == pytest.approx(re_compute)
-
-    for _ in range(5):
-        _test(average=True)
-        _test(average=False)
-
-    re1 = Recall(is_multilabel=True, average=True)
-    re2 = Recall(is_multilabel=True, average=False)
-    y_pred = torch.randint(0, 2, size=(10, 4, 20, 23))
-    y = torch.randint(0, 2, size=(10, 4, 20, 23)).long()
-    re1.update((y_pred, y))
-    re2.update((y_pred, y))
-    assert re1.compute() == pytest.approx(re2.compute().mean().item())
+        # check multiple random inputs as random exact occurencies are rare
+        test_cases = get_test_cases()
+        for y_pred, y, batch_size in test_cases:
+            _test(y_pred, y, batch_size)
 
 
 def test_incorrect_type():
