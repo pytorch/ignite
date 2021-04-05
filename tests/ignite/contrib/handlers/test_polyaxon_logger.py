@@ -254,6 +254,7 @@ def test_integration():
     plx_logger.attach(trainer, log_handler=dummy_handler, event_name=Events.EPOCH_COMPLETED)
 
     trainer.run(data, max_epochs=n_epochs)
+    plx_logger.close()
 
 
 def test_integration_as_context_manager():

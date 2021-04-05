@@ -1,4 +1,5 @@
 import os
+import stat
 import warnings
 from collections import OrderedDict
 from unittest.mock import MagicMock
@@ -581,6 +582,12 @@ def test_disk_saver_atomic(dirname):
             pass
         fp = os.path.join(saver.dirname, fname)
         assert os.path.exists(fp) == expected
+
+        if expected:
+            # related to https://github.com/pytorch/ignite/issues/1876
+            mode = stat.filemode(os.stat(fp).st_mode)
+            assert [mode[1], mode[4], mode[7]] == ["r", "r", "r"], mode
+
         if expected:
             saver.remove(fname)
 
