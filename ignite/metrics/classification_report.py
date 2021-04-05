@@ -13,9 +13,9 @@ __all__ = ["ClassificationReport"]
 
 
 class ClassificationReport(MetricsLambda):
-    """Build a text report showing the main classification metrics. The report resembles
-        in functionality `https://scikit-learn.org/stable/modules/generated/sklearn.metrics.classification_report.html#
-        sklearn.metrics.classification_report`_ . The underlying implementation doesn't use the sklearn function.
+    """Build a text report showing the main classification metrics. The report resembles in functionality
+        'https://scikit-learn.org/stable/modules/generated/sklearn.metrics.classification_report.html#sklearn.metrics.classification_report'
+        The underlying implementation doesn't use the sklearn function.
 
         Args:
             beta: weight of precision in harmonic mean
@@ -38,6 +38,24 @@ class ClassificationReport(MetricsLambda):
             classification_report.update((y_true, y_pred))
             res = classification_report.compute()
 
+            result should look like this:
+            {
+                  "0": {
+                    "precision": 0.5,
+                    "recall": 0.6,
+                    "f1-score": 0.5454545454545449
+                  },
+                  "1": {
+                    "precision": 0.5,
+                    "recall": 0.4,
+                    "f1-score": 0.444444444444444
+                  },
+                  "macro avg": {
+                    "precision": 0.5,
+                    "recall": 0.5,
+                    "f1-score": 0.4949494949494944
+                  }
+            }
     """
 
     def __init__(
