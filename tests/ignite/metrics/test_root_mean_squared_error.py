@@ -1,5 +1,6 @@
 import os
 
+import numpy as np
 import pytest
 import torch
 
@@ -8,7 +9,7 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics import RootMeanSquaredError
 
 
-def test_zero_div():
+def test_zero_sample():
     rmse = RootMeanSquaredError()
     with pytest.raises(
         NotComputableError, match=r"MeanSquaredError must have at least one example before it can be computed"
@@ -17,24 +18,52 @@ def test_zero_div():
 
 
 def test_compute():
+
     rmse = RootMeanSquaredError()
 
-    y_pred = torch.Tensor([[2.0], [-2.0]])
-    y = torch.zeros(2)
-    rmse.update((y_pred, y))
-    assert isinstance(rmse.compute(), float)
-    assert rmse.compute() == 2.0
+    def _test(y_pred, y, batch_size):
+        rmse.reset()
+        rmse.update((y_pred, y))
 
-    rmse.reset()
-    y_pred = torch.Tensor([[3.0], [-3.0]])
-    y = torch.zeros(2)
-    rmse.update((y_pred, y))
-    assert isinstance(rmse.compute(), float)
-    assert rmse.compute() == 3.0
+        np_y = y.numpy().ravel()
+        np_y_pred = y_pred.numpy().ravel()
+
+        if batch_size > 1:
+            n_iters = y.shape[0] // batch_size + 1
+            for i in range(n_iters):
+                idx = i * batch_size
+                rmse.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+
+        np_res = np.sqrt(np.power((np_y - np_y_pred), 2.0).sum() / np_y.shape[0])
+        res = rmse.compute()
+
+        assert isinstance(res, float)
+        assert pytest.approx(res) == np_res
+
+    def get_test_cases():
+
+        test_cases = [
+            (torch.randint(0, 10, size=(100,)), torch.randint(0, 10, size=(100,)), 1),
+            (torch.randint(-10, 10, size=(100, 1)), torch.randint(-10, 10, size=(100, 1)), 1),
+            (torch.randint(0, 10, size=(200,)), torch.randint(0, 10, size=(200,)), 1),
+            (torch.randint(-10, 10, size=(200, 1)), torch.randint(-10, 10, size=(200, 1)), 1),
+            # updated batches
+            (torch.randint(0, 10, size=(100,)), torch.randint(0, 10, size=(100,)), 16),
+            (torch.randint(-10, 10, size=(100, 1)), torch.randint(-10, 10, size=(100, 1)), 16),
+            (torch.randint(0, 10, size=(200,)), torch.randint(0, 10, size=(200,)), 16),
+            (torch.randint(-10, 10, size=(200, 1)), torch.randint(-10, 10, size=(200, 1)), 16),
+        ]
+
+        return test_cases
+
+    for _ in range(10):
+        # check multiple random inputs as random exact occurencies are rare
+        test_cases = get_test_cases()
+        for y_pred, y, batch_size in test_cases:
+            _test(y_pred, y, batch_size)
 
 
 def _test_distrib_integration(device, tol=1e-6):
-    import numpy as np
 
     from ignite.engine import Engine
 
