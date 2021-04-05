@@ -3,6 +3,8 @@ name: Build docs
 on:
   push:
     branches: [master]
+    paths:
+      - "docs/**"
   pull_request:
   release:
     types: [published]
