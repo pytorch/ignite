@@ -1,7 +1,7 @@
+import json
 from typing import Callable, Collection, Dict, List, Optional, Sequence, Union
 
 import torch
-import json
 
 from ignite.metrics.fbeta import Fbeta
 from ignite.metrics.metric import Metric, reinit__is_reduced
