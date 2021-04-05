@@ -81,6 +81,9 @@ class WandBLogger(BaseLogger):
                 param_name='lr'  # optional
             )
 
+            # We need to close the logger when we are done
+            wandb_logger.close()
+
         If you want to log model gradients, the model call graph, etc., use the logger as wrapper of wandb. Refer
         to the documentation of wandb.watch for details:
 
@@ -115,6 +118,8 @@ class WandBLogger(BaseLogger):
                 global_step_transform=global_step_from_engine(trainer)
             )
             evaluator.add_event_handler(Events.COMPLETED, model_checkpoint, {'model': model})
+
+
     """
 
     def __init__(self, *args: Any, **kwargs: Any):
@@ -132,6 +137,9 @@ class WandBLogger(BaseLogger):
 
     def __getattr__(self, attr: Any) -> Any:
         return getattr(self._wandb, attr)  # type: ignore[misc]
+
+    def close(self) -> None:
+        self._wandb.finish()
 
     def _create_output_handler(self, *args: Any, **kwargs: Any) -> "OutputHandler":
         return OutputHandler(*args, **kwargs)
