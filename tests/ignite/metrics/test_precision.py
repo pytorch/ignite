@@ -232,7 +232,7 @@ def to_numpy_multilabel(y):
 
 
 @pytest.mark.parametrize("average", [False, True])
-def test_multilabel_input_NC(average):
+def test_multilabel_input(average):
 
     pr = Precision(average=average, is_multilabel=True)
 
@@ -240,8 +240,8 @@ def test_multilabel_input_NC(average):
         pr.reset()
         pr.update((y_pred, y))
 
-        np_y_pred = y_pred.numpy()
-        np_y = y.numpy()
+        np_y_pred = to_numpy_multilabel(y_pred)
+        np_y = to_numpy_multilabel(y)
 
         if batch_size > 1:
             n_iters = y.shape[0] // batch_size + 1
@@ -269,99 +269,11 @@ def test_multilabel_input_NC(average):
             # updated batches
             (torch.randint(0, 2, size=(50, 5)), torch.randint(0, 2, size=(50, 5)), 16),
             (torch.randint(0, 2, size=(50, 4)), torch.randint(0, 2, size=(50, 4)), 16),
-        ]
-
-        return test_cases
-
-    for _ in range(5):
-        # check multiple random inputs as random exact occurencies are rare
-        test_cases = get_test_cases()
-        for y_pred, y, batch_size in test_cases:
-            _test(y_pred, y, batch_size)
-
-
-@pytest.mark.parametrize("average", [False, True])
-def test_multilabel_input_NCL(average):
-
-    pr = Precision(average=average, is_multilabel=True)
-
-    def _test(y_pred, y, batch_size):
-        pr.reset()
-        pr.update((y_pred, y))
-
-        np_y_pred = to_numpy_multilabel(y_pred)
-        np_y = to_numpy_multilabel(y)
-
-        if batch_size > 1:
-            n_iters = y.shape[0] // batch_size + 1
-            for i in range(n_iters):
-                idx = i * batch_size
-                pr.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-
-        assert pr._type == "multilabel"
-        pr_compute = pr.compute() if average else pr.compute().mean().item()
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            assert precision_score(np_y, np_y_pred, average="samples") == pytest.approx(pr_compute)
-
-        pr1 = Precision(is_multilabel=True, average=True)
-        pr2 = Precision(is_multilabel=True, average=False)
-        pr1.update((y_pred, y))
-        pr2.update((y_pred, y))
-        assert pr1.compute() == pytest.approx(pr2.compute().mean().item())
-
-    def get_test_cases():
-
-        test_cases = [
             (torch.randint(0, 2, size=(10, 5, 10)), torch.randint(0, 2, size=(10, 5, 10)), 1),
             (torch.randint(0, 2, size=(10, 4, 10)), torch.randint(0, 2, size=(10, 4, 10)), 1),
             # updated batches
             (torch.randint(0, 2, size=(50, 5, 10)), torch.randint(0, 2, size=(50, 5, 10)), 16),
             (torch.randint(0, 2, size=(50, 4, 10)), torch.randint(0, 2, size=(50, 4, 10)), 16),
-        ]
-
-        return test_cases
-
-    for _ in range(5):
-        # check multiple random inputs as random exact occurencies are rare
-        test_cases = get_test_cases()
-        for y_pred, y, batch_size in test_cases:
-            _test(y_pred, y, batch_size)
-
-
-@pytest.mark.parametrize("average", [False, True])
-def test_multilabel_input_NCHW(average):
-
-    pr = Precision(average=average, is_multilabel=True)
-
-    def _test(y_pred, y, batch_size):
-        pr.reset()
-        pr.update((y_pred, y))
-
-        np_y_pred = to_numpy_multilabel(y_pred)
-        np_y = to_numpy_multilabel(y)
-
-        if batch_size > 1:
-            n_iters = y.shape[0] // batch_size + 1
-            for i in range(n_iters):
-                idx = i * batch_size
-                pr.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-
-        assert pr._type == "multilabel"
-        pr_compute = pr.compute() if average else pr.compute().mean().item()
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            assert precision_score(np_y, np_y_pred, average="samples") == pytest.approx(pr_compute)
-
-        pr1 = Precision(is_multilabel=True, average=True)
-        pr2 = Precision(is_multilabel=True, average=False)
-        pr1.update((y_pred, y))
-        pr2.update((y_pred, y))
-        assert pr1.compute() == pytest.approx(pr2.compute().mean().item())
-
-    def get_test_cases():
-
-        test_cases = [
             (torch.randint(0, 2, size=(10, 5, 18, 16)), torch.randint(0, 2, size=(10, 5, 18, 16)), 1),
             (torch.randint(0, 2, size=(10, 4, 20, 23)), torch.randint(0, 2, size=(10, 4, 20, 23)), 1),
             # updated batches
