@@ -1,5 +1,6 @@
 from ignite.metrics.accumulation import Average, GeometricAverage, VariableAccumulation
 from ignite.metrics.accuracy import Accuracy
+from ignite.metrics.classification_report import ClassificationReport
 from ignite.metrics.confusion_matrix import ConfusionMatrix, DiceCoefficient, IoU, JaccardIndex, mIoU
 from ignite.metrics.epoch_metric import EpochMetric
 from ignite.metrics.fbeta import Fbeta
@@ -20,7 +21,6 @@ from ignite.metrics.root_mean_squared_error import RootMeanSquaredError
 from ignite.metrics.running_average import RunningAverage
 from ignite.metrics.ssim import SSIM
 from ignite.metrics.top_k_categorical_accuracy import TopKCategoricalAccuracy
-from ignite.metrics.classification_report import ClassificationReport
 
 __all__ = [
     "Metric",
