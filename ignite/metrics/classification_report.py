@@ -35,27 +35,27 @@ class ClassificationReport(MetricsLambda):
             [0, 1], [1, 0], [1, 1], [1, 0], [0, 1], [0, 1], [1, 0], [0, 1], [1, 0]])
             y_pred = torch.randint(0, 2, size=(10,))
 
-            classification_report = ClassificationReport(output_dict=output_dict)
+            classification_report = ClassificationReport(output_dict=True, digits=2)
             classification_report.update((y_true, y_pred))
             res = classification_report.compute()
 
             result should look like this:
             {
-                  "0": {
-                    "precision": 0.5,
-                    "recall": 0.6,
-                    "f1-score": 0.5454545454545449
-                  },
-                  "1": {
-                    "precision": 0.5,
-                    "recall": 0.4,
-                    "f1-score": 0.444444444444444
-                  },
-                  "macro avg": {
-                    "precision": 0.5,
+                "0": {
+                    "precision": 0.33,
                     "recall": 0.5,
-                    "f1-score": 0.4949494949494944
-                  }
+                    "f1-score": 0.4
+                },
+                "1": {
+                    "precision": 0.5,
+                    "recall": 0.33,
+                    "f1-score": 0.4
+                },
+                "macro avg": {
+                    "precision": 0.42,
+                    "recall": 0.42,
+                    "f1-score": 0.4
+                }
             }
     """
 
