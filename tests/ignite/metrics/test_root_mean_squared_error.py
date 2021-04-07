@@ -43,27 +43,11 @@ def test_compute():
     def get_test_cases():
 
         test_cases = [
-            (
-                torch.rand((10,), dtype=torch.float).uniform_(0, 10),
-                torch.rand((10,), dtype=torch.float).uniform_(0, 10),
-                1,
-            ),
-            (
-                torch.rand((10, 1), dtype=torch.float).uniform_(-10, 10),
-                torch.rand((10, 1), dtype=torch.float).uniform_(-10, 10),
-                1,
-            ),
+            (torch.empty(10,).uniform_(0, 10), torch.empty(10,).uniform_(0, 10), 1),
+            (torch.empty(10, 1).uniform_(-10, 10), torch.empty(10, 1).uniform_(-10, 10), 1),
             # updated batches
-            (
-                torch.rand((50,), dtype=torch.float).uniform_(0, 10),
-                torch.rand((50,), dtype=torch.float).uniform_(0, 10),
-                16,
-            ),
-            (
-                torch.rand((50, 1), dtype=torch.float).uniform_(-10, 10),
-                torch.rand((50, 1), dtype=torch.float).uniform_(-10, 10),
-                16,
-            ),
+            (torch.empty(50,).uniform_(0, 10), torch.empty(50).uniform_(0, 10), 16),
+            (torch.empty(50, 1).uniform_(-10, 10), torch.empty(50, 1).uniform_(-10, 10), 16),
         ]
 
         return test_cases
