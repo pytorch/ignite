@@ -48,7 +48,10 @@ class _Smoother:
 
     @staticmethod
     def smooth2(numerators: Counter, denominators: Counter) -> Sequence[float]:
-        return [(n + 1) / (d + 1) for n, d in zip(numerators.values(), denominators.values())]
+        return [
+            (n + 1) / (d + 1) if i != 0 else n / d
+            for i, (n, d) in enumerate(zip(numerators.values(), denominators.values()))
+        ]
 
     @staticmethod
     def no_smooth(numerators: Counter, denominators: Counter) -> Sequence[float]:

@@ -1,6 +1,5 @@
 import os
 import warnings
-from fractions import Fraction
 
 import pytest
 import torch
@@ -113,14 +112,13 @@ def test_corpus_bleu_nltk_smooth2(candidate, references):
     ],
 )
 def test_corpus_bleu_smooth2(candidate, references):
-    def smooth2(p_n, *args, **kwargs):
-        return [Fraction(p_n[i].numerator + 1, p_n[i].denominator + 1, _normalize=False) for i in range(len(p_n))]
-
     for i in range(1, 3):
         weights = tuple([1 / i] * i)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            reference = corpus_bleu(references, candidate, weights=weights, smoothing_function=smooth2)
+            reference = corpus_bleu(
+                references, candidate, weights=weights, smoothing_function=SmoothingFunction().method2
+            )
         bleu = Bleu(ngram=i, smooth="smooth2")
         assert reference == bleu._corpus_bleu(references, candidate)
         bleu.update((candidate[0], references[0]))
