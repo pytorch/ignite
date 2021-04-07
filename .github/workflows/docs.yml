@@ -3,9 +3,17 @@ name: Build docs
 on:
   push:
     branches: [master]
-    paths:
-      - "docs/**"
+    paths-ignore:
+      - "tests/**"
+      - "docker/**"
+      - "assets/**"
+      - ".github/workflows/**"
   pull_request:
+    paths-ignore:
+      - "tests/**"
+      - "docker/**"
+      - "assets/**"
+      - ".github/workflows/**"
   release:
     types: [published]
 
