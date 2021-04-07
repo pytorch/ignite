@@ -43,20 +43,16 @@ def test_compute():
     def get_test_cases():
 
         test_cases = [
-            (torch.randint(0, 10, size=(100,)), torch.randint(0, 10, size=(100,)), 1),
-            (torch.randint(-10, 10, size=(100, 1)), torch.randint(-10, 10, size=(100, 1)), 1),
-            (torch.randint(0, 10, size=(200,)), torch.randint(0, 10, size=(200,)), 1),
-            (torch.randint(-10, 10, size=(200, 1)), torch.randint(-10, 10, size=(200, 1)), 1),
+            (torch.randint(0, 10, size=(50,)), torch.randint(0, 10, size=(50,)), 1),
+            (torch.randint(-10, 10, size=(50, 1)), torch.randint(-10, 10, size=(50, 1)), 1),
             # updated batches
-            (torch.randint(0, 10, size=(100,)), torch.randint(0, 10, size=(100,)), 16),
-            (torch.randint(-10, 10, size=(100, 1)), torch.randint(-10, 10, size=(100, 1)), 16),
-            (torch.randint(0, 10, size=(200,)), torch.randint(0, 10, size=(200,)), 16),
-            (torch.randint(-10, 10, size=(200, 1)), torch.randint(-10, 10, size=(200, 1)), 16),
+            (torch.randint(0, 10, size=(50,)), torch.randint(0, 10, size=(50,)), 16),
+            (torch.randint(-10, 10, size=(50, 1)), torch.randint(-10, 10, size=(50, 1)), 16),
         ]
 
         return test_cases
 
-    for _ in range(10):
+    for _ in range(5):
         # check multiple random inputs as random exact occurencies are rare
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
