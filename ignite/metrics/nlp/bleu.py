@@ -1,6 +1,6 @@
 import math
 from collections import Counter
-from typing import Any, Callable, Sequence, Tuple, Union
+from typing import Any, Callable, Sequence, Tuple, Union, ValuesView
 
 import torch
 
@@ -42,16 +42,17 @@ class _Smoother:
     @staticmethod
     def nltk_smooth2(numerators: Counter, denominators: Counter) -> Sequence[float]:
         denominators_ = [max(1, d) for d in denominators.values()]
-        return [
-            (n + 1) / (d + 1) if i != 0 else n / d for i, (n, d) in enumerate(zip(numerators.values(), denominators_))
-        ]
+        return _Smoother._smooth2(numerators.values(), denominators_)
 
     @staticmethod
     def smooth2(numerators: Counter, denominators: Counter) -> Sequence[float]:
-        return [
-            (n + 1) / (d + 1) if i != 0 else n / d
-            for i, (n, d) in enumerate(zip(numerators.values(), denominators.values()))
-        ]
+        return _Smoother._smooth2(numerators.values(), denominators.values())
+
+    @staticmethod
+    def _smooth2(
+        numerators: Union[ValuesView[int], Sequence[int]], denominators: Union[ValuesView[int], Sequence[int]]
+    ) -> Sequence[float]:
+        return [(n + 1) / (d + 1) if i != 0 else n / d for i, (n, d) in enumerate(zip(numerators, denominators))]
 
     @staticmethod
     def no_smooth(numerators: Counter, denominators: Counter) -> Sequence[float]:
