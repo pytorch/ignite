@@ -18,20 +18,6 @@ on:
   # pull_request:
   #     paths:
 
-  pull_request_target:
-    paths:
-      - "**.py"
-      - "setup.cfg"
-      - "requirements-dev.txt"
-      - "pyproject.toml"
-      - "tests/run_code_style.sh"
-      - ".github/workflows/code-style.yml"
-      - "!assets/**"
-      - "!.circleci/**"
-      - "!docker/**"
-      - "!docs/**"
-      - "!conda.recipe"
-
 
 jobs:
   code-style:
