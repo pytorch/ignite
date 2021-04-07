@@ -44,24 +44,24 @@ def test_compute():
 
         test_cases = [
             (
-                torch.randint(0, 10, size=(50,), dtype=torch.float),
-                torch.randint(0, 10, size=(50,), dtype=torch.float),
+                torch.rand((10,), dtype=torch.float).uniform_(0, 10),
+                torch.rand((10,), dtype=torch.float).uniform_(0, 10),
                 1,
             ),
             (
-                torch.randint(-10, 10, size=(50, 1), dtype=torch.float),
-                torch.randint(-10, 10, size=(50, 1), dtype=torch.float),
+                torch.rand((10, 1), dtype=torch.float).uniform_(-10, 10),
+                torch.rand((10, 1), dtype=torch.float).uniform_(-10, 10),
                 1,
             ),
             # updated batches
             (
-                torch.randint(0, 10, size=(50,), dtype=torch.float),
-                torch.randint(0, 10, size=(50,), dtype=torch.float),
+                torch.rand((50,), dtype=torch.float).uniform_(0, 10),
+                torch.rand((50,), dtype=torch.float).uniform_(0, 10),
                 16,
             ),
             (
-                torch.randint(-10, 10, size=(50, 1), dtype=torch.float),
-                torch.randint(-10, 10, size=(50, 1), dtype=torch.float),
+                torch.rand((50, 1), dtype=torch.float).uniform_(-10, 10),
+                torch.rand((50, 1), dtype=torch.float).uniform_(-10, 10),
                 16,
             ),
         ]
