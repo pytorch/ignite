@@ -42,7 +42,7 @@ class _Smoother:
     @staticmethod
     def nltk_smooth2(numerators: Counter, denominators: Counter) -> Sequence[float]:
         denominators_ = [max(1, d) for d in denominators.values()]
-        return [(n + 1) / (d + 1) for n, d in zip(numerators.values(), denominators_)]
+        return [(n + 1) / (d + 1) if i != 0 else n / d for i, (n, d) in enumerate(zip(numerators.values(), denominators_))]
 
     @staticmethod
     def smooth2(numerators: Counter, denominators: Counter) -> Sequence[float]:
