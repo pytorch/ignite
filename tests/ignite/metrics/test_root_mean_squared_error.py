@@ -43,11 +43,27 @@ def test_compute():
     def get_test_cases():
 
         test_cases = [
-            (torch.randint(0, 10, size=(50,)), torch.randint(0, 10, size=(50,)), 1),
-            (torch.randint(-10, 10, size=(50, 1)), torch.randint(-10, 10, size=(50, 1)), 1),
+            (
+                torch.randint(0, 10, size=(50,), dtype=torch.float),
+                torch.randint(0, 10, size=(50,), dtype=torch.float),
+                1,
+            ),
+            (
+                torch.randint(-10, 10, size=(50, 1), dtype=torch.float),
+                torch.randint(-10, 10, size=(50, 1), dtype=torch.float),
+                1,
+            ),
             # updated batches
-            (torch.randint(0, 10, size=(50,)), torch.randint(0, 10, size=(50,)), 16),
-            (torch.randint(-10, 10, size=(50, 1)), torch.randint(-10, 10, size=(50, 1)), 16),
+            (
+                torch.randint(0, 10, size=(50,), dtype=torch.float),
+                torch.randint(0, 10, size=(50,), dtype=torch.float),
+                16,
+            ),
+            (
+                torch.randint(-10, 10, size=(50, 1), dtype=torch.float),
+                torch.randint(-10, 10, size=(50, 1), dtype=torch.float),
+                16,
+            ),
         ]
 
         return test_cases
