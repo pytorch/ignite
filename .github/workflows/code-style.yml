@@ -43,11 +43,6 @@ jobs:
       #         uses: actions/checkout@v2
       #         with:
       #           ref: ${{ github.head_ref }}
-      - if: github.event_name == 'pull_request_target'
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ github.head_ref }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
 
       - uses: actions/setup-python@v2
         with:
