@@ -80,7 +80,7 @@ def _test_integration_binary(device):
 
         from sklearn.metrics import classification_report as sklearn_classification_report
 
-        sklearn_result = sklearn_classification_report(y_preds, y_true, output_dict=True)
+        sklearn_result = sklearn_classification_report(y_preds.cpu().numpy(), y_true.cpu().numpy(), output_dict=True)
 
         assert pytest.approx(res["0"] == sklearn_result["0"])
         assert pytest.approx(res["1"] == sklearn_result["1"])
@@ -138,7 +138,7 @@ def _test_integration_multilabel(device, output_dict):
 
         from sklearn.metrics import classification_report as sklearn_classification_report
 
-        sklearn_result = sklearn_classification_report(y_preds, y_true, output_dict=True)
+        sklearn_result = sklearn_classification_report(y_preds.cpu().numpy(), y_true.cpu().numpy(), output_dict=True)
 
         assert pytest.approx(res["0"] == sklearn_result["0"])
         assert pytest.approx(res["1"] == sklearn_result["1"])
