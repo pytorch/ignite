@@ -39,7 +39,7 @@ class ClassificationReport(MetricsLambda):
             classification_report.update((y_true, y_pred))
             res = classification_report.compute()
 
-            result should look like this:
+            # result should look like this:
             {
                 "0": {
                     "precision": 0.33,
