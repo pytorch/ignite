@@ -7,7 +7,6 @@ on:
     paths-ignore:
       - "tests/**"
       - "docker/**"
-      - "assets/**"
   release:
     types: [published]
 
