@@ -71,21 +71,20 @@ def test_multiclass_input_N():
         assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
 
     # check multiple random inputs as random exact occurencies are rare
-    for _ in range(10):
 
-        def get_test_cases():
-            return [
-                (torch.rand(10, 4), torch.randint(0, 4, size=(10,)).long(), 4, 1),
-                (torch.rand(4, 10), torch.randint(0, 10, size=(4,)).long(), 10, 1),
-                (torch.rand(4, 2), torch.randint(0, 2, size=(4,)).long(), 2, 1),
-                # batched updates
-                (torch.rand(100, 5), torch.randint(0, 5, size=(100,)).long(), 5, 16),
-            ]
+    def get_test_cases():
+        return [
+            (torch.rand(10, 4), torch.randint(0, 4, size=(10,)).long(), 4, 1),
+            (torch.rand(4, 10), torch.randint(0, 10, size=(4,)).long(), 10, 1),
+            (torch.rand(4, 2), torch.randint(0, 2, size=(4,)).long(), 2, 1),
+            # batched updates
+            (torch.rand(100, 5), torch.randint(0, 5, size=(100,)).long(), 5, 16),
+        ]
 
-        # check multiple random inputs as random exact occurencies are rare
-        for _ in range(10):
-            for y_pred, y, num_classes, batch_size in get_test_cases():
-                _test_N(y_pred, y, num_classes, batch_size)
+    # check multiple random inputs as random exact occurencies are rare
+    for _ in range(5):
+        for y_pred, y, num_classes, batch_size in get_test_cases():
+            _test_N(y_pred, y, num_classes, batch_size)
 
 
 def test_multiclass_input_NL():
@@ -114,7 +113,7 @@ def test_multiclass_input_NL():
         ]
 
     # check multiple random inputs as random exact occurencies are rare
-    for _ in range(10):
+    for _ in range(5):
         for y_pred, y, num_classes, batch_size in get_test_cases():
             _test_NL(y_pred, y, num_classes, batch_size)
 
@@ -143,7 +142,7 @@ def test_multiclass_input_NHW():
         ]
 
     # check multiple random inputs as random exact occurencies are rare
-    for _ in range(10):
+    for _ in range(5):
         for y_pred, y, num_classes, batch_size in get_test_cases():
             _test_NHW(y_pred, y, num_classes, batch_size)
 
