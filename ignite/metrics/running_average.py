@@ -75,7 +75,7 @@ class RunningAverage(Metric):
                     "to the output of process function."
                 )
             self._get_src_value = self._get_output_value
-            setattr(self, "update", self._output_update)
+            setattr(self, "update", self._update_src)
             if device is None:
                 device = torch.device("cpu")
 
@@ -123,7 +123,7 @@ class RunningAverage(Metric):
         self.src.iteration_completed(engine)
 
     @reinit__is_reduced
-    def _output_update(self, output: Union[torch.Tensor, float]) -> None:
+    def _update_src(self, output: Union[torch.Tensor, float]) -> None:
         if isinstance(output, torch.Tensor):
             output = output.detach().to(self._device, copy=True)
         self.src = output  # type: ignore[assignment]
