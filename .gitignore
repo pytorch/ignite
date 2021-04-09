@@ -39,3 +39,6 @@ coverage.xml
 /docs/src/
 /docs/build/
 /docs/source/generated/
+
+# Jupyter
+examples/notebooks/.ipynb_checkpoints/
