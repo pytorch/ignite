@@ -3,11 +3,6 @@ name: Build docs
 on:
   push:
     branches: [master]
-    paths-ignore:
-      - "tests/**"
-      - "docker/**"
-      - "assets/**"
-      - ".github/workflows/**"
   pull_request:
     paths-ignore:
       - "tests/**"
