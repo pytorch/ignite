@@ -42,3 +42,6 @@ coverage.xml
 
 # Jupyter
 examples/notebooks/.ipynb_checkpoints/
+
+# System files
+.DS_Store
