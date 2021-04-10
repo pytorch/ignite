@@ -3,11 +3,10 @@ import os
 
 import pytest
 import torch
-from ignite.engine import Engine
 
 import ignite.distributed as idist
+from ignite.engine import Engine
 from ignite.metrics.classification_report import ClassificationReport
-
 
 torch.manual_seed(12)
 
