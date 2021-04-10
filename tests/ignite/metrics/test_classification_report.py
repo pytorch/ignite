@@ -9,9 +9,6 @@ import ignite.distributed as idist
 from ignite.metrics.classification_report import ClassificationReport
 
 
-torch.manual_seed(12)
-
-
 def _test_integration_binary(device):
 
     rank = idist.get_rank()
