@@ -204,58 +204,6 @@ def test_binary_input_N(output_dict):
             _test(y_true, y_pred, batch_size)
 
 
-@pytest.mark.parametrize("digits", [2, 3, 4, 5, 6])
-def test_binary_input_N_with_digits(digits):
-
-    classification_report = ClassificationReport(output_dict=True, digits=digits)
-
-    def _test(y_true, y_pred, batch_size):
-        y_true_unflat = _unflatten_binary(y_true)
-        classification_report.reset()
-
-        if batch_size > 1:
-            n_iters = y_true_unflat.shape[0] // batch_size + 1
-            for i in range(n_iters):
-                idx = i * batch_size
-                classification_report.update((y_true_unflat[idx : idx + batch_size], y_pred[idx : idx + batch_size]))
-        else:
-            classification_report.update((y_true_unflat, y_pred))
-
-        from sklearn.metrics import classification_report as sklearn_classification_report
-
-        res = classification_report.compute()
-
-        sklearn_result = sklearn_classification_report(y_pred, y_true, output_dict=True)
-
-        # assert res == sklearn_result
-
-        assert pytest.approx(res["0"]["precision"] == round(sklearn_result["0"]["precision"], digits))
-        assert pytest.approx(res["0"]["recall"] == round(sklearn_result["0"]["recall"], digits))
-        assert pytest.approx(res["0"]["f1-score"] == round(sklearn_result["0"]["f1-score"], digits))
-        assert pytest.approx(res["1"]["precision"] == round(sklearn_result["1"]["precision"], digits))
-        assert pytest.approx(res["1"]["recall"] == round(sklearn_result["1"]["recall"], digits))
-        assert pytest.approx(res["1"]["f1-score"] == round(sklearn_result["1"]["f1-score"], digits))
-        assert pytest.approx(res["macro avg"]["f1-score"] == round(sklearn_result["macro avg"]["f1-score"], digits))
-        assert pytest.approx(res["macro avg"]["precision"] == round(sklearn_result["macro avg"]["precision"], digits))
-        assert pytest.approx(res["macro avg"]["recall"] == round(sklearn_result["macro avg"]["recall"], digits))
-
-    def get_test_cases():
-        test_cases = [
-            (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 1),
-            (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 1),
-            # updated batches
-            (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 16),
-            (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 16),
-        ]
-        return test_cases
-
-    for _ in range(10):
-        # check multiple random inputs as random exact occurencies are rare
-        test_cases = get_test_cases()
-        for y_true, y_pred, batch_size in test_cases:
-            _test(y_true, y_pred, batch_size)
-
-
 @pytest.mark.parametrize("output_dict", [True, False])
 def test_binary_input_N_with_labels(output_dict):
     def _test(y_true, y_pred, batch_size, labels):

@@ -66,7 +66,6 @@ class ClassificationReport(MetricsLambda):
         output_transform: Optional[Callable] = None,
         device: Union[str, torch.device] = torch.device("cpu"),
         labels: Optional[List[str]] = None,
-        digits: int = 5,
     ):
         self.beta = beta
         # setup all the underlying metrics
@@ -98,7 +97,6 @@ class ClassificationReport(MetricsLambda):
             self.averaged_precision,
             self.averaged_fbeta,
         )
-        self.digits = digits
         super(ClassificationReport, self).__init__(
             f=self._wrapper, device=device, precision=self.precision, recall=self.recall
         )
@@ -111,14 +109,14 @@ class ClassificationReport(MetricsLambda):
         dict_obj = {}
         for idx, p_label in enumerate(p_tensor):
             dict_obj[self._get_label_for_class(idx)] = {
-                "precision": round(p_label.item(), self.digits),
-                "recall": round(r_tensor[idx].item(), self.digits),
-                "f{0}-score".format(self.beta): round(f_tensor[idx].item(), self.digits),
+                "precision": p_label.item(),
+                "recall": r_tensor[idx].item(),
+                "f{0}-score".format(self.beta): f_tensor[idx].item(),
             }
         dict_obj["macro avg"] = {
-            "precision": round(a_precision.item(), self.digits),
-            "recall": round(a_recall.item(), self.digits),
-            "f{0}-score".format(self.beta): round(a_f.item(), self.digits),
+            "precision": a_precision.item(),
+            "recall": a_recall.item(),
+            "f{0}-score".format(self.beta): a_f.item(),
         }
         return dict_obj if self.output_dict else json.dumps(dict_obj)
 
