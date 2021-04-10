@@ -206,7 +206,7 @@ def run(
 
 def get_dataflow(config):
     # - Get train/test datasets
-    if idist.get_rank() > 0:
+    if idist.get_local_rank() > 0:
         # Ensure that only rank 0 download the dataset
         idist.barrier()
 
@@ -214,7 +214,7 @@ def get_dataflow(config):
         config["data_dir"], config["model"], config["tokenizer_dir"], config["max_length"]
     )
 
-    if idist.get_rank() == 0:
+    if idist.get_local_rank() == 0:
         # Ensure that only rank 0 download the dataset
         idist.barrier()
 
