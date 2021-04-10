@@ -1,5 +1,5 @@
 import json
-from typing import Callable, Collection, Dict, List, Optional, Sequence, Union
+from typing import Callable, Collection, Dict, List, Optional, Union
 
 import torch
 

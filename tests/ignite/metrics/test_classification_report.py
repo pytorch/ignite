@@ -46,8 +46,12 @@ def _test_integration_binary(device):
 
         sklearn_result = sklearn_classification_report(y_preds.cpu().numpy(), y_true.cpu().numpy(), output_dict=True)
 
-        assert pytest.approx(res["0"] == sklearn_result["0"])
-        assert pytest.approx(res["1"] == sklearn_result["1"])
+        assert pytest.approx(res["0"]["precision"] == sklearn_result["0"]["precision"])
+        assert pytest.approx(res["0"]["recall"] == sklearn_result["0"]["recall"])
+        assert pytest.approx(res["0"]["f1-score"] == sklearn_result["0"]["f1-score"])
+        assert pytest.approx(res["1"]["precision"] == sklearn_result["1"]["precision"])
+        assert pytest.approx(res["1"]["recall"] == sklearn_result["1"]["recall"])
+        assert pytest.approx(res["1"]["f1-score"] == sklearn_result["1"]["f1-score"])
         assert pytest.approx(res["macro avg"]["precision"] == sklearn_result["macro avg"]["precision"])
         assert pytest.approx(res["macro avg"]["recall"] == sklearn_result["macro avg"]["recall"])
         assert pytest.approx(res["macro avg"]["f1-score"] == sklearn_result["macro avg"]["f1-score"])
