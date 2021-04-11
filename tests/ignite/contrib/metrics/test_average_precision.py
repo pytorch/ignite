@@ -80,8 +80,6 @@ def test_binary_input_N():
                 ap.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
 
         res = ap.compute()
-        print(res)
-        print(average_precision_score(np_y, np_y_pred))
         assert isinstance(res, float)
         assert average_precision_score(np_y, np_y_pred) == pytest.approx(res)
 
@@ -93,9 +91,9 @@ def test_binary_input_N():
             (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 1),
             (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 1),
             # updated batches
-            (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 16),
+            (torch.randint(0, 2, size=(16,)).long(), torch.randint(0, 2, size=(16,)).long(), 16),
             (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 16),
-            (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 16),
+            (torch.randint(0, 2, size=(16, 1)).long(), torch.randint(0, 2, size=(16, 1)).long(), 16),
             (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 16),
         ]
         return test_cases
@@ -125,8 +123,6 @@ def test_multilabel_input_N():
                 ap.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
 
         res = ap.compute()
-        print(res)
-        print(average_precision_score(np_y, np_y_pred))
         assert isinstance(res, float)
         assert average_precision_score(np_y, np_y_pred) == pytest.approx(res)
 
@@ -138,7 +134,7 @@ def test_multilabel_input_N():
             (torch.randint(0, 2, size=(100, 4)).long(), torch.randint(0, 2, size=(100, 4)).long(), 1),
             (torch.randint(0, 2, size=(200, 6)).long(), torch.randint(0, 2, size=(200, 6)).long(), 1),
             # updated batches
-            (torch.randint(0, 2, size=(10, 4)).long(), torch.randint(0, 2, size=(10, 4)).long(), 16),
+            (torch.randint(0, 2, size=(16, 4)).long(), torch.randint(0, 2, size=(16, 4)).long(), 16),
             (torch.randint(0, 2, size=(50, 7)).long(), torch.randint(0, 2, size=(50, 7)).long(), 16),
             (torch.randint(0, 2, size=(100, 4)).long(), torch.randint(0, 2, size=(100, 4)).long(), 16),
             (torch.randint(0, 2, size=(200, 6)).long(), torch.randint(0, 2, size=(200, 6)).long(), 16),
