@@ -230,6 +230,10 @@ def test_plot(lr_finder, to_save, dummy_engine, dataloader):
 
     lr_finder.plot()
     lr_finder.plot(skip_end=0)
+    lr_finder.plot(skip_end=0, file_name="dummy.jpg")
+    lr_finder.plot(
+        skip_end=0, file_name="dummy.jpg", file_params={"orientation": "portrait", "papertype": "a4", "format": "png",}
+    )
 
 
 def test_no_matplotlib(no_site_packages, lr_finder):
