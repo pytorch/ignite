@@ -187,12 +187,7 @@ class FastaiLRFinder:
         return self._history
 
     def plot(
-        self,
-        skip_start: int = 10,
-        skip_end: int = 5,
-        log_lr: bool = True,
-        filepath: str = None,
-        **kwargs: Any,
+        self, skip_start: int = 10, skip_end: int = 5, log_lr: bool = True, filepath: str = None, **kwargs: Any,
     ) -> None:
         """Plots the learning rate range test.
 
@@ -248,7 +243,7 @@ class FastaiLRFinder:
         plt.xlabel("Learning rate")
         plt.ylabel("Loss")
         plt.show()
-        if file_name is not None:
+        if filepath is not None:
             plt.savefig(filepath, **kwargs)
 
     def lr_suggestion(self) -> Any:
