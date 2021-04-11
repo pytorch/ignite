@@ -191,7 +191,7 @@ class FastaiLRFinder:
         skip_start: int = 10,
         skip_end: int = 5,
         log_lr: bool = True,
-        file_name: str = None,
+        filepath: str = None,
         **kwargs: Any,
     ) -> None:
         """Plots the learning rate range test.
