@@ -7,7 +7,6 @@ if [ $1 = "lint" ]; then
     isort . --check --settings setup.cfg
     black . --check --config pyproject.toml
 elif [ $1 = "fmt" ]; then
-    flake8 ignite tests examples --config setup.cfg
     isort . --settings setup.cfg
     black . --config pyproject.toml
 elif [ $1 = "mypy" ]; then

@@ -2,29 +2,22 @@ name: Format python code
 
 on:
   push:
-    paths-ignore:
-      - "assets/**"
-      - ".circleci/**"
-      - "docker/**"
-      - "docs/**"
-      - "conda.recipe"
-      - "**.md"
-  #   pull_request:
-  #     paths-ignore:
-  #       - "assets/**"
-  #       - ".circleci/**"
-  #       - "docker/**"
-  #       - "docs/**"
-  #       - "conda.recipe"
-  #       - "**.md"
-  pull_request_target:
-    paths-ignore:
-      - "assets/**"
-      - ".circleci/**"
-      - "docker/**"
-      - "docs/**"
-      - "conda.recipe"
-      - "**.md"
+    paths:
+      - "**.py"
+      - "setup.cfg"
+      - "requirements-dev.txt"
+      - "pyproject.toml"
+      - "tests/run_code_style.sh"
+      - ".github/workflows/code-style.yml"
+      - "!assets/**"
+      - "!.circleci/**"
+      - "!docker/**"
+      - "!docs/**"
+      - "!conda.recipe"
+
+  # pull_request:
+  #     paths:
+
 
 jobs:
   code-style:
@@ -36,11 +29,6 @@ jobs:
       #         uses: actions/checkout@v2
       #         with:
       #           ref: ${{ github.head_ref }}
-      - if: github.event_name == 'pull_request_target'
-        uses: actions/checkout@v2
-        with:
-          ref: ${{ github.head_ref }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
 
       - uses: actions/setup-python@v2
         with:

@@ -44,18 +44,18 @@ def _test_psnr(y_pred, y, data_range, device):
     assert isinstance(psnr_compute, torch.Tensor)
     assert psnr_compute.dtype == torch.float64
     assert psnr_compute.device == torch.device(device)
-    assert np.allclose(psnr_compute.numpy(), np_psnr / np_y.shape[0])
+    assert np.allclose(psnr_compute.cpu().numpy(), np_psnr / np_y.shape[0])
 
 
 def test_psnr():
-    device = idist.device()
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
     # test for float
     manual_seed(42)
     y_pred = torch.rand(8, 3, 28, 28, device=device)
     y = y_pred * 0.8
     data_range = (y.max() - y.min()).cpu().item()
-    _test_psnr(y_pred, y, y.max() - y.min(), device)
+    _test_psnr(y_pred, y, data_range, device)
 
     # test for YCbCr
     manual_seed(42)
