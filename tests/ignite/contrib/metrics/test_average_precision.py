@@ -1,5 +1,6 @@
 import os
 from unittest.mock import patch
+from numpy.lib.function_base import average
 
 import pytest
 import sklearn
@@ -80,6 +81,8 @@ def test_binary_input_N():
                 ap.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
 
         res = ap.compute()
+        print(res)
+        print(average_precision_score(np_y, np_y_pred))
         assert isinstance(res, float)
         assert average_precision_score(np_y, np_y_pred) == pytest.approx(res)
 
@@ -123,6 +126,8 @@ def test_multilabel_input_N():
                 ap.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
 
         res = ap.compute()
+        print(res)
+        print(average_precision_score(np_y, np_y_pred))
         assert isinstance(res, float)
         assert average_precision_score(np_y, np_y_pred) == pytest.approx(res)
 
