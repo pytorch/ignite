@@ -204,7 +204,7 @@ class FastaiLRFinder:
                 Default: 5.
             log_lr: True to plot the learning rate in a logarithmic
                 scale; otherwise, plotted in a linear scale. Default: True.
-            file_name: The file name to save the plot to. Default: None.
+            filepath: The file name to save the plot to. Default: None.
             kwargs: optional kwargs passed to ``plt.savefig`` if ``filepath`` is provided.
                 matplotlib method `savefig` to save the plot.
         """
