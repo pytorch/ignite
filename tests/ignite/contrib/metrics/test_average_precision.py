@@ -4,7 +4,6 @@ from unittest.mock import patch
 import pytest
 import sklearn
 import torch
-from numpy.lib.function_base import average
 from sklearn.metrics import average_precision_score
 
 import ignite.distributed as idist
