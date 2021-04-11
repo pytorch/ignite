@@ -1,4 +1,3 @@
-import sys
 from unittest.mock import Mock, patch
 
 import pytest
@@ -7,35 +6,15 @@ import torch
 from ignite.contrib.metrics import GpuInfo
 from ignite.engine import Engine, State
 
-python_below_36 = (sys.version[0] == "3" and int(sys.version[2]) < 6) or int(sys.version[0]) < 2
+
+def test_no_pynvml_package():
+    with patch.dict("sys.modules", {"pynvml.smi": None}):
+        with pytest.raises(RuntimeError, match="This contrib module requires pynvml to be installed."):
+            GpuInfo()
 
 
-@pytest.fixture
-def no_site_packages():
-    import sys
-
-    import pynvml  # noqa: F401
-
-    assert "pynvml" in sys.modules
-    pynvml_module = sys.modules["pynvml"]
-    del sys.modules["pynvml"]
-    prev_path = list(sys.path)
-    sys.path = [p for p in sys.path if "site-packages" not in p]
-    yield "no_site_packages"
-    sys.path = prev_path
-    sys.modules["pynvml"] = pynvml_module
-
-
-@pytest.mark.skipif(python_below_36, reason="No pynvml for python < 3.6")
-def test_no_pynvml_package(no_site_packages):
-
-    with pytest.raises(RuntimeError, match="This contrib module requires pynvml to be installed."):
-        GpuInfo()
-
-
-@pytest.mark.skipif(python_below_36 or torch.cuda.is_available(), reason="No pynvml for python < 3.6")
+@pytest.mark.skipif(torch.cuda.is_available(), reason="Skip if GPU")
 def test_no_gpu():
-
     with pytest.raises(RuntimeError, match="This contrib module requires available GPU"):
         GpuInfo()
 
@@ -79,7 +58,7 @@ def _test_gpu_info(device="cpu"):
         assert "gpu:0 util(%)" not in engine.state.metrics
 
 
-@pytest.mark.skipif(python_below_36 or not (torch.cuda.is_available()), reason="No pynvml for python < 3.6 and no GPU")
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_gpu_info_on_cuda():
     _test_gpu_info(device="cuda")
 
@@ -89,7 +68,6 @@ query_resp = None
 
 @pytest.fixture
 def mock_pynvml_module():
-
     with patch.dict(
         "sys.modules",
         {
@@ -115,7 +93,6 @@ def mock_pynvml_module():
 
 @pytest.fixture
 def mock_gpu_is_available():
-
     with patch("ignite.contrib.metrics.gpu_info.torch.cuda") as mock_cuda:
         mock_cuda.is_available.return_value = True
         yield mock_cuda
