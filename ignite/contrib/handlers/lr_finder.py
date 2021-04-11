@@ -249,10 +249,7 @@ class FastaiLRFinder:
         plt.ylabel("Loss")
         plt.show()
         if file_name is not None:
-            if file_params is not None:
-                plt.savefig(file_name, **file_params)
-            else:
-                plt.savefig(file_name)
+            plt.savefig(filepath, **kwargs)
 
     def lr_suggestion(self) -> Any:
         """
