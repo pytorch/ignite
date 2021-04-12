@@ -5,7 +5,8 @@ Ignite Your Networks!
 
 .. raw:: html
 
-    <a href="https://colab.research.google.com/github/pytorch/ignite/blob/master/assets/tldr/teaser.ipynb">
+    <a target="_blank" rel="noopener noreferrer"
+    href="https://colab.research.google.com/github/pytorch/ignite/blob/master/assets/tldr/teaser.ipynb">
         <img
             src="https://raw.githubusercontent.com/pytorch/ignite/master/assets/tldr/pytorch-ignite-teaser.gif"
             width=655
