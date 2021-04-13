@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """TQDM logger."""
 import warnings
+from collections import OrderedDict
 from typing import Any, Callable, List, Optional, Union
 
 import torch
@@ -270,7 +271,7 @@ class _OutputHandler(BaseOutputHandler):
 
         metrics = self._setup_output_metrics(engine)
 
-        rendered_metrics = {}
+        rendered_metrics = OrderedDict()
         for key, value in metrics.items():
             if isinstance(value, torch.Tensor):
                 if value.ndimension() == 0:
