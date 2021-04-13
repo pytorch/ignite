@@ -33,7 +33,6 @@ def ClassificationReport(
                 you want to compute the metric with respect to one of the outputs.
             device: optional device specification for internal storage.
             labels: Optional list of label indices to include in the report
-            digits: Number of digits for formatting output floating point values, by default it is 5
 
         .. code-block:: python
 
