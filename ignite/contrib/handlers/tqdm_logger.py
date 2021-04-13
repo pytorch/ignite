@@ -285,7 +285,7 @@ class _OutputHandler(BaseOutputHandler):
                 rendered_metrics[key] = value
 
         if rendered_metrics:
-            logger.pbar.set_postfix(**rendered_metrics)  # type: ignore[attr-defined]
+            logger.pbar.set_postfix(rendered_metrics)  # type: ignore[attr-defined]
 
         global_step = engine.state.get_event_attrib_value(event_name)
         if pbar_total is not None:
