@@ -247,9 +247,12 @@ class FastaiLRFinder:
             plt.xscale("log")
         plt.xlabel("Learning rate")
         plt.ylabel("Loss")
-        plt.show()
         if filepath is not None:
-            plt.savefig(filepath, **kwargs)
+            try:
+                plt.savefig(filepath, **kwargs)
+            except FileNotFoundError:
+                self.logger.warning(f"Cannot save the file, non existing path:{filepath}")
+        plt.show()
 
     def lr_suggestion(self) -> Any:
         """
