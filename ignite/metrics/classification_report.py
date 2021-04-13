@@ -79,9 +79,9 @@ def ClassificationReport(
         p_tensor, r_tensor, f_tensor = precision_metric, recall_metric, f
         if p_tensor.shape != r_tensor.shape:
             raise ValueError(
-                f"Internal error: Precision and Recall have mismatched shapes: "
+                "Internal error: Precision and Recall have mismatched shapes: "
                 f"{p_tensor.shape} vs {r_tensor.shape}. Please, open an issue "
-                f"with a reference on this error."
+                "with a reference on this error. Thank you!"
             )
         dict_obj = {}
         for idx, p_label in enumerate(p_tensor):
