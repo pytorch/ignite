@@ -15,12 +15,13 @@ __all__ = ["ClassificationReport"]
 def ClassificationReport(
     beta: int = 1,
     output_dict: bool = False,
-    output_transform: Optional[Callable] = None,
+    output_transform: Callable = lambda x: x,
     device: Union[str, torch.device] = torch.device("cpu"),
     labels: Optional[List[str]] = None,
 ) -> MetricsLambda:
     """Build a text report showing the main classification metrics. The report resembles in functionality to
-         `scikit-learn classification_report <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.classification_report.html#sklearn.metrics.classification_report>`_
+         `scikit-learn classification_report
+         <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.classification_report.html#sklearn.metrics.classification_report>`_
         The underlying implementation doesn't use the sklearn function.
 
         Args:
@@ -66,16 +67,8 @@ def ClassificationReport(
     """
 
     # setup all the underlying metrics
-    precision = Precision(
-        average=False,
-        output_transform=(lambda x: x) if output_transform is None else output_transform,  # type: ignore[arg-type]
-        device=device,
-    )
-    recall = Recall(
-        average=False,
-        output_transform=(lambda x: x) if output_transform is None else output_transform,  # type: ignore[arg-type]
-        device=device,
-    )
+    precision = Precision(average=False, output_transform=output_transform, device=device,)
+    recall = Recall(average=False, output_transform=output_transform, device=device,)
     fbeta = Fbeta(beta, average=False, precision=precision, recall=recall)
     averaged_precision = precision.mean()
     averaged_recall = recall.mean()
@@ -85,7 +78,8 @@ def ClassificationReport(
         recall_metric: Metric, precision_metric: Metric, f: Metric, a_recall: Metric, a_precision: Metric, a_f: Metric,
     ) -> Union[Collection[str], Dict]:
         p_tensor, r_tensor, f_tensor = precision_metric, recall_metric, f
-        assert p_tensor.shape == r_tensor.shape
+        if p_tensor.shape != r_tensor.shape:
+            raise ValueError("Precision and Recall have mismatched shapes")
         dict_obj = {}
         for idx, p_label in enumerate(p_tensor):
             dict_obj[_get_label_for_class(idx)] = {
