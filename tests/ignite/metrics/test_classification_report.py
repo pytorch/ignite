@@ -1,4 +1,4 @@
-import ast
+import json
 import os
 
 import pytest
@@ -152,7 +152,7 @@ def _test_integration_multilabel(device, output_dict):
 
         assert isinstance(res, dict if output_dict else str)
         if not output_dict:
-            res = ast.literal_eval(res)
+            res = json.loads(res)
 
         from sklearn.metrics import classification_report as sklearn_classification_report
 
@@ -210,7 +210,7 @@ def _test_integration_multilabel_with_labels(device, output_dict):
 
         assert isinstance(res, dict if output_dict else str)
         if not output_dict:
-            res = ast.literal_eval(res)
+            res = json.loads(res)
 
         from sklearn.metrics import classification_report as sklearn_classification_report
 

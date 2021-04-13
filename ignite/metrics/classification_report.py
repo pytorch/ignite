@@ -11,52 +11,6 @@ from ignite.metrics.recall import Recall
 
 __all__ = ["ClassificationReport"]
 
-"""Build a text report showing the main classification metrics. The report resembles in functionality
-    'https://scikit-learn.org/stable/modules/generated/sklearn.metrics.classification_report.html#sklearn.metrics.classification_report'
-    The underlying implementation doesn't use the sklearn function.
-
-    Args:
-        beta: weight of precision in harmonic mean
-        output_dict: If True, return output as dict, otherwise return a str
-        output_transform: a callable that is used to transform the
-            :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
-            form expected by the metric. This can be useful if, for example, you have a multi-output model and
-            you want to compute the metric with respect to one of the outputs.
-        device: optional device specification for internal storage.
-        labels: Optional list of label indices to include in the report
-        digits: Number of digits for formatting output floating point values, by default it is 5
-
-    .. code-block:: python
-
-
-        y_true = torch.tensor([[1, 0],
-        [0, 1], [1, 0], [1, 1], [1, 0], [0, 1], [0, 1], [1, 0], [0, 1], [1, 0]])
-        y_pred = torch.randint(0, 2, size=(10,))
-
-        classification_report = ClassificationReport(output_dict=True, digits=2)
-        classification_report.update((y_true, y_pred))
-        res = classification_report.compute()
-
-        # result should look like this:
-        {
-            "0": {
-                "precision": 0.33,
-                "recall": 0.5,
-                "f1-score": 0.4
-            },
-            "1": {
-                "precision": 0.5,
-                "recall": 0.33,
-                "f1-score": 0.4
-            },
-            "macro avg": {
-                "precision": 0.42,
-                "recall": 0.42,
-                "f1-score": 0.4
-            }
-        }
-"""
-
 
 def ClassificationReport(
     beta: int = 1,
@@ -65,6 +19,51 @@ def ClassificationReport(
     device: Union[str, torch.device] = torch.device("cpu"),
     labels: Optional[List[str]] = None,
 ) -> MetricsLambda:
+    """Build a text report showing the main classification metrics. The report resembles in functionality
+        'https://scikit-learn.org/stable/modules/generated/sklearn.metrics.classification_report.html#sklearn.metrics.classification_report'
+        The underlying implementation doesn't use the sklearn function.
+
+        Args:
+            beta: weight of precision in harmonic mean
+            output_dict: If True, return output as dict, otherwise return a str
+            output_transform: a callable that is used to transform the
+                :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
+                form expected by the metric. This can be useful if, for example, you have a multi-output model and
+                you want to compute the metric with respect to one of the outputs.
+            device: optional device specification for internal storage.
+            labels: Optional list of label indices to include in the report
+            digits: Number of digits for formatting output floating point values, by default it is 5
+
+        .. code-block:: python
+
+
+            y_true = torch.tensor([[1, 0],
+            [0, 1], [1, 0], [1, 1], [1, 0], [0, 1], [0, 1], [1, 0], [0, 1], [1, 0]])
+            y_pred = torch.randint(0, 2, size=(10,))
+
+            classification_report = ClassificationReport(output_dict=True, digits=2)
+            classification_report.update((y_true, y_pred))
+            res = classification_report.compute()
+
+            # result should look like this:
+            {
+                "0": {
+                    "precision": 0.33,
+                    "recall": 0.5,
+                    "f1-score": 0.4
+                },
+                "1": {
+                    "precision": 0.5,
+                    "recall": 0.33,
+                    "f1-score": 0.4
+                },
+                "macro avg": {
+                    "precision": 0.42,
+                    "recall": 0.42,
+                    "f1-score": 0.4
+                }
+            }
+    """
 
     # setup all the underlying metrics
     precision = Precision(
