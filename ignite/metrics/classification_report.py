@@ -17,6 +17,7 @@ def ClassificationReport(
     output_dict: bool = False,
     output_transform: Callable = lambda x: x,
     device: Union[str, torch.device] = torch.device("cpu"),
+    is_multilabel: bool = False,
     labels: Optional[List[str]] = None,
 ) -> MetricsLambda:
     """Build a text report showing the main classification metrics. The report resembles in functionality to
@@ -31,6 +32,7 @@ def ClassificationReport(
                 :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
                 form expected by the metric. This can be useful if, for example, you have a multi-output model and
                 you want to compute the metric with respect to one of the outputs.
+            is_multilabel: If True, the tensors are assumed to be multilabel.
             device: optional device specification for internal storage.
             labels: Optional list of label indices to include in the report
 
@@ -66,8 +68,8 @@ def ClassificationReport(
     """
 
     # setup all the underlying metrics
-    precision = Precision(average=False, output_transform=output_transform, device=device,)
-    recall = Recall(average=False, output_transform=output_transform, device=device,)
+    precision = Precision(average=False, is_multilabel=is_multilabel, output_transform=output_transform, device=device,)
+    recall = Recall(average=False, is_multilabel=is_multilabel, output_transform=output_transform, device=device,)
     fbeta = Fbeta(beta, average=False, precision=precision, recall=recall)
     averaged_precision = precision.mean()
     averaged_recall = recall.mean()
