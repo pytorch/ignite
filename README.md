@@ -418,7 +418,7 @@ Features:
 
 - [Discuss.PyTorch](https://discuss.pytorch.org/c/ignite), category "Ignite".
 
-- [PyTorch Slack](https://pytorch.slack.com) at #pytorch-ignite channel. [Request access](https://bit.ly/ptslack).
+- [PyTorch-Ignite Discord Server](https://discord.gg/djZtm3EmKj)
 
 - [GitHub Discussions](https://github.com/pytorch/ignite/discussions): general library related discussions, ideas, Q&A, etc.
 
