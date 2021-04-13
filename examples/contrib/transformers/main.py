@@ -208,6 +208,7 @@ def get_dataflow(config):
     # - Get train/test datasets
     if idist.get_local_rank() > 0:
         # Ensure that only local rank 0 download the dataset
+        # Thus each node will download a copy of the dataset
         idist.barrier()
 
     train_dataset, test_dataset = utils.get_dataset(
