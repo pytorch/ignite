@@ -418,7 +418,7 @@ Features:
 
 - [Discuss.PyTorch](https://discuss.pytorch.org/c/ignite), category "Ignite".
 
-- [PyTorch-Ignite Discord Server](https://discord.gg/djZtm3EmKj)
+- [PyTorch-Ignite Discord Server](https://discord.gg/djZtm3EmKj): to chat with the community
 
 - [GitHub Discussions](https://github.com/pytorch/ignite/discussions): general library related discussions, ideas, Q&A, etc.
 
