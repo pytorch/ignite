@@ -41,7 +41,7 @@ def ClassificationReport(
             [0, 1], [1, 0], [1, 1], [1, 0], [0, 1], [0, 1], [1, 0], [0, 1], [1, 0]])
             y_pred = torch.randint(0, 2, size=(10,))
 
-            classification_report = ClassificationReport(output_dict=True, digits=2)
+            classification_report = ClassificationReport(output_dict=True)
             classification_report.update((y_true, y_pred))
             res = classification_report.compute()
 
