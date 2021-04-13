@@ -19,8 +19,8 @@ def ClassificationReport(
     device: Union[str, torch.device] = torch.device("cpu"),
     labels: Optional[List[str]] = None,
 ) -> MetricsLambda:
-    """Build a text report showing the main classification metrics. The report resembles in functionality
-        'https://scikit-learn.org/stable/modules/generated/sklearn.metrics.classification_report.html#sklearn.metrics.classification_report'
+    """Build a text report showing the main classification metrics. The report resembles in functionality to
+         `scikit-learn classification_report <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.classification_report.html#sklearn.metrics.classification_report>`_
         The underlying implementation doesn't use the sklearn function.
 
         Args:
