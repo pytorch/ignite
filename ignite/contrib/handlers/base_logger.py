@@ -85,7 +85,7 @@ class BaseOutputHandler(BaseHandler):
         metrics = OrderedDict()
         if self.metric_names is not None:
             if isinstance(self.metric_names, str) and self.metric_names == "all":
-                metrics = engine.state.metrics
+                metrics = OrderedDict(engine.state.metrics)
             else:
                 for name in self.metric_names:
                     if name not in engine.state.metrics:
