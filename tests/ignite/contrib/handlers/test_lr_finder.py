@@ -5,6 +5,7 @@ import pytest
 import torch
 from torch import nn
 from torch.optim import SGD
+from os import path
 
 from ignite.contrib.handlers import FastaiLRFinder
 from ignite.engine import create_supervised_trainer
@@ -234,9 +235,11 @@ def test_plot(lr_finder, to_save, dummy_engine, dataloader):
     lr_finder.plot(
         skip_end=0, filepath="dummy.jpg", orientation="landscape", papertype="a4", format="png",
     )
+    assert path.exists("dummy.jpg")
     lr_finder.plot(
         skip_end=0, filepath="/nonexisting/dummy.jpg", orientation="landscape", papertype="a4", format="png",
     )
+    assert not path.exists("/nonexisting/dummy.jpg")
 
 
 def test_no_matplotlib(no_site_packages, lr_finder):
