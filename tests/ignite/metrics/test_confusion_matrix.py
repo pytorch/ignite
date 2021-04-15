@@ -54,16 +54,15 @@ def test_multiclass_wrong_inputs():
 
 
 def test_multiclass_input():
-    def _test(y_pred, y, num_classes, batch_size):
-
-        cm = ConfusionMatrix(num_classes=num_classes)
-        if batch_size == 1:
-            cm.update((y_pred, y))
-        else:
+    def _test(y_pred, y, num_classes, cm, batch_size):
+        cm.reset()
+        if batch_size > 1:
             n_iters = y.shape[0] // batch_size + 1
             for i in range(n_iters):
                 idx = i * batch_size
                 cm.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+        else:
+            cm.update((y_pred, y))
 
         np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
         np_y = y.numpy().ravel()
@@ -89,7 +88,8 @@ def test_multiclass_input():
     # check multiple random inputs as random exact occurencies are rare
     for _ in range(5):
         for y_pred, y, num_classes, batch_size in get_test_cases():
-            _test(y_pred, y, num_classes, batch_size)
+            cm = ConfusionMatrix(num_classes=num_classes)
+            _test(y_pred, y, num_classes, cm, batch_size)
 
 
 def test_ignored_out_of_num_classes_indices():
