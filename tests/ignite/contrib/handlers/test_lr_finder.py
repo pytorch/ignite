@@ -1,11 +1,11 @@
 import copy
+from os import path
 
 import matplotlib
 import pytest
 import torch
 from torch import nn
 from torch.optim import SGD
-from os import path
 
 from ignite.contrib.handlers import FastaiLRFinder
 from ignite.engine import create_supervised_trainer
