@@ -18,11 +18,10 @@ class InceptionScore(Metric):
 
     Args:
 
-        splits: (int, optional): number of splits to calcualte the mean inception score.
+        splits: (int, optional): number of splits to calculate the mean inception score.
 
         inception_model: (nn.Module, optional): a model used for extracting feature vectors from images.
         If not specified, :class:`~torchvision.models.inception_v3` will be used.
-
 
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
@@ -52,44 +51,32 @@ class InceptionScore(Metric):
                 raise ValueError("Argument fid_model should be set")
         super(InceptionScore, self).__init__(output_transform=output_transform, device=device)
         self.inception_model = inception_model.eval().to(self._device)
-        self.upsample = torch.nn.Upsample(size=(299, 299), mode="bilinear")
         self.n_splits = splits
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._inception_scores_sum = 0.0
+        self._probs = []
         self._num_examples = 0
 
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
         generated = output.detach()
-        output = self.inception_model(self.upsample(generated))
-        probs = F.softmax(output)
-        split_scores = []
-        N = output.shape[0]
-        for k in range(self.n_splits):
-            part = probs[k * (N // self.n_splits) : (k + 1) * (N // self.n_splits), :]
-            py = torch.mean(part, axis=0)
-            scores = []
-            for i in range(part.shape[0]):
-                pyx = part[i, :]
-                inception_score = self._inception_score(pyx, py)
-                scores.append(inception_score)
+        inception_output = self.inception_model(generated)
+        probs = F.softmax(inception_output)
+        self._probs.append(probs)
+        self._num_examples += output.shape[0]
 
-            split_scores.append(scores)
-
-        split_scores = torch.tensor(split_scores).to(self._device)
-        self._inception_scores_sum += torch.mean(split_scores).to(self._device)
-        self._num_examples += 1
-
-    @sync_all_reduce("_inception_scores_sum", "_num_examples")
+    @sync_all_reduce("_probs", "_num_examples")
     def compute(self) -> float:
         if self._num_examples == 0:
             raise NotComputableError("Inception score must have at least one example before it can be computed.")
-        return self._inception_scores_sum / self._num_examples
 
-    def _inception_score(self, pyx, py, eps=1e-15):
-        kl_div = pyx * (torch.log(pyx + eps) - torch.log(py + eps))
-        avg_kl_div = torch.mean(kl_div.sum())
-        inception_score = torch.exp(avg_kl_div)
-        return inception_score
+        self._probs = torch.vstack(self._probs)
+        N = self._probs.shape[0]
+        scores = torch.zeros((self.n_splits,), device=self._device)
+        for i in range(self.n_splits):
+            part = self._probs[i * (N // self.n_splits) : (i + 1) * (N // self.n_splits), :]
+            kl = part * (torch.log(part) - torch.log(torch.mean(part, axis=0)))
+            kl = torch.mean(torch.sum(kl, axis=1))
+            scores[i] = torch.exp(kl)
+        return torch.mean(scores).item()
