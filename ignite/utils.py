@@ -156,7 +156,7 @@ def setup_logger(
         Added ``reset`` parameter.
     """
     # check if the logger already exists
-    existing = name is None or name in logging.root.manager.loggerDict
+    existing = name is None or name in logging.root.manager.loggerDict  # type: ignore
 
     # if existing, get the logger otherwise create a new one
     logger = logging.getLogger(name)
