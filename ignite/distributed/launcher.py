@@ -229,7 +229,6 @@ class Parallel:
         self.backend = backend
         self._spawn_params = None
         self.init_method = init_method
-        # self.logger = setup_logger(__name__ + "." + self.__class__.__name__, distributed_rank=0)
         # distributed_rank=0 <=> explicit rank 0, avoid call idist. Critical for TPU on Colab, avoid context setup
 
         if self.backend is not None:
@@ -237,11 +236,6 @@ class Parallel:
                 self._spawn_params = self._setup_spawn_params(
                     nproc_per_node, nnodes, node_rank, master_addr, master_port, init_method, **spawn_kwargs
                 )
-
-        # if self._spawn_params is not None:
-        #     self.logger.info(f"Initialized distributed launcher with backend: '{self.backend}'")
-        #     msg = "\n\t".join([f"{k}: {v}" for k, v in self._spawn_params.items() if v is not None])
-        #     self.logger.info(f"- Parameters to spawn processes: \n\t{msg}")
 
     @staticmethod
     def _setup_spawn_params(
