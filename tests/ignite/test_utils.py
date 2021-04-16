@@ -120,8 +120,8 @@ def test_setup_logger(capsys, dirname):
 
     def _test(stream):
 
-        trainer.logger = setup_logger("trainer", stream=stream, filepath=fp)
-        evaluator.logger = setup_logger("evaluator", stream=stream, filepath=fp)
+        trainer.logger = setup_logger("trainer", stream=stream, filepath=fp, reset=True)
+        evaluator.logger = setup_logger("evaluator", stream=stream, filepath=fp, reset=True)
 
         assert len(trainer.logger.handlers) == 2
         assert len(evaluator.logger.handlers) == 2

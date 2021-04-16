@@ -147,14 +147,7 @@ def setup_logger(
             level=logging.WARNING
         )
 
-    Warning : the root logger should be reset to avoid additional default messages.
-
-        logger = setup_logger(format="%(name)s %(message)s")
-        logger.info("a message")
-
-        # Logs will look like
-        # INFO:root:a message
-        # root a message
+    Warning : the root logger should be reset because it already exists and default level is `logging.WARNING`
 
     .. versionchanged:: 0.4.3
         Added ``stream`` parameter.
@@ -163,7 +156,7 @@ def setup_logger(
         Added ``reset`` parameter.
     """
     # check if the logger already exists
-    existing = name in logging.root.manager.loggerDict
+    existing = name is None or name in logging.root.manager.loggerDict
 
     # if existing, get the logger otherwise create a new one
     logger = logging.getLogger(name)
