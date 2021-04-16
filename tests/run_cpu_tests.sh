@@ -11,7 +11,7 @@ fi
 n=0
 until [ "$n" -ge 3 ]
 do
-   CUDA_VISIBLE_DEVICES="" pytest --tx 4*popen//python=python --cov ignite --cov-report term-missing --cov-report xml -vvv tests "${skip_distrib_opt[@]}"
+   CUDA_VISIBLE_DEVICES="" pytest --tx 4*popen//python=python --cov ignite --cov-report term-missing --cov-report xml -vvv tests "${skip_distrib_opt[@]}" && break
    n=$((n+1))
    sleep 2
 done
@@ -26,7 +26,7 @@ export WORLD_SIZE=2
 n=0
 until [ "$n" -ge 3 ]
 do
-   CUDA_VISIBLE_DEVICES="" pytest --cov ignite --cov-append --cov-report term-missing --cov-report xml --dist=each --tx $WORLD_SIZE*popen//python=python tests -m distributed -vvv
+   CUDA_VISIBLE_DEVICES="" pytest --cov ignite --cov-append --cov-report term-missing --cov-report xml --dist=each --tx $WORLD_SIZE*popen//python=python tests -m distributed -vvv && break
    n=$((n+1))
    sleep 2
 done
