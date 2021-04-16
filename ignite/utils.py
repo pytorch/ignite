@@ -159,7 +159,7 @@ def setup_logger(
     .. versionchanged:: 0.4.3
         Added ``stream`` parameter.
 
-    .. versionchanged:: 0.5.2
+    .. versionchanged:: 0.5.0
         Added ``reset`` parameter.
     """
     # check if the logger already exists
