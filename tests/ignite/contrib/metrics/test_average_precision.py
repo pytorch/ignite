@@ -87,18 +87,14 @@ def test_binary_input_N():
 
         test_cases = [
             (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 1),
-            (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 1),
             (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 1),
-            (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 1),
             # updated batches
-            (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 16),
-            (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 16),
-            (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 16),
-            (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 16),
+            (torch.randint(0, 2, size=(50,)).long(), torch.randint(0, 2, size=(50,)).long(), 16),
+            (torch.randint(0, 2, size=(50, 1)).long(), torch.randint(0, 2, size=(50, 1)).long(), 16),
         ]
         return test_cases
 
-    for _ in range(10):
+    for _ in range(5):
         # check multiple random inputs as random exact occurencies are rare
         test_cases = get_test_cases()
         for y_pred, y, n_iters in test_cases:
@@ -131,34 +127,30 @@ def test_multilabel_input_N():
         test_cases = [
             (torch.randint(0, 2, size=(10, 4)).long(), torch.randint(0, 2, size=(10, 4)).long(), 1),
             (torch.randint(0, 2, size=(50, 7)).long(), torch.randint(0, 2, size=(50, 7)).long(), 1),
-            (torch.randint(0, 2, size=(100, 4)).long(), torch.randint(0, 2, size=(100, 4)).long(), 1),
-            (torch.randint(0, 2, size=(200, 6)).long(), torch.randint(0, 2, size=(200, 6)).long(), 1),
             # updated batches
-            (torch.randint(0, 2, size=(10, 4)).long(), torch.randint(0, 2, size=(10, 4)).long(), 16),
+            (torch.randint(0, 2, size=(50, 4)).long(), torch.randint(0, 2, size=(50, 4)).long(), 16),
             (torch.randint(0, 2, size=(50, 7)).long(), torch.randint(0, 2, size=(50, 7)).long(), 16),
-            (torch.randint(0, 2, size=(100, 4)).long(), torch.randint(0, 2, size=(100, 4)).long(), 16),
-            (torch.randint(0, 2, size=(200, 6)).long(), torch.randint(0, 2, size=(200, 6)).long(), 16),
         ]
         return test_cases
 
-    for _ in range(10):
+    for _ in range(5):
         # check multiple random inputs as random exact occurencies are rare
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
             _test(y_pred, y, batch_size)
 
 
-def test_integration_binary_input_with_output_transform():
+def test_integration_binary_input():
     def _test(y_pred, y, batch_size):
         def update_fn(engine, batch):
             idx = (engine.state.iteration - 1) * batch_size
             y_true_batch = np_y[idx : idx + batch_size]
             y_pred_batch = np_y_pred[idx : idx + batch_size]
-            return idx, torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+            return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
 
         engine = Engine(update_fn)
 
-        ap_metric = AveragePrecision(output_transform=lambda x: (x[1], x[2]))
+        ap_metric = AveragePrecision()
         ap_metric.attach(engine, "ap")
 
         np_y = y.numpy()
@@ -177,29 +169,27 @@ def test_integration_binary_input_with_output_transform():
         test_cases = [
             (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 10),
             (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 10),
-            (torch.randint(0, 2, size=(200,)).long(), torch.randint(0, 2, size=(200,)).long(), 10),
-            (torch.randint(0, 2, size=(200, 1)).long(), torch.randint(0, 2, size=(200, 1)).long(), 10),
         ]
         return test_cases
 
-    for _ in range(10):
+    for _ in range(5):
         # check multiple random inputs as random exact occurencies are rare
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
             _test(y_pred, y, batch_size)
 
 
-def test_integration_multilabel_input_with_output_transform():
+def test_integration_multilabel_input():
     def _test(y_pred, y, batch_size):
         def update_fn(engine, batch):
             idx = (engine.state.iteration - 1) * batch_size
             y_true_batch = np_y[idx : idx + batch_size]
             y_pred_batch = np_y_pred[idx : idx + batch_size]
-            return idx, torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+            return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
 
         engine = Engine(update_fn)
 
-        ap_metric = AveragePrecision(output_transform=lambda x: (x[1], x[2]))
+        ap_metric = AveragePrecision()
         ap_metric.attach(engine, "ap")
 
         np_y = y.numpy()
@@ -218,12 +208,10 @@ def test_integration_multilabel_input_with_output_transform():
         test_cases = [
             (torch.randint(0, 2, size=(100, 3)).long(), torch.randint(0, 2, size=(100, 3)).long(), 10),
             (torch.randint(0, 2, size=(100, 4)).long(), torch.randint(0, 2, size=(100, 4)).long(), 10),
-            (torch.randint(0, 2, size=(200, 5)).long(), torch.randint(0, 2, size=(200, 5)).long(), 10),
-            (torch.randint(0, 2, size=(200, 6)).long(), torch.randint(0, 2, size=(200, 6)).long(), 10),
         ]
         return test_cases
 
-    for _ in range(10):
+    for _ in range(5):
         # check multiple random inputs as random exact occurencies are rare
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
@@ -265,14 +253,10 @@ def _test_distrib_binary_input_N(device):
 
         test_cases = [
             (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 1),
-            (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 1),
             (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 1),
-            (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 1),
             # updated batches
-            (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 16),
-            (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 16),
-            (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 16),
-            (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 16),
+            (torch.randint(0, 2, size=(50,)).long(), torch.randint(0, 2, size=(50,)).long(), 16),
+            (torch.randint(0, 2, size=(50, 1)).long(), torch.randint(0, 2, size=(50, 1)).long(), 16),
         ]
         return test_cases
 
@@ -319,14 +303,10 @@ def _test_distrib_multilabel_input_N(device):
 
         test_cases = [
             (torch.randint(0, 2, size=(10, 4)).long(), torch.randint(0, 2, size=(10, 4)).long(), 1),
-            (torch.randint(0, 2, size=(100, 7)).long(), torch.randint(0, 2, size=(100, 7)).long(), 1),
-            (torch.randint(0, 2, size=(100, 5)).long(), torch.randint(0, 2, size=(100, 5)).long(), 1),
-            (torch.randint(0, 2, size=(100, 3)).long(), torch.randint(0, 2, size=(100, 3)).long(), 1),
+            (torch.randint(0, 2, size=(10, 7)).long(), torch.randint(0, 2, size=(10, 7)).long(), 1),
             # updated batches
-            (torch.randint(0, 2, size=(10, 4)).long(), torch.randint(0, 2, size=(10, 4)).long(), 16),
-            (torch.randint(0, 2, size=(100, 7)).long(), torch.randint(0, 2, size=(100, 7)).long(), 16),
-            (torch.randint(0, 2, size=(100, 5)).long(), torch.randint(0, 2, size=(100, 5)).long(), 16),
-            (torch.randint(0, 2, size=(100, 3)).long(), torch.randint(0, 2, size=(100, 3)).long(), 16),
+            (torch.randint(0, 2, size=(50, 4)).long(), torch.randint(0, 2, size=(50, 4)).long(), 16),
+            (torch.randint(0, 2, size=(50, 7)).long(), torch.randint(0, 2, size=(50, 7)).long(), 16),
         ]
         return test_cases
 

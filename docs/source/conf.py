@@ -23,22 +23,18 @@ from datetime import datetime
 
 # -- Project information -----------------------------------------------------
 
-project = "ignite"
+project = "PyTorch-Ignite"
 author = "PyTorch-Ignite Contributors"
 copyright = f"{datetime.now().year}, {author}"
 
 # The short X.Y version
 try:
     version = os.environ["code_version"]
-    if "master" in version:
-        version = "master (" + ignite.__version__ + ")"
-    # else:
-    #     version = version.replace("v", "")
 except KeyError:
     version = ignite.__version__
 
 # The full version, including alpha/beta/rc tags
-release = "master"
+release = version
 
 
 # -- General configuration ---------------------------------------------------
@@ -83,7 +79,7 @@ master_doc = "index"
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -98,12 +94,13 @@ pygments_style = "sphinx"
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-#
+
+html_title = f"{project} {version} Documentation"
 html_theme = "pytorch_sphinx_theme"
 html_theme_path = [pytorch_sphinx_theme.get_html_theme_path()]
 
 html_theme_options = {
-    "canonical_url": "https://pytorch.org/ignite/index.html",
+    "canonical_url": "https://pytorch.org/ignite/",
     "collapse_navigation": False,
     "display_version": True,
     "logo_only": True,
@@ -134,6 +131,8 @@ html_context = {
     ],
 }
 
+html_last_updated_fmt = "%m/%d/%Y, %X"
+html_add_permalinks = "#"
 
 # -- Options for HTMLHelp output ---------------------------------------------
 
