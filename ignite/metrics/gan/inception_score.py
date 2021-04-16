@@ -1,4 +1,4 @@
-from typing import Callable, Sequence, Union
+from typing import Callable, List, Optional, Union
 
 import torch
 from torch import nn
@@ -38,28 +38,28 @@ class InceptionScore(Metric):
     def __init__(
         self,
         splits: int = 10,
-        inception_model: nn.Module = None,
+        inception_model: Optional[nn.Module] = None,
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
         if inception_model is None:
             try:
-                from torchvision import models
+                from torchvision import models  # type: ignore
 
-                inception_model = models.inception_v3(pretrained=True, transform_input=False)
+                inception_model = models.inception_v3(pretrained=True)
             except ImportError:
-                raise ValueError("Argument fid_model should be set")
+                raise ValueError("Argument inception_model should be set")
         super(InceptionScore, self).__init__(output_transform=output_transform, device=device)
         self.inception_model = inception_model.eval().to(self._device)
         self.n_splits = splits
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._probs = []
+        self._probs = []  # type: List[torch.Tensor]
         self._num_examples = 0
 
     @reinit__is_reduced
-    def update(self, output: Sequence[torch.Tensor]) -> None:
+    def update(self, output: torch.Tensor) -> None:
         generated = output.detach()
         inception_output = self.inception_model(generated)
         probs = F.softmax(inception_output)
@@ -71,12 +71,12 @@ class InceptionScore(Metric):
         if self._num_examples == 0:
             raise NotComputableError("Inception score must have at least one example before it can be computed.")
 
-        self._probs = torch.vstack(self._probs)
-        N = self._probs.shape[0]
+        probs = torch.vstack(self._probs)
+        N = probs.shape[0]
         scores = torch.zeros((self.n_splits,), device=self._device)
         for i in range(self.n_splits):
-            part = self._probs[i * (N // self.n_splits) : (i + 1) * (N // self.n_splits), :]
-            kl = part * (torch.log(part) - torch.log(torch.mean(part, axis=0)))
-            kl = torch.mean(torch.sum(kl, axis=1))
+            part = probs[i * (N // self.n_splits) : (i + 1) * (N // self.n_splits)]
+            kl = part * (torch.log(part) - torch.log(torch.mean(part, dim=0)))
+            kl = torch.mean(torch.sum(kl, dim=1))
             scores[i] = torch.exp(kl)
         return torch.mean(scores).item()
