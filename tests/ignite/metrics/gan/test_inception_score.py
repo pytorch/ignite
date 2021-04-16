@@ -1,4 +1,3 @@
-import math
 import os
 
 import numpy as np
@@ -11,55 +10,54 @@ import ignite.distributed as idist
 from ignite.metrics.gan.inception_score import InceptionScore
 
 
-def test_score():
-    from torchvision import models
-    from torchvision.datasets import FakeData
-
-    from ignite.engine import Engine
-
-    from .test_utils import IgnoreLabelDataset
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    inception_model = models.inception_v3(pretrained=True).eval().to(device)
-    dataset = FakeData(size=64, transform=transforms.Compose([transforms.Resize(299), transforms.ToTensor()]))
-    dataset = IgnoreLabelDataset(dataset)
-    dataloader = idist.auto_dataloader(dataset, batch_size=32, num_workers=2, shuffle=False)
-
-    def np_compute(dataloader, splits):
-        def get_pred(x):
-            x = inception_model(x)
-            return F.softmax(x).detach().cpu().numpy()
-
-        preds = []
-        for i, batch in enumerate(dataloader):
-            preds.append(get_pred(batch))
-
-        split_scores = np.zeros((splits,))
-        preds = np.vstack(preds)
-        N = preds.shape[0]
-        for i in range(splits):
-            part = preds[i * N // splits : (i + 1) * N // splits, :]
-            kl = part * (np.log(part) - np.log(np.mean(part, axis=0, keepdims=True)))
-            kl = np.mean(np.sum(kl, axis=1))
-            split_scores[i] = np.exp(kl)
-
-        return np.mean(split_scores)
-
-    def process_func(engine, batch):
-        return batch
-
-    inception_score = InceptionScore()
-    test_engine = Engine(process_func)
-    inception_score.attach(test_engine, "score")
-    np_is = np_compute(dataloader, 10)
-    state = test_engine.run(dataloader)
-    computed_is = state.metrics["score"]
-    assert math.isclose(computed_is, np_is, abs_tol=0.01)
-
-
-# todo
 def _test_distrib_integration(device):
-    pass
+    def _test_score(metric_device):
+        from torchvision import models
+        from torchvision.datasets import FakeData
+
+        from ignite.engine import Engine
+
+        from .test_utils import IgnoreLabelDataset
+
+        inception_model = models.inception_v3(pretrained=True).eval().to(metric_device)
+        dataset = FakeData(size=64, transform=transforms.Compose([transforms.Resize(299), transforms.ToTensor()]))
+        dataset = IgnoreLabelDataset(dataset)
+        dataloader = idist.auto_dataloader(dataset, batch_size=32, num_workers=2, shuffle=False)
+
+        def np_compute(dataloader, splits):
+            def get_pred(x):
+                x = inception_model(x)
+                return F.softmax(x).detach().cpu().numpy()
+
+            preds = []
+            for i, batch in enumerate(dataloader):
+                preds.append(get_pred(batch))
+
+            split_scores = np.zeros((splits,))
+            preds = np.vstack(preds)
+            N = preds.shape[0]
+            for i in range(splits):
+                part = preds[i * N // splits : (i + 1) * N // splits, :]
+                kl = part * (np.log(part) - np.log(np.mean(part, axis=0, keepdims=True)))
+                kl = np.mean(np.sum(kl, axis=1))
+                split_scores[i] = np.exp(kl)
+
+            return np.mean(split_scores)
+
+        def process_func(engine, batch):
+            return batch
+
+        inception_score = InceptionScore(device=metric_device)
+        test_engine = Engine(process_func)
+        inception_score.attach(test_engine, "score")
+        np_is = np_compute(dataloader, 10)
+        state = test_engine.run(dataloader)
+        computed_is = state.metrics["score"]
+        assert pytest.approx(computed_is, 0.01) == np_is
+
+    _test_score("cpu")
+    if device.type != "xla":
+        _test_score(idist.device())
 
 
 @pytest.mark.distributed
