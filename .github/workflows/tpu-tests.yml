@@ -53,7 +53,7 @@ jobs:
         run: |
           
           ## Install openblas, mkl, gsutil
-          sudo apt-get install -y libopenblas-dev libomp5
+          sudo apt-get install -y libopenblas-dev libomp5-10 libomp5
           pip install mkl requests gsutil
 
           ## Install torch & xla
