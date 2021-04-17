@@ -8,7 +8,7 @@ fi
 
 set -xeu
 
-pytest --cov ignite --cov-report term-missing --cov-report xml -vvv tests/ -k 'on_cuda'
+pytest --cov ignite --cov-report term-missing --cov-report xml -vvv tests/
 
 # https://pubs.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html#tag_02_06_02
 if [ "${SKIP_DISTRIB_TESTS:-0}" -eq "1" ]; then
