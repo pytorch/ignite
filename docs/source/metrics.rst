@@ -333,6 +333,7 @@ Complete list of metrics
     Rouge
     RougeL
     RougeN
+    InceptionScore
 
 Helpers for customizing metrics
 -------------------------------

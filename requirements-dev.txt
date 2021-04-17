@@ -22,6 +22,7 @@ clearml
 scikit-image
 py-rouge
 nltk
+torchvision
 # Examples dependencies
 pandas
 gym
