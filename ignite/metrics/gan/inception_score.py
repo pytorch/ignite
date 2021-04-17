@@ -12,7 +12,7 @@ __all__ = ["InceptionScore"]
 
 
 class InceptionScore(Metric):
-    r"""Calculates the Inception Score of a GAN model
+    r"""Computes the Inception Score for evaluating the quality of synthetic images.
 
     More details can be found in `Improved Techniques for Training GANs`__.
 
@@ -23,9 +23,9 @@ class InceptionScore(Metric):
     - ``y_pred`` should have the following shape (batch_size, ) and contains syntheic images created by the generator.
 
 
-  .. warning::
+    .. warning::
 
-        Current implementation stores all input data before computing a metric.
+        Current implementation stores all input data before computing the metric.
         This can potentially lead to a memory error if the input data is larger than available RAM.
 
         In distributed configuration, all stored data is mutually collected across all processes
@@ -33,8 +33,9 @@ class InceptionScore(Metric):
 
     Args:
         splits: number of splits to calculate the mean inception score.
-        inception_model: model used for extracting class probabilities from images
-        If not specified, InceptionV3 Pretrained on ImageNet will be used.
+
+        inception_model: model used for extracting class probabilities from images If not specified,
+            InceptionV3 Pretrained on ImageNet will be used.
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
@@ -42,7 +43,8 @@ class InceptionScore(Metric):
         device: specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
-   Example:
+
+    Example:
 
     .. code-block:: python
 
@@ -85,7 +87,6 @@ class InceptionScore(Metric):
         generated = output.detach()
         inception_output = self.inception_model(generated)
         probs = F.softmax(inception_output)
-        probs = probs.clone().to(self._device)
         self._probs.append(probs)
 
     def compute(self) -> float:

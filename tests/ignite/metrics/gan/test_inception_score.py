@@ -9,6 +9,19 @@ import torchvision.transforms as transforms
 import ignite.distributed as idist
 from ignite.metrics.gan.inception_score import InceptionScore
 
+torch.manual_seed(42)
+
+
+class IgnoreLabelDataset(torch.utils.data.Dataset):
+    def __init__(self, dataset):
+        self.dataset = dataset
+
+    def __getitem__(self, index):
+        return self.dataset[index][0]
+
+    def __len__(self):
+        return len(self.dataset)
+
 
 def _test_distrib_integration(device):
     def _test_score(metric_device):
@@ -17,12 +30,10 @@ def _test_distrib_integration(device):
 
         from ignite.engine import Engine
 
-        from .test_utils import IgnoreLabelDataset
-
         inception_model = models.inception_v3(pretrained=True).eval().to(metric_device)
         dataset = FakeData(size=64, transform=transforms.Compose([transforms.Resize(299), transforms.ToTensor()]))
         dataset = IgnoreLabelDataset(dataset)
-        dataloader = idist.auto_dataloader(dataset, batch_size=32, num_workers=2, shuffle=False)
+        dataloader = idist.auto_dataloader(dataset, batch_size=32)
 
         def np_compute(dataloader, splits):
             def get_pred(x):
