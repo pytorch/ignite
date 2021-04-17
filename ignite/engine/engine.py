@@ -807,6 +807,7 @@ class Engine(Serializable):
                 )
 
             while True:
+                self.state.batch = self.state.output = None
                 try:
                     # Avoid Events.GET_BATCH_STARTED triggered twice when data iter is restarted
                     if self.last_event_name != Events.DATALOADER_STOP_ITERATION:
@@ -851,9 +852,6 @@ class Engine(Serializable):
                 self._fire_event(Events.ITERATION_STARTED)
                 self.state.output = self._process_function(self, self.state.batch)
                 self._fire_event(Events.ITERATION_COMPLETED)
-
-                # TODO: remove refs on batch to avoid high mem consumption ? -> need verification
-                # self.state.batch = None
 
                 if self.should_terminate or self.should_terminate_single_epoch:
                     self._fire_event(Events.TERMINATE_SINGLE_EPOCH, iter_counter=iter_counter)
