@@ -1,11 +1,12 @@
-from typing import Callable, List, Optional, Union
+from typing import Callable, List, Optional, Union, cast
 
 import torch
 from torch import nn
 from torch.nn import functional as F
 
+import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
-from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
+from ignite.metrics.metric import Metric, reinit__is_reduced
 
 __all__ = ["InceptionScore"]
 
@@ -20,6 +21,15 @@ class InceptionScore(Metric):
 
     - ``update`` must receive output of the form ``y_pred`` or ``{'y_pred': y_pred}``.
     - ``y_pred`` should have the following shape (batch_size, ) and contains syntheic images created by the generator.
+
+
+  .. warning::
+
+        Current implementation stores all input data before computing a metric.
+        This can potentially lead to a memory error if the input data is larger than available RAM.
+
+        In distributed configuration, all stored data is mutually collected across all processes
+        using all gather collective operation. This can potentially lead to a memory error.
 
     Args:
         splits: number of splits to calculate the mean inception score.
@@ -59,7 +69,7 @@ class InceptionScore(Metric):
             try:
                 from torchvision import models  # type: ignore
 
-                inception_model = models.inception_v3(pretrained=True)
+                inception_model = models.inception_v3(pretrained=True, transform_input=False)
             except ImportError:
                 raise ValueError("Argument inception_model should be set")
         super(InceptionScore, self).__init__(output_transform=output_transform, device=device)
@@ -69,27 +79,37 @@ class InceptionScore(Metric):
     @reinit__is_reduced
     def reset(self) -> None:
         self._probs = []  # type: List[torch.Tensor]
-        self._num_examples = 0
 
     @reinit__is_reduced
     def update(self, output: torch.Tensor) -> None:
         generated = output.detach()
         inception_output = self.inception_model(generated)
         probs = F.softmax(inception_output)
+        probs = probs.clone().to(self._device)
         self._probs.append(probs)
-        self._num_examples += output.shape[0]
 
-    @sync_all_reduce("_probs", "_num_examples")
     def compute(self) -> float:
-        if self._num_examples == 0:
+        if len(self._probs) < 1:
             raise NotComputableError("Inception score must have at least one example before it can be computed.")
 
-        probs = torch.vstack(self._probs)
-        N = probs.shape[0]
-        scores = torch.zeros((self.n_splits,), device=self._device)
-        for i in range(self.n_splits):
-            part = probs[i * (N // self.n_splits) : (i + 1) * (N // self.n_splits)]
-            kl = part * (torch.log(part) - torch.log(torch.mean(part, dim=0)))
-            kl = torch.mean(torch.sum(kl, dim=1))
-            scores[i] = torch.exp(kl)
-        return torch.mean(scores).item()
+        ws = idist.get_world_size()
+        _probs_tensor = torch.cat(self._probs, dim=0)
+
+        if ws > 1 and not self._is_reduced:
+            _probs_tensor = cast(torch.Tensor, idist.all_gather(_probs_tensor))
+        self._is_reduced = True
+
+        result = 0.0
+        if idist.get_rank() == 0:
+            N = _probs_tensor.shape[0]
+            scores = torch.zeros((self.n_splits,))
+            for i in range(self.n_splits):
+                part = _probs_tensor[i * (N // self.n_splits) : (i + 1) * (N // self.n_splits)]
+                kl = part * (torch.log(part) - torch.log(torch.mean(part, dim=0)))
+                kl = torch.mean(torch.sum(kl, dim=1))
+                scores[i] = torch.exp(kl)
+            result = torch.mean(scores).item()
+        if ws > 1:
+            result = cast(float, idist.broadcast(result, src=0))
+
+        return result
