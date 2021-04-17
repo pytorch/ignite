@@ -131,6 +131,8 @@ def setup_logger(
 
     Every existing logger can be reset if needed
 
+    .. code-block:: python
+
         logger = setup_logger(name="my-logger", format="=== %(name)s %(message)s")
         logger.info("first message")
         setup_logger(name="my-logger", format="+++ %(name)s %(message)s", reset=True)
@@ -141,6 +143,8 @@ def setup_logger(
         # +++ my-logger second message
 
     Example to change the level of an existing internal logger
+
+    .. code-block:: python
 
         setup_logger(
             name="ignite.distributed.launcher.Parallel",
