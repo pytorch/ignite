@@ -53,7 +53,7 @@ def _test_distrib_integration(device):
         np_is = np_compute(dataloader, 10)
         state = test_engine.run(dataloader)
         computed_is = state.metrics["score"]
-        assert pytest.approx(computed_is, 0.01) == np_is
+        assert pytest.approx(computed_is, 0.1) == np_is
 
     _test_score("cpu")
     if device.type != "xla":
