@@ -7,6 +7,7 @@ import torch.nn.functional as F
 import torchvision.transforms as transforms
 
 import ignite.distributed as idist
+from ignite.exceptions import NotComputableError
 from ignite.metrics.gan.inception_score import InceptionScore
 
 torch.manual_seed(42)
@@ -21,6 +22,13 @@ class IgnoreLabelDataset(torch.utils.data.Dataset):
 
     def __len__(self):
         return len(self.dataset)
+
+
+def test_wrong_inputs():
+    with pytest.raises(ValueError, match=r"Argument inception_model should be instance of nn.Module"):
+        InceptionScore(inception_model="inceptionv3")
+    with pytest.raises(NotComputableError):
+        InceptionScore().compute()
 
 
 def _test_distrib_integration(device):

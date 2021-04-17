@@ -73,7 +73,14 @@ class InceptionScore(Metric):
 
                 inception_model = models.inception_v3(pretrained=True, transform_input=False)
             except ImportError:
-                raise ValueError("Argument inception_model should be set")
+                raise RuntimeError(
+                    "This metric requires torchvision to be installed. "
+                    "You may install torchvision using: \n pip install clearml \n"
+                )
+        if not isinstance(inception_model, nn.Module):
+            raise TypeError(
+                f"Argument inception_model should be instance of nn.Module, but given {type(inception_model)}"
+            )
         super(InceptionScore, self).__init__(output_transform=output_transform, device=device)
         self.inception_model = inception_model.eval().to(self._device)
         self.n_splits = splits
