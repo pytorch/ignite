@@ -25,7 +25,7 @@ class IgnoreLabelDataset(torch.utils.data.Dataset):
 
 
 def test_wrong_inputs():
-    with pytest.raises(ValueError, match=r"Argument inception_model should be instance of nn.Module"):
+    with pytest.raises(TypeError, match=r"Argument inception_model should be instance of nn.Module"):
         InceptionScore(inception_model="inceptionv3")
     with pytest.raises(NotComputableError):
         InceptionScore().compute()
