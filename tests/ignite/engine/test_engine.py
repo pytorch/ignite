@@ -938,7 +938,7 @@ def test_is_done_with_max_iters():
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_batch_is_released_before_new_one_is_loaded_cuda():
+def test_batch_is_released_before_new_one_is_loaded_on_cuda():
     torch.cuda.empty_cache()
 
     engine = Engine(lambda e, b: None)
