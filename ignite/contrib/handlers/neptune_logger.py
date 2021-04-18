@@ -42,7 +42,7 @@ class NeptuneLogger(BaseLogger):
     Args:
         api_token: Required in online mode. Neputne API token, found on https://neptune.ai.
             Read how to get your API key
-            https://docs.neptune.ai/administration/security-and-privacy/how-to-find-and-set-neptune-api-token.
+            https://docs.neptune.ai/integrations-and-supported-tools/ide-and-notebooks/jupyter-lab-and-jupyter-notebook/notebooks-1#where-is-neptune_api_token.
         project_name: Required in online mode. Qualified name of a project in a form of
            "namespace/project_name" for example "tom/minst-classification".
            If None, the value of NEPTUNE_PROJECT environment variable will be taken.
