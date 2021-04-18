@@ -38,33 +38,47 @@ def ClassificationReport(
 
     .. code-block:: python
 
+        rank = idist.get_rank()
+        classification_report = ClassificationReport()
+        n_iters = 80
+        s = 16
+        offset = n_iters * s
+        y_true = torch.randint(0, 2, size=(offset * idist.get_world_size(),))
+        y_preds = torch.rand(offset * idist.get_world_size(), 2)
 
-        y_true = torch.tensor([[1, 0],
-        [0, 1], [1, 0], [1, 1], [1, 0], [0, 1], [0, 1], [1, 0], [0, 1], [1, 0]])
-        y_pred = torch.randint(0, 2, size=(10,))
+        def update(engine, i):
+            return (
+                y_preds[i * s + rank * offset: (i + 1) * s + rank * offset, :],
+                y_true[i * s + rank * offset: (i + 1) * s + rank * offset],
+            )
 
-        classification_report = ClassificationReport(output_dict=True)
-        classification_report.update((y_true, y_pred))
-        res = classification_report.compute()
+        engine = Engine(update)
 
-        # result should look like this:
+        classification_report.attach(engine, "cr")
+
+        data = list(range(n_iters))
+        engine.run(data=data)
+        res = engine.state.metrics["cr"]
+
+        # result should be like
         {
-            "0": {
-                "precision": 0.33,
-                "recall": 0.5,
-                "f1-score": 0.4
-            },
-            "1": {
-                "precision": 0.5,
-                "recall": 0.33,
-                "f1-score": 0.4
-            },
-            "macro avg": {
-                "precision": 0.42,
-                "recall": 0.42,
-                "f1-score": 0.4
-            }
+          "0": {
+            "precision": 0.4891304347826087,
+            "recall": 0.5056179775280899,
+            "f1-score": 0.497237569060773
+          },
+          "1": {
+            "precision": 0.5157232704402516,
+            "recall": 0.4992389649923896,
+            "f1-score": 0.507347254447022
+          },
+          "macro avg": {
+            "precision": 0.5024268526114302,
+            "recall": 0.5024284712602398,
+            "f1-score": 0.5022924117538975
+          }
         }
+
     """
 
     # setup all the underlying metrics
