@@ -75,7 +75,7 @@ class InceptionScore(Metric):
             except ImportError:
                 raise RuntimeError(
                     "This metric requires torchvision to be installed. "
-                    "You may install torchvision using: \n pip install clearml \n"
+                    "You may install torchvision using: \n pip install torchvision \n"
                 )
         if not isinstance(inception_model, nn.Module):
             raise TypeError(
