@@ -967,7 +967,7 @@ def test_batch_is_released_before_new_one_is_loaded_on_cuda():
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_output_is_released_before_new_one_is_assigned_cuda():
+def test_output_is_released_before_new_one_is_assigned_on_cuda():
     torch.cuda.empty_cache()
 
     def _test():
