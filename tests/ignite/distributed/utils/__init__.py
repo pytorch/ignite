@@ -167,47 +167,51 @@ def _test_distrib_broadcast(device):
     rank = idist.get_rank()
     ws = idist.get_world_size()
 
-    def _test(data_src, data_others, use_none):
+    def _test(data_src, data_others, safe_mode):
         for src in range(ws):
 
             data = data_src if rank == src else data_others
-            res = idist.broadcast(data, src=src, use_none=use_none)
+            res = idist.broadcast(data, src=src, safe_mode=safe_mode)
 
             if isinstance(res, torch.Tensor):
                 assert (res == data_src).all(), f"{res} vs {data_src}"
-                if data is not None:
-                    assert data.dtype == res.dtype
+                assert data_src.dtype == res.dtype
             else:
                 assert res == data_src, f"{res} vs {data_src}"
 
-    _test(10, 0, use_none=False)
-    _test(10, None, use_none=True)
+    _test(10, 0, safe_mode=False)
+    _test(10, None, safe_mode=True)
 
     t = torch.tensor([1.2345, 2.3456], dtype=torch.float, device=device)
-    _test(t, torch.empty_like(t), use_none=False)
-    _test(t, None, use_none=True)
+    _test(t, torch.empty_like(t), safe_mode=False)
+    _test(t, None, safe_mode=True)
+    _test(t, "abc", safe_mode=True)
 
-    _test("test-abcdefg", "", use_none=False)
-    _test("test-abcdefg", None, use_none=True)
+    _test("test-abcdefg", "", safe_mode=False)
+    _test("test-abcdefg", None, safe_mode=True)
+    _test("test-abcdefg", 1.2, safe_mode=True)
 
     s = "tests/ignite/distributed/utils/test_horovod.py::test_idist_broadcast_hvd" * 200
-    _test(s, "", use_none=False)
-    _test(s, None, use_none=True)
+    _test(s, "", safe_mode=False)
+    _test(s, None, safe_mode=True)
+    _test(s, 123.0, safe_mode=True)
 
     t = torch.arange(100, device=device).reshape(4, 25) * 2
-    _test(t, torch.empty_like(t), use_none=False)
-    _test(t, None, use_none=True)
+    _test(t, torch.empty_like(t), safe_mode=False)
+    _test(t, None, safe_mode=True)
+    _test(t, "None", safe_mode=True)
 
     t = torch.tensor(12)
-    _test(t, torch.empty_like(t), use_none=False)
-    _test(t, None, use_none=True)
+    _test(t, torch.empty_like(t), safe_mode=False)
+    _test(t, None, safe_mode=True)
+    _test(t, 123.4, safe_mode=True)
 
     if idist.get_world_size() > 1:
         with pytest.raises(TypeError, match=r"Unhandled input type"):
             idist.broadcast([0, 1, 2], src=0)
 
     if idist.get_world_size() > 1:
-        msg = "Source data can not be None" if rank == 0 else "Argument use_none should be True"
+        msg = "Source data can not be None" if rank == 0 else "Argument safe_mode should be True"
         with pytest.raises(ValueError, match=msg):
             idist.broadcast(None, src=0)
 

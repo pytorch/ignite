@@ -100,8 +100,12 @@ class ComputationModel(metaclass=ABCMeta):
         return cast(int, size.item())
 
     @staticmethod
-    def _encode_input_data(x: Union[torch.Tensor, float, str, None]) -> List[int]:
+    def _encode_input_data(x: Union[torch.Tensor, float, str, None], is_src: bool) -> List[int]:
         encoded_msg = [-1] * 512
+        if not is_src:
+            # Discard input type if not source
+            return encoded_msg
+
         if isinstance(x, torch.Tensor):
             shape = x.shape
             dtype = str(x.dtype)
@@ -134,7 +138,7 @@ class ComputationModel(metaclass=ABCMeta):
         self, x: Union[torch.Tensor, float, str, None], device: torch.device, is_src: bool
     ) -> Union[torch.Tensor, float, str]:
 
-        encoded_msg_per_rank = self._encode_input_data(x)
+        encoded_msg_per_rank = self._encode_input_data(x, is_src)
         encoded_msg_all_ranks = self._do_all_reduce(torch.tensor(encoded_msg_per_rank, device=device), "MAX")
 
         if is_src:
@@ -215,7 +219,7 @@ class ComputationModel(metaclass=ABCMeta):
         return self._collective_op(tensor, self._do_all_gather)
 
     def broadcast(
-        self, tensor: Union[torch.Tensor, float, str, None], src: int = 0, use_none: bool = False
+        self, tensor: Union[torch.Tensor, float, str, None], src: int = 0, safe_mode: bool = False
     ) -> Union[torch.Tensor, float, str]:
         if not (isinstance(tensor, (torch.Tensor, Number, str)) or tensor is None):
             raise TypeError(f"Unhandled input type {type(tensor)}")
@@ -224,13 +228,13 @@ class ComputationModel(metaclass=ABCMeta):
         if tensor is None:
             if rank == src:
                 raise ValueError("Source data can not be None")
-            elif not use_none:
-                raise ValueError("Argument use_none should be True if None is passed for non src rank")
+            elif not safe_mode:
+                raise ValueError("Argument safe_mode should be True if None is passed for non src rank")
 
         device = self.device()
         tensor_to_number = tensor_to_str = False
 
-        if use_none:
+        if safe_mode:
             tensor = self._setup_placeholder(tensor, device, rank == src)
 
         if tensor is None:
@@ -339,7 +343,7 @@ class _SerialModel(ComputationModel):
         return cast(Union[List[float], List[str]], [tensor])
 
     def broadcast(
-        self, tensor: Union[torch.Tensor, float, str, None], src: int = 0, use_none: bool = False
+        self, tensor: Union[torch.Tensor, float, str, None], src: int = 0, safe_mode: bool = False
     ) -> Union[torch.Tensor, float, str]:
         if tensor is None:
             raise ValueError("Argument tensor should not be None")

@@ -46,32 +46,36 @@ def test__encode_str__decode_str():
 
 
 def test__encode_input_data():
-    encoded_msg = ComputationModel._encode_input_data(None)
+    encoded_msg = ComputationModel._encode_input_data(None, is_src=True)
     assert encoded_msg == [-1] * 512
 
-    encoded_msg = ComputationModel._encode_input_data(12.0)
+    encoded_msg = ComputationModel._encode_input_data(12.0, is_src=True)
     assert encoded_msg == [1,] + [-1] * 511
 
-    encoded_msg = ComputationModel._encode_input_data("abc")
+    encoded_msg = ComputationModel._encode_input_data("abc", is_src=True)
     assert encoded_msg == [2,] + [-1] * 511
 
     t = torch.rand(2, 512, 32, 32, 64)
-    encoded_msg = ComputationModel._encode_input_data(t)
+    encoded_msg = ComputationModel._encode_input_data(t, is_src=True)
     dtype_str = str(t.dtype)
     true_msg = [0, 5, 2, 512, 32, 32, 64, len(dtype_str), *list(bytearray(dtype_str, "utf-8"))]
     assert encoded_msg == true_msg + [-1] * (512 - len(true_msg))
 
     t = torch.randint(-1235, 1233, size=(2, 512, 32, 32, 64))
-    encoded_msg = ComputationModel._encode_input_data(t)
+    encoded_msg = ComputationModel._encode_input_data(t, is_src=True)
     dtype_str = str(t.dtype)
     true_msg = [0, 5, 2, 512, 32, 32, 64, len(dtype_str), *list(bytearray(dtype_str, "utf-8"))]
     assert encoded_msg == true_msg + [-1] * (512 - len(true_msg))
 
     t = torch.tensor(12)
-    encoded_msg = ComputationModel._encode_input_data(t)
+    encoded_msg = ComputationModel._encode_input_data(t, is_src=True)
     dtype_str = str(t.dtype)
     true_msg = [0, 0, len(dtype_str), *list(bytearray(dtype_str, "utf-8"))]
     assert encoded_msg == true_msg + [-1] * (512 - len(true_msg))
+
+    for t in [None, "abc", torch.rand(2, 512, 32, 32, 64), 12.34, object()]:
+        encoded_msg = ComputationModel._encode_input_data(t, is_src=False)
+        assert encoded_msg == [-1] * 512
 
 
 def test__decode_as_placeholder():
@@ -101,12 +105,12 @@ def test__decode_as_placeholder():
         ComputationModel._decode_as_placeholder(encoded_msg, device)
 
     t = torch.rand(2, 512, 32, 32, 64)
-    encoded_msg = ComputationModel._encode_input_data(t)
+    encoded_msg = ComputationModel._encode_input_data(t, True)
     res = ComputationModel._decode_as_placeholder(encoded_msg, device)
     assert isinstance(res, torch.Tensor) and res.dtype == t.dtype and res.shape == t.shape
 
     t = torch.tensor(12)
-    encoded_msg = ComputationModel._encode_input_data(t)
+    encoded_msg = ComputationModel._encode_input_data(t, True)
     res = ComputationModel._decode_as_placeholder(encoded_msg, device)
     assert isinstance(res, torch.Tensor) and res.dtype == t.dtype and res.shape == t.shape
 
@@ -116,14 +120,10 @@ def test__setup_placeholder():
 
     from ignite.distributed.utils import _model
 
-    data = _model._setup_placeholder(torch.rand(2, 3, 4), device, False)
-    assert isinstance(data, torch.Tensor) and data.shape == (2, 3, 4)
-
-    data = _model._setup_placeholder("abc", device, False)
-    assert isinstance(data, str) and data == ""
-
-    data = _model._setup_placeholder(123.45, device, False)
-    assert isinstance(data, float) and data == 0.0
-
-    data = _model._setup_placeholder(123.45, device, True)
-    assert isinstance(data, float) and data == 123.45
+    for t in [torch.rand(2, 3, 4), "abc", 123.45]:
+        data = _model._setup_placeholder(t, device, True)
+        assert isinstance(data, type(t))
+        if isinstance(data, torch.Tensor):
+            assert (data == t).all()
+        else:
+            assert data == t
