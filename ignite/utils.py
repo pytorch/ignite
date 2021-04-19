@@ -151,7 +151,14 @@ def setup_logger(
             level=logging.WARNING
         )
 
-    Warning : the root logger should be reset because it already exists and default level is `logging.WARNING`
+    Warning : The default `logging` logger is always defined and has a proper configuration (i.e. level is
+    `logging.WARNING`, no other handler). Keep in mind that when `setup_logger` is used without `name`, this default
+    `logging` logger is returned. In that case, if a specific configuration is needed, the logger should be reset.
+
+    .. code-block:: python
+
+        # override the default `logging` logger configuration
+        setup_logger(level=logging.INFO)
 
     .. versionchanged:: 0.4.3
         Added ``stream`` parameter.
