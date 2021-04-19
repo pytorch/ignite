@@ -153,6 +153,32 @@ def test_setup_logger(capsys, dirname):
     logging.shutdown()
 
 
+def _setup_a_logger_and_dump(name, message):
+    logger = setup_logger(name)
+    logger.info(message)
+
+
+def test_override_setup_logger(capsys):
+
+    _setup_a_logger_and_dump(__name__, "test_override_setup_logger")
+
+    source = capsys.readouterr().err.split("\n")
+
+    assert "tests.ignite.test_utils INFO: test_override_setup_logger" in source[0]
+
+    # change the logger level of _setup_a_logger_and_dump
+    setup_logger(name=__name__, level=logging.WARNING, reset=True)
+
+    _setup_a_logger_and_dump(__name__, "test_override_setup_logger")
+
+    source = capsys.readouterr().err.split("\n")
+
+    assert source[0] == ""
+
+    # Needed by windows to release FileHandler in the loggers
+    logging.shutdown()
+
+
 def test_deprecated():
 
     # Test on function without docs, @deprecated without reasons
