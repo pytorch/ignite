@@ -12,14 +12,16 @@ from ignite.handlers import Timer
 from ignite.metrics import Accuracy, Loss
 
 
-def main(dataset_path, batch_size=256, max_epochs=10):
+def main(dataset_path, batch_size=256, max_epochs=10, persistent_workers=False):
     assert torch.cuda.is_available()
     assert torch.backends.cudnn.enabled, "NVIDIA/Apex:Amp requires cudnn backend to be enabled."
     torch.backends.cudnn.benchmark = True
 
     device = "cuda"
 
-    train_loader, test_loader, eval_train_loader = get_train_eval_loaders(dataset_path, batch_size=batch_size)
+    train_loader, test_loader, eval_train_loader = get_train_eval_loaders(
+        dataset_path, batch_size=batch_size, persistent_workers=persistent_workers
+    )
 
     model = wide_resnet50_2(num_classes=100).to(device)
     optimizer = SGD(model.parameters(), lr=0.01)

@@ -5,7 +5,7 @@ from torchvision.datasets.cifar import CIFAR100
 from torchvision.transforms import Compose, Normalize, Pad, RandomCrop, RandomErasing, RandomHorizontalFlip, ToTensor
 
 
-def get_train_eval_loaders(path, batch_size=256):
+def get_train_eval_loaders(path, batch_size=256, persistent_workers=False):
     """Setup the dataflow:
         - load CIFAR100 train and test datasets
         - setup train/test image transforms
@@ -36,15 +36,33 @@ def get_train_eval_loaders(path, batch_size=256):
     train_eval_dataset = Subset(train_dataset, train_eval_indices)
 
     train_loader = DataLoader(
-        train_dataset, batch_size=batch_size, num_workers=12, shuffle=True, drop_last=True, pin_memory=True
+        train_dataset,
+        batch_size=batch_size,
+        num_workers=12,
+        shuffle=True,
+        drop_last=True,
+        pin_memory=True,
+        persistent_workers=persistent_workers,
     )
 
     test_loader = DataLoader(
-        test_dataset, batch_size=batch_size, num_workers=12, shuffle=False, drop_last=False, pin_memory=True
+        test_dataset,
+        batch_size=batch_size,
+        num_workers=12,
+        shuffle=False,
+        drop_last=False,
+        pin_memory=True,
+        persistent_workers=persistent_workers,
     )
 
     eval_train_loader = DataLoader(
-        train_eval_dataset, batch_size=batch_size, num_workers=12, shuffle=False, drop_last=False, pin_memory=True
+        train_eval_dataset,
+        batch_size=batch_size,
+        num_workers=12,
+        shuffle=False,
+        drop_last=False,
+        pin_memory=True,
+        persistent_workers=persistent_workers,
     )
 
     return train_loader, test_loader, eval_train_loader
