@@ -1,5 +1,4 @@
 import copy
-from os import path
 
 import matplotlib
 import pytest
@@ -229,17 +228,17 @@ def test_plot(lr_finder, to_save, dummy_engine, dataloader):
     with lr_finder.attach(dummy_engine, to_save) as trainer_with_finder:
         trainer_with_finder.run(dataloader)
 
-    lr_finder.plot()
-    lr_finder.plot(skip_end=0)
-    lr_finder.plot(skip_end=0, filepath="dummy.jpg")
-    lr_finder.plot(
-        skip_end=0, filepath="dummy.jpg", orientation="landscape", papertype="a4", format="png",
-    )
-    assert path.exists("dummy.jpg")
-    lr_finder.plot(
-        skip_end=0, filepath="/nonexisting/dummy.jpg", orientation="landscape", papertype="a4", format="png",
-    )
-    assert not path.exists("/nonexisting/dummy.jpg")
+    axes = lr_finder.plot()
+    assert axes is not None
+    assert axes.get_xscale() == "log"
+    assert axes.get_xlabel() == "Learning rate"
+    assert axes.get_ylabel() == "Loss"
+
+    axes = lr_finder.plot(log_lr=False)
+    assert axes is not None
+    assert axes.get_xscale() == "linear"
+    assert axes.get_xlabel() == "Learning rate"
+    assert axes.get_ylabel() == "Loss"
 
 
 def test_no_matplotlib(no_site_packages, lr_finder):
