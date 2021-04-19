@@ -38,28 +38,16 @@ def ClassificationReport(
 
     .. code-block:: python
 
-        rank = idist.get_rank()
-        classification_report = ClassificationReport()
-        n_iters = 80
-        s = 16
-        offset = n_iters * s
-        y_true = torch.randint(0, 2, size=(offset * idist.get_world_size(),))
-        y_preds = torch.rand(offset * idist.get_world_size(), 2)
 
-        def update(engine, i):
-            return (
-                y_preds[i * s + rank * offset: (i + 1) * s + rank * offset, :],
-                y_true[i * s + rank * offset: (i + 1) * s + rank * offset],
-            )
+        def process_function(engine, batch):
+            # ...
+            return y_pred, y
 
-        engine = Engine(update)
-
-        classification_report.attach(engine, "cr")
-
-        data = list(range(n_iters))
-        engine.run(data=data)
+        engine = Engine(process_function)
+        metric = ClassificationReport()
+        metric.attach(engine, "cr")
+        engine.run...
         res = engine.state.metrics["cr"]
-
         # result should be like
         {
           "0": {
@@ -78,7 +66,6 @@ def ClassificationReport(
             "f1-score": 0.5022924117538975
           }
         }
-
     """
 
     # setup all the underlying metrics
