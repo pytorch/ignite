@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [3.6, 3.7, 3.8]
-        pytorch-version: [1.7.1, 1.6.0, 1.5.1, 1.4.0, 1.3.1]
+        pytorch-version: [1.8.0, 1.7.1, 1.6.0, 1.5.1, 1.4.0, 1.3.1]
         exclude:
           - pytorch-version: 1.3.1
             python-version: 3.8
@@ -30,8 +30,8 @@ jobs:
       - name: Get pip cache dir
         id: pip-cache
         run: |
-          pip3 install -U --user pip
-          echo "::set-output name=dir::$(pip3 cache dir)"
+          python3 -m pip install -U pip
+          echo "::set-output name=dir::$(python3 -m pip cache dir)"
         shell: bash -l {0}
 
       - uses: actions/cache@v2
@@ -62,9 +62,15 @@ jobs:
         run: |
           pytest tests -vvv
 
+  create-issue:
+    runs-on: ubuntu-latest
+    # https://docs.github.com/en/actions/reference/context-and-expression-syntax-for-github-actions#needs-context
+    needs: build
+    if: always() && needs.build.result == 'failure'
+    steps:
+      - uses: actions/checkout@v2
       - uses: JasonEtco/create-an-issue@v2
         name: Create issue if pytorch version tests failed
-        if: failure()
         with:
           filename: .github/failed_schedule_issue_template.md
         env:

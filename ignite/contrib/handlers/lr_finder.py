@@ -186,7 +186,14 @@ class FastaiLRFinder:
         """
         return self._history
 
-    def plot(self, skip_start: int = 10, skip_end: int = 5, log_lr: bool = True) -> None:
+    def plot(
+        self,
+        skip_start: int = 10,
+        skip_end: int = 5,
+        log_lr: bool = True,
+        filepath: Optional[str] = None,
+        **kwargs: Any,
+    ) -> None:
         """Plots the learning rate range test.
 
         This method requires `matplotlib` package to be installed:
@@ -202,6 +209,9 @@ class FastaiLRFinder:
                 Default: 5.
             log_lr: True to plot the learning rate in a logarithmic
                 scale; otherwise, plotted in a linear scale. Default: True.
+            filepath: The file name to save the plot to. Default: None.
+            kwargs: optional kwargs passed to ``plt.savefig`` if ``filepath`` is provided.
+                matplotlib method `savefig` to save the plot.
         """
         try:
             from matplotlib import pyplot as plt
@@ -237,6 +247,11 @@ class FastaiLRFinder:
             plt.xscale("log")
         plt.xlabel("Learning rate")
         plt.ylabel("Loss")
+        if filepath is not None:
+            try:
+                plt.savefig(filepath, **kwargs)
+            except FileNotFoundError:
+                self.logger.warning(f"Cannot save the file, non existing path:{filepath}")
         plt.show()
 
     def lr_suggestion(self) -> Any:

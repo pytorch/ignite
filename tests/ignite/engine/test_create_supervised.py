@@ -87,6 +87,29 @@ def _test_create_supervised_trainer(
                 trainer.run(data)
 
 
+@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0")
+def test_create_supervised_training_scalar_assignment():
+    model = Linear(1, 1)
+
+    model.weight.data.zero_()
+    model.bias.data.zero_()
+    optimizer = SGD(model.parameters(), 0.1)
+
+    with mock.patch("ignite.engine._check_arg") as check_arg_mock:
+        check_arg_mock.return_value = None, torch.cuda.amp.GradScaler(enabled=True)
+        trainer = create_supervised_trainer(
+            model,
+            optimizer,
+            mse_loss,
+            device="cpu",
+            output_transform=lambda x, y, y_pred, loss: (y_pred, loss.item()),
+            amp_mode=None,
+            scaler=True,
+        )
+        assert hasattr(trainer.state, "scaler")
+        assert isinstance(trainer.state.scaler, torch.cuda.amp.GradScaler)
+
+
 def _test_create_mocked_supervised_trainer(
     model_device: Optional[str] = None,
     trainer_device: Optional[str] = None,
@@ -438,23 +461,32 @@ def test_create_supervised_trainer_on_cuda_with_model_on_cpu():
 def test_create_supervised_evaluator():
     _test_create_supervised_evaluator()
     _test_mocked_supervised_evaluator()
-    with mock.patch("torch.cuda.amp.autocast") as mock_torch_cuda_amp_module:
-        _test_create_evaluation_step_amp(mock_torch_cuda_amp_module)
+
+    # older versions didn't have the autocast method so we skip the test for older builds
+    if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+        with mock.patch("torch.cuda.amp.autocast") as mock_torch_cuda_amp_module:
+            _test_create_evaluation_step_amp(mock_torch_cuda_amp_module)
 
 
 def test_create_supervised_evaluator_on_cpu():
     _test_create_supervised_evaluator(evaluator_device="cpu")
     _test_mocked_supervised_evaluator(evaluator_device="cpu")
-    with mock.patch("torch.cuda.amp.autocast") as mock_torch_cuda_amp_module:
-        _test_create_evaluation_step(mock_torch_cuda_amp_module, evaluator_device="cpu")
-        _test_create_evaluation_step_amp(mock_torch_cuda_amp_module, evaluator_device="cpu")
+
+    # older versions didn't have the autocast method so we skip the test for older builds
+    if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+        with mock.patch("torch.cuda.amp.autocast") as mock_torch_cuda_amp_module:
+            _test_create_evaluation_step(mock_torch_cuda_amp_module, evaluator_device="cpu")
+            _test_create_evaluation_step_amp(mock_torch_cuda_amp_module, evaluator_device="cpu")
 
 
 def test_create_supervised_evaluator_traced_on_cpu():
     _test_create_supervised_evaluator(evaluator_device="cpu", trace=True)
     _test_mocked_supervised_evaluator(evaluator_device="cpu", trace=True)
-    with mock.patch("torch.cuda.amp.autocast") as mock_torch_cuda_amp_module:
-        _test_create_evaluation_step(mock_torch_cuda_amp_module, evaluator_device="cpu", trace=True)
+
+    # older versions didn't have the autocast method so we skip the test for older builds
+    if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+        with mock.patch("torch.cuda.amp.autocast") as mock_torch_cuda_amp_module:
+            _test_create_evaluation_step(mock_torch_cuda_amp_module, evaluator_device="cpu", trace=True)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")

@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Union
 
 import torch
 
@@ -37,9 +37,12 @@ class MedianAbsolutePercentageError(EpochMetric):
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
             By default, metrics require the output as ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
+        device: optional device specification for internal storage.
     """
 
-    def __init__(self, output_transform: Callable = lambda x: x):
+    def __init__(
+        self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu")
+    ):
         super(MedianAbsolutePercentageError, self).__init__(
-            median_absolute_percentage_error_compute_fn, output_transform
+            median_absolute_percentage_error_compute_fn, output_transform=output_transform, device=device
         )
