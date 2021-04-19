@@ -40,9 +40,7 @@ class NeptuneLogger(BaseLogger):
         pip install neptune-client
 
     Args:
-        api_token: Required in online mode. Neputne API token, found on https://neptune.ai.
-            Read how to get your API key
-            https://docs.neptune.ai/administration/security-and-privacy/how-to-find-and-set-neptune-api-token.
+        api_token: Required in online mode. Neptune API token, found on https://neptune.ai.
         project_name: Required in online mode. Qualified name of a project in a form of
            "namespace/project_name" for example "tom/minst-classification".
            If None, the value of NEPTUNE_PROJECT environment variable will be taken.
