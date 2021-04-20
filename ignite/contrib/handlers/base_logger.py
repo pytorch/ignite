@@ -2,6 +2,7 @@
 import numbers
 import warnings
 from abc import ABCMeta, abstractmethod
+from collections import OrderedDict
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 import torch
@@ -81,10 +82,10 @@ class BaseOutputHandler(BaseHandler):
     def _setup_output_metrics(self, engine: Engine) -> Dict[str, Any]:
         """Helper method to setup metrics to log
         """
-        metrics = {}
+        metrics = OrderedDict()
         if self.metric_names is not None:
             if isinstance(self.metric_names, str) and self.metric_names == "all":
-                metrics = engine.state.metrics
+                metrics = OrderedDict(engine.state.metrics)
             else:
                 for name in self.metric_names:
                     if name not in engine.state.metrics:

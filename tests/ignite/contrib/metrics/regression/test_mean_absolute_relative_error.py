@@ -91,8 +91,8 @@ def test_integration():
         m = MeanAbsoluteRelativeError()
         m.attach(engine, "mare")
 
-        np_y = y.numpy()
-        np_y_pred = y_pred.numpy()
+        np_y = y.numpy().ravel()
+        np_y_pred = y_pred.numpy().ravel()
 
         data = list(range(y_pred.shape[0] // batch_size))
         mare = engine.run(data, max_epochs=1).metrics["mare"]
@@ -106,13 +106,11 @@ def test_integration():
     def get_test_cases():
         test_cases = [
             (torch.rand(size=(100,)), torch.rand(size=(100,)), 10),
-            (torch.rand(size=(200,)), torch.rand(size=(200,)), 10),
-            (torch.rand(size=(100,)), torch.rand(size=(100,)), 20),
-            (torch.rand(size=(200,)), torch.rand(size=(200,)), 20),
+            (torch.rand(size=(100, 1)), torch.rand(size=(100, 1)), 20),
         ]
         return test_cases
 
-    for _ in range(10):
+    for _ in range(5):
         # check multiple random inputs as random exact occurencies are rare
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:

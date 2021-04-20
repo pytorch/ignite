@@ -203,9 +203,9 @@ def test_pbar_with_all_metric(capsys):
     err = list(filter(None, err))
     actual = err[-1]
     if get_tqdm_version() < LooseVersion("4.49.0"):
-        expected = "Iteration: [1/2]  50%|█████     , another batchloss=1.5, batchloss=0.5 [00:00<00:00]"
+        expected = "Iteration: [1/2]  50%|█████     , batchloss=0.5, another batchloss=1.5 [00:00<00:00]"
     else:
-        expected = "Iteration: [1/2]  50%|█████     , another batchloss=1.5, batchloss=0.5 [00:00<?]"
+        expected = "Iteration: [1/2]  50%|█████     , batchloss=0.5, another batchloss=1.5 [00:00<?]"
     assert actual == expected
 
 

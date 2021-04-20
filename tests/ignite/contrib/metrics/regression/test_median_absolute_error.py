@@ -79,7 +79,7 @@ def test_median_absolute_error_2():
     assert np_median_absolute_error == pytest.approx(m.compute())
 
 
-def test_integration_median_absolute_error_with_output_transform():
+def test_integration_median_absolute_error():
 
     np.random.seed(1)
     size = 105
@@ -94,11 +94,11 @@ def test_integration_median_absolute_error_with_output_transform():
         idx = (engine.state.iteration - 1) * batch_size
         y_true_batch = np_y[idx : idx + batch_size]
         y_pred_batch = np_y_pred[idx : idx + batch_size]
-        return idx, torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+        return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
 
     engine = Engine(update_fn)
 
-    m = MedianAbsoluteError(output_transform=lambda x: (x[1], x[2]))
+    m = MedianAbsoluteError()
     m.attach(engine, "median_absolute_error")
 
     data = list(range(size // batch_size))
