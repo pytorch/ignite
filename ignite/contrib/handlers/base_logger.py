@@ -80,8 +80,7 @@ class BaseOutputHandler(BaseHandler):
         self.global_step_transform = global_step_transform
 
     def _setup_output_metrics(self, engine: Engine) -> Dict[str, Any]:
-        """Helper method to setup metrics to log
-        """
+        """Helper method to setup metrics to log"""
         metrics = OrderedDict()
         if self.metric_names is not None:
             if isinstance(self.metric_names, str) and self.metric_names == "all":

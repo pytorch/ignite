@@ -1,16 +1,6 @@
 from ignite.contrib.handlers.clearml_logger import ClearMLLogger
-from ignite.contrib.handlers.lr_finder import FastaiLRFinder
 from ignite.contrib.handlers.mlflow_logger import MLflowLogger
 from ignite.contrib.handlers.neptune_logger import NeptuneLogger
-from ignite.contrib.handlers.param_scheduler import (
-    ConcatScheduler,
-    CosineAnnealingScheduler,
-    LinearCyclicalScheduler,
-    LRScheduler,
-    ParamGroupScheduler,
-    PiecewiseLinear,
-    create_lr_scheduler_with_warmup,
-)
 from ignite.contrib.handlers.polyaxon_logger import PolyaxonLogger
 from ignite.contrib.handlers.stores import EpochOutputStore
 from ignite.contrib.handlers.tensorboard_logger import TensorboardLogger
