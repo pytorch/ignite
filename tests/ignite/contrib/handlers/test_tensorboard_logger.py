@@ -99,9 +99,11 @@ def test_output_handler_metric_names():
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
     assert mock_logger.writer.add_scalar.call_count == 2
-    mock_logger.writer.add_scalar.assert_has_calls([call("tag/a", 12.23, 5), call("tag/b", 23.45, 5),], any_order=True)
+    mock_logger.writer.add_scalar.assert_has_calls(
+        [call("tag/a", 12.23, 5), call("tag/b", 23.45, 5),], any_order=True,
+    )
 
-    wrapper = OutputHandler("tag", metric_names=["a",])
+    wrapper = OutputHandler("tag", metric_names=["a",],)
 
     mock_engine = MagicMock()
     mock_engine.state = State(metrics={"a": torch.Tensor([0.0, 1.0, 2.0, 3.0])})
@@ -131,7 +133,9 @@ def test_output_handler_metric_names():
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
     assert mock_logger.writer.add_scalar.call_count == 1
-    mock_logger.writer.add_scalar.assert_has_calls([call("tag/a", 55.56, 7),], any_order=True)
+    mock_logger.writer.add_scalar.assert_has_calls(
+        [call("tag/a", 55.56, 7),], any_order=True,
+    )
 
     # all metrics
     wrapper = OutputHandler("tag", metric_names="all")
@@ -145,7 +149,9 @@ def test_output_handler_metric_names():
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
     assert mock_logger.writer.add_scalar.call_count == 2
-    mock_logger.writer.add_scalar.assert_has_calls([call("tag/a", 12.23, 5), call("tag/b", 23.45, 5),], any_order=True)
+    mock_logger.writer.add_scalar.assert_has_calls(
+        [call("tag/a", 12.23, 5), call("tag/b", 23.45, 5),], any_order=True,
+    )
 
 
 def test_output_handler_both():
@@ -306,7 +312,7 @@ def test_weights_scalar_handler_frozen_layers(dummy_model_factory):
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
     mock_logger.writer.add_scalar.assert_has_calls(
-        [call("weights_norm/fc2/weight", 12.0, 5), call("weights_norm/fc2/bias", math.sqrt(12.0), 5),], any_order=True
+        [call("weights_norm/fc2/weight", 12.0, 5), call("weights_norm/fc2/bias", math.sqrt(12.0), 5),], any_order=True,
     )
 
     with pytest.raises(AssertionError):
@@ -462,12 +468,12 @@ def test_grads_scalar_handler_frozen_layers(dummy_model_factory, norm_mock):
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
     mock_logger.writer.add_scalar.assert_has_calls(
-        [call("grads_norm/fc2/weight", ANY, 5), call("grads_norm/fc2/bias", ANY, 5),], any_order=True
+        [call("grads_norm/fc2/weight", ANY, 5), call("grads_norm/fc2/bias", ANY, 5),], any_order=True,
     )
 
     with pytest.raises(AssertionError):
         mock_logger.writer.add_scalar.assert_has_calls(
-            [call("grads_norm/fc1/weight", ANY, 5), call("grads_norm/fc1/bias", ANY, 5),], any_order=True
+            [call("grads_norm/fc1/weight", ANY, 5), call("grads_norm/fc1/bias", ANY, 5),], any_order=True,
         )
     assert mock_logger.writer.add_scalar.call_count == 2
     assert norm_mock.call_count == 2

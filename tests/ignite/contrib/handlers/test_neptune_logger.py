@@ -94,9 +94,11 @@ def test_output_handler_metric_names():
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
     assert mock_logger.log_metric.call_count == 2
-    mock_logger.log_metric.assert_has_calls([call("tag/a", y=12.23, x=5), call("tag/b", y=23.45, x=5),], any_order=True)
+    mock_logger.log_metric.assert_has_calls(
+        [call("tag/a", y=12.23, x=5), call("tag/b", y=23.45, x=5),], any_order=True,
+    )
 
-    wrapper = OutputHandler("tag", metric_names=["a",])
+    wrapper = OutputHandler("tag", metric_names=["a",],)
 
     mock_engine = MagicMock()
     mock_logger.log_metric = MagicMock()
@@ -132,7 +134,9 @@ def test_output_handler_metric_names():
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
     assert mock_logger.log_metric.call_count == 1
-    mock_logger.log_metric.assert_has_calls([call("tag/a", y=55.56, x=7),], any_order=True)
+    mock_logger.log_metric.assert_has_calls(
+        [call("tag/a", y=55.56, x=7),], any_order=True,
+    )
 
     # all metrics
     wrapper = OutputHandler("tag", metric_names="all")
@@ -145,7 +149,9 @@ def test_output_handler_metric_names():
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
     assert mock_logger.log_metric.call_count == 2
-    mock_logger.log_metric.assert_has_calls([call("tag/a", y=12.23, x=5), call("tag/b", y=23.45, x=5),], any_order=True)
+    mock_logger.log_metric.assert_has_calls(
+        [call("tag/a", y=12.23, x=5), call("tag/b", y=23.45, x=5),], any_order=True,
+    )
 
 
 def test_output_handler_both():
@@ -369,12 +375,12 @@ def test_grads_scalar_handler_frozen_layers(dummy_model_factory, norm_mock):
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
     mock_logger.log_metric.assert_has_calls(
-        [call("grads_norm/fc2/weight", y=ANY, x=5), call("grads_norm/fc2/bias", y=ANY, x=5),], any_order=True
+        [call("grads_norm/fc2/weight", y=ANY, x=5), call("grads_norm/fc2/bias", y=ANY, x=5),], any_order=True,
     )
 
     with pytest.raises(AssertionError):
         mock_logger.log_metric.assert_has_calls(
-            [call("grads_norm/fc1/weight", y=ANY, x=5), call("grads_norm/fc1/bias", y=ANY, x=5),], any_order=True
+            [call("grads_norm/fc1/weight", y=ANY, x=5), call("grads_norm/fc1/bias", y=ANY, x=5),], any_order=True,
         )
     assert mock_logger.log_metric.call_count == 2
     assert norm_mock.call_count == 2

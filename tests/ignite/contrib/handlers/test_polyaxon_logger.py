@@ -63,7 +63,7 @@ def test_output_handler_metric_names():
     assert mock_logger.log_metrics.call_count == 1
     mock_logger.log_metrics.assert_called_once_with(step=5, **{"tag/a": 12.23, "tag/b": 23.45, "tag/c": 10.0})
 
-    wrapper = OutputHandler("tag", metric_names=["a",])
+    wrapper = OutputHandler("tag", metric_names=["a",],)
 
     mock_engine = MagicMock()
     mock_engine.state = State(metrics={"a": torch.Tensor([0.0, 1.0, 2.0, 3.0])})
@@ -76,7 +76,7 @@ def test_output_handler_metric_names():
 
     assert mock_logger.log_metrics.call_count == 1
     mock_logger.log_metrics.assert_has_calls(
-        [call(step=5, **{"tag/a/0": 0.0, "tag/a/1": 1.0, "tag/a/2": 2.0, "tag/a/3": 3.0}),], any_order=True
+        [call(step=5, **{"tag/a/0": 0.0, "tag/a/1": 1.0, "tag/a/2": 2.0, "tag/a/3": 3.0}),], any_order=True,
     )
 
     wrapper = OutputHandler("tag", metric_names=["a", "c"])

@@ -57,17 +57,17 @@ def _test_setup_common_training_handlers(
 
     model = DummyModel().to(device)
     if distributed and "cuda" in device:
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank,], output_device=local_rank)
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank,], output_device=local_rank,)
     optimizer = torch.optim.SGD(model.parameters(), lr=lr)
 
     if lr_scheduler is None:
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
     elif isinstance(lr_scheduler, str) and lr_scheduler == "ignite|LRScheduler":
-        from ignite.contrib.handlers import LRScheduler
+        from ignite.handlers import LRScheduler
 
         lr_scheduler = LRScheduler(torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma))
     elif isinstance(lr_scheduler, str) and lr_scheduler == "ignite":
-        from ignite.contrib.handlers import PiecewiseLinear
+        from ignite.handlers import PiecewiseLinear
 
         milestones_values = [(0, 0.0), (step_size, lr), (num_iters * (num_epochs - 1), 0.0)]
         lr_scheduler = PiecewiseLinear(optimizer, param_name="lr", milestones_values=milestones_values)
@@ -359,7 +359,7 @@ def _test_setup_logging(
 
     if with_optim:
         t = torch.tensor([0,])
-        optimizers = {"optimizer": torch.optim.SGD([t,], lr=0.01)}
+        optimizers = {"optimizer": torch.optim.SGD([t,], lr=0.01,)}
         if as_class:
             optimizers = optimizers["optimizer"]
 
