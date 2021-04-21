@@ -102,7 +102,7 @@ Example with :class:`~ignite.handlers.param_scheduler.CosineAnnealingScheduler`
     plt.ylim([0.0, 0.12])
 
 
-.. image:: ../_static/img/schedulers/cosine_annealing_example.png
+.. image:: _static/img/schedulers/cosine_annealing_example.png
 
 
 Example with :class:`ignite.handlers.param_scheduler.LinearCyclicalScheduler`
@@ -164,7 +164,7 @@ Example with :class:`ignite.handlers.param_scheduler.LinearCyclicalScheduler`
     plt.ylim([0.0, 0.12])
 
 
-.. image:: ../_static/img/schedulers/linear_cyclical_example.png
+.. image:: _static/img/schedulers/linear_cyclical_example.png
 
 
 Example with :class:`ignite.handlers.param_scheduler.ConcatScheduler`
@@ -222,7 +222,7 @@ Example with :class:`ignite.handlers.param_scheduler.ConcatScheduler`
     plt.ylabel("values")
     plt.legend()
 
-.. image:: ../_static/img/schedulers/concat_example.png
+.. image:: _static/img/schedulers/concat_example.png
 
 Piecewise linear scheduler
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -246,7 +246,7 @@ Piecewise linear scheduler
     plt.ylabel("values")
     plt.legend()
 
-.. image:: ../_static/img/schedulers/piecewise_linear.png
+.. image:: _static/img/schedulers/piecewise_linear.png
 
 
 Example with :class:`ignite.handlers.param_scheduler.LRScheduler`
@@ -297,7 +297,7 @@ Example with :class:`ignite.handlers.param_scheduler.LRScheduler`
     plt.legend()
 
 
-.. image:: ../_static/img/schedulers/lr_scheduler.png
+.. image:: _static/img/schedulers/lr_scheduler.png
 
 
 Concatenate with torch schedulers
@@ -344,4 +344,4 @@ Concatenate with torch schedulers
     plt.legend()
 
 
-.. image:: ../_static/img/schedulers/concat_linear_exp_step_lr.png
+.. image:: _static/img/schedulers/concat_linear_exp_step_lr.png
