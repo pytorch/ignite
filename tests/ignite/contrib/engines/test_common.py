@@ -57,7 +57,7 @@ def _test_setup_common_training_handlers(
 
     model = DummyModel().to(device)
     if distributed and "cuda" in device:
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank,], output_device=local_rank,)
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank,], output_device=local_rank)
     optimizer = torch.optim.SGD(model.parameters(), lr=lr)
 
     if lr_scheduler is None:
@@ -359,7 +359,7 @@ def _test_setup_logging(
 
     if with_optim:
         t = torch.tensor([0,])
-        optimizers = {"optimizer": torch.optim.SGD([t,], lr=0.01,)}
+        optimizers = {"optimizer": torch.optim.SGD([t,], lr=0.01)}
         if as_class:
             optimizers = optimizers["optimizer"]
 
