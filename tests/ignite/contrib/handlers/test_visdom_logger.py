@@ -178,7 +178,7 @@ def test_output_handler_metric_names(dirname):
         any_order=True,
     )
 
-    wrapper = OutputHandler("tag", metric_names=["a",],)
+    wrapper = OutputHandler("tag", metric_names=["a",])
 
     mock_engine = MagicMock()
     mock_engine.state = State(metrics={"a": torch.Tensor([0.0, 1.0, 2.0, 3.0])})
