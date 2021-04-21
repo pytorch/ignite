@@ -5,15 +5,6 @@ from ignite.engine.events import Events
 from ignite.handlers.checkpoint import Checkpoint, DiskSaver, ModelCheckpoint
 from ignite.handlers.early_stopping import EarlyStopping
 from ignite.handlers.lr_finder import FastaiLRFinder
-from ignite.handlers.param_scheduler import (
-    ConcatScheduler,
-    CosineAnnealingScheduler,
-    LinearCyclicalScheduler,
-    LRScheduler,
-    ParamGroupScheduler,
-    PiecewiseLinear,
-    create_lr_scheduler_with_warmup,
-)
 from ignite.handlers.terminate_on_nan import TerminateOnNan
 from ignite.handlers.time_limit import TimeLimit
 from ignite.handlers.timing import Timer
@@ -28,12 +19,6 @@ __all__ = [
     "TerminateOnNan",
     "global_step_from_engine",
     "TimeLimit",
-    "ConcatScheduler",
-    "CosineAnnealingScheduler",
-    "LinearCyclicalScheduler",
-    "LRScheduler",
-    "ParamGroupScheduler," "PiecewiseLinear",
-    "create_lr_scheduler_with_warmup",
 ]
 
 

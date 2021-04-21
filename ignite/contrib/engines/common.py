@@ -12,6 +12,7 @@ from torch.utils.data.distributed import DistributedSampler
 import ignite.distributed as idist
 from ignite.contrib.handlers import (
     ClearMLLogger,
+    LRScheduler,
     MLflowLogger,
     NeptuneLogger,
     PolyaxonLogger,
@@ -22,11 +23,11 @@ from ignite.contrib.handlers import (
     global_step_from_engine,
 )
 from ignite.contrib.handlers.base_logger import BaseLogger
+from ignite.contrib.handlers.param_scheduler import ParamScheduler
 from ignite.contrib.metrics import GpuInfo
 from ignite.engine import Engine, Events
 from ignite.handlers import Checkpoint, DiskSaver, EarlyStopping, TerminateOnNan
 from ignite.handlers.checkpoint import BaseSaveHandler
-from ignite.handlers.param_scheduler import LRScheduler, ParamScheduler
 from ignite.metrics import RunningAverage
 from ignite.utils import deprecated
 
@@ -561,7 +562,8 @@ def setup_trains_logging(
     log_every_iters: int = 100,
     **kwargs: Any,
 ) -> ClearMLLogger:
-    """``setup_trains_logging`` was renamed to :func:`~ignite.contrib.engines.common.setup_clearml_logging`."""
+    """``setup_trains_logging`` was renamed to :func:`~ignite.contrib.engines.common.setup_clearml_logging`.
+    """
     warnings.warn("setup_trains_logging was renamed to setup_clearml_logging.")
     return setup_clearml_logging(trainer, optimizers, evaluators, log_every_iters, **kwargs)
 
