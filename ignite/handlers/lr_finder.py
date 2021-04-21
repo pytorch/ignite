@@ -246,8 +246,9 @@ class FastaiLRFinder:
 
         # Check to show the suggested learning rate
         if display_suggestion:
-            sug_lr = self._history["lr"][self._min_grad_idx]
-            equivalent_loss = self._history["loss"][self._min_grad_idx]
+            idx = self._min_grad_idx + skip_start - skip_end
+            sug_lr = lrs[idx]
+            equivalent_loss = losses[idx]
             fig, ax = plt.subplots()
             ax.scatter(
                 sug_lr, equivalent_loss, s=75, marker="o", color="red", zorder=3,
