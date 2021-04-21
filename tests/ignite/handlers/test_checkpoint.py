@@ -742,7 +742,9 @@ def test_with_engine(dirname):
     model = DummyModel()
     to_save = {"model": model}
     engine.add_event_handler(Events.EPOCH_COMPLETED, handler, to_save)
-    engine.run([0, 1,], max_epochs=4)
+    engine.run(
+        [0, 1,], max_epochs=4,
+    )
 
     expected = sorted([f"{_PREFIX}_{name}_{i}.pt" for i in [3 * 2, 4 * 2]])
 
@@ -1517,7 +1519,9 @@ def test_checkpoint_reset_with_engine(dirname):
     model = DummyModel()
     to_save = {"model": model}
     engine.add_event_handler(Events.EPOCH_COMPLETED, handler, to_save)
-    engine.run([0, 1,], max_epochs=10)
+    engine.run(
+        [0, 1,], max_epochs=10,
+    )
 
     expected = sorted([f"{_PREFIX}_{name}_{i}.pt" for i in [9 * 2, 10 * 2]])
     assert sorted(os.listdir(dirname)) == expected
@@ -1525,7 +1529,9 @@ def test_checkpoint_reset_with_engine(dirname):
 
     handler.reset()
     engine.state.max_epochs = None
-    engine.run([0, 1,], max_epochs=2)
+    engine.run(
+        [0, 1,], max_epochs=2,
+    )
 
     expected += [f"{_PREFIX}_{name}_{i}.pt" for i in [1 * 2, 2 * 2]]
     assert sorted(os.listdir(dirname)) == sorted(expected)
