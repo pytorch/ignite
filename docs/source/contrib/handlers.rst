@@ -4,36 +4,6 @@ ignite.contrib.handlers
 Contribution module of handlers
 
 
-Parameter scheduler
--------------------
-
-.. currentmodule:: ignite.contrib.handlers.param_scheduler
-
-.. autosummary::
-    :nosignatures:
-    :toctree: ../generated
-
-    ConcatScheduler
-    CosineAnnealingScheduler
-    CyclicalScheduler
-    LRScheduler
-    LinearCyclicalScheduler
-    ParamGroupScheduler
-    ParamScheduler
-    PiecewiseLinear
-    create_lr_scheduler_with_warmup
-
-LR finder
----------
-
-.. currentmodule:: ignite.contrib.handlers.lr_finder
-
-.. autosummary::
-    :nosignatures:
-    :toctree: ../generated
-
-    FastaiLRFinder
-
 Time profilers
 ---------------
 
