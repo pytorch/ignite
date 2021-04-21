@@ -328,7 +328,7 @@ class LinearCyclicalScheduler(CyclicalScheduler):
 
     .. code-block:: python
 
-        from ignite.contrib.handlers.param_scheduler import LinearCyclicalScheduler
+        from ignite.handlers.param_scheduler import LinearCyclicalScheduler
 
         scheduler = LinearCyclicalScheduler(optimizer, 'lr', 1e-3, 1e-1, len(train_loader))
         trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
@@ -374,7 +374,7 @@ class CosineAnnealingScheduler(CyclicalScheduler):
 
     .. code-block:: python
 
-        from ignite.contrib.handlers.param_scheduler import CosineAnnealingScheduler
+        from ignite.handlers.param_scheduler import CosineAnnealingScheduler
 
         scheduler = CosineAnnealingScheduler(optimizer, 'lr', 1e-1, 1e-3, len(train_loader))
         trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
@@ -384,8 +384,8 @@ class CosineAnnealingScheduler(CyclicalScheduler):
 
     .. code-block:: python
 
-        from ignite.contrib.handlers.param_scheduler import CosineAnnealingScheduler
-        from ignite.contrib.handlers.param_scheduler import LinearCyclicalScheduler
+        from ignite.handlers.param_scheduler import CosineAnnealingScheduler
+        from ignite.handlers.param_scheduler import LinearCyclicalScheduler
 
         optimizer = SGD(
             [
@@ -426,9 +426,9 @@ class ConcatScheduler(ParamScheduler):
 
     .. code-block:: python
 
-        from ignite.contrib.handlers.param_scheduler import ConcatScheduler
-        from ignite.contrib.handlers.param_scheduler import LinearCyclicalScheduler
-        from ignite.contrib.handlers.param_scheduler import CosineAnnealingScheduler
+        from ignite.handlers.param_scheduler import ConcatScheduler
+        from ignite.handlers.param_scheduler import LinearCyclicalScheduler
+        from ignite.handlers.param_scheduler import CosineAnnealingScheduler
 
         scheduler_1 = LinearCyclicalScheduler(optimizer, "lr", start_value=0.1, end_value=0.5, cycle_size=60)
         scheduler_2 = CosineAnnealingScheduler(optimizer, "lr", start_value=0.5, end_value=0.01, cycle_size=60)
@@ -653,7 +653,7 @@ class LRScheduler(ParamScheduler):
 
     .. code-block:: python
 
-        from ignite.contrib.handlers.param_scheduler import LRScheduler
+        from ignite.handlers.param_scheduler import LRScheduler
         from torch.optim.lr_scheduler import StepLR
 
         step_scheduler = StepLR(optimizer, step_size=3, gamma=0.1)
@@ -1078,7 +1078,7 @@ class ParamGroupScheduler:
             num_events: number of events during the simulation.
             schedulers: lr_scheduler object to wrap.
             kwargs: kwargs passed to construct an instance of
-                :class:`ignite.contrib.handlers.param_scheduler.ParamGroupScheduler`.
+                :class:`ignite.handlers.param_scheduler.ParamGroupScheduler`.
 
         Returns:
             event_index, value
