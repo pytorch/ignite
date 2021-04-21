@@ -27,10 +27,10 @@ def no_site_packages():
 
 
 class DummyModel(nn.Module):
-    def __init__(self, n_channels=10, flatten_input=False):
+    def __init__(self, n_channels=10, out_channels=1, flatten_input=False):
         super(DummyModel, self).__init__()
 
-        self.net = nn.Sequential(nn.Flatten() if flatten_input else nn.Identity(), nn.Linear(n_channels, 1))
+        self.net = nn.Sequential(nn.Flatten() if flatten_input else nn.Identity(), nn.Linear(n_channels, out_channels))
 
     def forward(self, x):
         return self.net(x)
@@ -44,7 +44,7 @@ def model():
 
 @pytest.fixture
 def mnist_model():
-    model = DummyModel(n_channels=784, flatten_input=True)
+    model = DummyModel(n_channels=784, out_channels=10, flatten_input=True)
     yield model
 
 
