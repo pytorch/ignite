@@ -64,22 +64,22 @@ def test_check_shape():
         roc_auc._check_shape((torch.rand(4, 3), torch.rand(4, 3, 1)))
 
 
-def test_binary_input_N():
+def test_binary_input():
 
     roc_auc = ROC_AUC()
 
     def _test(y_pred, y, batch_size):
         roc_auc.reset()
-        roc_auc.update((y_pred, y))
-
-        np_y = y.numpy()
-        np_y_pred = y_pred.numpy()
-
         if batch_size > 1:
             n_iters = y.shape[0] // batch_size + 1
             for i in range(n_iters):
                 idx = i * batch_size
                 roc_auc.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+        else:
+            roc_auc.update((y_pred, y))
+
+        np_y = y.numpy()
+        np_y_pred = y_pred.numpy()
 
         res = roc_auc.compute()
         assert isinstance(res, float)
@@ -87,44 +87,13 @@ def test_binary_input_N():
 
     def get_test_cases():
         test_cases = [
+            # Binary input data of shape (N,) or (N, 1)
             (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 1),
             (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 1),
             # updated batches
             (torch.randint(0, 2, size=(50,)).long(), torch.randint(0, 2, size=(50,)).long(), 16),
             (torch.randint(0, 2, size=(50, 1)).long(), torch.randint(0, 2, size=(50, 1)).long(), 16),
-        ]
-        return test_cases
-
-    for _ in range(5):
-        test_cases = get_test_cases()
-        # check multiple random inputs as random exact occurencies are rare
-        for y_pred, y, batch_size in test_cases:
-            _test(y_pred, y, batch_size)
-
-
-def test_multilabel_input_N():
-
-    roc_auc = ROC_AUC()
-
-    def _test(y_pred, y, batch_size):
-        roc_auc.reset()
-        roc_auc.update((y_pred, y))
-
-        np_y = y.numpy()
-        np_y_pred = y_pred.numpy()
-
-        if batch_size > 1:
-            n_iters = y.shape[0] // batch_size + 1
-            for i in range(n_iters):
-                idx = i * batch_size
-                roc_auc.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-
-        res = roc_auc.compute()
-        assert isinstance(res, float)
-        assert roc_auc_score(np_y, np_y_pred) == pytest.approx(res)
-
-    def get_test_cases():
-        test_cases = [
+            # Binary input data of shape (N, L)
             (torch.randint(0, 2, size=(10, 4)).long(), torch.randint(0, 2, size=(10, 4)).long(), 1),
             (torch.randint(0, 2, size=(10, 7)).long(), torch.randint(0, 2, size=(10, 7)).long(), 1),
             # updated batches
@@ -134,8 +103,8 @@ def test_multilabel_input_N():
         return test_cases
 
     for _ in range(5):
-        # check multiple random inputs as random exact occurencies are rare
         test_cases = get_test_cases()
+        # check multiple random inputs as random exact occurencies are rare
         for y_pred, y, batch_size in test_cases:
             _test(y_pred, y, batch_size)
 
@@ -182,8 +151,12 @@ def test_integration_binary_input():
 
     def get_test_cases():
         test_cases = [
+            # Binary input data of shape (N,) or (N, 1)
             (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 10),
             (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 10),
+            # Binary input data of shape (N, L)
+            (torch.randint(0, 2, size=(100, 3)).long(), torch.randint(0, 2, size=(100, 3)).long(), 10),
+            (torch.randint(0, 2, size=(100, 4)).long(), torch.randint(0, 2, size=(100, 4)).long(), 10),
         ]
         return test_cases
 
@@ -194,45 +167,7 @@ def test_integration_binary_input():
             _test(y_pred, y, batch_size)
 
 
-def test_integration_multilabel():
-    def _test(y_pred, y, batch_size):
-        def update_fn(engine, batch):
-            idx = (engine.state.iteration - 1) * batch_size
-            y_true_batch = np_y[idx : idx + batch_size]
-            y_pred_batch = np_y_pred[idx : idx + batch_size]
-            return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
-
-        engine = Engine(update_fn)
-
-        roc_auc_metric = ROC_AUC()
-        roc_auc_metric.attach(engine, "roc_auc")
-
-        np_y = y.numpy()
-        np_y_pred = y_pred.numpy()
-
-        np_roc_auc = roc_auc_score(np_y, np_y_pred)
-
-        data = list(range(y_pred.shape[0] // batch_size))
-        roc_auc = engine.run(data, max_epochs=1).metrics["roc_auc"]
-
-        assert isinstance(roc_auc, float)
-        assert np_roc_auc == pytest.approx(roc_auc)
-
-    def get_test_cases():
-        test_cases = [
-            (torch.randint(0, 2, size=(50, 3)).long(), torch.randint(0, 2, size=(50, 3)).long(), 10),
-            (torch.randint(0, 2, size=(50, 4)).long(), torch.randint(0, 2, size=(50, 4)).long(), 10),
-        ]
-        return test_cases
-
-    for _ in range(5):
-        # check multiple random inputs as random exact occurencies are rare
-        test_cases = get_test_cases()
-        for y_pred, y, batch_size in test_cases:
-            _test(y_pred, y, batch_size)
-
-
-def _test_distrib_binary_input_N(device):
+def _test_distrib_binary_input(device):
 
     rank = idist.get_rank()
     torch.manual_seed(12)
@@ -244,13 +179,13 @@ def _test_distrib_binary_input_N(device):
         torch.manual_seed(10 + rank)
 
         roc_auc.reset()
-        roc_auc.update((y_pred, y))
-
         if batch_size > 1:
             n_iters = y.shape[0] // batch_size + 1
             for i in range(n_iters):
                 idx = i * batch_size
                 roc_auc.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+        else:
+            roc_auc.update((y_pred, y))
 
         # gather y_pred, y
         y_pred = idist.all_gather(y_pred)
@@ -265,56 +200,13 @@ def _test_distrib_binary_input_N(device):
 
     def get_test_cases():
         test_cases = [
+            # Binary input data of shape (N,) or (N, 1)
             (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 1),
             (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 1),
             # updated batches
             (torch.randint(0, 2, size=(50,)).long(), torch.randint(0, 2, size=(50,)).long(), 16),
             (torch.randint(0, 2, size=(50, 1)).long(), torch.randint(0, 2, size=(50, 1)).long(), 16),
-        ]
-        return test_cases
-
-    for _ in range(5):
-        test_cases = get_test_cases()
-        for y_pred, y, batch_size in test_cases:
-            _test(y_pred, y, batch_size, "cpu")
-            if device.type != "xla":
-                _test(y_pred, y, batch_size, idist.device())
-
-
-def _test_distrib_multilabel_input_N(device):
-
-    rank = idist.get_rank()
-    torch.manual_seed(12)
-
-    def _test(y_pred, y, batch_size, metric_device):
-        metric_device = torch.device(metric_device)
-        roc_auc = ROC_AUC(device=metric_device)
-
-        torch.manual_seed(10 + rank)
-
-        roc_auc.reset()
-        roc_auc.update((y_pred, y))
-
-        if batch_size > 1:
-            n_iters = y.shape[0] // batch_size + 1
-            for i in range(n_iters):
-                idx = i * batch_size
-                roc_auc.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-
-        # gather y_pred, y
-        y_pred = idist.all_gather(y_pred)
-        y = idist.all_gather(y)
-
-        np_y = y.cpu().numpy()
-        np_y_pred = y_pred.cpu().numpy()
-
-        res = roc_auc.compute()
-        assert isinstance(res, float)
-        assert roc_auc_score(np_y, np_y_pred) == pytest.approx(res)
-
-    def get_test_cases():
-
-        test_cases = [
+            # Binary input data of shape (N, L)
             (torch.randint(0, 2, size=(10, 4)).long(), torch.randint(0, 2, size=(10, 4)).long(), 1),
             (torch.randint(0, 2, size=(10, 7)).long(), torch.randint(0, 2, size=(10, 7)).long(), 1),
             # updated batches
@@ -323,7 +215,7 @@ def _test_distrib_multilabel_input_N(device):
         ]
         return test_cases
 
-    for _ in range(3):
+    for _ in range(5):
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
             _test(y_pred, y, batch_size, "cpu")
@@ -331,7 +223,7 @@ def _test_distrib_multilabel_input_N(device):
                 _test(y_pred, y, batch_size, idist.device())
 
 
-def _test_distrib_integration_binary(device):
+def _test_distrib_integration_binary_input(device):
 
     rank = idist.get_rank()
     torch.manual_seed(12)
@@ -341,18 +233,19 @@ def _test_distrib_integration_binary(device):
         n_iters = 80
         s = 16
         n_classes = 2
-
         offset = n_iters * s
+
+        # Binary input data of shape (N,)
         y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(),)).to(device)
         y_preds = torch.rand(offset * idist.get_world_size(),).to(device)
 
-        def update(engine, i):
+        def update_N(engine, i):
             return (
                 y_preds[i * s + rank * offset : (i + 1) * s + rank * offset],
                 y_true[i * s + rank * offset : (i + 1) * s + rank * offset],
             )
 
-        engine = Engine(update)
+        engine = Engine(update_N)
 
         roc_auc = ROC_AUC(device=metric_device)
         roc_auc.attach(engine, "roc_auc")
@@ -363,44 +256,21 @@ def _test_distrib_integration_binary(device):
         assert "roc_auc" in engine.state.metrics
 
         res = engine.state.metrics["roc_auc"]
-        if isinstance(res, torch.Tensor):
-            res = res.cpu().numpy()
 
         true_res = roc_auc_score(y_true.cpu().numpy(), y_preds.cpu().numpy())
-
         assert pytest.approx(res) == true_res
 
-    metric_devices = ["cpu"]
-    if device.type != "xla":
-        metric_devices.append(idist.device())
-    for metric_device in metric_devices:
-        for _ in range(2):
-            _test(n_epochs=1, metric_device=metric_device)
-            _test(n_epochs=2, metric_device=metric_device)
-
-
-def _test_distrib_integration_multilabel(device):
-
-    rank = idist.get_rank()
-    torch.manual_seed(12)
-
-    def _test(n_epochs, metric_device):
-        metric_device = torch.device(metric_device)
-        n_iters = 80
-        s = 16
-        n_classes = 2
-
-        offset = n_iters * s
+        # Binary input data of shape (N, L)
         y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(), 10)).to(device)
         y_preds = torch.rand(offset * idist.get_world_size(), 10).to(device)
 
-        def update(engine, i):
+        def update_N_L(engine, i):
             return (
                 y_preds[i * s + rank * offset : (i + 1) * s + rank * offset, :],
                 y_true[i * s + rank * offset : (i + 1) * s + rank * offset, :],
             )
 
-        engine = Engine(update)
+        engine = Engine(update_N_L)
 
         roc_auc = ROC_AUC(device=metric_device)
         roc_auc.attach(engine, "roc_auc")
@@ -411,11 +281,8 @@ def _test_distrib_integration_multilabel(device):
         assert "roc_auc" in engine.state.metrics
 
         res = engine.state.metrics["roc_auc"]
-        if isinstance(res, torch.Tensor):
-            res = res.cpu().numpy()
 
         true_res = roc_auc_score(y_true.cpu().numpy(), y_preds.cpu().numpy())
-
         assert pytest.approx(res) == true_res
 
     metric_devices = ["cpu"]
@@ -433,10 +300,8 @@ def _test_distrib_integration_multilabel(device):
 def test_distrib_gpu(distributed_context_single_node_nccl):
 
     device = torch.device(f"cuda:{distributed_context_single_node_nccl['local_rank']}")
-    _test_distrib_binary_input_N(device)
-    _test_distrib_multilabel_input_N(device)
-    _test_distrib_integration_binary(device)
-    _test_distrib_integration_multilabel(device)
+    _test_distrib_binary_input(device)
+    _test_distrib_integration_binary_input(device)
 
 
 @pytest.mark.distributed
@@ -444,10 +309,8 @@ def test_distrib_gpu(distributed_context_single_node_nccl):
 def test_distrib_cpu(distributed_context_single_node_gloo):
 
     device = torch.device("cpu")
-    _test_distrib_binary_input_N(device)
-    _test_distrib_multilabel_input_N(device)
-    _test_distrib_integration_binary(device)
-    _test_distrib_integration_multilabel(device)
+    _test_distrib_binary_input(device)
+    _test_distrib_integration_binary_input(device)
 
 
 @pytest.mark.distributed
@@ -458,10 +321,8 @@ def test_distrib_hvd(gloo_hvd_executor):
     device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
 
-    gloo_hvd_executor(_test_distrib_binary_input_N, (device,), np=nproc, do_init=True)
-    gloo_hvd_executor(_test_distrib_multilabel_input_N, (device,), np=nproc, do_init=True)
-    gloo_hvd_executor(_test_distrib_integration_binary, (device,), np=nproc, do_init=True)
-    gloo_hvd_executor(_test_distrib_integration_multilabel, (device,), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_distrib_binary_input, (device,), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_distrib_integration_binary_input, (device,), np=nproc, do_init=True)
 
 
 @pytest.mark.multinode_distributed
@@ -470,10 +331,8 @@ def test_distrib_hvd(gloo_hvd_executor):
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 
     device = torch.device("cpu")
-    _test_distrib_binary_input_N(device)
-    _test_distrib_multilabel_input_N(device)
-    _test_distrib_integration_binary(device)
-    _test_distrib_integration_multilabel(device)
+    _test_distrib_binary_input(device)
+    _test_distrib_integration_binary_input(device)
 
 
 @pytest.mark.multinode_distributed
@@ -482,10 +341,8 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
 
     device = torch.device(f"cuda:{distributed_context_multi_node_nccl['local_rank']}")
-    _test_distrib_binary_input_N(device)
-    _test_distrib_multilabel_input_N(device)
-    _test_distrib_integration_binary(device)
-    _test_distrib_integration_multilabel(device)
+    _test_distrib_binary_input(device)
+    _test_distrib_integration_binary_input(device)
 
 
 @pytest.mark.tpu
@@ -494,19 +351,15 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
 def test_distrib_single_device_xla():
 
     device = idist.device()
-    _test_distrib_binary_input_N(device)
-    _test_distrib_multilabel_input_N(device)
-    _test_distrib_integration_binary(device)
-    _test_distrib_integration_multilabel(device)
+    _test_distrib_binary_input(device)
+    _test_distrib_integration_binary_input(device)
 
 
 def _test_distrib_xla_nprocs(index):
 
     device = idist.device()
-    _test_distrib_binary_input_N(device)
-    _test_distrib_multilabel_input_N(device)
-    _test_distrib_integration_binary(device)
-    _test_distrib_integration_multilabel(device)
+    _test_distrib_binary_input(device)
+    _test_distrib_integration_binary_input(device)
 
 
 @pytest.mark.tpu
