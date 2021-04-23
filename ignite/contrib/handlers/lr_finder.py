@@ -93,7 +93,6 @@ class FastaiLRFinder:
         self._history = {"lr": [], "loss": []}
         self._best_loss = None
         self._diverge_flag = False
-        self._min_grad_idx = -1
 
         # attach LRScheduler to trainer.
         if num_iter is None:
@@ -237,6 +236,25 @@ class FastaiLRFinder:
 
         lrs = self._history["lr"]
         losses = self._history["loss"]
+
+        # Check to show the suggested learning rate
+        if display_suggestion:
+            sug_lr = self.lr_suggestion()
+            idx = self._history["lr"].index(sug_lr)
+
+            if skip_start >= idx:
+                warnings.warn(
+                    "skip_start is large, an that would make less clear, and it may affects displaying the suggestion",
+                    UserWarning,
+                )
+
+            corresponding_loss = self._history["loss"][int(idx)]
+
+            fig, ax = plt.subplots()
+            ax.scatter(
+                sug_lr, corresponding_loss, s=75, marker="o", color="red", zorder=3,
+            )
+
         if skip_end == 0:
             lrs = lrs[skip_start:]
             losses = losses[skip_start:]
@@ -244,20 +262,11 @@ class FastaiLRFinder:
             lrs = lrs[skip_start:-skip_end]
             losses = losses[skip_start:-skip_end]
 
-        # Check to show the suggested learning rate
-        if display_suggestion:
-            idx = self._min_grad_idx + skip_start - skip_end
-            sug_lr = lrs[idx]
-            equivalent_loss = losses[idx]
-            fig, ax = plt.subplots()
-            ax.scatter(
-                sug_lr, equivalent_loss, s=75, marker="o", color="red", zorder=3,
-            )
-
         # Plot loss as a function of the learning rate
         plt.plot(lrs, losses)
         if log_lr:
             plt.xscale("log")
+        plt.xlim([lrs[0], lrs[-1]])
         plt.xlabel("Learning rate")
         plt.ylabel("Loss")
         if filepath is not None:
@@ -283,8 +292,7 @@ class FastaiLRFinder:
         losses = torch.tensor(decreasing_losses)
         grads = torch.tensor([losses[i] - losses[i - 1] for i in range(1, len(losses))])
         min_grad_idx = grads.argmin() + 1
-        self._min_grad_idx = int(min_grad_idx)
-        return self._history["lr"][self._min_grad_idx]
+        return self._history["lr"][int(min_grad_idx)]
 
     @contextlib.contextmanager
     def attach(

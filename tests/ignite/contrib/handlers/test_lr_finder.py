@@ -262,8 +262,10 @@ def test_lr_suggestion(lr_finder, to_save, dummy_engine, dataloader):
 
     # Avoid RuntimeError
     if torch.tensor(lr_finder._history["loss"]).argmin() < 2:
+        lr_finder._history["loss"].insert(0, 10)
         lr_finder._history["loss"].insert(0, 100)
-        lr_finder._history["loss"].insert(0, 100)
+        lr_finder._history["lr"].insert(0, 10)
+        lr_finder._history["lr"].insert(0, 100)
 
     assert 1e-4 <= lr_finder.lr_suggestion() <= 10
 
@@ -272,6 +274,13 @@ def test_plot(lr_finder, to_save, dummy_engine, dataloader):
 
     with lr_finder.attach(dummy_engine, to_save) as trainer_with_finder:
         trainer_with_finder.run(dataloader)
+
+    # Avoid RuntimeError
+    if torch.tensor(lr_finder._history["loss"]).argmin() < 2:
+        lr_finder._history["loss"].insert(0, 10)
+        lr_finder._history["loss"].insert(0, 100)
+        lr_finder._history["lr"].insert(0, 10)
+        lr_finder._history["lr"].insert(0, 100)
 
     lr_finder.plot()
     lr_finder.plot(skip_end=0)
