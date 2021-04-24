@@ -109,11 +109,11 @@ If you modify the code, you will most probably also need to code some tests to e
 
 - naming convention for files `test_*.py`, e.g. `test_precision.py`
 - naming of testing functions `def test_*`, e.g. `def test_precision_on_random_data()`
-  - if test function should run on GPU, please **make sure to add `cuda`** in the test name, e.g. `def test_something_on_cuda()`.
+  - if test function should run on GPU, please **make sure to add `cuda`** in the test name, e.g. `def test_something_on_cuda()`. 
   Additionally, we may want to decorate it with `@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")`.
   For more examples, please see https://github.com/pytorch/ignite/blob/master/tests/ignite/engine/test_create_supervised.py
-  - if test function checks distributed configuration, we have to mark the test as `@pytest.mark.distributed` and additional
-  conditions depending on the intended checks. For example, please see
+  - if test function checks distributed configuration, we have to mark the test as `@pytest.mark.distributed` and additional 
+  conditions depending on the intended checks. For example, please see 
   https://github.com/pytorch/ignite/blob/master/tests/ignite/metrics/test_accuracy.py
 
 
