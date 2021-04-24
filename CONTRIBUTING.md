@@ -312,6 +312,4 @@ python -m http.server <port>
 # python -m http.server 1234
 ```
 
-Then open the browser at `0.0.0.0:<port>` (e.g. `0.0.0.0:1234`) and click to `html` folder.
-
-**NOTE : For WSL, open the browser at `localhost:<port>` or `127.0.0.1:<port>` (e.g. `localhost:1234` or `127.0.0.1:1234`).**
+Then open the browser at `localhost:<port>` (e.g. `localhost:1234`) and click to `html` folder.
