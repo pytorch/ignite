@@ -227,25 +227,15 @@ def _test_distrib_integration_binary_input(device):
 
     rank = idist.get_rank()
     torch.manual_seed(12)
+    n_iters = 80
+    s = 16
+    n_classes = 2
+    offset = n_iters * s
 
-    def _test(n_epochs, metric_device):
+    def _test(y_preds, y_true, n_epochs, metric_device, update_fn):
         metric_device = torch.device(metric_device)
-        n_iters = 80
-        s = 16
-        n_classes = 2
-        offset = n_iters * s
 
-        # Binary input data of shape (N,)
-        y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(),)).to(device)
-        y_preds = torch.rand(offset * idist.get_world_size(),).to(device)
-
-        def update_N(engine, i):
-            return (
-                y_preds[i * s + rank * offset : (i + 1) * s + rank * offset],
-                y_true[i * s + rank * offset : (i + 1) * s + rank * offset],
-            )
-
-        engine = Engine(update_N)
+        engine = Engine(update_fn)
 
         roc_auc = ROC_AUC(device=metric_device)
         roc_auc.attach(engine, "roc_auc")
@@ -260,38 +250,42 @@ def _test_distrib_integration_binary_input(device):
         true_res = roc_auc_score(y_true.cpu().numpy(), y_preds.cpu().numpy())
         assert pytest.approx(res) == true_res
 
-        # Binary input data of shape (N, L)
-        y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(), 10)).to(device)
-        y_preds = torch.rand(offset * idist.get_world_size(), 10).to(device)
+    def get_tests(is_N):
+        if is_N:
+            y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(),)).to(device)
+            y_preds = torch.rand(offset * idist.get_world_size(),).to(device)
 
-        def update_N_L(engine, i):
-            return (
-                y_preds[i * s + rank * offset : (i + 1) * s + rank * offset, :],
-                y_true[i * s + rank * offset : (i + 1) * s + rank * offset, :],
-            )
+            def update_fn(engine, i):
+                return (
+                    y_preds[i * s + rank * offset : (i + 1) * s + rank * offset],
+                    y_true[i * s + rank * offset : (i + 1) * s + rank * offset],
+                )
 
-        engine = Engine(update_N_L)
+        else:
+            y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(), 10)).to(device)
+            y_preds = torch.rand(offset * idist.get_world_size(), 10).to(device)
 
-        roc_auc = ROC_AUC(device=metric_device)
-        roc_auc.attach(engine, "roc_auc")
+            def update_fn(engine, i):
+                return (
+                    y_preds[i * s + rank * offset : (i + 1) * s + rank * offset, :],
+                    y_true[i * s + rank * offset : (i + 1) * s + rank * offset, :],
+                )
 
-        data = list(range(n_iters))
-        engine.run(data=data, max_epochs=n_epochs)
-
-        assert "roc_auc" in engine.state.metrics
-
-        res = engine.state.metrics["roc_auc"]
-
-        true_res = roc_auc_score(y_true.cpu().numpy(), y_preds.cpu().numpy())
-        assert pytest.approx(res) == true_res
+        return y_preds, y_true, update_fn
 
     metric_devices = ["cpu"]
     if device.type != "xla":
         metric_devices.append(idist.device())
     for metric_device in metric_devices:
         for _ in range(2):
-            _test(n_epochs=1, metric_device=metric_device)
-            _test(n_epochs=2, metric_device=metric_device)
+            # Binary input data of shape (N,)
+            y_preds, y_true, update_fn = get_tests(is_N=True)
+            _test(y_preds, y_true, n_epochs=1, metric_device=metric_device, update_fn=update_fn)
+            _test(y_preds, y_true, n_epochs=2, metric_device=metric_device, update_fn=update_fn)
+            # Binary input data of shape (N, L)
+            y_preds, y_true, update_fn = get_tests(is_N=False)
+            _test(y_preds, y_true, n_epochs=1, metric_device=metric_device, update_fn=update_fn)
+            _test(y_preds, y_true, n_epochs=2, metric_device=metric_device, update_fn=update_fn)
 
 
 @pytest.mark.distributed
