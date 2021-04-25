@@ -182,7 +182,7 @@ class FastaiLRFinder:
 
     def get_results(self) -> Dict[str, List[Any]]:
         """
-        Returns: dictionary with loss and lr logs from the previous run
+        Returns: Dictionary with loss and lr logs from the previous run
         """
         return self._history
 
@@ -279,7 +279,7 @@ class FastaiLRFinder:
 
     def lr_suggestion(self) -> Any:
         """
-        Returns: the learning rate at the minimum numerical gradient
+        Returns: Learning rate at the minimum numerical gradient
         (ignores the increasing part of the curve)
         """
         if not self._history:
