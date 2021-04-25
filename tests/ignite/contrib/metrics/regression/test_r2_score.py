@@ -21,16 +21,10 @@ def test_wrong_input_shapes():
     m = R2Score()
 
     with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
-        m.update((torch.rand(4, 1, 2), torch.rand(4, 1)))
+        m.update((torch.rand(4), torch.rand(4, 1)))
 
     with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
-        m.update((torch.rand(4, 1), torch.rand(4, 1, 2)))
-
-    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
-        m.update((torch.rand(4, 1, 2), torch.rand(4,),))
-
-    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
-        m.update((torch.rand(4,), torch.rand(4, 1, 2),))
+        m.update((torch.rand(4, 1), torch.rand(4,)))
 
 
 def test_r2_score():
@@ -71,7 +65,7 @@ def test_r2_score_2():
     assert r2_score(np_y, np_y_pred) == pytest.approx(m.compute())
 
 
-def test_integration_r2_score_with_output_transform():
+def test_integration_r2_score():
 
     np.random.seed(1)
     size = 105
@@ -85,11 +79,11 @@ def test_integration_r2_score_with_output_transform():
         idx = (engine.state.iteration - 1) * batch_size
         y_true_batch = np_y[idx : idx + batch_size]
         y_pred_batch = np_y_pred[idx : idx + batch_size]
-        return idx, torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+        return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
 
     engine = Engine(update_fn)
 
-    m = R2Score(output_transform=lambda x: (x[1], x[2]))
+    m = R2Score()
     m.attach(engine, "r2_score")
 
     data = list(range(size // batch_size))

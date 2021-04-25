@@ -6,13 +6,16 @@ on:
       - "tests/ignite/**"
       - "tests/run_cpu_tests.sh"
       - "examples/**.py"
+      - "requirements-dev.txt"
       - ".github/workflows/unit-tests.yml"
+
   pull_request:
     paths:
       - "ignite/**"
       - "tests/ignite/**"
       - "tests/run_cpu_tests.sh"
       - "examples/**.py"
+      - "requirements-dev.txt"
       - ".github/workflows/unit-tests.yml"
 
 jobs:
@@ -24,7 +27,10 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python-version: [3.6, 3.7, 3.8, 3.9]
-        pytorch-channel: [pytorch, pytorch-nightly]
+        # Do no run on nightly until new elastic dist launcher has been fixed
+        # https://github.com/pytorch/pytorch/pull/56214#issuecomment-821900784
+        # pytorch-channel: [pytorch, pytorch-nightly]
+        pytorch-channel: [pytorch, ]
         include:
           # includes a single build on windows
           - os: windows-latest
@@ -49,8 +55,8 @@ jobs:
       - name: Get pip cache dir
         id: pip-cache
         run: |
-          pip3 install -U --user pip
-          echo "::set-output name=dir::$(pip3 cache dir)"
+          python3 -m pip install -U pip
+          echo "::set-output name=dir::$(python3 -m pip cache dir)"
         shell: bash -l {0}
 
       - uses: actions/cache@v2
@@ -79,17 +85,14 @@ jobs:
       - name: Check code formatting
         shell: bash -l {0}
         run: |
-          pip install flake8 "black==19.10b0" "isort==5.7.0"
-          flake8 ignite/ tests/ examples/
-          black --check .
-          isort -c --profile black .
+          bash ./tests/run_code_style.sh install
+          bash ./tests/run_code_style.sh lint
 
       - name: Run Mypy
         shell: bash -l {0}
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
-          pip install mypy
-          mypy --config-file mypy.ini
+          bash ./tests/run_code_style.sh mypy
 
       - name: Run Tests
         shell: bash -l {0}

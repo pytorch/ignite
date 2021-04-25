@@ -87,7 +87,7 @@ git clone https://github.com/pytorch/ignite.git
 cd ignite
 python setup.py develop
 pip install -r requirements-dev.txt
-pip install flake8 "black==19.10b0" "isort==5.7.0" mypy
+bash ./tests/run_code_style.sh install
 ```
 
 ### Code development
@@ -109,6 +109,13 @@ If you modify the code, you will most probably also need to code some tests to e
 
 - naming convention for files `test_*.py`, e.g. `test_precision.py`
 - naming of testing functions `def test_*`, e.g. `def test_precision_on_random_data()`
+  - if test function should run on GPU, please **make sure to add `cuda`** in the test name, e.g. `def test_something_on_cuda()`. 
+  Additionally, we may want to decorate it with `@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")`.
+  For more examples, please see https://github.com/pytorch/ignite/blob/master/tests/ignite/engine/test_create_supervised.py
+  - if test function checks distributed configuration, we have to mark the test as `@pytest.mark.distributed` and additional 
+  conditions depending on the intended checks. For example, please see 
+  https://github.com/pytorch/ignite/blob/master/tests/ignite/metrics/test_accuracy.py
+
 
 New code should be compatible with Python 3.X versions. Once you finish implementing a feature or bugfix and tests,
 please run lint checking and tests:
@@ -126,10 +133,7 @@ black manually to format files and commit them.
 
 ```bash
 # This should autoformat the files
-black .
-isort --profile black .
-# Run lint checking
-flake8 ignite/ tests/ examples/
+bash ./tests/run_code_style.sh fmt
 # If everything is OK, then commit
 git add .
 git commit -m "Added awesome feature"
@@ -187,6 +191,7 @@ SKIP_DISTRIB_TESTS=1 bash tests/run_cpu_tests.sh
 ##### Run distributed tests only on CPU
 
 To run distributed tests only (assuming installed `pytest-xdist`):
+
 ```bash
 export WORLD_SIZE=2
 CUDA_VISIBLE_DEVICES="" pytest --dist=each --tx $WORLD_SIZE*popen//python=python tests/ -m distributed -vvv
@@ -197,7 +202,7 @@ CUDA_VISIBLE_DEVICES="" pytest --dist=each --tx $WORLD_SIZE*popen//python=python
 To run mypy to check the optional static type:
 
 ```bash
-mypy --config-file mypy.ini
+bash ./tests/run_code_style.sh mypy
 ```
 
 To change any config for specif folder, please see the file mypy.ini
@@ -215,11 +220,13 @@ If you are not familiar with creating a Pull Request, here are some guides:
 
 For example, typo changes in `CONTRIBUTING.md`, `README.md` are not required to run in the CI.
 So, please add `[skip ci]` in the PR title to save the resources. Ignite has setup 3 CIs.
+
 - GitHub Actions
 - CircleCI
 - Netlify
 
 CircleCI is disabled on forked PR. So, please add
+
 - `[skip actions]` for the changes which are not required to run on GitHub Actions,
 - `[skip netlify]` for the changes which are not required to run on Netlify PR Preview build, or
 - `[skip ci]` for the changes which are not required to run on any CI.
@@ -305,4 +312,4 @@ python -m http.server <port>
 # python -m http.server 1234
 ```
 
-Then open the browser at `0.0.0.0:<port>` (e.g. `0.0.0.0:1234`) and click to `html` folder.
+Then open the browser at `localhost:<port>` (e.g. `localhost:1234`) and click to `html` folder.

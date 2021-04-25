@@ -5,10 +5,14 @@ Ignite Your Networks!
 
 .. raw:: html
 
-    <a href="https://colab.research.google.com/github/pytorch/ignite/blob/master/assets/tldr/teaser.ipynb">
+    <a target="_blank" rel="noopener noreferrer"
+    href="https://colab.research.google.com/github/pytorch/ignite/blob/master/assets/tldr/teaser.ipynb">
         <img
             src="https://raw.githubusercontent.com/pytorch/ignite/master/assets/tldr/pytorch-ignite-teaser.gif"
-            style="width: auto; max-width: 80%;"
+            width=655
+            height=801
+            alt="pytorch-ignite-teaser"
+            style="width: auto !important; height: auto !important; max-width: 80% !important;"
         >
     </a>
 
@@ -90,7 +94,7 @@ Available pre-built images are :
 - ``pytorchignite/nlp:latest | pytorchignite/hvd-nlp:latest | pytorchignite/msdp-apex-nlp:latest``
 - ``pytorchignite/apex-nlp:latest | pytorchignite/hvd-apex-nlp:latest``
 
-For more details, see `here <https://github.com/pytorch/ignite/tree/master/docker>`_.
+For more details, `check out on GitHub <https://github.com/pytorch/ignite/tree/master/docker>`_.
 
 
 
@@ -151,5 +155,5 @@ Library structure
    :maxdepth: 1
    :caption: Team
 
-   about
+   About us <https://pytorch.org/ignite/master/about.html>
    governance

@@ -4,7 +4,7 @@ labels:
   - bug
 ---
 
-Oh no, something went wrong in the scheduled workflow **{{ env.GITHUB_WORKFLOW }}/{{ env.GITHUB_JOB }} with commit {{ env.GITHUB_SHA }}**.
+Oh no, something went wrong in the scheduled workflow **{{ env.GITHUB_WORKFLOW }} with commit {{ env.GITHUB_SHA }}**.
 Please look into it:
 
 {{ env.GITHUB_SERVER_URL }}/{{ env.GITHUB_REPOSITORY }}/actions/runs/{{ env.GITHUB_RUN_ID }}

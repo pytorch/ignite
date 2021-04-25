@@ -14,16 +14,10 @@ def test_wrong_input_shapes():
     m = CanberraMetric()
 
     with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
-        m.update((torch.rand(4, 1, 2), torch.rand(4, 1)))
+        m.update((torch.rand(4), torch.rand(4, 1)))
 
     with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
-        m.update((torch.rand(4, 1), torch.rand(4, 1, 2)))
-
-    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
-        m.update((torch.rand(4, 1, 2), torch.rand(4,),))
-
-    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
-        m.update((torch.rand(4,), torch.rand(4, 1, 2),))
+        m.update((torch.rand(4, 1), torch.rand(4,)))
 
 
 def test_compute():
@@ -70,15 +64,15 @@ def test_integration():
             idx = (engine.state.iteration - 1) * batch_size
             y_true_batch = np_y[idx : idx + batch_size]
             y_pred_batch = np_y_pred[idx : idx + batch_size]
-            return idx, torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+            return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
 
         engine = Engine(update_fn)
 
-        m = CanberraMetric(output_transform=lambda x: (x[1], x[2]))
+        m = CanberraMetric()
         m.attach(engine, "cm")
 
-        np_y = y.numpy()
-        np_y_pred = y_pred.numpy()
+        np_y = y.numpy().ravel()
+        np_y_pred = y_pred.numpy().ravel()
 
         canberra = DistanceMetric.get_metric("canberra")
 
@@ -90,13 +84,11 @@ def test_integration():
     def get_test_cases():
         test_cases = [
             (torch.rand(size=(100,)), torch.rand(size=(100,)), 10),
-            (torch.rand(size=(200,)), torch.rand(size=(200,)), 10),
-            (torch.rand(size=(100,)), torch.rand(size=(100,)), 20),
-            (torch.rand(size=(200,)), torch.rand(size=(200,)), 20),
+            (torch.rand(size=(100, 1)), torch.rand(size=(100, 1)), 20),
         ]
         return test_cases
 
-    for _ in range(10):
+    for _ in range(5):
         # check multiple random inputs as random exact occurencies are rare
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:

@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import sys
 import time
+from argparse import Namespace
 from distutils.version import LooseVersion
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -26,6 +28,16 @@ def update_fn(engine, batch):
     a = 1
     engine.state.metrics["a"] = a
     return a
+
+
+def test_pbar_errors():
+    with pytest.raises(RuntimeError, match=r"This contrib module requires tqdm to be installed"):
+        with patch.dict("sys.modules", {"tqdm.autonotebook": None}):
+            ProgressBar()
+
+    pbar = ProgressBar()
+    with pytest.raises(ValueError, match=r"Logging event abc is not in allowed"):
+        pbar.attach(Engine(lambda e, b: None), event_name=Namespace(name="abc"))
 
 
 def test_pbar(capsys):
@@ -191,9 +203,9 @@ def test_pbar_with_all_metric(capsys):
     err = list(filter(None, err))
     actual = err[-1]
     if get_tqdm_version() < LooseVersion("4.49.0"):
-        expected = "Iteration: [1/2]  50%|█████     , another batchloss=1.5, batchloss=0.5 [00:00<00:00]"
+        expected = "Iteration: [1/2]  50%|█████     , batchloss=0.5, another batchloss=1.5 [00:00<00:00]"
     else:
-        expected = "Iteration: [1/2]  50%|█████     , another batchloss=1.5, batchloss=0.5 [00:00<?]"
+        expected = "Iteration: [1/2]  50%|█████     , batchloss=0.5, another batchloss=1.5 [00:00<?]"
     assert actual == expected
 
 

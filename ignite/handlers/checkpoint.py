@@ -1,6 +1,7 @@
 import collections.abc as collections
 import numbers
 import os
+import stat
 import tempfile
 import warnings
 from abc import ABCMeta, abstractmethod
@@ -51,7 +52,6 @@ class BaseSaveHandler(metaclass=ABCMeta):
             metadata: metadata on checkpoint to save.
 
         """
-        pass
 
     @abstractmethod
     def remove(self, filename: str) -> None:
@@ -61,7 +61,6 @@ class BaseSaveHandler(metaclass=ABCMeta):
             filename: filename associated with checkpoint.
 
         """
-        pass
 
 
 class Checkpoint(Serializable):
@@ -708,7 +707,9 @@ class DiskSaver(BaseSaveHandler):
             else:
                 if tmp is not None:
                     tmp.close()
-                    os.rename(tmp.name, path)
+                    os.replace(tmp.name, path)
+                    # append group/others read mode
+                    os.chmod(path, os.stat(path).st_mode | stat.S_IRGRP | stat.S_IROTH)
 
     @idist.one_rank_only()
     def remove(self, filename: str) -> None:

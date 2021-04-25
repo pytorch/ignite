@@ -87,6 +87,8 @@ class PolyaxonLogger(BaseLogger):
                 optimizer=optimizer,
                 param_name='lr'  # optional
             )
+            # to manually end a run
+            plx_logger.close()
 
     Args:
         args: Positional arguments accepted from
@@ -101,6 +103,7 @@ class PolyaxonLogger(BaseLogger):
             from polyaxon.tracking import Run
 
             self.experiment = Run(*args, **kwargs)
+
         except ImportError:
             try:
                 from polyaxon_client.tracking import Experiment
@@ -112,6 +115,12 @@ class PolyaxonLogger(BaseLogger):
                     "For Polyaxon v1.x please install it with command: \n pip install polyaxon\n"
                     "For Polyaxon v0.x please install it with command: \n pip install polyaxon-client"
                 )
+
+    def close(self) -> None:
+        try:
+            self.experiment.end()
+        except:
+            pass
 
     def __getattr__(self, attr: Any) -> Any:
         return getattr(self.experiment, attr)

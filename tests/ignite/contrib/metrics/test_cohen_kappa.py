@@ -1,7 +1,8 @@
 import os
+from unittest.mock import patch
 
-import numpy as np
 import pytest
+import sklearn
 import torch
 from sklearn.metrics import cohen_kappa_score
 
@@ -11,6 +12,17 @@ from ignite.engine import Engine
 from ignite.exceptions import NotComputableError
 
 torch.manual_seed(12)
+
+
+@pytest.fixture()
+def mock_no_sklearn():
+    with patch.dict("sys.modules", {"sklearn.metrics": None}):
+        yield sklearn
+
+
+def test_no_sklearn(mock_no_sklearn):
+    with pytest.raises(RuntimeError, match=r"This contrib module requires sklearn to be installed."):
+        CohenKappa()
 
 
 def test_no_update():
@@ -84,18 +96,14 @@ def test_binary_input_N(weights):
     def get_test_cases():
         test_cases = [
             (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 1),
-            (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 1),
             (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 1),
-            (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 1),
             # updated batches
-            (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 16),
-            (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 16),
-            (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 16),
-            (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 16),
+            (torch.randint(0, 2, size=(50,)).long(), torch.randint(0, 2, size=(50,)).long(), 16),
+            (torch.randint(0, 2, size=(50, 1)).long(), torch.randint(0, 2, size=(50, 1)).long(), 16),
         ]
         return test_cases
 
-    for _ in range(10):
+    for _ in range(5):
         # check multiple random inputs as random exact occurencies are rare
         test_cases = get_test_cases()
         for y_pred, y, n_iters in test_cases:
@@ -122,17 +130,17 @@ def test_multilabel_inputs():
 
 
 @pytest.mark.parametrize("weights", [None, "linear", "quadratic"])
-def test_integration_binary_input_with_output_transform(weights):
+def test_integration_binary_input(weights):
     def _test(y_pred, y, batch_size):
         def update_fn(engine, batch):
             idx = (engine.state.iteration - 1) * batch_size
             y_true_batch = np_y[idx : idx + batch_size]
             y_pred_batch = np_y_pred[idx : idx + batch_size]
-            return idx, torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+            return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
 
         engine = Engine(update_fn)
 
-        ck_metric = CohenKappa(output_transform=lambda x: (x[1], x[2]), weights=weights)
+        ck_metric = CohenKappa(weights=weights)
         ck_metric.attach(engine, "ck")
 
         np_y = y.numpy()
@@ -148,14 +156,12 @@ def test_integration_binary_input_with_output_transform(weights):
 
     def get_test_cases():
         test_cases = [
-            (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 10),
-            (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 10),
-            (torch.randint(0, 2, size=(200,)).long(), torch.randint(0, 2, size=(200,)).long(), 10),
-            (torch.randint(0, 2, size=(200, 1)).long(), torch.randint(0, 2, size=(200, 1)).long(), 10),
+            (torch.randint(0, 2, size=(50,)).long(), torch.randint(0, 2, size=(50,)).long(), 10),
+            (torch.randint(0, 2, size=(50, 1)).long(), torch.randint(0, 2, size=(50, 1)).long(), 10),
         ]
         return test_cases
 
-    for _ in range(10):
+    for _ in range(5):
         # check multiple random inputs as random exact occurencies are rare
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
@@ -197,14 +203,10 @@ def _test_distrib_binary_input_N(device):
     def get_test_cases():
         test_cases = [
             (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 1),
-            (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 1),
             (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 1),
-            (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 1),
             # updated batches
-            (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 16),
-            (torch.randint(0, 2, size=(100,)).long(), torch.randint(0, 2, size=(100,)).long(), 16),
-            (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 16),
-            (torch.randint(0, 2, size=(100, 1)).long(), torch.randint(0, 2, size=(100, 1)).long(), 16),
+            (torch.randint(0, 2, size=(50,)).long(), torch.randint(0, 2, size=(50,)).long(), 16),
+            (torch.randint(0, 2, size=(50, 1)).long(), torch.randint(0, 2, size=(50, 1)).long(), 16),
         ]
         return test_cases
 

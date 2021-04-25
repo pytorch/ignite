@@ -1,15 +1,15 @@
 import os
 
+import numpy as np
 import pytest
 import torch
-from pytest import approx
 
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics import MeanPairwiseDistance
 
 
-def test_zero_div():
+def test_zero_sample():
     mpd = MeanPairwiseDistance()
     with pytest.raises(
         NotComputableError, match=r"MeanAbsoluteError must have at least one example before it can be computed"
@@ -18,24 +18,44 @@ def test_zero_div():
 
 
 def test_compute():
+
     mpd = MeanPairwiseDistance()
 
-    y_pred = torch.Tensor([[3.0, 4.0], [-3.0, -4.0]])
-    y = torch.zeros(2, 2)
-    mpd.update((y_pred, y))
-    assert isinstance(mpd.compute(), float)
-    assert mpd.compute() == approx(5.0)
+    def _test(y_pred, y, batch_size):
+        mpd.reset()
+        if batch_size > 1:
+            n_iters = y.shape[0] // batch_size + 1
+            for i in range(n_iters):
+                idx = i * batch_size
+                mpd.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+        else:
+            mpd.update((y_pred, y))
 
-    mpd.reset()
-    y_pred = torch.Tensor([[4.0, 4.0, 4.0, 4.0], [-4.0, -4.0, -4.0, -4.0]])
-    y = torch.zeros(2, 4)
-    mpd.update((y_pred, y))
-    assert isinstance(mpd.compute(), float)
-    assert mpd.compute() == approx(8.0)
+        np_res = np.mean(torch.pairwise_distance(y_pred, y, p=mpd._p, eps=mpd._eps).numpy())
+
+        assert isinstance(mpd.compute(), float)
+        assert pytest.approx(mpd.compute()) == np_res
+
+    def get_test_cases():
+
+        test_cases = [
+            (torch.randint(0, 10, size=(100, 1)), torch.randint(0, 10, size=(100, 1)), 1),
+            (torch.randint(-20, 20, size=(100, 5)), torch.randint(-20, 20, size=(100, 5)), 1),
+            # updated batches
+            (torch.randint(0, 10, size=(100, 1)), torch.randint(0, 10, size=(100, 1)), 16),
+            (torch.randint(-20, 20, size=(100, 5)), torch.randint(-20, 20, size=(100, 5)), 16),
+        ]
+
+        return test_cases
+
+    for _ in range(5):
+        # check multiple random inputs as random exact occurencies are rare
+        test_cases = get_test_cases()
+        for y_pred, y, batch_size in test_cases:
+            _test(y_pred, y, batch_size)
 
 
 def _test_distrib_integration(device):
-    import numpy as np
 
     from ignite.engine import Engine
 

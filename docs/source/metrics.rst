@@ -223,7 +223,7 @@ specific condition (e.g. ignore user-defined classes):
             self._num_correct += torch.sum(correct).to(self._device)
             self._num_examples += correct.shape[0]
 
-        @sync_all_reduce("_num_examples", "_num_correct")
+        @sync_all_reduce("_num_examples", "_num_correct:SUM")
         def compute(self):
             if self._num_examples == 0:
                 raise NotComputableError('CustomAccuracy must have at least one example before it can be computed.')
@@ -288,9 +288,11 @@ Metrics and distributed computations
 In the above example, ``CustomAccuracy`` has ``reset``, ``update``, ``compute`` methods decorated
 with :meth:`~ignite.metrics.metric.reinit__is_reduced`, :meth:`~ignite.metrics.metric.sync_all_reduce`. The purpose of these features is to adapt metrics in distributed
 computations on supported backend and devices (see :doc:`distributed` for more details). More precisely, in the above
-example we added ``@sync_all_reduce("_num_examples", "_num_correct")`` over ``compute`` method. This means that when ``compute``
-method is called, metric's interal variables ``self._num_examples`` and ``self._num_correct`` are summed up over all participating
-devices. Therefore, once collected, these internal variables can be used to compute the final metric value.
+example we added ``@sync_all_reduce("_num_examples", "_num_correct:SUM")`` over ``compute`` method. This means that when ``compute``
+method is called, metric's interal variables ``self._num_examples`` and ``self._num_correct:SUM`` are summed up over all participating
+devices. We specify the reduction operation ``self._num_correct:SUM`` or we keep the default ``self._num_examples`` as the default is ``SUM``.
+We currently support four reduction operations (SUM, MAX, MIN, PRODUCT).
+Therefore, once collected, these internal variables can be used to compute the final metric value.
 
 Complete list of metrics
 ------------------------
@@ -306,6 +308,7 @@ Complete list of metrics
     VariableAccumulation
     Accuracy
     confusion_matrix.ConfusionMatrix
+    ClassificationReport
     DiceCoefficient
     JaccardIndex
     IoU
@@ -323,13 +326,14 @@ Complete list of metrics
     precision.Precision
     PSNR
     recall.Recall
-    Rouge
-    rouge.RougeL
-    rouge.RougeN
     RootMeanSquaredError
     RunningAverage
     SSIM
     TopKCategoricalAccuracy
+    Bleu
+    Rouge
+    RougeL
+    RougeN
 
 Helpers for customizing metrics
 -------------------------------
