@@ -292,7 +292,7 @@ class FastaiLRFinder:
         if len(decreasing_losses) == 1:
             raise RuntimeError("FastaiLRFinder got unexpected curve shape, the curve should be somehow U-shaped")
         losses = torch.tensor(decreasing_losses)
-        grads = torch.tensor([losses[i] - losses[i - 1] for i in range(1, len(losses))])
+        grads = torch.tensor([0.5 * (losses[i + 1] - losses[i - 1]) for i in range(1, len(losses) - 1)])
         min_grad_idx = grads.argmin() + 1
         return self._history["lr"][int(min_grad_idx)]
 
