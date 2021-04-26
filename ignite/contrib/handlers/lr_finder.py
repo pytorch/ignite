@@ -243,8 +243,8 @@ class FastaiLRFinder:
 
             if skip_start >= idx:
                 warnings.warn(
-                    "skip_start is large, that would make the plot less clear,"
-                    " and it may affects displaying the suggestion",
+                    "skip_start is larger than the suggested LR found"
+                    " and it will not be visible on the plot. Please, make the value smaller.",
                     UserWarning,
                 )
 
