@@ -232,9 +232,7 @@ class FastaiLRFinder:
         if skip_end < 0:
             raise ValueError("skip_end cannot be negative")
 
-        # Get the data to plot from the history dictionary. Also, handle skip_end=0
-        # properly so the behaviour is the expected
-
+        # Get the data to plot from the history dictionary.
         lrs = self._history["lr"]
         losses = self._history["loss"]
 
@@ -257,6 +255,7 @@ class FastaiLRFinder:
                 sug_lr, corresponding_loss, s=75, marker="o", color="red", zorder=3,
             )
 
+        # handle skip_end=0 properly so the behaviour is the expected
         if skip_end == 0:
             lrs = lrs[skip_start:]
             losses = losses[skip_start:]
