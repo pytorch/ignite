@@ -25,3 +25,4 @@ nltk
 # Examples dependencies
 pandas
 gym
+mkl
