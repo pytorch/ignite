@@ -64,7 +64,7 @@ def test_check_shape():
         roc_auc._check_shape((torch.rand(4, 3), torch.rand(4, 3, 1)))
 
 
-def test_binary_input():
+def test_binary_and_multilabel_inputs():
 
     roc_auc = ROC_AUC()
 
@@ -125,7 +125,7 @@ def test_check_compute_fn():
     em.update(output)
 
 
-def test_integration_binary_input():
+def test_integration_binary_and_multilabel_inputs():
     def _test(y_pred, y, batch_size):
         def update_fn(engine, batch):
             idx = (engine.state.iteration - 1) * batch_size
@@ -167,7 +167,7 @@ def test_integration_binary_input():
             _test(y_pred, y, batch_size)
 
 
-def _test_distrib_binary_input(device):
+def _test_distrib_binary_and_multilabel_inputs(device):
 
     rank = idist.get_rank()
     torch.manual_seed(12)
@@ -294,7 +294,7 @@ def _test_distrib_integration_binary_input(device):
 def test_distrib_gpu(distributed_context_single_node_nccl):
 
     device = torch.device(f"cuda:{distributed_context_single_node_nccl['local_rank']}")
-    _test_distrib_binary_input(device)
+    _test_distrib_binary_and_multilabel_inputs(device)
     _test_distrib_integration_binary_input(device)
 
 
@@ -303,7 +303,7 @@ def test_distrib_gpu(distributed_context_single_node_nccl):
 def test_distrib_cpu(distributed_context_single_node_gloo):
 
     device = torch.device("cpu")
-    _test_distrib_binary_input(device)
+    _test_distrib_binary_and_multilabel_inputs(device)
     _test_distrib_integration_binary_input(device)
 
 
@@ -315,7 +315,7 @@ def test_distrib_hvd(gloo_hvd_executor):
     device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
 
-    gloo_hvd_executor(_test_distrib_binary_input, (device,), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_distrib_binary_and_multilabel_inputs, (device,), np=nproc, do_init=True)
     gloo_hvd_executor(_test_distrib_integration_binary_input, (device,), np=nproc, do_init=True)
 
 
@@ -325,7 +325,7 @@ def test_distrib_hvd(gloo_hvd_executor):
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 
     device = torch.device("cpu")
-    _test_distrib_binary_input(device)
+    _test_distrib_binary_and_multilabel_inputs(device)
     _test_distrib_integration_binary_input(device)
 
 
@@ -335,7 +335,7 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
 
     device = torch.device(f"cuda:{distributed_context_multi_node_nccl['local_rank']}")
-    _test_distrib_binary_input(device)
+    _test_distrib_binary_and_multilabel_inputs(device)
     _test_distrib_integration_binary_input(device)
 
 
@@ -345,14 +345,14 @@ def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
 def test_distrib_single_device_xla():
 
     device = idist.device()
-    _test_distrib_binary_input(device)
+    _test_distrib_binary_and_multilabel_inputs(device)
     _test_distrib_integration_binary_input(device)
 
 
 def _test_distrib_xla_nprocs(index):
 
     device = idist.device()
-    _test_distrib_binary_input(device)
+    _test_distrib_binary_and_multilabel_inputs(device)
     _test_distrib_integration_binary_input(device)
 
 
