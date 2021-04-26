@@ -27,10 +27,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python-version: [3.6, 3.7, 3.8, 3.9]
-        # Do no run on nightly until new elastic dist launcher has been fixed
-        # https://github.com/pytorch/pytorch/pull/56214#issuecomment-821900784
-        # pytorch-channel: [pytorch, pytorch-nightly]
-        pytorch-channel: [pytorch, ]
+        pytorch-channel: [pytorch, pytorch-nightly]
         include:
           # includes a single build on windows
           - os: windows-latest

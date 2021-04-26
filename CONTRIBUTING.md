@@ -312,4 +312,4 @@ python -m http.server <port>
 # python -m http.server 1234
 ```
 
-Then open the browser at `0.0.0.0:<port>` (e.g. `0.0.0.0:1234`) and click to `html` folder.
+Then open the browser at `localhost:<port>` (e.g. `localhost:1234`) and click to `html` folder.
