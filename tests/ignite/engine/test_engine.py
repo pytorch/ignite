@@ -935,3 +935,60 @@ def test_is_done_with_max_iters():
 
     state = State(iteration=250, epoch=1, max_epochs=3, epoch_length=100, max_iters=250)
     assert Engine._is_done(state)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_batch_is_released_before_new_one_is_loaded_on_cuda():
+    torch.cuda.empty_cache()
+
+    engine = Engine(lambda e, b: None)
+
+    def _test():
+        mem_consumption = []
+
+        def dataloader():
+            for _ in range(4):
+                mem_consumption.append(torch.cuda.memory_allocated())
+                batch = torch.randn(10).cuda()
+                mem_consumption.append(torch.cuda.memory_allocated())
+                yield batch
+
+        engine.run(dataloader(), max_epochs=2, epoch_length=2)
+        return mem_consumption
+
+    mem_consumption1 = _test()
+    # mem_consumption should look like [0, 512, 512, 512, 512, 512, 512, 512]
+    assert len(set(mem_consumption1[1:])) == 1
+
+    mem_consumption2 = _test()
+    assert len(set(mem_consumption2[1:])) == 1
+
+    assert mem_consumption1 == mem_consumption2
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_output_is_released_before_new_one_is_assigned_on_cuda():
+    torch.cuda.empty_cache()
+
+    def _test():
+        mem_consumption = []
+
+        def update_fn(engine, batch):
+            mem_consumption.append(torch.cuda.memory_allocated())
+            output = torch.rand(10).cuda()
+            mem_consumption.append(torch.cuda.memory_allocated())
+            return output
+
+        engine = Engine(update_fn)
+        engine.run([0, 1], max_epochs=2)
+
+        return mem_consumption
+
+    mem_consumption1 = _test()
+    # mem_consumption ~ [0, 512, 0, 512, 0, 512, 0, 512]
+    assert len(set(mem_consumption1)) == 2
+
+    mem_consumption2 = _test()
+    assert len(set(mem_consumption2)) == 2
+
+    assert mem_consumption1 == mem_consumption2

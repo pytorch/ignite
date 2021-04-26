@@ -23,16 +23,16 @@ def test_compute():
 
     def _test(y_pred, y, batch_size):
         mae.reset()
-        mae.update((y_pred, y, batch_size))
-
-        np_y = y.numpy()
-        np_y_pred = y_pred.numpy()
-
         if batch_size > 1:
             n_iters = y.shape[0] // batch_size + 1
             for i in range(n_iters):
                 idx = i * batch_size
                 mae.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+        else:
+            mae.update((y_pred, y, batch_size))
+
+        np_y = y.numpy()
+        np_y_pred = y_pred.numpy()
 
         np_res = (np.abs(np_y_pred - np_y)).sum() / np_y.shape[0]
         assert isinstance(mae.compute(), float)
@@ -42,19 +42,15 @@ def test_compute():
 
         test_cases = [
             (torch.randint(0, 10, size=(100, 1)), torch.randint(0, 10, size=(100, 1)), 1),
-            (torch.randint(-10, 10, size=(100, 1)), torch.randint(-10, 10, size=(100, 1)), 1),
-            (torch.randint(0, 20, size=(100, 5)), torch.randint(0, 20, size=(100, 5)), 1),
-            (torch.randint(-20, 20, size=(100, 5)), torch.randint(-20, 20, size=(100, 5)), 1),
+            (torch.randint(-10, 10, size=(100, 5)), torch.randint(-10, 10, size=(100, 5)), 1),
             # updated batches
             (torch.randint(0, 10, size=(100, 1)), torch.randint(0, 10, size=(100, 1)), 16),
-            (torch.randint(-10, 10, size=(100, 1)), torch.randint(-10, 10, size=(100, 1)), 16),
-            (torch.randint(0, 20, size=(100, 5)), torch.randint(0, 20, size=(100, 5)), 16),
             (torch.randint(-20, 20, size=(100, 5)), torch.randint(-20, 20, size=(100, 5)), 16),
         ]
 
         return test_cases
 
-    for _ in range(10):
+    for _ in range(5):
         # check multiple random inputs as random exact occurencies are rare
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:

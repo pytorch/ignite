@@ -166,51 +166,54 @@ def _test_distrib_broadcast(device):
 
     rank = idist.get_rank()
     ws = idist.get_world_size()
-    for src in range(ws):
 
-        d = 10 if rank == src else 0
-        res = idist.broadcast(d, src=src)
-        true_res = 10
-        assert res == true_res
+    def _test(data_src, data_others, safe_mode):
+        for src in range(ws):
 
-        if rank == src:
-            t = torch.tensor([1.2345, 2.3456], dtype=torch.float, device=device)
-        else:
-            t = torch.empty(2, device=device)
+            data = data_src if rank == src else data_others
+            res = idist.broadcast(data, src=src, safe_mode=safe_mode)
 
-        res = idist.broadcast(t, src=src)
-        true_res = torch.tensor([1.2345, 2.3456], dtype=torch.float, device=device)
-        assert (res == true_res).all(), f"{res} vs {true_res}"
-
-        def _test(text):
-
-            if rank == src:
-                t = text
+            if isinstance(res, torch.Tensor):
+                assert (res == data_src).all(), f"{res} vs {data_src}"
+                assert data_src.dtype == res.dtype
             else:
-                t = ""
+                assert res == data_src, f"{res} vs {data_src}"
 
-            res = idist.broadcast(t, src=src)
-            true_res = text
-            assert res == true_res
+    _test(10, 0, safe_mode=False)
+    _test(10, None, safe_mode=True)
 
-        _test("test-abcdefg")
-        _test("tests/ignite/distributed/utils/test_horovod.py::test_idist_broadcast_hvd" * 200)
+    t = torch.tensor([1.2345, 2.3456], dtype=torch.float, device=device)
+    _test(t, torch.empty_like(t), safe_mode=False)
+    _test(t, None, safe_mode=True)
+    _test(t, "abc", safe_mode=True)
 
-        if rank == src:
-            t = torch.arange(100, device=device).reshape(4, 25) * (src + 1)
-        else:
-            t = torch.empty(4, 25, dtype=torch.long, device=device)
+    _test("test-abcdefg", "", safe_mode=False)
+    _test("test-abcdefg", None, safe_mode=True)
+    _test("test-abcdefg", 1.2, safe_mode=True)
 
-        in_dtype = torch.long
-        res = idist.broadcast(t, src)
-        assert res.shape == (4, 25)
-        assert res.dtype == in_dtype
-        true_res = torch.arange(100, device=device).reshape(4, 25) * (src + 1)
-        assert (res == true_res).all()
+    s = "tests/ignite/distributed/utils/test_horovod.py::test_idist_broadcast_hvd" * 200
+    _test(s, "", safe_mode=False)
+    _test(s, None, safe_mode=True)
+    _test(s, 123.0, safe_mode=True)
+
+    t = torch.arange(100, device=device).reshape(4, 25) * 2
+    _test(t, torch.empty_like(t), safe_mode=False)
+    _test(t, None, safe_mode=True)
+    _test(t, "None", safe_mode=True)
+
+    t = torch.tensor(12)
+    _test(t, torch.empty_like(t), safe_mode=False)
+    _test(t, None, safe_mode=True)
+    _test(t, 123.4, safe_mode=True)
 
     if idist.get_world_size() > 1:
         with pytest.raises(TypeError, match=r"Unhandled input type"):
             idist.broadcast([0, 1, 2], src=0)
+
+    if idist.get_world_size() > 1:
+        msg = "Source data can not be None" if rank == 0 else "Argument safe_mode should be True"
+        with pytest.raises(ValueError, match=msg):
+            idist.broadcast(None, src=0)
 
 
 def _test_distrib_barrier(device):

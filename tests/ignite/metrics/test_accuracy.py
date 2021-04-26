@@ -67,16 +67,16 @@ def test_binary_input():
 
     def _test(y_pred, y, batch_size):
         acc.reset()
-        acc.update((y_pred, y))
-
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().ravel()
-
         if batch_size > 1:
             n_iters = y.shape[0] // batch_size + 1
             for i in range(n_iters):
                 idx = i * batch_size
                 acc.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+        else:
+            acc.update((y_pred, y))
+
+        np_y = y.numpy().ravel()
+        np_y_pred = y_pred.numpy().ravel()
 
         assert acc._type == "binary"
         assert isinstance(acc.compute(), float)
@@ -135,15 +135,18 @@ def test_multiclass_input():
 
     def _test(y_pred, y, batch_size):
         acc.reset()
-        acc.update((y_pred, y))
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        np_y = y.numpy().ravel()
         if batch_size > 1:
             # Batched Updates
             n_iters = y.shape[0] // batch_size + 1
             for i in range(n_iters):
                 idx = i * batch_size
                 acc.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+        else:
+            acc.update((y_pred, y))
+
+        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
+        np_y = y.numpy().ravel()
+
         assert acc._type == "multiclass"
         assert isinstance(acc.compute(), float)
         assert accuracy_score(np_y, np_y_pred) == pytest.approx(acc.compute())
@@ -209,13 +212,13 @@ def test_multilabel_input():
 
     def _test(y_pred, y, batch_size):
         acc.reset()
-        acc.update((y_pred, y))
-
         if batch_size > 1:
             n_iters = y.shape[0] // batch_size + 1
             for i in range(n_iters):
                 idx = i * batch_size
                 acc.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+        else:
+            acc.update((y_pred, y))
 
         np_y_pred = to_numpy_multilabel(y_pred)
         np_y = to_numpy_multilabel(y)
