@@ -54,16 +54,16 @@ def test_binary_input(average):
 
     def _test(y_pred, y, batch_size):
         re.reset()
-        re.update((y_pred, y))
-
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().ravel()
-
         if batch_size > 1:
             n_iters = y.shape[0] // batch_size + 1
             for i in range(n_iters):
                 idx = i * batch_size
                 re.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+        else:
+            re.update((y_pred, y))
+
+        np_y = y.numpy().ravel()
+        np_y_pred = y_pred.numpy().ravel()
 
         assert re._type == "binary"
         assert isinstance(re.compute(), float if average else torch.Tensor)
@@ -149,17 +149,17 @@ def test_multiclass_input(average):
 
     def _test(y_pred, y, batch_size):
         re.reset()
-        re.update((y_pred, y))
-
-        num_classes = y_pred.shape[1]
-        np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
-        np_y = y.numpy().ravel()
-
         if batch_size > 1:
             n_iters = y.shape[0] // batch_size + 1
             for i in range(n_iters):
                 idx = i * batch_size
                 re.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+        else:
+            re.update((y_pred, y))
+
+        num_classes = y_pred.shape[1]
+        np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
+        np_y = y.numpy().ravel()
 
         assert re._type == "multiclass"
         assert isinstance(re.compute(), float if average else torch.Tensor)
@@ -238,16 +238,16 @@ def test_multilabel_input(average):
 
     def _test(y_pred, y, batch_size):
         re.reset()
-        re.update((y_pred, y))
-
-        np_y_pred = to_numpy_multilabel(y_pred)
-        np_y = to_numpy_multilabel(y)
-
         if batch_size > 1:
             n_iters = y.shape[0] // batch_size + 1
             for i in range(n_iters):
                 idx = i * batch_size
                 re.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+        else:
+            re.update((y_pred, y))
+
+        np_y_pred = to_numpy_multilabel(y_pred)
+        np_y = to_numpy_multilabel(y)
 
         assert re._type == "multilabel"
         re_compute = re.compute() if average else re.compute().mean().item()
