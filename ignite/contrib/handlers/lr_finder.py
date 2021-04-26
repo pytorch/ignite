@@ -255,7 +255,7 @@ class FastaiLRFinder:
                 sug_lr, corresponding_loss, s=75, marker="o", color="red", zorder=3,
             )
 
-        # handle skip_end=0 properly so the behaviour is the expected
+        # handle skip_end=0 properly
         if skip_end == 0:
             lrs = lrs[skip_start:]
             losses = losses[skip_start:]
