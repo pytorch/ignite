@@ -56,3 +56,9 @@ def test_attatch(dummy_evaluator, eos):
     eos.attach(dummy_evaluator)
     assert dummy_evaluator.has_event_handler(eos.reset, Events.EPOCH_STARTED)
     assert dummy_evaluator.has_event_handler(eos.update, Events.ITERATION_COMPLETED)
+
+
+def test_store_data(dummy_evaluator, eos):
+    eos.attach(dummy_evaluator, name="eval_data")
+    dummy_evaluator.run(range(1))
+    assert dummy_evaluator.state.eval_data == eos.data

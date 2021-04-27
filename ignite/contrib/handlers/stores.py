@@ -1,4 +1,4 @@
-from typing import Callable, List, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union
 
 from ignite.engine import Engine, Events
 
@@ -45,8 +45,15 @@ class EpochOutputStore:
         output = self.output_transform(engine.state.output)
         self.data.append(output)
 
-    def attach(self, engine: Engine) -> None:
+    def store(self, engine: Engine) -> None:
+        """Store `self.data` on `engine.state.{self.name}`"""
+        setattr(engine.state, self.name, self.data)
+
+    def attach(self, engine: Engine, name: Optional[str] = None) -> None:
         """Attaching `reset` method at EPOCH_STARTED and
         `update` method at ITERATION_COMPLETED."""
         engine.add_event_handler(Events.EPOCH_STARTED, self.reset)
         engine.add_event_handler(Events.ITERATION_COMPLETED, self.update)
+        if name:
+            self.name = name
+            engine.add_event_handler(Events.EPOCH_COMPLETED, self.store)
