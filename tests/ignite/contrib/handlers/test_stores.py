@@ -25,7 +25,7 @@ def test_no_transform(dummy_evaluator, eos):
     assert eos.data == [(1, 0)]
 
 
-def test_tranform(dummy_evaluator):
+def test_transform(dummy_evaluator):
     eos = EpochOutputStore(output_transform=lambda x: x[0])
     eos.attach(dummy_evaluator)
 
