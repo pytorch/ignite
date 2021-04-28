@@ -227,12 +227,12 @@ if has_native_dist_support:
                 # check if all necessary env vars are set
                 # if partially defined raise an error
                 if any(all_env_vars_defined) and not all(all_env_vars_defined):
-                    raise RuntimeError(
-                        f"PyTorch distributed configuration should define env variables '{env_vars}'"
-                    )
+                    raise RuntimeError(f"PyTorch distributed configuration should define env variables '{env_vars}'")
 
                 os.environ["RANK"] = os.environ.get("RANK", f"{rank if rank is not None else 0}")
-                os.environ["WORLD_SIZE"] = os.environ.get("WORLD_SIZE", f"{world_size if world_size is not None else 1}")
+                os.environ["WORLD_SIZE"] = os.environ.get(
+                    "WORLD_SIZE", f"{world_size if world_size is not None else 1}"
+                )
                 os.environ["LOCAL_RANK"] = os.environ.get("LOCAL_RANK", "0")
                 os.environ["MASTER_PORT"] = os.environ.get("MASTER_PORT", "15000")
                 os.environ["MASTER_ADDR"] = os.environ.get("MASTER_ADDR", "127.0.0.1")
