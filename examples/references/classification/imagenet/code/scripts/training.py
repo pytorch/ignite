@@ -61,7 +61,7 @@ def create_trainer(model, optimizer, criterion, train_sampler, config, logger):
             "supervised batch loss": loss.item(),
         }
 
-    output_names = getattr(config, "output_names", ["supervised batch loss",])
+    output_names = getattr(config, "output_names", ["supervised batch loss",],)
     lr_scheduler = config.lr_scheduler
 
     trainer = Engine(train_update_function)
