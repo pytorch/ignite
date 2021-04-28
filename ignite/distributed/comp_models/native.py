@@ -259,7 +259,7 @@ if has_native_dist_support:
             os.environ["MASTER_ADDR"] = hostnames.split()[0].decode("utf-8")
 
         def get_local_rank(self) -> int:
-            return self._local_rank
+            return cast(int, self._local_rank)
 
         def get_rank(self) -> int:
             return dist.get_rank()
