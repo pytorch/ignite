@@ -64,7 +64,7 @@ def test__native_dist_model_create_from_backend_bad_slurm_config():
     import os
     from datetime import timedelta
 
-    os.environ["SLURM_JOBID"] = "1"
+    os.environ["SLURM_JOB_ID"] = "1"
 
     with pytest.raises(RuntimeError, match=r"SLURM distributed configuration is missing"):
         _NativeDistModel.create_from_backend(backend="gloo", timeout=timedelta(seconds=10))
@@ -87,7 +87,7 @@ def test__native_dist_model_create_from_backend_bad_slurm_config():
     with pytest.raises(RuntimeError, match=r"Defined env variables"):
         _NativeDistModel.create_from_backend(backend="gloo", timeout=timedelta(seconds=10))
 
-    del os.environ["SLURM_JOBID"]
+    del os.environ["SLURM_JOB_ID"]
     del os.environ["SLURM_PROCID"]
     del os.environ["SLURM_LOCALID"]
     del os.environ["SLURM_NTASKS"]

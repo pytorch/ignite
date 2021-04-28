@@ -187,7 +187,7 @@ if has_native_dist_support:
 
         def _identify_local_rank(self) -> None:
 
-            if "SLURM_JOBID" in os.environ:
+            if "SLURM_JOB_ID" in os.environ:
                 os.environ["LOCAL_RANK"] = os.environ["SLURM_LOCALID"]
 
             if "LOCAL_RANK" in os.environ:
@@ -213,7 +213,7 @@ if has_native_dist_support:
             env_vars = ["RANK", "LOCAL_RANK", "WORLD_SIZE"]
             all_env_vars_defined = [k in os.environ for k in env_vars]
 
-            if "SLURM_JOBID" in os.environ:
+            if "SLURM_JOB_ID" in os.environ:
                 if any(all_env_vars_defined):
                     raise RuntimeError(
                         f"Defined env variables '{env_vars}' should not be specified with SLURM. Typically, this "
@@ -243,7 +243,7 @@ if has_native_dist_support:
 
         @staticmethod
         def _setup_env_in_slurm() -> None:
-            for k in ["SLURM_PROCID", "SLURM_LOCALID", "SLURM_NTASKS", "SLURM_JOB_NODELIST"]:
+            for k in ["SLURM_JOB_ID", "SLURM_PROCID", "SLURM_LOCALID", "SLURM_NTASKS", "SLURM_JOB_NODELIST"]:
                 if k not in os.environ:
                     raise RuntimeError(f"SLURM distributed configuration is missing '{k}' in env variables")
 
@@ -251,7 +251,7 @@ if has_native_dist_support:
             os.environ["LOCAL_RANK"] = os.environ["SLURM_LOCALID"]
             os.environ["WORLD_SIZE"] = os.environ["SLURM_NTASKS"]
             # port should be the same over all process
-            slurm_port = os.environ["SLURM_JOBID"]
+            slurm_port = os.environ["SLURM_JOB_ID"]
             slurm_port = slurm_port[-4:]
             os.environ["MASTER_PORT"] = str(int(slurm_port) + 15000)
             # master address is the first hostname of nodes list
