@@ -4,10 +4,14 @@ import numpy as np
 import pytest
 import torch
 
+from importlib.util import find_spec
+
 import ignite.distributed as idist
 from ignite.engine import Engine
 from ignite.exceptions import NotComputableError
 from ignite.metrics.accumulation import Average, GeometricAverage, VariableAccumulation
+from torch.optim import SGD
+from torch.nn import Linear
 
 torch.manual_seed(15)
 
@@ -391,6 +395,28 @@ def _test_distrib_accumulator_device(device):
         ), f"{type(m.accumulator.device)}:{m.accumulator.device} vs {type(metric_device)}:{metric_device}"
 
 
+def _test_apex_average(model_device, trainer_device, amp_mode):
+    assert amp_mode == "apex"
+    assert model_device == "cuda"
+
+    model = Linear(1, 1)
+
+    if model_device:
+        model.to(model_device)
+
+    model.weight.data.zero_()
+    model.bias.data.zero_()
+    optimizer = SGD(model.parameters(), 0.1)
+
+    from apex import amp
+
+    model, optimizer = amp.initialize(model, optimizer, opt_level="O2")
+
+    data = torch.tensor(3.14).float().to("cuda")
+    v = Average()
+    v.update(data)
+
+
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
@@ -482,3 +508,13 @@ def _test_distrib_xla_nprocs(index):
 def test_distrib_xla_nprocs(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
     xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
+@pytest.mark.skipif(not find_spec("apex"), reason="Skip if no APEX")
+def test_create_supervised_trainer_on_cuda_apex():
+    model_device = trainer_device = "cuda"
+    with pytest.raises(
+        NotImplementedError, match="Do not know how to handle these types to promote: {'FloatTensor', 'DoubleTensor'}"
+    ):
+        _test_apex_average(model_device, trainer_device, amp_mode="apex")
