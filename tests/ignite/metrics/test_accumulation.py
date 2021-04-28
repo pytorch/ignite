@@ -1,17 +1,16 @@
 import os
+from importlib.util import find_spec
 
 import numpy as np
 import pytest
 import torch
-
-from importlib.util import find_spec
+from torch.nn import Linear
+from torch.optim import SGD
 
 import ignite.distributed as idist
 from ignite.engine import Engine
 from ignite.exceptions import NotComputableError
 from ignite.metrics.accumulation import Average, GeometricAverage, VariableAccumulation
-from torch.optim import SGD
-from torch.nn import Linear
 
 torch.manual_seed(15)
 
