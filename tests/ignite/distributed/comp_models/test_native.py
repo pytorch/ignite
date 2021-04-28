@@ -70,8 +70,9 @@ def test__native_dist_model_create_from_backend_bad_slurm_config():
         _NativeDistModel.create_from_backend(backend="gloo", timeout=timedelta(seconds=10))
 
     with pytest.raises(ValueError, match=r"Arguments rank and world_size should not be specified with SLURM"):
-        _NativeDistModel.create_from_backend(backend="gloo", timeout=timedelta(seconds=10),
-                                             rank=1, init_method="", world_size=1)
+        _NativeDistModel.create_from_backend(
+            backend="gloo", timeout=timedelta(seconds=10), rank=1, init_method="", world_size=1
+        )
 
     os.environ["SLURM_PROCID"] = "0"
     os.environ["SLURM_LOCALID"] = "0"
