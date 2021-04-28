@@ -69,6 +69,8 @@ class VariableAccumulation(Metric):
             output = output.detach()
             if output.device != self._device:
                 output = output.to(self._device)
+            if output.dtype != self.accumulator.dtype:
+                output = output.to(self.accumulator.dtype)
 
         self.accumulator = self._op(self.accumulator, output)
 

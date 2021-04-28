@@ -394,14 +394,14 @@ def _test_distrib_accumulator_device(device):
         ), f"{type(m.accumulator.device)}:{m.accumulator.device} vs {type(metric_device)}:{metric_device}"
 
 
-def _test_apex_average(model_device, trainer_device, amp_mode):
+def _test_apex_average(device, amp_mode, opt_level):
     assert amp_mode == "apex"
-    assert model_device == "cuda"
+    assert device == "cuda"
 
     model = Linear(1, 1)
 
-    if model_device:
-        model.to(model_device)
+    if device:
+        model.to(device)
 
     model.weight.data.zero_()
     model.bias.data.zero_()
@@ -409,11 +409,17 @@ def _test_apex_average(model_device, trainer_device, amp_mode):
 
     from apex import amp
 
-    model, optimizer = amp.initialize(model, optimizer, opt_level="O2")
+    model, optimizer = amp.initialize(model, optimizer, opt_level=opt_level)
 
-    data = torch.tensor(3.14).float().to("cuda")
-    v = Average()
-    v.update(data)
+    mean_var = VariableAccumulation(lambda a, x: a + x)
+    y_true = torch.rand(100).float().to(device)
+
+    for y in y_true:
+        mean_var.update(y)
+
+    a, n = mean_var.compute()
+    assert a.item() == pytest.approx(y_true.sum().item())
+    assert n == len(y_true)
 
 
 @pytest.mark.distributed
@@ -511,9 +517,9 @@ def test_distrib_xla_nprocs(xmp_executor):
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 @pytest.mark.skipif(not find_spec("apex"), reason="Skip if no APEX")
-def test_create_supervised_trainer_on_cuda_apex():
-    model_device = trainer_device = "cuda"
-    with pytest.raises(
-        NotImplementedError, match="Do not know how to handle these types to promote: {'FloatTensor', 'DoubleTensor'}"
-    ):
-        _test_apex_average(model_device, trainer_device, amp_mode="apex")
+def test_apex_average():
+    device = "cuda"
+    _test_apex_average(device, amp_mode="apex", opt_level="O0")
+    _test_apex_average(device, amp_mode="apex", opt_level="O1")
+    _test_apex_average(device, amp_mode="apex", opt_level="O2")
+    _test_apex_average(device, amp_mode="apex", opt_level="O3")
