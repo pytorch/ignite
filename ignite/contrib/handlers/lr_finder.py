@@ -264,16 +264,16 @@ class FastaiLRFinder:
 
         # Plot loss as a function of the learning rate
         if axes is None:
-            f, ax = plt.subplots(**kwargs)
-        ax.plot(lrs, losses)
+            f, axes = plt.subplots(**kwargs)
+        axes.plot(lrs, losses)
         if log_lr:
-            ax.set_xscale("log")
-        ax.set_xlim([lrs[0], lrs[-1]])
-        ax.set_xlabel("Learning rate")
-        ax.set_ylabel("Loss")
+            axes.set_xscale("log")
+        axes.set_xlim([lrs[0], lrs[-1]])
+        axes.set_xlabel("Learning rate")
+        axes.set_ylabel("Loss")
 
         plt.show()
-        return ax
+        return axes
 
     def lr_suggestion(self) -> Any:
         """
