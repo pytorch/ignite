@@ -251,7 +251,7 @@ if has_native_dist_support:
             os.environ["LOCAL_RANK"] = os.environ["SLURM_LOCALID"]
             os.environ["WORLD_SIZE"] = os.environ["SLURM_NTASKS"]
             # port should be the same over all process
-            slurm_port = os.environ["SLURM_JOB_ID"]
+            slurm_port = os.environ["SLURM_JOBID"]
             slurm_port = slurm_port[-4:]
             os.environ["MASTER_PORT"] = str(int(slurm_port) + 15000)
             # master address is the first hostname of nodes list

@@ -73,12 +73,23 @@ def test__native_dist_model_create_from_backend_bad_slurm_config():
         _NativeDistModel.create_from_backend(backend="gloo", timeout=timedelta(seconds=10),
                                              rank=1, init_method="", world_size=1)
 
+    os.environ["SLURM_PROCID"] = "0"
+    os.environ["SLURM_LOCALID"] = "0"
+    os.environ["SLURM_NTASKS"] = "1"
+    os.environ["SLURM_JOB_NODELIST"] = "localhost"
+
+    with pytest.raises(FileNotFoundError, match=r"No such file or directory: 'scontrol'"):
+        _NativeDistModel.create_from_backend(backend="gloo", timeout=timedelta(seconds=10))
+
     os.environ["RANK"] = "1"
 
     with pytest.raises(RuntimeError, match=r"Defined env variables"):
         _NativeDistModel.create_from_backend(backend="gloo", timeout=timedelta(seconds=10))
 
     del os.environ["SLURM_JOBID"]
+    del os.environ["SLURM_LOCALID"]
+    del os.environ["SLURM_NTASKS"]
+    del os.environ["SLURM_JOB_NODELIST"]
     del os.environ["RANK"]
 
 
