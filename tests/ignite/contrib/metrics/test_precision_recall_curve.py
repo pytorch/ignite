@@ -25,7 +25,6 @@ def test_no_sklearn(mock_no_sklearn):
         pr_curve.compute()
 
 
-# TODO uncomment those once #1700 is merged
 def _test_precision_recall_curve():
     size = 100
     np_y_pred = np.random.rand(size, 1)
@@ -79,7 +78,6 @@ def _test_integration_precision_recall_curve_with_output_transform():
     np.testing.assert_array_almost_equal(thresholds, sk_thresholds)
 
 
-# TODO uncomment those once #1700 is merge
 def _test_integration_precision_recall_curve_with_activated_output_transform():
     np.random.seed(1)
     size = 100
