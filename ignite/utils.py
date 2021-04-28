@@ -177,12 +177,22 @@ def manual_seed(seed: int) -> None:
 
     .. versionchanged:: 0.4.3
         Added ``torch.cuda.manual_seed_all(seed)``.
+
+    .. versionchanged:: 0.5.1
+        Added ``torch_xla.core.xla_model.set_rng_state(seed)``.
     """
     random.seed(seed)
     torch.manual_seed(seed)
 
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
+
+    try:
+        import torch_xla.core.xla_model as xm
+
+        xm.set_rng_state(seed)
+    except ImportError:
+        pass
 
     try:
         import numpy as np
