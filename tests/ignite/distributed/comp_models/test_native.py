@@ -88,6 +88,7 @@ def test__native_dist_model_create_from_backend_bad_slurm_config():
         _NativeDistModel.create_from_backend(backend="gloo", timeout=timedelta(seconds=10))
 
     del os.environ["SLURM_JOBID"]
+    del os.environ["SLURM_PROCID"]
     del os.environ["SLURM_LOCALID"]
     del os.environ["SLURM_NTASKS"]
     del os.environ["SLURM_JOB_NODELIST"]
