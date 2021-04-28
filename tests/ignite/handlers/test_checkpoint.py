@@ -1,7 +1,7 @@
 import os
 import stat
 import warnings
-from collections import OrderedDict
+from collections import Mapping, OrderedDict
 from unittest.mock import MagicMock
 
 import pytest
@@ -62,6 +62,19 @@ def test_checkpoint_wrong_input():
 
     with pytest.raises(ValueError, match=r"Cannot have key 'checkpointer' if `include_self` is True"):
         Checkpoint({"checkpointer": model}, lambda x: x, include_self=True)
+
+    class ImmutableMapping(Mapping):
+        def __getitem__(self, key):
+            return to_save[key]
+
+        def __iter__(self):
+            return iter(to_save)
+
+        def __len__(self):
+            return len(to_save)
+
+    with pytest.raises(TypeError, match="If `include_self` is True, then `to_save` must be mutable"):
+        Checkpoint(ImmutableMapping(), lambda x: x, include_self=True)
 
 
 def test_checkpoint_score_function_wrong_output():

@@ -52,7 +52,6 @@ class BaseSaveHandler(metaclass=ABCMeta):
             metadata: metadata on checkpoint to save.
 
         """
-        pass
 
     @abstractmethod
     def remove(self, filename: str) -> None:
@@ -62,7 +61,6 @@ class BaseSaveHandler(metaclass=ABCMeta):
             filename: filename associated with checkpoint.
 
         """
-        pass
 
 
 class Checkpoint(Serializable):

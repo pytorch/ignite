@@ -23,16 +23,16 @@ def test_compute():
 
     def _test(y_pred, y, batch_size):
         rmse.reset()
-        rmse.update((y_pred, y))
-
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().ravel()
-
         if batch_size > 1:
             n_iters = y.shape[0] // batch_size + 1
             for i in range(n_iters):
                 idx = i * batch_size
                 rmse.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+        else:
+            rmse.update((y_pred, y))
+
+        np_y = y.numpy().ravel()
+        np_y_pred = y_pred.numpy().ravel()
 
         np_res = np.sqrt(np.power((np_y - np_y_pred), 2.0).sum() / np_y.shape[0])
         res = rmse.compute()
@@ -43,10 +43,10 @@ def test_compute():
     def get_test_cases():
 
         test_cases = [
-            (torch.empty(10,).uniform_(0, 10), torch.empty(10,).uniform_(0, 10), 1),
+            (torch.empty(10,).uniform_(0, 10), torch.empty(10,).uniform_(0, 10), 1,),
             (torch.empty(10, 1).uniform_(-10, 10), torch.empty(10, 1).uniform_(-10, 10), 1),
             # updated batches
-            (torch.empty(50,).uniform_(0, 10), torch.empty(50).uniform_(0, 10), 16),
+            (torch.empty(50,).uniform_(0, 10), torch.empty(50).uniform_(0, 10), 16,),
             (torch.empty(50, 1).uniform_(-10, 10), torch.empty(50, 1).uniform_(-10, 10), 16),
         ]
 

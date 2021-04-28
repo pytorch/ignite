@@ -362,9 +362,11 @@ Few pointers to get you started:
 
 ## Additional Materials
 
+- [PyTorch Ecosystem Day 2021 Breakout session presentation](https://colab.research.google.com/drive/1qhUgWQ0N2U71IVShLpocyeY4AhlDCPRd)
 - [Tutorial blog post about PyTorch-Ignite](https://labs.quansight.org/blog/2020/09/pytorch-ignite/)
 - [8 Creators and Core Contributors Talk About Their Model Training Libraries From PyTorch Ecosystem](https://neptune.ai/blog/model-training-libraries-pytorch-ecosystem?utm_source=reddit&utm_medium=post&utm_campaign=blog-model-training-libraries-pytorch-ecosystem)
 - Ignite Posters from Pytorch Developer Conferences:
+  - [2021](https://drive.google.com/file/d/1YXrkJIepPk_KltSG1ZfWRtA5IRgPFz_U)
   - [2019](https://drive.google.com/open?id=1bqIl-EM6GCCCoSixFZxhIbuF25F2qTZg)
   - [2018](https://drive.google.com/open?id=1_2vzBJ0KeCjGv1srojMHiJRvceSVbVR5)
 

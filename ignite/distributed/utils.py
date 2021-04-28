@@ -361,13 +361,21 @@ def all_gather(tensor: Union[torch.Tensor, float, str]) -> Union[torch.Tensor, f
     return _model.all_gather(tensor)
 
 
-def broadcast(tensor: Union[torch.Tensor, float, str], src: int = 0) -> Union[torch.Tensor, float, str]:
+def broadcast(
+    tensor: Union[torch.Tensor, float, str, None], src: int = 0, safe_mode: bool = False
+) -> Union[torch.Tensor, float, str]:
     """Helper method to perform broadcast operation.
 
     Args:
         tensor: tensor or number or str to broadcast to participating processes.
-            Make sure to respect dtype of torch tensor input for all processes, otherwise execution will crash.
+            Make sure to respect data type of torch tensor input for all processes, otherwise execution will crash.
+            Can use None for non-source data with ``safe_mode=True``.
         src: source rank. Default, 0.
+        safe_mode: if True, non source input data can be ``None`` or anything (will be discarded), otherwise data
+            type of the input ``tensor`` should be respected for all processes. Please, keep in mind, this mode is
+            working only for dense tensors as source input if a tensor is provided. There are additional collective
+            ops are performed before doing the broadcast and, thus, can be slower than without using this mode.
+            Default, False.
 
     Returns:
         torch.Tensor or string or number
@@ -376,10 +384,12 @@ def broadcast(tensor: Union[torch.Tensor, float, str], src: int = 0) -> Union[to
 
         .. code-block:: python
 
+            y = None
             if idist.get_rank() == 0:
                 t1 = torch.rand(4, 5, 6, device=idist.device())
                 s1 = "abc"
                 x = 12.3456
+                y = torch.rand(1, 2, 3, device=idist.device())
             else:
                 t1 = torch.empty(4, 5, 6, device=idist.device())
                 s1 = ""
@@ -397,12 +407,20 @@ def broadcast(tensor: Union[torch.Tensor, float, str], src: int = 0) -> Union[to
             x = idist.broadcast(x, src=0)
             # >>> x = 12.3456
 
+            # Broadcast any of those types from rank 0,
+            # but other ranks do not define the placeholder
+            y = idist.broadcast(y, src=0, safe_mode=True)
+            assert isinstance(y, torch.Tensor)
+
     .. versionadded:: 0.4.2
+
+    .. versionchanged:: 0.5.0
+        added ``safe_mode``
     """
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
 
-    return _model.broadcast(tensor, src=src)
+    return _model.broadcast(tensor, src=src, safe_mode=safe_mode)
 
 
 def barrier() -> None:
