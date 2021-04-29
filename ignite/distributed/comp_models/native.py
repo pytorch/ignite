@@ -241,8 +241,7 @@ if has_native_dist_support:
             self._master_addr = os.environ["MASTER_ADDR"]
             self._master_port = int(os.environ["MASTER_PORT"])
 
-        @staticmethod
-        def _setup_env_in_slurm() -> None:
+        def _setup_env_in_slurm(self) -> None:
             for k in ["SLURM_JOB_ID", "SLURM_PROCID", "SLURM_LOCALID", "SLURM_NTASKS", "SLURM_JOB_NODELIST"]:
                 if k not in os.environ:
                     raise RuntimeError(f"SLURM distributed configuration is missing '{k}' in env variables")
@@ -254,8 +253,13 @@ if has_native_dist_support:
             slurm_port = os.environ["SLURM_JOB_ID"]
             slurm_port = slurm_port[-4:]
             os.environ["MASTER_PORT"] = str(int(slurm_port) + 15000)
-            # master address is the first hostname of nodes list
-            hostnames = subprocess.check_output(["scontrol", "show", "hostnames", os.environ["SLURM_JOB_NODELIST"]])
+            try:
+                # master address is the first hostname of nodes list
+                hostnames = subprocess.check_output(["scontrol", "show", "hostnames", os.environ["SLURM_JOB_NODELIST"]])
+            except FileNotFoundError as e:
+                # restore the environment before raising the exception
+                self._restore_env()
+                raise e
             os.environ["MASTER_ADDR"] = hostnames.split()[0].decode("utf-8")
 
         def get_local_rank(self) -> int:
@@ -292,6 +296,10 @@ if has_native_dist_support:
 
         def finalize(self) -> None:
             dist.destroy_process_group()
+            # restore backed-up env
+            self._restore_env()
+
+        def _restore_env(self):
             # restore backed-up env
             if self._env_backup is not None:
                 os.environ.clear()
