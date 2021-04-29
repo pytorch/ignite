@@ -299,7 +299,7 @@ if has_native_dist_support:
             # restore backed-up env
             self._restore_env()
 
-        def _restore_env(self):
+        def _restore_env(self) -> None:
             # restore backed-up env
             if self._env_backup is not None:
                 os.environ.clear()
