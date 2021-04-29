@@ -2,17 +2,9 @@ name: PyTorch version tests
 
 on:
   # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions#onschedule
-  # schedule:
-  #   # Run at 00:00 UTC Every Day
-  #   - cron: "0 0 * * *"
-  pull_request:
-    paths:
-      - "ignite/**"
-      - "tests/ignite/**"
-      - "tests/run_cpu_tests.sh"
-      - "examples/**.py"
-      - "requirements-dev.txt"
-      - ".github/workflows/unit-tests.yml"
+  schedule:
+    # Run at 00:00 UTC Every Day
+    - cron: "0 0 * * *"
 
 jobs:
   build:
