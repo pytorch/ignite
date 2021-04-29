@@ -92,9 +92,6 @@ def test__native_dist_model_create_from_backend_bad_slurm_config():
     del os.environ["SLURM_LOCALID"]
     del os.environ["SLURM_NTASKS"]
     del os.environ["SLURM_JOB_NODELIST"]
-    del os.environ["MASTER_PORT"]
-    del os.environ["WORLD_SIZE"]
-    del os.environ["LOCAL_RANK"]
     del os.environ["RANK"]
 
 
