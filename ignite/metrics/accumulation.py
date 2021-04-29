@@ -67,10 +67,8 @@ class VariableAccumulation(Metric):
 
         if isinstance(output, torch.Tensor):
             output = output.detach()
-            if output.device != self._device:
-                output = output.to(self._device)
-            if output.dtype != self.accumulator.dtype:
-                output = output.to(self.accumulator.dtype)
+            if not (output.device == self._device and output.dtype == self.accumulator.dtype):
+                output = output.to(self.accumulator)
 
         self.accumulator = self._op(self.accumulator, output)
 
