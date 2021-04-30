@@ -76,7 +76,7 @@ class FastaiLRFinder:
         self._history = {}  # type: Dict[str, List[Any]]
         self._best_loss = None
         self._lr_schedule = None  # type: Optional[Union[LRScheduler, PiecewiseLinear]]
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
 
     def _run(
         self,
@@ -182,7 +182,8 @@ class FastaiLRFinder:
 
     def get_results(self) -> Dict[str, List[Any]]:
         """
-        Returns: dictionary with loss and lr logs fromm the previous run
+        Returns:
+            Dictionary with loss and lr logs from the previous run
         """
         return self._history
 
@@ -191,12 +192,13 @@ class FastaiLRFinder:
         skip_start: int = 10,
         skip_end: int = 5,
         log_lr: bool = True,
+        display_suggestion: bool = True,
         filepath: Optional[str] = None,
         **kwargs: Any,
     ) -> None:
         """Plots the learning rate range test.
 
-        This method requires `matplotlib` package to be installed:
+        This method requires ``matplotlib`` package to be installed:
 
         .. code-block:: bash
 
@@ -209,6 +211,7 @@ class FastaiLRFinder:
                 Default: 5.
             log_lr: True to plot the learning rate in a logarithmic
                 scale; otherwise, plotted in a linear scale. Default: True.
+            display_suggestion: if True, red dot shows the suggested learning rate.
             filepath: The file name to save the plot to. Default: None.
             kwargs: optional kwargs passed to ``plt.savefig`` if ``filepath`` is provided.
                 matplotlib method `savefig` to save the plot.
@@ -229,11 +232,30 @@ class FastaiLRFinder:
         if skip_end < 0:
             raise ValueError("skip_end cannot be negative")
 
-        # Get the data to plot from the history dictionary. Also, handle skip_end=0
-        # properly so the behaviour is the expected
-
+        # Get the data to plot from the history dictionary.
         lrs = self._history["lr"]
         losses = self._history["loss"]
+
+        # Check to show the suggested learning rate
+        if display_suggestion:
+            sug_lr = self.lr_suggestion()
+            idx = self._history["lr"].index(sug_lr)
+
+            if skip_start >= idx:
+                warnings.warn(
+                    "skip_start is larger than the suggested LR found"
+                    " and it will not be visible on the plot. Please, make the value smaller.",
+                    UserWarning,
+                )
+
+            corresponding_loss = self._history["loss"][int(idx)]
+
+            fig, ax = plt.subplots()
+            ax.scatter(
+                sug_lr, corresponding_loss, s=75, marker="o", color="red", zorder=3,
+            )
+
+        # handle skip_end=0 properly
         if skip_end == 0:
             lrs = lrs[skip_start:]
             losses = losses[skip_start:]
@@ -245,6 +267,7 @@ class FastaiLRFinder:
         plt.plot(lrs, losses)
         if log_lr:
             plt.xscale("log")
+        plt.xlim([lrs[0], lrs[-1]])
         plt.xlabel("Learning rate")
         plt.ylabel("Loss")
         if filepath is not None:
@@ -256,12 +279,20 @@ class FastaiLRFinder:
 
     def lr_suggestion(self) -> Any:
         """
-        Returns: learning rate at the minimum numerical gradient
+        Returns:
+            Learning rate at the minimum numerical gradient
+            (ignoring the increasing part of the curve)
         """
         if not self._history:
             raise RuntimeError("learning rate finder didn't run yet so lr_suggestion can't be returned")
         loss = self._history["loss"]
-        grads = torch.tensor([loss[i] - loss[i - 1] for i in range(1, len(loss))])
+        min_loss_idx = torch.tensor(loss).argmin()
+        # Ignore the increasing part of the curve
+        decreasing_losses = self._history["loss"][: int(min_loss_idx.item()) + 1]
+        if len(decreasing_losses) == 1:
+            raise RuntimeError("FastaiLRFinder got unexpected curve shape, the curve should be somehow U-shaped")
+        losses = torch.tensor(decreasing_losses)
+        grads = torch.tensor([0.5 * (losses[i + 1] - losses[i - 1]) for i in range(1, len(losses) - 1)])
         min_grad_idx = grads.argmin() + 1
         return self._history["lr"][int(min_grad_idx)]
 
@@ -291,17 +322,17 @@ class FastaiLRFinder:
             trainer: lr_finder is attached to this trainer. Please, keep in mind that all attached handlers
                 will be executed.
             to_save: dictionary with optimizer and other objects that needs to be restored after running
-                the LR finder. For example, `to_save={'optimizer': optimizer, 'model': model}`. All objects should
-                implement `state_dict` and `load_state_dict` methods.
-            output_transform: function that transforms the trainer's `state.output` after each
+                the LR finder. For example, ``to_save={'optimizer': optimizer, 'model': model}``. All objects should
+                implement ``state_dict`` and ``load_state_dict`` methods.
+            output_transform: function that transforms the trainer's ``state.output`` after each
                 iteration. It must return the loss of that iteration.
             num_iter: number of iterations for lr schedule between base lr and end_lr. Default, it will
-                run for `trainer.state.epoch_length * trainer.state.max_epochs`.
+                run for ``trainer.state.epoch_length * trainer.state.max_epochs``.
             end_lr: upper bound for lr search. Default, 10.0.
             step_mode: "exp" or "linear", which way should the lr be increased from optimizer's initial
-                lr to `end_lr`. Default, "exp".
-            smooth_f: loss smoothing factor in range `[0, 1)`. Default, 0.05
-            diverge_th: Used for stopping the search when `current loss > diverge_th * best_loss`.
+                lr to ``end_lr``. Default, "exp".
+            smooth_f: loss smoothing factor in range ``[0, 1)``. Default, 0.05
+            diverge_th: Used for stopping the search when ``current loss > diverge_th * best_loss``.
                 Default, 5.0.
 
         Returns:

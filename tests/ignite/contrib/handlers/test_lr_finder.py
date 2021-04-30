@@ -8,7 +8,7 @@ from torch import nn
 from torch.optim import SGD
 
 from ignite.contrib.handlers import FastaiLRFinder
-from ignite.engine import create_supervised_trainer
+from ignite.engine import Events, create_supervised_trainer
 
 matplotlib.use("agg")
 
@@ -27,9 +27,10 @@ def no_site_packages():
 
 
 class DummyModel(nn.Module):
-    def __init__(self):
+    def __init__(self, n_channels=10, out_channels=1, flatten_input=False):
         super(DummyModel, self).__init__()
-        self.net = nn.Linear(1, 1)
+
+        self.net = nn.Sequential(nn.Flatten() if flatten_input else nn.Identity(), nn.Linear(n_channels, out_channels))
 
     def forward(self, x):
         return self.net(x)
@@ -42,8 +43,19 @@ def model():
 
 
 @pytest.fixture
+def mnist_model():
+    model = DummyModel(n_channels=784, out_channels=10, flatten_input=True)
+    yield model
+
+
+@pytest.fixture
 def optimizer(model):
-    yield SGD(model.parameters(), lr=1e-4, momentum=0.9)
+    yield SGD(model.parameters(), lr=1e-4, momentum=0.0)
+
+
+@pytest.fixture
+def mnist_optimizer(mnist_model):
+    yield SGD(mnist_model.parameters(), lr=1e-4, momentum=0.0)
 
 
 @pytest.fixture
@@ -64,7 +76,22 @@ def dummy_engine(model, optimizer):
 
 @pytest.fixture
 def dataloader():
-    yield torch.rand(100, 2, 1)
+    yield torch.rand(100, 2, 10)
+
+
+@pytest.fixture
+def mnist_dataloader():
+    from torch.utils.data import DataLoader
+    from torchvision.datasets import MNIST
+    from torchvision.transforms import Compose, Normalize, ToTensor
+
+    data_transform = Compose([ToTensor(), Normalize((0.1307,), (0.3081,))])
+
+    train_loader = DataLoader(
+        MNIST(download=True, root="/tmp", transform=data_transform, train=True), batch_size=64, shuffle=True
+    )
+
+    yield train_loader
 
 
 def test_attach_incorrect_input_args(lr_finder, dummy_engine, model, optimizer, dataloader):
@@ -154,7 +181,8 @@ def test_model_optimizer_reset(lr_finder, to_save, dummy_engine, dataloader):
             trainer_with_finder.run(dataloader)
 
     assert init_optimizer_sd == optimizer.state_dict()
-    assert init_model_sd == model.state_dict()
+    for tensor1, tensor2 in zip(init_model_sd.values(), model.state_dict().values()):
+        assert torch.all(torch.eq(tensor1, tensor2))
     assert init_trainer_sd == dummy_engine.state_dict()
 
 
@@ -214,12 +242,30 @@ def test_detach_terminates(lr_finder, to_save, dummy_engine, dataloader, recwarn
 
     dummy_engine.run(dataloader, max_epochs=3)
     assert dummy_engine.state.epoch == 3
-    assert len(recwarn) == 0
+    assert len(recwarn) == 1
+
+
+def test_lr_suggestion_unexpected_curve(lr_finder, to_save, dummy_engine, dataloader):
+    with lr_finder.attach(dummy_engine, to_save) as trainer_with_finder:
+        trainer_with_finder.run(dataloader)
+
+    lr_finder._history["loss"].insert(0, 0)
+    with pytest.raises(
+        RuntimeError, match=r"FastaiLRFinder got unexpected curve shape, the curve should be somehow U-shaped"
+    ):
+        lr_finder.lr_suggestion()
 
 
 def test_lr_suggestion(lr_finder, to_save, dummy_engine, dataloader):
     with lr_finder.attach(dummy_engine, to_save) as trainer_with_finder:
         trainer_with_finder.run(dataloader)
+
+    # Avoid RuntimeError
+    if torch.tensor(lr_finder._history["loss"]).argmin() < 2:
+        lr_finder._history["loss"].insert(0, 10)
+        lr_finder._history["loss"].insert(0, 100)
+        lr_finder._history["lr"].insert(0, 10)
+        lr_finder._history["lr"].insert(0, 100)
 
     assert 1e-4 <= lr_finder.lr_suggestion() <= 10
 
@@ -228,6 +274,13 @@ def test_plot(lr_finder, to_save, dummy_engine, dataloader):
 
     with lr_finder.attach(dummy_engine, to_save) as trainer_with_finder:
         trainer_with_finder.run(dataloader)
+
+    # Avoid RuntimeError
+    if torch.tensor(lr_finder._history["loss"]).argmin() < 2:
+        lr_finder._history["loss"].insert(0, 10)
+        lr_finder._history["loss"].insert(0, 100)
+        lr_finder._history["lr"].insert(0, 10)
+        lr_finder._history["lr"].insert(0, 100)
 
     lr_finder.plot()
     lr_finder.plot(skip_end=0)
@@ -246,3 +299,20 @@ def test_no_matplotlib(no_site_packages, lr_finder):
 
     with pytest.raises(RuntimeError, match=r"This method requires matplotlib to be installed"):
         lr_finder.plot()
+
+
+def test_mnist_lr_suggestion(lr_finder, mnist_model, mnist_optimizer, mnist_dataloader):
+    criterion = nn.CrossEntropyLoss()
+    trainer = create_supervised_trainer(mnist_model, mnist_optimizer, criterion)
+    to_save = {"model": mnist_model, "optimizer": mnist_optimizer}
+
+    max_iters = 50
+
+    with lr_finder.attach(trainer, to_save) as trainer_with_finder:
+
+        with trainer_with_finder.add_event_handler(
+            Events.ITERATION_COMPLETED(once=max_iters), lambda _: trainer_with_finder.terminate()
+        ):
+            trainer_with_finder.run(mnist_dataloader)
+
+    assert 1e-4 <= lr_finder.lr_suggestion() <= 10
