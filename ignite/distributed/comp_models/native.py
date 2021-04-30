@@ -85,6 +85,7 @@ if has_native_dist_support:
             """
             super(_NativeDistModel, self).__init__()
             self._env_backup = None  # type: Optional[Dict[str, str]]
+            self._local_rank = None  # type: Optional[int]
             self._master_port = None  # type: Optional[int]
             self._master_addr = None  # type: Optional[str]
             self._init_method = None  # type: Optional[str]
@@ -186,7 +187,7 @@ if has_native_dist_support:
 
         def _identify_local_rank(self) -> None:
 
-            if "SLURM_JOBID" in os.environ:
+            if "SLURM_JOB_ID" in os.environ:
                 os.environ["LOCAL_RANK"] = os.environ["SLURM_LOCALID"]
 
             if "LOCAL_RANK" in os.environ:
@@ -208,32 +209,40 @@ if has_native_dist_support:
 
             self._env_backup = os.environ.copy()
 
-            if "SLURM_JOBID" in os.environ:
+            # check whether all necessary env vars are set or not
+            env_vars = ["RANK", "LOCAL_RANK", "WORLD_SIZE"]
+            all_env_vars_defined = [k in os.environ for k in env_vars]
+
+            if "SLURM_JOB_ID" in os.environ:
+                if any(all_env_vars_defined):
+                    raise RuntimeError(
+                        f"Defined env variables '{env_vars}' should not be specified with SLURM. Typically, this "
+                        "happens when `torch.distributed.launch` or `torch.multiprocessing.spawn` are used. Please be "
+                        "sure to use the `srun` command instead."
+                    )
                 if rank is not None or world_size is not None:
                     raise ValueError("Arguments rank and world_size should not be specified with SLURM")
                 self._setup_env_in_slurm()
-                return
+            else:
+                # check if all necessary env vars are set
+                # if partially defined raise an error
+                if any(all_env_vars_defined) and not all(all_env_vars_defined):
+                    raise RuntimeError(f"PyTorch distributed configuration should define env variables '{env_vars}'")
 
-            # check if all necessary env vars are set
-            # if partially defined raise an error
-            necessary_env_vars = ["RANK", "LOCAL_RANK", "WORLD_SIZE"]
-            all_env_vars_defined = [k in os.environ for k in necessary_env_vars]
-            if any(all_env_vars_defined) and not all(all_env_vars_defined):
-                raise RuntimeError(
-                    f"PyTorch distributed configuration should define env variables '{necessary_env_vars}'"
+                os.environ["RANK"] = os.environ.get("RANK", f"{rank if rank is not None else 0}")
+                os.environ["WORLD_SIZE"] = os.environ.get(
+                    "WORLD_SIZE", f"{world_size if world_size is not None else 1}"
                 )
+                os.environ["LOCAL_RANK"] = os.environ.get("LOCAL_RANK", "0")
+                os.environ["MASTER_PORT"] = os.environ.get("MASTER_PORT", "15000")
+                os.environ["MASTER_ADDR"] = os.environ.get("MASTER_ADDR", "127.0.0.1")
 
-            os.environ["RANK"] = os.environ.get("RANK", f"{rank if rank is not None else 0}")
-            os.environ["WORLD_SIZE"] = os.environ.get("WORLD_SIZE", f"{world_size if world_size is not None else 1}")
-            os.environ["LOCAL_RANK"] = os.environ.get("LOCAL_RANK", "0")
-            os.environ["MASTER_PORT"] = os.environ.get("MASTER_PORT", "15000")
-            os.environ["MASTER_ADDR"] = os.environ.get("MASTER_ADDR", "127.0.0.1")
             self._local_rank = int(os.environ["LOCAL_RANK"])
             self._master_addr = os.environ["MASTER_ADDR"]
             self._master_port = int(os.environ["MASTER_PORT"])
 
         def _setup_env_in_slurm(self) -> None:
-            for k in ["SLURM_PROCID", "SLURM_LOCALID", "SLURM_NTASKS", "SLURM_JOB_NODELIST"]:
+            for k in ["SLURM_JOB_ID", "SLURM_PROCID", "SLURM_LOCALID", "SLURM_NTASKS", "SLURM_JOB_NODELIST"]:
                 if k not in os.environ:
                     raise RuntimeError(f"SLURM distributed configuration is missing '{k}' in env variables")
 
@@ -244,12 +253,17 @@ if has_native_dist_support:
             slurm_port = os.environ["SLURM_JOB_ID"]
             slurm_port = slurm_port[-4:]
             os.environ["MASTER_PORT"] = str(int(slurm_port) + 15000)
-            # master address is the first hostname of nodes list
-            hostnames = subprocess.check_output(["scontrol", "show", "hostnames", os.environ["SLURM_JOB_NODELIST"]])
+            try:
+                # master address is the first hostname of nodes list
+                hostnames = subprocess.check_output(["scontrol", "show", "hostnames", os.environ["SLURM_JOB_NODELIST"]])
+            except FileNotFoundError as e:
+                # restore the environment before raising the exception
+                self._restore_env()
+                raise e
             os.environ["MASTER_ADDR"] = hostnames.split()[0].decode("utf-8")
 
         def get_local_rank(self) -> int:
-            return self._local_rank
+            return cast(int, self._local_rank)
 
         def get_rank(self) -> int:
             return dist.get_rank()
@@ -282,6 +296,10 @@ if has_native_dist_support:
 
         def finalize(self) -> None:
             dist.destroy_process_group()
+            # restore backed-up env
+            self._restore_env()
+
+        def _restore_env(self) -> None:
             # restore backed-up env
             if self._env_backup is not None:
                 os.environ.clear()
