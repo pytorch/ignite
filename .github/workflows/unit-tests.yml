@@ -91,6 +91,17 @@ jobs:
         run: |
           bash ./tests/run_code_style.sh mypy
 
+      # Download MNIST: https://github.com/pytorch/ignite/issues/1737
+      - name: Download MNIST
+        uses: pytorch-ignite/download-mnist-github-action@master
+        with:
+          target_dir: /tmp
+
+      - name: Copy MNIST
+        shell: bash -l {0}
+        run: |
+          cp -R /tmp/MNIST .
+
       - name: Run Tests
         shell: bash -l {0}
         run: |
@@ -102,10 +113,6 @@ jobs:
           file: ./coverage.xml
           flags: cpu
           fail_ci_if_error: true
-
-      # Download MNIST: https://github.com/pytorch/ignite/issues/1737
-      - name: Download MNIST
-        uses: pytorch-ignite/download-mnist-github-action@master
 
       - name: Run MNIST Examples
         shell: bash -l {0}
