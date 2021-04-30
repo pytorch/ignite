@@ -92,11 +92,13 @@ jobs:
           bash ./tests/run_code_style.sh mypy
 
       # Download MNIST: https://github.com/pytorch/ignite/issues/1737
+      # to "/tmp" for unit tests
       - name: Download MNIST
         uses: pytorch-ignite/download-mnist-github-action@master
         with:
           target_dir: /tmp
 
+      # Copy MNIST to "." for the examples
       - name: Copy MNIST
         shell: bash -l {0}
         run: |
