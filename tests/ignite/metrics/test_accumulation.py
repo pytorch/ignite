@@ -517,7 +517,7 @@ def test_distrib_xla_nprocs(xmp_executor):
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 @pytest.mark.skipif(not find_spec("apex"), reason="Skip if no APEX")
-def test_apex_average():
+def test_apex_average_on_cuda():
     device = "cuda"
     _test_apex_average(device, amp_mode="apex", opt_level="O0")
     _test_apex_average(device, amp_mode="apex", opt_level="O1")
