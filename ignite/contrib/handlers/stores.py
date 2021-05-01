@@ -30,6 +30,8 @@ class EpochOutputStore:
             # do something with output, e.g., plotting
 
     .. versionadded:: 0.4.2
+    .. versionchanged:: 0.5.0
+        `attach` now accepts an optional argument `name`
     """
 
     def __init__(self, output_transform: Callable = lambda x: x):
@@ -51,7 +53,11 @@ class EpochOutputStore:
 
     def attach(self, engine: Engine, name: Optional[str] = None) -> None:
         """Attaching `reset` method at EPOCH_STARTED and
-        `update` method at ITERATION_COMPLETED."""
+        `update` method at ITERATION_COMPLETED.
+
+        If `name` is passed, will store `self.data` on `engine.state`
+        under `name`.
+        """
         engine.add_event_handler(Events.EPOCH_STARTED, self.reset)
         engine.add_event_handler(Events.ITERATION_COMPLETED, self.update)
         if name:
