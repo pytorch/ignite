@@ -1,4 +1,4 @@
-from typing import Callable, List, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union
 
 from ignite.engine import Engine, Events
 
@@ -21,15 +21,17 @@ class EpochOutputStore:
         eos = EpochOutputStore()
         trainer = create_supervised_trainer(model, optimizer, loss)
         train_evaluator = create_supervised_evaluator(model, metrics)
-        eos.attach(train_evaluator)
+        eos.attach(train_evaluator, 'output')
 
         @trainer.on(Events.EPOCH_COMPLETED)
         def log_training_results(engine):
             train_evaluator.run(train_loader)
-            output = eos.data
+            output = train_evaluator.output
             # do something with output, e.g., plotting
 
     .. versionadded:: 0.4.2
+    .. versionchanged:: 0.5.0
+        `attach` now accepts an optional argument `name`
     """
 
     def __init__(self, output_transform: Callable = lambda x: x):
@@ -45,8 +47,19 @@ class EpochOutputStore:
         output = self.output_transform(engine.state.output)
         self.data.append(output)
 
-    def attach(self, engine: Engine) -> None:
+    def store(self, engine: Engine) -> None:
+        """Store `self.data` on `engine.state.{self.name}`"""
+        setattr(engine.state, self.name, self.data)
+
+    def attach(self, engine: Engine, name: Optional[str] = None) -> None:
         """Attaching `reset` method at EPOCH_STARTED and
-        `update` method at ITERATION_COMPLETED."""
+        `update` method at ITERATION_COMPLETED.
+
+        If `name` is passed, will store `self.data` on `engine.state`
+        under `name`.
+        """
         engine.add_event_handler(Events.EPOCH_STARTED, self.reset)
         engine.add_event_handler(Events.ITERATION_COMPLETED, self.update)
+        if name:
+            self.name = name
+            engine.add_event_handler(Events.EPOCH_COMPLETED, self.store)
