@@ -4,6 +4,7 @@ from os import path
 import matplotlib
 import pytest
 import torch
+import torch.nn.functional as F
 from torch import nn
 from torch.optim import SGD
 
@@ -270,7 +271,7 @@ def test_lr_suggestion(lr_finder, to_save, dummy_engine, dataloader):
     assert 1e-4 <= lr_finder.lr_suggestion() <= 10
 
 
-def test_plot(lr_finder, to_save, dummy_engine, dataloader):
+def test_plot_single_param_group(lr_finder, to_save, dummy_engine, dataloader):
 
     with lr_finder.attach(dummy_engine, to_save) as trainer_with_finder:
         trainer_with_finder.run(dataloader)
@@ -293,6 +294,58 @@ def test_plot(lr_finder, to_save, dummy_engine, dataloader):
         skip_end=0, filepath="/nonexisting/dummy.jpg", orientation="landscape", papertype="a4", format="png",
     )
     assert not path.exists("/nonexisting/dummy.jpg")
+
+
+def test_plot_multiple_param_groups(lr_finder, dataloader):
+    class Net(nn.Module):
+        def __init__(self):
+            super(Net, self).__init__()
+            self.fc1 = nn.Linear(10, 20)
+            self.fc2 = nn.Linear(20, 10)
+            self.fc3 = nn.Linear(10, 1)
+
+        def forward(self, x):
+            x = F.relu(self.fc1(x))
+            x = F.relu(self.fc2(x))
+            return self.fc3(x)
+
+    model = Net()
+    optimizer = SGD(
+        [
+            {"params": model.fc1.parameters(), "lr": 4e-1},
+            {"params": model.fc2.parameters(), "lr": 3e-2},
+            {"params": model.fc3.parameters(), "lr": 3e-3},
+        ]
+    )
+
+    trainer = create_supervised_trainer(model, optimizer, nn.MSELoss())
+    to_save = {"model": model, "optimizer": optimizer}
+
+    with lr_finder.attach(trainer, to_save) as trainer_with_finder:
+        trainer_with_finder.run(dataloader)
+
+    # Avoid RuntimeError
+    if torch.tensor(lr_finder._history["loss"]).argmin() < 2:
+        lr_finder._history["loss"].insert(0, 10)
+        lr_finder._history["loss"].insert(0, 100)
+        lr_finder._history["lr"].insert(0, [10, 10, 10])
+        lr_finder._history["lr"].insert(0, [100, 100, 100])
+
+    lr_finder.plot()
+    lr_finder.plot(skip_end=0)
+    lr_finder.plot(skip_end=0, filepath="dummy_muliple_param_groups.jpg")
+    lr_finder.plot(
+        skip_end=0, filepath="dummy_muliple_param_groups.jpg", orientation="landscape", papertype="a4", format="png",
+    )
+    assert path.exists("dummy_muliple_param_groups.jpg")
+    lr_finder.plot(
+        skip_end=0,
+        filepath="/nonexisting/dummy_muliple_param_groups.jpg",
+        orientation="landscape",
+        papertype="a4",
+        format="png",
+    )
+    assert not path.exists("/nonexisting/dummy_muliple_param_groups.jpg")
 
 
 def test_no_matplotlib(no_site_packages, lr_finder):
