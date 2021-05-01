@@ -1,7 +1,7 @@
 import pytest
 
-from ignite.contrib.handlers import EpochOutputStore
 from ignite.engine.engine import Engine, Events
+from ignite.handlers import EpochOutputStore
 
 
 @pytest.fixture
