@@ -21,12 +21,12 @@ class EpochOutputStore:
         eos = EpochOutputStore()
         trainer = create_supervised_trainer(model, optimizer, loss)
         train_evaluator = create_supervised_evaluator(model, metrics)
-        eos.attach(train_evaluator)
+        eos.attach(train_evaluator, 'output')
 
         @trainer.on(Events.EPOCH_COMPLETED)
         def log_training_results(engine):
             train_evaluator.run(train_loader)
-            output = eos.data
+            output = train_evaluator.output
             # do something with output, e.g., plotting
 
     .. versionadded:: 0.4.2
