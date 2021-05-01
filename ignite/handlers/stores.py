@@ -1,4 +1,4 @@
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, List, Optional
 
 from ignite.engine import Engine, Events
 
@@ -16,6 +16,10 @@ class EpochOutputStore:
             transform the :class:`~ignite.engine.engine.Engine`'s
             ``process_function``'s output , e.g., lambda x: x[0]
 
+    Attributes:
+        data: a list of :class:`~ignite.engine.engine.Engine` outputs,
+            optionally transformed by `output_transform`.
+
     Examples::
 
         eos = EpochOutputStore()
@@ -27,6 +31,7 @@ class EpochOutputStore:
         def log_training_results(engine):
             train_evaluator.run(train_loader)
             output = train_evaluator.output
+            # output = [(y_pred0, y0), (y_pred1, y1), ...]
             # do something with output, e.g., plotting
 
     .. versionadded:: 0.4.2
@@ -35,7 +40,7 @@ class EpochOutputStore:
     """
 
     def __init__(self, output_transform: Callable = lambda x: x):
-        self.data = []  # type: List[Union[int, Tuple[int, int]]]
+        self.data = []  # type: List[Any]
         self.output_transform = output_transform
 
     def reset(self) -> None:
