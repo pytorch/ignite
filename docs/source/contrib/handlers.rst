@@ -46,17 +46,6 @@ Time profilers
     BasicTimeProfiler
     HandlersTimeProfiler
 
-Stores
--------
-
-.. currentmodule:: ignite.contrib.handlers.stores
-
-.. autosummary::
-    :nosignatures:
-    :toctree: ../generated
-
-    EpochOutputStore
-
 Loggers
 -------
 

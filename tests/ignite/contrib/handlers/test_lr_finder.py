@@ -80,7 +80,7 @@ def dataloader():
 
 
 @pytest.fixture
-def mnist_dataloader(dirname):
+def mnist_dataloader():
     from torch.utils.data import DataLoader
     from torchvision.datasets import MNIST
     from torchvision.transforms import Compose, Normalize, ToTensor
@@ -88,7 +88,7 @@ def mnist_dataloader(dirname):
     data_transform = Compose([ToTensor(), Normalize((0.1307,), (0.3081,))])
 
     train_loader = DataLoader(
-        MNIST(download=True, root=dirname, transform=data_transform, train=True), batch_size=64, shuffle=True
+        MNIST(download=True, root="/tmp", transform=data_transform, train=True), batch_size=64, shuffle=True
     )
 
     yield train_loader

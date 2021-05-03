@@ -58,6 +58,43 @@ def test__native_dist_model_create_from_backend_bad_config():
     del os.environ["RANK"]
 
 
+@pytest.mark.distributed
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
+def test__native_dist_model_create_from_backend_bad_slurm_config():
+    import os
+    from datetime import timedelta
+
+    os.environ["SLURM_JOB_ID"] = "1"
+
+    with pytest.raises(RuntimeError, match=r"SLURM distributed configuration is missing"):
+        _NativeDistModel.create_from_backend(backend="gloo", timeout=timedelta(seconds=10))
+
+    with pytest.raises(ValueError, match=r"Arguments rank and world_size should not be specified with SLURM"):
+        _NativeDistModel.create_from_backend(
+            backend="gloo", timeout=timedelta(seconds=10), rank=1, init_method="", world_size=1
+        )
+
+    os.environ["SLURM_PROCID"] = "0"
+    os.environ["SLURM_LOCALID"] = "0"
+    os.environ["SLURM_NTASKS"] = "1"
+    os.environ["SLURM_JOB_NODELIST"] = "localhost"
+
+    with pytest.raises(FileNotFoundError, match=r"No such file or directory: 'scontrol'"):
+        _NativeDistModel.create_from_backend(backend="gloo", timeout=timedelta(seconds=10))
+
+    os.environ["RANK"] = "1"
+
+    with pytest.raises(RuntimeError, match=r"Defined env variables"):
+        _NativeDistModel.create_from_backend(backend="gloo", timeout=timedelta(seconds=10))
+
+    del os.environ["SLURM_JOB_ID"]
+    del os.environ["SLURM_PROCID"]
+    del os.environ["SLURM_LOCALID"]
+    del os.environ["SLURM_NTASKS"]
+    del os.environ["SLURM_JOB_NODELIST"]
+    del os.environ["RANK"]
+
+
 def _assert_model(model, true_conf):
 
     assert model.device() == torch.device(true_conf["device"])

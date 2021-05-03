@@ -57,6 +57,11 @@ jobs:
           pip install -r requirements-dev.txt
           python setup.py install
 
+      - name: Download MNIST
+        uses: pytorch-ignite/download-mnist-github-action@master
+        with:
+          target_dir: /tmp
+
       - name: Run Tests
         shell: bash -l {0}
         run: |
