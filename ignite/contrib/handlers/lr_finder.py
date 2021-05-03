@@ -193,7 +193,7 @@ class FastaiLRFinder:
         skip_end: int = 5,
         log_lr: bool = True,
         display_suggestion: bool = True,
-        ax: Any = None,
+        ax: Optional[Any] = None,
         **kwargs: Any,
     ) -> None:
         """Plots the learning rate range test.
