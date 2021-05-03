@@ -283,23 +283,23 @@ def test_plot(lr_finder, to_save, dummy_engine, dataloader):
         lr_finder._history["lr"].insert(0, 100)
 
     lr_finder.plot()
-    axes = lr_finder.plot(skip_end=0)
-    assert axes is not None
-    assert axes.get_xscale() == "log"
-    assert axes.get_xlabel() == "Learning rate"
-    assert axes.get_ylabel() == "Loss"
-    axes.figure.savefig("dummy.jpg")
+    ax = lr_finder.plot(skip_end=0)
+    assert ax is not None
+    assert ax.get_xscale() == "log"
+    assert ax.get_xlabel() == "Learning rate"
+    assert ax.get_ylabel() == "Loss"
+    ax.figure.savefig("dummy.jpg")
     assert path.exists("dummy.jpg")
 
     # Passing axes object
     from matplotlib import pyplot as plt
 
     fig, ax = plt.subplots()
-    lr_finder.plot(skip_end=0, axes=ax)
-    assert axes.get_xscale() == "log"
-    assert axes.get_xlabel() == "Learning rate"
-    assert axes.get_ylabel() == "Loss"
-    axes.figure.savefig("dummy2.jpg")
+    lr_finder.plot(skip_end=0, ax=ax)
+    assert ax.get_xscale() == "log"
+    assert ax.get_xlabel() == "Learning rate"
+    assert ax.get_ylabel() == "Loss"
+    ax.figure.savefig("dummy2.jpg")
     assert path.exists("dummy2.jpg")
 
 

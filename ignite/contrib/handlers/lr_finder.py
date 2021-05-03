@@ -193,7 +193,7 @@ class FastaiLRFinder:
         skip_end: int = 5,
         log_lr: bool = True,
         display_suggestion: bool = True,
-        axes: Any = None,
+        ax: Any = None,
         **kwargs: Any,
     ) -> None:
         """Plots the learning rate range test.
@@ -212,9 +212,14 @@ class FastaiLRFinder:
             log_lr: True to plot the learning rate in a logarithmic
                 scale; otherwise, plotted in a linear scale. Default: True.
             display_suggestion: if True, red dot shows the suggested learning rate.
-            axes: An axes object used for plotting. Default: None.
-            kwargs: optional kwargs passed to ``plt.savefig`` if ``filepath`` is provided.
-                matplotlib method `savefig` to save the plot.
+            ax: Pre-existing axes for the plot. Default: None.
+            kwargs: optional kwargs passed to ``plt.subplots`` if ``ax`` is not provided.
+
+        .. code-block:: python
+        
+            ax = lr_finder.plot(skip_end=0)
+            ax.figure.savefig("output.jpg")
+
         """
         try:
             from matplotlib import pyplot as plt
@@ -235,6 +240,8 @@ class FastaiLRFinder:
         lrs = self._history["lr"]
         losses = self._history["loss"]
 
+        if ax is None:
+            fig, ax = plt.subplots(**kwargs)
         # Check to show the suggested learning rate
         if display_suggestion:
             sug_lr = self.lr_suggestion()
@@ -249,7 +256,6 @@ class FastaiLRFinder:
 
             corresponding_loss = self._history["loss"][int(idx)]
 
-            fig, ax = plt.subplots()
             ax.scatter(
                 sug_lr, corresponding_loss, s=75, marker="o", color="red", zorder=3,
             )
@@ -263,17 +269,15 @@ class FastaiLRFinder:
             losses = losses[skip_start:-skip_end]
 
         # Plot loss as a function of the learning rate
-        if axes is None:
-            f, axes = plt.subplots(**kwargs)
-        axes.plot(lrs, losses)
+        ax.plot(lrs, losses)
         if log_lr:
-            axes.set_xscale("log")
-        axes.set_xlim([lrs[0], lrs[-1]])
-        axes.set_xlabel("Learning rate")
-        axes.set_ylabel("Loss")
+            ax.set_xscale("log")
+        ax.set_xlim([lrs[0], lrs[-1]])
+        ax.set_xlabel("Learning rate")
+        ax.set_ylabel("Loss")
 
         plt.show()
-        return axes
+        return ax
 
     def lr_suggestion(self) -> Any:
         """
