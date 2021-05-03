@@ -216,6 +216,7 @@ class FastaiLRFinder:
             kwargs: optional kwargs passed to ``plt.subplots`` if ``ax`` is not provided.
 
         .. code-block:: python
+
             ax = lr_finder.plot(skip_end=0)
             ax.figure.savefig("output.jpg")
 
