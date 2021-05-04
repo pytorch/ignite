@@ -205,7 +205,9 @@ jobs:
           name: Install dependencies
           command: |
             conda --version
-            conda install -y pytorch torchvision cudatoolkit=11.1 -c pytorch -c conda-forge
+            # We have to use cuda 10.1 on Windows:
+            # https://github.com/pytorch/ignite/issues/1843
+            conda install -y pytorch torchvision cudatoolkit=10.1 -c pytorch
             pip install -r requirements-dev.txt
             pip install .
 
