@@ -4,6 +4,7 @@ from os import path
 import matplotlib
 import pytest
 import torch
+import torch.nn.functional as F
 from torch import nn
 from torch.optim import SGD
 
@@ -36,10 +37,35 @@ class DummyModel(nn.Module):
         return self.net(x)
 
 
+class DummyModelMulipleParamGroups(nn.Module):
+    def __init__(self):
+        super(DummyModelMulipleParamGroups, self).__init__()
+        self.fc1 = nn.Linear(10, 20)
+        self.fc2 = nn.Linear(20, 10)
+        self.fc3 = nn.Linear(10, 10)
+
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        return self.fc3(x)
+
+
 @pytest.fixture
 def model():
     model = DummyModel()
     yield model
+
+
+@pytest.fixture
+def model_single_param_groups():
+    model = DummyModel(out_channels=10)
+    yield model
+
+
+@pytest.fixture
+def model_multiple_param_groups():
+    model_multiple_param_groups = DummyModelMulipleParamGroups()
+    yield model_multiple_param_groups
 
 
 @pytest.fixture
@@ -54,6 +80,18 @@ def optimizer(model):
 
 
 @pytest.fixture
+def optimizer_mulitple_param_groups(model_multiple_param_groups):
+    optimizer_mulitple_param_groups = SGD(
+        [
+            {"params": model_multiple_param_groups.fc1.parameters(), "lr": 4e-1},
+            {"params": model_multiple_param_groups.fc2.parameters(), "lr": 3e-2},
+            {"params": model_multiple_param_groups.fc3.parameters(), "lr": 3e-3},
+        ]
+    )
+    yield optimizer_mulitple_param_groups
+
+
+@pytest.fixture
 def mnist_optimizer(mnist_model):
     yield SGD(mnist_model.parameters(), lr=1e-4, momentum=0.0)
 
@@ -61,6 +99,16 @@ def mnist_optimizer(mnist_model):
 @pytest.fixture
 def to_save(model, optimizer):
     yield {"model": model, "optimizer": optimizer}
+
+
+@pytest.fixture
+def to_save_single_param_groups(model_single_param_groups, optimizer):
+    yield {"model": model_single_param_groups, "optimizer": optimizer}
+
+
+@pytest.fixture
+def to_save_mulitple_param_groups(model_multiple_param_groups, optimizer_mulitple_param_groups):
+    yield {"model": model_multiple_param_groups, "optimizer": optimizer_mulitple_param_groups}
 
 
 @pytest.fixture
@@ -75,8 +123,27 @@ def dummy_engine(model, optimizer):
 
 
 @pytest.fixture
+def dummy_engine_single_param_groups(model_single_param_groups, optimizer):
+    engine_single_param_groups = create_supervised_trainer(model_single_param_groups, optimizer, nn.MSELoss())
+    yield engine_single_param_groups
+
+
+@pytest.fixture
+def dummy_engine_mulitple_param_groups(model_multiple_param_groups, optimizer_mulitple_param_groups):
+    engine_multiple_param_groups = create_supervised_trainer(
+        model_multiple_param_groups, optimizer_mulitple_param_groups, nn.MSELoss()
+    )
+    yield engine_multiple_param_groups
+
+
+@pytest.fixture
 def dataloader():
     yield torch.rand(100, 2, 10)
+
+
+@pytest.fixture
+def dataloader_plot():
+    yield torch.rand(500, 2, 10)
 
 
 @pytest.fixture
@@ -270,17 +337,21 @@ def test_lr_suggestion(lr_finder, to_save, dummy_engine, dataloader):
     assert 1e-4 <= lr_finder.lr_suggestion() <= 10
 
 
-def test_plot(lr_finder, to_save, dummy_engine, dataloader):
+def test_plot_single_param_group(
+    lr_finder, to_save_single_param_groups, dummy_engine_single_param_groups, dataloader_plot
+):
 
-    with lr_finder.attach(dummy_engine, to_save) as trainer_with_finder:
-        trainer_with_finder.run(dataloader)
+    with lr_finder.attach(
+        dummy_engine_single_param_groups, to_save_single_param_groups, end_lr=20, smooth_f=0.04
+    ) as trainer_with_finder:
+        trainer_with_finder.run(dataloader_plot)
 
     # Avoid RuntimeError
-    if torch.tensor(lr_finder._history["loss"]).argmin() < 2:
-        lr_finder._history["loss"].insert(0, 10)
-        lr_finder._history["loss"].insert(0, 100)
-        lr_finder._history["lr"].insert(0, 10)
-        lr_finder._history["lr"].insert(0, 100)
+    # if torch.tensor(lr_finder._history["loss"]).argmin() < 3:
+    #     lr_finder._history["loss"].insert(0, 10)
+    #     lr_finder._history["loss"].insert(0, 100)
+    #     lr_finder._history["lr"].insert(0, 10)
+    #     lr_finder._history["lr"].insert(0, 100)
 
     lr_finder.plot()
     ax = lr_finder.plot(skip_end=0)
@@ -301,6 +372,42 @@ def test_plot(lr_finder, to_save, dummy_engine, dataloader):
     assert ax.get_ylabel() == "Loss"
     ax.figure.savefig("dummy2.jpg")
     assert path.exists("dummy2.jpg")
+
+
+def test_plot_multiple_param_groups(
+    lr_finder, to_save_mulitple_param_groups, dummy_engine_mulitple_param_groups, dataloader_plot
+):
+
+    with lr_finder.attach(
+        dummy_engine_mulitple_param_groups, to_save_mulitple_param_groups, end_lr=20, smooth_f=0.04
+    ) as trainer_with_finder:
+        trainer_with_finder.run(dataloader_plot)
+
+    # Avoid RuntimeError
+    # if torch.tensor(lr_finder._history["loss"]).argmin() < 3:
+    #     lr_finder._history["loss"].insert(0, 10)
+    #     lr_finder._history["loss"].insert(0, 100)
+    #     lr_finder._history["lr"].insert(0, [10, 10, 10])
+    #     lr_finder._history["lr"].insert(0, [100, 100, 100])
+
+    ax = lr_finder.plot(skip_end=0)
+    assert ax is not None
+    assert ax.get_xscale() == "log"
+    assert ax.get_xlabel() == "Learning rate"
+    assert ax.get_ylabel() == "Loss"
+    ax.figure.savefig("dummy_muliple_param_groups.jpg")
+    assert path.exists("dummy_muliple_param_groups.jpg")
+
+    # Passing axes object
+    from matplotlib import pyplot as plt
+
+    fig, ax = plt.subplots()
+    lr_finder.plot(skip_end=0, ax=ax)
+    assert ax.get_xscale() == "log"
+    assert ax.get_xlabel() == "Learning rate"
+    assert ax.get_ylabel() == "Loss"
+    ax.figure.savefig("dummy_muliple_param_groups2.jpg")
+    assert path.exists("dummy_muliple_param_groups2.jpg")
 
 
 def test_no_matplotlib(no_site_packages, lr_finder):
