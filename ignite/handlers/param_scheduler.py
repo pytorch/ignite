@@ -13,7 +13,6 @@ from torch.optim.lr_scheduler import _LRScheduler
 from torch.optim.optimizer import Optimizer
 
 from ignite.engine import Engine
-from ignite.utils import deprecated
 
 
 class ParamScheduler(metaclass=ABCMeta):
@@ -33,9 +32,9 @@ class ParamScheduler(metaclass=ABCMeta):
         More precisely, whatever the state of the optimizer (newly created or used by another scheduler) the scheduler
         sets defined absolute values.
 
+    .. versionadded:: 0.5.0
     """
 
-    @deprecated("0.4.4", "0.6.0", ("Please use instead: ParamScheduler from ignite.handlers.param_scheduler",))
     def __init__(
         self,
         optimizer: Optimizer,
@@ -330,7 +329,7 @@ class LinearCyclicalScheduler(CyclicalScheduler):
 
     .. code-block:: python
 
-        from ignite.contrib.handlers.param_scheduler import LinearCyclicalScheduler
+        from ignite.handlers.param_scheduler import LinearCyclicalScheduler
 
         scheduler = LinearCyclicalScheduler(optimizer, 'lr', 1e-3, 1e-1, len(train_loader))
         trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
@@ -376,7 +375,7 @@ class CosineAnnealingScheduler(CyclicalScheduler):
 
     .. code-block:: python
 
-        from ignite.contrib.handlers.param_scheduler import CosineAnnealingScheduler
+        from ignite.handlers.param_scheduler import CosineAnnealingScheduler
 
         scheduler = CosineAnnealingScheduler(optimizer, 'lr', 1e-1, 1e-3, len(train_loader))
         trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
@@ -386,8 +385,8 @@ class CosineAnnealingScheduler(CyclicalScheduler):
 
     .. code-block:: python
 
-        from ignite.contrib.handlers.param_scheduler import CosineAnnealingScheduler
-        from ignite.contrib.handlers.param_scheduler import LinearCyclicalScheduler
+        from ignite.handlers.param_scheduler import CosineAnnealingScheduler
+        from ignite.handlers.param_scheduler import LinearCyclicalScheduler
 
         optimizer = SGD(
             [
@@ -429,9 +428,9 @@ class ConcatScheduler(ParamScheduler):
 
     .. code-block:: python
 
-        from ignite.contrib.handlers.param_scheduler import ConcatScheduler
-        from ignite.contrib.handlers.param_scheduler import LinearCyclicalScheduler
-        from ignite.contrib.handlers.param_scheduler import CosineAnnealingScheduler
+        from ignite.handlers.param_scheduler import ConcatScheduler
+        from ignite.handlers.param_scheduler import LinearCyclicalScheduler
+        from ignite.handlers.param_scheduler import CosineAnnealingScheduler
 
         scheduler_1 = LinearCyclicalScheduler(optimizer, "lr", start_value=0.1, end_value=0.5, cycle_size=60)
         scheduler_2 = CosineAnnealingScheduler(optimizer, "lr", start_value=0.5, end_value=0.01, cycle_size=60)
@@ -656,7 +655,7 @@ class LRScheduler(ParamScheduler):
 
     .. code-block:: python
 
-        from ignite.contrib.handlers.param_scheduler import LRScheduler
+        from ignite.handlers.param_scheduler import LRScheduler
         from torch.optim.lr_scheduler import StepLR
 
         step_scheduler = StepLR(optimizer, step_size=3, gamma=0.1)
@@ -748,9 +747,6 @@ class LRScheduler(ParamScheduler):
             return values
 
 
-@deprecated(
-    "0.4.4", "0.6.0", ("Please use instead: create_lr_scheduler_with_warmup from ignite.handlers.param_scheduler",),
-)
 def create_lr_scheduler_with_warmup(
     lr_scheduler: Union[ParamScheduler, _LRScheduler],
     warmup_start_value: float,
@@ -989,9 +985,6 @@ class ParamGroupScheduler:
 
     """
 
-    @deprecated(
-        "0.4.4", "0.6.0", ("Please use instead: ParamGroupScheduler from ignite.handlers.param_scheduler",),
-    )
     def __init__(self, schedulers: List[ParamScheduler], names: Optional[List[str]] = None, save_history: bool = False):
         if not isinstance(schedulers, Sequence):
             raise TypeError(f"Argument schedulers should be a list/tuple, but given {schedulers}")
@@ -1088,7 +1081,7 @@ class ParamGroupScheduler:
             num_events: number of events during the simulation.
             schedulers: lr_scheduler object to wrap.
             kwargs: kwargs passed to construct an instance of
-                :class:`ignite.contrib.handlers.param_scheduler.ParamGroupScheduler`.
+                :class:`ignite.handlers.param_scheduler.ParamGroupScheduler`.
 
         Returns:
             event_index, value
