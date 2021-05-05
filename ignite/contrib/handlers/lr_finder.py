@@ -193,7 +193,6 @@ class FastaiLRFinder:
         skip_end: int = 5,
         log_lr: bool = True,
         display_suggestion: bool = True,
-        display_legends: bool = True,
         filepath: Optional[str] = None,
         **kwargs: Any,
     ) -> None:
@@ -213,7 +212,6 @@ class FastaiLRFinder:
             log_lr: True to plot the learning rate in a logarithmic
                 scale; otherwise, plotted in a linear scale. Default: True.
             display_suggestion: if True, red dot shows the suggested learning rate.
-            display_legends: if True, the legends of the suggested learning rate displayed.
             filepath: The file name to save the plot to. Default: None.
             kwargs: optional kwargs passed to ``plt.savefig`` if ``filepath`` is provided.
                 matplotlib method `savefig` to save the plot.
@@ -238,7 +236,8 @@ class FastaiLRFinder:
         lrs = self._history["lr"]
         losses = self._history["loss"]
 
-        legends = ["suggested lr for param_groups 0"]
+        num_groups = len(lrs[0]) if isinstance(lrs[0], list) else 1
+        legends = [f"suggested lr for param_groups {i}" for i in range(num_groups)]
 
         # Check to show the suggested learning rate
         if display_suggestion:
@@ -256,16 +255,13 @@ class FastaiLRFinder:
             fig, ax = plt.subplots()
 
             # Check if optimizer has multiple param_groups
-            if isinstance(sug_lr, list):
-                for lr in sug_lr:
-                    ax.scatter(
-                        lr, corresponding_loss, s=75, marker="o", zorder=3,
-                    )
-                # Edit legends
-                legends = ["suggested lr for param_groups " + str(i) for i in range(len(sug_lr))]
-            else:
+            if not isinstance(sug_lr, list):
+                sug_lr = [
+                    sug_lr,
+                ]
+            for lr in sug_lr:
                 ax.scatter(
-                    sug_lr, corresponding_loss, s=75, marker="o", color="red", zorder=3,
+                    lr, corresponding_loss, color="red" if len(sug_lr) == 1 else None, s=75, marker="o", zorder=3,
                 )
 
         # handle skip_end=0 properly
@@ -276,15 +272,14 @@ class FastaiLRFinder:
             lrs = lrs[skip_start:-skip_end]
             losses = losses[skip_start:-skip_end]
 
-        # Check to display legends
-        if display_legends:
-            plt.legend(legends)
+        plt.legend(legends)
         # Plot loss as a function of the learning rate
         plt.plot(lrs, losses)
         if log_lr:
             plt.xscale("log")
-        if not isinstance(lrs[0], list):
-            plt.xlim([lrs[0], lrs[-1]])
+        lr_min = min(lrs[0]) if isinstance(lrs[0], list) else lrs[0]
+        lr_max = max(lrs[-1]) if isinstance(lrs[-1], list) else lrs[-1]
+        plt.xlim([lr_min, lr_max])
         plt.xlabel("Learning rate")
         plt.ylabel("Loss")
         if filepath is not None:
@@ -306,7 +301,7 @@ class FastaiLRFinder:
         min_loss_idx = torch.tensor(loss).argmin()
         # Ignore the increasing part of the curve
         decreasing_losses = self._history["loss"][: int(min_loss_idx.item()) + 1]
-        if len(decreasing_losses) == 1:
+        if len(decreasing_losses) < 3:
             raise RuntimeError("FastaiLRFinder got unexpected curve shape, the curve should be somehow U-shaped")
         losses = torch.tensor(decreasing_losses)
         grads = torch.tensor([0.5 * (losses[i + 1] - losses[i - 1]) for i in range(1, len(losses) - 1)])
