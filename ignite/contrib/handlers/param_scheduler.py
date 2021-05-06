@@ -13,7 +13,6 @@ from torch.optim.lr_scheduler import _LRScheduler
 from torch.optim.optimizer import Optimizer
 
 from ignite.engine import Engine
-from ignite.utils import deprecated
 
 
 class ParamScheduler(metaclass=ABCMeta):
@@ -35,7 +34,6 @@ class ParamScheduler(metaclass=ABCMeta):
 
     """
 
-    @deprecated("0.4.4", "0.6.0", ("Please use instead: ParamScheduler from ignite.handlers.param_scheduler",))
     def __init__(
         self,
         optimizer: Optimizer,
@@ -748,9 +746,6 @@ class LRScheduler(ParamScheduler):
             return values
 
 
-@deprecated(
-    "0.4.4", "0.6.0", ("Please use instead: create_lr_scheduler_with_warmup from ignite.handlers.param_scheduler",),
-)
 def create_lr_scheduler_with_warmup(
     lr_scheduler: Union[ParamScheduler, _LRScheduler],
     warmup_start_value: float,
@@ -989,9 +984,6 @@ class ParamGroupScheduler:
 
     """
 
-    @deprecated(
-        "0.4.4", "0.6.0", ("Please use instead: ParamGroupScheduler from ignite.handlers.param_scheduler",),
-    )
     def __init__(self, schedulers: List[ParamScheduler], names: Optional[List[str]] = None, save_history: bool = False):
         if not isinstance(schedulers, Sequence):
             raise TypeError(f"Argument schedulers should be a list/tuple, but given {schedulers}")
