@@ -310,7 +310,7 @@ class FastaiLRFinder:
         min_grad_idx = grads.argmin() + 1
         return self._history["lr"][int(min_grad_idx)]
 
-    def apply_suggested_lr(self, optimizer: Optimizer) -> Optimizer:
+    def apply_suggested_lr(self, optimizer: Optimizer) -> None:
         """
         Applying the suggested learning rate(s) on the given optimizer.
 
