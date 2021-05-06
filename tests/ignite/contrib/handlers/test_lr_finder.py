@@ -149,7 +149,7 @@ def mnist_dataloader():
     data_transform = Compose([ToTensor(), Normalize((0.1307,), (0.3081,))])
 
     train_loader = DataLoader(
-        MNIST(download=True, root="/tmp", transform=data_transform, train=True), batch_size=64, shuffle=True
+        MNIST(download=True, root="/tmp", transform=data_transform, train=True), batch_size=256, shuffle=True
     )
 
     yield train_loader
