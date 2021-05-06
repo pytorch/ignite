@@ -309,7 +309,7 @@ def test_detach_terminates(lr_finder, to_save, dummy_engine, dataloader, recwarn
 
     dummy_engine.run(dataloader, max_epochs=3)
     assert dummy_engine.state.epoch == 3
-    assert len(recwarn) == 2
+    assert len(recwarn) == 1
 
 
 def test_lr_suggestion_unexpected_curve(lr_finder, to_save, dummy_engine, dataloader):
