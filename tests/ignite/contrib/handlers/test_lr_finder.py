@@ -317,12 +317,6 @@ def test_lr_suggestion_unexpected_curve(lr_finder, to_save, dummy_engine, datalo
         lr_finder.lr_suggestion()
 
 
-def test_no_matplotlib(no_site_packages, lr_finder):
-
-    with pytest.raises(RuntimeError, match=r"This method requires matplotlib to be installed"):
-        lr_finder.plot()
-
-
 def test_lr_suggestion_single_param_group(lr_finder):  # , to_save, dummy_engine, dataloader):
 
     noise = 0.05
@@ -352,6 +346,20 @@ def test_lr_suggestion_multiple_param_groups(lr_finder):
     # Ignoring the increasing part of the curve in the assertion.
     assert 0.1 <= suggested_lrs[0].item() <= 6
     assert 0.1 <= suggested_lrs[1].item() <= 6
+
+
+def test_mnist_lr_suggestion(lr_finder, mnist_to_save, dummy_engine_mnist, mnist_dataloader):
+
+    max_iters = 50
+
+    with lr_finder.attach(dummy_engine_mnist, mnist_to_save) as trainer_with_finder:
+
+        with trainer_with_finder.add_event_handler(
+            Events.ITERATION_COMPLETED(once=max_iters), lambda _: trainer_with_finder.terminate()
+        ):
+            trainer_with_finder.run(mnist_dataloader)
+
+    assert 1e-4 <= lr_finder.lr_suggestion() <= 10
 
 
 def test_apply_suggested_lr_unmatched_optimizers(
@@ -396,6 +404,12 @@ def test_apply_suggested_lr_multiple_param_groups(
 
     for i in range(len(sug_lr)):
         assert optimizer_multiple_param_groups.param_groups[i]["lr"] == sug_lr[i]
+
+
+def test_no_matplotlib(no_site_packages, lr_finder):
+
+    with pytest.raises(RuntimeError, match=r"This method requires matplotlib to be installed"):
+        lr_finder.plot()
 
 
 def test_plot_single_param_group(lr_finder, mnist_to_save, dummy_engine_mnist, mnist_dataloader):
@@ -451,17 +465,3 @@ def test_plot_multiple_param_groups(
     assert ax.get_ylabel() == "Loss"
     ax.figure.savefig("dummy_muliple_param_groups2.jpg")
     assert path.exists("dummy_muliple_param_groups2.jpg")
-
-
-def test_mnist_lr_suggestion(lr_finder, mnist_to_save, dummy_engine_mnist, mnist_dataloader):
-
-    max_iters = 50
-
-    with lr_finder.attach(dummy_engine_mnist, mnist_to_save) as trainer_with_finder:
-
-        with trainer_with_finder.add_event_handler(
-            Events.ITERATION_COMPLETED(once=max_iters), lambda _: trainer_with_finder.terminate()
-        ):
-            trainer_with_finder.run(mnist_dataloader)
-
-    assert 1e-4 <= lr_finder.lr_suggestion() <= 10
