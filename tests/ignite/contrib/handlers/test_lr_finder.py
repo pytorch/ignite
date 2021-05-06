@@ -323,18 +323,48 @@ def test_no_matplotlib(no_site_packages, lr_finder):
         lr_finder.plot()
 
 
-def test_lr_suggestion(lr_finder, to_save, dummy_engine, dataloader):
-    with lr_finder.attach(dummy_engine, to_save) as trainer_with_finder:
-        trainer_with_finder.run(dataloader)
+def test_lr_suggestion_single_param_group(lr_finder):  # , to_save, dummy_engine, dataloader):
 
-    # Avoid RuntimeError
-    if torch.tensor(lr_finder._history["loss"]).argmin() < 2:
-        lr_finder._history["loss"].insert(0, 10)
-        lr_finder._history["loss"].insert(0, 100)
-        lr_finder._history["lr"].insert(0, 10)
-        lr_finder._history["lr"].insert(0, 100)
+    noise = 0.05
+    lr_finder._history["loss"] = torch.linspace(-5.0, 5.0) ** 2 + noise
+    lr_finder._history["lr"] = torch.linspace(0.01, 10)
 
-    assert 1e-4 <= lr_finder.lr_suggestion() <= 10
+    # lr_finder.lr_suggestion() is supposed to return a value, but as
+    # we assign loss and lr to tensors, instead of lists, it will return tensors
+    suggested_lr = lr_finder.lr_suggestion()
+
+    # Ignoring the increasing part of the curve in the assertion.
+    assert 0.1 <= suggested_lr.item() <= 6
+
+
+def test_lr_suggestion_multiple_param_groups(lr_finder):
+    import numpy as np
+
+    noise = 0.06
+    lr_finder._history["loss"] = torch.tensor(np.linspace(-5.0, 5, num=50) ** 2 + noise)
+    # 2 param_groups
+    lr_finder._history["lr"] = torch.tensor(np.linspace(0.01, 10, num=100)).reshape(50, 2)
+
+    # lr_finder.lr_suggestion() is supposed to return a list of values,
+    # but as we assign loss and lr to tensors, instead of lists, it will return tensors
+    suggested_lrs = lr_finder.lr_suggestion()
+
+    # Ignoring the increasing part of the curve in the assertion.
+    assert 0.1 <= suggested_lrs[0].item() <= 6
+    assert 0.1 <= suggested_lrs[1].item() <= 6
+
+
+def test_apply_suggested_lr_unmatched_optimizers(
+    lr_finder, mnist_to_save, dummy_engine_mnist, optimizer_multiple_param_groups, mnist_dataloader
+):
+
+    with lr_finder.attach(dummy_engine_mnist, mnist_to_save) as trainer_with_finder:
+        trainer_with_finder.run(mnist_dataloader)
+
+    sug_lr = lr_finder.lr_suggestion()
+
+    with pytest.raises(RuntimeError, match=r"The number of parameter groups does not match"):
+        lr_finder.apply_suggested_lr(optimizer_multiple_param_groups)
 
 
 def test_apply_suggested_lr_single_param_groups(
@@ -345,9 +375,9 @@ def test_apply_suggested_lr_single_param_groups(
         trainer_with_finder.run(mnist_dataloader)
 
     sug_lr = lr_finder.lr_suggestion()
-    new_optimzer = lr_finder.apply_suggested_lr(mnist_optimizer)
+    lr_finder.apply_suggested_lr(mnist_optimizer)
 
-    assert new_optimzer.param_groups[0]["lr"] == sug_lr
+    assert mnist_optimizer.param_groups[0]["lr"] == sug_lr
 
 
 def test_apply_suggested_lr_multiple_param_groups(
@@ -362,10 +392,10 @@ def test_apply_suggested_lr_multiple_param_groups(
         trainer_with_finder.run(dataloader)
 
     sug_lr = lr_finder.lr_suggestion()
-    new_optimizer = lr_finder.apply_suggested_lr(optimizer_multiple_param_groups)
+    lr_finder.apply_suggested_lr(optimizer_multiple_param_groups)
 
     for i in range(len(sug_lr)):
-        assert new_optimizer.param_groups[i]["lr"] == sug_lr[i]
+        assert optimizer_multiple_param_groups.param_groups[i]["lr"] == sug_lr[i]
 
 
 def test_plot_single_param_group(lr_finder, mnist_to_save, dummy_engine_mnist, mnist_dataloader):
