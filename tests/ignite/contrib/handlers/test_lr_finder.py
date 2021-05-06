@@ -348,7 +348,7 @@ def test_lr_suggestion_multiple_param_groups(lr_finder):
     assert 0.1 <= suggested_lrs[1].item() <= 6
 
 
-def test_mnist_lr_suggestion(lr_finder, mnist_to_save, dummy_engine_mnist, mnist_dataloader):
+def test_lr_suggestionmnist(lr_finder, mnist_to_save, dummy_engine_mnist, mnist_dataloader):
 
     max_iters = 50
 
