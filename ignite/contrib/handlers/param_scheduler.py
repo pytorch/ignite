@@ -1,3 +1,8 @@
+""" ``ignite.contrib.handlers.param_scheduler`` was moved to ``ignite.handlers.param_scheduler``.
+Note:
+    ``ignite.contrib.handlers.param_scheduler`` was moved to ``ignite.handlers.param_scheduler``.
+    Please refer to :mod:`~ignite.handlers.param_scheduler`.
+"""
 import warnings
 
 removed_in = "0.6.0"
@@ -28,3 +33,12 @@ __all__ = [
     "PiecewiseLinear",
     "create_lr_scheduler_with_warmup",
 ]
+
+ConcatScheduler = ConcatScheduler
+CosineAnnealingScheduler = CosineAnnealingScheduler
+LinearCyclicalScheduler = LinearCyclicalScheduler
+LRScheduler = LRScheduler
+ParamGroupScheduler = ParamGroupScheduler
+ParamScheduler = ParamScheduler
+PiecewiseLinear = PiecewiseLinear
+create_lr_scheduler_with_warmup = create_lr_scheduler_with_warmup
