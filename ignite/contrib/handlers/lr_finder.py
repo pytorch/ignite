@@ -320,23 +320,22 @@ class FastaiLRFinder:
         Args:
             optimizer: the optimizer to apply the suggested learning rate(s) on.
 
-        Returns:
-                The optimizer with the new learning rate(s).
         """
         sug_lr = self.lr_suggestion()
-        if isinstance(sug_lr, list):
-            if len(sug_lr) != len(optimizer.param_groups):
-                raise RuntimeError(
-                    "Applying the suggested learning rate can't be done, the optimizers are not the same"
-                )
-            i = 0
-            for lr in sug_lr:
-                optimizer.param_groups[i]["lr"] = lr
-                i += 1
-        else:
-            optimizer.param_groups[0]["lr"] = sug_lr
+        if not isinstance(sug_lr, list):
+            sug_lr = [
+                sug_lr,
+            ]
 
-        return optimizer
+        if len(sug_lr) != len(optimizer.param_groups):
+            raise RuntimeError(
+                "The number of parameter groups does not match between "
+                "given optimizer and the one used for estimating the "
+                f"learning rate: {len(sug_lr)} vs {len(optimizer.param_groups)}"
+            )
+
+        for i, lr in enumerate(sug_lr):
+            optimizer.param_groups[i]["lr"] = lr
 
     @contextlib.contextmanager
     def attach(
