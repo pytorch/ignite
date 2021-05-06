@@ -13,6 +13,7 @@ from torch.optim.lr_scheduler import _LRScheduler
 from torch.optim.optimizer import Optimizer
 
 from ignite.engine import Engine
+from ignite.utils import deprecated
 
 
 class ParamScheduler(metaclass=ABCMeta):
@@ -34,6 +35,7 @@ class ParamScheduler(metaclass=ABCMeta):
 
     """
 
+    @deprecated("0.4.4", "0.6.0")
     def __init__(
         self,
         optimizer: Optimizer,
