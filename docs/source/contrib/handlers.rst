@@ -4,8 +4,69 @@ ignite.contrib.handlers
 Contribution module of handlers
 
 
-Parameter scheduler
+Contrib parameter scheduler
 -------------------
 .. deprecated:: 0.4.4
    Use :py:mod:`ignite.contrib.param_scheduler` instead, will be removed in version 0.6.0.
    See :ref:`param-scheduler-label`.
+
+LR finder
+---------
+
+.. currentmodule:: ignite.contrib.handlers.lr_finder
+
+.. autosummary::
+    :nosignatures:
+    :toctree: ../generated
+
+    FastaiLRFinder
+
+Time profilers
+---------------
+
+.. currentmodule:: ignite.contrib.handlers.time_profilers
+
+.. autosummary::
+    :nosignatures:
+    :toctree: ../generated
+
+    BasicTimeProfiler
+    HandlersTimeProfiler
+
+Loggers
+-------
+
+.. currentmodule:: ignite.contrib.handlers
+
+.. autosummary::
+    :nosignatures:
+    :toctree: ../generated
+    :recursive:
+
+    base_logger
+    clearml_logger
+    mlflow_logger
+    neptune_logger
+    polyaxon_logger
+    tensorboard_logger
+    tqdm_logger
+    trains_logger
+    visdom_logger
+    wandb_logger
+
+.. seealso::
+
+    Below are a comprehensive list of examples of various loggers.
+
+    * See `tensorboardX mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_tensorboard_logger.py>`_
+      and `CycleGAN and EfficientNet notebooks <https://github.com/pytorch/ignite/tree/master/examples/notebooks>`_ for detailed usage.
+
+    * See `visdom mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_visdom_logger.py>`_ for detailed usage.
+
+    * See `neptune mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_neptune_logger.py>`_ for detailed usage.
+
+    * See `tqdm mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_tqdm_logger.py>`_ for detailed usage.
+
+    * See `wandb mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_wandb_logger.py>`_ for detailed usage.
+
+    * See `clearml mnist example <https://github.com/pytorch/ignite/blob/master/examples/contrib/mnist/mnist_with_clearml_logger.py>`_ for detailed usage.
