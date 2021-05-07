@@ -28,6 +28,8 @@ Complete list of handlers
     checkpoint.BaseSaveHandler
     param_scheduler.ParamScheduler
 
+.. _param-scheduler-label:
+
 Parameter scheduler
 -------------------
 
