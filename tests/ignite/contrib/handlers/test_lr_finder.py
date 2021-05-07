@@ -327,8 +327,7 @@ def test_lr_suggestion_single_param_group(lr_finder):  # , to_save, dummy_engine
     # we assign loss and lr to tensors, instead of lists, it will return tensors
     suggested_lr = lr_finder.lr_suggestion()
 
-    # Ignoring the increasing part of the curve in the assertion.
-    assert 0.1 <= suggested_lr.item() <= 6
+    assert pytest.approx(suggested_lr.item()) == 0.110909089
 
 
 def test_lr_suggestion_multiple_param_groups(lr_finder):
@@ -343,9 +342,8 @@ def test_lr_suggestion_multiple_param_groups(lr_finder):
     # but as we assign loss and lr to tensors, instead of lists, it will return tensors
     suggested_lrs = lr_finder.lr_suggestion()
 
-    # Ignoring the increasing part of the curve in the assertion.
-    assert 0.1 <= suggested_lrs[0].item() <= 6
-    assert 0.1 <= suggested_lrs[1].item() <= 6
+    assert pytest.approx(suggested_lrs[0].item()) == 0.21181818
+    assert pytest.approx(suggested_lrs[1].item()) == 0.31272727
 
 
 def test_lr_suggestion_mnist(lr_finder, mnist_to_save, dummy_engine_mnist, mnist_dataloader):
@@ -359,7 +357,7 @@ def test_lr_suggestion_mnist(lr_finder, mnist_to_save, dummy_engine_mnist, mnist
         ):
             trainer_with_finder.run(mnist_dataloader)
 
-    assert 1e-4 <= lr_finder.lr_suggestion() <= 10
+    assert 1e-4 <= lr_finder.lr_suggestion() <= 2
 
 
 def test_apply_suggested_lr_unmatched_optimizers(
