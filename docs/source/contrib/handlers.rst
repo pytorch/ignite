@@ -4,12 +4,13 @@ ignite.contrib.handlers
 Contribution module of handlers
 
 
-Contrib parameter scheduler
----------------------------
+Parameter scheduler [deprecated]
+--------------------------------
 
 .. deprecated:: 0.4.4
-   Use :py:mod:`ignite.contrib.param_scheduler` instead, will be removed in version 0.6.0.
-   See :ref:`param-scheduler-label`.
+   Use :py:mod:`ignite.handlers.param_scheduler` instead, will be removed in version 0.6.0.
+
+   Was moved to :ref:`param-scheduler-label`.
 
 LR finder
 ---------
