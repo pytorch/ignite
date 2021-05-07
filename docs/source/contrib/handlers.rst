@@ -8,7 +8,7 @@ Parameter scheduler [deprecated]
 --------------------------------
 
 .. deprecated:: 0.4.4
-   Use :py:mod:`ignite.handlers.param_scheduler` instead, will be removed in version 0.6.0.
+   Use :class:`~ignite.handlers.param_scheduler.ParamScheduler` instead, will be removed in version 0.6.0.
 
    Was moved to :ref:`param-scheduler-label`.
 
