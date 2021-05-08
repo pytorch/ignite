@@ -1,0 +1,805 @@
+
+
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="author" content="PyTorch-Ignite Contributors">
+  <meta name="creator" content="PyTorch-Ignite Contributors">
+  <meta name="publisher" content="PyTorch-Ignite Contributors">
+  <meta name="generator" content="Sphinx 3.4.3">
+  <meta name="description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+  <meta name="keywords" content="pytorch, pytorch ignite, ignite, engine, events, handlers, metrics">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#ee4c2c">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@pytorch_ignite">
+  <meta name="twitter:creator" content="@pytorch_ignite">
+  <meta name="twitter:description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+  <meta name="twitter:title" content="Ignite Your Networks! &mdash; PyTorch-Ignite v0.4.4.post1 Documentation">
+  <meta name="twitter:image" content="https://raw.githubusercontent.com/pytorch/ignite/master/assets/logo/ignite_logo.png">
+  <meta name="twitter:image:alt" content="PyTorch-Ignite logo">
+
+  <meta property="og:title" content="Ignite Your Networks! &mdash; PyTorch-Ignite v0.4.4.post1 Documentation">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://pytorch.org/ignite/">
+  <meta property="og:site_name" content="PyTorch-Ignite">
+  <meta property="og:image" content="https://raw.githubusercontent.com/pytorch/ignite/master/assets/logo/ignite_logo.png">
+  <meta property="og:image:alt" content="PyTorch-Ignite logo">
+  <meta property="og:description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+
+  
+  <title>Ignite Your Networks! &mdash; PyTorch-Ignite v0.4.4.post1 Documentation</title>
+  
+
+  
+  
+    <link rel="shortcut icon" type="image/svg+xml" href="_static/ignite_logomark.svg"/>
+  
+  
+  
+    <link rel="canonical" href="https://pytorch.org/ignite/index.html"/>
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="preload" href="_static/css/theme.css" as="style" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="_static/pygments.css" type="text/css" /> -->
+  <link rel="preload" href="_static/css/ignite_theme.css" as="style" />
+  <link rel="stylesheet" href="_static/css/ignite_theme.css" type="text/css" />
+  <link rel="preload" href="https://cdn.jsdelivr.net/npm/@docsearch/css@1.0.0-alpha.28/dist/style.min.css" as="style" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@1.0.0-alpha.28/dist/style.min.css" type="text/css" />
+    <link rel="author" title="About these documents" href="about.html" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Quick start" href="quickstart.html" /> 
+
+  <!-- katex links / this needs to be loaded before fonts.html -->
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.13.0/dist/katex.min.css" crossorigin="anonymous">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.13.0/dist/katex.min.js" crossorigin="anonymous"></script>
+
+<!-- Preload the theme fonts -->
+
+<link rel="preload" href="_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="_static/fonts/IBMPlexMono/IBMPlexMono-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
+<!-- Preload the katex fonts -->
+
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.0/dist/fonts/KaTeX_Math-Italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.0/dist/fonts/KaTeX_Main-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.0/dist/fonts/KaTeX_Main-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.0/dist/fonts/KaTeX_Size1-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.0/dist/fonts/KaTeX_Size4-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.0/dist/fonts/KaTeX_Size2-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.0/dist/fonts/KaTeX_Size3-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.0/dist/fonts/KaTeX_Caligraphic-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+</head>
+
+<div class="container-fluid header-holder tutorials-header" id="header-holder">
+  <div class="container">
+
+    <a class="header-logo" href="https://pytorch.org/ignite" aria-label="PyTorch-Ignite"></a>
+
+    <div class="header-container">
+
+      <div class="main-menu">
+        <ul>
+          <li>
+            <a href="quickstart.html">Quickstart</a>
+          </li>
+
+          <li>
+            <a href="concepts.html">Concepts</a>
+          </li>
+
+          <li>
+            <a href="examples.html">Examples</a>
+          </li>
+
+          <li>
+            <a href="faq.html">FAQ</a>
+          </li>
+
+          <li>
+            <a href="https://github.com/pytorch/ignite" target="_blank" rel="noopener noreferrer">GitHub</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch.org/ignite/master/about.html">About us</a> 
+          </li>
+
+        </ul>
+      </div>
+
+      <!-- <a class="main-menu-open-button" href="#" data-behavior="open-mobile-menu"></a> -->
+    </div>
+
+  </div>
+</div>
+
+
+<body class="pytorch-body">
+
+   
+
+    
+
+    <div class="table-of-contents-link-wrapper">
+      <span>Table of Contents</span>
+      <div class="toggle-table-of-contents" data-behavior="toggle-table-of-contents"></div>
+    </div>
+
+    <nav data-toggle="wy-nav-shift" class="pytorch-left-menu" id="pytorch-left-menu">
+      <div class="pytorch-side-scroll">
+        <div class="pytorch-menu pytorch-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          <div class="pytorch-left-menu-search">
+            
+
+            
+              
+              
+                <div class="version">
+                  v0.4.4.post1
+                </div>
+              
+            
+
+            <div id="docsearch"></div>
+
+            
+          </div>
+
+          
+            
+            
+              
+            
+            
+              <p><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="concepts.html">Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
+</ul>
+<p><span class="caption-text">Package Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="engine.html">ignite.engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="handlers.html">ignite.handlers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="metrics.html">ignite.metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distributed.html">ignite.distributed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="exceptions.html">ignite.exceptions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">ignite.utils</a></li>
+</ul>
+<p><span class="caption-text">Contrib Package Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="contrib/engines.html">ignite.contrib.engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contrib/metrics.html">ignite.contrib.metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contrib/handlers.html">ignite.contrib.handlers</a></li>
+</ul>
+<p><span class="caption-text">Team</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="about.html">About us</a></li>
+<li class="toctree-l1"><a class="reference internal" href="governance.html">PyTorch-Ignite governance</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+
+      <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: v0.4.4.post1
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="v0.1.1/index.html">v0.1.1</a></dd>
+            <dd><a href="v0.1.2/index.html">v0.1.2</a></dd>
+            <dd><a href="v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="v0.2.1/index.html">v0.2.1</a></dd>
+            <dd><a href="v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="v0.4.0.post1/index.html">v0.4.0.post1</a></dd>
+            <dd><a href="v0.4.1/index.html">v0.4.1</a></dd>
+            <dd><a href="v0.4.2/index.html">v0.4.2</a></dd>
+            <dd><a href="v0.4.3/index.html">v0.4.3</a></dd>
+            <dd><a href="v0.4.4.post1/index.html">v0.4.4.post1</a></dd>
+            <dd><a href="v0.4rc.0.post1/index.html">v0.4rc.0.post1</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="master/index.html">master</a></dd>
+        </dl>
+    </div>
+</div>
+
+    </nav>
+
+    <div class="pytorch-container">
+      <div class="pytorch-page-level-bar" id="pytorch-page-level-bar">
+        <div class="pytorch-breadcrumbs-wrapper">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="pytorch-breadcrumbs">
+    
+      <li>
+        <a href="#">
+          
+            Docs
+          
+        </a> &gt;
+      </li>
+
+        
+      <li>Ignite Your Networks!</li>
+    
+    
+      <li class="pytorch-breadcrumbs-aside">
+        
+            
+            <a href="_sources/index.rst.txt" rel="nofollow"><img src="_static/images/view-page-source-icon.svg"></a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+</div>
+        </div>
+
+        <div class="pytorch-shortcuts-wrapper" id="pytorch-shortcuts-wrapper">
+          Shortcuts
+        </div>
+      </div>
+
+      <section data-toggle="wy-nav-shift" id="pytorch-content-wrap" class="pytorch-content-wrap">
+        <div class="pytorch-content-left">
+
+        
+          
+          <div class="rst-content">
+          
+            <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
+             <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
+              
+  <section id="ignite-your-networks">
+<h1>Ignite Your Networks!<a class="headerlink" href="#ignite-your-networks" title="Permalink to this headline">#</a></h1>
+<p><a class="reference internal" href="#module-ignite" title="ignite"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ignite</span></code></a> is a high-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.</p>
+<a href="https://colab.research.google.com/github/pytorch/ignite/blob/master/assets/tldr/teaser.ipynb">
+    <img
+        src="https://raw.githubusercontent.com/pytorch/ignite/master/assets/tldr/pytorch-ignite-teaser.gif"
+        style="width: auto; max-width: 80%;"
+    >
+</a><p><em>Click on the image to see complete code</em></p>
+<section id="features">
+<h2>Features<a class="headerlink" href="#features" title="Permalink to this headline">#</a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="https://raw.githubusercontent.com/pytorch/ignite/master/assets/ignite_vs_bare_pytorch.png">Less code than pure PyTorch</a> while ensuring maximum control and simplicity</p></li>
+<li><p>Library approach and no program’s control inversion - <em>Use ignite where and when you need</em></p></li>
+<li><p>Extensible API for metrics, experiment managers, and other components</p></li>
+</ul>
+</section>
+</section>
+<section id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">#</a></h1>
+<p>From <a class="reference external" href="https://pypi.org/project/pytorch-ignite/">pip</a>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip install pytorch-ignite
+</pre></div>
+</div>
+<p>From <a class="reference external" href="https://anaconda.org/pytorch/ignite">conda</a>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda install ignite -c pytorch
+</pre></div>
+</div>
+<p>From source:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip install git+https://github.com/pytorch/ignite
+</pre></div>
+</div>
+<section id="nightly-releases">
+<h2>Nightly releases<a class="headerlink" href="#nightly-releases" title="Permalink to this headline">#</a></h2>
+<p>From pip:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip install --pre pytorch-ignite
+</pre></div>
+</div>
+<p>From conda (this suggests to install <a class="reference external" href="https://anaconda.org/pytorch-nightly/pytorch">pytorch nightly release</a> instead
+of stable version as dependency):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda install ignite -c pytorch-nightly
+</pre></div>
+</div>
+</section>
+<section id="docker-images">
+<h2>Docker Images<a class="headerlink" href="#docker-images" title="Permalink to this headline">#</a></h2>
+<section id="using-pre-built-images">
+<h3>Using pre-built images<a class="headerlink" href="#using-pre-built-images" title="Permalink to this headline">#</a></h3>
+<p>Pull a pre-built docker image from <a class="reference external" href="https://hub.docker.com/u/pytorchignite">our Docker Hub</a> and run it with docker v19.03+.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker run --gpus all -it -v <span class="nv">$PWD</span>:/workspace/project --network<span class="o">=</span>host --shm-size 16G pytorchignite/base:latest
+</pre></div>
+</div>
+<p>Available pre-built images are :</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">pytorchignite/base:latest</span> <span class="pre">|</span> <span class="pre">pytorchignite/hvd-base:latest</span> <span class="pre">|</span> <span class="pre">pytorchignite/msdp-apex-base:latest</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pytorchignite/apex:latest</span> <span class="pre">|</span> <span class="pre">pytorchignite/hvd-apex:latest</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pytorchignite/vision:latest</span> <span class="pre">|</span> <span class="pre">pytorchignite/hvd-vision:latest</span> <span class="pre">|</span> <span class="pre">pytorchignite/msdp-apex-vision:latest</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pytorchignite/apex-vision:latest</span> <span class="pre">|</span> <span class="pre">pytorchignite/hvd-apex-vision:latest</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pytorchignite/nlp:latest</span> <span class="pre">|</span> <span class="pre">pytorchignite/hvd-nlp:latest</span> <span class="pre">|</span> <span class="pre">pytorchignite/msdp-apex-nlp:latest</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pytorchignite/apex-nlp:latest</span> <span class="pre">|</span> <span class="pre">pytorchignite/hvd-apex-nlp:latest</span></code></p></li>
+</ul>
+<p>For more details, see <a class="reference external" href="https://github.com/pytorch/ignite/tree/master/docker">here</a>.</p>
+</section>
+</section>
+</section>
+<section id="documentation">
+<h1>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline">#</a></h1>
+<p>To get started, please, read <a class="reference internal" href="quickstart.html"><span class="doc">Quick start</span></a> and <a class="reference internal" href="concepts.html"><span class="doc">Concepts</span></a>.</p>
+<div class="toctree-wrapper compound">
+<p><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick start</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#code">Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#explanation">Explanation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="concepts.html">Concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#engine">Engine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#events-and-handlers">Events and Handlers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#state">State</a></li>
+<li class="toctree-l2"><a class="reference internal" href="concepts.html#metrics">Metrics</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#mnist-example">MNIST example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#distributed-examples">Distributed examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#other-examples">Other examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#notebooks">Notebooks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#reproducible-trainings">Reproducible trainings</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="faq.html#each-engine-has-its-own-events">Each engine has its own Events</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faq.html#creating-custom-events-based-on-forward-backward-pass">Creating Custom Events based on Forward/Backward Pass</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faq.html#gradients-accumulation">Gradients accumulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faq.html#working-with-iterators">Working with iterators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faq.html#switching-data-provider-during-the-training">Switching data provider during the training</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faq.html#time-profiling-during-training">Time profiling during training</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faq.html#other-questions">Other questions</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="library-structure">
+<h1>Library structure<a class="headerlink" href="#library-structure" title="Permalink to this headline">#</a></h1>
+<ul class="simple">
+<li><p><a class="reference internal" href="#module-ignite" title="ignite"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ignite</span></code></a>: Core of the library, contains an engine for training and
+evaluating, most of the classic machine learning metrics and a
+variety of handlers to ease the pain of training and validation of
+neural networks.</p></li>
+<li><p><a class="reference internal" href="#module-ignite.contrib" title="ignite.contrib"><code class="xref py py-mod docutils literal notranslate"><span class="pre">ignite.contrib</span></code></a>: The contrib directory contains additional
+modules that can require extra dependencies. Modules vary from TBPTT engine,
+various optimisation parameter schedulers, experiment tracking system handlers and a
+metrics module containing many regression metrics.</p></li>
+</ul>
+<span class="target" id="module-ignite"></span><div class="toctree-wrapper compound">
+<p><span class="caption-text">Package Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="engine.html">ignite.engine</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="engine.html#resuming-the-training">Resuming the training</a></li>
+<li class="toctree-l2"><a class="reference internal" href="engine.html#ignite-engine-events">ignite.engine.events</a></li>
+<li class="toctree-l2"><a class="reference internal" href="engine.html#ignite-engine-deterministic">ignite.engine.deterministic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="engine.html#dataflow-synchronization">Dataflow synchronization</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="handlers.html">ignite.handlers</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="handlers.html#complete-list-of-handlers">Complete list of handlers</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="metrics.html">ignite.metrics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="metrics.html#reset-update-compute-api">Reset, Update, Compute API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="metrics.html#metric-arithmetics">Metric arithmetics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="metrics.html#how-to-create-a-custom-metric">How to create a custom metric</a></li>
+<li class="toctree-l2"><a class="reference internal" href="metrics.html#metrics-and-its-usages">Metrics and its usages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="metrics.html#metrics-and-distributed-computations">Metrics and distributed computations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="metrics.html#complete-list-of-metrics">Complete list of metrics</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="distributed.html">ignite.distributed</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="distributed.html#distributed-launcher-and-auto-helpers">Distributed launcher and <cite>auto</cite> helpers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="distributed.html#ignite-distributed-auto">ignite.distributed.auto</a></li>
+<li class="toctree-l2"><a class="reference internal" href="distributed.html#ignite-distributed-launcher">ignite.distributed.launcher</a></li>
+<li class="toctree-l2"><a class="reference internal" href="distributed.html#ignite-distributed-utils">ignite.distributed.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="exceptions.html">ignite.exceptions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">ignite.utils</a></li>
+</ul>
+</div>
+<span class="target" id="module-ignite.contrib"></span><div class="toctree-wrapper compound">
+<p><span class="caption-text">Contrib Package Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="contrib/engines.html">ignite.contrib.engines</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="contrib/engines.html#module-ignite.contrib.engines.tbptt">Truncated Backpropagation Throught Time</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contrib/engines.html#module-ignite.contrib.engines.common">Helper methods to setup trainer/evaluator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="contrib/metrics.html">ignite.contrib.metrics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="contrib/metrics.html#module-ignite.contrib.metrics.regression">Regression metrics</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="contrib/handlers.html">ignite.contrib.handlers</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="contrib/handlers.html#module-ignite.contrib.handlers.custom_events">custom_events</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contrib/handlers.html#param-scheduler">param_scheduler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contrib/handlers.html#lr-finder">lr_finder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contrib/handlers.html#time-profilers">time_profilers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contrib/handlers.html#stores">stores</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contrib/handlers.html#tensorboard-logger">tensorboard_logger</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contrib/handlers.html#visdom-logger">visdom_logger</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contrib/handlers.html#neptune-logger">neptune_logger</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contrib/handlers.html#mlflow-logger">mlflow_logger</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contrib/handlers.html#tqdm-logger">tqdm_logger</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contrib/handlers.html#polyaxon-logger">polyaxon_logger</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contrib/handlers.html#wandb-logger">wandb_logger</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contrib/handlers.html#clearml-logger">clearml_logger</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contrib/handlers.html#trains-logger">trains_logger</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contrib/handlers.html#more-on-parameter-scheduling">More on parameter scheduling</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p><span class="caption-text">Team</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="about.html">About us</a></li>
+<li class="toctree-l1"><a class="reference internal" href="governance.html">PyTorch-Ignite governance</a></li>
+</ul>
+</div>
+</section>
+
+
+             </article>
+             
+            </div>
+            <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="quickstart.html" class="btn btn-neutral float-right" title="Quick start" accesskey="n" rel="next">Next
+          <img src="_static/images/chevron-right-orange.svg" alt="right arrow" class="next-page">
+        </a>
+      
+      
+    </div>
+  
+
+  
+
+    <hr>
+
+  
+
+  <div role="contentinfo">
+    <table>
+      <tr>
+        <td>
+            <p>
+                &copy; Copyright 2021, PyTorch-Ignite Contributors.
+              Last updated on 11/17/2020, 8:53:44 AM.
+            </p>
+            
+              <div>
+                Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+              </div>
+          
+        </td>
+        <td>
+            
+              <div>
+                <a href="https://www.netlify.com" target="_blank" rel="noopener noreferrer">
+                  <img
+                  src="_static/img/netlify-light.svg"
+                  alt="Deploys by Netlify"
+                  width=114
+                  height=51 />
+                </a>
+              </div>
+            
+        </td>
+      </tr>
+    </table>
+  </div> 
+
+</footer>
+          </div>
+        </div>
+
+        <div class="pytorch-content-right" id="pytorch-content-right">
+          <div class="pytorch-right-menu" id="pytorch-right-menu">
+            <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
+              <ul>
+<li><a class="reference internal" href="#">Ignite Your Networks!</a><ul>
+<li><a class="reference internal" href="#features">Features</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#installation">Installation</a><ul>
+<li><a class="reference internal" href="#nightly-releases">Nightly releases</a></li>
+<li><a class="reference internal" href="#docker-images">Docker Images</a><ul>
+<li><a class="reference internal" href="#using-pre-built-images">Using pre-built images</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#documentation">Documentation</a></li>
+<li><a class="reference internal" href="#library-structure">Library structure</a><ul>
+</ul>
+</li>
+</ul>
+
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  
+
+     
+       <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+         <script src="_static/jquery.js"></script>
+         <script src="_static/underscore.js"></script>
+         <script src="_static/doctools.js"></script>
+     
+
+  
+
+  <script type="text/javascript" src="_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="_static/js/vendor/bootstrap.min.js"></script>
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+  <!-- Begin Footer -->
+
+  <!-- commented out for Ignite -->
+
+  <div class="container-fluid docs-tutorials-resources" id="docs-tutorials-resources">
+    <!-- <div class="container">
+      <div class="row">
+        <div class="col-md-4 text-center">
+          <h2>Docs</h2>
+          <p>Access comprehensive developer documentation for PyTorch</p>
+          <a class="with-right-arrow" href="https://pytorch.org/ignite/index.html">View Docs</a>
+        </div>
+
+        <div class="col-md-4 text-center">
+          <h2>Tutorials</h2>
+          <p>Get in-depth tutorials for beginners and advanced developers</p>
+          <a class="with-right-arrow" href="">View Tutorials</a>
+        </div>
+
+        <div class="col-md-4 text-center">
+          <h2>Resources</h2>
+          <p>Find development resources and get your questions answered</p>
+          <a class="with-right-arrow" href="">View Resources</a>
+        </div>
+      </div>
+    </div> -->
+  </div>
+
+  <!-- <footer class="site-footer">
+    <div class="container footer-container">
+      <div class="footer-logo-wrapper">
+        <a href="https://pytorch.org/ignite" class="footer-logo"></a>
+      </div>
+
+      <div class="footer-links-wrapper">
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="https://pytorch.org/ignite">PyTorch</a></li>
+            <li><a href="">Get Started</a></li>
+            <li><a href="">Features</a></li>
+            <li><a href="">Ecosystem</a></li>
+            <li><a href="">Blog</a></li>
+            <li><a href="">Resources</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="">Support</a></li>
+            <li><a href="">Tutorials</a></li>
+            <li><a href="https://pytorch.org/ignite/index.html">Docs</a></li>
+            <li><a href="" target="_blank">Discuss</a></li>
+            <li><a href="https://github.com/pytorch/ignite/issues" target="_blank">Github Issues</a></li>
+            <li><a href="" target="_blank">Slack</a></li>
+            <li><a href="https://github.com/pytorch/ignite/blob/master/CONTRIBUTING.md" target="_blank">Contributing</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col follow-us-col">
+          <ul>
+            <li class="list-title">Follow Us</li>
+            <li>
+              <div id="mc_embed_signup">
+                <form
+                  action="https://twitter.us14.list-manage.com/subscribe/post?u=75419c71fe0a935e53dfa4a3f&id=91d0dccd39"
+                  method="post"
+                  id="mc-embedded-subscribe-form"
+                  name="mc-embedded-subscribe-form"
+                  class="email-subscribe-form validate"
+                  target="_blank"
+                  novalidate>
+                  <div id="mc_embed_signup_scroll" class="email-subscribe-form-fields-wrapper">
+                    <div class="mc-field-group">
+                      <label for="mce-EMAIL" style="display:none;">Email Address</label>
+                      <input type="email" value="" name="EMAIL" class="required email" id="mce-EMAIL" placeholder="Email Address">
+                    </div>
+
+                    <div id="mce-responses" class="clear">
+                      <div class="response" id="mce-error-response" style="display:none"></div>
+                      <div class="response" id="mce-success-response" style="display:none"></div>
+                    </div>    <!~~ real people should not fill this in and expect good things - do not remove this or risk form bot signups ~~>
+
+                    <div style="position: absolute; left: -5000px;" aria-hidden="true"><input type="text" name="b_75419c71fe0a935e53dfa4a3f_91d0dccd39" tabindex="-1" value=""></div>
+
+                    <div class="clear">
+                      <input type="submit" value="" name="subscribe" id="mc-embedded-subscribe" class="button email-subscribe-button">
+                    </div>
+                  </div>
+                </form>
+              </div>
+
+            </li>
+          </ul>
+
+          <div class="footer-social-icons">
+            <a href="" target="_blank" class="facebook"></a>
+            <a href="" target="_blank" class="twitter"></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer> -->
+
+
+  <!-- end of commented out for Ignite -->
+
+  <!-- <div class="cookie-banner-wrapper">
+  <div class="container">
+    <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
+    <img class="close-button" src="_static/images/pytorch-x.svg">
+  </div>
+</div> -->
+
+  <!-- End Footer -->
+
+  <!-- Begin Mobile Menu -->
+  <!--
+  <div class="mobile-main-menu">
+    <div class="container-fluid">
+      <div class="container">
+        <div class="mobile-main-menu-header-container">
+          <a class="header-logo" href="https://pytorch.org/ignite" aria-label="PyTorch"></a>
+          <a class="main-menu-close-button" href="#" data-behavior="close-mobile-menu"></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="mobile-main-menu-links-container">
+      <div class="main-menu">
+        <ul>
+          <li>
+            <a href="#">Get Started</a>
+          </li>
+
+          <li>
+            <a href="#">Features</a>
+          </li>
+
+          <li>
+            <a href="#">Ecosystem</a>
+          </li>
+
+          <li>
+            <a href="">Blog</a>
+          </li>
+
+          <li>
+            <a href="">Tutorials</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch.org/ignite/index.html">Docs</a>
+          </li>
+
+          <li>
+            <a href="">Resources</a>
+          </li>
+
+          <li>
+            <a href="https://github.com/pytorch/ignite">Github</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  -->
+  <!-- End Mobile Menu -->
+
+  <script type="text/javascript" src="_static/js/vendor/anchor.min.js"></script>
+
+  <script type="text/javascript">
+    var collapsedSections = ['Notes']
+    $(document).ready(function() {
+      mobileMenu.bind();
+      mobileTOC.bind();
+      pytorchAnchors.bind();
+      sideMenus.bind();
+      scrollToAnchor.bind();
+      highlightNavigation.bind();
+
+      // Add class to links that have code blocks, since we cannot create links in code blocks
+      $("article.pytorch-article a span.pre").each(function(e) {
+        $(this).closest("a").addClass("has-code");
+      });
+    })
+  </script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@docsearch/js@1.0.0-alpha.28/dist/umd/index.min.js"></script>
+  <script type="text/javascript">
+  let VERSION
+  if ('v0.4.4.post1'.startsWith('v')) {
+    VERSION = 'v0.4.4.post1'
+  } else {
+    VERSION = 'master'
+  }
+  docsearch({
+    container: '#docsearch',
+    apiKey: '19a7a7a75d87608d6f42c722ed1e293f',
+    indexName: 'ignite',
+    placeholder: 'Search PyTorch-Ignite docs',
+    searchParameters: {
+      'facetFilters': [`version:${VERSION}`],
+    }
+  });
+  </script>
+</body>
+</html>
