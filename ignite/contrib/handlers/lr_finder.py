@@ -310,6 +310,33 @@ class FastaiLRFinder:
         min_grad_idx = grads.argmin() + 1
         return self._history["lr"][int(min_grad_idx)]
 
+    def apply_suggested_lr(self, optimizer: Optimizer) -> None:
+        """
+        Applying the suggested learning rate(s) on the given optimizer.
+
+        Note:
+            The given optimizer must be the same as the one we before found the suggested learning rate for.
+
+        Args:
+            optimizer: the optimizer to apply the suggested learning rate(s) on.
+
+        """
+        sug_lr = self.lr_suggestion()
+        if not isinstance(sug_lr, list):
+            sug_lr = [
+                sug_lr,
+            ]
+
+        if len(sug_lr) != len(optimizer.param_groups):
+            raise RuntimeError(
+                "The number of parameter groups does not match between "
+                "given optimizer and the one used for estimating the "
+                f"learning rate: {len(sug_lr)} vs {len(optimizer.param_groups)}"
+            )
+
+        for i, lr in enumerate(sug_lr):
+            optimizer.param_groups[i]["lr"] = lr
+
     @contextlib.contextmanager
     def attach(
         self,
