@@ -32,6 +32,7 @@ class ParamScheduler(metaclass=ABCMeta):
         More precisely, whatever the state of the optimizer (newly created or used by another scheduler) the scheduler
         sets defined absolute values.
 
+    .. versionadded:: 0.5.1
     """
 
     def __init__(
@@ -249,6 +250,8 @@ class CyclicalScheduler(ParamScheduler):
     Note:
         If the scheduler is bound to an 'ITERATION_*' event, 'cycle_size' should
         usually be the number of batches in an epoch.
+
+    .. versionadded:: 0.5.1
     """
 
     def __init__(
@@ -336,6 +339,8 @@ class LinearCyclicalScheduler(CyclicalScheduler):
         # Linearly increases the learning rate from 1e-3 to 1e-1 and back to 1e-3
         # over the course of 1 epoch
         #
+
+    .. versionadded:: 0.5.1
     """
 
     def get_param(self) -> float:
@@ -402,6 +407,8 @@ class CosineAnnealingScheduler(CyclicalScheduler):
 
     .. [Smith17] Smith, Leslie N. "Cyclical learning rates for training neural networks."
                  Applications of Computer Vision (WACV), 2017 IEEE Winter Conference on. IEEE, 2017
+
+    .. versionadded:: 0.5.1
     """
 
     def get_param(self) -> float:
@@ -442,6 +449,7 @@ class ConcatScheduler(ParamScheduler):
         # The annealing cycles are repeated indefinitely.
         #
 
+    .. versionadded:: 0.5.1
     """
 
     def __init__(self, schedulers: List[ParamScheduler], durations: List[int], save_history: bool = False):
@@ -666,6 +674,8 @@ class LRScheduler(ParamScheduler):
         # instead of Events.ITERATION_STARTED to make sure to use
         # the first lr value from the optimizer, otherwise it is will be skipped:
         trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
+
+    .. versionadded:: 0.5.1
     """
 
     def __init__(self, lr_scheduler: _LRScheduler, save_history: bool = False):
@@ -796,6 +806,7 @@ def create_lr_scheduler_with_warmup(
             # Attach to the trainer
             trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
 
+    .. versionadded:: 0.5.1
     """
     if not isinstance(lr_scheduler, (ParamScheduler, _LRScheduler)):
         raise TypeError(
@@ -893,6 +904,8 @@ class PiecewiseLinear(ParamScheduler):
         # 10th and 20th iterations. Next there is a jump to 0.3 at the 21st iteration and LR decreases linearly
         # from 0.3 to 0.1 between 21st and 30th iterations and remains 0.1 until the end of the iterations.
         #
+
+    .. versionadded:: 0.5.1
     """
 
     def __init__(
@@ -982,6 +995,7 @@ class ParamGroupScheduler:
         # Attach single scheduler to the trainer
         trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
 
+    .. versionadded:: 0.5.1
     """
 
     def __init__(self, schedulers: List[ParamScheduler], names: Optional[List[str]] = None, save_history: bool = False):
