@@ -18,6 +18,7 @@ Complete list of handlers
     TimeLimit
     timing.Timer
     global_step_from_engine
+    stores.EpochOutputStore
 
 .. autosummary::
     :nosignatures:
