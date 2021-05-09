@@ -85,7 +85,7 @@ def to_onehot(indices: torch.Tensor, num_classes: int) -> torch.Tensor:
 
 
 def setup_logger(
-    name: Optional[str] = None,
+    name: Optional[str] = "ignite.root.logger",
     level: int = logging.INFO,
     stream: Optional[TextIO] = None,
     format: str = "%(asctime)s %(name)s %(levelname)s: %(message)s",

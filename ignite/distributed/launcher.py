@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Callable, Dict, Optional
 
 from ignite.distributed import utils as idist
@@ -229,7 +230,6 @@ class Parallel:
         self.backend = backend
         self._spawn_params = None
         self.init_method = init_method
-        # distributed_rank=0 <=> explicit rank 0, avoid call idist. Critical for TPU on Colab, avoid context setup
 
         if self.backend is not None:
             if nproc_per_node is not None:
@@ -276,6 +276,9 @@ class Parallel:
         params.update(spawn_kwargs)
         return {k: v for k, v in params.items() if v is not None}
 
+    def _get_logger(self) -> logging.Logger:
+        return setup_logger(__name__ + "." + self.__class__.__name__)
+
     def run(self, func: Callable, *args: Any, **kwargs: Any) -> None:
         """Execute ``func`` with provided arguments in distributed context.
 
@@ -298,29 +301,33 @@ class Parallel:
             kwargs: keyword arguments of ``func``.
 
         """
+        logger = self._get_logger()
+
         if self._spawn_params is not None and self.backend is not None:
-            self.logger.info(f"Spawn function '{func}' in {self._spawn_params['nproc_per_node']} processes")
+            logger.info(f"Spawn function '{func}' in {self._spawn_params['nproc_per_node']} processes")
             idist.spawn(self.backend, func, args=args, kwargs_dict=kwargs, **self._spawn_params)
         else:
-            self.logger.info(f"- Run '{func}' in {idist.get_world_size()} processes")
+            logger.info(f"- Run '{func}' in {idist.get_world_size()} processes")
             local_rank = idist.get_local_rank()
             func(local_rank, *args, **kwargs)
 
-        self.logger.info("End of run")
+        logger.info("End of run")
 
     def __enter__(self) -> "Parallel":
-        self.logger = setup_logger(__name__ + "." + self.__class__.__name__)
         if self.backend is not None:
             if self._spawn_params is None:
                 idist.initialize(self.backend, init_method=self.init_method)
-                self.logger.info(f"Initialized processing group with backend: '{self.backend}'")
+            # The logger can be setup from now since idist.initialize() has been called (if needed)
+            logger = self._get_logger()
+            if self._spawn_params is None:
+                logger.info(f"Initialized processing group with backend: '{self.backend}'")
             else:
-                self.logger.info(f"Initialized distributed launcher with backend: '{self.backend}'")
+                logger.info(f"Initialized distributed launcher with backend: '{self.backend}'")
                 msg = "\n\t".join([f"{k}: {v}" for k, v in self._spawn_params.items() if v is not None])
-                self.logger.info(f"- Parameters to spawn processes: \n\t{msg}")
+                logger.info(f"- Parameters to spawn processes: \n\t{msg}")
         return self
 
     def __exit__(self, *args: Any, **kwargs: Any) -> None:
         if (self.backend is not None) and self._spawn_params is None:
-            self.logger.info(f"Finalized processing group with backend: '{self.backend}'")
+            self._get_logger().info(f"Finalized processing group with backend: '{self.backend}'")
             idist.finalize()
