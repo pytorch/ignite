@@ -401,6 +401,18 @@ class Checkpoint(Serializable):
                 "priority": priority,
             }
 
+            self._saved.append(Checkpoint.Item(priority, filename))
+            self._saved.sort(key=lambda it: it[0])
+
+            if self.include_self:
+                # Now that we've updated _saved, we can add our own state_dict.
+                checkpoint["checkpointer"] = self.state_dict()
+
+            try:
+                self.save_handler(checkpoint, filename, metadata)
+            except TypeError:
+                self.save_handler(checkpoint, filename)
+
             try:
                 index = list(map(lambda it: it.filename == filename, self._saved)).index(True)
                 to_remove = True
@@ -413,17 +425,9 @@ class Checkpoint(Serializable):
                 if isinstance(self.save_handler, BaseSaveHandler):
                     self.save_handler.remove(item.filename)
 
-            self._saved.append(Checkpoint.Item(priority, filename))
-            self._saved.sort(key=lambda it: it[0])
-
-            if self.include_self:
-                # Now that we've updated _saved, we can add our own state_dict.
-                checkpoint["checkpointer"] = self.state_dict()
-
-            try:
-                self.save_handler(checkpoint, filename, metadata)
-            except TypeError:
-                self.save_handler(checkpoint, filename)
+            # Handling lazy savers, see Issue: #1986.
+            if hasattr(self.save_handler, "force"):
+                self.save_handler.force()
 
     def _setup_checkpoint(self) -> Dict[str, Dict[Any, Any]]:
         checkpoint = {}

@@ -805,6 +805,15 @@ class ClearMLSaver(DiskSaver):
         return None
 
     @idist.one_rank_only()
+    def _save_func(self, checkpoint: Mapping, path: str, func: Callable, rank: int = 0) -> None:
+        self._lazy_opts = (checkpoint, path, func, rank)
+
+    @idist.one_rank_only()
+    def force(self):
+        opts = self._lazy_opts
+        super(ClearMLSaver, self).__call__(*opts)
+
+    @idist.one_rank_only()
     def remove(self, filename: str) -> None:
         super(ClearMLSaver, self).remove(filename)
         for slots in self._checkpoint_slots.values():
