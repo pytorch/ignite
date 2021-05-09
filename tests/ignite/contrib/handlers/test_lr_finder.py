@@ -57,12 +57,6 @@ def model():
 
 
 @pytest.fixture
-def model_single_param_groups():
-    model = DummyModel(out_channels=10)
-    yield model
-
-
-@pytest.fixture
 def model_multiple_param_groups():
     model_multiple_param_groups = DummyModelMulipleParamGroups()
     yield model_multiple_param_groups
@@ -80,15 +74,15 @@ def optimizer(model):
 
 
 @pytest.fixture
-def optimizer_mulitple_param_groups(model_multiple_param_groups):
-    optimizer_mulitple_param_groups = SGD(
+def optimizer_multiple_param_groups(model_multiple_param_groups):
+    optimizer_multiple_param_groups = SGD(
         [
             {"params": model_multiple_param_groups.fc1.parameters(), "lr": 4e-1},
             {"params": model_multiple_param_groups.fc2.parameters(), "lr": 3e-2},
             {"params": model_multiple_param_groups.fc3.parameters(), "lr": 3e-3},
         ]
     )
-    yield optimizer_mulitple_param_groups
+    yield optimizer_multiple_param_groups
 
 
 @pytest.fixture
@@ -102,13 +96,13 @@ def to_save(model, optimizer):
 
 
 @pytest.fixture
-def to_save_single_param_groups(model_single_param_groups, optimizer):
-    yield {"model": model_single_param_groups, "optimizer": optimizer}
+def mnist_to_save(mnist_model, mnist_optimizer):
+    yield {"model": mnist_model, "optimizer": mnist_optimizer}
 
 
 @pytest.fixture
-def to_save_mulitple_param_groups(model_multiple_param_groups, optimizer_mulitple_param_groups):
-    yield {"model": model_multiple_param_groups, "optimizer": optimizer_mulitple_param_groups}
+def to_save_mulitple_param_groups(model_multiple_param_groups, optimizer_multiple_param_groups):
+    yield {"model": model_multiple_param_groups, "optimizer": optimizer_multiple_param_groups}
 
 
 @pytest.fixture
@@ -123,15 +117,15 @@ def dummy_engine(model, optimizer):
 
 
 @pytest.fixture
-def dummy_engine_single_param_groups(model_single_param_groups, optimizer):
-    engine_single_param_groups = create_supervised_trainer(model_single_param_groups, optimizer, nn.MSELoss())
-    yield engine_single_param_groups
+def dummy_engine_mnist(mnist_model, mnist_optimizer):
+    mnist_engine = create_supervised_trainer(mnist_model, mnist_optimizer, nn.CrossEntropyLoss())
+    yield mnist_engine
 
 
 @pytest.fixture
-def dummy_engine_mulitple_param_groups(model_multiple_param_groups, optimizer_mulitple_param_groups):
+def dummy_engine_mulitple_param_groups(model_multiple_param_groups, optimizer_multiple_param_groups):
     engine_multiple_param_groups = create_supervised_trainer(
-        model_multiple_param_groups, optimizer_mulitple_param_groups, nn.MSELoss()
+        model_multiple_param_groups, optimizer_multiple_param_groups, nn.MSELoss()
     )
     yield engine_multiple_param_groups
 
@@ -155,7 +149,7 @@ def mnist_dataloader():
     data_transform = Compose([ToTensor(), Normalize((0.1307,), (0.3081,))])
 
     train_loader = DataLoader(
-        MNIST(download=True, root="/tmp", transform=data_transform, train=True), batch_size=64, shuffle=True
+        MNIST(download=True, root="/tmp", transform=data_transform, train=True), batch_size=256, shuffle=True
     )
 
     yield train_loader
@@ -323,35 +317,103 @@ def test_lr_suggestion_unexpected_curve(lr_finder, to_save, dummy_engine, datalo
         lr_finder.lr_suggestion()
 
 
-def test_lr_suggestion(lr_finder, to_save, dummy_engine, dataloader):
-    with lr_finder.attach(dummy_engine, to_save) as trainer_with_finder:
-        trainer_with_finder.run(dataloader)
+def test_lr_suggestion_single_param_group(lr_finder):  # , to_save, dummy_engine, dataloader):
 
-    # Avoid RuntimeError
-    if torch.tensor(lr_finder._history["loss"]).argmin() < 2:
-        lr_finder._history["loss"].insert(0, 10)
-        lr_finder._history["loss"].insert(0, 100)
-        lr_finder._history["lr"].insert(0, 10)
-        lr_finder._history["lr"].insert(0, 100)
+    noise = 0.05
+    lr_finder._history["loss"] = torch.linspace(-5.0, 5.0) ** 2 + noise
+    lr_finder._history["lr"] = torch.linspace(0.01, 10)
 
-    assert 1e-4 <= lr_finder.lr_suggestion() <= 10
+    # lr_finder.lr_suggestion() is supposed to return a value, but as
+    # we assign loss and lr to tensors, instead of lists, it will return tensors
+    suggested_lr = lr_finder.lr_suggestion()
+
+    assert pytest.approx(suggested_lr.item()) == 0.110909089
 
 
-def test_plot_single_param_group(
-    lr_finder, to_save_single_param_groups, dummy_engine_single_param_groups, dataloader_plot
+def test_lr_suggestion_multiple_param_groups(lr_finder):
+    import numpy as np
+
+    noise = 0.06
+    lr_finder._history["loss"] = torch.tensor(np.linspace(-5.0, 5, num=50) ** 2 + noise)
+    # 2 param_groups
+    lr_finder._history["lr"] = torch.tensor(np.linspace(0.01, 10, num=100)).reshape(50, 2)
+
+    # lr_finder.lr_suggestion() is supposed to return a list of values,
+    # but as we assign loss and lr to tensors, instead of lists, it will return tensors
+    suggested_lrs = lr_finder.lr_suggestion()
+
+    assert pytest.approx(suggested_lrs[0].item()) == 0.21181818
+    assert pytest.approx(suggested_lrs[1].item()) == 0.31272727
+
+
+def test_lr_suggestion_mnist(lr_finder, mnist_to_save, dummy_engine_mnist, mnist_dataloader):
+
+    max_iters = 50
+
+    with lr_finder.attach(dummy_engine_mnist, mnist_to_save) as trainer_with_finder:
+
+        with trainer_with_finder.add_event_handler(
+            Events.ITERATION_COMPLETED(once=max_iters), lambda _: trainer_with_finder.terminate()
+        ):
+            trainer_with_finder.run(mnist_dataloader)
+
+    assert 1e-4 <= lr_finder.lr_suggestion() <= 2
+
+
+def test_apply_suggested_lr_unmatched_optimizers(
+    lr_finder, mnist_to_save, dummy_engine_mnist, optimizer_multiple_param_groups, mnist_dataloader
 ):
 
-    with lr_finder.attach(
-        dummy_engine_single_param_groups, to_save_single_param_groups, end_lr=20, smooth_f=0.04
-    ) as trainer_with_finder:
-        trainer_with_finder.run(dataloader_plot)
+    with lr_finder.attach(dummy_engine_mnist, mnist_to_save) as trainer_with_finder:
+        trainer_with_finder.run(mnist_dataloader)
 
-    # Avoid RuntimeError
-    # if torch.tensor(lr_finder._history["loss"]).argmin() < 3:
-    #     lr_finder._history["loss"].insert(0, 10)
-    #     lr_finder._history["loss"].insert(0, 100)
-    #     lr_finder._history["lr"].insert(0, 10)
-    #     lr_finder._history["lr"].insert(0, 100)
+    sug_lr = lr_finder.lr_suggestion()
+
+    with pytest.raises(RuntimeError, match=r"The number of parameter groups does not match"):
+        lr_finder.apply_suggested_lr(optimizer_multiple_param_groups)
+
+
+def test_apply_suggested_lr_single_param_groups(
+    lr_finder, mnist_to_save, dummy_engine_mnist, mnist_optimizer, mnist_dataloader
+):
+
+    with lr_finder.attach(dummy_engine_mnist, mnist_to_save) as trainer_with_finder:
+        trainer_with_finder.run(mnist_dataloader)
+
+    sug_lr = lr_finder.lr_suggestion()
+    lr_finder.apply_suggested_lr(mnist_optimizer)
+
+    assert mnist_optimizer.param_groups[0]["lr"] == sug_lr
+
+
+def test_apply_suggested_lr_multiple_param_groups(
+    lr_finder,
+    to_save_mulitple_param_groups,
+    dummy_engine_mulitple_param_groups,
+    optimizer_multiple_param_groups,
+    dataloader,
+):
+
+    with lr_finder.attach(dummy_engine_mulitple_param_groups, to_save_mulitple_param_groups) as trainer_with_finder:
+        trainer_with_finder.run(dataloader)
+
+    sug_lr = lr_finder.lr_suggestion()
+    lr_finder.apply_suggested_lr(optimizer_multiple_param_groups)
+
+    for i in range(len(sug_lr)):
+        assert optimizer_multiple_param_groups.param_groups[i]["lr"] == sug_lr[i]
+
+
+def test_no_matplotlib(no_site_packages, lr_finder):
+
+    with pytest.raises(RuntimeError, match=r"This method requires matplotlib to be installed"):
+        lr_finder.plot()
+
+
+def test_plot_single_param_group(lr_finder, mnist_to_save, dummy_engine_mnist, mnist_dataloader):
+
+    with lr_finder.attach(dummy_engine_mnist, mnist_to_save, end_lr=20, smooth_f=0.04) as trainer_with_finder:
+        trainer_with_finder.run(mnist_dataloader)
 
     lr_finder.plot()
     ax = lr_finder.plot(skip_end=0)
@@ -383,13 +445,6 @@ def test_plot_multiple_param_groups(
     ) as trainer_with_finder:
         trainer_with_finder.run(dataloader_plot)
 
-    # Avoid RuntimeError
-    # if torch.tensor(lr_finder._history["loss"]).argmin() < 3:
-    #     lr_finder._history["loss"].insert(0, 10)
-    #     lr_finder._history["loss"].insert(0, 100)
-    #     lr_finder._history["lr"].insert(0, [10, 10, 10])
-    #     lr_finder._history["lr"].insert(0, [100, 100, 100])
-
     ax = lr_finder.plot(skip_end=0)
     assert ax is not None
     assert ax.get_xscale() == "log"
@@ -408,26 +463,3 @@ def test_plot_multiple_param_groups(
     assert ax.get_ylabel() == "Loss"
     ax.figure.savefig("dummy_muliple_param_groups2.jpg")
     assert path.exists("dummy_muliple_param_groups2.jpg")
-
-
-def test_no_matplotlib(no_site_packages, lr_finder):
-
-    with pytest.raises(RuntimeError, match=r"This method requires matplotlib to be installed"):
-        lr_finder.plot()
-
-
-def test_mnist_lr_suggestion(lr_finder, mnist_model, mnist_optimizer, mnist_dataloader):
-    criterion = nn.CrossEntropyLoss()
-    trainer = create_supervised_trainer(mnist_model, mnist_optimizer, criterion)
-    to_save = {"model": mnist_model, "optimizer": mnist_optimizer}
-
-    max_iters = 50
-
-    with lr_finder.attach(trainer, to_save) as trainer_with_finder:
-
-        with trainer_with_finder.add_event_handler(
-            Events.ITERATION_COMPLETED(once=max_iters), lambda _: trainer_with_finder.terminate()
-        ):
-            trainer_with_finder.run(mnist_dataloader)
-
-    assert 1e-4 <= lr_finder.lr_suggestion() <= 10
