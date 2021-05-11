@@ -323,7 +323,7 @@ class Parallel:
                 msg = "\n\t".join([f"{k}: {v}" for k, v in self._spawn_params.items() if v is not None])
                 msg = [
                     f"Initialized distributed launcher with backend: '{self.backend}'",
-                    f"- Parameters to spawn processes: \n\t{msg}"
+                    f"- Parameters to spawn processes: \n\t{msg}",
                 ]
 
             # The logger can be setup from now since idist.initialize() has been called (if needed)
