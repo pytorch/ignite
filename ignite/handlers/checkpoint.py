@@ -425,10 +425,6 @@ class Checkpoint(Serializable):
                 if isinstance(self.save_handler, BaseSaveHandler):
                     self.save_handler.remove(item.filename)
 
-            # Handling lazy savers, see Issue: #1986.
-            if hasattr(self.save_handler, "force"):
-                self.save_handler.force()
-
     def _setup_checkpoint(self) -> Dict[str, Dict[Any, Any]]:
         checkpoint = {}
         if self.to_save is not None:
