@@ -237,6 +237,9 @@ class Parallel:
                     nproc_per_node, nnodes, node_rank, master_addr, master_port, init_method, **spawn_kwargs
                 )
 
+        # The logger will be setup after the idist.initialize() call
+        self._logger = None
+
     @staticmethod
     def _setup_spawn_params(
         nproc_per_node: int,
@@ -276,9 +279,6 @@ class Parallel:
         params.update(spawn_kwargs)
         return {k: v for k, v in params.items() if v is not None}
 
-    def _get_logger(self) -> logging.Logger:
-        return setup_logger(__name__ + "." + self.__class__.__name__)
-
     def run(self, func: Callable, *args: Any, **kwargs: Any) -> None:
         """Execute ``func`` with provided arguments in distributed context.
 
@@ -301,33 +301,33 @@ class Parallel:
             kwargs: keyword arguments of ``func``.
 
         """
-        logger = self._get_logger()
-
         if self._spawn_params is not None and self.backend is not None:
-            logger.info(f"Spawn function '{func}' in {self._spawn_params['nproc_per_node']} processes")
+            self._logger.info(f"Spawn function '{func}' in {self._spawn_params['nproc_per_node']} processes")  # type: ignore[attr-defined]
             idist.spawn(self.backend, func, args=args, kwargs_dict=kwargs, **self._spawn_params)
         else:
-            logger.info(f"- Run '{func}' in {idist.get_world_size()} processes")
+            self._logger.info(f"- Run '{func}' in {idist.get_world_size()} processes")  # type: ignore[attr-defined]
             local_rank = idist.get_local_rank()
             func(local_rank, *args, **kwargs)
 
-        logger.info("End of run")
+        self._logger.info("End of run")  # type: ignore[attr-defined]
 
     def __enter__(self) -> "Parallel":
         if self.backend is not None:
             if self._spawn_params is None:
                 idist.initialize(self.backend, init_method=self.init_method)
+
             # The logger can be setup from now since idist.initialize() has been called (if needed)
-            logger = self._get_logger()
+            self._logger = setup_logger(__name__ + "." + self.__class__.__name__)  # type: ignore[assignment]
+
             if self._spawn_params is None:
-                logger.info(f"Initialized processing group with backend: '{self.backend}'")
+                self._logger.info(f"Initialized processing group with backend: '{self.backend}'")  # type: ignore[attr-defined]
             else:
-                logger.info(f"Initialized distributed launcher with backend: '{self.backend}'")
+                self._logger.info(f"Initialized distributed launcher with backend: '{self.backend}'")  # type: ignore[attr-defined]
                 msg = "\n\t".join([f"{k}: {v}" for k, v in self._spawn_params.items() if v is not None])
-                logger.info(f"- Parameters to spawn processes: \n\t{msg}")
+                self._logger.info(f"- Parameters to spawn processes: \n\t{msg}")  # type: ignore[attr-defined]
         return self
 
     def __exit__(self, *args: Any, **kwargs: Any) -> None:
         if (self.backend is not None) and self._spawn_params is None:
-            self._get_logger().info(f"Finalized processing group with backend: '{self.backend}'")
+            self._logger.info(f"Finalized processing group with backend: '{self.backend}'")  # type: ignore[attr-defined]
             idist.finalize()
