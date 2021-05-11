@@ -630,7 +630,9 @@ class DiskSaver(BaseSaveHandler):
         dirname: Directory path where the checkpoint will be saved
         atomic: if True, checkpoint is serialized to a temporary file, and then
             moved to final destination, so that files are guaranteed to not be damaged
-            (for example if exception occurs during saving).
+            (for example if exception occurs during saving). Setting ``atomic=True`` is
+            recommended if ``n_saved=1`` is set in checkpoint object. For details, see
+            issue `#1986`_
         create_dir: if True, will create directory ``dirname`` if it doesnt exist.
         require_empty: If True, will raise exception if there are any files in the
             directory ``dirname``.
@@ -638,6 +640,8 @@ class DiskSaver(BaseSaveHandler):
 
     .. versionchanged:: 0.4.2
         Accept ``kwargs`` for `torch.save` or `xm.save`.
+
+    .. _#1986: https://github.com/pytorch/ignite/issues/1986
     """
 
     def __init__(
