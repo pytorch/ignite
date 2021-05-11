@@ -316,8 +316,6 @@ class Parallel:
         if self.backend is not None:
             if self._spawn_params is None:
                 idist.initialize(self.backend, init_method=self.init_method)
-
-            if self._spawn_params is None:
                 msg = [f"Initialized processing group with backend: '{self.backend}'"]
             else:
                 msg = "\n\t".join([f"{k}: {v}" for k, v in self._spawn_params.items() if v is not None])
