@@ -313,13 +313,13 @@ class Parallel:
         self._logger.info("End of run")  # type: ignore[attr-defined]
 
     def __enter__(self) -> "Parallel":
+        if self.backend is not None and self._spawn_params is None:
+            idist.initialize(self.backend, init_method=self.init_method)
+
+        # The logger can be setup from now since idist.initialize() has been called (if needed)
+        self._logger = setup_logger(__name__ + "." + self.__class__.__name__)  # type: ignore[assignment]
+
         if self.backend is not None:
-            if self._spawn_params is None:
-                idist.initialize(self.backend, init_method=self.init_method)
-
-            # The logger can be setup from now since idist.initialize() has been called (if needed)
-            self._logger = setup_logger(__name__ + "." + self.__class__.__name__)  # type: ignore[assignment]
-
             if self._spawn_params is None:
                 self._logger.info(  # type: ignore[attr-defined]
                     f"Initialized processing group with backend: '{self.backend}'"
