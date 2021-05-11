@@ -85,12 +85,13 @@ def to_onehot(indices: torch.Tensor, num_classes: int) -> torch.Tensor:
 
 
 def setup_logger(
-    name: Optional[str] = None,
+    name: Optional[str] = "ignite.root.logger",
     level: int = logging.INFO,
     stream: Optional[TextIO] = None,
     format: str = "%(asctime)s %(name)s %(levelname)s: %(message)s",
     filepath: Optional[str] = None,
     distributed_rank: Optional[int] = None,
+    reset: bool = False,
 ) -> logging.Logger:
     """Setups logger: name, level, format etc.
 
@@ -102,6 +103,7 @@ def setup_logger(
         filepath: Optional logging file path. If not None, logs are written to the file.
         distributed_rank: Optional, rank in distributed configuration to avoid logger setup for workers.
             If None, distributed_rank is initialized to the rank of process.
+        reset: if True, reset an existing logger rather than keep format, handlers, and level.
 
     Returns:
         logging.Logger
@@ -127,33 +129,65 @@ def setup_logger(
         # 2020-01-21 12:46:07,358 evaluator INFO: Epoch[1] Complete. Time taken: 00:01:02
         # ...
 
+    Every existing logger can be reset if needed
+
+    .. code-block:: python
+
+        logger = setup_logger(name="my-logger", format="=== %(name)s %(message)s")
+        logger.info("first message")
+        setup_logger(name="my-logger", format="+++ %(name)s %(message)s", reset=True)
+        logger.info("second message")
+
+        # Logs will look like
+        # === my-logger first message
+        # +++ my-logger second message
+
+    Example to change the level of an existing internal logger
+
+    .. code-block:: python
+
+        setup_logger(
+            name="ignite.distributed.launcher.Parallel",
+            level=logging.WARNING
+        )
+
     .. versionchanged:: 0.4.3
         Added ``stream`` parameter.
+
+    .. versionchanged:: 0.5.0
+        Added ``reset`` parameter.
     """
+    # check if the logger already exists
+    existing = name is None or name in logging.root.manager.loggerDict  # type: ignore
+
+    # if existing, get the logger otherwise create a new one
     logger = logging.getLogger(name)
-
-    # don't propagate to ancestors
-    # the problem here is to attach handlers to loggers
-    # should we provide a default configuration less open ?
-    if name is not None:
-        logger.propagate = False
-
-    # Remove previous handlers
-    if logger.hasHandlers():
-        for h in list(logger.handlers):
-            logger.removeHandler(h)
-
-    formatter = logging.Formatter(format)
 
     if distributed_rank is None:
         import ignite.distributed as idist
 
         distributed_rank = idist.get_rank()
 
+    # Remove previous handlers
+    if distributed_rank > 0 or reset:
+
+        if logger.hasHandlers():
+            for h in list(logger.handlers):
+                logger.removeHandler(h)
+
     if distributed_rank > 0:
+
+        # Add null handler to avoid multiple parallel messages
         logger.addHandler(logging.NullHandler())
-    else:
+
+    # Keep the existing configuration if not reset
+    if existing and not reset:
+        return logger
+
+    if distributed_rank == 0:
         logger.setLevel(level)
+
+        formatter = logging.Formatter(format)
 
         ch = logging.StreamHandler(stream=stream)
         ch.setLevel(level)
@@ -165,6 +199,12 @@ def setup_logger(
             fh.setLevel(level)
             fh.setFormatter(formatter)
             logger.addHandler(fh)
+
+    # don't propagate to ancestors
+    # the problem here is to attach handlers to loggers
+    # should we provide a default configuration less open ?
+    if name is not None:
+        logger.propagate = False
 
     return logger
 
