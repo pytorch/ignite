@@ -808,7 +808,8 @@ class ClearMLSaver(DiskSaver):
     def remove(self, filename: str) -> None:
         from clearml.storage.helper import StorageHelper
 
-        helper = StorageHelper.get(filename)
+        clearml_logger = self._task.get_logger()
+        helper = StorageHelper.get(filename, logger=clearml_logger)
         helper.delete(filename)
         for slots in self._checkpoint_slots.values():
             try:
