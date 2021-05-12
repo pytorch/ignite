@@ -363,7 +363,7 @@ class Checkpoint(Serializable):
                 global_step = engine.state.get_event_attrib_value(Events.ITERATION_COMPLETED)
             priority = global_step
 
-        if self._check_lt_n_saved() or self._compare_fn(priority):
+        if self._check_lt_n_saved(or_equal=True) or self._compare_fn(priority):
 
             priority_str = f"{priority}" if isinstance(priority, numbers.Integral) else f"{priority:.4f}"
 
@@ -413,12 +413,8 @@ class Checkpoint(Serializable):
             except TypeError:
                 self.save_handler(checkpoint, filename)
 
-            try:
-                index = list(map(lambda it: it.filename == filename, self._saved)).index(True)
-                to_remove = True
-            except ValueError:
-                index = 0
-                to_remove = not self._check_lt_n_saved()
+            index = list(map(lambda it: it.filename == filename, self._saved)).index(True)
+            to_remove = not self._check_lt_n_saved(or_equal=True)
 
             if to_remove:
                 item = self._saved.pop(index)
