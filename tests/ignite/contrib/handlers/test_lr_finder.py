@@ -1,5 +1,6 @@
 import copy
 import os
+from unittest.mock import MagicMock
 
 import matplotlib
 import pytest
@@ -469,19 +470,7 @@ def test_plot_multiple_param_groups(
 def _test_distrib_log_lr_and_loss(device):
     from ignite.handlers import PiecewiseLinear
 
-    class DummyModel(nn.Module):
-        def __init__(self, n_channels=10, out_channels=10, flatten_input=False):
-            super(DummyModel, self).__init__()
-
-            self.net = nn.Sequential(
-                nn.Flatten() if flatten_input else nn.Identity(), nn.Linear(n_channels, out_channels)
-            )
-
-        def forward(self, x):
-            return self.net(x)
-
-    model = DummyModel()
-    optimizer = SGD(model.parameters(), lr=1e-4, momentum=0.0)
+    optimizer = MagicMock(spec=torch.optim.Optimizer)
     lr_finder = FastaiLRFinder()
 
     # minimal setup for lr_finder to make _log_lr_and_loss work
@@ -499,9 +488,7 @@ def _test_distrib_log_lr_and_loss(device):
     lr_finder._history["lr"] = []
 
     lr_finder._log_lr_and_loss(engine, output_transform=lambda x: x, smooth_f=0.1, diverge_th=10.0)
-    # expected_loss = loss
-    # for i in range(rank - 1):
-    #     expected_loss += 0.01 * (i + 1)
+
     expected_loss = idist.all_reduce(loss)
     assert pytest.approx(lr_finder._history["loss"][-1]) == expected_loss
 
@@ -539,11 +526,17 @@ def _test_distrib_integration_mnist(device):
         trainer_with_finder.run(train_loader)
 
     lr_finder.plot()
-    ax = lr_finder.plot(skip_end=0)
-    ax.figure.savefig("distrib_dummy.jpg")
-    assert os.path.exists("distrib_dummy.jpg")
 
-    assert 1e-4 <= lr_finder.lr_suggestion() <= 2
+    if idist.get_rank() == 0:
+        ax = lr_finder.plot(skip_end=0)
+        ax.figure.savefig("distrib_dummy.jpg")
+        assert os.path.exists("distrib_dummy.jpg")
+
+    sug_lr = lr_finder.lr_suggestion()
+    assert 1e-3 <= sug_lr <= 1
+
+    lr_finder.apply_suggested_lr(optimizer)
+    assert optimizer.param_groups[0]["lr"] == sug_lr
 
 
 @pytest.mark.distributed
