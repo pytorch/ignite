@@ -10,6 +10,7 @@ import torch
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 
+import ignite.distributed as idist
 from ignite.contrib.handlers.param_scheduler import LRScheduler, PiecewiseLinear
 from ignite.engine import Engine, Events
 from ignite.handlers import Checkpoint
@@ -136,6 +137,8 @@ class FastaiLRFinder:
     def _log_lr_and_loss(self, trainer: Engine, output_transform: Callable, smooth_f: float, diverge_th: float) -> None:
         output = trainer.state.output
         loss = output_transform(output)
+        if idist.get_world_size() > 1:
+            loss = idist.all_reduce(loss)
         lr = self._lr_schedule.get_param()  # type: ignore[union-attr]
         self._history["lr"].append(lr)
         if trainer.state.iteration == 1:
