@@ -468,16 +468,14 @@ def test_plot_multiple_param_groups(
 
 
 def _test_distrib_log_lr_and_loss(device):
-    from ignite.handlers import PiecewiseLinear
+    from ignite.handlers import ParamScheduler
 
-    optimizer = MagicMock(spec=torch.optim.Optimizer)
     lr_finder = FastaiLRFinder()
+    _lr_schedule = MagicMock(spec=ParamScheduler)
 
     # minimal setup for lr_finder to make _log_lr_and_loss work
     rank = idist.get_rank()
     loss = 0.01 * (rank + 1)
-
-    _lr_schedule = PiecewiseLinear(optimizer, param_name="lr", milestones_values=[(0, 1e-4), (1, 10)])
 
     engine = Engine(lambda e, b: None)
 
@@ -520,7 +518,7 @@ def _test_distrib_integration_mnist(device):
 
     optimizer = SGD(model.parameters(), lr=1e-4, momentum=0.0)
     to_save = {"model": model, "optimizer": optimizer}
-    engine = create_supervised_trainer(model, optimizer, nn.CrossEntropyLoss())
+    engine = create_supervised_trainer(model, optimizer, nn.CrossEntropyLoss(), device=device)
     lr_finder = FastaiLRFinder()
     with lr_finder.attach(engine, to_save) as trainer_with_finder:
         trainer_with_finder.run(train_loader)
