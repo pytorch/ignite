@@ -16,7 +16,7 @@ LR finder [deprecated]
 ----------------------
 
 .. deprecated:: 0.4.4
-    Use :class:`~ignite.handlers.lr_finder` instead, will be removed in version 0.6.0.
+    Use :class:`~ignite.handlers.lr_finder.FastaiLRFinder` instead, will be removed in version 0.6.0.
 
 Time profilers
 ---------------

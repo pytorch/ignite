@@ -11,9 +11,9 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 
 import ignite.distributed as idist
-from ignite.handlers.param_scheduler import LRScheduler, PiecewiseLinear
 from ignite.engine import Engine, Events
 from ignite.handlers import Checkpoint
+from ignite.handlers.param_scheduler import LRScheduler, PiecewiseLinear
 
 
 class FastaiLRFinder:
