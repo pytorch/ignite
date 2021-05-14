@@ -12,16 +12,11 @@ Parameter scheduler [deprecated]
 
    Was moved to :ref:`param-scheduler-label`.
 
-LR finder
----------
+LR finder [deprecated]
+----------------------
 
-.. currentmodule:: ignite.contrib.handlers.lr_finder
-
-.. autosummary::
-    :nosignatures:
-    :toctree: ../generated
-
-    FastaiLRFinder
+.. deprecated:: 0.4.4
+    Use :class:`~ignite.handlers.lr_finder` instead, will be removed in version 0.6.0.
 
 Time profilers
 ---------------
