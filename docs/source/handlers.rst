@@ -19,6 +19,7 @@ Complete list of handlers
     timing.Timer
     global_step_from_engine
     stores.EpochOutputStore
+    lr_finder.FastaiLRFinder
 
 .. autosummary::
     :nosignatures:
@@ -48,18 +49,6 @@ Parameter scheduler
     ParamScheduler
     PiecewiseLinear
     create_lr_scheduler_with_warmup
-
-
-LR finder
----------
-
-.. currentmodule:: ignite.handlers.lr_finder
-
-.. autosummary::
-    :nosignatures:
-    :toctree: ../generated
-
-    FastaiLRFinder
 
 More on parameter scheduling
 ----------------------------
