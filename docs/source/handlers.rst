@@ -14,6 +14,7 @@ Complete list of handlers
     DiskSaver
     checkpoint.ModelCheckpoint
     early_stopping.EarlyStopping
+    lr_finder.FastaiLRFinder
     terminate_on_nan.TerminateOnNan
     TimeLimit
     timing.Timer
@@ -48,7 +49,6 @@ Parameter scheduler
     ParamScheduler
     PiecewiseLinear
     create_lr_scheduler_with_warmup
-
 
 More on parameter scheduling
 ----------------------------
