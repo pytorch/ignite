@@ -637,8 +637,8 @@ class DiskSaver(BaseSaveHandler):
     Note:
         Setting ``atomic=True`` prevents saving a checkpoint in case of any corruption
         on the checkpoint in progress. If ``n_saved > 1`` set in checkpoint object,
-        this is not needed as there are always at least 2 saved checkpoints, and hence
-        non-corrupt checkpoint is always present. However, when ``n_saved=1`` is set,
+        this is not strictly needed as there are always at least 2 saved checkpoints, and
+        hence non-corrupt checkpoint is always present. However, when ``n_saved=1`` is set,
         then to protect only saved checkpoint, ``atomic=True`` is the only option to
         preserve a non-corrupt checkpoint.
 
