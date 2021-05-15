@@ -78,7 +78,7 @@ class NeptuneLogger(BaseLogger):
                 project_name="shared/pytorch-ignite-integration",
                 experiment_name="cnn-mnist", # Optional,
                 params={"max_epochs": 10}, # Optional,
-                tags=["pytorch-ignite","mnist"] # Optional
+                tags=["pytorch-ignite","minst"] # Optional
             )
 
             # Attach the logger to the trainer to log training loss at each iteration
