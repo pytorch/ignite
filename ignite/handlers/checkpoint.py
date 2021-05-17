@@ -635,12 +635,9 @@ class DiskSaver(BaseSaveHandler):
         kwargs: Accepted keyword arguments for `torch.save` or `xm.save`.
 
     Note:
-        Setting ``atomic=True`` prevents saving a checkpoint in case of any corruption
-        on the checkpoint in progress. If ``n_saved > 1`` set in checkpoint object,
-        this is not strictly needed as there are always at least 2 saved checkpoints, and
-        hence non-corrupt checkpoint is always present. However, when ``n_saved=1`` is set,
-        then to protect only saved checkpoint, ``atomic=True`` is the only option to
-        preserve a non-corrupt checkpoint.
+        When ``n_saved=1`` is set in the checkpoint object, then to protect only saved
+        checkpoint, ``atomic=True`` is the only option to preserve a non-corrupt
+        checkpoint.
 
     .. versionchanged:: 0.4.2
         Accept ``kwargs`` for `torch.save` or `xm.save`.
