@@ -160,7 +160,7 @@ class NeptuneLogger(BaseLogger):
                                project_name="shared/pytorch-ignite-integration",
                                experiment_name="cnn-mnist", # Optional,
                                params={"max_epochs": 10}, # Optional,
-                               tags=["pytorch-ignite","minst"] # Optional
+                               tags=["pytorch-ignite","mnist"] # Optional
                                ) as npt_logger:
 
                 trainer = Engine(update_fn)
