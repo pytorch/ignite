@@ -120,8 +120,8 @@ def test_setup_logger(capsys, dirname):
 
     def _test(stream):
 
-        trainer.logger = setup_logger("trainer", stream=stream, filepath=fp)
-        evaluator.logger = setup_logger("evaluator", stream=stream, filepath=fp)
+        trainer.logger = setup_logger("trainer", stream=stream, filepath=fp, reset=True)
+        evaluator.logger = setup_logger("evaluator", stream=stream, filepath=fp, reset=True)
 
         assert len(trainer.logger.handlers) == 2
         assert len(evaluator.logger.handlers) == 2
@@ -148,6 +148,32 @@ def test_setup_logger(capsys, dirname):
     _test(stream=None)
     _test(stream=sys.stderr)
     _test(stream=sys.stdout)
+
+    # Needed by windows to release FileHandler in the loggers
+    logging.shutdown()
+
+
+def _setup_a_logger_and_dump(name, message):
+    logger = setup_logger(name)
+    logger.info(message)
+
+
+def test_override_setup_logger(capsys):
+
+    _setup_a_logger_and_dump(__name__, "test_override_setup_logger")
+
+    source = capsys.readouterr().err.split("\n")
+
+    assert "tests.ignite.test_utils INFO: test_override_setup_logger" in source[0]
+
+    # change the logger level of _setup_a_logger_and_dump
+    setup_logger(name=__name__, level=logging.WARNING, reset=True)
+
+    _setup_a_logger_and_dump(__name__, "test_override_setup_logger")
+
+    source = capsys.readouterr().err.split("\n")
+
+    assert source[0] == ""
 
     # Needed by windows to release FileHandler in the loggers
     logging.shutdown()
