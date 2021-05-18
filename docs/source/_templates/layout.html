@@ -105,6 +105,16 @@
   {%- block extrahead %} {% endblock %}
 
   {% include "fonts.html" %}
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-5FELLLFHCP"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-5FELLLFHCP');
+  </script>
 </head>
 
 <div class="container-fluid header-holder tutorials-header" id="header-holder">
