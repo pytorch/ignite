@@ -813,8 +813,10 @@ class ClearMLSaver(DiskSaver):
         try:
             helper.delete(filename)
         except ValueError:
-            warnings.warn("Checkpoints being uploaded to clearml-server with version "
-                          "earlier than 1.0 does not support delete operation.")
+            warnings.warn(
+                "Checkpoints being uploaded to clearml-server with version "
+                "earlier than 1.0 does not support delete operation."
+            )
 
         for slots in self._checkpoint_slots.values():
             try:
