@@ -474,15 +474,10 @@ Research papers
 - [Mood Classification using Listening Data](https://github.com/fdlm/listening-moods)
 - [Deterministic Uncertainty Estimation (DUE)](https://github.com/y0ast/DUE)
 - [PyTorch-Hebbian: facilitating local learning in a deep learning framework](https://github.com/Joxis/pytorch-hebbian)
-- [GammaLearn - first steps to apply Deep Learning to the Cherenkov Telescope Array data](https://doi.org/10.1051/epjconf/201921406020)
-- [GammaLearn: a Deep Learning framework for IACTdata](https://hal.archives-ouvertes.fr/hal-02197399/)
-- [Machine Learning the Physical Nonlocal Exchange–Correlation Functional of Density-Functional Theory](https://arxiv.org/abs/1908.06198)
 - [Stochastic Weight Matrix-Based Regularization Methods for Deep Neural Networks](https://github.com/rpatrik96/lod-wmm-2019)
 - [Learning explanations that are hard to vary](https://github.com/gibipara92/learning-explanations-hard-to-vary)
 - [The role of disentanglement in generalisation](https://github.com/mmrl/disent-and-gen)
-- [Towards Adversarially Robust DDoS-Attack Classification](https://doi.org/10.1109/UEMCON51285.2020.9298167)
 - [A Probabilistic Programming Approach to Protein Structure Superposition](https://github.com/LysSanzMoreta/Theseus-PP)
-- [Lesion-wise evaluation for effective performance monitoring of small object segmentation](https://doi.org/10.1117/12.2580734)
 - [PadChest: A large chest x-ray image dataset with multi-label annotated reports](https://github.com/auriml/Rx-thorax-automatic-captioning)
 
 </details>
