@@ -1,19 +1,22 @@
 import os
 
-import numpy as np
+import torch
 
 
 class Record:
-    def __init__(self):
+    def __init__(self, device="cpu"):
         self.covariance_matrix = None
         self.mean = None
+        self._num_examples = 0
+        self.device = torch.device(device)
 
     def reset(self, num_features):
-        self.covariance_matrix = np.zeros((num_features, num_features))
-        self.mean = np.zeros(num_features)
+        self.covariance_matrix = torch.zeros((num_features, num_features)).to(self.device)
+        self.mean = torch.zeros(num_features).to(self.device)
+        self._num_examples = 0
 
-    def get_covariance(self, num_samples):
-        return self.covariance_matrix / (num_samples - 1)
+    def get_covariance(self):
+        return self.covariance_matrix / (self._num_examples - 1)
 
 
 def files(path):
