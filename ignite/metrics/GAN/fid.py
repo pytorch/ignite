@@ -1,19 +1,30 @@
 import numpy as np
 import torch
-from PIL import Image
 from scipy.linalg import sqrtm
 
 from ignite.exceptions import NotComputableError
 from ignite.metrics import Metric
-from ignite.metrics.GAN.utils import Record, files
 from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
-torch.set_printoptions(precision=8)
+
+class Record:
+    def __init__(self, device="cpu"):
+        self.covariance_matrix = None
+        self.mean = None
+        self._num_examples = 0
+        self.device = torch.device(device)
+
+    def reset(self, num_features):
+        self.covariance_matrix = torch.zeros((num_features, num_features), dtype=torch.float64).to(self.device)
+        self.mean = torch.zeros(num_features, dtype=torch.float64).to(self.device)
+        self._num_examples = 0
+
+    def get_covariance(self):
+        return self.covariance_matrix / (self._num_examples - 1)
 
 
 class FID(Metric):
     def __init__(self, model=None, eps=10 ** -6, output_transform=lambda x: x, device="cpu"):
-        self._num_examples = 0
         self._train_record = Record(device=device)
         self._test_record = Record(device=device)
         self._active_record = None
@@ -69,7 +80,7 @@ class FID(Metric):
         self._active_record.covariance_matrix += torch.outer(mean_difference, new_mean_difference)
 
     def _get_features(self, act):
-        return self._model.pred(act)
+        return self._model(act).detach()
 
     def _update_from_data(self, data):
         features = self._get_features(data)
@@ -82,27 +93,6 @@ class FID(Metric):
         self._active_record = self._test_record
         self._update_from_data(test_images)
 
-    def _update_from_file(self, path):
-        image = torch.tensor(Image.open(str(path))).to(self.device)
-        features = self._get_features(image)
-        self._calculate_statistics(features)
-
-    def _update_from_paths(self, train_paths, test_paths):
-        self._active_record = self._train_record
-        for path in train_paths:
-            self._update_from_file(path)
-        self._active_record = self._test_record
-        for path in test_paths:
-            self._update_from_file(path)
-
-    def _update_from_folder(self, train_folder, test_folder):
-        self._active_record = self._train_record
-        for file in files(train_folder):
-            self._update_from_file(file)
-        self._active_record = self._test_record
-        for file in files(test_folder):
-            self._update_from_file(file)
-
     def _update_from_features(self, train_data, test_data):
         self._active_record = self._train_record
         for features in train_data:
@@ -111,9 +101,24 @@ class FID(Metric):
         for features in test_data:
             self._calculate_statistics(features)
 
+    def check_feature_input(self, train, test):
+        if train.shape[0] != 0 and len(train.shape) != 2:
+            raise ValueError("Training Features must be passed as (num_samples,feature_size).")
+        if test.shape[0] != 0 and len(test.shape) != 2:
+            raise ValueError("Testing Features must be passed as (num_samples,feature_size).")
+        if train.shape[0] != 0 and test.shape[0] != 0 and train.shape[1] != test.shape[1]:
+            raise ValueError("Number of Training Features and Testing Features should be equal.")
+
+    def check_image_input(self, train, test):
+        if train.shape[0] != 0 and len(train.shape) < 3:
+            raise ValueError("Training images must be passed as (num_samples,image).")
+        if test.shape[0] != 0 and len(test.shape) < 3:
+            raise ValueError("Testing images must be passed as (num_samples,image).")
+        if train.shape[0] != 0 and test.shape[0] != 0 and train.shape[1:] != test.shape[1:]:
+            raise ValueError("Train and Test images must be of equal dimensions.")
+
     @reinit__is_reduced
     def reset(self):
-        self._num_examples = 0
         del self._train_record
         del self._test_record
         self._train_record = Record()
@@ -121,18 +126,19 @@ class FID(Metric):
         super(FID, self).reset()
 
     @reinit__is_reduced
-    def update(self, output):
-        train_data, test_data, mode = output[0], output[1], output[2]
+    def update(self, output, mode):
+        train_data, test_data = output[0], output[1]
         if mode == "features":
+            self.check_feature_input(torch.tensor(train_data), torch.tensor(test_data))
             self._update_from_features(
-                torch.tensor(train_data).to(self.device), torch.tensor(test_data).to(self.device)
+                torch.tensor(train_data, dtype=torch.float64).to(self.device),
+                torch.tensor(test_data, dtype=torch.float64).to(self.device),
             )
-        if mode == "images":
+        elif mode == "images":
+            self.check_image_input(torch.tensor(train_data), torch.tensor(test_data))
             self._update_from_images(torch.tensor(train_data).to(self.device), torch.tensor(test_data).to(self.device))
-        if mode == "file_path":
-            self._update_from_paths(train_data, test_data)
-        if mode == "folder":
-            self._update_from_folder()
+        else:
+            raise ValueError("Please enter a valid mode.")
 
     @sync_all_reduce("_num_examples", "_num_correct")
     def compute(self):
