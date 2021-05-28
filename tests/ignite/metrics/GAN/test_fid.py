@@ -15,8 +15,8 @@ from ignite.metrics.GAN.fid import FID
     "train_samples, test_samples", [(torch.rand(10, 2048), torch.rand(10, 2048))],
 )
 def test_compute_fid_from_features(train_samples, test_samples):
-    fid_scorer = FID()
-    fid_scorer.update([train_samples, test_samples], "features")
+    fid_scorer = FID(mode="features")
+    fid_scorer.update([train_samples, test_samples])
     mu1, sigma1 = train_samples.mean(axis=0), cov(train_samples, rowvar=False)
     mu2, sigma2 = test_samples.mean(axis=0), cov(test_samples, rowvar=False)
     assert pytest.approx(fid_score.calculate_frechet_distance(mu1, sigma1, mu2, sigma2)) == fid_scorer.compute()
@@ -29,8 +29,8 @@ def test_compute_fid_from_images(train_samples, test_samples):
     model = models.inception_v3(init_weights=False)
     model.fc = nn.Sequential()
     model.eval()
-    fid_scorer = FID(model=model)
-    fid_scorer.update([train_samples, test_samples], "images")
+    fid_scorer = FID(model=model, mode="images")
+    fid_scorer.update([train_samples, test_samples])
 
     train_samples = model(train_samples)[0].detach()
     test_samples = model(test_samples)[0].detach()
@@ -41,28 +41,28 @@ def test_compute_fid_from_images(train_samples, test_samples):
 
 def test_wrong_inputs():
     with pytest.raises(ValueError, match=r"Please enter a valid mode."):
-        FID().update([[], []], mode="unknown")
+        FID(mode="unknown").update([[], []])
     with pytest.raises(ValueError, match=r"Training Features must be passed as \(num_samples,feature_size\)."):
-        FID().update([torch.rand(1, 2, 3), []], mode="features")
+        FID(mode="features").update([torch.rand(1, 2, 3), []])
     with pytest.raises(ValueError, match=r"Testing Features must be passed as \(num_samples,feature_size\)."):
-        FID().update([[], torch.rand(1, 2, 3)], mode="features")
+        FID(mode="features").update([[], torch.rand(1, 2, 3)])
     with pytest.raises(ValueError, match=r"Number of Training Features and Testing Features should be equal."):
-        FID().update([torch.rand(1, 2), torch.rand(2, 3)], mode="features")
+        FID(mode="features").update([torch.rand(1, 2), torch.rand(2, 3)])
     with pytest.raises(ValueError, match=r"Training images must be passed as \(num_samples,image\)."):
-        FID().update([torch.rand(1, 2), []], mode="images")
+        FID(mode="images").update([torch.rand(1, 2), []])
     with pytest.raises(ValueError, match=r"Testing images must be passed as \(num_samples,image\)."):
-        FID().update([[], torch.rand(1, 2)], mode="images")
+        FID(mode="images").update([[], torch.rand(1, 2)])
     with pytest.raises(ValueError, match=r"Train and Test images must be of equal dimensions."):
-        FID().update([torch.rand(1, 2, 3), torch.rand(2, 3, 4)], mode="images")
+        FID(mode="images").update([torch.rand(1, 2, 3), torch.rand(2, 3, 4)])
 
 
 @pytest.mark.parametrize(
     "train_samples, test_samples", [(torch.rand(10, 2048), torch.rand(10, 2048)),],
 )
 def test_statistics(train_samples, test_samples):
-    fid_scorer = FID()
-    fid_scorer.update([train_samples[:5], test_samples[:5]], "features")
-    fid_scorer.update([train_samples[5:], test_samples[5:]], "features")
+    fid_scorer = FID(mode="features")
+    fid_scorer.update([train_samples[:5], test_samples[:5]])
+    fid_scorer.update([train_samples[5:], test_samples[5:]])
 
     mu1, sigma1 = train_samples.mean(axis=0), torch.tensor(cov(train_samples, rowvar=False))
     mu2, sigma2 = test_samples.mean(axis=0), torch.tensor(cov(test_samples, rowvar=False))
@@ -95,11 +95,11 @@ def _test_distrib_integration(device):
 
     def update(_, i):
         train, test = data[i + size * rank]
-        return (train, test), "features"
+        return (train, test)
 
     def _test(metric_device):
         engine = Engine(update)
-        m = FID()
+        m = FID(mode="features")
         m.attach(engine, "fid")
 
         engine.run(data=list(range(size)), max_epochs=1)
