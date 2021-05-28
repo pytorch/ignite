@@ -58,7 +58,7 @@ class VariableAccumulation(Metric):
         self.num_examples = 0
 
     def _check_output_type(self, output: Union[float, torch.Tensor]) -> None:
-        if not (isinstance(output, numbers.Number) or isinstance(output, torch.Tensor)):
+        if not isinstance(output, (numbers.Number, torch.Tensor)):
             raise TypeError(f"Output should be a number or torch.Tensor, but given {type(output)}")
 
     @reinit__is_reduced
