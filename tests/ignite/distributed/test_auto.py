@@ -217,8 +217,6 @@ def test_auto_methods_xla():
 
 
 def test_dist_proxy_sampler():
-    import torch
-    from torch.utils.data import WeightedRandomSampler
 
     weights = torch.ones(100)
     weights[:50] += 1
