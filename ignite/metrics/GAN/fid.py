@@ -8,6 +8,10 @@ from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
 
 class Record:
+    r"""Contains mean and covariance records for train and test data.
+
+    """
+
     def __init__(self, device="cpu"):
         self.covariance_matrix = None
         self.mean = None
