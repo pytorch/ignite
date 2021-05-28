@@ -473,6 +473,12 @@ Research papers
 - [Volumetric Grasping Network](https://github.com/ethz-asl/vgn)
 - [Mood Classification using Listening Data](https://github.com/fdlm/listening-moods)
 - [Deterministic Uncertainty Estimation (DUE)](https://github.com/y0ast/DUE)
+- [PyTorch-Hebbian: facilitating local learning in a deep learning framework](https://github.com/Joxis/pytorch-hebbian)
+- [Stochastic Weight Matrix-Based Regularization Methods for Deep Neural Networks](https://github.com/rpatrik96/lod-wmm-2019)
+- [Learning explanations that are hard to vary](https://github.com/gibipara92/learning-explanations-hard-to-vary)
+- [The role of disentanglement in generalisation](https://github.com/mmrl/disent-and-gen)
+- [A Probabilistic Programming Approach to Protein Structure Superposition](https://github.com/LysSanzMoreta/Theseus-PP)
+- [PadChest: A large chest x-ray image dataset with multi-label annotated reports](https://github.com/auriml/Rx-thorax-automatic-captioning)
 
 </details>
 
