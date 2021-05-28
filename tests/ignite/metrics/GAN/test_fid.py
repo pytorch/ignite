@@ -95,7 +95,7 @@ def _test_distrib_integration(device):
 
     def update(_, i):
         train, test = data[i + size * rank]
-        return train, test
+        return (train, test), "features"
 
     def _test(metric_device):
         engine = Engine(update)
