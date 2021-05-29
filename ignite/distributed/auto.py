@@ -188,7 +188,8 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
     # distributed data parallel model
     if idist.get_world_size() > 1:
         bnd = idist.backend()
-        if idist.has_native_dist_support and bnd == idist_native.NCCL:
+        # if idist.has_native_dist_support and bnd == idist_native.NCCL:
+        if idist.has_native_dist_support and torch.cuda.is_available():
             if sync_bn:
                 logger.info("Convert batch norm to sync batch norm")
                 model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
@@ -199,7 +200,8 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
             lrank = idist.get_local_rank()
             logger.info(f"Apply torch DistributedDataParallel on model, device id: {lrank}")
             model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[lrank,], **kwargs)
-        elif idist.has_native_dist_support and bnd == idist_native.GLOO:
+        # elif idist.has_native_dist_support and bnd == idist_native.GLOO:
+        elif idist.has_native_dist_support:
             if sync_bn:
                 logger.info("Convert batch norm to sync batch norm")
                 model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
