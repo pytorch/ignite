@@ -34,7 +34,7 @@ def test_serial_model():
 
 
 def test__encode_str__decode_str():
-    device = torch.device("cpu")
+    device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
     s = "test-abcedfg"
 
     encoded_s = ComputationModel._encode_str(s, device, 1024)

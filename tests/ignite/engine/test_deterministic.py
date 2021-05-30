@@ -262,7 +262,7 @@ def _test_resume_random_dataloader_from_epoch(device, _setup_sampler, sampler_ty
                     data,
                     batch_size=batch_size,
                     num_workers=num_workers,
-                    pin_memory="cuda" in device,
+                    pin_memory="cuda" in torch.device(device).type,
                     sampler=sampler,
                     drop_last=True,
                     shuffle=sampler is None,
@@ -294,7 +294,7 @@ def _test_resume_random_dataloader_from_epoch(device, _setup_sampler, sampler_ty
                     data,
                     batch_size=batch_size,
                     num_workers=num_workers,
-                    pin_memory="cuda" in device,
+                    pin_memory="cuda" in torch.device(device).type,
                     sampler=sampler,
                     drop_last=True,
                     shuffle=sampler is None,
@@ -370,7 +370,7 @@ def _test_resume_random_dataloader_from_iter(device, _setup_sampler, sampler_typ
                     data,
                     batch_size=batch_size,
                     num_workers=num_workers,
-                    pin_memory="cuda" in device,
+                    pin_memory="cuda" in torch.device(device).type,
                     sampler=sampler,
                     drop_last=True,
                     shuffle=sampler is None,
@@ -401,7 +401,7 @@ def _test_resume_random_dataloader_from_iter(device, _setup_sampler, sampler_typ
                     data,
                     batch_size=batch_size,
                     num_workers=num_workers,
-                    pin_memory="cuda" in device,
+                    pin_memory="cuda" in torch.device(device).type,
                     sampler=sampler,
                     drop_last=True,
                     shuffle=sampler is None,
@@ -563,16 +563,18 @@ def test_resume_random_data_iterator_from_iter():
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_gpu(distributed_context_single_node_nccl):
-    device = f"cuda:{distributed_context_single_node_nccl['local_rank']}"
+def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
+
+    device = idist.device()
     _test_resume_random_dataloader_from_iter(device, setup_sampler, sampler_type="distributed")
     _test_resume_random_dataloader_from_epoch(device, setup_sampler, sampler_type="distributed")
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-def test_distrib_cpu(distributed_context_single_node_gloo):
-    device = "cpu"
+def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
+
+    device = idist.device()
     _test_resume_random_dataloader_from_iter(device, setup_sampler, sampler_type="distributed")
     _test_resume_random_dataloader_from_epoch(device, setup_sampler, sampler_type="distributed")
 
@@ -582,7 +584,8 @@ def test_distrib_cpu(distributed_context_single_node_gloo):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
-    device = "cpu"
+
+    device = idist.device()
     _test_resume_random_dataloader_from_iter(device, setup_sampler, sampler_type="distributed")
     _test_resume_random_dataloader_from_epoch(device, setup_sampler, sampler_type="distributed")
 
@@ -591,7 +594,8 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = f"cuda:{distributed_context_multi_node_nccl['local_rank']}"
+
+    device = idist.device()
     _test_resume_random_dataloader_from_iter(device, setup_sampler, sampler_type="distributed")
     _test_resume_random_dataloader_from_epoch(device, setup_sampler, sampler_type="distributed")
 

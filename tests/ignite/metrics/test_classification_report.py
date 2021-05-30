@@ -141,23 +141,12 @@ def _test_integration_multilabel(device, output_dict):
             _test(metric_device, 2, ["0", "1", "2", "3", "4", "5", "6"])
 
 
-@pytest.mark.multinode_distributed
+@pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
 
-    device = torch.device(f"cuda:{distributed_context_multi_node_nccl['local_rank']}")
-    _test_integration_multiclass(device, True)
-    _test_integration_multiclass(device, False)
-    _test_integration_multilabel(device, True)
-    _test_integration_multilabel(device, False)
-
-
-@pytest.mark.multinode_distributed
-@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
-    device = torch.device("cpu")
+    device = idist.device()
     _test_integration_multiclass(device, True)
     _test_integration_multiclass(device, False)
     _test_integration_multilabel(device, True)
@@ -166,12 +155,27 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-def test_distrib_cpu(local_rank, distributed_context_single_node_gloo):
-    device = torch.device("cpu")
+def test_distrib_gloo_cpu_or_gpu(local_rank, distributed_context_single_node_gloo):
+
+    device = idist.device()
     _test_integration_multiclass(device, True)
     _test_integration_multiclass(device, False)
     _test_integration_multilabel(device, True)
     _test_integration_multilabel(device, False)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
+def test_distrib_hvd(gloo_hvd_executor):
+
+    device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
+    nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
+
+    gloo_hvd_executor(_test_integration_multiclass, (device, True), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_integration_multiclass, (device, False), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_integration_multilabel, (device, True), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_integration_multilabel, (device, False), np=nproc, do_init=True)
 
 
 def _test_distrib_xla_nprocs(index):
