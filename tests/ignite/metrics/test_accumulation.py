@@ -500,3 +500,29 @@ def test_apex_average_on_cuda():
     _test_apex_average(device, amp_mode="apex", opt_level="O1")
     _test_apex_average(device, amp_mode="apex", opt_level="O2")
     _test_apex_average(device, amp_mode="apex", opt_level="O3")
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
+
+    device = idist.device()
+    _test_distrib_variable_accumulation(device)
+    _test_distrib_average(device)
+    _test_distrib_geom_average(device)
+    _test_distrib_integration(device)
+    _test_distrib_accumulator_device(device)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
+
+    device = idist.device()
+    _test_distrib_variable_accumulation(device)
+    _test_distrib_average(device)
+    _test_distrib_geom_average(device)
+    _test_distrib_integration(device)
+    _test_distrib_accumulator_device(device)

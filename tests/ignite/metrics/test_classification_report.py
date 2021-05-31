@@ -201,3 +201,27 @@ def to_numpy_multilabel(y):
     num_classes = y.shape[0]
     y = y.reshape((num_classes, -1)).transpose(1, 0)
     return y
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
+
+    device = idist.device()
+    _test_integration_multiclass(device, True)
+    _test_integration_multiclass(device, False)
+    _test_integration_multilabel(device, True)
+    _test_integration_multilabel(device, False)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
+
+    device = idist.device()
+    _test_integration_multiclass(device, True)
+    _test_integration_multiclass(device, False)
+    _test_integration_multilabel(device, True)
+    _test_integration_multilabel(device, False)

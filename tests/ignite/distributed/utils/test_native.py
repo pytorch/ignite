@@ -86,7 +86,7 @@ def test_native_distrib_single_node_spawn_gloo(init_method, dirname):
     if init_method == "FILE":
         init_method = f"file://{dirname}/shared"
 
-    device = torch.device(f"cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     _test_native_distrib_single_node_spawn(init_method, "gloo", device, timeout=timeout)
 
 

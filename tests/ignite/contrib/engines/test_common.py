@@ -603,3 +603,26 @@ def test_distrib_gloo_cpu_or_gpu(dirname, distributed_context_single_node_gloo):
         dirname, device, rank=local_rank, local_rank=local_rank, distributed=True, lr_scheduler="ignite"
     )
     test_add_early_stopping_by_val_score()
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_gloo_cpu_or_gpu(dirname, distributed_context_multi_node_gloo):
+
+    device = idist.device()
+    rank = distributed_context_multi_node_gloo["rank"]
+    _test_setup_common_training_handlers(dirname, device, rank=rank)
+    test_add_early_stopping_by_val_score()
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_nccl_gpu(dirname, distributed_context_multi_node_nccl):
+
+    local_rank = distributed_context_multi_node_nccl["local_rank"]
+    rank = distributed_context_multi_node_nccl["rank"]
+    device = idist.device()
+    _test_setup_common_training_handlers(dirname, device, rank=rank, local_rank=local_rank, distributed=True)
+    test_add_early_stopping_by_val_score()
