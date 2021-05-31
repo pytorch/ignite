@@ -724,7 +724,13 @@ class Engine(Serializable):
 
     @staticmethod
     def _is_done(state: State) -> bool:
-        return state.iteration == state.epoch_length * state.max_epochs  # type: ignore[operator]
+        is_done_count = (
+            state.epoch_length is not None
+            and state.max_epochs is not None
+            and state.iteration >= state.epoch_length * state.max_epochs
+        )
+        is_done_epochs = state.max_epochs is not None and state.epoch >= state.max_epochs
+        return is_done_count or is_done_epochs
 
     def set_data(self, data: Union[Iterable, DataLoader]) -> None:
         """Method to set data. After calling the method the next batch passed to `processing_function` is
@@ -956,7 +962,6 @@ class Engine(Serializable):
                     self.state.times[Events.EPOCH_COMPLETED.name] = epoch_time_taken
 
                     handlers_start_time = time.time()
-
                     self._fire_event(Events.EPOCH_COMPLETED)
                     epoch_time_taken += time.time() - handlers_start_time
                     # update time wrt handlers
@@ -1039,13 +1044,8 @@ class Engine(Serializable):
 
                     # Should exit while loop if we can not iterate
                     if should_exit:
-                        if not self._is_done(self.state):
-                            total_iters = (
-                                self.state.epoch_length * self.state.max_epochs
-                                if self.state.max_epochs is not None
-                                else self.state.max_iters
-                            )
-
+                        if not self._is_done(self.state) and self.state.max_epochs is not None:
+                            total_iters = self.state.epoch_length * self.state.max_epochs
                             warnings.warn(
                                 "Data iterator can not provide data anymore but required total number of "
                                 "iterations to run is not reached. "
@@ -1071,10 +1071,6 @@ class Engine(Serializable):
 
                 if self.state.epoch_length is not None and iter_counter == self.state.epoch_length:
                     break
-
-                if self.state.max_iters is not None and self.state.iteration == self.state.max_iters:
-                    self.should_terminate = True
-                    raise _EngineTerminateException()
 
         except _EngineTerminateSingleEpochException:
             self._fire_event(Events.TERMINATE_SINGLE_EPOCH, iter_counter=iter_counter)
@@ -1191,19 +1187,12 @@ class Engine(Serializable):
                     if self.state.epoch_length is None:
                         # Define epoch length and stop the epoch
                         self.state.epoch_length = iter_counter
-                        if self.state.max_iters is not None:
-                            self.state.max_epochs = math.ceil(self.state.max_iters / self.state.epoch_length)
                         break
 
                     # Should exit while loop if we can not iterate
                     if should_exit:
-                        if not self._is_done(self.state):
-                            total_iters = (
-                                self.state.epoch_length * self.state.max_epochs
-                                if self.state.max_epochs is not None
-                                else self.state.max_iters
-                            )
-
+                        if not self._is_done(self.state) and self.state.max_epochs is not None:
+                            total_iters = self.state.epoch_length * self.state.max_epochs
                             warnings.warn(
                                 "Data iterator can not provide data anymore but required total number of "
                                 "iterations to run is not reached. "
@@ -1229,10 +1218,6 @@ class Engine(Serializable):
 
                 if self.state.epoch_length is not None and iter_counter == self.state.epoch_length:
                     break
-
-                if self.state.max_iters is not None and self.state.iteration == self.state.max_iters:
-                    self.should_terminate = True
-                    raise _EngineTerminateException()
 
         except _EngineTerminateSingleEpochException:
             self._fire_event(Events.TERMINATE_SINGLE_EPOCH, iter_counter=iter_counter)
