@@ -964,7 +964,7 @@ class ModelCheckpoint(Checkpoint):
         self,
         dirname: Union[str, Path],
         filename_prefix: str = "",
-        save_interval: Optional[Callable] = None,
+        save_interval: Optional[int] = None,
         score_function: Optional[Callable] = None,
         score_name: Optional[str] = None,
         n_saved: Union[int, None] = 1,
