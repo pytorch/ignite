@@ -165,6 +165,9 @@ def test_asserts_setup_common_training_handlers():
         )
         trainer.run([1])
 
+    with pytest.warns(UserWarning, match=r"Argument device is unused and deprecated"):
+        setup_common_training_handlers(trainer, device="cpu")
+
 
 def test_no_warning_with_train_sampler(recwarn):
     from torch.utils.data import RandomSampler

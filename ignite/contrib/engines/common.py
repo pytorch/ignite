@@ -48,6 +48,7 @@ def setup_common_training_handlers(
     with_pbars: bool = True,
     with_pbar_on_iters: bool = True,
     log_every_iters: int = 100,
+    device: Optional[Union[str, torch.device]] = None,
     stop_on_nan: bool = True,
     clear_cuda_cache: bool = True,
     save_handler: Optional[Union[Callable, BaseSaveHandler]] = None,
@@ -91,7 +92,10 @@ def setup_common_training_handlers(
             class to use to store ``to_save``. See :class:`~ignite.handlers.checkpoint.Checkpoint` for more details.
             Argument is mutually exclusive with ``output_path``.
         kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.
+        device: deprecated argument, it will be removed in v0.5.0.
     """
+    if device is not None:
+        warnings.warn("Argument device is unused and deprecated. It will be removed in v0.5.0")
 
     if idist.get_world_size() > 1:
         _setup_common_distrib_training_handlers(
