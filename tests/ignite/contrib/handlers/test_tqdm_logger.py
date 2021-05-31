@@ -9,7 +9,7 @@ import pytest
 import torch
 from packaging.version import Version
 
-from ignite.contrib.handlers import ProgressBar
+from ignite.contrib.handlers import CustomPeriodicEvent, ProgressBar
 from ignite.engine import Engine, Events
 from ignite.handlers import TerminateOnNan
 from ignite.metrics import RunningAverage
@@ -473,6 +473,17 @@ def test_pbar_wrong_events_order():
 
     with pytest.raises(ValueError, match="should not be a filtered event"):
         pbar.attach(engine, event_name=Events.ITERATION_STARTED, closing_event_name=Events.EPOCH_COMPLETED(every=10))
+
+
+def test_pbar_on_custom_events(capsys):
+
+    engine = Engine(update_fn)
+    pbar = ProgressBar()
+    with pytest.warns(DeprecationWarning, match="CustomPeriodicEvent is deprecated"):
+        cpe = CustomPeriodicEvent(n_iterations=15)
+
+    with pytest.raises(ValueError, match=r"not in allowed events for this engine"):
+        pbar.attach(engine, event_name=cpe.Events.ITERATIONS_15_COMPLETED, closing_event_name=Events.EPOCH_COMPLETED)
 
 
 def test_pbar_with_nan_input():
