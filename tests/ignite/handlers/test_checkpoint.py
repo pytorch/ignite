@@ -61,6 +61,9 @@ def test_checkpoint_wrong_input():
     with pytest.raises(TypeError, match=r"global_step_transform should be a function."):
         Checkpoint(to_save, lambda x: x, score_function=lambda e: 123, score_name="acc", global_step_transform=123)
 
+    with pytest.warns(UserWarning, match=r"Argument archived is deprecated"):
+        Checkpoint(to_save, lambda x: x, score_function=lambda e: 123, score_name="acc", archived=True)
+
     with pytest.raises(ValueError, match=r"Cannot have key 'checkpointer' if `include_self` is True"):
         Checkpoint({"checkpointer": model}, lambda x: x, include_self=True)
 
@@ -503,14 +506,23 @@ def test_model_checkpoint_args_validation(dirname):
     with pytest.raises(ValueError, match=r"with extension '.pt' are already present "):
         ModelCheckpoint(nonempty, _PREFIX)
 
+    with pytest.raises(ValueError, match=r"Argument save_interval is deprecated and should be None"):
+        ModelCheckpoint(existing, _PREFIX, save_interval=42)
+
     with pytest.raises(ValueError, match=r"Directory path '\S+' is not found"):
         ModelCheckpoint(os.path.join(dirname, "non_existing_dir"), _PREFIX, create_dir=False)
+
+    with pytest.raises(ValueError, match=r"Argument save_as_state_dict is deprecated and should be True"):
+        ModelCheckpoint(existing, _PREFIX, create_dir=False, save_as_state_dict=False)
 
     with pytest.raises(ValueError, match=r"If `score_name` is provided, then `score_function` "):
         ModelCheckpoint(existing, _PREFIX, create_dir=False, score_name="test")
 
     with pytest.raises(TypeError, match=r"global_step_transform should be a function"):
         ModelCheckpoint(existing, _PREFIX, create_dir=False, global_step_transform=1234)
+
+    with pytest.warns(UserWarning, match=r"Argument archived is deprecated"):
+        ModelCheckpoint(existing, _PREFIX, create_dir=False, archived=True)
 
     h = ModelCheckpoint(dirname, _PREFIX, create_dir=False)
     assert h.last_checkpoint is None
