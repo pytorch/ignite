@@ -1,4 +1,9 @@
 from ignite.contrib.handlers.clearml_logger import ClearMLLogger
+<<<<<<< HEAD
+=======
+from ignite.contrib.handlers.custom_events import CustomPeriodicEvent
+from ignite.contrib.handlers.lr_finder import FastaiLRFinder
+>>>>>>> Revert "Issue #1247 (#1252)"
 from ignite.contrib.handlers.mlflow_logger import MLflowLogger
 from ignite.contrib.handlers.neptune_logger import NeptuneLogger
 from ignite.contrib.handlers.polyaxon_logger import PolyaxonLogger
