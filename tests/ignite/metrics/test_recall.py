@@ -105,6 +105,9 @@ def test_binary_input(average):
             # updated batches
             (torch.randint(0, 2, size=(50, 12, 10)), torch.randint(0, 2, size=(50, 12, 10)), 16),
             (torch.randint(0, 2, size=(50, 1, 12, 10)), torch.randint(0, 2, size=(50, 1, 12, 10)), 16),
+            # Corner case with all zeros predictions
+            (torch.zeros(size=(10,)), torch.randint(0, 2, size=(10,)), 1),
+            (torch.zeros(size=(10, 1)), torch.randint(0, 2, size=(10, 1)), 1),
         ]
 
         return test_cases
@@ -219,6 +222,9 @@ def test_multiclass_input(average):
             # updated batches
             (torch.rand(50, 5, 18, 16), torch.randint(0, 5, size=(50, 18, 16)), 16),
             (torch.rand(50, 7, 20, 12), torch.randint(0, 7, size=(50, 20, 12)), 16),
+            # Corner case with all zeros predictions
+            (torch.zeros(size=(10, 6)), torch.randint(0, 6, size=(10,)), 1),
+            (torch.zeros(size=(10, 4)), torch.randint(0, 4, size=(10,)), 1),
         ]
 
         return test_cases
@@ -325,6 +331,9 @@ def test_multilabel_input(average):
             # updated batches
             (torch.randint(0, 2, size=(50, 5, 18, 16)), torch.randint(0, 2, size=(50, 5, 18, 16)), 16),
             (torch.randint(0, 2, size=(50, 4, 20, 23)), torch.randint(0, 2, size=(50, 4, 20, 23)), 16),
+            # Corner case with all zeros predictions
+            (torch.zeros(size=(10, 5)), torch.randint(0, 2, size=(10, 5)), 1),
+            (torch.zeros(size=(10, 4)), torch.randint(0, 2, size=(10, 4)), 1),
         ]
 
         return test_cases
