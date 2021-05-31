@@ -94,7 +94,6 @@ def _create_dist_context(dist_info, lrank):
 
     dist.init_process_group(**dist_info)
     dist.barrier()
-    # if dist_info["backend"] == "nccl":
     if torch.cuda.is_available():
         torch.cuda.set_device(lrank)
 
@@ -211,7 +210,6 @@ def _create_mnodes_dist_context(dist_info, mnodes_conf):
 
     dist.init_process_group(**dist_info)
     dist.barrier()
-    # if dist_info["backend"] == "nccl":
     if torch.cuda.is_available():
         torch.cuda.device(mnodes_conf["local_rank"])
     return mnodes_conf

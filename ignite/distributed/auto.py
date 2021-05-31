@@ -9,9 +9,8 @@ from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import Sampler
 
 from ignite.distributed import utils as idist
-
-from ignite.distributed.comp_models import native as idist_native
 from ignite.distributed.comp_models import horovod as idist_hvd
+from ignite.distributed.comp_models import native as idist_native
 from ignite.distributed.comp_models import xla as idist_xla
 from ignite.utils import setup_logger
 
@@ -200,7 +199,9 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
 
                 lrank = idist.get_local_rank()
                 logger.info(f"Apply torch DistributedDataParallel on model, device id: {lrank}")
-                kwargs["device_ids"] = [lrank, ]
+                kwargs["device_ids"] = [
+                    lrank,
+                ]
             else:
                 logger.info("Apply torch DistributedDataParallel on model")
 

@@ -127,7 +127,6 @@ if has_native_dist_support:
             # https://github.com/facebookresearch/maskrcnn-benchmark/issues/172
             dist.barrier()
 
-            # if backend in (dist.Backend.NCCL, dist.Backend.GLOO) and torch.cuda.is_available():
             if torch.cuda.is_available():
                 torch.cuda.set_device(self._local_rank)
 
@@ -141,7 +140,6 @@ if has_native_dist_support:
         def _compute_nproc_per_node(self) -> int:
             local_rank = self.get_local_rank()
             device = torch.device("cpu")
-            # if self.backend() == dist.Backend.NCCL:
             if torch.cuda.is_available():
                 # we manually set cuda device to local rank in order to avoid a hang on all_reduce
                 device = torch.device(f"cuda:{local_rank}")
@@ -153,7 +151,6 @@ if has_native_dist_support:
             import socket
 
             device = "cpu"
-            # if self.backend() == dist.Backend.NCCL:
             if torch.cuda.is_available():
                 index = torch.cuda.current_device()
                 device = f"cuda:{index}"
@@ -284,7 +281,6 @@ if has_native_dist_support:
             return cast(int, self._node)
 
         def device(self) -> torch.device:
-            # if self.backend() == dist.Backend.NCCL:
             if torch.cuda.is_available():
                 index = torch.cuda.current_device()
                 if index < self.get_local_rank():
