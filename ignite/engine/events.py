@@ -366,9 +366,39 @@ class State:
         state.metrics           # dictionary with defined metrics if any
         state.times             # dictionary with total and per-epoch times fetched on
                                 # keys: Events.EPOCH_COMPLETED.name and Events.COMPLETED.name
+        state.data              # dictionary with unrolled batch and output. See below for details
+
+    Note:
+        ``state.data`` is a dictionary and contains ``state.batch`` and ``state.output`` data.
+
+        .. code-block:: python
+
+            # if batch is a sequence
+            # if output is not a sequence or dictionary
+            state.data = {
+                "input_0": batch[0],
+                "input_1": batch[1],
+                ...
+                "output": output
+            }
+
+            # if batch is a dictionary: {"image": x, "target": y, "meta": metadata, ...}
+            # if output is a dictionary: {"y_pred": y_pred, "batch_loss": batch_loss, ...}
+            state.data = {
+                "image": x,
+                "target": y,
+                "meta": metadata,
+                ...
+                "y_pred": y_pred,
+                "batch_loss": batch_loss,
+                ...
+            }
 
     Args:
         kwargs: keyword arguments to be defined as State attributes.
+
+    .. versionchanged:: 0.4.5
+        Added ``state.data``.
     """
 
     event_to_attr = {
@@ -397,6 +427,7 @@ class State:
             Events.EPOCH_COMPLETED.name: None,
             Events.COMPLETED.name: None,
         }  # type: Dict[str, Optional[float]]
+        self.data = {}  # type: Dict[str, Any]
 
         for k, v in kwargs.items():
             setattr(self, k, v)

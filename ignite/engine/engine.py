@@ -6,7 +6,7 @@ import warnings
 import weakref
 from collections import OrderedDict, defaultdict
 from collections.abc import Mapping
-from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
 
 from torch.utils.data import DataLoader
 
@@ -808,11 +808,13 @@ class Engine(Serializable):
 
             while True:
                 self.state.batch = self.state.output = None
+                self.state.data = {}
                 try:
                     # Avoid Events.GET_BATCH_STARTED triggered twice when data iter is restarted
                     if self.last_event_name != Events.DATALOADER_STOP_ITERATION:
                         self._fire_event(Events.GET_BATCH_STARTED)
                     self.state.batch = next(self._dataloader_iter)
+                    _add_to_state_data(self.state.data, self.state.batch, "input")
                     self._fire_event(Events.GET_BATCH_COMPLETED)
                     iter_counter += 1
                     should_exit = False
@@ -851,6 +853,7 @@ class Engine(Serializable):
                 self.state.iteration += 1
                 self._fire_event(Events.ITERATION_STARTED)
                 self.state.output = self._process_function(self, self.state.batch)
+                _add_to_state_data(self.state.data, self.state.output, "output")
                 self._fire_event(Events.ITERATION_COMPLETED)
 
                 if self.should_terminate or self.should_terminate_single_epoch:
@@ -871,3 +874,12 @@ class Engine(Serializable):
             self._handle_exception(e)
 
         return time.time() - start_time
+
+
+def _add_to_state_data(state_data: Dict[str, Any], data: Union[Dict[str, Any], Sequence, Any], name: str):
+    if isinstance(data, Sequence):
+        state_data.update({f"{name}_{i}": value for i, value in enumerate(data)})
+    elif isinstance(data, Mapping):
+        state_data.update(data)
+    else:
+        state_data[name] = data

@@ -277,6 +277,7 @@ def test_state_repr():
     assert "metrics" in s
     assert "output" in s
     assert "batch" in s
+    assert "data" in s
 
 
 def test_alter_batch():
@@ -986,3 +987,43 @@ def test_output_is_released_before_new_one_is_assigned_on_cuda():
     assert len(set(mem_consumption2)) == 2
 
     assert mem_consumption1 == mem_consumption2
+
+
+def test_state_data():
+    def _test(input_data, proc_fn):
+        trainer = Engine(proc_fn)
+
+        def _assert_data(state_data, data, name):
+            if isinstance(data, (list, tuple)):
+                for i, b in enumerate(data):
+                    assert f"{name}_{i}" in state_data
+                    assert state_data[f"{name}_{i}"] == b
+            elif isinstance(data, dict):
+                for k, b in data.items():
+                    assert k in state_data
+                    assert state_data[k] == b
+            else:
+                assert name in state_data
+                assert state_data[name] == data
+
+        @trainer.on(Events.GET_BATCH_COMPLETED)
+        def check_data_input():
+            data = trainer.state.data
+            batch = trainer.state.batch
+            _assert_data(data, batch, "input")
+
+        @trainer.on(Events.ITERATION_COMPLETED)
+        def check_data_output():
+            data = trainer.state.data
+            output = trainer.state.output
+            _assert_data(data, output, "output")
+            batch = trainer.state.batch
+            _assert_data(data, batch, "input")
+
+        trainer.run(input_data)
+
+    _test([1, 2, 3], lambda e, b: b)
+    _test([(1, 2), (2, 3), (3, 4)], lambda e, b: b)
+    _test([{"x": 1, "y": 1}, {"x": 12, "y": 21},], lambda e, b: b)
+    _test([{"x": 1, "y": 1}, {"x": 12, "y": 21},], lambda e, b: [b["x"], b["y"]])
+    _test([{"x": 1, "y": 1}, {"x": 12, "y": 21},], lambda e, b: {"loss": b["x"] / 2})
