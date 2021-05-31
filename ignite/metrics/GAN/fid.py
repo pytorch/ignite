@@ -1,10 +1,13 @@
 import numpy as np
-import torch
 from scipy.linalg import sqrtm
 
+import torch
+
 from ignite.exceptions import NotComputableError
-from ignite.metrics import Metric
-from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
+from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
+
+
+__all__ = ["FID"]
 
 
 class Record:
