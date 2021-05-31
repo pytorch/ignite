@@ -1,11 +1,9 @@
 import numpy as np
-from scipy.linalg import sqrtm
-
 import torch
+from scipy.linalg import sqrtm
 
 from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
-
 
 __all__ = ["FID"]
 
