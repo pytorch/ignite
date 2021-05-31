@@ -148,21 +148,8 @@ def test_asserts_setup_common_training_handlers():
         train_sampler = MagicMock(spec=DistributedSampler)
         setup_common_training_handlers(trainer, train_sampler=train_sampler)
 
-    with pytest.raises(RuntimeError, match=r"This contrib module requires available GPU"):
-        setup_common_training_handlers(trainer, with_gpu_stats=True)
-
-    with pytest.raises(TypeError, match=r"Unhandled type of update_function's output."):
-        trainer = Engine(lambda e, b: None)
-        setup_common_training_handlers(
-            trainer,
-            output_names=["loss"],
-            with_pbar_on_iters=False,
-            with_pbars=False,
-            with_gpu_stats=False,
-            stop_on_nan=False,
-            clear_cuda_cache=False,
-        )
-        trainer.run([1])
+    with pytest.warns(UserWarning, match=r"Argument device is unused and deprecated"):
+        setup_common_training_handlers(trainer, device="cpu")
 
 
 def test_no_warning_with_train_sampler(recwarn):
