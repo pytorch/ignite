@@ -1,6 +1,6 @@
+import math
 from unittest.mock import MagicMock, call
 
-import math
 import pytest
 import torch
 
