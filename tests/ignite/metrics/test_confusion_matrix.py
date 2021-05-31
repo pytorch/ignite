@@ -589,18 +589,18 @@ def test_jaccard_index():
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
+def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
 
-    device = torch.device(f"cuda:{local_rank}")
+    device = idist.device()
     _test_distrib_multiclass_images(device)
     _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-def test_distrib_cpu(distributed_context_single_node_gloo):
+def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
 
-    device = torch.device("cpu")
+    device = idist.device()
     _test_distrib_multiclass_images(device)
     _test_distrib_accumulator_device(device)
 
@@ -615,24 +615,6 @@ def test_distrib_hvd(gloo_hvd_executor):
 
     gloo_hvd_executor(_test_distrib_multiclass_images, (device,), np=nproc, do_init=True)
     gloo_hvd_executor(_test_distrib_accumulator_device, (device,), np=nproc, do_init=True)
-
-
-@pytest.mark.multinode_distributed
-@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
-    device = torch.device("cpu")
-    _test_distrib_multiclass_images(device)
-    _test_distrib_accumulator_device(device)
-
-
-@pytest.mark.multinode_distributed
-@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = torch.device(f"cuda:{distributed_context_multi_node_nccl['local_rank']}")
-    _test_distrib_multiclass_images(device)
-    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.tpu
@@ -656,3 +638,23 @@ def _test_distrib_xla_nprocs(index):
 def test_distrib_xla_nprocs(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
     xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
+
+    device = idist.device()
+    _test_distrib_multiclass_images(device)
+    _test_distrib_accumulator_device(device)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
+
+    device = idist.device()
+    _test_distrib_multiclass_images(device)
+    _test_distrib_accumulator_device(device)

@@ -1188,8 +1188,9 @@ def _test_checkpoint_load_objects_ddp(device):
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-def test_distrib_cpu(distributed_context_single_node_gloo, get_rank_zero_dirname):
-    device = torch.device("cpu")
+def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo, get_rank_zero_dirname):
+
+    device = idist.device()
     dirname = get_rank_zero_dirname()
     _test_save_model_optimizer_lr_scheduler_with_state_dict(device, os.path.join(dirname, "1"))
     _test_save_model_optimizer_lr_scheduler_with_state_dict(device, os.path.join(dirname, "2"), on_zero_rank=True)
@@ -1200,7 +1201,8 @@ def test_distrib_cpu(distributed_context_single_node_gloo, get_rank_zero_dirname
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_gpu(distributed_context_single_node_nccl, get_rank_zero_dirname):
+def test_distrib_nccl_gpu(distributed_context_single_node_nccl, get_rank_zero_dirname):
+
     device = idist.device()
     dirname = get_rank_zero_dirname()
     _test_save_model_optimizer_lr_scheduler_with_state_dict(device, os.path.join(dirname, "1"))

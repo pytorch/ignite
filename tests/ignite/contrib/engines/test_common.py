@@ -56,7 +56,7 @@ def _test_setup_common_training_handlers(
     num_epochs = 10
 
     model = DummyModel().to(device)
-    if distributed and "cuda" in device:
+    if distributed and "cuda" in torch.device(device).type:
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank,], output_device=local_rank)
     optimizer = torch.optim.SGD(model.parameters(), lr=lr)
 
@@ -581,17 +581,19 @@ def test_setup_neptune_logging(dirname):
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_gpu(dirname, distributed_context_single_node_nccl):
+def test_distrib_nccl_gpu(dirname, distributed_context_single_node_nccl):
+
     local_rank = distributed_context_single_node_nccl["local_rank"]
-    device = f"cuda:{local_rank}"
+    device = idist.device()
     _test_setup_common_training_handlers(dirname, device, rank=local_rank, local_rank=local_rank, distributed=True)
     test_add_early_stopping_by_val_score()
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-def test_distrib_cpu(dirname, distributed_context_single_node_gloo):
-    device = "cpu"
+def test_distrib_gloo_cpu_or_gpu(dirname, distributed_context_single_node_gloo):
+
+    device = idist.device()
     local_rank = distributed_context_single_node_gloo["local_rank"]
     _test_setup_common_training_handlers(dirname, device, rank=local_rank, local_rank=local_rank, distributed=True)
     _test_setup_common_training_handlers(
@@ -606,8 +608,9 @@ def test_distrib_cpu(dirname, distributed_context_single_node_gloo):
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_cpu(dirname, distributed_context_multi_node_gloo):
-    device = "cpu"
+def test_multinode_distrib_gloo_cpu_or_gpu(dirname, distributed_context_multi_node_gloo):
+
+    device = idist.device()
     rank = distributed_context_multi_node_gloo["rank"]
     _test_setup_common_training_handlers(dirname, device, rank=rank)
     test_add_early_stopping_by_val_score()
@@ -616,9 +619,10 @@ def test_multinode_distrib_cpu(dirname, distributed_context_multi_node_gloo):
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_gpu(dirname, distributed_context_multi_node_nccl):
+def test_multinode_distrib_nccl_gpu(dirname, distributed_context_multi_node_nccl):
+
     local_rank = distributed_context_multi_node_nccl["local_rank"]
     rank = distributed_context_multi_node_nccl["rank"]
-    device = f"cuda:{local_rank}"
+    device = idist.device()
     _test_setup_common_training_handlers(dirname, device, rank=rank, local_rank=local_rank, distributed=True)
     test_add_early_stopping_by_val_score()
