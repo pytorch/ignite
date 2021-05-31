@@ -78,7 +78,7 @@ def _test_auto_dataloader(ws, nproc, batch_size, num_workers=1, sampler_name=Non
 def _test_auto_model(model, ws, device, sync_bn=False, **kwargs):
     model = auto_model(model, sync_bn=sync_bn, **kwargs)
     bnd = idist.backend()
-    if ws > 1 and device in ("cuda", "cpu"):
+    if ws > 1 and torch.device(device).type in ("cuda", "cpu"):
         if idist.has_native_dist_support and bnd in ("nccl", "gloo"):
             assert isinstance(model, nn.parallel.DistributedDataParallel)
             if sync_bn:
@@ -93,8 +93,8 @@ def _test_auto_model(model, ws, device, sync_bn=False, **kwargs):
         assert isinstance(model, nn.Module)
 
     assert all(
-        [p.device.type == device for p in model.parameters()]
-    ), f"{[p.device.type for p in model.parameters()]} vs {device}"
+        [p.device.type == torch.device(device).type for p in model.parameters()]
+    ), f"{[p.device.type for p in model.parameters()]} vs {torch.device(device).type}"
 
 
 def _test_auto_model_optimizer(ws, device):
@@ -103,7 +103,7 @@ def _test_auto_model_optimizer(ws, device):
     _test_auto_model(model, ws, device)
 
     model = nn.Sequential(nn.Linear(20, 100), nn.BatchNorm1d(100))
-    _test_auto_model(model, ws, device, sync_bn="cuda" in device)
+    _test_auto_model(model, ws, device, sync_bn="cuda" in torch.device(device).type)
     if ws > 1:
         _test_auto_model(model, ws, device, find_unused_parameters=True)
         _test_auto_model(model, ws, device, find_unused_parameters=False)
@@ -138,9 +138,10 @@ def test_auto_methods_gloo(distributed_context_single_node_gloo):
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=2)
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, sampler_name="WeightedRandomSampler")
 
-    _test_auto_model_optimizer(ws, "cpu")
+    device = idist.device()
+    _test_auto_model_optimizer(ws, device)
 
-    if ws > 1:
+    if ws > 1 and device.type == "cpu":
         with pytest.raises(AssertionError, match=r"SyncBatchNorm layers only work with GPU modules"):
             model = nn.Sequential(nn.Linear(20, 100), nn.BatchNorm1d(100))
             auto_model(model, sync_bn=True)
@@ -156,7 +157,8 @@ def test_auto_methods_nccl(distributed_context_single_node_nccl):
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=10)
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1, sampler_name="WeightedRandomSampler")
 
-    _test_auto_model_optimizer(ws, "cuda")
+    device = idist.device()
+    _test_auto_model_optimizer(ws, device)
 
     if ws > 1:
         with pytest.raises(ValueError, match=r"Argument kwargs should not contain 'device_ids'"):
