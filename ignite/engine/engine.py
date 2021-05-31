@@ -649,7 +649,7 @@ class Engine(Serializable):
         return self._state_dict_user_keys
 
     def state_dict(self) -> OrderedDict:
-        """Returns a dictionary containing engine's state: "epoch_length", "max_epochs" and "iteration" and
+        """Returns a dictionary containing engine's state: "seed", "epoch_length", "max_epochs" and "iteration" and
         other state values defined by `engine.state_dict_user_keys`
 
         .. code-block:: python
@@ -682,8 +682,8 @@ class Engine(Serializable):
     def load_state_dict(self, state_dict: Mapping) -> None:
         """Setups engine from `state_dict`.
 
-        State dictionary should contain keys: `iteration` or `epoch`, `max_epochs` and `epoch_length`.
-        If `engine.state_dict_user_keys` contains keys, they should be also present in the state dictionary.
+        State dictionary should contain keys: `iteration` or `epoch` and `max_epochs`, `epoch_length` and
+        `seed`. If `engine.state_dict_user_keys` contains keys, they should be also present in the state dictionary.
         Iteration and epoch values are 0-based: the first iteration or epoch is zero.
 
         This method does not remove any custom attributes added by user.
@@ -782,12 +782,13 @@ class Engine(Serializable):
         max_epochs: Optional[int] = None,
         max_iters: Optional[int] = None,
         epoch_length: Optional[int] = None,
+        seed: Optional[int] = None,
     ) -> State:
         """Runs the ``process_function`` over the passed data.
 
         Engine has a state and the following logic is applied in this function:
 
-        - At the first call, new state is defined by `max_epochs`, `max_iters`, `epoch_length`, if provided.
+        - At the first call, new state is defined by `max_epochs`, `max_iters`, `epoch_length`, `seed`, if provided.
           A timer for total and per-epoch time is initialized when Events.STARTED is handled.
         - If state is already defined such that there are iterations to run until `max_epochs` and no input arguments
           provided, state is kept and used in the function.
@@ -807,6 +808,7 @@ class Engine(Serializable):
                 This argument should not change if run is resuming from a state.
             max_iters: Number of iterations to run for.
                 `max_iters` and `max_epochs` are mutually exclusive; only one of the two arguments should be provided.
+            seed: Deprecated argument. Please, use `torch.manual_seed` or :meth:`~ignite.utils.manual_seed`.
 
         Returns:
             State: output state.
@@ -835,6 +837,12 @@ class Engine(Serializable):
                 trainer.run(train_loader, max_epochs=2)
 
         """
+        if seed is not None:
+            warnings.warn(
+                "Argument seed is deprecated. It will be removed in 0.5.0. "
+                "Please, use torch.manual_seed or ignite.utils.manual_seed"
+            )
+
         if data is not None and not isinstance(data, Iterable):
             raise TypeError("Argument data should be iterable")
 
