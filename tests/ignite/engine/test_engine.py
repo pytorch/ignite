@@ -520,6 +520,9 @@ class TestEngine:
         with pytest.raises(ValueError, match=r"Input data has zero size. Please provide non-empty data"):
             engine.run([])
 
+        with pytest.warns(UserWarning, match="Argument seed is deprecated"):
+            engine.run([0, 1, 2, 3, 4], seed=1234)
+
     def test_state_get_event_attrib_value(self):
         state = State()
         state.iteration = 10
