@@ -500,14 +500,14 @@ def test_run_check_triggered_events_on_iterator():
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_gpu(distributed_context_single_node_nccl):
+def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
     _test_run_check_triggered_events_on_iterator()
     _test_run_check_triggered_events()
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-def test_distrib_cpu(distributed_context_single_node_gloo):
+def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
     _test_run_check_triggered_events_on_iterator()
     _test_run_check_triggered_events()
 
@@ -515,7 +515,7 @@ def test_distrib_cpu(distributed_context_single_node_gloo):
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
+def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
     _test_run_check_triggered_events_on_iterator()
     _test_run_check_triggered_events()
 
@@ -523,7 +523,7 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
+def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
     _test_run_check_triggered_events_on_iterator()
     _test_run_check_triggered_events()
 
@@ -702,8 +702,7 @@ def test_run_finite_iterator_no_epoch_length_2():
 
 def test_faq_inf_iterator_with_epoch_length():
     # Code snippet from FAQ
-
-    import torch
+    # import torch
 
     torch.manual_seed(12)
 
@@ -727,8 +726,7 @@ def test_faq_inf_iterator_with_epoch_length():
 
 def test_faq_inf_iterator_no_epoch_length():
     # Code snippet from FAQ
-
-    import torch
+    # import torch
 
     torch.manual_seed(12)
 
@@ -756,8 +754,7 @@ def test_faq_inf_iterator_no_epoch_length():
 
 def test_faq_fin_iterator_unknw_size():
     # Code snippet from FAQ
-
-    import torch
+    # import torch
 
     torch.manual_seed(12)
 
@@ -782,9 +779,8 @@ def test_faq_fin_iterator_unknw_size():
     assert trainer.state.epoch == 5
     assert trainer.state.iteration == 5 * 11
 
-    # # # # #
-
-    import torch
+    # Code snippet from FAQ
+    # import torch
 
     torch.manual_seed(12)
 
@@ -808,8 +804,7 @@ def test_faq_fin_iterator_unknw_size():
 
 def test_faq_fin_iterator():
     # Code snippet from FAQ
-
-    import torch
+    # import torch
 
     torch.manual_seed(12)
 
@@ -836,9 +831,8 @@ def test_faq_fin_iterator():
     assert trainer.state.epoch == 5
     assert trainer.state.iteration == 5 * size
 
-    # # # # #
-
-    import torch
+    # Code snippet from FAQ
+    # import torch
 
     torch.manual_seed(12)
 
