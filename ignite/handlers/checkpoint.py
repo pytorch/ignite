@@ -91,6 +91,7 @@ class Checkpoint(Serializable):
             Input of the function is ``(engine, event_name)``. Output of function should be an integer.
             Default is None, global_step based on attached engine. If provided, uses function output as global_step.
             To setup global step from another engine, please use :meth:`~ignite.handlers.global_step_from_engine`.
+        archived: Deprecated argument as models saved by ``torch.save`` are already compressed.
         filename_pattern: If ``filename_pattern`` is provided, this pattern will be used to render
             checkpoint filenames. If the pattern is not defined, the default pattern would be used. See Note for
             details.
@@ -262,6 +263,7 @@ class Checkpoint(Serializable):
         score_name: Optional[str] = None,
         n_saved: Optional[int] = 1,
         global_step_transform: Optional[Callable] = None,
+        archived: bool = False,
         filename_pattern: Optional[str] = None,
         include_self: bool = False,
         greater_or_equal: bool = False,
@@ -289,6 +291,8 @@ class Checkpoint(Serializable):
 
         if global_step_transform is not None and not callable(global_step_transform):
             raise TypeError(f"global_step_transform should be a function, got {type(global_step_transform)} instead.")
+        if archived:
+            warnings.warn("Argument archived is deprecated and will be removed in 0.5.0")
 
         self.to_save = to_save
         self.filename_prefix = filename_prefix
@@ -731,6 +735,11 @@ class ModelCheckpoint(Checkpoint):
 
         Behaviour of this class has been changed since v0.3.0.
 
+        Argument ``save_as_state_dict`` is deprecated and should not be used. It is considered as True.
+
+        Argument ``save_interval`` is deprecated and should not be used. Please, use events filtering instead, e.g.
+        :attr:`~ignite.engine.events.Events.ITERATION_STARTED(every=1000)`
+
         There is no more internal counter that has been used to indicate the number of save actions. User could
         see its value `step_number` in the filename, e.g. `{filename_prefix}_{name}_{step_number}.pt`. Actually,
         `step_number` is replaced by current engine's epoch if `score_function` is specified and current iteration
@@ -761,6 +770,7 @@ class ModelCheckpoint(Checkpoint):
             To setup global step from another engine, please use :meth:`~ignite.handlers.global_step_from_engine`.
         include_self: Whether to include the `state_dict` of this object in the checkpoint. If `True`, then
             there must not be another object in ``to_save`` with key ``checkpointer``.
+        archived: Deprecated argument as models saved by `torch.save` are already compressed.
         kwargs: Accepted keyword arguments for `torch.save` or `xm.save` in `DiskSaver`.
 
     .. versionchanged:: 0.4.2
@@ -786,16 +796,36 @@ class ModelCheckpoint(Checkpoint):
         self,
         dirname: str,
         filename_prefix: str,
+        save_interval: Optional[Callable] = None,
         score_function: Optional[Callable] = None,
         score_name: Optional[str] = None,
         n_saved: Union[int, None] = 1,
         atomic: bool = True,
         require_empty: bool = True,
         create_dir: bool = True,
+        save_as_state_dict: bool = True,
         global_step_transform: Optional[Callable] = None,
+        archived: bool = False,
         include_self: bool = False,
         **kwargs: Any,
     ):
+
+        if not save_as_state_dict:
+            raise ValueError(
+                "Argument save_as_state_dict is deprecated and should be True."
+                "This argument will be removed in 0.5.0."
+            )
+        if save_interval is not None:
+            msg = (
+                "Argument save_interval is deprecated and should be None. This argument will be removed in 0.5.0."
+                "Please, use events filtering instead, e.g. Events.ITERATION_STARTED(every=1000)"
+            )
+            if save_interval == 1:
+                # Do not break for old version who used `save_interval=1`
+                warnings.warn(msg)
+            else:
+                # No choice
+                raise ValueError(msg)
 
         disk_saver = DiskSaver(dirname, atomic=atomic, create_dir=create_dir, require_empty=require_empty, **kwargs)
 
@@ -807,6 +837,7 @@ class ModelCheckpoint(Checkpoint):
             score_name=score_name,
             n_saved=n_saved,
             global_step_transform=global_step_transform,
+            archived=archived,
             include_self=include_self,
         )
 
