@@ -559,9 +559,6 @@ def test_model_checkpoint_args_validation(dirname):
     with pytest.raises(ValueError, match=r"Argument save_as_state_dict is deprecated and should be True"):
         ModelCheckpoint(existing, _PREFIX, create_dir=False, save_as_state_dict=False)
 
-    with pytest.raises(ValueError, match=r"If `score_name` is provided, then `score_function` "):
-        ModelCheckpoint(existing, _PREFIX, create_dir=False, score_name="test")
-
     with pytest.raises(TypeError, match=r"global_step_transform should be a function"):
         ModelCheckpoint(existing, _PREFIX, create_dir=False, global_step_transform=1234)
 
