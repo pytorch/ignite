@@ -348,7 +348,7 @@ def test_num_iter_is_not_enough(lr_finder, to_save, dummy_engine, dataloader):
             trainer_with_finder.run(dataloader)
         assert_output_sizes(lr_finder, dummy_engine)
         assert dummy_engine.state.iteration != len(dataloader)
-        assert dummy_engine.state.iteration == 150
+        assert dummy_engine.state.iteration == 150 + 1
 
 
 def test_detach_terminates(lr_finder, to_save, dummy_engine, dataloader):
