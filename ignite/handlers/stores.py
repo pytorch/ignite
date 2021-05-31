@@ -34,8 +34,8 @@ class EpochOutputStore:
             # output = [(y_pred0, y0), (y_pred1, y1), ...]
             # do something with output, e.g., plotting
 
-    .. versionadded:: 0.5.0
-    .. versionchanged:: 0.5.0
+    .. versionadded:: 0.4.5
+    .. versionchanged:: 0.4.5
         `attach` now accepts an optional argument `name`
     """
 

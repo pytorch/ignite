@@ -414,7 +414,7 @@ def broadcast(
 
     .. versionadded:: 0.4.2
 
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.5
         added ``safe_mode``
     """
     if _need_to_sync and isinstance(_model, _SerialModel):
@@ -523,7 +523,7 @@ def initialize(backend: str, **kwargs: Any) -> None:
     .. versionchanged:: 0.4.2
         ``backend`` now accepts `horovod` distributed framework.
 
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.5
         ``kwargs`` now accepts ``init_method``, ``rank``, ``world_size`` for PyTorch native distributed backend.
     """
     if not (has_xla_support or has_native_dist_support or has_hvd_support):

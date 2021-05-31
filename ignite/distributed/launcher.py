@@ -200,7 +200,7 @@ class Parallel:
     .. versionchanged:: 0.4.2
         ``backend`` now accepts `horovod` distributed framework.
 
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.5
         ``init_method`` added.
 
     """
