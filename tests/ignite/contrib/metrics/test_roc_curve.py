@@ -25,7 +25,7 @@ def test_no_sklearn(mock_no_sklearn):
 def test_roc_curve():
     size = 100
     np_y_pred = np.random.rand(size, 1)
-    np_y = np.zeros((size,), dtype=np.long)
+    np_y = np.zeros((size,), dtype=np.int_)
     np_y[size // 2 :] = 1
     sk_fpr, sk_tpr, sk_thresholds = roc_curve(np_y, np_y_pred)
 
@@ -46,7 +46,7 @@ def test_integration_roc_curve_with_output_transform():
     np.random.seed(1)
     size = 100
     np_y_pred = np.random.rand(size, 1)
-    np_y = np.zeros((size,), dtype=np.long)
+    np_y = np.zeros((size,), dtype=np.int_)
     np_y[size // 2 :] = 1
     np.random.shuffle(np_y)
 
@@ -79,7 +79,7 @@ def test_integration_roc_curve_with_activated_output_transform():
     size = 100
     np_y_pred = np.random.rand(size, 1)
     np_y_pred_sigmoid = torch.sigmoid(torch.from_numpy(np_y_pred)).numpy()
-    np_y = np.zeros((size,), dtype=np.long)
+    np_y = np.zeros((size,), dtype=np.int_)
     np_y[size // 2 :] = 1
     np.random.shuffle(np_y)
 
