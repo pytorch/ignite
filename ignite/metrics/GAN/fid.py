@@ -1,4 +1,5 @@
 from typing import Sequence, Union
+
 import numpy as np
 import torch
 from scipy.linalg import sqrtm
@@ -10,15 +11,16 @@ __all__ = ["FID", "InceptionExtractor"]
 
 
 class InceptionExtractor:
-
     def __init__(self):
         from torchvision import models
+
         self.model = models.inception_v3(init_weights=True)
         self.model.fc = torch.nn.Sequential()
         self.model.eval()
 
     def __call__(self, data):
         return self.model(data).detach()
+
 
 class Record:
     r"""Contains mean and covariance records for train and test data.
@@ -92,7 +94,7 @@ class FID(Metric):
         feature_extractor=lambda x: x,
         eps=10 ** -6,
         output_transform=lambda x: x,
-        device: Union[str, torch.device] = torch.device("cpu")
+        device: Union[str, torch.device] = torch.device("cpu"),
     ):
         self._feature_extractor = feature_extractor
         self._train_record = Record(device=device)
@@ -163,8 +165,9 @@ class FID(Metric):
             if feature.shape[1] == 0:
                 raise ValueError(f"Feature size should be greater than one (got: {feature.shape[1]})")
         if train.shape[0] != test.shape[0] != 0 or train.shape[1] != test.shape[1]:
-            raise ValueError(f"Number of Training Features and Testing Features should be equal "
-                             f"({train.shape} != {test.shape})")
+            raise ValueError(
+                f"Number of Training Features and Testing Features should be equal " f"({train.shape} != {test.shape})"
+            )
 
     @reinit__is_reduced
     def reset(self):
