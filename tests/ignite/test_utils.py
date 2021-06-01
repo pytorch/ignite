@@ -1,7 +1,6 @@
 import logging
 import os
 import sys
-import warnings
 from collections import namedtuple
 
 import pytest
@@ -220,7 +219,8 @@ def test_deprecated():
         assert func_check_warning() == 24
     with pytest.warns(
         DeprecationWarning,
-        match="This function has been deprecated since version 0.4.2 and will be removed in version 0.6.0.\n Please refer to the documentation for more details.",
+        match="This function has been deprecated since version 0.4.2 and will be removed in version 0.6.0."
+        + "\n Please refer to the documentation for more details.",
     ):
         # Trigger a warning.
         func_check_warning()
