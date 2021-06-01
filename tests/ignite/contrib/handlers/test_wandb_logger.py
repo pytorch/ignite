@@ -119,7 +119,7 @@ def test_output_handler_metric_names():
     mock_logger.log = MagicMock()
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
-    mock_logger.log.assert_called_once_with({"tag/a": 55.56, "tag/c": "Some text"}, step=7, sync=None)
+    mock_logger.log.assert_called_once_with({"tag/a": 55.56}, step=7, sync=None)
 
     # all metrics
     wrapper = OutputHandler("tag", metric_names="all")

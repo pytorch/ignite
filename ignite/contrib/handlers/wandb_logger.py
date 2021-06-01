@@ -283,10 +283,13 @@ class OutputHandler(BaseOutputHandler):
         rendered_metrics = {}
         if self.tag is not None:
             for name, value in metrics.items():
-                if isinstance(value, numbers.Number) or isinstance(value, torch.Tensor) and value.ndimension() == 0:
+                if isinstance(value, numbers.Number):
                     rendered_metrics[f"{self.tag}/{name}"] = value
-                elif isinstance(value, str):
-                    rendered_metrics[f"{self.tag}/{name}"] = value
+                elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
+                    rendered_metrics[f"{self.tag}/{name}"] = value.item()
+                elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
+                    for i, v in enumerate(value):
+                        rendered_metrics[f"{self.tag}/{name}/{i}"] = v.item()
                 else:
                     warnings.warn(f"WandBLogger output_handler can not log metrics value type {type(value)}")
 

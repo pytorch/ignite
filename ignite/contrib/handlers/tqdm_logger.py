@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """TQDM logger."""
+import numbers
 import warnings
 from collections import OrderedDict
 from typing import Any, Callable, List, Optional, Union
@@ -273,17 +274,16 @@ class _OutputHandler(BaseOutputHandler):
 
         rendered_metrics = OrderedDict()
         for key, value in metrics.items():
-            if isinstance(value, torch.Tensor):
-                if value.ndimension() == 0:
-                    rendered_metrics[key] = value.item()
-                elif value.ndimension() == 1:
-                    for i, v in enumerate(value):
-                        k = f"{key}_{i}"
-                        rendered_metrics[k] = v.item()
-                else:
-                    warnings.warn(f"ProgressBar can not log tensor with {value.ndimension()} dimensions")
-            else:
+            if isinstance(value, numbers.Number) or isinstance(value, str):
                 rendered_metrics[key] = value
+            elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
+                rendered_metrics[key] = value.item()
+            elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
+                for i, v in enumerate(value):
+                    k = f"{key}_{i}"
+                    rendered_metrics[k] = v.item()
+            else:
+                warnings.warn(f"ProgressBar can not log tensor with {value.ndimension()} dimensions")
 
         if rendered_metrics:
             logger.pbar.set_postfix(rendered_metrics)  # type: ignore[attr-defined]
