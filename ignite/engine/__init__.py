@@ -440,7 +440,7 @@ def supervised_evaluation_step(
         Inference function.
 
     Note:
-        `engine.state.output` for this engine is defind by `output_transform` parameter and is
+        `engine.state.output` for this engine is defined by `output_transform` parameter and is
         a tuple of `(batch_pred, batch_y)` by default.
 
     .. warning::
@@ -488,7 +488,7 @@ def supervised_evaluation_step_amp(
         Inference function.
 
     Note:
-        `engine.state.output` for this engine is defind by `output_transform` parameter and is
+        `engine.state.output` for this engine is defined by `output_transform` parameter and is
         a tuple of `(batch_pred, batch_y)` by default.
 
     .. warning::
@@ -546,7 +546,7 @@ def create_supervised_evaluator(
         an evaluator engine with supervised inference function.
 
     Note:
-        `engine.state.output` for this engine is defind by `output_transform` parameter and is
+        `engine.state.output` for this engine is defined by `output_transform` parameter and is
         a tuple of `(batch_pred, batch_y)` by default.
 
     .. warning::
