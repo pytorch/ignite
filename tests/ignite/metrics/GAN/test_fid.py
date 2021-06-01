@@ -77,7 +77,7 @@ def _test_distrib_integration(device):
 
     def _test(metric_device):
         engine = Engine(update)
-        m = FID(mode="features")
+        m = FID()
         m.attach(engine, "fid")
 
         engine.run(data=list(range(size)), max_epochs=1)
