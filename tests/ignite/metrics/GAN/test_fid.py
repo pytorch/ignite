@@ -4,15 +4,13 @@ import pytest
 import pytorch_fid.fid_score as fid_score
 import torch
 from numpy import cov
-from torch import nn
-from torchvision import models
 
 import ignite.distributed as idist
 from ignite.metrics.GAN.fid import FID, InceptionExtractor
 
 
 @pytest.mark.parametrize(
-    "train_samples, test_samples", [(torch.rand(2, 10), torch.rand(2, 10))],
+    "train_samples, test_samples", [(torch.rand(10, 2048), torch.rand(10, 2048))],
 )
 def test_compute_fid_from_features(train_samples, test_samples):
     fid_scorer = FID()
@@ -22,43 +20,20 @@ def test_compute_fid_from_features(train_samples, test_samples):
     assert pytest.approx(fid_score.calculate_frechet_distance(mu1, sigma1, mu2, sigma2)) == fid_scorer.compute()
 
 
-@pytest.mark.parametrize(
-    "train_samples, test_samples", [(torch.rand(10, 3, 299, 299), torch.rand(10, 3, 299, 299))],
-)
-def test_compute_fid_from_images(train_samples, test_samples):
-    feature_extractor = InceptionExtractor()
-    fid_scorer = FID(feature_extractor=InceptionExtractor())
-    fid_scorer.update([train_samples, test_samples])
-
-    train_samples = feature_extractor(train_samples).detach()
-    test_samples = feature_extractor(test_samples).detach()
-    mu1, sigma1 = train_samples.mean(axis=0), cov(train_samples, rowvar=False)
-    mu2, sigma2 = test_samples.mean(axis=0), cov(test_samples, rowvar=False)
-    assert pytest.approx(fid_score.calculate_frechet_distance(mu1, sigma1, mu2, sigma2)) == fid_scorer.compute()
-
-
 def test_wrong_inputs():
-    with pytest.raises(ValueError, match=r"Please enter a valid mode."):
-        FID(mode="unknown").update([[], []])
-    with pytest.raises(ValueError, match=r"Training Features must be passed as \(num_samples,feature_size\)."):
-        FID(mode="features").update([torch.rand(1, 2, 3), []])
-    with pytest.raises(ValueError, match=r"Testing Features must be passed as \(num_samples,feature_size\)."):
-        FID(mode="features").update([[], torch.rand(1, 2, 3)])
-    with pytest.raises(ValueError, match=r"Number of Training Features and Testing Features should be equal."):
-        FID(mode="features").update([torch.rand(1, 2), torch.rand(2, 3)])
-    with pytest.raises(ValueError, match=r"Training images must be passed as \(num_samples,image\)."):
-        FID(mode="images").update([torch.rand(1, 2), []])
-    with pytest.raises(ValueError, match=r"Testing images must be passed as \(num_samples,image\)."):
-        FID(mode="images").update([[], torch.rand(1, 2)])
-    with pytest.raises(ValueError, match=r"Train and Test images must be of equal dimensions."):
-        FID(mode="images").update([torch.rand(1, 2, 3), torch.rand(2, 3, 4)])
+    with pytest.raises(ValueError, match=r"Features must be a tensor of dim 2 \(got: 1\)"):
+        FID().update(torch.Tensor([[], []]))
+    with pytest.raises(ValueError, match=r"Batch size should be greater than one \(got: 0\)"):
+        FID().update(torch.rand(2, 0, 0))
+    with pytest.raises(ValueError, match=r"Feature size should be greater than one \(got: 0\)"):
+        FID().update(torch.rand(2, 2, 0))
 
 
 @pytest.mark.parametrize(
     "train_samples, test_samples", [(torch.rand(10, 2048), torch.rand(10, 2048)),],
 )
 def test_statistics(train_samples, test_samples):
-    fid_scorer = FID(mode="features")
+    fid_scorer = FID()
     fid_scorer.update([train_samples[:5], test_samples[:5]])
     fid_scorer.update([train_samples[5:], test_samples[5:]])
 
@@ -77,6 +52,11 @@ def test_statistics(train_samples, test_samples):
     assert torch.isclose(mu2.double(), fid_mu2).all()
     for cov1, cov2 in zip(sigma2, fid_sigma2):
         assert torch.isclose(cov1.double(), cov2).all()
+
+
+def test_inception_extractor():
+    with pytest.raises(ValueError, match=r"Images should be of size 3x299x299 \(got torch.Size\(\[2, 2, 2, 0\]\)\)"):
+        InceptionExtractor()(torch.rand(2, 2, 2, 0))
 
 
 def _test_distrib_integration(device):

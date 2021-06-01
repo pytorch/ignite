@@ -19,6 +19,8 @@ class InceptionExtractor:
         self.model.eval()
 
     def __call__(self, data):
+        if data.shape[1:] != (3, 299, 299):
+            raise ValueError(f"Images should be of size 3x299x299 (got {data.shape})")
         return self.model(data).detach()
 
 
