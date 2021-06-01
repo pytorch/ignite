@@ -224,10 +224,7 @@ class FastaiLRFinder:
 
         """
         try:
-            import matplotlib
             from matplotlib import pyplot as plt
-
-            matplotlib.use("tkagg")
         except ImportError:
             raise RuntimeError(
                 "This method requires matplotlib to be installed. "
