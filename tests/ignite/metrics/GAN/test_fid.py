@@ -8,14 +8,14 @@ from torch import nn
 from torchvision import models
 
 import ignite.distributed as idist
-from ignite.metrics.GAN.fid import FID
+from ignite.metrics.GAN.fid import FID, InceptionExtractor
 
 
 @pytest.mark.parametrize(
-    "train_samples, test_samples", [(torch.rand(10, 2048), torch.rand(10, 2048))],
+    "train_samples, test_samples", [(torch.rand(2, 10), torch.rand(2, 10))],
 )
 def test_compute_fid_from_features(train_samples, test_samples):
-    fid_scorer = FID(mode="features")
+    fid_scorer = FID()
     fid_scorer.update([train_samples, test_samples])
     mu1, sigma1 = train_samples.mean(axis=0), cov(train_samples, rowvar=False)
     mu2, sigma2 = test_samples.mean(axis=0), cov(test_samples, rowvar=False)
@@ -26,14 +26,12 @@ def test_compute_fid_from_features(train_samples, test_samples):
     "train_samples, test_samples", [(torch.rand(10, 3, 299, 299), torch.rand(10, 3, 299, 299))],
 )
 def test_compute_fid_from_images(train_samples, test_samples):
-    model = models.inception_v3(init_weights=False)
-    model.fc = nn.Sequential()
-    model.eval()
-    fid_scorer = FID(model=model, mode="images")
+    feature_extractor = InceptionExtractor()
+    fid_scorer = FID(feature_extractor=InceptionExtractor())
     fid_scorer.update([train_samples, test_samples])
 
-    train_samples = model(train_samples)[0].detach()
-    test_samples = model(test_samples)[0].detach()
+    train_samples = feature_extractor(train_samples).detach()
+    test_samples = feature_extractor(test_samples).detach()
     mu1, sigma1 = train_samples.mean(axis=0), cov(train_samples, rowvar=False)
     mu2, sigma2 = test_samples.mean(axis=0), cov(test_samples, rowvar=False)
     assert pytest.approx(fid_score.calculate_frechet_distance(mu1, sigma1, mu2, sigma2)) == fid_scorer.compute()
