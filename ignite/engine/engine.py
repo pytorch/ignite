@@ -876,7 +876,7 @@ class Engine(Serializable):
         return time.time() - start_time
 
 
-def _add_to_state_data(state_data: Dict[str, Any], data: Union[Dict[str, Any], Sequence, Any], name: str):
+def _add_to_state_data(state_data: Dict[str, Any], data: Union[Dict[str, Any], Sequence, Any], name: str) -> None:
     if isinstance(data, Sequence):
         state_data.update({f"{name}_{i}": value for i, value in enumerate(data)})
     elif isinstance(data, Mapping):
