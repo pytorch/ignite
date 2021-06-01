@@ -1,12 +1,10 @@
 from typing import Sequence, Union
 import numpy as np
-from scipy.linalg import sqrtm
-
 import torch
+from scipy.linalg import sqrtm
 
 from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
-
 
 __all__ = ["FID", "InceptionExtractor"]
 
@@ -21,7 +19,6 @@ class InceptionExtractor:
 
     def __call__(self, data):
         return self.model(data).detach()
-
 
 class Record:
     r"""Contains mean and covariance records for train and test data.
