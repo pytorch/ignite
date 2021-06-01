@@ -414,7 +414,7 @@ def test_no_matplotlib(no_site_packages, lr_finder):
 
 def test_plot_single_param_group(lr_finder, mnist_to_save, dummy_engine_mnist, mnist_dataloader):
 
-    with lr_finder.attach(dummy_engine_mnist, mnist_to_save, end_lr=100, smooth_f=0.04) as trainer_with_finder:
+    with lr_finder.attach(dummy_engine_mnist, mnist_to_save, end_lr=20, smooth_f=0.04) as trainer_with_finder:
         trainer_with_finder.run(mnist_dataloader)
 
     lr_finder.plot()
@@ -443,7 +443,7 @@ def test_plot_multiple_param_groups(
 ):
 
     with lr_finder.attach(
-        dummy_engine_mulitple_param_groups, to_save_mulitple_param_groups, end_lr=100, smooth_f=0.04
+        dummy_engine_mulitple_param_groups, to_save_mulitple_param_groups, end_lr=20, smooth_f=0.04
     ) as trainer_with_finder:
         trainer_with_finder.run(dataloader_plot)
 
