@@ -224,7 +224,10 @@ class FastaiLRFinder:
 
         """
         try:
+            import matplotlib
             from matplotlib import pyplot as plt
+
+            matplotlib.use("tkagg")
         except ImportError:
             raise RuntimeError(
                 "This method requires matplotlib to be installed. "
@@ -302,12 +305,12 @@ class FastaiLRFinder:
         if not self._history:
             raise RuntimeError("learning rate finder didn't run yet so lr_suggestion can't be returned")
         loss = self._history["loss"]
-        min_loss_idx = torch.tensor(loss).argmin()
+        min_loss_idx = loss.clone().detach().argmin()
         # Ignore the increasing part of the curve
         decreasing_losses = self._history["loss"][: int(min_loss_idx.item()) + 1]
         if len(decreasing_losses) < 3:
             raise RuntimeError("FastaiLRFinder got unexpected curve shape, the curve should be somehow U-shaped")
-        losses = torch.tensor(decreasing_losses)
+        losses = decreasing_losses.clone().detach()
         grads = torch.tensor([0.5 * (losses[i + 1] - losses[i - 1]) for i in range(1, len(losses) - 1)])
         min_grad_idx = grads.argmin() + 1
         return self._history["lr"][int(min_grad_idx)]
