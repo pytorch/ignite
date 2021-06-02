@@ -23,11 +23,11 @@ from ignite.contrib.handlers import (
     global_step_from_engine,
 )
 from ignite.contrib.handlers.base_logger import BaseLogger
-from ignite.contrib.handlers.param_scheduler import ParamScheduler
 from ignite.contrib.metrics import GpuInfo
 from ignite.engine import Engine, Events
 from ignite.handlers import Checkpoint, DiskSaver, EarlyStopping, TerminateOnNan
 from ignite.handlers.checkpoint import BaseSaveHandler
+from ignite.handlers.param_scheduler import ParamScheduler
 from ignite.metrics import RunningAverage
 from ignite.utils import deprecated
 
