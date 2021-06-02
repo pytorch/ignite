@@ -107,11 +107,11 @@ def test_ignored_out_of_num_classes_indices():
 def get_y_true_y_pred():
     # Generate an image with labels 0 (background), 1, 2
     # 3 classes:
-    y_true = np.zeros((30, 30))
+    y_true = np.zeros((30, 30), dtype=np.int32)
     y_true[1:11, 1:11] = 1
     y_true[15:25, 15:25] = 2
 
-    y_pred = np.zeros((30, 30))
+    y_pred = np.zeros((30, 30), dtype=np.int32)
     y_pred[5:15, 1:11] = 1
     y_pred[20:30, 20:30] = 2
     return y_true, y_pred
