@@ -30,9 +30,52 @@ class Loss(Metric):
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
 
+    Attributes:
+        required_output_keys: dictionary defines required keys to be found in ``engine.state.output`` if the
+            latter is a dictionary. Default, ``("y_pred", "y", "criterion_kwargs")``. This is useful when the
+            criterion function requires additional argument,
+            which can be passed using ``criterion_kwargs``.
+            See notes below for an example.
+
+    Note:
+
+        Let's implement a Loss metric that requires ``y_pred``, ``y`` and ``criterion_kwargs`` as input
+        for ``criterion`` function. In the example below we show how to setup standard metric like Accuracy
+        and the Loss metric using an ``evaluator`` created
+        with :meth:`~ignite.engine.create_supervised_evaluator` method.
+
+        .. code-block:: python
+
+            import torch
+            import torch.nn as nn
+
+            from ignite.metrics import Accuracy, Loss
+            from ignite.engine import create_supervised_evaluator
+
+            model = ...
+
+            criterion = nn.NLLLoss()
+
+            metrics = {
+                "Accuracy": Accuracy(),
+                "Loss": Loss(criterion)
+            }
+
+            # global criterion kwargs
+            criterion_kwargs = {...}
+
+            evaluator = create_supervised_evaluator(
+                model,
+                metrics=metrics,
+                output_transform=lambda x, y, y_pred: {
+                    "x": x, "y": y, "y_pred": y_pred, "criterion_kwargs": criterion_kwargs}
+            )
+
+            res = evaluator.run(data)
+
     """
 
-    required_output_keys = None
+    required_output_keys = ("y_pred", "y", "criterion_kwargs")
 
     def __init__(
         self,
