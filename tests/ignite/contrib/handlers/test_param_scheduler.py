@@ -5,7 +5,7 @@ import pytest
 import torch
 from torch.optim.lr_scheduler import ExponentialLR, StepLR
 
-from ignite.contrib.handlers.param_scheduler import (
+from ignite.handlers.param_scheduler import (
     ConcatScheduler,
     CosineAnnealingScheduler,
     LinearCyclicalScheduler,
