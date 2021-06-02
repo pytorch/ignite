@@ -11,11 +11,7 @@ __all__ = ["FID", "InceptionExtractor"]
 
 
 def fid_score(
-    mu1: torch.Tensor,
-    mu2: torch.Tensor,
-    sigma1: torch.Tensor,
-    sigma2: torch.Tensor,
-    eps: float = 1e-6
+    mu1: torch.Tensor, mu2: torch.Tensor, sigma1: torch.Tensor, sigma2: torch.Tensor, eps: float = 1e-6
 ) -> np.array:
 
     diff = mu1 - mu2
@@ -115,10 +111,7 @@ class FID(Metric):
         super(FID, self).__init__(output_transform=output_transform, device=device)
 
     @staticmethod
-    def _online_update(features: torch.Tensor,
-                       mu: torch.Tensor,
-                       sigma: torch.Tensor,
-                       num_examples: int) -> None:
+    def _online_update(features: torch.Tensor, mu: torch.Tensor, sigma: torch.Tensor, num_examples: int) -> None:
 
         # Calculating difference between new sample and old and new means
         mean_difference = features - mu
@@ -162,11 +155,11 @@ class FID(Metric):
         self._check_feature_input(train_features, test_features)
 
         # Updates the mean and covariance for the train features
-        for i, features in enumerate(train_features, start=self._num_examples+1):
+        for i, features in enumerate(train_features, start=self._num_examples + 1):
             self._online_update(features, self._train_mu, self._train_sigma, i)
 
         # Updates the mean and covariance for the test features
-        for i, features in enumerate(test_features, start=self._num_examples+1):
+        for i, features in enumerate(test_features, start=self._num_examples + 1):
             self._online_update(features, self._test_mu, self._test_sigma, i)
 
         self._num_examples += train_features.shape[0]
@@ -175,8 +168,10 @@ class FID(Metric):
     def compute(self) -> float:
         if self._num_examples == 0:
             raise NotComputableError("FID must have at least one example before it can be computed.")
-        return fid_score(mu1=self._train_mu,
-                         mu2=self._test_mu,
-                         sigma1=self._train_sigma / (self._num_examples - 1),
-                         sigma2=self._test_sigma / (self._num_examples - 1),
-                         eps=self.eps)
+        return fid_score(
+            mu1=self._train_mu,
+            mu2=self._test_mu,
+            sigma1=self._train_sigma / (self._num_examples - 1),
+            sigma2=self._test_sigma / (self._num_examples - 1),
+            eps=self.eps,
+        )
