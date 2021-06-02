@@ -72,7 +72,7 @@ def _test_distrib_integration(device):
         data += [(torch.rand(10, 2048), torch.rand(10, 2048))]
 
     def update(_, i):
-        train, test = data[i + size * rank]
+        train, test = data[i]
         return (train, test)
 
     def _test(metric_device):
@@ -87,8 +87,8 @@ def _test_distrib_integration(device):
         evaluator = fid_score.calculate_frechet_distance
         train, test = data[0]
         for train_samples, test_samples in data[1:]:
-            train = torch.cat(train, train_samples)
-            test = torch.cat(test, test_samples)
+            train = torch.cat((train, train_samples))
+            test = torch.cat((test, test_samples))
         mu1, sigma1 = train.mean(axis=0), cov(train, rowvar=False)
         mu2, sigma2 = test.mean(axis=0), cov(test, rowvar=False)
         assert pytest.approx(fid_score.calculate_frechet_distance(mu1, sigma1, mu2, sigma2)) == m.compute()
