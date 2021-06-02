@@ -9,42 +9,44 @@ import ignite.distributed as idist
 from ignite.metrics.GAN.fid import FID, InceptionExtractor
 
 
-@pytest.mark.parametrize(
-    "train_samples, test_samples", [(torch.rand(10, 2048), torch.rand(10, 2048))],
-)
-def test_compute_fid_from_features(train_samples, test_samples):
-    fid_scorer = FID()
-    fid_scorer.update([train_samples, test_samples])
+def test_compute_fid_from_features():
+    train_samples, test_samples = torch.rand(10, 10), torch.rand(10, 10)
+
+    fid_scorer = FID(num_features=10)
+    fid_scorer.update([train_samples[:5], test_samples[:5]])
+    fid_scorer.update([train_samples[5:], test_samples[5:]])
+
     mu1, sigma1 = train_samples.mean(axis=0), cov(train_samples, rowvar=False)
     mu2, sigma2 = test_samples.mean(axis=0), cov(test_samples, rowvar=False)
+
     assert pytest.approx(fid_score.calculate_frechet_distance(mu1, sigma1, mu2, sigma2)) == fid_scorer.compute()
 
 
 def test_wrong_inputs():
+    with pytest.raises(ValueError, match=r"num of features must be greater to zero"):
+        FID(num_features=-1)
     with pytest.raises(ValueError, match=r"Features must be a tensor of dim 2 \(got: 1\)"):
-        FID().update(torch.Tensor([[], []]))
+        FID(num_features=1).update(torch.Tensor([[], []]))
     with pytest.raises(ValueError, match=r"Batch size should be greater than one \(got: 0\)"):
-        FID().update(torch.rand(2, 0, 0))
+        FID(num_features=1).update(torch.rand(2, 0, 0))
     with pytest.raises(ValueError, match=r"Feature size should be greater than one \(got: 0\)"):
-        FID().update(torch.rand(2, 2, 0))
+        FID(num_features=1).update(torch.rand(2, 2, 0))
 
 
-@pytest.mark.parametrize(
-    "train_samples, test_samples", [(torch.rand(10, 2048), torch.rand(10, 2048)),],
-)
-def test_statistics(train_samples, test_samples):
-    fid_scorer = FID()
+def test_statistics():
+    train_samples, test_samples = torch.rand(10, 10), torch.rand(10, 10)
+    fid_scorer = FID(num_features=10)
     fid_scorer.update([train_samples[:5], test_samples[:5]])
     fid_scorer.update([train_samples[5:], test_samples[5:]])
 
     mu1, sigma1 = train_samples.mean(axis=0), torch.tensor(cov(train_samples, rowvar=False))
     mu2, sigma2 = test_samples.mean(axis=0), torch.tensor(cov(test_samples, rowvar=False))
 
-    fid_mu1 = fid_scorer._train_record.mean
-    fid_sigma1 = fid_scorer._train_record.get_covariance()
+    fid_mu1 = fid_scorer._train_mu
+    fid_sigma1 = fid_scorer._train_sigma / (fid_scorer._num_examples - 1)
 
-    fid_mu2 = fid_scorer._test_record.mean
-    fid_sigma2 = fid_scorer._test_record.get_covariance()
+    fid_mu2 = fid_scorer._test_mu
+    fid_sigma2 = fid_scorer._test_sigma / (fid_scorer._num_examples - 1)
 
     assert torch.isclose(mu1.double(), fid_mu1).all()
     for cov1, cov2 in zip(sigma1, fid_sigma1):
@@ -54,9 +56,27 @@ def test_statistics(train_samples, test_samples):
         assert torch.isclose(cov1.double(), cov2).all()
 
 
-def test_inception_extractor():
+def test_inception_extractor_wrong_inputs():
     with pytest.raises(ValueError, match=r"Images should be of size 3x299x299 \(got torch.Size\(\[2, 2, 2, 0\]\)\)"):
         InceptionExtractor()(torch.rand(2, 2, 2, 0))
+
+
+def test_compute_fid_from_images():
+    train_samples, test_samples = torch.rand(10, 3, 4, 5), torch.rand(10, 3, 4, 5)
+
+    def fake_extractor(data):
+        return data.mean([2, 3])
+
+    fid_scorer = FID(num_features=3, feature_extractor=fake_extractor)
+    fid_scorer.update([train_samples[:5], test_samples[:5]])
+    fid_scorer.update([train_samples[5:], test_samples[5:]])
+
+    train_samples, test_samples = fake_extractor(train_samples), fake_extractor(test_samples)
+
+    mu1, sigma1 = train_samples.mean(axis=0), cov(train_samples, rowvar=False)
+    mu2, sigma2 = test_samples.mean(axis=0), cov(test_samples, rowvar=False)
+
+    assert pytest.approx(fid_score.calculate_frechet_distance(mu1, sigma1, mu2, sigma2)) == fid_scorer.compute()
 
 
 def _test_distrib_integration(device):
@@ -77,7 +97,7 @@ def _test_distrib_integration(device):
 
     def _test(metric_device):
         engine = Engine(update)
-        m = FID()
+        m = FID(num_features=2048)
         m.attach(engine, "fid")
 
         engine.run(data=list(range(size)), max_epochs=1)

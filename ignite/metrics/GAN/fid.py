@@ -10,6 +10,34 @@ from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 __all__ = ["FID", "InceptionExtractor"]
 
 
+def fid_score(
+    mu1: torch.Tensor,
+    mu2: torch.Tensor,
+    sigma1: torch.Tensor,
+    sigma2: torch.Tensor,
+    eps: float = 1e-6
+) -> np.array:
+
+    diff = mu1 - mu2
+
+    # Product might be almost singular
+    covmean, _ = sqrtm(sigma1.mm(sigma2), disp=False)
+    if not np.isfinite(covmean).all():
+        offset = np.eye(sigma1.shape[0]) * eps
+        covmean = sqrtm((sigma1 + offset).dot(sigma2 + offset))
+
+    # Numerical error might give slight imaginary component
+    if np.iscomplexobj(covmean):
+        if not np.allclose(np.diagonal(covmean).imag, 0, atol=1e-3):
+            m = np.max(np.abs(covmean.imag))
+            raise ValueError("Imaginary component {}".format(m))
+        covmean = covmean.real
+
+    tr_covmean = np.trace(covmean)
+
+    return diff.dot(diff) + np.trace(sigma1) + np.trace(sigma2) - 2 * tr_covmean
+
+
 class InceptionExtractor:
     def __init__(self) -> None:
         from torchvision import models
@@ -22,26 +50,6 @@ class InceptionExtractor:
         if data.shape[1:] != (3, 299, 299):
             raise ValueError(f"Images should be of size 3x299x299 (got {data.shape})")
         return self.model(data).detach()
-
-
-class Record:
-    r"""Contains mean and covariance records for train and test data.
-
-    """
-
-    def __init__(self, device: Union[str, torch.device] = "cpu") -> None:
-        self.covariance_matrix = torch.Tensor([])
-        self.mean = torch.Tensor([])
-        self.num_examples = 0
-        self.device = torch.device(device)
-
-    def reset(self, num_features: int) -> None:
-        self.covariance_matrix = torch.zeros((num_features, num_features), dtype=torch.float64).to(self.device)
-        self.mean = torch.zeros(num_features, dtype=torch.float64).to(self.device)
-        self.num_examples = 0
-
-    def get_covariance(self) -> torch.Tensor:
-        return self.covariance_matrix / (self.num_examples - 1)
 
 
 class FID(Metric):
@@ -93,69 +101,32 @@ class FID(Metric):
 
     def __init__(
         self,
+        num_features,
         feature_extractor: Callable = lambda x: x,
-        eps: float = 10 ** -6,
+        eps: float = 1e-6,
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
+        if num_features <= 0:
+            raise ValueError(f"num of features must be greater to zero (got: {num_features})")
+        self._num_features = num_features
         self._feature_extractor = feature_extractor
-        self._train_record = Record(device=device)
-        self._test_record = Record(device=device)
-        self.eps = eps
+        self._eps = eps
         super(FID, self).__init__(output_transform=output_transform, device=device)
 
-    def calculate_fid(self) -> np.array:
-        mu1 = self._train_record.mean
-        mu2 = self._test_record.mean
-
-        sigma1 = self._train_record.get_covariance()
-        sigma2 = self._test_record.get_covariance()
-
-        diff = mu1 - mu2
-
-        # Product might be almost singular
-        covmean, _ = sqrtm(sigma1.mm(sigma2), disp=False)
-        if not np.isfinite(covmean).all():
-            msg = f"fid calculation produces singular product. Adding {self.eps} to diagonal of cov estimates"
-            print(msg)
-            offset = np.eye(sigma1.shape[0]) * self.eps
-            covmean = sqrtm((sigma1 + offset).dot(sigma2 + offset))
-
-        # Numerical error might give slight imaginary component
-        if np.iscomplexobj(covmean):
-            if not np.allclose(np.diagonal(covmean).imag, 0, atol=1e-3):
-                m = np.max(np.abs(covmean.imag))
-                raise ValueError("Imaginary component {}".format(m))
-            covmean = covmean.real
-
-        tr_covmean = np.trace(covmean)
-
-        return diff.dot(diff) + np.trace(sigma1) + np.trace(sigma2) - 2 * tr_covmean
-
     @staticmethod
-    def _calculate_statistics(feature_list: torch.Tensor, record: Record) -> None:
-
-        feature_length = len(feature_list)
-        if record.covariance_matrix.shape[0] == 0:
-            record.reset(feature_length)
-        record.num_examples += 1
+    def _online_update(features: torch.Tensor,
+                       mu: torch.Tensor,
+                       sigma: torch.Tensor,
+                       num_examples: int) -> None:
 
         # Calculating difference between new sample and old and new means
-        mean_difference = feature_list - record.mean
-        record.mean += mean_difference / record.num_examples
-        new_mean_difference = feature_list - record.mean
+        mean_difference = features - mu
+        mu += mean_difference / num_examples
+        new_mean_difference = features - mu
 
         # Outer product to obtain pairwise covariance between each features
-        record.covariance_matrix += torch.outer(mean_difference, new_mean_difference)
-
-    def _update_from_features(self, train_data: torch.Tensor, test_data: torch.Tensor) -> None:
-        # Updates mean and covariance for train data
-        for features in train_data:
-            self._calculate_statistics(features, self._train_record)
-
-        # Updates mean and covariance for test data
-        for features in test_data:
-            self._calculate_statistics(features, self._test_record)
+        sigma += torch.outer(mean_difference, new_mean_difference)
 
     @staticmethod
     def _check_feature_input(train: torch.Tensor, test: torch.Tensor) -> None:
@@ -166,28 +137,46 @@ class FID(Metric):
                 raise ValueError(f"Batch size should be greater than one (got: {feature.shape[0]})")
             if feature.shape[1] == 0:
                 raise ValueError(f"Feature size should be greater than one (got: {feature.shape[1]})")
-        if train.shape[0] != test.shape[0] != 0 or train.shape[1] != test.shape[1]:
+        if train.shape[0] != test.shape[0] or train.shape[1] != test.shape[1]:
             raise ValueError(
-                f"Number of Training Features and Testing Features should be equal " f"({train.shape} != {test.shape})"
+                f"Number of Training Features and Testing Features should be equal ({train.shape} != {test.shape})"
             )
 
     @reinit__is_reduced
     def reset(self) -> None:
-        del self._train_record
-        del self._test_record
-        self._train_record = Record(device=self._device)
-        self._test_record = Record(device=self._device)
+        self._train_sigma = torch.zeros((self._num_features, self._num_features), dtype=torch.float64).to(self._device)
+        self._train_mu = torch.zeros(self._num_features, dtype=torch.float64).to(self._device)
+        self._test_sigma = torch.zeros((self._num_features, self._num_features), dtype=torch.float64).to(self._device)
+        self._test_mu = torch.zeros(self._num_features, dtype=torch.float64).to(self._device)
+        self._num_examples = 0
         super(FID, self).reset()
 
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
-        train_data = self._feature_extractor(output[0].detach())
-        test_data = self._feature_extractor(output[1].detach())
-        self._check_feature_input(train_data, test_data)
-        self._update_from_features(train_data, test_data)
 
-    @sync_all_reduce("_num_examples", "_num_correct")
+        # Extract the features from the outputs
+        train_features = self._feature_extractor(output[0].detach())
+        test_features = self._feature_extractor(output[1].detach())
+
+        # Check the feature shapess
+        self._check_feature_input(train_features, test_features)
+
+        # Updates the mean and covariance for the train features
+        for i, features in enumerate(train_features, start=self._num_examples+1):
+            self._online_update(features, self._train_mu, self._train_sigma, i)
+
+        # Updates the mean and covariance for the test features
+        for i, features in enumerate(test_features, start=self._num_examples+1):
+            self._online_update(features, self._test_mu, self._test_sigma, i)
+
+        self._num_examples += train_features.shape[0]
+
+    @sync_all_reduce("_num_examples")
     def compute(self) -> float:
-        if self._train_record.num_examples != self._test_record.num_examples:
-            raise NotComputableError("Number of Train and Test samples provided so far do not match.")
-        return self.calculate_fid()
+        if self._num_examples == 0:
+            raise NotComputableError("FID must have at least one example before it can be computed.")
+        return fid_score(mu1=self._train_mu,
+                         mu2=self._test_mu,
+                         sigma1=self._train_sigma / (self._num_examples - 1),
+                         sigma2=self._test_sigma / (self._num_examples - 1),
+                         eps=self.eps)
