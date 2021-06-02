@@ -96,7 +96,7 @@ def test_create_supervised_training_scalar_assignment():
     optimizer = SGD(model.parameters(), 0.1)
 
     with mock.patch("ignite.engine._check_arg") as check_arg_mock:
-        check_arg_mock.return_value = None, torch.cuda.amp.GradScaler(enabled=True)
+        check_arg_mock.return_value = None, torch.cuda.amp.GradScaler(enabled=False)
         trainer = create_supervised_trainer(
             model,
             optimizer,

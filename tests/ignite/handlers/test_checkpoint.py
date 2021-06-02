@@ -1,7 +1,8 @@
 import os
 import stat
 import warnings
-from collections import Mapping, OrderedDict
+from collections import OrderedDict
+from collections.abc import Mapping
 from unittest.mock import MagicMock
 
 import pytest
