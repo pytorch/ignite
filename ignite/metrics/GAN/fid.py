@@ -11,14 +11,14 @@ __all__ = ["FID", "InceptionExtractor"]
 
 
 class InceptionExtractor:
-    def __init__(self):
+    def __init__(self) -> None:
         from torchvision import models
 
         self.model = models.inception_v3(init_weights=True)
         self.model.fc = torch.nn.Sequential()
         self.model.eval()
 
-    def __call__(self, data):
+    def __call__(self, data) -> torch.Tensor:
         if data.shape[1:] != (3, 299, 299):
             raise ValueError(f"Images should be of size 3x299x299 (got {data.shape})")
         return self.model(data).detach()
@@ -29,18 +29,18 @@ class Record:
 
     """
 
-    def __init__(self, device="cpu"):
+    def __init__(self, device="cpu") -> None:
         self.covariance_matrix = None
-        self.mean = None
+        self.mean = torch.Tensor([])
         self.num_examples = 0
         self.device = torch.device(device)
 
-    def reset(self, num_features):
+    def reset(self, num_features) -> None:
         self.covariance_matrix = torch.zeros((num_features, num_features), dtype=torch.float64).to(self.device)
         self.mean = torch.zeros(num_features, dtype=torch.float64).to(self.device)
         self.num_examples = 0
 
-    def get_covariance(self):
+    def get_covariance(self) -> torch.float64:
         return self.covariance_matrix / (self.num_examples - 1)
 
 
@@ -97,14 +97,14 @@ class FID(Metric):
         eps=10 ** -6,
         output_transform=lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
-    ):
+    ) -> None:
         self._feature_extractor = feature_extractor
         self._train_record = Record(device=device)
         self._test_record = Record(device=device)
         self.eps = eps
         super(FID, self).__init__(output_transform=output_transform, device=device)
 
-    def calculate_fid(self):
+    def calculate_fid(self) -> np.array:
         mu1 = self._train_record.mean
         mu2 = self._test_record.mean
 
@@ -133,7 +133,7 @@ class FID(Metric):
         return diff.dot(diff) + np.trace(sigma1) + np.trace(sigma2) - 2 * tr_covmean
 
     @staticmethod
-    def _calculate_statistics(feature_list, record):
+    def _calculate_statistics(feature_list: torch.Tensor, record: Record) -> None:
 
         feature_length = len(feature_list)
         if type(record.covariance_matrix) != torch.Tensor:
@@ -148,7 +148,7 @@ class FID(Metric):
         # Outer product to obtain pairwise covariance between each features
         record.covariance_matrix += torch.outer(mean_difference, new_mean_difference)
 
-    def _update_from_features(self, train_data, test_data):
+    def _update_from_features(self, train_data, test_data) -> None:
         # Updates mean and covariance for train data
         for features in train_data:
             self._calculate_statistics(features, self._train_record)
@@ -172,7 +172,7 @@ class FID(Metric):
             )
 
     @reinit__is_reduced
-    def reset(self):
+    def reset(self) -> None:
         del self._train_record
         del self._test_record
         self._train_record = Record(device=self._device)
