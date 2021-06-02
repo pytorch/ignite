@@ -22,6 +22,7 @@ class _BasePrecisionRecall(_BaseClassification):
 
         self._average = average
         self.eps = 1e-20
+        self._updated = False
         super(_BasePrecisionRecall, self).__init__(
             output_transform=output_transform, is_multilabel=is_multilabel, device=device
         )
@@ -30,6 +31,7 @@ class _BasePrecisionRecall(_BaseClassification):
     def reset(self) -> None:
         self._true_positives = 0  # type: Union[int, torch.Tensor]
         self._positives = 0  # type: Union[int, torch.Tensor]
+        self._updated = False
 
         if self._is_multilabel:
             init_value = 0.0 if self._average else []
@@ -39,8 +41,7 @@ class _BasePrecisionRecall(_BaseClassification):
         super(_BasePrecisionRecall, self).reset()
 
     def compute(self) -> Union[torch.Tensor, float]:
-        is_scalar = not isinstance(self._positives, torch.Tensor) or self._positives.ndim == 0
-        if is_scalar and self._positives == 0:
+        if not self._updated:
             raise NotComputableError(
                 f"{self.__class__.__name__} must have at least one example before it can be computed."
             )
@@ -173,3 +174,5 @@ class Precision(_BasePrecisionRecall):
         else:
             self._true_positives += true_positives
             self._positives += all_positives
+
+        self._updated = True
