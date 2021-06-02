@@ -283,7 +283,7 @@ class OutputHandler(BaseOutputHandler):
         rendered_metrics = {}
         if self.tag is not None:
             for name, value in metrics.items():
-                if isinstance(value, numbers.Number):
+                if isinstance(value, numbers.Number) or isinstance(value, str):
                     rendered_metrics[f"{self.tag}/{name}"] = value
                 elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
                     rendered_metrics[f"{self.tag}/{name}"] = value.item()
