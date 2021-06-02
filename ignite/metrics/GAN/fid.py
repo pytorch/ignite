@@ -1,4 +1,4 @@
-from typing import Sequence, Union
+from typing import Callable, Sequence, Union
 
 import numpy as np
 import torch
@@ -18,7 +18,7 @@ class InceptionExtractor:
         self.model.fc = torch.nn.Sequential()
         self.model.eval()
 
-    def __call__(self, data) -> torch.Tensor:
+    def __call__(self, data: torch.Tensor) -> torch.Tensor:
         if data.shape[1:] != (3, 299, 299):
             raise ValueError(f"Images should be of size 3x299x299 (got {data.shape})")
         return self.model(data).detach()
@@ -29,18 +29,18 @@ class Record:
 
     """
 
-    def __init__(self, device="cpu") -> None:
-        self.covariance_matrix = None
+    def __init__(self, device: Union[str, torch.device] = "cpu") -> None:
+        self.covariance_matrix = torch.Tensor([])
         self.mean = torch.Tensor([])
         self.num_examples = 0
         self.device = torch.device(device)
 
-    def reset(self, num_features) -> None:
+    def reset(self, num_features: int) -> None:
         self.covariance_matrix = torch.zeros((num_features, num_features), dtype=torch.float64).to(self.device)
         self.mean = torch.zeros(num_features, dtype=torch.float64).to(self.device)
         self.num_examples = 0
 
-    def get_covariance(self) -> torch.float64:
+    def get_covariance(self) -> torch.Tensor:
         return self.covariance_matrix / (self.num_examples - 1)
 
 
@@ -93,9 +93,9 @@ class FID(Metric):
 
     def __init__(
         self,
-        feature_extractor=lambda x: x,
-        eps=10 ** -6,
-        output_transform=lambda x: x,
+        feature_extractor: Callable = lambda x: x,
+        eps: float = 10 ** -6,
+        output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
         self._feature_extractor = feature_extractor
@@ -136,7 +136,7 @@ class FID(Metric):
     def _calculate_statistics(feature_list: torch.Tensor, record: Record) -> None:
 
         feature_length = len(feature_list)
-        if type(record.covariance_matrix) != torch.Tensor:
+        if record.covariance_matrix.shape[0] == 0:
             record.reset(feature_length)
         record.num_examples += 1
 
@@ -148,7 +148,7 @@ class FID(Metric):
         # Outer product to obtain pairwise covariance between each features
         record.covariance_matrix += torch.outer(mean_difference, new_mean_difference)
 
-    def _update_from_features(self, train_data, test_data) -> None:
+    def _update_from_features(self, train_data: torch.Tensor, test_data: torch.Tensor) -> None:
         # Updates mean and covariance for train data
         for features in train_data:
             self._calculate_statistics(features, self._train_record)

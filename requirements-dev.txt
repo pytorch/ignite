@@ -19,6 +19,7 @@ wandb
 mlflow
 neptune-client
 tensorboard
+torchvision
 pynvml
 clearml
 scikit-image
