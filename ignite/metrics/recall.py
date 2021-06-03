@@ -121,3 +121,5 @@ class Recall(_BasePrecisionRecall):
         else:
             self._true_positives += true_positives
             self._positives += actual_positives
+
+        self._updated = True

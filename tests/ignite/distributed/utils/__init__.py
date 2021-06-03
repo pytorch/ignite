@@ -21,11 +21,10 @@ def _test_distrib_config(local_rank, backend, ws, true_device, rank=None, true_i
 
     this_device = idist.device()
     assert isinstance(this_device, torch.device)
-    if backend in ("nccl", "horovod") and "cuda" in this_device.type:
-        true_device = torch.device(f"{true_device}:{local_rank}")
-        assert this_device == true_device, f"{this_device} vs {true_device}"
+    if backend in ("nccl", "gloo", "horovod") and "cuda" in this_device.type:
+        assert this_device.type == torch.device(true_device).type, f"{this_device} vs {true_device}"
     elif backend in ("gloo", "horovod"):
-        assert this_device == torch.device(true_device)
+        assert this_device.type == torch.device(true_device).type
     elif backend == "xla-tpu":
         assert true_device in this_device.type
 

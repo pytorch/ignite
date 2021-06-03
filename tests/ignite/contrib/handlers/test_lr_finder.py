@@ -539,8 +539,9 @@ def _test_distrib_integration_mnist(device):
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-def test_distrib_cpu(distributed_context_single_node_gloo):
-    device = torch.device("cpu")
+def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
+
+    device = idist.device()
     _test_distrib_log_lr_and_loss(device)
     _test_distrib_integration_mnist(device)
 
@@ -548,8 +549,9 @@ def test_distrib_cpu(distributed_context_single_node_gloo):
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_gpu(distributed_context_single_node_nccl):
-    device = torch.device(f"cuda:{distributed_context_single_node_nccl['local_rank']}")
+def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
+
+    device = idist.device()
     _test_distrib_log_lr_and_loss(device)
     _test_distrib_integration_mnist(device)
 
