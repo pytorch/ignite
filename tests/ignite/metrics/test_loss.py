@@ -30,41 +30,6 @@ class DummyLoss1(Loss):
         assert output == self.true_output
 
 
-def test_output_as_mapping_wrong_keys():
-    loss_metric = DummyLoss1(nll_loss, true_output=(0, 1, {}))
-    state = State(output=({"y1": 0, "y2": 1, "kwargs": {}}))
-    engine = MagicMock(state=state)
-
-    with pytest.raises(
-        ValueError,
-        match=r"When transformed engine's output is a mapping, "
-        r"it should contain \('y_pred', 'y', 'criterion_kwargs'\) keys",
-    ):
-        loss_metric.iteration_completed(engine)
-
-
-def test_output_as_mapping_keys_is_none():
-    class DummyLoss(Loss):
-        required_output_keys = None
-
-        def reset(self):
-            pass
-
-        def compute(self):
-            pass
-
-        def update(self, output):
-            pass
-
-    loss_metric = DummyLoss(nll_loss)
-    assert loss_metric.required_output_keys is None
-    state = State(output=({"y1": 0, "y2": 1, "kwargs": {}}))
-    engine = MagicMock(state=state)
-
-    with pytest.raises(TypeError, match=r"Transformed engine output for DummyLoss metric should be a tuple/list"):
-        loss_metric.iteration_completed(engine)
-
-
 def test_output_as_mapping_without_criterion_kwargs():
     y_pred = torch.Tensor([[2.0], [-2.0]])
     y = torch.zeros(2)

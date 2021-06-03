@@ -54,7 +54,7 @@ class Loss(Metric):
 
             model = ...
 
-            criterion = nll_loss()
+            criterion = nll_loss
 
             metrics = {
                 "Accuracy": Accuracy(),
