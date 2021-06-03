@@ -16,7 +16,7 @@ def test_fid_function():
     mu2, sigma2 = test_samples.mean(axis=0), cov(test_samples, rowvar=False)
 
     assert pytest.approx(
-        fid_score(mu1, torch.tensor(sigma1, dtype=torch.float64), mu2, torch.tensor(sigma2, dtype=torch.float64))
+        fid_score(mu1, mu2, torch.tensor(sigma1, dtype=torch.float64), torch.tensor(sigma2, dtype=torch.float64))
     ) == pytorch_fid_score.calculate_frechet_distance(mu1, sigma1, mu2, sigma2)
 
 
