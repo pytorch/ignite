@@ -12,7 +12,7 @@ __all__ = ["FID", "InceptionExtractor"]
 
 def fid_score(
     mu1: torch.Tensor, mu2: torch.Tensor, sigma1: torch.Tensor, sigma2: torch.Tensor, eps: float = 1e-6
-) -> np.float64:
+) -> float:
 
     diff = mu1 - mu2
 
@@ -97,7 +97,7 @@ class FID(Metric):
 
     def __init__(
         self,
-        num_features,
+        num_features: int,
         feature_extractor: Callable = lambda x: x,
         eps: float = 1e-6,
         output_transform: Callable = lambda x: x,
