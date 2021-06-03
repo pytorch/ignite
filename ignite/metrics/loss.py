@@ -33,28 +33,28 @@ class Loss(Metric):
     Attributes:
         required_output_keys: dictionary defines required keys to be found in ``engine.state.output`` if the
             latter is a dictionary. Default, ``("y_pred", "y", "criterion_kwargs")``. This is useful when the
-            criterion function requires additional argument,
-            which can be passed using ``criterion_kwargs``.
+            criterion function requires additional argument, which can be passed using ``criterion_kwargs``.
             See notes below for an example.
 
     Note:
 
         Let's implement a Loss metric that requires ``y_pred``, ``y`` and ``criterion_kwargs`` as input
         for ``criterion`` function. In the example below we show how to setup standard metric like Accuracy
-        and the Loss metric using an ``evaluator`` created
-        with :meth:`~ignite.engine.create_supervised_evaluator` method.
+        and the Loss metric using an ``evaluator`` created with
+        :meth:`~ignite.engine.create_supervised_evaluator` method.
 
         .. code-block:: python
 
             import torch
             import torch.nn as nn
+            from torch.nn.functional import nll_loss
 
             from ignite.metrics import Accuracy, Loss
             from ignite.engine import create_supervised_evaluator
 
             model = ...
 
-            criterion = nn.NLLLoss()
+            criterion = nll_loss()
 
             metrics = {
                 "Accuracy": Accuracy(),
