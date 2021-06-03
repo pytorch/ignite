@@ -3,7 +3,7 @@
 import numbers
 import warnings
 from collections import OrderedDict
-from typing import Any, Callable, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 
@@ -272,7 +272,7 @@ class _OutputHandler(BaseOutputHandler):
 
         metrics = self._setup_output_metrics(engine)
 
-        rendered_metrics = OrderedDict()
+        rendered_metrics = OrderedDict()  # type: Dict[str, Union[str, float, numbers.Number]]
         for key, value in metrics.items():
             if isinstance(value, numbers.Number) or isinstance(value, str):
                 rendered_metrics[key] = value

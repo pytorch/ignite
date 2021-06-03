@@ -372,7 +372,7 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
                 values.append(value)  # type: ignore[arg-type]
                 keys.append(key)
             elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                values.append(value.item())  # type: ignore[arg-type]
+                values.append(value.item())
                 keys.append(key)
             elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
                 values = value  # type: ignore[assignment]

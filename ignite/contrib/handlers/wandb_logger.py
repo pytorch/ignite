@@ -1,7 +1,7 @@
 """WandB logger and its helper handlers."""
 import numbers
 import warnings
-from typing import Any, Callable, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 from torch.optim import Optimizer
@@ -280,7 +280,7 @@ class OutputHandler(BaseOutputHandler):
             )
 
         metrics = self._setup_output_metrics(engine)
-        rendered_metrics = {}
+        rendered_metrics = {}  # type: Dict[str, Union[str, float, numbers.Number]]
         if self.tag is not None:
             for name, value in metrics.items():
                 if isinstance(value, numbers.Number) or isinstance(value, str):
