@@ -12,7 +12,7 @@ __all__ = ["FID", "InceptionExtractor"]
 
 def fid_score(
     mu1: torch.Tensor, mu2: torch.Tensor, sigma1: torch.Tensor, sigma2: torch.Tensor, eps: float = 1e-6
-) -> np.array:
+) -> np.float64:
 
     diff = mu1 - mu2
 
