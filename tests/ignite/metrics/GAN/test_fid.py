@@ -1,12 +1,23 @@
 import os
 
 import pytest
-import pytorch_fid.fid_score as fid_score
+import pytorch_fid.fid_score as pytorch_fid_score
 import torch
 from numpy import cov
 
 import ignite.distributed as idist
-from ignite.metrics.GAN.fid import FID, InceptionExtractor
+from ignite.metrics.GAN.fid import FID, InceptionExtractor, fid_score
+
+
+def test_fid_function():
+    train_samples, test_samples = torch.rand(10, 10), torch.rand(10, 10)
+
+    mu1, sigma1 = train_samples.mean(axis=0), cov(train_samples, rowvar=False)
+    mu2, sigma2 = test_samples.mean(axis=0), cov(test_samples, rowvar=False)
+
+    assert pytest.approx(
+        fid_score(mu1, torch.tensor(sigma1, dtype=torch.float64), mu2, torch.tensor(sigma2, dtype=torch.float64))
+    ) == pytorch_fid_score.calculate_frechet_distance(mu1, sigma1, mu2, sigma2)
 
 
 def test_compute_fid_from_features():
@@ -19,7 +30,7 @@ def test_compute_fid_from_features():
     mu1, sigma1 = train_samples.mean(axis=0), cov(train_samples, rowvar=False)
     mu2, sigma2 = test_samples.mean(axis=0), cov(test_samples, rowvar=False)
 
-    assert pytest.approx(fid_score.calculate_frechet_distance(mu1, sigma1, mu2, sigma2)) == fid_scorer.compute()
+    assert pytest.approx(pytorch_fid_score.calculate_frechet_distance(mu1, sigma1, mu2, sigma2)) == fid_scorer.compute()
 
 
 def test_wrong_inputs():
@@ -59,24 +70,6 @@ def test_statistics():
 def test_inception_extractor_wrong_inputs():
     with pytest.raises(ValueError, match=r"Images should be of size 3x299x299 \(got torch.Size\(\[2, 2, 2, 0\]\)\)"):
         InceptionExtractor()(torch.rand(2, 2, 2, 0))
-
-
-def test_compute_fid_from_images():
-    train_samples, test_samples = torch.rand(10, 3, 4, 5), torch.rand(10, 3, 4, 5)
-
-    def fake_extractor(data):
-        return data.mean([2, 3])
-
-    fid_scorer = FID(num_features=3, feature_extractor=fake_extractor)
-    fid_scorer.update([train_samples[:5], test_samples[:5]])
-    fid_scorer.update([train_samples[5:], test_samples[5:]])
-
-    train_samples, test_samples = fake_extractor(train_samples), fake_extractor(test_samples)
-
-    mu1, sigma1 = train_samples.mean(axis=0), cov(train_samples, rowvar=False)
-    mu2, sigma2 = test_samples.mean(axis=0), cov(test_samples, rowvar=False)
-
-    assert pytest.approx(fid_score.calculate_frechet_distance(mu1, sigma1, mu2, sigma2)) == fid_scorer.compute()
 
 
 def _test_distrib_integration(device):

@@ -173,5 +173,5 @@ class FID(Metric):
             mu2=self._test_mu,
             sigma1=self._train_sigma / (self._num_examples - 1),
             sigma2=self._test_sigma / (self._num_examples - 1),
-            eps=self.eps,
+            eps=self._eps,
         )
