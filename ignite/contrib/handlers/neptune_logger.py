@@ -340,8 +340,10 @@ class OutputHandler(BaseOutputHandler):
             )
 
         for key, value in metrics.items():
-            if isinstance(value, numbers.Number) or isinstance(value, torch.Tensor) and value.ndimension() == 0:
+            if isinstance(value, numbers.Number):
                 logger.log_metric(f"{self.tag}/{key}", x=global_step, y=value)
+            elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
+                logger.log_metric(f"{self.tag}/{key}", x=global_step, y=value.item())
             elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
                 for i, v in enumerate(value):
                     logger.log_metric(f"{self.tag}/{key}/{i}", x=global_step, y=v.item())

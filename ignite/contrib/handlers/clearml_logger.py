@@ -319,8 +319,12 @@ class OutputHandler(BaseOutputHandler):
             )
 
         for key, value in metrics.items():
-            if isinstance(value, numbers.Number) or isinstance(value, torch.Tensor) and value.ndimension() == 0:
+            if isinstance(value, numbers.Number):
                 logger.clearml_logger.report_scalar(title=self.tag, series=key, iteration=global_step, value=value)
+            elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
+                logger.clearml_logger.report_scalar(
+                    title=self.tag, series=key, iteration=global_step, value=value.item()
+                )
             elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
                 for i, v in enumerate(value):
                     logger.clearml_logger.report_scalar(
