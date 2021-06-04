@@ -151,7 +151,12 @@ class BaseLogger(metaclass=ABCMeta):
     """
 
     def attach(
-        self, engine: Engine, log_handler: Callable, event_name: Union[str, Events, CallableEventWithFilter, EventsList], *args: Any, **kwargs: Any
+        self,
+        engine: Engine,
+        log_handler: Callable,
+        event_name: Union[str, Events, CallableEventWithFilter, EventsList],
+        *args: Any,
+        **kwargs: Any,
     ) -> RemovableEventHandle:
         """Attach the logger to the engine and execute `log_handler` function at `event_name` events.
 
