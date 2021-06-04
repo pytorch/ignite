@@ -1,4 +1,4 @@
-from ignite.metrics.GAN.fid import FID
+from ignite.metrics.gan.fid import FID
 
 __all__ = [
     "FID",
