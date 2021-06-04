@@ -55,10 +55,10 @@ def test_statistics():
     mu1, sigma1 = train_samples.mean(axis=0), torch.tensor(cov(train_samples, rowvar=False))
     mu2, sigma2 = test_samples.mean(axis=0), torch.tensor(cov(test_samples, rowvar=False))
 
-    fid_mu1 = fid_scorer._train_mu
+    fid_mu1 = fid_scorer._train_total / fid_scorer._num_examples
     fid_sigma1 = fid_scorer._train_sigma / (fid_scorer._num_examples - 1)
 
-    fid_mu2 = fid_scorer._test_mu
+    fid_mu2 = fid_scorer._test_total / fid_scorer._num_examples
     fid_sigma2 = fid_scorer._test_sigma / (fid_scorer._num_examples - 1)
 
     assert torch.isclose(mu1.double(), fid_mu1).all()
