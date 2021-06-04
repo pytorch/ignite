@@ -70,6 +70,7 @@ class FID(Metric):
         This implementation is inspired by pytorch_fid package.
 
     Args:
+        num_features: specifies number of features the evaluation samples should have
         eps: small value added during matric division if denominator is 0.
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
@@ -88,7 +89,7 @@ class FID(Metric):
 
         train, test = torch.rand(10,2048), torch.rand(10,2048)
 
-        m = FID()
+        m = FID(features=2048)
         m.update((train,test))
         print(m.compute())
 

@@ -15,9 +15,11 @@ def test_fid_function():
     mu1, sigma1 = train_samples.mean(axis=0), cov(train_samples, rowvar=False)
     mu2, sigma2 = test_samples.mean(axis=0), cov(test_samples, rowvar=False)
 
-    assert pytest.approx(
-        fid_score(mu1, mu2, torch.tensor(sigma1, dtype=torch.float64), torch.tensor(sigma2, dtype=torch.float64))
-    ) == pytorch_fid_score.calculate_frechet_distance(mu1, sigma1, mu2, sigma2)
+    sigma1 = torch.tensor(sigma1, dtype=torch.float64)
+    sigma2 = torch.tensor(sigma2, dtype=torch.float64)
+    assert pytest.approx(fid_score(mu1, mu2, sigma1, sigma2)) == pytorch_fid_score.calculate_frechet_distance(
+        mu1, sigma1, mu2, sigma2
+    )
 
 
 def test_compute_fid_from_features():
@@ -78,38 +80,38 @@ def _test_distrib_integration(device):
 
     rank = idist.get_rank()
     torch.manual_seed(12)
-    size = 10
-
-    data = []
-    for i in range(size):
-        data += [(torch.rand(10, 2048), torch.rand(10, 2048))]
-
-    def update(_, i):
-        train, test = data[i]
-        return (train, test)
 
     def _test(metric_device):
+        size = 10
+        train_data = torch.rand(size, 10, 2048).to(device)
+        test_data = torch.rand(size, 10, 2048).to(device)
+
+        def update(_, i):
+            return (train_data[i], test_data[i])
+
         engine = Engine(update)
-        m = FID(num_features=2048)
+        m = FID(num_features=2048, device=metric_device)
         m.attach(engine, "fid")
 
         engine.run(data=list(range(size)), max_epochs=1)
 
         assert "fid" in engine.state.metrics
 
-        evaluator = fid_score.calculate_frechet_distance
-        train, test = data[0]
-        for train_samples, test_samples in data[1:]:
+        evaluator = pytorch_fid_score.calculate_frechet_distance
+        train, test = train_data[0], test_data[0]
+        for train_samples, test_samples in zip(train_data[1:], test_data[1:]):
             train = torch.cat((train, train_samples))
             test = torch.cat((test, test_samples))
         mu1, sigma1 = train.mean(axis=0), cov(train, rowvar=False)
         mu2, sigma2 = test.mean(axis=0), cov(test, rowvar=False)
-        assert pytest.approx(fid_score.calculate_frechet_distance(mu1, sigma1, mu2, sigma2)) == m.compute()
+        assert pytest.approx(evaluator(mu1, sigma1, mu2, sigma2)) == m.compute()
 
-    _test("cpu")
-
+    metric_devices = [torch.device("cpu")]
     if device.type != "xla":
-        _test(idist.device())
+        metric_devices.append(idist.device())
+    for _ in range(2):
+        for metric_device in metric_devices:
+            _test(metric_device=metric_device)
 
 
 @pytest.mark.distributed
