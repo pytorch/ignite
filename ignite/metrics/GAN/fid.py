@@ -165,7 +165,7 @@ class FID(Metric):
 
         self._num_examples += train_features.shape[0]
 
-    @sync_all_reduce("_num_examples")
+    @sync_all_reduce("_num_examples", "_train_total", "_train_sigma", "_test_total", "_test_sigma")
     def compute(self) -> float:
         if self._num_examples == 0:
             raise NotComputableError("FID must have at least one example before it can be computed.")
