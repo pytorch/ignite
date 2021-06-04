@@ -111,13 +111,13 @@ class FID(Metric):
         super(FID, self).__init__(output_transform=output_transform, device=device)
 
     @staticmethod
-    def _online_update(features: torch.Tensor, mu: torch.Tensor, sigma: torch.Tensor, num_examples: int) -> None:
+    def _online_update(features: torch.Tensor, total: torch.Tensor, sigma: torch.Tensor, num_examples: int) -> None:
 
         # Calculating difference between new sample and old and new means
+        mu = total / (num_examples - 1) if num_examples > 1 else 0
         mean_difference = features - mu
-        mu += mean_difference / num_examples
-        new_mean_difference = features - mu
-
+        total += features
+        new_mean_difference = features - (total / num_examples)
         # Outer product to obtain pairwise covariance between each features
         sigma += torch.outer(mean_difference, new_mean_difference)
 
@@ -138,9 +138,9 @@ class FID(Metric):
     @reinit__is_reduced
     def reset(self) -> None:
         self._train_sigma = torch.zeros((self._num_features, self._num_features), dtype=torch.float64).to(self._device)
-        self._train_mu = torch.zeros(self._num_features, dtype=torch.float64).to(self._device)
+        self._train_total = torch.zeros(self._num_features, dtype=torch.float64).to(self._device)
         self._test_sigma = torch.zeros((self._num_features, self._num_features), dtype=torch.float64).to(self._device)
-        self._test_mu = torch.zeros(self._num_features, dtype=torch.float64).to(self._device)
+        self._test_total = torch.zeros(self._num_features, dtype=torch.float64).to(self._device)
         self._num_examples = 0
         super(FID, self).reset()
 
@@ -156,11 +156,11 @@ class FID(Metric):
 
         # Updates the mean and covariance for the train features
         for i, features in enumerate(train_features, start=self._num_examples + 1):
-            self._online_update(features, self._train_mu, self._train_sigma, i)
+            self._online_update(features, self._train_total, self._train_sigma, i)
 
         # Updates the mean and covariance for the test features
         for i, features in enumerate(test_features, start=self._num_examples + 1):
-            self._online_update(features, self._test_mu, self._test_sigma, i)
+            self._online_update(features, self._test_total, self._test_sigma, i)
 
         self._num_examples += train_features.shape[0]
 
@@ -169,8 +169,8 @@ class FID(Metric):
         if self._num_examples == 0:
             raise NotComputableError("FID must have at least one example before it can be computed.")
         return fid_score(
-            mu1=self._train_mu,
-            mu2=self._test_mu,
+            mu1=self._train_total / self._num_examples,
+            mu2=self._test_total / self._num_examples,
             sigma1=self._train_sigma / (self._num_examples - 1),
             sigma2=self._test_sigma / (self._num_examples - 1),
             eps=self._eps,
