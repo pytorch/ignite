@@ -151,7 +151,7 @@ class BaseLogger(metaclass=ABCMeta):
     """
 
     def attach(
-        self, engine: Engine, log_handler: Callable, event_name: Union[str, Events, CallableEventWithFilter, EventsList]
+        self, engine: Engine, log_handler: Callable, event_name: Union[str, Events, CallableEventWithFilter, EventsList], *args: Any, **kwargs: Any
     ) -> RemovableEventHandle:
         """Attach the logger to the engine and execute `log_handler` function at `event_name` events.
 
@@ -161,6 +161,8 @@ class BaseLogger(metaclass=ABCMeta):
             event_name: event to attach the logging handler to. Valid events are from
                 :class:`~ignite.engine.events.Events` or :class:`~ignite.engine.events.EventsList` or any `event_name`
                 added by :meth:`~ignite.engine.engine.Engine.register_events`.
+            args: args to initialize `log_handler`
+            kwargs: kwargs to initialize `log_handler`
 
         Returns:
             :class:`~ignite.engine.events.RemovableEventHandle`, which can be used to remove the handler.
@@ -178,7 +180,7 @@ class BaseLogger(metaclass=ABCMeta):
             if event_name not in State.event_to_attr:
                 raise RuntimeError(f"Unknown event name '{event_name}'")
 
-            return engine.add_event_handler(event_name, log_handler, self, event_name)
+            return engine.add_event_handler(event_name, log_handler, self, event_name, *args, **kwargs)
 
     def attach_output_handler(self, engine: Engine, event_name: Any, *args: Any, **kwargs: Any) -> RemovableEventHandle:
         """Shortcut method to attach `OutputHandler` to the logger.
