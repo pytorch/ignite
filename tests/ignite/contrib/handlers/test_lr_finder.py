@@ -2,7 +2,7 @@ import copy
 import os
 from unittest.mock import MagicMock
 
-import matplotlib
+# import matplotlib
 import pytest
 import torch
 import torch.nn.functional as F
@@ -12,8 +12,6 @@ from torch.optim import SGD
 import ignite.distributed as idist
 from ignite.contrib.handlers import FastaiLRFinder
 from ignite.engine import Engine, Events, create_supervised_trainer
-
-matplotlib.use("agg")
 
 
 @pytest.fixture
@@ -54,7 +52,7 @@ class DummyModelMulipleParamGroups(nn.Module):
 
 @pytest.fixture
 def model():
-    model = DummyModel()
+    model = DummyModel(out_channels=10)
     yield model
 
 
@@ -305,7 +303,7 @@ def test_detach_terminates(lr_finder, to_save, dummy_engine, dataloader, recwarn
 
     dummy_engine.run(dataloader, max_epochs=3)
     assert dummy_engine.state.epoch == 3
-    assert len(recwarn) == 1
+    assert len(recwarn) == 0
 
 
 def test_lr_suggestion_unexpected_curve(lr_finder, to_save, dummy_engine, dataloader):
@@ -322,8 +320,8 @@ def test_lr_suggestion_unexpected_curve(lr_finder, to_save, dummy_engine, datalo
 def test_lr_suggestion_single_param_group(lr_finder):  # , to_save, dummy_engine, dataloader):
 
     noise = 0.05
-    lr_finder._history["loss"] = torch.linspace(-5.0, 5.0, steps=100) ** 2 + noise
-    lr_finder._history["lr"] = torch.linspace(0.01, 10, steps=100)
+    lr_finder._history["loss"] = torch.linspace(-5.0, 5.0, steps=100, dtype=torch.float) ** 2 + noise
+    lr_finder._history["lr"] = torch.linspace(0.01, 10, steps=100, dtype=torch.float)
 
     # lr_finder.lr_suggestion() is supposed to return a value, but as
     # we assign loss and lr to tensors, instead of lists, it will return tensors
@@ -336,9 +334,9 @@ def test_lr_suggestion_multiple_param_groups(lr_finder):
     import numpy as np
 
     noise = 0.06
-    lr_finder._history["loss"] = torch.tensor(np.linspace(-5.0, 5, num=50) ** 2 + noise)
+    lr_finder._history["loss"] = torch.tensor(np.linspace(-5.0, 5, num=50) ** 2 + noise, dtype=torch.float)
     # 2 param_groups
-    lr_finder._history["lr"] = torch.tensor(np.linspace(0.01, 10, num=100)).reshape(50, 2)
+    lr_finder._history["lr"] = torch.tensor(np.linspace(0.01, 10, num=100), dtype=torch.float).reshape(50, 2)
 
     # lr_finder.lr_suggestion() is supposed to return a list of values,
     # but as we assign loss and lr to tensors, instead of lists, it will return tensors
@@ -352,7 +350,7 @@ def test_lr_suggestion_mnist(lr_finder, mnist_to_save, dummy_engine_mnist, mnist
 
     max_iters = 50
 
-    with lr_finder.attach(dummy_engine_mnist, mnist_to_save) as trainer_with_finder:
+    with lr_finder.attach(dummy_engine_mnist, mnist_to_save, diverge_th=2, step_mode="linear") as trainer_with_finder:
 
         with trainer_with_finder.add_event_handler(
             Events.ITERATION_COMPLETED(once=max_iters), lambda _: trainer_with_finder.terminate()
@@ -396,7 +394,9 @@ def test_apply_suggested_lr_multiple_param_groups(
     dataloader,
 ):
 
-    with lr_finder.attach(dummy_engine_mulitple_param_groups, to_save_mulitple_param_groups) as trainer_with_finder:
+    with lr_finder.attach(
+        dummy_engine_mulitple_param_groups, to_save_mulitple_param_groups, end_lr=15
+    ) as trainer_with_finder:
         trainer_with_finder.run(dataloader)
 
     sug_lr = lr_finder.lr_suggestion()
