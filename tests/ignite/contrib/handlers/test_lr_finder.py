@@ -2,6 +2,7 @@ import copy
 import os
 from unittest.mock import MagicMock
 
+import matplotlib
 import pytest
 import torch
 import torch.nn.functional as F
@@ -11,6 +12,8 @@ from torch.optim import SGD
 import ignite.distributed as idist
 from ignite.contrib.handlers import FastaiLRFinder
 from ignite.engine import Engine, Events, create_supervised_trainer
+
+matplotlib.use("agg")
 
 
 @pytest.fixture
