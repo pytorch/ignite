@@ -102,8 +102,8 @@ def _test_distrib_integration(device):
         for train_samples, test_samples in zip(train_data[1:], test_data[1:]):
             train = torch.cat((train, train_samples))
             test = torch.cat((test, test_samples))
-        mu1, sigma1 = train.mean(axis=0), cov(train, rowvar=False)
-        mu2, sigma2 = test.mean(axis=0), cov(test, rowvar=False)
+        mu1, sigma1 = train.mean(axis=0).to("cpu"), cov(train.to("cpu"), rowvar=False)
+        mu2, sigma2 = test.mean(axis=0).to("cpu"), cov(test.to("cpu"), rowvar=False)
         assert pytest.approx(evaluator(mu1, sigma1, mu2, sigma2)) == m.compute()
 
     metric_devices = [torch.device("cpu")]

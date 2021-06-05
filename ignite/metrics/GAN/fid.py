@@ -2,7 +2,6 @@ from typing import Callable, Sequence, Union
 
 import numpy as np
 import torch
-from scipy.linalg import sqrtm
 
 from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
@@ -15,12 +14,13 @@ def fid_score(
 ) -> float:
 
     diff = mu1 - mu2
+    import scipy
 
     # Product might be almost singular
-    covmean, _ = sqrtm(sigma1.mm(sigma2), disp=False)
+    covmean, _ = scipy.linalg.sqrtm(sigma1.mm(sigma2), disp=False)
     if not np.isfinite(covmean).all():
         offset = np.eye(sigma1.shape[0]) * eps
-        covmean = sqrtm((sigma1 + offset).dot(sigma2 + offset))
+        covmean = scipy.linalg.sqrtm((sigma1 + offset).dot(sigma2 + offset))
 
     # Numerical error might give slight imaginary component
     if np.iscomplexobj(covmean):
@@ -71,7 +71,7 @@ class FID(Metric):
 
     Args:
         num_features: specifies number of features the evaluation samples should have
-        eps: small value added during matric division if denominator is 0.
+        feature_extractor: A Callable Object for extracting features from input data.
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
@@ -100,7 +100,6 @@ class FID(Metric):
         self,
         num_features: int,
         feature_extractor: Callable = lambda x: x,
-        eps: float = 1e-6,
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
@@ -108,7 +107,7 @@ class FID(Metric):
             raise ValueError(f"num of features must be greater to zero (got: {num_features})")
         self._num_features = num_features
         self._feature_extractor = feature_extractor
-        self._eps = eps
+        self._eps = 1e-6
         super(FID, self).__init__(output_transform=output_transform, device=device)
 
     @staticmethod
