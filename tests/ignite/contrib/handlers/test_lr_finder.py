@@ -393,13 +393,11 @@ def test_apply_suggested_lr_multiple_param_groups(
     to_save_mulitple_param_groups,
     dummy_engine_mulitple_param_groups,
     optimizer_multiple_param_groups,
-    dataloader,
+    dataloader_plot,
 ):
 
-    with lr_finder.attach(
-        dummy_engine_mulitple_param_groups, to_save_mulitple_param_groups, end_lr=15
-    ) as trainer_with_finder:
-        trainer_with_finder.run(dataloader)
+    with lr_finder.attach(dummy_engine_mulitple_param_groups, to_save_mulitple_param_groups) as trainer_with_finder:
+        trainer_with_finder.run(dataloader_plot)
 
     sug_lr = lr_finder.lr_suggestion()
     lr_finder.apply_suggested_lr(optimizer_multiple_param_groups)
