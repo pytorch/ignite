@@ -6,7 +6,7 @@ import torch
 from numpy import cov
 
 import ignite.distributed as idist
-from ignite.metrics.GAN.fid import FID, InceptionExtractor, fid_score
+from ignite.metrics.gan.fid import FID, InceptionExtractor, fid_score
 
 
 def test_fid_function():
