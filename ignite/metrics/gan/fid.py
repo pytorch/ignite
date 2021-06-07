@@ -118,7 +118,7 @@ class FID(Metric):
         super(FID, self).__init__(output_transform=output_transform, device=device)
 
     @sync_all_reduce("self._weighted_score")
-    def fid_collector(self) -> float:
+    def fid_collector(self, *_) -> float:
         if self._num_examples == 0:
             raise NotComputableError("FID must have at least one example before it can be computed.")
         self.fid_score = fid_score(
