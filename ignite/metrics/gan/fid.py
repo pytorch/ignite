@@ -3,8 +3,12 @@ from typing import Callable, Sequence, Union
 import numpy as np
 import torch
 
+from ignite.engine import Engine
 from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
+
+# import torch.distributed as idist
+
 
 __all__ = ["FID", "InceptionExtractor"]
 
@@ -38,10 +42,11 @@ class InceptionExtractor:
     def __init__(self) -> None:
         from torchvision import models
 
-        self.model = models.inception_v3(init_weights=True)
-        self.model.fc = torch.nn.Sequential()
+        self.model = models.inception_v3(init_weights=False)
+        self.model.fc = torch.nn.Identity()
         self.model.eval()
 
+    @torch.no_grad()
     def __call__(self, data: torch.Tensor) -> torch.Tensor:
         if data.shape[1:] != (3, 299, 299):
             raise ValueError(f"Images should be of size 3x299x299 (got {data.shape})")
@@ -67,7 +72,9 @@ class FID(Metric):
 
     Remark:
 
-        This implementation is inspired by pytorch_fid package.
+        This implementation is inspired by pytorch_fid package which can be found here.
+
+    __ https://github.com/mseitzer/pytorch-fid
 
     Args:
         num_features: specifies number of features the evaluation samples should have
@@ -87,10 +94,10 @@ class FID(Metric):
         from ignite.metric.GAN import FID
         import torch
 
-        train, test = torch.rand(10,2048), torch.rand(10,2048)
+        y_pred, y = torch.rand(10,2048), torch.rand(10,2048)
 
         m = FID(features=2048)
-        m.update((train,test))
+        m.update((y_pred,y))
         print(m.compute())
 
     .. versionadded:: 0.5.0
@@ -109,6 +116,27 @@ class FID(Metric):
         self._feature_extractor = feature_extractor
         self._eps = 1e-6
         super(FID, self).__init__(output_transform=output_transform, device=device)
+
+    @sync_all_reduce("self._weighted_score")
+    def fid_collector(self) -> None:
+        if self._num_examples == 0:
+            raise NotComputableError("FID must have at least one example before it can be computed.")
+        self.fid_score = fid_score(
+            mu1=self._train_total / self._num_examples,
+            mu2=self._test_total / self._num_examples,
+            sigma1=self._train_sigma / (self._num_examples - 1),
+            sigma2=self._test_sigma / (self._num_examples - 1),
+            eps=self._eps,
+        )
+        self._weighted_score = self.fid_score * self._num_examples
+        return self._weighted_score
+
+    # override the attach to set fid_score before compute
+    def attach(self, engine: Engine, name: str, usage: str) -> None:
+        # fid_score() will be called first
+        engine.add_event_handler(usage.COMPLETED, self.fid_collector, name)
+        # then others attached methods should be called
+        super(FID, self).attach(engine, name, usage)
 
     @staticmethod
     def _online_update(features: torch.Tensor, total: torch.Tensor, sigma: torch.Tensor, num_examples: int) -> None:
@@ -164,14 +192,7 @@ class FID(Metric):
 
         self._num_examples += train_features.shape[0]
 
-    @sync_all_reduce("_num_examples", "_train_total", "_train_sigma", "_test_total", "_test_sigma")
+    @sync_all_reduce("_num_examples", "_weighted_score")
     def compute(self) -> float:
-        if self._num_examples == 0:
-            raise NotComputableError("FID must have at least one example before it can be computed.")
-        return fid_score(
-            mu1=self._train_total / self._num_examples,
-            mu2=self._test_total / self._num_examples,
-            sigma1=self._train_sigma / (self._num_examples - 1),
-            sigma2=self._test_sigma / (self._num_examples - 1),
-            eps=self._eps,
-        )
+        print(self._weighted_score)
+        return self._weighted_score / self._num_examples

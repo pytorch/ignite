@@ -25,7 +25,6 @@ clearml
 scikit-image
 py-rouge
 nltk
-pytorch_fid
 # Examples dependencies
 pandas
 gym
