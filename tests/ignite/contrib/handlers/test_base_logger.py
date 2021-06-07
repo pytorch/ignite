@@ -117,7 +117,7 @@ def test_attach():
 
         mock_log_handler = MagicMock()
 
-        logger.attach(trainer, log_handler=mock_log_handler, event_name=event, kwargs={"a": 0})
+        logger.attach(trainer, log_handler=mock_log_handler, event_name=event, **kwargs)
 
         trainer.run(data, max_epochs=n_epochs)
 
