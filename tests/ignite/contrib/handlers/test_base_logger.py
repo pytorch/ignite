@@ -103,7 +103,7 @@ def test_attach():
     n_epochs = 5
     data = list(range(50))
 
-    def _test(event, n_calls, kwargs):
+    def _test(event, n_calls, kwargs={}):
 
         losses = torch.rand(n_epochs * len(data))
         losses_iter = iter(losses)
