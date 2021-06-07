@@ -198,4 +198,5 @@ class FID(Metric):
 
     @sync_all_reduce("_num_examples", "fid")
     def compute(self) -> float:
+        self.fid_collector()
         return self.fid
