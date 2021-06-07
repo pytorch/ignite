@@ -118,7 +118,7 @@ class FID(Metric):
         super(FID, self).__init__(output_transform=output_transform, device=device)
 
     @sync_all_reduce("self._weighted_score")
-    def fid_collector(self) -> torch.Tensor:
+    def fid_collector(self) -> float:
         if self._num_examples == 0:
             raise NotComputableError("FID must have at least one example before it can be computed.")
         self.fid_score = fid_score(
@@ -137,7 +137,7 @@ class FID(Metric):
         # fid_score() will be called first
         engine.add_event_handler(usage.COMPLETED, self.fid_collector, name)
         # then others attached methods should be called
-        super(FID, self).attach(engine, name, usage)
+        # super(FID, self).attach(engine, name, usage)
 
     @staticmethod
     def _online_update(features: torch.Tensor, total: torch.Tensor, sigma: torch.Tensor, num_examples: int) -> None:
