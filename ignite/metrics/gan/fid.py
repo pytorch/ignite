@@ -118,7 +118,7 @@ class FID(Metric):
         super(FID, self).__init__(output_transform=output_transform, device=device)
 
     @sync_all_reduce("self._weighted_score")
-    def fid_collector(self) -> None:
+    def fid_collector(self) -> torch.Tensor:
         if self._num_examples == 0:
             raise NotComputableError("FID must have at least one example before it can be computed.")
         self.fid_score = fid_score(
@@ -133,6 +133,7 @@ class FID(Metric):
 
     # override the attach to set fid_score before compute
     def attach(self, engine: Engine, name: str, usage: Union[str, MetricUsage]) -> None:
+        usage = self._check_usage(usage)
         # fid_score() will be called first
         engine.add_event_handler(usage.COMPLETED, self.fid_collector, name)
         # then others attached methods should be called
