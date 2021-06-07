@@ -5,7 +5,7 @@ import torch
 
 from ignite.engine import Engine
 from ignite.exceptions import NotComputableError
-from ignite.metrics.metric import Metric, MetricUsage, reinit__is_reduced, sync_all_reduce
+from ignite.metrics.metric import EpochWise, Metric, MetricUsage, reinit__is_reduced, sync_all_reduce
 
 # import torch.distributed as idist
 
@@ -132,11 +132,17 @@ class FID(Metric):
         return self._weighted_score
 
     # override the attach to set fid_score before compute
-    def attach(self, engine: Engine, name: str, usage: Union[str, MetricUsage]) -> None:
+    def attach(self, engine: Engine, name: str, usage: Union[str, MetricUsage] = EpochWise()) -> None:
         usage = self._check_usage(usage)
         # fid_score() will be called first
         engine.add_event_handler(usage.COMPLETED, self.fid_collector, name)
         # then others attached methods should be called
+        if not engine.has_event_handler(self.started, usage.STARTED):
+            engine.add_event_handler(usage.STARTED, self.started)
+        if not engine.has_event_handler(self.iteration_completed, usage.ITERATION_COMPLETED):
+            engine.add_event_handler(usage.ITERATION_COMPLETED, self.iteration_completed)
+        engine.add_event_handler(usage.COMPLETED, self.completed, name)
+
         # super(FID, self).attach(engine, name, usage)
 
     @staticmethod
