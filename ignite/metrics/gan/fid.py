@@ -117,7 +117,7 @@ class FID(Metric):
         self._eps = 1e-6
         super(FID, self).__init__(output_transform=output_transform, device=device)
 
-    def fid_collector(self, *_: Any) -> float:
+    def fid_collector(self, *_: Any) -> None:
         if self._num_examples == 0:
             raise NotComputableError("FID must have at least one example before it can be computed.")
         self.fid = fid_score(
