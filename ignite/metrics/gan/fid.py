@@ -1,4 +1,4 @@
-from typing import Callable, Sequence, Union
+from typing import Any, Callable, Sequence, Union
 
 import numpy as np
 import torch
@@ -118,7 +118,7 @@ class FID(Metric):
         super(FID, self).__init__(output_transform=output_transform, device=device)
 
     @sync_all_reduce("self._weighted_score")
-    def fid_collector(self, *_) -> float:
+    def fid_collector(self, *_: Any) -> float:
         if self._num_examples == 0:
             raise NotComputableError("FID must have at least one example before it can be computed.")
         self.fid_score = fid_score(
