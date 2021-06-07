@@ -117,19 +117,16 @@ class FID(Metric):
         self._eps = 1e-6
         super(FID, self).__init__(output_transform=output_transform, device=device)
 
-    @sync_all_reduce("self._weighted_score")
     def fid_collector(self, *_: Any) -> float:
         if self._num_examples == 0:
             raise NotComputableError("FID must have at least one example before it can be computed.")
-        self.fid_score = fid_score(
+        self.fid = fid_score(
             mu1=self._train_total / self._num_examples,
             mu2=self._test_total / self._num_examples,
             sigma1=self._train_sigma / (self._num_examples - 1),
             sigma2=self._test_sigma / (self._num_examples - 1),
             eps=self._eps,
         )
-        self._weighted_score = self.fid_score * self._num_examples
-        return self._weighted_score
 
     # override the attach to set fid_score before compute
     def attach(self, engine: Engine, name: str, usage: Union[str, MetricUsage] = EpochWise()) -> None:
@@ -199,7 +196,6 @@ class FID(Metric):
 
         self._num_examples += train_features.shape[0]
 
-    @sync_all_reduce("_num_examples", "_weighted_score")
+    @sync_all_reduce("_num_examples", "fid")
     def compute(self) -> float:
-        self.fid_collector()
-        return self._weighted_score / self._num_examples
+        return self.fid
