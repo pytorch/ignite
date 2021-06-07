@@ -194,5 +194,5 @@ class FID(Metric):
 
     @sync_all_reduce("_num_examples", "_weighted_score")
     def compute(self) -> float:
-        print(self._weighted_score)
+        self.fid_collector()
         return self._weighted_score / self._num_examples
