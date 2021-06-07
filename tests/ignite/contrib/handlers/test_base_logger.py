@@ -128,10 +128,11 @@ def test_attach():
 
         if len(kwargs) > 0:
             calls = [call(trainer, logger, e, **kwargs) for e in events]
-            mock_log_handler.assert_has_calls(calls)
-            assert mock_log_handler.call_count == n_calls
         else:
             calls = [call(trainer, logger, e) for e in events]
+
+        mock_log_handler.assert_has_calls(calls)
+        assert mock_log_handler.call_count == n_calls
 
     _test(Events.ITERATION_STARTED, len(data) * n_epochs, kwargs={"a": 0})
     _test(Events.ITERATION_COMPLETED, len(data) * n_epochs)
