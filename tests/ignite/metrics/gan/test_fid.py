@@ -63,10 +63,10 @@ def test_statistics():
 
     assert torch.isclose(mu1.double(), fid_mu1).all()
     for cov1, cov2 in zip(sigma1, fid_sigma1):
-        assert torch.isclose(cov1.double(), cov2).all()
+        assert torch.isclose(cov1.double(), cov2, rtol=1e-04).all()
     assert torch.isclose(mu2.double(), fid_mu2).all()
     for cov1, cov2 in zip(sigma2, fid_sigma2):
-        assert torch.isclose(cov1.double(), cov2).all()
+        assert torch.isclose(cov1.double(), cov2, rtol=1e-04).all()
 
 
 def test_inception_extractor_wrong_inputs():

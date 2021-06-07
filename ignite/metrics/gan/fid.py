@@ -1,11 +1,9 @@
-from typing import Any, Callable, Sequence, Union
+from typing import Callable, Sequence, Union
 
 import numpy as np
 import torch
 
-from ignite.engine import Engine
-from ignite.exceptions import NotComputableError
-from ignite.metrics.metric import EpochWise, Metric, MetricUsage, reinit__is_reduced, sync_all_reduce
+from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
 # import torch.distributed as idist
 
@@ -117,41 +115,15 @@ class FID(Metric):
         self._eps = 1e-6
         super(FID, self).__init__(output_transform=output_transform, device=device)
 
-    def fid_collector(self, *_: Any) -> None:
-        if self._num_examples == 0:
-            raise NotComputableError("FID must have at least one example before it can be computed.")
-        self.fid = fid_score(
-            mu1=self._train_total / self._num_examples,
-            mu2=self._test_total / self._num_examples,
-            sigma1=self._train_sigma / (self._num_examples - 1),
-            sigma2=self._test_sigma / (self._num_examples - 1),
-            eps=self._eps,
-        )
-
-    # override the attach to set fid_score before compute
-    def attach(self, engine: Engine, name: str, usage: Union[str, MetricUsage] = EpochWise()) -> None:
-        usage = self._check_usage(usage)
-        # fid_score() will be called first
-        engine.add_event_handler(usage.COMPLETED, self.fid_collector, name)
-        # then others attached methods should be called
-        if not engine.has_event_handler(self.started, usage.STARTED):
-            engine.add_event_handler(usage.STARTED, self.started)
-        if not engine.has_event_handler(self.iteration_completed, usage.ITERATION_COMPLETED):
-            engine.add_event_handler(usage.ITERATION_COMPLETED, self.iteration_completed)
-        engine.add_event_handler(usage.COMPLETED, self.completed, name)
-
-        # super(FID, self).attach(engine, name, usage)
-
     @staticmethod
-    def _online_update(features: torch.Tensor, total: torch.Tensor, sigma: torch.Tensor, num_examples: int) -> None:
-
-        # Calculating difference between new sample and old and new means
-        mu = total / (num_examples - 1) if num_examples > 1 else 0
-        mean_difference = features - mu
+    def _online_update(features: torch.Tensor, total: torch.Tensor, sigma: torch.Tensor) -> None:
         total += features
-        new_mean_difference = features - (total / num_examples)
-        # Outer product to obtain pairwise covariance between each features
-        sigma += torch.outer(mean_difference, new_mean_difference)
+        sigma += torch.outer(features, features)
+
+    def get_covariance(self, sigma: torch.Tensor, total: torch.Tensor) -> torch.Tensor:
+        sub_matrix = torch.outer(total, total)
+        sub_matrix = sub_matrix / self._num_examples
+        return (sigma - sub_matrix) / (self._num_examples - 1)
 
     @staticmethod
     def _check_feature_input(train: torch.Tensor, test: torch.Tensor) -> None:
@@ -188,15 +160,20 @@ class FID(Metric):
 
         # Updates the mean and covariance for the train features
         for i, features in enumerate(train_features, start=self._num_examples + 1):
-            self._online_update(features, self._train_total, self._train_sigma, i)
+            self._online_update(features, self._train_total, self._train_sigma)
 
         # Updates the mean and covariance for the test features
         for i, features in enumerate(test_features, start=self._num_examples + 1):
-            self._online_update(features, self._test_total, self._test_sigma, i)
+            self._online_update(features, self._test_total, self._test_sigma)
 
         self._num_examples += train_features.shape[0]
 
-    @sync_all_reduce("_num_examples", "fid")
+    @sync_all_reduce("_num_examples", "_train_total", "_test_total", "_train_sigma", "_test_sigma")
     def compute(self) -> float:
-        self.fid_collector()
-        return self.fid
+        return fid_score(
+            mu1=self._train_total / self._num_examples,
+            mu2=self._test_total / self._num_examples,
+            sigma1=self.get_covariance(self._train_sigma, self._train_total),
+            sigma2=self.get_covariance(self._test_sigma, self._test_total),
+            eps=self._eps,
+        )
