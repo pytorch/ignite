@@ -219,16 +219,16 @@ def test_as_context_manager():
             trainer = Engine(update_fn)
             mock_log_handler = MagicMock()
 
-            logger.attach(trainer, log_handler=mock_log_handler, event_name=event, kwargs={"a": 0})
+            logger.attach(trainer, log_handler=mock_log_handler, event_name=event)
 
             trainer.run(data, max_epochs=n_epochs)
 
-            mock_log_handler.assert_called_with(trainer, logger, event, {"a": 0})
+            mock_log_handler.assert_called_with(trainer, logger, event)
             assert mock_log_handler.call_count == n_calls
 
         writer.close.assert_called_once_with()
 
-    _test(Events.ITERATION_STARTED, len(data) * n_epochs, kwargs={"a": 0})
+    _test(Events.ITERATION_STARTED, len(data) * n_epochs)
     _test(Events.ITERATION_COMPLETED, len(data) * n_epochs)
     _test(Events.EPOCH_STARTED, n_epochs)
     _test(Events.EPOCH_COMPLETED, n_epochs)
