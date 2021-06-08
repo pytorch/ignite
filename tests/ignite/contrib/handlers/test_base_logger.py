@@ -103,7 +103,7 @@ def test_attach():
     n_epochs = 5
     data = list(range(50))
 
-    def _test(event, n_calls):
+    def _test(event, n_calls, kwargs={}):
 
         losses = torch.rand(n_epochs * len(data))
         losses_iter = iter(losses)
@@ -117,7 +117,7 @@ def test_attach():
 
         mock_log_handler = MagicMock()
 
-        logger.attach(trainer, log_handler=mock_log_handler, event_name=event)
+        logger.attach(trainer, log_handler=mock_log_handler, event_name=event, **kwargs)
 
         trainer.run(data, max_epochs=n_epochs)
 
@@ -125,11 +125,16 @@ def test_attach():
             events = [e for e in event]
         else:
             events = [event]
-        calls = [call(trainer, logger, e) for e in events]
+
+        if len(kwargs) > 0:
+            calls = [call(trainer, logger, e, **kwargs) for e in events]
+        else:
+            calls = [call(trainer, logger, e) for e in events]
+
         mock_log_handler.assert_has_calls(calls)
         assert mock_log_handler.call_count == n_calls
 
-    _test(Events.ITERATION_STARTED, len(data) * n_epochs)
+    _test(Events.ITERATION_STARTED, len(data) * n_epochs, kwargs={"a": 0})
     _test(Events.ITERATION_COMPLETED, len(data) * n_epochs)
     _test(Events.EPOCH_STARTED, n_epochs)
     _test(Events.EPOCH_COMPLETED, n_epochs)
