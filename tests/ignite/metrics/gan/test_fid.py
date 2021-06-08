@@ -25,7 +25,7 @@ def test_fid_function():
 def test_compute_fid_from_features():
     train_samples, test_samples = torch.rand(10, 10), torch.rand(10, 10)
 
-    fid_scorer = FID(num_features=10)
+    fid_scorer = FID(num_features=10, feature_extractor=lambda x: x)
     fid_scorer.update([train_samples[:5], test_samples[:5]])
     fid_scorer.update([train_samples[5:], test_samples[5:]])
 
@@ -37,18 +37,18 @@ def test_compute_fid_from_features():
 
 def test_wrong_inputs():
     with pytest.raises(ValueError, match=r"num of features must be greater to zero"):
-        FID(num_features=-1)
+        FID(num_features=-1, feature_extractor=lambda x: x)
     with pytest.raises(ValueError, match=r"Features must be a tensor of dim 2 \(got: 1\)"):
-        FID(num_features=1).update(torch.Tensor([[], []]))
+        FID(num_features=1, feature_extractor=lambda x: x).update(torch.Tensor([[], []]))
     with pytest.raises(ValueError, match=r"Batch size should be greater than one \(got: 0\)"):
-        FID(num_features=1).update(torch.rand(2, 0, 0))
+        FID(num_features=1, feature_extractor=lambda x: x).update(torch.rand(2, 0, 0))
     with pytest.raises(ValueError, match=r"Feature size should be greater than one \(got: 0\)"):
-        FID(num_features=1).update(torch.rand(2, 2, 0))
+        FID(num_features=1, feature_extractor=lambda x: x).update(torch.rand(2, 2, 0))
 
 
 def test_statistics():
     train_samples, test_samples = torch.rand(10, 10), torch.rand(10, 10)
-    fid_scorer = FID(num_features=10)
+    fid_scorer = FID(num_features=10, feature_extractor=lambda x: x)
     fid_scorer.update([train_samples[:5], test_samples[:5]])
     fid_scorer.update([train_samples[5:], test_samples[5:]])
 
@@ -98,7 +98,7 @@ def _test_distrib_integration(device):
             )
 
         engine = Engine(update)
-        m = FID(num_features=n_features, device=metric_device)
+        m = FID(num_features=n_features, feature_extractor=lambda x: x, device=metric_device)
         m.attach(engine, "fid")
 
         engine.run(data=list(range(n_iters)), max_epochs=1)

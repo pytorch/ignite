@@ -44,7 +44,7 @@ class InceptionExtractor:
             from torchvision import models  # noqa: F401
         except ImportError:
             raise RuntimeError("This contrib module requires torchvision to be installed.")
-        self.model = models.inception_v3(init_weights=False)
+        self.model = models.inception_v3(pretrained=True)
         self.model.fc = torch.nn.Identity()
         self.model.eval()
 
@@ -93,12 +93,13 @@ class FID(Metric):
     Example:
 
     .. code-block:: python
-        from ignite.metric.GAN import FID
+
+        from ignite.metric.gan import FID
         import torch
 
         y_pred, y = torch.rand(10,2048), torch.rand(10,2048)
 
-        m = FID(features=2048)
+        m = FID(num_features=2048)
         m.update((y_pred,y))
         print(m.compute())
 
@@ -108,7 +109,7 @@ class FID(Metric):
     def __init__(
         self,
         num_features: int,
-        feature_extractor: Callable = lambda x: x,
+        feature_extractor: Callable = InceptionExtractor(),
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
