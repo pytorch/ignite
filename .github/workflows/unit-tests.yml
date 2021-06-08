@@ -114,7 +114,7 @@ jobs:
         with:
           file: ./coverage.xml
           flags: cpu
-          fail_ci_if_error: true
+          fail_ci_if_error: false
 
       - name: Run MNIST Examples
         shell: bash -l {0}
