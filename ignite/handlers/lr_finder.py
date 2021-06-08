@@ -142,7 +142,7 @@ class FastaiLRFinder:
                 loss = loss.item()
             else:
                 raise TypeError(
-                    "output of the engine should be of type float or torch.tensor, "
+                    "output of the engine should be of type float or torch.Tensor, "
                     f"but got output of type {type(loss).__name__}"
                 )
         loss = idist.all_reduce(loss)
