@@ -320,10 +320,11 @@ def test_lr_suggestion_unexpected_curve(lr_finder, to_save, dummy_engine, datalo
 
 
 def test_lr_suggestion_single_param_group(lr_finder):  # , to_save, dummy_engine, dataloader):
+    import numpy as np
 
     noise = 0.05
-    lr_finder._history["loss"] = torch.linspace(-5.0, 5.0, steps=100, dtype=torch.float) ** 2 + noise
-    lr_finder._history["lr"] = torch.linspace(0.01, 10, steps=100, dtype=torch.float)
+    lr_finder._history["loss"] = np.linspace(-5.0, 5.0, num=100) ** 2 + noise
+    lr_finder._history["lr"] = np.linspace(0.01, 10, num=100)
 
     # lr_finder.lr_suggestion() is supposed to return a value, but as
     # we assign loss and lr to tensors, instead of lists, it will return tensors
@@ -336,9 +337,9 @@ def test_lr_suggestion_multiple_param_groups(lr_finder):
     import numpy as np
 
     noise = 0.06
-    lr_finder._history["loss"] = torch.tensor(np.linspace(-5.0, 5, num=50) ** 2 + noise, dtype=torch.float)
+    lr_finder._history["loss"] = np.linspace(-5.0, 5, num=50) ** 2 + noise
     # 2 param_groups
-    lr_finder._history["lr"] = torch.tensor(np.linspace(0.01, 10, num=100), dtype=torch.float).reshape(50, 2)
+    lr_finder._history["lr"] = np.linspace(0.01, 10, num=100).reshape(50, 2)
 
     # lr_finder.lr_suggestion() is supposed to return a list of values,
     # but as we assign loss and lr to tensors, instead of lists, it will return tensors
