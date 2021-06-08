@@ -70,7 +70,9 @@ def test_statistics():
 
 
 def test_inception_extractor_wrong_inputs():
-    with pytest.raises(ValueError, match=r"Images should be of size 3x299x299 \(got torch.Size\(\[2, 2, 2, 0\]\)\)"):
+    with pytest.raises(
+        ValueError, match=r"Images should be of size greater than 3x299x299 \(got torch.Size\(\[2, 2, 2, 0\]\)\)"
+    ):
         InceptionExtractor()(torch.rand(2, 2, 2, 0))
 
 

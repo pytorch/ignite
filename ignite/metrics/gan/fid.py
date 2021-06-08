@@ -40,16 +40,18 @@ def fid_score(
 
 class InceptionExtractor:
     def __init__(self) -> None:
-        from torchvision import models
-
+        try:
+            from torchvision import models  # noqa: F401
+        except ImportError:
+            raise RuntimeError("This contrib module requires torchvision to be installed.")
         self.model = models.inception_v3(init_weights=False)
         self.model.fc = torch.nn.Identity()
         self.model.eval()
 
     @torch.no_grad()
     def __call__(self, data: torch.Tensor) -> torch.Tensor:
-        if data.shape[1:] != (3, 299, 299):
-            raise ValueError(f"Images should be of size 3x299x299 (got {data.shape})")
+        if data.shape[1] < 3 or data.shape[2] < 299 or data.shape[3] < 299:
+            raise ValueError(f"Images should be of size greater than 3x299x299 (got {data.shape})")
         return self.model(data).detach()
 
 
@@ -110,6 +112,12 @@ class FID(Metric):
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
+
+        try:
+            import scipy  # noqa: F401
+        except ImportError:
+            raise RuntimeError("This contrib module requires scipy to be installed.")
+
         if num_features <= 0:
             raise ValueError(f"num of features must be greater to zero (got: {num_features})")
         self._num_features = num_features
