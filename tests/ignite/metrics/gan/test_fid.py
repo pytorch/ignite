@@ -82,36 +82,37 @@ def _test_distrib_integration(device):
     torch.manual_seed(12)
 
     def _test(metric_device):
-        size = 10
-        train_data = torch.rand(size, 10, 2048).to(device)
-        test_data = torch.rand(size, 10, 2048).to(device)
+        n_iters = 60
+        s = 16
+        offset = n_iters * s
+        n_features = 2048
+        y_pred = torch.rand(offset * idist.get_world_size(), n_features)
+        y_true = torch.rand(offset * idist.get_world_size(), n_features)
 
         def update(_, i):
-            return (train_data[i], test_data[i])
+            return (
+                y_pred[i * s + rank * offset : (i + 1) * s + rank * offset, :],
+                y_true[i * s + rank * offset : (i + 1) * s + rank * offset, :],
+            )
 
         engine = Engine(update)
         m = FID(num_features=2048, device=metric_device)
         m.attach(engine, "fid")
 
-        engine.run(data=list(range(size)), max_epochs=1)
+        engine.run(data=list(range(n_iters)), max_epochs=1)
 
         assert "fid" in engine.state.metrics
 
         evaluator = pytorch_fid_score.calculate_frechet_distance
-        train, test = train_data[0], test_data[0]
-        for train_samples, test_samples in zip(train_data[1:], test_data[1:]):
-            train = torch.cat((train, train_samples))
-            test = torch.cat((test, test_samples))
-        mu1, sigma1 = train.mean(axis=0).to("cpu"), cov(train.to("cpu"), rowvar=False)
-        mu2, sigma2 = test.mean(axis=0).to("cpu"), cov(test.to("cpu"), rowvar=False)
+        mu1, sigma1 = y_pred.mean(axis=0).to("cpu"), cov(y_pred.to("cpu"), rowvar=False)
+        mu2, sigma2 = y_true.mean(axis=0).to("cpu"), cov(y_true.to("cpu"), rowvar=False)
         assert pytest.approx(evaluator(mu1, sigma1, mu2, sigma2)) == m.compute()
 
     metric_devices = [torch.device("cpu")]
     if device.type != "xla":
         metric_devices.append(idist.device())
-    for _ in range(2):
-        for metric_device in metric_devices:
-            _test(metric_device=metric_device)
+    for metric_device in metric_devices:
+        _test(metric_device=metric_device)
 
 
 @pytest.mark.distributed

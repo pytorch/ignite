@@ -14,6 +14,8 @@ __all__ = ["FID", "InceptionExtractor"]
 def fid_score(
     mu1: torch.Tensor, mu2: torch.Tensor, sigma1: torch.Tensor, sigma2: torch.Tensor, eps: float = 1e-6
 ) -> float:
+    mu1, mu2 = mu1.cpu(), mu2.cpu()
+    sigma1, sigma2 = sigma1.cpu(), sigma2.cpu()
 
     diff = mu1 - mu2
     import scipy
@@ -152,8 +154,8 @@ class FID(Metric):
     def update(self, output: Sequence[torch.Tensor]) -> None:
 
         # Extract the features from the outputs
-        train_features = self._feature_extractor(output[0].detach())
-        test_features = self._feature_extractor(output[1].detach())
+        train_features = self._feature_extractor(output[0].detach()).to(self._device)
+        test_features = self._feature_extractor(output[1].detach()).to(self._device)
 
         # Check the feature shapess
         self._check_feature_input(train_features, test_features)
