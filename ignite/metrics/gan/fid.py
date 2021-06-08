@@ -79,7 +79,7 @@ class FID(Metric):
     __ https://github.com/mseitzer/pytorch-fid
 
     Args:
-        num_features: specifies number of features the evaluation samples should have
+        num_features: specifies number of features the evaluation samples should have.
         feature_extractor: A Callable Object for extracting features from input data.
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
