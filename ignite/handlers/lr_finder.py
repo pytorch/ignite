@@ -137,6 +137,14 @@ class FastaiLRFinder:
     def _log_lr_and_loss(self, trainer: Engine, output_transform: Callable, smooth_f: float, diverge_th: float) -> None:
         output = trainer.state.output
         loss = output_transform(output)
+        if not isinstance(loss, float):
+            if isinstance(loss, torch.Tensor):
+                loss = loss.item()
+            else:
+                raise TypeError(
+                    "output of the engine should be of type float or torch.tensor, "
+                    f"but got output of type {type(loss).__name__}"
+                )
         loss = idist.all_reduce(loss)
         lr = self._lr_schedule.get_param()  # type: ignore[union-attr]
         self._history["lr"].append(lr)
