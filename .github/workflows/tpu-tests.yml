@@ -86,4 +86,4 @@ jobs:
         with:
           file: ./coverage.xml
           flags: tpu
-          fail_ci_if_error: true
+          fail_ci_if_error: false
