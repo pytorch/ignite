@@ -85,7 +85,7 @@ def _test_distrib_integration(device):
         n_iters = 60
         s = 16
         offset = n_iters * s
-        n_features = 2048
+        n_features = 10
         y_pred = torch.rand(offset * idist.get_world_size(), n_features)
         y_true = torch.rand(offset * idist.get_world_size(), n_features)
 
@@ -96,7 +96,7 @@ def _test_distrib_integration(device):
             )
 
         engine = Engine(update)
-        m = FID(num_features=2048, device=metric_device)
+        m = FID(num_features=n_features, device=metric_device)
         m.attach(engine, "fid")
 
         engine.run(data=list(range(n_iters)), max_epochs=1)
