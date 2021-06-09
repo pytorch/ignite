@@ -1,11 +1,9 @@
-from typing import Callable, Sequence, Union
+from typing import Callable, Sequence, Union, Optional
 
 import numpy as np
 import torch
 
 from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
-
-# import torch.distributed as idist
 
 
 __all__ = ["FID", "InceptionExtractor"]
@@ -14,11 +12,16 @@ __all__ = ["FID", "InceptionExtractor"]
 def fid_score(
     mu1: torch.Tensor, mu2: torch.Tensor, sigma1: torch.Tensor, sigma2: torch.Tensor, eps: float = 1e-6
 ) -> float:
+
+    try:
+        import scipy  # noqa: F401
+    except ImportError:
+        raise RuntimeError("fid_score requires scipy to be installed.")
+
     mu1, mu2 = mu1.cpu(), mu2.cpu()
     sigma1, sigma2 = sigma1.cpu(), sigma2.cpu()
 
     diff = mu1 - mu2
-    import scipy
 
     # Product might be almost singular
     covmean, _ = scipy.linalg.sqrtm(sigma1.mm(sigma2), disp=False)
@@ -50,27 +53,40 @@ class InceptionExtractor:
 
     @torch.no_grad()
     def __call__(self, data: torch.Tensor) -> torch.Tensor:
-        if data.shape[1] < 3 or data.shape[2] < 299 or data.shape[3] < 299:
-            raise ValueError(f"Images should be of size greater than 3x299x299 (got {data.shape})")
+        if data.dim() != 4:
+            raise ValueError(f"Inputs should be a tensor of dim 4 (got {data.dim()})")
+        if data.shape[1] != 3:
+            raise ValueError(f"Inputs should be a tensor with 3 channels (got {data.shape})")
         return self.model(data).detach()
+
+
+class IdentityExtractor:
+    def __call__(self, data: torch.Tensor) -> torch.Tensor:
+        return data.detach()
 
 
 class FID(Metric):
     r"""Calculates Frechet Inception Distance.
+
     .. math::
        \text{FID} = \text{|mu1} - \text{mu2|} + \text{Trace(sigma1 + sigma2 - 2*sqrt(sigma1*sigma2))}
     where :math:`mu1` and :math:`sigma1` refer to the mean and covariance of the train data and
     :math:`mu2` and :math:`sigma2` refer to the mean and covariance of the test data.
+
     More details can be found in `Heusel et al. 2002`__.
     __ https://arxiv.org/pdf/1706.08500.pdf
     In addition, a faster and online computation approach can be found in `Chen et al. 2014`__
     __ https://arxiv.org/pdf/2009.14075.pdf
+
     Remark:
         This implementation is inspired by pytorch_fid package which can be found `here`__.
     __ https://github.com/mseitzer/pytorch-fid
+
     Args:
-        num_features: specifies number of features the evaluation samples should have.
-        feature_extractor: A Callable Object for extracting features from input data.
+        num_features: number of features, must be defined if the parametrer ``feature_extractor`` is also defined.
+            Otherwise, default value is 2048.
+        feature_extractor: a callable for extracting the features from the input data. If neither num_features nor
+            feature_extractor are defined, default value is ``InceptionExtractor``.
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
@@ -79,21 +95,23 @@ class FID(Metric):
         device: specifies which device updates are accumulated on. Setting the
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
+
     Example:
     .. code-block:: python
         from ignite.metric.gan import FID
         import torch
         y_pred, y = torch.rand(10,2048), torch.rand(10,2048)
-        m = FID(num_features=2048)
+        m = FID()
         m.update((y_pred,y))
         print(m.compute())
+
     .. versionadded:: 0.5.0
     """
 
     def __init__(
         self,
-        num_features: int,
-        feature_extractor: Callable = InceptionExtractor(),
+        num_features: Optional[int] = None,
+        feature_extractor: Optional[Callable] = None,
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
@@ -101,7 +119,18 @@ class FID(Metric):
         try:
             import scipy  # noqa: F401
         except ImportError:
-            raise RuntimeError("This contrib module requires scipy to be installed.")
+            raise RuntimeError("This module requires scipy to be installed.")
+
+        # default is inception
+        if num_features is None and feature_extractor is None:
+            num_features = 2048
+            feature_extractor = InceptionExtractor()
+        else:
+            if num_features is None:
+                raise ValueError(f"num of features should be defined")
+
+        if feature_extractor is None:
+            feature_extractor = IdentityExtractor()
 
         if num_features <= 0:
             raise ValueError(f"num of features must be greater to zero (got: {num_features})")
