@@ -313,11 +313,11 @@ def test_engine_output_type(lr_finder, dummy_engine, optimizer):
 
     dummy_engine.state.iteration = 1
     dummy_engine.state.output = [10]
-    with pytest.raises(TypeError, match=r"output of the engine should be of type float or torch.Tensor"):
+    with pytest.raises(TypeError, match=r"output of the engine should be of type float or 0d torch.Tensor"):
         lr_finder._log_lr_and_loss(dummy_engine, output_transform=lambda x: x, smooth_f=0, diverge_th=1)
 
     dummy_engine.state.output = (10, 5)
-    with pytest.raises(TypeError, match=r"output of the engine should be of type float or torch.Tensor"):
+    with pytest.raises(TypeError, match=r"output of the engine should be of type float or 0d torch.Tensor"):
         lr_finder._log_lr_and_loss(dummy_engine, output_transform=lambda x: x, smooth_f=0, diverge_th=1)
 
     lr_finder._lr_schedule = PiecewiseLinear(

@@ -138,11 +138,11 @@ class FastaiLRFinder:
         output = trainer.state.output
         loss = output_transform(output)
         if not isinstance(loss, float):
-            if isinstance(loss, torch.Tensor):
+            if isinstance(loss, torch.Tensor) and (loss.ndimension() == 0):
                 loss = loss.item()
             else:
                 raise TypeError(
-                    "output of the engine should be of type float or torch.Tensor, "
+                    "output of the engine should be of type float or 0d torch.Tensor, "
                     f"but got output of type {type(loss).__name__}"
                 )
         loss = idist.all_reduce(loss)
