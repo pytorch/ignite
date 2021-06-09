@@ -132,6 +132,9 @@ class FID(Metric):
         sigma += torch.outer(features, features)
 
     def get_covariance(self, sigma: torch.Tensor, total: torch.Tensor) -> torch.Tensor:
+        r"""
+        Calculates covariance from mean and sum of products of variables
+        """
         sub_matrix = torch.outer(total, total)
         sub_matrix = sub_matrix / self._num_examples
         return (sigma - sub_matrix) / (self._num_examples - 1)
