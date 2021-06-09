@@ -1,10 +1,9 @@
-from typing import Callable, Sequence, Union, Optional
+from typing import Callable, Optional, Sequence, Union
 
 import numpy as np
 import torch
 
 from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
-
 
 __all__ = ["FID", "InceptionExtractor"]
 
