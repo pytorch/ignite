@@ -334,6 +334,7 @@ Complete list of metrics
     Rouge
     RougeL
     RougeN
+    FID
 
 Helpers for customizing metrics
 -------------------------------
