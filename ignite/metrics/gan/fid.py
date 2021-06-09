@@ -59,7 +59,7 @@ class FID(Metric):
     r"""Calculates Frechet Inception Distance.
 
     .. math::
-       \text{FID} = \mod{\text{mu1} - \text{mu2}} + \text{Trace(sigma1 + sigma2 - 2*sqrt(sigma1*sigma2))}
+       \text{FID} = \text{|mu1} - \text{mu2|} + \text{Trace(sigma1 + sigma2 - 2*sqrt(sigma1*sigma2))}
 
     where :math:`mu1` and :math:`sigma1` refer to the mean and covariance of the train data and
     :math:`mu2` and :math:`sigma2` refer to the mean and covariance of the test data.
@@ -74,7 +74,7 @@ class FID(Metric):
 
     Remark:
 
-        This implementation is inspired by pytorch_fid package which can be found here.
+        This implementation is inspired by pytorch_fid package which can be found `here`__.
 
     __ https://github.com/mseitzer/pytorch-fid
 
