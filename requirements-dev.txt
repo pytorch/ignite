@@ -29,3 +29,5 @@ nltk
 pandas
 gym
 mkl
+#mypy
+mypy==0.812
