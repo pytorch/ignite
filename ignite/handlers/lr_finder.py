@@ -138,10 +138,15 @@ class FastaiLRFinder:
         output = trainer.state.output
         loss = output_transform(output)
         if not isinstance(loss, float):
-            if isinstance(loss, torch.Tensor) and (
-                (loss.ndimension() == 0) or (loss.ndimension() == 1 and len(loss) == 1)
-            ):
-                loss = loss.item()
+            if isinstance(loss, torch.Tensor):
+                if (loss.ndimension() == 0) or (loss.ndimension() == 1 and len(loss) == 1):
+                    loss = loss.item()
+                else:
+                    raise ValueError(
+                        "if output of the engine is torch.Tensor, then "
+                        "it must be 0d torch.Tensor or 1d torch.Tensor with 1 element, "
+                        f"but got torch.Tensor of shape {loss.shape}"
+                    )
             else:
                 raise TypeError(
                     "output of the engine should be of type float or 0d torch.Tensor "

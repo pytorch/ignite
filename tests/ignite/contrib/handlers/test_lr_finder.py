@@ -320,6 +320,10 @@ def test_engine_output_type(lr_finder, dummy_engine, optimizer):
     with pytest.raises(TypeError, match=r"output of the engine should be of type float or 0d torch.Tensor"):
         lr_finder._log_lr_and_loss(dummy_engine, output_transform=lambda x: x, smooth_f=0, diverge_th=1)
 
+    dummy_engine.state.output = torch.tensor([1, 2], dtype=torch.float32)
+    with pytest.raises(ValueError, match=r"if output of the engine is torch.Tensor"):
+        lr_finder._log_lr_and_loss(dummy_engine, output_transform=lambda x: x, smooth_f=0, diverge_th=1)
+
     lr_finder._lr_schedule = PiecewiseLinear(
         optimizer, param_name="lr", milestones_values=[(0, optimizer.param_groups[0]["lr"]), (100, 10)]
     )
