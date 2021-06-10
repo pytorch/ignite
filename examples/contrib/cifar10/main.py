@@ -16,6 +16,7 @@ from ignite.engine import Engine, Events
 from ignite.handlers import Checkpoint, DiskSaver, global_step_from_engine
 from ignite.metrics import Accuracy, Loss
 from ignite.utils import manual_seed, setup_logger
+from ignite.handlers import FastaiLRFinder
 
 
 def training(local_rank, config):
@@ -76,15 +77,20 @@ def training(local_rank, config):
     trainer = create_trainer(model, optimizer, criterion, lr_scheduler, train_loader.sampler, config, logger)
 
     # Let's now setup evaluator engine to perform model's validation and compute metrics
-    metrics = {
-        "Accuracy": Accuracy(),
-        "Loss": Loss(criterion),
-    }
+    metrics = {"Accuracy": Accuracy(), "Loss": Loss(criterion)}
 
     # We define two evaluators as they wont have exactly similar roles:
     # - `evaluator` will save the best model based on validation score
     evaluator = create_evaluator(model, metrics=metrics, config=config)
     train_evaluator = create_evaluator(model, metrics=metrics, config=config)
+
+    # Finding optimum Learning Rate using FastaiLRFinder
+    if config["lr_finder"] is True:
+        lr_finder = FastaiLRFinder()
+        to_save = {"model": model, "optimizer": optimizer}
+        with lr_finder.attach(trainer, to_save, diverge_th=5.0) as trainer_with_lr_finder:
+            trainer_with_lr_finder.run(train_loader)
+            lr_finder.apply_suggested_lr(optimizer)
 
     def run_validation(engine):
         epoch = trainer.state.epoch
@@ -156,6 +162,7 @@ def run(
     stop_iteration=None,
     with_clearml=False,
     with_amp=False,
+    lr_finder=False,
     **spawn_kwargs,
 ):
     """Main entry to train an model on CIFAR10 dataset.
@@ -216,11 +223,11 @@ def get_dataflow(config):
 
     # Setup data loader also adapted to distributed config: nccl, gloo, xla-tpu
     train_loader = idist.auto_dataloader(
-        train_dataset, batch_size=config["batch_size"], num_workers=config["num_workers"], shuffle=True, drop_last=True,
+        train_dataset, batch_size=config["batch_size"], num_workers=config["num_workers"], shuffle=True, drop_last=True
     )
 
     test_loader = idist.auto_dataloader(
-        test_dataset, batch_size=2 * config["batch_size"], num_workers=config["num_workers"], shuffle=False,
+        test_dataset, batch_size=2 * config["batch_size"], num_workers=config["num_workers"], shuffle=False
     )
     return train_loader, test_loader
 
@@ -317,17 +324,13 @@ def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, con
         scaler.step(optimizer)
         scaler.update()
 
-        return {
-            "batch loss": loss.item(),
-        }
+        return {"batch loss": loss.item()}
 
     trainer = Engine(train_step)
     trainer.logger = logger
 
     to_save = {"trainer": trainer, "model": model, "optimizer": optimizer, "lr_scheduler": lr_scheduler}
-    metric_names = [
-        "batch loss",
-    ]
+    metric_names = ["batch loss"]
 
     common.setup_common_training_handlers(
         trainer=trainer,
