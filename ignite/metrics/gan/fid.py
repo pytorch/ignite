@@ -13,7 +13,7 @@ def fid_score(
 ) -> float:
 
     try:
-        import scipy  # noqa: F401
+        import scipy
     except ImportError:
         raise RuntimeError("fid_score requires scipy to be installed.")
 
@@ -43,7 +43,7 @@ def fid_score(
 class InceptionExtractor:
     def __init__(self) -> None:
         try:
-            from torchvision import models  # noqa: F401
+            from torchvision import models
         except ImportError:
             raise RuntimeError("This contrib module requires torchvision to be installed.")
         self.model = models.inception_v3(pretrained=True)
@@ -126,7 +126,7 @@ class FID(Metric):
             feature_extractor = InceptionExtractor()
         else:
             if num_features is None:
-                raise ValueError(f"num of features should be defined")
+                raise ValueError("num of features should be defined")
 
         if feature_extractor is None:
             feature_extractor = IdentityExtractor()
