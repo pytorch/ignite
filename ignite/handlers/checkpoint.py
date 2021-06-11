@@ -6,7 +6,7 @@ import tempfile
 import warnings
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
-from typing import Any, Callable, Dict, IO, List, Mapping, NamedTuple, Optional, Tuple, Union
+from typing import IO, Any, Callable, Dict, List, Mapping, NamedTuple, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -691,7 +691,7 @@ class DiskSaver(BaseSaveHandler):
         else:
             tmp_file = None
             tmp_name = ""
-            tmp : Optional[IO[bytes]] = None
+            tmp: Optional[IO[bytes]] = None
             if rank == 0:
                 tmp = tempfile.NamedTemporaryFile(delete=False, dir=self.dirname)
                 tmp_file = tmp.file  # type: ignore
