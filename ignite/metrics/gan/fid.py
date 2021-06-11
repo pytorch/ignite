@@ -69,17 +69,23 @@ class FID(Metric):
 
     .. math::
        \text{FID} = \text{|mu1} - \text{mu2|} + \text{Trace(sigma1 + sigma2 - 2*sqrt(sigma1*sigma2))}
+
     where :math:`mu1` and :math:`sigma1` refer to the mean and covariance of the train data and
     :math:`mu2` and :math:`sigma2` refer to the mean and covariance of the test data.
 
-    More details can be found in `Heusel et al. 2002`__.
+    More details can be found in `Heusel et al. 2002`__
+
     __ https://arxiv.org/pdf/1706.08500.pdf
+
     In addition, a faster and online computation approach can be found in `Chen et al. 2014`__
+
     __ https://arxiv.org/pdf/2009.14075.pdf
 
     Remark:
-        This implementation is inspired by pytorch_fid package which can be found `here`__.
-    __ https://github.com/mseitzer/pytorch-fid
+
+        This implementation is inspired by pytorch_fid package which can be found `here`__
+
+        __ https://github.com/mseitzer/pytorch-fid
 
     Args:
         num_features: number of features, must be defined if the parametrer ``feature_extractor`` is also defined.
@@ -96,13 +102,15 @@ class FID(Metric):
             non-blocking. By default, CPU.
 
     Example:
-    .. code-block:: python
-        from ignite.metric.gan import FID
-        import torch
-        y_pred, y = torch.rand(10,2048), torch.rand(10,2048)
-        m = FID()
-        m.update((y_pred,y))
-        print(m.compute())
+
+        .. code-block:: python
+
+            from ignite.metric.gan import FID
+            import torch
+            y_pred, y = torch.rand(10,2048), torch.rand(10,2048)
+            m = FID()
+            m.update((y_pred,y))
+            print(m.compute())
 
     .. versionadded:: 0.5.0
     """

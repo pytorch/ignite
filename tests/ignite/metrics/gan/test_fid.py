@@ -6,7 +6,7 @@ import torch
 from numpy import cov
 
 import ignite.distributed as idist
-from ignite.metrics.gan.fid import FID, InceptionExtractor, fid_score
+from ignite.metrics.gan.fid import FID, fid_score  # , InceptionExtractor
 
 
 def test_fid_function():
@@ -69,11 +69,11 @@ def test_statistics():
         assert torch.isclose(cov1.double(), cov2, rtol=1e-04, atol=1e-04).all()
 
 
-def test_inception_extractor_wrong_inputs():
-    with pytest.raises(ValueError, match=r"Inputs should be a tensor of dim 4"):
-        InceptionExtractor()(torch.rand(2))
-    with pytest.raises(ValueError, match=r"Inputs should be a tensor with 3 channels"):
-        InceptionExtractor()(torch.rand(2, 2, 2, 0))
+# def test_inception_extractor_wrong_inputs():
+#     with pytest.raises(ValueError, match=r"Inputs should be a tensor of dim 4"):
+#         InceptionExtractor()(torch.rand(2))
+#     with pytest.raises(ValueError, match=r"Inputs should be a tensor with 3 channels"):
+#         InceptionExtractor()(torch.rand(2, 2, 2, 0))
 
 
 def _test_distrib_integration(device):
