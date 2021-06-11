@@ -245,7 +245,9 @@ def initialize(config):
     )
     optimizer = idist.auto_optim(optimizer)
     criterion = nn.CrossEntropyLoss().to(idist.device())
-
+    assert (
+        config["num_epochs"] >= config["num_warmup_epochs"]
+    ), "Number of epochs can't be less than number of warm-up epochs"
     le = config["num_iters_per_epoch"]
     milestones_values = [
         (0, 0.0),
