@@ -13,10 +13,9 @@ import ignite.distributed as idist
 from ignite.contrib.engines import common
 from ignite.contrib.handlers import PiecewiseLinear
 from ignite.engine import Engine, Events
-from ignite.handlers import Checkpoint, DiskSaver, global_step_from_engine
+from ignite.handlers import Checkpoint, DiskSaver, FastaiLRFinder, global_step_from_engine
 from ignite.metrics import Accuracy, Loss
 from ignite.utils import manual_seed, setup_logger
-from ignite.handlers import FastaiLRFinder
 
 
 def training(local_rank, config):
