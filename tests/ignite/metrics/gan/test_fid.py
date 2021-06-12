@@ -25,7 +25,7 @@ def test_no_torchvision(mock_no_torchvision):
 @pytest.fixture()
 def mock_no_scipy():
     with patch.dict("sys.modules", {"scipy": None}):
-        yield torchvision
+        yield scipy
 
 
 def test_no_scipy(mock_no_scipy):
