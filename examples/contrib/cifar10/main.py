@@ -89,7 +89,7 @@ def training(local_rank, config):
         to_save = {"model": model, "optimizer": optimizer}
         with lr_finder.attach(trainer, to_save, diverge_th=5.0) as trainer_with_lr_finder:
             trainer_with_lr_finder.run(train_loader)
-            lr_finder.apply_suggested_lr(optimizer)
+        lr_finder.apply_suggested_lr(optimizer)
 
     def run_validation(engine):
         epoch = trainer.state.epoch
@@ -190,6 +190,7 @@ def run(
         stop_iteration (int, optional): iteration to stop the training. Can be used to check resume from checkpoint.
         with_clearml (bool): if True, experiment ClearML logger is setup. Default, False.
         with_amp (bool): if True, enables native automatic mixed precision. Default, False.
+        lr_finder (bool): if True, uses FastAILRFinder to find optimum learning rate. Default, False.
         **spawn_kwargs: Other kwargs to spawn run in child processes: master_addr, master_port, node_rank, nnodes
 
     """
