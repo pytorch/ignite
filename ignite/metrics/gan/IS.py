@@ -91,4 +91,4 @@ class IS(Metric):
         mean_probs = self._prob_total / self._num_examples
         excess_entropy = self._prob_total * log(mean_probs + self._eps)
         avg_kl_d = sum(self._total_kl_d - excess_entropy) / self._num_examples
-        return exp(avg_kl_d)
+        return exp(torch.tensor(avg_kl_d))
