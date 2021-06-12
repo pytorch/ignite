@@ -203,7 +203,7 @@ class FID(Metric):
         self._num_examples += train_features.shape[0]
 
     @sync_all_reduce("_num_examples", "_train_total", "_test_total", "_train_sigma", "_test_sigma")
-    def compute(self) -> float:
+    def compute(self) -> Union[torch.Tensor, float]:
         return fid_score(
             mu1=self._train_total / self._num_examples,
             mu2=self._test_total / self._num_examples,
