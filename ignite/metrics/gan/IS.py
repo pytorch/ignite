@@ -4,10 +4,9 @@ import torch
 from torch import exp, log
 
 from ignite.exceptions import NotComputableError
-from ignite.metrics import Metric
 
 # These decorators helps with distributed settings
-from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
+from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
 torch.set_printoptions(precision=10)
 
@@ -58,9 +57,6 @@ class IS(Metric):
         if num_probabilities <= 0:
             raise ValueError(f"num of probabilities must be greater to zero (got: {num_probabilities})")
         self._num_probs = num_probabilities
-        self._prob_total = torch.zeros(self._num_probs, dtype=torch.float64)
-        self._total_kl_d = torch.zeros(self._num_probs, dtype=torch.float64)
-        self._num_examples = 0
         self._eps = 1e-16
         super(IS, self).__init__(output_transform=output_transform, device=device)
 
@@ -85,15 +81,14 @@ class IS(Metric):
         self._check_feature_input(samples)
         for sample in samples:
             self._num_examples += 1
-            self._prob_total += sample
-            self._total_kl_d += sample * log(sample + self._eps)
+            self._prob_total += sample.to(self._device)
+            self._total_kl_d += sample.to(self._device) * log(sample + self._eps).to(self._device)
 
     @sync_all_reduce("_num_examples", "_prob_total", "_total_kl_d")
     def compute(self) -> torch.Tensor:
         if self._num_examples == 0:
             raise NotComputableError("IS must have at least one example before it can be computed.")
         mean_probs = self._prob_total / self._num_examples
-        mean_kl_d = self._total_kl_d / self._num_examples
         excess_entropy = self._prob_total * log(mean_probs + self._eps)
         avg_kl_d = sum(self._total_kl_d - excess_entropy) / self._num_examples
         return exp(avg_kl_d)

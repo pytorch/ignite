@@ -1,0 +1,136 @@
+import os
+
+import pytest
+import torch
+
+import ignite.distributed as idist
+from ignite.metrics.gan.IS import IS
+
+
+def calculate_inception_score(p_yx, eps=1e-16):
+    p_y = torch.unsqueeze(p_yx.mean(axis=0), 0)
+    kl_d = p_yx * (torch.log(p_yx + eps) - torch.log(p_y + eps))
+    sum_kl_d = kl_d.sum(axis=1)
+    avg_kl_d = torch.mean(sum_kl_d)
+    is_score = torch.exp(avg_kl_d)
+    return is_score
+
+
+def test_inception_score():
+    p_yx = torch.rand(20, 10)
+    m = IS(num_probabilities=10)
+    m.update(p_yx)
+    assert pytest.approx(calculate_inception_score(p_yx)) == m.compute()
+
+
+def test_wrong_inputs():
+    with pytest.raises(ValueError, match=r"Probabilities must be a tensor of dim 2 \(got: 1\)"):
+        IS(num_probabilities=2048).update(torch.rand(3))
+    with pytest.raises(ValueError, match=r"Batch size should be greater than one \(got: 0\)"):
+        IS(num_probabilities=2048).update(torch.rand(0, 0))
+    with pytest.raises(ValueError, match=r"Number of Probabilities should be greater than one \(got: 0\)"):
+        IS(num_probabilities=2048).update(torch.rand(2, 0))
+
+
+# def test_inception_extractor_wrong_inputs():
+#     with pytest.raises(ValueError, match=r"Inputs should be a tensor of dim 4"):
+#         InceptionExtractor()(torch.rand(2))
+#     with pytest.raises(ValueError, match=r"Inputs should be a tensor with 3 channels"):
+#         InceptionExtractor()(torch.rand(2, 2, 2, 0))
+
+
+def _test_distrib_integration(device):
+
+    from ignite.engine import Engine
+
+    rank = idist.get_rank()
+    torch.manual_seed(12)
+
+    def _test(metric_device):
+        n_iters = 60
+        s = 16
+        offset = n_iters * s
+        n_probabilities = 10
+        y = torch.rand(offset * idist.get_world_size(), n_probabilities)
+
+        def update(_, i):
+            return y[i * s + rank * offset : (i + 1) * s + rank * offset, :]
+
+        engine = Engine(update)
+        m = IS(num_probabilities=n_probabilities, device=metric_device)
+        m.attach(engine, "IS")
+
+        engine.run(data=list(range(n_iters)), max_epochs=1)
+
+        assert "IS" in engine.state.metrics
+
+        assert pytest.approx(calculate_inception_score(y)) == m.compute().cpu()
+
+    metric_devices = [torch.device("cpu")]
+    if device.type != "xla":
+        metric_devices.append(idist.device())
+    for metric_device in metric_devices:
+        _test(metric_device=metric_device)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
+    device = torch.device(f"cuda:{local_rank}")
+    _test_distrib_integration(device)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+def test_distrib_cpu(distributed_context_single_node_gloo):
+    device = torch.device("cpu")
+    _test_distrib_integration(device)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
+def test_distrib_hvd(gloo_hvd_executor):
+
+    device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
+    nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
+
+    gloo_hvd_executor(_test_distrib_integration, (device,), np=nproc, do_init=True)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
+    device = torch.device("cpu")
+    _test_distrib_integration(device)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
+    device = torch.device(f"cuda:{distributed_context_multi_node_nccl['local_rank']}")
+    _test_distrib_integration(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_single_device_xla():
+    device = idist.device()
+    _test_distrib_integration(device)
+
+
+def _test_distrib_xla_nprocs(index):
+    device = idist.device()
+    _test_distrib_integration(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_xla_nprocs(xmp_executor):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+    xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)
