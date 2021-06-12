@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import pytest
 import pytorch_fid.fid_score as pytorch_fid_score
+import scipy
 import torch
 import torchvision
 from numpy import cov
