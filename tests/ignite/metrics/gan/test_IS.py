@@ -4,7 +4,7 @@ import pytest
 import torch
 
 import ignite.distributed as idist
-from ignite.metrics.gan.IS import IS
+from ignite.metrics.gan.IS import InceptionScore
 
 
 def calculate_inception_score(p_yx, eps=1e-16):
@@ -18,18 +18,18 @@ def calculate_inception_score(p_yx, eps=1e-16):
 
 def test_inception_score():
     p_yx = torch.rand(20, 10)
-    m = IS(num_probabilities=10)
+    m = InceptionScore(num_probabilities=10)
     m.update(p_yx)
     assert pytest.approx(calculate_inception_score(p_yx)) == m.compute()
 
 
 def test_wrong_inputs():
     with pytest.raises(ValueError, match=r"Probabilities must be a tensor of dim 2 \(got: 1\)"):
-        IS(num_probabilities=2048).update(torch.rand(3))
+        InceptionScore(num_probabilities=2048).update(torch.rand(3))
     with pytest.raises(ValueError, match=r"Batch size should be greater than one \(got: 0\)"):
-        IS(num_probabilities=2048).update(torch.rand(0, 0))
+        InceptionScore(num_probabilities=2048).update(torch.rand(0, 0))
     with pytest.raises(ValueError, match=r"Number of Probabilities should be greater than one \(got: 0\)"):
-        IS(num_probabilities=2048).update(torch.rand(2, 0))
+        InceptionScore(num_probabilities=2048).update(torch.rand(2, 0))
 
 
 # def test_inception_extractor_wrong_inputs():
@@ -57,7 +57,7 @@ def _test_distrib_integration(device):
             return y[i * s + rank * offset : (i + 1) * s + rank * offset, :]
 
         engine = Engine(update)
-        m = IS(num_probabilities=n_probabilities, device=metric_device)
+        m = InceptionScore(num_probabilities=n_probabilities, device=metric_device)
         m.attach(engine, "IS")
 
         engine.run(data=list(range(n_iters)), max_epochs=1)

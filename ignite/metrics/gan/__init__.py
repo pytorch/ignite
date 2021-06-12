@@ -1,5 +1,5 @@
-from ignite.metrics.gan.IS import IS
+from ignite.metrics.gan.IS import InceptionScore
 
 __all__ = [
-    "IS",
+    "InceptionScore",
 ]

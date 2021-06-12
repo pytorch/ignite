@@ -11,7 +11,7 @@ from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 torch.set_printoptions(precision=10)
 
 
-class IS(Metric):
+class InceptionScore(Metric):
     r"""Calculates Inception Score.
 
     .. math::
@@ -38,15 +38,16 @@ class IS(Metric):
 
     Example:
 
-    .. code-block:: python
-        from ignite.metric.gan import IS
-        import torch
+        .. code-block:: python
 
-        probabilities = torch.rand(10,2048), torch.rand(10,2048)
+            from ignite.metric.gan.IS import InceptionScore
+            import torch
 
-        m = IS(num_probabilities=2048)
-        m.update(probabilities)
-        print(m.compute())
+            probabilities = torch.rand(10,2048), torch.rand(10,2048)
+
+            m = InceptionScore(num_probabilities=2048)
+            m.update(probabilities)
+            print(m.compute())
 
     .. versionadded:: 0.5.0
     """
@@ -58,7 +59,7 @@ class IS(Metric):
             raise ValueError(f"num of probabilities must be greater to zero (got: {num_probabilities})")
         self._num_probs = num_probabilities
         self._eps = 1e-16
-        super(IS, self).__init__(output_transform=output_transform, device=device)
+        super(InceptionScore, self).__init__(output_transform=output_transform, device=device)
 
     @staticmethod
     def _check_feature_input(samples: torch.Tensor) -> None:
@@ -74,7 +75,7 @@ class IS(Metric):
         self._num_examples = 0
         self._prob_total = torch.zeros(self._num_probs, dtype=torch.float64).to(self._device)
         self._total_kl_d = torch.zeros(self._num_probs, dtype=torch.float64).to(self._device)
-        super(IS, self).reset()
+        super(InceptionScore, self).reset()
 
     @reinit__is_reduced
     def update(self, samples: torch.Tensor) -> None:
