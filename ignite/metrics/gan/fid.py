@@ -10,7 +10,7 @@ __all__ = ["FID", "InceptionExtractor"]
 
 def fid_score(
     mu1: torch.Tensor, mu2: torch.Tensor, sigma1: torch.Tensor, sigma2: torch.Tensor, eps: float = 1e-6
-) -> float:
+) -> Union[torch.Tensor, float]:
 
     try:
         import scipy
@@ -45,7 +45,7 @@ class InceptionExtractor:
         try:
             from torchvision import models
         except ImportError:
-            raise RuntimeError("This contrib module requires torchvision to be installed.")
+            raise RuntimeError("This module requires torchvision to be installed.")
         self.model = models.inception_v3(pretrained=True)
         self.model.fc = torch.nn.Identity()
         self.model.eval()

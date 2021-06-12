@@ -1,12 +1,36 @@
 import os
+from unittest.mock import patch
 
 import pytest
 import pytorch_fid.fid_score as pytorch_fid_score
 import torch
+import torchvision
 from numpy import cov
 
 import ignite.distributed as idist
 from ignite.metrics.gan.fid import FID, fid_score  # , InceptionExtractor
+
+
+@pytest.fixture()
+def mock_no_torchvision():
+    with patch.dict("sys.modules", {"torchvision": None}):
+        yield torchvision
+
+
+def test_no_torchvision(mock_no_torchvision):
+    with pytest.raises(RuntimeError, match=r"This module requires torchvision to be installed."):
+        FID()
+
+
+@pytest.fixture()
+def mock_no_scipy():
+    with patch.dict("sys.modules", {"scipy": None}):
+        yield torchvision
+
+
+def test_no_scipy(mock_no_scipy):
+    with pytest.raises(RuntimeError, match=r"This module requires scipy to be installed."):
+        FID()
 
 
 def test_fid_function():
