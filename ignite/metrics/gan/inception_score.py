@@ -8,8 +8,6 @@ from ignite.exceptions import NotComputableError
 # These decorators helps with distributed settings
 from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
-torch.set_printoptions(precision=10)
-
 
 class InceptionScore(Metric):
     r"""Calculates Inception Score.
