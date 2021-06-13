@@ -9,26 +9,18 @@ import torchvision
 from numpy import cov
 
 import ignite.distributed as idist
-from ignite.metrics.gan.fid import FID, fid_score  # , InceptionExtractor
+from ignite.metrics.gan.fid import FID, InceptionExtractor, fid_score
 
 
-class DummyInceptionExtractor:
+class DummyInceptionExtractor(InceptionExtractor):
     def __init__(self) -> None:
         try:
             from torchvision import models
         except ImportError:
             raise RuntimeError("This module requires torchvision to be installed.")
-        self.model = models.inception_v3(init_weights=False)
+        self.model = models.inception_v3(pretrained=False)
         self.model.fc = torch.nn.Identity()
         self.model.eval()
-
-    @torch.no_grad()
-    def __call__(self, data: torch.Tensor) -> torch.Tensor:
-        if data.dim() != 4:
-            raise ValueError(f"Inputs should be a tensor of dim 4 (got {data.dim()})")
-        if data.shape[1] != 3:
-            raise ValueError(f"Inputs should be a tensor with 3 channels (got {data.shape})")
-        return self.model(data).detach()
 
 
 @pytest.fixture()
