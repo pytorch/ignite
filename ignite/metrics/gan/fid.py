@@ -56,12 +56,7 @@ class InceptionExtractor:
             raise ValueError(f"Inputs should be a tensor of dim 4 (got {data.dim()})")
         if data.shape[1] != 3:
             raise ValueError(f"Inputs should be a tensor with 3 channels (got {data.shape})")
-        return self.model(data).detach()
-
-
-class IdentityExtractor:
-    def __call__(self, data: torch.Tensor) -> torch.Tensor:
-        return data.detach()
+        return self.model(data)
 
 
 class FID(Metric):
@@ -88,7 +83,7 @@ class FID(Metric):
         __ https://github.com/mseitzer/pytorch-fid
 
     Args:
-        num_features: number of features, must be defined if the parametrer ``feature_extractor`` is also defined.
+        num_features: number of features, must be defined if the parameter ``feature_extractor`` is also defined.
             Otherwise, default value is 2048.
         feature_extractor: a callable for extracting the features from the input data. If neither num_features nor
             feature_extractor are defined, default value is ``InceptionExtractor``.
@@ -132,12 +127,13 @@ class FID(Metric):
         if num_features is None and feature_extractor is None:
             num_features = 2048
             feature_extractor = InceptionExtractor()
-        else:
-            if num_features is None:
-                raise ValueError("num of features should be defined")
+        elif feature_extractor is None:
 
-        if feature_extractor is None:
-            feature_extractor = IdentityExtractor()
+            def feature_extractor(x):
+                return x
+
+        elif num_features is None:
+            raise ValueError("num of features should be defined")
 
         if num_features <= 0:
             raise ValueError(f"num of features must be greater to zero (got: {num_features})")

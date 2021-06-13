@@ -1,4 +1,5 @@
 import os
+import re
 from unittest.mock import patch
 
 import pytest
@@ -43,6 +44,8 @@ def mock_no_scipy():
 def test_no_scipy(mock_no_scipy):
     with pytest.raises(RuntimeError, match=r"This module requires scipy to be installed."):
         FID()
+    with pytest.raises(RuntimeError, match=r"fid_score requires scipy to be installed."):
+        fid_score(0, 0, 0, 0)
 
 
 def test_fid_function():
@@ -71,6 +74,17 @@ def test_compute_fid_from_features():
     assert pytest.approx(pytorch_fid_score.calculate_frechet_distance(mu1, sigma1, mu2, sigma2)) == fid_scorer.compute()
 
 
+def test_compute_fid_sqrtm():
+    mu1 = torch.tensor([0, 0])
+    mu2 = torch.tensor([0, 0])
+
+    sigma1 = torch.tensor([[-1, 1], [1, 1]])
+    sigma2 = torch.tensor([[1, 0], [0, 1]])
+
+    with pytest.raises(ValueError, match=r"Imaginary component 1.0150517651282176"):
+        fid_score(mu1, mu2, sigma1, sigma2)
+
+
 def test_wrong_inputs():
     with pytest.raises(ValueError, match=r"num of features must be greater to zero"):
         FID(num_features=-1, feature_extractor=lambda x: x)
@@ -80,6 +94,15 @@ def test_wrong_inputs():
         FID(num_features=1, feature_extractor=lambda x: x).update(torch.rand(2, 0, 0))
     with pytest.raises(ValueError, match=r"Feature size should be greater than one \(got: 0\)"):
         FID(num_features=1, feature_extractor=lambda x: x).update(torch.rand(2, 2, 0))
+    err_str = (
+        "Number of Training Features and Testing Features should be equal (torch.Size([9, 2]) != torch.Size([5, 2]))"
+    )
+    with pytest.raises(
+        ValueError, match=re.escape(err_str),
+    ):
+        FID(num_features=2, feature_extractor=lambda x: x).update((torch.rand(9, 2), torch.rand(5, 2)))
+    with pytest.raises(ValueError, match=r"num of features should be defined"):
+        FID(feature_extractor=lambda x: x)
 
 
 def test_statistics():
