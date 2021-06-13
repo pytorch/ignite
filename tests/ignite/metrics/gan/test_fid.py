@@ -12,6 +12,25 @@ import ignite.distributed as idist
 from ignite.metrics.gan.fid import FID, fid_score  # , InceptionExtractor
 
 
+class DummyInceptionExtractor:
+    def __init__(self) -> None:
+        try:
+            from torchvision import models
+        except ImportError:
+            raise RuntimeError("This module requires torchvision to be installed.")
+        self.model = models.inception_v3(init_weights=False)
+        self.model.fc = torch.nn.Identity()
+        self.model.eval()
+
+    @torch.no_grad()
+    def __call__(self, data: torch.Tensor) -> torch.Tensor:
+        if data.dim() != 4:
+            raise ValueError(f"Inputs should be a tensor of dim 4 (got {data.dim()})")
+        if data.shape[1] != 3:
+            raise ValueError(f"Inputs should be a tensor with 3 channels (got {data.shape})")
+        return self.model(data).detach()
+
+
 @pytest.fixture()
 def mock_no_torchvision():
     with patch.dict("sys.modules", {"torchvision": None}):
@@ -94,11 +113,11 @@ def test_statistics():
         assert torch.isclose(cov1.double(), cov2, rtol=1e-04, atol=1e-04).all()
 
 
-# def test_inception_extractor_wrong_inputs():
-#     with pytest.raises(ValueError, match=r"Inputs should be a tensor of dim 4"):
-#         InceptionExtractor()(torch.rand(2))
-#     with pytest.raises(ValueError, match=r"Inputs should be a tensor with 3 channels"):
-#         InceptionExtractor()(torch.rand(2, 2, 2, 0))
+def test_inception_extractor_wrong_inputs():
+    with pytest.raises(ValueError, match=r"Inputs should be a tensor of dim 4"):
+        DummyInceptionExtractor()(torch.rand(2))
+    with pytest.raises(ValueError, match=r"Inputs should be a tensor with 3 channels"):
+        DummyInceptionExtractor()(torch.rand(2, 2, 2, 0))
 
 
 def _test_distrib_integration(device):
