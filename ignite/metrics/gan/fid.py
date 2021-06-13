@@ -127,13 +127,11 @@ class FID(Metric):
         if num_features is None and feature_extractor is None:
             num_features = 2048
             feature_extractor = InceptionExtractor()
-        elif feature_extractor is None:
-
-            def feature_extractor(x):
-                return x
-
         elif num_features is None:
             raise ValueError("num of features should be defined")
+        elif feature_extractor is None:
+            self._feature_extractor = lambda x: x
+            feature_extractor = self._feature_extractor
 
         if num_features <= 0:
             raise ValueError(f"num of features must be greater to zero (got: {num_features})")
