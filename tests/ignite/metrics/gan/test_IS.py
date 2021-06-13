@@ -4,7 +4,7 @@ import pytest
 import torch
 
 import ignite.distributed as idist
-from ignite.metrics.gan.IS import InceptionScore
+from ignite.metrics.gan.inception_score import InceptionScore
 
 
 def calculate_inception_score(p_yx, eps=1e-16):

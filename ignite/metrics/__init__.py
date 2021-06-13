@@ -5,7 +5,7 @@ from ignite.metrics.confusion_matrix import ConfusionMatrix, DiceCoefficient, Io
 from ignite.metrics.epoch_metric import EpochMetric
 from ignite.metrics.fbeta import Fbeta
 from ignite.metrics.frequency import Frequency
-from ignite.metrics.gan.IS import InceptionScore
+from ignite.metrics.gan.inception_score import InceptionScore
 from ignite.metrics.loss import Loss
 from ignite.metrics.mean_absolute_error import MeanAbsoluteError
 from ignite.metrics.mean_pairwise_distance import MeanPairwiseDistance
