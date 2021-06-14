@@ -26,7 +26,7 @@ def fid_score(
     covmean, _ = scipy.linalg.sqrtm(sigma1.mm(sigma2), disp=False)
     if not np.isfinite(covmean).all():
         offset = np.eye(sigma1.shape[0]) * eps
-        covmean = scipy.linalg.sqrtm((sigma1 + offset).dot(sigma2 + offset))
+        covmean = scipy.linalg.sqrtm(((sigma1 * offset) * (sigma2 * offset)) / (eps * eps))
 
     # Numerical error might give slight imaginary component
     if np.iscomplexobj(covmean):
