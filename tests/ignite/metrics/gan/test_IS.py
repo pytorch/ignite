@@ -25,11 +25,11 @@ def test_inception_score():
 
 def test_wrong_inputs():
     with pytest.raises(ValueError, match=r"Probabilities must be a tensor of dim 2, got: 1"):
-        InceptionScore(num_probabilities=2048).update(torch.rand(3))
+        InceptionScore(num_probabilities=1000).update(torch.rand(3))
     with pytest.raises(ValueError, match=r"Batch size should be greater than one, got: 0"):
-        InceptionScore(num_probabilities=2048).update(torch.rand(0, 0))
+        InceptionScore(num_probabilities=1000).update(torch.rand(0, 0))
     with pytest.raises(ValueError, match=r"Number of Probabilities should be greater than one, got: 0"):
-        InceptionScore(num_probabilities=2048).update(torch.rand(2, 0))
+        InceptionScore(num_probabilities=1000).update(torch.rand(2, 0))
 
 
 # def test_inception_extractor_wrong_inputs():

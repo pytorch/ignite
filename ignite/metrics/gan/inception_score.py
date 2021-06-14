@@ -13,7 +13,7 @@ class InceptionScore(Metric):
     r"""Calculates Inception Score.
 
     .. math::
-       \text{IS} = \mod{\text{p(y|x)} * \mod{\text{log(p(y|x))} - \text{log(p(y|x))}}}
+       \text{IS(G)} = \frac{1}{N}\sum_{i=1}^{N} D_{KL} (p(y|x^{(i)} \parallel \hat{p}(y)))
 
     where :math:`p(y|x)` is the conditional probability of image being the given object and
     :math:`p(y)` is the marginal probability that the given image is real.
@@ -41,9 +41,9 @@ class InceptionScore(Metric):
             from ignite.metric.gan.IS import InceptionScore
             import torch
 
-            probabilities = torch.rand(10,2048), torch.rand(10,2048)
+            probabilities = torch.rand(10, 2048), torch.rand(10, 2048)
 
-            m = InceptionScore(num_probabilities=2048)
+            m = InceptionScore(num_probabilities=1000)
             m.update(probabilities)
             print(m.compute())
 
