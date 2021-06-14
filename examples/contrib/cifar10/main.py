@@ -84,12 +84,15 @@ def training(local_rank, config):
     train_evaluator = create_evaluator(model, metrics=metrics, config=config)
 
     # Finding optimum Learning Rate using FastaiLRFinder
-    if config["lr_finder"] is True:
+    if config["use_lr_finder"] is True:
         lr_finder = FastaiLRFinder()
         to_save = {"model": model, "optimizer": optimizer}
-        with lr_finder.attach(trainer, to_save, diverge_th=5.0) as trainer_with_lr_finder:
+        with lr_finder.attach(
+            trainer, to_save, output_transform=lambda output: output_transform(output, "batch loss")
+        ) as trainer_with_lr_finder:
             trainer_with_lr_finder.run(train_loader)
         lr_finder.apply_suggested_lr(optimizer)
+        logger.info(f"\tOptimal Learning Rate: {lr_finder.lr_suggestion()}")
 
     def run_validation(engine):
         epoch = trainer.state.epoch
@@ -161,7 +164,7 @@ def run(
     stop_iteration=None,
     with_clearml=False,
     with_amp=False,
-    lr_finder=False,
+    use_lr_finder=False,
     **spawn_kwargs,
 ):
     """Main entry to train an model on CIFAR10 dataset.
@@ -190,7 +193,7 @@ def run(
         stop_iteration (int, optional): iteration to stop the training. Can be used to check resume from checkpoint.
         with_clearml (bool): if True, experiment ClearML logger is setup. Default, False.
         with_amp (bool): if True, enables native automatic mixed precision. Default, False.
-        lr_finder (bool): if True, uses FastAILRFinder to find optimum learning rate. Default, False.
+        use_lr_finder (bool): if True, uses FastAILRFinder to find optimum learning rate. Default, False.
         **spawn_kwargs: Other kwargs to spawn run in child processes: master_addr, master_port, node_rank, nnodes
 
     """
@@ -391,6 +394,27 @@ def get_save_handler(config):
         return ClearMLSaver(dirname=config["output_path"])
 
     return DiskSaver(config["output_path"], require_empty=False)
+
+
+def output_transform(output, name="batch loss"):
+    output = output[name]
+    if not isinstance(output, float):
+        if isinstance(output, torch.Tensor):
+            if (output.ndimension() == 0) or (output.ndimension() == 1 and len(output) == 1):
+                output = output.item()
+            else:
+                raise ValueError(
+                    "if output of the engine is torch.Tensor, then "
+                    "it must be 0d torch.Tensor or 1d torch.Tensor with 1 element, "
+                    f"but got torch.Tensor of shape {output.shape}"
+                )
+        else:
+            raise TypeError(
+                "output of the engine should be of type float or 0d torch.Tensor "
+                "or 1d torch.Tensor with 1 element, "
+                f"but got output of type {type(output).__name__}"
+            )
+    return output
 
 
 if __name__ == "__main__":
