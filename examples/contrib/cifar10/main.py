@@ -88,7 +88,7 @@ def training(local_rank, config):
         lr_finder = FastaiLRFinder()
         to_save = {"model": model, "optimizer": optimizer}
         with lr_finder.attach(
-            trainer, to_save, output_transform=lambda output: output_transform(output, "batch loss")
+            trainer, to_save, output_transform=lambda output: output["batch loss"]
         ) as trainer_with_lr_finder:
             trainer_with_lr_finder.run(train_loader)
         lr_finder.apply_suggested_lr(optimizer)
@@ -394,27 +394,6 @@ def get_save_handler(config):
         return ClearMLSaver(dirname=config["output_path"])
 
     return DiskSaver(config["output_path"], require_empty=False)
-
-
-def output_transform(output, name="batch loss"):
-    output = output[name]
-    if not isinstance(output, float):
-        if isinstance(output, torch.Tensor):
-            if (output.ndimension() == 0) or (output.ndimension() == 1 and len(output) == 1):
-                output = output.item()
-            else:
-                raise ValueError(
-                    "if output of the engine is torch.Tensor, then "
-                    "it must be 0d torch.Tensor or 1d torch.Tensor with 1 element, "
-                    f"but got torch.Tensor of shape {output.shape}"
-                )
-        else:
-            raise TypeError(
-                "output of the engine should be of type float or 0d torch.Tensor "
-                "or 1d torch.Tensor with 1 element, "
-                f"but got output of type {type(output).__name__}"
-            )
-    return output
 
 
 if __name__ == "__main__":
