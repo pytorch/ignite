@@ -308,6 +308,39 @@ def test_detach_terminates(lr_finder, to_save, dummy_engine, dataloader, recwarn
     assert len(recwarn) == 0
 
 
+def test_engine_output_type(lr_finder, dummy_engine, optimizer):
+    from ignite.handlers.param_scheduler import PiecewiseLinear
+
+    dummy_engine.state.iteration = 1
+    dummy_engine.state.output = [10]
+    with pytest.raises(TypeError, match=r"output of the engine should be of type float or 0d torch.Tensor"):
+        lr_finder._log_lr_and_loss(dummy_engine, output_transform=lambda x: x, smooth_f=0, diverge_th=1)
+
+    dummy_engine.state.output = (10, 5)
+    with pytest.raises(TypeError, match=r"output of the engine should be of type float or 0d torch.Tensor"):
+        lr_finder._log_lr_and_loss(dummy_engine, output_transform=lambda x: x, smooth_f=0, diverge_th=1)
+
+    dummy_engine.state.output = torch.tensor([1, 2], dtype=torch.float32)
+    with pytest.raises(ValueError, match=r"if output of the engine is torch.Tensor"):
+        lr_finder._log_lr_and_loss(dummy_engine, output_transform=lambda x: x, smooth_f=0, diverge_th=1)
+
+    lr_finder._lr_schedule = PiecewiseLinear(
+        optimizer, param_name="lr", milestones_values=[(0, optimizer.param_groups[0]["lr"]), (100, 10)]
+    )
+
+    dummy_engine.state.output = torch.tensor(10.0, dtype=torch.float32)
+    lr_finder._history = {"lr": [], "loss": []}
+    lr_finder._log_lr_and_loss(dummy_engine, output_transform=lambda x: x, smooth_f=0, diverge_th=1)
+    loss = lr_finder._history["loss"][-1]
+    assert type(loss) == float
+
+    dummy_engine.state.output = torch.tensor([10.0], dtype=torch.float32)
+    lr_finder._history = {"lr": [], "loss": []}
+    lr_finder._log_lr_and_loss(dummy_engine, output_transform=lambda x: x, smooth_f=0, diverge_th=1)
+    loss = lr_finder._history["loss"][-1]
+    assert type(loss) == float
+
+
 def test_lr_suggestion_unexpected_curve(lr_finder, to_save, dummy_engine, dataloader):
     with lr_finder.attach(dummy_engine, to_save) as trainer_with_finder:
         trainer_with_finder.run(dataloader)
