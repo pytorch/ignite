@@ -54,7 +54,7 @@ class InceptionScore(Metric):
         self, num_probabilities: int, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = "cpu"
     ) -> None:
         if num_probabilities <= 0:
-            raise ValueError(f"num of probabilities must be greater to zero (got: {num_probabilities})")
+            raise ValueError(f"num of probabilities must be greater to zero, got: {num_probabilities}")
         self._num_probs = num_probabilities
         self._eps = 1e-16
         super(InceptionScore, self).__init__(output_transform=output_transform, device=device)
@@ -62,11 +62,11 @@ class InceptionScore(Metric):
     @staticmethod
     def _check_feature_input(samples: torch.Tensor) -> None:
         if samples.dim() != 2:
-            raise ValueError(f"Probabilities must be a tensor of dim 2 (got: {samples.dim()})")
+            raise ValueError(f"Probabilities must be a tensor of dim 2, got: {samples.dim()}")
         if samples.shape[0] == 0:
-            raise ValueError(f"Batch size should be greater than one (got: {samples.shape[0]})")
+            raise ValueError(f"Batch size should be greater than one, got: {samples.shape[0]}")
         if samples.shape[1] == 0:
-            raise ValueError(f"Number of Probabilities should be greater than one (got: {samples.shape[1]})")
+            raise ValueError(f"Number of Probabilities should be greater than one, got: {samples.shape[1]}")
 
     @reinit__is_reduced
     def reset(self) -> None:
