@@ -64,7 +64,7 @@ class FID(Metric):
     r"""Calculates Frechet Inception Distance.
 
     .. math::
-       \text{FID} = \text{|mu1} - \text{mu2|} + \text{Trace(sigma1 + sigma2 - 2*sqrt(sigma1*sigma2))}
+       \text{FID} = |mu{1} - mu{2}| + Trace(sigma{1} + sigma{2} - {2}\sqrt{sigma1*sigma2})
 
     where :math:`mu1` and :math:`sigma1` refer to the mean and covariance of the train data and
     :math:`mu2` and :math:`sigma2` refer to the mean and covariance of the test data.
@@ -102,10 +102,14 @@ class FID(Metric):
         .. code-block:: python
 
             from ignite.metric.gan import FID
+
             import torch
-            y_pred, y = torch.rand(10,2048), torch.rand(10,2048)
+
+            y_pred, y = torch.rand(10, 2048), torch.rand(10, 2048)
             m = FID()
+
             m.update((y_pred,y))
+
             print(m.compute())
 
     .. versionadded:: 0.5.0
