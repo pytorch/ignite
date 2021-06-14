@@ -83,12 +83,10 @@ def test_compute_fid_sqrtm():
     sigma1 = torch.tensor([[-1, 1], [1, 1]], dtype=torch.float64)
     sigma2 = torch.tensor([[1, 0], [0, 1]], dtype=torch.float64)
 
-    with pytest.raises(ValueError, match=r"Imaginary component 1.0150517651282176"):
+    with pytest.raises(ValueError, match=r"Imaginary component "):
         fid_score(mu1, mu2, sigma1, sigma2)
 
-    sigma1 = torch.tensor(
-        [[1.79769313486e308, 1.79769313486e308], [1.79769313486e308, 1.79769313486e308]], dtype=torch.float64
-    )
+    sigma1 = torch.tensor([[1, 1], [1, 1]], dtype=torch.float64) * torch.finfo(torch.float64).max
     sigma2 = torch.tensor([[1, 0.5], [0, 0.5]], dtype=torch.float64)
 
     assert torch.isnan(fid_score(mu1, mu2, sigma1, sigma2))
