@@ -143,8 +143,10 @@ class FID(Metric):
     @staticmethod
     def _online_update(features: torch.Tensor, total: torch.Tensor, sigma: torch.Tensor) -> None:
         total += features
-        for i, feat in enumerate(features):
-            sigma[i] += feat * features
+        if torch.__version__ <= "1.7.0":
+            sigma += torch.ger(features, features)
+        else:
+            sigma += torch.outer(features, features)
 
     def get_covariance(self, sigma: torch.Tensor, total: torch.Tensor) -> torch.Tensor:
         r"""
