@@ -53,9 +53,9 @@ class InceptionExtractor:
     @torch.no_grad()
     def __call__(self, data: torch.Tensor) -> torch.Tensor:
         if data.dim() != 4:
-            raise ValueError(f"Inputs should be a tensor of dim 4 (got {data.dim()})")
+            raise ValueError(f"Inputs should be a tensor of dim 4, got {data.dim()}")
         if data.shape[1] != 3:
-            raise ValueError(f"Inputs should be a tensor with 3 channels (got {data.shape})")
+            raise ValueError(f"Inputs should be a tensor with 3 channels, got {data.shape}")
         return self.model(data)
 
 
@@ -128,13 +128,13 @@ class FID(Metric):
             num_features = 2048
             feature_extractor = InceptionExtractor()
         elif num_features is None:
-            raise ValueError("num of features should be defined")
+            raise ValueError("Argument num_features should be defined")
         elif feature_extractor is None:
             self._feature_extractor = lambda x: x
             feature_extractor = self._feature_extractor
 
         if num_features <= 0:
-            raise ValueError(f"num of features must be greater to zero (got: {num_features})")
+            raise ValueError(f"Argument num_features must be greater to zero, got: {num_features}")
         self._num_features = num_features
         self._feature_extractor = feature_extractor
         self._eps = 1e-6
@@ -143,7 +143,8 @@ class FID(Metric):
     @staticmethod
     def _online_update(features: torch.Tensor, total: torch.Tensor, sigma: torch.Tensor) -> None:
         total += features
-        sigma += torch.outer(features, features)
+        for i, feat in enumerate(features):
+            sigma[i] += feat * features
 
     def get_covariance(self, sigma: torch.Tensor, total: torch.Tensor) -> torch.Tensor:
         r"""
@@ -157,11 +158,11 @@ class FID(Metric):
     def _check_feature_input(train: torch.Tensor, test: torch.Tensor) -> None:
         for feature in [train, test]:
             if feature.dim() != 2:
-                raise ValueError(f"Features must be a tensor of dim 2 (got: {feature.dim()})")
+                raise ValueError(f"Features must be a tensor of dim 2, got: {feature.dim()}")
             if feature.shape[0] == 0:
-                raise ValueError(f"Batch size should be greater than one (got: {feature.shape[0]})")
+                raise ValueError(f"Batch size should be greater than one, got: {feature.shape[0]}")
             if feature.shape[1] == 0:
-                raise ValueError(f"Feature size should be greater than one (got: {feature.shape[1]})")
+                raise ValueError(f"Feature size should be greater than one, got: {feature.shape[1]}")
         if train.shape[0] != test.shape[0] or train.shape[1] != test.shape[1]:
             raise ValueError(
                 f"Number of Training Features and Testing Features should be equal ({train.shape} != {test.shape})"

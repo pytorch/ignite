@@ -93,13 +93,13 @@ def test_compute_fid_sqrtm():
 
 
 def test_wrong_inputs():
-    with pytest.raises(ValueError, match=r"num of features must be greater to zero"):
+    with pytest.raises(ValueError, match=r"Argument num_features must be greater to zero"):
         FID(num_features=-1, feature_extractor=lambda x: x)
-    with pytest.raises(ValueError, match=r"Features must be a tensor of dim 2 \(got: 1\)"):
+    with pytest.raises(ValueError, match=r"Features must be a tensor of dim 2, got: 1"):
         FID(num_features=1, feature_extractor=lambda x: x).update(torch.Tensor([[], []]))
-    with pytest.raises(ValueError, match=r"Batch size should be greater than one \(got: 0\)"):
+    with pytest.raises(ValueError, match=r"Batch size should be greater than one, got: 0"):
         FID(num_features=1, feature_extractor=lambda x: x).update(torch.rand(2, 0, 0))
-    with pytest.raises(ValueError, match=r"Feature size should be greater than one \(got: 0\)"):
+    with pytest.raises(ValueError, match=r"Feature size should be greater than one, got: 0"):
         FID(num_features=1, feature_extractor=lambda x: x).update(torch.rand(2, 2, 0))
     err_str = (
         "Number of Training Features and Testing Features should be equal (torch.Size([9, 2]) != torch.Size([5, 2]))"
@@ -108,7 +108,7 @@ def test_wrong_inputs():
         ValueError, match=re.escape(err_str),
     ):
         FID(num_features=2, feature_extractor=lambda x: x).update((torch.rand(9, 2), torch.rand(5, 2)))
-    with pytest.raises(ValueError, match=r"num of features should be defined"):
+    with pytest.raises(ValueError, match=r"Argument num_features should be defined"):
         FID(feature_extractor=lambda x: x)
 
 
