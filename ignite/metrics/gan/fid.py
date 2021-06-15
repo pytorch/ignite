@@ -67,7 +67,7 @@ class FID(Metric):
     r"""Calculates Frechet Inception Distance.
 
     .. math::
-       \text{FID} = |\mu_{1} - \mu_{2}| + Trace(\sigma_{1} + \sigma_{2} - {2}\sqrt{\sigma_1*\sigma_2})
+       \text{FID} = |\mu_{1} - \mu_{2}| + \text{Tr}(\sigma_{1} + \sigma_{2} - {2}\sqrt{\sigma_1*\sigma_2})
 
     where :math:`\mu_1` and :math:`\sigma_1` refer to the mean and covariance of the train data and
     :math:`\mu_2` and :math:`\sigma_2` refer to the mean and covariance of the test data.
