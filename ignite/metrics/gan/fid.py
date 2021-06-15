@@ -151,7 +151,7 @@ class FID(Metric):
         else:
             sigma += torch.outer(features, features)
 
-    def get_covariance(self, sigma: torch.Tensor, total: torch.Tensor) -> torch.Tensor:
+    def _get_covariance(self, sigma: torch.Tensor, total: torch.Tensor) -> torch.Tensor:
         r"""
         Calculates covariance from mean and sum of products of variables
         """
@@ -207,8 +207,8 @@ class FID(Metric):
         fid = fid_score(
             mu1=self._train_total / self._num_examples,
             mu2=self._test_total / self._num_examples,
-            sigma1=self.get_covariance(self._train_sigma, self._train_total),
-            sigma2=self.get_covariance(self._test_sigma, self._test_total),
+            sigma1=self._get_covariance(self._train_sigma, self._train_total),
+            sigma2=self._get_covariance(self._test_sigma, self._test_total),
             eps=self._eps,
         )
         if torch.isnan(fid):
