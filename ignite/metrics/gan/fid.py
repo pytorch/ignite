@@ -1,3 +1,4 @@
+import warnings
 from distutils.version import LooseVersion
 from typing import Callable, Optional, Sequence, Union
 
@@ -64,7 +65,7 @@ class FID(Metric):
     r"""Calculates Frechet Inception Distance.
 
     .. math::
-       \text{FID} = |mu{1} - mu{2}| + Trace(sigma{1} + sigma{2} - {2}\sqrt{sigma1*sigma2})
+       \text{FID} = |\mu_{1} - \mu_{2}| + Trace(\sigma_{1} + \sigma_{2} - {2}\sqrt{\sigma_1*\sigma_2})
 
     where :math:`mu1` and :math:`sigma1` refer to the mean and covariance of the train data and
     :math:`mu2` and :math:`sigma2` refer to the mean and covariance of the test data.
@@ -101,15 +102,12 @@ class FID(Metric):
 
         .. code-block:: python
 
-            from ignite.metric.gan import FID
-
             import torch
+            from ignite.metric.gan import FID
 
             y_pred, y = torch.rand(10, 2048), torch.rand(10, 2048)
             m = FID()
-
-            m.update((y_pred,y))
-
+            m.update((y_pred, y))
             print(m.compute())
 
     .. versionadded:: 0.5.0
@@ -206,10 +204,13 @@ class FID(Metric):
 
     @sync_all_reduce("_num_examples", "_train_total", "_test_total", "_train_sigma", "_test_sigma")
     def compute(self) -> Union[torch.Tensor, float]:
-        return fid_score(
+        fid = fid_score(
             mu1=self._train_total / self._num_examples,
             mu2=self._test_total / self._num_examples,
             sigma1=self.get_covariance(self._train_sigma, self._train_total),
             sigma2=self.get_covariance(self._test_sigma, self._test_total),
             eps=self._eps,
         )
+        if torch.isnan(fid):
+            warnings.warn("The product of covariance of train and test features is out of bounds.")
+        return fid
