@@ -211,6 +211,6 @@ class FID(Metric):
             sigma2=self._get_covariance(self._test_sigma, self._test_total),
             eps=self._eps,
         )
-        if torch.isnan(fid):
+        if torch.isnan(torch.tensor(fid)):
             warnings.warn("The product of covariance of train and test features is out of bounds.")
         return fid
