@@ -520,7 +520,7 @@ Others
 - [Implementation of DropBlock: A regularization method for convolutional networks in PyTorch](https://github.com/miguelvr/dropblock)
 - [Kaggle Kuzushiji Recognition: 2nd place solution](https://github.com/lopuhin/kaggle-kuzushiji-2019)
 - [Unsupervised Data Augmentation experiments in PyTorch](https://github.com/vfdev-5/UDA-pytorch)
-- [Hyperparameters tuning with Optuna](https://github.com/pfnet/optuna/blob/master/examples/pytorch_ignite_simple.py)
+- [Hyperparameters tuning with Optuna](https://github.com/optuna/optuna-examples/blob/main/pytorch/pytorch_ignite_simple.py)
 - [Logging with ChainerUI](https://chainerui.readthedocs.io/en/latest/reference/module.html#external-library-support)
 - [FixMatch experiments in PyTorch and Ignite (CTA dataaug policy)](https://github.com/vfdev-5/FixMatch-pytorch)
 - [Kaggle Birdcall Identification Competition: 1st place solution](https://github.com/ryanwongsa/kaggle-birdsong-recognition)
