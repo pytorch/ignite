@@ -7,7 +7,7 @@
 <!-- [![image](https://travis-ci.com/pytorch/ignite.svg?branch=master)](https://travis-ci.com/pytorch/ignite) -->
 
 | ![image](https://img.shields.io/badge/-Tests:-black?style=flat-square) [![image](https://github.com/pytorch/ignite/workflows/Run%20unit%20tests/badge.svg)](https://github.com/pytorch/ignite/actions) [![image](https://img.shields.io/badge/-GPU%20tests-black?style=flat-square)](https://app.circleci.com/pipelines/github/pytorch/ignite?branch=master)[![image](https://circleci.com/gh/pytorch/ignite.svg?style=svg)](https://app.circleci.com/pipelines/github/pytorch/ignite?branch=master) [![image](https://codecov.io/gh/pytorch/ignite/branch/master/graph/badge.svg)](https://codecov.io/gh/pytorch/ignite) [![image](https://img.shields.io/badge/dynamic/json.svg?label=docs&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fpytorch-ignite%2Fjson&query=%24.info.version&colorB=brightgreen&prefix=v)](https://pytorch.org/ignite/index.html) |
-| :---
+|:---
 | ![image](https://img.shields.io/badge/-Stable%20Releases:-black?style=flat-square) [![image](https://anaconda.org/pytorch/ignite/badges/version.svg)](https://anaconda.org/pytorch/ignite) [![image](https://anaconda.org/pytorch/ignite/badges/downloads.svg)](https://anaconda.org/pytorch/ignite) [![image](https://img.shields.io/badge/dynamic/json.svg?label=PyPI&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fpytorch-ignite%2Fjson&query=%24.info.version&colorB=brightgreen&prefix=v)](https://pypi.org/project/pytorch-ignite/) [![image](https://pepy.tech/badge/pytorch-ignite)](https://pepy.tech/project/pytorch-ignite) |
 | ![image](https://img.shields.io/badge/-Nightly%20Releases:-black?style=flat-square) [![image](https://anaconda.org/pytorch-nightly/ignite/badges/version.svg)](https://anaconda.org/pytorch-nightly/ignite) [![image](https://img.shields.io/badge/PyPI-pre%20releases-brightgreen)](https://pypi.org/project/pytorch-ignite/#history)|
 | ![image](https://img.shields.io/badge/-Features:-black?style=flat-square) [![image](https://img.shields.io/badge/docker-hub-blue)](https://hub.docker.com/u/pytorchignite) [![image](https://img.shields.io/badge/Optuna-integrated-blue)](https://optuna.org) [![image](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) |
@@ -98,7 +98,7 @@ from ignite.metrics import Accuracy
 # Setup training engine:
 def train_step(engine, batch):
     # Users can do whatever they need on a single iteration
-    # E.g. forward/backward pass for any number of models, optimizers etc
+    # Eg. forward/backward pass for any number of models, optimizers, etc
     # ...
 
 trainer = Engine(train_step)
@@ -122,7 +122,7 @@ trainer.run(training_data_loader, max_epochs=100)
 
 ## Power of Events & Handlers
 
-The cool thing with handlers is that they offer unparalleled flexibility (compared to say, callbacks). Handlers can be any function: e.g. lambda, simple function, class method etc. Thus, we do not require to inherit from an interface and override its abstract methods which could unnecessarily bulk up your code and its complexity.
+The cool thing with handlers is that they offer unparalleled flexibility (compared to, for example, callbacks). Handlers can be any function: e.g. lambda, simple function, class method, etc. Thus, we do not require to inherit from an interface and override its abstract methods which could unnecessarily bulk up your code and its complexity.
 
 ### Execute any number of functions whenever you wish
 
@@ -234,7 +234,7 @@ def function_before_backprop(engine):
     # ...
 ```
 
-- Complete snippet can be found [here](https://pytorch.org/ignite/faq.html#creating-custom-events-based-on-forward-backward-pass).
+- Complete snippet is found [here](https://pytorch.org/ignite/faq.html#creating-custom-events-based-on-forward-backward-pass).
 - Another use-case of custom events: [trainer for Truncated Backprop Through Time](https://pytorch.org/ignite/contrib/engines.html#ignite.contrib.engines.create_supervised_tbptt_trainer).
 
 </details>
@@ -244,7 +244,7 @@ def function_before_backprop(engine):
 - [Metrics](https://pytorch.org/ignite/metrics.html#complete-list-of-metrics) for various tasks:
   Precision, Recall, Accuracy, Confusion Matrix, IoU etc, ~20 [regression metrics](https://pytorch.org/ignite/contrib/metrics.html#regression-metrics).
 
-- Users can also [compose their own metrics](https://pytorch.org/ignite/metrics.html#metric-arithmetics) with ease from
+- Users can also [compose their metrics](https://pytorch.org/ignite/metrics.html#metric-arithmetics) with ease from
   existing ones using arithmetic operations or torch methods.
 
 <details>
@@ -348,7 +348,7 @@ Few pointers to get you started:
 
 - [Quick Start Guide: Essentials of getting a project up and running](https://pytorch.org/ignite/quickstart.html)
 - [Concepts of the library: Engine, Events & Handlers, State, Metrics](https://pytorch.org/ignite/concepts.html)
-- Full-featured template examples (coming soon ...)
+- Full-featured template examples (coming soon)
 
 <!-- ############################################################################################################### -->
 
@@ -423,20 +423,20 @@ Features:
 
 - [PyTorch-Ignite Discord Server](https://discord.gg/djZtm3EmKj): to chat with the community
 
-- [GitHub Discussions](https://github.com/pytorch/ignite/discussions): general library related discussions, ideas, Q&A, etc.
+- [GitHub Discussions](https://github.com/pytorch/ignite/discussions): general library-related discussions, ideas, Q&A, etc.
 
 ## User feedback
 
 We have created a form for ["user feedback"](https://github.com/pytorch/ignite/issues/new/choose). We
-appreciate any type of feedback and this is how we would like to see our
+appreciate any type of feedback, and this is how we would like to see our
 community:
 
 - If you like the project and want to say thanks, this the right
   place.
-- If you do not like something, please, share it with us and we can
+- If you do not like something, please, share it with us, and we can
   see how to improve it.
 
-Thank you !
+Thank you!
 
 <!-- ############################################################################################################### -->
 
@@ -506,7 +506,7 @@ Toolkits
 
 - [Project MONAI - AI Toolkit for Healthcare Imaging](https://github.com/Project-MONAI/MONAI)
 - [DeepSeismic - Deep Learning for Seismic Imaging and Interpretation](https://github.com/microsoft/seismic-deeplearning)
-- [Nussl - a flexible, object oriented Python audio source separation library](https://github.com/nussl/nussl)
+- [Nussl - a flexible, object-oriented Python audio source separation library](https://github.com/nussl/nussl)
 
 </details>
 
@@ -530,9 +530,9 @@ Others
 See other projects at ["Used by"](https://github.com/pytorch/ignite/network/dependents?package_id=UGFja2FnZS02NzI5ODEwNA%3D%3D)
 
 If your project implements a paper, represents other use-cases not
-covered in our official tutorials, Kaggle competition's code or just
+covered in our official tutorials, Kaggle competition's code, or just
 your code presents interesting results and uses Ignite. We would like to
-add your project in this list, so please send a PR with brief
+add your project to this list, so please send a PR with brief
 description of the project.
 
 <!-- ############################################################################################################### -->
