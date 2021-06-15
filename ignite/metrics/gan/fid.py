@@ -69,8 +69,8 @@ class FID(Metric):
     .. math::
        \text{FID} = |\mu_{1} - \mu_{2}| + Trace(\sigma_{1} + \sigma_{2} - {2}\sqrt{\sigma_1*\sigma_2})
 
-    where :math:`mu1` and :math:`sigma1` refer to the mean and covariance of the train data and
-    :math:`mu2` and :math:`sigma2` refer to the mean and covariance of the test data.
+    where :math:`\mu_1` and :math:`\sigma_1` refer to the mean and covariance of the train data and
+    :math:`\mu_2` and :math:`\sigma_2` refer to the mean and covariance of the test data.
 
     More details can be found in `Heusel et al. 2002`__
 
