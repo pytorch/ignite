@@ -286,10 +286,11 @@ class Metric(metaclass=ABCMeta):
             ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``. ``y_pred`` and ``y`` can be torch tensors or
             list of tensors/numbers if applicable.
 
-
-
         Args:
             engine: the engine to which the metric must be attached
+
+        .. versionchanged:: 0.4.5
+            ``y_pred`` and ``y`` can be torch tensors or list of tensors/numbers
         """
 
         output = self._output_transform(engine.state.output)

@@ -980,3 +980,29 @@ def test_list_of_tensors_and_numbers(shapes):
     if len(shapes[1]) == 0:
         data = get_data(gt_as_scalar=True)
         engine.run(data)
+
+
+def test_list_of_tensors_and_numbers_unsupported_output():
+    class MyMetric(Metric):
+        def reset(self):
+            pass
+
+        def compute(self):
+            pass
+
+        def update(self, output):
+            pass
+
+    engine = Engine(lambda e, b: ([0, 1, 2], [0, 1, 2], [0, 1, 2]))
+    m = MyMetric()
+    m.attach(engine, "m")
+
+    with pytest.raises(ValueError, match=r"Output should have 2 items of the same length"):
+        engine.run([0] * 10)
+
+    engine = Engine(lambda e, b: ([0, 1, 2], [0, 1, 2, 4]))
+    m = MyMetric()
+    m.attach(engine, "m")
+
+    with pytest.raises(ValueError, match=r"Output should have 2 items of the same length"):
+        engine.run([0] * 10)
