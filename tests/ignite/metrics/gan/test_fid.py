@@ -122,10 +122,10 @@ def test_statistics():
     mu2, sigma2 = test_samples.mean(axis=0), torch.tensor(cov(test_samples, rowvar=False))
 
     fid_mu1 = fid_scorer._train_total / fid_scorer._num_examples
-    fid_sigma1 = fid_scorer.get_covariance(fid_scorer._train_sigma, fid_scorer._train_total)
+    fid_sigma1 = fid_scorer._get_covariance(fid_scorer._train_sigma, fid_scorer._train_total)
 
     fid_mu2 = fid_scorer._test_total / fid_scorer._num_examples
-    fid_sigma2 = fid_scorer.get_covariance(fid_scorer._test_sigma, fid_scorer._test_total)
+    fid_sigma2 = fid_scorer._get_covariance(fid_scorer._test_sigma, fid_scorer._test_total)
 
     assert torch.isclose(mu1.double(), fid_mu1).all()
     for cov1, cov2 in zip(sigma1, fid_sigma1):
