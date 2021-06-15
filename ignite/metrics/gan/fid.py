@@ -7,7 +7,7 @@ import torch
 
 from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
-__all__ = ["FID", "InceptionExtractor"]
+__all__ = ["FID", ]
 
 
 def fid_score(
