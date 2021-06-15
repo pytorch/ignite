@@ -68,6 +68,7 @@ _Click on the image to see complete code_
   - [User feedback](#user-feedback)
 - [Contributing](#contributing)
 - [Projects using Ignite](#projects-using-ignite)
+- [Citing Ignite](#citing-ignite)
 - [About the team & Disclaimer](#about-the-team--disclaimer)
 
 <!-- ############################################################################################################### -->
@@ -533,6 +534,23 @@ covered in our official tutorials, Kaggle competition's code or just
 your code presents interesting results and uses Ignite. We would like to
 add your project in this list, so please send a PR with brief
 description of the project.
+
+<!-- ############################################################################################################### -->
+
+# Citing Ignite
+
+If you use PyTorch-Ignite in a scientific publication, we would appreciate citations to our project.
+
+```
+@misc{pytorch-ignite,
+  author = {V. Fomin and J. Anmol and S. Desroziers and J. Kriss and A. Tejani},
+  title = {High-level library to help with training neural networks in PyTorch},
+  year = {2020},
+  publisher = {GitHub},
+  journal = {GitHub repository},
+  howpublished = {\url{https://github.com/pytorch/ignite}},
+}
+```
 
 <!-- ############################################################################################################### -->
 
