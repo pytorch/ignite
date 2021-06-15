@@ -84,7 +84,7 @@ def training(local_rank, config):
     train_evaluator = create_evaluator(model, metrics=metrics, config=config)
 
     # Finding optimum Learning Rate using FastaiLRFinder
-    if config["use_lr_finder"] is True:
+    if config["use_lr_finder"]:
         lr_finder = FastaiLRFinder()
         to_save = {"model": model, "optimizer": optimizer}
         with lr_finder.attach(
