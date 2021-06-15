@@ -1,7 +1,6 @@
 from typing import Callable, Union
 
 import torch
-from torch import exp, log
 
 from ignite.exceptions import NotComputableError
 
@@ -24,7 +23,7 @@ class InceptionScore(Metric):
 
 
     Args:
-        num_probabilities: number of probabilities prediccted by the model or number of classes of the model
+        num_probabilities: number of probabilities predicted by the model or number of classes of the model
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
@@ -54,7 +53,7 @@ class InceptionScore(Metric):
         self, num_probabilities: int, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = "cpu"
     ) -> None:
         if num_probabilities <= 0:
-            raise ValueError(f"num of probabilities must be greater to zero, got: {num_probabilities}")
+            raise ValueError(f"Argument num_probabilities must be greater to zero, got: {num_probabilities}")
         self._num_probs = num_probabilities
         self._eps = 1e-16
         super(InceptionScore, self).__init__(output_transform=output_transform, device=device)
@@ -78,16 +77,15 @@ class InceptionScore(Metric):
     @reinit__is_reduced
     def update(self, samples: torch.Tensor) -> None:
         self._check_feature_input(samples)
-        for sample in samples:
-            self._num_examples += 1
-            self._prob_total += sample.to(self._device)
-            self._total_kl_d += sample.to(self._device) * log(sample + self._eps).to(self._device)
+        self._num_examples += samples.shape[0]
+        self._prob_total += torch.sum(samples, 0).to(self._device)
+        self._total_kl_d += torch.sum(samples * torch.log(samples + self._eps), 0).to(self._device)
 
     @sync_all_reduce("_num_examples", "_prob_total", "_total_kl_d")
     def compute(self) -> torch.Tensor:
         if self._num_examples == 0:
             raise NotComputableError("IS must have at least one example before it can be computed.")
         mean_probs = self._prob_total / self._num_examples
-        excess_entropy = self._prob_total * log(mean_probs + self._eps)
-        avg_kl_d = sum(self._total_kl_d - excess_entropy) / self._num_examples
-        return exp(torch.tensor(avg_kl_d))
+        excess_entropy = self._prob_total * torch.log(mean_probs + self._eps)
+        avg_kl_d = torch.sum(self._total_kl_d - excess_entropy) / self._num_examples
+        return torch.exp(avg_kl_d)

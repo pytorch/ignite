@@ -4,12 +4,13 @@ import pytest
 import torch
 
 import ignite.distributed as idist
+from ignite.exceptions import NotComputableError
 from ignite.metrics.gan.inception_score import InceptionScore
 
 
 def calculate_inception_score(p_yx, eps=1e-16):
     p_y = torch.unsqueeze(p_yx.mean(axis=0), 0)
-    kl_d = p_yx * (torch.log(p_yx + eps) - torch.log(p_y + eps))
+    kl_d = torch.kl_div(torch.log(p_y), p_yx)
     sum_kl_d = kl_d.sum(axis=1)
     avg_kl_d = torch.mean(sum_kl_d)
     is_score = torch.exp(avg_kl_d)
@@ -24,12 +25,16 @@ def test_inception_score():
 
 
 def test_wrong_inputs():
+    with pytest.raises(ValueError, match=r"Argument num_probabilities must be greater to zero, got:"):
+        InceptionScore(num_probabilities=-1).update(torch.rand(2, 0))
     with pytest.raises(ValueError, match=r"Probabilities must be a tensor of dim 2, got: 1"):
         InceptionScore(num_probabilities=1000).update(torch.rand(3))
     with pytest.raises(ValueError, match=r"Batch size should be greater than one, got: 0"):
         InceptionScore(num_probabilities=1000).update(torch.rand(0, 0))
     with pytest.raises(ValueError, match=r"Number of Probabilities should be greater than one, got: 0"):
         InceptionScore(num_probabilities=1000).update(torch.rand(2, 0))
+    with pytest.raises(NotComputableError, match=r"IS must have at least one example before it can be computed."):
+        InceptionScore(num_probabilities=1000).compute()
 
 
 # def test_inception_extractor_wrong_inputs():
