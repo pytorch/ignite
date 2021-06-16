@@ -50,6 +50,19 @@ def test_no_scipy(mock_no_scipy):
         fid_score(0, 0, 0, 0)
 
 
+@pytest.fixture()
+def mock_no_numpy():
+    with patch.dict("sys.modules", {"numpy": None}):
+        yield scipy
+
+
+def test_no_numpy(mock_no_numpy):
+    with pytest.raises(RuntimeError, match=r"This module requires numpy to be installed."):
+        FID()
+    with pytest.raises(RuntimeError, match=r"fid_score requires numpy to be installed."):
+        fid_score(0, 0, 0, 0)
+
+
 def test_fid_function():
     train_samples, test_samples = torch.rand(10, 10), torch.rand(10, 10)
 
