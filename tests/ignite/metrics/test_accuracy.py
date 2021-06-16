@@ -5,6 +5,7 @@ import torch
 from sklearn.metrics import accuracy_score
 
 import ignite.distributed as idist
+from ignite.engine import Engine
 from ignite.exceptions import NotComputableError
 from ignite.metrics import Accuracy
 
@@ -374,8 +375,6 @@ def _test_distrib_multilabel_input_NHW(device):
 
 def _test_distrib_integration_multiclass(device):
 
-    from ignite.engine import Engine
-
     rank = idist.get_rank()
     torch.manual_seed(12)
 
@@ -426,8 +425,6 @@ def _test_distrib_integration_multiclass(device):
 
 
 def _test_distrib_integration_multilabel(device):
-
-    from ignite.engine import Engine
 
     rank = idist.get_rank()
     torch.manual_seed(12)
@@ -500,6 +497,57 @@ def _test_distrib_accumulator_device(device):
         ), f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
 
 
+def _test_distrib_integration_list_of_tensors_or_numbers(device):
+
+    rank = idist.get_rank()
+    torch.manual_seed(12)
+
+    def _test(n_epochs, metric_device):
+        metric_device = torch.device(metric_device)
+        n_iters = 80
+        s = 16
+        n_classes = 10
+
+        offset = n_iters * s
+        y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(),)).to(device)
+        y_preds = torch.rand(offset * idist.get_world_size(), n_classes).to(device)
+
+        def update(_, i):
+            return (
+                [v for v in y_preds[i * s + rank * offset : (i + 1) * s + rank * offset, :]],
+                [v.item() for v in y_true[i * s + rank * offset : (i + 1) * s + rank * offset]],
+            )
+
+        engine = Engine(update)
+
+        acc = Accuracy(device=metric_device)
+        acc.attach(engine, "acc")
+
+        data = list(range(n_iters))
+        engine.run(data=data, max_epochs=n_epochs)
+
+        assert (
+            acc._num_correct.device == metric_device
+        ), f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
+
+        assert "acc" in engine.state.metrics
+        res = engine.state.metrics["acc"]
+        if isinstance(res, torch.Tensor):
+            res = res.cpu().numpy()
+
+        true_res = accuracy_score(y_true.cpu().numpy(), torch.argmax(y_preds, dim=1).cpu().numpy())
+
+        assert pytest.approx(res) == true_res
+
+    metric_devices = ["cpu"]
+    if device.type != "xla":
+        metric_devices.append(idist.device())
+    for metric_device in metric_devices:
+        for _ in range(2):
+            _test(n_epochs=1, metric_device=metric_device)
+            _test(n_epochs=2, metric_device=metric_device)
+
+
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
@@ -510,6 +558,7 @@ def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
     _test_distrib_integration_multiclass(device)
     _test_distrib_integration_multilabel(device)
     _test_distrib_accumulator_device(device)
+    _test_distrib_integration_list_of_tensors_or_numbers(device)
 
 
 @pytest.mark.distributed
@@ -521,6 +570,7 @@ def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
     _test_distrib_integration_multiclass(device)
     _test_distrib_integration_multilabel(device)
     _test_distrib_accumulator_device(device)
+    _test_distrib_integration_list_of_tensors_or_numbers(device)
 
 
 @pytest.mark.distributed
@@ -535,6 +585,7 @@ def test_distrib_hvd(gloo_hvd_executor):
     gloo_hvd_executor(_test_distrib_integration_multiclass, (device,), np=nproc, do_init=True)
     gloo_hvd_executor(_test_distrib_integration_multilabel, (device,), np=nproc, do_init=True)
     gloo_hvd_executor(_test_distrib_accumulator_device, (device,), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_distrib_integration_list_of_tensors_or_numbers, (device,), np=nproc, do_init=True)
 
 
 @pytest.mark.tpu
@@ -546,6 +597,7 @@ def test_distrib_single_device_xla():
     _test_distrib_integration_multiclass(device)
     _test_distrib_integration_multilabel(device)
     _test_distrib_accumulator_device(device)
+    _test_distrib_integration_list_of_tensors_or_numbers(device)
 
 
 def _test_distrib_xla_nprocs(index):
@@ -554,6 +606,7 @@ def _test_distrib_xla_nprocs(index):
     _test_distrib_integration_multiclass(device)
     _test_distrib_integration_multilabel(device)
     _test_distrib_accumulator_device(device)
+    _test_distrib_integration_list_of_tensors_or_numbers(device)
 
 
 @pytest.mark.tpu
@@ -574,6 +627,7 @@ def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
     _test_distrib_integration_multiclass(device)
     _test_distrib_integration_multilabel(device)
     _test_distrib_accumulator_device(device)
+    _test_distrib_integration_list_of_tensors_or_numbers(device)
 
 
 @pytest.mark.multinode_distributed
@@ -586,3 +640,4 @@ def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
     _test_distrib_integration_multiclass(device)
     _test_distrib_integration_multilabel(device)
     _test_distrib_accumulator_device(device)
+    _test_distrib_integration_list_of_tensors_or_numbers(device)

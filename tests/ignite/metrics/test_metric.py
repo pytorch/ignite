@@ -934,3 +934,75 @@ def test_override_required_output_keys():
         (torch.rand(4, 10), torch.randint(0, 3, size=(4,))),
     ]
     evaluator.run(data)
+
+
+@pytest.mark.parametrize("shapes", [[(10,), ()], [(5, 32, 32), (5, 32, 32)],])
+def test_list_of_tensors_and_numbers(shapes):
+    def check_fn(output):
+        assert len(output) == 2
+        assert isinstance(output[0], torch.Tensor)
+        assert isinstance(output[1], torch.Tensor)
+        assert output[0].shape == (1,) + shapes[0]
+        assert output[1].shape == (1,) + shapes[1]
+
+    def get_data(gt_as_scalar=False):
+        return [
+            (
+                [torch.rand(shapes[0]) for _ in range(3 + i)],  # predictions
+                [
+                    torch.rand(shapes[1]).item() if gt_as_scalar else torch.rand(shapes[1]) for _ in range(3 + i)
+                ],  # ground truth
+            )
+            for i in range(5)
+        ]
+
+    class MyMetric(Metric):
+        def __init__(self, check_fn):
+            super(MyMetric, self).__init__()
+            self.check_fn = check_fn
+
+        def reset(self):
+            pass
+
+        def compute(self):
+            pass
+
+        def update(self, output):
+            self.check_fn(output)
+
+    engine = Engine(lambda e, b: b)
+    m = MyMetric(check_fn)
+    m.attach(engine, "m")
+
+    data = get_data()
+    engine.run(data)
+
+    if len(shapes[1]) == 0:
+        data = get_data(gt_as_scalar=True)
+        engine.run(data)
+
+
+def test_list_of_tensors_and_numbers_unsupported_output():
+    class MyMetric(Metric):
+        def reset(self):
+            pass
+
+        def compute(self):
+            pass
+
+        def update(self, output):
+            pass
+
+    engine = Engine(lambda e, b: ([0, 1, 2], [0, 1, 2], [0, 1, 2]))
+    m = MyMetric()
+    m.attach(engine, "m")
+
+    with pytest.raises(ValueError, match=r"Output should have 2 items of the same length"):
+        engine.run([0] * 10)
+
+    engine = Engine(lambda e, b: ([0, 1, 2], [0, 1, 2, 4]))
+    m = MyMetric()
+    m.attach(engine, "m")
+
+    with pytest.raises(ValueError, match=r"Output should have 2 items of the same length"):
+        engine.run([0] * 10)
