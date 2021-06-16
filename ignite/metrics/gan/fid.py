@@ -2,7 +2,6 @@ import warnings
 from distutils.version import LooseVersion
 from typing import Callable, Optional, Sequence, Union
 
-import numpy as np
 import torch
 
 from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
@@ -28,20 +27,22 @@ def fid_score(
 
     # Product might be almost singular
     covmean, _ = scipy.linalg.sqrtm(sigma1.mm(sigma2), disp=False)
-    if not np.isfinite(covmean).all():
-        offset = np.eye(sigma1.shape[0]) * eps
-        covmean = scipy.linalg.sqrtm(((sigma1 * offset) * (sigma2 * offset)) / (eps * eps))
+    covmean = torch.tensor(covmean)
 
     # Numerical error might give slight imaginary component
-    if np.iscomplexobj(covmean):
-        if not np.allclose(np.diagonal(covmean).imag, 0, atol=1e-3):
-            m = np.max(np.abs(covmean.imag))
+    if covmean.type() == "torch.ComplexDoubleTensor":
+        if not torch.allclose(torch.diagonal(covmean).imag, torch.tensor(0, dtype=torch.double), atol=1e-3):
+            m = torch.max(torch.abs(covmean.imag))
             raise ValueError("Imaginary component {}".format(m))
         covmean = covmean.real
+        covmean = torch.tensor(covmean.detach())
 
-    tr_covmean = np.trace(covmean)
+    tr_covmean = torch.trace(covmean)
 
-    return float(diff.dot(diff).item() + np.trace(sigma1) + np.trace(sigma2) - 2 * tr_covmean)
+    if not torch.isfinite(covmean).all():
+        tr_covmean = torch.sum(torch.sqrt(((sigma1.diag() * eps) * (sigma2.diag() * eps)) / (eps * eps)))
+
+    return float(diff.dot(diff).item() + torch.trace(sigma1) + torch.trace(sigma2) - 2 * tr_covmean)
 
 
 class InceptionExtractor:
