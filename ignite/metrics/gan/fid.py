@@ -14,7 +14,7 @@ __all__ = [
 
 def fid_score(
     mu1: torch.Tensor, mu2: torch.Tensor, sigma1: torch.Tensor, sigma2: torch.Tensor, eps: float = 1e-6
-) -> Union[torch.Tensor, float]:
+) -> float:
 
     try:
         import scipy
@@ -41,7 +41,7 @@ def fid_score(
 
     tr_covmean = np.trace(covmean)
 
-    return diff.dot(diff) + np.trace(sigma1) + np.trace(sigma2) - 2 * tr_covmean
+    return float(diff.dot(diff).item() + np.trace(sigma1) + np.trace(sigma2) - 2 * tr_covmean)
 
 
 class InceptionExtractor:
@@ -205,7 +205,7 @@ class FID(Metric):
         self._num_examples += train_features.shape[0]
 
     @sync_all_reduce("_num_examples", "_train_total", "_test_total", "_train_sigma", "_test_sigma")
-    def compute(self) -> Union[torch.Tensor, float]:
+    def compute(self) -> float:
         fid = fid_score(
             mu1=self._train_total / self._num_examples,
             mu2=self._test_total / self._num_examples,
