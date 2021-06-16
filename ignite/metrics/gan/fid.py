@@ -2,6 +2,7 @@ import warnings
 from distutils.version import LooseVersion
 from typing import Callable, Optional, Sequence, Union
 
+import numpy as np
 import torch
 
 from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
@@ -30,12 +31,11 @@ def fid_score(
     covmean = torch.tensor(covmean)
 
     # Numerical error might give slight imaginary component
-    if covmean.type() == "torch.ComplexDoubleTensor":
+    if np.iscomplexobj(covmean):
         if not torch.allclose(torch.diagonal(covmean).imag, torch.tensor(0, dtype=torch.double), atol=1e-3):
             m = torch.max(torch.abs(covmean.imag))
             raise ValueError("Imaginary component {}".format(m))
         covmean = covmean.real
-        covmean = torch.tensor(covmean.detach())
 
     tr_covmean = torch.trace(covmean)
 
