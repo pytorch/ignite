@@ -323,7 +323,8 @@ class Metric(metaclass=ABCMeta):
 
     def completed(self, engine: Engine, name: str) -> None:
         """Helper method to compute metric's value and put into the engine. It is automatically attached to the
-        `engine` with :meth:`~ignite.metrics.metric.Metric.attach`.
+        `engine` with :meth:`~ignite.metrics.metric.Metric.attach`. If metrics' value is torch tensor, it is
+        explicitly sent to CPU device.
 
         Args:
             engine: the engine to which the metric must be attached
@@ -331,6 +332,10 @@ class Metric(metaclass=ABCMeta):
 
         .. versionchanged:: 0.4.3
             Added dict in metrics results.
+
+        .. versionchanged:: 0.4.5
+            metric's value is put on CPU if torch tensor.
+
         """
         result = self.compute()
         if isinstance(result, Mapping):
@@ -341,8 +346,11 @@ class Metric(metaclass=ABCMeta):
                 engine.state.metrics[key] = value
             engine.state.metrics[name] = result
         else:
-            if isinstance(result, torch.Tensor) and len(result.size()) == 0:
-                result = result.item()
+            if isinstance(result, torch.Tensor):
+                if len(result.size()) == 0:
+                    result = result.item()
+                elif "cpu" not in result.device.type:
+                    result = result.cpu()
 
             engine.state.metrics[name] = result
 

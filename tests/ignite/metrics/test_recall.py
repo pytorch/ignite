@@ -434,7 +434,8 @@ def _test_distrib_integration_multiclass(device):
         assert re._updated is True
         res = engine.state.metrics["re"]
         if isinstance(res, torch.Tensor):
-            assert res.device == metric_device
+            # Fixes https://github.com/pytorch/ignite/issues/1635#issuecomment-863026919
+            assert res.device.type == "cpu"
             res = res.cpu().numpy()
 
         true_res = recall_score(
