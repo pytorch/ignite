@@ -106,7 +106,7 @@ class FID(_BaseInceptionMetric):
             m.update((y_pred, y))
             print(m.compute())
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.5
     """
 
     def __init__(
