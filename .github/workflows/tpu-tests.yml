@@ -72,6 +72,11 @@ jobs:
           ln -s libmkl_intel_thread.so.1 libmkl_intel_thread.so
           ln -s libmkl_core.so.1 libmkl_core.so
 
+      - name: Download MNIST
+        uses: pytorch-ignite/download-mnist-github-action@master
+        with:
+          target_dir: /tmp
+
       - name: Run Tests
         run: |
           export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/hostedtoolcache/Python/3.7.10/x64/lib
