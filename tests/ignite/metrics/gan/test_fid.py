@@ -71,9 +71,9 @@ def test_fid_function():
 
     sigma1 = torch.tensor(sigma1, dtype=torch.float64)
     sigma2 = torch.tensor(sigma2, dtype=torch.float64)
-    assert pytest.approx(
-        fid_score(mu1, mu2, sigma1, sigma2), rel=1e-3, abs=1e-3
-    ) == pytorch_fid_score.calculate_frechet_distance(mu1, sigma1, mu2, sigma2)
+    assert pytest.approx(fid_score(mu1, mu2, sigma1, sigma2), rel=1e-5) == pytorch_fid_score.calculate_frechet_distance(
+        mu1, sigma1, mu2, sigma2
+    )
 
 
 def test_compute_fid_from_features():
@@ -87,7 +87,7 @@ def test_compute_fid_from_features():
     mu2, sigma2 = test_samples.mean(axis=0), cov(test_samples, rowvar=False)
 
     assert (
-        pytest.approx(pytorch_fid_score.calculate_frechet_distance(mu1, sigma1, mu2, sigma2), rel=1e-3, abs=1e-3)
+        pytest.approx(pytorch_fid_score.calculate_frechet_distance(mu1, sigma1, mu2, sigma2), rel=1e-5)
         == fid_scorer.compute()
     )
 
@@ -190,7 +190,7 @@ def _test_distrib_integration(device):
         evaluator = pytorch_fid_score.calculate_frechet_distance
         mu1, sigma1 = y_pred.mean(axis=0).to("cpu"), cov(y_pred.to("cpu"), rowvar=False)
         mu2, sigma2 = y_true.mean(axis=0).to("cpu"), cov(y_true.to("cpu"), rowvar=False)
-        assert pytest.approx(evaluator(mu1, sigma1, mu2, sigma2), rel=1e-3, abs=1e-3) == m.compute()
+        assert pytest.approx(evaluator(mu1, sigma1, mu2, sigma2), rel=1e-5) == m.compute()
 
     metric_devices = [torch.device("cpu")]
     if device.type != "xla":
