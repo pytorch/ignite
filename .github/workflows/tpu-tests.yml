@@ -72,6 +72,8 @@ jobs:
           ln -s libmkl_intel_thread.so.1 libmkl_intel_thread.so
           ln -s libmkl_core.so.1 libmkl_core.so
 
+      # Download MNIST: https://github.com/pytorch/ignite/issues/1737
+      # to "/tmp" for unit tests
       - name: Download MNIST
         uses: pytorch-ignite/download-mnist-github-action@master
         with:
