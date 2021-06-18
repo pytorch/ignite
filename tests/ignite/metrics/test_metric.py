@@ -778,6 +778,31 @@ def test_completed():
     assert engine.state.metrics == {"metric": "foo"}
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
+def test_completed_on_cuda():
+
+    # Checks https://github.com/pytorch/ignite/issues/1635#issuecomment-863026919
+
+    class DummyMetric(Metric):
+        def reset(self):
+            pass
+
+        def compute(self):
+            return torch.tensor([1.0, 2.0, 3.0], device="cuda")
+
+        def update(self, output):
+            pass
+
+    m = DummyMetric()
+
+    # tensor
+    engine = MagicMock(state=State(metrics={}))
+    m.completed(engine, "metric")
+    assert "metric" in engine.state.metrics
+    assert isinstance(engine.state.metrics["metric"], torch.Tensor)
+    assert engine.state.metrics["metric"].device.type == "cpu"
+
+
 def test_usage_exception():
     engine = Engine(lambda e, b: b)
     m = DummyMetric2()
