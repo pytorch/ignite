@@ -61,7 +61,7 @@ jobs:
           python setup.py install
 
       # Download MNIST: https://github.com/pytorch/ignite/issues/1737
-      # to "/tmp" for unit tests
+      # to "/tmp" for cpu tests
       - name: Download MNIST
         uses: pytorch-ignite/download-mnist-github-action@master
         with:
