@@ -320,11 +320,27 @@ def _test_distrib_geom_average(device):
             _test(idist.device())
 
 
+def _dist_mean(y_true):
+    y_true = idist.all_reduce(y_true) / idist.get_world_size()
+    if len(y_true.shape) > 2:
+        y_true = y_true.reshape(-1, y_true.shape[-1])
+    return y_true.mean(dim=0).cpu().numpy()
+
+
+def _dist_geom_mean(y_true):
+    log_y_true = torch.log(y_true)
+    log_y_true = idist.all_reduce(log_y_true)
+    if len(log_y_true.shape) > 2:
+        log_y_true = log_y_true.reshape(-1, log_y_true.shape[-1])
+    np_t = log_y_true.cpu().numpy()
+    return np.exp(np.mean(np_t, axis=0) / idist.get_world_size())
+
+
 def _test_distrib_integration(device):
-    def _test(metric_cls, true_result_fn, metric_device, tol=1e-5):
+    def _test(metric_cls, shape, true_result_fn, metric_device, tol=1e-5):
 
         size = 100
-        custom_variable = 10.0 + 5.0 * torch.rand(size, 12, dtype=torch.float64)
+        custom_variable = 10.0 + 5.0 * torch.rand(size, *shape, dtype=torch.float64)
         custom_variable = custom_variable.to(device)
 
         def update_fn(engine, batch):
@@ -336,10 +352,11 @@ def _test_distrib_integration(device):
         custom_var_mean.attach(engine, "agg_custom_var")
 
         state = engine.run([0] * size)
+        true_val = true_result_fn(custom_variable)
+        assert len(true_val) == shape[-1]
+
         np.testing.assert_almost_equal(
-            state.metrics["agg_custom_var"].cpu().numpy(),
-            true_result_fn(custom_variable),
-            decimal=int(np.log10(1.0 / tol)),
+            state.metrics["agg_custom_var"].cpu().numpy(), true_val, decimal=int(np.log10(1.0 / tol)),
         )
 
         size = 100
@@ -357,22 +374,13 @@ def _test_distrib_integration(device):
         state = engine.run([0] * size)
         assert state.metrics["agg_custom_var"] == pytest.approx(true_result_fn(custom_variable), abs=tol)
 
-    def _mean(y_true):
-        y_true = idist.all_reduce(y_true)
-        return y_true.mean(dim=0).cpu().numpy() / idist.get_world_size()
-
-    def _geom_mean(y_true):
-        log_y_true = torch.log(y_true)
-        log_y_true = idist.all_reduce(log_y_true)
-        np_t = log_y_true.cpu().numpy()
-        return np.exp(np.mean(np_t, axis=0) / idist.get_world_size())
-
     metric_devices = ["cpu"]
     if device.type != "xla":
         metric_devices.append(idist.device())
     for metric_device in metric_devices:
-        _test(Average, _mean, metric_device)
-        _test(GeometricAverage, _geom_mean, metric_device, tol=1e-4)
+        _test(Average, (12,), _dist_mean, metric_device)
+        _test(Average, (4, 12), _dist_mean, metric_device)
+        _test(GeometricAverage, (12,), _dist_geom_mean, metric_device, tol=1e-4)
 
 
 def _test_distrib_accumulator_device(device):
