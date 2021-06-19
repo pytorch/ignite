@@ -42,6 +42,7 @@ jobs:
           force_orphan: true
 
   linkcheck:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
