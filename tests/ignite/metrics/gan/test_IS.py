@@ -37,13 +37,6 @@ def test_wrong_inputs():
         InceptionScore(num_probabilities=1000).compute()
 
 
-# def test_inception_extractor_wrong_inputs():
-#     with pytest.raises(ValueError, match=r"Inputs should be a tensor of dim 4"):
-#         InceptionExtractor()(torch.rand(2))
-#     with pytest.raises(ValueError, match=r"Inputs should be a tensor with 3 channels"):
-#         InceptionExtractor()(torch.rand(2, 2, 2, 0))
-
-
 def _test_distrib_integration(device):
 
     from ignite.engine import Engine

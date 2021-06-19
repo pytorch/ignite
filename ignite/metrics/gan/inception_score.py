@@ -1,11 +1,14 @@
-from typing import Callable, Union
+from typing import Callable, Optional, Union
 
 import torch
 
 from ignite.exceptions import NotComputableError
+from ignite.metrics.gan.utils import InceptionModel
 
 # These decorators helps with distributed settings
 from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
+
+__all__ = ["InceptionScore"]
 
 
 class InceptionScore(Metric):
@@ -50,8 +53,22 @@ class InceptionScore(Metric):
     """
 
     def __init__(
-        self, num_probabilities: int, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = "cpu"
+        self,
+        num_probabilities: Optional[int] = None,
+        prediction_model: Optional[Callable] = None,
+        output_transform: Callable = lambda x: x,
+        device: Union[str, torch.device] = "cpu",
     ) -> None:
+
+        if num_probabilities is None and prediction_model is None:
+            num_probabilities = 1000
+            prediction_model = InceptionModel(return_features=False)
+        elif num_probabilities is None:
+            raise ValueError("Argument num_probabilities should be defined")
+        elif prediction_model is None:
+            self._prediction_model = lambda x: x
+            prediction_model = self._prediction_model
+
         if num_probabilities <= 0:
             raise ValueError(f"Argument num_probabilities must be greater to zero, got: {num_probabilities}")
         self._num_probs = num_probabilities
@@ -76,10 +93,11 @@ class InceptionScore(Metric):
 
     @reinit__is_reduced
     def update(self, samples: torch.Tensor) -> None:
-        self._check_feature_input(samples)
-        self._num_examples += samples.shape[0]
-        self._prob_total += torch.sum(samples, 0).to(self._device)
-        self._total_kl_d += torch.sum(samples * torch.log(samples + self._eps), 0).to(self._device)
+        probabilities = self._prediction_model(samples.detach()).to(self._device)
+        self._check_feature_input(probabilities)
+        self._num_examples += probabilities.shape[0]
+        self._prob_total += torch.sum(probabilities, 0).to(self._device)
+        self._total_kl_d += torch.sum(probabilities * torch.log(probabilities + self._eps), 0).to(self._device)
 
     @sync_all_reduce("_num_examples", "_prob_total", "_total_kl_d")
     def compute(self) -> torch.Tensor:
