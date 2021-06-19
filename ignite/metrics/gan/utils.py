@@ -2,7 +2,7 @@ import torch
 
 
 class InceptionModel:
-    def __init__(self, return_features) -> None:
+    def __init__(self, return_features: bool) -> None:
         try:
             from torchvision import models
         except ImportError:
