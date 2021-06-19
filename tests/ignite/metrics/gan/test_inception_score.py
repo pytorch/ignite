@@ -8,7 +8,7 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics.gan.inception_score import InceptionScore
 
 
-def calculate_inception_score(p_yx, eps=1e-16):
+def calculate_inception_score(p_yx):
     p_y = torch.unsqueeze(p_yx.mean(axis=0), 0)
     kl_d = torch.kl_div(torch.log(p_y), p_yx)
     sum_kl_d = kl_d.sum(axis=1)
