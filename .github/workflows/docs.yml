@@ -2,7 +2,6 @@ name: Build docs
 
 on:
   push:
-    branches: [master]
   pull_request:
     paths-ignore:
       - "tests/**"
@@ -12,7 +11,7 @@ on:
 
 jobs:
   build-deploy:
-    if: github.event_name != 'pull_request'
+    if: (github.ref == 'refs/heads/master' && github.event_name == 'push') || github.event_name == 'release'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
