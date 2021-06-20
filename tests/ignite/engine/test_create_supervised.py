@@ -82,7 +82,7 @@ def _test_create_supervised_trainer(
                 assert not hasattr(state, "scaler")
     else:
         if LooseVersion(torch.__version__) >= LooseVersion("1.9.0"):
-            # This is broken in 1.6.0 but will be probably fixed with 1.9.0
+            # This is broken in 1.8.1 but will be probably fixed with 1.9.0
             with pytest.raises(RuntimeError, match=r"is on CPU, but expected them to be on GPU"):
                 trainer.run(data)
 
