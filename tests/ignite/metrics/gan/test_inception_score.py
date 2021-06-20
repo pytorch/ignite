@@ -31,9 +31,11 @@ def test_wrong_inputs():
         InceptionScore(num_probabilities=1000).update(torch.rand(3))
     with pytest.raises(ValueError, match=r"Batch size should be greater than one, got: 0"):
         InceptionScore(num_probabilities=1000).update(torch.rand(0, 0))
-    with pytest.raises(ValueError, match=r"Number of Probabilities should be greater than one, got: 0"):
+    with pytest.raises(ValueError, match=r"Number of Probabilities should be 1000, got: 0"):
         InceptionScore(num_probabilities=1000).update(torch.rand(2, 0))
-    with pytest.raises(NotComputableError, match=r"IS must have at least one example before it can be computed."):
+    with pytest.raises(
+        NotComputableError, match=r"InceptionScore must have at least one example before it can be computed."
+    ):
         InceptionScore(num_probabilities=1000).compute()
 
 
@@ -56,11 +58,11 @@ def _test_distrib_integration(device):
 
         engine = Engine(update)
         m = InceptionScore(num_probabilities=n_probabilities, device=metric_device)
-        m.attach(engine, "IS")
+        m.attach(engine, "InceptionScore")
 
         engine.run(data=list(range(n_iters)), max_epochs=1)
 
-        assert "IS" in engine.state.metrics
+        assert "InceptionScore" in engine.state.metrics
 
         assert pytest.approx(calculate_inception_score(y)) == m.compute().cpu()
 

@@ -102,7 +102,7 @@ def test_wrong_inputs():
         FID(num_features=1, feature_extractor=lambda x: x).update(torch.Tensor([[], []]))
     with pytest.raises(ValueError, match=r"Batch size should be greater than one, got: 0"):
         FID(num_features=1, feature_extractor=lambda x: x).update(torch.rand(2, 0, 0))
-    with pytest.raises(ValueError, match=r"Feature size should be greater than one, got: 0"):
+    with pytest.raises(ValueError, match=r"Feature size should be 1, got: 0"):
         FID(num_features=1, feature_extractor=lambda x: x).update(torch.rand(2, 2, 0))
     err_str = (
         "Number of Training Features and Testing Features should be equal (torch.Size([9, 2]) != torch.Size([5, 2]))"

@@ -27,6 +27,8 @@ class InceptionScore(Metric):
 
     Args:
         num_probabilities: number of probabilities predicted by the model or number of classes of the model
+        prediction_model: a callable for predicting the probabilities from the input data. If neither
+            num_probabilities nor prediction_model are defined, default value is ``InceptionModel``.
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
@@ -43,7 +45,7 @@ class InceptionScore(Metric):
             from ignite.metric.gan.IS import InceptionScore
             import torch
 
-            probabilities = torch.rand(10, 2048), torch.rand(10, 2048)
+            probabilities = torch.rand(10, 1000)
 
             m = InceptionScore(num_probabilities=1000)
             m.update(probabilities)
@@ -76,13 +78,13 @@ class InceptionScore(Metric):
         super(InceptionScore, self).__init__(output_transform=output_transform, device=device)
 
     @staticmethod
-    def _check_feature_input(samples: torch.Tensor) -> None:
+    def _check_feature_input(samples: torch.Tensor, num_probs: int) -> None:
         if samples.dim() != 2:
             raise ValueError(f"Probabilities must be a tensor of dim 2, got: {samples.dim()}")
         if samples.shape[0] == 0:
             raise ValueError(f"Batch size should be greater than one, got: {samples.shape[0]}")
-        if samples.shape[1] == 0:
-            raise ValueError(f"Number of Probabilities should be greater than one, got: {samples.shape[1]}")
+        if samples.shape[1] != num_probs:
+            raise ValueError(f"Number of Probabilities should be {num_probs}, got: {samples.shape[1]}")
 
     @reinit__is_reduced
     def reset(self) -> None:
@@ -94,7 +96,7 @@ class InceptionScore(Metric):
     @reinit__is_reduced
     def update(self, samples: torch.Tensor) -> None:
         probabilities = self._prediction_model(samples.detach()).to(self._device)
-        self._check_feature_input(probabilities)
+        self._check_feature_input(probabilities, self._num_probs)
         self._num_examples += probabilities.shape[0]
         self._prob_total += torch.sum(probabilities, 0).to(self._device)
         self._total_kl_d += torch.sum(probabilities * torch.log(probabilities + self._eps), 0).to(self._device)
@@ -102,7 +104,7 @@ class InceptionScore(Metric):
     @sync_all_reduce("_num_examples", "_prob_total", "_total_kl_d")
     def compute(self) -> torch.Tensor:
         if self._num_examples == 0:
-            raise NotComputableError("IS must have at least one example before it can be computed.")
+            raise NotComputableError("InceptionScore must have at least one example before it can be computed.")
         mean_probs = self._prob_total / self._num_examples
         excess_entropy = self._prob_total * torch.log(mean_probs + self._eps)
         avg_kl_d = torch.sum(self._total_kl_d - excess_entropy) / self._num_examples
