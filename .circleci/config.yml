@@ -23,10 +23,10 @@ parameters:
     default: "1.9.0-cuda11.1-cudnn8"
   build_docker_image_hvd_version:
     type: string
-    default: "v0.21.3"
+    default: "v0.22.1"
   build_docker_image_msdp_version:
     type: string
-    default: "v0.3.10"
+    default: "v0.4.0"
 
 # -------------------------------------------------------------------------------------
 # Environments to run the jobs in
