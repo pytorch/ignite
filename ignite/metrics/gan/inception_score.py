@@ -77,14 +77,13 @@ class InceptionScore(Metric):
         self._eps = 1e-16
         super(InceptionScore, self).__init__(output_transform=output_transform, device=device)
 
-    @staticmethod
-    def _check_feature_input(samples: torch.Tensor, num_probs: int) -> None:
+    def _check_feature_input(self, samples: torch.Tensor) -> None:
         if samples.dim() != 2:
             raise ValueError(f"Probabilities must be a tensor of dim 2, got: {samples.dim()}")
         if samples.shape[0] == 0:
             raise ValueError(f"Batch size should be greater than one, got: {samples.shape[0]}")
-        if samples.shape[1] != num_probs:
-            raise ValueError(f"Number of Probabilities should be {num_probs}, got: {samples.shape[1]}")
+        if samples.shape[1] != self._num_probs:
+            raise ValueError(f"Number of Probabilities should be {self._num_probs}, got: {samples.shape[1]}")
 
     @reinit__is_reduced
     def reset(self) -> None:
@@ -96,7 +95,7 @@ class InceptionScore(Metric):
     @reinit__is_reduced
     def update(self, samples: torch.Tensor) -> None:
         probabilities = self._prediction_model(samples.detach()).to(self._device)
-        self._check_feature_input(probabilities, self._num_probs)
+        self._check_feature_input(probabilities)
         self._num_examples += probabilities.shape[0]
         self._prob_total += torch.sum(probabilities, 0).to(self._device)
         self._total_kl_d += torch.sum(probabilities * torch.log(probabilities + self._eps), 0).to(self._device)

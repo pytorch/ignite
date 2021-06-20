@@ -154,15 +154,14 @@ class FID(Metric):
         sub_matrix = sub_matrix / self._num_examples
         return (sigma - sub_matrix) / (self._num_examples - 1)
 
-    @staticmethod
-    def _check_feature_input(train: torch.Tensor, test: torch.Tensor, num_features: int) -> None:
+    def _check_feature_input(self, train: torch.Tensor, test: torch.Tensor) -> None:
         for feature in [train, test]:
             if feature.dim() != 2:
                 raise ValueError(f"Features must be a tensor of dim 2, got: {feature.dim()}")
             if feature.shape[0] == 0:
                 raise ValueError(f"Batch size should be greater than one, got: {feature.shape[0]}")
-            if feature.shape[1] != num_features:
-                raise ValueError(f"Feature size should be {num_features}, got: {feature.shape[1]}")
+            if feature.shape[1] != self._num_features:
+                raise ValueError(f"Feature size should be {self._num_features}, got: {feature.shape[1]}")
         if train.shape[0] != test.shape[0] or train.shape[1] != test.shape[1]:
             raise ValueError(
                 f"Number of Training Features and Testing Features should be equal ({train.shape} != {test.shape})"
@@ -185,7 +184,7 @@ class FID(Metric):
         test_features = self._feature_extractor(output[1].detach()).to(self._device)
 
         # Check the feature shapess
-        self._check_feature_input(train_features, test_features, self._num_features)
+        self._check_feature_input(train_features, test_features)
 
         # Updates the mean and covariance for the train features
         for i, features in enumerate(train_features, start=self._num_examples + 1):
