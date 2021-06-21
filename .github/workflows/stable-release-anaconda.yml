@@ -1,7 +1,8 @@
 name: Anaconda Stable Releases
 
 on:
-  workflow_dispatch:
+  release:
+    types: [published]
 
 jobs:
   conda-build-publish:
