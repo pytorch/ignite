@@ -15,10 +15,11 @@ class InceptionScore(Metric):
     r"""Calculates Inception Score.
 
     .. math::
-       \text{IS(G)} = \frac{1}{N}\sum_{i=1}^{N} D_{KL} (p(y|x^{(i)} \parallel \hat{p}(y)))
+       \text{IS(G)} = \exp(\frac{1}{N}\sum_{i=1}^{N} D_{KL} (p(y|x^{(i)} \parallel \hat{p}(y))))
 
     where :math:`p(y|x)` is the conditional probability of image being the given object and
-    :math:`p(y)` is the marginal probability that the given image is real.
+    :math:`p(y)` is the marginal probability that the given image is real, `G` refers to the
+    generated image and :math:`D_{KL}` refers to KL Divergence of the above mentioned probabilities.
 
     More details can be found in `Barratt et al. 2018`__.
 
@@ -28,7 +29,7 @@ class InceptionScore(Metric):
     Args:
         num_probabilities: number of probabilities predicted by the model or number of classes of the model
         prediction_model: a callable for predicting the probabilities from the input data. If neither
-            ``num_probabilities`` nor ``prediction_model`` are defined, default value is ``InceptionModel``.
+            ``num_probabilities`` nor ``prediction_model`` are defined, default value is :class:`InceptionModel`.
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
