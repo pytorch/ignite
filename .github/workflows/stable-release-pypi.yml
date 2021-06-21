@@ -1,6 +1,8 @@
 name: PyPI Stable Releases
 
-on: workflow_dispatch
+on:
+  release:
+    types: [published]
 
 jobs:
   build-publish:
