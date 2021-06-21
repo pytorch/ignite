@@ -28,7 +28,7 @@ class InceptionScore(Metric):
     Args:
         num_probabilities: number of probabilities predicted by the model or number of classes of the model
         prediction_model: a callable for predicting the probabilities from the input data. If neither
-            num_probabilities nor prediction_model are defined, default value is ``InceptionModel``.
+            ``num_probabilities`` nor ``prediction_model`` are defined, default value is ``InceptionModel``.
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
@@ -45,10 +45,10 @@ class InceptionScore(Metric):
             from ignite.metric.gan.IS import InceptionScore
             import torch
 
-            probabilities = torch.rand(10, 1000)
+            images = torch.rand(10, 3, 299, 299)
 
-            m = InceptionScore(num_probabilities=1000)
-            m.update(probabilities)
+            m = InceptionScore()
+            m.update(images)
             print(m.compute())
 
     .. versionadded:: 0.5.0
@@ -74,6 +74,7 @@ class InceptionScore(Metric):
         if num_probabilities <= 0:
             raise ValueError(f"Argument num_probabilities must be greater to zero, got: {num_probabilities}")
         self._num_probs = num_probabilities
+        self._prediction_model = prediction_model
         self._eps = 1e-16
         super(InceptionScore, self).__init__(output_transform=output_transform, device=device)
 
@@ -93,8 +94,9 @@ class InceptionScore(Metric):
         super(InceptionScore, self).reset()
 
     @reinit__is_reduced
+    @torch.no_grad()
     def update(self, samples: torch.Tensor) -> None:
-        probabilities = self._prediction_model(samples.detach()).to(self._device)
+        probabilities = self._prediction_model(samples).to(self._device)
         self._check_feature_input(probabilities)
         self._num_examples += probabilities.shape[0]
         self._prob_total += torch.sum(probabilities, 0).to(self._device)

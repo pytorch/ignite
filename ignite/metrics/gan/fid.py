@@ -74,8 +74,8 @@ class FID(Metric):
     Args:
         num_features: number of features, must be defined if the parameter ``feature_extractor`` is also defined.
             Otherwise, default value is 2048.
-        feature_extractor: a callable for extracting the features from the input data. If neither num_features nor
-            feature_extractor are defined, default value is ``InceptionModel``.
+        feature_extractor: a callable for extracting the features from the input data. If neither ``num_features`` nor
+            ``feature_extractor`` are defined, default value is ``InceptionModel``.
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
@@ -92,7 +92,7 @@ class FID(Metric):
             import torch
             from ignite.metric.gan import FID
 
-            y_pred, y = torch.rand(10, 2048), torch.rand(10, 2048)
+            y_pred, y = torch.rand(10, 3, 299, 299), torch.rand(10, 3, 299, 299)
             m = FID()
             m.update((y_pred, y))
             print(m.compute())
@@ -177,11 +177,12 @@ class FID(Metric):
         super(FID, self).reset()
 
     @reinit__is_reduced
+    @torch.no_grad()
     def update(self, output: Sequence[torch.Tensor]) -> None:
 
         # Extract the features from the outputs
-        train_features = self._feature_extractor(output[0].detach()).to(self._device)
-        test_features = self._feature_extractor(output[1].detach()).to(self._device)
+        train_features = self._feature_extractor(output[0]).to(self._device)
+        test_features = self._feature_extractor(output[1]).to(self._device)
 
         # Check the feature shapess
         self._check_feature_input(train_features, test_features)
