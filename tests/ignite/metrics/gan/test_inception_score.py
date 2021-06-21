@@ -23,6 +23,11 @@ def test_inception_score():
     m.update(p_yx)
     assert pytest.approx(calculate_inception_score(p_yx)) == m.compute()
 
+    p_yx = torch.rand(20, 3, 299, 299)
+    m = InceptionScore()
+    m.update(p_yx)
+    assert torch.is_tensor(m.compute())
+
 
 def test_wrong_inputs():
     with pytest.raises(ValueError, match=r"Argument num_probabilities must be greater to zero, got:"):
