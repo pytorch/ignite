@@ -33,4 +33,6 @@ class InceptionModel:
             raise ValueError(f"Inputs should be a tensor of dim 4, got {data.dim()}")
         if data.shape[1] != 3:
             raise ValueError(f"Inputs should be a tensor with 3 channels, got {data.shape}")
-        return self.model(data.to(self._device))
+        if data.device != torch.device(self._device):
+            data = data.to(self._device)
+        return self.model(data)

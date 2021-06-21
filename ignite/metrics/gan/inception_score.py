@@ -72,9 +72,11 @@ class InceptionScore(Metric):
         super(InceptionScore, self).__init__(output_transform=output_transform, device=device)
 
     @staticmethod
-    def _check_input(num_probabilities: Optional[int], prediction_model: Optional[Callable]) -> Tuple[int, Callable]:
+    def _check_input(
+        num_probabilities: Optional[int], prediction_model: Optional[Callable], device: Union[str, torch.device]
+    ) -> Tuple[int, Callable]:
         if num_probabilities is None and prediction_model is None:
-            return 1000, InceptionModel(return_features=False)
+            return 1000, InceptionModel(return_features=False, device=device)
         elif num_probabilities is None:
             raise ValueError("Argument num_probabilities should be defined, if prediction_model is provided")
         elif prediction_model is None:

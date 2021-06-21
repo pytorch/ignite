@@ -122,14 +122,16 @@ class FID(Metric):
             raise ValueError(f"Argument num_features must be greater to zero, got: {num_features}")
 
         # default is inception
-        self._num_features, self._feature_extractor = self._check_input(num_features, feature_extractor)
+        self._num_features, self._feature_extractor = self._check_input(num_features, feature_extractor, device)
         self._eps = 1e-6
         super(FID, self).__init__(output_transform=output_transform, device=device)
 
     @staticmethod
-    def _check_input(num_features: Optional[int], feature_extractor: Optional[Callable]) -> Tuple[int, Callable]:
+    def _check_input(
+        num_features: Optional[int], feature_extractor: Optional[Callable], device: Union[str, torch.device]
+    ) -> Tuple[int, Callable]:
         if num_features is None and feature_extractor is None:
-            return 2048, InceptionModel(return_features=True)
+            return 2048, InceptionModel(return_features=True, device=device)
         elif num_features is None:
             raise ValueError("Argument num_features should be defined, if feature_extractor is provided")
         elif feature_extractor is None:
