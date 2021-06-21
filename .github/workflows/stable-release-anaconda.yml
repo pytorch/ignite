@@ -20,8 +20,6 @@ jobs:
         shell: bash -l {0}
         run: |
           conda install -y pytorch torchvision cpuonly -c pytorch
-          pip install -r requirements-dev.txt
-          pip install --upgrade --no-cache-dir twine
           python setup.py install
 
       - name: Build and Publish Conda binaries
