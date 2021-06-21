@@ -30,7 +30,8 @@ class InceptionScore(Metric):
         num_probabilities: number of probabilities predicted by the model or number of classes of the model
         prediction_model: a callable for predicting the probabilities from the input data. If neither
             ``num_probabilities`` nor ``prediction_model`` are defined, by default we use an ImageNet
-            pretrained Inception Model.
+            pretrained Inception Model. Please note that the model will be implicitly converted to device
+            mentioned in the ``device`` argument.
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
@@ -59,9 +60,9 @@ class InceptionScore(Metric):
     def __init__(
         self,
         num_probabilities: Optional[int] = None,
-        prediction_model: Optional[Callable] = None,
+        prediction_model: Optional[torch.nn.Module] = None,
         output_transform: Callable = lambda x: x,
-        device: Union[str, torch.device] = "cpu",
+        device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
 
         if num_probabilities is not None and num_probabilities <= 0:
@@ -73,16 +74,16 @@ class InceptionScore(Metric):
 
     @staticmethod
     def _check_input(
-        num_probabilities: Optional[int], prediction_model: Optional[Callable], device: Union[str, torch.device]
-    ) -> Tuple[int, Callable]:
+        num_probabilities: Optional[int], prediction_model: Optional[torch.nn.Module], device: Union[str, torch.device]
+    ) -> Tuple[int, torch.nn.Module]:
         if num_probabilities is None and prediction_model is None:
             return 1000, InceptionModel(return_features=False, device=device)
         elif num_probabilities is None:
             raise ValueError("Argument num_probabilities should be defined, if prediction_model is provided")
         elif prediction_model is None:
-            return num_probabilities, lambda x: x
+            return num_probabilities, torch.nn.Identity().to(device)
         else:
-            return num_probabilities, prediction_model
+            return num_probabilities, prediction_model.to(device)
 
     def _check_feature_input(self, samples: torch.Tensor) -> None:
         if samples.dim() != 2:
@@ -95,14 +96,18 @@ class InceptionScore(Metric):
     @reinit__is_reduced
     def reset(self) -> None:
         self._num_examples = 0
-        self._prob_total = torch.zeros(self._num_probs, dtype=torch.float64).to(self._device)
-        self._total_kl_d = torch.zeros(self._num_probs, dtype=torch.float64).to(self._device)
+        self._prob_total = torch.zeros(self._num_probs, dtype=torch.float64, device=self._device)
+        self._total_kl_d = torch.zeros(self._num_probs, dtype=torch.float64, device=self._device)
         super(InceptionScore, self).reset()
 
     @reinit__is_reduced
     def update(self, samples: torch.Tensor) -> None:
+        if samples.device != torch.device(self._device):
+            samples = samples.to(self._device)
+
         with torch.no_grad():
             probabilities = self._prediction_model(samples).to(self._device)
+
         self._check_feature_input(probabilities)
         self._num_examples += probabilities.shape[0]
         self._prob_total += torch.sum(probabilities, 0).to(self._device)

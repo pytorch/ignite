@@ -29,6 +29,14 @@ def test_inception_score():
     assert torch.is_tensor(m.compute())
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
+def test_device_mismatch_cuda():
+    p_yx = torch.rand(20, 10)
+    m = InceptionScore(num_probabilities=10, prediction_model=torch.nn.Identity().to("cpu"), device="cuda")
+    m.update(p_yx)
+    assert pytest.approx(calculate_inception_score(p_yx)) == m.compute().item()
+
+
 def test_wrong_inputs():
     with pytest.raises(ValueError, match=r"Argument num_probabilities must be greater to zero, got:"):
         InceptionScore(num_probabilities=-1).update(torch.rand(2, 0))
@@ -45,7 +53,7 @@ def test_wrong_inputs():
     with pytest.raises(
         ValueError, match=r"Argument num_probabilities should be defined, if prediction_model is provided"
     ):
-        InceptionScore(prediction_model=lambda x: x)
+        InceptionScore(prediction_model=torch.nn.Identity())
 
 
 def _test_distrib_integration(device):

@@ -43,7 +43,6 @@ __all__ = [
     "FID",
     "GeometricAverage",
     "IoU",
-    "InceptionModel",
     "InceptionScore",
     "mIoU",
     "JaccardIndex",

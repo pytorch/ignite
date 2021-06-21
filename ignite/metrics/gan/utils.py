@@ -2,10 +2,8 @@ from typing import Union
 
 import torch
 
-__all__ = ["InceptionModel"]
 
-
-class InceptionModel:
+class InceptionModel(torch.nn.Module):
     r"""Inception Model pre-trained on the ImageNet Dataset.
 
     Args:
@@ -21,6 +19,7 @@ class InceptionModel:
             from torchvision import models
         except ImportError:
             raise RuntimeError("This module requires torchvision to be installed.")
+        super(InceptionModel, self).__init__()
         self._device = device
         self.model = models.inception_v3(pretrained=True).to(self._device)
         if return_features:
@@ -28,7 +27,7 @@ class InceptionModel:
         self.model.eval()
 
     @torch.no_grad()
-    def __call__(self, data: torch.Tensor) -> torch.Tensor:
+    def forward(self, data: torch.Tensor) -> torch.Tensor:
         if data.dim() != 4:
             raise ValueError(f"Inputs should be a tensor of dim 4, got {data.dim()}")
         if data.shape[1] != 3:

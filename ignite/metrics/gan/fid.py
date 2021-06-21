@@ -75,7 +75,8 @@ class FID(Metric):
         num_features: number of features, must be defined if the parameter ``feature_extractor`` is also defined.
             Otherwise, default value is 2048.
         feature_extractor: a callable for extracting the features from the input data. If neither ``num_features`` nor
-            ``feature_extractor`` are defined, by default we use an ImageNet pretrained Inception Model.
+            ``feature_extractor`` are defined, by default we use an ImageNet pretrained Inception Model. Please note
+            that the model will be implicitly converted to device mentioned in the ``device`` argument.
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
@@ -103,7 +104,7 @@ class FID(Metric):
     def __init__(
         self,
         num_features: Optional[int] = None,
-        feature_extractor: Optional[Callable] = None,
+        feature_extractor: Optional[torch.nn.Module] = None,
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
@@ -128,16 +129,16 @@ class FID(Metric):
 
     @staticmethod
     def _check_input(
-        num_features: Optional[int], feature_extractor: Optional[Callable], device: Union[str, torch.device]
-    ) -> Tuple[int, Callable]:
+        num_features: Optional[int], feature_extractor: Optional[torch.nn.Module], device: Union[str, torch.device]
+    ) -> Tuple[int, torch.nn.Module]:
         if num_features is None and feature_extractor is None:
             return 2048, InceptionModel(return_features=True, device=device)
         elif num_features is None:
             raise ValueError("Argument num_features should be defined, if feature_extractor is provided")
         elif feature_extractor is None:
-            return num_features, lambda x: x
+            return num_features, torch.nn.Identity().to(device)
         else:
-            return num_features, feature_extractor
+            return num_features, feature_extractor.to(device)
 
     @staticmethod
     def _online_update(features: torch.Tensor, total: torch.Tensor, sigma: torch.Tensor) -> None:
@@ -173,15 +174,22 @@ class FID(Metric):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._train_sigma = torch.zeros((self._num_features, self._num_features), dtype=torch.float64).to(self._device)
-        self._train_total = torch.zeros(self._num_features, dtype=torch.float64).to(self._device)
-        self._test_sigma = torch.zeros((self._num_features, self._num_features), dtype=torch.float64).to(self._device)
-        self._test_total = torch.zeros(self._num_features, dtype=torch.float64).to(self._device)
+        self._train_sigma = torch.zeros(
+            (self._num_features, self._num_features), dtype=torch.float64, device=self._device
+        )
+        self._train_total = torch.zeros(self._num_features, dtype=torch.float64, device=self._device)
+        self._test_sigma = torch.zeros(
+            (self._num_features, self._num_features), dtype=torch.float64, device=self._device
+        )
+        self._test_total = torch.zeros(self._num_features, dtype=torch.float64, device=self._device)
         self._num_examples = 0
         super(FID, self).reset()
 
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
+        for images in output:
+            if images.device != torch.device(self._device):
+                images = images.to(self._device)
 
         # Extract the features from the outputs
         with torch.no_grad():
