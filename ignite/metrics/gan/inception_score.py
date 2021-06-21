@@ -67,7 +67,7 @@ class InceptionScore(Metric):
         if num_probabilities is not None and num_probabilities <= 0:
             raise ValueError(f"Argument num_probabilities must be greater to zero, got: {num_probabilities}")
 
-        self._num_probs, self._prediction_model = self._check_input(num_probabilities, prediction_model)
+        self._num_probs, self._prediction_model = self._check_input(num_probabilities, prediction_model, device)
         self._eps = 1e-16
         super(InceptionScore, self).__init__(output_transform=output_transform, device=device)
 
