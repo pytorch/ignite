@@ -26,7 +26,7 @@ jobs:
         shell: bash -l {0}
         env:
           ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
-          UPLOAD_USER: ${{ secrets.UPLOAD_USER }}
+          UPLOAD_USER: "pytorch"
         run: |
           chmod +x ./conda.recipe/build_and_upload.sh
           ./conda.recipe/build_and_upload.sh
