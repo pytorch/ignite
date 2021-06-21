@@ -83,7 +83,7 @@ def _test_create_supervised_trainer(
     else:
         if LooseVersion(torch.__version__) >= LooseVersion("1.7.0"):
             # This is broken in 1.6.0 but will be probably fixed with 1.7.0
-            with pytest.raises(RuntimeError, match=r"is on CPU, but expected them to be on GPU"):
+            with pytest.raises(RuntimeError, match=r"Expected all tensors to be on the same device"):
                 trainer.run(data)
 
 
@@ -212,7 +212,7 @@ def _test_create_supervised_evaluator(
     else:
         if LooseVersion(torch.__version__) >= LooseVersion("1.7.0"):
             # This is broken in 1.6.0 but will be probably fixed with 1.7.0
-            with pytest.raises(RuntimeError, match=r"is on CPU, but expected them to be on GPU"):
+            with pytest.raises(RuntimeError, match=r"Expected all tensors to be on the same device"):
                 evaluator.run(data)
 
 
