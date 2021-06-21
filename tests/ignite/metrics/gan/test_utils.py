@@ -26,6 +26,6 @@ def test_no_torchvision(mock_no_torchvision):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_device_mismatch():
+def test_device_mismatch_cuda():
     images = torch.rand(10, 3, 299, 299)
     assert InceptionModel(return_features=False, device="cuda")(images).shape == torch.Size([10, 1000])

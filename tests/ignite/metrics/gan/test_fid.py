@@ -111,7 +111,7 @@ def test_wrong_inputs():
         ValueError, match=re.escape(err_str),
     ):
         FID(num_features=2, feature_extractor=lambda x: x).update((torch.rand(9, 2), torch.rand(5, 2)))
-    with pytest.raises(ValueError, match=r"Argument num_features should be defined"):
+    with pytest.raises(ValueError, match=r"Argument num_features should be defined, if feature_extractor is provided"):
         FID(feature_extractor=lambda x: x)
 
 

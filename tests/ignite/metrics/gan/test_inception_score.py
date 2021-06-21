@@ -42,7 +42,9 @@ def test_wrong_inputs():
         NotComputableError, match=r"InceptionScore must have at least one example before it can be computed."
     ):
         InceptionScore(num_probabilities=1000).compute()
-    with pytest.raises(ValueError, match=r"Argument num_probabilities should be defined"):
+    with pytest.raises(
+        ValueError, match=r"Argument num_probabilities should be defined, if prediction_model is provided"
+    ):
         InceptionScore(prediction_model=lambda x: x)
 
 

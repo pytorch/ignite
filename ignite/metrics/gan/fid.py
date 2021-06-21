@@ -1,6 +1,6 @@
 import warnings
 from distutils.version import LooseVersion
-from typing import Callable, Optional, Sequence, Union
+from typing import Callable, Optional, Sequence, Tuple, Union
 
 import torch
 
@@ -75,7 +75,7 @@ class FID(Metric):
         num_features: number of features, must be defined if the parameter ``feature_extractor`` is also defined.
             Otherwise, default value is 2048.
         feature_extractor: a callable for extracting the features from the input data. If neither ``num_features`` nor
-            ``feature_extractor`` are defined, default value is ``InceptionModel``.
+            ``feature_extractor`` are defined, by default we use an ImageNet pretrained Inception Model.
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
@@ -118,22 +118,24 @@ class FID(Metric):
         except ImportError:
             raise RuntimeError("This module requires scipy to be installed.")
 
-        # default is inception
-        if num_features is None and feature_extractor is None:
-            num_features = 2048
-            feature_extractor = InceptionModel(return_features=True)
-        elif num_features is None:
-            raise ValueError("Argument num_features should be defined")
-        elif feature_extractor is None:
-            self._feature_extractor = lambda x: x
-            feature_extractor = self._feature_extractor
-
-        if num_features <= 0:
+        if num_features is not None and num_features <= 0:
             raise ValueError(f"Argument num_features must be greater to zero, got: {num_features}")
-        self._num_features = num_features
-        self._feature_extractor = feature_extractor
+
+        # default is inception
+        self._num_features, self._feature_extractor = self._check_input(num_features, feature_extractor)
         self._eps = 1e-6
         super(FID, self).__init__(output_transform=output_transform, device=device)
+
+    @staticmethod
+    def _check_input(num_features: Optional[int], feature_extractor: Optional[Callable]) -> Tuple[int, Callable]:
+        if num_features is None and feature_extractor is None:
+            return 2048, InceptionModel(return_features=True)
+        elif num_features is None:
+            raise ValueError("Argument num_features should be defined, if feature_extractor is provided")
+        elif feature_extractor is None:
+            return num_features, lambda x: x
+        else:
+            return num_features, feature_extractor
 
     @staticmethod
     def _online_update(features: torch.Tensor, total: torch.Tensor, sigma: torch.Tensor) -> None:
@@ -177,12 +179,12 @@ class FID(Metric):
         super(FID, self).reset()
 
     @reinit__is_reduced
-    @torch.no_grad()
     def update(self, output: Sequence[torch.Tensor]) -> None:
 
         # Extract the features from the outputs
-        train_features = self._feature_extractor(output[0]).to(self._device)
-        test_features = self._feature_extractor(output[1]).to(self._device)
+        with torch.no_grad():
+            train_features = self._feature_extractor(output[0]).to(self._device)
+            test_features = self._feature_extractor(output[1]).to(self._device)
 
         # Check the feature shapess
         self._check_feature_input(train_features, test_features)

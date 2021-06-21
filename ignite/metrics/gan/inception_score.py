@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Tuple, Union
 
 import torch
 
@@ -29,7 +29,8 @@ class InceptionScore(Metric):
     Args:
         num_probabilities: number of probabilities predicted by the model or number of classes of the model
         prediction_model: a callable for predicting the probabilities from the input data. If neither
-            ``num_probabilities`` nor ``prediction_model`` are defined, default value is :class:`InceptionModel`.
+            ``num_probabilities`` nor ``prediction_model`` are defined, by default we use an ImageNet
+            pretrained Inception Model.
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
@@ -63,21 +64,23 @@ class InceptionScore(Metric):
         device: Union[str, torch.device] = "cpu",
     ) -> None:
 
-        if num_probabilities is None and prediction_model is None:
-            num_probabilities = 1000
-            prediction_model = InceptionModel(return_features=False)
-        elif num_probabilities is None:
-            raise ValueError("Argument num_probabilities should be defined")
-        elif prediction_model is None:
-            self._prediction_model = lambda x: x
-            prediction_model = self._prediction_model
-
-        if num_probabilities <= 0:
+        if num_probabilities is not None and num_probabilities <= 0:
             raise ValueError(f"Argument num_probabilities must be greater to zero, got: {num_probabilities}")
-        self._num_probs = num_probabilities
-        self._prediction_model = prediction_model
+
+        self._num_probs, self._prediction_model = self._check_input(num_probabilities, prediction_model)
         self._eps = 1e-16
         super(InceptionScore, self).__init__(output_transform=output_transform, device=device)
+
+    @staticmethod
+    def _check_input(num_probabilities: Optional[int], prediction_model: Optional[Callable]) -> Tuple[int, Callable]:
+        if num_probabilities is None and prediction_model is None:
+            return 1000, InceptionModel(return_features=False)
+        elif num_probabilities is None:
+            raise ValueError("Argument num_probabilities should be defined, if prediction_model is provided")
+        elif prediction_model is None:
+            return num_probabilities, lambda x: x
+        else:
+            return num_probabilities, prediction_model
 
     def _check_feature_input(self, samples: torch.Tensor) -> None:
         if samples.dim() != 2:
@@ -95,9 +98,9 @@ class InceptionScore(Metric):
         super(InceptionScore, self).reset()
 
     @reinit__is_reduced
-    @torch.no_grad()
     def update(self, samples: torch.Tensor) -> None:
-        probabilities = self._prediction_model(samples).to(self._device)
+        with torch.no_grad():
+            probabilities = self._prediction_model(samples).to(self._device)
         self._check_feature_input(probabilities)
         self._num_examples += probabilities.shape[0]
         self._prob_total += torch.sum(probabilities, 0).to(self._device)
