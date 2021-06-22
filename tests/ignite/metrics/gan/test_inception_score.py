@@ -31,7 +31,7 @@ def test_inception_score():
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_device_mismatch_cuda():
-    p_yx = torch.rand(20, 10)
+    p_yx = torch.rand(20, 10).to("cpu")
     m = InceptionScore(num_channels=10, evaluation_model=torch.nn.Identity().to("cpu"), device="cuda")
     m.update(p_yx)
     assert pytest.approx(calculate_inception_score(p_yx)) == m.compute().item()

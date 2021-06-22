@@ -77,12 +77,3 @@ class _BaseInceptionMetric(Metric):
             raise ValueError(f"Batch size should be greater than one, got: {samples.shape[0]}")
         if samples.shape[1] != num_channels:
             raise ValueError(f"num_channels returned by eval_model should be {num_channels}, got: {samples.shape[1]}")
-
-
-class IdentityModel(torch.nn.Module):
-    def __init__(self) -> None:
-        super(IdentityModel, self).__init__()
-        self.layer = torch.nn.Identity()
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.layer(x)

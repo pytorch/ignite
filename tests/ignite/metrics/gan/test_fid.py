@@ -10,7 +10,6 @@ from numpy import cov
 
 import ignite.distributed as idist
 from ignite.metrics.gan.fid import FID, fid_score
-from ignite.metrics.gan.utils import IdentityModel
 
 
 @pytest.fixture()
@@ -70,9 +69,9 @@ def test_compute_fid_from_features():
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_device_mismatch_cuda():
-    train_samples, test_samples = torch.rand(10, 10), torch.rand(10, 10)
+    train_samples, test_samples = torch.rand(10, 10).to("cpu"), torch.rand(10, 10).to("cpu")
 
-    fid_scorer = FID(num_channels=10, evaluation_model=IdentityModel().to("cpu"), device="cuda")
+    fid_scorer = FID(num_channels=10, evaluation_model=torch.nn.Identity().to("cpu"), device="cuda")
     fid_scorer.update([train_samples[:5], test_samples[:5]])
     fid_scorer.update([train_samples[5:], test_samples[5:]])
 
