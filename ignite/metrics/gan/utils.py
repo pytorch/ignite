@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Tuple, Union
+from typing import Any, Callable, Optional, Tuple, Union
 
 import torch
 
@@ -49,6 +49,9 @@ class _BaseInceptionMetric(Metric):
     ) -> None:
         if num_features is not None and num_features <= 0:
             raise ValueError(f"Argument num_features must be greater to zero, got: {num_features}")
+
+        self._default_channels: int = 1
+        self._default_eval_model: Any = torch.nn.Identity
         super(_BaseInceptionMetric, self).__init__(output_transform=output_transform, device=device)
 
     def _check_input(
