@@ -19,7 +19,7 @@ def calculate_inception_score(p_yx):
 
 def test_inception_score():
     p_yx = torch.rand(20, 10)
-    m = InceptionScore(num_probabilities=10)
+    m = InceptionScore(num_channels=10)
     m.update(p_yx)
     assert pytest.approx(calculate_inception_score(p_yx)) == m.compute()
 
@@ -32,28 +32,26 @@ def test_inception_score():
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_device_mismatch_cuda():
     p_yx = torch.rand(20, 10)
-    m = InceptionScore(num_probabilities=10, prediction_model=torch.nn.Identity().to("cpu"), device="cuda")
+    m = InceptionScore(num_channels=10, evaluation_model=torch.nn.Identity().to("cpu"), device="cuda")
     m.update(p_yx)
     assert pytest.approx(calculate_inception_score(p_yx)) == m.compute().item()
 
 
 def test_wrong_inputs():
-    with pytest.raises(ValueError, match=r"Argument num_probabilities must be greater to zero, got:"):
-        InceptionScore(num_probabilities=-1).update(torch.rand(2, 0))
-    with pytest.raises(ValueError, match=r"Probabilities must be a tensor of dim 2, got: 1"):
-        InceptionScore(num_probabilities=1000).update(torch.rand(3))
+    with pytest.raises(ValueError, match=r"Argument num_channels must be greater to zero, got:"):
+        InceptionScore(num_channels=-1).update(torch.rand(2, 0))
+    with pytest.raises(ValueError, match=r"eval_model output must be a tensor of dim 2, got: 1"):
+        InceptionScore(num_channels=1000).update(torch.rand(3))
     with pytest.raises(ValueError, match=r"Batch size should be greater than one, got: 0"):
-        InceptionScore(num_probabilities=1000).update(torch.rand(0, 0))
-    with pytest.raises(ValueError, match=r"Number of Probabilities should be 1000, got: 0"):
-        InceptionScore(num_probabilities=1000).update(torch.rand(2, 0))
+        InceptionScore(num_channels=1000).update(torch.rand(0, 0))
+    with pytest.raises(ValueError, match=r"num_channels returned by eval_model should be 1000, got: 0"):
+        InceptionScore(num_channels=1000).update(torch.rand(2, 0))
     with pytest.raises(
         NotComputableError, match=r"InceptionScore must have at least one example before it can be computed."
     ):
-        InceptionScore(num_probabilities=1000).compute()
-    with pytest.raises(
-        ValueError, match=r"Argument num_probabilities should be defined, if prediction_model is provided"
-    ):
-        InceptionScore(prediction_model=torch.nn.Identity())
+        InceptionScore(num_channels=1000).compute()
+    with pytest.raises(ValueError, match=r"Argument num_channels should be defined, if evaluation_model is provided"):
+        InceptionScore(evaluation_model=torch.nn.Identity())
 
 
 def _test_distrib_integration(device):
@@ -74,7 +72,7 @@ def _test_distrib_integration(device):
             return y[i * s + rank * offset : (i + 1) * s + rank * offset, :]
 
         engine = Engine(update)
-        m = InceptionScore(num_probabilities=n_probabilities, device=metric_device)
+        m = InceptionScore(num_channels=n_probabilities, device=metric_device)
         m.attach(engine, "InceptionScore")
 
         engine.run(data=list(range(n_iters)), max_epochs=1)

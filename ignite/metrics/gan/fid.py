@@ -1,11 +1,11 @@
 import warnings
 from distutils.version import LooseVersion
-from typing import Callable, Optional, Sequence, Tuple, Union
+from typing import Callable, Optional, Sequence, Union
 
 import torch
 
-from ignite.metrics.gan.utils import InceptionModel
-from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
+from ignite.metrics.gan.utils import InceptionModel, _BaseInceptionMetric
+from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
 __all__ = [
     "FID",
@@ -48,7 +48,7 @@ def fid_score(
     return float(diff.dot(diff).item() + torch.trace(sigma1) + torch.trace(sigma2) - 2 * tr_covmean)
 
 
-class FID(Metric):
+class FID(_BaseInceptionMetric):
     r"""Calculates Frechet Inception Distance.
 
     .. math::
@@ -72,10 +72,10 @@ class FID(Metric):
         __ https://github.com/mseitzer/pytorch-fid
 
     Args:
-        num_features: number of features, must be defined if the parameter ``feature_extractor`` is also defined.
+        num_features: number of features, must be defined if the parameter ``evaluation_model`` is also defined.
             Otherwise, default value is 2048.
-        feature_extractor: a callable for extracting the features from the input data. If neither ``num_features`` nor
-            ``feature_extractor`` are defined, by default we use an ImageNet pretrained Inception Model. Please note
+        evaluation_model: a callable for extracting the features from the input data. If neither ``num_features`` nor
+            ``evaluation_model`` are defined, by default we use an ImageNet pretrained Inception Model. Please note
             that the model will be implicitly converted to device mentioned in the ``device`` argument.
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
@@ -103,8 +103,8 @@ class FID(Metric):
 
     def __init__(
         self,
-        num_features: Optional[int] = None,
-        feature_extractor: Optional[torch.nn.Module] = None,
+        num_channels: Optional[int] = None,
+        evaluation_model: Optional[torch.nn.Module] = None,
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
@@ -119,26 +119,20 @@ class FID(Metric):
         except ImportError:
             raise RuntimeError("This module requires scipy to be installed.")
 
-        if num_features is not None and num_features <= 0:
-            raise ValueError(f"Argument num_features must be greater to zero, got: {num_features}")
-
         # default is inception
-        self._num_features, self._feature_extractor = self._check_input(num_features, feature_extractor, device)
-        self._eps = 1e-6
-        super(FID, self).__init__(output_transform=output_transform, device=device)
+        self._default_channels = 2048
+        self._default_eval_model = InceptionModel
+        self._default_args = True
 
-    @staticmethod
-    def _check_input(
-        num_features: Optional[int], feature_extractor: Optional[torch.nn.Module], device: Union[str, torch.device]
-    ) -> Tuple[int, torch.nn.Module]:
-        if num_features is None and feature_extractor is None:
-            return 2048, InceptionModel(return_features=True, device=device)
-        elif num_features is None:
-            raise ValueError("Argument num_features should be defined, if feature_extractor is provided")
-        elif feature_extractor is None:
-            return num_features, torch.nn.Identity().to(device)
-        else:
-            return num_features, feature_extractor.to(device)
+        self._num_features, self._feature_extractor = self._check_input(num_channels, evaluation_model, device)
+        self._eps = 1e-6
+
+        super(FID, self).__init__(
+            num_channels=num_channels,
+            evaluation_model=evaluation_model,
+            output_transform=output_transform,
+            device=device,
+        )
 
     @staticmethod
     def _online_update(features: torch.Tensor, total: torch.Tensor, sigma: torch.Tensor) -> None:
@@ -159,21 +153,9 @@ class FID(Metric):
         sub_matrix = sub_matrix / self._num_examples
         return (sigma - sub_matrix) / (self._num_examples - 1)
 
-    def _check_feature_input(self, train: torch.Tensor, test: torch.Tensor) -> None:
-        for feature in [train, test]:
-            if feature.dim() != 2:
-                raise ValueError(f"Features must be a tensor of dim 2, got: {feature.dim()}")
-            if feature.shape[0] == 0:
-                raise ValueError(f"Batch size should be greater than one, got: {feature.shape[0]}")
-            if feature.shape[1] != self._num_features:
-                raise ValueError(f"Feature size should be {self._num_features}, got: {feature.shape[1]}")
-        if train.shape[0] != test.shape[0] or train.shape[1] != test.shape[1]:
-            raise ValueError(
-                f"Number of Training Features and Testing Features should be equal ({train.shape} != {test.shape})"
-            )
-
     @reinit__is_reduced
     def reset(self) -> None:
+        print(self._num_features)
         self._train_sigma = torch.zeros(
             (self._num_features, self._num_features), dtype=torch.float64, device=self._device
         )
@@ -187,17 +169,26 @@ class FID(Metric):
 
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
-        for images in output:
-            if images.device != torch.device(self._device):
-                images = images.to(self._device)
+        train, test = output
+        if train.device != torch.device(self._device):
+            train = train.to(self._device)
+        if test.device != torch.device(self._device):
+            test = test.to(self._device)
 
         # Extract the features from the outputs
         with torch.no_grad():
-            train_features = self._feature_extractor(output[0]).to(self._device)
-            test_features = self._feature_extractor(output[1]).to(self._device)
+            train_features = self._feature_extractor(train).to(self._device)
+            test_features = self._feature_extractor(test).to(self._device)
 
         # Check the feature shapess
-        self._check_feature_input(train_features, test_features)
+        self._check_feature_input(train_features, self._num_features)
+        self._check_feature_input(test_features, self._num_features)
+        if train_features.shape[0] != test_features.shape[0] or train_features.shape[1] != test_features.shape[1]:
+            raise ValueError(
+                f"""
+    Number of Training Features and Testing Features should be equal ({train_features.shape} != {test_features.shape})
+                """
+            )
 
         # Updates the mean and covariance for the train features
         for i, features in enumerate(train_features, start=self._num_examples + 1):

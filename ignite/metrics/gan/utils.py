@@ -1,6 +1,8 @@
-from typing import Union
+from typing import Any, Callable, Optional, Tuple, Union
 
 import torch
+
+from ignite.metrics.metric import Metric
 
 
 class InceptionModel(torch.nn.Module):
@@ -35,3 +37,52 @@ class InceptionModel(torch.nn.Module):
         if data.device != torch.device(self._device):
             data = data.to(self._device)
         return self.model(data)
+
+
+class _BaseInceptionMetric(Metric):
+    def __init__(
+        self,
+        num_channels: Optional[int] = None,
+        evaluation_model: Optional[torch.nn.Module] = None,
+        output_transform: Callable = lambda x: x,
+        device: Union[str, torch.device] = torch.device("cpu"),
+    ) -> None:
+        if num_channels is not None and num_channels <= 0:
+            raise ValueError(f"Argument num_channels must be greater to zero, got: {num_channels}")
+
+        self._default_channels = 1
+        self._default_eval_model: Any = torch.nn.Identity
+        self._default_args: Any = None
+        self._num_channels, self._eval_model = self._check_input(num_channels, evaluation_model, device)
+        super(_BaseInceptionMetric, self).__init__(output_transform=output_transform, device=device)
+
+    def _check_input(
+        self, num_channels: Optional[int], evaluation_model: Optional[torch.nn.Module], device: Union[str, torch.device]
+    ) -> Tuple[int, torch.nn.Module]:
+        if num_channels is None and evaluation_model is None:
+            return self._default_channels, self._default_eval_model(self._default_args)
+        elif num_channels is None:
+            raise ValueError("Argument num_channels should be defined, if evaluation_model is provided")
+        elif evaluation_model is None:
+            return num_channels, torch.nn.Identity()
+        elif not isinstance(evaluation_model, torch.nn.Module):
+            raise TypeError(f"Argument evaluation_model must be of type torch.nn.Module, got {type(evaluation_model)}")
+        else:
+            return num_channels, evaluation_model.to(device)
+
+    def _check_feature_input(self, samples: torch.Tensor, num_channels: int) -> None:
+        if samples.dim() != 2:
+            raise ValueError(f"eval_model output must be a tensor of dim 2, got: {samples.dim()}")
+        if samples.shape[0] == 0:
+            raise ValueError(f"Batch size should be greater than one, got: {samples.shape[0]}")
+        if samples.shape[1] != num_channels:
+            raise ValueError(f"num_channels returned by eval_model should be {num_channels}, got: {samples.shape[1]}")
+
+
+class IdentityModel(torch.nn.Module):
+    def __init__(self) -> None:
+        super(IdentityModel, self).__init__()
+        self.layer = torch.nn.Identity()
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.layer(x)

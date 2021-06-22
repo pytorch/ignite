@@ -1,17 +1,17 @@
-from typing import Callable, Optional, Tuple, Union
+from typing import Callable, Optional, Union
 
 import torch
 
 from ignite.exceptions import NotComputableError
-from ignite.metrics.gan.utils import InceptionModel
+from ignite.metrics.gan.utils import InceptionModel, _BaseInceptionMetric
 
 # These decorators helps with distributed settings
-from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
+from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
 __all__ = ["InceptionScore"]
 
 
-class InceptionScore(Metric):
+class InceptionScore(_BaseInceptionMetric):
     r"""Calculates Inception Score.
 
     .. math::
@@ -59,39 +59,24 @@ class InceptionScore(Metric):
 
     def __init__(
         self,
-        num_probabilities: Optional[int] = None,
-        prediction_model: Optional[torch.nn.Module] = None,
+        num_channels: Optional[int] = None,
+        evaluation_model: Optional[torch.nn.Module] = None,
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
 
-        if num_probabilities is not None and num_probabilities <= 0:
-            raise ValueError(f"Argument num_probabilities must be greater to zero, got: {num_probabilities}")
+        self._default_channels = 1000
+        self._default_eval_model = InceptionModel
+        self._default_args = False
 
-        self._num_probs, self._prediction_model = self._check_input(num_probabilities, prediction_model, device)
+        self._num_probs, self._prediction_model = self._check_input(num_channels, evaluation_model, device)
         self._eps = 1e-16
-        super(InceptionScore, self).__init__(output_transform=output_transform, device=device)
-
-    @staticmethod
-    def _check_input(
-        num_probabilities: Optional[int], prediction_model: Optional[torch.nn.Module], device: Union[str, torch.device]
-    ) -> Tuple[int, torch.nn.Module]:
-        if num_probabilities is None and prediction_model is None:
-            return 1000, InceptionModel(return_features=False, device=device)
-        elif num_probabilities is None:
-            raise ValueError("Argument num_probabilities should be defined, if prediction_model is provided")
-        elif prediction_model is None:
-            return num_probabilities, torch.nn.Identity().to(device)
-        else:
-            return num_probabilities, prediction_model.to(device)
-
-    def _check_feature_input(self, samples: torch.Tensor) -> None:
-        if samples.dim() != 2:
-            raise ValueError(f"Probabilities must be a tensor of dim 2, got: {samples.dim()}")
-        if samples.shape[0] == 0:
-            raise ValueError(f"Batch size should be greater than one, got: {samples.shape[0]}")
-        if samples.shape[1] != self._num_probs:
-            raise ValueError(f"Number of Probabilities should be {self._num_probs}, got: {samples.shape[1]}")
+        super(InceptionScore, self).__init__(
+            num_channels=num_channels,
+            evaluation_model=evaluation_model,
+            output_transform=output_transform,
+            device=device,
+        )
 
     @reinit__is_reduced
     def reset(self) -> None:
@@ -108,7 +93,7 @@ class InceptionScore(Metric):
         with torch.no_grad():
             probabilities = self._prediction_model(samples).to(self._device)
 
-        self._check_feature_input(probabilities)
+        self._check_feature_input(probabilities, self._num_probs)
         self._num_examples += probabilities.shape[0]
         self._prob_total += torch.sum(probabilities, 0).to(self._device)
         self._total_kl_d += torch.sum(probabilities * torch.log(probabilities + self._eps), 0).to(self._device)
