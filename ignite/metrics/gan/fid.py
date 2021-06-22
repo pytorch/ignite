@@ -72,11 +72,12 @@ class FID(_BaseInceptionMetric):
         __ https://github.com/mseitzer/pytorch-fid
 
     Args:
-        num_features: number of features, must be defined if the parameter ``evaluation_model`` is also defined.
-            Otherwise, default value is 2048.
-        evaluation_model: a callable for extracting the features from the input data. If neither ``num_features`` nor
-            ``evaluation_model`` are defined, by default we use an ImageNet pretrained Inception Model. Please note
-            that the model will be implicitly converted to device mentioned in the ``device`` argument.
+        num_features: number of features predicted by the model or the reduced feature vector of the image.
+            Default value is 2048.
+        feature_extractor: a torch.nn.Module class object for extracting the features from the input data. If
+            neither ``num_features`` nor ``feature_extractor`` are defined, by default we use an ImageNet
+            pretrained Inception Model. Please note that the model will be implicitly converted to device
+            mentioned in the ``device`` argument.
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
@@ -103,8 +104,8 @@ class FID(_BaseInceptionMetric):
 
     def __init__(
         self,
-        num_channels: Optional[int] = None,
-        evaluation_model: Optional[torch.nn.Module] = None,
+        num_features: Optional[int] = None,
+        feature_extractor: Optional[torch.nn.Module] = None,
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
@@ -124,12 +125,12 @@ class FID(_BaseInceptionMetric):
         self._default_eval_model = InceptionModel
         self._default_args = True
 
-        self._num_features, self._feature_extractor = self._check_input(num_channels, evaluation_model, device)
+        self._num_features, self._feature_extractor = self._check_input(num_features, feature_extractor, device)
         self._eps = 1e-6
 
         super(FID, self).__init__(
-            num_channels=num_channels,
-            evaluation_model=evaluation_model,
+            num_features=num_features,
+            feature_extractor=feature_extractor,
             output_transform=output_transform,
             device=device,
         )
@@ -155,7 +156,6 @@ class FID(_BaseInceptionMetric):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        print(self._num_features)
         self._train_sigma = torch.zeros(
             (self._num_features, self._num_features), dtype=torch.float64, device=self._device
         )

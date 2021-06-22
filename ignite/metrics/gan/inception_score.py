@@ -27,10 +27,11 @@ class InceptionScore(_BaseInceptionMetric):
 
 
     Args:
-        num_probabilities: number of probabilities predicted by the model or number of classes of the model
-        prediction_model: a callable for predicting the probabilities from the input data. If neither
-            ``num_probabilities`` nor ``prediction_model`` are defined, by default we use an ImageNet
-            pretrained Inception Model. Please note that the model will be implicitly converted to device
+        num_features: number of features predicted by the model or number of classes of the model. Default
+            value is 1000.
+        feature_extractor: a torch.nn.Module class object for predicting the probabilities from the input data.
+            If neither ``num_features`` nor ``feature_extractor`` are defined, by default we use an ImageNet
+            pretrained Inception Model. Please note that the class object will be implicitly converted to device
             mentioned in the ``device`` argument.
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
@@ -59,8 +60,8 @@ class InceptionScore(_BaseInceptionMetric):
 
     def __init__(
         self,
-        num_channels: Optional[int] = None,
-        evaluation_model: Optional[torch.nn.Module] = None,
+        num_features: Optional[int] = None,
+        feature_extractor: Optional[torch.nn.Module] = None,
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
@@ -69,11 +70,11 @@ class InceptionScore(_BaseInceptionMetric):
         self._default_eval_model = InceptionModel
         self._default_args = False
 
-        self._num_probs, self._prediction_model = self._check_input(num_channels, evaluation_model, device)
+        self._num_features, self._feature_extractor = self._check_input(num_features, feature_extractor, device)
         self._eps = 1e-16
         super(InceptionScore, self).__init__(
-            num_channels=num_channels,
-            evaluation_model=evaluation_model,
+            num_features=num_features,
+            feature_extractor=feature_extractor,
             output_transform=output_transform,
             device=device,
         )
@@ -81,8 +82,8 @@ class InceptionScore(_BaseInceptionMetric):
     @reinit__is_reduced
     def reset(self) -> None:
         self._num_examples = 0
-        self._prob_total = torch.zeros(self._num_probs, dtype=torch.float64, device=self._device)
-        self._total_kl_d = torch.zeros(self._num_probs, dtype=torch.float64, device=self._device)
+        self._prob_total = torch.zeros(self._num_features, dtype=torch.float64, device=self._device)
+        self._total_kl_d = torch.zeros(self._num_features, dtype=torch.float64, device=self._device)
         super(InceptionScore, self).reset()
 
     @reinit__is_reduced
@@ -91,9 +92,9 @@ class InceptionScore(_BaseInceptionMetric):
             samples = samples.to(self._device)
 
         with torch.no_grad():
-            probabilities = self._prediction_model(samples).to(self._device)
+            probabilities = self._feature_extractor(samples).to(self._device)
 
-        self._check_feature_input(probabilities, self._num_probs)
+        self._check_feature_input(probabilities, self._num_features)
         self._num_examples += probabilities.shape[0]
         self._prob_total += torch.sum(probabilities, 0).to(self._device)
         self._total_kl_d += torch.sum(probabilities * torch.log(probabilities + self._eps), 0).to(self._device)
