@@ -165,10 +165,7 @@ class FID(Metric):
         r"""
         Calculates covariance from mean and sum of products of variables
         """
-        if LooseVersion(torch.__version__) <= LooseVersion("1.7.0"):
-            sub_matrix = torch.ger(total, total)
-        else:
-            sub_matrix = torch.outer(total, total)
+        sub_matrix = torch.outer(total, total)
         sub_matrix = sub_matrix / self._num_examples
         return (sigma - sub_matrix) / (self._num_examples - 1)
 
