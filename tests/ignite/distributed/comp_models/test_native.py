@@ -279,16 +279,18 @@ def _test__native_dist_model_create_from_context_dist(local_rank, rank, world_si
 @pytest.mark.distributed
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Should be no-dist config")
 def test__native_dist_model_create_no_dist_gloo(clean_env):
-    _test__native_dist_model_create_from_backend_no_dist("gloo", "cpu")
-    _test__native_dist_model_create_from_context_no_dist("gloo", "cpu")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    _test__native_dist_model_create_from_backend_no_dist("gloo", device)
+    _test__native_dist_model_create_from_context_no_dist("gloo", device)
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Should be no-dist config")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test__native_dist_model_create_no_dist_nccl(clean_env):
-    _test__native_dist_model_create_from_backend_no_dist("nccl", "cuda:0")
-    _test__native_dist_model_create_from_context_no_dist("nccl", "cuda:0")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    _test__native_dist_model_create_from_backend_no_dist("nccl", device)
+    _test__native_dist_model_create_from_context_no_dist("nccl", device)
 
 
 @pytest.mark.distributed
@@ -297,12 +299,15 @@ def test__native_dist_model_create_dist_gloo_1(init_method, get_fixed_dirname, l
     if init_method == "FILE":
         init_method = f"file://{get_fixed_dirname('native_dist_model_create_dist_gloo_1')}/shared"
 
-    _test__native_dist_model_create_from_backend_dist(init_method, local_rank, local_rank, world_size, "gloo", "cpu")
+    device = torch.device(f"cuda:{local_rank}" if torch.cuda.is_available() else "cpu")
+    _test__native_dist_model_create_from_backend_dist(init_method, local_rank, local_rank, world_size, "gloo", device)
 
 
 @pytest.mark.distributed
 def test__native_dist_model_create_dist_gloo_2(local_rank, world_size):
-    _test__native_dist_model_create_from_context_dist(local_rank, local_rank, world_size, "gloo", "cpu")
+
+    device = torch.device(f"cuda:{local_rank}" if torch.cuda.is_available() else "cpu")
+    _test__native_dist_model_create_from_context_dist(local_rank, local_rank, world_size, "gloo", device)
 
 
 @pytest.mark.distributed
@@ -354,10 +359,7 @@ def _test_dist_spawn_fn(local_rank, backend, world_size, device):
 
     assert _model.get_local_rank() == local_rank
     assert _model.get_world_size() == world_size
-    if backend == "nccl":
-        assert _model.device() == torch.device(f"{device}:{local_rank}")
-    elif backend == "gloo":
-        assert _model.device() == torch.device(device)
+    assert _model.device().type == torch.device(device).type
 
 
 def _test__native_dist_model_spawn(backend, num_workers_per_machine, device, init_method=None, **spawn_kwargs):
@@ -379,10 +381,13 @@ def test__native_dist_model_spawn_gloo(init_method, dirname):
     if init_method == "FILE":
         init_method = f"file://{dirname}/shared"
 
-    _test__native_dist_model_spawn("gloo", num_workers_per_machine=4, device="cpu", init_method=init_method)
-    _test__native_dist_model_spawn(
-        "gloo", num_workers_per_machine=4, device="cpu", start_method="fork", init_method=init_method
-    )
+    nproc = torch.cuda.device_count() if torch.cuda.is_available() else 4
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    _test__native_dist_model_spawn("gloo", num_workers_per_machine=nproc, device=device, init_method=init_method)
+    if device.type == "cpu":
+        _test__native_dist_model_spawn(
+            "gloo", num_workers_per_machine=nproc, device=device, start_method="fork", init_method=init_method
+        )
 
 
 @pytest.mark.distributed

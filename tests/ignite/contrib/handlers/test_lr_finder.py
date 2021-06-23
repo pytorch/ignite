@@ -1,5 +1,6 @@
 import copy
-from os import path
+import os
+from unittest.mock import MagicMock
 
 import matplotlib
 import pytest
@@ -8,8 +9,9 @@ import torch.nn.functional as F
 from torch import nn
 from torch.optim import SGD
 
+import ignite.distributed as idist
 from ignite.contrib.handlers import FastaiLRFinder
-from ignite.engine import Events, create_supervised_trainer
+from ignite.engine import Engine, Events, create_supervised_trainer
 
 matplotlib.use("agg")
 
@@ -52,7 +54,7 @@ class DummyModelMulipleParamGroups(nn.Module):
 
 @pytest.fixture
 def model():
-    model = DummyModel()
+    model = DummyModel(out_channels=10)
     yield model
 
 
@@ -303,7 +305,40 @@ def test_detach_terminates(lr_finder, to_save, dummy_engine, dataloader, recwarn
 
     dummy_engine.run(dataloader, max_epochs=3)
     assert dummy_engine.state.epoch == 3
-    assert len(recwarn) == 1
+    assert len(recwarn) == 0
+
+
+def test_engine_output_type(lr_finder, dummy_engine, optimizer):
+    from ignite.handlers.param_scheduler import PiecewiseLinear
+
+    dummy_engine.state.iteration = 1
+    dummy_engine.state.output = [10]
+    with pytest.raises(TypeError, match=r"output of the engine should be of type float or 0d torch.Tensor"):
+        lr_finder._log_lr_and_loss(dummy_engine, output_transform=lambda x: x, smooth_f=0, diverge_th=1)
+
+    dummy_engine.state.output = (10, 5)
+    with pytest.raises(TypeError, match=r"output of the engine should be of type float or 0d torch.Tensor"):
+        lr_finder._log_lr_and_loss(dummy_engine, output_transform=lambda x: x, smooth_f=0, diverge_th=1)
+
+    dummy_engine.state.output = torch.tensor([1, 2], dtype=torch.float32)
+    with pytest.raises(ValueError, match=r"if output of the engine is torch.Tensor"):
+        lr_finder._log_lr_and_loss(dummy_engine, output_transform=lambda x: x, smooth_f=0, diverge_th=1)
+
+    lr_finder._lr_schedule = PiecewiseLinear(
+        optimizer, param_name="lr", milestones_values=[(0, optimizer.param_groups[0]["lr"]), (100, 10)]
+    )
+
+    dummy_engine.state.output = torch.tensor(10.0, dtype=torch.float32)
+    lr_finder._history = {"lr": [], "loss": []}
+    lr_finder._log_lr_and_loss(dummy_engine, output_transform=lambda x: x, smooth_f=0, diverge_th=1)
+    loss = lr_finder._history["loss"][-1]
+    assert type(loss) == float
+
+    dummy_engine.state.output = torch.tensor([10.0], dtype=torch.float32)
+    lr_finder._history = {"lr": [], "loss": []}
+    lr_finder._log_lr_and_loss(dummy_engine, output_transform=lambda x: x, smooth_f=0, diverge_th=1)
+    loss = lr_finder._history["loss"][-1]
+    assert type(loss) == float
 
 
 def test_lr_suggestion_unexpected_curve(lr_finder, to_save, dummy_engine, dataloader):
@@ -318,10 +353,11 @@ def test_lr_suggestion_unexpected_curve(lr_finder, to_save, dummy_engine, datalo
 
 
 def test_lr_suggestion_single_param_group(lr_finder):  # , to_save, dummy_engine, dataloader):
+    import numpy as np
 
     noise = 0.05
-    lr_finder._history["loss"] = torch.linspace(-5.0, 5.0) ** 2 + noise
-    lr_finder._history["lr"] = torch.linspace(0.01, 10)
+    lr_finder._history["loss"] = np.linspace(-5.0, 5.0, num=100) ** 2 + noise
+    lr_finder._history["lr"] = np.linspace(0.01, 10, num=100)
 
     # lr_finder.lr_suggestion() is supposed to return a value, but as
     # we assign loss and lr to tensors, instead of lists, it will return tensors
@@ -334,9 +370,9 @@ def test_lr_suggestion_multiple_param_groups(lr_finder):
     import numpy as np
 
     noise = 0.06
-    lr_finder._history["loss"] = torch.tensor(np.linspace(-5.0, 5, num=50) ** 2 + noise)
+    lr_finder._history["loss"] = np.linspace(-5.0, 5, num=50) ** 2 + noise
     # 2 param_groups
-    lr_finder._history["lr"] = torch.tensor(np.linspace(0.01, 10, num=100)).reshape(50, 2)
+    lr_finder._history["lr"] = np.linspace(0.01, 10, num=100).reshape(50, 2)
 
     # lr_finder.lr_suggestion() is supposed to return a list of values,
     # but as we assign loss and lr to tensors, instead of lists, it will return tensors
@@ -350,7 +386,7 @@ def test_lr_suggestion_mnist(lr_finder, mnist_to_save, dummy_engine_mnist, mnist
 
     max_iters = 50
 
-    with lr_finder.attach(dummy_engine_mnist, mnist_to_save) as trainer_with_finder:
+    with lr_finder.attach(dummy_engine_mnist, mnist_to_save, diverge_th=2, step_mode="linear") as trainer_with_finder:
 
         with trainer_with_finder.add_event_handler(
             Events.ITERATION_COMPLETED(once=max_iters), lambda _: trainer_with_finder.terminate()
@@ -391,11 +427,11 @@ def test_apply_suggested_lr_multiple_param_groups(
     to_save_mulitple_param_groups,
     dummy_engine_mulitple_param_groups,
     optimizer_multiple_param_groups,
-    dataloader,
+    dataloader_plot,
 ):
 
     with lr_finder.attach(dummy_engine_mulitple_param_groups, to_save_mulitple_param_groups) as trainer_with_finder:
-        trainer_with_finder.run(dataloader)
+        trainer_with_finder.run(dataloader_plot)
 
     sug_lr = lr_finder.lr_suggestion()
     lr_finder.apply_suggested_lr(optimizer_multiple_param_groups)
@@ -422,7 +458,7 @@ def test_plot_single_param_group(lr_finder, mnist_to_save, dummy_engine_mnist, m
     assert ax.get_xlabel() == "Learning rate"
     assert ax.get_ylabel() == "Loss"
     ax.figure.savefig("dummy.jpg")
-    assert path.exists("dummy.jpg")
+    assert os.path.exists("dummy.jpg")
 
     # Passing axes object
     from matplotlib import pyplot as plt
@@ -433,7 +469,7 @@ def test_plot_single_param_group(lr_finder, mnist_to_save, dummy_engine_mnist, m
     assert ax.get_xlabel() == "Learning rate"
     assert ax.get_ylabel() == "Loss"
     ax.figure.savefig("dummy2.jpg")
-    assert path.exists("dummy2.jpg")
+    assert os.path.exists("dummy2.jpg")
 
 
 def test_plot_multiple_param_groups(
@@ -451,7 +487,7 @@ def test_plot_multiple_param_groups(
     assert ax.get_xlabel() == "Learning rate"
     assert ax.get_ylabel() == "Loss"
     ax.figure.savefig("dummy_muliple_param_groups.jpg")
-    assert path.exists("dummy_muliple_param_groups.jpg")
+    assert os.path.exists("dummy_muliple_param_groups.jpg")
 
     # Passing axes object
     from matplotlib import pyplot as plt
@@ -462,4 +498,122 @@ def test_plot_multiple_param_groups(
     assert ax.get_xlabel() == "Learning rate"
     assert ax.get_ylabel() == "Loss"
     ax.figure.savefig("dummy_muliple_param_groups2.jpg")
-    assert path.exists("dummy_muliple_param_groups2.jpg")
+    assert os.path.exists("dummy_muliple_param_groups2.jpg")
+
+
+def _test_distrib_log_lr_and_loss(device):
+    from ignite.handlers import ParamScheduler
+
+    lr_finder = FastaiLRFinder()
+    _lr_schedule = MagicMock(spec=ParamScheduler)
+
+    # minimal setup for lr_finder to make _log_lr_and_loss work
+    rank = idist.get_rank()
+    loss = 0.01 * (rank + 1)
+
+    engine = Engine(lambda e, b: None)
+
+    engine.state.output = loss
+    engine.state.iteration = 1
+    lr_finder._lr_schedule = _lr_schedule
+    lr_finder._history["loss"] = []
+    lr_finder._history["lr"] = []
+
+    lr_finder._log_lr_and_loss(engine, output_transform=lambda x: x, smooth_f=0.1, diverge_th=10.0)
+
+    expected_loss = idist.all_reduce(loss)
+    assert pytest.approx(lr_finder._history["loss"][-1]) == expected_loss
+
+
+def _test_distrib_integration_mnist(device):
+    from torch.utils.data import DataLoader
+    from torchvision.datasets import MNIST
+    from torchvision.transforms import Compose, Normalize, ToTensor
+
+    data_transform = Compose([ToTensor(), Normalize((0.1307,), (0.3081,))])
+
+    train_loader = DataLoader(
+        MNIST(download=True, root="/tmp", transform=data_transform, train=True), batch_size=256, shuffle=True
+    )
+
+    class DummyModel(nn.Module):
+        def __init__(self, n_channels=10, out_channels=1, flatten_input=False):
+            super(DummyModel, self).__init__()
+
+            self.net = nn.Sequential(
+                nn.Flatten() if flatten_input else nn.Identity(), nn.Linear(n_channels, out_channels)
+            )
+
+        def forward(self, x):
+            return self.net(x)
+
+    model = DummyModel(n_channels=784, out_channels=10, flatten_input=True)
+    model = model.to(device)
+
+    optimizer = SGD(model.parameters(), lr=1e-4, momentum=0.0)
+    to_save = {"model": model, "optimizer": optimizer}
+    engine = create_supervised_trainer(model, optimizer, nn.CrossEntropyLoss(), device=device)
+    lr_finder = FastaiLRFinder()
+    with lr_finder.attach(engine, to_save) as trainer_with_finder:
+        trainer_with_finder.run(train_loader)
+
+    lr_finder.plot()
+
+    if idist.get_rank() == 0:
+        ax = lr_finder.plot(skip_end=0)
+        ax.figure.savefig("distrib_dummy.jpg")
+        assert os.path.exists("distrib_dummy.jpg")
+
+    sug_lr = lr_finder.lr_suggestion()
+    assert 1e-3 <= sug_lr <= 1
+
+    lr_finder.apply_suggested_lr(optimizer)
+    assert optimizer.param_groups[0]["lr"] == sug_lr
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
+
+    device = idist.device()
+    _test_distrib_log_lr_and_loss(device)
+    _test_distrib_integration_mnist(device)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
+
+    device = idist.device()
+    _test_distrib_log_lr_and_loss(device)
+    _test_distrib_integration_mnist(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Not on TPU device")
+def test_distrib_single_device_xla():
+    device = idist.device()
+    assert "xla" in device.type
+    _test_distrib_log_lr_and_loss(device)
+    _test_distrib_integration_mnist(device)
+
+
+def _test_distrib_log_lr_and_loss_xla_nprocs(index):
+    device = idist.device()
+    _test_distrib_log_lr_and_loss(device)
+    _test_distrib_integration_mnist(device)
+
+    import time
+
+    # hack to have all proc properly sync:
+    time.sleep(1)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Not on TPU device")
+def test_distrib_single_device_xla_nprocs(xmp_executor):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+    xmp_executor(_test_distrib_log_lr_and_loss_xla_nprocs, args=(), nprocs=n)

@@ -4,7 +4,7 @@ from typing import Any, Callable, Iterator, List, Optional, Union
 import torch
 import torch.nn as nn
 from torch.optim.optimizer import Optimizer
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import Sampler
 
@@ -50,7 +50,9 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> Union[DataLoader, "_MpDe
         )
 
     Args:
-        dataset: input torch dataset
+        dataset: input torch dataset. If input dataset is `torch IterableDataset`_ then dataloader will be
+            created without any distributed sampling. Please, make sure that the dataset itself produces
+            different data on different ranks.
         kwargs: keyword arguments for `torch DataLoader`_.
 
     Returns:
@@ -60,6 +62,7 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> Union[DataLoader, "_MpDe
     .. _XLA MpDeviceLoader: https://github.com/pytorch/xla/blob/master/torch_xla/distributed/parallel_loader.py#L178
     .. _torch DistributedSampler:
         https://pytorch.org/docs/stable/data.html#torch.utils.data.distributed.DistributedSampler
+    .. _torch IterableDataset: https://pytorch.org/docs/stable/data.html#torch.utils.data.IterableDataset
     """
     rank = idist.get_rank()
     world_size = idist.get_world_size()
@@ -74,19 +77,25 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> Union[DataLoader, "_MpDe
             kwargs["num_workers"] = (kwargs["num_workers"] + nproc - 1) // nproc
 
         if "batch_sampler" not in kwargs:
-            if kwargs.get("sampler", None) is not None:
-                sampler = DistributedProxySampler(
-                    kwargs["sampler"], num_replicas=world_size, rank=rank
-                )  # type: Union[DistributedProxySampler, DistributedSampler, Sampler]
-            else:
-                sampler = DistributedSampler(
-                    dataset, num_replicas=world_size, rank=rank, shuffle=kwargs.get("shuffle", True)
+            if isinstance(dataset, IterableDataset):
+                logger.info(
+                    "Found iterable dataset, dataloader will be created without any distributed sampling. "
+                    "Please, make sure that the dataset itself produces different data on different ranks."
                 )
-                # we need to remove "shuffle" from kwargs if sampler is used
-                if "shuffle" in kwargs:
-                    del kwargs["shuffle"]
+            else:
+                if kwargs.get("sampler", None) is not None:
+                    sampler = DistributedProxySampler(
+                        kwargs["sampler"], num_replicas=world_size, rank=rank
+                    )  # type: Union[DistributedProxySampler, DistributedSampler, Sampler]
+                else:
+                    sampler = DistributedSampler(
+                        dataset, num_replicas=world_size, rank=rank, shuffle=kwargs.get("shuffle", True)
+                    )
+                    # we need to remove "shuffle" from kwargs if sampler is used
+                    if "shuffle" in kwargs:
+                        del kwargs["shuffle"]
 
-            kwargs["sampler"] = sampler
+                kwargs["sampler"] = sampler
         else:
             warnings.warn(
                 "Found batch_sampler in provided kwargs. Please, make sure that it is compatible "
@@ -188,23 +197,23 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
     # distributed data parallel model
     if idist.get_world_size() > 1:
         bnd = idist.backend()
-        if idist.has_native_dist_support and bnd == idist_native.NCCL:
+        if idist.has_native_dist_support and bnd in (idist_native.NCCL, idist_native.GLOO, idist_native.MPI):
             if sync_bn:
                 logger.info("Convert batch norm to sync batch norm")
                 model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
-            if "device_ids" in kwargs:
-                raise ValueError(f"Argument kwargs should not contain 'device_ids', but got {kwargs}")
+            if torch.cuda.is_available():
+                if "device_ids" in kwargs:
+                    raise ValueError(f"Argument kwargs should not contain 'device_ids', but got {kwargs}")
 
-            lrank = idist.get_local_rank()
-            logger.info(f"Apply torch DistributedDataParallel on model, device id: {lrank}")
-            model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[lrank,], **kwargs)
-        elif idist.has_native_dist_support and bnd == idist_native.GLOO:
-            if sync_bn:
-                logger.info("Convert batch norm to sync batch norm")
-                model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
+                lrank = idist.get_local_rank()
+                logger.info(f"Apply torch DistributedDataParallel on model, device id: {lrank}")
+                kwargs["device_ids"] = [
+                    lrank,
+                ]
+            else:
+                logger.info("Apply torch DistributedDataParallel on model")
 
-            logger.info("Apply torch DistributedDataParallel on model")
             model = torch.nn.parallel.DistributedDataParallel(model, **kwargs)
         elif idist.has_hvd_support and bnd == idist_hvd.HOROVOD:
             import horovod.torch as hvd

@@ -455,7 +455,7 @@ def _test_every_event_filter_with_engine_with_dataloader(device):
             data,
             batch_size=batch_size,
             num_workers=num_workers,
-            pin_memory="cuda" in device,
+            pin_memory="cuda" in torch.device(device).type,
             drop_last=True,
             shuffle=True,
         )
@@ -489,16 +489,19 @@ def test_every_event_filter_with_engine_with_dataloader():
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-def test_distrib_cpu(distributed_context_single_node_gloo):
-    _test_every_event_filter_with_engine()
-    _test_every_event_filter_with_engine_with_dataloader("cpu")
+def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
+
+    device = idist.device()
+    _test_every_event_filter_with_engine(device)
+    _test_every_event_filter_with_engine_with_dataloader(device)
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_gpu(distributed_context_single_node_nccl):
-    device = f"cuda:{distributed_context_single_node_nccl['local_rank']}"
+def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
+
+    device = idist.device()
     _test_every_event_filter_with_engine(device)
     _test_every_event_filter_with_engine_with_dataloader(device)
 

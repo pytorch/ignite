@@ -147,6 +147,22 @@ def test_output_handler_metric_names():
     assert mock_logger.writer.add_scalar.call_count == 2
     mock_logger.writer.add_scalar.assert_has_calls([call("tag/a", 12.23, 5), call("tag/b", 23.45, 5),], any_order=True)
 
+    # log a torch tensor (ndimension = 0)
+    wrapper = OutputHandler("tag", metric_names="all")
+    mock_logger = MagicMock(spec=TensorboardLogger)
+    mock_logger.writer = MagicMock()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State(metrics={"a": torch.tensor(12.23), "b": torch.tensor(23.45)})
+    mock_engine.state.iteration = 5
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+    assert mock_logger.writer.add_scalar.call_count == 2
+    mock_logger.writer.add_scalar.assert_has_calls(
+        [call("tag/a", torch.tensor(12.23).item(), 5), call("tag/b", torch.tensor(23.45).item(), 5),], any_order=True
+    )
+
 
 def test_output_handler_both():
 

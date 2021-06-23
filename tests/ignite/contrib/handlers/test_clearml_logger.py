@@ -183,6 +183,27 @@ def test_output_handler_metric_names(dirname):
         any_order=True,
     )
 
+    # log a torch tensor (ndimension = 0)
+    wrapper = OutputHandler("tag", metric_names="all")
+    mock_logger = MagicMock(spec=ClearMLLogger)
+    mock_logger.clearml_logger = MagicMock()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State(metrics={"a": torch.tensor(12.23), "b": torch.tensor(23.45), "c": torch.tensor(5.01)})
+    mock_engine.state.iteration = 5
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+    assert mock_logger.clearml_logger.report_scalar.call_count == 3
+    mock_logger.clearml_logger.report_scalar.assert_has_calls(
+        [
+            call(title="tag", series="a", iteration=5, value=torch.tensor(12.23).item()),
+            call(title="tag", series="b", iteration=5, value=torch.tensor(23.45).item()),
+            call(title="tag", series="c", iteration=5, value=torch.tensor(5.01).item()),
+        ],
+        any_order=True,
+    )
+
 
 def test_output_handler_both(dirname):
 
@@ -888,18 +909,21 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, on_zero_rank
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-def test_distrib_cpu(distributed_context_single_node_gloo):
-    _test_save_model_optimizer_lr_scheduler_with_state_dict("cpu")
-    _test_save_model_optimizer_lr_scheduler_with_state_dict("cpu", on_zero_rank=True)
+def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
+
+    device = idist.device()
+    _test_save_model_optimizer_lr_scheduler_with_state_dict(device)
+    _test_save_model_optimizer_lr_scheduler_with_state_dict(device, on_zero_rank=True)
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_gpu(distributed_context_single_node_nccl):
+def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
+
     device = idist.device()
     _test_save_model_optimizer_lr_scheduler_with_state_dict(device)
-    _test_save_model_optimizer_lr_scheduler_with_state_dict("cpu", on_zero_rank=True)
+    _test_save_model_optimizer_lr_scheduler_with_state_dict(device, on_zero_rank=True)
 
 
 @pytest.mark.tpu

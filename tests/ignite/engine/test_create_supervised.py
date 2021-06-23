@@ -83,7 +83,7 @@ def _test_create_supervised_trainer(
     else:
         if LooseVersion(torch.__version__) >= LooseVersion("1.7.0"):
             # This is broken in 1.6.0 but will be probably fixed with 1.7.0
-            with pytest.raises(RuntimeError, match=r"is on CPU, but expected them to be on GPU"):
+            with pytest.raises(RuntimeError, match=r"Expected all tensors to be on the same device"):
                 trainer.run(data)
 
 
@@ -96,7 +96,7 @@ def test_create_supervised_training_scalar_assignment():
     optimizer = SGD(model.parameters(), 0.1)
 
     with mock.patch("ignite.engine._check_arg") as check_arg_mock:
-        check_arg_mock.return_value = None, torch.cuda.amp.GradScaler(enabled=True)
+        check_arg_mock.return_value = None, torch.cuda.amp.GradScaler(enabled=False)
         trainer = create_supervised_trainer(
             model,
             optimizer,
@@ -212,7 +212,7 @@ def _test_create_supervised_evaluator(
     else:
         if LooseVersion(torch.__version__) >= LooseVersion("1.7.0"):
             # This is broken in 1.6.0 but will be probably fixed with 1.7.0
-            with pytest.raises(RuntimeError, match=r"is on CPU, but expected them to be on GPU"):
+            with pytest.raises(RuntimeError, match=r"Expected all tensors to be on the same device"):
                 evaluator.run(data)
 
 

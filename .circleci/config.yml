@@ -4,11 +4,11 @@ parameters:
   pytorch_stable_image:
     type: string
     # https://hub.docker.com/r/pytorch/pytorch/tags
-    default: "pytorch/pytorch:1.8.1-cuda11.1-cudnn8-runtime"
+    default: "pytorch/pytorch:1.9.0-cuda11.1-cudnn8-runtime"
   pytorch_stable_image_devel:
     type: string
     # https://hub.docker.com/r/pytorch/pytorch/tags
-    default: "pytorch/pytorch:1.8.1-cuda11.1-cudnn8-devel"
+    default: "pytorch/pytorch:1.9.0-cuda11.1-cudnn8-devel"
   workingdir:
     type: string
     default: "/tmp/ignite"
@@ -20,13 +20,13 @@ parameters:
     default: false
   build_docker_image_pytorch_version:
     type: string
-    default: "1.8.1-cuda11.1-cudnn8"
+    default: "1.9.0-cuda11.1-cudnn8"
   build_docker_image_hvd_version:
     type: string
-    default: "v0.21.3"
+    default: "v0.22.1"
   build_docker_image_msdp_version:
     type: string
-    default: "v0.3.10"
+    default: "v0.4.0"
 
 # -------------------------------------------------------------------------------------
 # Environments to run the jobs in
@@ -202,12 +202,20 @@ jobs:
             bash .circleci/trigger_if_modified.sh "^(ignite|tests|examples|\.circleci).*"
 
       - run:
+          name: Update CUDA Driver for Windows
+          command: |
+            curl -O https://raw.githubusercontent.com/pytorch/pytorch/master/.circleci/scripts/windows_cuda_install.sh
+            mkdir -p "C:/Program Files (x86)/Microsoft Visual Studio/2019/BuildTools/MSBuild/Microsoft/VC/v160/BuildCustomizations/"
+            JOB_EXECUTOR="windows-with-nvidia-gpu" CUDA_VERSION="11.3" VC_PRODUCT="BuildTools" VC_YEAR="2019" bash ./windows_cuda_install.sh
+            bash -c "'/c/Program Files/NVIDIA Corporation/NVSMI/nvidia-smi.exe'"
+
+      - run:
           name: Install dependencies
           command: |
             conda --version
-            # We have to use cuda 10.1 on Windows:
+            # We have to use cuda 10.2 on Windows:
             # https://github.com/pytorch/ignite/issues/1843
-            conda install -y pytorch torchvision cudatoolkit=10.1 -c pytorch
+            conda install -y pytorch torchvision cudatoolkit=10.2 -c pytorch
             pip install -r requirements-dev.txt
             pip install .
 
