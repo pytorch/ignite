@@ -56,12 +56,11 @@ class _BaseInceptionMetric(Metric):
         num_features: Optional[int],
         feature_extractor: Optional[torch.nn.Module],
         num_channels: int,
-        eval_model: Callable,
-        args: Any,
+        return_features: Any,
         device: Union[str, torch.device],
     ) -> Tuple[int, torch.nn.Module]:
         if num_features is None and feature_extractor is None:
-            return num_channels, eval_model(args)
+            return num_channels, InceptionModel(return_features, device=device)
         elif num_features is None:
             raise ValueError("Argument num_features should be defined, if feature_extractor is provided")
         elif feature_extractor is None:

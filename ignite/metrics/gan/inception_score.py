@@ -3,7 +3,7 @@ from typing import Callable, Optional, Union
 import torch
 
 from ignite.exceptions import NotComputableError
-from ignite.metrics.gan.utils import InceptionModel, _BaseInceptionMetric
+from ignite.metrics.gan.utils import _BaseInceptionMetric
 
 # These decorators helps with distributed settings
 from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
@@ -67,7 +67,7 @@ class InceptionScore(_BaseInceptionMetric):
     ) -> None:
 
         self._num_features, self._feature_extractor = self._check_input(
-            num_features, feature_extractor, 1000, InceptionModel, False, device,
+            num_features, feature_extractor, 1000, False, device,
         )
         self._eps = 1e-16
         super(InceptionScore, self).__init__(

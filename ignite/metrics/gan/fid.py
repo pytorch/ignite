@@ -4,7 +4,7 @@ from typing import Callable, Optional, Sequence, Union
 
 import torch
 
-from ignite.metrics.gan.utils import InceptionModel, _BaseInceptionMetric
+from ignite.metrics.gan.utils import _BaseInceptionMetric
 from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
 __all__ = [
@@ -122,7 +122,7 @@ class FID(_BaseInceptionMetric):
             raise RuntimeError("This module requires scipy to be installed.")
 
         self._num_features, self._feature_extractor = self._check_input(
-            num_features, feature_extractor, 2048, InceptionModel, True, device,
+            num_features, feature_extractor, 2048, True, device,
         )
         self._eps = 1e-6
 
