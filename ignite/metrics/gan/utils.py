@@ -43,7 +43,6 @@ class _BaseInceptionMetric(Metric):
     def __init__(
         self,
         num_features: Optional[int] = None,
-        feature_extractor: Optional[torch.nn.Module] = None,
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
@@ -52,6 +51,7 @@ class _BaseInceptionMetric(Metric):
 
         self._default_channels: int = 1
         self._default_eval_model: Any = torch.nn.Identity
+        self._default_args: Any = None
         super(_BaseInceptionMetric, self).__init__(output_transform=output_transform, device=device)
 
     def _check_input(

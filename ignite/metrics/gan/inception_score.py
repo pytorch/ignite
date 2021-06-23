@@ -73,10 +73,7 @@ class InceptionScore(_BaseInceptionMetric):
         self._num_features, self._feature_extractor = self._check_input(num_features, feature_extractor, device)
         self._eps = 1e-16
         super(InceptionScore, self).__init__(
-            num_features=num_features,
-            feature_extractor=feature_extractor,
-            output_transform=output_transform,
-            device=device,
+            num_features=num_features, output_transform=output_transform, device=device,
         )
 
     @reinit__is_reduced
