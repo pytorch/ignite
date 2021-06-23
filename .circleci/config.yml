@@ -205,7 +205,7 @@ jobs:
           name: Update CUDA Driver for Windows
           command: |
             curl -O https://raw.githubusercontent.com/pytorch/pytorch/master/.circleci/scripts/windows_cuda_install.sh
-            VC_PRODUCT="BuildTools" mkdir -p "C:/Program Files (x86)/Microsoft Visual Studio/2019/${VC_PRODUCT}/MSBuild/Microsoft/VC/v160/BuildCustomizations/"
+            mkdir -p "C:/Program Files (x86)/Microsoft Visual Studio/2019/BuildTools/MSBuild/Microsoft/VC/v160/BuildCustomizations/"
             JOB_EXECUTOR="windows-with-nvidia-gpu" CUDA_VERSION="11.3" VC_PRODUCT="BuildTools" VC_YEAR="2019" bash ./windows_cuda_install.sh
 
       - run:
