@@ -70,7 +70,14 @@ class InceptionScore(_BaseInceptionMetric):
         self._default_eval_model = InceptionModel
         self._default_args = False
 
-        self._num_features, self._feature_extractor = self._check_input(num_features, feature_extractor, device)
+        self._num_features, self._feature_extractor = self._check_input(
+            num_features,
+            feature_extractor,
+            self._default_channels,
+            self._default_eval_model,
+            self._default_args,
+            device,
+        )
         self._eps = 1e-16
         super(InceptionScore, self).__init__(
             num_features=num_features, output_transform=output_transform, device=device,

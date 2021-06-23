@@ -49,19 +49,19 @@ class _BaseInceptionMetric(Metric):
         if num_features is not None and num_features <= 0:
             raise ValueError(f"Argument num_features must be greater to zero, got: {num_features}")
 
-        self._default_channels: int = 1
-        self._default_eval_model: Any = torch.nn.Identity
-        self._default_args: Any = None
         super(_BaseInceptionMetric, self).__init__(output_transform=output_transform, device=device)
 
     def _check_input(
         self,
         num_features: Optional[int],
         feature_extractor: Optional[torch.nn.Module],
+        num_channels: int,
+        eval_model: Callable,
+        args: Any,
         device: Union[str, torch.device],
     ) -> Tuple[int, torch.nn.Module]:
         if num_features is None and feature_extractor is None:
-            return self._default_channels, self._default_eval_model(self._default_args)
+            return num_channels, eval_model(args)
         elif num_features is None:
             raise ValueError("Argument num_features should be defined, if feature_extractor is provided")
         elif feature_extractor is None:
