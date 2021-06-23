@@ -887,7 +887,7 @@ class ModelCheckpoint(Checkpoint):
         Argument ``save_as_state_dict`` is deprecated and should not be used. It is considered as True.
 
         Argument ``save_interval`` is deprecated and should not be used. Please, use events filtering instead, e.g.
-        :attr:`~ignite.engine.events.Events.ITERATION_STARTED(every=1000)`
+        ``Events.ITERATION_STARTED(every=1000)``.
 
         There is no more internal counter that has been used to indicate the number of save actions. User could
         see its value `step_number` in the filename, e.g. `{filename_prefix}_{name}_{step_number}.pt`. Actually,
