@@ -66,17 +66,8 @@ class InceptionScore(_BaseInceptionMetric):
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
 
-        self._default_channels = 1000
-        self._default_eval_model = InceptionModel
-        self._default_args = False
-
         self._num_features, self._feature_extractor = self._check_input(
-            num_features,
-            feature_extractor,
-            self._default_channels,
-            self._default_eval_model,
-            self._default_args,
-            device,
+            num_features, feature_extractor, 1000, InceptionModel, False, device,
         )
         self._eps = 1e-16
         super(InceptionScore, self).__init__(

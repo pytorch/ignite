@@ -121,18 +121,8 @@ class FID(_BaseInceptionMetric):
         except ImportError:
             raise RuntimeError("This module requires scipy to be installed.")
 
-        # default is inception
-        self._default_channels = 2048
-        self._default_eval_model = InceptionModel
-        self._default_args = True
-
         self._num_features, self._feature_extractor = self._check_input(
-            num_features,
-            feature_extractor,
-            self._default_channels,
-            self._default_eval_model,
-            self._default_args,
-            device,
+            num_features, feature_extractor, 2048, InceptionModel, True, device,
         )
         self._eps = 1e-6
 
