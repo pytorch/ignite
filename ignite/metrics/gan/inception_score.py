@@ -29,7 +29,7 @@ class InceptionScore(_BaseInceptionMetric):
     Args:
         num_features: number of features predicted by the model or number of classes of the model. Default
             value is 1000.
-        feature_extractor: a torch.nn.Module class object for predicting the probabilities from the input data.
+        feature_extractor: a torch Module for predicting the probabilities from the input data.
             If neither ``num_features`` nor ``feature_extractor`` are defined, by default we use an ImageNet
             pretrained Inception Model. Please note that the class object will be implicitly converted to device
             mentioned in the ``device`` argument.

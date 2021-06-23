@@ -74,8 +74,9 @@ class FID(_BaseInceptionMetric):
     Args:
         num_features: number of features predicted by the model or the reduced feature vector of the image.
             Default value is 2048.
-        feature_extractor: a torch.nn.Module class object for extracting the features from the input data. If
-            neither ``num_features`` nor ``feature_extractor`` are defined, by default we use an ImageNet
+        feature_extractor: a torch Module for extracting the features from the input data.
+            It returns a tensor of shape (A, B), where A is batch_size and B is same as ``num_features``.
+            If neither ``num_features`` nor ``feature_extractor`` are defined, by default we use an ImageNet
             pretrained Inception Model. Please note that the model will be implicitly converted to device
             mentioned in the ``device`` argument.
         output_transform: a callable that is used to transform the
