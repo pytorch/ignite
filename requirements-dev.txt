@@ -6,8 +6,6 @@ pytest-cov
 pytest-xdist
 dill
 # Test contrib dependencies
-scipy
-pytorch_fid
 tqdm
 scikit-learn
 matplotlib
@@ -19,7 +17,6 @@ wandb
 mlflow
 neptune-client
 tensorboard
-torchvision
 pynvml
 clearml
 scikit-image
