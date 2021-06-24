@@ -15,9 +15,9 @@ from ignite.engine import Events
 from ignite.engine.deterministic import (
     DeterministicEngine,
     ReproducibleBatchSampler,
+    _set_rng_states,
     keep_random_state,
     update_dataloader,
-    _set_rng_states,
 )
 from ignite.utils import manual_seed
 from tests.ignite.engine import BatchChecker, setup_sampler
