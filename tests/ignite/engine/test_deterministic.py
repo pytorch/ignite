@@ -15,6 +15,7 @@ from ignite.engine import Events
 from ignite.engine.deterministic import (
     DeterministicEngine,
     ReproducibleBatchSampler,
+    _set_rng_states,
     keep_random_state,
     update_dataloader,
 )
@@ -885,3 +886,12 @@ def test_dataloader_no_dataset_kind():
     dataloader = OldDataLoader(dataloader)
 
     engine.run(dataloader)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
+def test__set_rng_states_cuda():
+    # Checks https://github.com/pytorch/ignite/issues/2076
+
+    rng_states = [random.getstate(), torch.get_rng_state().cuda(), np.random.get_state()]
+    _set_rng_states(rng_states)
+    assert rng_states[1].device.type == "cpu"
