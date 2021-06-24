@@ -19,7 +19,7 @@ def calculate_inception_score(p_yx):
 
 def test_inception_score():
     p_yx = torch.rand(20, 10)
-    m = InceptionScore(num_features=10)
+    m = InceptionScore(num_features=10, feature_extractor=torch.nn.Identity())
     m.update(p_yx)
     assert pytest.approx(calculate_inception_score(p_yx)) == m.compute()
 
@@ -39,18 +39,18 @@ def test_device_mismatch_cuda():
 
 def test_wrong_inputs():
     with pytest.raises(ValueError, match=r"Argument num_features must be greater to zero, got:"):
-        InceptionScore(num_features=-1).update(torch.rand(2, 0))
-    with pytest.raises(ValueError, match=r"eval_model output must be a tensor of dim 2, got: 1"):
-        InceptionScore(num_features=1000).update(torch.rand(3))
+        InceptionScore(num_features=-1, feature_extractor=torch.nn.Identity()).update(torch.rand(2, 0))
+    with pytest.raises(ValueError, match=r"feature_extractor output must be a tensor of dim 2, got: 1"):
+        InceptionScore(num_features=1000, feature_extractor=torch.nn.Identity()).update(torch.rand(3))
     with pytest.raises(ValueError, match=r"Batch size should be greater than one, got: 0"):
-        InceptionScore(num_features=1000).update(torch.rand(0, 0))
-    with pytest.raises(ValueError, match=r"num_features returned by eval_model should be 1000, got: 0"):
-        InceptionScore(num_features=1000).update(torch.rand(2, 0))
+        InceptionScore(num_features=1000, feature_extractor=torch.nn.Identity()).update(torch.rand(0, 0))
+    with pytest.raises(ValueError, match=r"num_features returned by feature_extractor should be 1000, got: 0"):
+        InceptionScore(num_features=1000, feature_extractor=torch.nn.Identity()).update(torch.rand(2, 0))
     with pytest.raises(
         NotComputableError, match=r"InceptionScore must have at least one example before it can be computed."
     ):
-        InceptionScore(num_features=1000).compute()
-    with pytest.raises(ValueError, match=r"Argument num_features should be defined, if feature_extractor is provided"):
+        InceptionScore(num_features=1000, feature_extractor=torch.nn.Identity()).compute()
+    with pytest.raises(ValueError, match=r"Argument num_features must be provided, if feature_extractor is specified."):
         InceptionScore(feature_extractor=torch.nn.Identity())
 
 
@@ -72,7 +72,7 @@ def _test_distrib_integration(device):
             return y[i * s + rank * offset : (i + 1) * s + rank * offset, :]
 
         engine = Engine(update)
-        m = InceptionScore(num_features=n_probabilities, device=metric_device)
+        m = InceptionScore(num_features=n_probabilities, feature_extractor=torch.nn.Identity(), device=metric_device)
         m.attach(engine, "InceptionScore")
 
         engine.run(data=list(range(n_iters)), max_epochs=1)

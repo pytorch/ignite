@@ -1,4 +1,4 @@
-from typing import Any, Callable, Optional, Tuple, Union
+from typing import Callable, Optional, Union
 
 import torch
 
@@ -42,40 +42,33 @@ class InceptionModel(torch.nn.Module):
 class _BaseInceptionMetric(Metric):
     def __init__(
         self,
-        num_features: Optional[int] = None,
+        num_features: Optional[int],
+        feature_extractor: Optional[torch.nn.Module],
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
-        if num_features is not None and num_features <= 0:
+        if num_features is None:
+            raise ValueError("Argument num_features must be provided, if feature_extractor is specified.")
+        if feature_extractor is None:
+            feature_extractor = torch.nn.Identity()
+        if num_features <= 0:
             raise ValueError(f"Argument num_features must be greater to zero, got: {num_features}")
 
+        if not isinstance(feature_extractor, torch.nn.Module):
+            raise TypeError(
+                f"Argument feature_extractor must be of type torch.nn.Module, got {type(self._feature_extractor)}"
+            )
+
+        self._num_features = num_features
+        self._feature_extractor = feature_extractor
         super(_BaseInceptionMetric, self).__init__(output_transform=output_transform, device=device)
 
-    def _check_input(
-        self,
-        num_features: Optional[int],
-        feature_extractor: Optional[torch.nn.Module],
-        num_channels: int,
-        return_features: Any,
-        device: Union[str, torch.device],
-    ) -> Tuple[int, torch.nn.Module]:
-        if num_features is None and feature_extractor is None:
-            return num_channels, InceptionModel(return_features, device=device)
-        elif num_features is None:
-            raise ValueError("Argument num_features should be defined, if feature_extractor is provided")
-        elif feature_extractor is None:
-            return num_features, torch.nn.Identity()
-        elif not isinstance(feature_extractor, torch.nn.Module):
-            raise TypeError(
-                f"Argument feature_extractor must be of type torch.nn.Module, got {type(feature_extractor)}"
-            )
-        else:
-            return num_features, feature_extractor.to(device)
-
-    def _check_feature_input(self, samples: torch.Tensor, num_features: int) -> None:
+    def _check_feature_input(self, samples: torch.Tensor) -> None:
         if samples.dim() != 2:
-            raise ValueError(f"eval_model output must be a tensor of dim 2, got: {samples.dim()}")
+            raise ValueError(f"feature_extractor output must be a tensor of dim 2, got: {samples.dim()}")
         if samples.shape[0] == 0:
             raise ValueError(f"Batch size should be greater than one, got: {samples.shape[0]}")
-        if samples.shape[1] != num_features:
-            raise ValueError(f"num_features returned by eval_model should be {num_features}, got: {samples.shape[1]}")
+        if samples.shape[1] != self._num_features:
+            raise ValueError(
+                f"num_features returned by feature_extractor should be {self._num_features}, got: {samples.shape[1]}"
+            )

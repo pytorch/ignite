@@ -54,7 +54,7 @@ def test_fid_function():
 def test_compute_fid_from_features():
     train_samples, test_samples = torch.rand(10, 10), torch.rand(10, 10)
 
-    fid_scorer = FID(num_features=10)
+    fid_scorer = FID(num_features=10, feature_extractor=torch.nn.Identity())
     fid_scorer.update([train_samples[:5], test_samples[:5]])
     fid_scorer.update([train_samples[5:], test_samples[5:]])
 
@@ -102,29 +102,29 @@ def test_compute_fid_sqrtm():
 
 def test_wrong_inputs():
     with pytest.raises(ValueError, match=r"Argument num_features must be greater to zero"):
-        FID(num_features=-1)
-    with pytest.raises(ValueError, match=r"eval_model output must be a tensor of dim 2, got: 1"):
-        FID(num_features=1).update(torch.Tensor([[], []]))
+        FID(num_features=-1, feature_extractor=torch.nn.Identity())
+    with pytest.raises(ValueError, match=r"feature_extractor output must be a tensor of dim 2, got: 1"):
+        FID(num_features=1, feature_extractor=torch.nn.Identity()).update(torch.Tensor([[], []]))
     with pytest.raises(ValueError, match=r"Batch size should be greater than one, got: 0"):
-        FID(num_features=1).update(torch.rand(2, 0, 0))
-    with pytest.raises(ValueError, match=r"num_features returned by eval_model should be 1, got: 0"):
-        FID(num_features=1).update(torch.rand(2, 2, 0))
+        FID(num_features=1, feature_extractor=torch.nn.Identity()).update(torch.rand(2, 0, 0))
+    with pytest.raises(ValueError, match=r"num_features returned by feature_extractor should be 1, got: 0"):
+        FID(num_features=1, feature_extractor=torch.nn.Identity()).update(torch.rand(2, 2, 0))
     err_str = (
         "Number of Training Features and Testing Features should be equal (torch.Size([9, 2]) != torch.Size([5, 2]))"
     )
     with pytest.raises(
         ValueError, match=re.escape(err_str),
     ):
-        FID(num_features=2).update((torch.rand(9, 2), torch.rand(5, 2)))
-    with pytest.raises(ValueError, match=r"Argument num_features should be defined, if feature_extractor is provided"):
-        FID(feature_extractor=torch.nn.Identity())
+        FID(num_features=2, feature_extractor=torch.nn.Identity()).update((torch.rand(9, 2), torch.rand(5, 2)))
     with pytest.raises(TypeError, match=r"Argument feature_extractor must be of type torch.nn.Module"):
         FID(num_features=1, feature_extractor=lambda x: x)
+    with pytest.raises(ValueError, match=r"Argument num_features must be provided, if feature_extractor is specified."):
+        FID(feature_extractor=torch.nn.Identity())
 
 
 def test_statistics():
     train_samples, test_samples = torch.rand(10, 10), torch.rand(10, 10)
-    fid_scorer = FID(num_features=10)
+    fid_scorer = FID(num_features=10, feature_extractor=torch.nn.Identity())
     fid_scorer.update([train_samples[:5], test_samples[:5]])
     fid_scorer.update([train_samples[5:], test_samples[5:]])
 
@@ -167,7 +167,7 @@ def _test_distrib_integration(device):
             )
 
         engine = Engine(update)
-        m = FID(num_features=n_features, device=metric_device)
+        m = FID(num_features=n_features, feature_extractor=torch.nn.Identity(), device=metric_device)
         m.attach(engine, "fid")
 
         engine.run(data=list(range(n_iters)), max_epochs=1)

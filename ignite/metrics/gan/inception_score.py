@@ -3,7 +3,7 @@ from typing import Callable, Optional, Union
 import torch
 
 from ignite.exceptions import NotComputableError
-from ignite.metrics.gan.utils import _BaseInceptionMetric
+from ignite.metrics.gan.utils import InceptionModel, _BaseInceptionMetric
 
 # These decorators helps with distributed settings
 from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
@@ -32,7 +32,9 @@ class InceptionScore(_BaseInceptionMetric):
         feature_extractor: a torch Module for predicting the probabilities from the input data.
             It returns a tensor of shape (batch_size, num_features).
             If neither ``num_features`` nor ``feature_extractor`` are defined, by default we use an ImageNet
-            pretrained Inception Model. Please note that the class object will be implicitly converted to device
+            pretrained Inception Model. If only ``num_features`` is defined but ``feature_extractor`` is not
+            defined, ``feature_extractor`` is assigned Identity Function.
+            Please note that the class object will be implicitly converted to device
             mentioned in the ``device`` argument.
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
@@ -66,13 +68,16 @@ class InceptionScore(_BaseInceptionMetric):
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
+        if num_features is None and feature_extractor is None:
+            num_features = 1000
+            feature_extractor = InceptionModel(return_features=False)
 
-        self._num_features, self._feature_extractor = self._check_input(
-            num_features, feature_extractor, 1000, False, device,
-        )
         self._eps = 1e-16
         super(InceptionScore, self).__init__(
-            num_features=num_features, output_transform=output_transform, device=device,
+            num_features=num_features,
+            feature_extractor=feature_extractor,
+            output_transform=output_transform,
+            device=device,
         )
 
     @reinit__is_reduced
@@ -90,7 +95,7 @@ class InceptionScore(_BaseInceptionMetric):
         with torch.no_grad():
             probabilities = self._feature_extractor(samples).to(self._device)
 
-        self._check_feature_input(probabilities, self._num_features)
+        self._check_feature_input(probabilities)
         self._num_examples += probabilities.shape[0]
         self._prob_total += torch.sum(probabilities, 0).to(self._device)
         self._total_kl_d += torch.sum(probabilities * torch.log(probabilities + self._eps), 0).to(self._device)

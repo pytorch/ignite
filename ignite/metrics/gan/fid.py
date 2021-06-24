@@ -4,7 +4,7 @@ from typing import Callable, Optional, Sequence, Union
 
 import torch
 
-from ignite.metrics.gan.utils import _BaseInceptionMetric
+from ignite.metrics.gan.utils import InceptionModel, _BaseInceptionMetric
 from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
 __all__ = [
@@ -121,13 +121,17 @@ class FID(_BaseInceptionMetric):
         except ImportError:
             raise RuntimeError("This module requires scipy to be installed.")
 
-        self._num_features, self._feature_extractor = self._check_input(
-            num_features, feature_extractor, 2048, True, device,
-        )
+        if num_features is None and feature_extractor is None:
+            num_features = 1000
+            feature_extractor = InceptionModel(return_features=False)
+
         self._eps = 1e-6
 
         super(FID, self).__init__(
-            num_features=num_features, output_transform=output_transform, device=device,
+            num_features=num_features,
+            feature_extractor=feature_extractor,
+            output_transform=output_transform,
+            device=device,
         )
 
     @staticmethod
@@ -159,7 +163,7 @@ class FID(_BaseInceptionMetric):
             (self._num_features, self._num_features), dtype=torch.float64, device=self._device
         )
         self._test_total = torch.zeros(self._num_features, dtype=torch.float64, device=self._device)
-        self._num_examples = 0
+        self._num_examples: int = 0
         super(FID, self).reset()
 
     @reinit__is_reduced
@@ -176,8 +180,8 @@ class FID(_BaseInceptionMetric):
             test_features = self._feature_extractor(test).to(self._device)
 
         # Check the feature shapess
-        self._check_feature_input(train_features, self._num_features)
-        self._check_feature_input(test_features, self._num_features)
+        self._check_feature_input(train_features)
+        self._check_feature_input(test_features)
         if train_features.shape[0] != test_features.shape[0] or train_features.shape[1] != test_features.shape[1]:
             raise ValueError(
                 f"""
