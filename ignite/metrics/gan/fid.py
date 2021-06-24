@@ -77,8 +77,10 @@ class FID(_BaseInceptionMetric):
         feature_extractor: a torch Module for extracting the features from the input data.
             It returns a tensor of shape (batch_size, num_features).
             If neither ``num_features`` nor ``feature_extractor`` are defined, by default we use an ImageNet
-            pretrained Inception Model. Please note that the model will be implicitly converted to device
-            mentioned in the ``device`` argument.
+            pretrained Inception Model. If only ``num_features`` is defined but ``feature_extractor`` is not
+            defined, ``feature_extractor`` is assigned Identity Function.
+            Please note that the model will be implicitly converted to device mentioned in the ``device``
+            argument.
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
