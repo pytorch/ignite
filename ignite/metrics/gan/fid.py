@@ -174,9 +174,6 @@ class FID(_BaseInceptionMetric):
         train_features = self._extract_features(train)
         test_features = self._extract_features(test)
 
-        # Check the feature shapess
-        self._check_feature_input(train_features)
-        self._check_feature_input(test_features)
         if train_features.shape[0] != test_features.shape[0] or train_features.shape[1] != test_features.shape[1]:
             raise ValueError(
                 f"""

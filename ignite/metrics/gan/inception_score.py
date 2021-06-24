@@ -91,7 +91,6 @@ class InceptionScore(_BaseInceptionMetric):
     def update(self, samples: torch.Tensor) -> None:
         probabilities = self._extract_features(samples)
 
-        self._check_feature_input(probabilities)
         self._num_examples += probabilities.shape[0]
         self._prob_total += torch.sum(probabilities, 0).to(self._device)
         self._total_kl_d += torch.sum(probabilities * torch.log(probabilities + self._eps), 0).to(self._device)

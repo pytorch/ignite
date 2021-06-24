@@ -63,7 +63,7 @@ class _BaseInceptionMetric(Metric):
         self._feature_extractor = feature_extractor
         super(_BaseInceptionMetric, self).__init__(output_transform=output_transform, device=device)
 
-    def _check_feature_input(self, samples: torch.Tensor) -> None:
+    def _check_feature_shapes(self, samples: torch.Tensor) -> None:
         if samples.dim() != 2:
             raise ValueError(f"feature_extractor output must be a tensor of dim 2, got: {samples.dim()}")
         if samples.shape[0] == 0:
@@ -73,11 +73,12 @@ class _BaseInceptionMetric(Metric):
                 f"num_features returned by feature_extractor should be {self._num_features}, got: {samples.shape[1]}"
             )
 
-    def _extract_features(self, samples: torch.Tensor) -> torch.Tensor:
-        if samples.device != torch.device(self._device):
-            samples = samples.to(self._device)
+    def _extract_features(self, inputs: torch.Tensor) -> torch.Tensor:
+        if inputs.device != torch.device(self._device):
+            samples = inputs.to(self._device)
 
         with torch.no_grad():
-            sample_features = self._feature_extractor(samples).to(self._device)
+            outputs = self._feature_extractor(inputs).to(self._device)
+        self._check_feature_shapes(outputs)
 
-        return sample_features
+        return outputs
