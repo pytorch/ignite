@@ -138,7 +138,9 @@ class FID(_BaseInceptionMetric):
 
     @staticmethod
     def _online_update(features: torch.Tensor, total: torch.Tensor, sigma: torch.Tensor) -> None:
+
         total += features
+
         if LooseVersion(torch.__version__) <= LooseVersion("1.7.0"):
             sigma += torch.ger(features, features)
         else:
@@ -148,28 +150,37 @@ class FID(_BaseInceptionMetric):
         r"""
         Calculates covariance from mean and sum of products of variables
         """
+
         if LooseVersion(torch.__version__) <= LooseVersion("1.7.0"):
             sub_matrix = torch.ger(total, total)
         else:
             sub_matrix = torch.outer(total, total)
+
         sub_matrix = sub_matrix / self._num_examples
+
         return (sigma - sub_matrix) / (self._num_examples - 1)
 
     @reinit__is_reduced
     def reset(self) -> None:
+
         self._train_sigma = torch.zeros(
             (self._num_features, self._num_features), dtype=torch.float64, device=self._device
         )
+
         self._train_total = torch.zeros(self._num_features, dtype=torch.float64, device=self._device)
+
         self._test_sigma = torch.zeros(
             (self._num_features, self._num_features), dtype=torch.float64, device=self._device
         )
+
         self._test_total = torch.zeros(self._num_features, dtype=torch.float64, device=self._device)
         self._num_examples: int = 0
+
         super(FID, self).reset()
 
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
+
         train, test = output
         train_features = self._extract_features(train)
         test_features = self._extract_features(test)
@@ -193,6 +204,7 @@ class FID(_BaseInceptionMetric):
 
     @sync_all_reduce("_num_examples", "_train_total", "_test_total", "_train_sigma", "_test_sigma")
     def compute(self) -> float:
+
         fid = fid_score(
             mu1=self._train_total / self._num_examples,
             mu2=self._test_total / self._num_examples,
@@ -200,6 +212,8 @@ class FID(_BaseInceptionMetric):
             sigma2=self._get_covariance(self._test_sigma, self._test_total),
             eps=self._eps,
         )
+
         if torch.isnan(torch.tensor(fid)) or torch.isinf(torch.tensor(fid)):
             warnings.warn("The product of covariance of train and test features is out of bounds.")
+
         return fid

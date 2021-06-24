@@ -68,11 +68,13 @@ class InceptionScore(_BaseInceptionMetric):
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
+
         if num_features is None and feature_extractor is None:
             num_features = 1000
             feature_extractor = InceptionModel(return_features=False)
 
         self._eps = 1e-16
+
         super(InceptionScore, self).__init__(
             num_features=num_features,
             feature_extractor=feature_extractor,
@@ -82,24 +84,32 @@ class InceptionScore(_BaseInceptionMetric):
 
     @reinit__is_reduced
     def reset(self) -> None:
+
         self._num_examples = 0
+
         self._prob_total = torch.zeros(self._num_features, dtype=torch.float64, device=self._device)
         self._total_kl_d = torch.zeros(self._num_features, dtype=torch.float64, device=self._device)
+
         super(InceptionScore, self).reset()
 
     @reinit__is_reduced
     def update(self, samples: torch.Tensor) -> None:
+
         probabilities = self._extract_features(samples)
 
         self._num_examples += probabilities.shape[0]
+
         self._prob_total += torch.sum(probabilities, 0).to(self._device)
         self._total_kl_d += torch.sum(probabilities * torch.log(probabilities + self._eps), 0).to(self._device)
 
     @sync_all_reduce("_num_examples", "_prob_total", "_total_kl_d")
     def compute(self) -> torch.Tensor:
+
         if self._num_examples == 0:
             raise NotComputableError("InceptionScore must have at least one example before it can be computed.")
+
         mean_probs = self._prob_total / self._num_examples
         excess_entropy = self._prob_total * torch.log(mean_probs + self._eps)
         avg_kl_d = torch.sum(self._total_kl_d - excess_entropy) / self._num_examples
+
         return torch.exp(avg_kl_d)

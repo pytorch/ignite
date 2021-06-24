@@ -9,15 +9,20 @@ from ignite.metrics.gan.inception_score import InceptionScore
 
 
 def calculate_inception_score(p_yx):
+
     p_y = torch.unsqueeze(p_yx.mean(axis=0), 0)
     kl_d = torch.kl_div(torch.log(p_y), p_yx)
+
     sum_kl_d = kl_d.sum(axis=1)
     avg_kl_d = torch.mean(sum_kl_d)
+
     is_score = torch.exp(avg_kl_d)
+
     return is_score
 
 
 def test_inception_score():
+
     p_yx = torch.rand(20, 10)
     m = InceptionScore(num_features=10, feature_extractor=torch.nn.Identity())
     m.update(p_yx)
@@ -38,18 +43,24 @@ def test_device_mismatch_cuda():
 
 
 def test_wrong_inputs():
+
     with pytest.raises(ValueError, match=r"Argument num_features must be greater to zero, got:"):
         InceptionScore(num_features=-1, feature_extractor=torch.nn.Identity()).update(torch.rand(2, 0))
+
     with pytest.raises(ValueError, match=r"feature_extractor output must be a tensor of dim 2, got: 1"):
         InceptionScore(num_features=1000, feature_extractor=torch.nn.Identity()).update(torch.rand(3))
+
     with pytest.raises(ValueError, match=r"Batch size should be greater than one, got: 0"):
         InceptionScore(num_features=1000, feature_extractor=torch.nn.Identity()).update(torch.rand(0, 0))
+
     with pytest.raises(ValueError, match=r"num_features returned by feature_extractor should be 1000, got: 0"):
         InceptionScore(num_features=1000, feature_extractor=torch.nn.Identity()).update(torch.rand(2, 0))
+
     with pytest.raises(
         NotComputableError, match=r"InceptionScore must have at least one example before it can be computed."
     ):
         InceptionScore(num_features=1000, feature_extractor=torch.nn.Identity()).compute()
+
     with pytest.raises(ValueError, match=r"Argument num_features must be provided, if feature_extractor is specified."):
         InceptionScore(feature_extractor=torch.nn.Identity())
 
@@ -65,6 +76,7 @@ def _test_distrib_integration(device):
         n_iters = 60
         s = 16
         offset = n_iters * s
+
         n_probabilities = 10
         y = torch.rand(offset * idist.get_world_size(), n_probabilities)
 

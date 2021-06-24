@@ -19,8 +19,10 @@ def mock_no_scipy():
 
 
 def test_no_scipy(mock_no_scipy):
+
     with pytest.raises(RuntimeError, match=r"This module requires scipy to be installed."):
         FID()
+
     with pytest.raises(RuntimeError, match=r"fid_score requires scipy to be installed."):
         fid_score(0, 0, 0, 0)
 
@@ -32,8 +34,10 @@ def mock_no_numpy():
 
 
 def test_no_numpy(mock_no_numpy):
+
     with pytest.raises(RuntimeError, match=r"This module requires numpy to be installed."):
         FID()
+
     with pytest.raises(RuntimeError, match=r"fid_score requires numpy to be installed."):
         fid_score(0, 0, 0, 0)
 
@@ -101,14 +105,19 @@ def test_compute_fid_sqrtm():
 
 
 def test_wrong_inputs():
+
     with pytest.raises(ValueError, match=r"Argument num_features must be greater to zero"):
         FID(num_features=-1, feature_extractor=torch.nn.Identity())
+
     with pytest.raises(ValueError, match=r"feature_extractor output must be a tensor of dim 2, got: 1"):
         FID(num_features=1, feature_extractor=torch.nn.Identity()).update(torch.Tensor([[], []]))
+
     with pytest.raises(ValueError, match=r"Batch size should be greater than one, got: 0"):
         FID(num_features=1, feature_extractor=torch.nn.Identity()).update(torch.rand(2, 0, 0))
+
     with pytest.raises(ValueError, match=r"num_features returned by feature_extractor should be 1, got: 0"):
         FID(num_features=1, feature_extractor=torch.nn.Identity()).update(torch.rand(2, 2, 0))
+
     err_str = (
         "Number of Training Features and Testing Features should be equal (torch.Size([9, 2]) != torch.Size([5, 2]))"
     )
@@ -116,8 +125,10 @@ def test_wrong_inputs():
         ValueError, match=re.escape(err_str),
     ):
         FID(num_features=2, feature_extractor=torch.nn.Identity()).update((torch.rand(9, 2), torch.rand(5, 2)))
+
     with pytest.raises(TypeError, match=r"Argument feature_extractor must be of type torch.nn.Module"):
         FID(num_features=1, feature_extractor=lambda x: x)
+
     with pytest.raises(ValueError, match=r"Argument num_features must be provided, if feature_extractor is specified."):
         FID(feature_extractor=torch.nn.Identity())
 
@@ -140,6 +151,7 @@ def test_statistics():
     assert torch.isclose(mu1.double(), fid_mu1).all()
     for cov1, cov2 in zip(sigma1, fid_sigma1):
         assert torch.isclose(cov1.double(), cov2, rtol=1e-04, atol=1e-04).all()
+
     assert torch.isclose(mu2.double(), fid_mu2).all()
     for cov1, cov2 in zip(sigma2, fid_sigma2):
         assert torch.isclose(cov1.double(), cov2, rtol=1e-04, atol=1e-04).all()
@@ -156,7 +168,9 @@ def _test_distrib_integration(device):
         n_iters = 60
         s = 16
         offset = n_iters * s
+
         n_features = 10
+
         y_pred = torch.rand(offset * idist.get_world_size(), n_features)
         y_true = torch.rand(offset * idist.get_world_size(), n_features)
 
@@ -182,6 +196,7 @@ def _test_distrib_integration(device):
     metric_devices = [torch.device("cpu")]
     if device.type != "xla":
         metric_devices.append(idist.device())
+
     for metric_device in metric_devices:
         _test(metric_device=metric_device)
 
