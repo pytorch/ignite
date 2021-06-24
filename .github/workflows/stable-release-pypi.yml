@@ -1,4 +1,4 @@
-name: Stable Releases
+name: PyPI Stable Releases
 
 on:
   release:
@@ -23,15 +23,6 @@ jobs:
           pip install -r requirements-dev.txt
           pip install --upgrade --no-cache-dir twine
           python setup.py install
-
-      - name: Build and Publish Conda binaries
-        shell: bash -l {0}
-        env:
-          ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
-          UPLOAD_USER: "pytorch"
-        run: |
-          chmod +x ./conda.recipe/build_and_upload.sh
-          ./conda.recipe/build_and_upload.sh
 
       - name: Build and Publish PyPI binaries
         shell: bash -l {0}
