@@ -171,15 +171,8 @@ class FID(_BaseInceptionMetric):
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
         train, test = output
-        if train.device != torch.device(self._device):
-            train = train.to(self._device)
-        if test.device != torch.device(self._device):
-            test = test.to(self._device)
-
-        # Extract the features from the outputs
-        with torch.no_grad():
-            train_features = self._feature_extractor(train).to(self._device)
-            test_features = self._feature_extractor(test).to(self._device)
+        train_features = self._extract_features(train)
+        test_features = self._extract_features(test)
 
         # Check the feature shapess
         self._check_feature_input(train_features)

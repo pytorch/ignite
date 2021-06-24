@@ -89,11 +89,7 @@ class InceptionScore(_BaseInceptionMetric):
 
     @reinit__is_reduced
     def update(self, samples: torch.Tensor) -> None:
-        if samples.device != torch.device(self._device):
-            samples = samples.to(self._device)
-
-        with torch.no_grad():
-            probabilities = self._feature_extractor(samples).to(self._device)
+        probabilities = self._extract_features(samples)
 
         self._check_feature_input(probabilities)
         self._num_examples += probabilities.shape[0]
