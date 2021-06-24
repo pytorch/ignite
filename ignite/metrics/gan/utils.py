@@ -82,7 +82,7 @@ class _BaseInceptionMetric(Metric):
 
     def _extract_features(self, inputs: torch.Tensor) -> torch.Tensor:
         if inputs.device != torch.device(self._device):
-            samples = inputs.to(self._device)
+            inputs = inputs.to(self._device)
 
         with torch.no_grad():
             outputs = self._feature_extractor(inputs).to(self._device)

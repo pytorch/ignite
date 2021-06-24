@@ -50,6 +50,9 @@ def test_dummy_metric():
     with pytest.raises(ValueError, match=r"Argument num_features must be provided, if feature_extractor is specified."):
         DummyInceptionMetric(feature_extractor=torch.nn.Identity())
 
+    with pytest.raises(TypeError, match=r"Argument feature_extractor must be of type torch.nn.Module, got"):
+        DummyInceptionMetric(num_features=1000, feature_extractor=lambda x: x)
+
 
 def test_inception_extractor_wrong_inputs():
 
