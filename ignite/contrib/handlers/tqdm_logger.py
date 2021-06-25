@@ -161,7 +161,7 @@ class ProgressBar(BaseLogger):
     def attach(  # type: ignore[override]
         self,
         engine: Engine,
-        metric_names: Optional[str] = None,
+        metric_names: Optional[Union[str, List[str]]] = None,
         output_transform: Optional[Callable] = None,
         event_name: Union[Events, CallableEventWithFilter] = Events.ITERATION_COMPLETED,
         closing_event_name: Union[Events, CallableEventWithFilter] = Events.EPOCH_COMPLETED,
