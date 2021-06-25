@@ -93,9 +93,9 @@ class InceptionScore(_BaseInceptionMetric):
         super(InceptionScore, self).reset()
 
     @reinit__is_reduced
-    def update(self, samples: torch.Tensor) -> None:
+    def update(self, output: torch.Tensor) -> None:
 
-        probabilities = self._extract_features(samples)
+        probabilities = self._extract_features(output)
 
         self._num_examples += probabilities.shape[0]
 
