@@ -53,6 +53,8 @@ def test_dummy_metric():
     with pytest.raises(TypeError, match=r"Argument feature_extractor must be of type torch.nn.Module, got"):
         DummyInceptionMetric(num_features=1000, feature_extractor=lambda x: x)
 
+    assert isinstance(DummyInceptionMetric(num_features=10)._feature_extractor, torch.nn.Identity)
+
 
 def test_inception_extractor_wrong_inputs():
 
@@ -77,4 +79,17 @@ def test_no_torchvision(mock_no_torchvision):
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_device_mismatch_cuda():
     images = torch.rand(10, 3, 299, 299)
-    assert InceptionModel(return_features=False, device="cuda")(images).shape == torch.Size([10, 1000])
+    result = InceptionModel(return_features=False, device="cuda")(images)
+    assert result.is_cuda
+    assert result.shape == torch.Size([10, 1000])
+    result = InceptionModel(return_features=False)(images.cuda())
+    assert not result.is_cuda
+    assert result.shape == torch.Size([10, 1000])
+
+    images = torch.rand(10, 5)
+    result = DummyInceptionMetric(num_features=5, device="cuda")._extract_features(images)
+    assert result.is_cuda
+    assert result.shape == torch.Size([10, 5])
+    result = DummyInceptionMetric(num_features=5)._extract_features(images.cuda())
+    assert not result.is_cuda
+    assert result.shape == torch.Size([10, 5])
