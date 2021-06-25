@@ -8,7 +8,7 @@ import requests
 
 def assert_result(result, expected_code):
     if result.status_code != expected_code:
-        raise RuntimeError(f"{result.status_code}: {result.text}")
+        raise RuntimeError(f"{result.url}, {result.status_code}: {result.text}")
 
 
 def get_output(result_text, required_keys):
@@ -89,8 +89,10 @@ if __name__ == "__main__":
 
     if "CIRCLE_TOKEN" not in os.environ:
         raise RuntimeError(
-            "Can not find CIRCLE_TOKEN env variable.\n" "Please, export CIRCLE_TOKEN=<token> before calling this script"
+            "Can not find CIRCLE_TOKEN env variable.\nPlease, export CIRCLE_TOKEN=<token> before calling this script."
+            "This token should be a user token and not the project token."
         )
+        # https://discuss.circleci.com/t/triggering-pipeline-via-v2-api-fails-with-404-project-not-found/39342/2
 
     argv = sys.argv
     if len(argv) != 3:
