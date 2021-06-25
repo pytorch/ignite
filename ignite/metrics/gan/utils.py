@@ -63,7 +63,7 @@ class _BaseInceptionMetric(Metric):
             )
 
         self._num_features = num_features
-        self._feature_extractor = feature_extractor
+        self._feature_extractor = feature_extractor.to(device)
 
         super(_BaseInceptionMetric, self).__init__(output_transform=output_transform, device=device)
 
@@ -81,6 +81,9 @@ class _BaseInceptionMetric(Metric):
             )
 
     def _extract_features(self, inputs: torch.Tensor) -> torch.Tensor:
+
+        inputs = inputs.detach()
+
         if inputs.device != torch.device(self._device):
             inputs = inputs.to(self._device)
 

@@ -49,7 +49,7 @@ class InceptionScore(_BaseInceptionMetric):
 
         .. code-block:: python
 
-            from ignite.metric.gan.IS import InceptionScore
+            from ignite.metric.gan import InceptionScore
             import torch
 
             images = torch.rand(10, 3, 299, 299)

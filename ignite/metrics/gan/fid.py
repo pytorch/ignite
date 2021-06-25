@@ -193,11 +193,11 @@ class FID(_BaseInceptionMetric):
             )
 
         # Updates the mean and covariance for the train features
-        for i, features in enumerate(train_features, start=self._num_examples + 1):
+        for features in train_features:
             self._online_update(features, self._train_total, self._train_sigma)
 
         # Updates the mean and covariance for the test features
-        for i, features in enumerate(test_features, start=self._num_examples + 1):
+        for features in test_features:
             self._online_update(features, self._test_total, self._test_sigma)
 
         self._num_examples += train_features.shape[0]
