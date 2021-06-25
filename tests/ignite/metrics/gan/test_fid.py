@@ -6,35 +6,10 @@ import pytest
 import pytorch_fid.fid_score as pytorch_fid_score
 import scipy
 import torch
-import torchvision
 from numpy import cov
 
 import ignite.distributed as idist
-from ignite.metrics.gan.fid import FID, InceptionExtractor, fid_score
-
-
-class DummyInceptionExtractor(InceptionExtractor):
-    def __init__(self) -> None:
-        try:
-            from torchvision import models
-        except ImportError:
-            raise RuntimeError("This module requires torchvision to be installed.")
-        self.model = models.inception_v3(pretrained=False)
-        self.model.fc = torch.nn.Identity()
-        self.model.eval()
-
-
-@pytest.fixture()
-def mock_no_torchvision():
-    with patch.dict("sys.modules", {"torchvision": None}):
-        yield torchvision
-
-
-def test_no_torchvision(mock_no_torchvision):
-    with pytest.raises(RuntimeError, match=r"This module requires torchvision to be installed."):
-        FID()
-    with pytest.raises(RuntimeError, match=r"This module requires torchvision to be installed."):
-        DummyInceptionExtractor()
+from ignite.metrics.gan.fid import FID, fid_score
 
 
 @pytest.fixture()
@@ -44,8 +19,10 @@ def mock_no_scipy():
 
 
 def test_no_scipy(mock_no_scipy):
+
     with pytest.raises(RuntimeError, match=r"This module requires scipy to be installed."):
         FID()
+
     with pytest.raises(RuntimeError, match=r"fid_score requires scipy to be installed."):
         fid_score(0, 0, 0, 0)
 
@@ -57,8 +34,10 @@ def mock_no_numpy():
 
 
 def test_no_numpy(mock_no_numpy):
+
     with pytest.raises(RuntimeError, match=r"This module requires numpy to be installed."):
         FID()
+
     with pytest.raises(RuntimeError, match=r"fid_score requires numpy to be installed."):
         fid_score(0, 0, 0, 0)
 
@@ -79,7 +58,24 @@ def test_fid_function():
 def test_compute_fid_from_features():
     train_samples, test_samples = torch.rand(10, 10), torch.rand(10, 10)
 
-    fid_scorer = FID(num_features=10, feature_extractor=lambda x: x)
+    fid_scorer = FID(num_features=10, feature_extractor=torch.nn.Identity())
+    fid_scorer.update([train_samples[:5], test_samples[:5]])
+    fid_scorer.update([train_samples[5:], test_samples[5:]])
+
+    mu1, sigma1 = train_samples.mean(axis=0), cov(train_samples, rowvar=False)
+    mu2, sigma2 = test_samples.mean(axis=0), cov(test_samples, rowvar=False)
+
+    assert (
+        pytest.approx(pytorch_fid_score.calculate_frechet_distance(mu1, sigma1, mu2, sigma2), rel=1e-5)
+        == fid_scorer.compute()
+    )
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
+def test_device_mismatch_cuda():
+    train_samples, test_samples = torch.rand(10, 10).to("cpu"), torch.rand(10, 10).to("cpu")
+
+    fid_scorer = FID(num_features=10, feature_extractor=torch.nn.Identity().to("cpu"), device="cuda")
     fid_scorer.update([train_samples[:5], test_samples[:5]])
     fid_scorer.update([train_samples[5:], test_samples[5:]])
 
@@ -109,28 +105,37 @@ def test_compute_fid_sqrtm():
 
 
 def test_wrong_inputs():
+
     with pytest.raises(ValueError, match=r"Argument num_features must be greater to zero"):
-        FID(num_features=-1, feature_extractor=lambda x: x)
-    with pytest.raises(ValueError, match=r"Features must be a tensor of dim 2, got: 1"):
-        FID(num_features=1, feature_extractor=lambda x: x).update(torch.Tensor([[], []]))
+        FID(num_features=-1, feature_extractor=torch.nn.Identity())
+
+    with pytest.raises(ValueError, match=r"feature_extractor output must be a tensor of dim 2, got: 1"):
+        FID(num_features=1, feature_extractor=torch.nn.Identity()).update(torch.Tensor([[], []]))
+
     with pytest.raises(ValueError, match=r"Batch size should be greater than one, got: 0"):
-        FID(num_features=1, feature_extractor=lambda x: x).update(torch.rand(2, 0, 0))
-    with pytest.raises(ValueError, match=r"Feature size should be greater than one, got: 0"):
-        FID(num_features=1, feature_extractor=lambda x: x).update(torch.rand(2, 2, 0))
+        FID(num_features=1, feature_extractor=torch.nn.Identity()).update(torch.rand(2, 0, 0))
+
+    with pytest.raises(ValueError, match=r"num_features returned by feature_extractor should be 1, got: 0"):
+        FID(num_features=1, feature_extractor=torch.nn.Identity()).update(torch.rand(2, 2, 0))
+
     err_str = (
         "Number of Training Features and Testing Features should be equal (torch.Size([9, 2]) != torch.Size([5, 2]))"
     )
     with pytest.raises(
         ValueError, match=re.escape(err_str),
     ):
-        FID(num_features=2, feature_extractor=lambda x: x).update((torch.rand(9, 2), torch.rand(5, 2)))
-    with pytest.raises(ValueError, match=r"Argument num_features should be defined"):
-        FID(feature_extractor=lambda x: x)
+        FID(num_features=2, feature_extractor=torch.nn.Identity()).update((torch.rand(9, 2), torch.rand(5, 2)))
+
+    with pytest.raises(TypeError, match=r"Argument feature_extractor must be of type torch.nn.Module"):
+        FID(num_features=1, feature_extractor=lambda x: x)
+
+    with pytest.raises(ValueError, match=r"Argument num_features must be provided, if feature_extractor is specified."):
+        FID(feature_extractor=torch.nn.Identity())
 
 
 def test_statistics():
     train_samples, test_samples = torch.rand(10, 10), torch.rand(10, 10)
-    fid_scorer = FID(num_features=10, feature_extractor=lambda x: x)
+    fid_scorer = FID(num_features=10, feature_extractor=torch.nn.Identity())
     fid_scorer.update([train_samples[:5], test_samples[:5]])
     fid_scorer.update([train_samples[5:], test_samples[5:]])
 
@@ -146,16 +151,10 @@ def test_statistics():
     assert torch.isclose(mu1.double(), fid_mu1).all()
     for cov1, cov2 in zip(sigma1, fid_sigma1):
         assert torch.isclose(cov1.double(), cov2, rtol=1e-04, atol=1e-04).all()
+
     assert torch.isclose(mu2.double(), fid_mu2).all()
     for cov1, cov2 in zip(sigma2, fid_sigma2):
         assert torch.isclose(cov1.double(), cov2, rtol=1e-04, atol=1e-04).all()
-
-
-def test_inception_extractor_wrong_inputs():
-    with pytest.raises(ValueError, match=r"Inputs should be a tensor of dim 4"):
-        DummyInceptionExtractor()(torch.rand(2))
-    with pytest.raises(ValueError, match=r"Inputs should be a tensor with 3 channels"):
-        DummyInceptionExtractor()(torch.rand(2, 2, 2, 0))
 
 
 def _test_distrib_integration(device):
@@ -169,7 +168,9 @@ def _test_distrib_integration(device):
         n_iters = 60
         s = 16
         offset = n_iters * s
+
         n_features = 10
+
         y_pred = torch.rand(offset * idist.get_world_size(), n_features)
         y_true = torch.rand(offset * idist.get_world_size(), n_features)
 
@@ -180,7 +181,7 @@ def _test_distrib_integration(device):
             )
 
         engine = Engine(update)
-        m = FID(num_features=n_features, feature_extractor=lambda x: x, device=metric_device)
+        m = FID(num_features=n_features, feature_extractor=torch.nn.Identity(), device=metric_device)
         m.attach(engine, "fid")
 
         engine.run(data=list(range(n_iters)), max_epochs=1)
@@ -195,6 +196,7 @@ def _test_distrib_integration(device):
     metric_devices = [torch.device("cpu")]
     if device.type != "xla":
         metric_devices.append(idist.device())
+
     for metric_device in metric_devices:
         _test(metric_device=metric_device)
 
