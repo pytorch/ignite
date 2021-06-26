@@ -182,8 +182,9 @@ class FID(_BaseInceptionMetric):
     def update(self, output: Sequence[torch.Tensor]) -> None:
 
         train, test = output
-        train_features = self._extract_features(train)
-        test_features = self._extract_features(test)
+
+        train_features = self._extract_features(train).to(torch.float64)
+        test_features = self._extract_features(test).to(torch.float64)
 
         if train_features.shape[0] != test_features.shape[0] or train_features.shape[1] != test_features.shape[1]:
             raise ValueError(
