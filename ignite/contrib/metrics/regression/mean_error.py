@@ -4,6 +4,7 @@ import torch
 
 from ignite.contrib.metrics.regression._base import _BaseRegression
 from ignite.exceptions import NotComputableError
+from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
 
 class MeanError(_BaseRegression):
@@ -34,6 +35,7 @@ class MeanError(_BaseRegression):
             non-blocking. By default, CPU.
     """
 
+    @reinit__is_reduced
     def reset(self) -> None:
         self._sum_of_errors = 0.0
         self._num_examples = 0
@@ -44,6 +46,7 @@ class MeanError(_BaseRegression):
         self._sum_of_errors += torch.sum(errors).item()
         self._num_examples += y.shape[0]
 
+    @sync_all_reduce("_sum_of_errors", "_num_examples")
     def compute(self) -> float:
         if self._num_examples == 0:
             raise NotComputableError("MeanError must have at least one example before it can be computed.")
