@@ -83,7 +83,7 @@ def test_integration():
         np_len = len(np_y_pred)
         np_ans = np_sum / np_len
 
-        assert np_ans == pytest.approx(me)
+        assert np_ans == pytest.approx(me, rel=1e-4)
 
     def get_test_cases():
         test_cases = [
