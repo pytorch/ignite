@@ -118,7 +118,10 @@ class InceptionScore(_BaseInceptionMetric):
             raise NotComputableError("InceptionScore must have at least one example before it can be computed.")
 
         mean_probs = self._prob_total / self._num_examples
-        excess_entropy = self._prob_total * torch.log(mean_probs + self._eps)
+        log_mean_probs = torch.log(mean_probs + self._eps)
+        if log_mean_probs.dtype != self._prob_total.dtype:
+            log_mean_probs = log_mean_probs.to(self._prob_total)
+        excess_entropy = self._prob_total * log_mean_probs
         avg_kl_d = torch.sum(self._total_kl_d - excess_entropy) / self._num_examples
 
         return torch.exp(avg_kl_d)
