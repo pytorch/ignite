@@ -99,10 +99,17 @@ class InceptionScore(_BaseInceptionMetric):
 
         self._num_examples += probabilities.shape[0]
 
-        self._prob_total += torch.sum(probabilities, 0).to(dtype=torch.float64, device=self._device)
-        self._total_kl_d += torch.sum(probabilities * torch.log(probabilities + self._eps), 0).to(
-            dtype=torch.float64, device=self._device
-        )
+        prob_sum = torch.sum(probabilities, 0)
+        log_prob = torch.log(probabilities + self._eps)
+        if prob_sum.dtype != self._prob_total.dtype:
+            prob_sum = prob_sum.to(self._prob_total)
+        if log_prob.dtype != probabilities.dtype:
+            log_prob = log_prob.to(probabilities)
+        kl_sum = torch.sum(probabilities * log_prob, 0)
+        if kl_sum.dtype != self._total_kl_d.dtype:
+            kl_sum = kl_sum.to(self._total_kl_d)
+        self._prob_total += prob_sum
+        self._total_kl_d += kl_sum
 
     @sync_all_reduce("_num_examples", "_prob_total", "_total_kl_d")
     def compute(self) -> torch.Tensor:
