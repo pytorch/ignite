@@ -182,7 +182,6 @@ class FID(_BaseInceptionMetric):
     def update(self, output: Sequence[torch.Tensor]) -> None:
 
         train, test = output
-
         train_features = self._extract_features(train)
         test_features = self._extract_features(test)
 
