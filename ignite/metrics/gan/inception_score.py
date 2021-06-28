@@ -107,8 +107,6 @@ class InceptionScore(_BaseInceptionMetric):
         self._prob_total += prob_sum
         self._total_kl_d += kl_sum
 
-        return self._eps
-
     @sync_all_reduce("_num_examples", "_prob_total", "_total_kl_d")
     def compute(self) -> float:
 
