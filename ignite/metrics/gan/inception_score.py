@@ -97,22 +97,20 @@ class InceptionScore(_BaseInceptionMetric):
 
         probabilities = self._extract_features(output)
 
-        self._num_examples += probabilities.shape[0]
-
-        prob_sum = torch.sum(probabilities, 0)
+        prob_sum = torch.sum(probabilities, 0, dtype=torch.float64)
         log_prob = torch.log(probabilities + self._eps)
-        if prob_sum.dtype != self._prob_total.dtype:
-            prob_sum = prob_sum.to(self._prob_total)
         if log_prob.dtype != probabilities.dtype:
             log_prob = log_prob.to(probabilities)
-        kl_sum = torch.sum(probabilities * log_prob, 0)
-        if kl_sum.dtype != self._total_kl_d.dtype:
-            kl_sum = kl_sum.to(self._total_kl_d)
+        kl_sum = torch.sum(probabilities * log_prob, 0, dtype=torch.float64)
+
+        self._num_examples += probabilities.shape[0]
         self._prob_total += prob_sum
         self._total_kl_d += kl_sum
 
+        return self._eps
+
     @sync_all_reduce("_num_examples", "_prob_total", "_total_kl_d")
-    def compute(self) -> torch.Tensor:
+    def compute(self) -> float:
 
         if self._num_examples == 0:
             raise NotComputableError("InceptionScore must have at least one example before it can be computed.")
@@ -124,4 +122,4 @@ class InceptionScore(_BaseInceptionMetric):
         excess_entropy = self._prob_total * log_mean_probs
         avg_kl_d = torch.sum(self._total_kl_d - excess_entropy) / self._num_examples
 
-        return torch.exp(avg_kl_d)
+        return torch.exp(avg_kl_d).item()
