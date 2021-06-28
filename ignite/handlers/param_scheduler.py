@@ -3,10 +3,11 @@ import math
 import numbers
 import tempfile
 from abc import ABCMeta, abstractmethod
+from bisect import bisect_right
 from collections import OrderedDict
 from copy import copy
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Type, Union, cast
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Type, Union, cast
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
@@ -16,6 +17,311 @@ from ignite.engine import Engine
 
 
 class ParamScheduler(metaclass=ABCMeta):
+    """An abstract class for updating a parameter value during
+    training.
+
+    Args:
+        param_name: name of parameter to update.
+        save_history: whether to log the parameter values to
+            `engine.state.param_history`, (default=False).
+
+
+    .. versionadded:: 0.5.1
+    .. versionchanged:: 0.6.0
+    """
+
+    def __init__(
+        self, param_name: str, save_history: bool = False,
+    ):
+        self.param_name = param_name
+        self.event_index = 0
+        self._save_history = save_history
+        self._state_attrs = ["event_index", "param_name", "save_history"]
+
+    @abstractmethod
+    def __call__(self, engine: Optional[Engine], name: Optional[str] = None) -> None:
+        pass
+
+    @property
+    def save_history(self) -> bool:
+        return self._save_history
+
+    @save_history.setter
+    def save_history(self, value: bool) -> None:
+        self._save_history = value
+
+    def state_dict(self) -> Dict[str, Any]:
+        """Returns a dictionary containing a whole state of ParamScheduler.
+
+        Returns:
+            dict:
+                a dictionary containing a whole state of ParamScheduler
+        """
+        destination = OrderedDict()
+        for name in self._state_attrs:
+            if hasattr(self, name):
+                val = getattr(self, name)
+                if hasattr(val, "state_dict"):
+                    val = val.state_dict()
+                destination[name] = copy(val)
+        return destination
+
+    def load_state_dict(self, state_dict: Mapping) -> None:
+        """Copies parameters from :attr:`state_dict` into this ParamScheduler.
+
+        Args:
+            state_dict: a dict containing parameters.
+        """
+        if not isinstance(state_dict, Mapping):
+            raise TypeError(f"Argument state_dict should be a dictionary, but given {type(state_dict)}")
+
+        for name in self._state_attrs:
+            if name not in state_dict:
+                raise ValueError(
+                    f"Required state attribute '{name}' is absent in provided state_dict '{state_dict.keys()}'"
+                )
+            val = state_dict[name]
+            obj = getattr(self, name)
+            if isinstance(val, Mapping) and hasattr(obj, "load_state_dict"):
+                obj.load_state_dict(val)
+            else:
+                setattr(self, name, val)
+
+    @abstractmethod
+    def get_param(self) -> Union[List[float], float]:
+        """Method to get current optimizer's parameter values
+
+        Returns:
+            list of params, or scalar param
+        """
+        pass
+
+
+class AnyParameterScheduler(ParamScheduler):
+    """An abstract class for updating a parameter during
+    training not belonging to an Optimizer parameter group.
+
+    Args:
+        parameter_setter: function that sets the required parameter value.
+        param_name: name of parameter to update.
+        save_history: whether to log the parameter values to
+            `engine.state.param_history`, (default=False).
+
+    .. versionadded:: 0.6.0
+    """
+
+    def __init__(
+        self, parameter_setter: Callable, param_name: str = None, save_history: bool = False,
+    ):
+        super(AnyParameterScheduler, self).__init__(param_name, save_history)
+        if param_name is None and save_history:
+            raise ValueError("Parameter name should be set to log the parameter values to engine.state.param_history")
+        self.parameter_setter = parameter_setter
+        self._state_attrs += ["parameter_setter"]
+
+    def __call__(self, engine: Optional[Engine]) -> None:
+        self.event_index += 1
+        value = self.get_param()
+        self.parameter_setter(value)
+        if self.save_history and engine:
+            if not hasattr(engine.state, "param_history") or engine.state.param_history is None:  # type: ignore
+                setattr(engine.state, "param_history", {})
+            engine.state.param_history.setdefault(self.param_name, [])  # type: ignore[attr-defined]
+            engine.state.param_history[self.param_name].append(value)  # type: ignore[attr-defined]
+
+    @abstractmethod
+    def get_param(self) -> Union[List[float], float]:
+        pass
+
+
+class LambdaAnyParameterScheduler(AnyParameterScheduler):
+    """Update a parameter during training by using a user defined function.
+        User defined function is taking an event index as input and returns a float value.
+    Args:
+        parameter_setter: function that sets the required parameter value.
+        lambda_fn: user defined parameter update function.
+        param_name: name of parameter to update.
+        save_history: whether to log the parameter values to
+            `engine.state.param_history`, (default=False).
+
+    .. versionadded:: 0.6.0
+    """
+
+    def __init__(self, parameter_setter: Callable, lambda_fn: Callable, param_name: str, save_history: bool = False):
+        super(LambdaAnyParameterScheduler, self).__init__(parameter_setter, param_name, save_history)
+        self.lambda_fn = lambda_fn
+        self._state_attrs += ["lambda_fn"]
+
+    def get_param(self) -> Union[List[float], float]:
+        return self.lambda_fn(self.event_index)
+
+
+class LinearAnyParameterScheduler(AnyParameterScheduler):
+    """
+    Update a parameter during training by using linear function.
+    The function keeps the parameter value to zero until step_zero steps passed and then linearly increases it to 1 until an
+    additional step_one steps passed. Continues the trend until it reaches max_value.
+
+    Args:
+        initial_value : starting value of the parameter.
+        step_constant : step index until parameter's value is kept constant.
+        step_max_value : step index at which parameter's value becomes max_value.
+        max_value : max parameter value.
+        parameter_setter: function that sets the required parameter value.
+        param_name: name of parameter to update.
+        save_history: whether to log the parameter values to
+            `engine.state.param_history`, (default=False).
+
+    .. versionadded:: 0.6.0
+    """
+
+    def __init__(
+        self,
+        initial_value: float,
+        step_constant: int,
+        step_max_value: int,
+        max_value: float,
+        parameter_setter: Callable,
+        param_name: str = None,
+        save_history: bool = False,
+    ):
+        super(LinearAnyParameterScheduler, self).__init__(parameter_setter, param_name, save_history)
+        self.initial_value = initial_value
+        self.step_constant = step_constant
+        self.step_max_value = step_max_value
+        self.max_value = max_value
+        self._state_attrs += ["initial_value", "step_constant", "step_max_value", "max_value"]
+
+    def get_param(self) -> Union[List[float], float]:
+        if self.event_index <= self.step_constant:
+            delta = 0.0
+        elif self.event_index > self.step_max_value:
+            delta = self.max_value - self.initial_value
+        else:
+            delta = (
+                (self.max_value - self.initial_value)
+                / (self.step_max_value - self.step_constant)
+                * (self.event_index - self.step_constant)
+            )
+
+        return self.initial_value + delta
+
+
+class ExponentialAnyParameterScheduler(AnyParameterScheduler):
+    """
+    Update a parameter during training by using exponential function.
+    The function decays the parameter value by gamma every step.
+    Based on the closed form of ExponentialLR from Pytorch
+    https://github.com/pytorch/pytorch/blob/master/torch/optim/lr_scheduler.py#L457
+
+    Args:
+        parameter_setter: function that sets the required parameter value.
+        initial_value: Starting value of the parameter.
+        gamma: Multiplicative factor of parameter value decay.
+        param_name: name of parameter to update.
+        save_history: whether to log the parameter values to
+            `engine.state.param_history`, (default=False).
+
+    .. versionadded:: 0.6.0
+    """
+
+    def __init__(
+        self,
+        parameter_setter: Callable,
+        initial_value: float,
+        gamma: float,
+        param_name: str = None,
+        save_history: bool = False,
+    ):
+        super(ExponentialAnyParameterScheduler, self).__init__(parameter_setter, param_name, save_history)
+        self.initial_value = initial_value
+        self.gamma = gamma
+        self._state_attrs += ["initial_value", "gamma"]
+
+    def get_param(self) -> Union[List[float], float]:
+
+        return self.initial_value * self.gamma ** self.event_index
+
+
+class StepAnyParameterScheduler(AnyParameterScheduler):
+    """
+    Update a parameter during training by using a step function.
+    This function decays the parameter value by gamma every step_size.
+    Based on StepLR from Pytorch.
+    https://github.com/pytorch/pytorch/blob/master/torch/optim/lr_scheduler.py#L377
+
+    Args:
+        parameter_setter: function that sets the required parameter value.
+        initial_value: Starting value of the parameter.
+        gamma: Multiplicative factor of parameter value decay.
+        step_size: Period of parameter value decay.
+        param_name: name of parameter to update.
+        save_history: whether to log the parameter values to
+            `engine.state.param_history`, (default=False).
+
+    .. versionadded:: 0.6.0
+    """
+
+    def __init__(
+        self,
+        parameter_setter: Callable,
+        initial_value: float,
+        gamma: float,
+        step_size: int,
+        param_name: str = None,
+        save_history: bool = False,
+    ):
+        super(StepAnyParameterScheduler, self).__init__(parameter_setter, param_name, save_history)
+        self.initial_value = initial_value
+        self.gamma = gamma
+        self.step_size = step_size
+        self._state_attrs += ["initial_value", "gamma", "step_size"]
+
+    def get_param(self) -> Union[List[float], float]:
+
+        return self.initial_value * self.gamma ** (self.event_index // self.step_size)
+
+
+class MultiStepAnyParameterScheduler(AnyParameterScheduler):
+    """
+    Update a parameter during training by using a multi step function.
+    The function decays the parameter value by gamma once the number of steps reaches one of the milestones.
+    Based on MultiStepLR from Pytorch.
+    https://github.com/pytorch/pytorch/blob/master/torch/optim/lr_scheduler.py#L424
+
+    Args:
+        parameter_setter: function that sets the required parameter value.
+        initial_value: Starting value of the parameter.
+        gamma: Multiplicative factor of parameter value decay.
+        milestones: List of step indices. Must be increasing.
+        param_name: name of parameter to update.
+        save_history: whether to log the parameter values to
+            `engine.state.param_history`, (default=False).
+
+    .. versionadded:: 0.6.0
+    """
+
+    def __init__(
+        self,
+        parameter_setter: Callable,
+        initial_value: float,
+        gamma: float,
+        milestones: List[int],
+        param_name: str = None,
+        save_history: bool = False,
+    ):
+        super(MultiStepAnyParameterScheduler, self).__init__(parameter_setter, param_name, save_history)
+        self.initial_value = initial_value
+        self.gamma = gamma
+        self.milestones = milestones
+        self._state_attrs += ["initial_value", "gamma", "milestones"]
+
+    def get_param(self) -> Union[List[float], float]:
+
+        return self.initial_value * self.gamma ** bisect_right(self.milestones, self.event_index)
+
+
+class OptimizerParamScheduler(ParamScheduler):
     """An abstract class for updating an optimizer's parameter value during
     training.
 
@@ -32,7 +338,7 @@ class ParamScheduler(metaclass=ABCMeta):
         More precisely, whatever the state of the optimizer (newly created or used by another scheduler) the scheduler
         sets defined absolute values.
 
-    .. versionadded:: 0.5.1
+    .. versionadded:: 0.6.0
     """
 
     def __init__(
@@ -42,6 +348,7 @@ class ParamScheduler(metaclass=ABCMeta):
         save_history: bool = False,
         param_group_index: Optional[int] = None,
     ):
+        super(OptimizerParamScheduler, self).__init__(param_name, save_history)
 
         if not (
             isinstance(optimizer, Optimizer)
@@ -51,13 +358,9 @@ class ParamScheduler(metaclass=ABCMeta):
                 "Argument optimizer should be torch.optim.Optimizer or has attribute 'param_groups' as list/tuple, "
                 f"but given {type(optimizer)}"
             )
-
         self.optimizer = optimizer
         self.param_group_index = param_group_index
-        self.param_name = param_name
-        self.event_index = 0
-        self._save_history = save_history
-        self._state_attrs = ["event_index", "param_name", "save_history", "param_group_index"]
+        self._state_attrs += ["param_group_index"]
 
     def __call__(self, engine: Optional[Engine], name: Optional[str] = None) -> None:
 
@@ -226,7 +529,7 @@ class ParamScheduler(metaclass=ABCMeta):
         return ax
 
 
-class CyclicalScheduler(ParamScheduler):
+class CyclicalScheduler(OptimizerParamScheduler):
     """An abstract class for updating an optimizer's parameter value over a
     cycle of some size.
 
@@ -418,7 +721,7 @@ class CosineAnnealingScheduler(CyclicalScheduler):
         return self.start_value + ((self.end_value - self.start_value) / 2) * (1 - math.cos(math.pi * cycle_progress))
 
 
-class ConcatScheduler(ParamScheduler):
+class ConcatScheduler(OptimizerParamScheduler):
     """Concat a list of parameter schedulers.
 
     The `ConcatScheduler` goes through a list of schedulers given by `schedulers`. Duration of each
@@ -652,7 +955,7 @@ class ConcatScheduler(ParamScheduler):
             return output
 
 
-class LRScheduler(ParamScheduler):
+class LRScheduler(OptimizerParamScheduler):
     """A wrapper class to call `torch.optim.lr_scheduler` objects as `ignite` handlers.
 
     Args:
@@ -879,7 +1182,7 @@ def create_lr_scheduler_with_warmup(
     return combined_scheduler
 
 
-class PiecewiseLinear(ParamScheduler):
+class PiecewiseLinear(OptimizerParamScheduler):
     """
     Piecewise linear parameter scheduler
 

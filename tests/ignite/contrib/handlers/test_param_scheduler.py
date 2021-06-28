@@ -11,6 +11,7 @@ from ignite.handlers.param_scheduler import (
     CosineAnnealingScheduler,
     LinearCyclicalScheduler,
     LRScheduler,
+    OptimizerParamScheduler,
     ParamGroupScheduler,
     ParamScheduler,
     PiecewiseLinear,
@@ -29,7 +30,7 @@ else:
     has_multiplicative_lr = LooseVersion(torch.__version__) >= LooseVersion("1.5.0")
 
 
-class FakeParamScheduler(ParamScheduler):
+class FakeParamScheduler(OptimizerParamScheduler):
     def get_param(self):
         return [0]
 
