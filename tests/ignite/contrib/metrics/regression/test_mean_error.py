@@ -131,7 +131,7 @@ def _test_distrib_compute(device):
             _test(idist.device())
 
 
-def _test_distrib_integration(device):
+def _test_distrib_integration(device, tol=1e-5):
 
     rank = idist.get_rank()
     torch.manual_seed(12)
@@ -171,7 +171,7 @@ def _test_distrib_integration(device):
         np_len = len(np_y_pred)
         np_ans = np_sum / np_len
 
-        assert pytest.approx(res) == np_ans
+        assert pytest.approx(res, rel=tol) == np_ans
 
     metric_devices = ["cpu"]
     if device.type != "xla":
