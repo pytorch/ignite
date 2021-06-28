@@ -88,7 +88,7 @@ class _BaseInceptionMetric(Metric):
             inputs = inputs.to(self._device)
 
         with torch.no_grad():
-            outputs = self._feature_extractor(inputs).to(self._device)
+            outputs = self._feature_extractor(inputs).to(self._device, dtype=torch.float64)
         self._check_feature_shapes(outputs)
 
         return outputs

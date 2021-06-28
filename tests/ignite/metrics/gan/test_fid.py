@@ -83,7 +83,7 @@ def test_device_mismatch_cuda():
     mu2, sigma2 = test_samples.mean(axis=0), cov(test_samples, rowvar=False)
 
     assert (
-        pytest.approx(pytorch_fid_score.calculate_frechet_distance(mu1, sigma1, mu2, sigma2), rel=1e-5)
+        pytest.approx(pytorch_fid_score.calculate_frechet_distance(mu1, sigma1, mu2, sigma2), rel=1e-4)
         == fid_scorer.compute()
     )
 
