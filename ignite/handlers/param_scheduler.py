@@ -111,7 +111,7 @@ class AnyParameterScheduler(ParamScheduler):
     """
 
     def __init__(
-        self, parameter_setter: Callable, param_name: str = None, save_history: bool = False,
+        self, parameter_setter: Callable, param_name: str, save_history: bool = False,
     ):
         super(AnyParameterScheduler, self).__init__(param_name, save_history)
         if param_name is None and save_history:
@@ -119,7 +119,7 @@ class AnyParameterScheduler(ParamScheduler):
         self.parameter_setter = parameter_setter
         self._state_attrs += ["parameter_setter"]
 
-    def __call__(self, engine: Optional[Engine]) -> None:
+    def __call__(self, engine: Optional[Engine], name: Optional[str] = None) -> None:
         self.event_index += 1
         value = self.get_param()
         self.parameter_setter(value)
@@ -159,8 +159,8 @@ class LambdaAnyParameterScheduler(AnyParameterScheduler):
 class LinearAnyParameterScheduler(AnyParameterScheduler):
     """
     Update a parameter during training by using linear function.
-    The function keeps the parameter value to zero until step_zero steps passed and then linearly increases it to 1 until an
-    additional step_one steps passed. Continues the trend until it reaches max_value.
+    The function keeps the parameter value to zero until step_zero steps passed and then linearly increases it to 1
+    until an additional step_one steps passed. Continues the trend until it reaches max_value.
 
     Args:
         initial_value : starting value of the parameter.
@@ -182,7 +182,7 @@ class LinearAnyParameterScheduler(AnyParameterScheduler):
         step_max_value: int,
         max_value: float,
         parameter_setter: Callable,
-        param_name: str = None,
+        param_name: str,
         save_history: bool = False,
     ):
         super(LinearAnyParameterScheduler, self).__init__(parameter_setter, param_name, save_history)
@@ -230,7 +230,7 @@ class ExponentialAnyParameterScheduler(AnyParameterScheduler):
         parameter_setter: Callable,
         initial_value: float,
         gamma: float,
-        param_name: str = None,
+        param_name: str,
         save_history: bool = False,
     ):
         super(ExponentialAnyParameterScheduler, self).__init__(parameter_setter, param_name, save_history)
@@ -239,7 +239,6 @@ class ExponentialAnyParameterScheduler(AnyParameterScheduler):
         self._state_attrs += ["initial_value", "gamma"]
 
     def get_param(self) -> Union[List[float], float]:
-
         return self.initial_value * self.gamma ** self.event_index
 
 
@@ -268,7 +267,7 @@ class StepAnyParameterScheduler(AnyParameterScheduler):
         initial_value: float,
         gamma: float,
         step_size: int,
-        param_name: str = None,
+        param_name: str,
         save_history: bool = False,
     ):
         super(StepAnyParameterScheduler, self).__init__(parameter_setter, param_name, save_history)
@@ -278,7 +277,6 @@ class StepAnyParameterScheduler(AnyParameterScheduler):
         self._state_attrs += ["initial_value", "gamma", "step_size"]
 
     def get_param(self) -> Union[List[float], float]:
-
         return self.initial_value * self.gamma ** (self.event_index // self.step_size)
 
 
@@ -307,7 +305,7 @@ class MultiStepAnyParameterScheduler(AnyParameterScheduler):
         initial_value: float,
         gamma: float,
         milestones: List[int],
-        param_name: str = None,
+        param_name: str,
         save_history: bool = False,
     ):
         super(MultiStepAnyParameterScheduler, self).__init__(parameter_setter, param_name, save_history)
@@ -317,7 +315,6 @@ class MultiStepAnyParameterScheduler(AnyParameterScheduler):
         self._state_attrs += ["initial_value", "gamma", "milestones"]
 
     def get_param(self) -> Union[List[float], float]:
-
         return self.initial_value * self.gamma ** bisect_right(self.milestones, self.event_index)
 
 
@@ -755,7 +752,7 @@ class ConcatScheduler(OptimizerParamScheduler):
     .. versionadded:: 0.5.1
     """
 
-    def __init__(self, schedulers: List[ParamScheduler], durations: List[int], save_history: bool = False):
+    def __init__(self, schedulers: List[OptimizerParamScheduler], durations: List[int], save_history: bool = False):
 
         if not isinstance(schedulers, Sequence):
             raise TypeError(f"Argument schedulers should be a sequence, but given {schedulers}")
@@ -887,7 +884,7 @@ class ConcatScheduler(OptimizerParamScheduler):
     def simulate_values(  # type: ignore[override]
         cls,
         num_events: int,
-        schedulers: List[ParamScheduler],
+        schedulers: List[OptimizerParamScheduler],
         durations: List[int],
         param_names: Optional[Union[List[str], Tuple[str]]] = None,
     ) -> List[List[int]]:
@@ -1301,7 +1298,9 @@ class ParamGroupScheduler:
     .. versionadded:: 0.5.1
     """
 
-    def __init__(self, schedulers: List[ParamScheduler], names: Optional[List[str]] = None, save_history: bool = False):
+    def __init__(
+        self, schedulers: List[OptimizerParamScheduler], names: Optional[List[str]] = None, save_history: bool = False
+    ):
         if not isinstance(schedulers, Sequence):
             raise TypeError(f"Argument schedulers should be a list/tuple, but given {schedulers}")
 

@@ -13,7 +13,6 @@ from ignite.handlers.param_scheduler import (
     LRScheduler,
     OptimizerParamScheduler,
     ParamGroupScheduler,
-    ParamScheduler,
     PiecewiseLinear,
     create_lr_scheduler_with_warmup,
 )

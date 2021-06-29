@@ -1,4 +1,3 @@
-import pytest
 import torch
 from torch.nn import Module
 
@@ -25,21 +24,6 @@ class ToyNet(Module):
 
     def set_value(self, value):
         self.value = value
-
-
-def test_any_parameter_scheduler_assert():
-    with pytest.raises(
-        ValueError, match=r"Parameter name should be set to log the parameter values to engine.state.param_history"
-    ):
-        net = ToyNet(value=-1)
-        linear_any_parameter_scheduler = LinearAnyParameterScheduler(
-            parameter_setter=net.set_value,
-            initial_value=0,
-            step_constant=2,
-            step_max_value=5,
-            max_value=10,
-            save_history=True,
-        )
 
 
 def test_linear_scheduler_linear_increase_history():
