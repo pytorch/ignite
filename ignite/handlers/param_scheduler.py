@@ -137,6 +137,7 @@ class AnyParameterScheduler(ParamScheduler):
 class LambdaAnyParameterScheduler(AnyParameterScheduler):
     """Update a parameter during training by using a user defined function.
         User defined function is taking an event index as input and returns a float value.
+
     Args:
         parameter_setter: function that sets the required parameter value.
         lambda_fn: user defined parameter update function.
@@ -157,8 +158,7 @@ class LambdaAnyParameterScheduler(AnyParameterScheduler):
 
 
 class LinearAnyParameterScheduler(AnyParameterScheduler):
-    """
-    Update a parameter during training by using linear function.
+    """Update a parameter during training by using linear function.
     The function keeps the parameter value to zero until step_zero steps passed and then linearly increases it to 1
     until an additional step_one steps passed. Continues the trend until it reaches max_value.
 
@@ -208,8 +208,7 @@ class LinearAnyParameterScheduler(AnyParameterScheduler):
 
 
 class ExponentialAnyParameterScheduler(AnyParameterScheduler):
-    """
-    Update a parameter during training by using exponential function.
+    """Update a parameter during training by using exponential function.
     The function decays the parameter value by gamma every step.
     Based on the closed form of ExponentialLR from Pytorch
     https://github.com/pytorch/pytorch/blob/master/torch/optim/lr_scheduler.py#L457
@@ -243,8 +242,7 @@ class ExponentialAnyParameterScheduler(AnyParameterScheduler):
 
 
 class StepAnyParameterScheduler(AnyParameterScheduler):
-    """
-    Update a parameter during training by using a step function.
+    """Update a parameter during training by using a step function.
     This function decays the parameter value by gamma every step_size.
     Based on StepLR from Pytorch.
     https://github.com/pytorch/pytorch/blob/master/torch/optim/lr_scheduler.py#L377
@@ -281,8 +279,7 @@ class StepAnyParameterScheduler(AnyParameterScheduler):
 
 
 class MultiStepAnyParameterScheduler(AnyParameterScheduler):
-    """
-    Update a parameter during training by using a multi step function.
+    """Update a parameter during training by using a multi step function.
     The function decays the parameter value by gamma once the number of steps reaches one of the milestones.
     Based on MultiStepLR from Pytorch.
     https://github.com/pytorch/pytorch/blob/master/torch/optim/lr_scheduler.py#L424
