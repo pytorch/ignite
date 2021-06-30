@@ -79,9 +79,6 @@ def test__native_dist_model_create_from_backend_bad_slurm_config():
     os.environ["SLURM_NTASKS"] = "1"
     os.environ["SLURM_JOB_NODELIST"] = "localhost"
 
-    with pytest.raises(FileNotFoundError, match=r"No such file or directory: 'scontrol'"):
-        _NativeDistModel.create_from_backend(backend="gloo", timeout=timedelta(seconds=10))
-
     os.environ["RANK"] = "1"
 
     with pytest.raises(RuntimeError, match=r"Defined env variables"):
@@ -175,6 +172,62 @@ def _test__native_dist_model_create_from_backend_dist(init_method, local_rank, r
     assert "MASTER_ADDR" not in os.environ
     assert "MASTER_PORT" not in os.environ
     assert "RANK" not in os.environ
+
+
+def _test__native_dist_model_create_from_backend_slurm(local_rank, rank, world_size, backend, true_device):
+
+    import os
+    from datetime import timedelta
+
+    timeout = timedelta(seconds=20)
+
+    assert "MASTER_ADDR" not in os.environ
+    assert "MASTER_PORT" not in os.environ
+
+    del os.environ["WORLD_SIZE"]
+    del os.environ["LOCAL_RANK"]
+
+    os.environ["SLURM_JOB_ID"] = "15000"
+    os.environ["SLURM_PROCID"] = str(rank)
+    os.environ["SLURM_LOCALID"] = str(local_rank)
+    os.environ["SLURM_NTASKS"] = str(world_size)
+    os.environ["SLURM_JOB_NODELIST"] = "localhost"
+
+    model = _NativeDistModel.create_from_backend(backend=backend, timeout=timeout)
+
+    assert dist.is_available() and dist.is_initialized()
+    assert dist.get_backend() == backend
+
+    with pytest.raises(RuntimeError, match=r"Can not create new distributed process group if default one is"):
+        _NativeDistModel.create_from_backend(backend=backend, timeout=timeout)
+
+    _assert_model(
+        model,
+        {
+            "device": true_device,
+            "local_rank": local_rank,
+            "rank": rank,
+            "world_size": world_size,
+            "node_index": 0,
+            "nnodes": 1,
+            "nproc_per_node": world_size,
+        },
+    )
+
+    model.finalize()
+
+    del os.environ["SLURM_JOB_ID"]
+    del os.environ["SLURM_PROCID"]
+    del os.environ["SLURM_LOCALID"]
+    del os.environ["SLURM_NTASKS"]
+    del os.environ["SLURM_JOB_NODELIST"]
+
+    assert "MASTER_ADDR" not in os.environ
+    assert "MASTER_PORT" not in os.environ
+    assert "RANK" not in os.environ
+
+    os.environ["WORLD_SIZE"] = str(world_size)
+    os.environ["LOCAL_RANK"] = str(local_rank)
 
 
 def _test__native_dist_model_create_from_context_no_local_rank():
@@ -302,12 +355,16 @@ def test__native_dist_model_create_dist_gloo_1(init_method, get_fixed_dirname, l
     device = torch.device(f"cuda:{local_rank}" if torch.cuda.is_available() else "cpu")
     _test__native_dist_model_create_from_backend_dist(init_method, local_rank, local_rank, world_size, "gloo", device)
 
+    if init_method is None:
+        _test__native_dist_model_create_from_backend_slurm(local_rank, local_rank, world_size, "gloo", device)
+
 
 @pytest.mark.distributed
 def test__native_dist_model_create_dist_gloo_2(local_rank, world_size):
 
     device = torch.device(f"cuda:{local_rank}" if torch.cuda.is_available() else "cpu")
     _test__native_dist_model_create_from_context_dist(local_rank, local_rank, world_size, "gloo", device)
+    _test__native_dist_model_create_from_backend_slurm(local_rank, local_rank, world_size, "gloo", device)
 
 
 @pytest.mark.distributed
@@ -320,6 +377,11 @@ def test__native_dist_model_create_dist_nccl_1(init_method, get_fixed_dirname, l
     _test__native_dist_model_create_from_backend_dist(
         init_method, local_rank, local_rank, world_size, "nccl", f"cuda:{local_rank}"
     )
+
+    if init_method is None:
+        _test__native_dist_model_create_from_backend_slurm(
+            local_rank, local_rank, world_size, "nccl", f"cuda:{local_rank}"
+        )
 
 
 @pytest.mark.distributed

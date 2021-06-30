@@ -9,6 +9,7 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 
 from ignite.distributed.comp_models.base import ComputationModel
+from ignite.utils import expand_hostlist
 
 has_native_dist_support = dist.is_available()
 
@@ -258,8 +259,9 @@ if has_native_dist_support:
                 hostnames = subprocess.check_output(["scontrol", "show", "hostnames", os.environ["SLURM_JOB_NODELIST"]])
             except FileNotFoundError as e:
                 # restore the environment before raising the exception
-                self._restore_env()
-                raise e
+                # self._restore_env()
+                # raise e
+                hostnames = " ".join(expand_hostlist(os.environ["SLURM_JOB_NODELIST"])).encode("utf-8")
             os.environ["MASTER_ADDR"] = hostnames.split()[0].decode("utf-8")
 
         def get_local_rank(self) -> int:
