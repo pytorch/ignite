@@ -15,9 +15,9 @@ class MetricsLambda(Metric):
     The result of the new metric is defined to be the result
     of applying the function to the result of argument metrics.
 
-    When update, this metric does not recursively update the metrics
+    When update, this metric recursively updates the metrics
     it depends on. When reset, all its dependency metrics would be
-    resetted. When attach, all its dependency metrics would be attached
+    resetted as well. When attach, all its dependency metrics would be attached
     automatically (but partially, e.g :meth:`~ignite.metrics.metric.Metric.is_attached()` will return False).
 
     Args:
@@ -71,6 +71,7 @@ class MetricsLambda(Metric):
         self.args = args
         self.kwargs = kwargs
         self.engine = None  # type: Optional[Engine]
+        self._updated = False
         super(MetricsLambda, self).__init__(device="cpu")
 
     @reinit__is_reduced
@@ -78,13 +79,21 @@ class MetricsLambda(Metric):
         for i in itertools.chain(self.args, self.kwargs.values()):
             if isinstance(i, Metric):
                 i.reset()
+        self._updated = False
 
     @reinit__is_reduced
     def update(self, output: Any) -> None:
-        # NB: this method does not recursively update dependency metrics,
-        # which might cause duplicate update issue. To update this metric,
-        # users should manually update its dependencies.
-        pass
+        if self.engine is not None:
+            raise ValueError(
+                "MetricsLambda is already attached to an engine, "
+                "and MetricsLambda can't use update API while it's attached."
+            )
+
+        for i in itertools.chain(self.args, self.kwargs.values()):
+            if isinstance(i, Metric):
+                i.update(output)
+
+        self._updated = True
 
     def compute(self) -> Any:
         materialized = [_get_value_on_cpu(i) for i in self.args]
@@ -105,6 +114,10 @@ class MetricsLambda(Metric):
                     engine.add_event_handler(usage.ITERATION_COMPLETED, metric.iteration_completed)
 
     def attach(self, engine: Engine, name: str, usage: Union[str, MetricUsage] = EpochWise()) -> None:
+        if self._updated:
+            raise ValueError(
+                "The underlying metrics are already updated, " "can't attach while using reset/update/compute API."
+            )
         usage = self._check_usage(usage)
         # recursively attach all its dependencies (partially)
         self._internal_attach(engine, usage)
