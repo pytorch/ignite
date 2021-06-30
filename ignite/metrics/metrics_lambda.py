@@ -83,7 +83,7 @@ class MetricsLambda(Metric):
 
     @reinit__is_reduced
     def update(self, output: Any) -> None:
-        if self.engine is not None:
+        if self.engine:
             raise ValueError(
                 "MetricsLambda is already attached to an engine, "
                 "and MetricsLambda can't use update API while it's attached."
