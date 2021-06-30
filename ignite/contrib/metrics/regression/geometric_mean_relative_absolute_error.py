@@ -1,4 +1,4 @@
-from typing import Tuple, Union, cast
+from typing import Tuple
 
 import torch
 
@@ -37,18 +37,17 @@ class GeometricMeanRelativeAbsoluteError(_BaseRegression):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._sum_y = 0.0  # type: Union[float, torch.Tensor]
+        # self._sum_y = 0.0  # type: Union[float, torch.Tensor]
         self._num_examples = 0
-        self._sum_of_errors = 0.0  # type: Union[float, torch.Tensor]
+        self._sum_of_errors = torch.tensor(0.0, device=self._device)
 
     def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output[0].detach(), output[1].detach()
-        self._sum_y += y.sum()
+        errors = torch.log(torch.abs(y - y_pred) / torch.abs(y - y.mean()))
+        self._sum_of_errors += torch.sum(errors).to(self._device)
         self._num_examples += y.shape[0]
-        y_mean = self._sum_y / self._num_examples
-        numerator = torch.abs(y.view_as(y_pred) - y_pred)
-        denominator = torch.abs(y.view_as(y_pred) - y_mean)
-        self._sum_of_errors += torch.log(numerator / denominator).sum()
+
+        # np.exp(np.log(np.abs(np_y - np_y_pred) / np.abs(np_y - np_y.mean())).mean())
 
     @sync_all_reduce("_sum_of_errors", "_num_examples")
     def compute(self) -> float:
@@ -56,4 +55,4 @@ class GeometricMeanRelativeAbsoluteError(_BaseRegression):
             raise NotComputableError(
                 "GeometricMeanRelativeAbsoluteError must have at least one example before it can be computed."
             )
-        return torch.exp(torch.mean(cast(torch.Tensor, self._sum_of_errors) / self._num_examples)).item()
+        return torch.exp(self._sum_of_errors / self._num_examples).item()
