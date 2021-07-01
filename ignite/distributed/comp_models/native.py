@@ -255,13 +255,12 @@ if has_native_dist_support:
             slurm_port = slurm_port[-4:]
             os.environ["MASTER_PORT"] = str(int(slurm_port) + 15000)
             try:
-                # master address is the first hostname of nodes list
+                # use scontrol to expand hostname list
                 hostnames = subprocess.check_output(["scontrol", "show", "hostnames", os.environ["SLURM_JOB_NODELIST"]])
-            except FileNotFoundError as e:
-                # restore the environment before raising the exception
-                # self._restore_env()
-                # raise e
+            except FileNotFoundError:
+                # expand hostname list as scontrol
                 hostnames = " ".join(expand_hostlist(os.environ["SLURM_JOB_NODELIST"])).encode("utf-8")
+            # master address is the first hostname of nodes list
             os.environ["MASTER_ADDR"] = hostnames.split()[0].decode("utf-8")
 
         def get_local_rank(self) -> int:
