@@ -116,7 +116,7 @@ class MetricsLambda(Metric):
     def attach(self, engine: Engine, name: str, usage: Union[str, MetricUsage] = EpochWise()) -> None:
         if self._updated:
             raise ValueError(
-                "The underlying metrics are already updated, " "can't attach while using reset/update/compute API."
+                "The underlying metrics are already updated, can't attach while using reset/update/compute API."
             )
         usage = self._check_usage(usage)
         # recursively attach all its dependencies (partially)
