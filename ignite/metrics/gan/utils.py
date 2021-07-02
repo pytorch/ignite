@@ -41,7 +41,7 @@ class InceptionModel(torch.nn.Module):
         if self.return_features:
             return output
         else:
-            return torch.nn.functional.softmax(output, dim=0)
+            return torch.nn.functional.softmax(output, dim=1)
 
 
 class _BaseInceptionMetric(Metric):
