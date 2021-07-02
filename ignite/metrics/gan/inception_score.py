@@ -73,7 +73,7 @@ class InceptionScore(_BaseInceptionMetric):
 
         if num_features is None and feature_extractor is None:
             num_features = 1000
-            feature_extractor = InceptionModel(return_features=False)
+            feature_extractor = InceptionModel(return_features=False, device=device)
 
         self._eps = 1e-16
 
