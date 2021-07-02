@@ -23,7 +23,6 @@ class InceptionModel(torch.nn.Module):
             raise RuntimeError("This module requires torchvision to be installed.")
         super(InceptionModel, self).__init__()
         self._device = device
-        self.return_features = return_features
         self.model = models.inception_v3(pretrained=True).to(self._device)
         if return_features:
             self.model.fc = torch.nn.Identity()
