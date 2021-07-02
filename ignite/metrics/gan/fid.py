@@ -73,7 +73,7 @@ class FID(_BaseInceptionMetric):
 
     .. note::
         The default Inception model requires the `torchvision` module to be installed.
-        FID also requires `scipy` module for matrix square root calculations.
+        FID also requires `scipy` library for matrix square root calculations.
 
     Args:
         num_features: number of features predicted by the model or the reduced feature vector of the image.
