@@ -56,8 +56,11 @@ class FID(_BaseInceptionMetric):
 
     where :math:`\mu_1` and :math:`\sigma_1` refer to the mean and covariance of the train data and
     :math:`\mu_2` and :math:`\sigma_2` refer to the mean and covariance of the test data.
-    If you wish to use the default Inception Model for evaluation, it requires torchvision module.
-    Also, FID uses scipy module for matrix square root calculation.
+
+
+    .. note::
+        The default Inception model requires the `torchvision` module to be installed.
+        FID also requires `scipy` module for matrix square root calculations.
 
     More details can be found in `Heusel et al. 2002`__
 

@@ -23,6 +23,7 @@ class InceptionModel(torch.nn.Module):
             raise RuntimeError("This module requires torchvision to be installed.")
         super(InceptionModel, self).__init__()
         self._device = device
+        self.return_features = return_features
         self.model = models.inception_v3(pretrained=True).to(self._device)
         if return_features:
             self.model.fc = torch.nn.Identity()
@@ -37,9 +38,10 @@ class InceptionModel(torch.nn.Module):
         if data.device != torch.device(self._device):
             data = data.to(self._device)
         output = self.model(data)
-        if output.shape[1] == 1000:
+        if self.return_features:
+            return output
+        else:
             return torch.nn.functional.softmax(output, dim=0)
-        return output
 
 
 class _BaseInceptionMetric(Metric):
