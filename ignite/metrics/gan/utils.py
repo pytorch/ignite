@@ -27,6 +27,8 @@ class InceptionModel(torch.nn.Module):
         self.model = models.inception_v3(pretrained=True).to(self._device)
         if return_features:
             self.model.fc = torch.nn.Identity()
+        else:
+            self.model.fc = torch.nn.Sequential(self.model.fc, torch.nn.Softmax(dim=1))
         self.model.eval()
 
     @torch.no_grad()
@@ -37,11 +39,7 @@ class InceptionModel(torch.nn.Module):
             raise ValueError(f"Inputs should be a tensor with 3 channels, got {data.shape}")
         if data.device != torch.device(self._device):
             data = data.to(self._device)
-        output = self.model(data)
-        if self.return_features:
-            return output
-        else:
-            return torch.nn.functional.softmax(output, dim=1)
+        return self.model(data)
 
 
 class _BaseInceptionMetric(Metric):
