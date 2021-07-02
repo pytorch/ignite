@@ -57,11 +57,6 @@ class FID(_BaseInceptionMetric):
     where :math:`\mu_1` and :math:`\sigma_1` refer to the mean and covariance of the train data and
     :math:`\mu_2` and :math:`\sigma_2` refer to the mean and covariance of the test data.
 
-
-    .. note::
-        The default Inception model requires the `torchvision` module to be installed.
-        FID also requires `scipy` module for matrix square root calculations.
-
     More details can be found in `Heusel et al. 2002`__
 
     __ https://arxiv.org/pdf/1706.08500.pdf
@@ -75,6 +70,10 @@ class FID(_BaseInceptionMetric):
         This implementation is inspired by pytorch_fid package which can be found `here`__
 
         __ https://github.com/mseitzer/pytorch-fid
+
+    .. note::
+        The default Inception model requires the `torchvision` module to be installed.
+        FID also requires `scipy` module for matrix square root calculations.
 
     Args:
         num_features: number of features predicted by the model or the reduced feature vector of the image.

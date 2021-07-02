@@ -21,12 +21,12 @@ class InceptionScore(_BaseInceptionMetric):
     :math:`p(y)` is the marginal probability that the given image is real, `G` refers to the
     generated image and :math:`D_{KL}` refers to KL Divergence of the above mentioned probabilities.
 
-    .. note::
-        The default Inception model requires the `torchvision` module to be installed.
-
     More details can be found in `Barratt et al. 2018`__.
 
     __ https://arxiv.org/pdf/1801.01973.pdf
+
+    .. note::
+        The default Inception model requires the `torchvision` module to be installed.
 
 
     Args:
