@@ -1,55 +1,46 @@
-from typing import Callable, List, Union
+from typing import Callable, Iterable, Optional, Union
 
 import torch
-import torchvision
 
 from ignite.exceptions import NotComputableError
 from ignite.metrics import Metric
 from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
 
-class VGGPerceptualLoss(torch.nn.Module):
-    def __init__(self, resize: bool = True) -> None:
-        super(VGGPerceptualLoss, self).__init__()
-        blocks = []
-        blocks.append(torchvision.models.vgg16(pretrained=True).features[:4].eval())
-        blocks.append(torchvision.models.vgg16(pretrained=True).features[4:9].eval())
-        blocks.append(torchvision.models.vgg16(pretrained=True).features[9:16].eval())
-        blocks.append(torchvision.models.vgg16(pretrained=True).features[16:23].eval())
-        for bl in blocks:
-            for p in bl:
-                p.requires_grad = False
-        self.blocks = torch.nn.ModuleList(blocks)
-        self.transform = torch.nn.functional.interpolate
-        self.resize = resize
-        self.mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
-        self.std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
+class PerceptualLoss(torch.nn.Module):
+    def __init__(
+        self,
+        model: Iterable,
+        layer_weights: torch.Tensor,
+        normalize: bool = False,
+        mean: Optional[torch.Tensor] = None,
+        std: Optional[torch.Tensor] = None,
+        loss: Callable = torch.nn.functional.mse_loss,
+    ) -> None:
+        super(PerceptualLoss, self).__init__()
+        self.model = model
+        for layer in model:
+            layer.eval()
+            layer.requires_grad = False
+        self.normalize = normalize
+        self.mean = mean
+        self.std = std
+        self.weights = layer_weights
+        self.loss = loss
 
-    def forward(
-        self, input: torch.Tensor, target: torch.Tensor, feature_layers: List = [0, 1, 2, 3], style_layers: List = []
-    ) -> torch.Tensor:
-        if input.shape[1] != 3:
-            input = input.repeat(1, 3, 1, 1)
-            target = target.repeat(1, 3, 1, 1)
-        input = (input - self.mean) / self.std
-        target = (target - self.mean) / self.std
-        if self.resize:
-            input = self.transform(input, mode="bilinear", size=(224, 224), align_corners=False)
-            target = self.transform(target, mode="bilinear", size=(224, 224), align_corners=False)
-        loss = torch.tensor(0.0)
-        x = input
-        y = target
-        for i, block in enumerate(self.blocks):
-            x = block(x)
-            y = block(y)
-            if i in feature_layers:
-                loss += torch.nn.functional.l1_loss(x, y)
-            if i in style_layers:
-                act_x = x.reshape(x.shape[0], x.shape[1], -1)
-                act_y = y.reshape(y.shape[0], y.shape[1], -1)
-                gram_x = act_x @ act_x.permute(0, 2, 1)
-                gram_y = act_y @ act_y.permute(0, 2, 1)
-                loss += torch.nn.functional.l1_loss(gram_x, gram_y)
+    def forward(self, input: torch.Tensor, target: torch.Tensor) -> float:
+
+        if self.normalize:
+            input = (input - self.mean) / self.std
+            target = (target - self.mean) / self.std
+
+        loss = 0.0
+        for i, layer in enumerate(self.model):
+            input = layer(input)
+            target = layer(target)
+            if self.weights[i] != 0:
+                loss += self.weights[i] * self.loss(input, target)
+
         return loss
 
 
