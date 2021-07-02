@@ -36,7 +36,10 @@ class InceptionModel(torch.nn.Module):
             raise ValueError(f"Inputs should be a tensor with 3 channels, got {data.shape}")
         if data.device != torch.device(self._device):
             data = data.to(self._device)
-        return self.model(data)
+        output = self.model(data)
+        if output.shape[1] == 1000:
+            return torch.nn.functional.softmax(output, dim=0)
+        return output
 
 
 class _BaseInceptionMetric(Metric):
