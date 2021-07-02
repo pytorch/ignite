@@ -7,7 +7,7 @@ import pytest
 import torch
 
 from ignite.engine import Engine, Events
-from ignite.utils import convert_tensor, deprecated, expand_hostlist, setup_logger, to_onehot
+from ignite.utils import convert_tensor, deprecated, setup_logger, to_onehot
 
 
 def test_convert_tensor():
@@ -242,41 +242,3 @@ def test_deprecated():
 
 def test_smoke__utils():
     from ignite._utils import apply_to_tensor, apply_to_type, convert_tensor, to_onehot  # noqa: F401
-
-
-# tests from https://github.com/LLNL/py-hostlist/blob/master/hostlist/unittest_hostlist.py
-@pytest.mark.parametrize(
-    "hostlist, expected",
-    [
-        ("localhost", "localhost"),
-        ("quartz[4-8]", "quartz4,quartz5,quartz6,quartz7,quartz8"),
-        (
-            "node[18-19,1-16,21-22]",
-            "node1,node2,node3,node4,node5,"
-            "node6,node7,node8,node9,node10,"
-            "node11,node12,node13,node14,node15,"
-            "node16,node18,node19,node21,node22",
-        ),
-        (
-            "node[4-8,12,16-20,22,24-26]",
-            "node4,node5,node6,node7,node8,"
-            "node12,node16,node17,node18,"
-            "node19,node20,node22,node24,"
-            "node25,node26",
-        ),
-        ("machine2-[02-4]vm1", "machine2-02vm1,machine2-03vm1,machine2-04vm1"),
-        (
-            "machine2-[02-3]vm1, machine4-[0003-5].vml2",
-            "machine2-02vm1,machine2-03vm1," "machine4-0003.vml2," "machine4-0004.vml2," "machine4-0005.vml2",
-        ),
-        ("machine2-[009-11]vm1", "machine2-009vm1,machine2-010vm1,machine2-011vm1"),
-        ("node[1,2,3]", "node1,node2,node3"),
-    ],
-)
-def test_expand_hostlist(hostlist, expected):
-    assert expand_hostlist(hostlist) == expected.split(",")
-
-
-def test_expand_hostlist_unvalid():
-    with pytest.raises(ValueError, match=r"hostlist unvalid"):
-        expand_hostlist("unvalid[]")
