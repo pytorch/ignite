@@ -28,7 +28,6 @@ class InceptionScore(_BaseInceptionMetric):
     .. note::
         The default Inception model requires the `torchvision` module to be installed.
 
-
     Args:
         num_features: number of features predicted by the model or number of classes of the model. Default
             value is 1000.
