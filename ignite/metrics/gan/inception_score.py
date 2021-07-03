@@ -25,6 +25,8 @@ class InceptionScore(_BaseInceptionMetric):
 
     __ https://arxiv.org/pdf/1801.01973.pdf
 
+    .. note::
+        The default Inception model requires the `torchvision` module to be installed.
 
     Args:
         num_features: number of features predicted by the model or number of classes of the model. Default
@@ -71,7 +73,7 @@ class InceptionScore(_BaseInceptionMetric):
 
         if num_features is None and feature_extractor is None:
             num_features = 1000
-            feature_extractor = InceptionModel(return_features=False)
+            feature_extractor = InceptionModel(return_features=False, device=device)
 
         self._eps = 1e-16
 
@@ -97,19 +99,27 @@ class InceptionScore(_BaseInceptionMetric):
 
         probabilities = self._extract_features(output)
 
-        self._num_examples += probabilities.shape[0]
+        prob_sum = torch.sum(probabilities, 0, dtype=torch.float64)
+        log_prob = torch.log(probabilities + self._eps)
+        if log_prob.dtype != probabilities.dtype:
+            log_prob = log_prob.to(probabilities)
+        kl_sum = torch.sum(probabilities * log_prob, 0, dtype=torch.float64)
 
-        self._prob_total += torch.sum(probabilities, 0).to(self._device)
-        self._total_kl_d += torch.sum(probabilities * torch.log(probabilities + self._eps), 0).to(self._device)
+        self._num_examples += probabilities.shape[0]
+        self._prob_total += prob_sum
+        self._total_kl_d += kl_sum
 
     @sync_all_reduce("_num_examples", "_prob_total", "_total_kl_d")
-    def compute(self) -> torch.Tensor:
+    def compute(self) -> float:
 
         if self._num_examples == 0:
             raise NotComputableError("InceptionScore must have at least one example before it can be computed.")
 
         mean_probs = self._prob_total / self._num_examples
-        excess_entropy = self._prob_total * torch.log(mean_probs + self._eps)
+        log_mean_probs = torch.log(mean_probs + self._eps)
+        if log_mean_probs.dtype != self._prob_total.dtype:
+            log_mean_probs = log_mean_probs.to(self._prob_total)
+        excess_entropy = self._prob_total * log_mean_probs
         avg_kl_d = torch.sum(self._total_kl_d - excess_entropy) / self._num_examples
 
-        return torch.exp(avg_kl_d)
+        return torch.exp(avg_kl_d).item()

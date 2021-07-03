@@ -31,7 +31,7 @@ def test_inception_score():
     p_yx = torch.rand(20, 3, 299, 299)
     m = InceptionScore()
     m.update(p_yx)
-    assert torch.is_tensor(m.compute())
+    assert isinstance(m.compute(), float)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
@@ -39,7 +39,7 @@ def test_device_mismatch_cuda():
     p_yx = torch.rand(20, 10).to("cpu")
     m = InceptionScore(num_features=10, feature_extractor=torch.nn.Identity().to("cpu"), device="cuda")
     m.update(p_yx)
-    assert pytest.approx(calculate_inception_score(p_yx)) == m.compute().item()
+    assert pytest.approx(calculate_inception_score(p_yx)) == m.compute()
 
 
 def test_wrong_inputs():
@@ -91,7 +91,7 @@ def _test_distrib_integration(device):
 
         assert "InceptionScore" in engine.state.metrics
 
-        assert pytest.approx(calculate_inception_score(y)) == m.compute().cpu()
+        assert pytest.approx(calculate_inception_score(y)) == m.compute()
 
     metric_devices = [torch.device("cpu")]
     if device.type != "xla":
