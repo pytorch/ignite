@@ -25,6 +25,8 @@ class InceptionScore(_BaseInceptionMetric):
 
     __ https://arxiv.org/pdf/1801.01973.pdf
 
+    .. note::
+        The default Inception model requires the `torchvision` module to be installed.
 
     Args:
         num_features: number of features predicted by the model or number of classes of the model. Default
@@ -71,7 +73,7 @@ class InceptionScore(_BaseInceptionMetric):
 
         if num_features is None and feature_extractor is None:
             num_features = 1000
-            feature_extractor = InceptionModel(return_features=False)
+            feature_extractor = InceptionModel(return_features=False, device=device)
 
         self._eps = 1e-16
 
