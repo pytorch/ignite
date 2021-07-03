@@ -99,7 +99,7 @@ def _test_distrib_compute(device):
 
         np_gmrae = np.exp(np.log(np.abs(np_y - np_y_pred) / np.abs(np_y - np_y.mean())).mean())
 
-        assert m.compute() == pytest.approx(np_gmrae)
+        assert m.compute() == pytest.approx(np_gmrae, rel=1e-4)
 
     for _ in range(3):
         _test("cpu")
