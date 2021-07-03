@@ -65,6 +65,14 @@ def test_inception_extractor_wrong_inputs():
         InceptionModel(return_features=True)(torch.rand(2, 2, 2, 0))
 
 
+def test_inception_model_probability():
+    x = torch.rand(2, 3, 299, 299)
+    y = InceptionModel(return_features=False)(x)
+    assert pytest.approx(torch.sum(y[0]).item()) == 1.0
+    assert pytest.approx(torch.sum(y[1]).item()) == 1.0
+    assert torch.all(0 <= y)
+
+
 @pytest.fixture()
 def mock_no_torchvision():
     with patch.dict("sys.modules", {"torchvision": None}):
