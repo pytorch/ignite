@@ -1,10 +1,11 @@
-from typing import Tuple
+from typing import Tuple, cast
 
 import torch
 
+import ignite.distributed as idist
 from ignite.contrib.metrics.regression._base import _BaseRegression
 from ignite.exceptions import NotComputableError
-from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
+from ignite.metrics.metric import reinit__is_reduced
 
 
 class GeometricMeanRelativeAbsoluteError(_BaseRegression):
@@ -37,22 +38,45 @@ class GeometricMeanRelativeAbsoluteError(_BaseRegression):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        # self._sum_y = 0.0  # type: Union[float, torch.Tensor]
-        self._num_examples = 0
-        self._sum_of_errors = torch.tensor(0.0, device=self._device)
+        self._predictions = []
+        self._targets = []
 
     def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output[0].detach(), output[1].detach()
-        errors = torch.log(torch.abs(y - y_pred) / torch.abs(y - y.mean()))
-        self._sum_of_errors += torch.sum(errors).to(self._device)
-        self._num_examples += y.shape[0]
 
-        # np.exp(np.log(np.abs(np_y - np_y_pred) / np.abs(np_y - np_y.mean())).mean())
+        y_pred = y_pred.clone().to(self._device)
+        y = y.clone().to(self._device)
 
-    @sync_all_reduce("_sum_of_errors", "_num_examples")
+        self._predictions.append(y_pred)
+        self._targets.append(y)
+
     def compute(self) -> float:
-        if self._num_examples == 0:
+        if len(self._predictions) < 1 or len(self._targets) < 1:
             raise NotComputableError(
                 "GeometricMeanRelativeAbsoluteError must have at least one example before it can be computed."
             )
-        return torch.exp(self._sum_of_errors / self._num_examples).item()
+
+        _prediction_tensor = torch.cat(self._predictions, dim=0)
+        _target_tensor = torch.cat(self._targets, dim=0)
+
+        ws = idist.get_world_size()
+
+        if ws > 1:
+            # All gather across all processes
+            _prediction_tensor = cast(torch.Tensor, idist.all_gather(_prediction_tensor))
+            _target_tensor = cast(torch.Tensor, idist.all_gather(_target_tensor))
+
+        result = 0.0
+        if idist.get_rank() == 0:
+            # Run compute_fn on zero rank only
+            result = torch.exp(
+                torch.log(
+                    torch.abs(_target_tensor - _prediction_tensor) / torch.abs(_target_tensor - _target_tensor.mean())
+                ).mean()
+            ).item()
+
+        if ws > 1:
+            # broadcast result to all processes
+            result = cast(float, idist.broadcast(result, src=0))
+
+        return result
