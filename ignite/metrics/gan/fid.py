@@ -71,6 +71,10 @@ class FID(_BaseInceptionMetric):
 
         __ https://github.com/mseitzer/pytorch-fid
 
+    .. note::
+        The default Inception model requires the `torchvision` module to be installed.
+        FID also requires `scipy` library for matrix square root calculations.
+
     Args:
         num_features: number of features predicted by the model or the reduced feature vector of the image.
             Default value is 2048.
@@ -125,7 +129,7 @@ class FID(_BaseInceptionMetric):
 
         if num_features is None and feature_extractor is None:
             num_features = 1000
-            feature_extractor = InceptionModel(return_features=False)
+            feature_extractor = InceptionModel(return_features=False, device=device)
 
         self._eps = 1e-6
 

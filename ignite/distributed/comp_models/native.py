@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 import warnings
 from distutils.version import LooseVersion
@@ -254,12 +255,12 @@ if has_native_dist_support:
             slurm_port = slurm_port[-4:]
             os.environ["MASTER_PORT"] = str(int(slurm_port) + 15000)
             try:
-                # master address is the first hostname of nodes list
+                # use scontrol to expand hostname list
                 hostnames = subprocess.check_output(["scontrol", "show", "hostnames", os.environ["SLURM_JOB_NODELIST"]])
-            except FileNotFoundError as e:
-                # restore the environment before raising the exception
-                self._restore_env()
-                raise e
+            except FileNotFoundError:
+                # expand hostname list as scontrol
+                hostnames = " ".join(_expand_hostlist(os.environ["SLURM_JOB_NODELIST"])).encode("utf-8")
+            # master address is the first hostname of nodes list
             os.environ["MASTER_ADDR"] = hostnames.split()[0].decode("utf-8")
 
         def get_local_rank(self) -> int:
@@ -427,3 +428,69 @@ if has_native_dist_support:
 
         def barrier(self) -> None:
             dist.barrier()
+
+    def _expand_hostlist(nodelist: str) -> List[str]:
+        """Expand a compressed hostlist string and returns all hosts listed.
+
+        Source : https://github.com/LLNL/py-hostlist/blob/master/hostlist/hostlist.py
+
+        Args:
+            nodelist: Compressed hostlist string
+
+        .. versionadded:: 0.5.1
+        """
+        node_list = nodelist.split(", ")
+
+        result_hostlist = []
+        for node in node_list:
+            nodelist_match = r"(\w+-?)\[((,?[0-9]+-?,?-?){0,})\](.*)?"
+            if re.search(nodelist_match, node):
+                match = re.search(nodelist_match, node)
+
+                if match is None:
+                    raise ValueError(f"hostlist unvalid : {nodelist}")
+
+                # holds the ranges of nodes as a string
+                # now we can manipulate the string and cast it to a list of numbers
+                num = str(match.group(2)).replace("[", "").replace("]", "")
+
+                if len(num) == 0:
+                    raise ValueError(f"hostlist unvalid : {nodelist}")
+
+                num_list = num.split(",")
+
+                # find range of node numbers
+                ranges = [elem.split("-") for elem in num_list if "-" in elem]
+
+                # if the node numbers contain leading zeros, store them to be
+                if len(ranges):
+                    lead_zeros = max([len(s) - len(s.lstrip("0")) for s, _ in ranges])
+                else:
+                    lead_zeros = 0
+
+                # list of expanded ranges of node numbers
+                nodes_list = [list(range(int(s), int(e) + 1)) for s, e in ranges]
+
+                # add list of single node numbers
+                nodes_list += [[int(elem)] for elem in num_list if "-" not in elem]
+
+                # flat the list
+                final_list = [item for sublist in nodes_list for item in sublist]
+
+                # put final list in ascending order and append cluster name to each node number
+                final_list = list(set(sorted(final_list)))
+
+                # prepend leading zeros to numbers required
+                hostlist_tmp = [str(elem).zfill(lead_zeros + 1) for elem in final_list]
+
+                # append hostname to the node numbers
+                hostlist_no_suffix = [match.group(1) + elem for elem in hostlist_tmp]
+
+                # append suffix to hostlist if there is one
+                final_hostlist = [elem + match.group(4) for elem in hostlist_no_suffix]
+
+                result_hostlist += final_hostlist
+            else:
+                result_hostlist.append(node)
+
+        return result_hostlist
