@@ -26,6 +26,8 @@ class InceptionModel(torch.nn.Module):
         self.model = models.inception_v3(pretrained=True).to(self._device)
         if return_features:
             self.model.fc = torch.nn.Identity()
+        else:
+            self.model.fc = torch.nn.Sequential(self.model.fc, torch.nn.Softmax(dim=1))
         self.model.eval()
 
     @torch.no_grad()
