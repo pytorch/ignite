@@ -9,7 +9,45 @@ from ignite.distributed.comp_models import has_native_dist_support
 if not has_native_dist_support:
     pytest.skip("Skip if no native dist support", allow_module_level=True)
 else:
-    from ignite.distributed.comp_models.native import _NativeDistModel
+    from ignite.distributed.comp_models.native import _expand_hostlist, _NativeDistModel
+
+
+# tests from https://github.com/LLNL/py-hostlist/blob/master/hostlist/unittest_hostlist.py
+@pytest.mark.parametrize(
+    "hostlist, expected",
+    [
+        ("localhost", "localhost"),
+        ("quartz[4-8]", "quartz4,quartz5,quartz6,quartz7,quartz8"),
+        (
+            "node[18-19,1-16,21-22]",
+            "node1,node2,node3,node4,node5,"
+            "node6,node7,node8,node9,node10,"
+            "node11,node12,node13,node14,node15,"
+            "node16,node18,node19,node21,node22",
+        ),
+        (
+            "node[4-8,12,16-20,22,24-26]",
+            "node4,node5,node6,node7,node8,"
+            "node12,node16,node17,node18,"
+            "node19,node20,node22,node24,"
+            "node25,node26",
+        ),
+        ("machine2-[02-4]vm1", "machine2-02vm1,machine2-03vm1,machine2-04vm1"),
+        (
+            "machine2-[02-3]vm1, machine4-[0003-5].vml2",
+            "machine2-02vm1,machine2-03vm1," "machine4-0003.vml2," "machine4-0004.vml2," "machine4-0005.vml2",
+        ),
+        ("machine2-[009-11]vm1", "machine2-009vm1,machine2-010vm1,machine2-011vm1"),
+        ("node[1,2,3]", "node1,node2,node3"),
+    ],
+)
+def test_expand_hostlist(hostlist, expected):
+    assert _expand_hostlist(hostlist) == expected.split(",")
+
+
+def test_expand_hostlist_unvalid():
+    with pytest.raises(ValueError, match=r"hostlist unvalid"):
+        _expand_hostlist("unvalid[]")
 
 
 @pytest.mark.distributed
@@ -78,9 +116,6 @@ def test__native_dist_model_create_from_backend_bad_slurm_config():
     os.environ["SLURM_LOCALID"] = "0"
     os.environ["SLURM_NTASKS"] = "1"
     os.environ["SLURM_JOB_NODELIST"] = "localhost"
-
-    with pytest.raises(FileNotFoundError, match=r"No such file or directory: 'scontrol'"):
-        _NativeDistModel.create_from_backend(backend="gloo", timeout=timedelta(seconds=10))
 
     os.environ["RANK"] = "1"
 
@@ -175,6 +210,62 @@ def _test__native_dist_model_create_from_backend_dist(init_method, local_rank, r
     assert "MASTER_ADDR" not in os.environ
     assert "MASTER_PORT" not in os.environ
     assert "RANK" not in os.environ
+
+
+def _test__native_dist_model_create_from_backend_slurm(local_rank, rank, world_size, backend, true_device):
+
+    import os
+    from datetime import timedelta
+
+    timeout = timedelta(seconds=20)
+
+    assert "MASTER_ADDR" not in os.environ
+    assert "MASTER_PORT" not in os.environ
+
+    del os.environ["WORLD_SIZE"]
+    del os.environ["LOCAL_RANK"]
+
+    os.environ["SLURM_JOB_ID"] = "15000"
+    os.environ["SLURM_PROCID"] = str(rank)
+    os.environ["SLURM_LOCALID"] = str(local_rank)
+    os.environ["SLURM_NTASKS"] = str(world_size)
+    os.environ["SLURM_JOB_NODELIST"] = "localhost"
+
+    model = _NativeDistModel.create_from_backend(backend=backend, timeout=timeout)
+
+    assert dist.is_available() and dist.is_initialized()
+    assert dist.get_backend() == backend
+
+    with pytest.raises(RuntimeError, match=r"Can not create new distributed process group if default one is"):
+        _NativeDistModel.create_from_backend(backend=backend, timeout=timeout)
+
+    _assert_model(
+        model,
+        {
+            "device": true_device,
+            "local_rank": local_rank,
+            "rank": rank,
+            "world_size": world_size,
+            "node_index": 0,
+            "nnodes": 1,
+            "nproc_per_node": world_size,
+        },
+    )
+
+    model.finalize()
+
+    del os.environ["SLURM_JOB_ID"]
+    del os.environ["SLURM_PROCID"]
+    del os.environ["SLURM_LOCALID"]
+    del os.environ["SLURM_NTASKS"]
+    del os.environ["SLURM_JOB_NODELIST"]
+
+    assert "MASTER_ADDR" not in os.environ
+    assert "MASTER_PORT" not in os.environ
+    assert "RANK" not in os.environ
+
+    os.environ["WORLD_SIZE"] = str(world_size)
+    os.environ["LOCAL_RANK"] = str(local_rank)
 
 
 def _test__native_dist_model_create_from_context_no_local_rank():
@@ -302,12 +393,16 @@ def test__native_dist_model_create_dist_gloo_1(init_method, get_fixed_dirname, l
     device = torch.device(f"cuda:{local_rank}" if torch.cuda.is_available() else "cpu")
     _test__native_dist_model_create_from_backend_dist(init_method, local_rank, local_rank, world_size, "gloo", device)
 
+    if init_method is None:
+        _test__native_dist_model_create_from_backend_slurm(local_rank, local_rank, world_size, "gloo", device)
+
 
 @pytest.mark.distributed
 def test__native_dist_model_create_dist_gloo_2(local_rank, world_size):
 
     device = torch.device(f"cuda:{local_rank}" if torch.cuda.is_available() else "cpu")
     _test__native_dist_model_create_from_context_dist(local_rank, local_rank, world_size, "gloo", device)
+    _test__native_dist_model_create_from_backend_slurm(local_rank, local_rank, world_size, "gloo", device)
 
 
 @pytest.mark.distributed
@@ -320,6 +415,11 @@ def test__native_dist_model_create_dist_nccl_1(init_method, get_fixed_dirname, l
     _test__native_dist_model_create_from_backend_dist(
         init_method, local_rank, local_rank, world_size, "nccl", f"cuda:{local_rank}"
     )
+
+    if init_method is None:
+        _test__native_dist_model_create_from_backend_slurm(
+            local_rank, local_rank, world_size, "nccl", f"cuda:{local_rank}"
+        )
 
 
 @pytest.mark.distributed
