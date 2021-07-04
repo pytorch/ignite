@@ -141,12 +141,10 @@ class EMAHandler:
 
     @staticmethod
     def _unwrap_model(model: nn.Module) -> nn.Module:
-        if isinstance(model, nn.Module):
-            return model
-        elif isinstance(model, (nn.parallel.DataParallel, nn.parallel.DistributedDataParallel)):
+        if isinstance(model, (nn.parallel.DataParallel, nn.parallel.DistributedDataParallel)):
             return model.module
         else:
-            raise ValueError("Invalid model class")
+            return model
 
     def _get_momentum(self, curr_iter: int):
         """Get current momentum, `curr_iter` should be 1-based. When `curr_iter = 1`, `momentum =
