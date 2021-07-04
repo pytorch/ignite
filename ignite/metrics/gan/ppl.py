@@ -11,24 +11,26 @@ class PerceptualLoss(torch.nn.Module):
     def __init__(
         self,
         model: Iterable,
-        layer_weights: torch.Tensor,
+        weights: torch.Tensor,
         normalize: bool = False,
         mean: Optional[torch.Tensor] = None,
         std: Optional[torch.Tensor] = None,
         loss: Callable = torch.nn.functional.mse_loss,
+        device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
         super(PerceptualLoss, self).__init__()
         self.model = model
-        for layer in model:
-            layer.eval()
-            layer.requires_grad = False
         self.normalize = normalize
         self.mean = mean
         self.std = std
-        self.weights = layer_weights
+        self.weights = weights
         self.loss = loss
+        self.device = device
 
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> float:
+
+        input = input.to(self.device)
+        target = target.to(self.device)
 
         if self.normalize:
             input = (input - self.mean) / self.std
@@ -36,12 +38,43 @@ class PerceptualLoss(torch.nn.Module):
 
         loss = 0.0
         for i, layer in enumerate(self.model):
+            if len(self.weights) <= i:
+                break
             input = layer(input)
             target = layer(target)
             if self.weights[i] != 0:
                 loss += self.weights[i] * self.loss(input, target)
 
         return loss
+
+
+def gram_matrix(input: torch.Tensor) -> torch.Tensor:
+    a, b, c, d = input.size()
+    features = input.view(a * b, c * d)
+    G = torch.mm(features, features.t())
+    return G.div(a * b * c * d)
+
+
+def get_style_loss_object(device: Union[str, torch.device] = torch.device("cpu")) -> PerceptualLoss:
+    return PerceptualLoss(model=[gram_matrix], weights=torch.tensor([1.0]), device=device)
+
+
+def get_features_loss_object(
+    weights: torch.Tensor, device: Union[str, torch.device] = torch.device("cpu")
+) -> PerceptualLoss:
+    try:
+        from torchvision import models
+    except ImportError:
+        raise RuntimeError("This module requires torchvision to be installed.")
+
+    model = models.vgg16(pretrained=True).to(device).eval()
+    return PerceptualLoss(
+        model=model.features,
+        weights=weights,
+        normalize=True,
+        mean=torch.tensor([0.485, 0.456, 0.406]).to(device),
+        std=torch.tensor([0.229, 0.224, 0.225]).to(device),
+    )
 
 
 class PPL(Metric):
@@ -73,4 +106,5 @@ class PPL(Metric):
     def compute(self) -> float:
         if self._num_examples == 0:
             raise NotComputableError("PPL must have at least one example before it can be computed.")
+
         return self._total_loss.item() / self._num_examples
