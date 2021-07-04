@@ -1,4 +1,4 @@
-from typing import Callable, Iterable, Optional, Union
+from typing import Callable, Optional, Union
 
 import torch
 
@@ -10,8 +10,7 @@ from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 class PerceptualLoss(torch.nn.Module):
     def __init__(
         self,
-        model: Iterable,
-        weights: torch.Tensor,
+        function: torch.nn.Module = torch.nn.Identity(),
         normalize: bool = False,
         mean: Optional[torch.Tensor] = None,
         std: Optional[torch.Tensor] = None,
@@ -19,61 +18,54 @@ class PerceptualLoss(torch.nn.Module):
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
         super(PerceptualLoss, self).__init__()
-        self.model = model
+
+        if not isinstance(function, torch.nn.Module):
+            raise TypeError(f"Argument function must be of type torch.nn.Module, got {type(function)}")
+
+        self.function = function
         self.normalize = normalize
         self.mean = mean
         self.std = std
-        self.weights = weights
         self.loss = loss
-        self.device = device
+        self._device = device
 
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> float:
 
-        input = input.to(self.device)
-        target = target.to(self.device)
+        input = input.to(self._device)
+        target = target.to(self._device)
 
         if self.normalize:
             input = (input - self.mean) / self.std
             target = (target - self.mean) / self.std
 
-        loss = 0.0
-        for i, layer in enumerate(self.model):
-            if len(self.weights) <= i:
-                break
-            input = layer(input)
-            target = layer(target)
-            if self.weights[i] != 0:
-                loss += self.weights[i] * self.loss(input, target)
+        input = self.function(input)
+        target = self.function(target)
 
-        return loss
+        return self.loss(input, target)
 
 
-def gram_matrix(input: torch.Tensor) -> torch.Tensor:
-    a, b, c, d = input.size()
-    features = input.view(a * b, c * d)
-    G = torch.mm(features, features.t())
-    return G.div(a * b * c * d)
+class GramMatrix(torch.nn.Module):
+    def __init__(self) -> None:
+        super(GramMatrix, self).__init__()
+
+    def forward(self, input: torch.Tensor) -> float:
+        a, b, c, d = input.size()
+        features = input.view(a * b, c * d)
+        G = torch.mm(features, features.t())
+        return G.div(a * b * c * d)
 
 
 def get_style_loss_object(device: Union[str, torch.device] = torch.device("cpu")) -> PerceptualLoss:
-    return PerceptualLoss(model=[gram_matrix], weights=torch.tensor([1.0]), device=device)
+    return PerceptualLoss(function=GramMatrix(), device=device)
 
 
-def get_features_loss_object(
-    weights: torch.Tensor, device: Union[str, torch.device] = torch.device("cpu")
-) -> PerceptualLoss:
-    try:
-        from torchvision import models
-    except ImportError:
-        raise RuntimeError("This module requires torchvision to be installed.")
+def get_features_loss_object(device: Union[str, torch.device] = torch.device("cpu")) -> PerceptualLoss:
 
-    model = models.vgg16(pretrained=True).to(device).eval()
     return PerceptualLoss(
-        model=model.features,
-        weights=weights,
         normalize=True,
-        mean=torch.tensor([0.485, 0.456, 0.406]).to(device),
-        std=torch.tensor([0.229, 0.224, 0.225]).to(device),
+        mean=torch.tensor([0.485, 0.456, 0.406]).to(device).view(-1, 1, 1),
+        std=torch.tensor([0.229, 0.224, 0.225]).to(device).view(-1, 1, 1),
+        device=device,
     )
 
 
