@@ -42,6 +42,6 @@ setup(
     # Package info
     packages=find_packages(exclude=("tests", "tests.*",)),
     package_data={"ignite": ["py.typed"]},
-    zip_safe=True,
+    zip_safe=False,
     install_requires=requirements,
 )
