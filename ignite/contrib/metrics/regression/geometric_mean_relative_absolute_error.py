@@ -72,23 +72,14 @@ class GeometricMeanRelativeAbsoluteError(_BaseRegression):
         _prediction_tensor = torch.cat(self._predictions, dim=0)
         _target_tensor = torch.cat(self._targets, dim=0)
 
-        ws = idist.get_world_size()
+        # All gather across all processes
+        _prediction_tensor = cast(torch.Tensor, idist.all_gather(_prediction_tensor))
+        _target_tensor = cast(torch.Tensor, idist.all_gather(_target_tensor))
 
-        if ws > 1:
-            # All gather across all processes
-            _prediction_tensor = cast(torch.Tensor, idist.all_gather(_prediction_tensor))
-            _target_tensor = cast(torch.Tensor, idist.all_gather(_target_tensor))
-
-        result = 0.0
-        if idist.get_rank() == 0:
-            result = torch.exp(
-                torch.log(
-                    torch.abs(_target_tensor - _prediction_tensor) / torch.abs(_target_tensor - _target_tensor.mean())
-                ).mean()
-            ).item()
-
-        if ws > 1:
-            # broadcast result to all processes
-            result = cast(float, idist.broadcast(result, src=0))
+        result = torch.exp(
+            torch.log(
+                torch.abs(_target_tensor - _prediction_tensor) / torch.abs(_target_tensor - _target_tensor.mean())
+            ).mean()
+        ).item()
 
         return result
