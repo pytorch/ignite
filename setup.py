@@ -41,6 +41,7 @@ setup(
     license="BSD",
     # Package info
     packages=find_packages(exclude=("tests", "tests.*",)),
-    zip_safe=True,
+    package_data={"ignite": ["py.typed"]},
+    zip_safe=False,
     install_requires=requirements,
 )
