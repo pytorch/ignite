@@ -63,7 +63,7 @@ class EMAHandler:
               smoothed_weights = model.state_dict()
 
           Consider resuming training from a saved checkpoint: although the EMA weights are in the model when loaded
-          from a checkpoint, there is no need to manually swap the ``sate_dict`` of handler and model. The Handler
+          from a checkpoint, there is no need to manually swap the ``state_dict`` of handler and model. The Handler
           will automatically perform this step when the training resumes.
 
     Note:
@@ -83,6 +83,7 @@ class EMAHandler:
               to_load = {"model": model, "ema_handler", ema_handler, "trainer", trainer}
               if resume_from is not None:
                   Checkpoint.load_objects(to_load, checkpoint=resume_from)
+              ema_handler.attach(trainer)
 
               # add other handlers
               to_save = to_load
@@ -103,24 +104,37 @@ class EMAHandler:
         warmup_iters: int = 100,
         device: Optional[Union[str, torch.device]] = None,
     ) -> None:
-        assert 0 < momentum < 1
-        assert 0 < momentum_warmup < 1
-        assert momentum_warmup <= momentum
-        assert isinstance(interval, int) and interval > 0
-        assert isinstance(warmup_iters, int) and warmup_iters > 0
-        assert isinstance(model, nn.Module)
+        if not 0 < momentum < 1:
+            raise ValueError(f"Invalid momentum: {momentum}")
+        if not 0 < momentum_warmup < 1:
+            raise ValueError(f"Invalid momentum_warmup: {momentum_warmup}")
+        if not momentum_warmup <= momentum:
+            raise ValueError(
+                f"momentum_warmup should be less than or equal to momentum, but got "
+                f"momentum_warmup: {momentum_warmup} and momentum: {momentum}"
+            )
+        if not (isinstance(interval, int) and interval > 0):
+            raise ValueError(f"Invalid interval: {interval}")
+        if not isinstance(warmup_iters, int) and warmup_iters > 0:
+            raise ValueError(f"Invalid warmup_iters: {warmup_iters}")
+        if not isinstance(model, nn.Module):
+            raise ValueError(
+                f"model should be an instance of nn.Module or its subclasses, but got"
+                f"model: {model.__class__.__name__}"
+            )
         self.momentum = momentum
         self.interval = interval
         self.momentum_warmup = momentum_warmup
         self.warmup_iters = warmup_iters
         self.device = device
 
-        self.ema = deepcopy(self._unwrap_model(model))
+        self.model = self._unwrap_model(model)
+        self.ema = deepcopy(self.model)
         self.ema.eval()
         if self.device is not None:
-            self.ema.to(device=device)
+            self.ema.to(device=device)  # type: ignore
 
-    def state_dict(self, **kwargs: Optional[Any]) -> OrderedDict[str, Tensor]:
+    def state_dict(self, **kwargs: Any) -> OrderedDict[str, Tensor]:
         """Return ``state_dict`` of the EMA copy.
 
         Args:
@@ -146,7 +160,7 @@ class EMAHandler:
         else:
             return model
 
-    def _get_momentum(self, curr_iter: int):
+    def _get_momentum(self, curr_iter: int) -> float:
         """Get current momentum, `curr_iter` should be 1-based. When `curr_iter = 1`, `momentum =
         self.momentum_warmup`; when `curr_iter >= self.warmup_iters`, `momentum = self.momentum`"""
         assert curr_iter >= 1
@@ -155,10 +169,8 @@ class EMAHandler:
         return min(self.momentum, momentum)
 
     @torch.no_grad()
-    def _swap_params(self, engine: Engine, model: nn.Module) -> None:
-
-        model = self._unwrap_model(model)
-        for ema_v, model_v in zip(self.ema.state_dict().values(), model.state_dict().values()):
+    def _swap_params(self, engine: Engine) -> None:
+        for ema_v, model_v in zip(self.ema.state_dict().values(), self.model.state_dict().values()):
             if self.device is not None:
                 model_v = model_v.to(device=self.device)
             tmp = model_v.data.clone()
@@ -166,27 +178,20 @@ class EMAHandler:
             ema_v.data.copy_(tmp)
 
     @torch.no_grad()
-    def _update(self, engine: Engine, model: nn.Module) -> None:
-
-        model = self._unwrap_model(model)
+    def _update(self, engine: Engine) -> None:
         curr_iter = engine.state.iteration
         momentum = self._get_momentum(curr_iter)
 
-        for ema_v, model_v in zip(self.ema.state_dict().values(), model.state_dict().values()):
+        for ema_v, model_v in zip(self.ema.state_dict().values(), self.model.state_dict().values()):
             if self.device is not None:
                 model_v = model_v.to(device=self.device)
             ema_v.mul_(1 - momentum).add_(model_v.data, alpha=momentum)
 
-    def attach(self, engine: Engine, model: nn.Module) -> None:
+    def attach(self, engine: Engine) -> None:
         """Attach the handler to engine.
-
-        Note:
-              If model is ``DataParallel`` or ``DistributedDataParallel``, the EMA smoothing will be applied to
-              ``model.module`` .
 
         Args:
             engine: Trainer to which the handler will be attached.
-            model: Model to which the EMA smoothing will be applied.
 
         """
         # swap the parameters at the end of each epoch. If using Events.EPOCH_COMPLETED here, the handler of swap
@@ -199,6 +204,6 @@ class EMAHandler:
                 f"please manually check if the EMA handler is attached to the engine before other "
                 f"handlers"
             )
-        engine.add_event_handler(Events.EPOCH_COMPLETED, self._swap_params, model)
-        engine.add_event_handler(Events.EPOCH_STARTED, self._swap_params, model)
-        engine.add_event_handler(Events.ITERATION_COMPLETED(every=self.interval), self._update, model)
+        engine.add_event_handler(Events.EPOCH_COMPLETED, self._swap_params)
+        engine.add_event_handler(Events.EPOCH_STARTED, self._swap_params)
+        engine.add_event_handler(Events.ITERATION_COMPLETED(every=self.interval), self._update)

@@ -39,14 +39,14 @@ def _get_dummy_step_fn(model: Union[nn.Module, DataParallel, DistributedDataPara
 
 @pytest.mark.parametrize("momentum", [-1, 2])
 def test_ema_invalid_momentum(momentum):
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         model = _get_dummy_model()
         EMAHandler(model, momentum=momentum)
 
 
 @pytest.mark.parametrize("momentum_warmup", [-1, 2])
 def test_ema_invalid_momentum_warmup(momentum_warmup):
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         model = _get_dummy_model()
         EMAHandler(model, momentum_warmup=momentum_warmup)
 
@@ -55,20 +55,20 @@ def test_ema_smaller_momentum():
     """Test momentum_warmup > momentum"""
     momentum = 0.001
     momentum_warmup = 0.1
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         model = _get_dummy_model()
         EMAHandler(model, momentum=momentum, momentum_warmup=momentum_warmup)
 
 
 @pytest.mark.parametrize("interval", [-1, 1.05])
 def test_ema_invalid_interval(interval):
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         model = _get_dummy_model()
         EMAHandler(model, interval=interval)
 
 
 def test_ema_invalid_model():
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         model = "Invalid Model"
         EMAHandler(model)  # type: ignore
 
@@ -98,7 +98,7 @@ def test_ema_get_momentum():
     momentum = 0.2
     momentum_warmup = 0.1
     ema_handler = EMAHandler(model, momentum=momentum, momentum_warmup=momentum_warmup, warmup_iters=warmup_iters)
-    ema_handler.attach(engine, model)
+    ema_handler.attach(engine)
 
     # add handlers to check momentum at each iteration
     @engine.on(Events.ITERATION_COMPLETED)
@@ -130,7 +130,7 @@ def test_ema_attach_warning():
     momentum_warmup = 0.1
     ema_handler = EMAHandler(model, momentum=momentum, momentum_warmup=momentum_warmup, warmup_iters=warmup_iters)
     with pytest.warns(UserWarning):
-        ema_handler.attach(engine, model)
+        ema_handler.attach(engine)
 
 
 def _test_ema_final_weight(device, ddp=False):
@@ -140,13 +140,13 @@ def _test_ema_final_weight(device, ddp=False):
     data_loader = _get_dummy_dataloader()
     model = _get_dummy_model().to(device)
     if ddp:
-        model = DistributedDataParallel(model, device_ids=[device])
+        model = idist.auto_model(model)
     step_fn = _get_dummy_step_fn(model)
     engine = Engine(step_fn)
 
     # momentum will be constantly 0.5
     ema_handler = EMAHandler(model, momentum=0.5, momentum_warmup=0.5, warmup_iters=1, device=device)
-    ema_handler.attach(engine, model)
+    ema_handler.attach(engine)
 
     # engine run 4 iterations
     engine.run(data_loader, max_epochs=2)
@@ -191,9 +191,10 @@ def test_ema_final_weight_gloo_cuda(distributed_context_single_node_gloo):
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-def test_ema_final_weight_hvd(gloo_hvd_executor):
-    device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
-    nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
+def test_ema_final_weight_hvd_cuda(gloo_hvd_executor):
+    device = torch.device("cuda")
+    nproc = torch.cuda.device_count()
 
     gloo_hvd_executor(_test_ema_final_weight, (device, True), np=nproc, do_init=True)
 
