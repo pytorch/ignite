@@ -668,18 +668,18 @@ def _test_creating_on_xla_fails(device):
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_gpu(distributed_context_single_node_nccl):
+def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
 
-    device = f"cuda:{distributed_context_single_node_nccl['local_rank']}"
+    device = idist.device()
     _test_distrib_sync_all_reduce_decorator(device)
     _test_invalid_sync_all_reduce(device)
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-def test_distrib_cpu(distributed_context_single_node_gloo):
+def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
 
-    device = "cpu"
+    device = idist.device()
     _test_distrib_sync_all_reduce_decorator(device)
     _test_invalid_sync_all_reduce(device)
 
@@ -699,8 +699,9 @@ def test_distrib_hvd(gloo_hvd_executor):
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
-    device = "cpu"
+def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
+
+    device = idist.device()
     _test_distrib_sync_all_reduce_decorator(device)
     _test_invalid_sync_all_reduce(device)
 
@@ -708,8 +709,9 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = f"cuda:{distributed_context_multi_node_nccl['local_rank']}"
+def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
+
+    device = idist.device()
     _test_distrib_sync_all_reduce_decorator(device)
     _test_invalid_sync_all_reduce(device)
 
@@ -774,6 +776,31 @@ def test_completed():
     m.compute = MagicMock(return_value="foo")
     m.completed(engine, "metric")
     assert engine.state.metrics == {"metric": "foo"}
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
+def test_completed_on_cuda():
+
+    # Checks https://github.com/pytorch/ignite/issues/1635#issuecomment-863026919
+
+    class DummyMetric(Metric):
+        def reset(self):
+            pass
+
+        def compute(self):
+            return torch.tensor([1.0, 2.0, 3.0], device="cuda")
+
+        def update(self, output):
+            pass
+
+    m = DummyMetric()
+
+    # tensor
+    engine = MagicMock(state=State(metrics={}))
+    m.completed(engine, "metric")
+    assert "metric" in engine.state.metrics
+    assert isinstance(engine.state.metrics["metric"], torch.Tensor)
+    assert engine.state.metrics["metric"].device.type == "cpu"
 
 
 def test_usage_exception():
@@ -932,3 +959,75 @@ def test_override_required_output_keys():
         (torch.rand(4, 10), torch.randint(0, 3, size=(4,))),
     ]
     evaluator.run(data)
+
+
+@pytest.mark.parametrize("shapes", [[(10,), ()], [(5, 32, 32), (5, 32, 32)],])
+def test_list_of_tensors_and_numbers(shapes):
+    def check_fn(output):
+        assert len(output) == 2
+        assert isinstance(output[0], torch.Tensor)
+        assert isinstance(output[1], torch.Tensor)
+        assert output[0].shape == (1,) + shapes[0]
+        assert output[1].shape == (1,) + shapes[1]
+
+    def get_data(gt_as_scalar=False):
+        return [
+            (
+                [torch.rand(shapes[0]) for _ in range(3 + i)],  # predictions
+                [
+                    torch.rand(shapes[1]).item() if gt_as_scalar else torch.rand(shapes[1]) for _ in range(3 + i)
+                ],  # ground truth
+            )
+            for i in range(5)
+        ]
+
+    class MyMetric(Metric):
+        def __init__(self, check_fn):
+            super(MyMetric, self).__init__()
+            self.check_fn = check_fn
+
+        def reset(self):
+            pass
+
+        def compute(self):
+            pass
+
+        def update(self, output):
+            self.check_fn(output)
+
+    engine = Engine(lambda e, b: b)
+    m = MyMetric(check_fn)
+    m.attach(engine, "m")
+
+    data = get_data()
+    engine.run(data)
+
+    if len(shapes[1]) == 0:
+        data = get_data(gt_as_scalar=True)
+        engine.run(data)
+
+
+def test_list_of_tensors_and_numbers_unsupported_output():
+    class MyMetric(Metric):
+        def reset(self):
+            pass
+
+        def compute(self):
+            pass
+
+        def update(self, output):
+            pass
+
+    engine = Engine(lambda e, b: ([0, 1, 2], [0, 1, 2], [0, 1, 2]))
+    m = MyMetric()
+    m.attach(engine, "m")
+
+    with pytest.raises(ValueError, match=r"Output should have 2 items of the same length"):
+        engine.run([0] * 10)
+
+    engine = Engine(lambda e, b: ([0, 1, 2], [0, 1, 2, 4]))
+    m = MyMetric()
+    m.attach(engine, "m")
+
+    with pytest.raises(ValueError, match=r"Output should have 2 items of the same length"):
+        engine.run([0] * 10)

@@ -2,7 +2,8 @@ import warnings
 from abc import ABCMeta, abstractmethod
 from collections.abc import Mapping
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple, Union
+from numbers import Number
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Tuple, Union
 
 import torch
 
@@ -309,8 +310,17 @@ class Metric(metaclass=ABCMeta):
         """Helper method to update metric's computation. It is automatically attached to the
         `engine` with :meth:`~ignite.metrics.metric.Metric.attach`.
 
+        Note:
+            ``engine.state.output`` is used to compute metric values.
+            The majority of implemented metrics accepts the following formats for ``engine.state.output``:
+            ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``. ``y_pred`` and ``y`` can be torch tensors or
+            list of tensors/numbers if applicable.
+
         Args:
             engine: the engine to which the metric must be attached
+
+        .. versionchanged:: 0.4.5
+            ``y_pred`` and ``y`` can be torch tensors or list of tensors/numbers
         """
 
         output = self._output_transform(engine.state.output)
@@ -326,11 +336,25 @@ class Metric(metaclass=ABCMeta):
                     f"it should contain {self.required_output_keys} keys, but given {list(output.keys())}"
                 )
             output = tuple(output[k] for k in self.required_output_keys)
-        self.update(output)
+
+        if isinstance(output, Sequence) and all([_is_list_of_tensors_or_numbers(o) for o in output]):
+            if not (len(output) == 2 and len(output[0]) == len(output[1])):
+                raise ValueError(
+                    f"Output should have 2 items of the same length, "
+                    f"got {len(output)} and {len(output[0])}, {len(output[1])}"
+                )
+            for o1, o2 in zip(output[0], output[1]):
+                # o1 and o2 are list of tensors or numbers
+                tensor_o1 = _to_batched_tensor(o1)
+                tensor_o2 = _to_batched_tensor(o2, device=tensor_o1.device)
+                self.update((tensor_o1, tensor_o2))
+        else:
+            self.update(output)
 
     def completed(self, engine: Engine, name: str) -> None:
         """Helper method to compute metric's value and put into the engine. It is automatically attached to the
-        `engine` with :meth:`~ignite.metrics.metric.Metric.attach`.
+        `engine` with :meth:`~ignite.metrics.metric.Metric.attach`. If metrics' value is torch tensor, it is
+        explicitly sent to CPU device.
 
         Args:
             engine: the engine to which the metric must be attached
@@ -338,6 +362,10 @@ class Metric(metaclass=ABCMeta):
 
         .. versionchanged:: 0.4.3
             Added dict in metrics results.
+
+        .. versionchanged:: 0.4.5
+            metric's value is put on CPU if torch tensor.
+
         """
         result = self.compute()
         if isinstance(result, Mapping):
@@ -348,8 +376,11 @@ class Metric(metaclass=ABCMeta):
                 engine.state.metrics[key] = value
             engine.state.metrics[name] = result
         else:
-            if isinstance(result, torch.Tensor) and len(result.size()) == 0:
-                result = result.item()
+            if isinstance(result, torch.Tensor):
+                if len(result.size()) == 0:
+                    result = result.item()
+                elif "cpu" not in result.device.type:
+                    result = result.cpu()
 
             engine.state.metrics[name] = result
 
@@ -609,3 +640,13 @@ def reinit__is_reduced(func: Callable) -> Callable:
 
     setattr(wrapper, "_decorated", True)
     return wrapper
+
+
+def _is_list_of_tensors_or_numbers(x: Sequence[Union[torch.Tensor, float]]) -> bool:
+    return isinstance(x, Sequence) and all([isinstance(t, (torch.Tensor, Number)) for t in x])
+
+
+def _to_batched_tensor(x: Union[torch.Tensor, float], device: Optional[torch.device] = None) -> torch.Tensor:
+    if isinstance(x, torch.Tensor):
+        return x.unsqueeze(dim=0)
+    return torch.tensor([x,], device=device)

@@ -334,6 +334,8 @@ Complete list of metrics
     Rouge
     RougeL
     RougeN
+    InceptionScore
+    FID
 
 Helpers for customizing metrics
 -------------------------------

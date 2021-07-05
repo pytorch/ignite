@@ -54,7 +54,7 @@ class DummyModelMulipleParamGroups(nn.Module):
 
 @pytest.fixture
 def model():
-    model = DummyModel()
+    model = DummyModel(out_channels=10)
     yield model
 
 
@@ -305,7 +305,40 @@ def test_detach_terminates(lr_finder, to_save, dummy_engine, dataloader, recwarn
 
     dummy_engine.run(dataloader, max_epochs=3)
     assert dummy_engine.state.epoch == 3
-    assert len(recwarn) == 1
+    assert len(recwarn) == 0
+
+
+def test_engine_output_type(lr_finder, dummy_engine, optimizer):
+    from ignite.handlers.param_scheduler import PiecewiseLinear
+
+    dummy_engine.state.iteration = 1
+    dummy_engine.state.output = [10]
+    with pytest.raises(TypeError, match=r"output of the engine should be of type float or 0d torch.Tensor"):
+        lr_finder._log_lr_and_loss(dummy_engine, output_transform=lambda x: x, smooth_f=0, diverge_th=1)
+
+    dummy_engine.state.output = (10, 5)
+    with pytest.raises(TypeError, match=r"output of the engine should be of type float or 0d torch.Tensor"):
+        lr_finder._log_lr_and_loss(dummy_engine, output_transform=lambda x: x, smooth_f=0, diverge_th=1)
+
+    dummy_engine.state.output = torch.tensor([1, 2], dtype=torch.float32)
+    with pytest.raises(ValueError, match=r"if output of the engine is torch.Tensor"):
+        lr_finder._log_lr_and_loss(dummy_engine, output_transform=lambda x: x, smooth_f=0, diverge_th=1)
+
+    lr_finder._lr_schedule = PiecewiseLinear(
+        optimizer, param_name="lr", milestones_values=[(0, optimizer.param_groups[0]["lr"]), (100, 10)]
+    )
+
+    dummy_engine.state.output = torch.tensor(10.0, dtype=torch.float32)
+    lr_finder._history = {"lr": [], "loss": []}
+    lr_finder._log_lr_and_loss(dummy_engine, output_transform=lambda x: x, smooth_f=0, diverge_th=1)
+    loss = lr_finder._history["loss"][-1]
+    assert type(loss) == float
+
+    dummy_engine.state.output = torch.tensor([10.0], dtype=torch.float32)
+    lr_finder._history = {"lr": [], "loss": []}
+    lr_finder._log_lr_and_loss(dummy_engine, output_transform=lambda x: x, smooth_f=0, diverge_th=1)
+    loss = lr_finder._history["loss"][-1]
+    assert type(loss) == float
 
 
 def test_lr_suggestion_unexpected_curve(lr_finder, to_save, dummy_engine, dataloader):
@@ -320,10 +353,11 @@ def test_lr_suggestion_unexpected_curve(lr_finder, to_save, dummy_engine, datalo
 
 
 def test_lr_suggestion_single_param_group(lr_finder):  # , to_save, dummy_engine, dataloader):
+    import numpy as np
 
     noise = 0.05
-    lr_finder._history["loss"] = torch.linspace(-5.0, 5.0, steps=100) ** 2 + noise
-    lr_finder._history["lr"] = torch.linspace(0.01, 10, steps=100)
+    lr_finder._history["loss"] = np.linspace(-5.0, 5.0, num=100) ** 2 + noise
+    lr_finder._history["lr"] = np.linspace(0.01, 10, num=100)
 
     # lr_finder.lr_suggestion() is supposed to return a value, but as
     # we assign loss and lr to tensors, instead of lists, it will return tensors
@@ -336,9 +370,9 @@ def test_lr_suggestion_multiple_param_groups(lr_finder):
     import numpy as np
 
     noise = 0.06
-    lr_finder._history["loss"] = torch.tensor(np.linspace(-5.0, 5, num=50) ** 2 + noise)
+    lr_finder._history["loss"] = np.linspace(-5.0, 5, num=50) ** 2 + noise
     # 2 param_groups
-    lr_finder._history["lr"] = torch.tensor(np.linspace(0.01, 10, num=100)).reshape(50, 2)
+    lr_finder._history["lr"] = np.linspace(0.01, 10, num=100).reshape(50, 2)
 
     # lr_finder.lr_suggestion() is supposed to return a list of values,
     # but as we assign loss and lr to tensors, instead of lists, it will return tensors
@@ -352,7 +386,7 @@ def test_lr_suggestion_mnist(lr_finder, mnist_to_save, dummy_engine_mnist, mnist
 
     max_iters = 50
 
-    with lr_finder.attach(dummy_engine_mnist, mnist_to_save) as trainer_with_finder:
+    with lr_finder.attach(dummy_engine_mnist, mnist_to_save, diverge_th=2, step_mode="linear") as trainer_with_finder:
 
         with trainer_with_finder.add_event_handler(
             Events.ITERATION_COMPLETED(once=max_iters), lambda _: trainer_with_finder.terminate()
@@ -393,11 +427,11 @@ def test_apply_suggested_lr_multiple_param_groups(
     to_save_mulitple_param_groups,
     dummy_engine_mulitple_param_groups,
     optimizer_multiple_param_groups,
-    dataloader,
+    dataloader_plot,
 ):
 
     with lr_finder.attach(dummy_engine_mulitple_param_groups, to_save_mulitple_param_groups) as trainer_with_finder:
-        trainer_with_finder.run(dataloader)
+        trainer_with_finder.run(dataloader_plot)
 
     sug_lr = lr_finder.lr_suggestion()
     lr_finder.apply_suggested_lr(optimizer_multiple_param_groups)
@@ -539,8 +573,9 @@ def _test_distrib_integration_mnist(device):
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-def test_distrib_cpu(distributed_context_single_node_gloo):
-    device = torch.device("cpu")
+def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
+
+    device = idist.device()
     _test_distrib_log_lr_and_loss(device)
     _test_distrib_integration_mnist(device)
 
@@ -548,8 +583,9 @@ def test_distrib_cpu(distributed_context_single_node_gloo):
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_gpu(distributed_context_single_node_nccl):
-    device = torch.device(f"cuda:{distributed_context_single_node_nccl['local_rank']}")
+def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
+
+    device = idist.device()
     _test_distrib_log_lr_and_loss(device)
     _test_distrib_integration_mnist(device)
 

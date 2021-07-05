@@ -1,11 +1,13 @@
 import os
+from distutils.version import LooseVersion
 
 import pytest
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from torch.utils.data.dataset import Dataset
+from torch.utils.data.dataloader import _InfiniteConstantSampler
+from torch.utils.data.dataset import Dataset, IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import BatchSampler, RandomSampler, Sampler, SequentialSampler, WeightedRandomSampler
 
@@ -16,6 +18,19 @@ from ignite.distributed.auto import DistributedProxySampler, auto_dataloader, au
 class DummyDS(Dataset):
     def __getitem__(self, index):
         return index
+
+
+class DummyIterableDataset(IterableDataset):
+    def __init__(self, start, end):
+        super(DummyIterableDataset).__init__()
+        self.start = start
+        self.end = end
+
+    def __iter__(self):
+        return iter(range(self.start, self.end))
+
+    def __len__(self):
+        return self.end - self.start
 
 
 @pytest.mark.distributed
@@ -37,48 +52,57 @@ def test_auto_dataloader_warning_tpu():
 
 
 def _test_auto_dataloader(ws, nproc, batch_size, num_workers=1, sampler_name=None, dl_type=DataLoader):
+    def _test(data):
+        if sampler_name is None:
+            sampler = None
+        elif sampler_name == "WeightedRandomSampler":
+            sampler = WeightedRandomSampler(weights=torch.ones(100), num_samples=100)
+        else:
+            raise RuntimeError(f"Unknown sampler name: {sampler_name}")
+
+        # Test auto_dataloader
+        assert idist.get_world_size() == ws, f"{idist.get_world_size()} vs {ws}"
+
+        shuffle = sampler is None if not isinstance(data, IterableDataset) else False
+        dataloader = auto_dataloader(
+            data, batch_size=batch_size, num_workers=num_workers, sampler=sampler, shuffle=shuffle
+        )
+
+        assert isinstance(dataloader, dl_type)
+        if hasattr(dataloader, "_loader"):
+            dataloader = dataloader._loader
+        if ws < batch_size:
+            assert dataloader.batch_size == batch_size // ws
+        else:
+            assert dataloader.batch_size == batch_size
+        if ws <= num_workers:
+            assert dataloader.num_workers == (num_workers + nproc - 1) // nproc
+        else:
+            assert dataloader.num_workers == num_workers
+
+        if isinstance(data, IterableDataset):
+            sampler_type = _InfiniteConstantSampler
+        elif ws > 1:
+            sampler_type = DistributedSampler if sampler is None else DistributedProxySampler
+        else:
+            sampler_type = RandomSampler if sampler is None else type(sampler)
+
+        assert isinstance(dataloader.sampler, sampler_type)
+
+        if isinstance(dataloader, DataLoader):
+            assert dataloader.pin_memory == ("cuda" in idist.device().type)
 
     data = torch.rand(100, 3, 12, 12)
-
+    _test(data)
     if sampler_name is None:
-        sampler = None
-    elif sampler_name == "WeightedRandomSampler":
-        sampler = WeightedRandomSampler(weights=torch.ones(100), num_samples=100)
-    else:
-        raise RuntimeError(f"Unknown sampler name: {sampler_name}")
-
-    # Test auto_dataloader
-    assert idist.get_world_size() == ws, f"{idist.get_world_size()} vs {ws}"
-    dataloader = auto_dataloader(
-        data, batch_size=batch_size, num_workers=num_workers, sampler=sampler, shuffle=sampler is None
-    )
-
-    assert isinstance(dataloader, dl_type)
-    if hasattr(dataloader, "_loader"):
-        dataloader = dataloader._loader
-    if ws < batch_size:
-        assert dataloader.batch_size == batch_size // ws
-    else:
-        assert dataloader.batch_size == batch_size
-    if ws <= num_workers:
-        assert dataloader.num_workers == (num_workers + nproc - 1) // nproc
-    else:
-        assert dataloader.num_workers == num_workers
-
-    if ws < 2:
-        sampler_type = RandomSampler if sampler is None else type(sampler)
-        assert isinstance(dataloader.sampler, sampler_type)
-    else:
-        sampler_type = DistributedSampler if sampler is None else DistributedProxySampler
-        assert isinstance(dataloader.sampler, sampler_type)
-    if isinstance(dataloader, DataLoader):
-        assert dataloader.pin_memory == ("cuda" in idist.device().type)
+        data = DummyIterableDataset(0, 100)
+        _test(data)
 
 
 def _test_auto_model(model, ws, device, sync_bn=False, **kwargs):
     model = auto_model(model, sync_bn=sync_bn, **kwargs)
     bnd = idist.backend()
-    if ws > 1 and device in ("cuda", "cpu"):
+    if ws > 1 and torch.device(device).type in ("cuda", "cpu"):
         if idist.has_native_dist_support and bnd in ("nccl", "gloo"):
             assert isinstance(model, nn.parallel.DistributedDataParallel)
             if sync_bn:
@@ -93,8 +117,8 @@ def _test_auto_model(model, ws, device, sync_bn=False, **kwargs):
         assert isinstance(model, nn.Module)
 
     assert all(
-        [p.device.type == device for p in model.parameters()]
-    ), f"{[p.device.type for p in model.parameters()]} vs {device}"
+        [p.device.type == torch.device(device).type for p in model.parameters()]
+    ), f"{[p.device.type for p in model.parameters()]} vs {torch.device(device).type}"
 
 
 def _test_auto_model_optimizer(ws, device):
@@ -103,7 +127,7 @@ def _test_auto_model_optimizer(ws, device):
     _test_auto_model(model, ws, device)
 
     model = nn.Sequential(nn.Linear(20, 100), nn.BatchNorm1d(100))
-    _test_auto_model(model, ws, device, sync_bn="cuda" in device)
+    _test_auto_model(model, ws, device, sync_bn="cuda" in torch.device(device).type)
     if ws > 1:
         _test_auto_model(model, ws, device, find_unused_parameters=True)
         _test_auto_model(model, ws, device, find_unused_parameters=False)
@@ -138,10 +162,12 @@ def test_auto_methods_gloo(distributed_context_single_node_gloo):
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=2)
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, sampler_name="WeightedRandomSampler")
 
-    _test_auto_model_optimizer(ws, "cpu")
+    device = idist.device()
+    _test_auto_model_optimizer(ws, device)
 
-    if ws > 1:
-        with pytest.raises(AssertionError, match=r"SyncBatchNorm layers only work with GPU modules"):
+    if ws > 1 and device.type == "cpu":
+        error_type = AssertionError if LooseVersion(torch.__version__) <= LooseVersion("1.9.0") else ValueError
+        with pytest.raises(error_type, match=r"SyncBatchNorm layers only work with GPU modules"):
             model = nn.Sequential(nn.Linear(20, 100), nn.BatchNorm1d(100))
             auto_model(model, sync_bn=True)
 
@@ -156,7 +182,8 @@ def test_auto_methods_nccl(distributed_context_single_node_nccl):
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=10)
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1, sampler_name="WeightedRandomSampler")
 
-    _test_auto_model_optimizer(ws, "cuda")
+    device = idist.device()
+    _test_auto_model_optimizer(ws, device)
 
     if ws > 1:
         with pytest.raises(ValueError, match=r"Argument kwargs should not contain 'device_ids'"):
@@ -217,8 +244,6 @@ def test_auto_methods_xla():
 
 
 def test_dist_proxy_sampler():
-    import torch
-    from torch.utils.data import WeightedRandomSampler
 
     weights = torch.ones(100)
     weights[:50] += 1

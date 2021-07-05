@@ -6,8 +6,7 @@ import tempfile
 import warnings
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
-from tempfile import _TemporaryFileWrapper  # type: ignore[attr-defined]
-from typing import Any, Callable, Dict, List, Mapping, NamedTuple, Optional, Tuple, Union
+from typing import IO, Any, Callable, Dict, List, Mapping, NamedTuple, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -537,7 +536,7 @@ class Checkpoint(Serializable):
         if not isinstance(checkpoint, collections.Mapping):
             raise TypeError(f"Argument checkpoint should be a dictionary, but given {type(checkpoint)}")
 
-        if len(kwargs) > 1 or any(k for k in kwargs.keys() if k not in ["strict"]):
+        if len(kwargs) > 1 or any(k for k in kwargs if k not in ["strict"]):
             warnings.warn("kwargs contains keys other than strict and these will be ignored")
 
         is_state_dict_strict = kwargs.get("strict", True)
@@ -692,10 +691,10 @@ class DiskSaver(BaseSaveHandler):
         else:
             tmp_file = None
             tmp_name = ""
-            tmp = None  # type: _TemporaryFileWrapper
+            tmp: Optional[IO[bytes]] = None
             if rank == 0:
                 tmp = tempfile.NamedTemporaryFile(delete=False, dir=self.dirname)
-                tmp_file = tmp.file
+                tmp_file = tmp.file  # type: ignore
                 tmp_name = tmp.name
             try:
                 func(checkpoint, tmp_file, **self.kwargs)

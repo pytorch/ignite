@@ -94,7 +94,7 @@ def _create_dist_context(dist_info, lrank):
 
     dist.init_process_group(**dist_info)
     dist.barrier()
-    if dist_info["backend"] == "nccl":
+    if torch.cuda.is_available():
         torch.cuda.set_device(lrank)
 
     return {"local_rank": lrank, "world_size": dist_info["world_size"], "rank": dist_info["rank"]}
@@ -150,8 +150,6 @@ def distributed_context_single_node_nccl(local_rank, world_size):
 
     free_port = _setup_free_port(local_rank)
 
-    print(local_rank, "Port:", free_port)
-
     dist_info = {
         "backend": "nccl",
         "world_size": world_size,
@@ -174,7 +172,6 @@ def distributed_context_single_node_gloo(local_rank, world_size):
         init_method = f'file:///{temp_file.name.replace(backslash, "/")}'
     else:
         free_port = _setup_free_port(local_rank)
-        print(local_rank, "Port:", free_port)
         init_method = f"tcp://localhost:{free_port}"
         temp_file = None
 
@@ -213,7 +210,7 @@ def _create_mnodes_dist_context(dist_info, mnodes_conf):
 
     dist.init_process_group(**dist_info)
     dist.barrier()
-    if dist_info["backend"] == "nccl":
+    if torch.cuda.is_available():
         torch.cuda.device(mnodes_conf["local_rank"])
     return mnodes_conf
 

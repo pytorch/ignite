@@ -92,7 +92,8 @@ def test_check_idist_parallel_torch_launch_n_procs_gloo(init_method, dirname, ex
     if init_method == "FILE":
         init_method = f"file://{dirname}/shared"
 
-    _test_check_idist_parallel_torch_launch(init_method, exec_filepath, "gloo", 4)
+    np = torch.cuda.device_count() if torch.cuda.is_available() else 4
+    _test_check_idist_parallel_torch_launch(init_method, exec_filepath, "gloo", np)
 
 
 @pytest.mark.distributed
@@ -150,7 +151,8 @@ def _test_check_idist_parallel_spawn(fp, backend, nprocs):
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test_check_idist_parallel_spawn_n_procs_gloo(exec_filepath):
-    _test_check_idist_parallel_spawn(exec_filepath, "gloo", 4)
+    np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
+    _test_check_idist_parallel_spawn(exec_filepath, "gloo", np)
 
 
 @pytest.mark.distributed
@@ -182,7 +184,7 @@ def _test_func(index, ws, device, backend, true_init_method):
     assert 0 <= index < ws
     assert index == idist.get_local_rank()
     assert ws == idist.get_world_size()
-    assert device in idist.device().type
+    assert torch.device(device).type == idist.device().type
     assert backend == idist.backend()
 
     if idist.model_name() == "native-dist":
@@ -203,8 +205,8 @@ def test_idist_parallel_spawn_n_procs_native(init_method, backend, dirname):
     if init_method == "FILE":
         init_method = f"file://{dirname}/shared"
 
-    nproc_per_node = 4 if "gloo" == backend else torch.cuda.device_count()
-    device = "cpu" if "gloo" == backend else "cuda"
+    nproc_per_node = torch.cuda.device_count() if torch.cuda.is_available() else 4
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     with idist.Parallel(backend=backend, nproc_per_node=nproc_per_node, init_method=init_method) as parallel:
         parallel.run(_test_func, ws=nproc_per_node, device=device, backend=backend, true_init_method=init_method)
 
@@ -222,14 +224,14 @@ def test_idist_parallel_n_procs_native(init_method, backend, get_fixed_dirname, 
         init_method = f"file://{get_fixed_dirname('idist_parallel_n_procs_native')}/shared"
 
     os.environ["RANK"] = str(local_rank)
-    device = "cuda" if "nccl" in backend else "cpu"
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     with idist.Parallel(backend=backend, init_method=init_method) as parallel:
         parallel.run(_test_func, ws=world_size, device=device, backend=backend, true_init_method=init_method)
 
 
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test_idist_parallel_no_dist():
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     with idist.Parallel(backend=None) as parallel:
         parallel.run(_test_func, ws=1, device=device, backend=None, true_init_method=None)
 

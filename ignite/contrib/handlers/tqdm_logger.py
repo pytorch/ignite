@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """TQDM logger."""
+import numbers
 import warnings
 from collections import OrderedDict
-from typing import Any, Callable, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 
@@ -160,7 +161,7 @@ class ProgressBar(BaseLogger):
     def attach(  # type: ignore[override]
         self,
         engine: Engine,
-        metric_names: Optional[str] = None,
+        metric_names: Optional[Union[str, List[str]]] = None,
         output_transform: Optional[Callable] = None,
         event_name: Union[Events, CallableEventWithFilter] = Events.ITERATION_COMPLETED,
         closing_event_name: Union[Events, CallableEventWithFilter] = Events.EPOCH_COMPLETED,
@@ -271,19 +272,18 @@ class _OutputHandler(BaseOutputHandler):
 
         metrics = self._setup_output_metrics(engine)
 
-        rendered_metrics = OrderedDict()
+        rendered_metrics = OrderedDict()  # type: Dict[str, Union[str, float, numbers.Number]]
         for key, value in metrics.items():
-            if isinstance(value, torch.Tensor):
-                if value.ndimension() == 0:
-                    rendered_metrics[key] = value.item()
-                elif value.ndimension() == 1:
-                    for i, v in enumerate(value):
-                        k = f"{key}_{i}"
-                        rendered_metrics[k] = v.item()
-                else:
-                    warnings.warn(f"ProgressBar can not log tensor with {value.ndimension()} dimensions")
-            else:
+            if isinstance(value, numbers.Number) or isinstance(value, str):
                 rendered_metrics[key] = value
+            elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
+                rendered_metrics[key] = value.item()
+            elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
+                for i, v in enumerate(value):
+                    k = f"{key}_{i}"
+                    rendered_metrics[k] = v.item()
+            else:
+                warnings.warn(f"ProgressBar can not log tensor with {value.ndimension()} dimensions")
 
         if rendered_metrics:
             logger.pbar.set_postfix(rendered_metrics)  # type: ignore[attr-defined]

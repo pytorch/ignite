@@ -133,6 +133,30 @@ def test_output_handler_metric_names():
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
     mock_logger.log.assert_called_once_with({"tag/a": 12.23, "tag/b": 23.45}, step=5, sync=None)
 
+    # log a torch vector
+    wrapper = OutputHandler("tag", metric_names="all")
+    mock_logger = MagicMock(spec=WandBLogger)
+    mock_logger.log = MagicMock()
+    vector = torch.tensor([0.1, 0.2, 0.1, 0.2, 0.33])
+    mock_engine = MagicMock()
+    mock_engine.state = State(metrics={"a": vector})
+    mock_engine.state.iteration = 5
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+    mock_logger.log.assert_called_once_with({f"tag/a/{i}": vector[i].item() for i in range(5)}, step=5, sync=None)
+
+    # log warning
+    wrapper = OutputHandler("tag", metric_names=["a"])
+    mock_engine = MagicMock()
+    mock_engine.state = State(metrics={"a": [1, 2, 3, 4]})
+    mock_engine.state.iteration = 7
+
+    mock_logger = MagicMock(spec=WandBLogger)
+    mock_logger.log = MagicMock()
+
+    with pytest.warns(UserWarning, match=r"WandBLogger output_handler can not log metrics value type"):
+        wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
 
 def test_output_handler_both():
     wrapper = OutputHandler("tag", metric_names=["a", "b"], output_transform=lambda x: {"loss": x})

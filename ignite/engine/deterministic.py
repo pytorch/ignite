@@ -98,6 +98,10 @@ def _get_rng_states() -> List[Any]:
 
 def _set_rng_states(rng_states: List[Any]) -> None:
     random.setstate(rng_states[0])
+
+    if "cpu" not in rng_states[1].device.type:
+        rng_states[1] = rng_states[1].cpu()
+
     torch.set_rng_state(rng_states[1])
     try:
         import numpy as np

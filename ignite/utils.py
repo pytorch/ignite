@@ -158,7 +158,7 @@ def setup_logger(
         Added ``reset`` parameter.
     """
     # check if the logger already exists
-    existing = name is None or name in logging.root.manager.loggerDict  # type: ignore
+    existing = name is None or name in logging.root.manager.loggerDict
 
     # if existing, get the logger otherwise create a new one
     logger = logging.getLogger(name)
@@ -263,7 +263,7 @@ def deprecated(
             warnings.warn(deprecation_warning, DeprecationWarning, stacklevel=2)
             return func(*args, **kwargs)
 
-        appended_doc = f".. deprecated:: {deprecated_in}" + ("\n\n\t" if len(reasons) else "")
+        appended_doc = f".. deprecated:: {deprecated_in}" + ("\n\n\t" if len(reasons) > 0 else "")
 
         for reason in reasons:
             appended_doc += "\n\t- " + reason
