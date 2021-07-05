@@ -1,6 +1,5 @@
-import warnings
 from copy import deepcopy
-from typing import Any, Optional, OrderedDict, Union
+from typing import Any, Dict, Optional, Union
 
 import torch
 import torch.nn as nn
@@ -33,10 +32,6 @@ class EMAHandler:
     - The handler allows for linearly warmup the momentum in the beginning when training process is not stable.
     - The handler supports saving the EMA backup to checkpoint via ``state_dict``, and loading from the checkpoint via
       ``load_state_dict``.
-    - In the end of each train epoch, the handler will swap weights with the model, so that the EMA weights
-      will be moved to the model and used for validation. In the beginning of each epoch, the handler will againswap
-      weights with the model, so that the EMA weights are moved back to the EMA handlers, and model weights are moved
-      back to the model.
 
 
     Note:
@@ -46,30 +41,6 @@ class EMAHandler:
           2. Build ``trainer`` (``ignite.engine.Engine``).
           3. Resume from checkpoint for ``model`` and ``ema_handler``.
           4. Attach ``ema_handler`` to ``trainer``.
-          5. Attach other handlers to ``trainer``.
-
-    Note:
-          When the trainer completes running, the EMA weights are moved to the model. If both the handler's
-          ``state_dict`` and model's ``state_dict`` are saved by ``Checkpoint`` handler, users can retrieve the EMA
-          weights as follows:
-
-          .. code-block:: python
-
-              to_load = {"model" model, "ema_handler", ema_handler}
-              ckpt = torch.load("checkpoint.pt")
-              Checkpoint.load_objects(to_load, ckpt)
-
-              # EMA weights are actually in the model's state_dict
-              smoothed_weights = model.state_dict()
-
-          Consider resuming training from a saved checkpoint: although the EMA weights are in the model when loaded
-          from a checkpoint, there is no need to manually swap the ``state_dict`` of handler and model. The Handler
-          will automatically perform this step when the training resumes.
-
-    Note:
-          Users need to register the EMA handler before the validation handler, so that swapping weights will be
-          performed before validation begins. It is recommended to register the EMA handler as the first handler for
-          the event ``Events.EPOCH_COMPLETED``.
 
     Examples:
           .. code-block:: python
@@ -78,8 +49,8 @@ class EMAHandler:
               model = nn.Linear(2, 1).to(device)
               # update the ema every 5 iterations
               ema_handler = EMAHandler(
-                model, momentum=0.0002, momentum_warmup=0.0001, interval=5, warmup_iters=10000, device=device)
-              trainer = Engine(step_fn)
+                  model, momentum=0.0002, momentum_warmup=0.0001, interval=5, warmup_iters=10000, device=device)
+              trainer = Engine(train_step_fn)
               to_load = {"model": model, "ema_handler", ema_handler, "trainer", trainer}
               if resume_from is not None:
                   Checkpoint.load_objects(to_load, checkpoint=resume_from)
@@ -89,6 +60,14 @@ class EMAHandler:
               to_save = to_load
               ckpt_handler = Checkpoint(to_save, DiskSaver(...), ...)
               trainer.add_event_handler(Events.EPOCH_COMPLETED, ckpt_handler)
+
+              # use ema model for validation
+              val_step_fn = get_val_step_fn(ema_handler.get_ema_model())
+              evaluator = Engine(val_step_fn)
+
+              @trainer.on(Events.EPOCH_COMPLETED)
+              def run_validation(engine):
+                  engine.run(val_data_loader)
 
               trainer.run(...)
 
@@ -128,14 +107,26 @@ class EMAHandler:
         self.warmup_iters = warmup_iters
         self.device = device
 
-        self.model = self._unwrap_model(model)
-        self.ema = deepcopy(self.model)
+        self.unwrapped_model = self._unwrap_model(model)
+        self.ema = deepcopy(self.unwrapped_model)
         self.ema.eval()
         if self.device is not None:
             self.ema.to(device=device)  # type: ignore
 
-    def state_dict(self, **kwargs: Any) -> OrderedDict[str, Tensor]:
-        """Return ``state_dict`` of the EMA copy.
+    def get_ema_model(self) -> nn.Module:
+        """Get the model with EMA weights.
+
+        Note:
+              This function returns an instance of ``nn.Module`` rather than ``DistributedDataParallel`` or
+              ``DataParallel``.
+
+        Returns:
+
+        """
+        return self.ema
+
+    def state_dict(self, **kwargs: Any) -> Dict[str, Tensor]:
+        """Return ``state_dict`` of the EMA model. It is a shortcut for ``get_ema_model().state_dict()``.
 
         Args:
             kwargs: arguments of ``nn.Module.state_dict``.
@@ -143,15 +134,15 @@ class EMAHandler:
         """
         return self.ema.state_dict(**kwargs)
 
-    def load_state_dict(self, state_dict: OrderedDict[str, Tensor], strict: bool = True) -> None:
-        """Load the ``sate_dict`` to the EMA copy.
+    def load_state_dict(self, state_dict: Dict[str, Tensor], strict: bool = True) -> None:
+        """Load the ``sate_dict`` to the EMA model. It is a shortcut for ``get_ema_model().load_state_dict()``.
 
         Args:
             state_dict: dict contains the weights.
             strict: whether to strictly enforce that the keys match.
 
         """
-        self.ema.load_state_dict(state_dict, strict=strict)
+        self.ema.load_state_dict(state_dict, strict=strict)  # type: ignore
 
     @staticmethod
     def _unwrap_model(model: nn.Module) -> nn.Module:
@@ -169,20 +160,11 @@ class EMAHandler:
         return min(self.momentum, momentum)
 
     @torch.no_grad()
-    def _swap_params(self, engine: Engine) -> None:
-        for ema_v, model_v in zip(self.ema.state_dict().values(), self.model.state_dict().values()):
-            if self.device is not None:
-                model_v = model_v.to(device=self.device)
-            tmp = model_v.data.clone()
-            model_v.data.copy_(ema_v.data)
-            ema_v.data.copy_(tmp)
-
-    @torch.no_grad()
     def _update(self, engine: Engine) -> None:
         curr_iter = engine.state.iteration
         momentum = self._get_momentum(curr_iter)
 
-        for ema_v, model_v in zip(self.ema.state_dict().values(), self.model.state_dict().values()):
+        for ema_v, model_v in zip(self.ema.state_dict().values(), self.unwrapped_model.state_dict().values()):
             if self.device is not None:
                 model_v = model_v.to(device=self.device)
             ema_v.mul_(1 - momentum).add_(model_v.data, alpha=momentum)
@@ -194,16 +176,4 @@ class EMAHandler:
             engine: Trainer to which the handler will be attached.
 
         """
-        # swap the parameters at the end of each epoch. If using Events.EPOCH_COMPLETED here, the handler of swap
-        # parameters might be called after validation handler.
-        # TODO Find a better hack to ensure that handler of swapping parameter is called before validation.
-        num_handlers_epoch_completed = engine._event_handlers[Events.EPOCH_COMPLETED]
-        if len(num_handlers_epoch_completed) > 0:
-            warnings.warn(
-                f"engine already has {num_handlers_epoch_completed} handlers at Events.EPOCH_COMPLETED, "
-                f"please manually check if the EMA handler is attached to the engine before other "
-                f"handlers"
-            )
-        engine.add_event_handler(Events.EPOCH_COMPLETED, self._swap_params)
-        engine.add_event_handler(Events.EPOCH_STARTED, self._swap_params)
         engine.add_event_handler(Events.ITERATION_COMPLETED(every=self.interval), self._update)

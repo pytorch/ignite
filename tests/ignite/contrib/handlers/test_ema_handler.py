@@ -115,24 +115,6 @@ def test_ema_get_momentum():
     engine.run(data_loader, max_epochs=5)
 
 
-def test_ema_attach_warning():
-    data_loader = _get_dummy_dataloader()  # noqa
-    model = _get_dummy_model()
-    step_fn = _get_dummy_step_fn(model)
-    engine = Engine(step_fn)
-
-    @engine.on(Events.EPOCH_COMPLETED)
-    def dummy_handler(engine: Engine):
-        pass
-
-    warmup_iters = 4
-    momentum = 0.2
-    momentum_warmup = 0.1
-    ema_handler = EMAHandler(model, momentum=momentum, momentum_warmup=momentum_warmup, warmup_iters=warmup_iters)
-    with pytest.warns(UserWarning):
-        ema_handler.attach(engine)
-
-
 def _test_ema_final_weight(device, ddp=False):
     """Test if final smoothed weights are correct"""
     if isinstance(device, str):
@@ -151,14 +133,12 @@ def _test_ema_final_weight(device, ddp=False):
     # engine run 4 iterations
     engine.run(data_loader, max_epochs=2)
 
-    # After completion, EMA smoothed weights are swapped to the model, while the online version of weights
-    # are swapped to the EMA handler
     ema_handler_weight = ema_handler.ema.weight.data
     model_weight = model.weight.data
     assert ema_handler_weight.device == device
     assert model_weight.device == device
-    torch.testing.assert_allclose(ema_handler_weight, torch.full((1, 2), 5.0, device=device))
-    torch.testing.assert_allclose(model_weight, torch.full((1, 2), 4.0625, device=device))
+    torch.testing.assert_allclose(ema_handler_weight, torch.full((1, 2), 4.0625, device=device))
+    torch.testing.assert_allclose(model_weight, torch.full((1, 2), 5.0, device=device))
 
 
 def test_ema_final_weight_cpu():
