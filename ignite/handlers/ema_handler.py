@@ -154,7 +154,8 @@ class EMAHandler:
     def _get_momentum(self, curr_iter: int) -> float:
         """Get current momentum, `curr_iter` should be 1-based. When `curr_iter = 1`, `momentum =
         self.momentum_warmup`; when `curr_iter >= self.warmup_iters`, `momentum = self.momentum`"""
-        assert curr_iter >= 1
+        if curr_iter < 1:
+            raise ValueError(f"curr_iter should be at least 1, but got {curr_iter}.")
         denominator = max(1, self.warmup_iters - 1)
         momentum = self.momentum_warmup + (self.momentum - self.momentum_warmup) * (curr_iter - 1) / denominator
         return min(self.momentum, momentum)

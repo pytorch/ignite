@@ -1,5 +1,4 @@
 from ignite.contrib.handlers.clearml_logger import ClearMLLogger
-from ignite.contrib.handlers.ema_handler import EMAHandler
 from ignite.contrib.handlers.mlflow_logger import MLflowLogger
 from ignite.contrib.handlers.neptune_logger import NeptuneLogger
 from ignite.contrib.handlers.polyaxon_logger import PolyaxonLogger

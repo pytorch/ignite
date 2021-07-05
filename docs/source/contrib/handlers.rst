@@ -30,19 +30,6 @@ Time profilers
     BasicTimeProfiler
     HandlersTimeProfiler
 
-EMA Handler
------------
-
-.. versionadded:: 0.5.0
-
-.. currentmodule:: ignite.contrib.handlers.ema_handler
-
-.. autosummary::
-    :nosignatures:
-    :toctree: ../generated
-
-    EMAHandler
-
 Loggers
 -------
 

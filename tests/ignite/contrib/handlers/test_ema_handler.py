@@ -8,8 +8,8 @@ from torch.nn.parallel import DataParallel, DistributedDataParallel
 from torch.utils.data import DataLoader, TensorDataset
 
 import ignite.distributed as idist
-from ignite.contrib.handlers import EMAHandler
 from ignite.engine import Engine, Events
+from ignite.handlers import EMAHandler
 
 
 def _get_dummy_dataloader() -> DataLoader:
