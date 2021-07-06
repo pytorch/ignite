@@ -1,102 +1,124 @@
-from typing import Callable, Optional, Union
+from typing import Callable, Iterable, List, Optional, Tuple, Union
 
 import torch
-
-from ignite.exceptions import NotComputableError
-from ignite.metrics import Metric
-from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
-
-
-class PerceptualLoss(torch.nn.Module):
-    def __init__(
-        self,
-        function: torch.nn.Module = torch.nn.Identity(),
-        normalize: bool = False,
-        mean: Optional[torch.Tensor] = None,
-        std: Optional[torch.Tensor] = None,
-        loss: Callable = torch.nn.functional.mse_loss,
-        device: Union[str, torch.device] = torch.device("cpu"),
-    ) -> None:
-        super(PerceptualLoss, self).__init__()
-
-        if not isinstance(function, torch.nn.Module):
-            raise TypeError(f"Argument function must be of type torch.nn.Module, got {type(function)}")
-
-        self.function = function
-        self.normalize = normalize
-        self.mean = mean
-        self.std = std
-        self.loss = loss
-        self._device = device
-
-    def forward(self, input: torch.Tensor, target: torch.Tensor) -> float:
-
-        input = input.to(self._device)
-        target = target.to(self._device)
-
-        if self.normalize:
-            input = (input - self.mean) / self.std
-            target = (target - self.mean) / self.std
-
-        input = self.function(input)
-        target = self.function(target)
-
-        return self.loss(input, target)
+import torchvision
 
 
 class GramMatrix(torch.nn.Module):
     def __init__(self) -> None:
         super(GramMatrix, self).__init__()
 
-    def forward(self, input: torch.Tensor) -> float:
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
         a, b, c, d = input.size()
         features = input.view(a * b, c * d)
+
         G = torch.mm(features, features.t())
         return G.div(a * b * c * d)
 
 
-def get_style_loss_object(device: Union[str, torch.device] = torch.device("cpu")) -> PerceptualLoss:
-    return PerceptualLoss(function=GramMatrix(), device=device)
+class StyleLoss(torch.nn.Module):
+    def __init__(self, loss: Callable = torch.nn.functional.mse_loss) -> None:
+        super(StyleLoss, self).__init__()
+        self.gram_matrix = GramMatrix()
+        self.loss = loss
+
+    def forward(self, input: torch.Tensor, target: torch.Tensor) -> float:
+        G_input = self.gram_matrix(input)
+        G_target = self.gram_matrix(target)
+
+        loss = self.loss(G_input, G_target)
+        return loss
 
 
-def get_features_loss_object(device: Union[str, torch.device] = torch.device("cpu")) -> PerceptualLoss:
+class ContentLoss(torch.nn.Module):
+    def __init__(self, loss: Callable = torch.nn.functional.mse_loss) -> None:
+        super(ContentLoss, self).__init__()
+        self.loss = loss
 
-    return PerceptualLoss(
-        normalize=True,
-        mean=torch.tensor([0.485, 0.456, 0.406]).to(device).view(-1, 1, 1),
-        std=torch.tensor([0.229, 0.224, 0.225]).to(device).view(-1, 1, 1),
-        device=device,
-    )
+    def forward(self, input: torch.Tensor, target: torch.Tensor) -> float:
+        return self.loss(input, target)
 
 
-class PPL(Metric):
+class PerceptualLoss(torch.nn.Module):
     def __init__(
         self,
-        loss_model: torch.nn.Module,
-        output_transform: Callable = lambda x: x,
-        device: Union[str, torch.device] = "cpu",
+        model: Optional[Iterable] = None,
+        normalize: bool = False,
+        mean: Optional[torch.Tensor] = None,
+        std: Optional[torch.Tensor] = None,
+        loss: Callable = torch.nn.functional.mse_loss,
+        content_layers: List = [4],
+        style_layers: List = [1, 2, 3, 4, 5],
+        device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
-        self._loss_model = loss_model
-        super(PPL, self).__init__(output_transform=output_transform, device=device)
+        super(PerceptualLoss, self).__init__()
 
-    @reinit__is_reduced
-    def reset(self) -> None:
-        self._total_loss = torch.tensor(0, device=self._device)
-        self._num_examples = 0
-        super(PPL, self).reset()
+        if model is None:
+            self.model = torchvision.models.vgg19(pretrained=True).features.to(device).eval()
+        else:
+            self.model = model
 
-    @reinit__is_reduced
-    def update(self, output: torch.Tensor) -> None:
-        y_pred, y = output[0].detach(), output[1].detach()
+        if not isinstance(model, Iterable):
+            raise ValueError("model must be an Iterable of Layers, got %s" % type(model))
 
-        self._check_wrong_inputs(y_pred, y)
+        if not callable(loss):
+            raise ValueError("loss must be a Callable, got %s" % type(loss))
 
-        self._total_loss += self._loss_model(y_pred, y).to(self._device)
-        self._num_examples += y.shape[0]
+        for layer in self.model:
+            layer = layer.to(device)
 
-    @sync_all_reduce("_num_examples", "_total_loss")
-    def compute(self) -> float:
-        if self._num_examples == 0:
-            raise NotComputableError("PPL must have at least one example before it can be computed.")
+        self.normalize = normalize
+        self.mean = mean
+        self.std = std
 
-        return self._total_loss.item() / self._num_examples
+        self.style_layers = style_layers
+        self.content_layers = content_layers
+
+        self.loss = loss
+        self.gram_matrix = GramMatrix().to(device)
+        self.style_loss = StyleLoss(self.loss).to(device)
+        self.content_loss = ContentLoss(self.loss).to(device)
+
+        self._device = device
+
+    def forward(self, input: torch.Tensor, style_target: torch.Tensor, content_target: torch.Tensor) -> Tuple:
+
+        if input.device != self._device:
+            input = input.to(self._device)
+
+        if style_target != self._device:
+            style_target = style_target.to(self._device)
+
+        if content_target != self._device:
+            content_target = content_target.to(self._device)
+
+        if self.normalize:
+            input = (input - self.mean) / self.std
+            style_target = (style_target - self.mean) / self.std
+            content_target = (content_target - self.mean) / self.std
+
+        style_losses = []
+        content_losses = []
+
+        i = 0
+        for layer in self.model:
+            content_target = layer(content_target)
+            style_target = layer(style_target)
+            input = layer(input)
+
+            name = ""
+            if isinstance(layer, torch.nn.Conv2d):
+                i += 1
+                name = "conv"
+            elif isinstance(layer, torch.nn.ReLU):
+                layer = torch.nn.ReLU(inplace=False)
+
+            if i in self.style_layers and name == "conv":
+                style_loss = self.style_loss(input, style_target)
+                style_losses.append(style_loss)
+
+            if i in self.content_layers and name == "conv":
+                content_loss = self.content_loss(input, content_target)
+                content_losses.append(content_loss)
+
+        return style_losses, content_losses

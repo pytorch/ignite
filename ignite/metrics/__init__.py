@@ -7,7 +7,6 @@ from ignite.metrics.fbeta import Fbeta
 from ignite.metrics.frequency import Frequency
 from ignite.metrics.gan.fid import FID
 from ignite.metrics.gan.inception_score import InceptionScore
-from ignite.metrics.gan.ppl import PPL
 from ignite.metrics.loss import Loss
 from ignite.metrics.mean_absolute_error import MeanAbsoluteError
 from ignite.metrics.mean_pairwise_distance import MeanPairwiseDistance
@@ -47,7 +46,6 @@ __all__ = [
     "mIoU",
     "JaccardIndex",
     "MultiLabelConfusionMatrix",
-    "PPL",
     "Precision",
     "PSNR",
     "Recall",
