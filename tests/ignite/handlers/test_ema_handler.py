@@ -73,6 +73,22 @@ def test_ema_invalid_model():
         EMAHandler(model)  # type: ignore
 
 
+@pytest.mark.distributed
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
+def test_ema_ema_model():
+    """Test if ema_handler.ema_model is nn.Module and under eval mode"""
+    model = _get_dummy_model().to(idist.device())
+    model = idist.auto_model(model)
+    ema_handler = EMAHandler(model)
+    ema_model = ema_handler.ema_model
+    assert (
+        isinstance(ema_model, nn.Module)
+        and not isinstance(ema_model, nn.parallel.DistributedDataParallel)
+        and not isinstance(ema_model, nn.parallel.DataParallel)
+    )
+    assert not ema_model.training
+
+
 def test_ema_load_state_dict():
     model_1 = _get_dummy_model()
     model_1.weight.data.fill_(2)
@@ -80,15 +96,12 @@ def test_ema_load_state_dict():
 
     model_2 = _get_dummy_model()
     ema_handler = EMAHandler(model_2)
-    ema_handler.load_state_dict(state_dict_1)  # type: ignore
-    torch.testing.assert_allclose(ema_handler.ema.weight.data, model_1.weight.data)
-
-    state_dict_2 = ema_handler.state_dict()
-    assert "weight" in state_dict_2
-    torch.testing.assert_allclose(state_dict_2["weight"], model_1.weight.data)
+    ema_model = ema_handler.ema_model
+    ema_model.load_state_dict(state_dict_1)
+    torch.testing.assert_allclose(ema_model.weight.data, model_1.weight.data)
 
 
-def test_ema_get_momentum():
+def test_ema_update_ema_momentum():
     data_loader = _get_dummy_dataloader()  # noqa
     model = _get_dummy_model()
     step_fn = _get_dummy_step_fn(model)
@@ -104,7 +117,7 @@ def test_ema_get_momentum():
     @engine.on(Events.ITERATION_COMPLETED)
     def assert_momentum(engine: Engine):
         curr_iter = engine.state.iteration
-        curr_momentum = ema_handler._get_momentum(curr_iter)
+        curr_momentum = engine.state.ema_momentum
         if curr_iter == 1:
             assert curr_momentum == momentum_warmup
         elif 1 < curr_iter < warmup_iters:
@@ -113,6 +126,26 @@ def test_ema_get_momentum():
             assert curr_momentum == momentum
 
     engine.run(data_loader, max_epochs=5)
+
+
+def test_ema_buffer():
+    """Test if the tensors in buffer are also synchronized"""
+    data_loader = _get_dummy_dataloader()
+    model = nn.BatchNorm2d(2)
+    model.running_mean.data.fill_(1.5)
+    model.running_var.data.fill_(1.5)
+    ema_handler = EMAHandler(model)
+
+    def _bn_step_fn(engine, batch):
+        return 1
+
+    engine = Engine(_bn_step_fn)
+    # engine will run 4 iterations
+    engine.run(_get_dummy_dataloader(), max_epochs=2)
+
+    ema_model = ema_handler.ema_model
+    torch.testing.assert_allclose(ema_model.running_mean, model.running_mean)
+    torch.testing.assert_allclose(ema_model.running_var, model.running_var)
 
 
 def _test_ema_final_weight(device, ddp=False):
@@ -127,17 +160,17 @@ def _test_ema_final_weight(device, ddp=False):
     engine = Engine(step_fn)
 
     # momentum will be constantly 0.5
-    ema_handler = EMAHandler(model, momentum=0.5, momentum_warmup=0.5, warmup_iters=1, device=device)
+    ema_handler = EMAHandler(model, momentum=0.5, momentum_warmup=0.5, warmup_iters=1)
     ema_handler.attach(engine)
 
-    # engine run 4 iterations
+    # engine will run 4 iterations
     engine.run(data_loader, max_epochs=2)
 
-    ema_handler_weight = ema_handler.ema.weight.data
+    ema_weight = ema_handler.ema_model.weight.data
     model_weight = model.weight.data
-    assert ema_handler_weight.device == device
+    assert ema_weight.device == device
     assert model_weight.device == device
-    torch.testing.assert_allclose(ema_handler_weight, torch.full((1, 2), 4.0625, device=device))
+    torch.testing.assert_allclose(ema_weight, torch.full((1, 2), 4.0625, device=device))
     torch.testing.assert_allclose(model_weight, torch.full((1, 2), 5.0, device=device))
 
 
