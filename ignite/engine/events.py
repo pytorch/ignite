@@ -366,7 +366,6 @@ class State:
         state.metrics           # dictionary with defined metrics if any
         state.times             # dictionary with total and per-epoch times fetched on
                                 # keys: Events.EPOCH_COMPLETED.name and Events.COMPLETED.name
-        state.ema_momentum      # momentum for updating EMA model.
 
     Args:
         kwargs: keyword arguments to be defined as State attributes.
@@ -398,7 +397,6 @@ class State:
             Events.EPOCH_COMPLETED.name: None,
             Events.COMPLETED.name: None,
         }  # type: Dict[str, Optional[float]]
-        self.ema_momentum = None  # type: Optional[float]
 
         for k, v in kwargs.items():
             setattr(self, k, v)

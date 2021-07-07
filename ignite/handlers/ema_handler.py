@@ -1,9 +1,9 @@
 from copy import deepcopy
+from typing import Union
 
-import torch
 import torch.nn as nn
 
-from ignite.engine import Engine, Events
+from ignite.engine import CallableEventWithFilter, Engine, Events, EventsList
 
 __all__ = ["EMAHandler"]
 
@@ -19,18 +19,24 @@ class EMAHandler:
     warming up the momentum in the beginning when training process is not stable. Current momentum can be retrieved
     from ``Engine.state.ema_momentum``.
 
+    .. versionadded:: 0.5.0
+
 
     Args:
           model: the online model for which an EMA model will be computed. If ``model`` is ``DataParallel`` or
               ``DistributedDataParallel``, the EMA smoothing will be applied to ``model.module`` .
-          momentum: the update momentum, should be float in range :math:`\left(0, 1 \right)`.
-          momentum_warmup: the initial update momentum, the value should be smaller than ``momentum``. Momentum will
-              increase from this value to ``momentum`` linearly.
-          interval: update interval (in iterations).
+          momentum_start: the initial update momentum, the value should be smaller than ``momentum_end``.
+              Momentum will linearly increase from this value to ``momentum_end`` in `warmup_iters` iterations.
+          momentum_end: the update momentum after warmup phase, should be float in range :math:`\left(0, 1 \right)`.
           warmup_iters: iterations of warmup.
 
     Attributes:
           ema_model: the exponential moving averaged model.
+          unwrapped_model: the online model that is tracked by EMAHandler. It is ``model.module`` if ``model`` in
+              the initialization method is an instance of ``DataParallel`` or ``DistributedDataParallel``.
+          momentum_start: the initial update momentum.
+          momentum_end: the update momentum after warmup phase.
+          warmup_iters: number of warmup iterations.
 
     Note:
           The EMA model is an instance of ``nn.Module`` and it is on the same device as the online model.
@@ -52,19 +58,29 @@ class EMAHandler:
               model = nn.Linear(2, 1).to(device)
               # update the ema every 5 iterations
               ema_handler = EMAHandler(
-                  model, momentum=0.0002, momentum_warmup=0.0001, interval=5, warmup_iters=10000, device=device)
+                  model, momentum_start=0.0001, momentum_end=0.0002, warmup_iters=10000)
               # get the ema model, which is an instance of nn.Module
               ema_model = ema_handler.ema_model
               trainer = Engine(train_step_fn)
               to_load = {"model": model, "ema_model", ema_model, "trainer", trainer}
               if resume_from is not None:
                   Checkpoint.load_objects(to_load, checkpoint=resume_from)
-              ema_handler.attach(trainer)
+
+              # update the EMA model every 5 iterations
+              ema_handler.attach(trainer, momentum_key="model", momentum_event=Events.ITERATION_STARTED,
+                  model_event=Events.ITERATION_COMPLETED(every=5))
+
 
               # add other handlers
               to_save = to_load
               ckpt_handler = Checkpoint(to_save, DiskSaver(...), ...)
               trainer.add_event_handler(Events.EPOCH_COMPLETED, ckpt_handler)
+
+              # engine.state.ema_momentum is a dict, current momentum can be retrieved with the momentum_key,
+              # which is used in the attach function of EMA handler
+              @trainer.on(Events.ITERATION_COMPLETED):
+              def print_ema_momentum(engine):
+                  print(f"current momentum: {engine.state.ema_momentum['model']}"
 
               # use ema model for validation
               val_step_fn = get_val_step_fn(ema_model)
@@ -76,28 +92,46 @@ class EMAHandler:
 
               trainer.run(...)
 
+          The following example shows how to attach two handlers to the same trainer:
+
+          .. code-block:: python
+
+              generator = build_generator(...)
+              discriminator = build_discriminator(...)
+
+              gen_handler = EMAHandler(generator)
+              disc_handler = EMAHandler(discriminator)
+
+              step_fn = get_step_fn(...)
+              engine = Engine(step_fn)
+
+              # update EMA model of generator every 1 iteration
+              gen_handler.attach(engine, "generator", model_event=Events.ITERATION_COMPLETED)
+              # update EMA model of discriminator every 2 iteration
+              disc_handler.attach(engine, "discriminator", model_event=Events.ITERATION_COMPLETED(every=2))
+
+              @engine.on(Events.ITERATION_COMPLETED)
+              def print_ema_momentum(engine):
+                  print(f"current momentum for generator: {engine.state.ema_momentum['generator']}")
+                  print(f"current momentum for discriminator: {engine.state.ema_momentum['discriminator']}")
+
+              engine.run(...)
+
 
     """
 
     def __init__(
-        self,
-        model: nn.Module,
-        momentum: float = 0.0002,
-        momentum_warmup: float = 0.0001,
-        interval: int = 1,
-        warmup_iters: int = 100,
+        self, model: nn.Module, momentum_start: float = 0.0001, momentum_end: float = 0.0002, warmup_iters: int = 100,
     ) -> None:
-        if not 0 < momentum < 1:
-            raise ValueError(f"Invalid momentum: {momentum}")
-        if not 0 < momentum_warmup < 1:
-            raise ValueError(f"Invalid momentum_warmup: {momentum_warmup}")
-        if not momentum_warmup <= momentum:
+        if not 0 < momentum_start < 1:
+            raise ValueError(f"Invalid momentum_warmup: {momentum_start}")
+        if not 0 < momentum_end < 1:
+            raise ValueError(f"Invalid momentum: {momentum_end}")
+        if not momentum_start <= momentum_end:
             raise ValueError(
-                f"momentum_warmup should be less than or equal to momentum, but got "
-                f"momentum_warmup: {momentum_warmup} and momentum: {momentum}"
+                f"momentum_start should be less than or equal to momentum_end, but got "
+                f"momentum_start: {momentum_start} and momentum_end: {momentum_end}"
             )
-        if not (isinstance(interval, int) and interval > 0):
-            raise ValueError(f"Invalid interval: {interval}")
         if not isinstance(warmup_iters, int) and warmup_iters > 0:
             raise ValueError(f"Invalid warmup_iters: {warmup_iters}")
         if not isinstance(model, nn.Module):
@@ -105,51 +139,81 @@ class EMAHandler:
                 f"model should be an instance of nn.Module or its subclasses, but got"
                 f"model: {model.__class__.__name__}"
             )
-        self.momentum = momentum
-        self.interval = interval
-        self.momentum_warmup = momentum_warmup
+        self.momentum_start = momentum_start
+        self.momentum_end = momentum_end
         self.warmup_iters = warmup_iters
 
-        self.unwrapped_model = self._unwrap_model(model)
-        self.ema_model = deepcopy(self.unwrapped_model)
-        self.ema_model.eval()
-
-    @staticmethod
-    def _unwrap_model(model: nn.Module) -> nn.Module:
         if isinstance(model, (nn.parallel.DataParallel, nn.parallel.DistributedDataParallel)):
-            return model.module
-        else:
-            return model
+            model = model.module
+        self.unwrapped_model = model
+
+        self.ema_model = deepcopy(self.unwrapped_model)
+        for param in self.ema_model.parameters():
+            param.detach_()
+        self.ema_model.eval()
 
     def _get_momentum(self, curr_iter: int) -> float:
         """Get current momentum, `curr_iter` should be 1-based. When `curr_iter = 1`, `momentum =
-        self.momentum_warmup`; when `curr_iter >= self.warmup_iters`, `momentum = self.momentum`"""
+        self.momentum_start`; when `curr_iter >= self.warmup_iters`, `momentum = self.momentum_end`"""
+
+        # TODO: use ignite's parameter scheduling, see also GitHub issue #2090
         if curr_iter < 1:
             raise ValueError(f"curr_iter should be at least 1, but got {curr_iter}.")
         denominator = max(1, self.warmup_iters - 1)
-        momentum = self.momentum_warmup + (self.momentum - self.momentum_warmup) * (curr_iter - 1) / denominator
-        return min(self.momentum, momentum)
+        momentum = self.momentum_start + (self.momentum_end - self.momentum_start) * (curr_iter - 1) / denominator
+        return min(self.momentum_end, momentum)
 
-    @torch.no_grad()
-    def _update_weights(self, engine: Engine) -> None:
+    def _update_ema_model(self, engine: Engine, momentum_key: str) -> None:
         """Update weights of ema model"""
-        momentum = engine.state.ema_momentum
+        momentum = engine.state.ema_momentum[momentum_key]  # type: ignore
 
         for ema_v, model_v in zip(self.ema_model.state_dict().values(), self.unwrapped_model.state_dict().values()):
-            ema_v.mul_(1.0 - momentum).add_(model_v.data, alpha=momentum)  # type: ignore
+            ema_v.mul_(1.0 - momentum).add_(model_v.data, alpha=momentum)
 
-    def _update_ema_momentum(self, engine: Engine) -> None:
+    def _update_ema_momentum(self, engine: Engine, momentum_key: str) -> None:
         """Update momentum in engine.state"""
         curr_iter = engine.state.iteration
         momentum = self._get_momentum(curr_iter)
-        engine.state.ema_momentum = momentum
+        engine.state.ema_momentum.update({momentum_key: momentum})  # type: ignore
 
-    def attach(self, engine: Engine) -> None:
-        """Attach the handler to engine.
+    def attach(
+        self,
+        engine: Engine,
+        momentum_key: str,
+        momentum_event: Union[str, Events, CallableEventWithFilter, EventsList] = Events.ITERATION_STARTED,
+        model_event: Union[str, Events, CallableEventWithFilter, EventsList] = Events.ITERATION_COMPLETED,
+    ) -> None:
+        """Attach the handler to engine. After the handler is attached, the ``Engine.state.ema_momentum`` (a
+        ``dict``) will add an entry with key ``momentum_key``. Then, current momentum can be retrieved by
+        ``Engine.state.ema_momentum["momentum_key"]`` when the engine runs.
+
+        Note:
+              Please make sure to update the EMA momentum prior to the EMA model. For example, update the EMA
+              momentum with ``Events.ITERATION_STARTED`` and update the EMA model with ``Events.ITERATION_COMPLETED``.
 
         Args:
             engine: Trainer to which the handler will be attached.
+            momentum_key: key name for retrieving EMA momentum from ``Engine.state.ema_momentum``. It is necessary
+                since a trainer can have multiple EMA handlers.
+            momentum_event: event when the EMA momentum is updated. By default, the EMA momentum is updated in the
+                beginning of every iteration.
+            model_event: event when the EMA model is updated. By default, the EMA model is updated in the end of
+                every iteration.
 
         """
-        engine.add_event_handler(Events.ITERATION_STARTED, self._update_ema_momentum)
-        engine.add_event_handler(Events.ITERATION_COMPLETED(every=self.interval), self._update_weights)
+        if hasattr(engine.state, "ema_momentum") and momentum_key in engine.state.ema_momentum:  # type: ignore
+            raise ValueError(f"Key: '{momentum_key}' is already in Engine.state.ema_momentum.")
+
+        # initialize Engine.state.ema_momentum as a dict if it does not exist
+        if not hasattr(engine.state, "ema_momentum"):
+            engine.state.ema_momentum = {momentum_key: None}  # type: ignore
+        else:
+            if not isinstance(engine.state.ema_momentum, dict):  # type: ignore
+                raise ValueError(
+                    f"Engine.state.ema_momentum should be a dict, "  # type: ignore
+                    f"but got {engine.state.ema_momentum.__class__.__name__}"
+                )
+            engine.state.ema_momentum.update({momentum_key: None})  # type: ignore
+
+        engine.add_event_handler(momentum_event, self._update_ema_momentum, momentum_key)
+        engine.add_event_handler(model_event, self._update_ema_model, momentum_key)
