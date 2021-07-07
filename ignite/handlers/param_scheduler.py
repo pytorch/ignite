@@ -19,6 +19,7 @@ from ignite.engine import Engine
 class ParamScheduler(metaclass=ABCMeta):
     """An abstract class for updating an optimizer's parameter value during
     training.
+
     Args:
         optimizer: torch optimizer or any object with attribute ``param_groups``
             as a sequence.
@@ -26,10 +27,12 @@ class ParamScheduler(metaclass=ABCMeta):
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
         param_group_index: optimizer's parameters group to use
+
     Note:
         Parameter scheduler works independently of the internal state of the attached optimizer.
         More precisely, whatever the state of the optimizer (newly created or used by another scheduler) the scheduler
         sets defined absolute values.
+
     .. versionadded:: 0.5.1
     """
 
@@ -101,6 +104,7 @@ class ParamScheduler(metaclass=ABCMeta):
 
     def state_dict(self) -> Dict[str, Any]:
         """Returns a dictionary containing a whole state of ParamScheduler.
+
         Returns:
             dict:
                 a dictionary containing a whole state of ParamScheduler
@@ -116,6 +120,7 @@ class ParamScheduler(metaclass=ABCMeta):
 
     def load_state_dict(self, state_dict: Mapping) -> None:
         """Copies parameters from :attr:`state_dict` into this ParamScheduler.
+
         Args:
             state_dict: a dict containing parameters.
         """
@@ -137,6 +142,7 @@ class ParamScheduler(metaclass=ABCMeta):
     @abstractmethod
     def get_param(self) -> Union[List[float], float]:
         """Method to get current optimizer's parameter values
+
         Returns:
             list of params, or scalar param
         """
@@ -145,20 +151,27 @@ class ParamScheduler(metaclass=ABCMeta):
     @classmethod
     def simulate_values(cls, num_events: int, **scheduler_kwargs: Any) -> List[List[int]]:
         """Method to simulate scheduled values during `num_events` events.
+
         Args:
             num_events: number of events during the simulation.
             scheduler_kwargs: parameter scheduler configuration kwargs.
+
         Returns:
             event_index, value
+
         Examples:
+
         .. code-block:: python
+
             lr_values = np.array(LinearCyclicalScheduler.simulate_values(num_events=50, param_name='lr',
                                                                          start_value=1e-1, end_value=1e-3,
                                                                          cycle_size=10))
+
             plt.plot(lr_values[:, 0], lr_values[:, 1], label="learning rate")
             plt.xlabel("events")
             plt.ylabel("values")
             plt.legend()
+
         """
         keys_to_remove = ["optimizer", "save_history"]
         for key in keys_to_remove:
@@ -174,17 +187,26 @@ class ParamScheduler(metaclass=ABCMeta):
     @classmethod
     def plot_values(cls, num_events: int, **scheduler_kwargs: Mapping) -> Any:
         """Method to plot simulated scheduled values during `num_events` events.
+
         This class requires `matplotlib package <https://matplotlib.org/>`_ to be installed:
+
         .. code-block:: bash
+
             pip install matplotlib
+
         Args:
             num_events: number of events during the simulation.
             scheduler_kwargs: parameter scheduler configuration kwargs.
+
         Returns:
             matplotlib.lines.Line2D
+
         Examples:
+
             .. code-block:: python
+
                 import matplotlib.pylab as plt
+
                 plt.figure(figsize=(10, 7))
                 LinearCyclicalScheduler.plot_values(num_events=50, param_name='lr',
                                                     start_value=1e-1, end_value=1e-3, cycle_size=10))
@@ -270,7 +292,7 @@ class StateParameterScheduler(ParamScheduler):
         scheduler = cls(parameter_setter=_get_fake_param_setter(), save_history=False, **scheduler_kwargs)
         for i in range(num_events):
             scheduler(engine=None)
-            values.append([i, scheduler.parameter_setter.__closure__[0].cell_contents])
+            values.append([i, scheduler.parameter_setter.__closure__[0].cell_contents])  # type: ignore[attr-defined]
         return values
 
 
@@ -1369,7 +1391,7 @@ def _get_fake_optimizer(
 def _get_fake_param_setter() -> Callable:
     inner_param_value = 0.0
 
-    def param_setter(param_value: Union[List[float], float]) -> None:
+    def param_setter(param_value: float) -> None:
         nonlocal inner_param_value
         inner_param_value = param_value
 
