@@ -1,5 +1,4 @@
 import torch
-from torch.nn import Module
 
 from ignite.engine import Engine, Events
 from ignite.handlers.param_scheduler import (
