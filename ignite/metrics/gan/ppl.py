@@ -1,7 +1,6 @@
-from typing import Callable, Iterable, List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union
 
 import torch
-import torchvision
 
 
 class GramMatrix(torch.nn.Module):
@@ -26,8 +25,7 @@ class StyleLoss(torch.nn.Module):
         G_input = self.gram_matrix(input)
         G_target = self.gram_matrix(target)
 
-        loss = self.loss(G_input, G_target)
-        return loss
+        return self.loss(G_input, G_target)
 
 
 class ContentLoss(torch.nn.Module):
@@ -42,7 +40,7 @@ class ContentLoss(torch.nn.Module):
 class PerceptualLoss(torch.nn.Module):
     def __init__(
         self,
-        model: Optional[Iterable] = None,
+        model: Optional[torch.nn.Module] = None,
         normalize: bool = False,
         mean: Optional[torch.Tensor] = None,
         std: Optional[torch.Tensor] = None,
@@ -54,17 +52,26 @@ class PerceptualLoss(torch.nn.Module):
         super(PerceptualLoss, self).__init__()
 
         if model is None:
-            self.model = torchvision.models.vgg19(pretrained=True).features.to(device).eval()
+            try:
+                from torchvision import models
+            except ImportError:
+                raise RuntimeError("This module requires torchvision to use the default model.")
+            self.model = models.vgg19(pretrained=True).features.to(device).eval()
         else:
             self.model = model
 
-        if not isinstance(model, Iterable):
-            raise ValueError("model must be an Iterable of Layers, got %s" % type(model))
+        if not isinstance(self.model, torch.nn.Module):
+            raise ValueError("model must be a torch Module, got %s" % type(model))
 
         if not callable(loss):
             raise ValueError("loss must be a Callable, got %s" % type(loss))
 
-        for layer in self.model:
+        if normalize and (mean is None or std is None):
+            raise ValueError("mean and std arguments must be provided if normalize is True.")
+
+        for layer in self.model.children():
+            if isinstance(layer, torch.nn.ReLU):
+                layer = torch.nn.ReLU(inplace=False)
             layer = layer.to(device)
 
         self.normalize = normalize
@@ -74,10 +81,9 @@ class PerceptualLoss(torch.nn.Module):
         self.style_layers = style_layers
         self.content_layers = content_layers
 
-        self.loss = loss
         self.gram_matrix = GramMatrix().to(device)
-        self.style_loss = StyleLoss(self.loss).to(device)
-        self.content_loss = ContentLoss(self.loss).to(device)
+        self.style_loss = StyleLoss(loss).to(device)
+        self.content_loss = ContentLoss(loss).to(device)
 
         self._device = device
 
@@ -100,24 +106,16 @@ class PerceptualLoss(torch.nn.Module):
         style_losses = []
         content_losses = []
 
-        i = 0
-        for layer in self.model:
+        for i, layer in enumerate(self.model.children()):
             content_target = layer(content_target)
             style_target = layer(style_target)
             input = layer(input)
 
-            name = ""
-            if isinstance(layer, torch.nn.Conv2d):
-                i += 1
-                name = "conv"
-            elif isinstance(layer, torch.nn.ReLU):
-                layer = torch.nn.ReLU(inplace=False)
-
-            if i in self.style_layers and name == "conv":
+            if i in self.style_layers:
                 style_loss = self.style_loss(input, style_target)
                 style_losses.append(style_loss)
 
-            if i in self.content_layers and name == "conv":
+            if i in self.content_layers:
                 content_loss = self.content_loss(input, content_target)
                 content_losses.append(content_loss)
 
