@@ -158,14 +158,14 @@ def test_ema_two_handlers():
     engine = Engine(_step_fn)
     assert not hasattr(engine.state, "ema_momentum")
     # handler_1 update EMA model of model_1 every 1 iteration
-    ema_handler_1.attach(engine, "model_1", model_event=Events.ITERATION_COMPLETED)
+    ema_handler_1.attach(engine, "model_1", event=Events.ITERATION_COMPLETED)
     assert isinstance(engine.state.ema_momentum, dict) and len(engine.state.ema_momentum) == 1
     assert engine.state.ema_momentum["model_1"] is None
 
     with pytest.raises(ValueError, match="Key: 'model_1' is already in Engine.state.ema_momentum."):
         ema_handler_2.attach(engine, "model_1")
     # handler_2 update EMA model for model_2 every 2 iterations
-    ema_handler_2.attach(engine, "model_2", model_event=Events.ITERATION_COMPLETED(every=2))
+    ema_handler_2.attach(engine, "model_2", event=Events.ITERATION_COMPLETED(every=2))
     assert engine.state.ema_momentum["model_2"] is None
 
     # engine will run 4 iterations
@@ -192,7 +192,7 @@ def _test_ema_final_weight(device, ddp=False, interval=1):
 
     # momentum will be constantly 0.5
     ema_handler = EMAHandler(model, momentum_start=0.5, momentum_end=0.5, warmup_iters=1)
-    ema_handler.attach(engine, "model", model_event=Events.ITERATION_COMPLETED(every=interval))
+    ema_handler.attach(engine, "model", event=Events.ITERATION_COMPLETED(every=interval))
 
     # engine will run 4 iterations
     engine.run(data_loader, max_epochs=2)

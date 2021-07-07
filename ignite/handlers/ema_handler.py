@@ -32,15 +32,16 @@ class EMAHandler:
 
     Attributes:
           ema_model: the exponential moving averaged model.
-          unwrapped_model: the online model that is tracked by EMAHandler. It is ``model.module`` if ``model`` in
-              the initialization method is an instance of ``DataParallel`` or ``DistributedDataParallel``.
+          model: the online model that is tracked by EMAHandler. It is ``model.module`` if ``model`` in
+              the initialization method is an instance of ``DistributedDataParallel``.
           momentum_start: the initial update momentum.
           momentum_end: the update momentum after warmup phase.
           warmup_iters: number of warmup iterations.
 
     Note:
-          The EMA model is an instance of ``nn.Module`` and it is on the same device as the online model.
-          It is already in ``eval`` mode.
+          The EMA model is already in ``eval`` mode. If model in the arguments is an ``nn.Module`` or
+          ``DistributedDataParallel``, the EMA model is an ``nn.Module`` and it is on the same device as the online
+          model. If the model is an ``nn.DataParallel``, then the EMA model is an ``nn.DataParallel``.
 
 
     Note:
@@ -67,9 +68,7 @@ class EMAHandler:
                   Checkpoint.load_objects(to_load, checkpoint=resume_from)
 
               # update the EMA model every 5 iterations
-              ema_handler.attach(trainer, momentum_key="model", momentum_event=Events.ITERATION_STARTED,
-                  model_event=Events.ITERATION_COMPLETED(every=5))
-
+              ema_handler.attach(trainer, momentum_key="model", event=Events.ITERATION_COMPLETED(every=5))
 
               # add other handlers
               to_save = to_load
@@ -106,9 +105,9 @@ class EMAHandler:
               engine = Engine(step_fn)
 
               # update EMA model of generator every 1 iteration
-              gen_handler.attach(engine, "generator", model_event=Events.ITERATION_COMPLETED)
+              gen_handler.attach(engine, "generator", event=Events.ITERATION_COMPLETED)
               # update EMA model of discriminator every 2 iteration
-              disc_handler.attach(engine, "discriminator", model_event=Events.ITERATION_COMPLETED(every=2))
+              disc_handler.attach(engine, "discriminator", event=Events.ITERATION_COMPLETED(every=2))
 
               @engine.on(Events.ITERATION_COMPLETED)
               def print_ema_momentum(engine):
@@ -143,11 +142,11 @@ class EMAHandler:
         self.momentum_end = momentum_end
         self.warmup_iters = warmup_iters
 
-        if isinstance(model, (nn.parallel.DataParallel, nn.parallel.DistributedDataParallel)):
+        if isinstance(model, nn.parallel.DistributedDataParallel):
             model = model.module
-        self.unwrapped_model = model
+        self.model = model
 
-        self.ema_model = deepcopy(self.unwrapped_model)
+        self.ema_model = deepcopy(self.model)
         for param in self.ema_model.parameters():
             param.detach_()
         self.ema_model.eval()
@@ -167,7 +166,7 @@ class EMAHandler:
         """Update weights of ema model"""
         momentum = engine.state.ema_momentum[momentum_key]  # type: ignore
 
-        for ema_v, model_v in zip(self.ema_model.state_dict().values(), self.unwrapped_model.state_dict().values()):
+        for ema_v, model_v in zip(self.ema_model.state_dict().values(), self.model.state_dict().values()):
             ema_v.mul_(1.0 - momentum).add_(model_v.data, alpha=momentum)
 
     def _update_ema_momentum(self, engine: Engine, momentum_key: str) -> None:
@@ -180,8 +179,7 @@ class EMAHandler:
         self,
         engine: Engine,
         momentum_key: str,
-        momentum_event: Union[str, Events, CallableEventWithFilter, EventsList] = Events.ITERATION_STARTED,
-        model_event: Union[str, Events, CallableEventWithFilter, EventsList] = Events.ITERATION_COMPLETED,
+        event: Union[str, Events, CallableEventWithFilter, EventsList] = Events.ITERATION_COMPLETED,
     ) -> None:
         """Attach the handler to engine. After the handler is attached, the ``Engine.state.ema_momentum`` (a
         ``dict``) will add an entry with key ``momentum_key``. Then, current momentum can be retrieved by
@@ -195,10 +193,7 @@ class EMAHandler:
             engine: Trainer to which the handler will be attached.
             momentum_key: key name for retrieving EMA momentum from ``Engine.state.ema_momentum``. It is necessary
                 since a trainer can have multiple EMA handlers.
-            momentum_event: event when the EMA momentum is updated. By default, the EMA momentum is updated in the
-                beginning of every iteration.
-            model_event: event when the EMA model is updated. By default, the EMA model is updated in the end of
-                every iteration.
+            event: event when the EMA momentum and EMA model are updated.
 
         """
         if hasattr(engine.state, "ema_momentum") and momentum_key in engine.state.ema_momentum:  # type: ignore
@@ -215,5 +210,6 @@ class EMAHandler:
                 )
             engine.state.ema_momentum.update({momentum_key: None})  # type: ignore
 
-        engine.add_event_handler(momentum_event, self._update_ema_momentum, momentum_key)
-        engine.add_event_handler(model_event, self._update_ema_model, momentum_key)
+        # first update momentum, then update ema model
+        engine.add_event_handler(event, self._update_ema_momentum, momentum_key)
+        engine.add_event_handler(event, self._update_ema_model, momentum_key)
