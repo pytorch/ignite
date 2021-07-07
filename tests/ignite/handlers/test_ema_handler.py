@@ -68,7 +68,7 @@ def test_ema_invalid_model():
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_ema_ema_model():
+def test_ema_ema_model_on_cuda():
     """Test if ema_handler.ema_model is nn.Module and under eval mode"""
     model = _get_dummy_model().to(idist.device())
     model = idist.auto_model(model)
