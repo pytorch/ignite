@@ -1,3 +1,4 @@
+import warnings
 from copy import deepcopy
 from typing import Union
 
@@ -68,18 +69,18 @@ class EMAHandler:
                   Checkpoint.load_objects(to_load, checkpoint=resume_from)
 
               # update the EMA model every 5 iterations
-              ema_handler.attach(trainer, momentum_key="model", event=Events.ITERATION_COMPLETED(every=5))
+              ema_handler.attach(trainer, name="ema_momentum", event=Events.ITERATION_COMPLETED(every=5))
 
               # add other handlers
               to_save = to_load
               ckpt_handler = Checkpoint(to_save, DiskSaver(...), ...)
               trainer.add_event_handler(Events.EPOCH_COMPLETED, ckpt_handler)
 
-              # engine.state.ema_momentum is a dict, current momentum can be retrieved with the momentum_key,
-              # which is used in the attach function of EMA handler
+              # current momentum can be retrieved from engine.state,
+              # the attribute name is the `name` parameter used in the attach function
               @trainer.on(Events.ITERATION_COMPLETED):
               def print_ema_momentum(engine):
-                  print(f"current momentum: {engine.state.ema_momentum['model']}"
+                  print(f"current momentum: {engine.state.ema_momentum}"
 
               # use ema model for validation
               val_step_fn = get_val_step_fn(ema_model)
@@ -105,14 +106,14 @@ class EMAHandler:
               engine = Engine(step_fn)
 
               # update EMA model of generator every 1 iteration
-              gen_handler.attach(engine, "generator", event=Events.ITERATION_COMPLETED)
+              gen_handler.attach(engine, "gen_ema_momentum", event=Events.ITERATION_COMPLETED)
               # update EMA model of discriminator every 2 iteration
-              disc_handler.attach(engine, "discriminator", event=Events.ITERATION_COMPLETED(every=2))
+              disc_handler.attach(engine, "dis_ema_momentum", event=Events.ITERATION_COMPLETED(every=2))
 
               @engine.on(Events.ITERATION_COMPLETED)
               def print_ema_momentum(engine):
-                  print(f"current momentum for generator: {engine.state.ema_momentum['generator']}")
-                  print(f"current momentum for discriminator: {engine.state.ema_momentum['discriminator']}")
+                  print(f"current momentum for generator: {engine.state.gen_ema_momentum}")
+                  print(f"current momentum for discriminator: {engine.state.disc_ema_momentum}")
 
               engine.run(...)
 
@@ -162,54 +163,45 @@ class EMAHandler:
         momentum = self.momentum_start + (self.momentum_end - self.momentum_start) * (curr_iter - 1) / denominator
         return min(self.momentum_end, momentum)
 
-    def _update_ema_model(self, engine: Engine, momentum_key: str) -> None:
+    def _update_ema_model(self, engine: Engine, name: str) -> None:
         """Update weights of ema model"""
-        momentum = engine.state.ema_momentum[momentum_key]  # type: ignore
-
+        momentum = getattr(engine.state, name)
         for ema_v, model_v in zip(self.ema_model.state_dict().values(), self.model.state_dict().values()):
+            print(name, ema_v.data, model_v.data)
             ema_v.mul_(1.0 - momentum).add_(model_v.data, alpha=momentum)
 
-    def _update_ema_momentum(self, engine: Engine, momentum_key: str) -> None:
+    def _update_ema_momentum(self, engine: Engine, name: str) -> None:
         """Update momentum in engine.state"""
         curr_iter = engine.state.iteration
         momentum = self._get_momentum(curr_iter)
-        engine.state.ema_momentum.update({momentum_key: momentum})  # type: ignore
+        setattr(engine.state, name, momentum)
 
     def attach(
         self,
         engine: Engine,
-        momentum_key: str,
+        name: str = "ema_momentum",
         event: Union[str, Events, CallableEventWithFilter, EventsList] = Events.ITERATION_COMPLETED,
     ) -> None:
-        """Attach the handler to engine. After the handler is attached, the ``Engine.state.ema_momentum`` (a
-        ``dict``) will add an entry with key ``momentum_key``. Then, current momentum can be retrieved by
-        ``Engine.state.ema_momentum["momentum_key"]`` when the engine runs.
-
-        Note:
-              Please make sure to update the EMA momentum prior to the EMA model. For example, update the EMA
-              momentum with ``Events.ITERATION_STARTED`` and update the EMA model with ``Events.ITERATION_COMPLETED``.
+        """Attach the handler to engine. After the handler is attached, the ``Engine.state`` (a
+        ``dict``) will add an new attribute with name ``name``. Then, current momentum can be retrieved by
+        from ``Engine.state`` when the engine runs.
 
         Args:
-            engine: Trainer to which the handler will be attached.
-            momentum_key: key name for retrieving EMA momentum from ``Engine.state.ema_momentum``. It is necessary
-                since a trainer can have multiple EMA handlers.
+            engine: trainer to which the handler will be attached.
+            name: attribute name for retrieving EMA momentum from ``Engine.state``. It should be a unique name since a
+                trainer can have multiple EMA handlers.
             event: event when the EMA momentum and EMA model are updated.
 
         """
-        if hasattr(engine.state, "ema_momentum") and momentum_key in engine.state.ema_momentum:  # type: ignore
-            raise ValueError(f"Key: '{momentum_key}' is already in Engine.state.ema_momentum.")
+        if hasattr(engine.state, name):
+            warnings.warn(
+                f"Attribute: '{name}' is already in Engine.state. Thus it might be "
+                f"overridden by other EMA handlers. Please select another name.",
+                UserWarning,
+            )
 
-        # initialize Engine.state.ema_momentum as a dict if it does not exist
-        if not hasattr(engine.state, "ema_momentum"):
-            engine.state.ema_momentum = {momentum_key: None}  # type: ignore
-        else:
-            if not isinstance(engine.state.ema_momentum, dict):  # type: ignore
-                raise ValueError(
-                    f"Engine.state.ema_momentum should be a dict, "  # type: ignore
-                    f"but got {engine.state.ema_momentum.__class__.__name__}"
-                )
-            engine.state.ema_momentum.update({momentum_key: None})  # type: ignore
+        setattr(engine.state, name, 0.0)
 
         # first update momentum, then update ema model
-        engine.add_event_handler(event, self._update_ema_momentum, momentum_key)
-        engine.add_event_handler(event, self._update_ema_model, momentum_key)
+        engine.add_event_handler(event, self._update_ema_momentum, name)
+        engine.add_event_handler(event, self._update_ema_model, name)

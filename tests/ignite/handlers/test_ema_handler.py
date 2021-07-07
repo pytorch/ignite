@@ -104,13 +104,13 @@ def test_ema_update_ema_momentum():
     momentum_start = 0.1
     momentum_end = 0.2
     ema_handler = EMAHandler(model, momentum_start=momentum_start, momentum_end=momentum_end, warmup_iters=warmup_iters)
-    ema_handler.attach(engine, "model")
+    ema_handler.attach(engine)
 
     # add handlers to check momentum at each iteration
     @engine.on(Events.ITERATION_COMPLETED)
     def assert_momentum(engine: Engine):
         curr_iter = engine.state.iteration
-        curr_momentum = engine.state.ema_momentum["model"]
+        curr_momentum = engine.state.ema_momentum
         if curr_iter == 1:
             assert curr_momentum == momentum_start
         elif 1 < curr_iter < warmup_iters:
@@ -156,17 +156,14 @@ def test_ema_two_handlers():
         return 0
 
     engine = Engine(_step_fn)
-    assert not hasattr(engine.state, "ema_momentum")
+    assert not hasattr(engine.state, "ema_momentum_1")
     # handler_1 update EMA model of model_1 every 1 iteration
-    ema_handler_1.attach(engine, "model_1", event=Events.ITERATION_COMPLETED)
-    assert isinstance(engine.state.ema_momentum, dict) and len(engine.state.ema_momentum) == 1
-    assert engine.state.ema_momentum["model_1"] is None
+    ema_handler_1.attach(engine, "ema_momentum_1", event=Events.ITERATION_COMPLETED)
+    assert hasattr(engine.state, "ema_momentum_1")
 
-    with pytest.raises(ValueError, match="Key: 'model_1' is already in Engine.state.ema_momentum."):
-        ema_handler_2.attach(engine, "model_1")
     # handler_2 update EMA model for model_2 every 2 iterations
-    ema_handler_2.attach(engine, "model_2", event=Events.ITERATION_COMPLETED(every=2))
-    assert engine.state.ema_momentum["model_2"] is None
+    ema_handler_2.attach(engine, "ema_momentum_2", event=Events.ITERATION_COMPLETED(every=2))
+    assert hasattr(engine.state, "ema_momentum_2")
 
     # engine will run 4 iterations
     engine.run(data_loader, max_epochs=2)
@@ -175,8 +172,15 @@ def test_ema_two_handlers():
     torch.testing.assert_allclose(ema_weight_1, torch.full((1, 2), 4.0625))
     torch.testing.assert_allclose(ema_weight_2, torch.full((1, 2), 3.5))
 
-    assert engine.state.ema_momentum["model_1"] == 0.5
-    assert engine.state.ema_momentum["model_2"] == 0.5
+    assert engine.state.ema_momentum_1 == 0.5
+    assert engine.state.ema_momentum_2 == 0.5
+
+    model_3 = _get_dummy_model()
+    ema_handler_3 = EMAHandler(model_3)
+    with pytest.warns(UserWarning, match="Please select another name"):
+        ema_handler_3.attach(engine, "ema_momentum_2")
+    # the attribute is reset
+    assert engine.state.ema_momentum_2 == 0.0
 
 
 def _test_ema_final_weight(device, ddp=False, interval=1):
