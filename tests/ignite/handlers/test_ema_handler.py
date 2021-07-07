@@ -39,14 +39,14 @@ def _get_dummy_step_fn(model: Union[nn.Module, DataParallel, DistributedDataPara
 
 @pytest.mark.parametrize("momentum_end", [-1, 2])
 def test_ema_invalid_momentum_end(momentum_end):
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Invalid momentum_end"):
         model = _get_dummy_model()
         EMAHandler(model, momentum_end=momentum_end)
 
 
 @pytest.mark.parametrize("momentum_start", [-1, 2])
 def test_ema_invalid_momentum_start(momentum_start):
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Invalid momentum_start"):
         model = _get_dummy_model()
         EMAHandler(model, momentum_start=momentum_start)
 
@@ -55,13 +55,13 @@ def test_ema_invalid_momentum_start_end():
     """Test momentum_end > momentum_start"""
     momentum_end = 0.001
     momentum_start = 0.1
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="momentum_start should be less than or equal to momentum_end"):
         model = _get_dummy_model()
         EMAHandler(model, momentum_start=momentum_start, momentum_end=momentum_end)
 
 
 def test_ema_invalid_model():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="model should be an instance of nn.Module or its subclasses"):
         model = "Invalid Model"
         EMAHandler(model)  # type: ignore
 
@@ -177,10 +177,8 @@ def test_ema_two_handlers():
 
     model_3 = _get_dummy_model()
     ema_handler_3 = EMAHandler(model_3)
-    with pytest.warns(UserWarning, match="Please select another name"):
+    with pytest.raises(ValueError, match="Please select another name"):
         ema_handler_3.attach(engine, "ema_momentum_2")
-    # the attribute is reset
-    assert engine.state.ema_momentum_2 == 0.0
 
 
 def _test_ema_final_weight(device, ddp=False, interval=1):

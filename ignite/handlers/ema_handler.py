@@ -1,4 +1,3 @@
-import warnings
 from copy import deepcopy
 from typing import Union
 
@@ -19,9 +18,6 @@ class EMAHandler:
     :math:`t`-th iteration, respectively; :math:`\lambda` is the update momentum. The handler allows for linearly
     warming up the momentum in the beginning when training process is not stable. Current momentum can be retrieved
     from ``Engine.state.ema_momentum``.
-
-    .. versionadded:: 0.5.0
-
 
     Args:
           model: the online model for which an EMA model will be computed. If ``model`` is ``DataParallel`` or
@@ -117,6 +113,7 @@ class EMAHandler:
 
               engine.run(...)
 
+    .. versionadded:: 0.5.0
 
     """
 
@@ -124,9 +121,9 @@ class EMAHandler:
         self, model: nn.Module, momentum_start: float = 0.0001, momentum_end: float = 0.0002, warmup_iters: int = 100,
     ) -> None:
         if not 0 < momentum_start < 1:
-            raise ValueError(f"Invalid momentum_warmup: {momentum_start}")
+            raise ValueError(f"Invalid momentum_start: {momentum_start}")
         if not 0 < momentum_end < 1:
-            raise ValueError(f"Invalid momentum: {momentum_end}")
+            raise ValueError(f"Invalid momentum_end: {momentum_end}")
         if not momentum_start <= momentum_end:
             raise ValueError(
                 f"momentum_start should be less than or equal to momentum_end, but got "
@@ -167,7 +164,6 @@ class EMAHandler:
         """Update weights of ema model"""
         momentum = getattr(engine.state, name)
         for ema_v, model_v in zip(self.ema_model.state_dict().values(), self.model.state_dict().values()):
-            print(name, ema_v.data, model_v.data)
             ema_v.mul_(1.0 - momentum).add_(model_v.data, alpha=momentum)
 
     def _update_ema_momentum(self, engine: Engine, name: str) -> None:
@@ -182,9 +178,8 @@ class EMAHandler:
         name: str = "ema_momentum",
         event: Union[str, Events, CallableEventWithFilter, EventsList] = Events.ITERATION_COMPLETED,
     ) -> None:
-        """Attach the handler to engine. After the handler is attached, the ``Engine.state`` (a
-        ``dict``) will add an new attribute with name ``name``. Then, current momentum can be retrieved by
-        from ``Engine.state`` when the engine runs.
+        """Attach the handler to engine. After the handler is attached, the ``Engine.state`` will add an new attribute
+        with name ``name``. Then, current momentum can be retrieved by from ``Engine.state`` when the engine runs.
 
         Args:
             engine: trainer to which the handler will be attached.
@@ -194,10 +189,9 @@ class EMAHandler:
 
         """
         if hasattr(engine.state, name):
-            warnings.warn(
+            raise ValueError(
                 f"Attribute: '{name}' is already in Engine.state. Thus it might be "
-                f"overridden by other EMA handlers. Please select another name.",
-                UserWarning,
+                f"overridden by other EMA handlers. Please select another name."
             )
 
         setattr(engine.state, name, 0.0)
