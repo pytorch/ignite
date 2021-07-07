@@ -40,13 +40,12 @@ Parameter scheduler
     :nosignatures:
     :toctree: generated
 
-    AnyParameterScheduler
-    LambdaAnyParameterScheduler
-    LinearAnyParameterScheduler
-    ExponentialAnyParameterScheduler
-    StepAnyParameterScheduler
-    MultiStepAnyParameterScheduler
-    OptimizerParamScheduler
+    StateParameterScheduler
+    LambdaStateParameterScheduler
+    LinearStateParameterScheduler
+    ExponentialStateParameterScheduler
+    StepStateParameterScheduler
+    MultiStepStateParameterScheduler
     ConcatScheduler
     CosineAnnealingScheduler
     CyclicalScheduler
