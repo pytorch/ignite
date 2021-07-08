@@ -1,9 +1,11 @@
-from typing import Tuple, Union, cast
+from typing import List, Tuple, cast
 
 import torch
 
+import ignite.distributed as idist
 from ignite.contrib.metrics.regression._base import _BaseRegression
 from ignite.exceptions import NotComputableError
+from ignite.metrics.metric import reinit__is_reduced
 
 
 class GeometricMeanRelativeAbsoluteError(_BaseRegression):
@@ -12,7 +14,8 @@ class GeometricMeanRelativeAbsoluteError(_BaseRegression):
     .. math::
         \text{GMRAE} = \exp(\frac{1}{n}\sum_{j=1}^n \ln\frac{|A_j - P_j|}{|A_j - \bar{A}|})
 
-    where :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
+    where :math:`A_j` is the ground truth, :math:`P_j` is the predicted value
+    and :math: `bar{A}` is the mean of the ground truth.
 
     More details can be found in `Botchkarev 2018`__.
 
@@ -22,6 +25,18 @@ class GeometricMeanRelativeAbsoluteError(_BaseRegression):
     __ https://arxiv.org/abs/1809.03006
 
     Parameters are inherited from ``Metric.__init__``.
+
+    .. warning::
+
+        Current implementation of GMRAE stores all input data (output and target)
+        as tensors before computing the metric.
+        This can potentially lead to a memory error if the input data is larger than available RAM.
+
+        In distributed configuration, all stored data (output and target) is mutually collected across all processes
+        using all gather collective operation. This can potentially lead to a memory error.
+
+        Compute method compute the metric on zero rank process only and final result is broadcasted to
+        all processes.
 
     Args:
         output_transform: a callable that is used to transform the
@@ -34,23 +49,37 @@ class GeometricMeanRelativeAbsoluteError(_BaseRegression):
             non-blocking. By default, CPU.
     """
 
+    @reinit__is_reduced
     def reset(self) -> None:
-        self._sum_y = 0.0  # type: Union[float, torch.Tensor]
-        self._num_examples = 0
-        self._sum_of_errors = 0.0  # type: Union[float, torch.Tensor]
+        self._predictions = []  # type: List[torch.Tensor]
+        self._targets = []  # type: List[torch.Tensor]
 
     def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
-        y_pred, y = output
-        self._sum_y += y.sum()
-        self._num_examples += y.shape[0]
-        y_mean = self._sum_y / self._num_examples
-        numerator = torch.abs(y.view_as(y_pred) - y_pred)
-        denominator = torch.abs(y.view_as(y_pred) - y_mean)
-        self._sum_of_errors += torch.log(numerator / denominator).sum()
+        y_pred, y = output[0].detach(), output[1].detach()
+
+        y_pred = y_pred.clone().to(self._device)
+        y = y.clone().to(self._device)
+
+        self._predictions.append(y_pred)
+        self._targets.append(y)
 
     def compute(self) -> float:
-        if self._num_examples == 0:
+        if len(self._predictions) < 1 or len(self._targets) < 1:
             raise NotComputableError(
                 "GeometricMeanRelativeAbsoluteError must have at least one example before it can be computed."
             )
-        return torch.exp(torch.mean(cast(torch.Tensor, self._sum_of_errors) / self._num_examples)).item()
+
+        _prediction_tensor = torch.cat(self._predictions, dim=0)
+        _target_tensor = torch.cat(self._targets, dim=0)
+
+        # All gather across all processes
+        _prediction_tensor = cast(torch.Tensor, idist.all_gather(_prediction_tensor))
+        _target_tensor = cast(torch.Tensor, idist.all_gather(_target_tensor))
+
+        result = torch.exp(
+            torch.log(
+                torch.abs(_target_tensor - _prediction_tensor) / torch.abs(_target_tensor - _target_tensor.mean())
+            ).mean()
+        ).item()
+
+        return result
