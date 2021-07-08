@@ -22,17 +22,18 @@ class EMAHandler:
     Args:
           model: the online model for which an EMA model will be computed. If ``model`` is ``DataParallel`` or
               ``DistributedDataParallel``, the EMA smoothing will be applied to ``model.module`` .
-          momentum_start: the initial update momentum, the value should be smaller than ``momentum_end``.
-              Momentum will linearly increase from this value to ``momentum_end`` in `warmup_iters` iterations.
-          momentum_end: the update momentum after warmup phase, should be float in range :math:`\left(0, 1 \right)`.
+          momentum_warmup: the initial update momentum during warmup phase, the value should be smaller than
+              ``momentum``. Momentum will linearly increase from this value to ``momentum`` in `warmup_iters`
+              iterations.
+          momentum: the update momentum after warmup phase, should be float in range :math:`\left(0, 1 \right)`.
           warmup_iters: iterations of warmup.
 
     Attributes:
           ema_model: the exponential moving averaged model.
           model: the online model that is tracked by EMAHandler. It is ``model.module`` if ``model`` in
               the initialization method is an instance of ``DistributedDataParallel``.
-          momentum_start: the initial update momentum.
-          momentum_end: the update momentum after warmup phase.
+          momentum_warmup: the initial update momentum.
+          momentum: the update momentum after warmup phase.
           warmup_iters: number of warmup iterations.
 
     Note:
@@ -56,7 +57,7 @@ class EMAHandler:
               model = nn.Linear(2, 1).to(device)
               # update the ema every 5 iterations
               ema_handler = EMAHandler(
-                  model, momentum_start=0.0001, momentum_end=0.0002, warmup_iters=10000)
+                  model, momentum_warmup=0.0001, momentum=0.0002, warmup_iters=10000)
               # get the ema model, which is an instance of nn.Module
               ema_model = ema_handler.ema_model
               trainer = Engine(train_step_fn)
@@ -118,16 +119,16 @@ class EMAHandler:
     """
 
     def __init__(
-        self, model: nn.Module, momentum_start: float = 0.0001, momentum_end: float = 0.0002, warmup_iters: int = 100,
+        self, model: nn.Module, momentum_warmup: float = 0.0001, momentum: float = 0.0002, warmup_iters: int = 100,
     ) -> None:
-        if not 0 < momentum_start < 1:
-            raise ValueError(f"Invalid momentum_start: {momentum_start}")
-        if not 0 < momentum_end < 1:
-            raise ValueError(f"Invalid momentum_end: {momentum_end}")
-        if not momentum_start <= momentum_end:
+        if not 0 < momentum_warmup < 1:
+            raise ValueError(f"Invalid momentum_warmup: {momentum_warmup}")
+        if not 0 < momentum < 1:
+            raise ValueError(f"Invalid momentum: {momentum}")
+        if not momentum_warmup <= momentum:
             raise ValueError(
-                f"momentum_start should be less than or equal to momentum_end, but got "
-                f"momentum_start: {momentum_start} and momentum_end: {momentum_end}"
+                f"momentum_warmup should be less than or equal to momentum, but got "
+                f"momentum_warmup: {momentum_warmup} and momentum: {momentum}"
             )
         if not isinstance(warmup_iters, int) and warmup_iters > 0:
             raise ValueError(f"Invalid warmup_iters: {warmup_iters}")
@@ -136,8 +137,8 @@ class EMAHandler:
                 f"model should be an instance of nn.Module or its subclasses, but got"
                 f"model: {model.__class__.__name__}"
             )
-        self.momentum_start = momentum_start
-        self.momentum_end = momentum_end
+        self.momentum_warmup = momentum_warmup
+        self.momentum = momentum
         self.warmup_iters = warmup_iters
 
         if isinstance(model, nn.parallel.DistributedDataParallel):
@@ -151,14 +152,14 @@ class EMAHandler:
 
     def _get_momentum(self, curr_iter: int) -> float:
         """Get current momentum, `curr_iter` should be 1-based. When `curr_iter = 1`, `momentum =
-        self.momentum_start`; when `curr_iter >= self.warmup_iters`, `momentum = self.momentum_end`"""
+        self.momentum_warmup`; when `curr_iter >= self.warmup_iters`, `momentum = self.momentum`"""
 
         # TODO: use ignite's parameter scheduling, see also GitHub issue #2090
         if curr_iter < 1:
             raise ValueError(f"curr_iter should be at least 1, but got {curr_iter}.")
         denominator = max(1, self.warmup_iters - 1)
-        momentum = self.momentum_start + (self.momentum_end - self.momentum_start) * (curr_iter - 1) / denominator
-        return min(self.momentum_end, momentum)
+        momentum = self.momentum_warmup + (self.momentum - self.momentum_warmup) * (curr_iter - 1) / denominator
+        return min(self.momentum, momentum)
 
     def _update_ema_model(self, engine: Engine, name: str) -> None:
         """Update weights of ema model"""

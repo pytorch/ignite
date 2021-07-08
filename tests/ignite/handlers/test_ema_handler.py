@@ -37,27 +37,27 @@ def _get_dummy_step_fn(model: Union[nn.Module, DataParallel, DistributedDataPara
     return step_fn
 
 
-@pytest.mark.parametrize("momentum_end", [-1, 2])
-def test_ema_invalid_momentum_end(momentum_end):
-    with pytest.raises(ValueError, match="Invalid momentum_end"):
+@pytest.mark.parametrize("momentum", [-1, 2])
+def test_ema_invalid_momentum(momentum):
+    with pytest.raises(ValueError, match="Invalid momentum"):
         model = _get_dummy_model()
-        EMAHandler(model, momentum_end=momentum_end)
+        EMAHandler(model, momentum=momentum)
 
 
-@pytest.mark.parametrize("momentum_start", [-1, 2])
-def test_ema_invalid_momentum_start(momentum_start):
-    with pytest.raises(ValueError, match="Invalid momentum_start"):
+@pytest.mark.parametrize("momentum_warmup", [-1, 2])
+def test_ema_invalid_momentum_warmup(momentum_warmup):
+    with pytest.raises(ValueError, match="Invalid momentum_warmup"):
         model = _get_dummy_model()
-        EMAHandler(model, momentum_start=momentum_start)
+        EMAHandler(model, momentum_warmup=momentum_warmup)
 
 
 def test_ema_invalid_momentum_start_end():
     """Test momentum_end > momentum_start"""
-    momentum_end = 0.001
-    momentum_start = 0.1
-    with pytest.raises(ValueError, match="momentum_start should be less than or equal to momentum_end"):
+    momentum = 0.001
+    momentum_warmup = 0.1
+    with pytest.raises(ValueError, match="momentum_warmup should be less than or equal to momentum"):
         model = _get_dummy_model()
-        EMAHandler(model, momentum_start=momentum_start, momentum_end=momentum_end)
+        EMAHandler(model, momentum_warmup=momentum_warmup, momentum=momentum)
 
 
 def test_ema_invalid_model():
@@ -101,9 +101,9 @@ def test_ema_update_ema_momentum():
     engine = Engine(step_fn)
 
     warmup_iters = 4
-    momentum_start = 0.1
-    momentum_end = 0.2
-    ema_handler = EMAHandler(model, momentum_start=momentum_start, momentum_end=momentum_end, warmup_iters=warmup_iters)
+    momentum_warmup = 0.1
+    momentum = 0.2
+    ema_handler = EMAHandler(model, momentum_warmup=momentum_warmup, momentum=momentum, warmup_iters=warmup_iters)
     ema_handler.attach(engine)
 
     # add handlers to check momentum at each iteration
@@ -112,11 +112,11 @@ def test_ema_update_ema_momentum():
         curr_iter = engine.state.iteration
         curr_momentum = engine.state.ema_momentum
         if curr_iter == 1:
-            assert curr_momentum == momentum_start
+            assert curr_momentum == momentum_warmup
         elif 1 < curr_iter < warmup_iters:
-            assert momentum_start < curr_momentum < momentum_end
+            assert momentum_warmup < curr_momentum < momentum
         else:
-            assert curr_momentum == momentum_end
+            assert curr_momentum == momentum
 
     engine.run(data_loader, max_epochs=5)
 
@@ -145,10 +145,10 @@ def test_ema_two_handlers():
     data_loader = _get_dummy_dataloader()
     model_1 = _get_dummy_model()
     # momentum will be constantly 0.5
-    ema_handler_1 = EMAHandler(model_1, momentum_start=0.5, momentum_end=0.5, warmup_iters=1)
+    ema_handler_1 = EMAHandler(model_1, momentum_warmup=0.5, momentum=0.5, warmup_iters=1)
 
     model_2 = _get_dummy_model()
-    ema_handler_2 = EMAHandler(model_2, momentum_start=0.5, momentum_end=0.5, warmup_iters=1)
+    ema_handler_2 = EMAHandler(model_2, momentum_warmup=0.5, momentum=0.5, warmup_iters=1)
 
     def _step_fn(engine: Engine, batch: Any):
         model_1.weight.data.add_(1)
@@ -193,7 +193,7 @@ def _test_ema_final_weight(device, ddp=False, interval=1):
     engine = Engine(step_fn)
 
     # momentum will be constantly 0.5
-    ema_handler = EMAHandler(model, momentum_start=0.5, momentum_end=0.5, warmup_iters=1)
+    ema_handler = EMAHandler(model, momentum_warmup=0.5, momentum=0.5, warmup_iters=1)
     ema_handler.attach(engine, "model", event=Events.ITERATION_COMPLETED(every=interval))
 
     # engine will run 4 iterations
