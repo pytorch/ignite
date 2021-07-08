@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Union
+from typing import Optional, Union
 
 import torch.nn as nn
 
@@ -24,9 +24,9 @@ class EMAHandler:
               ``DistributedDataParallel``, the EMA smoothing will be applied to ``model.module`` .
           momentum_warmup: the initial update momentum during warmup phase, the value should be smaller than
               ``momentum``. Momentum will linearly increase from this value to ``momentum`` in `warmup_iters`
-              iterations.
+              iterations. If ``None``, no warmup will be performed.
           momentum: the update momentum after warmup phase, should be float in range :math:`\left(0, 1 \right)`.
-          warmup_iters: iterations of warmup.
+          warmup_iters: iterations of warmup. If ``None``, no warmup will be performed.
 
     Attributes:
           ema_model: the exponential moving averaged model.
@@ -119,18 +119,22 @@ class EMAHandler:
     """
 
     def __init__(
-        self, model: nn.Module, momentum_warmup: float = 0.0001, momentum: float = 0.0002, warmup_iters: int = 100,
+        self,
+        model: nn.Module,
+        momentum: float = 0.0002,
+        momentum_warmup: Optional[float] = None,
+        warmup_iters: Optional[int] = None,
     ) -> None:
-        if not 0 < momentum_warmup < 1:
+        if momentum_warmup is not None and not 0 < momentum_warmup < 1:
             raise ValueError(f"Invalid momentum_warmup: {momentum_warmup}")
         if not 0 < momentum < 1:
             raise ValueError(f"Invalid momentum: {momentum}")
-        if not momentum_warmup <= momentum:
+        if momentum_warmup is not None and not momentum_warmup <= momentum:
             raise ValueError(
                 f"momentum_warmup should be less than or equal to momentum, but got "
                 f"momentum_warmup: {momentum_warmup} and momentum: {momentum}"
             )
-        if not isinstance(warmup_iters, int) and warmup_iters > 0:
+        if warmup_iters is not None and not (isinstance(warmup_iters, int) and warmup_iters > 0):
             raise ValueError(f"Invalid warmup_iters: {warmup_iters}")
         if not isinstance(model, nn.Module):
             raise ValueError(
@@ -157,6 +161,11 @@ class EMAHandler:
         # TODO: use ignite's parameter scheduling, see also GitHub issue #2090
         if curr_iter < 1:
             raise ValueError(f"curr_iter should be at least 1, but got {curr_iter}.")
+
+        # no warmup
+        if self.momentum_warmup is None or self.warmup_iters is None:
+            return self.momentum
+
         denominator = max(1, self.warmup_iters - 1)
         momentum = self.momentum_warmup + (self.momentum - self.momentum_warmup) * (curr_iter - 1) / denominator
         return min(self.momentum, momentum)

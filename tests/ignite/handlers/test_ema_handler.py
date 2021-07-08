@@ -94,6 +94,31 @@ def test_ema_load_state_dict():
     torch.testing.assert_allclose(ema_model.weight.data, model_1.weight.data)
 
 
+def test_ema_no_warmup_momentum():
+    data_loader = _get_dummy_dataloader()
+    model = _get_dummy_model()
+    step_fn = _get_dummy_step_fn(model)
+    engine = Engine(step_fn)
+
+    def assert_const_momentum(engine: Engine, const_momentum):
+        assert engine.state.ema_momentum == const_momentum
+
+    # no momentum_warmup
+    ema_handler = EMAHandler(model, momentum=0.002, momentum_warmup=None, warmup_iters=1)
+    ema_handler.attach(engine)
+    # attach the assertion handler after ema_handler, so the momentum is first updated and then tested
+    engine.add_event_handler(Events.ITERATION_COMPLETED, assert_const_momentum, ema_handler.momentum)
+    engine.run(data_loader)
+
+    # no warmup_iters
+    engine = Engine(step_fn)
+    ema_handler = EMAHandler(model, momentum=0.002, momentum_warmup=0.001, warmup_iters=None)
+    ema_handler.attach(engine)
+    # attach the assertion handler after ema_handler, so the momentum is first updated and then tested
+    engine.add_event_handler(Events.ITERATION_COMPLETED, assert_const_momentum, ema_handler.momentum)
+    engine.run(data_loader)
+
+
 def test_ema_update_ema_momentum():
     data_loader = _get_dummy_dataloader()  # noqa
     model = _get_dummy_model()
