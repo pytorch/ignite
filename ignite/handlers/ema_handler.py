@@ -32,8 +32,8 @@ class EMAHandler:
           ema_model: the exponential moving averaged model.
           model: the online model that is tracked by EMAHandler. It is ``model.module`` if ``model`` in
               the initialization method is an instance of ``DistributedDataParallel``.
-          momentum_warmup: the initial update momentum.
           momentum: the update momentum after warmup phase.
+          momentum_warmup: the initial update momentum.
           warmup_iters: number of warmup iterations.
 
     Note:
