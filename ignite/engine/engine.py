@@ -222,7 +222,10 @@ class Engine(Serializable, EventsDriven):
         super(Engine, self).register_events(*event_names, event_to_attr=event_to_attr)
         # self._state.update_mapping(event_to_attr)
 
-        for e in event_names:
+        for index, e in enumerate(event_names):
+            # this check resolves mypy for now
+            if not isinstance(e, (str, EventEnum)):
+                raise TypeError(f"Value at {index} of event_names should be a str or EventEnum, but given {e}")
             if event_to_attr and e in event_to_attr:
                 State.event_to_attr[e] = event_to_attr[e]
         # we need to update state attributes associated with new custom events
