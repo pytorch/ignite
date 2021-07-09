@@ -11,7 +11,7 @@ import torch.nn as nn
 from pkg_resources import parse_version
 
 import ignite.distributed as idist
-from ignite.engine import Engine, Events, State
+from ignite.engine import Engine, Events
 from ignite.handlers import Checkpoint, DiskSaver, EarlyStopping, ModelCheckpoint, global_step_from_engine
 from ignite.handlers.checkpoint import BaseSaveHandler
 
@@ -84,7 +84,8 @@ def test_checkpoint_score_function_wrong_output():
 
     checkpointer = Checkpoint(to_save, lambda x: x, score_function=lambda e: {"1": 1}, score_name="acc")
     trainer = Engine(lambda e, b: None)
-    trainer.state = State(epoch=0, iteration=0)
+    trainer.state.epoch = 0
+    trainer.state.iteration = 0
     with pytest.raises(ValueError, match=r"Output of score_function should be a number"):
         checkpointer(trainer)
 
@@ -97,7 +98,8 @@ def test_checkpoint_default():
         assert checkpointer.last_checkpoint is None
 
         trainer = Engine(lambda e, b: None)
-        trainer.state = State(epoch=0, iteration=0)
+        trainer.state.epoch = 0
+        trainer.state.iteration = 0
 
         checkpointer(trainer)
         assert save_handler.call_count == 1
@@ -133,7 +135,8 @@ def test_checkpoint_include_self_state_dict():
         assert checkpointer.last_checkpoint is None
 
         trainer = Engine(lambda e, b: None)
-        trainer.state = State(epoch=0, iteration=0)
+        trainer.state.epoch = 0
+        trainer.state.iteration = 0
 
         checkpointer(trainer)
         assert save_handler.call_count == 1
@@ -185,7 +188,8 @@ def test_checkpoint_with_dp():
     checkpointer = Checkpoint(to_save, save_handler=save_handler)
 
     trainer = Engine(lambda e, b: None)
-    trainer.state = State(epoch=0, iteration=0)
+    trainer.state.epoch = 0
+    trainer.state.iteration = 0
 
     checkpointer(trainer)
     assert save_handler.call_count == 1
@@ -205,7 +209,8 @@ def test_checkpoint_with_global_step_transform():
         )
 
         trainer = Engine(lambda e, b: None)
-        trainer.state = State(epoch=2, iteration=1)
+        trainer.state.epoch = 2
+        trainer.state.iteration = 1
 
         checkpointer(trainer)
         assert save_handler.call_count == 1
@@ -244,7 +249,9 @@ def test_checkpoint_with_score_function():
         checkpointer = Checkpoint(to_save, save_handler=save_handler, score_function=lambda e: e.state.score)
 
         trainer = Engine(lambda e, b: None)
-        trainer.state = State(epoch=1, iteration=1, score=0.77)
+        trainer.state.epoch = 1
+        trainer.state.iteration = 1
+        trainer.state.score = 0.77
 
         checkpointer(trainer)
         assert save_handler.call_count == 1
@@ -283,7 +290,9 @@ def test_checkpoint_with_score_name_and_function():
         )
 
         trainer = Engine(lambda e, b: None)
-        trainer.state = State(epoch=1, iteration=1, score=-0.77)
+        trainer.state.epoch = 1
+        trainer.state.iteration = 1
+        trainer.state.score = -0.77
 
         checkpointer(trainer)
         assert save_handler.call_count == 1
@@ -327,7 +336,8 @@ def test_checkpoint_with_int_score():
             score_name += "="
 
         trainer = Engine(lambda e, b: None)
-        trainer.state = State(epoch=1, iteration=1)
+        trainer.state.epoch = 1
+        trainer.state.iteration = 1
 
         checkpointer(trainer)
         assert save_handler.call_count == 1
@@ -364,7 +374,8 @@ def test_checkpoint_with_score_function_and_trainer_epoch():
 
         trainer = Engine(lambda e, b: None)
         evaluator = Engine(lambda e, b: None)
-        trainer.state = State(epoch=11, iteration=1)
+        trainer.state.epoch = 11
+        trainer.state.iteration = 1
 
         checkpointer = Checkpoint(
             to_save,
@@ -373,7 +384,10 @@ def test_checkpoint_with_score_function_and_trainer_epoch():
             score_function=lambda e: e.state.metrics["val_acc"],
         )
 
-        evaluator.state = State(epoch=1, iteration=1000, metrics={"val_acc": 0.77})
+        evaluator.state.epoch = 1
+        evaluator.state.iteration = 1000
+        evaluator.state.metrics = {"val_acc": 0.77}
+
         checkpointer(evaluator)
         assert save_handler.call_count == 1
 
@@ -402,7 +416,8 @@ def test_checkpoint_with_score_name_and_function_and_trainer_epoch():
 
         trainer = Engine(lambda e, b: None)
         evaluator = Engine(lambda e, b: None)
-        trainer.state = State(epoch=11, iteration=1)
+        trainer.state.epoch = 11
+        trainer.state.iteration = 1
 
         checkpointer = Checkpoint(
             to_save,
@@ -412,7 +427,9 @@ def test_checkpoint_with_score_name_and_function_and_trainer_epoch():
             score_function=lambda e: e.state.metrics["val_acc"],
         )
 
-        evaluator.state = State(epoch=1, iteration=1000, metrics={"val_acc": 0.77})
+        evaluator.state.epoch = 1
+        evaluator.state.iteration = 1000
+        evaluator.state.metrics = {"val_acc": 0.77}
 
         checkpointer(evaluator)
         assert save_handler.call_count == 1
@@ -445,7 +462,9 @@ def test_checkpoint_last_checkpoint():
     trainer = Engine(lambda e, b: None)
 
     for i in range(10):
-        trainer.state = State(epoch=1, iteration=i)
+        trainer.state.epoch = 11
+        trainer.state.iteration = i
+
         checkpointer(trainer)
 
     assert save_handler.call_count == 10
@@ -469,7 +488,10 @@ def test_checkpoint_last_checkpoint_on_score():
     val_acc = 0.0
     for i in range(10):
         val_acc = i * 0.1
-        trainer.state = State(epoch=1, iteration=i, metrics={"val_acc": val_acc})
+        trainer.state.epoch = 1
+        trainer.state.iteration = i
+        trainer.state.metrics = {"val_acc": val_acc}
+
         checkpointer(trainer)
 
     assert save_handler.call_count == 10
@@ -486,7 +508,8 @@ def test_checkpoint_save_handler_callable():
 
     trainer = Engine(lambda e, b: None)
 
-    trainer.state = State(epoch=1, iteration=12)
+    trainer.state.epoch = 1
+    trainer.state.iteration = 12
     checkpointer(trainer)
 
 
@@ -521,7 +544,8 @@ def test_model_checkpoint_args_validation(dirname):
 def test_model_checkpoint_simple_recovery(dirname):
     h = ModelCheckpoint(dirname, _PREFIX, create_dir=False)
     engine = Engine(lambda e, b: None)
-    engine.state = State(epoch=0, iteration=1)
+    engine.state.epoch = 0
+    engine.state.iteration = 1
 
     model = DummyModel()
     to_save = {"model": model}
@@ -543,7 +567,8 @@ def test_model_checkpoint_simple_recovery_from_existing_non_empty(dirname):
 
         h = ModelCheckpoint(dirname, _PREFIX, create_dir=True, require_empty=require_empty)
         engine = Engine(lambda e, b: None)
-        engine.state = State(epoch=0, iteration=1)
+        engine.state.epoch = 0
+        engine.state.iteration = 1
 
         model = DummyModel()
         to_save = {"model": model}
@@ -641,7 +666,8 @@ def test_last_k(dirname):
 
     h = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=2)
     engine = Engine(lambda e, b: None)
-    engine.state = State(epoch=0, iteration=0)
+    engine.state.epoch = 0
+    engine.state.iteration = 0
 
     model = DummyModel()
     to_save = {"model": model}
@@ -660,7 +686,8 @@ def test_disabled_n_saved(dirname):
 
     h = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=None)
     engine = Engine(lambda e, b: None)
-    engine.state = State(epoch=0, iteration=0)
+    engine.state.epoch = 0
+    engine.state.iteration = 0
 
     model = DummyModel()
     to_save = {"model": model}
@@ -686,7 +713,8 @@ def test_best_k(dirname):
     h = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=2, score_function=score_function)
 
     engine = Engine(lambda e, b: None)
-    engine.state = State(epoch=0, iteration=0)
+    engine.state.epoch = 0
+    engine.state.iteration = 0
 
     model = DummyModel()
     to_save = {"model": model}
@@ -710,7 +738,8 @@ def test_best_k_with_suffix(dirname):
     )
 
     engine = Engine(lambda e, b: None)
-    engine.state = State(epoch=0, iteration=0)
+    engine.state.epoch = 0
+    engine.state.iteration = 0
 
     model = DummyModel()
     to_save = {"model": model}
@@ -733,7 +762,8 @@ def test_removes_each_score_at_most_once(dirname):
     h = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=2, score_function=score_function)
 
     engine = Engine(lambda e, b: None)
-    engine.state = State(epoch=0, iteration=0)
+    engine.state.epoch = 0
+    engine.state.iteration = 0
 
     model = DummyModel()
     to_save = {"model": model}
@@ -797,7 +827,8 @@ def test_valid_state_dict_save(dirname):
     h = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=1)
 
     engine = Engine(lambda e, b: None)
-    engine.state = State(epoch=0, iteration=0)
+    engine.state.epoch = 0
+    engine.state.iteration = 0
 
     to_save = {"name": 42}
     with pytest.raises(TypeError, match=r"should have `state_dict` method"):
@@ -1064,7 +1095,8 @@ def test_checkpoint_load_objects_from_saved_file(dirname):
         return to_save
 
     trainer = Engine(lambda e, b: None)
-    trainer.state = State(epoch=0, iteration=0)
+    trainer.state.epoch = 0
+    trainer.state.iteration = 0
 
     # case: multiple objects
     handler = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=1)
@@ -1108,7 +1140,8 @@ def test_load_checkpoint_with_different_num_classes(dirname):
     to_save_single_object = {"model": model}
 
     trainer = Engine(lambda e, b: None)
-    trainer.state = State(epoch=0, iteration=0)
+    trainer.state.epoch = 0
+    trainer.state.iteration = 0
 
     handler = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=1)
     handler(trainer, to_save_single_object)
@@ -1160,7 +1193,8 @@ def _test_checkpoint_with_ddp(device):
     checkpointer = Checkpoint(to_save, save_handler=save_handler)
 
     trainer = Engine(lambda e, b: None)
-    trainer.state = State(epoch=0, iteration=0)
+    trainer.state.epoch = 0
+    trainer.state.iteration = 0
 
     checkpointer(trainer)
     assert save_handler.call_count == 1
@@ -1217,7 +1251,8 @@ def _test_tpu_saves_to_cpu(device, dirname):
 
     h = ModelCheckpoint(dirname, _PREFIX)
     engine = Engine(lambda e, b: None)
-    engine.state = State(epoch=0, iteration=1)
+    engine.state.epoch = 0
+    engine.state.iteration = 1
 
     model = DummyModel().to(device)
     to_save = {"model": model}
@@ -1284,7 +1319,9 @@ def test_checkpoint_filename_pattern():
         )
 
         trainer = Engine(lambda e, b: None)
-        trainer.state = State(epoch=12, iteration=203, score=0.9999)
+        trainer.state.epoch = 12
+        trainer.state.iteration = 203
+        trainer.state.score = 0.9999
 
         checkpointer(trainer)
         return checkpointer.last_checkpoint
@@ -1435,7 +1472,8 @@ def _setup_checkpoint():
     assert checkpointer.last_checkpoint is None
 
     trainer = Engine(lambda e, b: None)
-    trainer.state = State(epoch=0, iteration=0)
+    trainer.state.epoch = 0
+    trainer.state.iteration = 0
 
     checkpointer(trainer)
     trainer.state.iteration = 10
@@ -1481,7 +1519,8 @@ def test_checkpoint_fixed_filename():
         trainer = Engine(lambda e, b: None)
 
         for i in range(10):
-            trainer.state = State(epoch=i, iteration=i)
+            trainer.state.epoch = i
+            trainer.state.iteration = i
             checkpointer(trainer)
             assert save_handler.call_count == i + 1
             metadata = {"basename": "model", "score_name": None, "priority": i}
@@ -1502,8 +1541,9 @@ def test_checkpoint_reset():
     assert checkpointer.last_checkpoint is None
 
     trainer = Engine(lambda e, b: None)
+    trainer.state.epoch = 0
+    trainer.state.iteration = 123
 
-    trainer.state = State(epoch=0, iteration=123)
     checkpointer(trainer)
     trainer.state.iteration = 234
     checkpointer(trainer)

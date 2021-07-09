@@ -58,6 +58,17 @@ def test_current_epoch_counter_increases_every_epoch():
     assert state.epoch == max_epochs
 
 
+# def test_current_epoch_counter_increases_every_epoch():
+#     engine = Engine(MagicMock(return_value=1))
+#     max_epochs = 5
+
+#     state = engine.run([1, 2], max_epochs=max_epochs)
+
+#     assert engine._allowed_events_counts[Events.EPOCH_COMPLETED] == max_epochs
+#     state = engine.run([1, 2], max_epochs=max_epochs)
+#     assert engine._allowed_events_counts[Events.EPOCH_COMPLETED] == max_epochs
+
+
 def test_current_iteration_counter_increases_every_iteration():
     batches = [1, 2, 3]
     engine = Engine(MagicMock(return_value=1))
@@ -337,7 +348,10 @@ def test__is_done():
 
 def test__setup_engine():
     engine = Engine(lambda e, b: 1)
-    engine.state = State(iteration=10, epoch=1, max_epochs=100, epoch_length=100)
+    engine.state.iteration = 10
+    engine.state.epoch = 1
+    engine.state.max_epochs = 100
+    engine.state.epoch_length = 100
 
     data = list(range(100))
     engine.state.dataloader = data

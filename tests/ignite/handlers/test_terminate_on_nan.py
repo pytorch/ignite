@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 import torch
 
-from ignite.engine import Engine, Events, State
+from ignite.engine import Engine, Events
 from ignite.handlers import TerminateOnNan
 
 
@@ -30,7 +30,6 @@ def test_terminate_on_nan_and_inf(state_output, should_terminate):
         pass
 
     trainer = Engine(update_fn)
-    trainer.state = State()
     h = TerminateOnNan()
 
     trainer.state.output = state_output

@@ -4,7 +4,7 @@ import pytest
 import torch
 
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler
-from ignite.engine import Engine, Events, EventsList, State
+from ignite.engine import Engine, Events, EventsList
 from tests.ignite.contrib.handlers import MockFP16DeepSpeedZeroOptimizer
 
 
@@ -53,7 +53,7 @@ def test_base_output_handler_setup_output_metrics():
 
     engine = Engine(lambda engine, batch: None)
     true_metrics = {"a": 0, "b": 1}
-    engine.state = State(metrics=true_metrics)
+    engine.state.metrics = true_metrics
     engine.state.output = 12345
 
     # Only metric_names

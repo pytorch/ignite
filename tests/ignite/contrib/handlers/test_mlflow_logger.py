@@ -317,7 +317,10 @@ def test_mlflow_bad_metric_name_handling(dirname):
 
         handler = OutputHandler(tag="training", metric_names="all")
         engine = Engine(lambda e, b: None)
-        engine.state = State(metrics={"metric:0 in %": 123.0, "metric 0": 1000.0,})
+        engine.state.metrics = {
+            "metric:0 in %": 123.0,
+            "metric 0": 1000.0,
+        }
 
         with pytest.warns(UserWarning, match=r"MLflowLogger output_handler encountered an invalid metric name"):
 

@@ -14,11 +14,11 @@ class DummyEngine(Engine):
         super(DummyEngine, self).__init__(lambda e, b: 1)
 
     def run(self, num_times):
-        self.state = State()
         for _ in range(num_times):
             self.fire_event(Events.STARTED)
             self.fire_event(Events.COMPLETED)
-        return self.state
+        # Already defined in engine
+        return self._state
 
 
 def test_add_event_handler_raises_with_invalid_event():

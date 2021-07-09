@@ -4,7 +4,7 @@ from collections.abc import Mapping
 import pytest
 import torch
 
-from ignite.engine import Engine, Events, State
+from ignite.engine import Engine, Events
 from tests.ignite.engine import BatchChecker, EpochCounter, IterationCounter
 
 
@@ -16,16 +16,18 @@ def test_state_dict():
     assert "max_epochs" in sd and sd["max_epochs"] is None
     assert "epoch_length" in sd and sd["epoch_length"] is None
 
-    def _test(state):
-        engine.state = state
+    def _test(iteration, epoch_length, max_epochs):
+        engine.state.iteration = iteration
+        engine.state.epoch_length = epoch_length
+        engine.state.max_epochs = max_epochs
         sd = engine.state_dict()
         assert isinstance(sd, Mapping) and len(sd) == len(engine._state_dict_all_req_keys) + 1
         assert sd["iteration"] == engine.state.iteration
         assert sd["epoch_length"] == engine.state.epoch_length
         assert sd["max_epochs"] == engine.state.max_epochs
 
-    _test(State(iteration=500, epoch_length=1000, max_epochs=100))
-    _test(State(epoch=5, epoch_length=1000, max_epochs=100))
+    _test(500, 1000, 100)
+    _test(5, 1000, 100)
 
 
 def test_state_dict_with_user_keys():
@@ -33,8 +35,12 @@ def test_state_dict_with_user_keys():
     engine.state_dict_user_keys.append("alpha")
     engine.state_dict_user_keys.append("beta")
 
-    def _test(state):
-        engine.state = state
+    def _test(iteration, epoch_length, max_epochs, alpha, beta):
+        engine.state.iteration = iteration
+        engine.state.epoch_length = epoch_length
+        engine.state.max_epochs = max_epochs
+        engine.state.alpha = alpha
+        engine.state.beta = beta
         sd = engine.state_dict()
         assert isinstance(sd, Mapping) and len(sd) == len(engine._state_dict_all_req_keys) + 1 + len(
             engine.state_dict_user_keys
@@ -45,7 +51,7 @@ def test_state_dict_with_user_keys():
         assert sd["alpha"] == engine.state.alpha
         assert sd["beta"] == engine.state.beta
 
-    _test(State(iteration=500, epoch_length=1000, max_epochs=100, alpha=0.01, beta="Good"))
+    _test(iteration=500, epoch_length=1000, max_epochs=100, alpha=0.01, beta="Good")
 
 
 def test_state_dict_integration():
