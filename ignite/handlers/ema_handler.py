@@ -57,7 +57,7 @@ class EMAHandler:
               model = nn.Linear(2, 1).to(device)
               # update the ema every 5 iterations
               ema_handler = EMAHandler(
-                  model, momentum_warmup=0.0001, momentum=0.0002, warmup_iters=10000)
+                  model, momentum=0.0002, momentum_warmup=0.0001, warmup_iters=10000)
               # get the ema model, which is an instance of nn.Module
               ema_model = ema_handler.ema_model
               trainer = Engine(train_step_fn)
