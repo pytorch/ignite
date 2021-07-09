@@ -220,10 +220,16 @@ class Engine(Serializable, EventsDriven):
             # engine.state contains an attribute time_iteration, which can be accessed using engine.state.time_iteration
         """
         super(Engine, self).register_events(*event_names, event_to_attr=event_to_attr)
+
+        # ! That doesn't work for now becuase of __setattr__ method in EventsDrivenState
+        # ! When update_mapping called _attr_to_events is not empty anymore
+        # ! and that defines evnts in __setattr__ and that makes _allowed_events_counts updated
+        # ! with misleading vlues, and epoch.state.epoch/iteration not updated (I don't know why yet).
         # self._state.update_mapping(event_to_attr)
+        # ! The drawback of not using update_mapping is that _attr_to_events is not updated.
 
         for index, e in enumerate(event_names):
-            # this check resolves mypy for now
+            # ! this check resolves mypy for now
             if not isinstance(e, (str, EventEnum)):
                 raise TypeError(f"Value at {index} of event_names should be a str or EventEnum, but given {e}")
             if event_to_attr and e in event_to_attr:
@@ -463,6 +469,7 @@ class Engine(Serializable, EventsDriven):
         is_done_epochs = state.max_epochs is not None and state.epoch >= state.max_epochs
         return is_done_iters or is_done_count or is_done_epochs
 
+    # ! Do we need to udpate _is_done like this ??
     # def _is_done(self, state: State) -> bool:
     #     is_done_iters = state.max_iters is not None
     # and self._allowed_events_counts[Events.ITERATION_COMPLETED] >= self.state.max_iters

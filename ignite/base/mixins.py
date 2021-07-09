@@ -292,6 +292,3 @@ class EventsDrivenState:
             attr_evnts = self._attr_to_events[v]
             if k not in attr_evnts:
                 attr_evnts.append(k)
-        # print(event_to_attr)
-        # print()
-        # print(self._attr_to_events)

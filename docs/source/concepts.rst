@@ -329,7 +329,7 @@ epoch:
 State:
 ------
 A state is introduced in :class:`~ignite.engine.engine.Engine` to store the output of the `process_function`, current epoch,
-iteration and other helpful information. Each :class:`~ignite.engine.engine.Engine` contains a :class:`~ignite.engine.events.State`,
+iteration and other helpful information. Each :class:`~ignite.engine.engine.Engine` contains a :class:`~ignite.engine.state.State`,
 which includes the following:
 
 - **engine.state.seed**: Seed to set at each data "epoch".
