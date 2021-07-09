@@ -30,6 +30,17 @@ ignite.engine.events
     State
     RemovableEventHandle
 
+ignite.engine.state
+--------------------
+
+.. currentmodule:: ignite.engine.state
+
+.. autosummary::
+    :nosignatures:
+    :toctree: generated
+
+    State
+
 ignite.engine.deterministic
 ---------------------------
 Helper methods for deterministic training
