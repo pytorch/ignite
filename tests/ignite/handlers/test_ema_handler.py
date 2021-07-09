@@ -5,25 +5,22 @@ import pytest
 import torch
 import torch.nn as nn
 from torch.nn.parallel import DataParallel, DistributedDataParallel
-from torch.utils.data import DataLoader, TensorDataset
 
 import ignite.distributed as idist
 from ignite.engine import Engine, Events
 from ignite.handlers import EMAHandler
 
 
-def _get_dummy_dataloader() -> DataLoader:
-    """Get a dummy data loader with length of 2"""
-    x = torch.randint(0, 10, (2, 2))
-    data_set = TensorDataset(x)
-    data_loader = DataLoader(data_set, batch_size=1)
-    return data_loader
-
-
-def _get_dummy_model() -> nn.Module:
+def _get_dummy_models() -> nn.Module:
     model = nn.Linear(2, 1, bias=False)
     model.weight.data.fill_(1)
     return model
+
+
+@pytest.fixture(scope="module")
+def get_dummy_model():
+    """Returns a function since the fixture is needed multiple times in a single test"""
+    yield _get_dummy_models
 
 
 def _get_dummy_step_fn(model: Union[nn.Module, DataParallel, DistributedDataParallel]) -> Callable:
@@ -38,26 +35,23 @@ def _get_dummy_step_fn(model: Union[nn.Module, DataParallel, DistributedDataPara
 
 
 @pytest.mark.parametrize("momentum", [-1, 2])
-def test_ema_invalid_momentum(momentum):
+def test_ema_invalid_momentum(get_dummy_model, momentum):
     with pytest.raises(ValueError, match="Invalid momentum"):
-        model = _get_dummy_model()
-        EMAHandler(model, momentum=momentum)
+        EMAHandler(get_dummy_model(), momentum=momentum)
 
 
 @pytest.mark.parametrize("momentum_warmup", [-1, 2])
-def test_ema_invalid_momentum_warmup(momentum_warmup):
+def test_ema_invalid_momentum_warmup(get_dummy_model, momentum_warmup):
     with pytest.raises(ValueError, match="Invalid momentum_warmup"):
-        model = _get_dummy_model()
-        EMAHandler(model, momentum_warmup=momentum_warmup)
+        EMAHandler(get_dummy_model, momentum_warmup=momentum_warmup)
 
 
-def test_ema_invalid_momentum_start_end():
+def test_ema_invalid_momentum_start_end(get_dummy_model):
     """Test momentum_end > momentum_start"""
     momentum = 0.001
     momentum_warmup = 0.1
     with pytest.raises(ValueError, match="momentum_warmup should be less than or equal to momentum"):
-        model = _get_dummy_model()
-        EMAHandler(model, momentum_warmup=momentum_warmup, momentum=momentum)
+        EMAHandler(get_dummy_model(), momentum_warmup=momentum_warmup, momentum=momentum)
 
 
 def test_ema_invalid_model():
@@ -68,9 +62,9 @@ def test_ema_invalid_model():
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_ema_ema_model_on_cuda():
+def test_ema_ema_model_on_cuda(get_dummy_model):
     """Test if ema_handler.ema_model is nn.Module and under eval mode"""
-    model = _get_dummy_model().to(idist.device())
+    model = get_dummy_model().to(idist.device())
     model = idist.auto_model(model)
     ema_handler = EMAHandler(model)
     ema_model = ema_handler.ema_model
@@ -82,21 +76,20 @@ def test_ema_ema_model_on_cuda():
     assert not ema_model.training
 
 
-def test_ema_load_state_dict():
-    model_1 = _get_dummy_model()
+def test_ema_load_state_dict(get_dummy_model):
+    model_1 = get_dummy_model()
     model_1.weight.data.fill_(2)
     state_dict_1 = model_1.state_dict()
 
-    model_2 = _get_dummy_model()
+    model_2 = get_dummy_model()
     ema_handler = EMAHandler(model_2)
     ema_model = ema_handler.ema_model
     ema_model.load_state_dict(state_dict_1)
     torch.testing.assert_allclose(ema_model.weight.data, model_1.weight.data)
 
 
-def test_ema_no_warmup_momentum():
-    data_loader = _get_dummy_dataloader()
-    model = _get_dummy_model()
+def test_ema_no_warmup_momentum(get_dummy_model):
+    model = get_dummy_model()
     step_fn = _get_dummy_step_fn(model)
     engine = Engine(step_fn)
 
@@ -108,7 +101,7 @@ def test_ema_no_warmup_momentum():
     ema_handler.attach(engine)
     # attach the assertion handler after ema_handler, so the momentum is first updated and then tested
     engine.add_event_handler(Events.ITERATION_COMPLETED, assert_const_momentum, ema_handler.momentum)
-    engine.run(data_loader)
+    engine.run(range(2))
 
     # no warmup_iters
     engine = Engine(step_fn)
@@ -116,12 +109,11 @@ def test_ema_no_warmup_momentum():
     ema_handler.attach(engine)
     # attach the assertion handler after ema_handler, so the momentum is first updated and then tested
     engine.add_event_handler(Events.ITERATION_COMPLETED, assert_const_momentum, ema_handler.momentum)
-    engine.run(data_loader)
+    engine.run(range(2))
 
 
-def test_ema_update_ema_momentum():
-    data_loader = _get_dummy_dataloader()  # noqa
-    model = _get_dummy_model()
+def test_ema_update_ema_momentum(get_dummy_model):
+    model = get_dummy_model()
     step_fn = _get_dummy_step_fn(model)
     engine = Engine(step_fn)
 
@@ -143,7 +135,7 @@ def test_ema_update_ema_momentum():
         else:
             assert curr_momentum == momentum
 
-    engine.run(data_loader, max_epochs=5)
+    engine.run(range(2), max_epochs=5)
 
 
 def test_ema_buffer():
@@ -175,14 +167,13 @@ def test_ema_buffer():
     torch.testing.assert_allclose(ema_model.running_var, model.running_var)
 
 
-def test_ema_two_handlers():
+def test_ema_two_handlers(get_dummy_model):
     """Test when two EMA handlers are attached to a trainer"""
-    data_loader = _get_dummy_dataloader()
-    model_1 = _get_dummy_model()
+    model_1 = get_dummy_model()
     # momentum will be constantly 0.5
     ema_handler_1 = EMAHandler(model_1, momentum_warmup=0.5, momentum=0.5, warmup_iters=1)
 
-    model_2 = _get_dummy_model()
+    model_2 = get_dummy_model()
     ema_handler_2 = EMAHandler(model_2, momentum_warmup=0.5, momentum=0.5, warmup_iters=1)
 
     def _step_fn(engine: Engine, batch: Any):
@@ -201,7 +192,7 @@ def test_ema_two_handlers():
     assert hasattr(engine.state, "ema_momentum_2")
 
     # engine will run 4 iterations
-    engine.run(data_loader, max_epochs=2)
+    engine.run(range(2), max_epochs=2)
     ema_weight_1 = ema_handler_1.ema_model.weight.data
     ema_weight_2 = ema_handler_2.ema_model.weight.data
     torch.testing.assert_allclose(ema_weight_1, torch.full((1, 2), 4.0625))
@@ -210,18 +201,17 @@ def test_ema_two_handlers():
     assert engine.state.ema_momentum_1 == 0.5
     assert engine.state.ema_momentum_2 == 0.5
 
-    model_3 = _get_dummy_model()
+    model_3 = get_dummy_model()
     ema_handler_3 = EMAHandler(model_3)
     with pytest.raises(ValueError, match="Please select another name"):
         ema_handler_3.attach(engine, "ema_momentum_2")
 
 
-def _test_ema_final_weight(device, ddp=False, interval=1):
+def _test_ema_final_weight(model, device, ddp=False, interval=1):
     """Test if final smoothed weights are correct"""
     if isinstance(device, str):
         device = torch.device(device)
-    data_loader = _get_dummy_dataloader()
-    model = _get_dummy_model().to(device)
+    model = model.to(device)
     if ddp:
         model = idist.auto_model(model)
     step_fn = _get_dummy_step_fn(model)
@@ -232,7 +222,7 @@ def _test_ema_final_weight(device, ddp=False, interval=1):
     ema_handler.attach(engine, "model", event=Events.ITERATION_COMPLETED(every=interval))
 
     # engine will run 4 iterations
-    engine.run(data_loader, max_epochs=2)
+    engine.run(range(2), max_epochs=2)
 
     ema_weight = ema_handler.ema_model.weight.data
     model_weight = model.weight.data
@@ -248,34 +238,34 @@ def _test_ema_final_weight(device, ddp=False, interval=1):
 
 
 @pytest.mark.parametrize("interval", [1, 2])
-def test_ema_final_weight_cpu(interval):
+def test_ema_final_weight_cpu(get_dummy_model, interval):
     device = torch.device("cpu")
-    _test_ema_final_weight(device=device, ddp=False, interval=interval)
+    _test_ema_final_weight(get_dummy_model(), device=device, ddp=False, interval=interval)
 
 
 @pytest.mark.parametrize("interval", [1, 2])
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_ema_final_weight_cuda(interval):
+def test_ema_final_weight_cuda(get_dummy_model, interval):
     device = torch.device("cuda:0")
-    _test_ema_final_weight(device=device, ddp=False, interval=interval)
+    _test_ema_final_weight(get_dummy_model(), device=device, ddp=False, interval=interval)
 
 
 @pytest.mark.distributed
 @pytest.mark.parametrize("interval", [1, 2])
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_ema_final_weight_nccl_cuda(distributed_context_single_node_nccl, interval):
+def test_ema_final_weight_nccl_cuda(get_dummy_model, distributed_context_single_node_nccl, interval):
     device = idist.device()
-    _test_ema_final_weight(device=device, ddp=True, interval=interval)
+    _test_ema_final_weight(get_dummy_model(), device=device, ddp=True, interval=interval)
 
 
 @pytest.mark.distributed
 @pytest.mark.parametrize("interval", [1, 2])
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_ema_final_weight_gloo_cuda(distributed_context_single_node_gloo, interval):
+def test_ema_final_weight_gloo_cuda(get_dummy_model, distributed_context_single_node_gloo, interval):
     device = idist.device()
-    _test_ema_final_weight(device=device, ddp=True, interval=interval)
+    _test_ema_final_weight(get_dummy_model(), device=device, ddp=True, interval=interval)
 
 
 @pytest.mark.distributed
@@ -293,21 +283,21 @@ def test_ema_final_weight_hvd_cuda(gloo_hvd_executor, interval):
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_ema_final_weight_single_device_xla():
+def test_ema_final_weight_single_device_xla(get_dummy_model):
     device = idist.device()
-    _test_ema_final_weight(device=device, ddp=True)
-
-
-def _test_ema_final_weight_xla_nprocs(index):
-    device = idist.device()
-    _test_ema_final_weight(device=device, ddp=True)
+    _test_ema_final_weight(get_dummy_model(), device=device, ddp=True)
 
 
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_ema_final_weight_xla_nprocs(xmp_executor):
+def test_ema_final_weight_xla_nprocs(get_dummy_model, xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
+
+    def _test_ema_final_weight_xla_nprocs(index):
+        device = idist.device()
+        _test_ema_final_weight(get_dummy_model(), device=device, ddp=True)
+
     xmp_executor(_test_ema_final_weight_xla_nprocs, args=(), nprocs=n)
 
 
@@ -315,15 +305,15 @@ def test_ema_final_weight_xla_nprocs(xmp_executor):
 @pytest.mark.parametrize("interval", [1, 2])
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_ema_final_weight_multinode_gloo_cuda(distributed_context_multi_node_gloo, interval):
+def test_ema_final_weight_multinode_gloo_cuda(get_dummy_model, distributed_context_multi_node_gloo, interval):
     device = idist.device()
-    _test_ema_final_weight(device=device, ddp=True, interval=interval)
+    _test_ema_final_weight(get_dummy_model(), device=device, ddp=True, interval=interval)
 
 
 @pytest.mark.multinode_distributed
 @pytest.mark.parametrize("interval", [1, 2])
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_ema_final_weight_multinode_nccl_cuda(distributed_context_multi_node_nccl, interval):
+def test_ema_final_weight_multinode_nccl_cuda(get_dummy_model, distributed_context_multi_node_nccl, interval):
     device = idist.device()
-    _test_ema_final_weight(device=device, ddp=True, interval=interval)
+    _test_ema_final_weight(get_dummy_model(), device=device, ddp=True, interval=interval)

@@ -10,7 +10,7 @@ __all__ = ["EMAHandler"]
 
 class EMAHandler:
     r"""Exponential moving average (EMA) handler can be used to compute a smoothed version of model.
-    The EMA model are updated as follows:
+    The EMA model is updated as follows:
 
     .. math:: \theta_{\text{EMA}, t+1} = (1 - \lambda) \cdot \theta_{\text{EMA}, t} + \lambda \cdot \theta_{t}
 
