@@ -28,7 +28,10 @@ def _get_dummy_step_fn(model: Union[nn.Module, DataParallel, DistributedDataPara
 
     def step_fn(engine, batch):
         """Increment the weight by 1 at each iteration"""
-        model.weight.data.add_(1)
+        if isinstance(model, (DataParallel, DistributedDataParallel)):
+            model.module.data.add_(1)
+        else:
+            model.weight.data.add_(1)
         return 0
 
     return step_fn
