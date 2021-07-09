@@ -154,13 +154,23 @@ def test_ema_buffer():
     ema_handler = EMAHandler(model)
 
     def _bn_step_fn(engine, batch):
+        x = torch.rand(4, 2, 32, 32)
+        _ = model(x)
         return 1
 
     engine = Engine(_bn_step_fn)
-    # engine will run 4 iterations
-    engine.run(_get_dummy_dataloader(), max_epochs=2)
+    ema_handler.attach(engine)
 
     ema_model = ema_handler.ema_model
+
+    @engine.on(Events.ITERATION_COMPLETED)
+    def check_buffers():
+        torch.testing.assert_allclose(ema_model.running_mean, model.running_mean)
+        torch.testing.assert_allclose(ema_model.running_var, model.running_var)
+
+    # engine will run 4 iterations
+    engine.run([0, 1], max_epochs=2)
+
     torch.testing.assert_allclose(ema_model.running_mean, model.running_mean)
     torch.testing.assert_allclose(ema_model.running_var, model.running_var)
 

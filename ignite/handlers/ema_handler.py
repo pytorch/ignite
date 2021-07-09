@@ -173,8 +173,11 @@ class EMAHandler:
     def _update_ema_model(self, engine: Engine, name: str) -> None:
         """Update weights of ema model"""
         momentum = getattr(engine.state, name)
-        for ema_v, model_v in zip(self.ema_model.state_dict().values(), self.model.state_dict().values()):
-            ema_v.mul_(1.0 - momentum).add_(model_v.data, alpha=momentum)
+        for ema_p, model_p in zip(self.ema_model.parameters(), self.model.parameters()):
+            ema_p.mul_(1.0 - momentum).add_(model_p.data, alpha=momentum)
+        # directly copy the buffers
+        for ema_b, model_b in zip(self.ema_model.buffers(), self.model.buffers()):
+            ema_b.copy_(model_b.data)
 
     def _update_ema_momentum(self, engine: Engine, name: str) -> None:
         """Update momentum in engine.state"""
