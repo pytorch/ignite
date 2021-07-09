@@ -27,7 +27,6 @@ ignite.engine.events
     EventEnum
     Events
     EventsList
-    State
     RemovableEventHandle
 
 ignite.engine.state
