@@ -22,10 +22,10 @@ class EMAHandler:
     Args:
           model: the online model for which an EMA model will be computed. If ``model`` is ``DataParallel`` or
               ``DistributedDataParallel``, the EMA smoothing will be applied to ``model.module`` .
-          momentum_warmup: the initial update momentum during warmup phase, the value should be smaller than
-              ``momentum``. Momentum will linearly increase from this value to ``momentum`` in `warmup_iters`
-              iterations. If ``None``, no warmup will be performed.
           momentum: the update momentum after warmup phase, should be float in range :math:`\left(0, 1 \right)`.
+          momentum_warmup: the initial update momentum during warmup phase, the value should be smaller than
+              ``momentum``. Momentum will linearly increase from this value to ``momentum`` in ``warmup_iters``
+              iterations. If ``None``, no warmup will be performed.
           warmup_iters: iterations of warmup. If ``None``, no warmup will be performed.
 
     Attributes:
