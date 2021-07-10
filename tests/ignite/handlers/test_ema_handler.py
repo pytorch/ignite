@@ -17,6 +17,13 @@ def _get_dummy_models() -> nn.Module:
     return model
 
 
+def _unwrap_model(model):
+    if isinstance(model, (DataParallel, DistributedDataParallel)):
+        return model.module
+    else:
+        return model
+
+
 @pytest.fixture(scope="module")
 def get_dummy_model():
     """Returns a function since the fixture is needed multiple times in a single test"""
@@ -230,8 +237,9 @@ def _test_ema_final_weight(model, device, ddp=False, interval=1):
     # engine will run 4 iterations
     engine.run(range(2), max_epochs=2)
 
-    ema_weight = ema_handler.ema_model.weight.data
-    model_weight = model.weight.data
+    # ema_model and model can be DP or DDP
+    ema_weight = _unwrap_model(ema_handler.ema_model).weight.data
+    model_weight = _unwrap_model(model).weight.data
     assert ema_weight.device == device
     assert model_weight.device == device
     if interval == 1:
