@@ -22,7 +22,7 @@ def fid_score(
         raise RuntimeError("fid_score requires numpy to be installed.")
 
     try:
-        import scipy
+        import scipy.linalg
     except ImportError:
         raise RuntimeError("fid_score requires scipy to be installed.")
 
@@ -70,10 +70,6 @@ class FID(_BaseInceptionMetric):
         This implementation is inspired by pytorch_fid package which can be found `here`__
 
         __ https://github.com/mseitzer/pytorch-fid
-
-    .. note::
-        The default Inception model requires the `torchvision` module to be installed.
-        FID also requires `scipy` library for matrix square root calculations.
 
     Args:
         num_features: number of features predicted by the model or the reduced feature vector of the image.
@@ -129,7 +125,7 @@ class FID(_BaseInceptionMetric):
 
         if num_features is None and feature_extractor is None:
             num_features = 1000
-            feature_extractor = InceptionModel(return_features=False, device=device)
+            feature_extractor = InceptionModel(return_features=False)
 
         self._eps = 1e-6
 
