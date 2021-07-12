@@ -283,7 +283,7 @@ def test_ema_final_weight_distrib_gloo_cpu_or_gpu(get_dummy_model, distributed_c
 @pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_ema_final_weight_distrib_hvd(gloo_hvd_executor, interval):
+def test_ema_final_weight_distrib_hvd(get_dummy_model, gloo_hvd_executor, interval):
     device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
 
