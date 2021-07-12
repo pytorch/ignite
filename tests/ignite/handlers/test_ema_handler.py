@@ -11,16 +11,23 @@ from ignite.engine import Engine, Events
 from ignite.handlers import EMAHandler
 
 
-def _get_dummy_models() -> nn.Module:
+def _get_dummy_model() -> nn.Module:
     model = nn.Linear(2, 1, bias=False)
     model.weight.data.fill_(1)
     return model
 
 
+def _unwrap_model(model):
+    if isinstance(model, (DataParallel, DistributedDataParallel)):
+        return model.module
+    else:
+        return model
+
+
 @pytest.fixture(scope="module")
 def get_dummy_model():
     """Returns a function since the fixture is needed multiple times in a single test"""
-    yield _get_dummy_models
+    yield _get_dummy_model
 
 
 def _get_dummy_step_fn(model: Union[nn.Module, DataParallel, DistributedDataParallel]) -> Callable:
@@ -28,7 +35,7 @@ def _get_dummy_step_fn(model: Union[nn.Module, DataParallel, DistributedDataPara
 
     def step_fn(engine, batch):
         """Increment the weight by 1 at each iteration"""
-        model.weight.data.add_(1)
+        _unwrap_model(model).weight.data.add_(1)
         return 0
 
     return step_fn
@@ -63,17 +70,20 @@ def test_ema_invalid_model():
 @pytest.mark.distributed
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_ema_ema_model_on_cuda(get_dummy_model):
-    """Test if ema_handler.ema_model is nn.Module and under eval mode"""
+    """Test if ema_handler.ema_model is nn.Module or nn.DataParallel and under eval mode"""
     model = get_dummy_model().to(idist.device())
     model = idist.auto_model(model)
     ema_handler = EMAHandler(model)
     ema_model = ema_handler.ema_model
-    assert (
-        isinstance(ema_model, nn.Module)
-        and not isinstance(ema_model, nn.parallel.DistributedDataParallel)
-        and not isinstance(ema_model, nn.parallel.DataParallel)
-    )
     assert not ema_model.training
+    if isinstance(model, DataParallel):
+        assert isinstance(ema_model, DataParallel)
+    else:
+        assert (
+            isinstance(ema_model, nn.Module)
+            and (not isinstance(ema_model, DataParallel))
+            and (not isinstance(ema_model, DistributedDataParallel))
+        )
 
 
 def test_ema_load_state_dict(get_dummy_model):
@@ -207,8 +217,11 @@ def test_ema_two_handlers(get_dummy_model):
         ema_handler_3.attach(engine, "ema_momentum_2")
 
 
-def _test_ema_final_weight(model, device, ddp=False, interval=1):
+def _test_ema_final_weight(model, device=None, ddp=False, interval=1):
     """Test if final smoothed weights are correct"""
+    if device is None:
+        # let horovod decide the device
+        device = idist.device()
     if isinstance(device, str):
         device = torch.device(device)
     model = model.to(device)
@@ -224,8 +237,9 @@ def _test_ema_final_weight(model, device, ddp=False, interval=1):
     # engine will run 4 iterations
     engine.run(range(2), max_epochs=2)
 
-    ema_weight = ema_handler.ema_model.weight.data
-    model_weight = model.weight.data
+    # ema_model and model can be DP or DDP
+    ema_weight = _unwrap_model(ema_handler.ema_model).weight.data
+    model_weight = _unwrap_model(model).weight.data
     assert ema_weight.device == device
     assert model_weight.device == device
     if interval == 1:
@@ -254,7 +268,7 @@ def test_ema_final_weight_cuda(get_dummy_model, interval):
 @pytest.mark.parametrize("interval", [1, 2])
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_ema_final_weight_nccl_cuda(get_dummy_model, distributed_context_single_node_nccl, interval):
+def test_ema_final_weight_distrib_nccl_gpu(get_dummy_model, distributed_context_single_node_nccl, interval):
     device = idist.device()
     _test_ema_final_weight(get_dummy_model(), device=device, ddp=True, interval=interval)
 
@@ -262,8 +276,7 @@ def test_ema_final_weight_nccl_cuda(get_dummy_model, distributed_context_single_
 @pytest.mark.distributed
 @pytest.mark.parametrize("interval", [1, 2])
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_ema_final_weight_gloo_cuda(get_dummy_model, distributed_context_single_node_gloo, interval):
+def test_ema_final_weight_distrib_gloo_cpu_or_gpu(get_dummy_model, distributed_context_single_node_gloo, interval):
     device = idist.device()
     _test_ema_final_weight(get_dummy_model(), device=device, ddp=True, interval=interval)
 
@@ -272,18 +285,18 @@ def test_ema_final_weight_gloo_cuda(get_dummy_model, distributed_context_single_
 @pytest.mark.parametrize("interval", [1, 2])
 @pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_ema_final_weight_hvd_cuda(gloo_hvd_executor, interval):
-    device = torch.device("cuda")
-    nproc = torch.cuda.device_count()
-
-    gloo_hvd_executor(_test_ema_final_weight, (device, True, interval), np=nproc, do_init=True)
+def test_ema_final_weight_distrib_hvd(get_dummy_model, gloo_hvd_executor, interval):
+    nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
+    # pass device = None to the executor. Different from other distributed tests where the processes are
+    # already spawn in the context, the processes here will be explicitly spawn by the executor, so we
+    # pass None to the function, and call idist.device() in side the function to get the corresponding device
+    gloo_hvd_executor(_test_ema_final_weight, (get_dummy_model(), None, True, interval), np=nproc, do_init=True)
 
 
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_ema_final_weight_single_device_xla(get_dummy_model):
+def test_ema_final_weight_distrib_single_device_xla(get_dummy_model):
     device = idist.device()
     _test_ema_final_weight(get_dummy_model(), device=device, ddp=True)
 
@@ -291,7 +304,7 @@ def test_ema_final_weight_single_device_xla(get_dummy_model):
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_ema_final_weight_xla_nprocs(get_dummy_model, xmp_executor):
+def test_ema_final_weight_distrib_xla_nprocs(get_dummy_model, xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
 
     def _test_ema_final_weight_xla_nprocs(index):
@@ -305,7 +318,9 @@ def test_ema_final_weight_xla_nprocs(get_dummy_model, xmp_executor):
 @pytest.mark.parametrize("interval", [1, 2])
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_ema_final_weight_multinode_gloo_cuda(get_dummy_model, distributed_context_multi_node_gloo, interval):
+def test_ema_final_weight_distrib_multinode_gloo_cpu_or_gpu(
+    get_dummy_model, distributed_context_multi_node_gloo, interval
+):
     device = idist.device()
     _test_ema_final_weight(get_dummy_model(), device=device, ddp=True, interval=interval)
 
@@ -314,6 +329,6 @@ def test_ema_final_weight_multinode_gloo_cuda(get_dummy_model, distributed_conte
 @pytest.mark.parametrize("interval", [1, 2])
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_ema_final_weight_multinode_nccl_cuda(get_dummy_model, distributed_context_multi_node_nccl, interval):
+def test_ema_final_weight_distrib_multinode_nccl_gpu(get_dummy_model, distributed_context_multi_node_nccl, interval):
     device = idist.device()
     _test_ema_final_weight(get_dummy_model(), device=device, ddp=True, interval=interval)
