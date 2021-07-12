@@ -22,7 +22,7 @@ def fid_score(
         raise RuntimeError("fid_score requires numpy to be installed.")
 
     try:
-        import scipy
+        import scipy.linalg
     except ImportError:
         raise RuntimeError("fid_score requires scipy to be installed.")
 
