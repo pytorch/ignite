@@ -11,7 +11,7 @@ from ignite.engine import Engine, Events
 from ignite.handlers import EMAHandler
 
 
-def _get_dummy_models() -> nn.Module:
+def _get_dummy_model() -> nn.Module:
     model = nn.Linear(2, 1, bias=False)
     model.weight.data.fill_(1)
     return model
@@ -27,7 +27,7 @@ def _unwrap_model(model):
 @pytest.fixture(scope="module")
 def get_dummy_model():
     """Returns a function since the fixture is needed multiple times in a single test"""
-    yield _get_dummy_models
+    yield _get_dummy_model
 
 
 def _get_dummy_step_fn(model: Union[nn.Module, DataParallel, DistributedDataParallel]) -> Callable:
@@ -287,7 +287,7 @@ def test_ema_final_weight_distrib_hvd_cuda(gloo_hvd_executor, interval):
     device = torch.device("cuda")
     nproc = torch.cuda.device_count()
 
-    gloo_hvd_executor(_test_ema_final_weight, (device, True, interval), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_ema_final_weight, (get_dummy_model(), device, True, interval), np=nproc, do_init=True)
 
 
 @pytest.mark.tpu
