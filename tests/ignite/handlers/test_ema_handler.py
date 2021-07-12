@@ -217,8 +217,11 @@ def test_ema_two_handlers(get_dummy_model):
         ema_handler_3.attach(engine, "ema_momentum_2")
 
 
-def _test_ema_final_weight(model, device, ddp=False, interval=1):
+def _test_ema_final_weight(model, device=None, ddp=False, interval=1):
     """Test if final smoothed weights are correct"""
+    if device is None:
+        # let horovod decide the device
+        device = idist.device()
     if isinstance(device, str):
         device = torch.device(device)
     model = model.to(device)
@@ -283,10 +286,11 @@ def test_ema_final_weight_distrib_gloo_cpu_or_gpu(get_dummy_model, distributed_c
 @pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test_ema_final_weight_distrib_hvd(get_dummy_model, gloo_hvd_executor, interval):
-    device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
-
-    gloo_hvd_executor(_test_ema_final_weight, (get_dummy_model(), device, True, interval), np=nproc, do_init=True)
+    # pass device = None to the executor. Different from other distributed tests where the processes are
+    # already spawn in the context, the processes here will be explicitly spawn by the executor, so we
+    # pass None to the function, and call idist.device() in side the function to get the corresponding device
+    gloo_hvd_executor(_test_ema_final_weight, (get_dummy_model(), None, True, interval), np=nproc, do_init=True)
 
 
 @pytest.mark.tpu
