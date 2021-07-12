@@ -35,10 +35,7 @@ def _get_dummy_step_fn(model: Union[nn.Module, DataParallel, DistributedDataPara
 
     def step_fn(engine, batch):
         """Increment the weight by 1 at each iteration"""
-        if isinstance(model, (DataParallel, DistributedDataParallel)):
-            model.module.weight.data.add_(1)
-        else:
-            model.weight.data.add_(1)
+        _unwrap_model(model).weight.data.add_(1)
         return 0
 
     return step_fn
@@ -252,14 +249,14 @@ def _test_ema_final_weight(model, device, ddp=False, interval=1):
 
 
 @pytest.mark.parametrize("interval", [1, 2])
-def test_cpu(get_dummy_model, interval):
+def test_ema_final_weight_cpu(get_dummy_model, interval):
     device = torch.device("cpu")
     _test_ema_final_weight(get_dummy_model(), device=device, ddp=False, interval=interval)
 
 
 @pytest.mark.parametrize("interval", [1, 2])
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_cuda(get_dummy_model, interval):
+def test_ema_final_weight_cuda(get_dummy_model, interval):
     device = torch.device("cuda:0")
     _test_ema_final_weight(get_dummy_model(), device=device, ddp=False, interval=interval)
 
@@ -268,7 +265,7 @@ def test_cuda(get_dummy_model, interval):
 @pytest.mark.parametrize("interval", [1, 2])
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_distrib_nccl_gpu(get_dummy_model, distributed_context_single_node_nccl, interval):
+def test_ema_final_weight_distrib_nccl_gpu(get_dummy_model, distributed_context_single_node_nccl, interval):
     device = idist.device()
     _test_ema_final_weight(get_dummy_model(), device=device, ddp=True, interval=interval)
 
@@ -276,7 +273,7 @@ def test_distrib_nccl_gpu(get_dummy_model, distributed_context_single_node_nccl,
 @pytest.mark.distributed
 @pytest.mark.parametrize("interval", [1, 2])
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-def test_distrib_gloo_cpu_or_gpu(get_dummy_model, distributed_context_single_node_gloo, interval):
+def test_ema_final_weight_distrib_gloo_cpu_or_gpu(get_dummy_model, distributed_context_single_node_gloo, interval):
     device = idist.device()
     _test_ema_final_weight(get_dummy_model(), device=device, ddp=True, interval=interval)
 
@@ -286,7 +283,7 @@ def test_distrib_gloo_cpu_or_gpu(get_dummy_model, distributed_context_single_nod
 @pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_distrib_hvd_cuda(gloo_hvd_executor, interval):
+def test_ema_final_weight_distrib_hvd_cuda(gloo_hvd_executor, interval):
     device = torch.device("cuda")
     nproc = torch.cuda.device_count()
 
@@ -296,7 +293,7 @@ def test_distrib_hvd_cuda(gloo_hvd_executor, interval):
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_distrib_single_device_xla(get_dummy_model):
+def test_ema_final_weight_distrib_single_device_xla(get_dummy_model):
     device = idist.device()
     _test_ema_final_weight(get_dummy_model(), device=device, ddp=True)
 
@@ -304,7 +301,7 @@ def test_distrib_single_device_xla(get_dummy_model):
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_distrib_xla_nprocs(get_dummy_model, xmp_executor):
+def test_ema_final_weight_distrib_xla_nprocs(get_dummy_model, xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
 
     def _test_ema_final_weight_xla_nprocs(index):
@@ -318,7 +315,7 @@ def test_distrib_xla_nprocs(get_dummy_model, xmp_executor):
 @pytest.mark.parametrize("interval", [1, 2])
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_distrib_multinode_gloo_cuda(get_dummy_model, distributed_context_multi_node_gloo, interval):
+def test_ema_final_weight_distrib_multinode_gloo_cuda(get_dummy_model, distributed_context_multi_node_gloo, interval):
     device = idist.device()
     _test_ema_final_weight(get_dummy_model(), device=device, ddp=True, interval=interval)
 
@@ -327,6 +324,6 @@ def test_distrib_multinode_gloo_cuda(get_dummy_model, distributed_context_multi_
 @pytest.mark.parametrize("interval", [1, 2])
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_distrib_multinode_nccl_cuda(get_dummy_model, distributed_context_multi_node_nccl, interval):
+def test_ema_final_weight_distrib_multinode_nccl_cuda(get_dummy_model, distributed_context_multi_node_nccl, interval):
     device = idist.device()
     _test_ema_final_weight(get_dummy_model(), device=device, ddp=True, interval=interval)
