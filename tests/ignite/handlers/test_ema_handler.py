@@ -315,7 +315,7 @@ def test_ema_final_weight_distrib_xla_nprocs(get_dummy_model, xmp_executor):
 @pytest.mark.parametrize("interval", [1, 2])
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_ema_final_weight_distrib_multinode_gloo_cuda(get_dummy_model, distributed_context_multi_node_gloo, interval):
+def test_ema_final_weight_distrib_multinode_gloo_cpu_or_gpu(get_dummy_model, distributed_context_multi_node_gloo, interval):
     device = idist.device()
     _test_ema_final_weight(get_dummy_model(), device=device, ddp=True, interval=interval)
 
@@ -324,6 +324,6 @@ def test_ema_final_weight_distrib_multinode_gloo_cuda(get_dummy_model, distribut
 @pytest.mark.parametrize("interval", [1, 2])
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_ema_final_weight_distrib_multinode_nccl_cuda(get_dummy_model, distributed_context_multi_node_nccl, interval):
+def test_ema_final_weight_distrib_multinode_nccl_gpu(get_dummy_model, distributed_context_multi_node_nccl, interval):
     device = idist.device()
     _test_ema_final_weight(get_dummy_model(), device=device, ddp=True, interval=interval)
