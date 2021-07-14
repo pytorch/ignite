@@ -161,6 +161,9 @@ def test_terminate_epoch_stops_mid_epoch():
 
 def test_epoch_values_if_terminated_on_iteration():
     # test: https://github.com/pytorch/ignite/issues/1386
+    # results with old Engine version:
+    # https://colab.research.google.com/drive/1o9tP2J0aPEegAfR-7QzMVOBWb_3UKqEc?usp=sharing
+
     stop_iter = 50
     epoch_length = 100
     max_epochs = 2
