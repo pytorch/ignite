@@ -85,6 +85,7 @@ class FastaiLRFinder:
         optimizer: Optimizer,
         output_transform: Callable,
         num_iter: int,
+        start_lr: float,
         end_lr: float,
         step_mode: str,
         smooth_f: float,
@@ -117,11 +118,13 @@ class FastaiLRFinder:
             )
 
         self.logger.debug(f"Running LR finder for {num_iter} iterations")
+        if start_lr is None:
+            start_lr = optimizer.param_groups[0]["lr"]
         # Initialize the proper learning rate policy
         if step_mode.lower() == "exp":
-            self._lr_schedule = LRScheduler(_ExponentialLR(optimizer, end_lr, num_iter))
+            start_lr = [start_lr] * len(optimizer.param_groups)
+            self._lr_schedule = LRScheduler(_ExponentialLR(optimizer, start_lr, end_lr, num_iter))
         else:
-            start_lr = optimizer.param_groups[0]["lr"]
             self._lr_schedule = PiecewiseLinear(
                 optimizer, param_name="lr", milestones_values=[(0, start_lr), (num_iter, end_lr)]
             )
@@ -362,6 +365,7 @@ class FastaiLRFinder:
         to_save: Mapping,
         output_transform: Callable = lambda output: output,
         num_iter: Optional[int] = None,
+        start_lr: Optional[float] = None,
         end_lr: float = 10.0,
         step_mode: str = "exp",
         smooth_f: float = 0.05,
@@ -387,6 +391,7 @@ class FastaiLRFinder:
                 iteration. It must return the loss of that iteration.
             num_iter: number of iterations for lr schedule between base lr and end_lr. Default, it will
                 run for ``trainer.state.epoch_length * trainer.state.max_epochs``.
+            start_lr: lower bound for lr search. Default, Learning Rate specified with the optimizer.
             end_lr: upper bound for lr search. Default, 10.0.
             step_mode: "exp" or "linear", which way should the lr be increased from optimizer's initial
                 lr to ``end_lr``. Default, "exp".
@@ -443,6 +448,7 @@ class FastaiLRFinder:
                     optimizer,
                     output_transform,
                     num_iter,
+                    start_lr,
                     end_lr,
                     step_mode,
                     smooth_f,
@@ -477,10 +483,13 @@ class _ExponentialLR(_LRScheduler):
 
     """
 
-    def __init__(self, optimizer: Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1):
+    def __init__(self, optimizer: Optimizer, start_lr: float, end_lr: float, num_iter: int, last_epoch: int = -1):
         self.end_lr = end_lr
         self.num_iter = num_iter
         super(_ExponentialLR, self).__init__(optimizer, last_epoch)
+
+        # override base_lrs
+        self.base_lrs = start_lr
 
     def get_lr(self) -> List[float]:  # type: ignore
         curr_iter = self.last_epoch + 1  # type: ignore[attr-defined]
