@@ -393,8 +393,8 @@ class FastaiLRFinder:
                 run for ``trainer.state.epoch_length * trainer.state.max_epochs``.
             start_lr: lower bound for lr search. Default, Learning Rate specified with the optimizer.
             end_lr: upper bound for lr search. Default, 10.0.
-            step_mode: "exp" or "linear", which way should the lr be increased from optimizer's initial
-                lr to ``end_lr``. Default, "exp".
+            step_mode: "exp" or "linear", which way should the lr be increased from ``start_lr``
+                to ``end_lr``. Default, "exp".
             smooth_f: loss smoothing factor in range ``[0, 1)``. Default, 0.05
             diverge_th: Used for stopping the search when ``current loss > diverge_th * best_loss``.
                 Default, 5.0.
