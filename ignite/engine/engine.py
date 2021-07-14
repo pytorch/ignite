@@ -224,18 +224,17 @@ class Engine(Serializable, EventsDriven):
         # ! That doesn't work for now becuase of __setattr__ method in EventsDrivenState
         # ! When update_mapping called _attr_to_events is not empty anymore
         # ! and that defines evnts in __setattr__ and that makes _allowed_events_counts updated
-        # ! with misleading vlues, and epoch.state.epoch/iteration not updated (I don't know why yet).
-        # self._state.update_mapping(event_to_attr)
-        # ! The drawback of not using update_mapping is that _attr_to_events is not updated.
+        self._state.update_mapping(event_to_attr)
+        # ! update_mapping must be used, it registers any new custom events
 
-        for index, e in enumerate(event_names):
-            # ! this check resolves mypy for now
-            if not isinstance(e, (str, EventEnum)):
-                raise TypeError(f"Value at {index} of event_names should be a str or EventEnum, but given {e}")
-            if event_to_attr and e in event_to_attr:
-                State.event_to_attr[e] = event_to_attr[e]
+        # for index, e in enumerate(event_names):
+        #     # ! this check resolves mypy for now
+        #     if not isinstance(e, (str, EventEnum)):
+        #         raise TypeError(f"Value at {index} of event_names should be a str or EventEnum, but given {e}")
+        #     if event_to_attr and e in event_to_attr:
+        #         State.event_to_attr[e] = event_to_attr[e]
         # we need to update state attributes associated with new custom events
-        self.state._update_attrs()
+        # self.state._update_attrs()
 
     def add_event_handler(self, event_name: Any, handler: Callable, *args: Any, **kwargs: Any) -> RemovableEventHandle:
         """Add an event handler to be executed when the specified event is fired.
@@ -458,30 +457,34 @@ class Engine(Serializable, EventsDriven):
                 )
             self.state.iteration = self.state.epoch_length * self.state.epoch
 
-    @staticmethod
-    def _is_done(state: State) -> bool:
-        is_done_iters = state.max_iters is not None and state.iteration >= state.max_iters
+    # @staticmethod
+    # def _is_done(state: State) -> bool:
+    #     is_done_iters = state.max_iters is not None and state.iteration >= state.max_iters
+    #     is_done_count = (
+    #         state.epoch_length is not None
+    #         and state.max_epochs is not None
+    #         and state.iteration >= state.epoch_length * state.max_epochs
+    #     )
+    #     is_done_epochs = state.max_epochs is not None and state.epoch >= state.max_epochs
+    #     return is_done_iters or is_done_count or is_done_epochs
+
+    # ! Do we need to udpate _is_done like this ??
+    # answer: most likely yes
+    # @staticmethod
+    def _is_done(self, state: State) -> bool:
+        # if isinstance(self.state.max_iters, int):
+        is_done_iters = (
+            state.max_iters is not None and self._allowed_events_counts[Events.ITERATION_COMPLETED] >= state.max_iters
+        )  # mypy: ignore
         is_done_count = (
             state.epoch_length is not None
             and state.max_epochs is not None
-            and state.iteration >= state.epoch_length * state.max_epochs
+            and self._allowed_events_counts[Events.ITERATION_COMPLETED] >= state.epoch_length * state.max_epochs
         )
-        is_done_epochs = state.max_epochs is not None and state.epoch >= state.max_epochs
+        is_done_epochs = (
+            state.max_epochs is not None and self._allowed_events_counts[Events.EPOCH_COMPLETED] >= state.max_epochs
+        )
         return is_done_iters or is_done_count or is_done_epochs
-
-    # ! Do we need to udpate _is_done like this ??
-    # def _is_done(self, state: State) -> bool:
-    #     is_done_iters = state.max_iters is not None
-    # and self._allowed_events_counts[Events.ITERATION_COMPLETED] >= self.state.max_iters
-    #     is_done_count = (
-    #         state.epoch_length is not None \
-    #         and state.max_epochs is not None \
-    #         and self._allowed_events_counts[Events.ITERATION_COMPLETED] >=
-    # state.epoch_length * state.max_epochs
-    #     )
-    #     is_done_epochs = state.max_epochs is not None and
-    # self._allowed_events_counts[Events.EPOCH_COMPLETED] >= state.max_epochs
-    #     return is_done_iters or is_done_count or is_done_epochs
 
     def set_data(self, data: Union[Iterable, DataLoader]) -> None:
         """Method to set data. After calling the method the next batch passed to `processing_function` is
@@ -617,8 +620,8 @@ class Engine(Serializable, EventsDriven):
                 if epoch_length is not None:
                     max_epochs = math.ceil(max_iters / epoch_length)
 
-            self.state.iteration = 0
-            self.state.epoch = 0
+            # self.state.iteration = 0
+            # self.state.epoch = 0
             # # This will reset everything and custom event counters too -> state.custom_attribute
             # # Is it OK ?
             # # Cross-Val use-case with events on fold will be reset too ?
@@ -671,7 +674,7 @@ class Engine(Serializable, EventsDriven):
             start_time = time.time()
             self._fire_event(Events.STARTED)
             while not self._is_done(self.state) and not self.should_terminate:
-                self.state.epoch += 1
+                # self.state.epoch += 1
                 self._fire_event(Events.EPOCH_STARTED)
 
                 if self._dataloader_iter is None:
@@ -770,7 +773,7 @@ class Engine(Serializable, EventsDriven):
 
                     continue
 
-                self.state.iteration += 1
+                # self.state.iteration += 1
                 self._fire_event(Events.ITERATION_STARTED)
                 self.state.output = self._process_function(self, self.state.batch)
                 self._fire_event(Events.ITERATION_COMPLETED)

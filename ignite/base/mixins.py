@@ -287,8 +287,9 @@ class EventsDrivenState:
 
         super().__setattr__(attr, value)
 
-    def update_mapping(self, event_to_attr: Mapping[Any, str]) -> None:
-        for k, v in event_to_attr.items():
-            attr_evnts = self._attr_to_events[v]
-            if k not in attr_evnts:
-                attr_evnts.append(k)
+    def update_mapping(self, event_to_attr: Optional[Dict[Any, Any]]) -> None:
+        if event_to_attr:
+            for k, v in event_to_attr.items():
+                attr_evnts = self._attr_to_events[v]
+                if k not in attr_evnts:
+                    attr_evnts.append(k)

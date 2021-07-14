@@ -1,12 +1,12 @@
 # coding: utf-8
 import collections.abc as collections
-from typing import Callable, Mapping, Optional, Sequence, Union
+from typing import Callable, Dict, Mapping, Optional, Sequence, Union
 
 import torch
 import torch.nn as nn
 from torch.optim.optimizer import Optimizer
 
-from ignite.engine import Engine, EventEnum, _prepare_batch
+from ignite.engine import CallableEventWithFilter, Engine, EventEnum, Events, _prepare_batch
 from ignite.utils import apply_to_tensor
 
 
@@ -116,6 +116,11 @@ def create_supervised_tbptt_trainer(
         # return average loss over the time splits
         return sum(loss_list) / len(loss_list)
 
+    event_to_attr = {
+        Tbptt_Events.TIME_ITERATION_STARTED: "time_iteration_started",
+        Tbptt_Events.TIME_ITERATION_COMPLETED: "time_iteration_completed",
+    }  # type: Dict[Union[str, "Events", "CallableEventWithFilter"], str]
+
     engine = Engine(_update)
-    engine.register_events(*Tbptt_Events)
+    engine.register_events(*Tbptt_Events, event_to_attr=event_to_attr)
     return engine

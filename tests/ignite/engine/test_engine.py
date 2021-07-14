@@ -58,17 +58,6 @@ def test_current_epoch_counter_increases_every_epoch():
     assert state.epoch == max_epochs
 
 
-# def test_current_epoch_counter_increases_every_epoch():
-#     engine = Engine(MagicMock(return_value=1))
-#     max_epochs = 5
-
-#     state = engine.run([1, 2], max_epochs=max_epochs)
-
-#     assert engine._allowed_events_counts[Events.EPOCH_COMPLETED] == max_epochs
-#     state = engine.run([1, 2], max_epochs=max_epochs)
-#     assert engine._allowed_events_counts[Events.EPOCH_COMPLETED] == max_epochs
-
-
 def test_current_iteration_counter_increases_every_iteration():
     batches = [1, 2, 3]
     engine = Engine(MagicMock(return_value=1))
@@ -281,8 +270,8 @@ def test_state_repr():
     metrics = {"accuracy": Mock()}
     state = State(dataloader=data, max_epochs=max_epochs, metrics=metrics)
     s = repr(state)
-    assert "iteration" in s
-    assert "epoch" in s
+    # assert "iteration" in s
+    # assert "epoch" in s
     assert "max_epochs: 1" in s
     assert "dataloader" in s
     assert "metrics" in s
@@ -339,11 +328,22 @@ def test_alter_batch():
 
 
 def test__is_done():
-    state = State(iteration=10, epoch=1, max_epochs=100, epoch_length=100)
-    assert not Engine._is_done(state)
+    def update_fn(engine, batch):
+        pass
 
-    state = State(iteration=1000, max_epochs=10, epoch_length=100)
-    assert Engine._is_done(state)
+    engine = Engine(update_fn)
+    engine.state.iteration = 10
+    engine.state.epoch = 1
+    engine.state.max_epochs = 100
+    engine.state.epoch_length = 100
+    assert not engine._is_done(engine.state)
+
+    engine = Engine(update_fn)
+    engine.state.iteration = 1000
+    engine.state.max_epochs = 10
+    engine.state.epoch_length = 100
+
+    assert engine._is_done(engine.state)
 
 
 def test__setup_engine():
@@ -664,7 +664,7 @@ def test_run_once_finite_iterator_no_epoch_length():
     engine.run(data_iter)
 
     assert engine.state.epoch == 1
-    assert engine.state.iteration == unknown_size
+    assert engine.state.iteration == unknown_size + 1  # add one because we return max: ITERATION_STARTED
     assert completed_handler.call_count == 1
 
 
@@ -688,7 +688,7 @@ def test_run_finite_iterator_no_epoch_length():
     engine.run(data_iter, max_epochs=5)
 
     assert engine.state.epoch == 5
-    assert engine.state.iteration == unknown_size * 5
+    assert engine.state.iteration == (unknown_size * 5) + 1  # add one because we return max: ITERATION_STARTED
 
 
 def test_run_finite_iterator_no_epoch_length_2():
@@ -711,7 +711,7 @@ def test_run_finite_iterator_no_epoch_length_2():
     engine.run(data_iter, max_epochs=5)
 
     assert engine.state.epoch == 5
-    assert engine.state.iteration == known_size * 5
+    assert engine.state.iteration == (known_size * 5) + 1  # add one because we return max: ITERATION_STARTED
 
 
 def test_faq_inf_iterator_with_epoch_length():
@@ -791,7 +791,7 @@ def test_faq_fin_iterator_unknw_size():
     trainer.run(data_iter, max_epochs=5)
 
     assert trainer.state.epoch == 5
-    assert trainer.state.iteration == 5 * 11
+    assert trainer.state.iteration == (5 * 11) + 1  # add one because we return max: ITERATION_STARTED
 
     # Code snippet from FAQ
     # import torch
@@ -813,7 +813,7 @@ def test_faq_fin_iterator_unknw_size():
     evaluator.run(data_iter)
 
     assert evaluator.state.epoch == 1
-    assert evaluator.state.iteration == 1 * 11
+    assert evaluator.state.iteration == (1 * 11) + 1  # add one because we return max: ITERATION_STARTED
 
 
 def test_faq_fin_iterator():
@@ -843,7 +843,7 @@ def test_faq_fin_iterator():
     trainer.run(data_iter, max_epochs=5)
 
     assert trainer.state.epoch == 5
-    assert trainer.state.iteration == 5 * size
+    assert trainer.state.iteration == (5 * size) + 1  # add one because we return max: ITERATION_STARTED
 
     # Code snippet from FAQ
     # import torch
@@ -867,7 +867,7 @@ def test_faq_fin_iterator():
     evaluator.run(data_iter)
 
     assert evaluator.state.epoch == 1
-    assert evaluator.state.iteration == size
+    assert evaluator.state.iteration == size + 1  # add one because we return max: ITERATION_STARTED
 
 
 def test_set_data():
@@ -938,11 +938,23 @@ def test_epoch_events_fired():
 
 
 def test_is_done_with_max_iters():
-    state = State(iteration=100, epoch=1, max_epochs=3, epoch_length=100, max_iters=250)
-    assert not Engine._is_done(state)
+    def update_fn(engine, batch):
+        pass
 
-    state = State(iteration=250, epoch=1, max_epochs=3, epoch_length=100, max_iters=250)
-    assert Engine._is_done(state)
+    engine = Engine(update_fn)
+    engine.state.iteration = 100
+    engine.state.epoch = 1
+    engine.state.max_epochs = 3
+    engine.state.epoch_length = 100
+    engine.state.max_iters = 250
+    assert not engine._is_done(engine.state)
+
+    engine.state.iteration = 250
+    engine.state.epoch = 1
+    engine.state.max_epochs = 3
+    engine.state.epoch_length = 100
+    engine.state.max_iters = 250
+    assert engine._is_done(engine.state)
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")

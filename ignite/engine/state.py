@@ -48,8 +48,8 @@ class State(EventsDrivenState):
     def __init__(self, **kwargs: Any) -> None:
         super(State, self).__init__(**kwargs)
 
-        self.iteration = 0
-        self.epoch = 0
+        # self.iteration = 0
+        # self.epoch = 0
         self.epoch_length = None  # type: Optional[int]
         self.max_epochs = None  # type: Optional[int]
         self.max_iters = None  # type: Optional[int]
@@ -66,7 +66,7 @@ class State(EventsDrivenState):
         for k, v in kwargs.items():
             setattr(self, k, v)
 
-        self._update_attrs()
+        # self._update_attrs()
 
     def _update_attrs(self) -> None:
         for value in self.event_to_attr.values():
