@@ -13,6 +13,7 @@ Complete list of handlers
     checkpoint.Checkpoint
     DiskSaver
     checkpoint.ModelCheckpoint
+    ema_handler.EMAHandler
     early_stopping.EarlyStopping
     lr_finder.FastaiLRFinder
     terminate_on_nan.TerminateOnNan
