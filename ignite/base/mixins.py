@@ -89,7 +89,7 @@ class EventsDriven:
                 from :class:`~ignite.engine.events.Events` or any ``event_name`` added by
                 :meth:`~ignite.base.EventsDriven.register_events`.
             handler (callable): the callable event handler that should be invoked. No restrictions on its signature.
-                The first argument can be optionally `engine`, the :class:`~ignite.base.mixins.EventsDriven` object,
+                The first argument can be optionally `engine`, the :class:`~ignite.base.EventsDriven` object,
                 handler is bound to.
             *args: optional args to be passed to ``handler``.
             **kwargs: optional keyword args to be passed to ``handler``.
