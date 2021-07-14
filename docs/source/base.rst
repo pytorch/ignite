@@ -1,12 +1,12 @@
 ignite.base
 ============
 
-Base module for ignite.engine.engine and ignire.engine.state
+Base module for `ignite.engine.engine` and `ignire.engine.state`
 
-ignite.base.mixins
--------------------
+ignite.base
+-----------
 
-.. currentmodule:: ignite.base.mixins
+.. currentmodule:: ignite.base
 
 .. autosummary::
     :nosignatures:
