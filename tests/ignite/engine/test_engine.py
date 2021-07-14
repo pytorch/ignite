@@ -159,6 +159,37 @@ def test_terminate_epoch_stops_mid_epoch():
     assert state.iteration == true_value
 
 
+def test_epoch_values_if_terminated_on_iteration():
+    # test: https://github.com/pytorch/ignite/issues/1386
+    stop_iter = 50
+    epoch_length = 100
+    max_epochs = 2
+
+    trainer = Engine(lambda e, b: b)
+    state = trainer.state
+
+    @trainer.on(Events.ITERATION_COMPLETED(every=stop_iter))
+    def stop():
+        trainer.terminate()
+
+    data = list(range(epoch_length))
+
+    state = trainer.run(data, max_epochs=max_epochs, epoch_length=epoch_length)
+    assert state.epoch == 1
+
+    state = trainer.run(data, max_epochs=max_epochs, epoch_length=epoch_length)
+    assert state.epoch == 2
+
+    state = trainer.run(data, max_epochs=max_epochs, epoch_length=epoch_length)
+    assert state.epoch == 1
+
+    state = trainer.run(data, max_epochs=max_epochs, epoch_length=epoch_length)
+    assert state.epoch == 2
+
+    state = trainer.run(data, max_epochs=max_epochs, epoch_length=epoch_length)
+    assert state.epoch == 1
+
+
 def _create_mock_data_loader(epochs, batches_per_epoch):
     batches = [MagicMock()] * batches_per_epoch
     data_loader_manager = MagicMock()
