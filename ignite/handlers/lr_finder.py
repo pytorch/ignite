@@ -122,7 +122,7 @@ class FastaiLRFinder:
             start_lr = optimizer.param_groups[0]["lr"]
         # Initialize the proper learning rate policy
         if step_mode.lower() == "exp":
-            start_lr = [start_lr] * len(optimizer.param_groups)
+            start_lr = [start_lr] * len(optimizer.param_groups)  # type: ignore
             self._lr_schedule = LRScheduler(_ExponentialLR(optimizer, start_lr, end_lr, num_iter))
         else:
             self._lr_schedule = PiecewiseLinear(
@@ -430,6 +430,8 @@ class FastaiLRFinder:
                 raise TypeError(f"if provided, num_iter should be an integer, but give {num_iter}")
             if num_iter <= 0:
                 raise ValueError(f"if provided, num_iter should be positive, but give {num_iter}")
+        if start_lr >= end_lr:
+            raise ValueError(f"start_lr must be less than end_lr, start_lr={start_lr} vs end_lr={end_lr}")
 
         # store to_save
         with tempfile.TemporaryDirectory() as tmpdirname:
