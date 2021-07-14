@@ -220,21 +220,7 @@ class Engine(Serializable, EventsDriven):
             # engine.state contains an attribute time_iteration, which can be accessed using engine.state.time_iteration
         """
         super(Engine, self).register_events(*event_names, event_to_attr=event_to_attr)
-
-        # ! That doesn't work for now becuase of __setattr__ method in EventsDrivenState
-        # ! When update_mapping called _attr_to_events is not empty anymore
-        # ! and that defines evnts in __setattr__ and that makes _allowed_events_counts updated
         self._state.update_mapping(event_to_attr)
-        # ! update_mapping must be used, it registers any new custom events
-
-        # for index, e in enumerate(event_names):
-        #     # ! this check resolves mypy for now
-        #     if not isinstance(e, (str, EventEnum)):
-        #         raise TypeError(f"Value at {index} of event_names should be a str or EventEnum, but given {e}")
-        #     if event_to_attr and e in event_to_attr:
-        #         State.event_to_attr[e] = event_to_attr[e]
-        # we need to update state attributes associated with new custom events
-        # self.state._update_attrs()
 
     def add_event_handler(self, event_name: Any, handler: Callable, *args: Any, **kwargs: Any) -> RemovableEventHandle:
         """Add an event handler to be executed when the specified event is fired.
@@ -474,15 +460,15 @@ class Engine(Serializable, EventsDriven):
     def _is_done(self, state: State) -> bool:
         # if isinstance(self.state.max_iters, int):
         is_done_iters = (
-            state.max_iters is not None and self._allowed_events_counts[Events.ITERATION_COMPLETED] >= state.max_iters
+            state.max_iters is not None and self._allowed_events_counts[Events.ITERATION_STARTED] >= state.max_iters
         )  # mypy: ignore
         is_done_count = (
             state.epoch_length is not None
             and state.max_epochs is not None
-            and self._allowed_events_counts[Events.ITERATION_COMPLETED] >= state.epoch_length * state.max_epochs
+            and self._allowed_events_counts[Events.ITERATION_STARTED] >= state.epoch_length * state.max_epochs
         )
         is_done_epochs = (
-            state.max_epochs is not None and self._allowed_events_counts[Events.EPOCH_COMPLETED] >= state.max_epochs
+            state.max_epochs is not None and self._allowed_events_counts[Events.EPOCH_STARTED] >= state.max_epochs
         )
         return is_done_iters or is_done_count or is_done_epochs
 
@@ -622,10 +608,7 @@ class Engine(Serializable, EventsDriven):
 
             # self.state.iteration = 0
             # self.state.epoch = 0
-            # # This will reset everything and custom event counters too -> state.custom_attribute
-            # # Is it OK ?
-            # # Cross-Val use-case with events on fold will be reset too ?
-            # self._reset_allowed_events_counts()
+            self._reset_allowed_events_counts()
             self.state.max_epochs = max_epochs
             self.state.max_iters = max_iters
             self.state.epoch_length = epoch_length

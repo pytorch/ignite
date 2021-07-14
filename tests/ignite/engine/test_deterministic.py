@@ -801,9 +801,8 @@ def _test_gradients_on_resume(
 
 
 def test_gradients_on_resume_cpu(dirname):
-    # TODO: uncomment this
-    # with pytest.raises(AssertionError):
-    #     _test_gradients_on_resume(dirname, "cpu", with_dataaugs=True, save_iter=25)
+    with pytest.raises(AssertionError):
+        _test_gradients_on_resume(dirname, "cpu", with_dataaugs=True, save_iter=25)
     _test_gradients_on_resume(dirname, "cpu", with_dataaugs=False, save_iter=25)
     # resume from epoch
     _test_gradients_on_resume(dirname, "cpu", with_dataaugs=True, save_epoch=3)
@@ -861,7 +860,7 @@ def test_run_finite_iterator_no_epoch_length():
     engine.run(data_iter, max_epochs=5)
 
     assert engine.state.epoch == 5
-    assert engine.state.iteration == unknown_size * 5
+    assert engine.state.iteration == (unknown_size * 5) + 1  # add one because we fetch max: ITERATION_STARTED
 
 
 class OldDataLoader(DataLoader):

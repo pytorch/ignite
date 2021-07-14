@@ -270,8 +270,6 @@ def test_state_repr():
     metrics = {"accuracy": Mock()}
     state = State(dataloader=data, max_epochs=max_epochs, metrics=metrics)
     s = repr(state)
-    # assert "iteration" in s
-    # assert "epoch" in s
     assert "max_epochs: 1" in s
     assert "dataloader" in s
     assert "metrics" in s
@@ -688,7 +686,7 @@ def test_run_finite_iterator_no_epoch_length():
     engine.run(data_iter, max_epochs=5)
 
     assert engine.state.epoch == 5
-    assert engine.state.iteration == (unknown_size * 5) + 1  # add one because we return max: ITERATION_STARTED
+    assert engine.state.iteration == (unknown_size * 5) + 1  # add one because we fetch max: ITERATION_STARTED
 
 
 def test_run_finite_iterator_no_epoch_length_2():
@@ -711,7 +709,7 @@ def test_run_finite_iterator_no_epoch_length_2():
     engine.run(data_iter, max_epochs=5)
 
     assert engine.state.epoch == 5
-    assert engine.state.iteration == (known_size * 5) + 1  # add one because we return max: ITERATION_STARTED
+    assert engine.state.iteration == (known_size * 5) + 1  # add one because we fetch max: ITERATION_STARTED
 
 
 def test_faq_inf_iterator_with_epoch_length():
@@ -791,7 +789,7 @@ def test_faq_fin_iterator_unknw_size():
     trainer.run(data_iter, max_epochs=5)
 
     assert trainer.state.epoch == 5
-    assert trainer.state.iteration == (5 * 11) + 1  # add one because we return max: ITERATION_STARTED
+    assert trainer.state.iteration == (5 * 11) + 1  # add one because we fetch max: ITERATION_STARTED
 
     # Code snippet from FAQ
     # import torch
@@ -813,7 +811,7 @@ def test_faq_fin_iterator_unknw_size():
     evaluator.run(data_iter)
 
     assert evaluator.state.epoch == 1
-    assert evaluator.state.iteration == (1 * 11) + 1  # add one because we return max: ITERATION_STARTED
+    assert evaluator.state.iteration == (1 * 11) + 1  # add one because we fetch max: ITERATION_STARTED
 
 
 def test_faq_fin_iterator():
@@ -843,7 +841,7 @@ def test_faq_fin_iterator():
     trainer.run(data_iter, max_epochs=5)
 
     assert trainer.state.epoch == 5
-    assert trainer.state.iteration == (5 * size) + 1  # add one because we return max: ITERATION_STARTED
+    assert trainer.state.iteration == (5 * size) + 1  # add one because we fetch max: ITERATION_STARTED
 
     # Code snippet from FAQ
     # import torch
@@ -867,7 +865,7 @@ def test_faq_fin_iterator():
     evaluator.run(data_iter)
 
     assert evaluator.state.epoch == 1
-    assert evaluator.state.iteration == size + 1  # add one because we return max: ITERATION_STARTED
+    assert evaluator.state.iteration == size + 1  # add one because we fetch max: ITERATION_STARTED
 
 
 def test_set_data():
