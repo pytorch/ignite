@@ -13,86 +13,29 @@ import torch
 from torch.optim.lr_scheduler import _LRScheduler
 from torch.optim.optimizer import Optimizer
 
-from ignite.engine import Engine
+from ignite.engine import CallableEventWithFilter, Engine, Events, EventsList
 
 
-class ParamScheduler(metaclass=ABCMeta):
-    """An abstract class for updating an optimizer's parameter value during
+class BaseParamScheduler(metaclass=ABCMeta):
+    r"""An abstract class for updating an engine state or optimizer's parameter value during
     training.
 
     Args:
-        optimizer: torch optimizer or any object with attribute ``param_groups``
-            as a sequence.
-        param_name: name of optimizer's parameter to update.
+        param_name: name of engine state or optimizer's parameter to update.
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
-        param_group_index: optimizer's parameters group to use
 
-    Note:
-        Parameter scheduler works independently of the internal state of the attached optimizer.
-        More precisely, whatever the state of the optimizer (newly created or used by another scheduler) the scheduler
-        sets defined absolute values.
+    .. versionadded:: 0.6.0
 
-    .. versionadded:: 0.5.1
     """
 
     def __init__(
-        self,
-        optimizer: Optimizer,
-        param_name: str,
-        save_history: bool = False,
-        param_group_index: Optional[int] = None,
+        self, param_name: str, save_history: bool = False,
     ):
-
-        if not (
-            isinstance(optimizer, Optimizer)
-            or (hasattr(optimizer, "param_groups") and isinstance(optimizer.param_groups, Sequence))
-        ):
-            raise TypeError(
-                "Argument optimizer should be torch.optim.Optimizer or has attribute 'param_groups' as list/tuple, "
-                f"but given {type(optimizer)}"
-            )
-
-        self.optimizer = optimizer
-        self.param_group_index = param_group_index
         self.param_name = param_name
         self.event_index = 0
         self._save_history = save_history
-        self._state_attrs = ["event_index", "param_name", "save_history", "param_group_index"]
-
-    def __call__(self, engine: Optional[Engine], name: Optional[str] = None) -> None:
-
-        value = self.get_param()
-
-        if isinstance(value, list):
-            if len(value) != len(self.optimizer_param_groups):
-                raise ValueError(
-                    "size of value is different than optimizer_param_groups "
-                    f"{len(value)} != {len(self.optimizer_param_groups)}"
-                )
-
-            for i, param_group in enumerate(self.optimizer_param_groups):
-                param_group[self.param_name] = value[i]
-        else:
-            for i, param_group in enumerate(self.optimizer_param_groups):
-                param_group[self.param_name] = value
-
-        if name is None:
-            name = self.param_name
-
-        if self.save_history and engine:
-            if not hasattr(engine.state, "param_history") or engine.state.param_history is None:  # type: ignore
-                setattr(engine.state, "param_history", {})
-            engine.state.param_history.setdefault(name, [])  # type: ignore[attr-defined]
-            values = [pg[self.param_name] for pg in self.optimizer_param_groups]
-            engine.state.param_history[name].append(values)  # type: ignore[attr-defined]
-        self.event_index += 1
-
-    @property
-    def optimizer_param_groups(self) -> List[Dict[str, Any]]:
-        if self.param_group_index is None:
-            return self.optimizer.param_groups
-        return [self.optimizer.param_groups[self.param_group_index]]
+        self._state_attrs = ["event_index", "param_name", "save_history"]
 
     @property
     def save_history(self) -> bool:
@@ -103,11 +46,11 @@ class ParamScheduler(metaclass=ABCMeta):
         self._save_history = value
 
     def state_dict(self) -> Dict[str, Any]:
-        """Returns a dictionary containing a whole state of ParamScheduler.
+        """Returns a dictionary containing a whole state of BaseParamScheduler.
 
         Returns:
             dict:
-                a dictionary containing a whole state of ParamScheduler
+                a dictionary containing a whole state of BaseParamScheduler
         """
         destination = OrderedDict()
         for name in self._state_attrs:
@@ -119,7 +62,7 @@ class ParamScheduler(metaclass=ABCMeta):
         return destination
 
     def load_state_dict(self, state_dict: Mapping) -> None:
-        """Copies parameters from :attr:`state_dict` into this ParamScheduler.
+        """Copies parameters from :attr:`state_dict` into this BaseParamScheduler.
 
         Args:
             state_dict: a dict containing parameters.
@@ -141,7 +84,7 @@ class ParamScheduler(metaclass=ABCMeta):
 
     @abstractmethod
     def get_param(self) -> Union[List[float], float]:
-        """Method to get current optimizer's parameter values
+        """Method to get current parameter values
 
         Returns:
             list of params, or scalar param
@@ -149,40 +92,9 @@ class ParamScheduler(metaclass=ABCMeta):
         pass
 
     @classmethod
+    @abstractmethod
     def simulate_values(cls, num_events: int, **scheduler_kwargs: Any) -> List[List[int]]:
-        """Method to simulate scheduled values during `num_events` events.
-
-        Args:
-            num_events: number of events during the simulation.
-            scheduler_kwargs: parameter scheduler configuration kwargs.
-
-        Returns:
-            event_index, value
-
-        Examples:
-
-        .. code-block:: python
-
-            lr_values = np.array(LinearCyclicalScheduler.simulate_values(num_events=50, param_name='lr',
-                                                                         start_value=1e-1, end_value=1e-3,
-                                                                         cycle_size=10))
-
-            plt.plot(lr_values[:, 0], lr_values[:, 1], label="learning rate")
-            plt.xlabel("events")
-            plt.ylabel("values")
-            plt.legend()
-
-        """
-        keys_to_remove = ["optimizer", "save_history"]
-        for key in keys_to_remove:
-            if key in scheduler_kwargs:
-                del scheduler_kwargs[key]
-        values = []
-        scheduler = cls(optimizer=_get_fake_optimizer(), save_history=False, **scheduler_kwargs)
-        for i in range(num_events):
-            scheduler(engine=None)
-            values.append([i, scheduler.optimizer_param_groups[0][scheduler.param_name]])
-        return values
+        pass
 
     @classmethod
     def plot_values(cls, num_events: int, **scheduler_kwargs: Mapping) -> Any:
@@ -227,37 +139,82 @@ class ParamScheduler(metaclass=ABCMeta):
         return ax
 
 
-class StateParameterScheduler(ParamScheduler):
-    """An abstract class for updating a state parameter during
-    training not belonging to an Optimizer parameter group.
+class ParamScheduler(BaseParamScheduler):
+    """An abstract class for updating an optimizer's parameter value during
+    training.
 
     Args:
-        parameter_setter: function that sets the required parameter value.
-        param_name: name of parameter to update.
+        optimizer: torch optimizer or any object with attribute ``param_groups``
+            as a sequence.
+        param_name: name of optimizer's parameter to update.
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
+        param_group_index: optimizer's parameters group to use
 
-    .. versionadded:: 0.6.0
+    Note:
+        Parameter scheduler works independently of the internal state of the attached optimizer.
+        More precisely, whatever the state of the optimizer (newly created or used by another scheduler) the scheduler
+        sets defined absolute values.
+
+    .. versionadded:: 0.5.1
+    .. versionchanged:: 0.6.0
+
     """
 
     def __init__(
-        self, parameter_setter: Callable, param_name: str, save_history: bool = False,
+        self,
+        optimizer: Optimizer,
+        param_name: str,
+        save_history: bool = False,
+        param_group_index: Optional[int] = None,
     ):
-        self.param_name = param_name
-        self.event_index = 0
-        self._save_history = save_history
-        self.parameter_setter = parameter_setter
-        self._state_attrs = ["event_index", "param_name", "save_history", "parameter_setter"]
+        super(ParamScheduler, self).__init__(param_name, save_history)
+        if not (
+            isinstance(optimizer, Optimizer)
+            or (hasattr(optimizer, "param_groups") and isinstance(optimizer.param_groups, Sequence))
+        ):
+            raise TypeError(
+                "Argument optimizer should be torch.optim.Optimizer or has attribute 'param_groups' as list/tuple, "
+                f"but given {type(optimizer)}"
+            )
+
+        self.optimizer = optimizer
+        self.param_group_index = param_group_index
+        self._state_attrs += ["param_group_index"]
 
     def __call__(self, engine: Optional[Engine], name: Optional[str] = None) -> None:
-        self.event_index += 1
+
         value = self.get_param()
-        self.parameter_setter(value)
+
+        if isinstance(value, list):
+            if len(value) != len(self.optimizer_param_groups):
+                raise ValueError(
+                    "size of value is different than optimizer_param_groups "
+                    f"{len(value)} != {len(self.optimizer_param_groups)}"
+                )
+
+            for i, param_group in enumerate(self.optimizer_param_groups):
+                param_group[self.param_name] = value[i]
+        else:
+            for i, param_group in enumerate(self.optimizer_param_groups):
+                param_group[self.param_name] = value
+
+        if name is None:
+            name = self.param_name
+
         if self.save_history and engine:
             if not hasattr(engine.state, "param_history") or engine.state.param_history is None:  # type: ignore
                 setattr(engine.state, "param_history", {})
-            engine.state.param_history.setdefault(self.param_name, [])  # type: ignore[attr-defined]
-            engine.state.param_history[self.param_name].append(value)  # type: ignore[attr-defined]
+            engine.state.param_history.setdefault(name, [])  # type: ignore[attr-defined]
+            values = [pg[self.param_name] for pg in self.optimizer_param_groups]
+            engine.state.param_history[name].append(values)  # type: ignore[attr-defined]
+        self.event_index += 1
+
+    @property
+    def optimizer_param_groups(self) -> List[Dict[str, Any]]:
+        if self.param_group_index is None:
+            return self.optimizer.param_groups
+        return [self.optimizer.param_groups[self.param_group_index]]
 
     @classmethod
     def simulate_values(cls, num_events: int, **scheduler_kwargs: Any) -> List[List[int]]:
@@ -284,34 +241,149 @@ class StateParameterScheduler(ParamScheduler):
             plt.legend()
 
         """
-        keys_to_remove = ["parameter_setter", "save_history"]
+        keys_to_remove = ["optimizer", "save_history"]
         for key in keys_to_remove:
             if key in scheduler_kwargs:
                 del scheduler_kwargs[key]
         values = []
-        scheduler = cls(parameter_setter=_get_fake_param_setter(), save_history=False, **scheduler_kwargs)
+        scheduler = cls(optimizer=_get_fake_optimizer(), save_history=False, **scheduler_kwargs)
         for i in range(num_events):
             scheduler(engine=None)
-            values.append([i, scheduler.parameter_setter.__closure__[0].cell_contents])  # type: ignore[attr-defined]
+            values.append([i, scheduler.optimizer_param_groups[0][scheduler.param_name]])
+        return values
+
+
+class StateParameterScheduler(BaseParamScheduler):
+    """An abstract class for updating an engine state parameter values during training.
+
+    Args:
+        param_name: name of parameter to update.
+        save_history: whether to log the parameter values to
+            `engine.state.param_history`, (default=False).
+
+    Note:
+        Parameter scheduler works independently of the internal state of the attached engine.
+        More precisely, whatever the state of the engine (newly created or used by another scheduler) the scheduler
+        sets defined absolute values.
+
+    .. versionadded:: 0.6.0
+
+    """
+
+    def __init__(
+        self, param_name: str, save_history: bool = False,
+    ):
+        super(StateParameterScheduler, self).__init__(param_name, save_history)
+
+    def attach(
+        self,
+        engine: Engine,
+        event: Union[str, Events, CallableEventWithFilter, EventsList] = Events.ITERATION_COMPLETED,
+    ) -> None:
+        """Attach the handler to engine. After the handler is attached, the ``Engine.state`` will add a new attribute
+        with name ``param_name``. Then, current parameter value can be retrieved by from ``Engine.state`` when the
+        engine runs.
+
+        Args:
+            engine: trainer to which the handler will be attached.
+            event: trigger ``param_name`` value update.
+
+        """
+        if hasattr(engine.state, self.param_name):
+            raise ValueError(
+                f"Attribute: '{self.param_name}' is already in Engine.state and might be "
+                f"overridden by other StateParameterScheduler handlers. Please select another name."
+            )
+
+        engine.add_event_handler(event, self)
+
+    def __call__(self, engine: Engine) -> None:
+        self.event_index += 1
+        value = self.get_param()
+        setattr(engine.state, self.param_name, value)
+        if self.save_history and engine:
+            if not hasattr(engine.state, "param_history") or engine.state.param_history is None:  # type: ignore
+                setattr(engine.state, "param_history", {})
+            engine.state.param_history.setdefault(self.param_name, [])  # type: ignore[attr-defined]
+            engine.state.param_history[self.param_name].append(value)  # type: ignore[attr-defined]
+
+    @classmethod
+    def simulate_values(cls, num_events: int, **scheduler_kwargs: Any) -> List[List[int]]:
+        """Method to simulate scheduled engine state parameter values during `num_events` events.
+
+        Args:
+            num_events: number of events during the simulation.
+            scheduler_kwargs: parameter scheduler configuration kwargs.
+
+        Returns:
+            event_index, value
+
+        Examples:
+
+        .. code-block:: python
+
+            import matplotlib.pyplot as plt
+            import numpy as np
+
+            step_state_param_values = np.array(
+                StepStateParameterScheduler.simulate_values(
+                    num_events=20, param_name="step_scheduled_param", initial_value=10, gamma=0.99, step_size=5
+                )
+            )
+
+            plt.plot(step_state_param_values[:, 0], step_state_param_values[:, 1], label="learning rate")
+            plt.xlabel("events")
+            plt.ylabel("values")
+            plt.legend()
+
+        """
+        keys_to_remove = ["save_history"]
+        for key in keys_to_remove:
+            if key in scheduler_kwargs:
+                del scheduler_kwargs[key]
+        values = []
+        scheduler = cls(save_history=False, **scheduler_kwargs)
+        engine = Engine(lambda e, b: None)
+        for i in range(num_events):
+            scheduler(engine=engine)
+            values.append([i, getattr(engine.state, scheduler_kwargs["param_name"])])
         return values
 
 
 class LambdaStateParameterScheduler(StateParameterScheduler):
     """Update a parameter during training by using a user defined function.
-        User defined function is taking an event index as input and returns a float value.
+        User defined function is taking an event index as input and returns parameter value.
 
     Args:
-        parameter_setter: function that sets the required parameter value.
         lambda_fn: user defined parameter update function.
         param_name: name of parameter to update.
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
 
+    Examples:
+
+        .. code-block:: python
+
+            ...
+            engine = Engine(train_step)
+
+            initial_value = 10
+            gamma = 0.99
+
+            lambda_state_parameter_scheduler = LambdaStateParameterScheduler(
+                param_name="custom_scheduled_param",
+                lambda_fn=lambda event_index: initial_value * gamma ** (event_index % 9),
+            )
+
+            lambda_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
+            engine.run([0] * 8, max_epochs=2)
+
     .. versionadded:: 0.6.0
+
     """
 
-    def __init__(self, parameter_setter: Callable, lambda_fn: Callable, param_name: str, save_history: bool = False):
-        super(LambdaStateParameterScheduler, self).__init__(parameter_setter, param_name, save_history)
+    def __init__(self, lambda_fn: Callable, param_name: str, save_history: bool = False):
+        super(LambdaStateParameterScheduler, self).__init__(param_name, save_history)
         self.lambda_fn = lambda_fn
         self._state_attrs += ["lambda_fn"]
 
@@ -329,10 +401,23 @@ class LinearStateParameterScheduler(StateParameterScheduler):
         step_constant : step index until parameter's value is kept constant.
         step_max_value : step index at which parameter's value becomes max_value.
         max_value : max parameter value.
-        parameter_setter: function that sets the required parameter value.
         param_name: name of parameter to update.
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
+
+    Examples:
+
+        .. code-block:: python
+
+            ...
+            engine = Engine(train_step)
+
+            linear_state_parameter_scheduler = LinearStateParameterScheduler(
+                param_name="linear_scheduled_param", initial_value=0, step_constant=2, step_max_value=5, max_value=10,
+            )
+
+            linear_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
+            engine.run([0] * 8, max_epochs=10)
 
     .. versionadded:: 0.6.0
     """
@@ -343,11 +428,10 @@ class LinearStateParameterScheduler(StateParameterScheduler):
         step_constant: int,
         step_max_value: int,
         max_value: float,
-        parameter_setter: Callable,
         param_name: str,
         save_history: bool = False,
     ):
-        super(LinearStateParameterScheduler, self).__init__(parameter_setter, param_name, save_history)
+        super(LinearStateParameterScheduler, self).__init__(param_name, save_history)
         self.initial_value = initial_value
         self.step_constant = step_constant
         self.step_max_value = step_max_value
@@ -376,25 +460,34 @@ class ExponentialStateParameterScheduler(StateParameterScheduler):
     https://github.com/pytorch/pytorch/blob/master/torch/optim/lr_scheduler.py#L457
 
     Args:
-        parameter_setter: function that sets the required parameter value.
         initial_value: Starting value of the parameter.
         gamma: Multiplicative factor of parameter value decay.
         param_name: name of parameter to update.
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
 
+    Examples:
+
+        .. code-block:: python
+
+            ...
+            engine = Engine(train_step)
+
+            exp_state_parameter_scheduler = ExponentialStateParameterScheduler(
+                param_name="exp_scheduled_param", initial_value=10, gamma=0.99
+            )
+
+            exp_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
+            engine.run([0] * 8, max_epochs=2)
+
     .. versionadded:: 0.6.0
+
     """
 
     def __init__(
-        self,
-        parameter_setter: Callable,
-        initial_value: float,
-        gamma: float,
-        param_name: str,
-        save_history: bool = False,
+        self, initial_value: float, gamma: float, param_name: str, save_history: bool = False,
     ):
-        super(ExponentialStateParameterScheduler, self).__init__(parameter_setter, param_name, save_history)
+        super(ExponentialStateParameterScheduler, self).__init__(param_name, save_history)
         self.initial_value = initial_value
         self.gamma = gamma
         self._state_attrs += ["initial_value", "gamma"]
@@ -410,7 +503,6 @@ class StepStateParameterScheduler(StateParameterScheduler):
     https://github.com/pytorch/pytorch/blob/master/torch/optim/lr_scheduler.py#L377
 
     Args:
-        parameter_setter: function that sets the required parameter value.
         initial_value: Starting value of the parameter.
         gamma: Multiplicative factor of parameter value decay.
         step_size: Period of parameter value decay.
@@ -418,19 +510,28 @@ class StepStateParameterScheduler(StateParameterScheduler):
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
 
+    Examples:
+
+        .. code-block:: python
+
+            ...
+            engine = Engine(train_step)
+
+            step_state_parameter_scheduler = StepStateParameterScheduler(
+                param_name="step_scheduled_param", initial_value=10, gamma=0.99, step_size=5
+            )
+
+            step_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
+            engine.run([0] * 8, max_epochs=10)
+
     .. versionadded:: 0.6.0
+
     """
 
     def __init__(
-        self,
-        parameter_setter: Callable,
-        initial_value: float,
-        gamma: float,
-        step_size: int,
-        param_name: str,
-        save_history: bool = False,
+        self, initial_value: float, gamma: float, step_size: int, param_name: str, save_history: bool = False,
     ):
-        super(StepStateParameterScheduler, self).__init__(parameter_setter, param_name, save_history)
+        super(StepStateParameterScheduler, self).__init__(param_name, save_history)
         self.initial_value = initial_value
         self.gamma = gamma
         self.step_size = step_size
@@ -447,7 +548,6 @@ class MultiStepStateParameterScheduler(StateParameterScheduler):
     https://github.com/pytorch/pytorch/blob/master/torch/optim/lr_scheduler.py#L424
 
     Args:
-        parameter_setter: function that sets the required parameter value.
         initial_value: Starting value of the parameter.
         gamma: Multiplicative factor of parameter value decay.
         milestones: List of step indices. Must be increasing.
@@ -455,19 +555,28 @@ class MultiStepStateParameterScheduler(StateParameterScheduler):
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
 
+    Examples:
+
+        .. code-block:: python
+
+            ...
+            engine = Engine(train_step)
+
+            multi_step_state_parameter_scheduler = MultiStepStateParameterScheduler(
+                param_name="multistep_scheduled_param", initial_value=10, gamma=0.99, milestones=[3, 6],
+            )
+
+            multi_step_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
+            engine.run([0] * 8, max_epochs=10)
+
     .. versionadded:: 0.6.0
+
     """
 
     def __init__(
-        self,
-        parameter_setter: Callable,
-        initial_value: float,
-        gamma: float,
-        milestones: List[int],
-        param_name: str,
-        save_history: bool = False,
+        self, initial_value: float, gamma: float, milestones: List[int], param_name: str, save_history: bool = False,
     ):
-        super(MultiStepStateParameterScheduler, self).__init__(parameter_setter, param_name, save_history)
+        super(MultiStepStateParameterScheduler, self).__init__(param_name, save_history)
         self.initial_value = initial_value
         self.gamma = gamma
         self.milestones = milestones
@@ -1386,13 +1495,3 @@ def _get_fake_optimizer(
         optimizer_cls = torch.optim.SGD
         kwargs["lr"] = 0.01
     return optimizer_cls([t], **kwargs)
-
-
-def _get_fake_param_setter() -> Callable:
-    inner_param_value = 0.0
-
-    def param_setter(param_value: float) -> None:
-        nonlocal inner_param_value
-        inner_param_value = param_value
-
-    return param_setter
