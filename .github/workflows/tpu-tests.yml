@@ -51,7 +51,7 @@ jobs:
 
       - name: Install Torch XLA and others
         run: |
-          
+
           ## Install openblas, mkl, gsutil
           sudo apt-get install -y libopenblas-dev libomp5-10 libomp5
           pip install mkl requests gsutil
@@ -63,14 +63,6 @@ jobs:
           ## Install test deps and Ignite
           pip install -r requirements-dev.txt
           python setup.py install
-
-      # https://github.com/pytorch/ignite/issues/1884
-      - name: Fix mkl Linking Issue
-        working-directory: /opt/hostedtoolcache/Python/3.7.10/x64/lib
-        run: |
-          ln -s libmkl_intel_lp64.so.1 libmkl_intel_lp64.so
-          ln -s libmkl_intel_thread.so.1 libmkl_intel_thread.so
-          ln -s libmkl_core.so.1 libmkl_core.so
 
       # Download MNIST: https://github.com/pytorch/ignite/issues/1737
       # to "/tmp" for tpu tests
