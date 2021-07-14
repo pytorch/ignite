@@ -87,7 +87,7 @@ class EventsDriven:
         Args:
             event_name: An event or a list of events to attach the handler. Valid events are
                 from :class:`~ignite.engine.events.Events` or any ``event_name`` added by
-                :meth:`~ignite.base.mixins.EventsDriven.register_events`.
+                :meth:`~ignite.base.EventsDriven.register_events`.
             handler (callable): the callable event handler that should be invoked. No restrictions on its signature.
                 The first argument can be optionally `engine`, the :class:`~ignite.base.mixins.EventsDriven` object,
                 handler is bound to.
@@ -199,12 +199,12 @@ class EventsDriven:
         This method executes all handlers associated with the event
         `event_name`. Optional positional and keyword arguments can be used to
         pass arguments to **all** handlers added with this event. These
-        arguments updates arguments passed using :meth:`~ignite.base.mixins.EventsDriven.add_event_handler`.
+        arguments updates arguments passed using :meth:`~ignite.base.EventsDriven.add_event_handler`.
 
         Args:
             event_name: event for which the handlers should be executed. Valid
                 events are from :class:`~ignite.engine.events.Events` or any `event_name` added by
-                :meth:`~ignite.base.mixins.EventsDriven.register_events`.
+                :meth:`~ignite.base.EventsDriven.register_events`.
             *event_args: optional args to be passed to all handlers.
             **event_kwargs: optional keyword args to be passed to all handlers.
         """
@@ -222,7 +222,7 @@ class EventsDriven:
         Args:
             event_name: event for which the handlers should be executed. Valid
                 events are from :class:`~ignite.engine.events.Events` or any `event_name` added by
-                :meth:`~ignite.base.mixins.EventsDriven.register_events`.
+                :meth:`~ignite.base.EventsDriven.register_events`.
 
         """
         self._assert_allowed_event(event_name)
