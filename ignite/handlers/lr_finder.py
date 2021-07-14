@@ -430,7 +430,7 @@ class FastaiLRFinder:
                 raise TypeError(f"if provided, num_iter should be an integer, but give {num_iter}")
             if num_iter <= 0:
                 raise ValueError(f"if provided, num_iter should be positive, but give {num_iter}")
-        if start_lr >= end_lr:
+        if isinstance(start_lr, float) and start_lr >= end_lr:
             raise ValueError(f"start_lr must be less than end_lr, start_lr={start_lr} vs end_lr={end_lr}")
 
         # store to_save
