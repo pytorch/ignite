@@ -8,7 +8,8 @@ from typing import Any, Callable, Iterable, Iterator, List, Optional, Tuple, Uni
 
 from torch.utils.data import DataLoader
 
-from ignite.base import EventsDriven, Serializable
+from ignite.base.events_driven import EventsDriven
+from ignite.base.mixins import Serializable
 from ignite.engine.events import EventEnum, Events, RemovableEventHandle
 from ignite.engine.state import State
 from ignite.engine.utils import _check_signature, _to_hours_mins_secs
@@ -213,7 +214,7 @@ class Engine(Serializable, EventsDriven):
             engine.run(data)
             # engine.state contains an attribute time_iteration, which can be accessed using engine.state.time_iteration
         """
-        super(Engine, self).register_events(*event_names)
+        super(Engine, self).register_events(*event_names, event_to_attr=event_to_attr)
 
         for index, e in enumerate(event_names):
             # Keep the check for mypy

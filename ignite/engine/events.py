@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Callable, Iterator, List, Optional, Union
 from ignite.engine.utils import _check_signature
 
 if TYPE_CHECKING:
-    from ignite.base.mixins import EventsDriven
+    from ignite.base.events_driven import EventsDriven
 
 __all__ = ["CallableEventWithFilter", "EventEnum", "Events", "EventsList", "RemovableEventHandle"]
 
