@@ -801,8 +801,8 @@ def _test_gradients_on_resume(
 
 
 def test_gradients_on_resume_cpu(dirname):
-    # with pytest.raises(AssertionError):
-    # _test_gradients_on_resume(dirname, "cpu", with_dataaugs=True, save_iter=25)
+    with pytest.raises(AssertionError):
+        _test_gradients_on_resume(dirname, "cpu", with_dataaugs=True, save_iter=25)
     _test_gradients_on_resume(dirname, "cpu", with_dataaugs=False, save_iter=25)
     # resume from epoch
     _test_gradients_on_resume(dirname, "cpu", with_dataaugs=True, save_epoch=3)
