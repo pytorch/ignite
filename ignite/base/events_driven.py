@@ -46,7 +46,7 @@ class EventsDriven:
         # we have to build a wrapper with relevant signature : solution is functools.wraps
         @functools.wraps(handler)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            event = self.state.get_event_attrib_value(event_name)
+            event = self.state.get_event_attrib_value(event_name)  # type: ignore
             if event_filter(self, event):
                 return handler(*args, **kwargs)
 
