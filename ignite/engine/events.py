@@ -8,6 +8,7 @@ from ignite.engine.utils import _check_signature
 
 if TYPE_CHECKING:
     from ignite.base.events_driven import EventsDriven
+    from ignite.engine.engine import Engine
 
 __all__ = ["CallableEventWithFilter", "EventEnum", "Events", "EventsList", "RemovableEventHandle"]
 
@@ -95,7 +96,7 @@ class CallableEventWithFilter:
     def every_event_filter(every: int) -> Callable:
         """A wrapper for every event filter."""
 
-        def wrapper(engine: "EventsDriven", event: int) -> bool:
+        def wrapper(engine: "Engine", event: int) -> bool:
             if event % every == 0:
                 return True
             return False
@@ -106,7 +107,7 @@ class CallableEventWithFilter:
     def once_event_filter(once: int) -> Callable:
         """A wrapper for once event filter."""
 
-        def wrapper(engine: "EventsDriven", event: int) -> bool:
+        def wrapper(engine: "Engine", event: int) -> bool:
             if event == once:
                 return True
             return False
@@ -114,7 +115,7 @@ class CallableEventWithFilter:
         return wrapper
 
     @staticmethod
-    def default_event_filter(engine: "EventsDriven", event: int) -> bool:
+    def default_event_filter(engine: "Engine", event: int) -> bool:
         """Default event filter."""
         return True
 
@@ -379,7 +380,7 @@ class RemovableEventHandle:
         self,
         event_name: Union[CallableEventWithFilter, Enum, EventsList, Events],
         handler: Callable,
-        engine: "EventsDriven",
+        engine: Union["Engine", "EventsDriven"],
     ) -> None:
         self.event_name = event_name
         self.handler = weakref.ref(handler)

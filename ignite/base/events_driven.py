@@ -9,7 +9,45 @@ from ignite.engine.utils import _check_signature
 
 
 class EventsDriven:
-    """Base class for events-driven engines without state.
+    """Base class for events-driven engines without state. This class is mainly
+    respoinsible for registring events and fire events, also keep track of
+    the allowed events, and how many time they have been fired.
+
+    Attributes:
+        last_event_name: last event name triggered by the engine.
+
+    Examples:
+
+        Register and fire custom events
+
+        .. code-block:: python
+
+            class ABEvents(EventEnum):
+                A_EVENT = "a_event"
+                B_EVENT = "b_event"
+
+            e = EventsDriven()
+            e.register_events("a", "b", *ABEvents)
+
+            times_a_fired = [0]
+
+            @e.on("a")
+            def handle_a():
+                times_a_fired[0] += 1
+
+            times_b_fired = [0]
+
+            def handle_b():
+                times_b_fired[0] += 1
+
+            e.add_event_handler(ABCEvents.B_EVENT(every=2), handle_b)
+
+            # fire event a
+            e.fire_event("a")
+            e.fire_event("a")
+
+            # fire event b
+            e.fire_event(ABCEvents.B_EVENT)
 
     """
 
@@ -46,7 +84,7 @@ class EventsDriven:
         # we have to build a wrapper with relevant signature : solution is functools.wraps
         @functools.wraps(handler)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            event = self.state.get_event_attrib_value(event_name)  # type: ignore
+            event = self._allowed_events_counts[event_name]
             if event_filter(self, event):
                 return handler(*args, **kwargs)
 
@@ -66,7 +104,7 @@ class EventsDriven:
             event_name: An event or a list of events to attach the handler. Valid events are
                 from :class:`~ignite.engine.events.Events` or any ``event_name`` added by
                 :meth:`~ignite.base.events_driven.EventsDriven.register_events`.
-            handler (callable): the callable event handler that should be invoked. No restrictions on its signature.
+            handler: the callable event handler that should be invoked. No restrictions on its signature.
                 The first argument can be optionally `engine`, the :class:`~ignite.base.events_driven.EventsDriven`
                 object, handler is bound to.
             *args: optional args to be passed to ``handler``.
@@ -214,6 +252,14 @@ class EventsDriven:
 class EventsDrivenState:
     """State for EventsDriven class. State attributes are automatically synchronized with
     EventsDriven counters.
+
+    Args:
+        engine: ignite engine :class:`~ignite.base.events_driven.EventsDriven` that used to access
+            the allowed events and their counters.
+        event_to_attr: mapping consists of the events from :class:`~ignite.engine.events.Events`
+            or any other custom events added by :meth:`~ignite.base.events_driven.EventsDriven.register_events`.
+        **kwargs: optional keyword args.
+
     """
 
     def __init__(
@@ -261,6 +307,12 @@ class EventsDrivenState:
         super().__setattr__(attr, value)
 
     def update_mapping(self, event_to_attr: Mapping[Any, str]) -> None:
+        """Looks for the attribute and check if not existed to add it.
+
+        Args:
+            event_to_attr: mapping consists of the events from :class:`~ignite.engine.events.Events`
+            or any other custom events added by :meth:`~ignite.base.events_driven.EventsDriven.register_events`.
+        """
         for k, v in event_to_attr.items():
             attr_evnts = self._attr_to_events[v]
             if k not in attr_evnts:
