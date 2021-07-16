@@ -1,6 +1,6 @@
 import pytest
 
-from ignite.base.mixins import Serializable
+from ignite.base import Serializable
 
 
 def test_state_dict():
