@@ -24,6 +24,53 @@ class ABCEvents(EventEnum):
     C_EVENT = "c_event"
 
 
+def test_invalid_event_to_attr():
+    e = EventsDriven()
+
+    with pytest.raises(ValueError, match=r"Expected event_to_attr to be dictionary"):
+        e.register_events(event_to_attr=["a", "b"])
+
+    with pytest.raises(ValueError, match=r"Expected event_to_attr to be dictionary"):
+        e.register_events(event_to_attr=5)
+
+
+def test_invalid_event_names():
+    e = EventsDriven()
+
+    with pytest.raises(TypeError, match=r"Value at 0 of event_names should be a str or EventEnum"):
+        e.register_events(5)
+
+    with pytest.raises(TypeError, match=r"Value at 0 of event_names should be a str or EventEnum"):
+        e.register_events(["a", "b"])
+
+
+def test_not_allowed_events():
+    e = EventsDriven()
+    e.register_events("a", "b", "c", *ABCEvents)
+
+    with pytest.raises(ValueError, match=r"Event f is not a valid event"):
+        e._assert_allowed_event("f")
+
+    with pytest.raises(ValueError, match=r"Event v is not a valid event"):
+        e._assert_allowed_event("v")
+
+
+def test_remove_not_existed_handler():
+    e = EventsDriven()
+
+    def handler():
+        pass
+
+    with pytest.raises(ValueError, match=r"Input event name 'dummy_event' does not exist"):
+        e.remove_event_handler(handler, event_name="dummy_event")
+
+
+def test_events_driven_state_with_no_engine():
+
+    with pytest.raises(ValueError, match=r"Both engine and event_to_attr should be provided"):
+        es = EventsDrivenState(event_to_attr="a")
+
+
 def test_events_driven_basics():
 
     e = EventsDriven()

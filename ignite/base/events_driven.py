@@ -144,7 +144,7 @@ class EventsDriven:
             and event_name.filter != CallableEventWithFilter.default_event_filter
         ):
             raise TypeError(
-                "Argument event_name should not be a filtered event, " "please use event without any event filtering"
+                "Argument event_name should not be a filtered event, please use event without any event filtering"
             )
 
     def has_event_handler(self, handler: Callable, event_name: Optional[Any] = None) -> bool:
