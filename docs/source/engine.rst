@@ -27,18 +27,8 @@ ignite.engine.events
     EventEnum
     Events
     EventsList
-    RemovableEventHandle
-
-ignite.engine.state
---------------------
-
-.. currentmodule:: ignite.engine.state
-
-.. autosummary::
-    :nosignatures:
-    :toctree: generated
-
     State
+    RemovableEventHandle
 
 ignite.engine.deterministic
 ---------------------------

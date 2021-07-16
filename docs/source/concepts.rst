@@ -329,7 +329,7 @@ epoch:
 State:
 ------
 A state is introduced in :class:`~ignite.engine.engine.Engine` to store the output of the `process_function`, current epoch,
-iteration and other helpful information. Each :class:`~ignite.engine.engine.Engine` contains a :class:`~ignite.engine.state.State`,
+iteration and other helpful information. Each :class:`~ignite.engine.engine.Engine` contains a :class:`~ignite.engine.events.State`,
 which includes the following:
 
 - **engine.state.seed**: Seed to set at each data "epoch".
@@ -339,7 +339,7 @@ which includes the following:
 - **engine.state.output**: The output of the `process_function` defined for the :class:`~ignite.engine.engine.Engine`. See below.
 - etc
 
-Other attributes can be found in the docs of :class:`~ignite.engine.state.State`.
+Other attributes can be found in the docs of :class:`~ignite.engine.events.State`.
 
 In the code below, `engine.state.output` will store the batch loss. This output is used to print the loss at
 every iteration.
@@ -422,7 +422,7 @@ batch, this is how the user can use `output_transform` to get y_pred and y from 
 
 .. Note ::
 
-   A good practice is to use :class:`~ignite.engine.state.State` also as a storage of user data created in update or handler functions.
+   A good practice is to use :class:`~ignite.engine.events.State` also as a storage of user data created in update or handler functions.
    For example, we would like to save `new_attribute` in the `state`:
 
    .. code-block:: python
