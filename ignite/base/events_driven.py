@@ -10,13 +10,13 @@ from ignite.engine.utils import _check_signature
 
 class EventsDriven:
     """Base class for events-driven engines without state. This class is mainly
-    respoinsible for registring events and fire events, also keep track of
-    the allowed events, and how many time they have been fired.
+    responsible for registering events and triggering events, it also keeps track of
+    the allowed events, and how many times they have been triggered.
 
     Attributes:
-        last_event_name: last event name triggered by the engine.
+        last_event_name: last event name triggered.
 
-    Examples:
+    Example:
 
         Register and fire custom events
 
