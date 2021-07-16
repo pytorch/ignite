@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 from ignite.engine.utils import _check_signature
 
 if TYPE_CHECKING:
+    from ignite.base.events_driven import EventsDriven
     from ignite.engine.engine import Engine
 
 __all__ = ["CallableEventWithFilter", "EventEnum", "Events", "State", "EventsList", "RemovableEventHandle"]
@@ -383,6 +384,7 @@ class State:
     }  # type: Dict[Union[str, "Events", "CallableEventWithFilter"], str]
 
     def __init__(self, **kwargs: Any) -> None:
+
         self.iteration = 0
         self.epoch = 0
         self.epoch_length = None  # type: Optional[int]
@@ -453,7 +455,10 @@ class RemovableEventHandle:
     """
 
     def __init__(
-        self, event_name: Union[CallableEventWithFilter, Enum, EventsList, Events], handler: Callable, engine: "Engine"
+        self,
+        event_name: Union[CallableEventWithFilter, Enum, EventsList, Events],
+        handler: Callable,
+        engine: Union["Engine", "EventsDriven"],
     ) -> None:
         self.event_name = event_name
         self.handler = weakref.ref(handler)

@@ -133,6 +133,7 @@ Library structure
    :maxdepth: 2
    :caption: Package Reference
 
+   base
    engine
    handlers
    metrics
