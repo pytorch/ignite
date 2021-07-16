@@ -311,7 +311,7 @@ class EventsDrivenState:
 
         Args:
             event_to_attr: mapping consists of the events from :class:`~ignite.engine.events.Events`
-            or any other custom events added by :meth:`~ignite.base.events_driven.EventsDriven.register_events`.
+                or any other custom events added by :meth:`~ignite.base.events_driven.EventsDriven.register_events`.
         """
         for k, v in event_to_attr.items():
             attr_evnts = self._attr_to_events[v]
