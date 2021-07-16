@@ -1,7 +1,10 @@
 ignite.base
 ============
 
-Base module for `ignite.engine.engine` and `ignire.engine.state`
+Base module for Ignite Engine and State
+
+ignite.base.events_driven
+-------------------------
 
 .. currentmodule:: ignite.base.events_driven
 
