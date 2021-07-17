@@ -385,8 +385,9 @@ class FastaiLRFinder:
             trainer: lr_finder is attached to this trainer. Please, keep in mind that all attached handlers
                 will be executed.
             to_save: dictionary with optimizer and other objects that needs to be restored after running
-                the LR finder. For example, ``to_save={'optimizer': optimizer, 'model': model}``. All objects should
-                implement ``state_dict`` and ``load_state_dict`` methods.
+                the LR finder. For example, ``to_save={'optimizer': optimizer, 'model': model}``.
+                It should contain "optimizer" key for the optimizer.
+                Also all objects should implement ``state_dict`` and ``load_state_dict`` methods.
             output_transform: function that transforms the trainer's ``state.output`` after each
                 iteration. It must return the loss of that iteration.
             num_iter: number of iterations for lr schedule between base lr and end_lr. Default, it will
