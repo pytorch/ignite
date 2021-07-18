@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from ignite.base.events_driven import EventsDriven
     from ignite.engine.engine import Engine
 
-__all__ = ["CallableEventWithFilter", "EventEnum", "Events", "EventsList", "RemovableEventHandle"]
+__all__ = ["CallableEventWithFilter", "EventEnum", "Events", "State", "EventsList", "RemovableEventHandle"]
 
 
 class CallableEventWithFilter:
@@ -345,6 +345,10 @@ class EventsList:
     def __or__(self, other: Union[Events, CallableEventWithFilter]) -> "EventsList":
         self._append(event=other)
         return self
+
+
+# Import state here to keep BC compatibility
+from ignite.engine.state import State
 
 
 class RemovableEventHandle:
