@@ -382,7 +382,7 @@ Simpliest way to fetch time of single epoch and complete training is to use
         print(f"Total: {trainer.state.times['COMPLETED']}")
 
 
-For details, see :class:`~ignite.engine.events.State`.
+For details, see :class:`~ignite.engine.state.State`.
 
 
 Basic time profiling
