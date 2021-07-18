@@ -231,6 +231,17 @@ def test_with_attach(lr_finder, to_save, dummy_engine, dataloader):
         assert len(dummy_engine._event_handlers[event]) == 0
 
 
+def test_wrong_values_start_lr_and_end_lr(lr_finder, to_save, dummy_engine, dataloader):
+
+    with pytest.raises(ValueError, match=r"start_lr must be less than end_lr"):
+        with lr_finder.attach(dummy_engine, to_save=to_save, start_lr=10, end_lr=1) as trainer_with_finder:
+            trainer_with_finder.run(dataloader)
+
+    with pytest.raises(ValueError, match=r"start_lr must be less than end_lr"):
+        with lr_finder.attach(dummy_engine, to_save=to_save, start_lr=10, end_lr=10) as trainer_with_finder:
+            trainer_with_finder.run(dataloader)
+
+
 def test_model_optimizer_reset(lr_finder, to_save, dummy_engine, dataloader):
     optimizer = to_save["optimizer"]
     model = to_save["model"]
@@ -306,6 +317,20 @@ def test_detach_terminates(lr_finder, to_save, dummy_engine, dataloader, recwarn
     dummy_engine.run(dataloader, max_epochs=3)
     assert dummy_engine.state.epoch == 3
     assert len(recwarn) == 0
+
+
+@pytest.mark.parametrize("step_mode", ["exp", "linear"])
+def test_start_lr(lr_finder, to_save, dummy_engine, dataloader, step_mode):
+    with lr_finder.attach(
+        dummy_engine, to_save, start_lr=0.01, end_lr=0.1, num_iter=5, step_mode=step_mode
+    ) as trainer_with_finder:
+        trainer_with_finder.run(dataloader)
+    history = lr_finder.get_results()
+
+    if step_mode == "exp":
+        assert 0.01 < history["lr"][0] < 0.016
+    else:
+        assert pytest.approx(history["lr"][0]) == 0.01
 
 
 def test_engine_output_type(lr_finder, dummy_engine, optimizer):
