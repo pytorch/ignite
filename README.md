@@ -363,6 +363,7 @@ Few pointers to get you started:
 
 ## Additional Materials
 
+- [Distributed Training Made Easy with PyTorch-Ignite](https://labs.quansight.org/blog/2021/06/distributed-made-easy-with-ignite/)
 - [PyTorch Ecosystem Day 2021 Breakout session presentation](https://colab.research.google.com/drive/1qhUgWQ0N2U71IVShLpocyeY4AhlDCPRd)
 - [Tutorial blog post about PyTorch-Ignite](https://labs.quansight.org/blog/2020/09/pytorch-ignite/)
 - [8 Creators and Core Contributors Talk About Their Model Training Libraries From PyTorch Ecosystem](https://neptune.ai/blog/model-training-libraries-pytorch-ecosystem?utm_source=reddit&utm_medium=post&utm_campaign=blog-model-training-libraries-pytorch-ecosystem)
@@ -412,6 +413,12 @@ we provide several reproducible baselines for vision tasks:
 Features:
 
 - Distributed training: native or horovod and using [PyTorch native AMP](https://pytorch.org/docs/stable/notes/amp_examples.html)
+
+## Code-Generator application
+
+The easiest way to create your training scripts with PyTorch-Ignite:
+- https://code-generator.pytorch-ignite.ai/
+
 
 <!-- ############################################################################################################### -->
 
