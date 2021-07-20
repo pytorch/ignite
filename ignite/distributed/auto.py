@@ -27,7 +27,7 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> Union[DataLoader, "_MpDe
     - number of workers is scaled by number of local processes: ``num_workers / nprocs`` if larger or equal world size.
     - if no sampler provided by user, a `torch DistributedSampler`_ is setup.
     - if a `torch DistributedSampler`_ is provided by user, it is used without wrapping it.
-    - if another sampler is provided by user, it is wrapped by :class:`~ignite.distributed.auto.DistributedProxySampler`.
+    - if another sampler is provided, it is wrapped by :class:`~ignite.distributed.auto.DistributedProxySampler`.
     - if the default device is 'cuda', `pin_memory` is automatically set to `True`.
 
     .. warning::
