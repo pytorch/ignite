@@ -302,3 +302,6 @@ def test_dist_proxy_sampler():
 
     with pytest.raises(TypeError, match=r"Argument sampler should have length"):
         DistributedProxySampler(Sampler([1]))
+
+    with pytest.raises(TypeError, match=r"Argument sampler must not be a distributed sampler already"):
+        DistributedProxySampler(DistributedSampler(sampler, num_replicas=num_replicas, rank=0))
