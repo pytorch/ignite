@@ -57,12 +57,14 @@ def test_auto_dataloader_warning_distributed_sampler(distributed_context_single_
     rank = idist.get_rank()
     world_size = idist.get_world_size()
     auto_dataloader(dataset, sampler=DistributedSampler(dataset, num_replicas=world_size, rank=rank))
-    expected_warning = f"Found distributed sampler with rank={rank + 1}, but process rank is {rank}"
-    with pytest.warns(UserWarning, match=expected_warning):
-        auto_dataloader(dataset, sampler=DistributedSampler(dataset, num_replicas=world_size, rank=rank + 1))
-    expected_warning = f"Found distributed sampler with num_replicas={world_size + 1}, but world size is {world_size}"
-    with pytest.warns(UserWarning, match=expected_warning):
-        auto_dataloader(dataset, sampler=DistributedSampler(dataset, num_replicas=world_size + 1, rank=rank))
+    if world_size > 1:
+        wrong_rank = (rank + 1) % world_size
+        expected_warning = f"Found distributed sampler with rank={wrong_rank}, but process rank is {rank}"
+        with pytest.warns(UserWarning, match=expected_warning):
+            auto_dataloader(dataset, sampler=DistributedSampler(dataset, num_replicas=world_size, rank=wrong_rank))
+        expected_warning = f"Found distributed sampler with num_replicas={world_size + 1}, but world size is {world_size}"
+        with pytest.warns(UserWarning, match=expected_warning):
+            auto_dataloader(dataset, sampler=DistributedSampler(dataset, num_replicas=world_size + 1, rank=rank))
 
 
 @pytest.mark.tpu
