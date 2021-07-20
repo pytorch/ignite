@@ -296,6 +296,9 @@ class DistributedProxySampler(DistributedSampler):
         if not isinstance(sampler, Sampler):
             raise TypeError(f"Argument sampler should be instance of torch Sampler, but given: {type(sampler)}")
 
+        if isinstance(sampler, DistributedSampler):
+            raise TypeError("Argument sampler must not be a distributed sampler already")
+
         if not hasattr(sampler, "__len__"):
             raise TypeError("Argument sampler should have length")
 
