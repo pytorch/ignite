@@ -25,8 +25,9 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> Union[DataLoader, "_MpDe
 
     - batch size is scaled by world size: ``batch_size / world_size`` if larger or equal world size.
     - number of workers is scaled by number of local processes: ``num_workers / nprocs`` if larger or equal world size.
-    - if no sampler provided by user, `torch DistributedSampler`_ is setup.
-    - if a sampler is provided by user, it is wrapped by :class:`~ignite.distributed.auto.DistributedProxySampler`.
+    - if no sampler provided by user, a `torch DistributedSampler`_ is setup.
+    - if a `torch DistributedSampler`_ is provided by user, it is used without wrapping it.
+    - if another sampler is provided by user, it is wrapped by :class:`~ignite.distributed.auto.DistributedProxySampler`.
     - if the default device is 'cuda', `pin_memory` is automatically set to `True`.
 
     .. warning::
@@ -83,18 +84,25 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> Union[DataLoader, "_MpDe
                     "Please, make sure that the dataset itself produces different data on different ranks."
                 )
             else:
-                if kwargs.get("sampler", None) is not None:
-                    sampler = DistributedProxySampler(
-                        kwargs["sampler"], num_replicas=world_size, rank=rank
-                    )  # type: Union[DistributedProxySampler, DistributedSampler, Sampler]
+                sampler: Optional[Union[DistributedProxySampler, DistributedSampler, Sampler]]
+                sampler = kwargs.get("sampler", None)
+                if isinstance(sampler, DistributedSampler):
+                    if sampler.rank != rank:
+                        warnings.warn(
+                            f"Found distributed sampler with rank={sampler.rank}, "
+                            f"but process rank is {rank}"
+                        )
+                    if sampler.num_replicas != world_size:
+                        warnings.warn(
+                            f"Found distributed sampler with num_replicas={sampler.num_replicas}, "
+                            f"but world size is {world_size}"
+                        )
+                elif sampler is None:
+                    # removes "shuffle" from kwargs if sampler is used
+                    shuffle = kwargs.pop("shuffle", True)
+                    sampler = DistributedSampler(dataset, num_replicas=world_size, rank=rank, shuffle=shuffle)
                 else:
-                    sampler = DistributedSampler(
-                        dataset, num_replicas=world_size, rank=rank, shuffle=kwargs.get("shuffle", True)
-                    )
-                    # we need to remove "shuffle" from kwargs if sampler is used
-                    if "shuffle" in kwargs:
-                        del kwargs["shuffle"]
-
+                    sampler = DistributedProxySampler(sampler, num_replicas=world_size, rank=rank)
                 kwargs["sampler"] = sampler
         else:
             warnings.warn(
