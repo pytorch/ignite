@@ -107,7 +107,10 @@ def _test_auto_dataloader(ws, nproc, batch_size, num_workers=1, sampler_name=Non
         if isinstance(data, IterableDataset):
             sampler_type = _InfiniteConstantSampler
         elif ws > 1:
-            sampler_type = DistributedSampler if sampler is None else DistributedProxySampler
+            if sampler is None or isinstance(sampler, DistributedSampler):
+                sampler_type = DistributedSampler
+            else:
+                sampler_type = DistributedProxySampler
         else:
             sampler_type = RandomSampler if sampler is None else type(sampler)
 
