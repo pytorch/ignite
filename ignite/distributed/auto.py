@@ -88,10 +88,7 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> Union[DataLoader, "_MpDe
                 sampler = kwargs.get("sampler", None)
                 if isinstance(sampler, DistributedSampler):
                     if sampler.rank != rank:
-                        warnings.warn(
-                            f"Found distributed sampler with rank={sampler.rank}, "
-                            f"but process rank is {rank}"
-                        )
+                        warnings.warn(f"Found distributed sampler with rank={sampler.rank}, but process rank is {rank}")
                     if sampler.num_replicas != world_size:
                         warnings.warn(
                             f"Found distributed sampler with num_replicas={sampler.num_replicas}, "
