@@ -29,6 +29,7 @@ Complete list of handlers
 
     checkpoint.BaseSaveHandler
     param_scheduler.ParamScheduler
+    state_param_scheduler.StatePScheduler
 
 .. _param-scheduler-label:
 
@@ -41,12 +42,7 @@ Parameter scheduler
     :nosignatures:
     :toctree: generated
 
-    StateParameterScheduler
-    LambdaStateParameterScheduler
-    LinearStateParameterScheduler
-    ExponentialStateParameterScheduler
-    StepStateParameterScheduler
-    MultiStepStateParameterScheduler
+    BaseParamScheduler
     ConcatScheduler
     CosineAnnealingScheduler
     CyclicalScheduler
@@ -56,6 +52,22 @@ Parameter scheduler
     ParamScheduler
     PiecewiseLinear
     create_lr_scheduler_with_warmup
+
+State Parameter scheduler
+-------------------
+
+.. currentmodule:: ignite.handlers.state_param_scheduler
+
+.. autosummary::
+    :nosignatures:
+    :toctree: generated
+
+    StatePScheduler
+    LambdaStatePScheduler
+    LinearStatePScheduler
+    ExpStatePScheduler
+    StepStatePScheduler
+    MultiStepStatePScheduler
 
 More on parameter scheduling
 ----------------------------

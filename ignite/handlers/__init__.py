@@ -7,6 +7,7 @@ from ignite.handlers.early_stopping import EarlyStopping
 from ignite.handlers.ema_handler import EMAHandler
 from ignite.handlers.lr_finder import FastaiLRFinder
 from ignite.handlers.param_scheduler import (
+    BaseParamScheduler,
     ConcatScheduler,
     CosineAnnealingScheduler,
     CyclicalScheduler,
@@ -16,6 +17,14 @@ from ignite.handlers.param_scheduler import (
     ParamScheduler,
     PiecewiseLinear,
     create_lr_scheduler_with_warmup,
+)
+from ignite.handlers.state_param_scheduler import (
+    ExpStatePScheduler,
+    LambdaStatePScheduler,
+    LinearStatePScheduler,
+    MultiStepStatePScheduler,
+    StatePScheduler,
+    StepStatePScheduler,
 )
 from ignite.handlers.stores import EpochOutputStore
 from ignite.handlers.terminate_on_nan import TerminateOnNan
@@ -43,6 +52,13 @@ __all__ = [
     "create_lr_scheduler_with_warmup",
     "FastaiLRFinder",
     "EMAHandler",
+    "BaseParamScheduler",
+    "StatePScheduler",
+    "LambdaStatePScheduler",
+    "LinearStatePScheduler",
+    "ExpStatePScheduler",
+    "StepStatePScheduler",
+    "MultiStepStatePScheduler",
 ]
 
 
