@@ -6,13 +6,13 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from copy import copy
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Type, Union, cast
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Type, Union, cast
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
 from torch.optim.optimizer import Optimizer
 
-from ignite.engine import CallableEventWithFilter, Engine, Events, EventsList
+from ignite.engine import Engine
 
 
 class BaseParamScheduler(metaclass=ABCMeta):
