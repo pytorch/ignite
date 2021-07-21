@@ -199,7 +199,7 @@ class BaseLogger(metaclass=ABCMeta):
             kwargs: kwargs to initialize `OutputHandler`
 
         Returns:
-            :class:`~ignite.base._events.RemovableEventHandle`, which can be used to remove the handler.
+            :class:`~ignite.base.base_events.RemovableEventHandle`, which can be used to remove the handler.
         """
         return self.attach(engine, self._create_output_handler(*args, **kwargs), event_name=event_name)
 
