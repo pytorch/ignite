@@ -1,7 +1,7 @@
 ignite.base
 ============
 
-Base module for Ignite Engine and State
+Base module for Ignite Engine, Events, and State.
 
 ignite.base.events_driven
 -------------------------
@@ -14,3 +14,17 @@ ignite.base.events_driven
 
     EventsDriven
     EventsDrivenState
+
+ignite.base.base_events
+-----------------------
+
+.. currentmodule:: ignite.base.base_events
+
+.. autosummary::
+    :nosignatures:
+    :toctree: generated
+
+    CallableEventWithFilter
+    EventEnum
+    EventsList
+    RemovableEventHandle
