@@ -1,7 +1,7 @@
 ignite.base
 ============
 
-Base module for Ignite Engine, Events, and State.
+Base module for Ignite Engine, Events and State.
 
 ignite.base.events_driven
 -------------------------
