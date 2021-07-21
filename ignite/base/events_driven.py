@@ -4,7 +4,8 @@ import weakref
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Mapping, Optional, Union
 
-from ignite.engine.events import CallableEventWithFilter, EventEnum, Events, EventsList, RemovableEventHandle
+from ignite.base.events import CallableEventWithFilter, EventEnum, EventsList, RemovableEventHandle
+from ignite.engine.events import Events
 from ignite.engine.utils import _check_signature
 
 if TYPE_CHECKING:
@@ -69,8 +70,8 @@ class EventsDriven:
         """Add events that can be fired.
 
         Args:
-            event_names: Defines the name of the event being supported. New events can be a str
-                or an object derived from :class:`~ignite.engine.events.EventEnum`. See example below.
+            event_names: Defines the name of the event being supported. New events can be a str.
+                See example below.
             event_to_attr: A dictionary to map an event to a state attribute.
         """
         if not (event_to_attr is None or isinstance(event_to_attr, dict)):
