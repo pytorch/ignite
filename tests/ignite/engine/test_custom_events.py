@@ -5,7 +5,7 @@ import pytest
 import torch
 
 import ignite.distributed as idist
-from ignite.base.base_events import CallableEventWithFilter, EventEnum, EventsList
+from ignite.base.events import CallableEventWithFilter, EventEnum, EventsList
 from ignite.engine import Engine, Events
 
 

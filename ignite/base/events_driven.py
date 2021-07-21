@@ -4,7 +4,7 @@ import weakref
 from collections import defaultdict
 from typing import Any, Callable, Dict, List, Mapping, Optional, Union
 
-from ignite.base.base_events import CallableEventWithFilter, EventEnum, EventsList, RemovableEventHandle
+from ignite.base.events import CallableEventWithFilter, EventEnum, EventsList, RemovableEventHandle
 from ignite.engine.events import Events
 from ignite.engine.utils import _check_signature
 
@@ -68,7 +68,7 @@ class EventsDriven:
 
         Args:
             event_names: Defines the name of the event being supported. New events can be a str
-                or an object derived from :class:`~ignite.base.base_events.EventEnum`. See example below.
+                or an object derived from :class:`~ignite.base.events.EventEnum`. See example below.
             event_to_attr: A dictionary to map an event to a state attribute.
         """
         if not (event_to_attr is None or isinstance(event_to_attr, dict)):
@@ -112,7 +112,7 @@ class EventsDriven:
             **kwargs: optional keyword args to be passed to ``handler``.
 
         Returns:
-            :class:`~ignite.base.base_events.RemovableEventHandle`, which can be used to remove the handler.
+            :class:`~ignite.base.events.RemovableEventHandle`, which can be used to remove the handler.
         """
         if isinstance(event_name, EventsList):
             for e in event_name:

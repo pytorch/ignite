@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 from pytest import approx
 
-from ignite.base.base_events import EventEnum
+from ignite.base.events import EventEnum
 from ignite.contrib.handlers.time_profilers import BasicTimeProfiler, HandlersTimeProfiler
 from ignite.engine import Engine, Events
 

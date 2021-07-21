@@ -1,6 +1,6 @@
 from typing import Any
 
-from ignite.base.base_events import CallableEventWithFilter, EventEnum, EventsList, RemovableEventHandle
+from ignite.base.events import CallableEventWithFilter, EventEnum, EventsList, RemovableEventHandle
 
 __all__ = ["CallableEventWithFilter", "EventEnum", "Events", "State", "EventsList", "RemovableEventHandle"]
 
@@ -92,7 +92,7 @@ class Events(EventEnum):
         def call_on_events(engine):
             # do something
 
-    Since v0.4.0, custom events defined by user should inherit from :class:`~ignite.base.base_events.EventEnum` :
+    Since v0.4.0, custom events defined by user should inherit from :class:`~ignite.base.events.EventEnum` :
 
     .. code-block:: python
 

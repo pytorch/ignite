@@ -142,7 +142,7 @@ class EventEnum(CallableEventWithFilter, Enum):  # type: ignore[misc]
 
         .. code-block:: python
 
-            from ignite.base.base_events import EventEnum
+            from ignite.base.events import EventEnum
 
             class BackpropEvents(EventEnum):
                 BACKWARD_STARTED = 'backward_started'

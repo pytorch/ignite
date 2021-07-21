@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 
-from ignite.base.base_events import CallableEventWithFilter, RemovableEventHandle
+from ignite.base.events import CallableEventWithFilter, RemovableEventHandle
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler
 from ignite.engine import Engine, Events
 

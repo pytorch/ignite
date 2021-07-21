@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 from torch.optim import Optimizer
 
-from ignite.base.base_events import EventEnum
+from ignite.base.events import EventEnum
 from ignite.contrib.handlers.base_logger import (
     BaseLogger,
     BaseOptimizerParamsHandler,
