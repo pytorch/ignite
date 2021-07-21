@@ -4,8 +4,7 @@ from typing import Any, Callable, Dict, List, Mapping, Sequence, Tuple, Union, c
 
 import torch
 
-from ignite.base.events import EventEnum
-from ignite.engine import Engine, Events
+from ignite.engine import Engine, EventEnum, Events
 from ignite.handlers import Timer
 
 

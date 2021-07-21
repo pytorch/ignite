@@ -4,8 +4,7 @@ from typing import Any, Dict, List, Tuple, Union
 
 import torch
 
-from ignite.base.events import EventEnum
-from ignite.engine import Engine, Events
+from ignite.engine import Engine, EventEnum, Events
 from ignite.metrics import Metric
 
 

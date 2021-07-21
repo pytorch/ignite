@@ -7,9 +7,9 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 
-from ignite.base.events import CallableEventWithFilter, RemovableEventHandle
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler
 from ignite.engine import Engine, Events
+from ignite.engine.events import CallableEventWithFilter, RemovableEventHandle
 
 
 class ProgressBar(BaseLogger):
