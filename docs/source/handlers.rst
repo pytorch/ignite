@@ -54,7 +54,7 @@ Parameter scheduler
     create_lr_scheduler_with_warmup
 
 State Parameter scheduler
--------------------
+-------------------------
 
 .. currentmodule:: ignite.handlers.state_param_scheduler
 

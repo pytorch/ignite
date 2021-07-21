@@ -78,7 +78,7 @@ class StatePScheduler(BaseParamScheduler):
             import numpy as np
 
             step_state_param_values = np.array(
-                StepStateParameterScheduler.simulate_values(
+                StepStatePScheduler.simulate_values(
                     num_events=20, param_name="step_scheduled_param", initial_value=10, gamma=0.99, step_size=5
                 )
             )
@@ -122,8 +122,8 @@ class LambdaStatePScheduler(StatePScheduler):
             initial_value = 10
             gamma = 0.99
 
-            lambda_state_parameter_scheduler = LambdaStatePScheduler(
-                param_name="custom_scheduled_param",
+            lambda_scheduler = LambdaStatePScheduler(
+                param_name="lambda",
                 lambda_fn=lambda event_index: initial_value * gamma ** (event_index % 9),
             )
 
@@ -213,7 +213,7 @@ class ExpStatePScheduler(StatePScheduler):
     """Update a parameter during training by using exponential function.
     The function decays the parameter value by gamma every step.
     Based on the closed form of ExponentialLR from Pytorch
-    https://github.com/pytorch/pytorch/blob/master/torch/optim/lr_scheduler.py#L457
+    https://pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.ExponentialLR.html
 
     Args:
         initial_value: Starting value of the parameter.
@@ -256,7 +256,7 @@ class StepStatePScheduler(StatePScheduler):
     """Update a parameter during training by using a step function.
     This function decays the parameter value by gamma every step_size.
     Based on StepLR from Pytorch.
-    https://github.com/pytorch/pytorch/blob/master/torch/optim/lr_scheduler.py#L377
+    https://pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.StepLR.html
 
     Args:
         initial_value: Starting value of the parameter.
@@ -301,7 +301,7 @@ class MultiStepStatePScheduler(StatePScheduler):
     """Update a parameter during training by using a multi step function.
     The function decays the parameter value by gamma once the number of steps reaches one of the milestones.
     Based on MultiStepLR from Pytorch.
-    https://github.com/pytorch/pytorch/blob/master/torch/optim/lr_scheduler.py#L424
+    https://pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.MultiStepLR.html
 
     Args:
         initial_value: Starting value of the parameter.

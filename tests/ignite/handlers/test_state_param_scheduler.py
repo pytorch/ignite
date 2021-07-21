@@ -118,6 +118,37 @@ def test_simulate_and_plot_values():
 
     matplotlib.use("Agg")
 
+    @pytest.mark.parametrize(
+        "scheduler_cls,scheduler_kwargs",
+        [
+            (
+                LinearStatePScheduler,
+                {
+                    "param_name": "linear_scheduled_param",
+                    "initial_value": 0,
+                    "step_constant": 2,
+                    "step_max_value": 5,
+                    "max_value": 10,
+                },
+            ),
+            (ExpStatePScheduler, {"param_name": "exp_scheduled_param", "initial_value": 10, "gamma": 0.99}),
+            (
+                StepStatePScheduler,
+                {"param_name": "step_scheduled_param", "initial_value": 10, "gamma": 0.99, "step_size": 5},
+            ),
+            (
+                MultiStepStatePScheduler,
+                {"param_name": "multistep_scheduled_param", "initial_value": 10, "gamma": 0.99, "milestones": [3, 6]},
+            ),
+            (
+                LambdaStatePScheduler,
+                {
+                    "param_name": "custom_scheduled_param",
+                    "lambda_fn": lambda event_index: 10 * 0.99 ** (event_index % 9),
+                },
+            ),
+        ],
+    )
     def _test(scheduler_cls, **scheduler_kwargs):
         event = Events.EPOCH_COMPLETED
         max_epochs = 2
@@ -130,40 +161,6 @@ def test_simulate_and_plot_values():
 
         # launch plot values
         scheduler_cls.plot_values(num_events=len(data) * max_epochs, **scheduler_kwargs)
-
-    # LinearStateParameterScheduler
-    _test(
-        LinearStatePScheduler,
-        param_name="linear_scheduled_param",
-        initial_value=0,
-        step_constant=2,
-        step_max_value=5,
-        max_value=10,
-    )
-
-    # ExponentialStateParameterScheduler
-    _test(ExpStatePScheduler, param_name="exp_scheduled_param", initial_value=10, gamma=0.99)
-
-    # StepStateParameterScheduler
-    _test(StepStatePScheduler, param_name="step_scheduled_param", initial_value=10, gamma=0.99, step_size=5)
-
-    # MultiStepStateParameterScheduler
-    _test(
-        MultiStepStatePScheduler,
-        param_name="multistep_scheduled_param",
-        initial_value=10,
-        gamma=0.99,
-        milestones=[3, 6],
-    )
-
-    # LambdaStateParameterScheduler
-    initial_value = 10
-    gamma = 0.99
-    _test(
-        LambdaStatePScheduler,
-        param_name="custom_scheduled_param",
-        lambda_fn=lambda event_index: initial_value * gamma ** (event_index % 9),
-    )
 
     with pytest.raises(RuntimeError, match=r"This method requires matplotlib to be installed."):
         with patch.dict("sys.modules", {"matplotlib.pylab": None}):
