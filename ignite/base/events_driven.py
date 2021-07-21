@@ -9,6 +9,7 @@ from ignite.engine.events import Events
 from ignite.engine.utils import _check_signature
 
 if TYPE_CHECKING:
+    import ignite.engine.events.EventEnum
     import ignite.engine.events.RemovableEventHandle
 
 
@@ -65,13 +66,15 @@ class EventsDriven:
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
 
     def register_events(
-        self, *event_names: Union[List[str], List[EventEnum]], event_to_attr: Optional[dict] = None
+        self,
+        *event_names: "Union[List[str], List[ignite.engine.events.EventEnum]]",
+        event_to_attr: Optional[dict] = None,
     ) -> None:
         """Add events that can be fired.
 
         Args:
-            event_names: Defines the name of the event being supported. New events can be a str.
-                See example below.
+            event_names: Defines the name of the event being supported. New events can be a str
+                or an object derived from :class:`~ignite.engine.events.EventEnum`. See example below.
             event_to_attr: A dictionary to map an event to a state attribute.
         """
         if not (event_to_attr is None or isinstance(event_to_attr, dict)):
