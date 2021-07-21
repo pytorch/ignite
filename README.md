@@ -208,7 +208,7 @@ Examples
 Custom events related to backward and optimizer step calls:
 
 ```python
-from ignite.engine import EventEnum
+from ignite.base.base_events import EventEnum
 
 
 class BackpropEvents(EventEnum):
@@ -316,10 +316,10 @@ List of available pre-built images
 </summary>
 
 Base
-- `pytorchignite/base:latest` 
+- `pytorchignite/base:latest`
 - `pytorchignite/apex:latest`
 - `pytorchignite/hvd-base:latest`
-- `pytorchignite/hvd-apex:latest` 
+- `pytorchignite/hvd-apex:latest`
 - `pytorchignite/msdp-apex:latest`
 
 Vision:
@@ -332,8 +332,8 @@ Vision:
 NLP:
 - `pytorchignite/nlp:latest`
 - `pytorchignite/hvd-nlp:latest`
-- `pytorchignite/apex-nlp:latest` 
-- `pytorchignite/hvd-apex-nlp:latest` 
+- `pytorchignite/apex-nlp:latest`
+- `pytorchignite/hvd-apex-nlp:latest`
 - `pytorchignite/msdp-apex-nlp:latest`
 
 </details>
