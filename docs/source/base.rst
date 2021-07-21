@@ -15,10 +15,10 @@ ignite.base.events_driven
     EventsDriven
     EventsDrivenState
 
-ignite.base.base_events
+ignite.base.events
 -----------------------
 
-.. currentmodule:: ignite.base.base_events
+.. currentmodule:: ignite.base.events
 
 .. autosummary::
     :nosignatures:
