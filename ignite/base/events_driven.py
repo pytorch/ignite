@@ -4,8 +4,7 @@ import weakref
 from collections import defaultdict
 from typing import Any, Callable, Dict, List, Mapping, Optional, Union
 
-from ignite.base.events import CallableEventWithFilter, EventEnum, EventsList, RemovableEventHandle
-from ignite.engine.events import Events
+from ignite.engine.events import CallableEventWithFilter, EventEnum, Events, EventsList, RemovableEventHandle
 from ignite.engine.utils import _check_signature
 
 
