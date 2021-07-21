@@ -92,7 +92,7 @@ class Events(EventEnum):
         def call_on_events(engine):
             # do something
 
-    Since v0.4.0, custom events defined by user should inherit from :class:`~ignite.engine.events.EventEnum` :
+    Since v0.4.0, custom events defined by user should inherit from :class:`~ignite.base.base_events.EventEnum` :
 
     .. code-block:: python
 
