@@ -5,8 +5,8 @@ from unittest.mock import MagicMock, call, create_autospec
 import pytest
 from pytest import raises
 
+from ignite.base.base_events import EventsList
 from ignite.engine import Engine, Events, State
-from ignite.engine.events import EventsList
 
 
 class DummyEngine(Engine):

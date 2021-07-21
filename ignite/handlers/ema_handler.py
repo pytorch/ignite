@@ -3,7 +3,8 @@ from typing import Optional, Union
 
 import torch.nn as nn
 
-from ignite.engine import CallableEventWithFilter, Engine, Events, EventsList
+from ignite.base.base_events import CallableEventWithFilter, EventsList
+from ignite.engine import Engine, Events
 
 __all__ = ["EMAHandler"]
 

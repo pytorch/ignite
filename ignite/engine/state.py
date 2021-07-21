@@ -3,7 +3,8 @@ from typing import Any, Dict, Iterable, Optional, Union
 
 from torch.utils.data import DataLoader
 
-from ignite.engine.events import CallableEventWithFilter, Events
+from ignite.base.base_events import CallableEventWithFilter
+from ignite.engine.events import Events
 
 __all__ = [
     "State",

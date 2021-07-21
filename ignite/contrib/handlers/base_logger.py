@@ -9,8 +9,8 @@ import torch
 import torch.nn as nn
 from torch.optim import Optimizer
 
+from ignite.base.base_events import CallableEventWithFilter, RemovableEventHandle
 from ignite.engine import Engine, Events, EventsList, State
-from ignite.engine.events import CallableEventWithFilter, RemovableEventHandle
 
 
 class BaseHandler(metaclass=ABCMeta):

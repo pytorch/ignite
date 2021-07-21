@@ -8,7 +8,8 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Tuple
 import torch
 
 import ignite.distributed as idist
-from ignite.engine import CallableEventWithFilter, Engine, Events
+from ignite.base.base_events import CallableEventWithFilter
+from ignite.engine import Engine, Events
 
 if TYPE_CHECKING:
     from ignite.metrics.metrics_lambda import MetricsLambda

@@ -6,7 +6,8 @@ import torch
 import torch.nn as nn
 from torch.optim.optimizer import Optimizer
 
-from ignite.engine import Engine, EventEnum, _prepare_batch
+from ignite.base.base_events import EventEnum
+from ignite.engine import Engine, _prepare_batch
 from ignite.utils import apply_to_tensor
 
 

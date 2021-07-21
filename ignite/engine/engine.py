@@ -11,7 +11,8 @@ from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Tupl
 from torch.utils.data import DataLoader
 
 from ignite.base import Serializable
-from ignite.engine.events import CallableEventWithFilter, EventEnum, Events, EventsList, RemovableEventHandle
+from ignite.base.base_events import CallableEventWithFilter, EventEnum, EventsList, RemovableEventHandle
+from ignite.engine.events import Events
 from ignite.engine.state import State
 from ignite.engine.utils import _check_signature, _to_hours_mins_secs
 
@@ -156,7 +157,7 @@ class Engine(Serializable):
 
         Args:
             event_names: Defines the name of the event being supported. New events can be a str
-                or an object derived from :class:`~ignite.engine.events.EventEnum`. See example below.
+                or an object derived from :class:`~ignite.base.base_events.EventEnum`. See example below.
             event_to_attr: A dictionary to map an event to a state attribute.
 
         Example usage:
@@ -261,7 +262,7 @@ class Engine(Serializable):
             kwargs: optional keyword args to be passed to ``handler``.
 
         Returns:
-            :class:`~ignite.engine.events.RemovableEventHandle`, which can be used to remove the handler.
+            :class:`~ignite.base.base_events.RemovableEventHandle`, which can be used to remove the handler.
 
         Note:
             Note that other arguments can be passed to the handler in addition to the `*args` and  `**kwargs`
