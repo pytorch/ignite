@@ -164,13 +164,13 @@ class BaseLogger(metaclass=ABCMeta):
             engine: engine object.
             log_handler: a logging handler to execute
             event_name: event to attach the logging handler to. Valid events are from
-                :class:`~ignite.engine.events.Events` or :class:`~ignite.engine.events.EventsList` or any `event_name`
-                added by :meth:`~ignite.engine.engine.Engine.register_events`.
+                :class:`~ignite.engine.events.Events` or :class:`~ignite.base.base_events.EventsList`
+                or any `event_name` added by :meth:`~ignite.engine.engine.Engine.register_events`.
             args: args forwarded to the `log_handler` method
             kwargs: kwargs forwarded to the  `log_handler` method
 
         Returns:
-            :class:`~ignite.engine.events.RemovableEventHandle`, which can be used to remove the handler.
+            :class:`~ignite.base.base_events.RemovableEventHandle`, which can be used to remove the handler.
         """
         if isinstance(event_name, EventsList):
             for name in event_name:
@@ -199,7 +199,7 @@ class BaseLogger(metaclass=ABCMeta):
             kwargs: kwargs to initialize `OutputHandler`
 
         Returns:
-            :class:`~ignite.engine.events.RemovableEventHandle`, which can be used to remove the handler.
+            :class:`~ignite.base._events.RemovableEventHandle`, which can be used to remove the handler.
         """
         return self.attach(engine, self._create_output_handler(*args, **kwargs), event_name=event_name)
 
@@ -217,7 +217,7 @@ class BaseLogger(metaclass=ABCMeta):
             kwargs: kwargs to initialize `OptimizerParamsHandler`
 
         Returns:
-            :class:`~ignite.engine.events.RemovableEventHandle`, which can be used to remove the handler.
+            :class:`~ignite.base.base_events.RemovableEventHandle`, which can be used to remove the handler.
 
         .. versionchanged:: 0.4.3
             Added missing return statement.
