@@ -2,10 +2,14 @@ import functools
 import logging
 import weakref
 from collections import defaultdict
-from typing import Any, Callable, Dict, List, Mapping, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Mapping, Optional, Union
 
-from ignite.engine.events import CallableEventWithFilter, EventEnum, Events, EventsList, RemovableEventHandle
+from ignite.base.events import CallableEventWithFilter, EventEnum, EventsList, RemovableEventHandle
+from ignite.engine.events import Events
 from ignite.engine.utils import _check_signature
+
+if TYPE_CHECKING:
+    import ignite.engine.events.RemovableEventHandle
 
 
 class EventsDriven:
@@ -97,7 +101,9 @@ class EventsDriven:
             self.logger.error(f"attempt to add event handler to an invalid event {event_name}")
             raise ValueError(f"Event {event_name} is not a valid event for this {self.__class__.__name__}.")
 
-    def add_event_handler(self, event_name: Any, handler: Callable, *args: Any, **kwargs: Any) -> RemovableEventHandle:
+    def add_event_handler(
+        self, event_name: Any, handler: Callable, *args: Any, **kwargs: Any
+    ) -> "ignite.engine.events.RemovableEventHandle":
         """Add an event handler to be executed when the specified event is fired.
 
         Args:
