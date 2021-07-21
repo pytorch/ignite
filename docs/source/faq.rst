@@ -47,7 +47,7 @@ flexibility to the user to allow for this:
 
 .. code-block:: python
 
-    from ignite.base.events import improt EventEnum
+    from ignite.engine import EventEnum
 
     class BackpropEvents(EventEnum):
         """
@@ -80,7 +80,7 @@ flexibility to the user to allow for this:
 
 .. Note ::
 
-    Events defined by user should inherit from :class:`~ignite.base.events.EventEnum`
+    Events defined by user should inherit from :class:`~ignite.engine.events.EventEnum`
 
 More detailed implementation can be found in `TBPTT Trainer <https://pytorch.org/ignite/master/_modules/ignite/contrib/engines/tbptt.html#create_supervised_tbptt_trainer>`_.
 

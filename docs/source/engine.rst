@@ -23,7 +23,11 @@ ignite.engine.events
     :nosignatures:
     :toctree: generated
 
+    CallableEventWithFilter
+    EventEnum
     Events
+    EventsList
+    RemovableEventHandle
 
 ignite.engine.state
 --------------------
