@@ -14,3 +14,17 @@ ignite.base.events_driven
 
     EventsDriven
     EventsDrivenState
+
+ignite.base.events
+------------------
+
+.. currentmodule:: ignite.base.events
+
+.. autosummary::
+    :nosignatures:
+    :toctree: generated
+
+    BaseCallableEventWithFilter
+    BaseEventEnum
+    BaseEventsList
+    BaseRemovableEventHandle
