@@ -1,6 +1,6 @@
 import pytest
 
-from ignite.base.events import EventEnum
+from ignite.base.events import BaseEventEnum
 from ignite.base.events_driven import EventsDriven, EventsDrivenState
 
 
@@ -18,7 +18,7 @@ class EventsDrivenWithState(EventsDriven):
         self._state.update_mapping(event_to_attr)
 
 
-class ABCEvents(EventEnum):
+class ABCEvents(BaseEventEnum):
     A_EVENT = "a_event"
     B_EVENT = "b_event"
     C_EVENT = "c_event"
@@ -203,7 +203,7 @@ def test_basic_events_driven_with_state():
 
 
 def test_events_driven_with_state_mixed_events():
-    class BCEvents(EventEnum):
+    class BCEvents(BaseEventEnum):
         B_EVENT_STARTED = "b_event_started"
         B_EVENT_COMPLETED = "b_event_completed"
         C_EVENT_STARTED = "c_event_started"

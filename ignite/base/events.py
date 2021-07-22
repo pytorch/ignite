@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from ignite.engine.events import Events
 
 
-class CallableEventWithFilter:
+class BaseCallableEventWithFilter:
     """Single Event containing a filter, specifying whether the event should
     be run at the current event (if the event type is correct)
 
@@ -26,7 +26,7 @@ class CallableEventWithFilter:
 
     def __init__(self, value: str, event_filter: Optional[Callable] = None, name: Optional[str] = None) -> None:
         if event_filter is None:
-            event_filter = CallableEventWithFilter.default_event_filter
+            event_filter = BaseCallableEventWithFilter.default_event_filter
         self.filter = event_filter
 
         if not hasattr(self, "_value_"):
@@ -48,7 +48,7 @@ class CallableEventWithFilter:
 
     def __call__(
         self, event_filter: Optional[Callable] = None, every: Optional[int] = None, once: Optional[int] = None
-    ) -> "CallableEventWithFilter":
+    ) -> "BaseCallableEventWithFilter":
         """
         Makes the event class callable and accepts either an arbitrary callable as filter
         (which must take in the engine and current event value and return a boolean) or an every or once value
@@ -60,7 +60,7 @@ class CallableEventWithFilter:
             once: a value specifying when the event should be fired (if only once)
 
         Returns:
-            CallableEventWithFilter: A new event having the same value but a different filter function
+            BaseCallableEventWithFilter: A new event having the same value but a different filter function
         """
 
         if not ((event_filter is not None) ^ (every is not None) ^ (once is not None)):
@@ -89,7 +89,7 @@ class CallableEventWithFilter:
         if event_filter is not None:
             _check_signature(event_filter, "event_filter", "engine", "event")
 
-        return CallableEventWithFilter(self.value, event_filter, self.name)
+        return BaseCallableEventWithFilter(self.value, event_filter, self.name)
 
     @staticmethod
     def every_event_filter(every: int) -> Callable:
@@ -122,7 +122,7 @@ class CallableEventWithFilter:
         return "<event=%s, filter=%r>" % (self.name, self.filter)
 
     def __eq__(self, other: Any) -> bool:
-        if isinstance(other, CallableEventWithFilter):
+        if isinstance(other, BaseCallableEventWithFilter):
             return self.name == other.name
         elif isinstance(other, str):
             return self.name == other
@@ -132,19 +132,19 @@ class CallableEventWithFilter:
     def __hash__(self) -> int:
         return hash(self._name_)
 
-    def __or__(self, other: Any) -> "EventsList":
-        return EventsList() | self | other
+    def __or__(self, other: Any) -> "BaseEventsList":
+        return BaseEventsList() | self | other
 
 
-class EventEnum(CallableEventWithFilter, Enum):  # type: ignore[misc]
+class BaseEventEnum(BaseCallableEventWithFilter, Enum):  # type: ignore[misc]
     """Base class for all :class:`~ignite.engine.events.Events`. User defined custom events should also inherit
     this class. For example, Custom events based on the loss calculation and backward pass can be created as follows:
 
         .. code-block:: python
 
-            from ignite.base.events import EventEnum
+            from ignite.base.events import BaseEventEnum
 
-            class BackpropEvents(EventEnum):
+            class BackpropEvents(BaseEventEnum):
                 BACKWARD_STARTED = 'backward_started'
                 BACKWARD_COMPLETED = 'backward_completed'
                 OPTIM_STEP_COMPLETED = 'optim_step_completed'
@@ -170,7 +170,7 @@ class EventEnum(CallableEventWithFilter, Enum):  # type: ignore[misc]
     pass
 
 
-class EventsList:
+class BaseEventsList:
     """Collection of events stacked by operator `__or__`.
 
     .. code-block:: python
@@ -195,30 +195,30 @@ class EventsList:
     """
 
     def __init__(self) -> None:
-        self._events = []  # type: List[Union[Events, CallableEventWithFilter]]
+        self._events = []  # type: List[Union[Events, BaseCallableEventWithFilter]]
 
-    def _append(self, event: Union["Events", CallableEventWithFilter]) -> None:
+    def _append(self, event: Union["Events", BaseCallableEventWithFilter]) -> None:
         from ignite.engine.events import Events
 
-        if not isinstance(event, (Events, CallableEventWithFilter)):
+        if not isinstance(event, (Events, BaseCallableEventWithFilter)):
             raise TypeError(f"Argument event should be Events or CallableEventWithFilter, got: {type(event)}")
         self._events.append(event)
 
-    def __getitem__(self, item: int) -> Union["Events", CallableEventWithFilter]:
+    def __getitem__(self, item: int) -> Union["Events", BaseCallableEventWithFilter]:
         return self._events[item]
 
-    def __iter__(self) -> Iterator[Union["Events", CallableEventWithFilter]]:
+    def __iter__(self) -> Iterator[Union["Events", BaseCallableEventWithFilter]]:
         return iter(self._events)
 
     def __len__(self) -> int:
         return len(self._events)
 
-    def __or__(self, other: Union["Events", CallableEventWithFilter]) -> "EventsList":
+    def __or__(self, other: Union["Events", BaseCallableEventWithFilter]) -> "BaseEventsList":
         self._append(event=other)
         return self
 
 
-class RemovableEventHandle:
+class BaseRemovableEventHandle:
     """A weakref handle to remove a registered event.
 
     A handle that may be used to remove a registered event handler via the
@@ -249,7 +249,7 @@ class RemovableEventHandle:
 
     def __init__(
         self,
-        event_name: Union[CallableEventWithFilter, Enum, EventsList, "Events"],
+        event_name: Union[BaseCallableEventWithFilter, Enum, BaseEventsList, "Events"],
         handler: Callable,
         engine: Union["Engine", "EventsDriven"],
     ) -> None:
@@ -265,7 +265,7 @@ class RemovableEventHandle:
         if handler is None or engine is None:
             return
 
-        if isinstance(self.event_name, EventsList):
+        if isinstance(self.event_name, BaseEventsList):
             for e in self.event_name:
                 if engine.has_event_handler(handler, e):
                     engine.remove_event_handler(handler, e)
@@ -273,7 +273,7 @@ class RemovableEventHandle:
             if engine.has_event_handler(handler, self.event_name):
                 engine.remove_event_handler(handler, self.event_name)
 
-    def __enter__(self) -> "RemovableEventHandle":
+    def __enter__(self) -> "BaseRemovableEventHandle":
         return self
 
     def __exit__(self, *args: Any, **kwargs: Any) -> None:
