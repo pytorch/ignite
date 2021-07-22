@@ -2,11 +2,15 @@ import functools
 import logging
 import weakref
 from collections import defaultdict
-from typing import Any, Callable, Dict, List, Mapping, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Mapping, Optional, Union
 
-from ignite.base.events import BaseCallableEventWithFilter, BaseEventEnum, BaseEventsList, BaseRemovableEventHandle
+from ignite.base.events import CallableEventWithFilter, EventEnum, EventsList, RemovableEventHandle
 from ignite.engine.events import Events
 from ignite.engine.utils import _check_signature
+
+if TYPE_CHECKING:
+    import ignite.engine.events.EventEnum
+    import ignite.engine.events.RemovableEventHandle
 
 
 class EventsDriven:
@@ -23,7 +27,7 @@ class EventsDriven:
 
         .. code-block:: python
 
-            class ABEvents(BaseEventEnum):
+            class ABEvents(EventEnum):
                 A_EVENT = "a_event"
                 B_EVENT = "b_event"
 
@@ -55,27 +59,29 @@ class EventsDriven:
     def __init__(self) -> None:
         self._event_handlers = defaultdict(list)  # type: Dict[Any, List]
 
-        self._allowed_events = []  # type: List[BaseEventEnum]
-        self._allowed_events_counts = {}  # type: Dict[Union[str, BaseEventEnum], int]
+        self._allowed_events = []  # type: List[EventEnum]
+        self._allowed_events_counts = {}  # type: Dict[Union[str, EventEnum], int]
 
         self.last_event_name = None  # type: Optional[Events]
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
 
     def register_events(
-        self, *event_names: "Union[List[str], List[BaseEventEnum]]", event_to_attr: Optional[dict] = None,
+        self,
+        *event_names: "Union[List[str], List[ignite.engine.events.EventEnum]]",
+        event_to_attr: Optional[dict] = None,
     ) -> None:
         """Add events that can be fired.
 
         Args:
             event_names: Defines the name of the event being supported. New events can be a str
-                or an object derived from :class:`~ignite.base.events.BaseEventEnum`. See example below.
+                or an object derived from :class:`~ignite.engine.events.EventEnum`. See example below.
             event_to_attr: A dictionary to map an event to a state attribute.
         """
         if not (event_to_attr is None or isinstance(event_to_attr, dict)):
             raise ValueError(f"Expected event_to_attr to be dictionary. Got {type(event_to_attr)}.")
 
         for index, e in enumerate(event_names):
-            if not isinstance(e, (str, BaseEventEnum)):
+            if not isinstance(e, (str, EventEnum)):
                 raise TypeError(f"Value at {index} of event_names should be a str or EventEnum, but given {e}")
             self._allowed_events.append(e)
             self._allowed_events_counts[e] = 0
@@ -100,7 +106,7 @@ class EventsDriven:
 
     def add_event_handler(
         self, event_name: Any, handler: Callable, *args: Any, **kwargs: Any
-    ) -> BaseRemovableEventHandle:
+    ) -> "ignite.engine.events.RemovableEventHandle":
         """Add an event handler to be executed when the specified event is fired.
 
         Args:
@@ -114,15 +120,15 @@ class EventsDriven:
             **kwargs: optional keyword args to be passed to ``handler``.
 
         Returns:
-            :class:`~ignite.base.events.BaseRemovableEventHandle`, which can be used to remove the handler.
+            :class:`~ignite.engine.events.RemovableEventHandle`, which can be used to remove the handler.
         """
-        if isinstance(event_name, BaseEventsList):
+        if isinstance(event_name, EventsList):
             for e in event_name:
                 self.add_event_handler(e, handler, *args, **kwargs)
-            return BaseRemovableEventHandle(event_name, handler, self)
+            return RemovableEventHandle(event_name, handler, self)
         if (
-            isinstance(event_name, BaseCallableEventWithFilter)
-            and event_name.filter != BaseCallableEventWithFilter.default_event_filter
+            isinstance(event_name, CallableEventWithFilter)
+            and event_name.filter != CallableEventWithFilter.default_event_filter
         ):
             event_filter = event_name.filter
             handler = self._handler_wrapper(handler, event_name, event_filter)
@@ -138,13 +144,13 @@ class EventsDriven:
             self._event_handlers[event_name].append((handler, args, kwargs))
         self.logger.debug(f"added handler for event {event_name}")
 
-        return BaseRemovableEventHandle(event_name, handler, self)
+        return RemovableEventHandle(event_name, handler, self)
 
     @staticmethod
     def _assert_non_filtered_event(event_name: Any) -> None:
         if (
-            isinstance(event_name, BaseCallableEventWithFilter)
-            and event_name.filter != BaseCallableEventWithFilter.default_event_filter
+            isinstance(event_name, CallableEventWithFilter)
+            and event_name.filter != CallableEventWithFilter.default_event_filter
         ):
             raise TypeError(
                 "Argument event_name should not be a filtered event, please use event without any event filtering"

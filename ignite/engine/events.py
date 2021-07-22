@@ -1,13 +1,8 @@
 from typing import Any
 
-from ignite.base.events import BaseCallableEventWithFilter, BaseEventEnum, BaseEventsList, BaseRemovableEventHandle
+from ignite.base.events import CallableEventWithFilter, EventEnum, EventsList, RemovableEventHandle
 
 __all__ = ["CallableEventWithFilter", "EventEnum", "Events", "State", "EventsList", "RemovableEventHandle"]
-
-CallableEventWithFilter = BaseCallableEventWithFilter
-EventEnum = BaseEventEnum
-EventsList = BaseEventsList
-RemovableEventHandle = BaseRemovableEventHandle
 
 
 class Events(EventEnum):
