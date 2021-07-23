@@ -5,18 +5,18 @@ import torch
 
 from ignite.engine import Engine, Events
 from ignite.handlers.state_param_scheduler import (
-    ExpStatePScheduler,
-    LambdaStatePScheduler,
-    LinearStatePScheduler,
-    MultiStepStatePScheduler,
-    StepStatePScheduler,
+    ExpStateScheduler,
+    LambdaStateScheduler,
+    LinearStateScheduler,
+    MultiStepStateScheduler,
+    StepStateScheduler,
 )
 
 
 def test_linear_scheduler_linear_increase_history():
     # Testing linear increase
     engine = Engine(lambda e, b: None)
-    linear_step_parameter_scheduler = LinearStatePScheduler(
+    linear_step_parameter_scheduler = LinearStateScheduler(
         param_name="linear_scheduled_param",
         initial_value=0,
         step_constant=2,
@@ -36,7 +36,7 @@ def test_linear_scheduler_linear_increase_history():
 def test_linear_scheduler_step_constant():
     # Testing step_constant
     engine = Engine(lambda e, b: None)
-    linear_state_parameter_scheduler = LinearStatePScheduler(
+    linear_state_parameter_scheduler = LinearStateScheduler(
         param_name="linear_scheduled_param",
         initial_value=0,
         step_constant=2,
@@ -52,7 +52,7 @@ def test_linear_scheduler_step_constant():
 def test_linear_scheduler_linear_increase():
     # Testing linear increase
     engine = Engine(lambda e, b: None)
-    linear_state_parameter_scheduler = LinearStatePScheduler(
+    linear_state_parameter_scheduler = LinearStateScheduler(
         param_name="linear_scheduled_param", initial_value=0, step_constant=2, step_max_value=5, max_value=10,
     )
     linear_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
@@ -63,7 +63,7 @@ def test_linear_scheduler_linear_increase():
 def test_linear_scheduler_max_value():
     # Testing max_value
     engine = Engine(lambda e, b: None)
-    linear_state_parameter_scheduler = LinearStatePScheduler(
+    linear_state_parameter_scheduler = LinearStateScheduler(
         param_name="linear_scheduled_param", initial_value=0, step_constant=2, step_max_value=5, max_value=10,
     )
     linear_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
@@ -73,7 +73,7 @@ def test_linear_scheduler_max_value():
 
 def test_exponential_scheduler():
     engine = Engine(lambda e, b: None)
-    exp_state_parameter_scheduler = ExpStatePScheduler(param_name="exp_scheduled_param", initial_value=10, gamma=0.99)
+    exp_state_parameter_scheduler = ExpStateScheduler(param_name="exp_scheduled_param", initial_value=10, gamma=0.99)
     exp_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
     engine.run([0] * 8, max_epochs=2)
     torch.testing.assert_allclose(getattr(engine.state, "exp_scheduled_param"), 10 * 0.99 * 0.99)
@@ -81,7 +81,7 @@ def test_exponential_scheduler():
 
 def test_step_scheduler():
     engine = Engine(lambda e, b: None)
-    step_state_parameter_scheduler = StepStatePScheduler(
+    step_state_parameter_scheduler = StepStateScheduler(
         param_name="step_scheduled_param", initial_value=10, gamma=0.99, step_size=5
     )
     step_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
@@ -91,7 +91,7 @@ def test_step_scheduler():
 
 def test_multistep_scheduler():
     engine = Engine(lambda e, b: None)
-    multi_step_state_parameter_scheduler = MultiStepStatePScheduler(
+    multi_step_state_parameter_scheduler = MultiStepStateScheduler(
         param_name="multistep_scheduled_param", initial_value=10, gamma=0.99, milestones=[3, 6],
     )
     multi_step_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
@@ -104,7 +104,7 @@ def test_custom_scheduler():
     initial_value = 10
     gamma = 0.99
     engine = Engine(lambda e, b: None)
-    lambda_state_parameter_scheduler = LambdaStatePScheduler(
+    lambda_state_parameter_scheduler = LambdaStateScheduler(
         param_name="custom_scheduled_param", lambda_fn=lambda event_index: initial_value * gamma ** (event_index % 9),
     )
     lambda_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
@@ -122,7 +122,7 @@ def test_simulate_and_plot_values():
         "scheduler_cls,scheduler_kwargs",
         [
             (
-                LinearStatePScheduler,
+                LinearStateScheduler,
                 {
                     "param_name": "linear_scheduled_param",
                     "initial_value": 0,
@@ -131,17 +131,17 @@ def test_simulate_and_plot_values():
                     "max_value": 10,
                 },
             ),
-            (ExpStatePScheduler, {"param_name": "exp_scheduled_param", "initial_value": 10, "gamma": 0.99}),
+            (ExpStateScheduler, {"param_name": "exp_scheduled_param", "initial_value": 10, "gamma": 0.99}),
             (
-                StepStatePScheduler,
+                StepStateScheduler,
                 {"param_name": "step_scheduled_param", "initial_value": 10, "gamma": 0.99, "step_size": 5},
             ),
             (
-                MultiStepStatePScheduler,
+                MultiStepStateScheduler,
                 {"param_name": "multistep_scheduled_param", "initial_value": 10, "gamma": 0.99, "milestones": [3, 6]},
             ),
             (
-                LambdaStatePScheduler,
+                LambdaStateScheduler,
                 {
                     "param_name": "custom_scheduled_param",
                     "lambda_fn": lambda event_index: 10 * 0.99 ** (event_index % 9),
@@ -165,7 +165,7 @@ def test_simulate_and_plot_values():
     with pytest.raises(RuntimeError, match=r"This method requires matplotlib to be installed."):
         with patch.dict("sys.modules", {"matplotlib.pylab": None}):
             _test(
-                MultiStepStatePScheduler,
+                MultiStepStateScheduler,
                 param_name="multistep_scheduled_param",
                 initial_value=10,
                 gamma=0.99,

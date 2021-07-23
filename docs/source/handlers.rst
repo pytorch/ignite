@@ -29,7 +29,7 @@ Complete list of handlers
 
     checkpoint.BaseSaveHandler
     param_scheduler.ParamScheduler
-    state_param_scheduler.StatePScheduler
+    state_param_scheduler.StateParamScheduler
 
 .. _param-scheduler-label:
 
@@ -62,12 +62,12 @@ State Parameter scheduler
     :nosignatures:
     :toctree: generated
 
-    StatePScheduler
-    LambdaStatePScheduler
-    LinearStatePScheduler
-    ExpStatePScheduler
-    StepStatePScheduler
-    MultiStepStatePScheduler
+    StateParamScheduler
+    LambdaStateScheduler
+    LinearStateScheduler
+    ExpStateScheduler
+    StepStateScheduler
+    MultiStepStateScheduler
 
 More on parameter scheduling
 ----------------------------

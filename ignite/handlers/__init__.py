@@ -19,12 +19,12 @@ from ignite.handlers.param_scheduler import (
     create_lr_scheduler_with_warmup,
 )
 from ignite.handlers.state_param_scheduler import (
-    ExpStatePScheduler,
-    LambdaStatePScheduler,
-    LinearStatePScheduler,
-    MultiStepStatePScheduler,
-    StatePScheduler,
-    StepStatePScheduler,
+    ExpStateScheduler,
+    LambdaStateScheduler,
+    LinearStateScheduler,
+    MultiStepStateScheduler,
+    StateParamScheduler,
+    StepStateScheduler,
 )
 from ignite.handlers.stores import EpochOutputStore
 from ignite.handlers.terminate_on_nan import TerminateOnNan
@@ -53,12 +53,12 @@ __all__ = [
     "FastaiLRFinder",
     "EMAHandler",
     "BaseParamScheduler",
-    "StatePScheduler",
-    "LambdaStatePScheduler",
-    "LinearStatePScheduler",
-    "ExpStatePScheduler",
-    "StepStatePScheduler",
-    "MultiStepStatePScheduler",
+    "StateParamScheduler",
+    "LambdaStateScheduler",
+    "LinearStateScheduler",
+    "ExpStateScheduler",
+    "StepStateScheduler",
+    "MultiStepStateScheduler",
 ]
 
 

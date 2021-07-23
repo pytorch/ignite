@@ -5,7 +5,7 @@ from ignite.engine import CallableEventWithFilter, Engine, Events, EventsList
 from ignite.handlers import BaseParamScheduler
 
 
-class StatePScheduler(BaseParamScheduler):
+class StateParamScheduler(BaseParamScheduler):
     """An abstract class for updating an engine state parameter values during training.
 
     Args:
@@ -25,7 +25,7 @@ class StatePScheduler(BaseParamScheduler):
     def __init__(
         self, param_name: str, save_history: bool = False,
     ):
-        super(StatePScheduler, self).__init__(param_name, save_history)
+        super(StateParamScheduler, self).__init__(param_name, save_history)
 
     def attach(
         self,
@@ -78,7 +78,7 @@ class StatePScheduler(BaseParamScheduler):
             import numpy as np
 
             step_state_param_values = np.array(
-                StepStatePScheduler.simulate_values(
+                StepStateScheduler.simulate_values(
                     num_events=20, param_name="step_scheduled_param", initial_value=10, gamma=0.99, step_size=5
                 )
             )
@@ -102,7 +102,7 @@ class StatePScheduler(BaseParamScheduler):
         return values
 
 
-class LambdaStatePScheduler(StatePScheduler):
+class LambdaStateScheduler(StateParamScheduler):
     """Update a parameter during training by using a user defined function.
         User defined function is taking an event index as input and returns parameter value.
 
@@ -122,7 +122,7 @@ class LambdaStatePScheduler(StatePScheduler):
             initial_value = 10
             gamma = 0.99
 
-            lambda_scheduler = LambdaStatePScheduler(
+            lambda_scheduler = LambdaStateScheduler(
                 param_name="lambda",
                 lambda_fn=lambda event_index: initial_value * gamma ** (event_index % 9),
             )
@@ -139,7 +139,7 @@ class LambdaStatePScheduler(StatePScheduler):
     """
 
     def __init__(self, lambda_fn: Callable, param_name: str, save_history: bool = False):
-        super(LambdaStatePScheduler, self).__init__(param_name, save_history)
+        super(LambdaStateScheduler, self).__init__(param_name, save_history)
         self.lambda_fn = lambda_fn
         self._state_attrs += ["lambda_fn"]
 
@@ -147,7 +147,7 @@ class LambdaStatePScheduler(StatePScheduler):
         return self.lambda_fn(self.event_index)
 
 
-class LinearStatePScheduler(StatePScheduler):
+class LinearStateScheduler(StateParamScheduler):
     """Update a parameter during training by using linear function.
     The function keeps the parameter value to zero until step_zero steps passed and then linearly increases it to 1
     until an additional step_one steps passed. Continues the trend until it reaches max_value.
@@ -168,7 +168,7 @@ class LinearStatePScheduler(StatePScheduler):
             ...
             engine = Engine(train_step)
 
-            linear_state_parameter_scheduler = LinearStatePScheduler(
+            linear_state_parameter_scheduler = LinearStateScheduler(
                 param_name="linear_scheduled_param", initial_value=0, step_constant=2, step_max_value=5, max_value=10,
             )
 
@@ -187,7 +187,7 @@ class LinearStatePScheduler(StatePScheduler):
         param_name: str,
         save_history: bool = False,
     ):
-        super(LinearStatePScheduler, self).__init__(param_name, save_history)
+        super(LinearStateScheduler, self).__init__(param_name, save_history)
         self.initial_value = initial_value
         self.step_constant = step_constant
         self.step_max_value = step_max_value
@@ -209,7 +209,7 @@ class LinearStatePScheduler(StatePScheduler):
         return self.initial_value + delta
 
 
-class ExpStatePScheduler(StatePScheduler):
+class ExpStateScheduler(StateParamScheduler):
     """Update a parameter during training by using exponential function.
     The function decays the parameter value by gamma every step.
     Based on the closed form of ExponentialLR from Pytorch
@@ -229,7 +229,7 @@ class ExpStatePScheduler(StatePScheduler):
             ...
             engine = Engine(train_step)
 
-            exp_state_parameter_scheduler = ExpStatePScheduler(
+            exp_state_parameter_scheduler = ExpStateScheduler(
                 param_name="exp_scheduled_param", initial_value=10, gamma=0.99
             )
 
@@ -243,7 +243,7 @@ class ExpStatePScheduler(StatePScheduler):
     def __init__(
         self, initial_value: float, gamma: float, param_name: str, save_history: bool = False,
     ):
-        super(ExpStatePScheduler, self).__init__(param_name, save_history)
+        super(ExpStateScheduler, self).__init__(param_name, save_history)
         self.initial_value = initial_value
         self.gamma = gamma
         self._state_attrs += ["initial_value", "gamma"]
@@ -252,7 +252,7 @@ class ExpStatePScheduler(StatePScheduler):
         return self.initial_value * self.gamma ** self.event_index
 
 
-class StepStatePScheduler(StatePScheduler):
+class StepStateScheduler(StateParamScheduler):
     """Update a parameter during training by using a step function.
     This function decays the parameter value by gamma every step_size.
     Based on StepLR from Pytorch.
@@ -273,7 +273,7 @@ class StepStatePScheduler(StatePScheduler):
             ...
             engine = Engine(train_step)
 
-            step_state_parameter_scheduler = StepStatePScheduler(
+            step_state_parameter_scheduler = StepStateScheduler(
                 param_name="step_scheduled_param", initial_value=10, gamma=0.99, step_size=5
             )
 
@@ -287,7 +287,7 @@ class StepStatePScheduler(StatePScheduler):
     def __init__(
         self, initial_value: float, gamma: float, step_size: int, param_name: str, save_history: bool = False,
     ):
-        super(StepStatePScheduler, self).__init__(param_name, save_history)
+        super(StepStateScheduler, self).__init__(param_name, save_history)
         self.initial_value = initial_value
         self.gamma = gamma
         self.step_size = step_size
@@ -297,7 +297,7 @@ class StepStatePScheduler(StatePScheduler):
         return self.initial_value * self.gamma ** (self.event_index // self.step_size)
 
 
-class MultiStepStatePScheduler(StatePScheduler):
+class MultiStepStateScheduler(StateParamScheduler):
     """Update a parameter during training by using a multi step function.
     The function decays the parameter value by gamma once the number of steps reaches one of the milestones.
     Based on MultiStepLR from Pytorch.
@@ -318,7 +318,7 @@ class MultiStepStatePScheduler(StatePScheduler):
             ...
             engine = Engine(train_step)
 
-            multi_step_state_parameter_scheduler = MultiStepStatePScheduler(
+            multi_step_state_parameter_scheduler = MultiStepStateScheduler(
                 param_name="multistep_scheduled_param", initial_value=10, gamma=0.99, milestones=[3, 6],
             )
 
@@ -332,7 +332,7 @@ class MultiStepStatePScheduler(StatePScheduler):
     def __init__(
         self, initial_value: float, gamma: float, milestones: List[int], param_name: str, save_history: bool = False,
     ):
-        super(MultiStepStatePScheduler, self).__init__(param_name, save_history)
+        super(MultiStepStateScheduler, self).__init__(param_name, save_history)
         self.initial_value = initial_value
         self.gamma = gamma
         self.milestones = milestones

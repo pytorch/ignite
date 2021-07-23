@@ -93,6 +93,15 @@ class BaseParamScheduler(metaclass=ABCMeta):
     @classmethod
     @abstractmethod
     def simulate_values(cls, num_events: int, **scheduler_kwargs: Any) -> List[List[int]]:
+        """Method to simulate scheduled values during `num_events` events.
+
+        Args:
+            num_events: number of events during the simulation.
+            scheduler_kwargs: parameter scheduler configuration kwargs.
+
+        Returns:
+            event_index, value
+        """
         pass
 
     @classmethod
