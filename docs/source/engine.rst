@@ -23,10 +23,14 @@ ignite.engine.events
     :nosignatures:
     :toctree: generated
 
-    EventEnum
     Events
 
 .. currentmodule:: ignite.base.events
+
+.. note::
+    The classes below are also exist in :ref:`base-events`, still
+    can be imported from here, there are no difference, but for future support
+    we recommend importing them from :ref:`base-events`.
 
 .. autosummary::
     :nosignatures:

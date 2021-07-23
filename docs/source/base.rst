@@ -15,6 +15,8 @@ ignite.base.events_driven
     EventsDriven
     EventsDrivenState
 
+.. _base-events:
+
 ignite.base.events
 ------------------
 
