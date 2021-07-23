@@ -23,9 +23,17 @@ ignite.engine.events
     :nosignatures:
     :toctree: generated
 
-    CallableEventWithFilter
     EventEnum
     Events
+
+.. currentmodule:: ignite.base.events
+
+.. autosummary::
+    :nosignatures:
+    :toctree: generated
+
+    CallableEventWithFilter
+    EventEnum
     EventsList
     RemovableEventHandle
 
