@@ -4,11 +4,6 @@ from ignite.base.events import CallableEventWithFilter, EventEnum, EventsList, R
 
 __all__ = ["CallableEventWithFilter", "EventEnum", "Events", "State", "EventsList", "RemovableEventHandle"]
 
-CallableEventWithFilter = CallableEventWithFilter
-EventEnum = EventEnum
-EventsList = EventsList
-RemovableEventHandle = RemovableEventHandle
-
 
 class Events(EventEnum):
     """Events that are fired by the :class:`~ignite.engine.engine.Engine` during execution. Built-in events:
