@@ -23,9 +23,21 @@ ignite.engine.events
     :nosignatures:
     :toctree: generated
 
+    Events
+
+.. currentmodule:: ignite.base.events
+
+.. note::
+    The classes below are defined in :ref:`base-events` and also
+    can be imported from this module for backward compatibility. We 
+    recommend importing them from :ref:`base-events`.
+
+.. autosummary::
+    :nosignatures:
+    :toctree: generated
+
     CallableEventWithFilter
     EventEnum
-    Events
     EventsList
     RemovableEventHandle
 

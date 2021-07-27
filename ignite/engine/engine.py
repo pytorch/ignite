@@ -156,7 +156,7 @@ class Engine(Serializable):
 
         Args:
             event_names: Defines the name of the event being supported. New events can be a str
-                or an object derived from :class:`~ignite.engine.events.EventEnum`. See example below.
+                or an object derived from :class:`~ignite.base.events.EventEnum`. See example below.
             event_to_attr: A dictionary to map an event to a state attribute.
 
         Example usage:
@@ -261,7 +261,7 @@ class Engine(Serializable):
             kwargs: optional keyword args to be passed to ``handler``.
 
         Returns:
-            :class:`~ignite.engine.events.RemovableEventHandle`, which can be used to remove the handler.
+            :class:`~ignite.base.events.RemovableEventHandle`, which can be used to remove the handler.
 
         Note:
             Note that other arguments can be passed to the handler in addition to the `*args` and  `**kwargs`

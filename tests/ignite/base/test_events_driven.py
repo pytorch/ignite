@@ -1,7 +1,7 @@
 import pytest
 
+from ignite.base.events import EventEnum
 from ignite.base.events_driven import EventsDriven, EventsDrivenState
-from ignite.engine.events import EventEnum
 
 
 class EventsDrivenWithState(EventsDriven):

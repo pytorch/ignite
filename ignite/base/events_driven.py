@@ -4,7 +4,8 @@ import weakref
 from collections import defaultdict
 from typing import Any, Callable, Dict, List, Mapping, Optional, Union
 
-from ignite.engine.events import CallableEventWithFilter, EventEnum, Events, EventsList, RemovableEventHandle
+from ignite.base.events import CallableEventWithFilter, EventEnum, EventsList, RemovableEventHandle
+from ignite.engine.events import Events
 from ignite.engine.utils import _check_signature
 
 
@@ -61,13 +62,13 @@ class EventsDriven:
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
 
     def register_events(
-        self, *event_names: Union[List[str], List[EventEnum]], event_to_attr: Optional[dict] = None
+        self, *event_names: Union[List[str], List[EventEnum]], event_to_attr: Optional[dict] = None,
     ) -> None:
         """Add events that can be fired.
 
         Args:
             event_names: Defines the name of the event being supported. New events can be a str
-                or an object derived from :class:`~ignite.engine.events.EventEnum`. See example below.
+                or an object derived from :class:`~ignite.base.events.EventEnum`. See example below.
             event_to_attr: A dictionary to map an event to a state attribute.
         """
         if not (event_to_attr is None or isinstance(event_to_attr, dict)):
@@ -111,7 +112,7 @@ class EventsDriven:
             **kwargs: optional keyword args to be passed to ``handler``.
 
         Returns:
-            :class:`~ignite.engine.events.RemovableEventHandle`, which can be used to remove the handler.
+            :class:`~ignite.base.events.RemovableEventHandle`, which can be used to remove the handler.
         """
         if isinstance(event_name, EventsList):
             for e in event_name:
