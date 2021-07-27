@@ -2,11 +2,13 @@ import functools
 import logging
 import weakref
 from collections import defaultdict
-from typing import Any, Callable, Dict, List, Mapping, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Mapping, Optional, Union
 
 from ignite.base.events import CallableEventWithFilter, EventEnum, EventsList, RemovableEventHandle
-from ignite.engine.events import Events
 from ignite.engine.utils import _check_signature
+
+if TYPE_CHECKING:
+    from ignite.engine.events import Events
 
 
 class EventsDriven:
@@ -114,6 +116,7 @@ class EventsDriven:
         Returns:
             :class:`~ignite.base.events.RemovableEventHandle`, which can be used to remove the handler.
         """
+        from ignite.engine.events import Events
         if isinstance(event_name, EventsList):
             for e in event_name:
                 self.add_event_handler(e, handler, *args, **kwargs)
