@@ -84,11 +84,13 @@ def training(local_rank, config):
         ) as trainer_with_lr_finder:
             trainer_with_lr_finder.run(train_loader)
         logger.info(f"\tOptimal Learning Rate: {lr_finder.lr_suggestion()}")
-        if config["with_clearml"]:
-            lr_finder_plot = lr_finder.plot()
-            task.logger.report_matplotlib_figure(
-                title="LRFinder plot", series="LR vs Loss", figure=lr_finder_plot, report_image=True
-            )
+        # Remove the attached lr_scheduler to create a new one
+        trainer.remove_event_handler(lr_scheduler, Events.ITERATION_STARTED)
+        # if config["with_clearml"]:
+        #     lr_finder_plot = lr_finder.plot()
+        #     task.logger.report_matplotlib_figure(
+        #         title="LRFinder plot", series="LR vs Loss", figure=lr_finder_plot
+        #     )
         # Create new scheduler with the new optimal learning rate
         config["learning_rate"] = lr_finder.lr_suggestion()
         le = config["num_iters_per_epoch"]
@@ -98,7 +100,24 @@ def training(local_rank, config):
             (le * config["num_epochs"], 0.0),
         ]
         lr_scheduler = PiecewiseLinear(optimizer, param_name="lr", milestones_values=milestones_values)
-        common.setup_common_training_handlers(trainer=trainer, lr_scheduler=lr_scheduler)
+
+    to_save = {"trainer": trainer, "model": model, "optimizer": optimizer, "lr_scheduler": lr_scheduler}
+    common.setup_common_training_handlers(
+        trainer=trainer,
+        lr_scheduler=lr_scheduler if config["use_lr_finder"] else None,
+        to_save=to_save,
+        save_every_iters=config["checkpoint_every"],
+        save_handler=get_save_handler(config),
+        with_pbars=False,
+        clear_cuda_cache=False,
+    )
+    resume_from = config["resume_from"]
+    if resume_from is not None:
+        checkpoint_fp = Path(resume_from)
+        assert checkpoint_fp.exists(), f"Checkpoint '{checkpoint_fp.as_posix()}' is not found"
+        logger.info(f"Resume from a checkpoint: {checkpoint_fp.as_posix()}")
+        checkpoint = torch.load(checkpoint_fp.as_posix(), map_location="cpu")
+        Checkpoint.load_objects(to_load=to_save, checkpoint=checkpoint)
 
     # Let's now setup evaluator engine to perform model's validation and compute metrics
     metrics = {
@@ -351,7 +370,6 @@ def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, con
     trainer = Engine(train_step)
     trainer.logger = logger
 
-    to_save = {"trainer": trainer, "model": model, "optimizer": optimizer, "lr_scheduler": lr_scheduler}
     metric_names = [
         "batch loss",
     ]
@@ -359,22 +377,11 @@ def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, con
     common.setup_common_training_handlers(
         trainer=trainer,
         train_sampler=train_sampler,
-        to_save=to_save,
-        save_every_iters=config["checkpoint_every"],
-        save_handler=get_save_handler(config),
         lr_scheduler=lr_scheduler,
         output_names=metric_names if config["log_every_iters"] > 0 else None,
         with_pbars=False,
         clear_cuda_cache=False,
     )
-
-    resume_from = config["resume_from"]
-    if resume_from is not None:
-        checkpoint_fp = Path(resume_from)
-        assert checkpoint_fp.exists(), f"Checkpoint '{checkpoint_fp.as_posix()}' is not found"
-        logger.info(f"Resume from a checkpoint: {checkpoint_fp.as_posix()}")
-        checkpoint = torch.load(checkpoint_fp.as_posix(), map_location="cpu")
-        Checkpoint.load_objects(to_load=to_save, checkpoint=checkpoint)
 
     return trainer
 
