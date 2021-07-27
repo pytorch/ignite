@@ -117,6 +117,7 @@ class EventsDriven:
             :class:`~ignite.base.events.RemovableEventHandle`, which can be used to remove the handler.
         """
         from ignite.engine.events import Events
+
         if isinstance(event_name, EventsList):
             for e in event_name:
                 self.add_event_handler(e, handler, *args, **kwargs)

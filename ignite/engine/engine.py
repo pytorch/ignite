@@ -11,8 +11,8 @@ from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Tupl
 from torch.utils.data import DataLoader
 
 from ignite.base import Serializable
-from ignite.base.events_driven import EventsDriven
 from ignite.base.events import CallableEventWithFilter, EventEnum, EventsList, RemovableEventHandle
+from ignite.base.events_driven import EventsDriven
 from ignite.engine.events import Events
 from ignite.engine.state import State
 from ignite.engine.utils import _check_signature, _to_hours_mins_secs
