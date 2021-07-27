@@ -13,7 +13,7 @@ import ignite.distributed as idist
 from ignite.contrib.engines import common
 from ignite.contrib.handlers import PiecewiseLinear
 from ignite.engine import Engine, Events
-from ignite.handlers import Checkpoint, DiskSaver, global_step_from_engine
+from ignite.handlers import Checkpoint, DiskSaver, FastaiLRFinder, global_step_from_engine
 from ignite.metrics import Accuracy, Loss
 from ignite.utils import manual_seed, setup_logger
 
@@ -74,6 +74,31 @@ def training(local_rank, config):
 
     # Create trainer for current task
     trainer = create_trainer(model, optimizer, criterion, lr_scheduler, train_loader.sampler, config, logger)
+
+    # Finding optimal Learning Rate using FastaiLRFinder
+    if config["use_lr_finder"]:
+        lr_finder = FastaiLRFinder()
+        to_save = {"model": model, "optimizer": optimizer}
+        with lr_finder.attach(
+            trainer, to_save, output_transform=lambda output: output["batch loss"], start_lr=0.2
+        ) as trainer_with_lr_finder:
+            trainer_with_lr_finder.run(train_loader)
+        logger.info(f"\tOptimal Learning Rate: {lr_finder.lr_suggestion()}")
+        if config["with_clearml"]:
+            lr_finder_plot = lr_finder.plot()
+            task.logger.report_matplotlib_figure(
+                title="LRFinder plot", series="LR vs Loss", figure=lr_finder_plot, report_image=True
+            )
+        # Create new scheduler with the new optimal learning rate
+        config["learning_rate"] = lr_finder.lr_suggestion()
+        le = config["num_iters_per_epoch"]
+        milestones_values = [
+            (0, 0.0),
+            (le * config["num_warmup_epochs"], config["learning_rate"]),
+            (le * config["num_epochs"], 0.0),
+        ]
+        lr_scheduler = PiecewiseLinear(optimizer, param_name="lr", milestones_values=milestones_values)
+        common.setup_common_training_handlers(trainer=trainer, lr_scheduler=lr_scheduler)
 
     # Let's now setup evaluator engine to perform model's validation and compute metrics
     metrics = {
@@ -156,6 +181,7 @@ def run(
     stop_iteration=None,
     with_clearml=False,
     with_amp=False,
+    use_lr_finder=False,
     **spawn_kwargs,
 ):
     """Main entry to train an model on CIFAR10 dataset.
@@ -184,6 +210,7 @@ def run(
         stop_iteration (int, optional): iteration to stop the training. Can be used to check resume from checkpoint.
         with_clearml (bool): if True, experiment ClearML logger is setup. Default, False.
         with_amp (bool): if True, enables native automatic mixed precision. Default, False.
+        use_lr_finder (bool): if True, uses FastAILRFinder to find optimal learning rate. Default, False.
         **spawn_kwargs: Other kwargs to spawn run in child processes: master_addr, master_port, node_rank, nnodes
 
     """
