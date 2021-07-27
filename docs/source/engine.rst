@@ -28,9 +28,9 @@ ignite.engine.events
 .. currentmodule:: ignite.base.events
 
 .. note::
-    The classes below are also exist in :ref:`base-events`, still
-    can be imported from here, there are no difference, but for future support
-    we recommend importing them from :ref:`base-events`.
+    The classes below are defined in :ref:`base-events` and also
+    can be imported from this module for backward compatibility. We 
+    recommend importing them from :ref:`base-events`.
 
 .. autosummary::
     :nosignatures:
