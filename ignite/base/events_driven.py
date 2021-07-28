@@ -311,14 +311,15 @@ class EventsDrivenState:
 
         super().__setattr__(attr, value)
 
-    def update_mapping(self, event_to_attr: Mapping[Any, str]) -> None:
+    def update_mapping(self, event_to_attr: Optional[Dict[Any, Any]]) -> None:
         """Looks for the attribute and check if not existed to add it.
 
         Args:
             event_to_attr: mapping consists of the events from :class:`~ignite.engine.events.Events`
                 or any other custom events added by :meth:`~ignite.base.events_driven.EventsDriven.register_events`.
         """
-        for k, v in event_to_attr.items():
-            attr_evnts = self._attr_to_events[v]
-            if k not in attr_evnts:
-                attr_evnts.append(k)
+        if event_to_attr:
+            for k, v in event_to_attr.items():
+                attr_evnts = self._attr_to_events[v]
+                if k not in attr_evnts:
+                    attr_evnts.append(k)

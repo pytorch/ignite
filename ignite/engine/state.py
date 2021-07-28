@@ -12,7 +12,7 @@ __all__ = [
 ]
 
 
-class State:
+class State(EventsDrivenState):
     """An object that is used to pass internal and user-defined state between event handlers. By default, state
     contains the following attributes:
 
@@ -47,9 +47,8 @@ class State:
     }  # type: Dict[Union[str, "Events", "CallableEventWithFilter"], str]
 
     def __init__(self, **kwargs: Any) -> None:
+        super(State, self).__init__(**kwargs)
 
-        self.iteration = 0
-        self.epoch = 0
         self.epoch_length = None  # type: Optional[int]
         self.max_epochs = None  # type: Optional[int]
         self.max_iters = None  # type: Optional[int]
@@ -66,12 +65,12 @@ class State:
         for k, v in kwargs.items():
             setattr(self, k, v)
 
-        self._update_attrs()
+        # self._update_attrs()
 
-    def _update_attrs(self) -> None:
-        for value in self.event_to_attr.values():
-            if not hasattr(self, value):
-                setattr(self, value, 0)
+    # def _update_attrs(self) -> None:
+    #     for value in self.event_to_attr.values():
+    #         if not hasattr(self, value):
+    #             setattr(self, value, 0)
 
     def get_event_attrib_value(self, event_name: Union[str, Events, CallableEventWithFilter]) -> int:
         """Get the value of Event attribute with given `event_name`."""
