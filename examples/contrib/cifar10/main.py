@@ -77,29 +77,25 @@ def training(local_rank, config):
 
     # Finding optimal Learning Rate using FastaiLRFinder
     if config["use_lr_finder"]:
+        # Remove the attached lr_scheduler to avoid strange behaviours while running FastaiLRFinder
+        trainer.remove_event_handler(lr_scheduler, Events.ITERATION_STARTED)
         lr_finder = FastaiLRFinder()
         to_save = {"model": model, "optimizer": optimizer}
         with lr_finder.attach(
             trainer, to_save, output_transform=lambda output: output["batch loss"], start_lr=0.2
         ) as trainer_with_lr_finder:
             trainer_with_lr_finder.run(train_loader)
-        logger.info(f"\tOptimal Learning Rate: {lr_finder.lr_suggestion()}")
-        # Remove the attached lr_scheduler to create a new one
-        trainer.remove_event_handler(lr_scheduler, Events.ITERATION_STARTED)
+        logger.info(f"Optimal Learning Rate: {lr_finder.lr_suggestion()}")
         # if config["with_clearml"]:
         #     lr_finder_plot = lr_finder.plot()
         #     task.logger.report_matplotlib_figure(
         #         title="LRFinder plot", series="LR vs Loss", figure=lr_finder_plot
         #     )
-        # Create new scheduler with the new optimal learning rate
+        # We don't need to do lr_finder.apply_suggested_lr(optimizer) here
+        # we need only to update lr_scheduler with the found LR
         config["learning_rate"] = lr_finder.lr_suggestion()
-        le = config["num_iters_per_epoch"]
-        milestones_values = [
-            (0, 0.0),
-            (le * config["num_warmup_epochs"], config["learning_rate"]),
-            (le * config["num_epochs"], 0.0),
-        ]
-        lr_scheduler = PiecewiseLinear(optimizer, param_name="lr", milestones_values=milestones_values)
+        # Update milestones_values with the new optimal learning rate
+        lr_scheduler.values[1] = config["learning_rate"]
 
     to_save = {"trainer": trainer, "model": model, "optimizer": optimizer, "lr_scheduler": lr_scheduler}
     common.setup_common_training_handlers(
