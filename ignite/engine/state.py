@@ -65,12 +65,14 @@ class State(EventsDrivenState):
         for k, v in kwargs.items():
             setattr(self, k, v)
 
-        # self._update_attrs()
+        # ! IMPORTANT NOTE HERE: to avoid standalone state errors (eg: with _id_done)
+        if self.engine is None:
+            self._update_attrs()
 
-    # def _update_attrs(self) -> None:
-    #     for value in self.event_to_attr.values():
-    #         if not hasattr(self, value):
-    #             setattr(self, value, 0)
+    def _update_attrs(self) -> None:
+        for value in self.event_to_attr.values():
+            if not hasattr(self, value):
+                setattr(self, value, 0)
 
     def get_event_attrib_value(self, event_name: Union[str, Events, CallableEventWithFilter]) -> int:
         """Get the value of Event attribute with given `event_name`."""

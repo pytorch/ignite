@@ -98,6 +98,7 @@ def test_custom_events_with_event_to_attr():
     engine = Engine(process_func)
     engine.register_events(*CustomEvents, event_to_attr=custom_event_to_attr)
 
+    # ! WRONG?
     def handle(engine):
         engine.state.test_event += 1
 
@@ -420,6 +421,7 @@ def test_custom_callable_events_with_engine():
         return False
 
     def _test(event_name, event_attr, true_num_calls):
+        # ! WRONG?
         def update_fn(engine, batch):
             engine.state.test_event = engine.state.iteration
             engine.fire_event(CustomEvents.TEST_EVENT)

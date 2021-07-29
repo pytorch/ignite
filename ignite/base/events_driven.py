@@ -286,12 +286,20 @@ class EventsDrivenState:
     def __getattr__(self, attr: str) -> Any:
         evnts = None
         if attr in self._attr_to_events:
-            evnts = self._attr_to_events[attr]
+            if attr == "epoch":
+                evnts = self._attr_to_events["epoch"][0]  # Fetch EPOCH_STARTED
+            elif attr == "iteration":
+                evnts = self._attr_to_events["iteration"][2]  # Fetch ITERATION_STARTED
+            else:
+                evnts = self._attr_to_events[attr]
 
         if self.engine and evnts:
             # return max of available event counts
-            counts = [self.engine._allowed_events_counts[e] for e in evnts]
-            return max(counts)
+            if isinstance(evnts, list):
+                counts = [self.engine._allowed_events_counts[e] for e in evnts]
+                return max(counts)
+            else:
+                return self.engine._allowed_events_counts[evnts]
 
         raise AttributeError("'{}' object has no attribute '{}'".format(self.__class__.__name__, attr))
 
