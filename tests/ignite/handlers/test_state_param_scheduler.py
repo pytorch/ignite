@@ -204,7 +204,10 @@ def test_custom_scheduler():
     initial_value = 10
     gamma = 0.99
     engine = Engine(lambda e, b: None)
-    lambda_fn = lambda event_index: initial_value * gamma ** (event_index % 9)
+
+    def lambda_fn(event_index):
+        return initial_value * gamma ** (event_index % 9)
+
     lambda_state_parameter_scheduler = LambdaStateScheduler(param_name="custom_scheduled_param", lambda_fn=lambda_fn,)
     lambda_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
     engine.run([0] * 8, max_epochs=2)
