@@ -437,7 +437,7 @@ if has_native_dist_support:
         Args:
             nodelist: Compressed hostlist string
 
-        .. versionadded:: 0.5.1
+        .. versionadded:: 0.4.6
         """
         node_list = nodelist.split(", ")
 

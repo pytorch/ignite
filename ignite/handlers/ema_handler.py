@@ -114,7 +114,7 @@ class EMAHandler:
 
               engine.run(...)
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.6
 
     """
 
