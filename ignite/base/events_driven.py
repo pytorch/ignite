@@ -294,8 +294,8 @@ class EventsDrivenState:
                 evnts = self._attr_to_events[attr]
 
         if self.engine and evnts:
-            # return max of available event counts
             if isinstance(evnts, list):
+                # return max of available event counts
                 counts = [self.engine._allowed_events_counts[e] for e in evnts]
                 return max(counts)
             else:

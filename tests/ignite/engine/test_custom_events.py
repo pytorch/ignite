@@ -423,6 +423,8 @@ def test_custom_callable_events_with_engine():
     def _test(event_name, event_attr, true_num_calls):
         # ! WRONG?
         def update_fn(engine, batch):
+            # We set test_event to iteration, then we increase it by one
+            # so it will always be larger than iteration by one
             engine.state.test_event = engine.state.iteration
             engine.fire_event(CustomEvents.TEST_EVENT)
 
