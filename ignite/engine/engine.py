@@ -225,7 +225,8 @@ class Engine(Serializable, EventsDriven):
             # engine.state contains an attribute time_iteration, which can be accessed using engine.state.time_iteration
         """
         super(Engine, self).register_events(*event_names, event_to_attr=event_to_attr)
-        self.state.update_mapping(event_to_attr)
+        if event_to_attr is not None:
+            self.state.update_mapping(event_to_attr)
 
     def add_event_handler(self, event_name: Any, handler: Callable, *args: Any, **kwargs: Any) -> RemovableEventHandle:
         """Add an event handler to be executed when the specified event is fired.

@@ -1,5 +1,5 @@
 import numbers
-from typing import Any, Dict, Iterable, Optional, Union
+from typing import Any, Dict, Iterable, Mapping, Optional, Union
 
 from torch.utils.data import DataLoader
 
@@ -88,3 +88,28 @@ class State(EventsDrivenState):
                 value = type(value)
             s += f"\t{attr}: {value}\n"
         return s
+
+    def update_mapping(self, event_to_attr: Mapping[Any, str]) -> None:
+        """Maps each attribute to a list of the corresponding events
+
+        Args:
+            event_to_attr: mapping consists of the events from :class:`~ignite.engine.events.Events`
+                or any other custom events added by :meth:`~ignite.base.events_driven.EventsDriven.register_events`.
+
+        Note:
+            - epoch attribute is mapped specifically to `Events.EPOCH_STARTED`.
+            - iteration attribute is mapped specifically to `Events.ITERATION_STARTED`.
+
+        """
+        for k, v in event_to_attr.items():
+            if v == "epoch" and k != Events.EPOCH_STARTED:
+                attr_evnts = self._attr_to_events["epoch"]
+                continue
+            elif v == "iteration" and k != Events.ITERATION_STARTED:
+                attr_evnts = self._attr_to_events["iteration"]
+                continue
+            else:
+                attr_evnts = self._attr_to_events[v]
+
+            if k not in attr_evnts:
+                attr_evnts.append(k)

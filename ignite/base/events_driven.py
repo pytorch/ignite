@@ -283,20 +283,12 @@ class EventsDrivenState:
     def __getattr__(self, attr: str) -> Any:
         evnts = None
         if attr in self._attr_to_events:
-            if attr == "epoch":
-                evnts = self._attr_to_events["epoch"][0]  # Fetch EPOCH_STARTED
-            elif attr == "iteration":
-                evnts = self._attr_to_events["iteration"][2]  # Fetch ITERATION_STARTED
-            else:
-                evnts = self._attr_to_events[attr]
+            evnts = self._attr_to_events[attr]
 
         if self.engine and evnts:
-            if isinstance(evnts, list):
-                # return max of available event counts
-                counts = [self.engine._allowed_events_counts[e] for e in evnts]
-                return max(counts)
-            else:
-                return self.engine._allowed_events_counts[evnts]
+            # return max of available event counts
+            counts = [self.engine._allowed_events_counts[e] for e in evnts]
+            return max(counts)
 
         raise AttributeError("'{}' object has no attribute '{}'".format(self.__class__.__name__, attr))
 
@@ -316,15 +308,14 @@ class EventsDrivenState:
 
         super().__setattr__(attr, value)
 
-    def update_mapping(self, event_to_attr: Optional[Dict[Any, Any]]) -> None:
-        """Looks for the attribute and check if not existed to add it.
+    def update_mapping(self, event_to_attr: Mapping[Any, str]) -> None:
+        """Maps each attribute to a list of the corresponding events.
 
         Args:
             event_to_attr: mapping consists of the events from :class:`~ignite.engine.events.Events`
                 or any other custom events added by :meth:`~ignite.base.events_driven.EventsDriven.register_events`.
         """
-        if event_to_attr:
-            for k, v in event_to_attr.items():
-                attr_evnts = self._attr_to_events[v]
-                if k not in attr_evnts:
-                    attr_evnts.append(k)
+        for k, v in event_to_attr.items():
+            attr_evnts = self._attr_to_events[v]
+            if k not in attr_evnts:
+                attr_evnts.append(k)
