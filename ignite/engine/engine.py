@@ -459,21 +459,6 @@ class Engine(Serializable, EventsDriven):
         is_done_epochs = state.max_epochs is not None and state.epoch >= state.max_epochs
         return is_done_iters or is_done_count or is_done_epochs
 
-    # def _is_done(self, state: State) -> bool:
-    #     # if isinstance(self.state.max_iters, int):
-    #     is_done_iters = (
-    #         state.max_iters is not None and self._allowed_events_counts[Events.ITERATION_STARTED] >= state.max_iters
-    #     )  # mypy: ignore
-    #     is_done_count = (
-    #         state.epoch_length is not None
-    #         and state.max_epochs is not None
-    #         and self._allowed_events_counts[Events.ITERATION_STARTED] >= state.epoch_length * state.max_epochs
-    #     )
-    #     is_done_epochs = (
-    #         state.max_epochs is not None and self._allowed_events_counts[Events.EPOCH_STARTED] >= state.max_epochs
-    #     )
-    #     return is_done_iters or is_done_count or is_done_epochs
-
     def set_data(self, data: Union[Iterable, DataLoader]) -> None:
         """Method to set data. After calling the method the next batch passed to `processing_function` is
         from newly provided data. Please, note that epoch length is not modified.

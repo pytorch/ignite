@@ -275,9 +275,6 @@ class EventsDrivenState:
 
         self.engine = engine  # type: Optional[EventsDriven]
 
-        if event_to_attr is None and engine is not None:
-            pass
-
         self._attr_to_events = defaultdict(list)  # type: Mapping[str, Any]
         if event_to_attr is not None:
             for k, v in event_to_attr.items():

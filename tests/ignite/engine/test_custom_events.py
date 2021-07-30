@@ -98,11 +98,9 @@ def test_custom_events_with_event_to_attr():
     engine = Engine(process_func)
     engine.register_events(*CustomEvents, event_to_attr=custom_event_to_attr)
 
-    # ! WRONG?
-    # def handle(engine):
-    # engine.state.test_event += 1
+    # After engine refactoring we don't need to
+    # increase/set the counter of the event
 
-    # engine.add_event_handler(CustomEvents.TEST_EVENT, handle)
     engine.run(range(25))
     assert engine.state.test_event == 25
 
@@ -421,11 +419,9 @@ def test_custom_callable_events_with_engine():
         return False
 
     def _test(event_name, event_attr, true_num_calls):
-        # ! WRONG?
         def update_fn(engine, batch):
-            # We set test_event to iteration, then we increase it by one
-            # so it will always be larger than iteration by one
-            # engine.state.test_event = engine.state.iteration
+            # After engine refactoring we don't need to
+            # increase/set the counter of the event
             engine.fire_event(CustomEvents.TEST_EVENT)
 
         engine = Engine(update_fn)

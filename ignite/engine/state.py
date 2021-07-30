@@ -65,7 +65,8 @@ class State(EventsDrivenState):
         for k, v in kwargs.items():
             setattr(self, k, v)
 
-        # ! Explain what's happening here
+        # Update the attributes if it's a standalone state
+        # to keep BC compatibility
         if self.engine is None:
             self._update_attrs()
 
