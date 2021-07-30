@@ -129,7 +129,7 @@ class LambdaStateScheduler(StateParamScheduler):
 
             lambda_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
 
-            # basic handler tp print scheduled state parameter
+            # basic handler to print scheduled state parameter
             engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _ : print(engine.state.custom_scheduled_param))
 
             engine.run([0] * 8, max_epochs=2)
