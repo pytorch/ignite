@@ -65,7 +65,7 @@ class State(EventsDrivenState):
         for k, v in kwargs.items():
             setattr(self, k, v)
 
-        # ! IMPORTANT NOTE: to avoid standalone state errors (eg: with _is_done)
+        # ! Explain what's happening here
         if self.engine is None:
             self._update_attrs()
 
