@@ -12,52 +12,14 @@ from ignite.handlers.state_param_scheduler import (
     StepStateScheduler,
 )
 
+config1 = (3, 0, 2, 5, 10, True, [0.0, 0.0, 3.3333333333333335])
+expected_hist2 = [0.0] * 10 + [float(i) for i in range(1, 11)] + [10.0] * 10
+config2 = (30, 0, 10, 20, 10, True, expected_hist2)
+
 
 @pytest.mark.parametrize(
     "max_epochs, initial_value, step_constant, step_max_value, max_value, save_history, expected_param_history",
-    [
-        (3, 0, 2, 5, 10, True, [0.0, 0.0, 3.3333333333333335]),
-        (
-            30,
-            0,
-            10,
-            20,
-            10,
-            True,
-            [
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                1.0,
-                2.0,
-                3.0,
-                4.0,
-                5.0,
-                6.0,
-                7.0,
-                8.0,
-                9.0,
-                10.0,
-                10,
-                10,
-                10,
-                10,
-                10,
-                10,
-                10,
-                10,
-                10,
-                10,
-            ],
-        ),
-    ],
+    [config1, config2],
 )
 def test_linear_scheduler_linear_increase_history(
     max_epochs, initial_value, step_constant, step_max_value, max_value, save_history, expected_param_history
@@ -216,34 +178,28 @@ def test_custom_scheduler():
     torch.testing.assert_allclose(getattr(engine.state, "custom_scheduled_param"), lambda_fn(20))
 
 
-@pytest.mark.parametrize(
-    "scheduler_cls,scheduler_kwargs",
-    [
-        (
-            LinearStateScheduler,
-            {
-                "param_name": "linear_scheduled_param",
-                "initial_value": 0,
-                "step_constant": 2,
-                "step_max_value": 5,
-                "max_value": 10,
-            },
-        ),
-        (ExpStateScheduler, {"param_name": "exp_scheduled_param", "initial_value": 10, "gamma": 0.99}),
-        (
-            StepStateScheduler,
-            {"param_name": "step_scheduled_param", "initial_value": 10, "gamma": 0.99, "step_size": 5},
-        ),
-        (
-            MultiStepStateScheduler,
-            {"param_name": "multistep_scheduled_param", "initial_value": 10, "gamma": 0.99, "milestones": [3, 6]},
-        ),
-        (
-            LambdaStateScheduler,
-            {"param_name": "custom_scheduled_param", "lambda_fn": lambda event_index: 10 * 0.99 ** (event_index % 9),},
-        ),
-    ],
+config1 = (
+    LinearStateScheduler,
+    {
+        "param_name": "linear_scheduled_param",
+        "initial_value": 0,
+        "step_constant": 2,
+        "step_max_value": 5,
+        "max_value": 10,
+    },
 )
+config2 = (ExpStateScheduler, {"param_name": "exp_scheduled_param", "initial_value": 10, "gamma": 0.99})
+config3 = (
+    MultiStepStateScheduler,
+    {"param_name": "multistep_scheduled_param", "initial_value": 10, "gamma": 0.99, "milestones": [3, 6]},
+)
+config4 = (
+    LambdaStateScheduler,
+    {"param_name": "custom_scheduled_param", "lambda_fn": lambda event_index: 10 * 0.99 ** (event_index % 9)},
+)
+
+
+@pytest.mark.parametrize("scheduler_cls,scheduler_kwargs", [config1, config2, config3, config4])
 def test_simulate_and_plot_values(scheduler_cls, scheduler_kwargs):
 
     import matplotlib
