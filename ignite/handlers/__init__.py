@@ -21,8 +21,8 @@ from ignite.handlers.param_scheduler import (
 from ignite.handlers.state_param_scheduler import (
     ExpStateScheduler,
     LambdaStateScheduler,
-    LinearStateScheduler,
     MultiStepStateScheduler,
+    PwLinearStateScheduler,
     StateParamScheduler,
     StepStateScheduler,
 )
@@ -55,7 +55,7 @@ __all__ = [
     "BaseParamScheduler",
     "StateParamScheduler",
     "LambdaStateScheduler",
-    "LinearStateScheduler",
+    "PwLinearStateScheduler",
     "ExpStateScheduler",
     "StepStateScheduler",
     "MultiStepStateScheduler",

@@ -1,5 +1,6 @@
+import numbers
 from bisect import bisect_right
-from typing import Any, Callable, List, Union
+from typing import Any, Callable, List, Tuple, Union
 
 from ignite.engine import CallableEventWithFilter, Engine, Events, EventsList
 from ignite.handlers import BaseParamScheduler
@@ -147,16 +148,12 @@ class LambdaStateScheduler(StateParamScheduler):
         return self.lambda_fn(self.event_index)
 
 
-class LinearStateScheduler(StateParamScheduler):
-    """Update a parameter during training by using linear function.
-    The function keeps the parameter value to zero until step_zero steps passed and then linearly increases it to 1
-    until an additional step_one steps passed. Continues the trend until it reaches max_value.
+class PwLinearStateScheduler(StateParamScheduler):
+    """Piecewise linear state parameter scheduler.
 
     Args:
-        initial_value : starting value of the parameter.
-        step_constant : step index until parameter's value is kept constant.
-        step_max_value : step index at which parameter's value becomes max_value.
-        max_value : max parameter value.
+        milestones_values: list of tuples (event index, parameter value)
+            represents milestones and parameter values. Milestones should be increasing integers.
         param_name: name of parameter to update.
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
@@ -168,45 +165,71 @@ class LinearStateScheduler(StateParamScheduler):
             ...
             engine = Engine(train_step)
 
-            linear_state_parameter_scheduler = LinearStateScheduler(
-                param_name="linear_scheduled_param", initial_value=0, step_constant=2, step_max_value=5, max_value=10,
+            pw_linear_state_parameter_scheduler = PwLinearStateScheduler(
+                param_name="pw_linear_scheduled_param",
+                milestones_values=[(10, 0.5), (20, 0.45), (21, 0.3), (30, 0.1), (40, 0.1)]
             )
 
-            linear_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
-            engine.run([0] * 8, max_epochs=10)
+            pwlinear_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
+
+            # basic handler to print scheduled state parameter
+            engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _ : print(engine.state.pw_linear_scheduled_param))
+
+            engine.run([0] * 8, max_epochs=40)
+            #
+            # Sets the state parameter value to 0.5 over the first 10 iterations, then decreases linearly from 0.5 to
+            # 0.45 between 10th and 20th iterations. Next there is a jump to 0.3 at the 21st iteration and the state
+            # parameter value decreases linearly from 0.3 to 0.1 between 21st and 30th iterations and remains 0.1 until
+            # the end of the iterations.
+            #
 
     .. versionadded:: 0.6.0
     """
 
     def __init__(
-        self,
-        initial_value: float,
-        step_constant: int,
-        step_max_value: int,
-        max_value: float,
-        param_name: str,
-        save_history: bool = False,
+        self, milestones_values: List[Tuple[int, float]], param_name: str, save_history: bool = False,
     ):
-        super(LinearStateScheduler, self).__init__(param_name, save_history)
-        self.initial_value = initial_value
-        self.step_constant = step_constant
-        self.step_max_value = step_max_value
-        self.max_value = max_value
-        self._state_attrs += ["initial_value", "step_constant", "step_max_value", "max_value"]
+        super(PwLinearStateScheduler, self).__init__(param_name, save_history)
+
+        values = []  # type: List[float]
+        milestones = []  # type: List[int]
+        for pair in milestones_values:
+            if not isinstance(pair, tuple) or len(pair) != 2:
+                raise ValueError("Argument milestones_values should be a list of pairs (milestone, param_value)")
+            if not isinstance(pair[0], numbers.Integral):
+                raise TypeError(f"Value of a milestone should be integer, but given {type(pair[0])}")
+            if len(milestones) > 0 and pair[0] < milestones[-1]:
+                raise ValueError(
+                    f"Milestones should be increasing integers, but given {pair[0]} is smaller "
+                    f"than the previous milestone {milestones[-1]}"
+                )
+            milestones.append(pair[0])
+            values.append(pair[1])
+
+        self.values = values
+        self.milestones = milestones
+        self._index = 0
+        self._state_attrs += ["initial_value", "milestones", "_index"]
+
+    def _get_start_end(self) -> Tuple[int, int, float, float]:
+        if self.milestones[0] > self.event_index:
+            return self.event_index - 1, self.event_index, self.values[0], self.values[0]
+        elif self.milestones[-1] <= self.event_index:
+            return (self.event_index, self.event_index + 1, self.values[-1], self.values[-1])
+        elif self.milestones[self._index] <= self.event_index < self.milestones[self._index + 1]:
+            return (
+                self.milestones[self._index],
+                self.milestones[self._index + 1],
+                self.values[self._index],
+                self.values[self._index + 1],
+            )
+        else:
+            self._index += 1
+            return self._get_start_end()
 
     def get_param(self) -> Union[List[float], float]:
-        if self.event_index <= self.step_constant:
-            delta = 0.0
-        elif self.event_index > self.step_max_value:
-            delta = self.max_value - self.initial_value
-        else:
-            delta = (
-                (self.max_value - self.initial_value)
-                / (self.step_max_value - self.step_constant)
-                * (self.event_index - self.step_constant)
-            )
-
-        return self.initial_value + delta
+        start_index, end_index, start_value, end_value = self._get_start_end()
+        return start_value + (end_value - start_value) * (self.event_index - start_index) / (end_index - start_index)
 
 
 class ExpStateScheduler(StateParamScheduler):
@@ -232,6 +255,9 @@ class ExpStateScheduler(StateParamScheduler):
             exp_state_parameter_scheduler = ExpStateScheduler(
                 param_name="exp_scheduled_param", initial_value=10, gamma=0.99
             )
+
+            # basic handler to print scheduled state parameter
+            engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _ : print(engine.state.exp_scheduled_param))
 
             exp_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
             engine.run([0] * 8, max_epochs=2)
@@ -277,6 +303,9 @@ class StepStateScheduler(StateParamScheduler):
                 param_name="step_scheduled_param", initial_value=10, gamma=0.99, step_size=5
             )
 
+            # basic handler to print scheduled state parameter
+            engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _ : print(engine.state.step_scheduled_param))
+
             step_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
             engine.run([0] * 8, max_epochs=10)
 
@@ -321,6 +350,9 @@ class MultiStepStateScheduler(StateParamScheduler):
             multi_step_state_parameter_scheduler = MultiStepStateScheduler(
                 param_name="multistep_scheduled_param", initial_value=10, gamma=0.99, milestones=[3, 6],
             )
+
+            # basic handler to print scheduled state parameter
+            engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _ : print(engine.state.multistep_scheduled_param))
 
             multi_step_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
             engine.run([0] * 8, max_epochs=10)

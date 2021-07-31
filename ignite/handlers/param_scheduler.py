@@ -132,7 +132,7 @@ class BaseParamScheduler(metaclass=ABCMeta):
                                                     start_value=1e-1, end_value=1e-3, cycle_size=10))
         """
         try:
-            import matplotlib.pylab as plt
+            import matplotlib.pyplot as plt
         except ImportError:
             raise RuntimeError(
                 "This method requires matplotlib to be installed. "

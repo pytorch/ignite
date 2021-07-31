@@ -7,112 +7,85 @@ from ignite.engine import Engine, Events
 from ignite.handlers.state_param_scheduler import (
     ExpStateScheduler,
     LambdaStateScheduler,
-    LinearStateScheduler,
     MultiStepStateScheduler,
+    PwLinearStateScheduler,
     StepStateScheduler,
 )
 
-config1 = (3, 0, 2, 5, 10, True, [0.0, 0.0, 3.3333333333333335])
+config1 = (3, [(2, 0), (5, 10)], True, [0.0, 0.0, 3.3333333333333335])
 expected_hist2 = [0.0] * 10 + [float(i) for i in range(1, 11)] + [10.0] * 10
-config2 = (30, 0, 10, 20, 10, True, expected_hist2)
+config2 = (30, [(10, 0), (20, 10)], True, expected_hist2)
 
 
 @pytest.mark.parametrize(
-    "max_epochs, initial_value, step_constant, step_max_value, max_value, save_history, expected_param_history",
-    [config1, config2],
+    "max_epochs, milestones_values,  save_history, expected_param_history", [config1, config2],
 )
-def test_linear_scheduler_linear_increase_history(
-    max_epochs, initial_value, step_constant, step_max_value, max_value, save_history, expected_param_history
+def test_pwlinear_scheduler_linear_increase_history(
+    max_epochs, milestones_values, save_history, expected_param_history
 ):
     # Testing linear increase
     engine = Engine(lambda e, b: None)
-    linear_step_parameter_scheduler = LinearStateScheduler(
-        param_name="linear_scheduled_param",
-        initial_value=initial_value,
-        step_constant=step_constant,
-        step_max_value=step_max_value,
-        max_value=max_value,
-        save_history=save_history,
+    pw_linear_step_parameter_scheduler = PwLinearStateScheduler(
+        param_name="pwlinear_scheduled_param", milestones_values=milestones_values, save_history=save_history,
     )
-    linear_step_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
+    pw_linear_step_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
     engine.run([0] * 8, max_epochs=max_epochs)
     expected_param_history = expected_param_history
     assert hasattr(engine.state, "param_history")
-    state_param = engine.state.param_history["linear_scheduled_param"]
+    state_param = engine.state.param_history["pwlinear_scheduled_param"]
     assert len(state_param) == len(expected_param_history)
     assert state_param == expected_param_history
 
 
 @pytest.mark.parametrize(
-    "max_epochs, initial_value, step_constant, step_max_value, max_value, save_history",
-    [(3, 12, 2, 5, 10, True), (30, 12, 10, 20, 10, True),],
+    "max_epochs, milestones_values", [(3, [(3, 12), (5, 10)]), (5, [(10, 12), (20, 10)]),],
 )
-def test_linear_scheduler_step_constant(
-    max_epochs, initial_value, step_constant, step_max_value, max_value, save_history
-):
+def test_pwlinear_scheduler_step_constant(max_epochs, milestones_values):
     # Testing step_constant
     engine = Engine(lambda e, b: None)
-    linear_state_parameter_scheduler = LinearStateScheduler(
-        param_name="linear_scheduled_param",
-        initial_value=initial_value,
-        step_constant=max_epochs,
-        step_max_value=step_max_value,
-        max_value=max_value,
-        save_history=True,
+    linear_state_parameter_scheduler = PwLinearStateScheduler(
+        param_name="pwlinear_scheduled_param", milestones_values=milestones_values
     )
     linear_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
     engine.run([0] * 8, max_epochs=max_epochs)
-    torch.testing.assert_allclose(getattr(engine.state, "linear_scheduled_param"), initial_value)
+    torch.testing.assert_allclose(getattr(engine.state, "pwlinear_scheduled_param"), milestones_values[0][1])
 
 
 @pytest.mark.parametrize(
-    "max_epochs, initial_value, step_constant, step_max_value, max_value, save_history, expected_val",
-    [(2, 0, 0, 3, 10, True, 6.666666666666667), (10, 0, 0, 20, 10, True, 5.0),],
+    "max_epochs, milestones_values, expected_val",
+    [(2, [(0, 0), (3, 10)], 6.666666666666667), (10, [(0, 0), (20, 10)], 5.0),],
 )
-def test_linear_scheduler_linear_increase(
-    max_epochs, initial_value, step_constant, step_max_value, max_value, save_history, expected_val
-):
+def test_pwlinear_scheduler_linear_increase(max_epochs, milestones_values, expected_val):
     # Testing linear increase
     engine = Engine(lambda e, b: None)
-    linear_state_parameter_scheduler = LinearStateScheduler(
-        param_name="linear_scheduled_param",
-        initial_value=initial_value,
-        step_constant=step_constant,
-        step_max_value=step_max_value,
-        max_value=max_value,
+    linear_state_parameter_scheduler = PwLinearStateScheduler(
+        param_name="pwlinear_scheduled_param", milestones_values=milestones_values
     )
     linear_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
     engine.run([0] * 8, max_epochs=max_epochs)
-    torch.testing.assert_allclose(getattr(engine.state, "linear_scheduled_param"), expected_val, atol=0.001, rtol=0.0)
+    torch.testing.assert_allclose(getattr(engine.state, "pwlinear_scheduled_param"), expected_val, atol=0.001, rtol=0.0)
 
 
 @pytest.mark.parametrize(
-    "max_epochs, initial_value, step_constant, step_max_value, max_value, save_history",
-    [(3, 0, 0, 3, 10, True), (40, 0, 0, 20, 10, True),],
+    "max_epochs, milestones_values,", [(3, [(0, 0), (3, 10)]), (40, [(0, 0), (20, 10)])],
 )
-def test_linear_scheduler_max_value(
-    max_epochs, initial_value, step_constant, step_max_value, max_value, save_history,
+def test_pwlinear_scheduler_max_value(
+    max_epochs, milestones_values,
 ):
     # Testing max_value
     engine = Engine(lambda e, b: None)
-    linear_state_parameter_scheduler = LinearStateScheduler(
-        param_name="linear_scheduled_param",
-        initial_value=initial_value,
-        step_constant=step_constant,
-        step_max_value=step_max_value,
-        max_value=max_value,
+    linear_state_parameter_scheduler = PwLinearStateScheduler(
+        param_name="linear_scheduled_param", milestones_values=milestones_values,
     )
     linear_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
     engine.run([0] * 8, max_epochs=max_epochs)
-    torch.testing.assert_allclose(getattr(engine.state, "linear_scheduled_param"), max_value)
+    torch.testing.assert_allclose(getattr(engine.state, "linear_scheduled_param"), milestones_values[-1][1])
 
 
 @pytest.mark.parametrize(
-    "max_epochs, initial_value, gamma, save_history", [(3, 10, 0.99, True), (40, 5, 0.98, True)],
+    "max_epochs, initial_value, gamma", [(3, 10, 0.99), (40, 5, 0.98)],
 )
-def test_exponential_scheduler(
-    max_epochs, initial_value, gamma, save_history,
-):
+def test_exponential_scheduler(max_epochs, initial_value, gamma):
     engine = Engine(lambda e, b: None)
     exp_state_parameter_scheduler = ExpStateScheduler(
         param_name="exp_scheduled_param", initial_value=initial_value, gamma=gamma
@@ -123,10 +96,10 @@ def test_exponential_scheduler(
 
 
 @pytest.mark.parametrize(
-    "max_epochs, initial_value, gamma, step_size, save_history", [(3, 10, 0.99, 5, True), (40, 5, 0.98, 22, True)],
+    "max_epochs, initial_value, gamma, step_size", [(3, 10, 0.99, 5), (40, 5, 0.98, 22)],
 )
 def test_step_scheduler(
-    max_epochs, initial_value, gamma, step_size, save_history,
+    max_epochs, initial_value, gamma, step_size,
 ):
     engine = Engine(lambda e, b: None)
     step_state_parameter_scheduler = StepStateScheduler(
@@ -143,11 +116,10 @@ from bisect import bisect_right
 
 
 @pytest.mark.parametrize(
-    "max_epochs, initial_value, gamma, milestones, save_history",
-    [(3, 10, 0.99, [3, 6], True), (40, 5, 0.98, [3, 6, 9, 10, 11], True)],
+    "max_epochs, initial_value, gamma, milestones", [(3, 10, 0.99, [3, 6]), (40, 5, 0.98, [3, 6, 9, 10, 11])],
 )
 def test_multistep_scheduler(
-    max_epochs, initial_value, gamma, milestones, save_history,
+    max_epochs, initial_value, gamma, milestones,
 ):
     engine = Engine(lambda e, b: None)
     multi_step_state_parameter_scheduler = MultiStepStateScheduler(
@@ -179,14 +151,8 @@ def test_custom_scheduler():
 
 
 config1 = (
-    LinearStateScheduler,
-    {
-        "param_name": "linear_scheduled_param",
-        "initial_value": 0,
-        "step_constant": 2,
-        "step_max_value": 5,
-        "max_value": 10,
-    },
+    PwLinearStateScheduler,
+    {"param_name": "linear_scheduled_param", "milestones_values": [(3, 12), (5, 10)]},
 )
 config2 = (ExpStateScheduler, {"param_name": "exp_scheduled_param", "initial_value": 10, "gamma": 0.99})
 config3 = (
@@ -237,7 +203,7 @@ def test_simulate_and_plot_values_no_matplotlib():
         scheduler_cls.plot_values(num_events=len(data) * max_epochs, **scheduler_kwargs)
 
     with pytest.raises(RuntimeError, match=r"This method requires matplotlib to be installed."):
-        with patch.dict("sys.modules", {"matplotlib.pylab": None}):
+        with patch.dict("sys.modules", {"matplotlib.pyplot": None}):
             _test(
                 MultiStepStateScheduler,
                 param_name="multistep_scheduled_param",
