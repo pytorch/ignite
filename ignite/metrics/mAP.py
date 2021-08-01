@@ -5,204 +5,315 @@ import torch
 from ignite.metrics.metric import Metric
 
 
-def group_detections(gts, preds):
-    bbs = defaultdict(lambda: {"pred": [], "gt": []})
+def iou(gt, dt, crowd):
+    m = len(dt)
+    n = len(gt)
 
-    for gt in gts:
-        bbs[gt[1], gt[2]]["gt"].append(gt)
-    for pred in preds:
-        bbs[pred[1], pred[2]]["pred"].append(pred)
+    ious = torch.zeros(m, n)
 
-    return bbs
-
-
-def intersection_over_union(a, b):
-    xa, ya, x2a, y2a = a[0], a[1], a[2], a[3]
-    xb, yb, x2b, y2b = b[0], b[1], b[2], b[3]
-
-    # innermost left x
-    xi = max(xa, xb)
-    # innermost right x
-    x2i = min(x2a, x2b)
-    # same for y
-    yi = max(ya, yb)
-    y2i = min(y2a, y2b)
-
-    # calculate areas
-    Aa = max(x2a - xa, 0) * max(y2a - ya, 0)
-    Ab = max(x2b - xb, 0) * max(y2b - yb, 0)
-    Ai = max(x2i - xi, 0) * max(y2i - yi, 0)
-
-    return Ai / (Aa + Ab - Ai)
-
-
-def compute_ious(preds, gts):
-    ious = torch.zeros((len(preds), len(gts)))
-    for g_idx, gt in enumerate(gts):
-        for pred_idx, pred in enumerate(preds):
-            ious[pred_idx, g_idx] = intersection_over_union(pred[3:7], gt[3:7])
+    for g in range(n):
+        G = gt[g]
+        ga = G[2] * G[3]
+        iscrowd = crowd[g]
+        for d in range(m):
+            D = dt[d]
+            da = D[2] * D[3]
+            ious[m - d - 1, g] = 0
+            w = min(D[2] + D[0], G[2] + G[0]) - max(D[0], G[0])
+            h = min(D[3] + D[1], G[3] + G[1]) - max(D[1], G[1])
+            if w <= 0 or h <= 0:
+                continue
+            i = w * h
+            if iscrowd:
+                u = da
+            else:
+                u = da + ga - i
+            ious[m - d - 1, g] = i / u
 
     return ious
 
 
-def evaluate_img(preds, gts, ious, iou_threshold, max_dets=100, area_rng=[0, 500]):
-    print(ious)
-    arg_pred = torch.argsort(preds[:, 8])
+class AP(Metric):
+    def __init__(self, iou_thrs, rec_thrs, area_rngs, max_dets, device):
+        self._gts = defaultdict(lambda: torch.zeros(0, 11))
+        self._dts = defaultdict(lambda: torch.zeros(0, 10))
 
-    preds = preds[arg_pred]
-    preds = preds[:max_dets]
-    ious = ious[arg_pred]
-    ious = ious[:max_dets]
+        self.area_rngs = area_rngs
+        self.max_dets = sorted(max_dets)
 
-    gt_ignore = torch.logical_not(torch.logical_and(area_rng[0] <= gts[:, 7], gts[:, 7] <= area_rng[1]))
-    arg_gts = torch.argsort(gt_ignore)
-    gts = gts[arg_gts]
-    gt_ignore = gt_ignore[arg_gts]
-    ious = ious[:, arg_gts]
+        self.iou_thrs = iou_thrs
+        self.rec_thrs = rec_thrs
+        self.device = device
 
-    gtm = {}
-    predm = {}
+        self.evalImgs = defaultdict(list)
+        self.eval = {}
 
-    for pred_idx, pred in enumerate(preds):
-        iou = min(iou_threshold, 1 - 1e-10)
-        m = -1
-        for g_idx, gt in enumerate(gts):
-            if g_idx in gtm:
-                continue
-            if m > -1 and gt_ignore[m] is False and gt_ignore[g_idx] is True:
-                break
-            if ious[pred_idx, g_idx] < iou:
-                continue
-            iou = ious[pred_idx, g_idx]
-            m = g_idx
-        if m == -1:
-            continue
-        predm[pred_idx] = m
-        gtm[m] = pred_idx
+        self.stats = []
+        self.ious = {}
 
-    pred_ignore = [
-        gt_ignore[predm[pred_idx]] if pred_idx in predm else not (area_rng[0] <= pred[7] and pred[7] <= area_rng[1])
-        for pred_idx, pred in enumerate(preds)
-    ]
+        self.class_ids = []
+        self.img_ids = []
 
-    scores = torch.tensor([preds[pred_idx][8] for pred_idx in range(len(preds)) if not pred_ignore[pred_idx]])
-    matched = torch.tensor([pred_idx in predm for pred_idx in range(len(preds)) if not pred_ignore[pred_idx]])
+    def update(self, dts, gts):
+        # Accumulate ground truths in gt dictionary
+        for gt in gts:
+            img_id = int(gt[1])
+            class_id = int(gt[2])
+            self._gts[img_id, class_id] = torch.vstack([self._gts[img_id, class_id], gt])
+            if img_id not in self.img_ids:
+                self.img_ids.append(img_id)
+            if class_id not in self.class_ids:
+                self.class_ids.append(class_id)
 
-    n_gts = len([g_idx for g_idx in range(len(gts)) if not gt_ignore[g_idx]])
-    return {"scores": scores, "matched": matched, "NP": n_gts}
+        # Accumulate predictions in pred dictionary
+        for dt in dts:
+            img_id = int(dt[1])
+            class_id = int(dt[2])
+            self._dts[img_id, class_id] = torch.vstack([self._dts[img_id, class_id], dt])
+            if img_id not in self.img_ids:
+                self.img_ids.append(img_id)
+            if class_id not in self.class_ids:
+                self.class_ids.append(class_id)
 
+    def compute_iou(self, img_id, class_id):
+        gt = self._gts[img_id, class_id]
+        dt = self._dts[img_id, class_id]
 
-def accumulate_maximum(arr):
-    n = len(arr)
+        dt = dt[torch.argsort(dt[:, 9])]
 
-    max_arr = torch.zeros(n)
-    max_so_far = arr[0]
+        crowd = [g[8] for g in gt]
+        ious = iou(gt[:, 3:7], dt[:, 3:7], crowd)
 
-    for i in range(n):
-        if arr[i] > max_so_far:
-            max_so_far = arr[i]
+        return ious
 
-        max_arr[i] = max_so_far
+    def evaluate_image(self, img_id, class_id, area_rng, max_det):
+        # Get all ground truths and predictions for given image id and class is
+        gt = self._gts[img_id, class_id]
+        dt = self._dts[img_id, class_id]
 
-    return max_arr
+        if len(gt) == 0 and len(dt) == 0:
+            return None
 
+        # Set ignore flag for all ground truths with area range less than or greater than given area range
+        for g in gt:
+            if g[9] or (g[7] < area_rng[0] or g[7] > area_rng[1]):
+                g[10] = 1
+            else:
+                g[10] = 0
 
-def compute_ap_recall(scores, matched, NP, recall_thresholds=None):
+        # Sort ground truths so that not ignored ground truths are at front
+        gt_ind = torch.argsort(gt[:, 10])
+        gt = gt[gt_ind]
 
-    if NP == 0:
+        # Sort predictions based on confidence/score
+        dt = dt[torch.argsort(-dt[:, 9])]
+        # iscrowd flag to show multiple ground truths
+        iscrowd = gt[:, 8]
+
+        ious = (
+            self.ious[img_id, class_id][:, gt_ind]
+            if len(self.ious[img_id, class_id]) > 0
+            else self.ious[img_id, class_id]
+        )
+
+        num_iou_thrs = len(self.iou_thrs)
+        num_gt = len(gt)
+        num_dt = len(dt)
+        gtm = torch.zeros(num_iou_thrs, num_gt)
+        dtm = torch.zeros(num_iou_thrs, num_dt)
+        gt_ignore = gt[:, 10]
+        dt_ignore = torch.zeros(num_iou_thrs, num_dt)
+
+        if len(ious) != 0:
+            for tind, t in enumerate(self.iou_thrs):
+                for dind, d in enumerate(dt):
+                    iou = min([t, 1 - 1e-10])
+                    m = -1
+                    for gind, g in enumerate(gt):
+                        # If ground truth is already matched with another prediction and not crowd
+                        if gtm[tind, gind] > 0 and not iscrowd[gind]:
+                            continue
+
+                        # if prediction matched to reg ground truth, and on ignore ground truth, stop
+                        if m > -1 and gt_ignore[m] == 0 and gt_ignore[gind] == 1:
+                            break
+
+                        # continue to next ground truth unless better match made
+                        if ious[dind, gind] < iou:
+                            continue
+
+                        # if match successful and best so far, store appropriately
+                        iou = ious[dind, gind]
+                        m = gind
+
+                    # if match made store id of match for both prediction and ground truth
+                    if m == -1:
+                        continue
+                    dt_ignore[tind, dind] = gt_ignore[m]
+                    dtm[tind, dind] = gt[m][0]
+                    gtm[tind, m] = d[0]
+
+        # set unmatched predictions outside of area range to ignore
+        a = torch.tensor([d[7] < area_rng[0] or d[7] > area_rng[1] for d in dt]).reshape((1, len(dt)))
+
+        dt_ignore = torch.logical_or(
+            dt_ignore, torch.logical_and(dtm == 0, torch.repeat_interleave(a, num_iou_thrs, 0))
+        )
+
         return {
-            "precision": None,
-            "recall": None,
-            "AP": None,
-            "interpolated precision": None,
-            "interpolated recall": None,
-            "total positives": None,
-            "TP": None,
-            "FP": None,
+            "image_id": img_id,
+            "category_id": class_id,
+            "aRng": area_rng,
+            "maxDet": max_det,
+            "dtIds": dt[:, 0],
+            "gtIds": gt[:, 0],
+            "dtMatches": dtm,
+            "gtMatches": gtm,
+            "dtScores": dt[:, 9],
+            "gtIgnore": gt_ignore,
+            "dtIgnore": dt_ignore,
         }
 
-    if recall_thresholds is None:
-        recall_thresholds = torch.linspace(0.0, 1.00, int(round((1.00 - 0.0) / 0.01)) + 1, endpoint=True)
+    def accumulate(self):
+        num_iou_thr = len(self.iou_thrs)
+        num_rec_thr = len(self.rec_thrs)
+        num_classes = len(self.class_ids)
+        num_area = len(self.area_rngs)
+        num_dets = len(self.max_dets)
 
-    inds = torch.argsort(-scores)
+        precision = -torch.ones((num_iou_thr, num_rec_thr, num_classes, num_area, num_dets))
+        recall = -torch.ones((num_iou_thr, num_classes, num_area, num_dets))
+        scores = -torch.ones((num_iou_thr, num_rec_thr, num_classes, num_area, num_dets))
 
-    scores = scores[inds]
-    matched = matched[inds]
+        num_imgs = len(self.img_ids)
+        # retrieve eval_imgs at each category, area range, and max number of detections
+        for c, class_id in enumerate(self.class_ids):
+            num_class_c = c * num_area * num_imgs
+            for a, area_rng in enumerate(self.area_rngs):
+                num_area_a = a * num_imgs
+                for m, max_det in enumerate(self.max_dets):
+                    # retrieve appropriate eval_imgs from stored results
+                    eval_imgs = [self.eval_imgs[num_class_c + num_area_a + i] for i in range(num_imgs)]
+                    eval_imgs = [img for img in eval_imgs if img is not None]
+                    if len(eval_imgs) == 0:
+                        continue
+                    # Get prediction scores to greedily match
+                    pred_scores = torch.cat([img["dtScores"][0:max_det] for img in eval_imgs], dim=-1)
+                    # Sort prediction scores
+                    inds = torch.argsort(-pred_scores)
+                    sorted_pred_scores = pred_scores[inds]
+                    # Retrieve and Sort prediction matches,
+                    # ignore flags for ground truth and predictions based on prediction scores
+                    predm = torch.cat([img["dtMatches"][:, 0:max_det] for img in eval_imgs], dim=-1)[:, inds]
+                    pred_ignore = torch.cat([img["dtIgnore"][:, 0:max_det] for img in eval_imgs], dim=-1)[:, inds]
+                    gt_ignore = torch.cat([img["gtIgnore"] for img in eval_imgs])
+                    non_ignored = torch.count_nonzero(gt_ignore == 0)
+                    if non_ignored == 0:
+                        continue
+                    # Calculate true positive and false positive based on prediction matches and ignore flags
+                    tps = torch.logical_and(predm, torch.logical_not(pred_ignore))
+                    fps = torch.logical_and(torch.logical_not(predm), torch.logical_not(pred_ignore))
+                    # Calculate precision and recall iteratively
+                    tp_sum = torch.cumsum(tps, dim=1).to(device=self.device, dtype=torch.float64)
+                    fp_sum = torch.cumsum(fps, dim=1).to(device=self.device, dtype=torch.float64)
 
-    tp = torch.cumsum(matched)
-    fp = torch.cumsum(~matched)
+                    for t, (tp, fp) in enumerate(zip(tp_sum, fp_sum)):
+                        tp = torch.tensor(tp)
+                        fp = torch.tensor(fp)
+                        nd = len(tp)
+                        rc = tp / non_ignored
+                        pr = tp / (fp + tp + torch.finfo(torch.float64).eps)
+                        q = torch.zeros((num_rec_thr,))
+                        ss = torch.zeros((num_rec_thr,))
 
-    rc = tp / NP
-    pr = tp / (tp + fp)
+                        if nd:
+                            recall[t, c, a, m] = rc[-1]
+                        else:
+                            recall[t, c, a, m] = 0
 
-    i_pr = accumulate_maximum(pr[::-1])[::-1]
+                        pr = pr.tolist()
+                        q = q.tolist()
 
-    rec_idx = torch.searchsorted(rc, recall_thresholds, side="left")
-    n_recalls = len(recall_thresholds)
+                        for i in range(nd - 1, 0, -1):
+                            if pr[i] > pr[i - 1]:
+                                pr[i - 1] = pr[i]
 
-    i_pr = torch.tensor([i_pr[r] if r < len(i_pr) else 0 for r in rec_idx])
+                        inds = torch.searchsorted(rc, self.rec_thrs, right=False)
+                        try:
+                            for ri, pi in enumerate(inds):
+                                q[ri] = pr[pi]
+                                ss[ri] = sorted_pred_scores[pi]
+                        except:
+                            pass
+                        precision[t, :, c, a, m] = torch.tensor(q)
+                        scores[t, :, c, a, m] = torch.tensor(ss)
+        # return precision, recall
+        self.eval = {
+            "precision": precision,
+            "recall": recall,
+        }
 
-    return {
-        "precision": pr,
-        "recall": rc,
-        "AP": torch.mean(i_pr),
-        "interpolated precision": i_pr,
-        "interpolated recall": recall_thresholds,
-        "total positives": NP,
-        "TP": tp[-1] if len(tp) != 0 else 0,
-        "FP": fp[-1] if len(fp) != 0 else 0,
-    }
+    def _summarize(self, ap=1, iou_thr=None, area_rng="all", max_det=100):
+        aind = [i for i, a_rng in enumerate(self.area_rngs) if a_rng[2] == area_rng]
+        mind = [i for i, m_det in enumerate(self.max_dets) if m_det == max_det]
+        # Calculate Average Precision
+        if ap == 1:
+            s = self.eval["precision"]
+            if iou_thr is not None:
+                t = (self.iou_thrs == iou_thr).int().nonzero(as_tuple=True)[0]
+                s = s[t]
+            s = s[:, :, :, aind, mind]
+        # Calculate Average Recall
+        else:
+            s = self.eval["recall"]
+            if iou_thr is not None:
+                t = (self.iou_thrs == iou_thr).nonzero(as_tuple=True)[0]
+                s = s[t]
+            s = s[:, :, aind, mind]
+        # Take mean to calculate mAP or mAR
+        if len(s[s > -1]) == 0:
+            mean_s = -1
+        else:
+            mean_s = torch.mean(s[s > -1])
 
+        return mean_s
 
-class AP(Metric):
-    def __init__(self):
-        super(AP, self).__init__()
+    def summarize_all(self):
+        stats = torch.zeros((12,))
+        stats[0] = self._summarize(1)
+        stats[1] = self._summarize(1, iou_thr=0.5, max_det=self.max_dets[2])
+        stats[2] = self._summarize(1, iou_thr=0.75, max_det=self.max_dets[2])
+        stats[3] = self._summarize(1, area_rng="small", max_det=self.max_dets[2])
+        stats[4] = self._summarize(1, area_rng="medium", max_det=self.max_dets[2])
+        stats[5] = self._summarize(1, area_rng="large", max_det=self.max_dets[2])
+        stats[6] = self._summarize(0, max_det=self.max_dets[0])
+        stats[7] = self._summarize(0, max_det=self.max_dets[1])
+        stats[8] = self._summarize(0, max_det=self.max_dets[2])
+        stats[9] = self._summarize(0, area_rng="small", max_det=self.max_dets[2])
+        stats[10] = self._summarize(0, area_rng="medium", max_det=self.max_dets[2])
+        stats[11] = self._summarize(0, area_rng="large", max_det=self.max_dets[2])
 
-        self.gts = torch.zeros(0, 5)
-        self.preds = torch.zeros(0, 6)
-
-    def update(self, gts, preds):
-        self.gts = torch.cat(self.gts, gts)
-        self.preds = torch.cat(self.preds, preds)
+        return stats
 
     def compute(self):
-        bbs = group_detections(self.gts, self.preds)
+        self.class_ids.sort()
+        self.img_ids.sort()
+        self.ious = {
+            (img_id, class_id): self.compute_iou(img_id, class_id)
+            for img_id in self.img_ids
+            for class_id in self.class_ids
+        }
 
-        ious = {k: compute_ious(v["pred"], v["gt"]) for k, v in bbs.items()}
+        max_det = self.max_dets[-1]
+        self.eval_imgs = [
+            self.evaluate_image(img_id, class_id, area_rng, max_det)
+            for class_id in self.class_ids
+            for area_rng in self.area_rngs
+            for img_id in self.img_ids
+        ]
 
-        def evaluate(iou_threshold, max_dets, area_range):
-            evals = defaultdict(lambda: {"scores": [], "matched": [], "NP": []})
-            for img_id, class_id in bbs:
-                ev = evaluate_img(
-                    bbs[img_id, class_id]["dt"],
-                    bbs[img_id, class_id]["gt"],
-                    ious[img_id, class_id],
-                    iou_threshold,
-                    max_dets,
-                    area_range,
-                )
-                acc = evals[class_id]
-                acc["scores"].append(ev["scores"])
-                acc["matched"].append(ev["matched"])
-                acc["NP"].append(ev["NP"])
+        self.accumulate()
 
-            for class_id in evals:
-                acc = evals[class_id]
-                acc["scores"] = torch.cat(acc["scores"])
-                acc["matched"] = torch.cat(acc["matched"]).astype(torch.bool)
-                acc["NP"] = torch.sum(acc["NP"])
+        results = self.summarize_all()
 
-            res = []
-            for class_id in evals:
-                ev = evals[class_id]
-                eval_results = {
-                    "class": class_id,
-                }
-                for (k, v) in compute_ap_recall(ev["scores"], ev["matched"], ev["NP"]).items():
-                    eval_results[k] = v
-                res.append(eval_results)
-            return res
-
-        iou_thresholds = torch.linspace(0.5, 0.95, int(round((0.95 - 0.5) / 0.05)) + 1)
-
-        full = {i: evaluate(iou_threshold=i, max_dets=100, area_range=(0, float("inf"))) for i in iou_thresholds}
+        return results
