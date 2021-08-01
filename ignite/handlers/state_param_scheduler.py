@@ -165,7 +165,7 @@ class PwLinearStateScheduler(StateParamScheduler):
             ...
             engine = Engine(train_step)
 
-            pw_linear_state_parameter_scheduler = PwLinearStateScheduler(
+            param_scheduler = PwLinearStateScheduler(
                 param_name="pw_linear_scheduled_param",
                 milestones_values=[(10, 0.5), (20, 0.45), (21, 0.3), (30, 0.1), (40, 0.1)]
             )
