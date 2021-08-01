@@ -209,7 +209,7 @@ class PwLinearStateScheduler(StateParamScheduler):
         self.values = values
         self.milestones = milestones
         self._index = 0
-        self._state_attrs += ["initial_value", "milestones", "_index"]
+        self._state_attrs += ["values", "milestones", "_index"]
 
     def _get_start_end(self) -> Tuple[int, int, float, float]:
         if self.milestones[0] > self.event_index:
