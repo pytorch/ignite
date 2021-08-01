@@ -8,7 +8,7 @@ from ignite.handlers.state_param_scheduler import (
     ExpStateScheduler,
     LambdaStateScheduler,
     MultiStepStateScheduler,
-    PwLinearStateScheduler,
+    PiecewiseLinearStateScheduler,
     StepStateScheduler,
 )
 
@@ -25,7 +25,7 @@ def test_pwlinear_scheduler_linear_increase_history(
 ):
     # Testing linear increase
     engine = Engine(lambda e, b: None)
-    pw_linear_step_parameter_scheduler = PwLinearStateScheduler(
+    pw_linear_step_parameter_scheduler = PiecewiseLinearStateScheduler(
         param_name="pwlinear_scheduled_param", milestones_values=milestones_values, save_history=save_history,
     )
     pw_linear_step_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
@@ -43,7 +43,7 @@ def test_pwlinear_scheduler_linear_increase_history(
 def test_pwlinear_scheduler_step_constant(max_epochs, milestones_values):
     # Testing step_constant
     engine = Engine(lambda e, b: None)
-    linear_state_parameter_scheduler = PwLinearStateScheduler(
+    linear_state_parameter_scheduler = PiecewiseLinearStateScheduler(
         param_name="pwlinear_scheduled_param", milestones_values=milestones_values
     )
     linear_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
@@ -58,7 +58,7 @@ def test_pwlinear_scheduler_step_constant(max_epochs, milestones_values):
 def test_pwlinear_scheduler_linear_increase(max_epochs, milestones_values, expected_val):
     # Testing linear increase
     engine = Engine(lambda e, b: None)
-    linear_state_parameter_scheduler = PwLinearStateScheduler(
+    linear_state_parameter_scheduler = PiecewiseLinearStateScheduler(
         param_name="pwlinear_scheduled_param", milestones_values=milestones_values
     )
     linear_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
@@ -74,7 +74,7 @@ def test_pwlinear_scheduler_max_value(
 ):
     # Testing max_value
     engine = Engine(lambda e, b: None)
-    linear_state_parameter_scheduler = PwLinearStateScheduler(
+    linear_state_parameter_scheduler = PiecewiseLinearStateScheduler(
         param_name="linear_scheduled_param", milestones_values=milestones_values,
     )
     linear_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
@@ -151,7 +151,7 @@ def test_custom_scheduler():
 
 
 config1 = (
-    PwLinearStateScheduler,
+    PiecewiseLinearStateScheduler,
     {"param_name": "linear_scheduled_param", "milestones_values": [(3, 12), (5, 10)]},
 )
 config2 = (ExpStateScheduler, {"param_name": "exp_scheduled_param", "initial_value": 10, "gamma": 0.99})

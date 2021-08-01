@@ -148,7 +148,7 @@ class LambdaStateScheduler(StateParamScheduler):
         return self.lambda_fn(self.event_index)
 
 
-class PwLinearStateScheduler(StateParamScheduler):
+class PiecewiseLinearStateScheduler(StateParamScheduler):
     """Piecewise linear state parameter scheduler.
 
     Args:
@@ -165,7 +165,7 @@ class PwLinearStateScheduler(StateParamScheduler):
             ...
             engine = Engine(train_step)
 
-            param_scheduler = PwLinearStateScheduler(
+            param_scheduler = PiecewiseLinearStateScheduler(
                 param_name="pw_linear_scheduled_param",
                 milestones_values=[(10, 0.5), (20, 0.45), (21, 0.3), (30, 0.1), (40, 0.1)]
             )
@@ -189,7 +189,7 @@ class PwLinearStateScheduler(StateParamScheduler):
     def __init__(
         self, milestones_values: List[Tuple[int, float]], param_name: str, save_history: bool = False,
     ):
-        super(PwLinearStateScheduler, self).__init__(param_name, save_history)
+        super(PiecewiseLinearStateScheduler, self).__init__(param_name, save_history)
 
         values = []  # type: List[float]
         milestones = []  # type: List[int]

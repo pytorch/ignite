@@ -64,7 +64,7 @@ State Parameter scheduler
 
     StateParamScheduler
     LambdaStateScheduler
-    PwLinearStateScheduler
+    PiecewiseLinearStateScheduler
     ExpStateScheduler
     StepStateScheduler
     MultiStepStateScheduler
