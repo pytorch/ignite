@@ -21,7 +21,7 @@ LR finder [deprecated]
 Time profilers [deprecated]
 ---------------------------
 
-.. deprecated:: 0.4.5
+.. deprecated:: 0.4.6
     Use :class:`~ignite.handlers.time_profilers.BasicTimeProfiler` instead, will be removed in version 0.6.0.
     Use :class:`~ignite.handlers.time_profilers.HandlersTimeProfiler` instead, will be removed in version 0.6.0.
 
