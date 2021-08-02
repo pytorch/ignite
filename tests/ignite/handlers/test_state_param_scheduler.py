@@ -36,6 +36,9 @@ def test_pwlinear_scheduler_linear_increase_history(
     assert len(state_param) == len(expected_param_history)
     assert state_param == expected_param_history
 
+    state_dict = pw_linear_step_parameter_scheduler.state_dict()
+    pw_linear_step_parameter_scheduler.load_state_dict(state_dict)
+
 
 @pytest.mark.parametrize(
     "max_epochs, milestones_values", [(3, [(3, 12), (5, 10)]), (5, [(10, 12), (20, 10)]),],
@@ -49,6 +52,9 @@ def test_pwlinear_scheduler_step_constant(max_epochs, milestones_values):
     linear_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
     engine.run([0] * 8, max_epochs=max_epochs)
     torch.testing.assert_allclose(getattr(engine.state, "pwlinear_scheduled_param"), milestones_values[0][1])
+
+    state_dict = linear_state_parameter_scheduler.state_dict()
+    linear_state_parameter_scheduler.load_state_dict(state_dict)
 
 
 @pytest.mark.parametrize(
@@ -64,6 +70,9 @@ def test_pwlinear_scheduler_linear_increase(max_epochs, milestones_values, expec
     linear_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
     engine.run([0] * 8, max_epochs=max_epochs)
     torch.testing.assert_allclose(getattr(engine.state, "pwlinear_scheduled_param"), expected_val, atol=0.001, rtol=0.0)
+
+    state_dict = linear_state_parameter_scheduler.state_dict()
+    linear_state_parameter_scheduler.load_state_dict(state_dict)
 
 
 @pytest.mark.parametrize(
@@ -81,6 +90,9 @@ def test_pwlinear_scheduler_max_value(
     engine.run([0] * 8, max_epochs=max_epochs)
     torch.testing.assert_allclose(getattr(engine.state, "linear_scheduled_param"), milestones_values[-1][1])
 
+    state_dict = linear_state_parameter_scheduler.state_dict()
+    linear_state_parameter_scheduler.load_state_dict(state_dict)
+
 
 @pytest.mark.parametrize(
     "max_epochs, initial_value, gamma", [(3, 10, 0.99), (40, 5, 0.98)],
@@ -93,6 +105,9 @@ def test_exponential_scheduler(max_epochs, initial_value, gamma):
     exp_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
     engine.run([0] * 8, max_epochs=max_epochs)
     torch.testing.assert_allclose(getattr(engine.state, "exp_scheduled_param"), initial_value * gamma ** max_epochs)
+
+    state_dict = exp_state_parameter_scheduler.state_dict()
+    exp_state_parameter_scheduler.load_state_dict(state_dict)
 
 
 @pytest.mark.parametrize(
@@ -110,6 +125,9 @@ def test_step_scheduler(
     torch.testing.assert_allclose(
         getattr(engine.state, "step_scheduled_param"), initial_value * gamma ** (max_epochs // step_size)
     )
+
+    state_dict = step_state_parameter_scheduler.state_dict()
+    step_state_parameter_scheduler.load_state_dict(state_dict)
 
 
 from bisect import bisect_right
@@ -132,6 +150,9 @@ def test_multistep_scheduler(
         initial_value * gamma ** bisect_right(milestones, max_epochs),
     )
 
+    state_dict = multi_step_state_parameter_scheduler.state_dict()
+    multi_step_state_parameter_scheduler.load_state_dict(state_dict)
+
 
 def test_custom_scheduler():
 
@@ -148,6 +169,9 @@ def test_custom_scheduler():
     torch.testing.assert_allclose(getattr(engine.state, "custom_scheduled_param"), lambda_fn(2))
     engine.run([0] * 8, max_epochs=20)
     torch.testing.assert_allclose(getattr(engine.state, "custom_scheduled_param"), lambda_fn(20))
+
+    state_dict = lambda_state_parameter_scheduler.state_dict()
+    lambda_state_parameter_scheduler.load_state_dict(state_dict)
 
 
 config1 = (
@@ -211,3 +235,77 @@ def test_simulate_and_plot_values_no_matplotlib():
                 gamma=0.99,
                 milestones=[3, 6],
             )
+
+
+def test_docstring_examples():
+    # LambdaStateScheduler
+
+    engine = Engine(lambda e, b: None)
+
+    initial_value = 10
+    gamma = 0.99
+
+    param_scheduler = LambdaStateScheduler(
+        param_name="param", lambda_fn=lambda event_index: initial_value * gamma ** (event_index % 9),
+    )
+
+    param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
+
+    # basic handler to print scheduled state parameter
+    # engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _: print(engine.state.param))
+
+    engine.run([0] * 8, max_epochs=2)
+
+    # PiecewiseLinearStateScheduler
+
+    engine = Engine(lambda e, b: None)
+
+    param_scheduler = PiecewiseLinearStateScheduler(
+        param_name="param", milestones_values=[(10, 0.5), (20, 0.45), (21, 0.3), (30, 0.1), (40, 0.1)]
+    )
+
+    param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
+
+    # basic handler to print scheduled state parameter
+    # engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _: print(engine.state.param))
+
+    engine.run([0] * 8, max_epochs=40)
+
+    # ExpStateScheduler
+
+    engine = Engine(lambda e, b: None)
+
+    param_scheduler = ExpStateScheduler(param_name="param", initial_value=10, gamma=0.99)
+
+    param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
+
+    # basic handler to print scheduled state parameter
+    # engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _: print(engine.state.param))
+
+    engine.run([0] * 8, max_epochs=2)
+
+    # StepStateScheduler
+
+    engine = Engine(lambda e, b: None)
+
+    param_scheduler = StepStateScheduler(param_name="param", initial_value=10, gamma=0.99, step_size=5)
+
+    param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
+
+    # basic handler to print scheduled state parameter
+    # engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _: print(engine.state.param))
+
+    engine.run([0] * 8, max_epochs=10)
+
+    # MultiStepStateScheduler
+
+    engine = Engine(lambda e, b: None)
+
+    param_scheduler = MultiStepStateScheduler(param_name="param", initial_value=10, gamma=0.99, milestones=[3, 6],)
+
+    param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
+
+    # basic handler to print scheduled state parameter
+    # engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _: print(engine.state.param))
+
+    engine.run([0] * 8, max_epochs=10)

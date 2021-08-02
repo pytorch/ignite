@@ -123,15 +123,15 @@ class LambdaStateScheduler(StateParamScheduler):
             initial_value = 10
             gamma = 0.99
 
-            lambda_scheduler = LambdaStateScheduler(
-                param_name="lambda",
+            param_scheduler = LambdaStateScheduler(
+                param_name="param",
                 lambda_fn=lambda event_index: initial_value * gamma ** (event_index % 9),
             )
 
-            lambda_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
+            param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
 
             # basic handler to print scheduled state parameter
-            engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _ : print(engine.state.custom_scheduled_param))
+            engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _ : print(engine.state.param))
 
             engine.run([0] * 8, max_epochs=2)
 
@@ -166,14 +166,14 @@ class PiecewiseLinearStateScheduler(StateParamScheduler):
             engine = Engine(train_step)
 
             param_scheduler = PiecewiseLinearStateScheduler(
-                param_name="pw_linear_scheduled_param",
+                param_name="param",
                 milestones_values=[(10, 0.5), (20, 0.45), (21, 0.3), (30, 0.1), (40, 0.1)]
             )
 
-            pwlinear_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
+            param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
 
             # basic handler to print scheduled state parameter
-            engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _ : print(engine.state.pw_linear_scheduled_param))
+            engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _ : print(engine.state.param))
 
             engine.run([0] * 8, max_epochs=40)
             #
@@ -252,14 +252,15 @@ class ExpStateScheduler(StateParamScheduler):
             ...
             engine = Engine(train_step)
 
-            exp_state_parameter_scheduler = ExpStateScheduler(
-                param_name="exp_scheduled_param", initial_value=10, gamma=0.99
+            param_scheduler = ExpStateScheduler(
+                param_name="param", initial_value=10, gamma=0.99
             )
 
-            # basic handler to print scheduled state parameter
-            engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _ : print(engine.state.exp_scheduled_param))
+            param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
 
-            exp_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
+            # basic handler to print scheduled state parameter
+            engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _ : print(engine.state.param))
+
             engine.run([0] * 8, max_epochs=2)
 
     .. versionadded:: 0.6.0
@@ -299,14 +300,15 @@ class StepStateScheduler(StateParamScheduler):
             ...
             engine = Engine(train_step)
 
-            step_state_parameter_scheduler = StepStateScheduler(
-                param_name="step_scheduled_param", initial_value=10, gamma=0.99, step_size=5
+            param_scheduler = StepStateScheduler(
+                param_name="param", initial_value=10, gamma=0.99, step_size=5
             )
 
-            # basic handler to print scheduled state parameter
-            engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _ : print(engine.state.step_scheduled_param))
+            param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
 
-            step_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
+            # basic handler to print scheduled state parameter
+            engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _ : print(engine.state.param))
+
             engine.run([0] * 8, max_epochs=10)
 
     .. versionadded:: 0.6.0
@@ -347,14 +349,15 @@ class MultiStepStateScheduler(StateParamScheduler):
             ...
             engine = Engine(train_step)
 
-            multi_step_state_parameter_scheduler = MultiStepStateScheduler(
-                param_name="multistep_scheduled_param", initial_value=10, gamma=0.99, milestones=[3, 6],
+            param_scheduler = MultiStepStateScheduler(
+                param_name="param", initial_value=10, gamma=0.99, milestones=[3, 6],
             )
 
-            # basic handler to print scheduled state parameter
-            engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _ : print(engine.state.multistep_scheduled_param))
+            param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
 
-            multi_step_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
+            # basic handler to print scheduled state parameter
+            engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _ : print(engine.state.param))
+
             engine.run([0] * 8, max_epochs=10)
 
     .. versionadded:: 0.6.0
