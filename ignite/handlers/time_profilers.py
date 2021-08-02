@@ -17,7 +17,7 @@ class BasicTimeProfiler:
 
     .. code-block:: python
 
-        from ignite.contrib.handlers import BasicTimeProfiler
+        from ignite.handlers import BasicTimeProfiler
 
         trainer = Engine(train_updater)
 
@@ -467,7 +467,7 @@ class HandlersTimeProfiler:
 
     .. code-block:: python
 
-        from ignite.contrib.handlers import HandlersTimeProfiler
+        from ignite.handlers import HandlersTimeProfiler
 
         trainer = Engine(train_updater)
 
