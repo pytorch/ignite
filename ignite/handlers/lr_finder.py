@@ -85,6 +85,7 @@ class FastaiLRFinder:
         optimizer: Optimizer,
         output_transform: Callable,
         num_iter: int,
+        start_lr: float,
         end_lr: float,
         step_mode: str,
         smooth_f: float,
@@ -117,11 +118,13 @@ class FastaiLRFinder:
             )
 
         self.logger.debug(f"Running LR finder for {num_iter} iterations")
+        if start_lr is None:
+            start_lr = optimizer.param_groups[0]["lr"]
         # Initialize the proper learning rate policy
         if step_mode.lower() == "exp":
-            self._lr_schedule = LRScheduler(_ExponentialLR(optimizer, end_lr, num_iter))
+            start_lr = [start_lr] * len(optimizer.param_groups)  # type: ignore
+            self._lr_schedule = LRScheduler(_ExponentialLR(optimizer, start_lr, end_lr, num_iter))
         else:
-            start_lr = optimizer.param_groups[0]["lr"]
             self._lr_schedule = PiecewiseLinear(
                 optimizer, param_name="lr", milestones_values=[(0, start_lr), (num_iter, end_lr)]
             )
@@ -322,7 +325,10 @@ class FastaiLRFinder:
         # Ignore the increasing part of the curve
         decreasing_losses = self._history["loss"][: int(min_loss_idx.item()) + 1]
         if len(decreasing_losses) < 3:
-            raise RuntimeError("FastaiLRFinder got unexpected curve shape, the curve should be somehow U-shaped")
+            raise RuntimeError(
+                "FastaiLRFinder got unexpected curve shape, the curve should be somehow U-shaped, "
+                "please decrease start_lr or increase end_lr to resolve this issue."
+            )
         losses = torch.tensor(decreasing_losses)
         grads = torch.tensor([0.5 * (losses[i + 1] - losses[i - 1]) for i in range(1, len(losses) - 1)])
         min_grad_idx = grads.argmin() + 1
@@ -362,6 +368,7 @@ class FastaiLRFinder:
         to_save: Mapping,
         output_transform: Callable = lambda output: output,
         num_iter: Optional[int] = None,
+        start_lr: Optional[float] = None,
         end_lr: float = 10.0,
         step_mode: str = "exp",
         smooth_f: float = 0.05,
@@ -381,15 +388,17 @@ class FastaiLRFinder:
             trainer: lr_finder is attached to this trainer. Please, keep in mind that all attached handlers
                 will be executed.
             to_save: dictionary with optimizer and other objects that needs to be restored after running
-                the LR finder. For example, ``to_save={'optimizer': optimizer, 'model': model}``. All objects should
-                implement ``state_dict`` and ``load_state_dict`` methods.
+                the LR finder. For example, ``to_save={'optimizer': optimizer, 'model': model}``.
+                It should contain "optimizer" key for the optimizer.
+                Also all objects should implement ``state_dict`` and ``load_state_dict`` methods.
             output_transform: function that transforms the trainer's ``state.output`` after each
                 iteration. It must return the loss of that iteration.
             num_iter: number of iterations for lr schedule between base lr and end_lr. Default, it will
                 run for ``trainer.state.epoch_length * trainer.state.max_epochs``.
+            start_lr: lower bound for lr search. Default, Learning Rate specified with the optimizer.
             end_lr: upper bound for lr search. Default, 10.0.
-            step_mode: "exp" or "linear", which way should the lr be increased from optimizer's initial
-                lr to ``end_lr``. Default, "exp".
+            step_mode: "exp" or "linear", which way should the lr be increased from ``start_lr``
+                to ``end_lr``. Default, "exp".
             smooth_f: loss smoothing factor in range ``[0, 1)``. Default, 0.05
             diverge_th: Used for stopping the search when ``current loss > diverge_th * best_loss``.
                 Default, 5.0.
@@ -425,6 +434,8 @@ class FastaiLRFinder:
                 raise TypeError(f"if provided, num_iter should be an integer, but give {num_iter}")
             if num_iter <= 0:
                 raise ValueError(f"if provided, num_iter should be positive, but give {num_iter}")
+        if isinstance(start_lr, (float, int)) and start_lr >= end_lr:
+            raise ValueError(f"start_lr must be less than end_lr, start_lr={start_lr} vs end_lr={end_lr}")
 
         # store to_save
         with tempfile.TemporaryDirectory() as tmpdirname:
@@ -443,6 +454,7 @@ class FastaiLRFinder:
                     optimizer,
                     output_transform,
                     num_iter,
+                    start_lr,
                     end_lr,
                     step_mode,
                     smooth_f,
@@ -477,10 +489,13 @@ class _ExponentialLR(_LRScheduler):
 
     """
 
-    def __init__(self, optimizer: Optimizer, end_lr: float, num_iter: int, last_epoch: int = -1):
+    def __init__(self, optimizer: Optimizer, start_lr: float, end_lr: float, num_iter: int, last_epoch: int = -1):
         self.end_lr = end_lr
         self.num_iter = num_iter
         super(_ExponentialLR, self).__init__(optimizer, last_epoch)
+
+        # override base_lrs
+        self.base_lrs = start_lr
 
     def get_lr(self) -> List[float]:  # type: ignore
         curr_iter = self.last_epoch + 1  # type: ignore[attr-defined]

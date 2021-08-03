@@ -117,6 +117,21 @@ install_dependencies: &install_dependencies
         export install_ignite_cmd='python setup.py install'
         docker exec -it pthd /bin/bash -c "$install_ignite_cmd"
 
+# https://github.com/pytorch/ignite/issues/1737
+download_mnist: &download_mnist
+  - run:
+      name: Download MNIST
+      command: |
+        export tmp_mnist_dir='/tmp/mnist'
+        export tests_mnist_dir='/tmp'
+        export examples_mnist_dir='.'
+        export download_mnist_cmd="git clone https://github.com/pytorch-ignite/download-mnist-github-action.git $tmp_mnist_dir"
+        docker exec -it pthd /bin/bash -c "$download_mnist_cmd"
+        export get_mnist_cmd_tests="python $tmp_mnist_dir/cp.py $tmp_mnist_dir $tests_mnist_dir/MNIST/raw"
+        docker exec -it pthd /bin/bash -c "$get_mnist_cmd_tests"
+        export get_mnist_cmd_examples="python $tmp_mnist_dir/cp.py $tmp_mnist_dir $examples_mnist_dir/MNIST/raw"
+        docker exec -it pthd /bin/bash -c "$get_mnist_cmd_examples"
+
 # -------------------------------------------------------------------------------------
 # Jobs to run
 # -------------------------------------------------------------------------------------
@@ -135,6 +150,7 @@ jobs:
       - <<: *pull_pytorch_stable_image
       - <<: *run_pytorch_container
       - <<: *install_dependencies
+      - <<: *download_mnist
       - run:
           name: Run GPU Unit Tests and Examples
           command: |
@@ -144,14 +160,6 @@ jobs:
             docker exec -it pthd /bin/bash -c "${test_cmd}"
 
             # MNIST tests
-
-            # 0) download MNIST
-            # https://github.com/pytorch/ignite/issues/1737
-            export raw_mnist_dir='./MNIST/raw'
-            export download_mnist_cmd="git clone https://github.com/pytorch-ignite/download-mnist-github-action.git $raw_mnist_dir"
-            docker exec -it pthd /bin/bash -c "$download_mnist_cmd"
-            export mnist0_cmd="CUDA_VISIBLE_DEVICES=0 python $raw_mnist_dir/run.py ."
-            docker exec -it pthd /bin/bash -c "$mnist0_cmd"
 
             # 1) mnist.py
             export minst1_cmd='CUDA_VISIBLE_DEVICES=0 python examples/mnist/mnist.py --epochs=1'
@@ -220,6 +228,13 @@ jobs:
             pip install .
 
       - run:
+          # https://github.com/pytorch/ignite/issues/1737
+          name: Download MNIST
+          command: |
+            git clone https://github.com/pytorch-ignite/download-mnist-github-action.git /tmp/mnist
+            python /tmp/mnist/cp.py /tmp/mnist /tmp/MNIST/raw
+
+      - run:
           name: Run GPU Unit Tests
           command: |
             # pytest on cuda
@@ -239,6 +254,7 @@ jobs:
       - <<: *pull_pytorch_stable_image
       - <<: *run_pytorch_container
       - <<: *install_dependencies
+      - <<: *download_mnist
       - run:
           name: Run 1 Node 2 GPUs Unit Tests
           command: |
@@ -318,6 +334,7 @@ jobs:
       - <<: *pull_pytorch_stable_devel_image
       - <<: *run_pytorch_devel_container
       - <<: *install_dependencies
+      - <<: *download_mnist
       - run:
           name: "Install Horovod with NCCL GPU ops"
           command: |
