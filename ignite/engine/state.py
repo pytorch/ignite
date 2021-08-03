@@ -35,11 +35,14 @@ class State(EventsDrivenState):
         kwargs: keyword arguments to be defined as State attributes.
     """
 
+    # event_to_attr must be in this order as we want to
+    # get iteration by Events.ITERATION_STARTED
+    # and epoch by Events.EPOCH_STARTED
     event_to_attr = {
-        Events.GET_BATCH_STARTED: "iteration",
-        Events.GET_BATCH_COMPLETED: "iteration",
         Events.ITERATION_STARTED: "iteration",
         Events.ITERATION_COMPLETED: "iteration",
+        Events.GET_BATCH_STARTED: "iteration",
+        Events.GET_BATCH_COMPLETED: "iteration",
         Events.EPOCH_STARTED: "epoch",
         Events.EPOCH_COMPLETED: "epoch",
         Events.STARTED: "epoch",
@@ -47,12 +50,7 @@ class State(EventsDrivenState):
     }  # type: Dict[Union[str, "Events", "CallableEventWithFilter"], str]
 
     def __init__(self, **kwargs: Any) -> None:
-        # speicfy how we want to get epoch and iteration
-        attrs_to_get = {
-            "epoch": [Events.EPOCH_STARTED, Events.EPOCH_COMPLETED],
-            "iteration": [Events.ITERATION_STARTED, Events.ITERATION_COMPLETED],
-        }
-        super(State, self).__init__(attrs_to_get=attrs_to_get, **kwargs)
+        super(State, self).__init__(**kwargs)
 
         self.epoch_length = None  # type: Optional[int]
         self.max_epochs = None  # type: Optional[int]

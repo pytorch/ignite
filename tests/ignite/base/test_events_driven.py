@@ -65,12 +65,6 @@ def test_remove_not_existed_handler():
         e.remove_event_handler(handler, event_name="dummy_event")
 
 
-def test_events_driven_state_with_no_engine():
-
-    with pytest.raises(ValueError, match=r"Both engine and event_to_attr should be provided"):
-        es = EventsDrivenState(event_to_attr="a")
-
-
 def test_events_driven_basics():
 
     e = EventsDriven()
