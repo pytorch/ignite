@@ -47,7 +47,12 @@ class State(EventsDrivenState):
     }  # type: Dict[Union[str, "Events", "CallableEventWithFilter"], str]
 
     def __init__(self, **kwargs: Any) -> None:
-        super(State, self).__init__(**kwargs)
+        # speicfy how we want to get epoch and iteration
+        attrs_to_get = {
+            "epoch": [Events.EPOCH_STARTED, Events.EPOCH_COMPLETED],
+            "iteration": [Events.ITERATION_STARTED, Events.ITERATION_COMPLETED],
+        }
+        super(State, self).__init__(attrs_to_get=attrs_to_get, **kwargs)
 
         self.epoch_length = None  # type: Optional[int]
         self.max_epochs = None  # type: Optional[int]
@@ -69,26 +74,6 @@ class State(EventsDrivenState):
         # to keep BC compatibility
         if self.engine is None:
             self._update_attrs()
-
-    def __getattr__(self, attr: str) -> Any:
-        evnts = None
-        if attr in self._attr_to_events:
-            if attr == "epoch":
-                evnts = self._attr_to_events["epoch"][0]  # Fetch EPOCH_STARTED
-            elif attr == "iteration":
-                evnts = self._attr_to_events["iteration"][2]  # Fetch ITERATION_STARTED
-            else:
-                evnts = self._attr_to_events[attr]
-
-        if self.engine and evnts:
-            if isinstance(evnts, list):
-                # return max of available event counts
-                counts = [self.engine._allowed_events_counts[e] for e in evnts]
-                return max(counts)
-            else:
-                return self.engine._allowed_events_counts[evnts]
-
-        raise AttributeError("'{}' object has no attribute '{}'".format(self.__class__.__name__, attr))
 
     def _update_attrs(self) -> None:
         for value in self.event_to_attr.values():

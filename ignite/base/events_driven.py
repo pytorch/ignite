@@ -264,18 +264,27 @@ class EventsDrivenState:
             the allowed events and their counters.
         event_to_attr: mapping consists of the events from :class:`~ignite.engine.events.Events`
             or any other custom events added by :meth:`~ignite.base.events_driven.EventsDriven.register_events`.
+        attrs_to_get: mapping to specify how to get specific attributes, if None, then attributes will be retrieved
+            from `event_to_attr`. Default, None.
         **kwargs: optional keyword args.
 
     """
 
     def __init__(
-        self, engine: Optional[EventsDriven] = None, event_to_attr: Optional[Mapping[Any, str]] = None, **kwargs: Any
+        self,
+        engine: Optional[EventsDriven] = None,
+        event_to_attr: Optional[Mapping[Any, str]] = None,
+        attrs_to_get: Optional[Mapping[str, Any]] = None,
+        **kwargs: Any,
     ):
         if event_to_attr is not None and engine is None:
             raise ValueError("Both engine and event_to_attr should be provided, but only event_to_attr is given")
 
         self.engine = engine  # type: Optional[EventsDriven]
 
+        self._attrs_to_get = defaultdict(list)  # type: Mapping[str, Any]
+        if attrs_to_get:
+            self._attrs_to_get = attrs_to_get
         self._attr_to_events = defaultdict(list)  # type: Mapping[str, Any]
         if event_to_attr is not None:
             for k, v in event_to_attr.items():
@@ -283,13 +292,18 @@ class EventsDrivenState:
 
     def __getattr__(self, attr: str) -> Any:
         evnts = None
-        if attr in self._attr_to_events:
+        if attr in self._attrs_to_get:
+            evnts = self._attrs_to_get[attr]
+        elif attr in self._attr_to_events:
             evnts = self._attr_to_events[attr]
 
         if self.engine and evnts:
-            # return max of available event counts
-            counts = [self.engine._allowed_events_counts[e] for e in evnts]
-            return max(counts)
+            if isinstance(evnts, list):
+                # return max of available event counts
+                counts = [self.engine._allowed_events_counts[e] for e in evnts]
+                return max(counts)
+            else:
+                return self.engine._allowed_events_counts[evnts]
 
         raise AttributeError("'{}' object has no attribute '{}'".format(self.__class__.__name__, attr))
 
