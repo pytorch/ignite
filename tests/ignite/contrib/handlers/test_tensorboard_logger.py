@@ -11,10 +11,10 @@ from ignite.contrib.handlers.tensorboard_logger import (
     OptimizerParamsHandler,
     OutputHandler,
     TensorboardLogger,
+    TrainerStateHandler,
     WeightsHistHandler,
     WeightsScalarHandler,
     global_step_from_engine,
-    TrainerStateHandler
 )
 from ignite.engine import Engine, Events, State
 
@@ -650,10 +650,9 @@ def test_no_tensorboardX_nor_torch_utils_tensorboard():
             TensorboardLogger(log_dir=None)
 
 
-
 def test_trainer_state_handler():
 
-    wrapper = TrainerStateHandler(state_attributes=list(["alpha", "beta","gamma"]), tag = "tag")
+    wrapper = TrainerStateHandler(state_attributes=list(["alpha", "beta", "gamma"]), tag="tag")
     mock_logger = MagicMock(spec=TensorboardLogger)
     mock_logger.writer = MagicMock()
 
@@ -662,11 +661,17 @@ def test_trainer_state_handler():
     mock_engine.state.alpha = 3.899
     mock_engine.state.beta = torch.tensor(5.499)
     mock_engine.state.gamma = torch.tensor([2106.0, 6.0])
-    
+
     mock_engine.state.iteration = 5
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
     assert mock_logger.writer.add_scalar.call_count == 4
-    mock_logger.writer.add_scalar.assert_has_calls([call("tag/alpha", 3.899, 5), call("tag/beta", torch.tensor(5.499), 5),
-                                                    call("tag/gamma/0", 2106.0, 5), call("tag/gamma/1", 6.0, 5)], any_order=True)
-
+    mock_logger.writer.add_scalar.assert_has_calls(
+        [
+            call("tag/alpha", 3.899, 5),
+            call("tag/beta", torch.tensor(5.499), 5),
+            call("tag/gamma/0", 2106.0, 5),
+            call("tag/gamma/1", 6.0, 5),
+        ],
+        any_order=True,
+    )
