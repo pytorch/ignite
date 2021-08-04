@@ -4,8 +4,8 @@ from typing import Any, Callable, Dict, List, Mapping, Sequence, Tuple, Union, c
 
 import torch
 
+import ignite.handlers.timing
 from ignite.engine import Engine, EventEnum, Events
-from ignite.handlers import Timer
 
 
 class BasicTimeProfiler:
@@ -44,9 +44,9 @@ class BasicTimeProfiler:
     ]
 
     def __init__(self) -> None:
-        self._dataflow_timer = Timer()
-        self._processing_timer = Timer()
-        self._event_handlers_timer = Timer()
+        self._dataflow_timer = ignite.handlers.timing.Timer()
+        self._processing_timer = ignite.handlers.timing.Timer()
+        self._event_handlers_timer = ignite.handlers.timing.Timer()
 
         self.dataflow_times = torch.zeros(1)
         self.processing_times = torch.zeros(1)
@@ -490,9 +490,9 @@ class HandlersTimeProfiler:
     EVENT_FILTER_THESHOLD_TIME = 0.0001
 
     def __init__(self) -> None:
-        self._dataflow_timer = Timer()
-        self._processing_timer = Timer()
-        self._event_handlers_timer = Timer()
+        self._dataflow_timer = ignite.handlers.timing.Timer()
+        self._processing_timer = ignite.handlers.timing.Timer()
+        self._event_handlers_timer = ignite.handlers.timing.Timer()
 
         self.dataflow_times = []  # type: List[float]
         self.processing_times = []  # type: List[float]
