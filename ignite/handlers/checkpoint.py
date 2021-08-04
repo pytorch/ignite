@@ -248,6 +248,10 @@ class Checkpoint(Serializable):
 
         - Checkpoint can save model with same filename.
         - Added ``greater_or_equal`` argument.
+
+    .. versionchanged:: 0.4.6
+
+        - `score_name` can be used to get `score_function` automatically without providing `score_function`.
     """
 
     Item = NamedTuple("Item", [("priority", int), ("filename", str)])
@@ -284,8 +288,8 @@ class Checkpoint(Serializable):
         if not (callable(save_handler) or isinstance(save_handler, BaseSaveHandler)):
             raise TypeError("Argument `save_handler` should be callable or inherit from BaseSaveHandler")
 
-        if score_function is None and score_name is not None:
-            raise ValueError("If `score_name` is provided, then `score_function` " "should be also provided.")
+        # if score_function is None and score_name is not None:
+        # raise ValueError("If `score_name` is provided, then `score_function` " "should be also provided.")
 
         if global_step_transform is not None and not callable(global_step_transform):
             raise TypeError(f"global_step_transform should be a function, got {type(global_step_transform)} instead.")
@@ -295,6 +299,8 @@ class Checkpoint(Serializable):
         self.save_handler = save_handler
         self.score_function = score_function
         self.score_name = score_name
+        if self.score_name is not None and self.score_function is None:
+            self.score_function = self.get_default_score_fn(self.score_name)
         self.n_saved = n_saved
         self.ext = "pt"
         self.global_step_transform = global_step_transform
