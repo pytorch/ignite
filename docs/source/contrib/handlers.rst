@@ -18,17 +18,12 @@ LR finder [deprecated]
 .. deprecated:: 0.4.4
     Use :class:`~ignite.handlers.lr_finder.FastaiLRFinder` instead, will be removed in version 0.6.0.
 
-Time profilers
----------------
+Time profilers [deprecated]
+---------------------------
 
-.. currentmodule:: ignite.contrib.handlers.time_profilers
-
-.. autosummary::
-    :nosignatures:
-    :toctree: ../generated
-
-    BasicTimeProfiler
-    HandlersTimeProfiler
+.. deprecated:: 0.4.6
+    Use :class:`~ignite.handlers.time_profilers.BasicTimeProfiler` instead, will be removed in version 0.6.0.
+    Use :class:`~ignite.handlers.time_profilers.HandlersTimeProfiler` instead, will be removed in version 0.6.0.
 
 Loggers
 -------
