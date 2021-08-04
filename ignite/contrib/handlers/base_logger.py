@@ -52,6 +52,7 @@ class BaseOutputHandler(BaseHandler):
         metric_names: Optional[Union[str, List[str]]] = None,
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable] = None,
+        state_attributes: Optional[Union[str, List[str]]] = None,
     ):
 
         if metric_names is not None:
@@ -63,8 +64,8 @@ class BaseOutputHandler(BaseHandler):
         if output_transform is not None and not callable(output_transform):
             raise TypeError(f"output_transform should be a function, got {type(output_transform)} instead.")
 
-        if output_transform is None and metric_names is None:
-            raise ValueError("Either metric_names or output_transform should be defined")
+        if output_transform is None and metric_names is None and state_attributes is None:
+            raise ValueError("Either metric_names, output_transform or state_attributes should be defined")
 
         if global_step_transform is not None and not callable(global_step_transform):
             raise TypeError(f"global_step_transform should be a function, got {type(global_step_transform)} instead.")
@@ -78,6 +79,7 @@ class BaseOutputHandler(BaseHandler):
         self.metric_names = metric_names
         self.output_transform = output_transform
         self.global_step_transform = global_step_transform
+        self.state_attributes = state_attributes
 
     def _setup_output_metrics(self, engine: Engine) -> Dict[str, Any]:
         """Helper method to setup metrics to log
@@ -104,6 +106,26 @@ class BaseOutputHandler(BaseHandler):
 
             metrics.update({name: value for name, value in output_dict.items()})
         return metrics
+
+    def _setup_state_attributes(self, engine: Engine) -> Dict[str, Any]:
+        """Helper method to setup state attributes to log"""
+        state_attributes_dict = OrderedDict()
+
+        if self.state_attributes is not None:
+            for name in self.state_attributes:
+
+                value = getattr(engine.state, name, None)
+                if value is None:
+                    continue
+                if isinstance(value, numbers.Number):
+                    state_attributes_dict[name] = value
+                if isinstance(value, torch.Tensor) and value.ndimension() == 0:
+                    state_attributes_dict[name] = value.item()
+                if isinstance(value, torch.Tensor) and value.ndimension() == 1:
+                    for i, v in enumerate(value):
+                        state_attributes_dict[f"{name}/{i}"] = v.item()
+
+        return state_attributes_dict
 
 
 class BaseWeightsScalarHandler(BaseHandler):
