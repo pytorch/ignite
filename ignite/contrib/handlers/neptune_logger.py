@@ -1,7 +1,5 @@
 """Neptune logger and its helper handlers."""
-import numbers
 import tempfile
-import warnings
 from typing import Any, Callable, List, Mapping, Optional, Union
 
 import torch
@@ -340,15 +338,7 @@ class OutputHandler(BaseOutputHandler):
             )
 
         for key, value in metrics.items():
-            if isinstance(value, numbers.Number):
-                logger.log_metric(f"{self.tag}/{key}", x=global_step, y=value)
-            elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                logger.log_metric(f"{self.tag}/{key}", x=global_step, y=value.item())
-            elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
-                for i, v in enumerate(value):
-                    logger.log_metric(f"{self.tag}/{key}/{i}", x=global_step, y=v.item())
-            else:
-                warnings.warn(f"NeptuneLogger output_handler can not log metrics value type {type(value)}")
+            logger.log_metric(key, x=global_step, y=value)
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):
