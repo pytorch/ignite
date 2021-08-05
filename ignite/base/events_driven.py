@@ -265,8 +265,7 @@ class EventsDrivenState:
         attr_to_events: mapping consists of the attributes mapped to a list events from
             :class:`~ignite.engine.events.Events` or any other custom events added
             by :meth:`~ignite.base.events_driven.EventsDriven.register_events`.
-            The attributes will be retrieved according to the first element in the list
-            of the event.
+            Getting attributes is done based on first element in the list of the events.
         **kwargs: optional keyword args.
     """
 
@@ -317,8 +316,7 @@ class EventsDrivenState:
                 :class:`~ignite.engine.events.Events` or any other custom events added
                 by :meth:`~ignite.base.events_driven.EventsDriven.register_events`.
                 New attributes will be added, existed ones will be updated.
-                Also The attributes will be retrieved according to the first element in the list
-                of the event.
+                Getting attributes is done based on first element in the list of the events.
         """
         if (
             not isinstance(attr_to_events, dict)
