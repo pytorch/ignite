@@ -188,14 +188,16 @@ class OutputHandler(BaseOutputHandler):
             tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
 
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
-            # each epoch. We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch
+            # each epoch. The state_attributes logs attributes trainer.state.alpha and trainer.state.beta after each epoch.
+            # We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch
             # of the `trainer`:
             tb_logger.attach(
                 evaluator,
                 log_handler=OutputHandler(
                     tag="validation",
                     metric_names=["nll", "accuracy"],
-                    global_step_transform=global_step_from_engine(trainer)
+                    global_step_transform=global_step_from_engine(trainer),
+                    state_attributes=["alpha", "beta"]
                 ),
                 event_name=Events.EPOCH_COMPLETED
             )
@@ -205,7 +207,8 @@ class OutputHandler(BaseOutputHandler):
                 event_name=Events.EPOCH_COMPLETED,
                 tag="validation",
                 metric_names=["nll", "accuracy"],
-                global_step_transform=global_step_from_engine(trainer)
+                global_step_transform=global_step_from_engine(trainer),
+                state_attributes=["alpha", "beta"]
             )
 
         Another example, where model is evaluated every 500 iterations:
@@ -233,7 +236,8 @@ class OutputHandler(BaseOutputHandler):
                 event_name=Events.EPOCH_COMPLETED,
                 tag="validation",
                 metrics=["nll", "accuracy"],
-                global_step_transform=global_step_transform
+                global_step_transform=global_step_transform,
+                state_attributes=["alpha", "beta"]
             )
 
     Args:
@@ -249,6 +253,7 @@ class OutputHandler(BaseOutputHandler):
             Default is None, global_step based on attached engine. If provided,
             uses function output as global_step. To setup global step from another engine, please use
             :meth:`~ignite.contrib.handlers.tensorboard_logger.global_step_from_engine`.
+        state_attributes: list of attributes of the trainer.state to plot.
 
     Note:
 
