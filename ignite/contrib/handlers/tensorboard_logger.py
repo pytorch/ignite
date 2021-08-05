@@ -285,15 +285,7 @@ class OutputHandler(BaseOutputHandler):
             )
 
         for key, value in metrics.items():
-            if isinstance(value, numbers.Number):
-                logger.writer.add_scalar(f"{self.tag}/{key}", value, global_step)
-            elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                logger.writer.add_scalar(f"{self.tag}/{key}", value.item(), global_step)
-            elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
-                for i, v in enumerate(value):
-                    logger.writer.add_scalar(f"{self.tag}/{key}/{i}", v.item(), global_step)
-            else:
-                warnings.warn(f"TensorboardLogger output_handler can not log metrics value type {type(value)}")
+            logger.writer.add_scalar(f"{self.tag}/{key}", value, global_step)
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):
