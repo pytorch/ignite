@@ -1,6 +1,4 @@
 """TensorBoard logger and its helper handlers."""
-import numbers
-import warnings
 from typing import Any, Callable, List, Optional, Union
 
 import torch
@@ -285,7 +283,7 @@ class OutputHandler(BaseOutputHandler):
             )
 
         for key, value in metrics.items():
-            logger.writer.add_scalar(f"{self.tag}/{key}", value, global_step)
+            logger.writer.add_scalar(key, value, global_step)
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):
