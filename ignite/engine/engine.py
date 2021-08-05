@@ -2,7 +2,7 @@ import logging
 import math
 import time
 import warnings
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from collections.abc import Mapping
 from typing import Any, Callable, Iterable, Iterator, List, Optional, Tuple, Union
 
@@ -225,8 +225,17 @@ class Engine(Serializable, EventsDriven):
             # engine.state contains an attribute time_iteration, which can be accessed using engine.state.time_iteration
         """
         super(Engine, self).register_events(*event_names, event_to_attr=event_to_attr)
+        attr_to_events = defaultdict(list)  # type: Mapping[str, List[Events]]
         if event_to_attr is not None:
-            self.state.update_mapping(event_to_attr)
+            for k, v in event_to_attr.items():
+                if v not in attr_to_events:
+                    attr_to_events[v] = k if isinstance(k, list) else [k]  # type: ignore
+                else:
+                    attr_evnts = attr_to_events[v]
+                    if k not in attr_evnts:
+                        attr_evnts.append(k)
+
+            self.state.update_mapping(attr_to_events)
 
     def add_event_handler(self, event_name: Any, handler: Callable, *args: Any, **kwargs: Any) -> RemovableEventHandle:
         """Add an event handler to be executed when the specified event is fired.

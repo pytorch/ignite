@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import pytest
 
 from ignite.base.events import EventEnum
@@ -15,7 +17,16 @@ class EventsDrivenWithState(EventsDriven):
 
     def register_events(self, *event_names, event_to_attr=None) -> None:
         super(EventsDrivenWithState, self).register_events(*event_names)
-        self._state.update_mapping(event_to_attr)
+        attr_to_events = defaultdict(list)
+        if event_to_attr is not None:
+            for k, v in event_to_attr.items():
+                if v not in attr_to_events:
+                    attr_to_events[v] = k if isinstance(k, list) else [k]
+                else:
+                    attr_evnts = attr_to_events[v]
+                    if k not in attr_evnts:
+                        attr_evnts.append(k)
+            self._state.update_mapping(attr_to_events)
 
 
 class ABCEvents(EventEnum):
@@ -32,6 +43,19 @@ def test_invalid_event_to_attr():
 
     with pytest.raises(ValueError, match=r"Expected event_to_attr to be dictionary"):
         e.register_events(event_to_attr=5)
+
+
+def test_invalid_update_mapping():
+    e = EventsDrivenState()
+
+    with pytest.raises(TypeError, match=r"'attr_to_events' must be a dictionary"):
+        e.update_mapping(attr_to_events=["a", "b"])
+
+    with pytest.raises(TypeError, match=r"'attr_to_events' must be a dictionary"):
+        e.update_mapping(attr_to_events={"a": 5})
+
+    with pytest.raises(TypeError, match=r"'attr_to_events' must be a dictionary"):
+        e.update_mapping(attr_to_events={"k": (1, 2)})
 
 
 def test_invalid_event_names():
@@ -106,7 +130,12 @@ def test_events_driven_state():
     state = EventsDrivenState()
     assert len(state._attr_to_events) == 0
 
-    state.update_mapping({ABCEvents.A_EVENT: "a", ABCEvents.B_EVENT: "b", ABCEvents.C_EVENT: "c"})
+    attr_to_events = {
+        "a": [ABCEvents.A_EVENT],
+        "b": [ABCEvents.B_EVENT],
+        "c": [ABCEvents.C_EVENT],
+    }
+    state.update_mapping(attr_to_events)
 
     assert len(state._attr_to_events) == 3
     assert state._attr_to_events["a"] == [
@@ -119,7 +148,7 @@ def test_events_driven_state():
         ABCEvents.C_EVENT,
     ]
 
-    state.update_mapping({"epoch_started": "epoch", "epoch_completed": "epoch"})
+    state.update_mapping({"epoch": ["epoch_started", "epoch_completed"]})
     assert state._attr_to_events["epoch"] == ["epoch_started", "epoch_completed"]
 
 

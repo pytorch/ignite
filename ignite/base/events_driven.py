@@ -265,10 +265,9 @@ class EventsDrivenState:
         attr_to_events: mapping consists of the attributes mapped to a list events from
             :class:`~ignite.engine.events.Events` or any other custom events added
             by :meth:`~ignite.base.events_driven.EventsDriven.register_events`.
+            The attributes will be retrieved according to the first element in the list
+            of the event.
         **kwargs: optional keyword args.
-
-    Note:
-        The attributes will be retrieved according to the first element in the list of the event at `attr_to_events`.
     """
 
     def __init__(
@@ -310,22 +309,31 @@ class EventsDrivenState:
 
         super().__setattr__(attr, value)
 
-    def update_mapping(self, event_to_attr: Mapping["Events", str]) -> None:
+    def update_mapping(self, attr_to_events: Mapping[str, List["Events"]]) -> None:
         """Maps each attribute to a list of the corresponding events in the same given order.
 
         Args:
-            event_to_attr: mapping consists of the events from :class:`~ignite.engine.events.Events`
-                or any other custom events added by :meth:`~ignite.base.events_driven.EventsDriven.register_events`
-                mapped to the attribute name.
-
-        Note:
-            The attributes will be retrieved according to the first element in the list
-            of the event at `attr_to_events`.
+            attr_to_events: mapping consists of the attributes mapped to a list events from
+                :class:`~ignite.engine.events.Events` or any other custom events added
+                by :meth:`~ignite.base.events_driven.EventsDriven.register_events`.
+                New attributes will be added, existed ones will be updated.
+                Also The attributes will be retrieved according to the first element in the list
+                of the event.
         """
-        for k, v in event_to_attr.items():
-            if v not in self._attr_to_events:
-                self._attr_to_events[v] = k if isinstance(k, list) else [k]  # type: ignore
-            else:
-                attr_evnts = self._attr_to_events[v]
-                if k not in attr_evnts:
-                    attr_evnts.append(k)
+        if (
+            not isinstance(attr_to_events, dict)
+            or not isinstance(list(attr_to_events.keys())[0], str)
+            or not isinstance(list(attr_to_events.values())[0], list)
+        ):
+            raise TypeError(
+                "'attr_to_events' must be a dictionary, it shoule map keys of type string to list of Events"
+            )
+
+        for k, v in attr_to_events.items():
+            if k not in self._attr_to_events:
+                self._attr_to_events[k] = v  # type: ignore
+            elif k in self._attr_to_events:
+                attr_evnts = self._attr_to_events[k]
+                for evnt in v:
+                    if evnt not in attr_evnts:
+                        attr_evnts.append(evnt)
