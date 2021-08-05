@@ -267,8 +267,9 @@ class OutputHandler(BaseOutputHandler):
         metric_names: Optional[List[str]] = None,
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable] = None,
+        state_attributes: Optional[List[str]] = None,
     ):
-        super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
+        super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform, state_attributes)
 
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, EventEnum]) -> None:
 
@@ -294,6 +295,12 @@ class OutputHandler(BaseOutputHandler):
                     logger.writer.add_scalar(f"{self.tag}/{key}/{i}", v.item(), global_step)
             else:
                 warnings.warn(f"TensorboardLogger output_handler can not log metrics value type {type(value)}")
+
+        state_attributes = self._setup_state_attributes(engine)
+
+        for key, value in state_attributes.items():
+
+            logger.writer.add_scalar(f"{self.tag}/{key}", value, global_step)
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):
@@ -434,7 +441,9 @@ class WeightsHistHandler(BaseWeightsHistHandler):
 
             name = name.replace(".", "/")
             logger.writer.add_histogram(
-                tag=f"{tag_prefix}weights/{name}", values=p.data.detach().cpu().numpy(), global_step=global_step,
+                tag=f"{tag_prefix}weights/{name}",
+                values=p.data.detach().cpu().numpy(),
+                global_step=global_step,
             )
 
 
@@ -527,46 +536,3 @@ class GradsHistHandler(BaseWeightsHistHandler):
             logger.writer.add_histogram(
                 tag=f"{tag_prefix}grads/{name}", values=p.grad.detach().cpu().numpy(), global_step=global_step
             )
-
-
-class TrainerStateHandler(BaseOutputHandler):
-    """Helper handler to log state attributes of the trainer.
-
-    Examples:
-
-        .. code-block:: python
-
-            from ignite.contrib.handlers.tensorboard_logger import *
-
-            # Create a logger
-            tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
-
-            # Attach the logger to the trainer to log model's weights norm after each iteration
-            tb_logger.attach(
-                trainer,
-                event_name=Events.ITERATION_COMPLETED,
-                log_handler=TrainerStateHandler(['alpha', 'beta'])
-            )
-            # Through this trainer.state.alpha and trainer.state.beta can be logged
-
-    Args:
-        state_attributes: list of all state attributes to be logged
-        tag: common title for all produced plots. For example, "generator"
-
-    """
-
-    def __init__(self, state_attributes: List[str] = None, tag: Optional[str] = None):
-        super(TrainerStateHandler, self).__init__(tag=tag, state_attributes=state_attributes)
-
-    def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, Events]) -> None:
-        if not isinstance(logger, TensorboardLogger):
-            raise RuntimeError("Handler 'TrainerStateHandler' works only with TensorboardLogger")
-
-        global_step = engine.state.get_event_attrib_value(event_name)
-        tag_prefix = f"{self.tag}/" if self.tag else ""
-
-        state_attributes = self._setup_state_attributes(engine)
-
-        for key, value in state_attributes.items():
-
-            logger.writer.add_scalar(f"{tag_prefix}{key}", value, global_step)

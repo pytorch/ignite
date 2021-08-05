@@ -52,7 +52,7 @@ class BaseOutputHandler(BaseHandler):
         metric_names: Optional[Union[str, List[str]]] = None,
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable] = None,
-        state_attributes: Optional[Union[str, List[str]]] = None,
+        state_attributes: Optional[List[str]] = None,
     ):
 
         if metric_names is not None:
@@ -82,8 +82,7 @@ class BaseOutputHandler(BaseHandler):
         self.state_attributes = state_attributes
 
     def _setup_output_metrics(self, engine: Engine) -> Dict[str, Any]:
-        """Helper method to setup metrics to log
-        """
+        """Helper method to setup metrics to log"""
         metrics = OrderedDict()
         if self.metric_names is not None:
             if isinstance(self.metric_names, str) and self.metric_names == "all":
