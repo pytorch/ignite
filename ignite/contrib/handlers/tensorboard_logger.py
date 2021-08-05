@@ -274,7 +274,9 @@ class OutputHandler(BaseOutputHandler):
         global_step_transform: Optional[Callable] = None,
         state_attributes: Optional[List[str]] = None,
     ):
-        super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform, state_attributes)
+        super(OutputHandler, self).__init__(
+            tag, metric_names, output_transform, global_step_transform, state_attributes
+        )
 
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, EventEnum]) -> None:
 
@@ -446,9 +448,7 @@ class WeightsHistHandler(BaseWeightsHistHandler):
 
             name = name.replace(".", "/")
             logger.writer.add_histogram(
-                tag=f"{tag_prefix}weights/{name}",
-                values=p.data.detach().cpu().numpy(),
-                global_step=global_step,
+                tag=f"{tag_prefix}weights/{name}", values=p.data.detach().cpu().numpy(), global_step=global_step,
             )
 
 
