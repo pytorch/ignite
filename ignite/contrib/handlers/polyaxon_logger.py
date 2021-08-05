@@ -1,9 +1,6 @@
 """Polyaxon logger and its helper handlers."""
-import numbers
-import warnings
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, List, Optional, Union
 
-import torch
 from torch.optim import Optimizer
 
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler
@@ -242,19 +239,9 @@ class OutputHandler(BaseOutputHandler):
                 " Please check the output of global_step_transform."
             )
 
-        rendered_metrics = {"step": global_step}  # type: Dict[str, Union[float, numbers.Number]]
-        for key, value in metrics.items():
-            if isinstance(value, numbers.Number):
-                rendered_metrics[f"{self.tag}/{key}"] = value
-            elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                rendered_metrics[f"{self.tag}/{key}"] = value.item()
-            elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
-                for i, v in enumerate(value):
-                    rendered_metrics[f"{self.tag}/{key}/{i}"] = v.item()
-            else:
-                warnings.warn(f"PolyaxonLogger output_handler can not log metrics value type {type(value)}")
+        metrics.update({"step": global_step})
 
-        logger.log_metrics(**rendered_metrics)
+        logger.log_metrics(**metrics)
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):
