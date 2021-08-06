@@ -79,8 +79,9 @@ class BaseOutputHandler(BaseHandler):
         self.output_transform = output_transform
         self.global_step_transform = global_step_transform
 
-    def _setup_output_metrics(self, engine: Engine, log_text: Optional[bool] = False,
-                              key_tuple: Optional[bool] = True) -> Dict[Any, Any]:
+    def _setup_output_metrics(
+        self, engine: Engine, log_text: Optional[bool] = False, key_tuple: Optional[bool] = True
+    ) -> Dict[Any, Any]:
         """Helper method to setup metrics to log
         """
         metrics = OrderedDict()
