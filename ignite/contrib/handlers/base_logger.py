@@ -3,7 +3,7 @@ import numbers
 import warnings
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 import torch
 import torch.nn as nn
@@ -108,29 +108,25 @@ class BaseOutputHandler(BaseHandler):
 
         metrics_dict = {}  # type: Dict[Any, Union[str, float, numbers.Number]]
 
+        if key_tuple:
+            def key_tf(tag, name, *args):
+                return (tag, name) + args
+
+        else:
+            def key_tf(tag, name, *args):
+                return "/".join((tag, name) + args)
+
         for name, value in metrics.items():
             if isinstance(value, numbers.Number):
-                if key_tuple:
-                    metrics_dict[(self.tag, name)] = value
-                else:
-                    metrics_dict[f"{self.tag}/{name}"] = value
+                metrics_dict[key_tf(self.tag, name)] = value
             elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                if key_tuple:
-                    metrics_dict[(self.tag, name)] = value.item()
-                else:
-                    metrics_dict[f"{self.tag}/{name}"] = value.item()
+                metrics_dict[key_tf(self.tag, name)] = value.item()
             elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
                 for i, v in enumerate(value):
-                    if key_tuple:
-                        metrics_dict[(self.tag, name, str(i))] = v.item()
-                    else:
-                        metrics_dict[f"{self.tag}/{name}/{i}"] = v.item()
+                    metrics_dict[key_tf(self.tag, name, str(i))] = v.item()
             else:
                 if isinstance(value, str) and log_text:
-                    if key_tuple:
-                        metrics_dict[(self.tag, name)] = value
-                    else:
-                        metrics_dict[f"{self.tag}/{name}"] = value
+                    metrics_dict[key_tf(self.tag, name)] = value
                 else:
                     warnings.warn(f"Logger output_handler can not log metrics value type {type(value)}")
         return metrics_dict
