@@ -2,7 +2,7 @@ import functools
 import logging
 import weakref
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Mapping, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
 from ignite.base.events import CallableEventWithFilter, EventEnum, EventsList, RemovableEventHandle
 from ignite.engine.utils import _check_signature
@@ -272,14 +272,12 @@ class EventsDrivenState:
     def __init__(
         self,
         engine: Optional[EventsDriven] = None,
-        attr_to_events: Optional[Mapping[str, List["Events"]]] = None,
+        attr_to_events: Optional[Dict[str, List["Events"]]] = None,
         **kwargs: Any,
     ):
 
         self.engine = engine  # type: Optional[EventsDriven]
-        self._attr_to_events = (
-            attr_to_events if attr_to_events else defaultdict(list)
-        )  # type: Mapping[str, List[Events]]
+        self._attr_to_events = attr_to_events if attr_to_events else defaultdict(list)  # type: Dict[str, List[Events]]
 
     def __getattr__(self, attr: str) -> Any:
         evnts = None
@@ -308,14 +306,15 @@ class EventsDrivenState:
 
         super().__setattr__(attr, value)
 
-    def update_mapping(self, attr_to_events: Mapping[str, List["Events"]]) -> None:
-        """Maps each attribute to a list of the corresponding events in the same given order.
+    def update_mapping(self, attr_to_events: Dict[str, List["Events"]]) -> None:
+        """Check if the attribute doesn't exist in ``_attr_to_events``, if not, maps the attribute to its
+        list of events in the same order.
 
         Args:
             attr_to_events: mapping consists of the attributes mapped to a list events from
                 :class:`~ignite.engine.events.Events` or any other custom events added
                 by :meth:`~ignite.base.events_driven.EventsDriven.register_events`.
-                New attributes will be added, existed ones will be updated.
+                New attributes will be added, existed ones will remain the same.
                 Getting attribute values is done based on the first element in the list of the events.
         """
         if (
@@ -324,14 +323,9 @@ class EventsDrivenState:
             or not all(isinstance(value, list) for value in list(attr_to_events.values()))
         ):
             raise TypeError(
-                "'attr_to_events' must be a dictionary, it shoule map keys of type string to list of Events"
+                "'attr_to_events' must be a dictionary, it should map keys of type string to list of Events"
             )
 
         for k, v in attr_to_events.items():
             if k not in self._attr_to_events:
-                self._attr_to_events[k] = v  # type: ignore
-            elif k in self._attr_to_events:
-                attr_evnts = self._attr_to_events[k]
-                for evnt in v:
-                    if evnt not in attr_evnts:
-                        attr_evnts.append(evnt)
+                self._attr_to_events.update({k: v})

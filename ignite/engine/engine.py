@@ -4,7 +4,7 @@ import time
 import warnings
 from collections import OrderedDict, defaultdict
 from collections.abc import Mapping
-from typing import Any, Callable, Iterable, Iterator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Tuple, Union
 
 from torch.utils.data import DataLoader
 
@@ -225,11 +225,11 @@ class Engine(Serializable, EventsDriven):
             # engine.state contains an attribute time_iteration, which can be accessed using engine.state.time_iteration
         """
         super(Engine, self).register_events(*event_names, event_to_attr=event_to_attr)
-        attr_to_events = defaultdict(list)  # type: Mapping[str, List[Events]]
+        attr_to_events = defaultdict(list)  # type: Dict[str, List[Events]]
         if event_to_attr is not None:
             for k, v in event_to_attr.items():
                 if v not in attr_to_events:
-                    attr_to_events[v] = k if isinstance(k, list) else [k]  # type: ignore
+                    attr_to_events[v] = k if isinstance(k, list) else [k]
                 else:
                     attr_evnts = attr_to_events[v]
                     if k not in attr_evnts:
