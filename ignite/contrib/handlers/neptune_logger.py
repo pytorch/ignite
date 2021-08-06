@@ -327,7 +327,7 @@ class OutputHandler(BaseOutputHandler):
         if not isinstance(logger, NeptuneLogger):
             raise TypeError("Handler OutputHandler works only with NeptuneLogger")
 
-        metrics = self._setup_output_metrics(engine)
+        metrics = self._setup_output_metrics(engine, key_tuple=False)
 
         global_step = self.global_step_transform(engine, event_name)  # type: ignore[misc]
 
@@ -338,7 +338,7 @@ class OutputHandler(BaseOutputHandler):
             )
 
         for key, value in metrics.items():
-            logger.log_metric("/".join(key), x=global_step, y=value)
+            logger.log_metric(key, x=global_step, y=value)
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):

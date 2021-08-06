@@ -273,7 +273,7 @@ class OutputHandler(BaseOutputHandler):
         if not isinstance(logger, TensorboardLogger):
             raise RuntimeError("Handler 'OutputHandler' works only with TensorboardLogger")
 
-        metrics = self._setup_output_metrics(engine)
+        metrics = self._setup_output_metrics(engine, key_tuple=False)
 
         global_step = self.global_step_transform(engine, event_name)  # type: ignore[misc]
         if not isinstance(global_step, int):
@@ -283,7 +283,7 @@ class OutputHandler(BaseOutputHandler):
             )
 
         for key, value in metrics.items():
-            logger.writer.add_scalar("/".join(key), value, global_step)
+            logger.writer.add_scalar(key, value, global_step)
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):

@@ -352,7 +352,7 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
         if not isinstance(logger, VisdomLogger):
             raise RuntimeError("Handler 'OutputHandler' works only with VisdomLogger")
 
-        metrics = self._setup_output_metrics(engine)
+        metrics = self._setup_output_metrics(engine, key_tuple=False)
 
         global_step = self.global_step_transform(engine, event_name)  # type: ignore[misc]
 
@@ -363,7 +363,7 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
             )
 
         for key, value in metrics.items():
-            self.add_scalar(logger, "/".join(key), value, event_name, global_step)
+            self.add_scalar(logger, key, value, event_name, global_step)
 
         logger._save()
 

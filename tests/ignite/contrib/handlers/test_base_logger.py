@@ -58,34 +58,34 @@ def test_base_output_handler_setup_output_metrics():
 
     # Only metric_names
     handler = DummyOutputHandler("tag", metric_names=["a", "b"], output_transform=None)
-    metrics = handler._setup_output_metrics(engine=engine)
-    assert metrics == {("tag", "a"): 0, ("tag", "b"): 1}
+    metrics = handler._setup_output_metrics(engine=engine, key_tuple=False)
+    assert metrics == {"tag/a": 0, "tag/b": 1}
 
     # Only metric_names with a warning
     handler = DummyOutputHandler("tag", metric_names=["a", "c"], output_transform=None)
     with pytest.warns(UserWarning):
-        metrics = handler._setup_output_metrics(engine=engine)
-    assert metrics == {("tag", "a"): 0}
+        metrics = handler._setup_output_metrics(engine=engine, key_tuple=False)
+    assert metrics == {"tag/a": 0}
 
     # Only output as "output"
     handler = DummyOutputHandler("tag", metric_names=None, output_transform=lambda x: x)
-    metrics = handler._setup_output_metrics(engine=engine)
-    assert metrics == {("tag", "output"): engine.state.output}
+    metrics = handler._setup_output_metrics(engine=engine, key_tuple=False)
+    assert metrics == {"tag/output": engine.state.output}
 
     # Only output as "loss"
     handler = DummyOutputHandler("tag", metric_names=None, output_transform=lambda x: {"loss": x})
-    metrics = handler._setup_output_metrics(engine=engine)
-    assert metrics == {("tag", "loss"): engine.state.output}
+    metrics = handler._setup_output_metrics(engine=engine, key_tuple=False)
+    assert metrics == {"tag/loss": engine.state.output}
 
     # Metrics and output
     handler = DummyOutputHandler("tag", metric_names=["a", "b"], output_transform=lambda x: {"loss": x})
-    metrics = handler._setup_output_metrics(engine=engine)
-    assert metrics == {("tag", "a"): 0, ("tag", "b"): 1, ("tag", "loss"): engine.state.output}
+    metrics = handler._setup_output_metrics(engine=engine, key_tuple=False)
+    assert metrics == {"tag/a": 0, "tag/b": 1, "tag/loss": engine.state.output}
 
     # All metrics
     handler = DummyOutputHandler("tag", metric_names="all", output_transform=None)
-    metrics = handler._setup_output_metrics(engine=engine)
-    assert metrics == {("tag", "a"): 0, ("tag", "b"): 1}
+    metrics = handler._setup_output_metrics(engine=engine, key_tuple=False)
+    assert metrics == {"tag/a": 0, "tag/b": 1}
 
 
 def test_opt_params_handler_on_non_torch_optimizers():
