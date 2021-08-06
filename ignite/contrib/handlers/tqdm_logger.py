@@ -1,15 +1,11 @@
 # -*- coding: utf-8 -*-
 """TQDM logger."""
-import numbers
-import warnings
-from collections import OrderedDict
-from typing import Any, Callable, Dict, List, Optional, Union
-
-import torch
+from typing import Any, Callable, List, Optional, Union
 
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler
 from ignite.engine import Engine, Events
 from ignite.engine.events import CallableEventWithFilter, RemovableEventHandle
+from collections import OrderedDict
 
 
 class ProgressBar(BaseLogger):
@@ -270,23 +266,17 @@ class _OutputHandler(BaseOutputHandler):
             desc += f" [{global_step}/{max_num_of_closing_events}]"
         logger.pbar.set_description(desc)  # type: ignore[attr-defined]
 
-        metrics = self._setup_output_metrics(engine)
+        rendered_metrics = self._setup_output_metrics(engine,log_text=True)
+        metrics = OrderedDict()
+        for key, value in rendered_metrics.items():
+            keys_list = key.split("/")
+            keys_list.pop(0)  # tqdm has tag as description
+            key = "_".join(keys_list)
 
-        rendered_metrics = OrderedDict()  # type: Dict[str, Union[str, float, numbers.Number]]
-        for key, value in metrics.items():
-            if isinstance(value, numbers.Number) or isinstance(value, str):
-                rendered_metrics[key] = value
-            elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                rendered_metrics[key] = value.item()
-            elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
-                for i, v in enumerate(value):
-                    k = f"{key}_{i}"
-                    rendered_metrics[k] = v.item()
-            else:
-                warnings.warn(f"ProgressBar can not log tensor with {value.ndimension()} dimensions")
+            metrics[key] = value
 
-        if rendered_metrics:
-            logger.pbar.set_postfix(rendered_metrics)  # type: ignore[attr-defined]
+        if metrics:
+            logger.pbar.set_postfix(metrics)  # type: ignore[attr-defined]
 
         global_step = engine.state.get_event_attrib_value(event_name)
         if pbar_total is not None:
