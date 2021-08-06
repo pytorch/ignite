@@ -277,7 +277,6 @@ class OutputHandler(BaseOutputHandler):
             )
 
         metrics = self._setup_output_metrics(engine, log_text=True, key_tuple=False)
-
         logger.log(metrics, step=global_step, sync=self.sync)
 
 

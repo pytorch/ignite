@@ -105,7 +105,7 @@ class BaseOutputHandler(BaseHandler):
 
             metrics.update({name: value for name, value in output_dict.items()})
 
-        metrics_dict = {}  # type: Dict[Tuple[str, ...], Union[str, float, numbers.Number]]
+        metrics_dict = {}  # type: Dict[Any, Union[str, float, numbers.Number]]
 
         for name, value in metrics.items():
             if isinstance(value, numbers.Number):
