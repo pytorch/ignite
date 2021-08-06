@@ -110,15 +110,15 @@ class BaseOutputHandler(BaseHandler):
             if value is None:
                 continue
             if isinstance(value, numbers.Number):
-                metrics_dict[(self.tag,name)] = value
+                metrics_dict[(self.tag, name)] = value
             elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                metrics_dict[(self.tag,name)] = value.item()
+                metrics_dict[(self.tag, name)] = value.item()
             elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
                 for i, v in enumerate(value):
-                    metrics_dict[(self.tag,name,str(i))] = v.item()
+                    metrics_dict[(self.tag, name, str(i))] = v.item()
             else:
                 if isinstance(value, str) and log_text:
-                    metrics_dict[(self.tag,name)] = value
+                    metrics_dict[(self.tag, name)] = value
                 else:
                     warnings.warn(f"Logger output_handler can not log metrics value type {type(value)}")
         return metrics_dict
