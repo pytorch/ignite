@@ -232,17 +232,20 @@ class OutputHandler(BaseOutputHandler):
         # Additionally recheck metric names as MLflow rejects non-valid names with MLflowException
         from mlflow.utils.validation import _VALID_PARAM_AND_METRIC_NAMES
 
-        for key in list(rendered_metrics.keys()):
+        for keys in list(rendered_metrics.keys()):
+            key = " ".join(keys)
+            print(key, keys)
             if not _VALID_PARAM_AND_METRIC_NAMES.match(key):
                 warnings.warn(
                     f"MLflowLogger output_handler encountered an invalid metric name '{key}' that "
                     "will be ignored and not logged to MLflow"
                 )
-                del rendered_metrics[key]
+                del rendered_metrics[keys]
 
         metrics = {}
         for key, value in rendered_metrics.items():
-            key = " ".join(key.split("/"))
+            print(key)
+            key = " ".join(key)
             metrics[key] = value
 
         logger.log_metrics(metrics, step=global_step)

@@ -318,14 +318,13 @@ class OutputHandler(BaseOutputHandler):
             )
 
         for key, value in metrics.items():
-            key_list = key.split("/")
-            if len(key_list) == 2:
+            if len(key) == 2:
                 logger.clearml_logger.report_scalar(
-                    title=key_list[0], series=key_list[1], iteration=global_step, value=value
+                    title=key[0], series=key[1], iteration=global_step, value=value
                 )
-            elif len(key_list) == 3:
+            elif len(key) == 3:
                 logger.clearml_logger.report_scalar(
-                    title=f"{key_list[0]}/{key_list[1]}", series=key_list[2], iteration=global_step, value=value
+                    title=f"{key[0]}/{key[1]}", series=key[2], iteration=global_step, value=value
                 )
 
 

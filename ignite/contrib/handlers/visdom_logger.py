@@ -363,7 +363,7 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
             )
 
         for key, value in metrics.items():
-            self.add_scalar(logger, key, value, event_name, global_step)
+            self.add_scalar(logger, "/".join(key), value, event_name, global_step)
 
         logger._save()
 

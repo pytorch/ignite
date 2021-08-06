@@ -338,7 +338,7 @@ class OutputHandler(BaseOutputHandler):
             )
 
         for key, value in metrics.items():
-            logger.log_metric(key, x=global_step, y=value)
+            logger.log_metric("/".join(key), x=global_step, y=value)
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):

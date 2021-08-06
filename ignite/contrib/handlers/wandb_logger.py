@@ -276,9 +276,13 @@ class OutputHandler(BaseOutputHandler):
                 " Please check the output of global_step_transform."
             )
 
-        metrics = self._setup_output_metrics(engine,log_text=True)
+        rendered_metrics = self._setup_output_metrics(engine,log_text=True)
 
-        logger.log(dict(metrics), step=global_step, sync=self.sync)
+        metrics = {}
+        for key, value in rendered_metrics.items():
+            metrics["/".join(key)] = value
+
+        logger.log(metrics, step=global_step, sync=self.sync)
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):

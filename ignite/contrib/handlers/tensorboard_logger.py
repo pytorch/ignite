@@ -283,7 +283,7 @@ class OutputHandler(BaseOutputHandler):
             )
 
         for key, value in metrics.items():
-            logger.writer.add_scalar(key, value, global_step)
+            logger.writer.add_scalar("/".join(key), value, global_step)
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):

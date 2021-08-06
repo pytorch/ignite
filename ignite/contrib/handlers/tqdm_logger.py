@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """TQDM logger."""
+from collections import OrderedDict
 from typing import Any, Callable, List, Optional, Union
 
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler
 from ignite.engine import Engine, Events
 from ignite.engine.events import CallableEventWithFilter, RemovableEventHandle
-from collections import OrderedDict
 
 
 class ProgressBar(BaseLogger):
@@ -269,9 +269,7 @@ class _OutputHandler(BaseOutputHandler):
         rendered_metrics = self._setup_output_metrics(engine,log_text=True)
         metrics = OrderedDict()
         for key, value in rendered_metrics.items():
-            keys_list = key.split("/")
-            keys_list.pop(0)  # tqdm has tag as description
-            key = "_".join(keys_list)
+            key = "_".join(key[1:])  # tqdm has tag as description
 
             metrics[key] = value
 
