@@ -277,9 +277,9 @@ class EventsDrivenState:
     ):
 
         self.engine = engine  # type: Optional[EventsDriven]
-        self._attr_to_events = defaultdict(list)  # type: Mapping[str, List[Events]]
-        if attr_to_events:
-            self._attr_to_events = attr_to_events
+        self._attr_to_events = (
+            attr_to_events if attr_to_events else defaultdict(list)
+        )  # type: Mapping[str, List[Events]]
 
     def __getattr__(self, attr: str) -> Any:
         evnts = None
