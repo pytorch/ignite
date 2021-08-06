@@ -319,8 +319,8 @@ class EventsDrivenState:
         """
         if (
             not isinstance(attr_to_events, dict)
-            or not all(isinstance(key, str) for key in list(attr_to_events.keys()))
-            or not all(isinstance(value, list) for value in list(attr_to_events.values()))
+            or not all(isinstance(key, str) for key in attr_to_events.keys())
+            or not all(isinstance(value, list) for value in attr_to_events.values())
         ):
             raise TypeError(
                 "'attr_to_events' must be a dictionary, it should map keys of type string to list of Events"
