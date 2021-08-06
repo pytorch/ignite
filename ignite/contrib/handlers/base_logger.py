@@ -109,10 +109,12 @@ class BaseOutputHandler(BaseHandler):
         metrics_dict = {}  # type: Dict[Any, Union[str, float, numbers.Number]]
 
         if key_tuple:
+
             def key_tf(tag, name, *args):
                 return (tag, name) + args
 
         else:
+
             def key_tf(tag, name, *args):
                 return "/".join((tag, name) + args)
 
