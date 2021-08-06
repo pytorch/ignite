@@ -231,7 +231,7 @@ class OutputHandler(BaseOutputHandler):
 
         # Additionally recheck metric names as MLflow rejects non-valid names with MLflowException
         from mlflow.utils.validation import _VALID_PARAM_AND_METRIC_NAMES
-        
+
         metrics = {}
         for keys, value in rendered_metrics.items():
             key = " ".join(keys)
