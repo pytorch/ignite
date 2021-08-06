@@ -84,7 +84,8 @@ class Checkpoint(Serializable):
             :class:`~ignite.engine.engine.Engine` object, and returning a score (`float`). Objects with highest scores
             will be retained.
         score_name: If ``score_function`` not None, it is possible to store its value using
-            ``score_name``. See Notes for more details.
+            ``score_name``. If ``score_function`` is None, can be used alone to fetch ``score_function``.
+            See Notes for more details.
         n_saved: Number of objects that should be kept on disk. Older files will be removed. If set to
             `None`, all objects are kept.
         global_step_transform: global step transform function to output a desired global step.
