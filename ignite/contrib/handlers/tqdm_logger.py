@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """TQDM logger."""
+from collections import OrderedDict
 from typing import Any, Callable, List, Optional, Union
 
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOutputHandler
 from ignite.engine import Engine, Events
 from ignite.engine.events import CallableEventWithFilter, RemovableEventHandle
-from collections import OrderedDict
 
 
 class ProgressBar(BaseLogger):
@@ -266,7 +266,7 @@ class _OutputHandler(BaseOutputHandler):
             desc += f" [{global_step}/{max_num_of_closing_events}]"
         logger.pbar.set_description(desc)  # type: ignore[attr-defined]
 
-        rendered_metrics = self._setup_output_metrics(engine,log_text=True)
+        rendered_metrics = self._setup_output_metrics(engine, log_text=True)
         metrics = OrderedDict()
         for key, value in rendered_metrics.items():
             keys_list = key.split("/")
