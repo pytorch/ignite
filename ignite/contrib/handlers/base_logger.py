@@ -79,7 +79,7 @@ class BaseOutputHandler(BaseHandler):
         self.output_transform = output_transform
         self.global_step_transform = global_step_transform
 
-    def _setup_output_metrics(self, engine: Engine) -> Dict[str, Any]:
+    def _setup_output_metrics(self, engine: Engine, log_text: Optional[bool] = False) -> Dict[str, Any]:
         """Helper method to setup metrics to log
         """
         metrics = OrderedDict()
@@ -117,7 +117,10 @@ class BaseOutputHandler(BaseHandler):
                 for i, v in enumerate(value):
                     metrics_dict[f"{self.tag}/{name}/{i}"] = v.item()
             else:
-                warnings.warn(f"Logger output_handler can not log metrics value type {type(value)}")
+                if isinstance(value, str) and log_text:
+                    metrics_dict[f"{self.tag}/{name}"] = value
+                else:
+                    warnings.warn(f"Logger output_handler can not log metrics value type {type(value)}")
 
         return metrics_dict
 
