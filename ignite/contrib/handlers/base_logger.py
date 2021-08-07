@@ -3,7 +3,7 @@ import numbers
 import warnings
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
-from typing import Any, Callable, Dict, List, Optional, Sequence, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -108,10 +108,10 @@ class BaseOutputHandler(BaseHandler):
 
         metrics_dict = {}  # type: Dict[Any, Union[str, float, numbers.Number]]
 
-        def key_tuple_tf(tag, name, *args):
+        def key_tuple_tf(tag: str, name: str, *args: str) -> Tuple[str, ...]:
             return (tag, name) + args
 
-        def key_str_tf(tag, name, *args):
+        def key_str_tf(tag: str, name: str, *args: str) -> str:
             return "/".join((tag, name) + args)
 
         key_tf = key_tuple_tf if key_tuple else key_str_tf
