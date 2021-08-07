@@ -266,13 +266,13 @@ These events could be used to attach any handler and are fired using :meth:`~ign
 If you want to use filtering with custom events (e.g. ``CustomEvents.CUSTOM_STARTED(every=5)``), you need to do 3 more things:
 
 - ``engine.state`` should have corresponding attributes for the events, e.g. ``engine.state.custom_started``
-- you need to pass a dict `event_to_attr` to :meth:`~ignite.engine.engine.Engine.register_events`, which maps between events and state attributes, e.g.
+- you need to pass a dict `attr_to_events` to :meth:`~ignite.engine.engine.Engine.register_events`, which maps between state attributes and events, e.g.
 
 .. code-block:: python
 
-    event_to_attr = {
-        CustomEvents.CUSTOM_STARTED: "custom_started",
-        CustomEvents.CUSTOM_COMPLETED: "custom_completed",
+    attr_to_events = {
+        "custom_started": [CustomEvents.CUSTOM_STARTED],
+        "custom_completed": [CustomEvents.CUSTOM_COMPLETED]
     }
 
 - you should increase the counter for the event whenever you fire the event, e.g. ``engine.state.custom_started += 1``
