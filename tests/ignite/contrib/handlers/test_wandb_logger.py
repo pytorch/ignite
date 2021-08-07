@@ -154,7 +154,7 @@ def test_output_handler_metric_names():
     mock_logger = MagicMock(spec=WandBLogger)
     mock_logger.log = MagicMock()
 
-    with pytest.warns(UserWarning, match=r"WandBLogger output_handler can not log metrics value type"):
+    with pytest.warns(UserWarning, match=r"Logger output_handler can not log metrics value type"):
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 

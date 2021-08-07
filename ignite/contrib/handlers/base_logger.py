@@ -3,7 +3,7 @@ import numbers
 import warnings
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
-from typing import Any, Callable, Dict, List, Optional, Sequence, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -79,7 +79,9 @@ class BaseOutputHandler(BaseHandler):
         self.output_transform = output_transform
         self.global_step_transform = global_step_transform
 
-    def _setup_output_metrics(self, engine: Engine) -> Dict[str, Any]:
+    def _setup_output_metrics(
+        self, engine: Engine, log_text: Optional[bool] = False, key_tuple: Optional[bool] = True
+    ) -> Dict[Any, Any]:
         """Helper method to setup metrics to log
         """
         metrics = OrderedDict()
@@ -103,7 +105,31 @@ class BaseOutputHandler(BaseHandler):
                 output_dict = {"output": output_dict}
 
             metrics.update({name: value for name, value in output_dict.items()})
-        return metrics
+
+        metrics_dict = {}  # type: Dict[Any, Union[str, float, numbers.Number]]
+
+        def key_tuple_tf(tag: str, name: str, *args: str) -> Tuple[str, ...]:
+            return (tag, name) + args
+
+        def key_str_tf(tag: str, name: str, *args: str) -> str:
+            return "/".join((tag, name) + args)
+
+        key_tf = key_tuple_tf if key_tuple else key_str_tf
+
+        for name, value in metrics.items():
+            if isinstance(value, numbers.Number):
+                metrics_dict[key_tf(self.tag, name)] = value
+            elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
+                metrics_dict[key_tf(self.tag, name)] = value.item()
+            elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
+                for i, v in enumerate(value):
+                    metrics_dict[key_tf(self.tag, name, str(i))] = v.item()
+            else:
+                if isinstance(value, str) and log_text:
+                    metrics_dict[key_tf(self.tag, name)] = value
+                else:
+                    warnings.warn(f"Logger output_handler can not log metrics value type {type(value)}")
+        return metrics_dict
 
 
 class BaseWeightsScalarHandler(BaseHandler):

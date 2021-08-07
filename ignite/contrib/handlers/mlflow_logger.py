@@ -1,9 +1,7 @@
 """MLflow logger and its helper handlers."""
-import numbers
 import warnings
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, List, Optional, Union
 
-import torch
 from torch.optim import Optimizer
 
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler
@@ -221,7 +219,7 @@ class OutputHandler(BaseOutputHandler):
         if not isinstance(logger, MLflowLogger):
             raise TypeError("Handler 'OutputHandler' works only with MLflowLogger")
 
-        metrics = self._setup_output_metrics(engine)
+        rendered_metrics = self._setup_output_metrics(engine)
 
         global_step = self.global_step_transform(engine, event_name)  # type: ignore[misc]
 
@@ -231,30 +229,23 @@ class OutputHandler(BaseOutputHandler):
                 " Please check the output of global_step_transform."
             )
 
-        rendered_metrics = {}  # type: Dict[str, float]
-        for key, value in metrics.items():
-            if isinstance(value, numbers.Number):
-                rendered_metrics[f"{self.tag} {key}"] = value  # type: ignore[assignment]
-            elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                rendered_metrics[f"{self.tag} {key}"] = value.item()
-            elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
-                for i, v in enumerate(value):
-                    rendered_metrics[f"{self.tag} {key} {i}"] = v.item()
-            else:
-                warnings.warn(f"MLflowLogger output_handler can not log metrics value type {type(value)}")
-
         # Additionally recheck metric names as MLflow rejects non-valid names with MLflowException
         from mlflow.utils.validation import _VALID_PARAM_AND_METRIC_NAMES
 
-        for key in list(rendered_metrics.keys()):
+        metrics = {}
+        for keys, value in rendered_metrics.items():
+            key = " ".join(keys)
+            metrics[key] = value
+
+        for key in list(metrics.keys()):
             if not _VALID_PARAM_AND_METRIC_NAMES.match(key):
                 warnings.warn(
                     f"MLflowLogger output_handler encountered an invalid metric name '{key}' that "
                     "will be ignored and not logged to MLflow"
                 )
-                del rendered_metrics[key]
+                del metrics[key]
 
-        logger.log_metrics(rendered_metrics, step=global_step)
+        logger.log_metrics(metrics, step=global_step)
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):

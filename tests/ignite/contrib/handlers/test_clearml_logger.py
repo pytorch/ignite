@@ -137,7 +137,7 @@ def test_output_handler_metric_names(dirname):
     mock_logger = MagicMock(spec=ClearMLLogger)
     mock_logger.clearml_logger = MagicMock()
 
-    with pytest.warns(UserWarning, match=r"ClearMLLogger output_handler can not log metrics value type"):
+    with pytest.warns(UserWarning, match=r"Logger output_handler can not log metrics value type"):
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
     assert mock_logger.clearml_logger.report_scalar.call_count == 1

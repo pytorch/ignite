@@ -1,6 +1,4 @@
 """TensorBoard logger and its helper handlers."""
-import numbers
-import warnings
 from typing import Any, Callable, List, Optional, Union
 
 import torch
@@ -275,7 +273,7 @@ class OutputHandler(BaseOutputHandler):
         if not isinstance(logger, TensorboardLogger):
             raise RuntimeError("Handler 'OutputHandler' works only with TensorboardLogger")
 
-        metrics = self._setup_output_metrics(engine)
+        metrics = self._setup_output_metrics(engine, key_tuple=False)
 
         global_step = self.global_step_transform(engine, event_name)  # type: ignore[misc]
         if not isinstance(global_step, int):
@@ -285,15 +283,7 @@ class OutputHandler(BaseOutputHandler):
             )
 
         for key, value in metrics.items():
-            if isinstance(value, numbers.Number):
-                logger.writer.add_scalar(f"{self.tag}/{key}", value, global_step)
-            elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                logger.writer.add_scalar(f"{self.tag}/{key}", value.item(), global_step)
-            elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
-                for i, v in enumerate(value):
-                    logger.writer.add_scalar(f"{self.tag}/{key}/{i}", v.item(), global_step)
-            else:
-                warnings.warn(f"TensorboardLogger output_handler can not log metrics value type {type(value)}")
+            logger.writer.add_scalar(key, value, global_step)
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):
