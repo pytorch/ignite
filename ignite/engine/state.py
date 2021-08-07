@@ -1,5 +1,5 @@
 import numbers
-from typing import Any, Dict, Iterable, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Union
 
 from torch.utils.data import DataLoader
 
@@ -35,19 +35,18 @@ class State(EventsDrivenState):
         kwargs: keyword arguments to be defined as State attributes.
     """
 
-    # event_to_attr must be in this order as we want to
-    # get iteration by Events.ITERATION_STARTED
+    # list of events in attr_to_events must be in this same order,
+    # as we want to get iteration by Events.ITERATION_STARTED
     # and epoch by Events.EPOCH_STARTED
-    event_to_attr = {
-        Events.ITERATION_STARTED: "iteration",
-        Events.ITERATION_COMPLETED: "iteration",
-        Events.GET_BATCH_STARTED: "iteration",
-        Events.GET_BATCH_COMPLETED: "iteration",
-        Events.EPOCH_STARTED: "epoch",
-        Events.EPOCH_COMPLETED: "epoch",
-        Events.STARTED: "epoch",
-        Events.COMPLETED: "epoch",
-    }  # type: Dict[Union[str, "Events", "CallableEventWithFilter"], str]
+    attr_to_events = {
+        "iteration": [
+            Events.ITERATION_STARTED,
+            Events.ITERATION_COMPLETED,
+            Events.GET_BATCH_STARTED,
+            Events.GET_BATCH_COMPLETED,
+        ],
+        "epoch": [Events.EPOCH_STARTED, Events.EPOCH_COMPLETED, Events.STARTED, Events.COMPLETED],
+    }  # type: Dict[str, List[Union["Events", "CallableEventWithFilter"]]]
 
     def __init__(self, **kwargs: Any) -> None:
         super(State, self).__init__(**kwargs)
@@ -74,15 +73,20 @@ class State(EventsDrivenState):
             self._update_attrs()
 
     def _update_attrs(self) -> None:
-        for value in self.event_to_attr.values():
-            if not hasattr(self, value):
-                setattr(self, value, 0)
+        for key in self.attr_to_events.keys():
+            if not hasattr(self, key):
+                setattr(self, key, 0)
 
     def get_event_attrib_value(self, event_name: Union[str, Events, CallableEventWithFilter]) -> int:
         """Get the value of Event attribute with given `event_name`."""
-        if event_name not in State.event_to_attr:
+        event_to_attr = {}
+        for attribute, events in State.attr_to_events.items():
+            for event in events:
+                event_to_attr[event] = attribute
+
+        if event_name not in event_to_attr:
             raise RuntimeError(f"Unknown event name '{event_name}'")
-        return getattr(self, State.event_to_attr[event_name])
+        return getattr(self, event_to_attr[event_name])  # type: ignore
 
     def __repr__(self) -> str:
         s = "State:\n"

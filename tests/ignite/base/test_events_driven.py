@@ -1,5 +1,3 @@
-from collections import defaultdict
-
 import pytest
 
 from ignite.base.events import EventEnum
@@ -15,18 +13,11 @@ class EventsDrivenWithState(EventsDriven):
     def state(self) -> EventsDrivenState:
         return self._state
 
-    def register_events(self, *event_names, event_to_attr=None) -> None:
+    def register_events(self, *event_names, attr_to_events=None) -> None:
         super(EventsDrivenWithState, self).register_events(*event_names)
-        attr_to_events = defaultdict(list)
-        if event_to_attr is not None:
-            for k, v in event_to_attr.items():
-                if v not in attr_to_events:
-                    attr_to_events[v] = k if isinstance(k, list) else [k]
-                else:
-                    attr_evnts = attr_to_events[v]
-                    if k not in attr_evnts:
-                        attr_evnts.append(k)
-            self._state.update_mapping(attr_to_events)
+        if attr_to_events is not None:
+            for attribute, events in attr_to_events.items():
+                self.state.update_attribute_mapping(attribute, events)
 
 
 class ABCEvents(EventEnum):
@@ -35,27 +26,27 @@ class ABCEvents(EventEnum):
     C_EVENT = "c_event"
 
 
-def test_invalid_event_to_attr():
+def test_invalid_attr_to_events():
     e = EventsDriven()
 
-    with pytest.raises(ValueError, match=r"Expected event_to_attr to be dictionary"):
-        e.register_events(event_to_attr=["a", "b"])
+    with pytest.raises(ValueError, match=r"Expected attr_to_events to be dictionary"):
+        e.register_events(attr_to_events=["a", "b"])
 
-    with pytest.raises(ValueError, match=r"Expected event_to_attr to be dictionary"):
-        e.register_events(event_to_attr=5)
+    with pytest.raises(ValueError, match=r"Expected attr_to_events to be dictionary"):
+        e.register_events(attr_to_events=5)
 
 
-def test_invalid_update_mapping():
+def test_invalid_update_attribute_mapping():
     e = EventsDrivenState()
 
-    with pytest.raises(TypeError, match=r"'attr_to_events' must be a dictionary"):
-        e.update_mapping(attr_to_events=["a", "b"])
+    with pytest.raises(TypeError, match=r"'attribute' must be a string, and `events` must be a list of Events."):
+        e.update_attribute_mapping(attribute="a", events="b")
 
-    with pytest.raises(TypeError, match=r"'attr_to_events' must be a dictionary"):
-        e.update_mapping(attr_to_events={"a": 5})
+    with pytest.raises(TypeError, match=r"'attribute' must be a string, and `events` must be a list of Events."):
+        e.update_attribute_mapping(attribute="a", events=5)
 
-    with pytest.raises(TypeError, match=r"'attr_to_events' must be a dictionary"):
-        e.update_mapping(attr_to_events={"k": (1, 2)})
+    with pytest.raises(TypeError, match=r"'attribute' must be a string, and `events` must be a list of Events."):
+        e.update_attribute_mapping(attribute="a", events=(1, 2))
 
 
 def test_invalid_event_names():
@@ -135,7 +126,8 @@ def test_events_driven_state():
         "b": [ABCEvents.B_EVENT],
         "c": [ABCEvents.C_EVENT],
     }
-    state.update_mapping(attr_to_events)
+    for attribute, events in attr_to_events.items():
+        state.update_attribute_mapping(attribute=attribute, events=events)
 
     assert len(state._attr_to_events) == 3
     assert state._attr_to_events["a"] == [
@@ -148,22 +140,22 @@ def test_events_driven_state():
         ABCEvents.C_EVENT,
     ]
 
-    state.update_mapping({"epoch": ["epoch_started", "epoch_completed"]})
+    state.update_attribute_mapping(attribute="epoch", events=["epoch_started", "epoch_completed"])
     assert state._attr_to_events["epoch"] == ["epoch_started", "epoch_completed"]
 
 
 def test_basic_events_driven_with_state():
 
-    event_to_attr = {
-        ABCEvents.A_EVENT: "a",
-        ABCEvents.B_EVENT: "b",
-        ABCEvents.C_EVENT: "c",
+    attr_to_events = {
+        "a": [ABCEvents.A_EVENT],
+        "b": [ABCEvents.B_EVENT],
+        "c": [ABCEvents.C_EVENT],
     }
 
     class TinyEngine(EventsDrivenWithState):
         def __init__(self):
             super(TinyEngine, self).__init__()
-            self.register_events(*ABCEvents, event_to_attr=event_to_attr)
+            self.register_events(*ABCEvents, attr_to_events=attr_to_events)
 
         def _check(self):
             assert self.state.a == self._allowed_events_counts[ABCEvents.A_EVENT]
@@ -184,11 +176,9 @@ def test_basic_events_driven_with_state():
 
     e = TinyEngine()
 
-    for ev, a in event_to_attr.items():
+    for a, ev in attr_to_events.items():
         assert a in e.state._attr_to_events
-        assert e.state._attr_to_events[a] == [
-            ev,
-        ]
+        assert e.state._attr_to_events[a] == ev
 
     e.run(10, 20)
     assert e.state.a == 1
@@ -235,13 +225,11 @@ def test_events_driven_with_state_mixed_events():
     class AnotherTinyEngine(EventsDrivenWithState):
         def __init__(self):
             super(AnotherTinyEngine, self).__init__()
-            event_to_attr = {
-                BCEvents.B_EVENT_STARTED: "b",
-                BCEvents.C_EVENT_STARTED: "c",
-                BCEvents.B_EVENT_COMPLETED: "b",
-                BCEvents.C_EVENT_COMPLETED: "c",
+            attr_to_events = {
+                "b": [BCEvents.B_EVENT_STARTED, BCEvents.B_EVENT_COMPLETED],
+                "c": [BCEvents.C_EVENT_STARTED, BCEvents.C_EVENT_COMPLETED],
             }
-            self.register_events(*BCEvents, event_to_attr=event_to_attr)
+            self.register_events(*BCEvents, attr_to_events=attr_to_events)
 
         def _check(self):
             assert self.state.b == self._allowed_events_counts[BCEvents.B_EVENT_STARTED]

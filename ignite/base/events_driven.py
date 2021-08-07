@@ -64,17 +64,20 @@ class EventsDriven:
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
 
     def register_events(
-        self, *event_names: Union[List[str], List[EventEnum]], event_to_attr: Optional[dict] = None,
+        self, *event_names: Union[List[str], List[EventEnum]], attr_to_events: Optional[dict] = None,
     ) -> None:
         """Add events that can be fired.
 
         Args:
             event_names: Defines the name of the event being supported. New events can be a str
                 or an object derived from :class:`~ignite.base.events.EventEnum`. See example below.
-            event_to_attr: A dictionary to map an event to a state attribute.
+            attr_to_events: mapping consists of the state attributes mapped to a list events from
+                :class:`~ignite.engine.events.Events` or any other custom events added
+                by :meth:`~ignite.base.events_driven.EventsDriven.register_events`.
+                Getting attribute values is done based the on first element in the list of the events.
         """
-        if not (event_to_attr is None or isinstance(event_to_attr, dict)):
-            raise ValueError(f"Expected event_to_attr to be dictionary. Got {type(event_to_attr)}.")
+        if not (attr_to_events is None or isinstance(attr_to_events, dict)):
+            raise ValueError(f"Expected attr_to_events to be dictionary. Got {type(attr_to_events)}.")
 
         for index, e in enumerate(event_names):
             if not isinstance(e, (str, EventEnum)):
@@ -306,26 +309,21 @@ class EventsDrivenState:
 
         super().__setattr__(attr, value)
 
-    def update_mapping(self, attr_to_events: Dict[str, List["Events"]]) -> None:
-        """Check if the attribute doesn't exist in ``_attr_to_events``, if not, maps the attribute to its
-        list of events in the same order.
+    def update_attribute_mapping(self, attribute: str, events: List["Events"]) -> None:
+        """Maps a given attribute to a given events list. If the attribute already exists,
+        then the corresponding events will be update to the new given events. If the attribute doesn't
+        exist, it will be added. Also the list of events will be added in the same order, as the first
+        event in the list will be used to get the attribute value.
 
         Args:
-            attr_to_events: mapping consists of the attributes mapped to a list events from
-                :class:`~ignite.engine.events.Events` or any other custom events added
-                by :meth:`~ignite.base.events_driven.EventsDriven.register_events`.
-                New attributes will be added, existed ones will remain the same.
-                Getting attribute values is done based on the first element in the list of the events.
+            attribute: a state attribute to add, or update if already existed. This attribute will be mapped
+                to the given events. Also if the value of the attribute has been updated, all the counters
+                of the mapped events will be updated accordingly.
+            events: list of events that will be mapped to the attribute, these events are from
+                :class:`~ignite.engine.events.Events` or any other custom events added by
+                :meth:`~ignite.base.events_driven.EventsDriven.register_events`.
+                The first event in this list will be used to get the attribute value.
         """
-        if (
-            not isinstance(attr_to_events, dict)
-            or not all(isinstance(key, str) for key in attr_to_events.keys())
-            or not all(isinstance(value, list) for value in attr_to_events.values())
-        ):
-            raise TypeError(
-                "'attr_to_events' must be a dictionary, it should map keys of type string to list of Events"
-            )
-
-        for k, v in attr_to_events.items():
-            if k not in self._attr_to_events:
-                self._attr_to_events.update({k: v})
+        if not isinstance(attribute, str) or not isinstance(events, list):
+            raise TypeError("'attribute' must be a string, and `events` must be a list of Events.")
+        self._attr_to_events.update({attribute: events})

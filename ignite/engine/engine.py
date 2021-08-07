@@ -2,9 +2,9 @@ import logging
 import math
 import time
 import warnings
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 from collections.abc import Mapping
-from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Tuple, Union
+from typing import Any, Callable, Iterable, Iterator, List, Optional, Tuple, Union
 
 from torch.utils.data import DataLoader
 
@@ -134,7 +134,7 @@ class Engine(Serializable, EventsDriven):
         self._dataloader_iter = None  # type: Optional[Iterator[Any]]
         self._init_iter = []  # type: List[int]
 
-        self.register_events(*Events, event_to_attr=State.event_to_attr)
+        self.register_events(*Events, attr_to_events=State.attr_to_events)
 
         if self._process_function is None:
             raise ValueError("Engine must be given a processing function in order to run.")
@@ -151,7 +151,7 @@ class Engine(Serializable, EventsDriven):
         self._state.engine = self
 
     def register_events(
-        self, *event_names: Union[List[str], List[EventEnum]], event_to_attr: Optional[dict] = None
+        self, *event_names: Union[List[str], List[EventEnum]], attr_to_events: Optional[dict] = None
     ) -> None:
         """Add events that can be fired.
 
@@ -164,7 +164,10 @@ class Engine(Serializable, EventsDriven):
         Args:
             event_names: Defines the name of the event being supported. New events can be a str
                 or an object derived from :class:`~ignite.base.events.EventEnum`. See example below.
-            event_to_attr: A dictionary to map an event to a state attribute.
+            attr_to_events: mapping consists of the state attributes mapped to a list events from
+                :class:`~ignite.engine.events.Events` or any other custom events added
+                by :meth:`~ignite.base.events_driven.EventsDriven.register_events`.
+                Getting attribute values is done based the on first element in the list of the events.
 
         Example usage:
 
@@ -214,28 +217,20 @@ class Engine(Serializable, EventsDriven):
                 TIME_ITERATION_STARTED = "time_iteration_started"
                 TIME_ITERATION_COMPLETED = "time_iteration_completed"
 
-            TBPTT_event_to_attr = {
-                TBPTT_Events.TIME_ITERATION_STARTED: 'time_iteration',
-                TBPTT_Events.TIME_ITERATION_COMPLETED: 'time_iteration'
+            TBPTT_attr_to_events = {
+                'time_iteration': [TBPTT_Events.TIME_ITERATION_STARTED,
+                                    TBPTT_Events.TIME_ITERATION_COMPLETED]
             }
 
             engine = Engine(process_function)
-            engine.register_events(*TBPTT_Events, event_to_attr=TBPTT_event_to_attr)
+            engine.register_events(*TBPTT_Events, attr_to_events=TBPTT_attr_to_events)
             engine.run(data)
             # engine.state contains an attribute time_iteration, which can be accessed using engine.state.time_iteration
         """
-        super(Engine, self).register_events(*event_names, event_to_attr=event_to_attr)
-        attr_to_events = defaultdict(list)  # type: Dict[str, List[Events]]
-        if event_to_attr is not None:
-            for k, v in event_to_attr.items():
-                if v not in attr_to_events:
-                    attr_to_events[v] = k if isinstance(k, list) else [k]
-                else:
-                    attr_evnts = attr_to_events[v]
-                    if k not in attr_evnts:
-                        attr_evnts.append(k)
-
-            self.state.update_mapping(attr_to_events)
+        super(Engine, self).register_events(*event_names, attr_to_events=attr_to_events)
+        if attr_to_events is not None:
+            for attribute, events in attr_to_events.items():
+                self.state.update_attribute_mapping(attribute, events)
 
     def add_event_handler(self, event_name: Any, handler: Callable, *args: Any, **kwargs: Any) -> RemovableEventHandle:
         """Add an event handler to be executed when the specified event is fired.
