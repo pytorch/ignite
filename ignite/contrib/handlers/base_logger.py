@@ -108,15 +108,13 @@ class BaseOutputHandler(BaseHandler):
 
         metrics_dict = {}  # type: Dict[Any, Union[str, float, numbers.Number]]
 
-        if key_tuple:
+        def key_tuple_tf(tag, name, *args):
+            return (tag, name) + args
 
-            def key_tf(tag, name, *args):
-                return (tag, name) + args
+        def key_str_tf(tag, name, *args):
+            return "/".join((tag, name) + args)
 
-        else:
-
-            def key_tf(tag, name, *args):
-                return "/".join((tag, name) + args)
+        key_tf = key_tuple_tf if key_tuple else key_str_tf
 
         for name, value in metrics.items():
             if isinstance(value, numbers.Number):
