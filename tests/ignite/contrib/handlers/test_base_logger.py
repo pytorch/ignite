@@ -98,25 +98,48 @@ def test_base_output_handler_setup_output_state_attrs():
     engine.state.output = 12345
 
     # Only State Attributes
-    handler = DummyOutputHandler(tag="tag", metric_names=None, output_transform=None,
-                                 state_attributes=["alpha", "beta", "gamma"])
+    handler = DummyOutputHandler(
+        tag="tag", metric_names=None, output_transform=None, state_attributes=["alpha", "beta", "gamma"]
+    )
     state_attrs = handler._setup_output_metrics_state_attrs(engine=engine, key_tuple=False)
-    assert state_attrs == {"tag/alpha": 3.899, "tag/beta": torch.tensor(5.499),
-                           "tag/gamma/0": 2106.0, "tag/gamma/1": 6.0}
+    assert state_attrs == {
+        "tag/alpha": 3.899,
+        "tag/beta": torch.tensor(5.499),
+        "tag/gamma/0": 2106.0,
+        "tag/gamma/1": 6.0,
+    }
 
     # Metrics and Attributes
-    handler = DummyOutputHandler(tag="tag", metric_names=["a", "b"], output_transform=None,
-                                 state_attributes=["alpha", "beta", "gamma"])
+    handler = DummyOutputHandler(
+        tag="tag", metric_names=["a", "b"], output_transform=None, state_attributes=["alpha", "beta", "gamma"]
+    )
     state_attrs = handler._setup_output_metrics_state_attrs(engine=engine, key_tuple=False)
-    assert state_attrs == {"tag/a": 0, "tag/b":1, "tag/alpha": 3.899, "tag/beta": torch.tensor(5.499),
-                           "tag/gamma/0": 2106.0, "tag/gamma/1": 6.0}
+    assert state_attrs == {
+        "tag/a": 0,
+        "tag/b": 1,
+        "tag/alpha": 3.899,
+        "tag/beta": torch.tensor(5.499),
+        "tag/gamma/0": 2106.0,
+        "tag/gamma/1": 6.0,
+    }
 
     # Metrics, Attributes and output
-    handler = DummyOutputHandler(tag="tag", metric_names="all", output_transform=lambda x: {"loss": x},
-                                 state_attributes=["alpha", "beta", "gamma"])
+    handler = DummyOutputHandler(
+        tag="tag",
+        metric_names="all",
+        output_transform=lambda x: {"loss": x},
+        state_attributes=["alpha", "beta", "gamma"],
+    )
     state_attrs = handler._setup_output_metrics_state_attrs(engine=engine, key_tuple=False)
-    assert state_attrs == {"tag/a": 0, "tag/b":1, "tag/alpha": 3.899, "tag/beta": torch.tensor(5.499),
-                           "tag/gamma/0": 2106.0, "tag/gamma/1": 6.0, "tag/loss":engine.state.output}
+    assert state_attrs == {
+        "tag/a": 0,
+        "tag/b": 1,
+        "tag/alpha": 3.899,
+        "tag/beta": torch.tensor(5.499),
+        "tag/gamma/0": 2106.0,
+        "tag/gamma/1": 6.0,
+        "tag/loss": engine.state.output,
+    }
 
 
 def test_opt_params_handler_on_non_torch_optimizers():
