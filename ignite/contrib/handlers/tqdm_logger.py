@@ -266,7 +266,7 @@ class _OutputHandler(BaseOutputHandler):
             desc += f" [{global_step}/{max_num_of_closing_events}]"
         logger.pbar.set_description(desc)  # type: ignore[attr-defined]
 
-        rendered_metrics = self._setup_output_metrics(engine, log_text=True)
+        rendered_metrics = self._setup_output_metrics_state_attrs(engine, log_text=True)
         metrics = OrderedDict()
         for key, value in rendered_metrics.items():
             key = "_".join(key[1:])  # tqdm has tag as description

@@ -276,7 +276,7 @@ class OutputHandler(BaseOutputHandler):
                 " Please check the output of global_step_transform."
             )
 
-        metrics = self._setup_output_metrics(engine, log_text=True, key_tuple=False)
+        metrics = self._setup_output_metrics_state_attrs(engine, log_text=True, key_tuple=False)
         logger.log(metrics, step=global_step, sync=self.sync)
 
 

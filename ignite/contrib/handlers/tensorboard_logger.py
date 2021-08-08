@@ -179,23 +179,18 @@ class OutputHandler(BaseOutputHandler):
     Examples:
 
         .. code-block:: python
-
             from ignite.contrib.handlers.tensorboard_logger import *
-
             # Create a logger
             tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
-
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
-            # each epoch. The state_attributes logs attributes trainer.state.alpha and trainer.state.beta after each epoch.
-            # We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch
+            # each epoch. We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch
             # of the `trainer`:
             tb_logger.attach(
                 evaluator,
                 log_handler=OutputHandler(
                     tag="validation",
                     metric_names=["nll", "accuracy"],
-                    global_step_transform=global_step_from_engine(trainer),
-                    state_attributes=["alpha", "beta"]
+                    global_step_transform=global_step_from_engine(trainer)
                 ),
                 event_name=Events.EPOCH_COMPLETED
             )
@@ -205,37 +200,41 @@ class OutputHandler(BaseOutputHandler):
                 event_name=Events.EPOCH_COMPLETED,
                 tag="validation",
                 metric_names=["nll", "accuracy"],
-                global_step_transform=global_step_from_engine(trainer),
-                state_attributes=["alpha", "beta"]
+                global_step_transform=global_step_from_engine(trainer)
             )
 
         Another example, where model is evaluated every 500 iterations:
-
         .. code-block:: python
-
             from ignite.contrib.handlers.tensorboard_logger import *
-
             @trainer.on(Events.ITERATION_COMPLETED(every=500))
             def evaluate(engine):
                 evaluator.run(validation_set, max_epochs=1)
-
             tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
-
             def global_step_transform(*args, **kwargs):
                 return trainer.state.iteration
-
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
             # every 500 iterations. Since evaluator engine does not have access to the training iteration, we
             # provide a global_step_transform to return the trainer.state.iteration for the global_step, each time
             # evaluator metrics are plotted on Tensorboard.
-
             tb_logger.attach_output_handler(
                 evaluator,
                 event_name=Events.EPOCH_COMPLETED,
                 tag="validation",
                 metrics=["nll", "accuracy"],
-                global_step_transform=global_step_transform,
-                state_attributes=["alpha", "beta"]
+                global_step_transform=global_step_transform
+            )
+
+        Another Example where the State Attributes trainer.state.alpha and trainer.state.beta
+        are also logged along with the NLL and Accuracy after each iteration:
+        .. code-block:: python
+            tb_logger.attach(
+                trainer,
+                log_handler=OutputHandler(
+                    tag="training",
+                    metric_names=["nll", "accuracy"],
+                    state_attributes=["alpha", "beta"],
+                ),
+                event_name=Events.ITERATION_COMPLETED
             )
 
     Args:
@@ -281,7 +280,7 @@ class OutputHandler(BaseOutputHandler):
         if not isinstance(logger, TensorboardLogger):
             raise RuntimeError("Handler 'OutputHandler' works only with TensorboardLogger")
 
-        metrics = self._setup_output_metrics(engine, key_tuple=False)
+        metrics = self._setup_output_metrics_state_attrs(engine, key_tuple=False)
 
         global_step = self.global_step_transform(engine, event_name)  # type: ignore[misc]
         if not isinstance(global_step, int):
@@ -292,12 +291,6 @@ class OutputHandler(BaseOutputHandler):
 
         for key, value in metrics.items():
             logger.writer.add_scalar(key, value, global_step)
-
-        state_attributes = self._setup_state_attributes(engine)
-
-        for key, value in state_attributes.items():
-
-            logger.writer.add_scalar(f"{self.tag}/{key}", value, global_step)
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):

@@ -81,15 +81,15 @@ class BaseOutputHandler(BaseHandler):
         self.global_step_transform = global_step_transform
         self.state_attributes = state_attributes
 
-    def _setup_output_metrics(
+    def _setup_output_metrics_state_attrs(
         self, engine: Engine, log_text: Optional[bool] = False, key_tuple: Optional[bool] = True
     ) -> Dict[Any, Any]:
-        """Helper method to setup metrics to log
+        """Helper method to setup metrics and state attributes to log
         """
-        metrics = OrderedDict()
+        metrics_state_attrs = OrderedDict()
         if self.metric_names is not None:
             if isinstance(self.metric_names, str) and self.metric_names == "all":
-                metrics = OrderedDict(engine.state.metrics)
+                metrics_state_attrs = OrderedDict(engine.state.metrics)
             else:
                 for name in self.metric_names:
                     if name not in engine.state.metrics:
@@ -98,7 +98,7 @@ class BaseOutputHandler(BaseHandler):
                             f"in engine's state metrics: {list(engine.state.metrics.keys())}"
                         )
                         continue
-                    metrics[name] = engine.state.metrics[name]
+                    metrics_state_attrs[name] = engine.state.metrics[name]
 
         if self.output_transform is not None:
             output_dict = self.output_transform(engine.state.output)
@@ -106,9 +106,12 @@ class BaseOutputHandler(BaseHandler):
             if not isinstance(output_dict, dict):
                 output_dict = {"output": output_dict}
 
-            metrics.update({name: value for name, value in output_dict.items()})
+            metrics_state_attrs.update({name: value for name, value in output_dict.items()})
 
-        metrics_dict = {}  # type: Dict[Any, Union[str, float, numbers.Number]]
+        if self.state_attributes is not None:
+            metrics_state_attrs.update({name: getattr(engine.state,name,None) for name in self.state_attributes})
+
+        metrics_state_attrs_dict = {}  # type: Dict[Any, Union[str, float, numbers.Number]]
 
         def key_tuple_tf(tag: str, name: str, *args: str) -> Tuple[str, ...]:
             return (tag, name) + args
@@ -118,40 +121,20 @@ class BaseOutputHandler(BaseHandler):
 
         key_tf = key_tuple_tf if key_tuple else key_str_tf
 
-        for name, value in metrics.items():
+        for name, value in metrics_state_attrs.items():
             if isinstance(value, numbers.Number):
-                metrics_dict[key_tf(self.tag, name)] = value
+                metrics_state_attrs_dict[key_tf(self.tag, name)] = value
             elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                metrics_dict[key_tf(self.tag, name)] = value.item()
+                metrics_state_attrs_dict[key_tf(self.tag, name)] = value.item()
             elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
                 for i, v in enumerate(value):
-                    metrics_dict[key_tf(self.tag, name, str(i))] = v.item()
+                    metrics_state_attrs_dict[key_tf(self.tag, name, str(i))] = v.item()
             else:
                 if isinstance(value, str) and log_text:
-                    metrics_dict[key_tf(self.tag, name)] = value
+                    metrics_state_attrs_dict[key_tf(self.tag, name)] = value
                 else:
                     warnings.warn(f"Logger output_handler can not log metrics value type {type(value)}")
-        return metrics_dict
-
-    def _setup_state_attributes(self, engine: Engine) -> Dict[str, Any]:
-        """Helper method to setup state attributes to log"""
-        state_attributes_dict = OrderedDict()
-
-        if self.state_attributes is not None:
-            for name in self.state_attributes:
-
-                value = getattr(engine.state, name, None)
-                if value is None:
-                    continue
-                if isinstance(value, numbers.Number):
-                    state_attributes_dict[name] = value
-                if isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                    state_attributes_dict[name] = value.item()
-                if isinstance(value, torch.Tensor) and value.ndimension() == 1:
-                    for i, v in enumerate(value):
-                        state_attributes_dict[f"{name}/{i}"] = v.item()
-
-        return state_attributes_dict
+        return metrics_state_attrs_dict
 
 
 class BaseWeightsScalarHandler(BaseHandler):
