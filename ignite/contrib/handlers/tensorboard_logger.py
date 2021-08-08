@@ -233,24 +233,17 @@ class OutputHandler(BaseOutputHandler):
 
         Another example where the State Attributes ``trainer.state.alpha`` and ``trainer.state.beta``
         are also logged along with the NLL and Accuracy after each iteration:
-        
+
         .. code-block:: python
 
             tb_logger.attach(
-
                 trainer,
-
                 log_handler=OutputHandler(
-
                     tag="training",
-
                     metric_names=["nll", "accuracy"],
-
                     state_attributes=["alpha", "beta"],
                 ),
-
                 event_name=Events.ITERATION_COMPLETED
-
             )
 
     Args:
