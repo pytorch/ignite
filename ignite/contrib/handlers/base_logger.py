@@ -109,7 +109,7 @@ class BaseOutputHandler(BaseHandler):
             metrics_state_attrs.update({name: value for name, value in output_dict.items()})
 
         if self.state_attributes is not None:
-            metrics_state_attrs.update({name: getattr(engine.state,name,None) for name in self.state_attributes})
+            metrics_state_attrs.update({name: getattr(engine.state, name, None) for name in self.state_attributes})
 
         metrics_state_attrs_dict = {}  # type: Dict[Any, Union[str, float, numbers.Number]]
 
