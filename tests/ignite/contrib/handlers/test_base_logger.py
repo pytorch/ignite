@@ -39,7 +39,7 @@ def test_base_output_handler_wrong_setup():
     with pytest.raises(TypeError, match="output_transform should be a function"):
         DummyOutputHandler("tag", metric_names=None, output_transform="abc")
 
-    with pytest.raises(ValueError, match="Either metric_names or output_transform should be defined"):
+    with pytest.raises(ValueError, match="Either metric_names, output_transform or state_attributes should be defined"):
         DummyOutputHandler("tag", None, None)
 
     with pytest.raises(TypeError, match="global_step_transform should be a function"):
@@ -58,34 +58,88 @@ def test_base_output_handler_setup_output_metrics():
 
     # Only metric_names
     handler = DummyOutputHandler("tag", metric_names=["a", "b"], output_transform=None)
-    metrics = handler._setup_output_metrics(engine=engine, key_tuple=False)
+    metrics = handler._setup_output_metrics_state_attrs(engine=engine, key_tuple=False)
     assert metrics == {"tag/a": 0, "tag/b": 1}
 
     # Only metric_names with a warning
     handler = DummyOutputHandler("tag", metric_names=["a", "c"], output_transform=None)
     with pytest.warns(UserWarning):
-        metrics = handler._setup_output_metrics(engine=engine, key_tuple=False)
+        metrics = handler._setup_output_metrics_state_attrs(engine=engine, key_tuple=False)
     assert metrics == {"tag/a": 0}
 
     # Only output as "output"
     handler = DummyOutputHandler("tag", metric_names=None, output_transform=lambda x: x)
-    metrics = handler._setup_output_metrics(engine=engine, key_tuple=False)
+    metrics = handler._setup_output_metrics_state_attrs(engine=engine, key_tuple=False)
     assert metrics == {"tag/output": engine.state.output}
 
     # Only output as "loss"
     handler = DummyOutputHandler("tag", metric_names=None, output_transform=lambda x: {"loss": x})
-    metrics = handler._setup_output_metrics(engine=engine, key_tuple=False)
+    metrics = handler._setup_output_metrics_state_attrs(engine=engine, key_tuple=False)
     assert metrics == {"tag/loss": engine.state.output}
 
     # Metrics and output
     handler = DummyOutputHandler("tag", metric_names=["a", "b"], output_transform=lambda x: {"loss": x})
-    metrics = handler._setup_output_metrics(engine=engine, key_tuple=False)
+    metrics = handler._setup_output_metrics_state_attrs(engine=engine, key_tuple=False)
     assert metrics == {"tag/a": 0, "tag/b": 1, "tag/loss": engine.state.output}
 
     # All metrics
     handler = DummyOutputHandler("tag", metric_names="all", output_transform=None)
-    metrics = handler._setup_output_metrics(engine=engine, key_tuple=False)
+    metrics = handler._setup_output_metrics_state_attrs(engine=engine, key_tuple=False)
     assert metrics == {"tag/a": 0, "tag/b": 1}
+
+
+def test_base_output_handler_setup_output_state_attrs():
+    engine = Engine(lambda engine, batch: None)
+    true_metrics = {"a": 0, "b": 1}
+    engine.state = State(metrics=true_metrics)
+    engine.state.alpha = 3.899
+    engine.state.beta = torch.tensor(5.499)
+    engine.state.gamma = torch.tensor([2106.0, 6.0])
+    engine.state.output = 12345
+
+    # Only State Attributes
+    handler = DummyOutputHandler(
+        tag="tag", metric_names=None, output_transform=None, state_attributes=["alpha", "beta", "gamma"]
+    )
+    state_attrs = handler._setup_output_metrics_state_attrs(engine=engine, key_tuple=False)
+    assert state_attrs == {
+        "tag/alpha": 3.899,
+        "tag/beta": torch.tensor(5.499),
+        "tag/gamma/0": 2106.0,
+        "tag/gamma/1": 6.0,
+    }
+
+    # Metrics and Attributes
+    handler = DummyOutputHandler(
+        tag="tag", metric_names=["a", "b"], output_transform=None, state_attributes=["alpha", "beta", "gamma"]
+    )
+    state_attrs = handler._setup_output_metrics_state_attrs(engine=engine, key_tuple=False)
+    assert state_attrs == {
+        "tag/a": 0,
+        "tag/b": 1,
+        "tag/alpha": 3.899,
+        "tag/beta": torch.tensor(5.499),
+        "tag/gamma/0": 2106.0,
+        "tag/gamma/1": 6.0,
+    }
+
+    # Metrics, Attributes and output
+    handler = DummyOutputHandler(
+        tag="tag",
+        metric_names="all",
+        output_transform=lambda x: {"loss": x},
+        state_attributes=["alpha", "beta", "gamma"],
+    )
+    state_attrs = handler._setup_output_metrics_state_attrs(engine=engine, key_tuple=False)
+    assert state_attrs == {
+        "tag/a": 0,
+        "tag/b": 1,
+        "tag/alpha": 3.899,
+        "tag/beta": torch.tensor(5.499),
+        "tag/gamma/0": 2106.0,
+        "tag/gamma/1": 6.0,
+        "tag/loss": engine.state.output,
+    }
 
 
 def test_opt_params_handler_on_non_torch_optimizers():

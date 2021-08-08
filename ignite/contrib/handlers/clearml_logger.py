@@ -307,7 +307,7 @@ class OutputHandler(BaseOutputHandler):
         if not isinstance(logger, ClearMLLogger):
             raise RuntimeError("Handler OutputHandler works only with ClearMLLogger")
 
-        metrics = self._setup_output_metrics(engine)
+        metrics = self._setup_output_metrics_state_attrs(engine)
 
         global_step = self.global_step_transform(engine, event_name)  # type: ignore[misc]
 

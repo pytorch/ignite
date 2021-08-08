@@ -229,7 +229,7 @@ class OutputHandler(BaseOutputHandler):
         if not isinstance(logger, PolyaxonLogger):
             raise RuntimeError("Handler 'OutputHandler' works only with PolyaxonLogger")
 
-        metrics = self._setup_output_metrics(engine, key_tuple=False)
+        metrics = self._setup_output_metrics_state_attrs(engine, key_tuple=False)
 
         global_step = self.global_step_transform(engine, event_name)  # type: ignore[misc]
 
