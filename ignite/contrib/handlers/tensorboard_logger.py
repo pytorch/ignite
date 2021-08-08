@@ -179,9 +179,12 @@ class OutputHandler(BaseOutputHandler):
     Examples:
 
         .. code-block:: python
+
             from ignite.contrib.handlers.tensorboard_logger import *
+
             # Create a logger
             tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
+
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
             # each epoch. We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch
             # of the `trainer`:
