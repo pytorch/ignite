@@ -174,7 +174,7 @@ class TensorboardLogger(BaseLogger):
 
 
 class OutputHandler(BaseOutputHandler):
-    """Helper handler to log engine's output and/or metrics
+    """Helper handler to log engine's output, engine's state attributes and/or metrics
 
     Examples:
 
@@ -204,18 +204,25 @@ class OutputHandler(BaseOutputHandler):
             )
 
         Another example, where model is evaluated every 500 iterations:
+
         .. code-block:: python
+
             from ignite.contrib.handlers.tensorboard_logger import *
+
             @trainer.on(Events.ITERATION_COMPLETED(every=500))
             def evaluate(engine):
                 evaluator.run(validation_set, max_epochs=1)
+
             tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
+
             def global_step_transform(*args, **kwargs):
                 return trainer.state.iteration
+
             # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
             # every 500 iterations. Since evaluator engine does not have access to the training iteration, we
             # provide a global_step_transform to return the trainer.state.iteration for the global_step, each time
             # evaluator metrics are plotted on Tensorboard.
+
             tb_logger.attach_output_handler(
                 evaluator,
                 event_name=Events.EPOCH_COMPLETED,
@@ -224,17 +231,26 @@ class OutputHandler(BaseOutputHandler):
                 global_step_transform=global_step_transform
             )
 
-        Another Example where the State Attributes trainer.state.alpha and trainer.state.beta
+        Another example where the State Attributes ``trainer.state.alpha`` and ``trainer.state.beta``
         are also logged along with the NLL and Accuracy after each iteration:
+        
         .. code-block:: python
+
             tb_logger.attach(
+
                 trainer,
+
                 log_handler=OutputHandler(
+
                     tag="training",
+
                     metric_names=["nll", "accuracy"],
+
                     state_attributes=["alpha", "beta"],
                 ),
+
                 event_name=Events.ITERATION_COMPLETED
+
             )
 
     Args:
@@ -250,7 +266,7 @@ class OutputHandler(BaseOutputHandler):
             Default is None, global_step based on attached engine. If provided,
             uses function output as global_step. To setup global step from another engine, please use
             :meth:`~ignite.contrib.handlers.tensorboard_logger.global_step_from_engine`.
-        state_attributes: list of attributes of the trainer.state to plot.
+        state_attributes: list of attributes of the ``trainer.state`` to plot.
 
     Note:
 
