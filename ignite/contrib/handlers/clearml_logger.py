@@ -1,5 +1,4 @@
 """ClearML logger and its helper handlers."""
-import numbers
 import os
 import tempfile
 import warnings
@@ -319,19 +318,12 @@ class OutputHandler(BaseOutputHandler):
             )
 
         for key, value in metrics.items():
-            if isinstance(value, numbers.Number):
-                logger.clearml_logger.report_scalar(title=self.tag, series=key, iteration=global_step, value=value)
-            elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
+            if len(key) == 2:
+                logger.clearml_logger.report_scalar(title=key[0], series=key[1], iteration=global_step, value=value)
+            elif len(key) == 3:
                 logger.clearml_logger.report_scalar(
-                    title=self.tag, series=key, iteration=global_step, value=value.item()
+                    title=f"{key[0]}/{key[1]}", series=key[2], iteration=global_step, value=value
                 )
-            elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
-                for i, v in enumerate(value):
-                    logger.clearml_logger.report_scalar(
-                        title=f"{self.tag}/{key}", series=str(i), iteration=global_step, value=v.item()
-                    )
-            else:
-                warnings.warn(f"ClearMLLogger output_handler can not log metrics value type {type(value)}")
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):

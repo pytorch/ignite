@@ -1,9 +1,6 @@
 """WandB logger and its helper handlers."""
-import numbers
-import warnings
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, List, Optional, Union
 
-import torch
 from torch.optim import Optimizer
 
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler
@@ -279,21 +276,8 @@ class OutputHandler(BaseOutputHandler):
                 " Please check the output of global_step_transform."
             )
 
-        metrics = self._setup_output_metrics(engine)
-        rendered_metrics = {}  # type: Dict[str, Union[str, float, numbers.Number]]
-        if self.tag is not None:
-            for name, value in metrics.items():
-                if isinstance(value, numbers.Number) or isinstance(value, str):
-                    rendered_metrics[f"{self.tag}/{name}"] = value
-                elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                    rendered_metrics[f"{self.tag}/{name}"] = value.item()
-                elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
-                    for i, v in enumerate(value):
-                        rendered_metrics[f"{self.tag}/{name}/{i}"] = v.item()
-                else:
-                    warnings.warn(f"WandBLogger output_handler can not log metrics value type {type(value)}")
-
-        logger.log(rendered_metrics, step=global_step, sync=self.sync)
+        metrics = self._setup_output_metrics(engine, log_text=True, key_tuple=False)
+        logger.log(metrics, step=global_step, sync=self.sync)
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):
