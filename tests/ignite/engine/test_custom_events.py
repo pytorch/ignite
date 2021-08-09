@@ -110,6 +110,39 @@ def test_custom_events_with_attr_to_events():
         engine.register_events(*CustomEvents, attr_to_events=custom_attr_to_events)
 
 
+def test_register_events_with_deprecated_event_to_attr():
+    class CustomEvents(EventEnum):
+        TEST_EVENT = "test_event"
+
+    event_to_attr = {CustomEvents.TEST_EVENT: "test_event"}
+
+    # Dummy engine
+    engine = Engine(lambda engine, batch: 0)
+    engine.register_events(*CustomEvents, event_to_attr=event_to_attr)
+
+    # Handle is never called
+    handle = MagicMock()
+    engine.add_event_handler(CustomEvents.TEST_EVENT, handle)
+    engine.run(range(1))
+    assert hasattr(engine.state, "test_event")
+    assert engine.state.test_event == 0
+
+    # Advanced engine
+    def process_func(engine, batch):
+        engine.fire_event(CustomEvents.TEST_EVENT)
+
+    engine = Engine(process_func)
+    engine.register_events(*CustomEvents, event_to_attr=event_to_attr)
+
+    engine.run(range(25))
+    assert engine.state.test_event == 25
+
+    event_to_attr = "a"
+    engine = Engine(lambda engine, batch: 0)
+    with pytest.raises(ValueError):
+        engine.register_events(*CustomEvents, event_to_attr=event_to_attr)
+
+
 def test_custom_events_with_events_list():
     class CustomEvents(EventEnum):
         TEST_EVENT = "test_event"

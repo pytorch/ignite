@@ -2,7 +2,7 @@ import logging
 import math
 import time
 import warnings
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from collections.abc import Mapping
 from typing import Any, Callable, Iterable, Iterator, List, Optional, Tuple, Union
 
@@ -151,7 +151,10 @@ class Engine(Serializable, EventsDriven):
         self._state.engine = self
 
     def register_events(
-        self, *event_names: Union[List[str], List[EventEnum]], attr_to_events: Optional[dict] = None
+        self,
+        *event_names: Union[List[str], List[EventEnum]],
+        attr_to_events: Optional[dict] = None,
+        event_to_attr: Optional[dict] = None,
     ) -> None:
         """Add events that can be fired.
 
@@ -168,6 +171,7 @@ class Engine(Serializable, EventsDriven):
                 :class:`~ignite.engine.events.Events` or any other custom events added
                 by :meth:`~ignite.base.events_driven.EventsDriven.register_events`.
                 Getting attribute values is done based the on first element in the list of the events.
+            event_to_attr: A dictionary to map an event to a state attribute.
 
         Example usage:
 
@@ -230,8 +234,20 @@ class Engine(Serializable, EventsDriven):
         if not (attr_to_events is None or isinstance(attr_to_events, dict)):
             raise ValueError(f"Expected attr_to_events to be dictionary. Got {type(attr_to_events)}.")
 
+        if not (event_to_attr is None or isinstance(event_to_attr, dict)):
+            raise ValueError(f"Expected event_to_attr to be dictionary. Got {type(event_to_attr)}.")
+
         super(Engine, self).register_events(*event_names)
 
+        if event_to_attr is not None:
+            warnings.warn("'event_to_attr' is deprecated and will be removed, please use 'attr_to_events' instead.")
+            attr_to_events = defaultdict(list)
+            for k, v in event_to_attr.items():
+                if v not in attr_to_events:
+                    attr_to_events.update({v: [k]})
+                else:
+                    if k not in attr_to_events[v]:
+                        attr_to_events[v].append(k)
         if attr_to_events is not None:
             for attribute, events in attr_to_events.items():
                 self._state.update_attribute_mapping(attribute, events)
