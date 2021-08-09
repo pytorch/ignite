@@ -61,8 +61,9 @@ class State(EventsDrivenState):
     }  # type: Dict[Union[str, "Events", "CallableEventWithFilter"], str]
 
     def __init__(self, **kwargs: Any) -> None:
-        super(State, self).__init__(**kwargs)
+        super(State, self).__init__(attr_to_events=State.attr_to_events, **kwargs)
 
+        self.kwargs = kwargs
         self.epoch_length = None  # type: Optional[int]
         self.max_epochs = None  # type: Optional[int]
         self.max_iters = None  # type: Optional[int]
@@ -87,11 +88,6 @@ class State(EventsDrivenState):
         if self.engine is None:
             self._update_attrs()
 
-    # @property
-    # def event_to_attr(self) -> event_to_attr:
-    #     warnings.warn("'event_to_attr' is deprecated, please use 'attr_to_evets' instead.")
-    #     return State.event_to_attr
-
     def _update_attrs(self) -> None:
         for key in self.attr_to_events.keys():
             if not hasattr(self, key):
@@ -100,7 +96,7 @@ class State(EventsDrivenState):
     def get_event_attrib_value(self, event_name: Union[str, Events, CallableEventWithFilter]) -> int:
         """Get the value of Event attribute with given `event_name`."""
         event_to_attr = {}
-        for attribute, events in State.attr_to_events.items():
+        for attribute, events in self._attr_to_events.items():
             for event in events:
                 event_to_attr[event] = attribute
 

@@ -8,9 +8,9 @@ from typing import Any, Callable, Iterable, Iterator, List, Optional, Tuple, Uni
 
 from torch.utils.data import DataLoader
 
-from ignite.base import Serializable
 from ignite.base.events import EventEnum, RemovableEventHandle
 from ignite.base.events_driven import EventsDriven
+from ignite.base.mixins import Serializable
 from ignite.engine.events import Events
 from ignite.engine.state import State
 from ignite.engine.utils import _check_signature, _to_hours_mins_secs
@@ -149,6 +149,10 @@ class Engine(Serializable, EventsDriven):
     def state(self, new_state: State) -> None:
         self._state = new_state
         self._state.engine = self
+        for k, v in self._state.kwargs.items():
+            setattr(self._state, k, v)
+            if k == "epoch" or k == "iteration":
+                delattr(self._state, k)
 
     def register_events(
         self,
@@ -171,7 +175,7 @@ class Engine(Serializable, EventsDriven):
                 :class:`~ignite.engine.events.Events` or any other custom events added
                 by :meth:`~ignite.base.events_driven.EventsDriven.register_events`.
                 Getting attribute values is done based the on first element in the list of the events.
-            event_to_attr: A dictionary to map an event to a state attribute.
+            event_to_attr: A dictionary to map an event to a state attribute, this arg is deprecated.
 
         Example usage:
 
@@ -222,8 +226,10 @@ class Engine(Serializable, EventsDriven):
                 TIME_ITERATION_COMPLETED = "time_iteration_completed"
 
             TBPTT_attr_to_events = {
-                'time_iteration': [TBPTT_Events.TIME_ITERATION_STARTED,
-                                    TBPTT_Events.TIME_ITERATION_COMPLETED]
+                'time_iteration': [
+                    TBPTT_Events.TIME_ITERATION_STARTED,
+                    TBPTT_Events.TIME_ITERATION_COMPLETED
+                ]
             }
 
             engine = Engine(process_function)
