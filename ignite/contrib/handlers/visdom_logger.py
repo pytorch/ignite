@@ -1,6 +1,6 @@
 """Visdom logger and its helper handlers."""
 import os
-from typing import Any, Callable, Dict, Optional, Union, cast
+from typing import Any, Callable, Dict, List, Optional, Union, cast
 
 import torch
 import torch.nn as nn
@@ -310,6 +310,21 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
                 global_step_transform=global_step_transform
             )
 
+        Another example where the State Attributes ``trainer.state.alpha`` and ``trainer.state.beta``
+        are also logged along with the NLL and Accuracy after each iteration:
+
+        .. code-block:: python
+
+            vd_logger.attach(
+                trainer,
+                log_handler=OutputHandler(
+                    tag="training",
+                    metric_names=["nll", "accuracy"],
+                    state_attributes=["alpha", "beta"],
+                ),
+                event_name=Events.ITERATION_COMPLETED
+            )
+
     Args:
         tag: common title for all produced plots. For example, "training"
         metric_names: list of metric names to plot or a string "all" to plot all available
@@ -324,6 +339,7 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
             uses function output as global_step. To setup global step from another engine, please use
             :meth:`~ignite.contrib.handlers.visdom_logger.global_step_from_engine`.
         show_legend: flag to show legend in the window
+        state_attributes: list of attributes of the ``trainer.state`` to plot.
 
     Note:
 
@@ -343,8 +359,11 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable] = None,
         show_legend: bool = False,
+        state_attributes: Optional[List[str]] = None,
     ):
-        super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
+        super(OutputHandler, self).__init__(
+            tag, metric_names, output_transform, global_step_transform, state_attributes
+        )
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
     def __call__(self, engine: Engine, logger: VisdomLogger, event_name: Union[str, Events]) -> None:
