@@ -325,7 +325,10 @@ class FastaiLRFinder:
         # Ignore the increasing part of the curve
         decreasing_losses = self._history["loss"][: int(min_loss_idx.item()) + 1]
         if len(decreasing_losses) < 3:
-            raise RuntimeError("FastaiLRFinder got unexpected curve shape, the curve should be somehow U-shaped")
+            raise RuntimeError(
+                "FastaiLRFinder got unexpected curve shape, the curve should be somehow U-shaped, "
+                "please decrease start_lr or increase end_lr to resolve this issue."
+            )
         losses = torch.tensor(decreasing_losses)
         grads = torch.tensor([0.5 * (losses[i + 1] - losses[i - 1]) for i in range(1, len(losses) - 1)])
         min_grad_idx = grads.argmin() + 1

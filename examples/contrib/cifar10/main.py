@@ -24,7 +24,7 @@ def training(local_rank, config):
     manual_seed(config["seed"] + rank)
     device = idist.device()
 
-    logger = setup_logger(name="CIFAR10-Training", distributed_rank=local_rank)
+    logger = setup_logger(name="CIFAR10-Training")
 
     log_basic_info(logger, config)
 
