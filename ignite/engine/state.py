@@ -48,6 +48,18 @@ class State(EventsDrivenState):
         "epoch": [Events.EPOCH_STARTED, Events.EPOCH_COMPLETED, Events.STARTED, Events.COMPLETED],
     }  # type: Dict[str, List[Union["Events", "CallableEventWithFilter"]]]
 
+    # deprecated
+    event_to_attr = {
+        Events.GET_BATCH_STARTED: "iteration",
+        Events.GET_BATCH_COMPLETED: "iteration",
+        Events.ITERATION_STARTED: "iteration",
+        Events.ITERATION_COMPLETED: "iteration",
+        Events.EPOCH_STARTED: "epoch",
+        Events.EPOCH_COMPLETED: "epoch",
+        Events.STARTED: "epoch",
+        Events.COMPLETED: "epoch",
+    }  # type: Dict[Union[str, "Events", "CallableEventWithFilter"], str]
+
     def __init__(self, **kwargs: Any) -> None:
         super(State, self).__init__(**kwargs)
 
@@ -67,10 +79,18 @@ class State(EventsDrivenState):
         for k, v in kwargs.items():
             setattr(self, k, v)
 
-        # Update the attributes if it's a standalone state
-        # to keep BC compatibility
+        # If it's a standalone state with no engine provided, then we must update
+        # all the attributes and set all initial values to zeros,
+        # epoch and iteration included. We do this to keep BC compatibility,
+        # as we now don't keep iteration and epoch here in state,
+        # instead of that, we use engine._allowed_events_counts to keep track of them.
         if self.engine is None:
             self._update_attrs()
+
+    # @property
+    # def event_to_attr(self) -> event_to_attr:
+    #     warnings.warn("'event_to_attr' is deprecated, please use 'attr_to_evets' instead.")
+    #     return State.event_to_attr
 
     def _update_attrs(self) -> None:
         for key in self.attr_to_events.keys():

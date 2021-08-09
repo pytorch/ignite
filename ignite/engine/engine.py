@@ -227,10 +227,14 @@ class Engine(Serializable, EventsDriven):
             engine.run(data)
             # engine.state contains an attribute time_iteration, which can be accessed using engine.state.time_iteration
         """
-        super(Engine, self).register_events(*event_names, attr_to_events=attr_to_events)
+        if not (attr_to_events is None or isinstance(attr_to_events, dict)):
+            raise ValueError(f"Expected attr_to_events to be dictionary. Got {type(attr_to_events)}.")
+
+        super(Engine, self).register_events(*event_names)
+
         if attr_to_events is not None:
             for attribute, events in attr_to_events.items():
-                self.state.update_attribute_mapping(attribute, events)
+                self._state.update_attribute_mapping(attribute, events)
 
     def add_event_handler(self, event_name: Any, handler: Callable, *args: Any, **kwargs: Any) -> RemovableEventHandle:
         """Add an event handler to be executed when the specified event is fired.

@@ -34,6 +34,16 @@ def test_invalid_process_raises_with_invalid_signature():
         Engine(lambda engine, batch, extra_arg: None)
 
 
+def test_invalid_attr_to_events():
+    e = Engine(lambda e, a: None)
+
+    with pytest.raises(ValueError, match=r"Expected attr_to_events to be dictionary"):
+        e.register_events(attr_to_events=["a", "b"])
+
+    with pytest.raises(ValueError, match=r"Expected attr_to_events to be dictionary"):
+        e.register_events(attr_to_events=5)
+
+
 def test_invalid_input_data():
     engine = Engine(lambda e, b: None)
 

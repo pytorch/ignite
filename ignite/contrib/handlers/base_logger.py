@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 from torch.optim import Optimizer
 
-from ignite.engine import Engine, Events, EventsList, State
+from ignite.engine import Engine, Events, EventsList
 from ignite.engine.events import CallableEventWithFilter, RemovableEventHandle
 
 
@@ -172,21 +172,17 @@ class BaseLogger(metaclass=ABCMeta):
         Returns:
             :class:`~ignite.base.events.RemovableEventHandle`, which can be used to remove the handler.
         """
-        # create a list of the available events
-        state_events = []
-        for event in State.attr_to_events.values():
-            state_events.extend(event)
 
         if isinstance(event_name, EventsList):
             for name in event_name:
-                if name not in state_events:
+                if name not in engine._allowed_events:
                     raise RuntimeError(f"Unknown event name '{name}'")
                 engine.add_event_handler(name, log_handler, self, name)
 
             return RemovableEventHandle(event_name, log_handler, engine)
 
         else:
-            if event_name not in state_events:
+            if event_name not in engine._allowed_events:
                 raise RuntimeError(f"Unknown event name '{event_name}'")
 
             return engine.add_event_handler(event_name, log_handler, self, event_name, *args, **kwargs)

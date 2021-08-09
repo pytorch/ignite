@@ -63,22 +63,13 @@ class EventsDriven:
         self.last_event_name = None  # type: Optional[Events]
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
 
-    def register_events(
-        self, *event_names: Union[List[str], List[EventEnum]], attr_to_events: Optional[dict] = None,
-    ) -> None:
+    def register_events(self, *event_names: Union[List[str], List[EventEnum]]) -> None:
         """Add events that can be fired.
 
         Args:
             event_names: Defines the name of the event being supported. New events can be a str
                 or an object derived from :class:`~ignite.base.events.EventEnum`. See example below.
-            attr_to_events: mapping consists of the state attributes mapped to a list events from
-                :class:`~ignite.engine.events.Events` or any other custom events added
-                by :meth:`~ignite.base.events_driven.EventsDriven.register_events`.
-                Getting attribute values is done based the on first element in the list of the events.
         """
-        if not (attr_to_events is None or isinstance(attr_to_events, dict)):
-            raise ValueError(f"Expected attr_to_events to be dictionary. Got {type(attr_to_events)}.")
-
         for index, e in enumerate(event_names):
             if not isinstance(e, (str, EventEnum)):
                 raise TypeError(f"Value at {index} of event_names should be a str or EventEnum, but given {e}")

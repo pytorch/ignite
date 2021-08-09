@@ -26,16 +26,6 @@ class ABCEvents(EventEnum):
     C_EVENT = "c_event"
 
 
-def test_invalid_attr_to_events():
-    e = EventsDriven()
-
-    with pytest.raises(ValueError, match=r"Expected attr_to_events to be dictionary"):
-        e.register_events(attr_to_events=["a", "b"])
-
-    with pytest.raises(ValueError, match=r"Expected attr_to_events to be dictionary"):
-        e.register_events(attr_to_events=5)
-
-
 def test_invalid_update_attribute_mapping():
     e = EventsDrivenState()
 
