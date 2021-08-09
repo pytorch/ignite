@@ -540,9 +540,6 @@ def test_model_checkpoint_args_validation(dirname):
     with pytest.raises(ValueError, match=r"Directory path '\S+' is not found"):
         ModelCheckpoint(os.path.join(dirname, "non_existing_dir"), _PREFIX, create_dir=False)
 
-    # with pytest.raises(ValueError, match=r"If `score_name` is provided, then `score_function` "):
-    #     ModelCheckpoint(existing, _PREFIX, create_dir=False, score_name="test")
-
     with pytest.raises(TypeError, match=r"global_step_transform should be a function"):
         ModelCheckpoint(existing, _PREFIX, create_dir=False, global_step_transform=1234)
 
