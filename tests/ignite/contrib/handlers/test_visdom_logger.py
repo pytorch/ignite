@@ -419,6 +419,77 @@ def test_output_handler_both(dirname):
     )
 
 
+def test_output_handler_state_attrs():
+    wrapper = OutputHandler("tag", state_attributes=["alpha", "beta", "gamma"])
+    mock_logger = MagicMock(spec=VisdomLogger)
+    mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.iteration = 5
+    mock_engine.state.alpha = 3.899
+    mock_engine.state.beta = torch.tensor(12.0)
+    mock_engine.state.gamma = torch.tensor([21.0, 6.0])
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+    assert mock_logger.vis.line.call_count == 4
+    assert (
+        len(wrapper.windows) == 4
+        and "tag/alpha" in wrapper.windows
+        and "tag/beta" in wrapper.windows
+        and "tag/gamma/0" in wrapper.windows
+        and "tag/gamma/1" in wrapper.windows
+    )
+    assert wrapper.windows["tag/alpha"]["win"] is not None
+    assert wrapper.windows["tag/beta"]["win"] is not None
+    assert wrapper.windows["tag/gamma/0"]["win"] is not None
+    assert wrapper.windows["tag/gamma/1"]["win"] is not None
+
+    mock_logger.vis.line.assert_has_calls(
+        [
+            call(
+                X=[5,],
+                Y=[3.899,],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows["tag/alpha"]["opts"],
+                name="tag/alpha",
+            ),
+            call(
+                X=[5,],
+                Y=[12.0,],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows["tag/beta"]["opts"],
+                name="tag/beta",
+            ),
+            call(
+                X=[5,],
+                Y=[21.0,],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows["tag/gamma/0"]["opts"],
+                name="tag/gamma/0",
+            ),
+            call(
+                X=[5,],
+                Y=[6.0,],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows["tag/gamma/1"]["opts"],
+                name="tag/gamma/1",
+            ),
+        ],
+        any_order=True,
+    )
+
+
 def test_output_handler_with_wrong_global_step_transform_output():
     def global_step_transform(*args, **kwargs):
         return "a"
