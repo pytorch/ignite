@@ -230,13 +230,11 @@ class Checkpoint(Serializable):
             # Run evaluation on epoch completed event
             # ...
 
-            score_function = Checkpoint.get_default_score_fn("accuracy")
-
             to_save = {'model': model}
             handler = Checkpoint(
                 to_save, DiskSaver('/tmp/models', create_dir=True),
                 n_saved=2, filename_prefix='best',
-                score_function=score_function, score_name="val_acc",
+                score_name="accuracy",
                 global_step_transform=global_step_from_engine(trainer)
             )
 
