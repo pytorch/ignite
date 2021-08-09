@@ -84,8 +84,8 @@ class Checkpoint(Serializable):
             :class:`~ignite.engine.engine.Engine` object, and returning a score (`float`). Objects with highest scores
             will be retained.
         score_name: If ``score_function`` not None, it is possible to store its value using
-            ``score_name``. If ``score_function`` is None, ``score_name`` can be used alone to fetch ``score_function``
-            via ``Checkpoint.get_default_score_fn(score_name)`` by default.
+            ``score_name``. If ``score_function`` is None, ``score_name`` can be used alone to define ``score_function``
+            as ``Checkpoint.get_default_score_fn(score_name)`` by default.
         n_saved: Number of objects that should be kept on disk. Older files will be removed. If set to
             `None`, all objects are kept.
         global_step_transform: global step transform function to output a desired global step.
@@ -250,9 +250,9 @@ class Checkpoint(Serializable):
         - Checkpoint can save model with same filename.
         - Added ``greater_or_equal`` argument.
 
-    .. versionchanged:: 0.4.6
+    .. versionchanged:: 0.5.0
 
-        - `score_name` can be used to fetch `score_function` automatically without providing `score_function`.
+        - `score_name` can be used to define `score_function` automatically without providing `score_function`.
     """
 
     Item = NamedTuple("Item", [("priority", int), ("filename", str)])
