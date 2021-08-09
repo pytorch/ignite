@@ -1,5 +1,5 @@
 import numbers
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, Iterable, Optional, Union
 
 from torch.utils.data import DataLoader
 
@@ -46,7 +46,7 @@ class State(EventsDrivenState):
             Events.GET_BATCH_COMPLETED,
         ],
         "epoch": [Events.EPOCH_STARTED, Events.EPOCH_COMPLETED, Events.STARTED, Events.COMPLETED],
-    }  # type: Dict[str, List[Union["Events", "CallableEventWithFilter"]]]
+    }  # Optional[Dict[str, List[Events]]]
 
     # deprecated
     event_to_attr = {
