@@ -1,8 +1,6 @@
 """Visdom logger and its helper handlers."""
-import numbers
 import os
-import warnings
-from typing import Any, Callable, Dict, List, Optional, Union, cast
+from typing import Any, Callable, Dict, Optional, Union, cast
 
 import torch
 import torch.nn as nn
@@ -354,7 +352,7 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
         if not isinstance(logger, VisdomLogger):
             raise RuntimeError("Handler 'OutputHandler' works only with VisdomLogger")
 
-        metrics = self._setup_output_metrics(engine)
+        metrics = self._setup_output_metrics_state_attrs(engine, key_tuple=False)
 
         global_step = self.global_step_transform(engine, event_name)  # type: ignore[misc]
 
@@ -365,24 +363,7 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
             )
 
         for key, value in metrics.items():
-
-            values = []  # type: List[Union[float, torch.Tensor]]
-            keys = []
-            if isinstance(value, numbers.Number):
-                values.append(value)  # type: ignore[arg-type]
-                keys.append(key)
-            elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                values.append(value.item())
-                keys.append(key)
-            elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
-                values = value  # type: ignore[assignment]
-                keys = [f"{key}/{i}" for i in range(len(value))]
-            else:
-                warnings.warn(f"VisdomLogger output_handler can not log metrics value type {type(value)}")
-
-            for k, v in zip(keys, values):
-                k = f"{self.tag}/{k}"
-                self.add_scalar(logger, k, v, event_name, global_step)
+            self.add_scalar(logger, key, value, event_name, global_step)
 
         logger._save()
 
