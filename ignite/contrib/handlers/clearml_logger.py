@@ -269,6 +269,10 @@ class OutputHandler(BaseOutputHandler):
                 global_step_transform=global_step_transform
             )
 
+        ..  versionchanged:: 0.5.1
+        OutputHandler now accepts an optional list of `state_attributes`
+        which are attributes of the ``trainer.state`` to be logged.
+
         Another example where the State Attributes ``trainer.state.alpha`` and ``trainer.state.beta``
         are also logged along with the NLL and Accuracy after each iteration:
 
@@ -283,7 +287,6 @@ class OutputHandler(BaseOutputHandler):
                 ),
                 event_name=Events.ITERATION_COMPLETED
             )
-
 
     Args:
         tag: common title for all produced plots. For example, "training"
