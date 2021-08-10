@@ -283,6 +283,32 @@ def test_output_handler_with_global_step_from_engine():
     )
 
 
+def test_output_handler_state_attrs():
+    wrapper = OutputHandler("tag", state_attributes=["alpha", "beta", "gamma"])
+    mock_logger = MagicMock(spec=ClearMLLogger)
+    mock_logger.clearml_logger = MagicMock()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.iteration = 5
+    mock_engine.state.alpha = 3.899
+    mock_engine.state.beta = torch.tensor(12.0)
+    mock_engine.state.gamma = torch.tensor([21.0, 6.0])
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+    assert mock_logger.clearml_logger.report_scalar.call_count == 4
+    mock_logger.clearml_logger.report_scalar.assert_has_calls(
+        [
+            call(title="tag", series="alpha", iteration=5, value=3.899),
+            call(title="tag", series="beta", iteration=5, value=12.0),
+            call(title="tag/gamma", series="0", iteration=5, value=21.0),
+            call(title="tag/gamma", series="1", iteration=5, value=6.0),
+        ],
+        any_order=True,
+    )
+
+
 def test_output_handler_with_global_step_transform():
     def global_step_transform(*args, **kwargs):
         return 10
