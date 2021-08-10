@@ -430,6 +430,26 @@ def test__allowed_events_counts_values_after_setting_state():
         == 1234
     )
 
+    assert "iteration" not in engine.state.__dict__
+    assert "epoch" not in engine.state.__dict__
+
+    assert "max_epochs" in engine.state.__dict__
+    assert "epoch_length" in engine.state.__dict__
+
+    from ignite.base.events import EventEnum
+
+    class CustomEvents(EventEnum):
+        A = "a"
+
+    attr_to_events = {"a": [CustomEvents.A]}
+    engine.register_events(*CustomEvents, attr_to_events=attr_to_events)
+
+    engine.state = State(a=60)
+
+    assert engine._allowed_events_counts[CustomEvents.A] == 60
+    assert engine.state.a == 60
+    assert "a" not in engine.state.__dict__
+
 
 def test_time_stored_in_state():
     def _test(data, max_epochs, epoch_length):
