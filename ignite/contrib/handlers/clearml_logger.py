@@ -269,10 +269,6 @@ class OutputHandler(BaseOutputHandler):
                 global_step_transform=global_step_transform
             )
 
-        ..  versionchanged:: 0.5.1
-        OutputHandler now accepts an optional list of `state_attributes`
-        which are attributes of the ``trainer.state`` to be logged.
-
         Another example where the State Attributes ``trainer.state.alpha`` and ``trainer.state.beta``
         are also logged along with the NLL and Accuracy after each iteration:
 
@@ -311,6 +307,9 @@ class OutputHandler(BaseOutputHandler):
             def global_step_transform(engine, event_name):
                 return engine.state.get_event_attrib_value(event_name)
 
+    ..  versionchanged:: 0.5.0
+        Now accepts an optional list of `state_attributes`
+        which are attributes of the ``trainer.state`` to be logged.
     """
 
     def __init__(
