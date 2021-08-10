@@ -391,6 +391,46 @@ def test_state_get_event_attrib_value():
     assert state.get_event_attrib_value(e) == state.epoch
 
 
+def test__allowed_events_counts_values_after_setting_state():
+    engine = Engine(lambda e, a: None)
+    engine.state = State(iteration=4, epoch=50)
+
+    assert (
+        engine._allowed_events_counts[Events.STARTED]
+        == engine._allowed_events_counts[Events.COMPLETED]
+        == engine._allowed_events_counts[Events.EPOCH_STARTED]
+        == engine._allowed_events_counts[Events.EPOCH_COMPLETED]
+        == 50
+    )
+
+    assert (
+        engine._allowed_events_counts[Events.GET_BATCH_STARTED]
+        == engine._allowed_events_counts[Events.GET_BATCH_COMPLETED]
+        == engine._allowed_events_counts[Events.ITERATION_STARTED]
+        == engine._allowed_events_counts[Events.ITERATION_COMPLETED]
+        == 4
+    )
+
+    engine.state.epoch = 33
+    engine.state.iteration = 1234
+
+    assert (
+        engine._allowed_events_counts[Events.STARTED]
+        == engine._allowed_events_counts[Events.COMPLETED]
+        == engine._allowed_events_counts[Events.EPOCH_STARTED]
+        == engine._allowed_events_counts[Events.EPOCH_COMPLETED]
+        == 33
+    )
+
+    assert (
+        engine._allowed_events_counts[Events.GET_BATCH_STARTED]
+        == engine._allowed_events_counts[Events.GET_BATCH_COMPLETED]
+        == engine._allowed_events_counts[Events.ITERATION_STARTED]
+        == engine._allowed_events_counts[Events.ITERATION_COMPLETED]
+        == 1234
+    )
+
+
 def test_time_stored_in_state():
     def _test(data, max_epochs, epoch_length):
         sleep_time = 0.01
