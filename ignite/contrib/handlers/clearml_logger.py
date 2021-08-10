@@ -308,7 +308,7 @@ class OutputHandler(BaseOutputHandler):
                 return engine.state.get_event_attrib_value(event_name)
 
     ..  versionchanged:: 0.5.0
-        Accepts an optional list of `state_attributes`
+        accepts an optional list of `state_attributes`
     """
 
     def __init__(
