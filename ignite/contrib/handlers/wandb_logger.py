@@ -280,9 +280,7 @@ class OutputHandler(BaseOutputHandler):
         sync: Optional[bool] = None,
         state_attributes: Optional[List[str]] = None,
     ):
-        super().__init__(
-            tag, metric_names, output_transform, global_step_transform, state_attributes
-        )
+        super().__init__(tag, metric_names, output_transform, global_step_transform, state_attributes)
         self.sync = sync
 
     def __call__(self, engine: Engine, logger: WandBLogger, event_name: Union[str, Events]) -> None:
