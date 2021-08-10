@@ -84,7 +84,8 @@ class Checkpoint(Serializable):
             :class:`~ignite.engine.engine.Engine` object, and returning a score (`float`). Objects with highest scores
             will be retained.
         score_name: If ``score_function`` not None, it is possible to store its value using
-            ``score_name``. See Notes for more details.
+            ``score_name``. If ``score_function`` is None, ``score_name`` can be used alone to define ``score_function``
+            as ``Checkpoint.get_default_score_fn(score_name)`` by default.
         n_saved: Number of objects that should be kept on disk. Older files will be removed. If set to
             `None`, all objects are kept.
         global_step_transform: global step transform function to output a desired global step.
@@ -225,29 +226,33 @@ class Checkpoint(Serializable):
 
             trainer = ...
             evaluator = ...
-            # Setup Accuracy metric computation on evaluator
+            # Setup Accuracy metric computation on evaluator.
+            # evaluator.state.metrics contain 'accuracy',
+            # which will be used to define ``score_function`` automatically.
             # Run evaluation on epoch completed event
             # ...
-
-            score_function = Checkpoint.get_default_score_fn("accuracy")
 
             to_save = {'model': model}
             handler = Checkpoint(
                 to_save, DiskSaver('/tmp/models', create_dir=True),
                 n_saved=2, filename_prefix='best',
-                score_function=score_function, score_name="val_acc",
+                score_name="accuracy",
                 global_step_transform=global_step_from_engine(trainer)
             )
 
             evaluator.add_event_handler(Events.COMPLETED, handler)
 
             trainer.run(data_loader, max_epochs=10)
-            > ["best_model_9_val_acc=0.77.pt", "best_model_10_val_acc=0.78.pt", ]
+            > ["best_model_9_accuracy=0.77.pt", "best_model_10_accuracy=0.78.pt", ]
 
     .. versionchanged:: 0.4.3
 
         - Checkpoint can save model with same filename.
         - Added ``greater_or_equal`` argument.
+
+    .. versionchanged:: 0.5.0
+
+        - `score_name` can be used to define `score_function` automatically without providing `score_function`.
     """
 
     Item = NamedTuple("Item", [("priority", int), ("filename", str)])
@@ -284,9 +289,6 @@ class Checkpoint(Serializable):
         if not (callable(save_handler) or isinstance(save_handler, BaseSaveHandler)):
             raise TypeError("Argument `save_handler` should be callable or inherit from BaseSaveHandler")
 
-        if score_function is None and score_name is not None:
-            raise ValueError("If `score_name` is provided, then `score_function` " "should be also provided.")
-
         if global_step_transform is not None and not callable(global_step_transform):
             raise TypeError(f"global_step_transform should be a function, got {type(global_step_transform)} instead.")
 
@@ -295,6 +297,8 @@ class Checkpoint(Serializable):
         self.save_handler = save_handler
         self.score_function = score_function
         self.score_name = score_name
+        if self.score_name is not None and self.score_function is None:
+            self.score_function = self.get_default_score_fn(self.score_name)
         self.n_saved = n_saved
         self.ext = "pt"
         self.global_step_transform = global_step_transform
