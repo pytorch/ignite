@@ -76,6 +76,12 @@ ignite.distributed.auto
     auto_model
     auto_optim
 
+.. Note ::
+
+    In distributed configuration, methods :meth:`~ignite.distributed.auto.auto_model`, :meth:`~ignite.distributed.auto.auto_optim`
+    and :meth:`~ignite.distributed.auto.auto_dataloader` will have effect only when distributed group is initialized.
+
+
 ignite.distributed.launcher
 ---------------------------
 
