@@ -71,7 +71,7 @@ class Bleu(Metric):
 
     More details can be found in `Papineni et al. 2002`__.
 
-    __ https://www.aclweb.org/anthology/P02-1040.pdf
+    __ https://www.aclweb.org/anthology/P02-1040
 
     In addition, a review of smoothing techniques can be found in `Chen et al. 2014`__
 
