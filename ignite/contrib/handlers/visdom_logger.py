@@ -136,6 +136,8 @@ class VisdomLogger(BaseLogger):
                     output_transform=lambda loss: {"loss": loss}
                 )
 
+    ..  versionchanged:: 0.5.0
+        accepts an optional list of `state_attributes`
     """
 
     def __init__(
