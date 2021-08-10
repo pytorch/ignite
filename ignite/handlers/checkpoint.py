@@ -226,7 +226,9 @@ class Checkpoint(Serializable):
 
             trainer = ...
             evaluator = ...
-            # Setup Accuracy metric computation on evaluator
+            # Setup Accuracy metric computation on evaluator.
+            # evaluator.state.metrics contain 'accuracy',
+            # which will be used to define ``score_function`` automatically.
             # Run evaluation on epoch completed event
             # ...
 
@@ -241,7 +243,7 @@ class Checkpoint(Serializable):
             evaluator.add_event_handler(Events.COMPLETED, handler)
 
             trainer.run(data_loader, max_epochs=10)
-            > ["best_model_9_val_acc=0.77.pt", "best_model_10_val_acc=0.78.pt", ]
+            > ["best_model_9_accuracy=0.77.pt", "best_model_10_accuracy=0.78.pt", ]
 
     .. versionchanged:: 0.4.3
 
