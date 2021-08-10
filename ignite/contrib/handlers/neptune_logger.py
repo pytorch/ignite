@@ -288,6 +288,22 @@ class OutputHandler(BaseOutputHandler):
                 global_step_transform=global_step_transform
             )
 
+        Another example where the State Attributes ``trainer.state.alpha`` and ``trainer.state.beta``
+        are also logged along with the NLL and Accuracy after each iteration:
+
+        .. code-block:: python
+
+            npt_logger.attach(
+                trainer,
+                log_handler=OutputHandler(
+                    tag="training",
+                    metric_names=["nll", "accuracy"],
+                    state_attributes=["alpha", "beta"],
+                ),
+                event_name=Events.ITERATION_COMPLETED
+            )
+
+
     Args:
         tag: common title for all produced plots. For example, "training"
         metric_names: list of metric names to plot or a string "all" to plot all available
@@ -301,9 +317,9 @@ class OutputHandler(BaseOutputHandler):
             Default is None, global_step based on attached engine. If provided,
             uses function output as global_step. To setup global step from another engine, please use
             :meth:`~ignite.contrib.handlers.neptune_logger.global_step_from_engine`.
+        state_attributes: list of attributes of the ``trainer.state`` to plot.
 
     Note:
-
         Example of `global_step_transform`:
 
         .. code-block:: python
@@ -311,6 +327,8 @@ class OutputHandler(BaseOutputHandler):
             def global_step_transform(engine, event_name):
                 return engine.state.get_event_attrib_value(event_name)
 
+    ..  versionchanged:: 0.5.0
+        accepts an optional list of `state_attributes`
     """
 
     def __init__(
@@ -319,8 +337,11 @@ class OutputHandler(BaseOutputHandler):
         metric_names: Optional[Union[str, List[str]]] = None,
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable] = None,
+        state_attributes: Optional[List[str]] = None,
     ):
-        super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
+        super(OutputHandler, self).__init__(
+            tag, metric_names, output_transform, global_step_transform, state_attributes
+        )
 
     def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, Events]) -> None:
 
