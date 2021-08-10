@@ -149,8 +149,18 @@ class Engine(Serializable, EventsDriven):
     def state(self, new_state: State) -> None:
         self._state = new_state
         self._state.engine = self
+        # After setting state._attr_to_events and engine we have to set
+        # engine._allowed_events_counts values according the added kwargs,
+        # also remove epoch and iteration if added as attributes,
+        # as we use engine._allowed_events_counts to get their values
+        # print(self._state.__dict__)
+        # for k, v in self._state._attr_to_events.items():
+        # setattr(self._state, k, v)
+        # delattr(self._state, k)
         for k, v in self._state.kwargs.items():
             setattr(self._state, k, v)
+            # if k in self._state._attr_to_events.keys():
+            # delattr(self._state, k)
             if k == "epoch" or k == "iteration":
                 delattr(self._state, k)
 
