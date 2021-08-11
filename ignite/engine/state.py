@@ -4,7 +4,7 @@ from typing import Any, Dict, Iterable, Optional, Union
 from torch.utils.data import DataLoader
 
 from ignite.base.events import CallableEventWithFilter
-from ignite.base.events_driven import EventsDrivenState
+from ignite.base.events_driven import EventsDriven, EventsDrivenState
 from ignite.engine.events import Events
 
 __all__ = [
@@ -84,8 +84,24 @@ class State(EventsDrivenState):
         # epoch and iteration included. We do this to keep BC compatibility,
         # as we now don't keep iteration and epoch here in state,
         # instead of that, we use engine._allowed_events_counts to keep track of them.
-        if self.engine is None:
+        if self._engine is None:
             self._update_attrs()
+
+    @property
+    def engine(self) -> Optional[EventsDriven]:
+        return self._engine
+
+    @engine.setter
+    def engine(self, new_engine: EventsDriven) -> None:
+        self._engine = new_engine
+        # After setting state._attr_to_events and engine we have to set
+        # engine._allowed_events_counts values according the added attributes,
+        # also remove the attirubtes that have synchronized counters with engine,
+        # as we use engine._allowed_events_counts to get their values
+        for k, v in zip(list(self.__dict__.keys()), list(self.__dict__.values())):
+            if k in self._attr_to_events.keys():
+                setattr(self, k, v)
+                delattr(self, k)
 
     def _update_attrs(self) -> None:
         for key in self.attr_to_events.keys():

@@ -270,7 +270,7 @@ class EventsDrivenState:
         **kwargs: Any,
     ):
 
-        self.engine = engine  # type: Optional[EventsDriven]
+        self._engine = engine  # type: Optional[EventsDriven]
         self._attr_to_events = attr_to_events if attr_to_events else defaultdict(list)  # type: Dict[str, List[Events]]
 
     def __getattr__(self, attr: str) -> Any:
@@ -278,24 +278,24 @@ class EventsDrivenState:
         if attr in self._attr_to_events:
             evnts = self._attr_to_events[attr]
 
-        if self.engine and evnts:
+        if self._engine and evnts:
             # return first of available event counts
-            return self.engine._allowed_events_counts[evnts[0]]
+            return self._engine._allowed_events_counts[evnts[0]]
 
         raise AttributeError("'{}' object has no attribute '{}'".format(self.__class__.__name__, attr))
 
     def __setattr__(self, attr: str, value: Any) -> None:
-        if all([a in self.__dict__ for a in ["engine", "_attr_to_events"]]) and self.__dict__["engine"]:
+        if all([a in self.__dict__ for a in ["_engine", "_attr_to_events"]]) and self.__dict__["_engine"]:
             self__attr_to_events = self.__dict__["_attr_to_events"]
             evnts = None
             if attr in self__attr_to_events:
                 evnts = self__attr_to_events[attr]
-            self_engine = self.__dict__["engine"]
-            if self_engine and evnts:
+            self__engine = self.__dict__["_engine"]
+            if self__engine and evnts:
                 # Set all counters to provided value
                 for e in evnts:
-                    if e in self_engine._allowed_events:
-                        self_engine._allowed_events_counts[e] = value
+                    if e in self__engine._allowed_events:
+                        self__engine._allowed_events_counts[e] = value
                 return
 
         super().__setattr__(attr, value)
