@@ -281,11 +281,11 @@ class OutputHandler(BaseOutputHandler):
             # evaluator metrics are plotted on NeptuneML.
 
             npt_logger.attach_output_handler(
-                evaluator,
-                event_name=Events.EPOCH_COMPLETED,
-                tag="validation",
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                tag="training",
                 metrics=["nll", "accuracy"],
-                global_step_transform=global_step_transform
+                state_attributes=["alpha", "beta"],
             )
 
         Another example where the State Attributes ``trainer.state.alpha`` and ``trainer.state.beta``
