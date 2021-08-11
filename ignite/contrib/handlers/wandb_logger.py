@@ -231,14 +231,12 @@ class OutputHandler(BaseOutputHandler):
 
         .. code-block:: python
 
-            wandb_logger.attach(
+            wandb_logger.attach_output_handler(
                 trainer,
-                log_handler=OutputHandler(
-                    tag="training",
-                    metric_names=["nll", "accuracy"],
-                    state_attributes=["alpha", "beta"],
-                ),
-                event_name=Events.ITERATION_COMPLETED
+                event_name=Events.ITERATION_COMPLETED,
+                tag="training",
+                metrics=["nll", "accuracy"],
+                state_attributes=["alpha", "beta"],
             )
 
 
