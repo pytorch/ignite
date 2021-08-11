@@ -273,6 +273,26 @@ class EventsDrivenState:
         self._engine = engine  # type: Optional[EventsDriven]
         self._attr_to_events = attr_to_events if attr_to_events else defaultdict(list)  # type: Dict[str, List[Events]]
 
+    @property
+    def engine(self) -> Optional[EventsDriven]:
+        return self._engine
+
+    @engine.setter
+    def engine(self, new_engine: EventsDriven) -> None:
+        self._engine = new_engine
+
+        # After setting state._attr_to_events and engine, we have to update
+        # engine._allowed_events_counts values according to the added attributes.
+        for k, v in zip(list(self.__dict__.keys()), list(self.__dict__.values())):
+            # check if attribute in _attr_to_events to sync its counters.
+            if k in self._attr_to_events.keys():
+                for event in self._attr_to_events[k]:
+                    if event in self._engine._allowed_events:
+                        self._engine._allowed_events_counts[event] = v
+                # delete attribute from state, we don't need it, as we are
+                # getting its value via engine._allowed_events_counts.
+                delattr(self, k)
+
     def __getattr__(self, attr: str) -> Any:
         evnts = None
         if attr in self._attr_to_events:

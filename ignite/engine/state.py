@@ -4,7 +4,7 @@ from typing import Any, Dict, Iterable, Optional, Union
 from torch.utils.data import DataLoader
 
 from ignite.base.events import CallableEventWithFilter
-from ignite.base.events_driven import EventsDriven, EventsDrivenState
+from ignite.base.events_driven import EventsDrivenState
 from ignite.engine.events import Events
 
 __all__ = [
@@ -86,26 +86,6 @@ class State(EventsDrivenState):
         # instead of that, we use engine._allowed_events_counts to keep track of them.
         if self._engine is None:
             self._update_attrs()
-
-    @property
-    def engine(self) -> Optional[EventsDriven]:
-        return self._engine
-
-    @engine.setter
-    def engine(self, new_engine: EventsDriven) -> None:
-        self._engine = new_engine
-
-        # After setting state._attr_to_events and engine, we have to update
-        # engine._allowed_events_counts values according to the added attributes.
-        for k, v in zip(list(self.__dict__.keys()), list(self.__dict__.values())):
-            # check if attribute in _attr_to_events to sync its counters.
-            if k in self._attr_to_events.keys():
-                for event in self._attr_to_events[k]:
-                    if event in self._engine._allowed_events:
-                        self._engine._allowed_events_counts[event] = v
-                # delete attribute from state, we don't need it, as we are
-                # getting its value via engine._allowed_events_counts.
-                delattr(self, k)
 
     def _update_attrs(self) -> None:
         for key in self.attr_to_events.keys():
