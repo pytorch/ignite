@@ -94,13 +94,17 @@ class State(EventsDrivenState):
     @engine.setter
     def engine(self, new_engine: EventsDriven) -> None:
         self._engine = new_engine
-        # After setting state._attr_to_events and engine we have to set
-        # engine._allowed_events_counts values according the added attributes,
-        # also remove the attirubtes that have synchronized counters with engine,
-        # as we use engine._allowed_events_counts to get their values
+
+        # After setting state._attr_to_events and engine, we have to update
+        # engine._allowed_events_counts values according to the added attributes.
         for k, v in zip(list(self.__dict__.keys()), list(self.__dict__.values())):
+            # check if attribute in _attr_to_events to sync its counters.
             if k in self._attr_to_events.keys():
-                setattr(self, k, v)
+                for event in self._attr_to_events[k]:
+                    if event in self._engine._allowed_events:
+                        self._engine._allowed_events_counts[event] = v
+                # delete attribute from state, we don't need it, as we are
+                # getting its value via engine._allowed_events_counts.
                 delattr(self, k)
 
     def _update_attrs(self) -> None:

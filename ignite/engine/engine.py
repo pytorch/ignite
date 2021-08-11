@@ -147,6 +147,7 @@ class Engine(Serializable, EventsDriven):
 
     @state.setter
     def state(self, new_state: State) -> None:
+        # deprecate this
         self._state = new_state
         self._state.engine = self
 
