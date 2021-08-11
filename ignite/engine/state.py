@@ -63,7 +63,6 @@ class State(EventsDrivenState):
     def __init__(self, **kwargs: Any) -> None:
         super(State, self).__init__(attr_to_events=State.attr_to_events, **kwargs)
 
-        self.kwargs = kwargs
         self.epoch_length = None  # type: Optional[int]
         self.max_epochs = None  # type: Optional[int]
         self.max_iters = None  # type: Optional[int]
