@@ -231,7 +231,7 @@ class OutputHandler(BaseOutputHandler):
 
         .. code-block:: python
 
-            clearml_logger.attach(
+            wandb_logger.attach(
                 trainer,
                 log_handler=OutputHandler(
                     tag="training",
