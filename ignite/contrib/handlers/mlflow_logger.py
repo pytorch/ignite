@@ -207,6 +207,7 @@ class OutputHandler(BaseOutputHandler):
             Default is None, global_step based on attached engine. If provided,
             uses function output as global_step. To setup global step from another engine, please use
             :meth:`~ignite.contrib.handlers.mlflow_logger.global_step_from_engine`.
+        state_attributes: list of attributes of the ``trainer.state`` to plot.
 
     Note:
 
