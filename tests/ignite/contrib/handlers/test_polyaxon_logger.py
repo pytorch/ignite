@@ -212,12 +212,7 @@ def test_output_handler_state_attrs():
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
     mock_logger.log_metrics.assert_called_once_with(
-        **{
-            "tag/alpha": 3.899,
-            "tag/beta": torch.tensor(12.21).item(),
-            "tag/gamma/0": 21.0,
-            "tag/gamma/1": 6.0,
-        },
+        **{"tag/alpha": 3.899, "tag/beta": torch.tensor(12.21).item(), "tag/gamma/0": 21.0, "tag/gamma/1": 6.0,},
         step=5,
     )
 
