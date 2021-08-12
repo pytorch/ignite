@@ -147,7 +147,10 @@ class Engine(Serializable, EventsDriven):
 
     @state.setter
     def state(self, new_state: State) -> None:
-        # deprecate this
+        warnings.warn(
+            "Resetting state is deprecated, and will be forbidden in the next release."
+            "Please set each attribute once at a time instead of setting state at once."
+        )
         self._state = new_state
         self._state.engine = self
 

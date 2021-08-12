@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 
 
 class EventsDriven:
+
     """Base class for events-driven engines without state. This class is mainly
     responsible for registering events and triggering events, it also keeps track of
     the allowed events, and how many times they have been triggered.
@@ -269,9 +270,8 @@ class EventsDrivenState:
         attr_to_events: Optional[Dict[str, List["Events"]]] = None,
         **kwargs: Any,
     ):
-
-        self._engine = engine  # type: Optional[EventsDriven]
         self._attr_to_events = attr_to_events if attr_to_events else defaultdict(list)  # type: Dict[str, List[Events]]
+        self._engine = engine  # type: Optional[EventsDriven]
 
     @property
     def engine(self) -> Optional[EventsDriven]:
@@ -279,11 +279,11 @@ class EventsDrivenState:
 
     @engine.setter
     def engine(self, new_engine: EventsDriven) -> None:
+        # ! This solution is dangerous, but we keep it for backward compatibility.
         self._engine = new_engine
-
         # After setting state._attr_to_events and engine, we have to update
         # engine._allowed_events_counts values according to the added attributes.
-        for k, v in zip(list(self.__dict__.keys()), list(self.__dict__.values())):
+        for k, v in dict(self.__dict__).items():
             # check if attribute in _attr_to_events to sync its counters.
             if k in self._attr_to_events.keys():
                 for event in self._attr_to_events[k]:
@@ -338,3 +338,62 @@ class EventsDrivenState:
         if not isinstance(attribute, str) or not isinstance(events, list):
             raise TypeError("'attribute' must be a string, and `events` must be a list of Events.")
         self._attr_to_events.update({attribute: events})
+
+
+class EventsDrivenWithState(EventsDriven):
+    """Base class for events-driven engines with state as a property. This class also can
+    register and trigger events, and keeping track of the allowed events.
+
+    Attributes:
+        state: object that is used to pass internal and user-defined state between event handlers.
+
+    Example:
+
+        Build custom engine and a custom state
+
+        .. code-block:: python
+
+            from ignite.base.events import EventEnum
+            from ignite.base.events_driven import EventsDrivenState, EventsDrivenWithState
+
+            class AlphaEvents(EventEnum):
+                EventAlpha_Started = "EventAlpha_Started"
+                EventAlpha_Ended = "EventAlpha_Ended"
+
+            class ToyState(EventsDrivenState):
+
+                attr_to_events = {
+                    "alpha": [AlphaEvents.EventAlpha_Started, AlphaEvents.EventAlpha_Ended]
+                }
+
+                def __init__(self, engine=None, **kwargs) -> None:
+                    super(ToyState, self).__init__(engine=engine, attr_to_events=ToyState.attr_to_events, **kwargs)
+                    self.beta = 0
+
+            class ToyEngine(EventsDrivenWithState):
+                def __init__(self) -> None:
+                    super(ToyEngine, self).__init__()
+                    self._state = ToyState(engine=self)
+                    self.register_events(*alpha_events, attr_to_events=ToyState.attr_to_events)
+
+                def register_events(self, *event_names, attr_to_events=None) -> None:
+                    super(ToyEngine, self).register_events(*event_names)
+                    if attr_to_events is not None:
+                        for attribute, events in attr_to_events.items():
+                            self._state.update_attribute_mapping(attribute, events)
+
+            toy_engine = ToyEngine()
+            toy_engine.state.beta = 80
+            # toy_engine._allowed_events_counts is synchronized automatically
+            toy_engine.state.alpha = 60
+            # ....
+
+    """
+
+    def __init__(self) -> None:
+        super(EventsDrivenWithState, self).__init__()
+        self._state = EventsDrivenState(engine=self)  # type: EventsDrivenState
+
+    @property
+    def state(self) -> EventsDrivenState:
+        return self._state

@@ -1,12 +1,12 @@
 import pytest
 
 from ignite.base.events import EventEnum
-from ignite.base.events_driven import EventsDriven, EventsDrivenState
+from ignite.base.events_driven import EventsDriven, EventsDrivenState, EventsDrivenWithState
 
 
-class EventsDrivenWithState(EventsDriven):
+class CustomEventsDrivenWithState(EventsDriven):
     def __init__(self) -> None:
-        super(EventsDrivenWithState, self).__init__()
+        super(CustomEventsDrivenWithState, self).__init__()
         self._state = EventsDrivenState(engine=self)
 
     @property
@@ -14,7 +14,7 @@ class EventsDrivenWithState(EventsDriven):
         return self._state
 
     def register_events(self, *event_names, attr_to_events=None) -> None:
-        super(EventsDrivenWithState, self).register_events(*event_names)
+        super(CustomEventsDrivenWithState, self).register_events(*event_names)
         if attr_to_events is not None:
             for attribute, events in attr_to_events.items():
                 self.state.update_attribute_mapping(attribute, events)
@@ -142,7 +142,7 @@ def test_basic_events_driven_with_state():
         "c": [ABCEvents.C_EVENT],
     }
 
-    class TinyEngine(EventsDrivenWithState):
+    class TinyEngine(CustomEventsDrivenWithState):
         def __init__(self):
             super(TinyEngine, self).__init__()
             self.register_events(*ABCEvents, attr_to_events=attr_to_events)
@@ -212,7 +212,7 @@ def test_events_driven_with_state_mixed_events():
         C_EVENT_STARTED = "c_event_started"
         C_EVENT_COMPLETED = "c_event_completed"
 
-    class AnotherTinyEngine(EventsDrivenWithState):
+    class AnotherTinyEngine(CustomEventsDrivenWithState):
         def __init__(self):
             super(AnotherTinyEngine, self).__init__()
             attr_to_events = {
@@ -280,3 +280,39 @@ def test_events_driven_with_state_mixed_events():
     e.run(10, 20, reset=False)
     assert e.state.b == 10
     assert e.state.c == 20 * (10 - 4)
+
+
+def build_custom_engine_and_state():
+    class TestEvents(EventEnum):
+        TEST_EVENT_STARTED = "test_event_started"
+        TEST_EVENT_COMPLETED = "test_event_completed"
+
+    class CustomState(EventsDrivenState):
+
+        attr_to_events = {"test_event": [TestEvents.TEST_EVENT_STARTED, TestEvents.TEST_EVENT_COMPLETED]}
+
+        def __init__(self, engine=None, **kwargs) -> None:
+            super(CustomState, self).__init__(engine=engine, attr_to_events=CustomState.attr_to_events, **kwargs)
+            self.test_attr = 0
+
+    class CustomEngine(EventsDrivenWithState):
+        def __init__(self) -> None:
+            super(CustomEngine, self).__init__()
+            self._state = CustomState(engine=self)
+            self.register_events(*TestEvents, attr_to_events=CustomState.attr_to_events)
+
+        def register_events(self, *event_names, attr_to_events=None) -> None:
+            super(CustomEngine, self).register_events(*event_names)
+            if attr_to_events is not None:
+                for attribute, events in attr_to_events.items():
+                    self._state.update_attribute_mapping(attribute, events)
+
+    toy_engine = CustomEngine()
+    toy_engine.state.beta = 99
+    toy_engine.state.alpha = 888
+
+    assert (
+        toy_engine._allowed_events_counts[TestEvents.TEST_EVENT_STARTED]
+        == toy_engine._allowed_events_counts[TestEvents.TEST_EVENT_COMPLETED]
+        == 888
+    )
