@@ -211,7 +211,13 @@ class ProgressBar(BaseLogger):
         if not self._compare_lt(event_name, closing_event_name):
             raise ValueError(f"Logging event {event_name} should be called before closing event {closing_event_name}")
 
-        log_handler = _OutputHandler(desc, metric_names, output_transform, closing_event_name=closing_event_name, state_attributes=state_attributes)
+        log_handler = _OutputHandler(
+            desc,
+            metric_names,
+            output_transform,
+            closing_event_name=closing_event_name,
+            state_attributes=state_attributes,
+        )
 
         super(ProgressBar, self).attach(engine, log_handler, event_name)
         engine.add_event_handler(closing_event_name, self._close)

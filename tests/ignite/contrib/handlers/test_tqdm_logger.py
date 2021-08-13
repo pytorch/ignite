@@ -224,13 +224,11 @@ def test_pbar_with_state_attrs(capsys):
     trainer.state.alpha = 3.899
     trainer.state.beta = torch.tensor(12.21)
     trainer.state.gamma = torch.tensor([21.0, 6.0])
-    
+
     RunningAverage(alpha=0.5, output_transform=lambda x: x).attach(trainer, "batchloss")
 
     pbar = ProgressBar()
-    pbar.attach(
-        trainer, metric_names=["batchloss",], state_attributes=["alpha", "beta", "gamma"]
-    )
+    pbar.attach(trainer, metric_names=["batchloss",], state_attributes=["alpha", "beta", "gamma"])
 
     trainer.run(data=data, max_epochs=1)
 
@@ -240,9 +238,13 @@ def test_pbar_with_state_attrs(capsys):
     err = list(filter(None, err))
     actual = err[-1]
     if get_tqdm_version() < LooseVersion("4.49.0"):
-        expected = "Iteration: [1/2]  50%|█████     , batchloss=0.5, alpha=3.9, beta=12.2, gamma_0=21, gamma_1=6 [00:00<00:00]"
+        expected = (
+            "Iteration: [1/2]  50%|█████     , batchloss=0.5, alpha=3.9, beta=12.2, gamma_0=21, gamma_1=6 [00:00<00:00]"
+        )
     else:
-        expected = "Iteration: [1/2]  50%|█████     , batchloss=0.5, alpha=3.9, beta=12.2, gamma_0=21, gamma_1=6 [00:00<?]"
+        expected = (
+            "Iteration: [1/2]  50%|█████     , batchloss=0.5, alpha=3.9, beta=12.2, gamma_0=21, gamma_1=6 [00:00<?]"
+        )
     assert actual == expected
 
 
