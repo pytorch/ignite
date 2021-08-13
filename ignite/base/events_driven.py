@@ -310,6 +310,7 @@ class EventsDrivenState:
         then the corresponding events will be update to the new given events. If the attribute doesn't
         exist, it will be added. Also the list of events will be added in the same order, as the first
         event in the list will be used to get the attribute value.
+
         Args:
             attribute: a state attribute to add, or update if already existed. This attribute will be mapped
                 to the given events. Also if the value of the attribute has been updated, all the counters
