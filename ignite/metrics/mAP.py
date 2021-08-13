@@ -65,22 +65,72 @@ class AP(Metric):
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
+        self.check_area_rngs(area_rngs)
         self.area_rngs: Dict = area_rngs
-        self.max_det: int = max_det
 
-        self.iou_thrs: torch.Tensor = iou_thrs
-        self.rec_thrs: torch.Tensor = rec_thrs
+        self.max_det: int = max_det
+        if type(self.max_det) != int or self.max_det < 1:
+            raise ValueError(f"max_det should be a positive integer, got {self.max_det}")
+
+        if not torch.is_floating_point(iou_thrs):
+            raise ValueError(f"iou_thrs should be a float tensor, got {iou_thrs.dtype}")
+        self.iou_thrs: torch.Tensor = iou_thrs.to(device)
+
+        if not torch.is_floating_point(rec_thrs):
+            raise ValueError(f"rec_thrs should be a float tensor, got {rec_thrs.dtype}")
+        self.rec_thrs: torch.Tensor = rec_thrs.to(device)
+
         self.device: Union[str, torch.device] = device
 
         super(AP, self).__init__(output_transform=output_transform, device=device)
 
+    @staticmethod
+    def check_area_rngs(area_rngs):
+        for area in area_rngs:
+            area_rng = area_rngs[area]
+            if type(area) != str or len(area_rng) != 2 or area_rng[0] >= area_rng[1]:
+                raise ValueError(
+                    """area_rngs should be a dictionary with key as area name and value as \
+                        a tuple of the form (lower limit, upper limit)."""
+                )
+
+    @staticmethod
+    def get_samples(data):
+        if len(data) != 2:
+            raise ValueError("Update Data must be of the format [dt_img, gt_img].")
+
+        dt_img, gt_img = data
+
+        if len(dt_img) != 2 or type(dt_img[0]) != int or type(dt_img[1]) != torch.Tensor:
+            raise ValueError("Detections should be of the form [image_id, detections_tensor].")
+        if len(dt_img[1].shape) != 2 or dt_img[1].shape[1] != 9:
+            raise ValueError(f"detections_tensor should be of size [num_detections, 9], got {dt_img[1].shape}")
+
+        if len(gt_img) != 2 or type(gt_img[0]) != int or type(gt_img[1]) != torch.Tensor:
+            raise ValueError("Ground Truths should be of the form [image_id, ground_truths].")
+        if len(gt_img[1].shape) != 2 or gt_img[1].shape[1] != 9:
+            raise ValueError(f"ground_truths should be of size [num_detections, 9], got {gt_img[1].shape}")
+
+        if gt_img[0] != dt_img[0]:
+            raise ValueError(
+                f"""
+            Ground Truth and Detections should be of the same image, got image id {gt_img[0]} \
+                for Ground Truth and image id {dt_img[0]} for Detections.
+            """
+            )
+
+        return dt_img, gt_img
+
     def update(self, output: Any) -> None:
-        dt_img, gt_img = output
-        assert gt_img[0] == dt_img[0]
+        dt_img, gt_img = self.get_samples(output)
+
+        dt_img[1] = dt_img[1].to(self.device)
+        gt_img[1] = gt_img[1].to(self.device)
+
         img_id = gt_img[0]
 
         classes = set()
-        classwise_gt: defaultdict = defaultdict(lambda: torch.zeros(0, 10))
+        classwise_gt: defaultdict = defaultdict(lambda: torch.zeros(0, 9))
         for gt in gt_img[1]:
             class_id = int(gt[i_class_id])
             classes.add(class_id)
@@ -218,8 +268,6 @@ class AP(Metric):
                 fp_sum = torch.cumsum(fps, dim=1).to(device=self.device, dtype=torch.float64)
 
                 for t, (tp, fp) in enumerate(zip(tp_sum, fp_sum)):
-                    tp = torch.tensor(tp)
-                    fp = torch.tensor(fp)
                     nd = len(tp)
                     rc = tp / non_ignored
                     pr = tp / (fp + tp + torch.finfo(torch.float64).eps)
@@ -271,6 +319,16 @@ class AP(Metric):
 
     def gather_all(self) -> None:
         import torch.distributed as dist
+
+        def is_dist_avail_and_initialized():
+            if not dist.is_available():
+                return False
+            if not dist.is_initialized():
+                return False
+            return True
+
+        if not is_dist_avail_and_initialized():
+            return
 
         gather_dicts: List[Dict] = [defaultdict(list)] * dist.get_world_size()
         dist.gather_object(self.eval_imgs, gather_dicts if dist.get_rank() == 0 else None, dst=0)
