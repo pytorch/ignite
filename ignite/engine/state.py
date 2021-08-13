@@ -33,6 +33,19 @@ class State:
         kwargs: keyword arguments to be defined as State attributes.
     """
 
+    # list of events in attr_to_events must be in this same order,
+    # as we want to get iteration by Events.ITERATION_STARTED
+    # and epoch by Events.EPOCH_STARTED
+    attr_to_events = {
+        "iteration": [
+            Events.ITERATION_STARTED,
+            Events.ITERATION_COMPLETED,
+            Events.GET_BATCH_STARTED,
+            Events.GET_BATCH_COMPLETED,
+        ],
+        "epoch": [Events.EPOCH_STARTED, Events.EPOCH_COMPLETED, Events.STARTED, Events.COMPLETED],
+    }  # Optional[Dict[str, List[Events]]]
+
     event_to_attr = {
         Events.GET_BATCH_STARTED: "iteration",
         Events.GET_BATCH_COMPLETED: "iteration",

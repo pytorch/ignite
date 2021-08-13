@@ -324,6 +324,14 @@ class EventsDrivenState:
             raise TypeError("'attribute' must be a string, and `events` must be a list of Events.")
         self._attr_to_events.update({attribute: events})
 
+    def get_event_attrib_value(self, event_name: Union[str, "Events", CallableEventWithFilter]) -> int:
+        """Get the value of Event attribute with given `event_name`."""
+        for attribute, events in self._attr_to_events.items():
+            if event_name in events:
+                return getattr(self, attribute)
+
+        raise RuntimeError(f"Unknown event name '{event_name}'")
+
 
 class EventsDrivenWithState(EventsDriven):
     """Base class for events-driven engines with state as a property. This class also can
