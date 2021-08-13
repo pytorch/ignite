@@ -100,7 +100,7 @@ class ProgressBar(BaseLogger):
         please install `ipywidgets <https://ipywidgets.readthedocs.io/en/stable/user_install.html#installation>`_.
         Due to `tqdm notebook bugs <https://github.com/tqdm/tqdm/issues/594>`_, bar format may be needed to be set
         to an empty string value.
-    
+
     ..  versionchanged:: 0.5.0
         `attach` now accepts an optional list of `state_attributes`
 
