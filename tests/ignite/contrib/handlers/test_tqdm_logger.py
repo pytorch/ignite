@@ -10,7 +10,8 @@ import pytest
 import torch
 
 from ignite.contrib.handlers import ProgressBar
-from ignite.engine import Engine, Events
+from ignite.contrib.handlers.tqdm_logger import _OutputHandler
+from ignite.engine import Engine, Events, State
 from ignite.handlers import TerminateOnNan
 from ignite.metrics import RunningAverage
 
@@ -206,6 +207,42 @@ def test_pbar_with_all_metric(capsys):
         expected = "Iteration: [1/2]  50%|█████     , batchloss=0.5, another batchloss=1.5 [00:00<00:00]"
     else:
         expected = "Iteration: [1/2]  50%|█████     , batchloss=0.5, another batchloss=1.5 [00:00<?]"
+    assert actual == expected
+
+
+def test_pbar_with_state_attrs(capsys):
+
+    n_iters = 2
+    data = list(range(n_iters))
+    loss_values = iter(range(n_iters))
+
+    def step(engine, batch):
+        loss_value = next(loss_values)
+        return loss_value
+
+    trainer = Engine(step)
+    trainer.state.alpha = 3.899
+    trainer.state.beta = torch.tensor(12.21)
+    trainer.state.gamma = torch.tensor([21.0, 6.0])
+    
+    RunningAverage(alpha=0.5, output_transform=lambda x: x).attach(trainer, "batchloss")
+
+    pbar = ProgressBar()
+    pbar.attach(
+        trainer, metric_names=["batchloss",], state_attributes=["alpha", "beta", "gamma"]
+    )
+
+    trainer.run(data=data, max_epochs=1)
+
+    captured = capsys.readouterr()
+    err = captured.err.split("\r")
+    err = list(map(lambda x: x.strip(), err))
+    err = list(filter(None, err))
+    actual = err[-1]
+    if get_tqdm_version() < LooseVersion("4.49.0"):
+        expected = "Iteration: [1/2]  50%|█████     , batchloss=0.5, alpha=3.9, beta=12.2, gamma_0=21, gamma_1=6 [00:00<00:00]"
+    else:
+        expected = "Iteration: [1/2]  50%|█████     , batchloss=0.5, alpha=3.9, beta=12.2, gamma_0=21, gamma_1=6 [00:00<?]"
     assert actual == expected
 
 
