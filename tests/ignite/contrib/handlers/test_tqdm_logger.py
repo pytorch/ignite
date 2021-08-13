@@ -10,8 +10,7 @@ import pytest
 import torch
 
 from ignite.contrib.handlers import ProgressBar
-from ignite.contrib.handlers.tqdm_logger import _OutputHandler
-from ignite.engine import Engine, Events, State
+from ignite.engine import Engine, Events
 from ignite.handlers import TerminateOnNan
 from ignite.metrics import RunningAverage
 
