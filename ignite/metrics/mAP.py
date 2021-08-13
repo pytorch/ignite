@@ -1,18 +1,9 @@
 from collections import defaultdict
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 
-from ignite.metrics.metric import Metric
-
-"""
-gt: (1id, 4xmin, 5ymin, 6xmax, 7ymax, 8area, 9crowd, 10ignore)
-dt: (1id, 4xmin, 5ymin, 6xmax, 7ymax, 8area, 9crowd, 10confidence)
-gts: torch.tensor([gt,gt,gt...])
-dts: torch.tensor([dt,dt,dt...])
-gt_img : (1img_id, 2class_id, gts)
-dt_img : (1img_id, 2class_id, dts)
-"""
+from ignite.metrics.metric import Metric, reinit__is_reduced
 
 
 def iou(gt: torch.Tensor, dt: torch.Tensor, crowd: List) -> torch.Tensor:
@@ -56,6 +47,70 @@ d_confidence = 8
 
 
 class AP(Metric):
+    r"""Calculates Average Precision for object detection data.
+
+    .. math::
+       \text{AP} = {1/11}\sum_{r \in {0.0, ..., 1.0}}\text{AP}_r
+
+    where \text{AP}_r represents average precision at recall value :math:`r`,
+    where :math:`r` ranges from 0.0 to 1.0.
+
+    More details can be found in `Everingham et al. 2009`__
+
+    __ https://homepages.inf.ed.ac.uk/ckiw/postscript/ijcv_voc09.pdf
+
+    Remark:
+
+        This implementation is inspired by pycocotools which can be found `here`__
+
+        __ https://github.com/cocodataset/cocoapi/
+
+    Args:
+        area_rngs: dictionary with area_name as key and a tuple of the form
+            (lower_area_range, upper_area_range) as value, where both values are floats.
+            It contains all area ranges for which AP needs to be computed.
+        max_det: Maximum detections allowed per image. This is to limit crowding and repeated
+            detections of the same object.
+        iou_thrs: A float tensor containing a set of IoU thresholds for which AP needs to be computed.
+        rec_thrs: A float tensor containing a set of values at which AP needs to be computed for averaging.
+        output_transform: a callable that is used to transform the
+            :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
+            form expected by the metric. This can be useful if, for example, you have a multi-output model and
+            you want to compute the metric with respect to one of the outputs.
+            By default, metrics require the output as ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
+        device: specifies which device updates are accumulated on. Setting the
+            metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
+            non-blocking. By default, CPU.
+
+    Example:
+
+        .. code-block:: python
+
+            import torch
+            from ignite.metrics import AP
+
+            gts = torch.tensor([[1,73,249.1,50.7,375.3,277.2,101928.52,0,0],
+                    [2,73,152.3,50.29,47,312.38, 4097.4,0,0]])
+            dts = torch.tensor([[1,73,176.38,50.3,463.62,312.4,144825.6,0,0.328],
+                    [2,73,355.5,111.87,210,93.75,19687.5,0,0.64]])
+
+            area_rngs = {
+                'all' : [0, float("inf")],
+            }
+            max_det = 100
+
+            iou_thrs = torch.tensor([0.5 + (i/20) for i in range(10)])
+            rec_thrs = torch.tensor([i/100 for i in range(101)])
+
+            mAP = AP(area_rngs=area_rngs, max_det=max_det, iou_thrs=iou_thrs, rec_thrs=rec_thrs)
+
+            mAP.update([[1,gts],[1,dts]])
+
+            mAP.compute()
+
+    .. versionadded:: 0.5.0
+    """
+
     def __init__(
         self,
         area_rngs: Dict,
@@ -65,7 +120,7 @@ class AP(Metric):
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
-        self.check_area_rngs(area_rngs)
+        self._check_area_rngs(area_rngs)
         self.area_rngs: Dict = area_rngs
 
         self.max_det: int = max_det
@@ -85,7 +140,7 @@ class AP(Metric):
         super(AP, self).__init__(output_transform=output_transform, device=device)
 
     @staticmethod
-    def check_area_rngs(area_rngs):
+    def _check_area_rngs(area_rngs: Dict) -> None:
         for area in area_rngs:
             area_rng = area_rngs[area]
             if type(area) != str or len(area_rng) != 2 or area_rng[0] >= area_rng[1]:
@@ -95,7 +150,7 @@ class AP(Metric):
                 )
 
     @staticmethod
-    def get_samples(data):
+    def _get_samples(data: List) -> Tuple:
         if len(data) != 2:
             raise ValueError("Update Data must be of the format [dt_img, gt_img].")
 
@@ -121,8 +176,9 @@ class AP(Metric):
 
         return dt_img, gt_img
 
+    @reinit__is_reduced
     def update(self, output: Any) -> None:
-        dt_img, gt_img = self.get_samples(output)
+        dt_img, gt_img = self._get_samples(output)
 
         dt_img[1] = dt_img[1].to(self.device)
         gt_img[1] = gt_img[1].to(self.device)
@@ -146,19 +202,20 @@ class AP(Metric):
         self.class_ids.update(classes)
 
         for class_id in classes:
-            ious = self.compute_iou(classwise_gt[class_id], classwise_dt[class_id])
+            ious = self._compute_iou(classwise_gt[class_id], classwise_dt[class_id])
             for area_rng in self.area_rngs:
                 self.eval_imgs[class_id, area_rng].append(
-                    self.evaluate_image(classwise_gt[class_id], classwise_dt[class_id], self.area_rngs[area_rng], ious)
+                    self._evaluate_image(classwise_gt[class_id], classwise_dt[class_id], self.area_rngs[area_rng], ious)
                 )
 
+    @reinit__is_reduced
     def reset(self) -> None:
         self.class_ids: set = set()
         self.img_ids: set = set()
 
         self.eval_imgs: defaultdict = defaultdict(list)
 
-    def compute_iou(self, gt: torch.Tensor, dt: torch.Tensor) -> torch.Tensor:
+    def _compute_iou(self, gt: torch.Tensor, dt: torch.Tensor) -> torch.Tensor:
         dt = dt[torch.argsort(dt[:, d_confidence])]
 
         crowd = [g[i_crowd] for g in gt]
@@ -166,7 +223,7 @@ class AP(Metric):
 
         return ious
 
-    def evaluate_image(
+    def _evaluate_image(
         self, gt: torch.Tensor, dt: torch.Tensor, area_rng: torch.Tensor, ious: torch.Tensor
     ) -> Optional[Dict]:
         if len(gt) == 0 and len(dt) == 0:
@@ -231,7 +288,8 @@ class AP(Metric):
             "dtIgnore": dt_ignore,
         }
 
-    def accumulate(self) -> None:
+    @reinit__is_reduced
+    def _accumulate(self) -> None:
         num_iou_thr = len(self.iou_thrs)
         num_rec_thr = len(self.rec_thrs)
         num_classes = len(self.class_ids)
@@ -306,7 +364,7 @@ class AP(Metric):
 
         return mean_s.item()
 
-    def summarize_all(self) -> torch.Tensor:
+    def _summarize_all(self) -> torch.Tensor:
         stats = torch.zeros((6,))
         stats[0] = self._summarize()
         stats[1] = self._summarize(iou_thr=0.5)
@@ -317,10 +375,11 @@ class AP(Metric):
 
         return stats
 
-    def gather_all(self) -> None:
+    @reinit__is_reduced
+    def _gather_all(self) -> None:
         import torch.distributed as dist
 
-        def is_dist_avail_and_initialized():
+        def is_dist_avail_and_initialized() -> bool:
             if not dist.is_available():
                 return False
             if not dist.is_initialized():
@@ -344,9 +403,9 @@ class AP(Metric):
             self.eval_imgs = combined_eval_imgs
 
     def compute(self) -> torch.Tensor:
-        self.gather_all()
-        self.accumulate()
+        self._gather_all()
+        self._accumulate()
 
-        results = self.summarize_all()
+        results = self._summarize_all()
 
         return results

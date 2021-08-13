@@ -313,6 +313,7 @@ Complete list of metrics
     JaccardIndex
     IoU
     mIoU
+    AP
     EpochMetric
     Fbeta
     Frequency
