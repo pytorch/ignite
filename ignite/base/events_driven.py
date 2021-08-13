@@ -124,7 +124,7 @@ class EventsDriven:
 
         self._assert_allowed_event(event_name)
 
-        # TODO: remove this import after refactroing Events
+        # TODO: remove this import after refactoring Events
         from ignite.engine.events import Events
 
         event_args = (Exception(),) if event_name == Events.EXCEPTION_RAISED else ()
@@ -279,19 +279,20 @@ class EventsDrivenState:
 
     @engine.setter
     def engine(self, new_engine: EventsDriven) -> None:
-        # ! This solution is dangerous, but we keep it for backward compatibility.
+        # First: check if new engines counted events corresponds to _attr_to_events
+        # for events in self._attr_to_events.values():
+        #     if not all([e in new_engine._allowed_events for e in events]):
+        #         raise ValueError(f"Input engine does not contain one or more of {events}")
+
         self._engine = new_engine
-        # After setting state._attr_to_events and engine, we have to update
-        # engine._allowed_events_counts values according to the added attributes.
+
+        # Remove temporary counted attributes
         for k, v in dict(self.__dict__).items():
-            # check if attribute in _attr_to_events to sync its counters.
-            if k in self._attr_to_events.keys():
+            if k in self._attr_to_events:
+                # We should remove attribute that is synced with engine
+                del self.__dict__[k]
                 for event in self._attr_to_events[k]:
-                    if event in self._engine._allowed_events:
-                        self._engine._allowed_events_counts[event] = v
-                # delete attribute from state, we don't need it, as we are
-                # getting its value via engine._allowed_events_counts.
-                delattr(self, k)
+                    self._engine._allowed_events_counts[event] = v
 
     def __getattr__(self, attr: str) -> Any:
         evnts = None
