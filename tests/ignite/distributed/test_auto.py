@@ -16,6 +16,12 @@ from ignite.distributed.auto import DistributedProxySampler, auto_dataloader, au
 
 
 class DummyDS(Dataset):
+    def __init__(self, length=10):
+        self.length = length
+
+    def __len__(self):
+        return self.length
+
     def __getitem__(self, index):
         return index
 
@@ -43,6 +49,24 @@ def test_auto_dataloader_warning(distributed_context_single_node_gloo):
         )
 
 
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif("WORLD_SIZE" not in os.environ, reason="Skip if WORLD_SIZE not in env vars")
+def test_auto_dataloader_warning_distributed_sampler(distributed_context_single_node_gloo):
+    dataset = DummyDS()
+    rank = idist.get_rank()
+    world_size = idist.get_world_size()
+    auto_dataloader(dataset, sampler=DistributedSampler(dataset, num_replicas=world_size, rank=rank))
+    if world_size > 1:
+        wrong_rank = (rank + 1) % world_size
+        expected_warning = f"Found distributed sampler with rank={wrong_rank}, but process rank is {rank}"
+        with pytest.warns(UserWarning, match=expected_warning):
+            auto_dataloader(dataset, sampler=DistributedSampler(dataset, num_replicas=world_size, rank=wrong_rank))
+    expected_warning = f"Found distributed sampler with num_replicas={world_size + 1}, but world size is {world_size}"
+    with pytest.warns(UserWarning, match=expected_warning):
+        auto_dataloader(dataset, sampler=DistributedSampler(dataset, num_replicas=world_size + 1, rank=rank))
+
+
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS in env vars")
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
@@ -57,6 +81,8 @@ def _test_auto_dataloader(ws, nproc, batch_size, num_workers=1, sampler_name=Non
             sampler = None
         elif sampler_name == "WeightedRandomSampler":
             sampler = WeightedRandomSampler(weights=torch.ones(100), num_samples=100)
+        elif sampler_name == "DistributedSampler":
+            sampler = DistributedSampler(data, num_replicas=ws, rank=idist.get_rank())
         else:
             raise RuntimeError(f"Unknown sampler name: {sampler_name}")
 
@@ -83,7 +109,10 @@ def _test_auto_dataloader(ws, nproc, batch_size, num_workers=1, sampler_name=Non
         if isinstance(data, IterableDataset):
             sampler_type = _InfiniteConstantSampler
         elif ws > 1:
-            sampler_type = DistributedSampler if sampler is None else DistributedProxySampler
+            if sampler is None or isinstance(sampler, DistributedSampler):
+                sampler_type = DistributedSampler
+            else:
+                sampler_type = DistributedProxySampler
         else:
             sampler_type = RandomSampler if sampler is None else type(sampler)
 
@@ -149,6 +178,7 @@ def test_auto_methods_no_dist():
     _test_auto_dataloader(1, 1, batch_size=1)
     _test_auto_dataloader(1, 1, batch_size=10, num_workers=2)
     _test_auto_dataloader(1, 1, batch_size=10, sampler_name="WeightedRandomSampler")
+    _test_auto_dataloader(1, 1, batch_size=10, sampler_name="DistributedSampler")
 
     _test_auto_model_optimizer(1, "cuda" if torch.cuda.is_available() else "cpu")
 
@@ -161,6 +191,7 @@ def test_auto_methods_gloo(distributed_context_single_node_gloo):
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1)
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=2)
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, sampler_name="WeightedRandomSampler")
+    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, sampler_name="DistributedSampler")
 
     device = idist.device()
     _test_auto_model_optimizer(ws, device)
@@ -181,6 +212,7 @@ def test_auto_methods_nccl(distributed_context_single_node_nccl):
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1)
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=10)
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1, sampler_name="WeightedRandomSampler")
+    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1, sampler_name="DistributedSampler")
 
     device = idist.device()
     _test_auto_model_optimizer(ws, device)
@@ -201,6 +233,7 @@ def test_auto_methods_hvd(gloo_hvd_executor):
     gloo_hvd_executor(_test_auto_dataloader, args=(np, np, 1), np=np, do_init=True)
     gloo_hvd_executor(_test_auto_dataloader, args=(np, np, 10, 10), np=np, do_init=True)
     gloo_hvd_executor(_test_auto_dataloader, args=(np, np, 1, 1, "WeightedRandomSampler"), np=np, do_init=True)
+    gloo_hvd_executor(_test_auto_dataloader, args=(np, np, 1, 1, "DistributedSampler"), np=np, do_init=True)
 
     gloo_hvd_executor(_test_auto_model_optimizer, args=(np, device), np=np, do_init=True)
 
@@ -223,6 +256,7 @@ def _test_auto_methods_xla(index, ws):
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1, dl_type=dl_type)
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=2, dl_type=dl_type)
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1, sampler_name="WeightedRandomSampler", dl_type=dl_type)
+    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1, sampler_name="DistributedSampler", dl_type=dl_type)
 
     device = "xla"
     _test_auto_model_optimizer(ws, device)
@@ -273,3 +307,6 @@ def test_dist_proxy_sampler():
 
     with pytest.raises(TypeError, match=r"Argument sampler should have length"):
         DistributedProxySampler(Sampler([1]))
+
+    with pytest.raises(TypeError, match=r"Argument sampler must not be a distributed sampler already"):
+        DistributedProxySampler(DistributedSampler(sampler, num_replicas=num_replicas, rank=0))
