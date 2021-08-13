@@ -9,7 +9,7 @@ from typing import Any, Callable, Iterable, Iterator, List, Optional, Tuple, Uni
 from torch.utils.data import DataLoader
 
 from ignite.base.events import EventEnum, RemovableEventHandle
-from ignite.base.events_driven import EventsDriven
+from ignite.base.events_driven import EventsDrivenWithState
 from ignite.base.mixins import Serializable
 from ignite.engine.events import Events
 from ignite.engine.state import State
@@ -18,7 +18,7 @@ from ignite.engine.utils import _check_signature, _to_hours_mins_secs
 __all__ = ["Engine"]
 
 
-class Engine(Serializable, EventsDriven):
+class Engine(Serializable, EventsDrivenWithState):
     """Runs a given ``process_function`` over each batch of a dataset, emitting events as it goes.
 
     Args:
@@ -143,12 +143,12 @@ class Engine(Serializable, EventsDriven):
 
     @property
     def state(self) -> State:
-        return self._state
+        return self._state  # type: ignore
 
     @state.setter
     def state(self, new_state: State) -> None:
         warnings.warn(
-            "Resetting state is deprecated, and will be forbidden in the next release."
+            "Resetting state is deprecated, and will be forbidden in the next release. "
             "Please set each attribute once at a time instead of setting state at once."
         )
         self._state = new_state

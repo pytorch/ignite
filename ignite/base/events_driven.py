@@ -384,7 +384,6 @@ class EventsDrivenWithState(EventsDriven):
 
             toy_engine = ToyEngine()
             toy_engine.state.beta = 80
-            # toy_engine._allowed_events_counts is synchronized automatically
             toy_engine.state.alpha = 60
             # ....
 
