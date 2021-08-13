@@ -254,6 +254,32 @@ def test_output_handler_with_global_step_transform():
     mock_logger.log_metric.assert_has_calls([call("tag/loss", y=12345, x=10)])
 
 
+def test_output_handler_state_attrs():
+    wrapper = OutputHandler("tag", state_attributes=["alpha", "beta", "gamma"])
+    mock_logger = MagicMock(spec=NeptuneLogger)
+    mock_logger.log_metric = MagicMock()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.iteration = 5
+    mock_engine.state.alpha = 3.899
+    mock_engine.state.beta = torch.tensor(12.23)
+    mock_engine.state.gamma = torch.tensor([21.0, 6.0])
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+    assert mock_logger.log_metric.call_count == 4
+    mock_logger.log_metric.assert_has_calls(
+        [
+            call("tag/alpha", y=3.899, x=5),
+            call("tag/beta", y=torch.tensor(12.23).item(), x=5),
+            call("tag/gamma/0", y=21.0, x=5),
+            call("tag/gamma/1", y=6.0, x=5),
+        ],
+        any_order=True,
+    )
+
+
 def test_weights_scalar_handler_wrong_setup():
     with pytest.raises(TypeError, match="Argument model should be of type torch.nn.Module"):
         WeightsScalarHandler(None)

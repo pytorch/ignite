@@ -29,6 +29,7 @@ from ignite.handlers.state_param_scheduler import (
 from ignite.handlers.stores import EpochOutputStore
 from ignite.handlers.terminate_on_nan import TerminateOnNan
 from ignite.handlers.time_limit import TimeLimit
+from ignite.handlers.time_profilers import BasicTimeProfiler, HandlersTimeProfiler
 from ignite.handlers.timing import Timer
 
 __all__ = [
@@ -52,6 +53,8 @@ __all__ = [
     "create_lr_scheduler_with_warmup",
     "FastaiLRFinder",
     "EMAHandler",
+    "BasicTimeProfiler",
+    "HandlersTimeProfiler",
     "BaseParamScheduler",
     "StateParamScheduler",
     "LambdaStateScheduler",
