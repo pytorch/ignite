@@ -15,7 +15,7 @@ def ngrams(sequence: Sequence[Any], n: int) -> Counter:
     Returns:
         A counter of ngram objects
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.5
     """
     return Counter([tuple(sequence[i : i + n]) for i in range(len(sequence) - n + 1)])
 
@@ -32,7 +32,7 @@ def lcs(seq_a: Sequence[Any], seq_b: Sequence[Any]) -> int:
     Returns:
         The length of the longest common subsequence
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.5
     """
     m = len(seq_a)
     n = len(seq_b)
@@ -73,7 +73,7 @@ def modified_precision(references: Sequence[Sequence[Any]], candidate: Any, n: i
     Returns:
         The length of the longest common subsequence
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.5
     """
     # ngrams of the candidate
     counts = ngrams(candidate, n)

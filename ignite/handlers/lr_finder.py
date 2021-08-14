@@ -70,6 +70,8 @@ class FastaiLRFinder:
         https://arxiv.org/abs/1506.01186
 
         fastai/lr_find: https://github.com/fastai/fastai
+
+    .. versionadded:: 0.4.6
     """
 
     def __init__(self) -> None:
