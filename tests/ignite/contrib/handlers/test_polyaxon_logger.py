@@ -197,6 +197,26 @@ def test_output_handler_with_global_step_from_engine():
     )
 
 
+def test_output_handler_state_attrs():
+    wrapper = OutputHandler("tag", state_attributes=["alpha", "beta", "gamma"])
+    mock_logger = MagicMock(spec=PolyaxonLogger)
+    mock_logger.log_metrics = MagicMock()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.iteration = 5
+    mock_engine.state.alpha = 3.899
+    mock_engine.state.beta = torch.tensor(12.21)
+    mock_engine.state.gamma = torch.tensor([21.0, 6.0])
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+    mock_logger.log_metrics.assert_called_once_with(
+        **{"tag/alpha": 3.899, "tag/beta": torch.tensor(12.21).item(), "tag/gamma/0": 21.0, "tag/gamma/1": 6.0,},
+        step=5,
+    )
+
+
 def test_optimizer_params_handler_wrong_setup():
 
     with pytest.raises(TypeError):
