@@ -135,6 +135,8 @@ class AP(Metric):
             raise ValueError(f"rec_thrs should be a float tensor, got {rec_thrs.dtype}")
         self.rec_thrs: torch.Tensor = rec_thrs.to(device)
 
+        self.img_id_count = 1
+
         self.device: Union[str, torch.device] = device
 
         super(AP, self).__init__(output_transform=output_transform, device=device)
@@ -156,23 +158,11 @@ class AP(Metric):
 
         dt_img, gt_img = data
 
-        if len(dt_img) != 2 or type(dt_img[0]) != int or type(dt_img[1]) != torch.Tensor:
-            raise ValueError("Detections should be of the form [image_id, detections_tensor].")
-        if len(dt_img[1].shape) != 2 or dt_img[1].shape[1] != 9:
-            raise ValueError(f"detections_tensor should be of size [num_detections, 9], got {dt_img[1].shape}")
+        if len(dt_img.shape) != 2 or dt_img.shape[1] != 9:
+            raise ValueError(f"detections_tensor should be of size [num_detections, 9], got {dt_img.shape}")
 
-        if len(gt_img) != 2 or type(gt_img[0]) != int or type(gt_img[1]) != torch.Tensor:
-            raise ValueError("Ground Truths should be of the form [image_id, ground_truths].")
-        if len(gt_img[1].shape) != 2 or gt_img[1].shape[1] != 9:
-            raise ValueError(f"ground_truths should be of size [num_detections, 9], got {gt_img[1].shape}")
-
-        if gt_img[0] != dt_img[0]:
-            raise ValueError(
-                f"""
-            Ground Truth and Detections should be of the same image, got image id {gt_img[0]} \
-                for Ground Truth and image id {dt_img[0]} for Detections.
-            """
-            )
+        if len(gt_img.shape) != 2 or gt_img.shape[1] != 9:
+            raise ValueError(f"ground_truths should be of size [num_detections, 9], got {gt_img.shape}")
 
         return dt_img, gt_img
 
@@ -180,20 +170,21 @@ class AP(Metric):
     def update(self, output: Any) -> None:
         dt_img, gt_img = self._get_samples(output)
 
-        dt_img[1] = dt_img[1].to(self.device)
-        gt_img[1] = gt_img[1].to(self.device)
+        dt_img = dt_img.to(self.device)
+        gt_img = gt_img.to(self.device)
 
-        img_id = gt_img[0]
+        img_id = self.img_id_count
+        self.img_id_count += 1
 
         classes = set()
         classwise_gt: defaultdict = defaultdict(lambda: torch.zeros(0, 9))
-        for gt in gt_img[1]:
+        for gt in gt_img:
             class_id = int(gt[i_class_id])
             classes.add(class_id)
             classwise_gt[class_id] = torch.vstack([classwise_gt[class_id], gt])
 
         classwise_dt: defaultdict = defaultdict(lambda: torch.zeros(0, 9))
-        for dt in dt_img[1]:
+        for dt in dt_img:
             class_id = int(dt[i_class_id])
             classes.add(class_id)
             classwise_dt[class_id] = torch.vstack([classwise_dt[class_id], dt])

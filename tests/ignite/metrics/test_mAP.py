@@ -88,24 +88,18 @@ def test_wrong_inputs():
     with pytest.raises(ValueError, match="Update Data must be of the form"):
         mAP.update(torch.zeros(1))
 
-    with pytest.raises(ValueError, match="Detections should be of the form"):
-        mAP.update([[1.5, [2]], []])
-
     with pytest.raises(ValueError, match="detections_tensor should be of size"):
-        mAP.update([[1, torch.zeros(1)], []])
-
-    with pytest.raises(ValueError, match="Ground Truths should be of the form"):
-        mAP.update([[1, torch.zeros(1, 9)], [1, [2]]])
+        mAP.update([torch.zeros(1), []])
 
     with pytest.raises(ValueError, match="ground_truths should be of size"):
-        mAP.update([[1, torch.zeros(1, 9)], [1, torch.zeros(2, 10)]])
+        mAP.update([torch.zeros(1, 9), torch.zeros(2, 10)])
 
 
 def test_against_coco_map():
     mAP = AP(area_rngs=area_rngs, max_det=max_det, iou_thrs=iou_thrs, rec_thrs=rec_thrs)
 
     for i in img_list:
-        mAP.update([[i, img_dts[i]], [i, img_gts[i]]])
+        mAP.update([img_dts[i], img_gts[i]])
 
     results = mAP.compute()
     cocoEval.summarize()
