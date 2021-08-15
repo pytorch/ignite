@@ -34,18 +34,6 @@ def iou(gt: torch.Tensor, dt: torch.Tensor, crowd: List) -> torch.Tensor:
     return ious
 
 
-i_id = 0
-i_class_id = 1
-i_xmin = 2
-i_ymin = 3
-i_xmax = 4
-i_ymax = 5
-i_area = 6
-i_crowd = 7
-g_ignore = 8
-d_confidence = 8
-
-
 class MeanAveragePrecision(Metric):
     r"""Calculates Mean Average Precision for object detection data.
 
@@ -142,6 +130,17 @@ class MeanAveragePrecision(Metric):
 
         self.device: Union[str, torch.device] = device
 
+        class labels:
+            i_id = 0
+            i_class_id = 1
+            i_xmin = 2
+            i_area = 6
+            i_crowd = 7
+            g_ignore = 8
+            d_confidence = 8
+
+        self.labels = labels
+
         super(MeanAveragePrecision, self).__init__(output_transform=output_transform, device=device)
 
     @staticmethod
@@ -182,13 +181,13 @@ class MeanAveragePrecision(Metric):
         classes = set()
         classwise_gt: defaultdict = defaultdict(lambda: torch.zeros(0, 9).to(self.device))
         for gt in gt_img:
-            class_id = int(gt[i_class_id])
+            class_id = int(gt[self.labels.i_class_id])
             classes.add(class_id)
             classwise_gt[class_id] = torch.vstack([classwise_gt[class_id], gt])
 
         classwise_dt: defaultdict = defaultdict(lambda: torch.zeros(0, 9).to(self.device))
         for dt in dt_img:
-            class_id = int(dt[i_class_id])
+            class_id = int(dt[self.labels.i_class_id])
             classes.add(class_id)
             classwise_dt[class_id] = torch.vstack([classwise_dt[class_id], dt])
 
@@ -210,10 +209,12 @@ class MeanAveragePrecision(Metric):
         self.eval_imgs: defaultdict = defaultdict(list)
 
     def _compute_iou(self, gt: torch.Tensor, dt: torch.Tensor) -> torch.Tensor:
-        dt = dt[torch.argsort(dt[:, d_confidence])]
+        dt = dt[torch.argsort(dt[:, self.labels.d_confidence])]
 
-        crowd = [g[i_crowd] for g in gt]
-        ious = iou(gt[:, i_xmin:i_area], dt[:, i_xmin:i_area], crowd).to(self.device)
+        crowd = [g[self.labels.i_crowd] for g in gt]
+        ious = iou(
+            gt[:, self.labels.i_xmin : self.labels.i_area], dt[:, self.labels.i_xmin : self.labels.i_area], crowd
+        ).to(self.device)
 
         return ious
 
@@ -225,7 +226,7 @@ class MeanAveragePrecision(Metric):
 
         gt_ignore = torch.zeros(len(gt))
         for i, g in enumerate(gt):
-            if g[g_ignore] or (g[i_area] < area_rng[0] or g[i_area] > area_rng[1]):
+            if g[self.labels.g_ignore] or (g[self.labels.i_area] < area_rng[0] or g[self.labels.i_area] > area_rng[1]):
                 gt_ignore[i] = 1
             else:
                 gt_ignore[i] = 0
@@ -233,8 +234,8 @@ class MeanAveragePrecision(Metric):
         gt_ind = torch.argsort(gt_ignore)
         gt_ignore = gt_ignore[gt_ind]
         gt = gt[gt_ind]
-        dt = dt[torch.argsort(-dt[:, d_confidence])]
-        iscrowd = gt[:, i_crowd]
+        dt = dt[torch.argsort(-dt[:, self.labels.d_confidence])]
+        iscrowd = gt[:, self.labels.i_crowd]
 
         ious = ious[:, gt_ind] if len(ious) > 0 else ious
 
@@ -266,10 +267,12 @@ class MeanAveragePrecision(Metric):
                     if m == -1:
                         continue
                     dt_ignore[tind, dind] = gt_ignore[m]
-                    dtm[tind, dind] = gt[m][i_id]
-                    gtm[tind, m] = d[i_id]
+                    dtm[tind, dind] = gt[m][self.labels.i_id]
+                    gtm[tind, m] = d[self.labels.i_id]
 
-        a = torch.tensor([d[i_area] < area_rng[0] or d[i_area] > area_rng[1] for d in dt]).reshape((1, len(dt)))
+        a = torch.tensor(
+            [d[self.labels.i_area] < area_rng[0] or d[self.labels.i_area] > area_rng[1] for d in dt]
+        ).reshape((1, len(dt)))
         a = a.to(self.device)
 
         dt_ignore = torch.logical_or(
@@ -278,7 +281,7 @@ class MeanAveragePrecision(Metric):
 
         return {
             "dtMatches": dtm,
-            "dtScores": dt[:, d_confidence],
+            "dtScores": dt[:, self.labels.d_confidence],
             "gtIgnore": gt_ignore,
             "dtIgnore": dt_ignore,
         }
