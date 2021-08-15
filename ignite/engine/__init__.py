@@ -82,7 +82,7 @@ def supervised_training_step(
         update_fn = supervised_training_step(model, optimizer, loss_fn, 'cuda')
         trainer = Engine(update_fn)
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.5
     """
 
     def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
@@ -140,7 +140,7 @@ def supervised_training_step_amp(
         update_fn = supervised_training_step_amp(model, optimizer, loss_fn, 'cuda', scaler=scaler)
         trainer = Engine(update_fn)
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.5
     """
 
     try:
@@ -206,7 +206,7 @@ def supervised_training_step_apex(
         update_fn = supervised_training_step_apex(model, optimizer, loss_fn, 'cuda')
         trainer = Engine(update_fn)
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.5
     """
 
     try:
@@ -267,7 +267,7 @@ def supervised_training_step_tpu(
         update_fn = supervised_training_step_tpu(model, optimizer, loss_fn, 'xla')
         trainer = Engine(update_fn)
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.5
     """
     try:
         import torch_xla.core.xla_model as xm
@@ -380,7 +380,7 @@ def create_supervised_trainer(
 
         See more: https://nvidia.github.io/apex/amp.html#module-apex.amp
 
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.5
 
         - Added ``amp_mode`` argument for automatic mixed precision.
         - Added ``scaler`` argument for gradient scaling.
@@ -449,7 +449,7 @@ def supervised_evaluation_step(
         `device` will now *only* be used to move the input data to the correct device.
         The `model` should be moved by the user before creating an optimizer.
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.5
     """
 
     def evaluate_step(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
@@ -497,7 +497,7 @@ def supervised_evaluation_step_amp(
         `device` will now *only* be used to move the input data to the correct device.
         The `model` should be moved by the user before creating an optimizer.
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.5
     """
     try:
         from torch.cuda.amp import autocast
@@ -561,7 +561,7 @@ def create_supervised_evaluator(
 
         - `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
 
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.5
         - Added ``amp_mode`` argument for automatic mixed precision.
     """
     device_type = device.type if isinstance(device, torch.device) else device

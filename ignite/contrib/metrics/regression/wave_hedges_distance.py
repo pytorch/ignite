@@ -33,7 +33,7 @@ class WaveHedgesDistance(_BaseRegression):
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
 
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.5
         - Works with DDP.
     """
 

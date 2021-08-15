@@ -154,7 +154,7 @@ def setup_logger(
     .. versionchanged:: 0.4.3
         Added ``stream`` parameter.
 
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.5
         Added ``reset`` parameter.
     """
     # check if the logger already exists
@@ -218,7 +218,7 @@ def manual_seed(seed: int) -> None:
     .. versionchanged:: 0.4.3
         Added ``torch.cuda.manual_seed_all(seed)``.
 
-    .. versionchanged:: 0.5.1
+    .. versionchanged:: 0.4.5
         Added ``torch_xla.core.xla_model.set_rng_state(seed)``.
     """
     random.seed(seed)
