@@ -8,18 +8,7 @@ from pycocotools.cocoeval import COCOeval
 
 import ignite.distributed as idist
 from ignite.engine import Engine
-from ignite.metrics import AP
-
-area_rngs = {
-    "all": [0, float("inf")],
-    "small": [0, 1024],
-    "medium": [1024, 9216],
-    "large": [9216, float("inf")],
-}
-max_det = 100
-
-iou_thrs = torch.tensor([0.5 + (i / 20) for i in range(10)])
-rec_thrs = torch.tensor([i / 100 for i in range(101)])
+from ignite.metrics import MeanAveragePrecision
 
 
 def get_coco_results():
@@ -75,15 +64,15 @@ cocoEval, img_list, img_gts, img_dts = get_coco_results()
 
 def test_wrong_inputs():
     with pytest.raises(ValueError, match="area_rngs should be a dictionary with key as area name"):
-        mAP = AP(area_rngs={1: 2}, max_det=max_det, iou_thrs=iou_thrs, rec_thrs=rec_thrs)
+        mAP = MeanAveragePrecision(area_rngs={1: 2})
     with pytest.raises(ValueError, match="max_det should be a positive integer, got"):
-        mAP = AP(area_rngs=area_rngs, max_det=-1, iou_thrs=iou_thrs, rec_thrs=rec_thrs)
+        mAP = MeanAveragePrecision(max_det=-1)
     with pytest.raises(ValueError, match="iou_thrs should be a float tensor, got"):
-        mAP = AP(area_rngs=area_rngs, max_det=max_det, iou_thrs=torch.zeros(10, dtype=torch.int64), rec_thrs=rec_thrs)
+        mAP = MeanAveragePrecision(iou_thrs=torch.zeros(10, dtype=torch.int64))
     with pytest.raises(ValueError, match="rec_thrs should be a float tensor, got"):
-        mAP = AP(area_rngs=area_rngs, max_det=max_det, iou_thrs=iou_thrs, rec_thrs=torch.zeros(10, dtype=torch.int64))
+        mAP = MeanAveragePrecision(rec_thrs=torch.zeros(10, dtype=torch.int64))
 
-    mAP = AP(area_rngs=area_rngs, max_det=max_det, iou_thrs=iou_thrs, rec_thrs=rec_thrs)
+    mAP = MeanAveragePrecision()
 
     with pytest.raises(ValueError, match="Update Data must be of the form"):
         mAP.update(torch.zeros(1))
@@ -96,7 +85,7 @@ def test_wrong_inputs():
 
 
 def test_against_coco_map():
-    mAP = AP(area_rngs=area_rngs, max_det=max_det, iou_thrs=iou_thrs, rec_thrs=rec_thrs)
+    mAP = MeanAveragePrecision()
 
     for i in img_list:
         mAP.update([img_dts[i], img_gts[i]])
@@ -104,12 +93,12 @@ def test_against_coco_map():
     results = mAP.compute()
     cocoEval.summarize()
     coco_results = cocoEval.stats[:6]
-    assert coco_results[0] == pytest.approx(results[0], 1e-2)
-    assert coco_results[1] == pytest.approx(results[1], 1e-2)
-    assert coco_results[2] == pytest.approx(results[2], 1e-2)
-    assert coco_results[3] == pytest.approx(results[3], 1e-2)
-    assert coco_results[4] == pytest.approx(results[4], 1e-2)
-    assert coco_results[5] == pytest.approx(results[5], 1e-2)
+    assert coco_results[0] == pytest.approx(results["all"], 1e-2)
+    assert coco_results[1] == pytest.approx(results["all@0.5"], 1e-2)
+    assert coco_results[2] == pytest.approx(results["all@0.75"], 1e-2)
+    assert coco_results[3] == pytest.approx(results["small"], 1e-2)
+    assert coco_results[4] == pytest.approx(results["medium"], 1e-2)
+    assert coco_results[5] == pytest.approx(results["large"], 1e-2)
 
 
 def _test_distrib_integration(device):
@@ -121,7 +110,7 @@ def _test_distrib_integration(device):
 
         engine = Engine(update)
 
-        mAP = AP(area_rngs=area_rngs, max_det=max_det, iou_thrs=iou_thrs, rec_thrs=rec_thrs, device=device)
+        mAP = MeanAveragePrecision(device=device)
         mAP.attach(engine, "mAP")
 
         data = img_list
@@ -132,12 +121,12 @@ def _test_distrib_integration(device):
         results = engine.state.metrics["mAP"]
         cocoEval.summarize()
         coco_results = cocoEval.stats[:6]
-        assert coco_results[0] == pytest.approx(results[0], 1e-2)
-        assert coco_results[1] == pytest.approx(results[1], 1e-2)
-        assert coco_results[2] == pytest.approx(results[2], 1e-2)
-        assert coco_results[3] == pytest.approx(results[3], 1e-2)
-        assert coco_results[4] == pytest.approx(results[4], 1e-2)
-        assert coco_results[5] == pytest.approx(results[5], 1e-2)
+        assert coco_results[0] == pytest.approx(results["all"], 1e-2)
+        assert coco_results[1] == pytest.approx(results["all@0.5"], 1e-2)
+        assert coco_results[2] == pytest.approx(results["all@0.75"], 1e-2)
+        assert coco_results[3] == pytest.approx(results["small"], 1e-2)
+        assert coco_results[4] == pytest.approx(results["medium"], 1e-2)
+        assert coco_results[5] == pytest.approx(results["large"], 1e-2)
 
     metric_devices = ["cpu"]
     if device.type != "xla":

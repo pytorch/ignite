@@ -25,6 +25,7 @@ clearml
 scikit-image
 py-rouge
 nltk
+pycocotools
 # Examples dependencies
 pandas
 gym

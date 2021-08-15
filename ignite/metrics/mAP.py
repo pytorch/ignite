@@ -46,13 +46,13 @@ g_ignore = 8
 d_confidence = 8
 
 
-class AP(Metric):
-    r"""Calculates Average Precision for object detection data.
+class MeanAveragePrecision(Metric):
+    r"""Calculates Mean Average Precision for object detection data.
 
     .. math::
-       \text{AP} = {1/11}\sum_{r \in {0.0, ..., 1.0}}\text{AP}_r
+       \text{MeanAveragePrecision} = {1/11}\sum_{r \in {0.0, ..., 1.0}}\text{AP}_r
 
-    where \text{AP}_r represents average precision at recall value :math:`r`,
+    where \text{MeanAveragePrecision}_r represents average precision at recall value :math:`r`,
     where :math:`r` ranges from 0.0 to 1.0.
 
     More details can be found in `Everingham et al. 2009`__
@@ -87,24 +87,22 @@ class AP(Metric):
         .. code-block:: python
 
             import torch
-            from ignite.metrics import AP
+            from ignite.metrics import MeanAveragePrecision
 
+            # Detection Format:
+            # (id, class, xmin, ymin, xmax, ymax, area, crowd, ignore/confidence)
+
+            # ground truth detections for an image
             gts = torch.tensor([[1,73,249.1,50.7,375.3,277.2,101928.52,0,0],
                     [2,73,152.3,50.29,47,312.38, 4097.4,0,0]])
+
+            # predicted detections for the same image
             dts = torch.tensor([[1,73,176.38,50.3,463.62,312.4,144825.6,0,0.328],
                     [2,73,355.5,111.87,210,93.75,19687.5,0,0.64]])
 
-            area_rngs = {
-                'all' : [0, float("inf")],
-            }
-            max_det = 100
+            mAP = MeanAveragePrecision()
 
-            iou_thrs = torch.tensor([0.5 + (i/20) for i in range(10)])
-            rec_thrs = torch.tensor([i/100 for i in range(101)])
-
-            mAP = AP(area_rngs=area_rngs, max_det=max_det, iou_thrs=iou_thrs, rec_thrs=rec_thrs)
-
-            mAP.update([[1,gts],[1,dts]])
+            mAP.update([gts, dts])
 
             mAP.compute()
 
@@ -113,10 +111,15 @@ class AP(Metric):
 
     def __init__(
         self,
-        area_rngs: Dict,
-        max_det: int,
-        iou_thrs: torch.Tensor,
-        rec_thrs: torch.Tensor,
+        area_rngs: Dict = {
+            "all": [0, float("inf")],
+            "small": [0, 1024],
+            "medium": [1024, 9216],
+            "large": [9216, float("inf")],
+        },
+        max_det: int = 100,
+        iou_thrs: torch.Tensor = torch.tensor([0.5 + (i / 20) for i in range(10)]),  # type: ignore
+        rec_thrs: torch.Tensor = torch.tensor([i / 100 for i in range(101)]),  # type: ignore
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
@@ -139,7 +142,7 @@ class AP(Metric):
 
         self.device: Union[str, torch.device] = device
 
-        super(AP, self).__init__(output_transform=output_transform, device=device)
+        super(MeanAveragePrecision, self).__init__(output_transform=output_transform, device=device)
 
     @staticmethod
     def _check_area_rngs(area_rngs: Dict) -> None:
@@ -356,17 +359,6 @@ class AP(Metric):
 
         return mean_s.item()
 
-    def _summarize_all(self) -> torch.Tensor:
-        stats = torch.zeros((6,))
-        stats[0] = self._summarize()
-        stats[1] = self._summarize(iou_thr=0.5)
-        stats[2] = self._summarize(iou_thr=0.75)
-        stats[3] = self._summarize(area_rng="small")
-        stats[4] = self._summarize(area_rng="medium")
-        stats[5] = self._summarize(area_rng="large")
-
-        return stats
-
     @reinit__is_reduced
     def _gather_all(self) -> None:
         import torch.distributed as dist
@@ -394,10 +386,15 @@ class AP(Metric):
                     combined_eval_imgs[key] += eval_imgs[key]
             self.eval_imgs = combined_eval_imgs
 
-    def compute(self) -> torch.Tensor:
+    def compute(self) -> Dict:
         self._gather_all()
         self._accumulate()
 
-        results = self._summarize_all()
-
-        return results
+        return {
+            "all": self._summarize(),
+            "all@0.5": self._summarize(iou_thr=0.5),
+            "all@0.75": self._summarize(iou_thr=0.75),
+            "small": self._summarize(area_rng="small"),
+            "medium": self._summarize(area_rng="medium"),
+            "large": self._summarize(area_rng="large"),
+        }
