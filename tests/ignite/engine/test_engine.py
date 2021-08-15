@@ -34,6 +34,16 @@ def test_invalid_process_raises_with_invalid_signature():
         Engine(lambda engine, batch, extra_arg: None)
 
 
+def test_invalid_attr_to_events():
+    e = Engine(lambda e, a: None)
+
+    with pytest.raises(ValueError, match=r"Expected attr_to_events to be dictionary"):
+        e.register_events(attr_to_events=["a", "b"])
+
+    with pytest.raises(ValueError, match=r"Expected attr_to_events to be dictionary"):
+        e.register_events(attr_to_events=5)
+
+
 def test_invalid_input_data():
     engine = Engine(lambda e, b: None)
 
@@ -381,11 +391,81 @@ def test_state_get_event_attrib_value():
     assert state.get_event_attrib_value(e) == state.epoch
 
 
+def test_resetting_state():
+    engine = Engine(lambda e, a: None)
+
+    with pytest.warns(UserWarning, match=r"Resetting state is deprecated, and will be forbidden in the next release"):
+        engine.state = State(iteration=4, epoch=50)
+
+
+def test__allowed_events_counts_values_after_setting_state():
+    engine = Engine(lambda e, a: None)
+    engine.state = State(iteration=4, epoch=50)
+
+    assert (
+        engine._allowed_events_counts[Events.STARTED]
+        == engine._allowed_events_counts[Events.COMPLETED]
+        == engine._allowed_events_counts[Events.EPOCH_STARTED]
+        == engine._allowed_events_counts[Events.EPOCH_COMPLETED]
+        == 50
+    )
+
+    assert (
+        engine._allowed_events_counts[Events.GET_BATCH_STARTED]
+        == engine._allowed_events_counts[Events.GET_BATCH_COMPLETED]
+        == engine._allowed_events_counts[Events.ITERATION_STARTED]
+        == engine._allowed_events_counts[Events.ITERATION_COMPLETED]
+        == 4
+    )
+
+    engine.state.epoch = 33
+    engine.state.iteration = 1234
+
+    assert (
+        engine._allowed_events_counts[Events.STARTED]
+        == engine._allowed_events_counts[Events.COMPLETED]
+        == engine._allowed_events_counts[Events.EPOCH_STARTED]
+        == engine._allowed_events_counts[Events.EPOCH_COMPLETED]
+        == 33
+    )
+
+    assert (
+        engine._allowed_events_counts[Events.GET_BATCH_STARTED]
+        == engine._allowed_events_counts[Events.GET_BATCH_COMPLETED]
+        == engine._allowed_events_counts[Events.ITERATION_STARTED]
+        == engine._allowed_events_counts[Events.ITERATION_COMPLETED]
+        == 1234
+    )
+
+    assert "iteration" not in engine.state.__dict__
+    assert "epoch" not in engine.state.__dict__
+
+    assert "max_epochs" in engine.state.__dict__
+    assert "epoch_length" in engine.state.__dict__
+
+    from ignite.base.events import EventEnum
+
+    class CustomEvents(EventEnum):
+        A = "a"
+
+    attr_to_events = {"a": [CustomEvents.A]}
+    engine.register_events(*CustomEvents, attr_to_events=attr_to_events)
+
+    engine.state = State(a=60)
+
+    assert engine._allowed_events_counts[CustomEvents.A] == 60
+    assert engine.state.a == 60
+    assert "a" not in engine.state.__dict__
+    # del engine.state
+
+
 def test_time_stored_in_state():
     def _test(data, max_epochs, epoch_length):
         sleep_time = 0.01
         extra_sleep_time = 0.1
         engine = Engine(lambda e, b: time.sleep(sleep_time))
+        print(engine._allowed_events)
+        print(engine.state._attr_to_events)
 
         @engine.on(Events.EPOCH_COMPLETED)
         def check_epoch_time():

@@ -74,15 +74,15 @@ def test_custom_events_asserts():
     assert Events.ITERATION_COMPLETED == Events.ITERATION_COMPLETED(every=2)
 
 
-def test_custom_events_with_event_to_attr():
+def test_custom_events_with_attr_to_events():
     class CustomEvents(EventEnum):
         TEST_EVENT = "test_event"
 
-    custom_event_to_attr = {CustomEvents.TEST_EVENT: "test_event"}
+    custom_attr_to_events = {"test_event": [CustomEvents.TEST_EVENT]}
 
     # Dummy engine
     engine = Engine(lambda engine, batch: 0)
-    engine.register_events(*CustomEvents, event_to_attr=custom_event_to_attr)
+    engine.register_events(*CustomEvents, attr_to_events=custom_attr_to_events)
 
     # Handle is never called
     handle = MagicMock()
@@ -96,19 +96,51 @@ def test_custom_events_with_event_to_attr():
         engine.fire_event(CustomEvents.TEST_EVENT)
 
     engine = Engine(process_func)
-    engine.register_events(*CustomEvents, event_to_attr=custom_event_to_attr)
+    engine.register_events(*CustomEvents, attr_to_events=custom_attr_to_events)
 
-    def handle(engine):
-        engine.state.test_event += 1
+    # After engine refactoring we don't need to
+    # increase/set the counter of the event
 
-    engine.add_event_handler(CustomEvents.TEST_EVENT, handle)
     engine.run(range(25))
     assert engine.state.test_event == 25
 
-    custom_event_to_attr = "a"
+    custom_attr_to_events = "a"
     engine = Engine(lambda engine, batch: 0)
     with pytest.raises(ValueError):
-        engine.register_events(*CustomEvents, event_to_attr=custom_event_to_attr)
+        engine.register_events(*CustomEvents, attr_to_events=custom_attr_to_events)
+
+
+def test_register_events_with_deprecated_event_to_attr():
+    class CustomEvents(EventEnum):
+        TEST_EVENT = "test_event"
+
+    event_to_attr = {CustomEvents.TEST_EVENT: "test_event"}
+
+    # Dummy engine
+    engine = Engine(lambda engine, batch: 0)
+    engine.register_events(*CustomEvents, event_to_attr=event_to_attr)
+
+    # Handle is never called
+    handle = MagicMock()
+    engine.add_event_handler(CustomEvents.TEST_EVENT, handle)
+    engine.run(range(1))
+    assert hasattr(engine.state, "test_event")
+    assert engine.state.test_event == 0
+
+    # Advanced engine
+    def process_func(engine, batch):
+        engine.fire_event(CustomEvents.TEST_EVENT)
+
+    engine = Engine(process_func)
+    engine.register_events(*CustomEvents, event_to_attr=event_to_attr)
+
+    engine.run(range(25))
+    assert engine.state.test_event == 25
+
+    event_to_attr = "a"
+    engine = Engine(lambda engine, batch: 0)
+    with pytest.raises(ValueError):
+        engine.register_events(*CustomEvents, event_to_attr=event_to_attr)
 
 
 def test_custom_events_with_events_list():
@@ -164,7 +196,6 @@ def test_callable_events():
 
     # assert ret in Events
     assert Events.ITERATION_STARTED.name in f"{ret}"
-    # assert ret in State.event_to_attr
 
     ret = Events.ITERATION_STARTED(every=10)
     assert isinstance(ret, CallableEventWithFilter)
@@ -173,7 +204,6 @@ def test_callable_events():
 
     # assert ret in Events
     assert Events.ITERATION_STARTED.name in f"{ret}"
-    # assert ret in State.event_to_attr
 
     ret = Events.ITERATION_STARTED(once=10)
     assert isinstance(ret, CallableEventWithFilter)
@@ -182,7 +212,6 @@ def test_callable_events():
 
     # assert ret in Events
     assert Events.ITERATION_STARTED.name in f"{ret}"
-    # assert ret in State.event_to_attr
 
     def _attach(e1, e2):
         assert id(e1) != id(e2)
@@ -410,7 +439,7 @@ def test_custom_callable_events_with_engine():
     class CustomEvents(EventEnum):
         TEST_EVENT = "test_event"
 
-    event_to_attr = {CustomEvents.TEST_EVENT: "test_event"}
+    attr_to_events = {"test_event": [CustomEvents.TEST_EVENT]}
 
     special_events = [1, 2, 5, 7, 17, 20]
 
@@ -421,11 +450,12 @@ def test_custom_callable_events_with_engine():
 
     def _test(event_name, event_attr, true_num_calls):
         def update_fn(engine, batch):
-            engine.state.test_event = engine.state.iteration
+            # After engine refactoring we don't need to
+            # increase/set the counter of the event
             engine.fire_event(CustomEvents.TEST_EVENT)
 
         engine = Engine(update_fn)
-        engine.register_events(*CustomEvents, event_to_attr=event_to_attr)
+        engine.register_events(*CustomEvents, attr_to_events=attr_to_events)
 
         num_calls = [
             0,
