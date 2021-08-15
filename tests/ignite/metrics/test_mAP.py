@@ -13,8 +13,8 @@ from ignite.metrics import MeanAveragePrecision
 
 def get_coco_results():
     dir_path = os.getcwd()
-    cocoGt = COCO(dir_path + "/gt.json")
-    cocoDt = cocoGt.loadRes(dir_path + "/dt.json")
+    cocoGt = COCO(dir_path + "/tests/ignite/metrics/gt.json")
+    cocoDt = cocoGt.loadRes(dir_path + "/tests/ignite/metrics/dt.json")
 
     imgIds = sorted(cocoGt.getImgIds())
 
