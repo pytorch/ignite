@@ -117,7 +117,7 @@ def _test_distrib_integration(device):
         torch.manual_seed(12)
 
         def update(_, img_id):
-            return [[img_id, img_dts[img_id]], [img_id, img_gts[img_id]]]
+            return [img_dts[img_id], img_gts[img_id]]
 
         engine = Engine(update)
 

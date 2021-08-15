@@ -177,13 +177,13 @@ class AP(Metric):
         self.img_id_count += 1
 
         classes = set()
-        classwise_gt: defaultdict = defaultdict(lambda: torch.zeros(0, 9))
+        classwise_gt: defaultdict = defaultdict(lambda: torch.zeros(0, 9).to(self.device))
         for gt in gt_img:
             class_id = int(gt[i_class_id])
             classes.add(class_id)
             classwise_gt[class_id] = torch.vstack([classwise_gt[class_id], gt])
 
-        classwise_dt: defaultdict = defaultdict(lambda: torch.zeros(0, 9))
+        classwise_dt: defaultdict = defaultdict(lambda: torch.zeros(0, 9).to(self.device))
         for dt in dt_img:
             class_id = int(dt[i_class_id])
             classes.add(class_id)
@@ -210,7 +210,7 @@ class AP(Metric):
         dt = dt[torch.argsort(dt[:, d_confidence])]
 
         crowd = [g[i_crowd] for g in gt]
-        ious = iou(gt[:, i_xmin:i_area], dt[:, i_xmin:i_area], crowd)
+        ious = iou(gt[:, i_xmin:i_area], dt[:, i_xmin:i_area], crowd).to(self.device)
 
         return ious
 
@@ -238,9 +238,9 @@ class AP(Metric):
         num_iou_thrs = len(self.iou_thrs)
         num_gt = len(gt)
         num_dt = len(dt)
-        gtm = torch.zeros(num_iou_thrs, num_gt)
-        dtm = torch.zeros(num_iou_thrs, num_dt)
-        dt_ignore = torch.zeros(num_iou_thrs, num_dt)
+        gtm = torch.zeros((num_iou_thrs, num_gt), device=self.device)
+        dtm = torch.zeros((num_iou_thrs, num_dt), device=self.device)
+        dt_ignore = torch.zeros((num_iou_thrs, num_dt), device=self.device)
 
         if len(ious) != 0:
             for tind, t in enumerate(self.iou_thrs):
@@ -267,10 +267,11 @@ class AP(Metric):
                     gtm[tind, m] = d[i_id]
 
         a = torch.tensor([d[i_area] < area_rng[0] or d[i_area] > area_rng[1] for d in dt]).reshape((1, len(dt)))
+        a = a.to(self.device)
 
         dt_ignore = torch.logical_or(
             dt_ignore, torch.logical_and(dtm == 0, torch.repeat_interleave(a, num_iou_thrs, 0))
-        )
+        ).to(self.device)
 
         return {
             "dtMatches": dtm,
@@ -287,7 +288,7 @@ class AP(Metric):
         num_area = len(self.area_rngs)
 
         max_det = self.max_det
-        precision = -torch.ones((num_iou_thr, num_rec_thr, num_classes, num_area))
+        precision = -torch.ones((num_iou_thr, num_rec_thr, num_classes, num_area), device=self.device)
 
         # retrieve eval_imgs at each category, area range, and max number of detections
         for c, class_id in enumerate(self.class_ids):
@@ -381,7 +382,7 @@ class AP(Metric):
             return
 
         gather_dicts: List[Dict] = [defaultdict(list)] * dist.get_world_size()
-        dist.gather_object(self.eval_imgs, gather_dicts if dist.get_rank() == 0 else None, dst=0)
+        dist.all_gather_object(gather_dicts, self.eval_imgs)
         if dist.get_rank() == 0:
             keys = set()
             for eval_imgs in gather_dicts:
