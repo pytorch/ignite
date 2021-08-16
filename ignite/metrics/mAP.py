@@ -3,7 +3,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 
-from ignite.metrics.metric import Metric, reinit__is_reduced
+from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
 
 def iou(gt: torch.Tensor, dt: torch.Tensor, crowd: List) -> torch.Tensor:
@@ -286,7 +286,6 @@ class MeanAveragePrecision(Metric):
             "dtIgnore": dt_ignore,
         }
 
-    @reinit__is_reduced
     def _accumulate(self) -> None:
         num_iou_thr = len(self.iou_thrs)
         num_rec_thr = len(self.rec_thrs)
@@ -362,7 +361,6 @@ class MeanAveragePrecision(Metric):
 
         return mean_s.item()
 
-    @reinit__is_reduced
     def _gather_all(self) -> None:
         import torch.distributed as dist
 
@@ -389,6 +387,7 @@ class MeanAveragePrecision(Metric):
                     combined_eval_imgs[key] += eval_imgs[key]
             self.eval_imgs = combined_eval_imgs
 
+    @sync_all_reduce()
     def compute(self) -> Dict:
         self._gather_all()
         self._accumulate()

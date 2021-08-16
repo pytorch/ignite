@@ -102,7 +102,7 @@ def test_against_coco_map():
 
 
 def _test_distrib_integration(device):
-    def _test():
+    def _test(metric_device):
         torch.manual_seed(12)
 
         def update(_, img_id):
@@ -110,7 +110,7 @@ def _test_distrib_integration(device):
 
         engine = Engine(update)
 
-        mAP = MeanAveragePrecision(device=device)
+        mAP = MeanAveragePrecision(device=metric_device)
         mAP.attach(engine, "mAP")
 
         data = img_list
@@ -131,8 +131,9 @@ def _test_distrib_integration(device):
     metric_devices = ["cpu"]
     if device.type != "xla":
         metric_devices.append(idist.device())
+
     for metric_device in metric_devices:
-        _test()
+        _test(metric_device=metric_device)
 
 
 @pytest.mark.distributed
