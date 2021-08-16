@@ -250,7 +250,7 @@ def test_with_engine_no_early_stopping():
 def _test_distrib_with_engine_early_stopping(device):
 
     import torch.distributed as dist
-    
+
     if device is None:
         device = idist.device()
     if isinstance(device, str):
@@ -265,11 +265,11 @@ def _test_distrib_with_engine_early_stopping(device):
     n_epochs_counter = Counter()
 
     scores = torch.tensor([1.0, 0.8, 1.2, 1.5, 0.9, 1.0, 0.99, 1.1, 0.9], requires_grad=False).to(device)
-    
+
     def score_function(engine):
         i = trainer.state.epoch - 1
         v = scores[i]
-        dist.all_reduce(v)
+        idist.all_reduce(v)
         v /= idist.get_world_size()
         return v.item()
 
@@ -286,8 +286,8 @@ def _test_distrib_with_engine_early_stopping(device):
     trainer.run([0], max_epochs=10)
     assert trainer.state.epoch == 7
     assert n_epochs_counter.count == 7
-    
-    
+
+
 def _test_distrib_integration_engine_early_stopping(device):
 
     import torch.distributed as dist
