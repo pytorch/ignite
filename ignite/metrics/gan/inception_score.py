@@ -60,7 +60,7 @@ class InceptionScore(_BaseInceptionMetric):
             m.update(images)
             print(m.compute())
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.6
     """
 
     def __init__(

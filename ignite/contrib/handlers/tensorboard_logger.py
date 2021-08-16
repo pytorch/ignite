@@ -1,6 +1,4 @@
 """TensorBoard logger and its helper handlers."""
-import numbers
-import warnings
 from typing import Any, Callable, List, Optional, Union
 
 import torch
@@ -176,7 +174,7 @@ class TensorboardLogger(BaseLogger):
 
 
 class OutputHandler(BaseOutputHandler):
-    """Helper handler to log engine's output and/or metrics
+    """Helper handler to log engine's output, engine's state attributes and/or metrics
 
     Examples:
 
@@ -236,6 +234,21 @@ class OutputHandler(BaseOutputHandler):
                 global_step_transform=global_step_transform
             )
 
+        Another example where the State Attributes ``trainer.state.alpha`` and ``trainer.state.beta``
+        are also logged along with the NLL and Accuracy after each iteration:
+
+        .. code-block:: python
+
+            tb_logger.attach(
+                trainer,
+                log_handler=OutputHandler(
+                    tag="training",
+                    metric_names=["nll", "accuracy"],
+                    state_attributes=["alpha", "beta"],
+                ),
+                event_name=Events.ITERATION_COMPLETED
+            )
+
     Args:
         tag: common title for all produced plots. For example, "training"
         metric_names: list of metric names to plot or a string "all" to plot all available
@@ -249,6 +262,7 @@ class OutputHandler(BaseOutputHandler):
             Default is None, global_step based on attached engine. If provided,
             uses function output as global_step. To setup global step from another engine, please use
             :meth:`~ignite.contrib.handlers.tensorboard_logger.global_step_from_engine`.
+        state_attributes: list of attributes of the ``trainer.state`` to plot.
 
     Note:
 
@@ -259,6 +273,8 @@ class OutputHandler(BaseOutputHandler):
             def global_step_transform(engine, event_name):
                 return engine.state.get_event_attrib_value(event_name)
 
+    ..  versionchanged:: 0.5.0
+        accepts an optional list of `state_attributes`
     """
 
     def __init__(
@@ -267,15 +283,18 @@ class OutputHandler(BaseOutputHandler):
         metric_names: Optional[List[str]] = None,
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable] = None,
+        state_attributes: Optional[List[str]] = None,
     ):
-        super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
+        super(OutputHandler, self).__init__(
+            tag, metric_names, output_transform, global_step_transform, state_attributes
+        )
 
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, EventEnum]) -> None:
 
         if not isinstance(logger, TensorboardLogger):
             raise RuntimeError("Handler 'OutputHandler' works only with TensorboardLogger")
 
-        metrics = self._setup_output_metrics(engine)
+        metrics = self._setup_output_metrics_state_attrs(engine, key_tuple=False)
 
         global_step = self.global_step_transform(engine, event_name)  # type: ignore[misc]
         if not isinstance(global_step, int):
@@ -285,15 +304,7 @@ class OutputHandler(BaseOutputHandler):
             )
 
         for key, value in metrics.items():
-            if isinstance(value, numbers.Number):
-                logger.writer.add_scalar(f"{self.tag}/{key}", value, global_step)
-            elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                logger.writer.add_scalar(f"{self.tag}/{key}", value.item(), global_step)
-            elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
-                for i, v in enumerate(value):
-                    logger.writer.add_scalar(f"{self.tag}/{key}/{i}", v.item(), global_step)
-            else:
-                warnings.warn(f"TensorboardLogger output_handler can not log metrics value type {type(value)}")
+            logger.writer.add_scalar(key, value, global_step)
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):

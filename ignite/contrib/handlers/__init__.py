@@ -3,7 +3,6 @@ from ignite.contrib.handlers.mlflow_logger import MLflowLogger
 from ignite.contrib.handlers.neptune_logger import NeptuneLogger
 from ignite.contrib.handlers.polyaxon_logger import PolyaxonLogger
 from ignite.contrib.handlers.tensorboard_logger import TensorboardLogger
-from ignite.contrib.handlers.time_profilers import BasicTimeProfiler, HandlersTimeProfiler
 from ignite.contrib.handlers.tqdm_logger import ProgressBar
 from ignite.contrib.handlers.trains_logger import TrainsLogger
 from ignite.contrib.handlers.visdom_logger import VisdomLogger
@@ -20,3 +19,4 @@ from ignite.handlers.param_scheduler import (
     PiecewiseLinear,
     create_lr_scheduler_with_warmup,
 )
+from ignite.handlers.time_profilers import BasicTimeProfiler, HandlersTimeProfiler

@@ -1,9 +1,6 @@
 """Polyaxon logger and its helper handlers."""
-import numbers
-import warnings
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, List, Optional, Union
 
-import torch
 from torch.optim import Optimizer
 
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler
@@ -193,6 +190,19 @@ class OutputHandler(BaseOutputHandler):
                 global_step_transform=global_step_transform
             )
 
+        Another example where the State Attributes ``trainer.state.alpha`` and ``trainer.state.beta``
+        are also logged along with the NLL and Accuracy after each iteration:
+
+        .. code-block:: python
+
+            plx_logger.attach_output_handler(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                tag="training",
+                metrics=["nll", "accuracy"],
+                state_attributes=["alpha", "beta"],
+            )
+
     Args:
         tag: common title for all produced plots. For example, "training"
         metric_names: list of metric names to plot or a string "all" to plot all available
@@ -206,6 +216,7 @@ class OutputHandler(BaseOutputHandler):
             Default is None, global_step based on attached engine. If provided,
             uses function output as global_step. To setup global step from another engine, please use
             :meth:`~ignite.contrib.handlers.polyaxon_logger.global_step_from_engine`.
+        state_attributes: list of attributes of the ``trainer.state`` to plot.
 
     Note:
 
@@ -216,6 +227,8 @@ class OutputHandler(BaseOutputHandler):
             def global_step_transform(engine, event_name):
                 return engine.state.get_event_attrib_value(event_name)
 
+    ..  versionchanged:: 0.5.0
+        accepts an optional list of `state_attributes`
     """
 
     def __init__(
@@ -224,15 +237,18 @@ class OutputHandler(BaseOutputHandler):
         metric_names: Optional[List[str]] = None,
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable] = None,
+        state_attributes: Optional[List[str]] = None,
     ):
-        super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
+        super(OutputHandler, self).__init__(
+            tag, metric_names, output_transform, global_step_transform, state_attributes
+        )
 
     def __call__(self, engine: Engine, logger: PolyaxonLogger, event_name: Union[str, Events]) -> None:
 
         if not isinstance(logger, PolyaxonLogger):
             raise RuntimeError("Handler 'OutputHandler' works only with PolyaxonLogger")
 
-        metrics = self._setup_output_metrics(engine)
+        metrics = self._setup_output_metrics_state_attrs(engine, key_tuple=False)
 
         global_step = self.global_step_transform(engine, event_name)  # type: ignore[misc]
 
@@ -242,19 +258,9 @@ class OutputHandler(BaseOutputHandler):
                 " Please check the output of global_step_transform."
             )
 
-        rendered_metrics = {"step": global_step}  # type: Dict[str, Union[float, numbers.Number]]
-        for key, value in metrics.items():
-            if isinstance(value, numbers.Number):
-                rendered_metrics[f"{self.tag}/{key}"] = value
-            elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                rendered_metrics[f"{self.tag}/{key}"] = value.item()
-            elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
-                for i, v in enumerate(value):
-                    rendered_metrics[f"{self.tag}/{key}/{i}"] = v.item()
-            else:
-                warnings.warn(f"PolyaxonLogger output_handler can not log metrics value type {type(value)}")
+        metrics.update({"step": global_step})
 
-        logger.log_metrics(**rendered_metrics)
+        logger.log_metrics(**metrics)
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):
