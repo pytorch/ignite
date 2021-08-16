@@ -269,7 +269,7 @@ def _test_distrib_with_engine_early_stopping(device):
     def score_function(engine):
         i = trainer.state.epoch - 1
         v = scores[i]
-        dist.all_reduce(v)
+        idist.all_reduce(v)
         v /= idist.get_world_size()
         return v.item()
 
