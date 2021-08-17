@@ -382,6 +382,9 @@ class MeanAveragePrecision(Metric):
         eval_gather_dicts: List[Dict] = [defaultdict(list)] * dist.get_world_size()
         dist.all_gather_object(eval_gather_dicts, self.eval_imgs)
 
+        category_gather_list: List[Set] = [set()] * dist.get_world_size()
+        dist.all_gather_object(category_gather_list, self.category_ids)
+
         keys = set()
         for eval_imgs in eval_gather_dicts:
             for key in eval_imgs:
@@ -392,9 +395,6 @@ class MeanAveragePrecision(Metric):
                 combined_eval_imgs[key] += eval_imgs[key]
         self.eval_imgs = combined_eval_imgs
 
-        category_gather_list: List[Set] = [set()] * dist.get_world_size()
-        dist.all_gather_object(category_gather_list, self.category_ids)
-
         all_category_ids = set()
         for category_set in category_gather_list:
             for category_id in category_set:
@@ -402,7 +402,7 @@ class MeanAveragePrecision(Metric):
 
         self.category_ids = all_category_ids
 
-    @sync_all_reduce
+    @sync_all_reduce()
     def compute(self) -> Dict:
         self._gather_all()
         self._accumulate()
