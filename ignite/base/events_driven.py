@@ -60,6 +60,9 @@ class EventsDriven:
 
         self._allowed_events = []  # type: List[EventEnum]
         self._allowed_events_counts = {}  # type: Dict[Union[str, EventEnum], int]
+        # This is a temporary attribute, remove this attribute after
+        # forbidding resetting State.
+        self._engine_attr_to_events = {}  # type: Dict[str, List["Events"]]
 
         self.last_event_name = None  # type: Optional[Events]
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
@@ -271,8 +274,12 @@ class EventsDrivenState:
         attr_to_events: Optional[Dict[str, List["Events"]]] = None,
         **kwargs: Any,
     ):
+        from copy import deepcopy
 
-        self._attr_to_events = attr_to_events if attr_to_events else defaultdict(list)  # type: Dict[str, List[Events]]
+        copy_attr_to_events = deepcopy(attr_to_events)
+        self._attr_to_events = (
+            copy_attr_to_events if copy_attr_to_events else defaultdict(list)
+        )  # type: Dict[str, List[Events]]
         self._engine = engine  # type: Optional[EventsDriven]
 
     @property
@@ -282,19 +289,20 @@ class EventsDrivenState:
     @engine.setter
     def engine(self, new_engine: EventsDriven) -> None:
         # First: check if new engines counted events corresponds to _attr_to_events
-        # for events in self._attr_to_events.values():
-        #     if not all([e in new_engine._allowed_events for e in events]):
-        #         raise ValueError(f"Input engine does not contain one or more of {events}")
+        for events in self._attr_to_events.values():
+            if not all([e in new_engine._allowed_events for e in events]):
+                raise ValueError(f"Input engine does not contain one or more of {events}")
 
         self._engine = new_engine
 
-        # Remove temporary counted attributes
+        # Sync attributes with engine counters if needed
         for k, v in dict(self.__dict__).items():
-            if k in self._attr_to_events:
+            if k in self._engine._engine_attr_to_events:
                 # We should remove attribute that is synced with engine
                 del self.__dict__[k]
-                for event in self._attr_to_events[k]:
+                for event in self._engine._engine_attr_to_events[k]:
                     self._engine._allowed_events_counts[event] = v
+                self.update_attribute_mapping(attribute=k, events=self._engine._engine_attr_to_events[k])
 
     def __getattr__(self, attr: str) -> Any:
         evnts = None

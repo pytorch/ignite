@@ -449,14 +449,13 @@ def test__allowed_events_counts_values_after_setting_state():
         A = "a"
 
     attr_to_events = {"a": [CustomEvents.A]}
-    engine.register_events(*CustomEvents, attr_to_events=attr_to_events)
 
+    engine.register_events(*CustomEvents, attr_to_events=attr_to_events)
     engine.state = State(a=60)
 
     assert engine._allowed_events_counts[CustomEvents.A] == 60
     assert engine.state.a == 60
     assert "a" not in engine.state.__dict__
-    # del engine.state
 
 
 def test_time_stored_in_state():
@@ -464,8 +463,6 @@ def test_time_stored_in_state():
         sleep_time = 0.01
         extra_sleep_time = 0.1
         engine = Engine(lambda e, b: time.sleep(sleep_time))
-        print(engine._allowed_events)
-        print(engine.state._attr_to_events)
 
         @engine.on(Events.EPOCH_COMPLETED)
         def check_epoch_time():

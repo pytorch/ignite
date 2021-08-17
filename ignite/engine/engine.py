@@ -133,8 +133,8 @@ class Engine(Serializable, EventsDrivenWithState):
         self._dataloader_iter = None  # type: Optional[Iterator[Any]]
         self._init_iter = []  # type: List[int]
 
-        self._state = State(engine=self)
         self.register_events(*Events, attr_to_events=State.attr_to_events)
+        self._state = State(engine=self)
 
         if self._process_function is None:
             raise ValueError("Engine must be given a processing function in order to run.")
@@ -149,7 +149,7 @@ class Engine(Serializable, EventsDrivenWithState):
     def state(self, new_state: State) -> None:
         warnings.warn(
             "Resetting state is deprecated, and will be forbidden in the next release. "
-            "Please set attributes once at a time instead of setting state at once."
+            "Please set attributes once at a time instead of setting state all at once."
         )
         self._state = new_state
         self._state.engine = self
@@ -257,6 +257,7 @@ class Engine(Serializable, EventsDrivenWithState):
         if attr_to_events is not None:
             for attribute, events in attr_to_events.items():
                 self._state.update_attribute_mapping(attribute, events)
+                self._engine_attr_to_events[attribute] = events
 
     def add_event_handler(self, event_name: Any, handler: Callable, *args: Any, **kwargs: Any) -> RemovableEventHandle:
         """Add an event handler to be executed when the specified event is fired.
