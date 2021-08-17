@@ -38,7 +38,7 @@ class MultiLabelConfusionMatrix(Metric):
             default, CPU.
         normalized: whether to normalize confusion matrix by its sum or not.
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.5
 
     """
 
