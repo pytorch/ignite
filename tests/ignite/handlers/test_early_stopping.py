@@ -299,8 +299,8 @@ def _test_distrib_integration_engine_early_stopping(device):
     if isinstance(device, str):
         device = torch.device(device)
 
-    rank = dist.get_rank()
-    ws = dist.get_world_size()
+    rank = idist.get_rank()
+    ws = idist.get_world_size()
     torch.manual_seed(12)
 
     n_epochs = 10
