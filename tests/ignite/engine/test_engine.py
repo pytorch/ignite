@@ -457,6 +457,21 @@ def test__allowed_events_counts_values_after_setting_state():
     assert engine.state.a == 60
     assert "a" not in engine.state.__dict__
 
+    engine.state.a = 90
+    assert engine._allowed_events_counts[CustomEvents.A] == 90
+    assert engine.state.a == 90
+
+    class AnotherCustomEvents(EventEnum):
+        B = "b"
+
+    attr_to_events = {"b": [AnotherCustomEvents.B]}
+
+    engine.register_events(*AnotherCustomEvents, attr_to_events=attr_to_events)
+
+    assert engine._allowed_events_counts[AnotherCustomEvents.B] == 0
+    assert engine.state.b == 0
+    assert "b" not in engine.state.__dict__
+
 
 def test_time_stored_in_state():
     def _test(data, max_epochs, epoch_length):
