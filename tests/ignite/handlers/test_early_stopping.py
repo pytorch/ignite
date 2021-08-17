@@ -249,8 +249,6 @@ def test_with_engine_no_early_stopping():
 
 def _test_distrib_with_engine_early_stopping(device):
 
-    import torch.distributed as dist
-
     if device is None:
         device = idist.device()
     if isinstance(device, str):
@@ -290,14 +288,15 @@ def _test_distrib_with_engine_early_stopping(device):
 
 def _test_distrib_integration_engine_early_stopping(device):
 
-    import torch.distributed as dist
-
     from ignite.metrics import Accuracy
 
     if device is None:
         device = idist.device()
     if isinstance(device, str):
         device = torch.device(device)
+    metric_device = device
+    if device.type == 'xla':
+        metric_device = 'cpu'
 
     rank = idist.get_rank()
     ws = idist.get_world_size()
@@ -324,7 +323,7 @@ def _test_distrib_integration_engine_early_stopping(device):
         return y_preds[e][i, rank], y_true[e][i, rank]
 
     evaluator = Engine(update)
-    acc = Accuracy(device=device)
+    acc = Accuracy(device=metric_device)
     acc.attach(evaluator, "acc")
 
     def score_function(engine):
