@@ -295,8 +295,8 @@ def _test_distrib_integration_engine_early_stopping(device):
     if isinstance(device, str):
         device = torch.device(device)
     metric_device = device
-    if device.type == 'xla':
-        metric_device = 'cpu'
+    if device.type == "xla":
+        metric_device = "cpu"
 
     rank = idist.get_rank()
     ws = idist.get_world_size()
