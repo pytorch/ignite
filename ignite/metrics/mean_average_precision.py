@@ -132,8 +132,6 @@ class MeanAveragePrecision(Metric):
                 raise ValueError(f"rec_thrs should be an Iterable of type float, got {type(thr)}")
         self.rec_thrs: torch.Tensor = self.get_tensor(rec_thrs, device)
 
-        self.device: Union[str, torch.device] = device
-
         class labels:
             i_id = 0
             i_category_id = 1
@@ -182,17 +180,17 @@ class MeanAveragePrecision(Metric):
     def update(self, output: Any) -> None:
         y_pred_img, y_img = self._get_samples(output)
 
-        y_pred_img = y_pred_img.to(self.device)
-        y_img = y_img.to(self.device)
+        y_pred_img = y_pred_img.to(self._device)
+        y_img = y_img.to(self._device)
 
         categories = set()
-        categorywise_y: defaultdict = defaultdict(lambda: torch.zeros(0, 9).to(self.device))
+        categorywise_y: defaultdict = defaultdict(lambda: torch.zeros(0, 9).to(self._device))
         for y in y_img:
             category_id = int(y[self.labels.i_category_id])
             categories.add(category_id)
             categorywise_y[category_id] = torch.vstack([categorywise_y[category_id], y])
 
-        categorywise_y_pred: defaultdict = defaultdict(lambda: torch.zeros(0, 9).to(self.device))
+        categorywise_y_pred: defaultdict = defaultdict(lambda: torch.zeros(0, 9).to(self._device))
         for y_pred in y_pred_img:
             category_id = int(y_pred[self.labels.i_category_id])
             categories.add(category_id)
@@ -221,7 +219,7 @@ class MeanAveragePrecision(Metric):
         crowd = [g[self.labels.i_crowd] for g in y]
         ious = iou(
             y[:, self.labels.i_xmin : self.labels.i_area], y_pred[:, self.labels.i_xmin : self.labels.i_area], crowd
-        ).to(self.device)
+        ).to(self._device)
 
         return ious
 
@@ -249,9 +247,9 @@ class MeanAveragePrecision(Metric):
         num_iou_thrs = len(self.iou_thrs)
         num_y = len(y)
         num_y_pred = len(y_pred)
-        ym = torch.zeros((num_iou_thrs, num_y), device=self.device)
-        y_predm = torch.zeros((num_iou_thrs, num_y_pred), device=self.device)
-        y_pred_ignore = torch.zeros((num_iou_thrs, num_y_pred), device=self.device)
+        ym = torch.zeros((num_iou_thrs, num_y), device=self._device)
+        y_predm = torch.zeros((num_iou_thrs, num_y_pred), device=self._device)
+        y_pred_ignore = torch.zeros((num_iou_thrs, num_y_pred), device=self._device)
 
         if len(ious) != 0:
             for tind, t in enumerate(self.iou_thrs):
@@ -280,11 +278,11 @@ class MeanAveragePrecision(Metric):
         a = torch.tensor(
             [d[self.labels.i_area] < area_rng[0] or d[self.labels.i_area] > area_rng[1] for d in y_pred]
         ).reshape((1, len(y_pred)))
-        a = a.to(self.device)
+        a = a.to(self._device)
 
         y_pred_ignore = torch.logical_or(
             y_pred_ignore, torch.logical_and(y_predm == 0, torch.repeat_interleave(a, num_iou_thrs, 0))
-        ).to(self.device)
+        ).to(self._device)
 
         return {
             "y_pred_matches": y_predm,
@@ -301,7 +299,7 @@ class MeanAveragePrecision(Metric):
         num_area = len(self.area_rngs)
 
         max_det = self.max_det
-        precision = -torch.ones((num_iou_thr, num_rec_thr, num_categories, num_area), device=self.device)
+        precision = -torch.ones((num_iou_thr, num_rec_thr, num_categories, num_area), device=self._device)
 
         # retrieve eval_imgs at each category, area range, and max number of detections
         for c, category_id in enumerate(self.category_ids):
@@ -327,8 +325,8 @@ class MeanAveragePrecision(Metric):
                 tps = torch.logical_and(predm, torch.logical_not(pred_ignore))
                 fps = torch.logical_and(torch.logical_not(predm), torch.logical_not(pred_ignore))
                 # Calculate precision and recall iteratively
-                tp_sum = torch.cumsum(tps, dim=1).to(device=self.device, dtype=torch.float64)
-                fp_sum = torch.cumsum(fps, dim=1).to(device=self.device, dtype=torch.float64)
+                tp_sum = torch.cumsum(tps, dim=1).to(device=self._device, dtype=torch.float64)
+                fp_sum = torch.cumsum(fps, dim=1).to(device=self._device, dtype=torch.float64)
 
                 for t, (tp, fp) in enumerate(zip(tp_sum, fp_sum)):
                     nd = len(tp)
