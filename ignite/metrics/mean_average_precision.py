@@ -127,8 +127,6 @@ class MeanAveragePrecision(Metric):
             raise ValueError(f"rec_thrs should be a float tensor, got {rec_thrs.dtype}")
         self.rec_thrs: torch.Tensor = rec_thrs.to(device)
 
-        self.img_id_count = 1
-
         self.device: Union[str, torch.device] = device
 
         class labels:
@@ -176,9 +174,6 @@ class MeanAveragePrecision(Metric):
         y_pred_img = y_pred_img.to(self.device)
         y_img = y_img.to(self.device)
 
-        img_id = self.img_id_count
-        self.img_id_count += 1
-
         categories = set()
         categorywise_y: defaultdict = defaultdict(lambda: torch.zeros(0, 9).to(self.device))
         for y in y_img:
@@ -192,7 +187,6 @@ class MeanAveragePrecision(Metric):
             categories.add(category_id)
             categorywise_y_pred[category_id] = torch.vstack([categorywise_y_pred[category_id], y_pred])
 
-        self.img_ids.add(img_id)
         self.category_ids.update(categories)
 
         for category_id in categories:
@@ -207,7 +201,6 @@ class MeanAveragePrecision(Metric):
     @reinit__is_reduced
     def reset(self) -> None:
         self.category_ids: set = set()
-        self.img_ids: set = set()
 
         self.eval_imgs: defaultdict = defaultdict(list)
 

@@ -10,6 +10,18 @@ import ignite.distributed as idist
 from ignite.engine import Engine
 from ignite.metrics import MeanAveragePrecision
 
+y = [
+    [1, 1, 1.13, 190.22, 247.97, 137.01, 13426.68, 0, 0],
+    [2, 2, 189.42, 30.26, 429.41, 428.34, 84122.97, 0, 0],
+    [3, 1, 412.64, 193.67, 125.51, 198.6, 8896.38, 0, 0],
+]
+
+y_pred = [
+    [1, 1, 429.64, 193.67, 125.51, 198.6, 24926.28, 0, 0.884],
+    [2, 1, 0, 190.22, 212.1, 137.01, 29059.82, 0, 0.577],
+    [3, 2, 188.87, 129.27, 307.8, 343.32, 105673.89, 0, 0.073],
+]
+
 
 def get_coco_results():
     dir_path = os.getcwd()
@@ -82,6 +94,66 @@ def test_wrong_inputs():
 
     with pytest.raises(ValueError, match="ground_truths should be of size"):
         mAP.update([torch.zeros(1, 9), torch.zeros(2, 10)])
+
+
+def _check_results(expected, actual):
+    assert expected[0] == pytest.approx(actual["all"], 1e-2)
+    assert expected[1] == pytest.approx(actual["all@0.5"], 1e-2)
+    assert expected[2] == pytest.approx(actual["all@0.75"], 1e-2)
+    assert expected[3] == pytest.approx(actual["small"], 1e-2)
+    assert expected[4] == pytest.approx(actual["medium"], 1e-2)
+    assert expected[5] == pytest.approx(actual["large"], 1e-2)
+
+
+def _test_mAP(y, y_pred, expected_result):
+    mAP = MeanAveragePrecision()
+
+    mAP.update([torch.tensor(y_pred), torch.tensor(y)])
+
+    results = mAP.compute()
+
+    _check_results(expected_result, results)
+
+
+def _test_mAP_two_images(y, y_pred, expected_result):
+    mAP = MeanAveragePrecision()
+
+    mAP.update([torch.vstack([y_pred[0], y_pred[2]]), y[:2]])
+    mAP.update([torch.vstack([y_pred[1]]), torch.vstack([y[2]])])
+
+    results = mAP.compute()
+
+    _check_results(expected_result, results)
+
+
+def test_mAP_edge_cases():
+    # #y == #y_pred
+    expected_result = [0.3626, 1, 0.5, -1, 0.6, 0.375]
+    _test_mAP(torch.tensor(y), torch.tensor(y_pred), expected_result)
+
+    # #y < #y_pred
+    expected_result = [0.22499, 0.75, 0.25, -1, -1, 0.22499]
+    _test_mAP(torch.tensor(y[:2]), torch.tensor(y_pred), expected_result)
+
+    # #y > #y_pred
+    expected_result = [0.312, 0.5, 0.5, -1, 0.6, 0.32499]
+    _test_mAP(torch.tensor(y), torch.tensor(y_pred[:2]), expected_result)
+
+    # #y == 0 and #y_pred != 0
+    expected_result = [-1, -1, -1, -1, -1, -1]
+    _test_mAP(torch.zeros(0, 9), torch.tensor(y_pred[:2]), expected_result)
+
+    # #y != 0 and #y_pred == 0
+    expected_result = [0, 0, 0, -1, 0, 0]
+    _test_mAP(torch.tensor(y), torch.zeros(0, 9), expected_result)
+
+    # #y == 0 and #y_pred == 0
+    expected_result = [-1, -1, -1, -1, -1, -1]
+    _test_mAP(torch.zeros(0, 9), torch.zeros(0, 9), expected_result)
+
+    # two images
+    expected_result = [0.05, 0.5, 0, -1, 0, 0.05]
+    _test_mAP_two_images(torch.tensor(y), torch.tensor(y_pred), expected_result)
 
 
 def test_against_coco_map():
