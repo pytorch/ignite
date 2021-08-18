@@ -200,7 +200,10 @@ class MeanAveragePrecision(Metric):
             for area_rng in self.object_area_ranges:
                 self.eval_imgs[category_id, area_rng].append(
                     self._evaluate_image(
-                        categorywise_y[category_id], categorywise_y_pred[category_id], self.object_area_ranges[area_rng], ious
+                        categorywise_y[category_id],
+                        categorywise_y_pred[category_id],
+                        self.object_area_ranges[area_rng],
+                        ious,
                     )
                 )
 
