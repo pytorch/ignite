@@ -76,13 +76,9 @@ cocoEval, img_list, img_gts, img_dts = get_coco_results()
 
 def test_wrong_inputs():
     with pytest.raises(ValueError, match="area_rngs should be a dictionary with key as area name"):
-        mAP = MeanAveragePrecision(area_rngs={1: 2})
-    with pytest.raises(ValueError, match="max_det should be a positive integer, got"):
-        mAP = MeanAveragePrecision(max_det=-1)
-    with pytest.raises(ValueError, match="iou_thrs should be an Iterable of type float, got"):
-        mAP = MeanAveragePrecision(iou_thrs=[1, 2, "s"])
-    with pytest.raises(ValueError, match="rec_thrs should be an Iterable of type float, got"):
-        mAP = MeanAveragePrecision(rec_thrs=[1, 3, "s"])
+        MeanAveragePrecision(area_rngs={1: 2})
+    with pytest.raises(ValueError, match="Argument num_detection_max should be a positive integer, got"):
+        MeanAveragePrecision(num_detection_max=-1)
 
     mAP = MeanAveragePrecision()
 

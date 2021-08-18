@@ -35,7 +35,7 @@ def iou(y: torch.Tensor, y_pred: torch.Tensor, crowd: List) -> torch.Tensor:
 
 
 class MeanAveragePrecision(Metric):
-    r"""Calculates Mean Average Precision for object detection data.
+    r"""Calculates Mean Average Precision (mAP) for object detection data.
 
     .. math::
        \text{MeanAveragePrecision} = {1/11}\sum_{r \in {0.0, ..., 1.0}}\text{AP}_r
@@ -57,10 +57,10 @@ class MeanAveragePrecision(Metric):
         area_rngs: dictionary with area_name as key and a tuple of the form
             (lower_area_range, upper_area_range) as value, where both values are floats.
             It contains all area ranges for which AP needs to be computed.
-        max_det: Maximum detections allowed per image. This is to limit crowding and repeated
+        num_detection_max: Number of maximum detections allowed per image. This is to limit crowding and repeated
             detections of the same object.
-        iou_thrs: A float tensor containing a set of IoU thresholds for which AP needs to be computed.
-        rec_thrs: A float tensor containing a set of values at which AP needs to be computed for averaging.
+        iou_thresholds: Optional list of float IoU thresholds for which AP is computed (default: [.5:.05:.95]).
+        rec_thresholds: Optional list of float values to which AP is computed for averaging (default: [0:.01:1]).
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
@@ -108,9 +108,9 @@ class MeanAveragePrecision(Metric):
             "medium": [1024, 9216],
             "large": [9216, float("inf")],
         },
-        max_det: int = 100,
-        iou_thrs: torch.Tensor = torch.tensor([0.5 + (i / 20) for i in range(10)]),  # type: ignore
-        rec_thrs: torch.Tensor = torch.tensor([i / 100 for i in range(101)]),  # type: ignore
+        num_detection_max: int = 100,
+        iou_thresholds: Optional[List[float]] = None,
+        rec_thresholds: Optional[List[float]] = None,
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
@@ -118,19 +118,18 @@ class MeanAveragePrecision(Metric):
         self.area_rngs: Dict = area_rngs
         self.area_rngs["all"] = [0, float("inf")]
 
-        self.max_det: int = max_det
-        if type(self.max_det) != int or self.max_det < 1:
-            raise ValueError(f"max_det should be a positive integer, got {self.max_det}")
+        if num_detection_max < 1:
+            raise ValueError(f"Argument num_detection_max should be a positive integer, got {num_detection_max}")
 
-        for thr in iou_thrs:
-            if not isinstance(thr, float) and not isinstance(thr, torch.Tensor):
-                raise ValueError(f"iou_thrs should be an Iterable of type float, got {type(thr)}")
-        self.iou_thrs: torch.Tensor = self.get_tensor(iou_thrs, device)
+        self.num_detection_max = num_detection_max
 
-        for thr in rec_thrs:
-            if not isinstance(thr, float) and not isinstance(thr, torch.Tensor):
-                raise ValueError(f"rec_thrs should be an Iterable of type float, got {type(thr)}")
-        self.rec_thrs: torch.Tensor = self.get_tensor(rec_thrs, device)
+        if iou_thresholds is None:
+            iou_thresholds = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]
+        self.iou_thresholds = torch.tensor(iou_thresholds, device=device)
+
+        if rec_thresholds is None:
+            rec_thresholds = [i / 100 for i in range(101)]
+        self.rec_thresholds = torch.tensor(rec_thresholds, device=device)
 
         class labels:
             i_id = 0
@@ -144,12 +143,6 @@ class MeanAveragePrecision(Metric):
         self.labels = labels
 
         super(MeanAveragePrecision, self).__init__(output_transform=output_transform, device=device)
-
-    @staticmethod
-    def get_tensor(t, device):
-        if torch.is_tensor(t):
-            return t.to(device)
-        return torch.tensor(t, device=device)
 
     @staticmethod
     def _check_area_rngs(area_rngs: Dict) -> None:
@@ -244,7 +237,7 @@ class MeanAveragePrecision(Metric):
 
         ious = ious[:, y_ind] if len(ious) > 0 else ious
 
-        num_iou_thrs = len(self.iou_thrs)
+        num_iou_thrs = len(self.iou_thresholds)
         num_y = len(y)
         num_y_pred = len(y_pred)
         ym = torch.zeros((num_iou_thrs, num_y), device=self._device)
@@ -252,7 +245,7 @@ class MeanAveragePrecision(Metric):
         y_pred_ignore = torch.zeros((num_iou_thrs, num_y_pred), device=self._device)
 
         if len(ious) != 0:
-            for tind, t in enumerate(self.iou_thrs):
+            for tind, t in enumerate(self.iou_thresholds):
                 for dind, d in enumerate(y_pred):
                     iou = min([t, 1 - 1e-10])
                     m = -1
@@ -293,12 +286,12 @@ class MeanAveragePrecision(Metric):
 
     @reinit__is_reduced
     def _accumulate(self) -> None:
-        num_iou_thr = len(self.iou_thrs)
-        num_rec_thr = len(self.rec_thrs)
+        num_iou_thr = len(self.iou_thresholds)
+        num_rec_thr = len(self.rec_thresholds)
         num_categories = len(self.category_ids)
         num_area = len(self.area_rngs)
 
-        max_det = self.max_det
+        max_det = self.num_detection_max
         precision = -torch.ones((num_iou_thr, num_rec_thr, num_categories, num_area), device=self._device)
 
         # retrieve eval_imgs at each category, area range, and max number of detections
@@ -341,7 +334,7 @@ class MeanAveragePrecision(Metric):
                         if pr[i] > pr[i - 1]:
                             pr[i - 1] = pr[i]
 
-                    inds = torch.searchsorted(rc, self.rec_thrs, right=False)
+                    inds = torch.searchsorted(rc, self.rec_thresholds, right=False)
                     try:
                         for ri, pi in enumerate(inds):
                             q[ri] = pr[pi]
@@ -356,7 +349,7 @@ class MeanAveragePrecision(Metric):
         # Calculate Average Precision
         s = self.precision
         if iou_thr is not None:
-            t = (self.iou_thrs == iou_thr).int().nonzero(as_tuple=True)[0]
+            t = (self.iou_thresholds == iou_thr).int().nonzero(as_tuple=True)[0]
             s = s[t]
         s = s[:, :, :, aind]
         # Take mean to calculate mAP
