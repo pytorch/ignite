@@ -54,7 +54,7 @@ class MeanAveragePrecision(Metric):
         __ https://github.com/cocodataset/cocoapi/
 
     Args:
-        area_rngs: dictionary with area_name as key and a tuple of the form
+        object_area_ranges: dictionary with area_name as key and a tuple of the form
             (lower_area_range, upper_area_range) as value, where both values are floats.
             It contains all area ranges for which AP needs to be computed.
         num_detection_max: Number of maximum detections allowed per image. This is to limit crowding and repeated
@@ -102,21 +102,27 @@ class MeanAveragePrecision(Metric):
 
     def __init__(
         self,
-        area_rngs: Dict = {
-            "all": [0, float("inf")],
-            "small": [0, 1024],
-            "medium": [1024, 9216],
-            "large": [9216, float("inf")],
-        },
+        object_area_ranges: Optional[Dict[str, Tuple[float, float]]] = None,
         num_detection_max: int = 100,
         iou_thresholds: Optional[List[float]] = None,
         rec_thresholds: Optional[List[float]] = None,
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
-        self._check_area_rngs(area_rngs)
-        self.area_rngs: Dict = area_rngs
-        self.area_rngs["all"] = [0, float("inf")]
+
+        if object_area_ranges is None:
+            self.object_area_ranges = {
+                "all": (0, float("inf")),
+                "small": (0, 1024),
+                "medium": (1024, 9216),
+                "large": (9216, float("inf")),
+            }
+        else:
+            self.object_area_ranges = object_area_ranges
+            if "all" not in self.object_area_ranges:
+                self.object_area_ranges["all"] = (0, float("inf"))
+
+        self._check_object_area_ranges()
 
         if num_detection_max < 1:
             raise ValueError(f"Argument num_detection_max should be a positive integer, got {num_detection_max}")
@@ -144,14 +150,12 @@ class MeanAveragePrecision(Metric):
 
         super(MeanAveragePrecision, self).__init__(output_transform=output_transform, device=device)
 
-    @staticmethod
-    def _check_area_rngs(area_rngs: Dict) -> None:
-        for area in area_rngs:
-            area_rng = area_rngs[area]
-            if type(area) != str or len(area_rng) != 2 or area_rng[0] >= area_rng[1]:
+    def _check_object_area_ranges(self) -> None:
+        for area, area_range in self.object_area_ranges.items():
+            if len(area_range) != 2 or area_range[0] >= area_range[1]:
                 raise ValueError(
-                    """area_rngs should be a dictionary with key as area name and value as \
-                        a tuple of the form (lower limit, upper limit)."""
+                    f"object_area_ranges must be a dict associating to each key (str) a tuple of float values (a, b) "
+                    f"where a < b (got: key={area}, value={area_range})"
                 )
 
     @staticmethod
@@ -193,10 +197,10 @@ class MeanAveragePrecision(Metric):
 
         for category_id in categories:
             ious = self._compute_iou(categorywise_y[category_id], categorywise_y_pred[category_id])
-            for area_rng in self.area_rngs:
+            for area_rng in self.object_area_ranges:
                 self.eval_imgs[category_id, area_rng].append(
                     self._evaluate_image(
-                        categorywise_y[category_id], categorywise_y_pred[category_id], self.area_rngs[area_rng], ious
+                        categorywise_y[category_id], categorywise_y_pred[category_id], self.object_area_ranges[area_rng], ious
                     )
                 )
 
@@ -289,14 +293,14 @@ class MeanAveragePrecision(Metric):
         num_iou_thr = len(self.iou_thresholds)
         num_rec_thr = len(self.rec_thresholds)
         num_categories = len(self.category_ids)
-        num_area = len(self.area_rngs)
+        num_area = len(self.object_area_ranges)
 
         max_det = self.num_detection_max
         precision = -torch.ones((num_iou_thr, num_rec_thr, num_categories, num_area), device=self._device)
 
         # retrieve eval_imgs at each category, area range, and max number of detections
         for c, category_id in enumerate(self.category_ids):
-            for a, area_rng in enumerate(self.area_rngs):
+            for a, area_rng in enumerate(self.object_area_ranges):
                 # retrieve appropriate eval_imgs from stored results
                 eval_imgs = self.eval_imgs[category_id, area_rng]
                 eval_imgs = [img for img in eval_imgs if img is not None]
@@ -345,7 +349,7 @@ class MeanAveragePrecision(Metric):
         self.precision = precision
 
     def _summarize(self, iou_thr: Optional[float] = None, area_rng: str = "all") -> float:
-        aind = [i for i, a_rng in enumerate(self.area_rngs) if a_rng == area_rng]
+        aind = [i for i, a_rng in enumerate(self.object_area_ranges) if a_rng == area_rng]
         # Calculate Average Precision
         s = self.precision
         if iou_thr is not None:
@@ -407,7 +411,7 @@ class MeanAveragePrecision(Metric):
             "all@0.75": self._summarize(iou_thr=0.75),
         }
 
-        for area in self.area_rngs:
+        for area in self.object_area_ranges:
             results[area] = self._summarize(area_rng=area)
 
         return results

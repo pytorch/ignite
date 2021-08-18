@@ -75,20 +75,20 @@ cocoEval, img_list, img_gts, img_dts = get_coco_results()
 
 
 def test_wrong_inputs():
-    with pytest.raises(ValueError, match="area_rngs should be a dictionary with key as area name"):
-        MeanAveragePrecision(area_rngs={1: 2})
-    with pytest.raises(ValueError, match="Argument num_detection_max should be a positive integer, got"):
+    with pytest.raises(ValueError, match=r"object_area_ranges must be a dict"):
+        MeanAveragePrecision(object_area_ranges={"a": (3, 2)})
+    with pytest.raises(ValueError, match=r"Argument num_detection_max should be a positive integer, got"):
         MeanAveragePrecision(num_detection_max=-1)
 
     mAP = MeanAveragePrecision()
 
-    with pytest.raises(ValueError, match="Update Data must be of the form"):
+    with pytest.raises(ValueError, match=r"Update Data must be of the form"):
         mAP.update(torch.zeros(1))
 
-    with pytest.raises(ValueError, match="detections_tensor should be of size"):
+    with pytest.raises(ValueError, match=r"detections_tensor should be of size"):
         mAP.update([torch.zeros(1), []])
 
-    with pytest.raises(ValueError, match="ground_truths should be of size"):
+    with pytest.raises(ValueError, match=r"ground_truths should be of size"):
         mAP.update([torch.zeros(1, 9), torch.zeros(2, 10)])
 
 
