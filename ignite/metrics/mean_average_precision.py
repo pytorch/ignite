@@ -78,7 +78,10 @@ class MeanAveragePrecision(Metric):
             from ignite.metrics import MeanAveragePrecision
 
             # Detection Format:
-            # (id, class, xmin, ymin, wiy_predh, height, area, crowd, ignore/confidence)
+            # (id, class, xmin, ymin, width, height, area, crowd, ignore/confidence)
+            # if your bounding box are of the form (xmin, ymin, xmax, ymax) instead
+            # they can be converted using the formulas width = xmax - xmin and
+            # height = ymax - ymin
 
             # ground truth detections for an image
             ys = torch.tensor([[1,73,249.1,50.7,375.3,277.2,101928.52,0,0],
@@ -119,13 +122,15 @@ class MeanAveragePrecision(Metric):
         if type(self.max_det) != int or self.max_det < 1:
             raise ValueError(f"max_det should be a positive integer, got {self.max_det}")
 
-        if not torch.is_floating_point(iou_thrs):
-            raise ValueError(f"iou_thrs should be a float tensor, got {iou_thrs.dtype}")
-        self.iou_thrs: torch.Tensor = iou_thrs.to(device)
+        for thr in iou_thrs:
+            if not isinstance(thr, float) and not isinstance(thr, torch.Tensor):
+                raise ValueError(f"iou_thrs should be an Iterable of type float, got {type(thr)}")
+        self.iou_thrs: torch.Tensor = self.get_tensor(iou_thrs, device)
 
-        if not torch.is_floating_point(rec_thrs):
-            raise ValueError(f"rec_thrs should be a float tensor, got {rec_thrs.dtype}")
-        self.rec_thrs: torch.Tensor = rec_thrs.to(device)
+        for thr in rec_thrs:
+            if not isinstance(thr, float) and not isinstance(thr, torch.Tensor):
+                raise ValueError(f"rec_thrs should be an Iterable of type float, got {type(thr)}")
+        self.rec_thrs: torch.Tensor = self.get_tensor(rec_thrs, device)
 
         self.device: Union[str, torch.device] = device
 
@@ -141,6 +146,12 @@ class MeanAveragePrecision(Metric):
         self.labels = labels
 
         super(MeanAveragePrecision, self).__init__(output_transform=output_transform, device=device)
+
+    @staticmethod
+    def get_tensor(t, device):
+        if torch.is_tensor(t):
+            return t.to(device)
+        return torch.tensor(t, device=device)
 
     @staticmethod
     def _check_area_rngs(area_rngs: Dict) -> None:
