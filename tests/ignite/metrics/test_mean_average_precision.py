@@ -82,9 +82,6 @@ def test_wrong_inputs():
 
     mAP = MeanAveragePrecision()
 
-    with pytest.raises(ValueError, match=r"Update Data must be of the form"):
-        mAP.update(torch.zeros(1))
-
     with pytest.raises(ValueError, match=r"detections_tensor should be of size"):
         mAP.update([torch.zeros(1), []])
 

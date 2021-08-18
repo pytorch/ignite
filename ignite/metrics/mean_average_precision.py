@@ -112,10 +112,10 @@ class MeanAveragePrecision(Metric):
 
         if object_area_ranges is None:
             self.object_area_ranges = {
-                "all": (0, float("inf")),
-                "small": (0, 1024),
-                "medium": (1024, 9216),
-                "large": (9216, float("inf")),
+                "all": (0.0, float("inf")),
+                "small": (0.0, 1024.0),
+                "medium": (1024.0, 9216.0),
+                "large": (9216.0, float("inf")),
             }
         else:
             self.object_area_ranges = object_area_ranges
@@ -158,24 +158,15 @@ class MeanAveragePrecision(Metric):
                     f"where a < b (got: key={area}, value={area_range})"
                 )
 
-    @staticmethod
-    def _get_samples(data: List) -> Tuple:
-        if len(data) != 2:
-            raise ValueError("Update Data must be of the format [y_pred_img, y_img].")
-
-        y_pred_img, y_img = data
+    @reinit__is_reduced
+    def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
+        y_pred_img, y_img = output
 
         if len(y_pred_img.shape) != 2 or y_pred_img.shape[1] != 9:
             raise ValueError(f"detections_tensor should be of size [num_detections, 9], got {y_pred_img.shape}")
 
         if len(y_img.shape) != 2 or y_img.shape[1] != 9:
             raise ValueError(f"ground_truths should be of size [num_detections, 9], got {y_img.shape}")
-
-        return y_pred_img, y_img
-
-    @reinit__is_reduced
-    def update(self, output: Any) -> None:
-        y_pred_img, y_img = self._get_samples(output)
 
         y_pred_img = y_pred_img.to(self._device)
         y_img = y_img.to(self._device)
@@ -200,14 +191,16 @@ class MeanAveragePrecision(Metric):
             for area_rng in self.object_area_ranges:
                 self.eval_imgs[category_id, area_rng].append(
                     self._evaluate_image(
-                        categorywise_y[category_id], categorywise_y_pred[category_id], self.object_area_ranges[area_rng], ious
+                        categorywise_y[category_id],
+                        categorywise_y_pred[category_id],
+                        self.object_area_ranges[area_rng],
+                        ious,
                     )
                 )
 
     @reinit__is_reduced
     def reset(self) -> None:
         self.category_ids: set = set()
-
         self.eval_imgs: defaultdict = defaultdict(list)
 
     def _compute_iou(self, y: torch.Tensor, y_pred: torch.Tensor) -> torch.Tensor:
@@ -221,7 +214,7 @@ class MeanAveragePrecision(Metric):
         return ious
 
     def _evaluate_image(
-        self, y: torch.Tensor, y_pred: torch.Tensor, area_rng: torch.Tensor, ious: torch.Tensor
+        self, y: torch.Tensor, y_pred: torch.Tensor, area_rng: Tuple[float, float], ious: torch.Tensor
     ) -> Optional[Dict]:
         if len(y) == 0 and len(y_pred) == 0:
             return None
@@ -288,7 +281,6 @@ class MeanAveragePrecision(Metric):
             "y_pred_ignore": y_pred_ignore,
         }
 
-    @reinit__is_reduced
     def _accumulate(self) -> None:
         num_iou_thr = len(self.iou_thresholds)
         num_rec_thr = len(self.rec_thresholds)
