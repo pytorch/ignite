@@ -22,7 +22,7 @@ def _iou(y: torch.Tensor, y_pred: torch.Tensor, crowd: List) -> torch.Tensor:
         for d in range(m):
             y_pred_bbox = y_pred[d].tolist()
             y_pred_area = y_pred_bbox[2] * y_pred_bbox[3]
-            ious[m - d - 1, g] = 0
+            ious[d, g] = 0
             w = min(y_pred_bbox[2] + y_pred_bbox[0], y_bbox[2] + y_bbox[0]) - max(y_pred_bbox[0], y_bbox[0])
             h = min(y_pred_bbox[3] + y_pred_bbox[1], y_bbox[3] + y_bbox[1]) - max(y_pred_bbox[1], y_bbox[1])
             if w <= 0 or h <= 0:
@@ -32,7 +32,7 @@ def _iou(y: torch.Tensor, y_pred: torch.Tensor, crowd: List) -> torch.Tensor:
                 union = y_pred_area
             else:
                 union = y_pred_area + y_area - intersection
-            ious[m - d - 1, g] = intersection / union
+            ious[d, g] = intersection / union
 
     return ious
 
@@ -211,7 +211,7 @@ class MeanAveragePrecision(Metric):
 
     def _compute_iou(self, y: torch.Tensor, y_pred: torch.Tensor) -> torch.Tensor:
         # Sort predictions by confidence.
-        y_pred = y_pred[torch.argsort(y_pred[:, self.__confidence])]
+        y_pred = y_pred[torch.argsort(-y_pred[:, self.__confidence])]
 
         crowd = [g[self.__crowd] for g in y]
 
