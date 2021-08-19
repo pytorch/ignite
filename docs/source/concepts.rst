@@ -270,10 +270,21 @@ If you want to use filtering with custom events (e.g. ``CustomEvents.CUSTOM_STAR
 
 .. code-block:: python
 
-    attr_to_events = {
+    from enum import Enum
+    from ignite.engine import Engine, EventEnum
+
+    class CustomEvents(EventEnum):
+        CUSTOM_EVENT_STARTED = "time_iteration_started"
+        CUSTOM_EVENT_COMPLETED = "time_iteration_completed"
+
+    CustomEvents_attr_to_events = {
         "custom_started": [CustomEvents.CUSTOM_STARTED],
         "custom_completed": [CustomEvents.CUSTOM_COMPLETED]
     }
+
+    engine = Engine(process_function)
+    engine.register_events(*CustomEvents, attr_to_events=CustomEvents_attr_to_events)
+    # ......
 
 Handlers
 ````````
