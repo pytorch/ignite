@@ -18,7 +18,7 @@ def _iou(y: torch.Tensor, y_pred: torch.Tensor, crowd: List) -> torch.Tensor:
     for g in range(n):
         y_bbox = y[g][2:6].tolist()
         y_area = y_bbox[2] * y_bbox[3]
-        if crowd != []:
+        if crowd:
             iscrowd = crowd[g]
         else:
             iscrowd = 0
@@ -164,6 +164,13 @@ class MeanAveragePrecision(Metric):
 
         y_pred_img, y_img = output
 
+        assert y_img["image_id"] == y_pred_img["image_id"]
+
+        if y_img["image_id"] in self.image_ids:
+            raise ValueError("Detections for this image_id are already evaluated.")
+
+        self.image_ids.add(y_img["image_id"])
+
         y_category_dict = defaultdict(list)
         for i, category_id in y_img["category_id"]:
             y_category_dict[category_id].append(i)
@@ -179,11 +186,8 @@ class MeanAveragePrecision(Metric):
             y_pred_bbox = y_pred_img["bbox"][y_pred_ind]
             y_pred_score = y_pred_img["score"][y_pred_ind]
             y_pred_id = y_pred_img["id"][y_pred_ind]
-            y_pred_area = (
-                y_pred_img["area"][y_pred_ind]
-                if "area" in y_pred_img
-                else (y_pred_img["bbox"][:, 2] * y_pred_img["bbox"][:, 3])[y_pred_ind]
-            )
+            y_pred_area = (y_pred_img["bbox"][:, 2] * y_pred_img["bbox"][:, 3])[y_pred_ind]
+
             sorted_y_pred_bbox = y_pred_bbox[torch.argsort(-y_pred_img["score"][y_pred_ind])]
 
             y_ind = y_category_dict[category]
@@ -195,19 +199,20 @@ class MeanAveragePrecision(Metric):
             ious = _iou(y_bbox, sorted_y_pred_bbox, crowd)
 
             for area_rng in self.object_area_ranges:
-                self.eval_imgs[category_id, area_rng].append(
-                    self._evaluate_image_matches(
-                        [y_id, y_area, y_ignore, crowd],
-                        [y_pred_id, y_pred_area, y_pred_score],
-                        self.object_area_ranges[area_rng],
-                        ious,
-                    )
+                eval_img = self._evaluate_image_matches(
+                    [y_id, y_area, y_ignore, crowd],
+                    [y_pred_id, y_pred_area, y_pred_score],
+                    self.object_area_ranges[area_rng],
+                    ious,
                 )
+                if eval_img is not None:
+                    self.eval_imgs[category_id, area_rng].append(eval_img)
 
     @reinit__is_reduced
     def reset(self) -> None:
         self.category_ids: set = set()
         self.eval_imgs: defaultdict = defaultdict(list)
+        self.image_ids = set()
 
     def _evaluate_image_matches(
         self, y: List, y_pred: List, area_rng: Tuple[float, float], ious: torch.Tensor
@@ -287,12 +292,7 @@ class MeanAveragePrecision(Metric):
             y_pred_ignore, torch.logical_and(y_predm == 0, torch.repeat_interleave(a, num_iou_thrs, 0))
         ).to(self._device)
 
-        return {
-            "y_pred_matches": y_predm,
-            "y_pred_scores": y_pred_score,
-            "y_ignore": y_ignore,
-            "y_pred_ignore": y_pred_ignore,
-        }
+        return {"matches": y_predm, "scores": y_pred_score, "ignore": {"y": y_ignore, "y_pred": y_pred_ignore,}}
 
     def _accumulate(self) -> None:
         num_iou_thr = len(self.iou_thresholds)
@@ -311,18 +311,16 @@ class MeanAveragePrecision(Metric):
                 if len(eval_imgs) == 0:
                     continue
                 # Get prediction scores to greedily match
-                pred_scores = torch.cat([img["y_pred_scores"][0 : self.num_detection_max] for img in eval_imgs], dim=-1)
+                pred_scores = torch.cat([img["scores"][0 : self.num_detection_max] for img in eval_imgs], dim=-1)
                 # Sort prediction scores
                 inds = torch.argsort(-pred_scores)
                 # Retrieve and Sort prediction matches,
                 # ignore flags for ground truth and predictions based on prediction scores
-                predm = torch.cat([img["y_pred_matches"][:, 0 : self.num_detection_max] for img in eval_imgs], dim=-1)[
-                    :, inds
-                ]
+                predm = torch.cat([img["matches"][:, 0 : self.num_detection_max] for img in eval_imgs], dim=-1)[:, inds]
                 pred_ignore = torch.cat(
-                    [img["y_pred_ignore"][:, 0 : self.num_detection_max] for img in eval_imgs], dim=-1
+                    [img["ignore"]["y_pred"][:, 0 : self.num_detection_max] for img in eval_imgs], dim=-1
                 )[:, inds]
-                y_ignore = torch.cat([img["y_ignore"] for img in eval_imgs])
+                y_ignore = torch.cat([img["ignore"]["y"] for img in eval_imgs])
                 non_ignored = torch.count_nonzero(y_ignore == 0)
                 if non_ignored == 0:
                     continue
