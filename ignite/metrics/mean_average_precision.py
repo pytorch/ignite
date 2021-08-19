@@ -5,31 +5,34 @@ import torch
 
 from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
+__all__ = ["MeanAveragePrecision"]
 
-def iou(y: torch.Tensor, y_pred: torch.Tensor, crowd: List) -> torch.Tensor:
+
+def _iou(y: torch.Tensor, y_pred: torch.Tensor, crowd: List) -> torch.Tensor:
     m = len(y_pred)
     n = len(y)
 
     ious = torch.zeros(m, n)
 
+    # bbox format : (xmin, ymin, width, height)
     for g in range(n):
-        Y = y[g].tolist()
-        ya = Y[2] * Y[3]
+        y_bbox = y[g].tolist()
+        y_area = y_bbox[2] * y_bbox[3]
         iscrowd = crowd[g]
         for d in range(m):
-            P = y_pred[d].tolist()
-            pa = P[2] * P[3]
+            y_pred_bbox = y_pred[d].tolist()
+            y_pred_area = y_pred_bbox[2] * y_pred_bbox[3]
             ious[m - d - 1, g] = 0
-            w = min(P[2] + P[0], Y[2] + Y[0]) - max(P[0], Y[0])
-            h = min(P[3] + P[1], Y[3] + Y[1]) - max(P[1], Y[1])
+            w = min(y_pred_bbox[2] + y_pred_bbox[0], y_bbox[2] + y_bbox[0]) - max(y_pred_bbox[0], y_bbox[0])
+            h = min(y_pred_bbox[3] + y_pred_bbox[1], y_bbox[3] + y_bbox[1]) - max(y_pred_bbox[1], y_bbox[1])
             if w <= 0 or h <= 0:
                 continue
-            i = w * h
+            intersection = w * h
             if iscrowd:
-                u = pa
+                union = y_pred_area
             else:
-                u = pa + ya - i
-            ious[m - d - 1, g] = i / u
+                union = y_pred_area + y_area - intersection
+            ious[m - d - 1, g] = intersection / union
 
     return ious
 
@@ -79,6 +82,12 @@ class MeanAveragePrecision(Metric):
 
             # Detection Format:
             # (id, class, xmin, ymin, width, height, area, crowd, ignore/confidence)
+            # area: refers to the area covered by the bounding box, is usually
+            # height * width, except when crowd is 1.
+            # crowd: refers to if the detection is completely independent of other
+            # detection or overlapping with them.
+            # ignore: set positive when you want to ignore this detection when calculating
+            # Mean Average Precision.
             # if your bounding box are of the form (xmin, ymin, xmax, ymax) instead
             # they can be converted using the formulas width = xmax - xmin and
             # height = ymax - ymin
@@ -137,16 +146,13 @@ class MeanAveragePrecision(Metric):
             rec_thresholds = [i / 100 for i in range(101)]
         self.rec_thresholds = torch.tensor(rec_thresholds, device=device)
 
-        class labels:
-            i_id = 0
-            i_category_id = 1
-            i_xmin = 2
-            i_area = 6
-            i_crowd = 7
-            g_ignore = 8
-            d_confidence = 8
-
-        self.labels = labels
+        self.__id = 0
+        self.__category_id = 1
+        self.__xmin = 2
+        self.__area = 6
+        self.__crowd = 7
+        self.__ignore = 8
+        self.__confidence = 8
 
         super(MeanAveragePrecision, self).__init__(output_transform=output_transform, device=device)
 
@@ -174,13 +180,13 @@ class MeanAveragePrecision(Metric):
         categories = set()
         categorywise_y: defaultdict = defaultdict(lambda: torch.zeros(0, 9).to(self._device))
         for y in y_img:
-            category_id = int(y[self.labels.i_category_id])
+            category_id = int(y[self.__category_id])
             categories.add(category_id)
             categorywise_y[category_id] = torch.vstack([categorywise_y[category_id], y])
 
         categorywise_y_pred: defaultdict = defaultdict(lambda: torch.zeros(0, 9).to(self._device))
         for y_pred in y_pred_img:
-            category_id = int(y_pred[self.labels.i_category_id])
+            category_id = int(y_pred[self.__category_id])
             categories.add(category_id)
             categorywise_y_pred[category_id] = torch.vstack([categorywise_y_pred[category_id], y_pred])
 
@@ -190,7 +196,7 @@ class MeanAveragePrecision(Metric):
             ious = self._compute_iou(categorywise_y[category_id], categorywise_y_pred[category_id])
             for area_rng in self.object_area_ranges:
                 self.eval_imgs[category_id, area_rng].append(
-                    self._evaluate_image(
+                    self._evaluate_image_matches(
                         categorywise_y[category_id],
                         categorywise_y_pred[category_id],
                         self.object_area_ranges[area_rng],
@@ -204,34 +210,43 @@ class MeanAveragePrecision(Metric):
         self.eval_imgs: defaultdict = defaultdict(list)
 
     def _compute_iou(self, y: torch.Tensor, y_pred: torch.Tensor) -> torch.Tensor:
-        y_pred = y_pred[torch.argsort(y_pred[:, self.labels.d_confidence])]
+        # Sort predictions by confidence.
+        y_pred = y_pred[torch.argsort(y_pred[:, self.__confidence])]
 
-        crowd = [g[self.labels.i_crowd] for g in y]
-        ious = iou(
-            y[:, self.labels.i_xmin : self.labels.i_area], y_pred[:, self.labels.i_xmin : self.labels.i_area], crowd
-        ).to(self._device)
+        crowd = [g[self.__crowd] for g in y]
+
+        # Pass the bounding boxes for ground truths and predictions and crowd to obtain ious.y
+        ious = _iou(y[:, self.__xmin : self.__area], y_pred[:, self.__xmin : self.__area], crowd).to(self._device)
 
         return ious
 
-    def _evaluate_image(
+    def _evaluate_image_matches(
         self, y: torch.Tensor, y_pred: torch.Tensor, area_rng: Tuple[float, float], ious: torch.Tensor
     ) -> Optional[Dict]:
+        """
+            Evaluates iou_threshold wise y and y_pred matches.
+        """
         if len(y) == 0 and len(y_pred) == 0:
             return None
 
+        # assign which detections in y are ignored for evaluating matches
         y_ignore = torch.zeros(len(y))
         for i, g in enumerate(y):
-            if g[self.labels.g_ignore] or (g[self.labels.i_area] < area_rng[0] or g[self.labels.i_area] > area_rng[1]):
+            if g[self.__ignore] or (g[self.__area] < area_rng[0] or g[self.__area] > area_rng[1]):
                 y_ignore[i] = 1
             else:
                 y_ignore[i] = 0
 
+        # Sort y based such that non ignored predictions are at the start
         y_ind = torch.argsort(y_ignore)
         y_ignore = y_ignore[y_ind]
         y = y[y_ind]
-        y_pred = y_pred[torch.argsort(-y_pred[:, self.labels.d_confidence])]
-        iscrowd = y[:, self.labels.i_crowd]
 
+        # Sort y_pred according to confidence since we are using a greedy matching approach
+        y_pred = y_pred[torch.argsort(-y_pred[:, self.__confidence])]
+        iscrowd = y[:, self.__crowd]
+
+        # Sort ious accordingly
         ious = ious[:, y_ind] if len(ious) > 0 else ious
 
         num_iou_thrs = len(self.iou_thresholds)
@@ -247,6 +262,7 @@ class MeanAveragePrecision(Metric):
                     iou = min([t, 1 - 1e-10])
                     m = -1
                     for gind, g in enumerate(y):
+                        # Find the best ground truth match for a prediction based on ious.
                         if ym[tind, gind] > 0 and not iscrowd[gind]:
                             continue
 
@@ -262,12 +278,13 @@ class MeanAveragePrecision(Metric):
                     if m == -1:
                         continue
                     y_pred_ignore[tind, dind] = y_ignore[m]
-                    y_predm[tind, dind] = y[m][self.labels.i_id]
-                    ym[tind, m] = d[self.labels.i_id]
+                    y_predm[tind, dind] = y[m][self.__id]
+                    ym[tind, m] = d[self.__id]
 
-        a = torch.tensor(
-            [d[self.labels.i_area] < area_rng[0] or d[self.labels.i_area] > area_rng[1] for d in y_pred]
-        ).reshape((1, len(y_pred)))
+        # Sort the results area_wise, helps in future calculation of areawise mAP.
+        a = torch.tensor([d[self.__area] < area_rng[0] or d[self.__area] > area_rng[1] for d in y_pred]).reshape(
+            (1, len(y_pred))
+        )
         a = a.to(self._device)
 
         y_pred_ignore = torch.logical_or(
@@ -276,7 +293,7 @@ class MeanAveragePrecision(Metric):
 
         return {
             "y_pred_matches": y_predm,
-            "y_pred_scores": y_pred[:, self.labels.d_confidence],
+            "y_pred_scores": y_pred[:, self.__confidence],
             "y_ignore": y_ignore,
             "y_pred_ignore": y_pred_ignore,
         }
@@ -287,7 +304,6 @@ class MeanAveragePrecision(Metric):
         num_categories = len(self.category_ids)
         num_area = len(self.object_area_ranges)
 
-        max_det = self.num_detection_max
         precision = -torch.ones((num_iou_thr, num_rec_thr, num_categories, num_area), device=self._device)
 
         # retrieve eval_imgs at each category, area range, and max number of detections
@@ -299,13 +315,17 @@ class MeanAveragePrecision(Metric):
                 if len(eval_imgs) == 0:
                     continue
                 # Get prediction scores to greedily match
-                pred_scores = torch.cat([img["y_pred_scores"][0:max_det] for img in eval_imgs], dim=-1)
+                pred_scores = torch.cat([img["y_pred_scores"][0 : self.num_detection_max] for img in eval_imgs], dim=-1)
                 # Sort prediction scores
                 inds = torch.argsort(-pred_scores)
                 # Retrieve and Sort prediction matches,
                 # ignore flags for ground truth and predictions based on prediction scores
-                predm = torch.cat([img["y_pred_matches"][:, 0:max_det] for img in eval_imgs], dim=-1)[:, inds]
-                pred_ignore = torch.cat([img["y_pred_ignore"][:, 0:max_det] for img in eval_imgs], dim=-1)[:, inds]
+                predm = torch.cat([img["y_pred_matches"][:, 0 : self.num_detection_max] for img in eval_imgs], dim=-1)[
+                    :, inds
+                ]
+                pred_ignore = torch.cat(
+                    [img["y_pred_ignore"][:, 0 : self.num_detection_max] for img in eval_imgs], dim=-1
+                )[:, inds]
                 y_ignore = torch.cat([img["y_ignore"] for img in eval_imgs])
                 non_ignored = torch.count_nonzero(y_ignore == 0)
                 if non_ignored == 0:
@@ -331,23 +351,25 @@ class MeanAveragePrecision(Metric):
                             pr[i - 1] = pr[i]
 
                     inds = torch.searchsorted(rc, self.rec_thresholds, right=False)
+                    # Find if recording thresholds recalls exist in calculated recalls.
+                    # If no such recording thresholds exist, skip computation.
                     try:
                         for ri, pi in enumerate(inds):
                             q[ri] = pr[pi]
                     except:
                         pass
                     precision[t, :, c, a] = torch.tensor(q)
-        # return precision, recall
+
         self.precision = precision
 
-    def _summarize(self, iou_thr: Optional[float] = None, area_rng: str = "all") -> float:
-        aind = [i for i, a_rng in enumerate(self.object_area_ranges) if a_rng == area_rng]
+    def _summarize(self, iou_thr: Optional[float] = None, area_range: str = "all") -> float:
+        area_index = list(self.object_area_ranges.keys()).index(area_range)
         # Calculate Average Precision
         s = self.precision
         if iou_thr is not None:
             t = (self.iou_thresholds == iou_thr).int().nonzero(as_tuple=True)[0]
             s = s[t]
-        s = s[:, :, :, aind]
+        s = s[:, :, :, area_index]
         # Take mean to calculate mAP
         if len(s[s > -1]) == 0:
             mean_s = torch.tensor(-1)
@@ -360,14 +382,9 @@ class MeanAveragePrecision(Metric):
     def _gather_all(self) -> None:
         import torch.distributed as dist
 
-        def is_dist_avail_and_initialized() -> bool:
-            if not dist.is_available():
-                return False
-            if not dist.is_initialized():
-                return False
-            return True
-
-        if not is_dist_avail_and_initialized():
+        if not dist.is_available():
+            return
+        if not dist.is_initialized():
             return
 
         eval_gather_dicts: List[Dict] = [defaultdict(list)] * dist.get_world_size()
@@ -376,14 +393,10 @@ class MeanAveragePrecision(Metric):
         category_gather_list: List[Set] = [set()] * dist.get_world_size()
         dist.all_gather_object(category_gather_list, self.category_ids)
 
-        keys = set()
-        for eval_imgs in eval_gather_dicts:
-            for key in eval_imgs:
-                keys.add(key)
         combined_eval_imgs: defaultdict = defaultdict(list)
-        for key in keys:
-            for eval_imgs in eval_gather_dicts:
-                combined_eval_imgs[key] += eval_imgs[key]
+        for eval_imgs in eval_gather_dicts:
+            for key, value in eval_imgs.items():
+                combined_eval_imgs[key] += value
         self.eval_imgs = combined_eval_imgs
 
         all_category_ids = set()
@@ -404,6 +417,6 @@ class MeanAveragePrecision(Metric):
         }
 
         for area in self.object_area_ranges:
-            results[area] = self._summarize(area_rng=area)
+            results[area] = self._summarize(area_range=area)
 
         return results
