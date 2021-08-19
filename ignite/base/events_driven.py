@@ -2,7 +2,6 @@ import functools
 import logging
 import weakref
 from collections import defaultdict
-from copy import copy
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
 from ignite.base.events import CallableEventWithFilter, EventEnum, EventsList, RemovableEventHandle
@@ -272,9 +271,8 @@ class EventsDrivenState:
         attr_to_events: Optional[Dict[str, List["Events"]]] = None,
         **kwargs: Any,
     ):
-        copy_attr_to_events = copy(attr_to_events)
         self._attr_to_events = (
-            copy_attr_to_events if copy_attr_to_events else defaultdict(list)
+            dict(attr_to_events) if attr_to_events is not None else defaultdict(list)
         )  # type: Dict[str, List[Events]]
         self._engine = engine  # type: Optional[EventsDriven]
 

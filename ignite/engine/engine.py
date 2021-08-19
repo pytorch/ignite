@@ -147,9 +147,8 @@ class Engine(Serializable, EventsDrivenWithState):
 
     @state.setter
     def state(self, new_state: State) -> None:
-        for new_events in new_state._attr_to_events.values():
-            if new_events not in self._state._attr_to_events.values():
-                raise ValueError("The new state must not contain any new unseen events.")
+        if set(new_state._attr_to_events.keys()) - set(self._state._attr_to_events.keys()) != set():
+            raise ValueError("The new state must not contain any new unseen events.")
         old__attr_to_events = self._state._attr_to_events
 
         warnings.warn(
