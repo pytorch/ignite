@@ -147,7 +147,7 @@ class Engine(Serializable, EventsDrivenWithState):
 
     @state.setter
     def state(self, new_state: State) -> None:
-        if set(new_state._attr_to_events.keys()) - set(self._state._attr_to_events.keys()) != set():
+        if len(set(new_state._attr_to_events.keys()) - set(self._state._attr_to_events.keys())) > 0:
             raise ValueError("The new state must not contain any new unseen events.")
         old__attr_to_events = self._state._attr_to_events
 
@@ -180,7 +180,7 @@ class Engine(Serializable, EventsDrivenWithState):
                 :class:`~ignite.engine.events.Events` or any other custom events added
                 by :meth:`~ignite.base.events_driven.EventsDriven.register_events`.
                 Getting attribute values is done based the on first element in the list of the events.
-            event_to_attr: A dictionary to map an event to a state attribute, this arg is deprecated.
+            event_to_attr: Deprecated argument. Please use ``attr_to_events`` instead.
 
         Example usage:
 
