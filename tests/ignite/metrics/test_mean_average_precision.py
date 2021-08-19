@@ -1,306 +1,278 @@
-import os
-from collections import defaultdict
-
-import pytest
-import torch
-from pycocotools.coco import COCO
-from pycocotools.cocoeval import COCOeval
+# import os
+# from collections import defaultdict
+
+# import pytest
+# import torch
+# from pycocotools.coco import COCO
+# from pycocotools.cocoeval import COCOeval
+
+# import ignite.distributed as idist
+# from ignite.engine import Engine
+# from ignite.metrics import MeanAveragePrecision
+
+
+# def create_ground_truths(bbox, category_id=None, image_id=None):
+#     m = len(bbox)
+#     if category_id is None:
+#         category_id = [1] * m
+#     if image_id is None:
+#         image_id = [0] * m
+#     area = [b[2] * b[3] for b in bbox]
+#     annotations = [
+#         {
+#             "area": a,
+#             "iscrowd": 0,
+#             "image_id": i,
+#             "bbox": b,
+#             "category_id": c,
+#             "id": k + 1,  # start from 1 !
+#             "ignore": 0,
+#             "_ignore": 0,
+#         }
+#         for k, (a, i, b, c) in enumerate(zip(area, image_id, bbox, category_id))
+#     ]
+#     categories = [{"supercategory": f"_{c}", "id": c, "name": f"{c}"} for c in category_id]
+#     images = [{"id": i} for i in image_id]
+#     return {"annotations": annotations, "categories": categories, "images": images}
+
+
+# def create_predictions(bbox, score, category_id=None, image_id=None):
+#     m = len(bbox)
+#     if category_id is None:
+#         category_id = [1] * m
+#     if image_id is None:
+#         image_id = [0] * m
+#     area = [b[2] * b[3] for b in bbox]
+#     return [
+#         {
+#             "image_id": i,
+#             "category_id": c,
+#             "bbox": b,
+#             "score": s,
+#             "area": a,
+#             "id": k + 1,  # start from 1 !
+#             "iscrowd": 0,
+#         }
+#         for k, (a, i, b, c, s) in enumerate(zip(area, image_id, bbox, category_id, score))
+#     ]
+
+
+# def create_tensors(gt, pt):
+
+#     img_gts = defaultdict(lambda: torch.zeros(0, 9))
+#     img_dts = defaultdict(lambda: torch.zeros(0, 9))
+
+#     for data in gt["annotations"]:
+#         xmin, ymin, width, height = data["bbox"]
+#         array = [
+#             data["id"],
+#             data["category_id"],
+#             xmin,
+#             ymin,
+#             width,
+#             height,
+#             data["area"],
+#             data["iscrowd"],
+#             data["ignore"],
+#         ]
+#         image_id = data["image_id"]
+#         img_gts[image_id] = torch.vstack([img_gts[image_id], torch.tensor(array)])
+
+#     for data in pt:
+#         xmin, ymin, width, height = data["bbox"]
+#         array = [
+#             data["id"],
+#             data["category_id"],
+#             xmin,
+#             ymin,
+#             width,
+#             height,
+#             data["area"],
+#             data["iscrowd"],
+#             data["score"],
+#         ]
+#         image_id = data["image_id"]
+#         img_dts[image_id] = torch.vstack([img_dts[image_id], torch.tensor(array)])
+
+#     image_ids = set(list(img_gts.keys()) + list(img_dts.keys()))
+
+#     return [(img_gts[i], img_dts[i]) for i in image_ids]
+
+
+# def test_against_coco_map():
+#     mAP = MeanAveragePrecision()
 
-import ignite.distributed as idist
-from ignite.engine import Engine
-from ignite.metrics import MeanAveragePrecision
+#     # pycocotools format for bbox
+#     # (xmin, ymin, width, height)
+#     bbox = [
+#         [0.0, 0.0, 1.0, 1.0],
+#         [0.0, 0.0, 2.0, 1.0],
+#     ]
+#     # category per bbox (optional)
+#     category_id = [1, 2]
+#     # image per bbox (optional)
+#     image_id = [0, 1]
+#     # scores per bbox
+#     score = [0.8, 0.9]
 
-y = [
-    [1, 1, 1.13, 190.22, 247.97, 137.01, 0, 13426.68, 0],
-    [2, 2, 189.42, 30.26, 429.41, 428.34, 0, 84122.97, 0],
-    [3, 1, 412.64, 193.67, 125.51, 198.6, 0, 8896.38, 0],
-]
+#     gt = create_ground_truths(bbox=bbox, image_id=image_id, category_id=category_id)
 
-y_pred = [
-    [1, 1, 429.64, 193.67, 125.51, 198.6, 0.884, 24926.28, 0],
-    [2, 1, 0, 190.22, 212.1, 137.01, 0.577, 29059.82, 0],
-    [3, 2, 188.87, 129.27, 307.8, 343.32, 0.073, 105673.89, 0],
-]
+#     pt = create_predictions(bbox=bbox, image_id=image_id, category_id=category_id, score=[0.9, 0.9])
 
+#     coco_gt = COCO()
 
-def get_coco_results():
-    dir_path = os.getcwd()
-    cocoGt = COCO(dir_path + "/tests/ignite/metrics/gt.json")
-    cocoDt = cocoGt.loadRes(dir_path + "/tests/ignite/metrics/dt.json")
+#     coco_gt.dataset = gt
+#     coco_gt.createIndex()
 
-    imgIds = sorted(cocoGt.getImgIds())
+#     coco_dt = coco_gt.loadRes(pt)
 
-    cocoEval = COCOeval(cocoGt, cocoDt, "bbox")
-    cocoEval.params.imgIds = imgIds
-    cocoEval._prepare()
-    cocoEval.evaluate()
-    cocoEval.accumulate()
+#     evaluator = COCOeval(cocoGt=coco_gt, cocoDt=coco_dt, iouType="bbox")
 
-    img_gts = defaultdict(lambda: torch.zeros(0, 9))
-    img_dts = defaultdict(lambda: torch.zeros(0, 9))
+#     evaluator.evaluate()
+#     evaluator.accumulate()
+#     evaluator.summarize()
 
-    for i in cocoEval._gts:
-        for img in cocoEval._gts[i]:
-            id = img["id"]
-            img_id = img["image_id"]
-            class_id = img["category_id"]
-            area = img["area"]
-            crowd = img["iscrowd"]
-            ignore = img["ignore"]
-            xmin, ymin, xmax, ymax = img["bbox"]
-            img_gts[img_id] = torch.vstack(
-                [img_gts[img_id], torch.tensor([id, class_id, xmin, ymin, xmax, ymax, ignore, area, crowd])]
-            )
+#     for data in create_tensors(gt, pt):
+#         mAP.update(data)
 
-    for i in cocoEval._dts:
-        for img in cocoEval._dts[i]:
-            id = img["id"]
-            img_id = img["image_id"]
-            class_id = img["category_id"]
-            area = img["area"]
-            confidence = img["score"]
-            xmin, ymin, xmax, ymax = img["bbox"]
-            img_dts[img_id] = torch.vstack(
-                [img_dts[img_id], torch.tensor([id, class_id, xmin, ymin, xmax, ymax, confidence, area, crowd])]
-            )
+#     results = mAP.compute()
+#     coco_results = evaluator.stats[:6]
+#     assert coco_results[0] == pytest.approx(results["all"], 1e-2)
+#     assert coco_results[1] == pytest.approx(results["all@0.5"], 1e-2)
+#     assert coco_results[2] == pytest.approx(results["all@0.75"], 1e-2)
+#     assert coco_results[3] == pytest.approx(results["small"], 1e-2)
+#     assert coco_results[4] == pytest.approx(results["medium"], 1e-2)
+#     assert coco_results[5] == pytest.approx(results["large"], 1e-2)
 
-    img_list = set([i for i in img_gts])
-    for i in img_dts:
-        img_list.add(i)
 
-    return cocoEval, list(img_list), img_gts, img_dts
+# def _test_distrib_integration(device):
+#     def _test(metric_device):
+#         torch.manual_seed(12)
 
+#         def update(_, img_id):
+#             return [img_dts[img_id], img_gts[img_id]]
 
-cocoEval, img_list, img_gts, img_dts = get_coco_results()
+#         engine = Engine(update)
 
+#         mAP = MeanAveragePrecision(device=metric_device)
+#         mAP.attach(engine, "mAP")
 
-def test_wrong_inputs():
-    with pytest.raises(ValueError, match=r"object_area_ranges must be a dict"):
-        MeanAveragePrecision(object_area_ranges={"a": (3, 2)})
-    with pytest.raises(ValueError, match=r"Argument num_detection_max should be a positive integer, got"):
-        MeanAveragePrecision(num_detection_max=-1)
+#         data = img_list
+#         engine.run(data=data, max_epochs=1)
 
-    mAP = MeanAveragePrecision()
+#         assert "mAP" in engine.state.metrics
 
-    with pytest.raises(ValueError, match=r"detections_tensor should be of size"):
-        mAP.update([torch.zeros(1), []])
+#         results = engine.state.metrics["mAP"]
+#         cocoEval.summarize()
+#         coco_results = cocoEval.stats[:6]
+#         assert coco_results[0] == pytest.approx(results["all"], 1e-2)
+#         assert coco_results[1] == pytest.approx(results["all@0.5"], 1e-2)
+#         assert coco_results[2] == pytest.approx(results["all@0.75"], 1e-2)
+#         assert coco_results[3] == pytest.approx(results["small"], 1e-2)
+#         assert coco_results[4] == pytest.approx(results["medium"], 1e-2)
+#         assert coco_results[5] == pytest.approx(results["large"], 1e-2)
 
-    with pytest.raises(ValueError, match=r"ground_truths should be of size"):
-        mAP.update([torch.zeros(1, 9), torch.zeros(2, 10)])
+#     metric_devices = ["cpu"]
+#     if device.type != "xla":
+#         metric_devices.append(idist.device())
 
+#     for metric_device in metric_devices:
+#         _test(metric_device=metric_device)
 
-def _check_results(expected, actual):
-    assert expected[0] == pytest.approx(actual["all"], 1e-2)
-    assert expected[1] == pytest.approx(actual["all@0.5"], 1e-2)
-    assert expected[2] == pytest.approx(actual["all@0.75"], 1e-2)
-    assert expected[3] == pytest.approx(actual["small"], 1e-2)
-    assert expected[4] == pytest.approx(actual["medium"], 1e-2)
-    assert expected[5] == pytest.approx(actual["large"], 1e-2)
 
+# @pytest.mark.distributed
+# @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+# @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+# def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
 
-def _test_mAP(y, y_pred, expected_result):
-    mAP = MeanAveragePrecision()
+#     device = idist.device()
+#     _test_distrib_integration(device)
 
-    mAP.update([y_pred, y])
 
-    results = mAP.compute()
+# @pytest.mark.distributed
+# @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+# def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
 
-    _check_results(expected_result, results)
+#     device = idist.device()
+#     _test_distrib_integration(device)
 
 
-def _test_mAP_two_images(y, y_pred, expected_result):
-    mAP = MeanAveragePrecision()
+# @pytest.mark.multinode_distributed
+# @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+# @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
+# def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
 
-    mAP.update([torch.vstack([y_pred[0], y_pred[2]]), y[:2]])
-    mAP.update([torch.vstack([y_pred[1]]), torch.vstack([y[2]])])
+#     device = idist.device()
+#     _test_distrib_integration(device)
 
-    results = mAP.compute()
 
-    _check_results(expected_result, results)
+# @pytest.mark.multinode_distributed
+# @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+# @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
+# def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
 
+#     device = idist.device()
+#     _test_distrib_integration(device)
 
-def test_mAP_edge_cases():
-    # #y == #y_pred
-    expected_result = [0.3626, 1, 0.5, -1, 0.6, 0.375]
-    _test_mAP(torch.tensor(y), torch.tensor(y_pred), expected_result)
 
-    expected_result = [0.3626, 1, 0.5, -1, -1, 0.3626]
-    _test_mAP(
-        torch.tensor([y[0][:7], y[1][:7], y[2][:7]]),
-        torch.tensor([y_pred[0][:7], y_pred[1][:7], y_pred[2][:7]]),
-        expected_result,
-    )
+# @pytest.mark.distributed
+# @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+# @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+# def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
+#     device = torch.device(f"cuda:{local_rank}")
+#     _test_distrib_integration(device)
 
-    # #y < #y_pred
-    expected_result = [0.22499, 0.75, 0.25, -1, -1, 0.22499]
-    _test_mAP(torch.tensor(y[:2]), torch.tensor(y_pred), expected_result)
 
-    # #y > #y_pred
-    expected_result = [0.312, 0.5, 0.5, -1, 0.6, 0.32499]
-    _test_mAP(torch.tensor(y), torch.tensor(y_pred[:2]), expected_result)
+# @pytest.mark.distributed
+# @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+# def test_distrib_cpu(distributed_context_single_node_gloo):
+#     device = torch.device("cpu")
+#     _test_distrib_integration(device)
 
-    # #y == 0 and #y_pred != 0
-    expected_result = [-1, -1, -1, -1, -1, -1]
-    _test_mAP(torch.zeros(0, 9), torch.tensor(y_pred[:2]), expected_result)
 
-    # #y != 0 and #y_pred == 0
-    expected_result = [0, 0, 0, -1, 0, 0]
-    _test_mAP(torch.tensor(y), torch.zeros(0, 9), expected_result)
+# @pytest.mark.distributed
+# @pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
+# @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
+# def test_distrib_hvd(gloo_hvd_executor):
 
-    # #y == 0 and #y_pred == 0
-    expected_result = [-1, -1, -1, -1, -1, -1]
-    _test_mAP(torch.zeros(0, 9), torch.zeros(0, 9), expected_result)
+#     device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
+#     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
 
-    # two images
-    expected_result = [0.05, 0.5, 0, -1, 0, 0.05]
-    _test_mAP_two_images(torch.tensor(y), torch.tensor(y_pred), expected_result)
+#     gloo_hvd_executor(_test_distrib_integration, (device,), np=nproc, do_init=True)
 
 
-def test_against_coco_map():
-    mAP = MeanAveragePrecision()
+# @pytest.mark.multinode_distributed
+# @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+# @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
+# def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
+#     device = torch.device("cpu")
+#     _test_distrib_integration(device)
 
-    for i in img_list:
-        mAP.update([img_dts[i], img_gts[i]])
 
-    results = mAP.compute()
-    cocoEval.summarize()
-    coco_results = cocoEval.stats[:6]
-    assert coco_results[0] == pytest.approx(results["all"], 1e-2)
-    assert coco_results[1] == pytest.approx(results["all@0.5"], 1e-2)
-    assert coco_results[2] == pytest.approx(results["all@0.75"], 1e-2)
-    assert coco_results[3] == pytest.approx(results["small"], 1e-2)
-    assert coco_results[4] == pytest.approx(results["medium"], 1e-2)
-    assert coco_results[5] == pytest.approx(results["large"], 1e-2)
+# @pytest.mark.multinode_distributed
+# @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+# @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
+# def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
+#     device = torch.device(f"cuda:{distributed_context_multi_node_nccl['local_rank']}")
+#     _test_distrib_integration(device)
 
 
-def _test_distrib_integration(device):
-    def _test(metric_device):
-        torch.manual_seed(12)
+# @pytest.mark.tpu
+# @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+# @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+# def test_distrib_single_device_xla():
+#     device = idist.device()
+#     _test_distrib_integration(device)
 
-        def update(_, img_id):
-            return [img_dts[img_id], img_gts[img_id]]
 
-        engine = Engine(update)
+# def _test_distrib_xla_nprocs(index):
+#     device = idist.device()
+#     _test_distrib_integration(device)
 
-        mAP = MeanAveragePrecision(device=metric_device)
-        mAP.attach(engine, "mAP")
 
-        data = img_list
-        engine.run(data=data, max_epochs=1)
-
-        assert "mAP" in engine.state.metrics
-
-        results = engine.state.metrics["mAP"]
-        cocoEval.summarize()
-        coco_results = cocoEval.stats[:6]
-        assert coco_results[0] == pytest.approx(results["all"], 1e-2)
-        assert coco_results[1] == pytest.approx(results["all@0.5"], 1e-2)
-        assert coco_results[2] == pytest.approx(results["all@0.75"], 1e-2)
-        assert coco_results[3] == pytest.approx(results["small"], 1e-2)
-        assert coco_results[4] == pytest.approx(results["medium"], 1e-2)
-        assert coco_results[5] == pytest.approx(results["large"], 1e-2)
-
-    metric_devices = ["cpu"]
-    if device.type != "xla":
-        metric_devices.append(idist.device())
-
-    for metric_device in metric_devices:
-        _test(metric_device=metric_device)
-
-
-@pytest.mark.distributed
-@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
-
-    device = idist.device()
-    _test_distrib_integration(device)
-
-
-@pytest.mark.distributed
-@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
-
-    device = idist.device()
-    _test_distrib_integration(device)
-
-
-@pytest.mark.multinode_distributed
-@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
-
-    device = idist.device()
-    _test_distrib_integration(device)
-
-
-@pytest.mark.multinode_distributed
-@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
-
-    device = idist.device()
-    _test_distrib_integration(device)
-
-
-@pytest.mark.distributed
-@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
-    device = torch.device(f"cuda:{local_rank}")
-    _test_distrib_integration(device)
-
-
-@pytest.mark.distributed
-@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-def test_distrib_cpu(distributed_context_single_node_gloo):
-    device = torch.device("cpu")
-    _test_distrib_integration(device)
-
-
-@pytest.mark.distributed
-@pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
-@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-def test_distrib_hvd(gloo_hvd_executor):
-
-    device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
-    nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
-
-    gloo_hvd_executor(_test_distrib_integration, (device,), np=nproc, do_init=True)
-
-
-@pytest.mark.multinode_distributed
-@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
-    device = torch.device("cpu")
-    _test_distrib_integration(device)
-
-
-@pytest.mark.multinode_distributed
-@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = torch.device(f"cuda:{distributed_context_multi_node_nccl['local_rank']}")
-    _test_distrib_integration(device)
-
-
-@pytest.mark.tpu
-@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
-@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_distrib_single_device_xla():
-    device = idist.device()
-    _test_distrib_integration(device)
-
-
-def _test_distrib_xla_nprocs(index):
-    device = idist.device()
-    _test_distrib_integration(device)
-
-
-@pytest.mark.tpu
-@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
-@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_distrib_xla_nprocs(xmp_executor):
-    n = int(os.environ["NUM_TPU_WORKERS"])
-    xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)
+# @pytest.mark.tpu
+# @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+# @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+# def test_distrib_xla_nprocs(xmp_executor):
+#     n = int(os.environ["NUM_TPU_WORKERS"])
+#     xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)

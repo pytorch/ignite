@@ -149,16 +149,6 @@ class MeanAveragePrecision(Metric):
             rec_thresholds = [i / 100 for i in range(101)]
         self.rec_thresholds = torch.tensor(rec_thresholds, device=device)
 
-        self.__id = 0
-        self.__category_id = 1
-        self.__xmin = 2
-        self.__width = 4
-        self.__height = 5
-        self.__area = 7
-        self.__crowd = 8
-        self.__ignore = 6
-        self.__confidence = 6
-
         super(MeanAveragePrecision, self).__init__(output_transform=output_transform, device=device)
 
     def _check_object_area_ranges(self) -> None:
@@ -170,42 +160,45 @@ class MeanAveragePrecision(Metric):
                 )
 
     @reinit__is_reduced
-    def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
+    def update(self, output: Tuple[Dict, Dict]) -> None:
+
         y_pred_img, y_img = output
 
-        if len(y_pred_img.shape) != 2 or y_pred_img.shape[1] not in [7, 9]:
-            raise ValueError(f"detections_tensor should be of size [num_detections, 7/9], got {y_pred_img.shape}")
+        y_category_dict = defaultdict(list)
+        for i, category_id in y_img["category_id"]:
+            y_category_dict[category_id].append(i)
 
-        if len(y_img.shape) != 2 or y_img.shape[1] not in [7, 9]:
-            raise ValueError(f"ground_truths should be of size [num_detections, 7/9], got {y_img.shape}")
+        y_pred_category_dict = defaultdict(list)
+        for i, category_id in y_pred_img["category_id"]:
+            y_pred_category_dict[category_id].append(i)
 
-        detection_size = y_img.shape[1]
+        categories = torch.unique(torch.cat(y_img["category_id"], y_pred_img["category_id"]))
 
-        y_pred_img = y_pred_img.to(self._device)
-        y_img = y_img.to(self._device)
+        for category in categories:
+            y_pred_ind = y_pred_category_dict[category]
+            y_pred_bbox = y_pred_img["bbox"][y_pred_ind]
+            y_pred_score = y_pred_img["score"][y_pred_ind]
+            y_pred_id = y_pred_img["id"][y_pred_ind]
+            y_pred_area = (
+                y_pred_img["area"][y_pred_ind]
+                if "area" in y_pred_img
+                else (y_pred_img["bbox"][:, 2] * y_pred_img["bbox"][:, 3])[y_pred_ind]
+            )
+            sorted_y_pred_bbox = y_pred_bbox[torch.argsort(-y_pred_img["score"][y_pred_ind])]
 
-        categories = set()
-        categorywise_y: defaultdict = defaultdict(lambda: torch.zeros(0, detection_size).to(self._device))
-        for y in y_img:
-            category_id = int(y[self.__category_id])
-            categories.add(category_id)
-            categorywise_y[category_id] = torch.vstack([categorywise_y[category_id], y])
+            y_ind = y_category_dict[category]
+            y_id = y_img["id"][y_ind]
+            y_bbox = y_img["bbox"][y_ind]
+            crowd = y_img["iscrowd"][y_ind] if "iscrowd" in y_img else None
+            y_ignore = y_img["ignore"][y_ind] if "ignore" in y_img else torch.zeros(len(y_ind))
+            y_area = y_img["area"][y_ind] if "area" in y_img else (y_img["bbox"][:, 2] * y_img["bbox"][:, 3])[y_ind]
+            ious = _iou(y_bbox, sorted_y_pred_bbox, crowd)
 
-        categorywise_y_pred: defaultdict = defaultdict(lambda: torch.zeros(0, detection_size).to(self._device))
-        for y_pred in y_pred_img:
-            category_id = int(y_pred[self.__category_id])
-            categories.add(category_id)
-            categorywise_y_pred[category_id] = torch.vstack([categorywise_y_pred[category_id], y_pred])
-
-        self.category_ids.update(categories)
-
-        for category_id in categories:
-            ious = self._compute_iou(categorywise_y[category_id], categorywise_y_pred[category_id])
             for area_rng in self.object_area_ranges:
                 self.eval_imgs[category_id, area_rng].append(
                     self._evaluate_image_matches(
-                        categorywise_y[category_id],
-                        categorywise_y_pred[category_id],
+                        [y_id, y_area, y_ignore, crowd],
+                        [y_pred_id, y_pred_area, y_pred_score],
                         self.object_area_ranges[area_rng],
                         ious,
                     )
@@ -216,71 +209,54 @@ class MeanAveragePrecision(Metric):
         self.category_ids: set = set()
         self.eval_imgs: defaultdict = defaultdict(list)
 
-    def _compute_iou(self, y: torch.Tensor, y_pred: torch.Tensor) -> torch.Tensor:
-        # Sort predictions by confidence.
-        y_pred = y_pred[torch.argsort(-y_pred[:, self.__confidence])]
-
-        if y.shape[1] == 9:
-            crowd = [g[self.__crowd] for g in y]
-        else:
-            crowd = []
-
-        # Pass the bounding boxes for ground truths and predictions and crowd to obtain ious.y
-        ious = _iou(y, y_pred, crowd).to(self._device)
-
-        return ious
-
     def _evaluate_image_matches(
-        self, y: torch.Tensor, y_pred: torch.Tensor, area_rng: Tuple[float, float], ious: torch.Tensor
+        self, y: List, y_pred: List, area_rng: Tuple[float, float], ious: torch.Tensor
     ) -> Optional[Dict]:
         """
             Evaluates iou_threshold wise y and y_pred matches.
         """
-        if len(y) == 0 and len(y_pred) == 0:
+
+        y_id, y_area, y_ignore, y_crowd = y
+        y_pred_id, y_pred_area, y_pred_score = y_pred
+
+        if len(y_area) == 0 and len(y_pred_area) == 0:
             return None
 
         # assign which detections in y are ignored for evaluating matches
-        y_ignore = torch.zeros(len(y))
-        for i, g in enumerate(y):
-            if len(g) == 9:
-                g_area = g[self.__area]
-            else:
-                g_area = g[self.__width] * g[self.__height]
-            if g[self.__ignore] or (g_area < area_rng[0] or g_area > area_rng[1]):
+        for i, area in enumerate(y_area):
+            if area < area_rng[0] or area > area_rng[1]:
                 y_ignore[i] = 1
-            else:
-                y_ignore[i] = 0
 
         # Sort y based such that non ignored predictions are at the start
         y_ind = torch.argsort(y_ignore)
+        y_id = y_id[y_ind]
         y_ignore = y_ignore[y_ind]
-        y = y[y_ind]
+        y_area = y_area[y_ind]
 
         # Sort y_pred according to confidence since we are using a greedy matching approach
-        y_pred = y_pred[torch.argsort(-y_pred[:, self.__confidence])]
-        if y.shape[1] == 9:
-            iscrowd = y[:, self.__crowd]
-        else:
-            iscrowd = torch.zeros(len(y))
+        y_pred_ind = torch.argsort(-y_pred_score)
+        y_pred_id = y_pred_id[y_pred_ind]
+        y_pred_area = y_pred_area[y_pred_ind]
+        y_pred_score = y_pred_score[y_pred_ind]
 
         # Sort ious accordingly
         ious = ious[:, y_ind] if len(ious) > 0 else ious
 
         num_iou_thrs = len(self.iou_thresholds)
-        num_y = len(y)
-        num_y_pred = len(y_pred)
+        num_y = len(y_ind)
+        num_y_pred = len(y_pred_ind)
         ym = torch.zeros((num_iou_thrs, num_y), device=self._device)
         y_predm = torch.zeros((num_iou_thrs, num_y_pred), device=self._device)
         y_pred_ignore = torch.zeros((num_iou_thrs, num_y_pred), device=self._device)
 
         if len(ious) != 0:
             for tind, t in enumerate(self.iou_thresholds):
-                for dind, d in enumerate(y_pred):
+                for dind, d in enumerate(y_pred_id):
                     iou = min([t, 1 - 1e-10])
                     m = -1
-                    for gind, g in enumerate(y):
+                    for gind, g in enumerate(y_id):
                         # Find the best ground truth match for a prediction based on ious.
-                        if ym[tind, gind] > 0 and not iscrowd[gind]:
+                        if ym[tind, gind] > 0 and not y_crowd[gind]:
                             continue
 
                         if m > -1 and y_ignore[m] == 0 and y_ignore[gind] == 1:
@@ -295,21 +271,16 @@ class MeanAveragePrecision(Metric):
                     if m == -1:
                         continue
                     y_pred_ignore[tind, dind] = y_ignore[m]
-                    y_predm[tind, dind] = y[m][self.__id]
-                    ym[tind, m] = d[self.__id]
+                    y_predm[tind, dind] = y_id[m]
+                    ym[tind, m] = d
 
         # Sort the results area_wise, helps in future calculation of areawise mAP.
-        d_area_ignore = torch.zeros(len(y_pred))
-        for i, d in enumerate(y_pred):
-            if len(d) == 9:
-                d_area = d[self.__area]
-            else:
-                d_area = d[self.__width] * d[self.__height]
-            if d_area < area_rng[0] or d_area > area_rng[1]:
+        d_area_ignore = torch.zeros(len(y_pred_ind))
+        for i, area in enumerate(y_pred_area):
+            if area < area_rng[0] or area > area_rng[1]:
                 d_area_ignore[i] = 1
-            else:
-                d_area_ignore[i] = 0
-        a = torch.tensor(d_area_ignore).reshape((1, len(y_pred)))
+
+        a = torch.tensor(d_area_ignore).reshape((1, len(y_pred_ind)))
         a = a.to(self._device)
 
         y_pred_ignore = torch.logical_or(
@@ -318,7 +289,7 @@ class MeanAveragePrecision(Metric):
 
         return {
             "y_pred_matches": y_predm,
-            "y_pred_scores": y_pred[:, self.__confidence],
+            "y_pred_scores": y_pred_score,
             "y_ignore": y_ignore,
             "y_pred_ignore": y_pred_ignore,
         }
