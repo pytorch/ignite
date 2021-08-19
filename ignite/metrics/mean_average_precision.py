@@ -16,11 +16,14 @@ def _iou(y: torch.Tensor, y_pred: torch.Tensor, crowd: List) -> torch.Tensor:
 
     # bbox format : (xmin, ymin, width, height)
     for g in range(n):
-        y_bbox = y[g].tolist()
+        y_bbox = y[g][2:6].tolist()
         y_area = y_bbox[2] * y_bbox[3]
-        iscrowd = crowd[g]
+        if crowd != []:
+            iscrowd = crowd[g]
+        else:
+            iscrowd = 0
         for d in range(m):
-            y_pred_bbox = y_pred[d].tolist()
+            y_pred_bbox = y_pred[d][2:6].tolist()
             y_pred_area = y_pred_bbox[2] * y_pred_bbox[3]
             ious[d, g] = 0
             w = min(y_pred_bbox[2] + y_pred_bbox[0], y_bbox[2] + y_bbox[0]) - max(y_pred_bbox[0], y_bbox[0])
@@ -81,7 +84,7 @@ class MeanAveragePrecision(Metric):
             from ignite.metrics import MeanAveragePrecision
 
             # Detection Format:
-            # (id, class, xmin, ymin, width, height, area, crowd, ignore/confidence)
+            # (id, class, xmin, ymin, width, height, ignore/confidence, area, crowd)
             # area: refers to the area covered by the bounding box, is usually
             # height * width, except when crowd is 1.
             # crowd: refers to if the detection is completely independent of other
@@ -149,10 +152,12 @@ class MeanAveragePrecision(Metric):
         self.__id = 0
         self.__category_id = 1
         self.__xmin = 2
-        self.__area = 6
-        self.__crowd = 7
-        self.__ignore = 8
-        self.__confidence = 8
+        self.__width = 4
+        self.__height = 5
+        self.__area = 7
+        self.__crowd = 8
+        self.__ignore = 6
+        self.__confidence = 6
 
         super(MeanAveragePrecision, self).__init__(output_transform=output_transform, device=device)
 
@@ -168,23 +173,25 @@ class MeanAveragePrecision(Metric):
     def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred_img, y_img = output
 
-        if len(y_pred_img.shape) != 2 or y_pred_img.shape[1] != 9:
-            raise ValueError(f"detections_tensor should be of size [num_detections, 9], got {y_pred_img.shape}")
+        if len(y_pred_img.shape) != 2 or y_pred_img.shape[1] not in [7, 9]:
+            raise ValueError(f"detections_tensor should be of size [num_detections, 7/9], got {y_pred_img.shape}")
 
-        if len(y_img.shape) != 2 or y_img.shape[1] != 9:
-            raise ValueError(f"ground_truths should be of size [num_detections, 9], got {y_img.shape}")
+        if len(y_img.shape) != 2 or y_img.shape[1] not in [7, 9]:
+            raise ValueError(f"ground_truths should be of size [num_detections, 7/9], got {y_img.shape}")
+
+        detection_size = y_img.shape[1]
 
         y_pred_img = y_pred_img.to(self._device)
         y_img = y_img.to(self._device)
 
         categories = set()
-        categorywise_y: defaultdict = defaultdict(lambda: torch.zeros(0, 9).to(self._device))
+        categorywise_y: defaultdict = defaultdict(lambda: torch.zeros(0, detection_size).to(self._device))
         for y in y_img:
             category_id = int(y[self.__category_id])
             categories.add(category_id)
             categorywise_y[category_id] = torch.vstack([categorywise_y[category_id], y])
 
-        categorywise_y_pred: defaultdict = defaultdict(lambda: torch.zeros(0, 9).to(self._device))
+        categorywise_y_pred: defaultdict = defaultdict(lambda: torch.zeros(0, detection_size).to(self._device))
         for y_pred in y_pred_img:
             category_id = int(y_pred[self.__category_id])
             categories.add(category_id)
@@ -213,10 +220,13 @@ class MeanAveragePrecision(Metric):
         # Sort predictions by confidence.
         y_pred = y_pred[torch.argsort(-y_pred[:, self.__confidence])]
 
-        crowd = [g[self.__crowd] for g in y]
+        if y.shape[1] == 9:
+            crowd = [g[self.__crowd] for g in y]
+        else:
+            crowd = []
 
         # Pass the bounding boxes for ground truths and predictions and crowd to obtain ious.y
-        ious = _iou(y[:, self.__xmin : self.__area], y_pred[:, self.__xmin : self.__area], crowd).to(self._device)
+        ious = _iou(y, y_pred, crowd).to(self._device)
 
         return ious
 
@@ -232,7 +242,11 @@ class MeanAveragePrecision(Metric):
         # assign which detections in y are ignored for evaluating matches
         y_ignore = torch.zeros(len(y))
         for i, g in enumerate(y):
-            if g[self.__ignore] or (g[self.__area] < area_rng[0] or g[self.__area] > area_rng[1]):
+            if len(g) == 9:
+                g_area = g[self.__area]
+            else:
+                g_area = g[self.__width] * g[self.__height]
+            if g[self.__ignore] or (g_area < area_rng[0] or g_area > area_rng[1]):
                 y_ignore[i] = 1
             else:
                 y_ignore[i] = 0
@@ -244,7 +258,10 @@ class MeanAveragePrecision(Metric):
 
         # Sort y_pred according to confidence since we are using a greedy matching approach
         y_pred = y_pred[torch.argsort(-y_pred[:, self.__confidence])]
-        iscrowd = y[:, self.__crowd]
+        if y.shape[1] == 9:
+            iscrowd = y[:, self.__crowd]
+        else:
+            iscrowd = torch.zeros(len(y))
 
         # Sort ious accordingly
         ious = ious[:, y_ind] if len(ious) > 0 else ious
@@ -282,9 +299,17 @@ class MeanAveragePrecision(Metric):
                     ym[tind, m] = d[self.__id]
 
         # Sort the results area_wise, helps in future calculation of areawise mAP.
-        a = torch.tensor([d[self.__area] < area_rng[0] or d[self.__area] > area_rng[1] for d in y_pred]).reshape(
-            (1, len(y_pred))
-        )
+        d_area_ignore = torch.zeros(len(y_pred))
+        for i, d in enumerate(y_pred):
+            if len(d) == 9:
+                d_area = d[self.__area]
+            else:
+                d_area = d[self.__width] * d[self.__height]
+            if d_area < area_rng[0] or d_area > area_rng[1]:
+                d_area_ignore[i] = 1
+            else:
+                d_area_ignore[i] = 0
+        a = torch.tensor(d_area_ignore).reshape((1, len(y_pred)))
         a = a.to(self._device)
 
         y_pred_ignore = torch.logical_or(

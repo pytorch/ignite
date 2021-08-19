@@ -11,15 +11,15 @@ from ignite.engine import Engine
 from ignite.metrics import MeanAveragePrecision
 
 y = [
-    [1, 1, 1.13, 190.22, 247.97, 137.01, 13426.68, 0, 0],
-    [2, 2, 189.42, 30.26, 429.41, 428.34, 84122.97, 0, 0],
-    [3, 1, 412.64, 193.67, 125.51, 198.6, 8896.38, 0, 0],
+    [1, 1, 1.13, 190.22, 247.97, 137.01, 0, 13426.68, 0],
+    [2, 2, 189.42, 30.26, 429.41, 428.34, 0, 84122.97, 0],
+    [3, 1, 412.64, 193.67, 125.51, 198.6, 0, 8896.38, 0],
 ]
 
 y_pred = [
-    [1, 1, 429.64, 193.67, 125.51, 198.6, 24926.28, 0, 0.884],
-    [2, 1, 0, 190.22, 212.1, 137.01, 29059.82, 0, 0.577],
-    [3, 2, 188.87, 129.27, 307.8, 343.32, 105673.89, 0, 0.073],
+    [1, 1, 429.64, 193.67, 125.51, 198.6, 0.884, 24926.28, 0],
+    [2, 1, 0, 190.22, 212.1, 137.01, 0.577, 29059.82, 0],
+    [3, 2, 188.87, 129.27, 307.8, 343.32, 0.073, 105673.89, 0],
 ]
 
 
@@ -49,7 +49,7 @@ def get_coco_results():
             ignore = img["ignore"]
             xmin, ymin, xmax, ymax = img["bbox"]
             img_gts[img_id] = torch.vstack(
-                [img_gts[img_id], torch.tensor([id, class_id, xmin, ymin, xmax, ymax, area, crowd, ignore])]
+                [img_gts[img_id], torch.tensor([id, class_id, xmin, ymin, xmax, ymax, ignore, area, crowd])]
             )
 
     for i in cocoEval._dts:
@@ -61,7 +61,7 @@ def get_coco_results():
             confidence = img["score"]
             xmin, ymin, xmax, ymax = img["bbox"]
             img_dts[img_id] = torch.vstack(
-                [img_dts[img_id], torch.tensor([id, class_id, xmin, ymin, xmax, ymax, area, crowd, confidence])]
+                [img_dts[img_id], torch.tensor([id, class_id, xmin, ymin, xmax, ymax, confidence, area, crowd])]
             )
 
     img_list = set([i for i in img_gts])
@@ -123,6 +123,13 @@ def test_mAP_edge_cases():
     # #y == #y_pred
     expected_result = [0.3626, 1, 0.5, -1, 0.6, 0.375]
     _test_mAP(torch.tensor(y), torch.tensor(y_pred), expected_result)
+
+    expected_result = [0.3626, 1, 0.5, -1, -1, 0.3626]
+    _test_mAP(
+        torch.tensor([y[0][:7], y[1][:7], y[2][:7]]),
+        torch.tensor([y_pred[0][:7], y_pred[1][:7], y_pred[2][:7]]),
+        expected_result,
+    )
 
     # #y < #y_pred
     expected_result = [0.22499, 0.75, 0.25, -1, -1, 0.22499]
