@@ -234,7 +234,7 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
     return model
 
 
-def auto_optim(optimizer: Optimizer,**kwargs: Any) -> Optimizer:
+def auto_optim(optimizer: Optimizer, **kwargs: Any) -> Optimizer:
     """Helper method to adapt optimizer for non-distributed and distributed configurations (supporting
     all available backends from :meth:`~ignite.distributed.utils.available_backends()`).
 
@@ -256,7 +256,7 @@ def auto_optim(optimizer: Optimizer,**kwargs: Any) -> Optimizer:
 
     Args:
         optimizer: input torch optimizer
-        kwargs: kwargs to horovod backend's DistributedOptimizer. 
+        kwargs: kwargs to Horovod backend's DistributedOptimizer.
 
     Returns:
         Optimizer
@@ -274,7 +274,7 @@ def auto_optim(optimizer: Optimizer,**kwargs: Any) -> Optimizer:
     if idist.has_hvd_support and bnd == idist_hvd.HOROVOD:
         import horovod.torch as hvd
 
-        optimizer = hvd.DistributedOptimizer(optimizer,**kwargs)
+        optimizer = hvd.DistributedOptimizer(optimizer, **kwargs)
         hvd.broadcast_optimizer_state(optimizer, root_rank=0)
         return optimizer
 
