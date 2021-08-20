@@ -201,7 +201,7 @@ s ``process_function``'s output into the
             y_ignore = y_img["ignore"][y_ind] if "ignore" in y_img else torch.zeros(len(y_ind))
             y_area = y_img["area"][y_ind] if "area" in y_img else (y_img["bbox"][:, 2] * y_img["bbox"][:, 3])[y_ind]
 
-            ious = _iou(y_bbox, sorted_y_pred_bbox, crowd)
+            ious = _iou(y_bbox, sorted_y_pred_bbox, crowd).to(self._device)
             for area_rng in self.object_area_ranges:
                 eval_img = self._evaluate_image_matches(
                     [y_id, y_area, y_ignore, crowd],
@@ -293,7 +293,7 @@ s ``process_function``'s output into the
             else:
                 d_area_ignore[i] = 0
 
-        a = torch.tensor(d_area_ignore).reshape((1, len(y_pred_ind)))
+        a = d_area_ignore.reshape((1, len(y_pred_ind)))
         a = a.to(self._device)
 
         y_pred_ignore = torch.logical_or(
