@@ -68,8 +68,7 @@ class MeanAveragePrecision(Metric):
         iou_thresholds: Optional list of float IoU thresholds for which AP is computed (default: [.5:.05:.95]).
         rec_thresholds: Optional list of float values to which AP is computed for averaging (default: [0:.01:1]).
         output_transform: a callable that is used to transform the
-            :class:`~ignite.engine.engine.Engine`'            print(y_bbox, sorted_y_pred_bbox)
-s ``process_function``'s output into the
+            :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
             By default, metrics require the output as ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
@@ -84,25 +83,42 @@ s ``process_function``'s output into the
             import torch
             from ignite.metrics import MeanAveragePrecision
 
-            # Detection Format:
-            # (id, class, xmin, ymin, width, height, ignore/confidence, area, crowd)
-            # area: refers to the area covered by the bounding box, is usually
-            # height * width, except when crowd is 1.
-            # crowd: refers to if the detection is completely independent of other
-            # detection or overlapping with them.
-            # ignore: set positive when you want to ignore this detection when calculating
-            # Mean Average Precision.
-            # if your bounding box are of the form (xmin, ymin, xmax, ymax) instead
-            # they can be converted using the formulas width = xmax - xmin and
-            # height = ymax - ymin
+            # Input Format:
+            # Ground Truth
+            # [
+            #    {
+            #        "image_id": torch.IntTensor(B),
+            #        "category_id": torch.IntTensor(B),
+            #        "bbox": torch.FloatTensor(B x 4),
+            #        "iscrowd": torch.IntTensor(B) (Optional),
+            #        "area": torch.FloatTensor(B) (Optional),
+            #        "ignore": torch.IntTensor(B) (Optional),
+            #    }
+            # ]
 
-            # ground truth detections for an image
-            ys = torch.tensor([[1,73,249.1,50.7,375.3,277.2,101928.52,0,0],
-                    [2,73,152.3,50.29,47,312.38, 4097.4,0,0]])
+            # Prediction
+            # [
+            #    {
+            #        "image_id": torch.IntTensor(B),
+            #        "category_id": torch.IntTensor(B),
+            #        "bbox": torch.FloatTensor(B x 4),
+            #        "score": torch.FloatTensor(B),
+            #    }
+            # ]
 
-            # predicted detections for the same image
-            y_preds = torch.tensor([[1,73,176.38,50.3,463.62,312.4,144825.6,0,0.328],
-                    [2,73,355.5,111.87,210,93.75,19687.5,0,0.64]])
+            ys = {'area': tensor([2.]),
+                          'bbox': tensor([[0., 0., 2., 1.]]),
+                          'category_id': tensor([2]),
+                          'id': tensor([2]),
+                          'ignore': tensor([0]),
+                          'image_id': 1,
+                          'iscrowd': tensor([0])}
+
+            y_preds = {'bbox': tensor([[0., 0., 2., 1.]]),
+                          'category_id': tensor([2]),
+                          'id': tensor([2]),
+                          'image_id': 1,
+                          'score': tensor([0.8999999762])}
 
             mAP = MeanAveragePrecision()
 
@@ -171,8 +187,6 @@ s ``process_function``'s output into the
             raise ValueError("Detections for this image_id are already evaluated.")
 
         self.image_ids.add(y_img["image_id"])
-
-        # print(y_img["category_id"])
 
         y_category_dict = defaultdict(list)
         for i, category_id in enumerate(y_img["category_id"]):
