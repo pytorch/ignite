@@ -16,14 +16,14 @@ def _iou(y: torch.Tensor, y_pred: torch.Tensor, crowd: List) -> torch.Tensor:
 
     # bbox format : (xmin, ymin, width, height)
     for g in range(n):
-        y_bbox = y[g][2:6].tolist()
+        y_bbox = y[g].tolist()
         y_area = y_bbox[2] * y_bbox[3]
-        if crowd:
+        if crowd is not None:
             iscrowd = crowd[g]
         else:
             iscrowd = 0
         for d in range(m):
-            y_pred_bbox = y_pred[d][2:6].tolist()
+            y_pred_bbox = y_pred[d].tolist()
             y_pred_area = y_pred_bbox[2] * y_pred_bbox[3]
             ious[d, g] = 0
             w = min(y_pred_bbox[2] + y_pred_bbox[0], y_bbox[2] + y_bbox[0]) - max(y_pred_bbox[0], y_bbox[0])
@@ -68,7 +68,8 @@ class MeanAveragePrecision(Metric):
         iou_thresholds: Optional list of float IoU thresholds for which AP is computed (default: [.5:.05:.95]).
         rec_thresholds: Optional list of float values to which AP is computed for averaging (default: [0:.01:1]).
         output_transform: a callable that is used to transform the
-            :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
+            :class:`~ignite.engine.engine.Engine`'            print(y_bbox, sorted_y_pred_bbox)
+s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
             By default, metrics require the output as ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
@@ -171,15 +172,18 @@ class MeanAveragePrecision(Metric):
 
         self.image_ids.add(y_img["image_id"])
 
+        # print(y_img["category_id"])
+
         y_category_dict = defaultdict(list)
-        for i, category_id in y_img["category_id"]:
-            y_category_dict[category_id].append(i)
+        for i, category_id in enumerate(y_img["category_id"]):
+            y_category_dict[int(category_id)].append(i)
 
         y_pred_category_dict = defaultdict(list)
-        for i, category_id in y_pred_img["category_id"]:
-            y_pred_category_dict[category_id].append(i)
+        for i, category_id in enumerate(y_pred_img["category_id"]):
+            y_pred_category_dict[int(category_id)].append(i)
 
-        categories = torch.unique(torch.cat(y_img["category_id"], y_pred_img["category_id"]))
+        categories = torch.unique(torch.cat([y_img["category_id"], y_pred_img["category_id"]])).tolist()
+        self.category_ids.update(categories)
 
         for category in categories:
             y_pred_ind = y_pred_category_dict[category]
@@ -196,8 +200,8 @@ class MeanAveragePrecision(Metric):
             crowd = y_img["iscrowd"][y_ind] if "iscrowd" in y_img else None
             y_ignore = y_img["ignore"][y_ind] if "ignore" in y_img else torch.zeros(len(y_ind))
             y_area = y_img["area"][y_ind] if "area" in y_img else (y_img["bbox"][:, 2] * y_img["bbox"][:, 3])[y_ind]
-            ious = _iou(y_bbox, sorted_y_pred_bbox, crowd)
 
+            ious = _iou(y_bbox, sorted_y_pred_bbox, crowd)
             for area_rng in self.object_area_ranges:
                 eval_img = self._evaluate_image_matches(
                     [y_id, y_area, y_ignore, crowd],
@@ -205,14 +209,15 @@ class MeanAveragePrecision(Metric):
                     self.object_area_ranges[area_rng],
                     ious,
                 )
+
                 if eval_img is not None:
-                    self.eval_imgs[category_id, area_rng].append(eval_img)
+                    self.eval_imgs[int(category), area_rng].append(eval_img)
 
     @reinit__is_reduced
     def reset(self) -> None:
         self.category_ids: set = set()
         self.eval_imgs: defaultdict = defaultdict(list)
-        self.image_ids = set()
+        self.image_ids: set = set()
 
     def _evaluate_image_matches(
         self, y: List, y_pred: List, area_rng: Tuple[float, float], ious: torch.Tensor
@@ -224,18 +229,19 @@ class MeanAveragePrecision(Metric):
         y_id, y_area, y_ignore, y_crowd = y
         y_pred_id, y_pred_area, y_pred_score = y_pred
 
-        if len(y_area) == 0 and len(y_pred_area) == 0:
+        if len(y_id) == 0 and len(y_pred_id) == 0:
             return None
 
         # assign which detections in y are ignored for evaluating matches
+        ignore = torch.zeros(len(y_id))
         for i, area in enumerate(y_area):
-            if area < area_rng[0] or area > area_rng[1]:
-                y_ignore[i] = 1
+            if y_ignore[i] == 1 or area < area_rng[0] or area > area_rng[1]:
+                ignore[i] = 1
 
         # Sort y based such that non ignored predictions are at the start
-        y_ind = torch.argsort(y_ignore)
+        y_ind = torch.argsort(ignore)
         y_id = y_id[y_ind]
-        y_ignore = y_ignore[y_ind]
+        ignore = ignore[y_ind]
         y_area = y_area[y_ind]
 
         # Sort y_pred according to confidence since we are using a greedy matching approach
@@ -264,7 +270,7 @@ class MeanAveragePrecision(Metric):
                         if ym[tind, gind] > 0 and not y_crowd[gind]:
                             continue
 
-                        if m > -1 and y_ignore[m] == 0 and y_ignore[gind] == 1:
+                        if m > -1 and ignore[m] == 0 and ignore[gind] == 1:
                             break
 
                         if ious[dind, gind] < iou:
@@ -275,7 +281,7 @@ class MeanAveragePrecision(Metric):
 
                     if m == -1:
                         continue
-                    y_pred_ignore[tind, dind] = y_ignore[m]
+                    y_pred_ignore[tind, dind] = ignore[m]
                     y_predm[tind, dind] = y_id[m]
                     ym[tind, m] = d
 
@@ -284,6 +290,8 @@ class MeanAveragePrecision(Metric):
         for i, area in enumerate(y_pred_area):
             if area < area_rng[0] or area > area_rng[1]:
                 d_area_ignore[i] = 1
+            else:
+                d_area_ignore[i] = 0
 
         a = torch.tensor(d_area_ignore).reshape((1, len(y_pred_ind)))
         a = a.to(self._device)
@@ -292,7 +300,7 @@ class MeanAveragePrecision(Metric):
             y_pred_ignore, torch.logical_and(y_predm == 0, torch.repeat_interleave(a, num_iou_thrs, 0))
         ).to(self._device)
 
-        return {"matches": y_predm, "scores": y_pred_score, "ignore": {"y": y_ignore, "y_pred": y_pred_ignore,}}
+        return {"matches": y_predm, "scores": y_pred_score, "ignore": {"y": ignore, "y_pred": y_pred_ignore,}}
 
     def _accumulate(self) -> None:
         num_iou_thr = len(self.iou_thresholds)
