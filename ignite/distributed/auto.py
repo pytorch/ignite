@@ -256,7 +256,7 @@ def auto_optim(optimizer: Optimizer,**kwargs: Any) -> Optimizer:
 
     Args:
         optimizer: input torch optimizer
-        kwargs: kwargs to horovod backend's DistributedOptimizer() method. 
+        kwargs: kwargs to horovod backend's DistributedOptimizer. 
 
     Returns:
         Optimizer
