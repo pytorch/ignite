@@ -125,7 +125,7 @@ def test_against_coco_map():
         img_list.add(i)
 
     for i in img_list:
-        mAP.update([img_dts[i], img_gts[i]])
+        mAP.update([[img_dts[i], img_gts[i]]])
 
     results = mAP.compute()
 
@@ -142,7 +142,7 @@ def _test_distrib_integration(device):
         torch.manual_seed(12)
 
         def update(_, img_id):
-            return [img_dts[img_id], img_gts[img_id]]
+            return [[img_dts[img_id], img_gts[img_id]]]
 
         engine = Engine(update)
 

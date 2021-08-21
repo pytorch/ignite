@@ -177,55 +177,57 @@ class MeanAveragePrecision(Metric):
                 )
 
     @reinit__is_reduced
-    def update(self, output: Tuple[Dict, Dict]) -> None:
+    def update(self, outputs: Tuple[Dict, Dict]) -> None:
 
-        y_pred_img, y_img = output
+        for output in outputs:
 
-        assert y_img["image_id"] == y_pred_img["image_id"]
+            y_pred_img, y_img = output
 
-        if y_img["image_id"] in self.image_ids:
-            raise ValueError("Detections for this image_id are already evaluated.")
+            assert y_img["image_id"] == y_pred_img["image_id"]
 
-        self.image_ids.add(y_img["image_id"])
+            if y_img["image_id"] in self.image_ids:
+                raise ValueError("Detections for this image_id are already evaluated.")
 
-        y_category_dict = defaultdict(list)
-        for i, category_id in enumerate(y_img["category_id"]):
-            y_category_dict[int(category_id)].append(i)
+            self.image_ids.add(y_img["image_id"])
 
-        y_pred_category_dict = defaultdict(list)
-        for i, category_id in enumerate(y_pred_img["category_id"]):
-            y_pred_category_dict[int(category_id)].append(i)
+            y_category_dict = defaultdict(list)
+            for i, category_id in enumerate(y_img["category_id"]):
+                y_category_dict[int(category_id)].append(i)
 
-        categories = torch.unique(torch.cat([y_img["category_id"], y_pred_img["category_id"]])).tolist()
-        self.category_ids.update(categories)
+            y_pred_category_dict = defaultdict(list)
+            for i, category_id in enumerate(y_pred_img["category_id"]):
+                y_pred_category_dict[int(category_id)].append(i)
 
-        for category in categories:
-            y_pred_ind = y_pred_category_dict[category]
-            y_pred_bbox = y_pred_img["bbox"][y_pred_ind]
-            y_pred_score = y_pred_img["score"][y_pred_ind]
-            y_pred_id = y_pred_img["id"][y_pred_ind]
-            y_pred_area = (y_pred_img["bbox"][:, 2] * y_pred_img["bbox"][:, 3])[y_pred_ind]
+            categories = torch.unique(torch.cat([y_img["category_id"], y_pred_img["category_id"]])).tolist()
+            self.category_ids.update(categories)
 
-            sorted_y_pred_bbox = y_pred_bbox[torch.argsort(-y_pred_img["score"][y_pred_ind])]
+            for category in categories:
+                y_pred_ind = y_pred_category_dict[category]
+                y_pred_bbox = y_pred_img["bbox"][y_pred_ind]
+                y_pred_score = y_pred_img["score"][y_pred_ind]
+                y_pred_id = y_pred_img["id"][y_pred_ind]
+                y_pred_area = (y_pred_img["bbox"][:, 2] * y_pred_img["bbox"][:, 3])[y_pred_ind]
 
-            y_ind = y_category_dict[category]
-            y_id = y_img["id"][y_ind]
-            y_bbox = y_img["bbox"][y_ind]
-            crowd = y_img["iscrowd"][y_ind] if "iscrowd" in y_img else None
-            y_ignore = y_img["ignore"][y_ind] if "ignore" in y_img else torch.zeros(len(y_ind))
-            y_area = y_img["area"][y_ind] if "area" in y_img else (y_img["bbox"][:, 2] * y_img["bbox"][:, 3])[y_ind]
+                sorted_y_pred_bbox = y_pred_bbox[torch.argsort(-y_pred_img["score"][y_pred_ind])]
 
-            ious = _iou(y_bbox, sorted_y_pred_bbox, crowd).to(self._device)
-            for area_rng in self.object_area_ranges:
-                eval_img = self._evaluate_image_matches(
-                    [y_id, y_area, y_ignore, crowd],
-                    [y_pred_id, y_pred_area, y_pred_score],
-                    self.object_area_ranges[area_rng],
-                    ious,
-                )
+                y_ind = y_category_dict[category]
+                y_id = y_img["id"][y_ind]
+                y_bbox = y_img["bbox"][y_ind]
+                crowd = y_img["iscrowd"][y_ind] if "iscrowd" in y_img else None
+                y_ignore = y_img["ignore"][y_ind] if "ignore" in y_img else torch.zeros(len(y_ind))
+                y_area = y_img["area"][y_ind] if "area" in y_img else (y_img["bbox"][:, 2] * y_img["bbox"][:, 3])[y_ind]
 
-                if eval_img is not None:
-                    self.eval_imgs[int(category), area_rng].append(eval_img)
+                ious = _iou(y_bbox, sorted_y_pred_bbox, crowd).to(self._device)
+                for area_rng in self.object_area_ranges:
+                    eval_img = self._evaluate_image_matches(
+                        [y_id, y_area, y_ignore, crowd],
+                        [y_pred_id, y_pred_area, y_pred_score],
+                        self.object_area_ranges[area_rng],
+                        ious,
+                    )
+
+                    if eval_img is not None:
+                        self.eval_imgs[int(category), area_rng].append(eval_img)
 
     @reinit__is_reduced
     def reset(self) -> None:
