@@ -87,22 +87,22 @@ class MeanAveragePrecision(Metric):
             # Ground Truth
             # [
             #    {
-            #        "image_id": torch.IntTensor(B),
-            #        "category_id": torch.IntTensor(B),
-            #        "bbox": torch.FloatTensor(B x 4),
-            #        "iscrowd": torch.IntTensor(B) (Optional),
-            #        "area": torch.FloatTensor(B) (Optional),
-            #        "ignore": torch.IntTensor(B) (Optional),
+            #        "image_id": int,
+            #        "category_id": torch.IntTensor(D),
+            #        "bbox": torch.FloatTensor(D x 4),
+            #        "iscrowd": torch.IntTensor(D) (Optional),
+            #        "area": torch.FloatTensor(D) (Optional),
+            #        "ignore": torch.IntTensor(D) (Optional),
             #    }
             # ]
 
             # Prediction
             # [
             #    {
-            #        "image_id": torch.IntTensor(B),
-            #        "category_id": torch.IntTensor(B),
-            #        "bbox": torch.FloatTensor(B x 4),
-            #        "score": torch.FloatTensor(B),
+            #        "image_id": int,
+            #        "category_id": torch.IntTensor(D),
+            #        "bbox": torch.FloatTensor(D x 4),
+            #        "score": torch.FloatTensor(D),
             #    }
             # ]
 
@@ -183,7 +183,8 @@ class MeanAveragePrecision(Metric):
 
             y_pred_img, y_img = output
 
-            assert y_img["image_id"] == y_pred_img["image_id"]
+            if y_img["image_id"] != y_pred_img["image_id"]:
+                raise ValueError("Ground Truth and Predictions should be for the same image.")
 
             if y_img["image_id"] in self.image_ids:
                 raise ValueError("Detections for this image_id are already evaluated.")
