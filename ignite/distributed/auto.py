@@ -265,6 +265,9 @@ def auto_optim(optimizer: Optimizer, **kwargs: Any) -> Optimizer:
 
     .. versionchanged:: 0.4.2
         Added Horovod distributed optimizer.
+
+    .. versionchanged:: 0.5.0
+        Added kwargs to ``idist.auto_optim``.
     """
     bnd = idist.backend()
     if idist.has_xla_support and bnd == idist_xla.XLA_TPU:
