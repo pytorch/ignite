@@ -70,7 +70,7 @@ class Timer:
         >>> trainer = Engine(training_update_function)
         >>> timer = Timer(average=True)
         >>> timer.attach(trainer,
-        ...              start=Events.EPOCH_STARTED,
+        ...              start=Events.STARTED,
         ...              resume=Events.ITERATION_STARTED,
         ...              pause=Events.ITERATION_COMPLETED,
         ...              step=Events.ITERATION_COMPLETED)
