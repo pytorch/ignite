@@ -171,6 +171,7 @@ def _test_auto_model_optimizer(ws, device):
         assert isinstance(optimizer, optim.SGD) and hasattr(optimizer, "_allreduce_grad_async")
     else:
         assert isinstance(optimizer, optim.SGD) and not hasattr(optimizer, "wrapped_optimizer")
+
     if idist.has_hvd_support and bnd in ("horovod",):
         backward_passes_per_step = 2
         optimizer = optim.SGD(model.parameters(), lr=0.01)
