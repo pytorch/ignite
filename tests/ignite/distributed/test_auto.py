@@ -164,13 +164,19 @@ def _test_auto_model_optimizer(ws, device):
     # Test auto_optim
     bnd = idist.backend()
     optimizer = optim.SGD(model.parameters(), lr=0.01)
-    optimizer = auto_optim(optimizer, backward_passes_per_step=2)
+    optimizer = auto_optim(optimizer)
     if idist.has_xla_support and "xla" in device:
         assert isinstance(optimizer, optim.SGD) and hasattr(optimizer, "wrapped_optimizer")
     elif idist.has_hvd_support and bnd in ("horovod",):
         assert isinstance(optimizer, optim.SGD) and hasattr(optimizer, "_allreduce_grad_async")
     else:
         assert isinstance(optimizer, optim.SGD) and not hasattr(optimizer, "wrapped_optimizer")
+    if idist.has_hvd_support and bnd in ("horovod",):
+        backward_passes_per_step = 2
+        optimizer = optim.SGD(model.parameters(), lr=0.01)
+        optimizer = auto_optim(optimizer, backward_passes_per_step=backward_passes_per_step)
+        assert isinstance(optimizer, optim.SGD) and hasattr(optimizer, "backward_passes_per_step")
+        assert optimizer.backward_passes_per_step == backward_passes_per_step
 
 
 def test_auto_methods_no_dist():
