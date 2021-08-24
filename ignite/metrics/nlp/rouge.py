@@ -213,9 +213,9 @@ class RougeN(_BaseRouge):
 
     .. code-block:: python
 
-        from ignite.metrics.rouge import RougeN
+        from ignite.metrics import RougeN
 
-        m = RougeN(ngrams=2, multiref="best")
+        m = RougeN(ngram=2, multiref="best")
 
         candidate = "the cat is not there".split()
         references = [
@@ -280,7 +280,7 @@ class RougeL(_BaseRouge):
 
     .. code-block:: python
 
-        from ignite.metrics.rouge import RougeL
+        from ignite.metrics import RougeL
 
         m = RougeL(multiref="best")
 
@@ -344,7 +344,7 @@ class Rouge(Metric):
 
         from ignite.metrics import Rouge
 
-        m = Rouge(variants=["L", "2"], multiref="best")
+        m = Rouge(variants=["L", 2], multiref="best")
 
         candidate = "the cat is not there".split()
         references = [
