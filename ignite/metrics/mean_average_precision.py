@@ -209,8 +209,6 @@ class MeanAveragePrecision(Metric):
                 y_pred_id = y_pred_img["id"][y_pred_ind]
                 y_pred_area = (y_pred_img["bbox"][:, 2] * y_pred_img["bbox"][:, 3])[y_pred_ind]
 
-                sorted_y_pred_bbox = y_pred_bbox[torch.argsort(-y_pred_img["score"][y_pred_ind])]
-
                 y_ind = y_category_dict[category]
                 y_id = y_img["id"][y_ind]
                 y_bbox = y_img["bbox"][y_ind]
@@ -218,7 +216,7 @@ class MeanAveragePrecision(Metric):
                 y_ignore = y_img["ignore"][y_ind] if "ignore" in y_img else torch.zeros(len(y_ind))
                 y_area = y_img["area"][y_ind] if "area" in y_img else (y_img["bbox"][:, 2] * y_img["bbox"][:, 3])[y_ind]
 
-                ious = _iou(y_bbox, sorted_y_pred_bbox, crowd).to(self._device)
+                ious = _iou(y_bbox, y_pred_bbox, crowd).to(self._device)
                 for area_rng in self.object_area_ranges:
                     eval_img = self._evaluate_image_matches(
                         [y_id, y_area, y_ignore, crowd],
@@ -266,6 +264,7 @@ class MeanAveragePrecision(Metric):
         y_pred_id = y_pred_id[y_pred_ind]
         y_pred_area = y_pred_area[y_pred_ind]
         y_pred_score = y_pred_score[y_pred_ind]
+        ious = ious[y_pred_ind]
 
         # Sort ious accordingly
         ious = ious[:, y_ind] if len(ious) > 0 else ious
