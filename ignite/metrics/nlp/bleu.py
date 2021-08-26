@@ -142,9 +142,7 @@ class Bleu(Metric):
         super(Bleu, self).__init__(output_transform=output_transform, device=device)
 
     def _n_gram_counter(
-        self,
-        references: Sequence[Sequence[Sequence[Any]]],
-        candidates: Sequence[Sequence[Any]],
+        self, references: Sequence[Sequence[Sequence[Any]]], candidates: Sequence[Sequence[Any]],
     ) -> float:
         if len(references) != len(candidates):
             raise ValueError(
