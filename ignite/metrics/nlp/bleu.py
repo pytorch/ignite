@@ -126,7 +126,9 @@ class Bleu(Metric):
         self.smoother = _Smoother(method=smooth)
         super(Bleu, self).__init__(output_transform=output_transform, device=device)
 
-    def _corpus_bleu(self, references: Sequence[Sequence[Any]], candidates: Sequence[Sequence[Any]],) -> float:
+    def _corpus_bleu(
+        self, references: Sequence[Sequence[Any]], candidates: Sequence[Sequence[Sequence[Any]]],
+    ) -> float:
         p_numerators: Counter = Counter()
         p_denominators: Counter = Counter()
 
@@ -185,9 +187,12 @@ class Bleu(Metric):
         self._num_sentences = 0
 
     @reinit__is_reduced
-    def update(self, output: Tuple[Sequence[Any], Sequence[Sequence[Any]]]) -> None:
+    def update(self, output: Tuple[Sequence[Sequence[Any]], Sequence[Sequence[Sequence[Any]]]]) -> None:
         y_pred, y = output
-        self._sum_of_bleu += self._corpus_bleu(references=[y], candidates=[y_pred])
+        if not isinstance(y_pred[0], list):
+            y_pred = [y_pred]
+            y = [y]
+        self._sum_of_bleu += self._corpus_bleu(references=y, candidates=y_pred)
         self._num_sentences += 1
 
     @sync_all_reduce("_sum_of_bleu", "_num_sentences")

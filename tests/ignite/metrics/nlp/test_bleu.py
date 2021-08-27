@@ -138,6 +138,30 @@ def test_bleu():
     assert bleu.compute() == value / 4
 
 
+def test_bleu_batch():
+
+    # Batch size 2
+    refs = [corpus.references_2, corpus.reference_6]
+    hypotheses = [corpus.cand_2a, corpus.cand_4]
+    bleu = Bleu(ngram=4)
+    bleu.update((hypotheses, refs))
+    assert bleu.compute() == corpus_bleu(refs, hypotheses)
+
+    # Batch size 4
+    hypotheses = [corpus.cand_1, corpus.cand_2a, corpus.cand_2b, corpus.cand_4]
+    refs = [corpus.references_1, corpus.references_2, corpus.references_2, corpus.reference_6]
+    bleu.reset()
+    bleu.update((hypotheses, refs))
+    assert bleu.compute() == corpus_bleu(refs, hypotheses)
+
+    # Batch size 1
+    hypotheses = corpus.cand_2a  # or can also pass as [corpus.cand_2a]
+    refs = corpus.references_2  # or can also pass as [corpus.references_2]
+    bleu.reset()
+    bleu.update((hypotheses, refs))
+    assert bleu.compute() == pytest.approx(corpus_bleu([refs], [hypotheses]))
+
+
 def _test_distrib_integration(device):
 
     from ignite.engine import Engine
