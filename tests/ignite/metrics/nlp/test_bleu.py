@@ -3,7 +3,7 @@ import warnings
 
 import pytest
 import torch
-from nltk.translate.bleu_score import SmoothingFunction, corpus_bleu
+from nltk.translate.bleu_score import SmoothingFunction, corpus_bleu, sentence_bleu
 
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
@@ -140,26 +140,31 @@ def test_bleu():
 
 def test_bleu_batch():
 
-    # Batch size 2
-    refs = [corpus.references_2, corpus.reference_6]
-    hypotheses = [corpus.cand_2a, corpus.cand_4]
+    # Batch size 1
+    refs = [corpus.references_2]
+    hypotheses = [corpus.cand_2a]
     bleu = Bleu(ngram=4)
     bleu.update((hypotheses, refs))
-    assert bleu.compute() == corpus_bleu(refs, hypotheses)
 
-    # Batch size 4
-    hypotheses = [corpus.cand_1, corpus.cand_2a, corpus.cand_2b, corpus.cand_4]
-    refs = [corpus.references_1, corpus.references_2, corpus.references_2, corpus.reference_6]
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        reference_bleu_score = (sentence_bleu(refs[0], hypotheses[0]) + sentence_bleu(refs[0], hypotheses[0])) / 2
+    assert bleu.compute() == reference_bleu_score
+
+    # Batch size 3
+    hypotheses = [corpus.cand_1, corpus.cand_2a, corpus.cand_2b]
+    refs = [corpus.references_1, corpus.references_2, corpus.references_2]
     bleu.reset()
     bleu.update((hypotheses, refs))
-    assert bleu.compute() == corpus_bleu(refs, hypotheses)
 
-    # Batch size 1
-    hypotheses = corpus.cand_2a  # or can also pass as [corpus.cand_2a]
-    refs = corpus.references_2  # or can also pass as [corpus.references_2]
-    bleu.reset()
-    bleu.update((hypotheses, refs))
-    assert bleu.compute() == pytest.approx(corpus_bleu([refs], [hypotheses]))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        reference_bleu_score = (
+            sentence_bleu(refs[0], hypotheses[0])
+            + sentence_bleu(refs[1], hypotheses[1])
+            + sentence_bleu(refs[2], hypotheses[2])
+        ) / 3
+    assert bleu.compute() == reference_bleu_score
 
 
 def _test_distrib_integration(device):

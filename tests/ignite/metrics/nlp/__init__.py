@@ -59,6 +59,3 @@ class CorpusForTest:
             (self.cand_2a, [self.ref_2a]),
             (self.cand_2b, [self.ref_2c]),
         ]
-
-        self.cand_4 = preproc("he read the book because he was interested in world history")
-        self.reference_6 = preproc("he was interested in world history because he read the book")

@@ -127,7 +127,7 @@ class Bleu(Metric):
         super(Bleu, self).__init__(output_transform=output_transform, device=device)
 
     def _corpus_bleu(
-        self, references: Sequence[Sequence[Any]], candidates: Sequence[Sequence[Sequence[Any]]],
+        self, references: Sequence[Sequence[Any]], candidates: Sequence[Sequence[Any]],
     ) -> float:
         p_numerators: Counter = Counter()
         p_denominators: Counter = Counter()
@@ -187,13 +187,17 @@ class Bleu(Metric):
         self._num_sentences = 0
 
     @reinit__is_reduced
-    def update(self, output: Tuple[Sequence[Sequence[Any]], Sequence[Sequence[Sequence[Any]]]]) -> None:
+    def update(self, output: Tuple[Sequence[Any], Sequence[Sequence[Any]]]) -> None:
         y_pred, y = output
+
         if not isinstance(y_pred[0], list):
+            # If y_pred is of batch size 1 and sent as list convert to list(list())
             y_pred = [y_pred]
             y = [y]
-        self._sum_of_bleu += self._corpus_bleu(references=y, candidates=y_pred)
-        self._num_sentences += 1
+
+        for _y_pred, _y in zip(y_pred, y):
+            self._sum_of_bleu += self._corpus_bleu(references=[_y], candidates=[_y_pred])
+            self._num_sentences += 1
 
     @sync_all_reduce("_sum_of_bleu", "_num_sentences")
     def compute(self) -> torch.Tensor:
