@@ -3,7 +3,7 @@ import warnings
 
 import pytest
 import torch
-from nltk.translate.bleu_score import SmoothingFunction, corpus_bleu, sentence_bleu
+from nltk.translate.bleu_score import SmoothingFunction, corpus_bleu
 
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
@@ -49,7 +49,7 @@ def test_corpus_bleu(candidate, references):
             reference = corpus_bleu(references, candidate, weights=weights)
         bleu = Bleu(ngram=i)
         assert pytest.approx(reference) == bleu._corpus_bleu(references, candidate)
-        bleu.update((candidate[0], references[0]))
+        bleu.update((candidate, references))
         assert pytest.approx(reference) == bleu.compute()
 
 
@@ -73,7 +73,7 @@ def test_corpus_bleu_smooth1(candidate, references):
             )
         bleu = Bleu(ngram=i, smooth="smooth1")
         assert reference == bleu._corpus_bleu(references, candidate)
-        bleu.update((candidate[0], references[0]))
+        bleu.update((candidate, references))
         assert reference == bleu.compute()
 
 
@@ -97,7 +97,7 @@ def test_corpus_bleu_nltk_smooth2(candidate, references):
             )
         bleu = Bleu(ngram=i, smooth="nltk_smooth2")
         assert reference == bleu._corpus_bleu(references, candidate)
-        bleu.update((candidate[0], references[0]))
+        bleu.update((candidate, references))
         assert reference == bleu.compute()
 
 
@@ -121,16 +121,16 @@ def test_corpus_bleu_smooth2(candidate, references):
             )
         bleu = Bleu(ngram=i, smooth="smooth2")
         assert reference == bleu._corpus_bleu(references, candidate)
-        bleu.update((candidate[0], references[0]))
+        bleu.update((candidate, references))
         assert reference == bleu.compute()
 
 
 def test_bleu():
     bleu = Bleu(ngram=4, smooth="smooth2")
-    bleu.update((corpus.cand_1, corpus.references_1))
-    bleu.update((corpus.cand_2a, corpus.references_2))
-    bleu.update((corpus.cand_2b, corpus.references_2))
-    bleu.update((corpus.cand_3, corpus.references_2))
+    bleu.update(([corpus.cand_1], [corpus.references_1]))
+    bleu.update(([corpus.cand_2a], [corpus.references_2]))
+    bleu.update(([corpus.cand_2b], [corpus.references_2]))
+    bleu.update(([corpus.cand_3], [corpus.references_2]))
     value = bleu._corpus_bleu([corpus.references_1], [corpus.cand_1])
     value += bleu._corpus_bleu([corpus.references_2], [corpus.cand_2a])
     value += bleu._corpus_bleu([corpus.references_2], [corpus.cand_2b])
@@ -148,7 +148,7 @@ def test_bleu_batch():
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        reference_bleu_score = (sentence_bleu(refs[0], hypotheses[0]) + sentence_bleu(refs[0], hypotheses[0])) / 2
+        reference_bleu_score = (corpus_bleu([refs[0]], [hypotheses[0]]) + corpus_bleu([refs[0]], [hypotheses[0]])) / 2
     assert bleu.compute() == reference_bleu_score
 
     # Batch size 3
@@ -160,9 +160,9 @@ def test_bleu_batch():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         reference_bleu_score = (
-            sentence_bleu(refs[0], hypotheses[0])
-            + sentence_bleu(refs[1], hypotheses[1])
-            + sentence_bleu(refs[2], hypotheses[2])
+            corpus_bleu([refs[0]], [hypotheses[0]])
+            + corpus_bleu([refs[1]], [hypotheses[1]])
+            + corpus_bleu([refs[2]], [hypotheses[2]])
         ) / 3
     assert bleu.compute() == reference_bleu_score
 
@@ -177,7 +177,7 @@ def _test_distrib_integration(device):
 
     data = []
     for c in corpus.chunks:
-        data += idist.get_world_size() * [c]
+        data += idist.get_world_size() * [([c[0]], [c[1]])]
 
     def update(_, i):
         return data[i + size * rank]
@@ -196,8 +196,8 @@ def _test_distrib_integration(device):
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 ref_bleu += corpus_bleu(
-                    [references],
-                    [candidate],
+                    references,
+                    candidate,
                     weights=[0.25, 0.25, 0.25, 0.25],
                     smoothing_function=SmoothingFunction().method2,
                 )

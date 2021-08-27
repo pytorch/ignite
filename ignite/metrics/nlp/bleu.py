@@ -105,7 +105,7 @@ class Bleu(Metric):
         y_pred = "the the the the the the the"
         y = ["the cat is on the mat", "there is a cat on the mat"]
 
-        m.update((y_pred.split(), [y.split()]))
+        m.update(([y_pred.split()], [[_y.split() for _y in y]]))
 
         print(m.compute())
 
@@ -126,9 +126,7 @@ class Bleu(Metric):
         self.smoother = _Smoother(method=smooth)
         super(Bleu, self).__init__(output_transform=output_transform, device=device)
 
-    def _corpus_bleu(
-        self, references: Sequence[Sequence[Any]], candidates: Sequence[Sequence[Any]],
-    ) -> float:
+    def _corpus_bleu(self, references: Sequence[Sequence[Any]], candidates: Sequence[Sequence[Any]],) -> float:
         p_numerators: Counter = Counter()
         p_denominators: Counter = Counter()
 
@@ -189,12 +187,6 @@ class Bleu(Metric):
     @reinit__is_reduced
     def update(self, output: Tuple[Sequence[Any], Sequence[Sequence[Any]]]) -> None:
         y_pred, y = output
-
-        if not isinstance(y_pred[0], list):
-            # If y_pred is of batch size 1 and sent as list convert to list(list())
-            y_pred = [y_pred]
-            y = [y]
-
         for _y_pred, _y in zip(y_pred, y):
             self._sum_of_bleu += self._corpus_bleu(references=[_y], candidates=[_y_pred])
             self._num_sentences += 1
