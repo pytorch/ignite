@@ -139,17 +139,7 @@ def test_bleu():
 
 
 def test_bleu_batch():
-
-    # Batch size 1
-    refs = [corpus.references_2]
-    hypotheses = [corpus.cand_2a]
     bleu = Bleu(ngram=4)
-    bleu.update((hypotheses, refs))
-
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        reference_bleu_score = (corpus_bleu([refs[0]], [hypotheses[0]]) + corpus_bleu([refs[0]], [hypotheses[0]])) / 2
-    assert bleu.compute() == reference_bleu_score
 
     # Batch size 3
     hypotheses = [corpus.cand_1, corpus.cand_2a, corpus.cand_2b]
@@ -166,6 +156,19 @@ def test_bleu_batch():
         ) / 3
     assert bleu.compute() == reference_bleu_score
 
+    value = 0
+    for _hypotheses, _refs in zip(hypotheses, refs):
+        value += bleu._corpus_bleu([_refs], [_hypotheses])
+    ref_1 = value / len(refs)
+
+    bleu.reset()
+    for _hypotheses, _refs in zip(hypotheses, refs):
+        bleu.update(([_hypotheses], [_refs]))
+    ref_2 = bleu.compute()
+
+    assert ref_1 == reference_bleu_score
+    assert ref_2 == reference_bleu_score
+
 
 def _test_distrib_integration(device):
 
@@ -177,7 +180,7 @@ def _test_distrib_integration(device):
 
     data = []
     for c in corpus.chunks:
-        data += idist.get_world_size() * [([c[0]], [c[1]])]
+        data += idist.get_world_size() * [c]
 
     def update(_, i):
         return data[i + size * rank]
