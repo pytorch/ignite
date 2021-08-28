@@ -144,7 +144,6 @@ def test_bleu_batch():
     # Batch size 3
     hypotheses = [corpus.cand_1, corpus.cand_2a, corpus.cand_2b]
     refs = [corpus.references_1, corpus.references_2, corpus.references_2]
-    bleu.reset()
     bleu.update((hypotheses, refs))
 
     with warnings.catch_warnings():
@@ -159,11 +158,9 @@ def test_bleu_batch():
     value = 0
     for _hypotheses, _refs in zip(hypotheses, refs):
         value += bleu._corpus_bleu([_refs], [_hypotheses])
-    ref_1 = value / len(refs)
-
-    bleu.reset()
-    for _hypotheses, _refs in zip(hypotheses, refs):
         bleu.update(([_hypotheses], [_refs]))
+
+    ref_1 = value / len(refs)
     ref_2 = bleu.compute()
 
     assert ref_1 == reference_bleu_score
