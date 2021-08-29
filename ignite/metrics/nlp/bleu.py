@@ -77,6 +77,10 @@ class Bleu(Metric):
 
     __ http://acl2014.org/acl2014/W14-33/pdf/W14-3346.pdf
 
+    - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
+    - `y_pred` (list(list(str))) - a list of hypotheses sentences.
+    - `y` (list(list(list(str))) - a corpus of lists of reference sentences w.r.t hypotheses.
+
     Remark :
 
         This implementation is inspired by nltk
