@@ -77,6 +77,10 @@ class Bleu(Metric):
 
     __ http://acl2014.org/acl2014/W14-33/pdf/W14-3346.pdf
 
+    - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
+    - `y_pred` (list(list(str))) - a list of hypotheses sentences.
+    - `y` (list(list(list(str))) - a corpus of lists of reference sentences w.r.t hypotheses.
+
     Remark :
 
         This implementation is inspired by nltk
@@ -105,7 +109,7 @@ class Bleu(Metric):
         y_pred = "the the the the the the the"
         y = ["the cat is on the mat", "there is a cat on the mat"]
 
-        m.update((y_pred.split(), [y.split()]))
+        m.update(([y_pred.split()], [[_y.split() for _y in y]]))
 
         print(m.compute())
 
@@ -126,7 +130,9 @@ class Bleu(Metric):
         self.smoother = _Smoother(method=smooth)
         super(Bleu, self).__init__(output_transform=output_transform, device=device)
 
-    def _corpus_bleu(self, references: Sequence[Sequence[Any]], candidates: Sequence[Sequence[Any]],) -> float:
+    def _corpus_bleu(
+        self, references: Sequence[Sequence[Sequence[Any]]], candidates: Sequence[Sequence[Any]],
+    ) -> float:
         p_numerators: Counter = Counter()
         p_denominators: Counter = Counter()
 
@@ -185,10 +191,11 @@ class Bleu(Metric):
         self._num_sentences = 0
 
     @reinit__is_reduced
-    def update(self, output: Tuple[Sequence[Any], Sequence[Sequence[Any]]]) -> None:
+    def update(self, output: Tuple[Sequence[Sequence[Any]], Sequence[Sequence[Sequence[Any]]]]) -> None:
         y_pred, y = output
-        self._sum_of_bleu += self._corpus_bleu(references=[y], candidates=[y_pred])
-        self._num_sentences += 1
+        for _y_pred, _y in zip(y_pred, y):
+            self._sum_of_bleu += self._corpus_bleu(references=[_y], candidates=[_y_pred])
+            self._num_sentences += 1
 
     @sync_all_reduce("_sum_of_bleu", "_num_sentences")
     def compute(self) -> torch.Tensor:
