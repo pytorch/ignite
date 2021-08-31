@@ -243,12 +243,12 @@ def _test_ema_final_weight(model, device=None, ddp=False, interval=1):
     assert ema_weight.device == device
     assert model_weight.device == device
     if interval == 1:
-        torch.testing.assert_allclose(ema_weight, torch.full((1, 2), 4.0625, device=device))
+        torch.testing.assert_allclose(ema_weight, ema_weight.new_full((1, 2), 4.0625))
     elif interval == 2:
-        torch.testing.assert_allclose(ema_weight, torch.full((1, 2), 3.5, device=device))
+        torch.testing.assert_allclose(ema_weight, ema_weight.new_full((1, 2), 3.5))
     else:
         pass
-    torch.testing.assert_allclose(model_weight, torch.full((1, 2), 5.0, device=device))
+    torch.testing.assert_allclose(model_weight, model_weight.new_full((1, 2), 5.0))
 
 
 @pytest.mark.parametrize("interval", [1, 2])
