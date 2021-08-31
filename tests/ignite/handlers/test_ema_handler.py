@@ -205,8 +205,8 @@ def test_ema_two_handlers(get_dummy_model):
     engine.run(range(2), max_epochs=2)
     ema_weight_1 = ema_handler_1.ema_model.weight.data
     ema_weight_2 = ema_handler_2.ema_model.weight.data
-    torch.testing.assert_allclose(ema_weight_1, torch.full((1, 2), 4.0625))
-    torch.testing.assert_allclose(ema_weight_2, torch.full((1, 2), 3.5))
+    torch.testing.assert_allclose(ema_weight_1, ema_weight_1.new_full((1, 2), 4.0625))
+    torch.testing.assert_allclose(ema_weight_2, ema_weight_2.new_full((1, 2), 3.5))
 
     assert engine.state.ema_momentum_1 == 0.5
     assert engine.state.ema_momentum_2 == 0.5
