@@ -130,7 +130,9 @@ class Bleu(Metric):
         self.smoother = _Smoother(method=smooth)
         super(Bleu, self).__init__(output_transform=output_transform, device=device)
 
-    def _corpus_bleu(self, references: Sequence[Sequence[Sequence[Any]]], candidates: Sequence[Sequence[Any]],) -> float:
+    def _corpus_bleu(
+        self, references: Sequence[Sequence[Sequence[Any]]], candidates: Sequence[Sequence[Any]],
+    ) -> float:
         p_numerators: Counter = Counter()
         p_denominators: Counter = Counter()
 
