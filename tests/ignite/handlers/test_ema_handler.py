@@ -203,8 +203,9 @@ def test_ema_two_handlers(get_dummy_model):
 
     # engine will run 4 iterations
     engine.run(range(2), max_epochs=2)
-    ema_weight_1 = ema_handler_1.ema_model.weight.data
-    ema_weight_2 = ema_handler_2.ema_model.weight.data
+    # explicitly cast to float32 to avoid test failure on XLA devices
+    ema_weight_1 = ema_handler_1.ema_model.weight.data.to(torch.float32)
+    ema_weight_2 = ema_handler_2.ema_model.weight.data.to(torch.float32)
     torch.testing.assert_allclose(ema_weight_1, ema_weight_1.new_full((1, 2), 4.0625))
     torch.testing.assert_allclose(ema_weight_2, ema_weight_2.new_full((1, 2), 3.5))
 
@@ -238,8 +239,9 @@ def _test_ema_final_weight(model, device=None, ddp=False, interval=1):
     engine.run(range(2), max_epochs=2)
 
     # ema_model and model can be DP or DDP
-    ema_weight = _unwrap_model(ema_handler.ema_model).weight.data
-    model_weight = _unwrap_model(model).weight.data
+    # explicitly cast to float32 to avoid test failure on XLA devices
+    ema_weight = _unwrap_model(ema_handler.ema_model).weight.data.to(torch.float32)
+    model_weight = _unwrap_model(model).weight.data.to(torch.float32)
     assert ema_weight.device == device
     assert model_weight.device == device
     if interval == 1:
