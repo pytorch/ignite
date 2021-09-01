@@ -77,6 +77,10 @@ class Bleu(Metric):
 
     __ http://acl2014.org/acl2014/W14-33/pdf/W14-3346.pdf
 
+    - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
+    - `y_pred` (list(list(str))) - a list of hypotheses sentences.
+    - `y` (list(list(list(str))) - a corpus of lists of reference sentences w.r.t hypotheses.
+
     Remark :
 
         This implementation is inspired by nltk
@@ -93,6 +97,9 @@ class Bleu(Metric):
         device: specifies which device updates are accumulated on. Setting the
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
+        average: specifies which type of averaging to use (macro or micro)
+            for more details refer https://github.com/nltk/nltk/blob/193cf488a3aa31b0e99219f1a8c4eb7567903069/nltk/translate/bleu_score.py#L113
+            Default: "macro"
 
     Example:
 
@@ -105,11 +112,12 @@ class Bleu(Metric):
         y_pred = "the the the the the the the"
         y = ["the cat is on the mat", "there is a cat on the mat"]
 
-        m.update((y_pred.split(), [y.split()]))
+        m.update(([y_pred.split()], [[_y.split() for _y in y]]))
 
         print(m.compute())
 
     .. versionadded:: 0.4.5
+    .. versionchanged:: 0.5.0
     """
 
     def __init__(
@@ -117,23 +125,21 @@ class Bleu(Metric):
         ngram: int = 4,
         smooth: str = "no_smooth",
         output_transform: Callable = lambda x: x,
-        macro_avg: bool = False,
         device: Union[str, torch.device] = torch.device("cpu"),
+        average: str = "macro",
     ):
         if ngram <= 0:
             raise ValueError(f"ngram order must be greater than zero (got: {ngram})")
         self.ngrams_order = ngram
         self.weights = [1 / self.ngrams_order] * self.ngrams_order
         self.smoother = _Smoother(method=smooth)
-
-        self.macro_avg = macro_avg
-
+        self.average = average
         self.p_numerators: Counter = Counter()
         self.p_denominators: Counter = Counter()
         self.hyp_lengths = []
         self.ref_lengths = []
 
-        if not macro_avg:
+        if macro_avg == "micro":
             # micro avg case we need to sync from all devices
             self._brevity_penalty_smoothing = sync_all_reduce(
                 "hyp_lengths", "ref_lengths", "p_numerators", "p_denominators"
@@ -211,27 +217,26 @@ class Bleu(Metric):
     def update(self, output: Tuple[Sequence[Sequence[Any]], Sequence[Sequence[Sequence[Any]]]]) -> None:
         y_pred, y = output
 
-        if isinstance(y_pred[0], list):
-            # If it is a single example passed as hypothesis:`list` and references:`list(list)`
-            y_pred = [y_pred]
-            y = [y]
-
-        if self.macro_avg:
+        if self.average == "macro":
+            self.p_numerators: Counter = Counter()
+            self.p_denominators: Counter = Counter()
+            self.hyp_lengths = []
+            self.ref_lengths = []
 
             for refs, hyp in zip(y, y_pred):
                 self._n_gram_counter(references=[refs], candidates=[hyp])
                 bleu_score = self._brevity_penalty_smoothing_macro()
                 self._sum_of_bleu += bleu_score
                 self._num_sentences += 1
-                self._clear_variables()
+
         else:
             self._n_gram_counter(references=y, candidates=y_pred)
-
+        
     @sync_all_reduce("_sum_of_bleu", "_num_sentences")
     def compute(self) -> torch.Tensor:
         if self._num_sentences == 0:
             raise NotComputableError("Bleu must have at least one example before it can be computed.")
-        if self.macro_avg:
+        if self.average == "macro":
             return self._sum_of_bleu / self._num_sentences
         else:
             return self._brevity_penalty_smoothing_micro()

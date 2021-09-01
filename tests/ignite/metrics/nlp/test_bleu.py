@@ -49,7 +49,7 @@ def test_corpus_bleu(candidate, references):
             reference = corpus_bleu(references, candidate, weights=weights)
         bleu = Bleu(ngram=i)
         assert pytest.approx(reference) == bleu._corpus_bleu(references, candidate)
-        bleu.update((candidate[0], references[0]))
+        bleu.update((candidate, references))
         assert pytest.approx(reference) == bleu.compute()
 
 
@@ -73,7 +73,7 @@ def test_corpus_bleu_smooth1(candidate, references):
             )
         bleu = Bleu(ngram=i, smooth="smooth1")
         assert reference == bleu._corpus_bleu(references, candidate)
-        bleu.update((candidate[0], references[0]))
+        bleu.update((candidate, references))
         assert reference == bleu.compute()
 
 
@@ -97,7 +97,7 @@ def test_corpus_bleu_nltk_smooth2(candidate, references):
             )
         bleu = Bleu(ngram=i, smooth="nltk_smooth2")
         assert reference == bleu._corpus_bleu(references, candidate)
-        bleu.update((candidate[0], references[0]))
+        bleu.update((candidate, references))
         assert reference == bleu.compute()
 
 
@@ -121,21 +121,50 @@ def test_corpus_bleu_smooth2(candidate, references):
             )
         bleu = Bleu(ngram=i, smooth="smooth2")
         assert reference == bleu._corpus_bleu(references, candidate)
-        bleu.update((candidate[0], references[0]))
+        bleu.update((candidate, references))
         assert reference == bleu.compute()
 
 
 def test_bleu():
     bleu = Bleu(ngram=4, smooth="smooth2")
-    bleu.update((corpus.cand_1, corpus.references_1))
-    bleu.update((corpus.cand_2a, corpus.references_2))
-    bleu.update((corpus.cand_2b, corpus.references_2))
-    bleu.update((corpus.cand_3, corpus.references_2))
+    bleu.update(([corpus.cand_1], [corpus.references_1]))
+    bleu.update(([corpus.cand_2a], [corpus.references_2]))
+    bleu.update(([corpus.cand_2b], [corpus.references_2]))
+    bleu.update(([corpus.cand_3], [corpus.references_2]))
     value = bleu._corpus_bleu([corpus.references_1], [corpus.cand_1])
     value += bleu._corpus_bleu([corpus.references_2], [corpus.cand_2a])
     value += bleu._corpus_bleu([corpus.references_2], [corpus.cand_2b])
     value += bleu._corpus_bleu([corpus.references_2], [corpus.cand_3])
     assert bleu.compute() == value / 4
+
+
+def test_bleu_batch():
+    bleu = Bleu(ngram=4)
+
+    # Batch size 3
+    hypotheses = [corpus.cand_1, corpus.cand_2a, corpus.cand_2b]
+    refs = [corpus.references_1, corpus.references_2, corpus.references_2]
+    bleu.update((hypotheses, refs))
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        reference_bleu_score = (
+            corpus_bleu([refs[0]], [hypotheses[0]])
+            + corpus_bleu([refs[1]], [hypotheses[1]])
+            + corpus_bleu([refs[2]], [hypotheses[2]])
+        ) / 3
+    assert bleu.compute() == reference_bleu_score
+
+    value = 0
+    for _hypotheses, _refs in zip(hypotheses, refs):
+        value += bleu._corpus_bleu([_refs], [_hypotheses])
+        bleu.update(([_hypotheses], [_refs]))
+
+    ref_1 = value / len(refs)
+    ref_2 = bleu.compute()
+
+    assert ref_1 == reference_bleu_score
+    assert ref_2 == reference_bleu_score
 
 
 def _test_distrib_integration(device):
@@ -167,8 +196,8 @@ def _test_distrib_integration(device):
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 ref_bleu += corpus_bleu(
-                    [references],
-                    [candidate],
+                    references,
+                    candidate,
                     weights=[0.25, 0.25, 0.25, 0.25],
                     smoothing_function=SmoothingFunction().method2,
                 )

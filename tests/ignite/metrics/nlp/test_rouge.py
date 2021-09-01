@@ -134,8 +134,8 @@ def _test_distrib_integration(device):
 
     def update(_, i):
         candidate, references = data[i + size * rank]
-        lower_split_references = [reference.lower().split() for reference in references]
-        lower_split_candidate = candidate.lower().split()
+        lower_split_references = [reference.lower().split() for reference in references[0]]
+        lower_split_candidate = candidate[0].lower().split()
         return lower_split_candidate, lower_split_references
 
     def _test(metric_device):
@@ -158,7 +158,7 @@ def _test_distrib_integration(device):
         )
         rouge_1_f, rouge_2_f, rouge_l_f = (0, 0, 0)
         for candidate, references in data:
-            scores = evaluator.get_scores([candidate], [references])
+            scores = evaluator.get_scores([candidate[0]], [references[0]])
             rouge_1_f += scores["rouge-1"]["f"]
             rouge_2_f += scores["rouge-2"]["f"]
             rouge_l_f += scores["rouge-l"]["f"]
