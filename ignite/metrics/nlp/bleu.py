@@ -146,7 +146,7 @@ class Bleu(Metric):
 
     def _n_gram_counter(
         self, references: Sequence[Sequence[Sequence[Any]]], candidates: Sequence[Sequence[Any]],
-    ) -> float:
+    ) -> None:
         if len(references) != len(candidates):
             raise ValueError(
                 f"nb of candidates should be equal to nb of reference lists ({len(candidates)} != "
@@ -168,7 +168,7 @@ class Bleu(Metric):
             # Calculate the closest reference lengths.
             self.ref_length_sum += _closest_ref_length(refs, len(hyp))
 
-    def _brevity_penalty_smoothing_macro(self):
+    def _brevity_penalty_smoothing_macro(self) -> float:
 
         # Returns 0 if there's no matching n-grams
         # We only need to check for p_numerators[1] == 0, since if there's
@@ -197,7 +197,7 @@ class Bleu(Metric):
         return gm
 
     @sync_all_reduce("hyp_lengths", "ref_lengths", "p_numerators", "p_denominators")
-    def _brevity_penalty_smoothing_micro(self):
+    def _brevity_penalty_smoothing_micro(self) -> float:
 
         # Returns 0 if there's no matching n-grams
         # We only need to check for p_numerators[1] == 0, since if there's
@@ -284,8 +284,8 @@ class Bleu(Metric):
     def reset(self) -> None:
         self._sum_of_bleu = torch.tensor(0.0, dtype=torch.double, device=self._device)
         self._num_sentences = 0
-        self.p_numerators: Counter = Counter()
-        self.p_denominators: Counter = Counter()
+        self.p_numerators = Counter()
+        self.p_denominators = Counter()
         self.hyp_length_sum = 0
         self.ref_length_sum = 0
 
@@ -295,8 +295,8 @@ class Bleu(Metric):
 
         if self.average == "macro":
             for refs, hyp in zip(y, y_pred):
-                self.p_numerators: Counter = Counter()
-                self.p_denominators: Counter = Counter()
+                self.p_numerators = Counter()
+                self.p_denominators = Counter()
                 self.hyp_length_sum = 0
                 self.ref_length_sum = 0
 
