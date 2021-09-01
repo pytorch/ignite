@@ -98,7 +98,7 @@ class Bleu(Metric):
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
         average: specifies which type of averaging to use (macro or micro)
-            for more details refer https://github.com/nltk/nltk/blob/193cf488a3aa31b0e99219f1a8c4eb7567903069/nltk/translate/bleu_score.py#L113
+            for more details refer https://www.nltk.org/_modules/nltk/translate/bleu_score.html
             Default: "macro"
 
     Example:
