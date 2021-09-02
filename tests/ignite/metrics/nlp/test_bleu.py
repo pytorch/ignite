@@ -23,7 +23,7 @@ def test_wrong_inputs():
         Bleu(smooth="fake")
 
     with pytest.raises(ValueError, match=r"nb of candidates should be equal to nb of reference lists"):
-        Bleu()._corpus_bleu(references=[[0], [0]], candidates=[[0]])
+        Bleu()._sentence_bleu(references=[[0], [0]], candidates=[[0]])
 
     with pytest.raises(NotComputableError):
         Bleu().compute()
@@ -40,7 +40,7 @@ def test_wrong_inputs():
         corpus.sample_4,
     ],
 )
-def test_corpus_bleu(candidate, references):
+def test_sentence_bleu(candidate, references):
     print(candidate, references)
     for i in range(1, 8):
         weights = tuple([1 / i] * i)
@@ -48,7 +48,7 @@ def test_corpus_bleu(candidate, references):
             warnings.simplefilter("ignore")
             reference = corpus_bleu(references, candidate, weights=weights)
         bleu = Bleu(ngram=i)
-        assert pytest.approx(reference) == bleu._corpus_bleu(references, candidate)
+        assert pytest.approx(reference) == bleu._sentence_bleu(references, candidate)
         bleu.update((candidate, references))
         assert pytest.approx(reference) == bleu.compute()
 
@@ -63,7 +63,7 @@ def test_corpus_bleu(candidate, references):
         corpus.sample_4,
     ],
 )
-def test_corpus_bleu_smooth1(candidate, references):
+def test_sentence_bleu_smooth1(candidate, references):
     for i in range(1, 8):
         weights = tuple([1 / i] * i)
         with warnings.catch_warnings():
@@ -72,7 +72,7 @@ def test_corpus_bleu_smooth1(candidate, references):
                 references, candidate, weights=weights, smoothing_function=SmoothingFunction().method1
             )
         bleu = Bleu(ngram=i, smooth="smooth1")
-        assert reference == bleu._corpus_bleu(references, candidate)
+        assert reference == bleu._sentence_bleu(references, candidate)
         bleu.update((candidate, references))
         assert reference == bleu.compute()
 
@@ -87,7 +87,7 @@ def test_corpus_bleu_smooth1(candidate, references):
         corpus.sample_4,
     ],
 )
-def test_corpus_bleu_nltk_smooth2(candidate, references):
+def test_sentence_bleu_nltk_smooth2(candidate, references):
     for i in range(1, 8):
         weights = tuple([1 / i] * i)
         with warnings.catch_warnings():
@@ -96,7 +96,7 @@ def test_corpus_bleu_nltk_smooth2(candidate, references):
                 references, candidate, weights=weights, smoothing_function=SmoothingFunction().method2
             )
         bleu = Bleu(ngram=i, smooth="nltk_smooth2")
-        assert reference == bleu._corpus_bleu(references, candidate)
+        assert reference == bleu._sentence_bleu(references, candidate)
         bleu.update((candidate, references))
         assert reference == bleu.compute()
 
@@ -111,7 +111,7 @@ def test_corpus_bleu_nltk_smooth2(candidate, references):
         corpus.sample_4,
     ],
 )
-def test_corpus_bleu_smooth2(candidate, references):
+def test_sentence_bleu_smooth2(candidate, references):
     for i in range(1, 3):
         weights = tuple([1 / i] * i)
         with warnings.catch_warnings():
@@ -120,7 +120,7 @@ def test_corpus_bleu_smooth2(candidate, references):
                 references, candidate, weights=weights, smoothing_function=SmoothingFunction().method2
             )
         bleu = Bleu(ngram=i, smooth="smooth2")
-        assert reference == bleu._corpus_bleu(references, candidate)
+        assert reference == bleu._sentence_bleu(references, candidate)
         bleu.update((candidate, references))
         assert reference == bleu.compute()
 
@@ -131,10 +131,10 @@ def test_bleu():
     bleu.update(([corpus.cand_2a], [corpus.references_2]))
     bleu.update(([corpus.cand_2b], [corpus.references_2]))
     bleu.update(([corpus.cand_3], [corpus.references_2]))
-    value = bleu._corpus_bleu([corpus.references_1], [corpus.cand_1])
-    value += bleu._corpus_bleu([corpus.references_2], [corpus.cand_2a])
-    value += bleu._corpus_bleu([corpus.references_2], [corpus.cand_2b])
-    value += bleu._corpus_bleu([corpus.references_2], [corpus.cand_3])
+    value = bleu._sentence_bleu([corpus.references_1], [corpus.cand_1])
+    value += bleu._sentence_bleu([corpus.references_2], [corpus.cand_2a])
+    value += bleu._sentence_bleu([corpus.references_2], [corpus.cand_2b])
+    value += bleu._sentence_bleu([corpus.references_2], [corpus.cand_3])
     assert bleu.compute() == value / 4
 
 
@@ -157,7 +157,7 @@ def test_bleu_batch():
 
     value = 0
     for _hypotheses, _refs in zip(hypotheses, refs):
-        value += bleu._corpus_bleu([_refs], [_hypotheses])
+        value += bleu._sentence_bleu([_refs], [_hypotheses])
         bleu.update(([_hypotheses], [_refs]))
 
     ref_1 = value / len(refs)
