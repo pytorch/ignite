@@ -152,10 +152,10 @@ class Bleu(Metric):
         p_numerators: Counter,
         p_denominators: Counter,
         ngrams_order: int,
-        hyp_length_sum: int,
-        ref_length_sum: int,
-    ) -> Tuple[Counter, Counter, int, int]:
+    ) -> Tuple[Counter, Counter, Sequence[int], Sequence[int]]:
 
+        hyp_lengths = []
+        ref_lengths = []
         if len(references) != len(candidates):
             raise ValueError(
                 f"nb of candidates should be equal to nb of reference lists ({len(candidates)} != "
@@ -172,11 +172,11 @@ class Bleu(Metric):
                 p_denominators[i] += denominator
 
             # Calculate the hypothesis lengths
-            hyp_length_sum += len(hyp)
+            hyp_lengths.append(len(hyp))
 
             # Calculate the closest reference lengths.
-            ref_length_sum += _closest_ref_length(refs, len(hyp))
-        return (p_numerators, p_denominators, hyp_length_sum, ref_length_sum)
+            ref_lengths.append(_closest_ref_length(refs, len(hyp)))
+        return (p_numerators, p_denominators, hyp_lengths, ref_lengths)
 
     @staticmethod
     def _brevity_penalty_smoothing(
@@ -216,37 +216,33 @@ class Bleu(Metric):
     ) -> float:
         p_numerators: Counter = Counter()
         p_denominators: Counter = Counter()
-        hyp_length_sum = 0
-        ref_length_sum = 0
-        p_numerators, p_denominators, hyp_length_sum, ref_length_sum = self._n_gram_counter(
+        p_numerators, p_denominators, hyp_lengths, ref_lengths = self._n_gram_counter(
             references=references,
             candidates=candidates,
             p_numerators=p_numerators,
             p_denominators=p_denominators,
             ngrams_order=self.ngrams_order,
-            hyp_length_sum=hyp_length_sum,
-            ref_length_sum=ref_length_sum,
         )
         bleu_score = self._brevity_penalty_smoothing(
             p_numerators=p_numerators,
             p_denominators=p_denominators,
             smoother=self.smoother,
-            hyp_length_sum=hyp_length_sum,
-            ref_length_sum=ref_length_sum,
+            hyp_length_sum=sum(hyp_lengths),
+            ref_length_sum=sum(ref_lengths),
             weights=self.weights,
         )
         return bleu_score
 
     def _corpus_bleu(self, references: Sequence[Sequence[Sequence[Any]]], candidates: Sequence[Sequence[Any]],) -> None:
-        self._n_gram_counter(
+        _, _, hyp_lengths, ref_lengths = self._n_gram_counter(
             references=references,
             candidates=candidates,
             p_numerators=self.p_numerators,
             p_denominators=self.p_denominators,
             ngrams_order=self.ngrams_order,
-            hyp_length_sum=self.hyp_length_sum,
-            ref_length_sum=self.ref_length_sum,
         )
+        self.hyp_length_sum += sum(hyp_lengths)
+        self.ref_length_sum += sum(ref_lengths)
 
     @reinit__is_reduced
     def reset(self) -> None:
