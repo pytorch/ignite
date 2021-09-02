@@ -93,6 +93,7 @@ def test_check_idist_parallel_torch_launch_n_procs_gloo(init_method, dirname, ex
         init_method = f"file://{dirname}/shared"
 
     np = torch.cuda.device_count() if torch.cuda.is_available() else 4
+    # temporarily disable this while running on torch nightly
     if "dev" not in torch.__version__:
         _test_check_idist_parallel_torch_launch(init_method, exec_filepath, "gloo", np)
 
