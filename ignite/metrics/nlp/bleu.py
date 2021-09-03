@@ -138,24 +138,19 @@ class Bleu(Metric):
         if average not in ["macro", "micro"]:
             raise ValueError(f'Average must be either "macro" or "micro" (got: {average})')
         self.average = average
-        self.p_numerators: Counter = Counter()
-        self.p_denominators: Counter = Counter()
-        self.hyp_length_sum = 0
-        self.ref_length_sum = 0
 
         super(Bleu, self).__init__(output_transform=output_transform, device=device)
 
-    @staticmethod
     def _n_gram_counter(
+        self,
         references: Sequence[Sequence[Sequence[Any]]],
         candidates: Sequence[Sequence[Any]],
         p_numerators: Counter,
         p_denominators: Counter,
-        ngrams_order: int,
-    ) -> Tuple[Counter, Counter, Sequence[int], Sequence[int]]:
+    ) -> Tuple[int, int]:
 
-        hyp_lengths = []
-        ref_lengths = []
+        hyp_lengths = 0
+        ref_lengths = 0
         if len(references) != len(candidates):
             raise ValueError(
                 f"nb of candidates should be equal to nb of reference lists ({len(candidates)} != "
@@ -166,26 +161,20 @@ class Bleu(Metric):
         for refs, hyp in zip(references, candidates):
             # For each order of ngram, calculate the numerator and
             # denominator for the corpus-level modified precision.
-            for i in range(1, ngrams_order + 1):
+            for i in range(1, self.ngrams_order + 1):
                 numerator, denominator = modified_precision(refs, hyp, i)
                 p_numerators[i] += numerator
                 p_denominators[i] += denominator
 
             # Calculate the hypothesis lengths
-            hyp_lengths.append(len(hyp))
+            hyp_lengths += len(hyp)
 
             # Calculate the closest reference lengths.
-            ref_lengths.append(_closest_ref_length(refs, len(hyp)))
-        return (p_numerators, p_denominators, hyp_lengths, ref_lengths)
+            ref_lengths += _closest_ref_length(refs, len(hyp))
+        return (hyp_lengths, ref_lengths)
 
-    @staticmethod
     def _brevity_penalty_smoothing(
-        p_numerators: Counter,
-        p_denominators: Counter,
-        smoother: _Smoother,
-        hyp_length_sum: int,
-        ref_length_sum: int,
-        weights: Sequence[float],
+        self, p_numerators: Counter, p_denominators: Counter, hyp_length_sum: int, ref_length_sum: int,
     ) -> float:
 
         # Returns 0 if there's no matching n-grams
@@ -195,7 +184,7 @@ class Bleu(Metric):
             return 0
 
         # If no smoother, returns 0 if there's at least one a not matching n-grams
-        if smoother.smooth == "no_smooth" and min(p_numerators.values()) == 0:
+        if self.smoother.smooth == "no_smooth" and min(p_numerators.values()) == 0:
             return 0
 
         # Calculate corpus-level brevity penalty.
@@ -204,55 +193,50 @@ class Bleu(Metric):
         else:
             bp = 1.0
         # Smoothing
-        p_n = smoother(p_numerators, p_denominators)
+        p_n = self.smoother(p_numerators, p_denominators)
 
         # Compute the geometric mean
-        s = [w_i * math.log(p_i) for w_i, p_i in zip(weights, p_n)]
+        s = [w_i * math.log(p_i) for w_i, p_i in zip(self.weights, p_n)]
         gm = bp * math.exp(math.fsum(s))
         return gm
 
     def _sentence_bleu(
         self, references: Sequence[Sequence[Sequence[Any]]], candidates: Sequence[Sequence[Any]],
     ) -> float:
+        return self._corpus_bleu(references, candidates)
+
+    def _corpus_bleu(
+        self, references: Sequence[Sequence[Sequence[Any]]], candidates: Sequence[Sequence[Any]],
+    ) -> float:
+
         p_numerators: Counter = Counter()
         p_denominators: Counter = Counter()
-        p_numerators, p_denominators, hyp_lengths, ref_lengths = self._n_gram_counter(
-            references=references,
-            candidates=candidates,
-            p_numerators=p_numerators,
-            p_denominators=p_denominators,
-            ngrams_order=self.ngrams_order,
+
+        hyp_length_sum, ref_length_sum = self._n_gram_counter(
+            references=references, candidates=candidates, p_numerators=p_numerators, p_denominators=p_denominators,
         )
+
         bleu_score = self._brevity_penalty_smoothing(
             p_numerators=p_numerators,
             p_denominators=p_denominators,
-            smoother=self.smoother,
-            hyp_length_sum=sum(hyp_lengths),
-            ref_length_sum=sum(ref_lengths),
-            weights=self.weights,
+            hyp_length_sum=hyp_length_sum,
+            ref_length_sum=ref_length_sum,
         )
-        return bleu_score
 
-    def _corpus_bleu(self, references: Sequence[Sequence[Sequence[Any]]], candidates: Sequence[Sequence[Any]],) -> None:
-        _, _, hyp_lengths, ref_lengths = self._n_gram_counter(
-            references=references,
-            candidates=candidates,
-            p_numerators=self.p_numerators,
-            p_denominators=self.p_denominators,
-            ngrams_order=self.ngrams_order,
-        )
-        self.hyp_length_sum += sum(hyp_lengths)
-        self.ref_length_sum += sum(ref_lengths)
+        return bleu_score
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._sum_of_bleu = torch.tensor(0.0, dtype=torch.double, device=self._device)
-        self._num_sentences = 0
 
-        self.p_numerators = Counter()
-        self.p_denominators = Counter()
-        self.hyp_length_sum = 0
-        self.ref_length_sum = 0
+        if self.average == "macro":
+            self._sum_of_bleu = torch.tensor(0.0, dtype=torch.double, device=self._device)
+            self._num_sentences = 0
+
+        if self.average == "micro":
+            self.p_numerators: Counter = Counter()
+            self.p_denominators: Counter = Counter()
+            self.hyp_length_sum = 0
+            self.ref_length_sum = 0
 
     @reinit__is_reduced
     def update(self, output: Tuple[Sequence[Sequence[Any]], Sequence[Sequence[Sequence[Any]]]]) -> None:
@@ -264,7 +248,11 @@ class Bleu(Metric):
                 self._num_sentences += 1
 
         elif self.average == "micro":
-            self._corpus_bleu(references=y, candidates=y_pred)
+            hyp_lengths, ref_lengths = self._n_gram_counter(
+                references=y, candidates=y_pred, p_numerators=self.p_numerators, p_denominators=self.p_denominators
+            )
+            self.hyp_length_sum += hyp_lengths
+            self.ref_length_sum += ref_lengths
 
     @sync_all_reduce("_sum_of_bleu", "_num_sentences")
     def _compute_macro(self) -> torch.Tensor:
@@ -279,10 +267,8 @@ class Bleu(Metric):
         bleu_score = self._brevity_penalty_smoothing(
             p_numerators=self.p_numerators,
             p_denominators=self.p_denominators,
-            smoother=self.smoother,
             hyp_length_sum=self.hyp_length_sum,
             ref_length_sum=self.ref_length_sum,
-            weights=self.weights,
         )
         return bleu_score
 
