@@ -200,9 +200,7 @@ class Bleu(Metric):
         gm = bp * math.exp(math.fsum(s))
         return gm
 
-    def _sentence_bleu(
-        self, references: Sequence[Sequence[Any]], candidates: Sequence[Any],
-    ) -> float:
+    def _sentence_bleu(self, references: Sequence[Sequence[Any]], candidates: Sequence[Any],) -> float:
         return self._corpus_bleu([references], [candidates])
 
     def _corpus_bleu(
