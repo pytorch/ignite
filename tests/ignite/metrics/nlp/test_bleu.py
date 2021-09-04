@@ -1,9 +1,10 @@
 import os
 import warnings
+from collections import Counter
 
 import pytest
 import torch
-from nltk.translate.bleu_score import SmoothingFunction, corpus_bleu
+from nltk.translate.bleu_score import SmoothingFunction, corpus_bleu, sentence_bleu
 
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
@@ -23,10 +24,13 @@ def test_wrong_inputs():
         Bleu(smooth="fake")
 
     with pytest.raises(ValueError, match=r"nb of candidates should be equal to nb of reference lists"):
-        Bleu()._sentence_bleu(references=[[0], [0]], candidates=[[0]])
+        Bleu()._corpus_bleu(references=[[0], [0]], candidates=[[0]])
 
     with pytest.raises(NotComputableError):
         Bleu().compute()
+
+    with pytest.raises(ValueError, match='Average must be either "macro" or "micro"'):
+        Bleu(average="macros")
 
 
 @pytest.mark.parametrize(
@@ -41,14 +45,37 @@ def test_wrong_inputs():
     ],
 )
 def test_sentence_bleu(candidate, references):
-    print(candidate, references)
+    for i in range(1, 8):
+        weights = tuple([1 / i] * i)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            reference = sentence_bleu(references[0], candidate[0], weights=weights)
+        bleu = Bleu(ngram=i, average="macro")
+        assert pytest.approx(reference) == bleu._sentence_bleu(references[0], candidate[0])
+        bleu.update((candidate, references))
+        assert pytest.approx(reference) == bleu.compute()
+
+
+@pytest.mark.parametrize(
+    "candidate, references",
+    [
+        ([["a"], ["a"]]),
+        ([["a", "a", "a", "b", "c"]], [[["a", "b", "c"], ["a", "a", "d"]]]),
+        corpus.sample_1,
+        corpus.sample_2,
+        corpus.sample_3,
+        corpus.sample_4,
+    ],
+)
+def test_corpus_bleu(candidate, references):
+
     for i in range(1, 8):
         weights = tuple([1 / i] * i)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             reference = corpus_bleu(references, candidate, weights=weights)
-        bleu = Bleu(ngram=i)
-        assert pytest.approx(reference) == bleu._sentence_bleu(references, candidate)
+        bleu = Bleu(ngram=i, average="micro")
+        assert pytest.approx(reference) == bleu._corpus_bleu(references, candidate)
         bleu.update((candidate, references))
         assert pytest.approx(reference) == bleu.compute()
 
@@ -68,11 +95,35 @@ def test_sentence_bleu_smooth1(candidate, references):
         weights = tuple([1 / i] * i)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
+            reference = sentence_bleu(
+                references[0], candidate[0], weights=weights, smoothing_function=SmoothingFunction().method1
+            )
+        bleu = Bleu(ngram=i, smooth="smooth1")
+        assert reference == bleu._sentence_bleu(references[0], candidate[0])
+        bleu.update((candidate, references))
+        assert reference == bleu.compute()
+
+
+@pytest.mark.parametrize(
+    "candidate, references",
+    [
+        ([["a", "a", "a", "b", "c"]], [[["a", "b", "c"], ["a", "a", "d"]]]),
+        corpus.sample_1,
+        corpus.sample_2,
+        corpus.sample_3,
+        corpus.sample_4,
+    ],
+)
+def test_corpus_bleu_smooth1(candidate, references):
+    for i in range(1, 8):
+        weights = tuple([1 / i] * i)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
             reference = corpus_bleu(
                 references, candidate, weights=weights, smoothing_function=SmoothingFunction().method1
             )
-        bleu = Bleu(ngram=i, smooth="smooth1")
-        assert reference == bleu._sentence_bleu(references, candidate)
+        bleu = Bleu(ngram=i, smooth="smooth1", average="micro")
+        assert reference == bleu._corpus_bleu(references, candidate)
         bleu.update((candidate, references))
         assert reference == bleu.compute()
 
@@ -92,11 +143,35 @@ def test_sentence_bleu_nltk_smooth2(candidate, references):
         weights = tuple([1 / i] * i)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
+            reference = sentence_bleu(
+                references[0], candidate[0], weights=weights, smoothing_function=SmoothingFunction().method2
+            )
+        bleu = Bleu(ngram=i, smooth="nltk_smooth2")
+        assert reference == bleu._sentence_bleu(references[0], candidate[0])
+        bleu.update((candidate, references))
+        assert reference == bleu.compute()
+
+
+@pytest.mark.parametrize(
+    "candidate, references",
+    [
+        ([["a", "a", "a", "b", "c"]], [[["a", "b", "c"], ["a", "a", "d"]]]),
+        corpus.sample_1,
+        corpus.sample_2,
+        corpus.sample_3,
+        corpus.sample_4,
+    ],
+)
+def test_corpus_bleu_nltk_smooth2(candidate, references):
+    for i in range(1, 8):
+        weights = tuple([1 / i] * i)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
             reference = corpus_bleu(
                 references, candidate, weights=weights, smoothing_function=SmoothingFunction().method2
             )
-        bleu = Bleu(ngram=i, smooth="nltk_smooth2")
-        assert reference == bleu._sentence_bleu(references, candidate)
+        bleu = Bleu(ngram=i, smooth="nltk_smooth2", average="micro")
+        assert reference == bleu._corpus_bleu(references, candidate)
         bleu.update((candidate, references))
         assert reference == bleu.compute()
 
@@ -116,11 +191,35 @@ def test_sentence_bleu_smooth2(candidate, references):
         weights = tuple([1 / i] * i)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
+            reference = sentence_bleu(
+                references[0], candidate[0], weights=weights, smoothing_function=SmoothingFunction().method2
+            )
+        bleu = Bleu(ngram=i, smooth="smooth2")
+        assert reference == bleu._sentence_bleu(references[0], candidate[0])
+        bleu.update((candidate, references))
+        assert reference == bleu.compute()
+
+
+@pytest.mark.parametrize(
+    "candidate, references",
+    [
+        ([["a", "a", "a", "b", "c"]], [[["a", "b", "c"], ["a", "a", "d"]]]),
+        corpus.sample_1,
+        corpus.sample_2,
+        corpus.sample_3,
+        corpus.sample_4,
+    ],
+)
+def test_corpus_bleu_smooth2(candidate, references):
+    for i in range(1, 3):
+        weights = tuple([1 / i] * i)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
             reference = corpus_bleu(
                 references, candidate, weights=weights, smoothing_function=SmoothingFunction().method2
             )
-        bleu = Bleu(ngram=i, smooth="smooth2")
-        assert reference == bleu._sentence_bleu(references, candidate)
+        bleu = Bleu(ngram=i, smooth="smooth2", average="micro")
+        assert reference == bleu._corpus_bleu(references, candidate)
         bleu.update((candidate, references))
         assert reference == bleu.compute()
 
@@ -131,14 +230,14 @@ def test_bleu():
     bleu.update(([corpus.cand_2a], [corpus.references_2]))
     bleu.update(([corpus.cand_2b], [corpus.references_2]))
     bleu.update(([corpus.cand_3], [corpus.references_2]))
-    value = bleu._sentence_bleu([corpus.references_1], [corpus.cand_1])
-    value += bleu._sentence_bleu([corpus.references_2], [corpus.cand_2a])
-    value += bleu._sentence_bleu([corpus.references_2], [corpus.cand_2b])
-    value += bleu._sentence_bleu([corpus.references_2], [corpus.cand_3])
+    value = bleu._sentence_bleu(corpus.references_1, corpus.cand_1)
+    value += bleu._sentence_bleu(corpus.references_2, corpus.cand_2a)
+    value += bleu._sentence_bleu(corpus.references_2, corpus.cand_2b)
+    value += bleu._sentence_bleu(corpus.references_2, corpus.cand_3)
     assert bleu.compute() == value / 4
 
 
-def test_bleu_batch():
+def test_bleu_batch_macro():
     bleu = Bleu(ngram=4)
 
     # Batch size 3
@@ -149,15 +248,15 @@ def test_bleu_batch():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         reference_bleu_score = (
-            corpus_bleu([refs[0]], [hypotheses[0]])
-            + corpus_bleu([refs[1]], [hypotheses[1]])
-            + corpus_bleu([refs[2]], [hypotheses[2]])
+            sentence_bleu(refs[0], hypotheses[0])
+            + sentence_bleu(refs[1], hypotheses[1])
+            + sentence_bleu(refs[2], hypotheses[2])
         ) / 3
     assert bleu.compute() == reference_bleu_score
 
     value = 0
     for _hypotheses, _refs in zip(hypotheses, refs):
-        value += bleu._sentence_bleu([_refs], [_hypotheses])
+        value += bleu._sentence_bleu(_refs, _hypotheses)
         bleu.update(([_hypotheses], [_refs]))
 
     ref_1 = value / len(refs)
@@ -165,6 +264,42 @@ def test_bleu_batch():
 
     assert ref_1 == reference_bleu_score
     assert ref_2 == reference_bleu_score
+
+
+def test_bleu_batch_micro():
+    bleu = Bleu(ngram=4, average="micro")
+
+    # Batch size 3
+    hypotheses = [corpus.cand_1, corpus.cand_2a, corpus.cand_2b]
+    refs = [corpus.references_1, corpus.references_2, corpus.references_2]
+    bleu.update((hypotheses, refs))
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        reference_bleu_score = corpus_bleu(refs, hypotheses)
+    assert bleu.compute() == reference_bleu_score
+
+    assert bleu._corpus_bleu(refs, hypotheses) == reference_bleu_score
+
+
+@pytest.mark.parametrize(
+    "candidate, references",
+    [
+        (corpus.cand_1, corpus.references_1),
+        (corpus.cand_2a, corpus.references_2),
+        (corpus.cand_2b, corpus.references_2),
+        (corpus.cand_1, corpus.references_1),
+    ],
+)
+def test_n_gram_counter(candidate, references):
+    bleu = Bleu(ngram=4)
+    hyp_length, ref_length = bleu._n_gram_counter([references], [candidate], Counter(), Counter())
+    assert hyp_length == len(candidate)
+
+    ref_lens = (len(reference) for reference in references)
+    closest_ref_len = min(ref_lens, key=lambda ref_len: (abs(ref_len - len(candidate)), ref_len))
+
+    assert ref_length == closest_ref_len
 
 
 def _test_distrib_integration(device):

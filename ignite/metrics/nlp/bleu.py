@@ -201,9 +201,9 @@ class Bleu(Metric):
         return gm
 
     def _sentence_bleu(
-        self, references: Sequence[Sequence[Sequence[Any]]], candidates: Sequence[Sequence[Any]],
+        self, references: Sequence[Sequence[Any]], candidates: Sequence[Any],
     ) -> float:
-        return self._corpus_bleu(references, candidates)
+        return self._corpus_bleu([references], [candidates])
 
     def _corpus_bleu(
         self, references: Sequence[Sequence[Sequence[Any]]], candidates: Sequence[Sequence[Any]],
@@ -244,7 +244,7 @@ class Bleu(Metric):
 
         if self.average == "macro":
             for refs, hyp in zip(y, y_pred):
-                self._sum_of_bleu += self._sentence_bleu(references=[refs], candidates=[hyp])
+                self._sum_of_bleu += self._sentence_bleu(references=refs, candidates=hyp)
                 self._num_sentences += 1
 
         elif self.average == "micro":
