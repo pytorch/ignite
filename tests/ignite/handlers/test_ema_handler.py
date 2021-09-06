@@ -95,7 +95,7 @@ def test_ema_load_state_dict(get_dummy_model):
     ema_handler = EMAHandler(model_2)
     ema_model = ema_handler.ema_model
     ema_model.load_state_dict(state_dict_1)
-    torch.testing.assert_allclose(ema_model.weight.data, model_1.weight.data)
+    assert ema_model.weight.data.allclose(model_1.weight.data)
 
 
 def test_ema_no_warmup_momentum(get_dummy_model):
@@ -167,14 +167,14 @@ def test_ema_buffer():
 
     @engine.on(Events.ITERATION_COMPLETED)
     def check_buffers():
-        torch.testing.assert_allclose(ema_model.running_mean, model.running_mean)
-        torch.testing.assert_allclose(ema_model.running_var, model.running_var)
+        assert ema_model.running_mean.allclose(model.running_mean)
+        assert ema_model.running_var.allclose(model.running_var)
 
     # engine will run 4 iterations
     engine.run([0, 1], max_epochs=2)
 
-    torch.testing.assert_allclose(ema_model.running_mean, model.running_mean)
-    torch.testing.assert_allclose(ema_model.running_var, model.running_var)
+    assert ema_model.running_mean.allclose(model.running_mean)
+    assert ema_model.running_var.allclose(model.running_var)
 
 
 def test_ema_two_handlers(get_dummy_model):
@@ -203,10 +203,11 @@ def test_ema_two_handlers(get_dummy_model):
 
     # engine will run 4 iterations
     engine.run(range(2), max_epochs=2)
-    ema_weight_1 = ema_handler_1.ema_model.weight.data
-    ema_weight_2 = ema_handler_2.ema_model.weight.data
-    torch.testing.assert_allclose(ema_weight_1, torch.full((1, 2), 4.0625))
-    torch.testing.assert_allclose(ema_weight_2, torch.full((1, 2), 3.5))
+    # explicitly cast to float32 to avoid test failure on XLA devices
+    ema_weight_1 = ema_handler_1.ema_model.weight.data.to(torch.float32)
+    ema_weight_2 = ema_handler_2.ema_model.weight.data.to(torch.float32)
+    assert ema_weight_1.allclose(ema_weight_1.new_full((1, 2), 4.0625))
+    assert ema_weight_2.allclose(ema_weight_2.new_full((1, 2), 3.5))
 
     assert engine.state.ema_momentum_1 == 0.5
     assert engine.state.ema_momentum_2 == 0.5
@@ -238,17 +239,18 @@ def _test_ema_final_weight(model, device=None, ddp=False, interval=1):
     engine.run(range(2), max_epochs=2)
 
     # ema_model and model can be DP or DDP
-    ema_weight = _unwrap_model(ema_handler.ema_model).weight.data
-    model_weight = _unwrap_model(model).weight.data
+    # explicitly cast to float32 to avoid test failure on XLA devices
+    ema_weight = _unwrap_model(ema_handler.ema_model).weight.data.to(torch.float32)
+    model_weight = _unwrap_model(model).weight.data.to(torch.float32)
     assert ema_weight.device == device
     assert model_weight.device == device
     if interval == 1:
-        torch.testing.assert_allclose(ema_weight, torch.full((1, 2), 4.0625, device=device))
+        assert ema_weight.allclose(ema_weight.new_full((1, 2), 4.0625))
     elif interval == 2:
-        torch.testing.assert_allclose(ema_weight, torch.full((1, 2), 3.5, device=device))
+        assert ema_weight.allclose(ema_weight.new_full((1, 2), 3.5))
     else:
         pass
-    torch.testing.assert_allclose(model_weight, torch.full((1, 2), 5.0, device=device))
+    assert model_weight.allclose(model_weight.new_full((1, 2), 5.0))
 
 
 @pytest.mark.parametrize("interval", [1, 2])
