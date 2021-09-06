@@ -149,13 +149,14 @@ class Bleu(Metric):
         p_denominators: Counter,
     ) -> Tuple[int, int]:
 
-        hyp_lengths = 0
-        ref_lengths = 0
         if len(references) != len(candidates):
             raise ValueError(
                 f"nb of candidates should be equal to nb of reference lists ({len(candidates)} != "
                 f"{len(references)})"
             )
+
+        hyp_lengths = 0
+        ref_lengths = 0
 
         # Iterate through each hypothesis and their corresponding references.
         for refs, hyp in zip(references, candidates):
@@ -171,6 +172,7 @@ class Bleu(Metric):
 
             # Calculate the closest reference lengths.
             ref_lengths += _closest_ref_length(refs, len(hyp))
+
         return (hyp_lengths, ref_lengths)
 
     def _brevity_penalty_smoothing(
@@ -192,6 +194,7 @@ class Bleu(Metric):
             bp = math.exp(1 - ref_length_sum / hyp_length_sum) if hyp_length_sum > 0 else 0.0
         else:
             bp = 1.0
+
         # Smoothing
         p_n = self.smoother(p_numerators, p_denominators)
 
@@ -200,9 +203,7 @@ class Bleu(Metric):
         gm = bp * math.exp(math.fsum(s))
         return gm
 
-    def _sentence_bleu(
-        self, references: Sequence[Sequence[Any]], candidates: Sequence[Any],
-    ) -> float:
+    def _sentence_bleu(self, references: Sequence[Sequence[Any]], candidates: Sequence[Any],) -> float:
         return self._corpus_bleu([references], [candidates])
 
     def _corpus_bleu(
@@ -256,7 +257,7 @@ class Bleu(Metric):
 
     @sync_all_reduce("_sum_of_bleu", "_num_sentences")
     def _compute_macro(self) -> torch.Tensor:
-        if self._num_sentences == 0 and self.average == "macro":
+        if self._num_sentences == 0:
             raise NotComputableError("Bleu must have at least one example before it can be computed.")
 
         return self._sum_of_bleu / self._num_sentences
