@@ -174,7 +174,7 @@ class Bleu(Metric):
             # Calculate the closest reference lengths.
             ref_lengths += _closest_ref_length(refs, len(hyp))
 
-        return (hyp_lengths, ref_lengths)
+        return hyp_lengths, ref_lengths
 
     def _brevity_penalty_smoothing(
         self, p_numerators: torch.Tensor, p_denominators: torch.Tensor, hyp_length_sum: int, ref_length_sum: int,
