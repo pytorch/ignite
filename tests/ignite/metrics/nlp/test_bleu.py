@@ -45,21 +45,23 @@ parametrize_args = (
 )
 
 
-def _test(candidates, references, average):
-    for i in range(1, 8):
+def _test(candidates, references, average, smooth="no_smooth", smooth_nltk_fn=None, ngram_range=8):
+    for i in range(1, ngram_range):
         weights = tuple([1 / i] * i)
-        bleu = Bleu(ngram=i, average=average)
+        bleu = Bleu(ngram=i, average=average, smooth=smooth)
 
         if average == "macro":
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                reference = sentence_bleu(references[0], candidates[0], weights=weights)
+                reference = sentence_bleu(
+                    references[0], candidates[0], weights=weights, smoothing_function=smooth_nltk_fn
+                )
             assert pytest.approx(reference) == bleu._sentence_bleu(references[0], candidates[0])
 
         elif average == "micro":
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                reference = corpus_bleu(references, candidates, weights=weights)
+                reference = corpus_bleu(references, candidates, weights=weights, smoothing_function=smooth_nltk_fn)
             assert pytest.approx(reference) == bleu._corpus_bleu(references, candidates)
 
         bleu.update((candidates, references))
@@ -76,109 +78,34 @@ def test_micro_bleu(candidates, references):
     _test(candidates, references, "micro")
 
 
-def _test_smooth(candidates, references, average):
-    for i in range(1, 8):
-        weights = tuple([1 / i] * i)
-        bleu = Bleu(ngram=i, smooth="smooth1", average=average)
-
-        if average == "macro":
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                reference = sentence_bleu(
-                    references[0], candidates[0], weights=weights, smoothing_function=SmoothingFunction().method1
-                )
-            assert reference == bleu._sentence_bleu(references[0], candidates[0])
-
-        elif average == "micro":
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                reference = corpus_bleu(
-                    references, candidates, weights=weights, smoothing_function=SmoothingFunction().method1
-                )
-            assert reference == bleu._corpus_bleu(references, candidates)
-
-        bleu.update((candidates, references))
-        assert reference == bleu.compute()
-
-
 @pytest.mark.parametrize(*parametrize_args)
 def test_macro_bleu_smooth1(candidates, references):
-    _test_smooth(candidates, references, "macro")
+    _test(candidates, references, "macro", "smooth1", SmoothingFunction().method1)
 
 
 @pytest.mark.parametrize(*parametrize_args)
 def test_micro_bleu_smooth1(candidates, references):
-    _test_smooth(candidates, references, "micro")
-
-
-def _test_bleu_nltk_smooth2(candidates, references, average):
-    for i in range(1, 8):
-        weights = tuple([1 / i] * i)
-        bleu = Bleu(ngram=i, smooth="nltk_smooth2", average=average)
-
-        if average == "macro":
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                reference = sentence_bleu(
-                    references[0], candidates[0], weights=weights, smoothing_function=SmoothingFunction().method2
-                )
-            assert reference == bleu._sentence_bleu(references[0], candidates[0])
-
-        elif average == "micro":
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                reference = corpus_bleu(
-                    references, candidates, weights=weights, smoothing_function=SmoothingFunction().method2
-                )
-            assert reference == bleu._corpus_bleu(references, candidates)
-
-        bleu.update((candidates, references))
-        assert pytest.approx(reference) == bleu.compute()
+    _test(candidates, references, "micro", "smooth1", SmoothingFunction().method1)
 
 
 @pytest.mark.parametrize(*parametrize_args)
 def test_macro_bleu_nltk_smooth2(candidates, references):
-    _test_bleu_nltk_smooth2(candidates, references, "macro")
+    _test(candidates, references, "macro", "nltk_smooth2", SmoothingFunction().method2)
 
 
 @pytest.mark.parametrize(*parametrize_args)
 def test_micro_bleu_nltk_smooth2(candidates, references):
-    _test_bleu_nltk_smooth2(candidates, references, "micro")
-
-
-def _test_bleu_smooth2(candidates, references, average):
-    for i in range(1, 3):
-        weights = tuple([1 / i] * i)
-        bleu = Bleu(ngram=i, smooth="smooth2", average=average)
-
-        if average == "macro":
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                reference = sentence_bleu(
-                    references[0], candidates[0], weights=weights, smoothing_function=SmoothingFunction().method2
-                )
-            assert reference == bleu._sentence_bleu(references[0], candidates[0])
-
-        elif average == "micro":
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                reference = corpus_bleu(
-                    references, candidates, weights=weights, smoothing_function=SmoothingFunction().method2
-                )
-            assert reference == bleu._corpus_bleu(references, candidates)
-
-        bleu.update((candidates, references))
-        assert pytest.approx(reference) == bleu.compute()
+    _test(candidates, references, "micro", "nltk_smooth2", SmoothingFunction().method2)
 
 
 @pytest.mark.parametrize(*parametrize_args)
 def test_macro_bleu_smooth2(candidates, references):
-    _test_bleu_smooth2(candidates, references, "macro")
+    _test(candidates, references, "macro", "smooth2", SmoothingFunction().method2, 3)
 
 
 @pytest.mark.parametrize(*parametrize_args)
 def test_micro_bleu_smooth2(candidates, references):
-    _test_bleu_smooth2(candidates, references, "micro")
+    _test(candidates, references, "micro", "smooth2", SmoothingFunction().method2, 3)
 
 
 def test_accumulation_macro_bleu():
