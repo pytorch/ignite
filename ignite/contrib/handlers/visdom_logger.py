@@ -1,7 +1,5 @@
 """Visdom logger and its helper handlers."""
-import numbers
 import os
-import warnings
 from typing import Any, Callable, Dict, List, Optional, Union, cast
 
 import torch
@@ -138,6 +136,8 @@ class VisdomLogger(BaseLogger):
                     output_transform=lambda loss: {"loss": loss}
                 )
 
+    ..  versionchanged:: 0.5.0
+        accepts an optional list of `state_attributes`
     """
 
     def __init__(
@@ -312,6 +312,21 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
                 global_step_transform=global_step_transform
             )
 
+        Another example where the State Attributes ``trainer.state.alpha`` and ``trainer.state.beta``
+        are also logged along with the NLL and Accuracy after each iteration:
+
+        .. code-block:: python
+
+            vd_logger.attach(
+                trainer,
+                log_handler=OutputHandler(
+                    tag="training",
+                    metric_names=["nll", "accuracy"],
+                    state_attributes=["alpha", "beta"],
+                ),
+                event_name=Events.ITERATION_COMPLETED
+            )
+
     Args:
         tag: common title for all produced plots. For example, "training"
         metric_names: list of metric names to plot or a string "all" to plot all available
@@ -326,6 +341,7 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
             uses function output as global_step. To setup global step from another engine, please use
             :meth:`~ignite.contrib.handlers.visdom_logger.global_step_from_engine`.
         show_legend: flag to show legend in the window
+        state_attributes: list of attributes of the ``trainer.state`` to plot.
 
     Note:
 
@@ -345,8 +361,11 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable] = None,
         show_legend: bool = False,
+        state_attributes: Optional[List[str]] = None,
     ):
-        super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
+        super(OutputHandler, self).__init__(
+            tag, metric_names, output_transform, global_step_transform, state_attributes
+        )
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
     def __call__(self, engine: Engine, logger: VisdomLogger, event_name: Union[str, Events]) -> None:
@@ -354,7 +373,7 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
         if not isinstance(logger, VisdomLogger):
             raise RuntimeError("Handler 'OutputHandler' works only with VisdomLogger")
 
-        metrics = self._setup_output_metrics(engine)
+        metrics = self._setup_output_metrics_state_attrs(engine, key_tuple=False)
 
         global_step = self.global_step_transform(engine, event_name)  # type: ignore[misc]
 
@@ -365,24 +384,7 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
             )
 
         for key, value in metrics.items():
-
-            values = []  # type: List[Union[float, torch.Tensor]]
-            keys = []
-            if isinstance(value, numbers.Number):
-                values.append(value)  # type: ignore[arg-type]
-                keys.append(key)
-            elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                values.append(value.item())
-                keys.append(key)
-            elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
-                values = value  # type: ignore[assignment]
-                keys = [f"{key}/{i}" for i in range(len(value))]
-            else:
-                warnings.warn(f"VisdomLogger output_handler can not log metrics value type {type(value)}")
-
-            for k, v in zip(keys, values):
-                k = f"{self.tag}/{k}"
-                self.add_scalar(logger, k, v, event_name, global_step)
+            self.add_scalar(logger, key, value, event_name, global_step)
 
         logger._save()
 

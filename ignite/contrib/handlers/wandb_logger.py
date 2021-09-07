@@ -1,9 +1,6 @@
 """WandB logger and its helper handlers."""
-import numbers
-import warnings
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, List, Optional, Union
 
-import torch
 from torch.optim import Optimizer
 
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler
@@ -229,6 +226,20 @@ class OutputHandler(BaseOutputHandler):
                 global_step_transform=global_step_transform
             )
 
+        Another example where the State Attributes ``trainer.state.alpha`` and ``trainer.state.beta``
+        are also logged along with the NLL and Accuracy after each iteration:
+
+        .. code-block:: python
+
+            wandb_logger.attach_output_handler(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                tag="training",
+                metrics=["nll", "accuracy"],
+                state_attributes=["alpha", "beta"],
+            )
+
+
     Args:
         tag: common title for all produced plots. For example, "training"
         metric_names: list of metric names to plot or a string "all" to plot all available
@@ -254,6 +265,8 @@ class OutputHandler(BaseOutputHandler):
             def global_step_transform(engine, event_name):
                 return engine.state.get_event_attrib_value(event_name)
 
+    ..  versionchanged:: 0.5.0
+        accepts an optional list of `state_attributes`
     """
 
     def __init__(
@@ -263,8 +276,9 @@ class OutputHandler(BaseOutputHandler):
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable] = None,
         sync: Optional[bool] = None,
+        state_attributes: Optional[List[str]] = None,
     ):
-        super().__init__(tag, metric_names, output_transform, global_step_transform)
+        super().__init__(tag, metric_names, output_transform, global_step_transform, state_attributes)
         self.sync = sync
 
     def __call__(self, engine: Engine, logger: WandBLogger, event_name: Union[str, Events]) -> None:
@@ -279,21 +293,8 @@ class OutputHandler(BaseOutputHandler):
                 " Please check the output of global_step_transform."
             )
 
-        metrics = self._setup_output_metrics(engine)
-        rendered_metrics = {}  # type: Dict[str, Union[str, float, numbers.Number]]
-        if self.tag is not None:
-            for name, value in metrics.items():
-                if isinstance(value, numbers.Number) or isinstance(value, str):
-                    rendered_metrics[f"{self.tag}/{name}"] = value
-                elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                    rendered_metrics[f"{self.tag}/{name}"] = value.item()
-                elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
-                    for i, v in enumerate(value):
-                        rendered_metrics[f"{self.tag}/{name}/{i}"] = v.item()
-                else:
-                    warnings.warn(f"WandBLogger output_handler can not log metrics value type {type(value)}")
-
-        logger.log(rendered_metrics, step=global_step, sync=self.sync)
+        metrics = self._setup_output_metrics_state_attrs(engine, log_text=True, key_tuple=False)
+        logger.log(metrics, step=global_step, sync=self.sync)
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):

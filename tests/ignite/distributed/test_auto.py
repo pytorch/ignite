@@ -172,6 +172,13 @@ def _test_auto_model_optimizer(ws, device):
     else:
         assert isinstance(optimizer, optim.SGD) and not hasattr(optimizer, "wrapped_optimizer")
 
+    if idist.has_hvd_support and bnd in ("horovod",):
+        backward_passes_per_step = 2
+        optimizer = optim.SGD(model.parameters(), lr=0.01)
+        optimizer = auto_optim(optimizer, backward_passes_per_step=backward_passes_per_step)
+        assert isinstance(optimizer, optim.SGD) and hasattr(optimizer, "backward_passes_per_step")
+        assert optimizer.backward_passes_per_step == backward_passes_per_step
+
 
 def test_auto_methods_no_dist():
 

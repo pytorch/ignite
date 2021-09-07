@@ -154,7 +154,7 @@ def test_output_handler_metric_names():
     mock_logger = MagicMock(spec=WandBLogger)
     mock_logger.log = MagicMock()
 
-    with pytest.warns(UserWarning, match=r"WandBLogger output_handler can not log metrics value type"):
+    with pytest.warns(UserWarning, match=r"Logger output_handler can not log metrics value type"):
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
@@ -240,6 +240,34 @@ def test_output_handler_with_global_step_from_engine():
     assert mock_logger.log.call_count == 2
     mock_logger.log.assert_has_calls(
         [call({"tag/loss": mock_engine.state.output}, step=mock_another_engine.state.epoch, sync=None)]
+    )
+
+
+def test_output_handler_state_attrs():
+    wrapper = OutputHandler("tag", state_attributes=["alpha", "beta", "gamma", "delta"])
+    mock_logger = MagicMock(spec=WandBLogger)
+    mock_logger.log = MagicMock()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.iteration = 5
+    mock_engine.state.alpha = 3.899
+    mock_engine.state.beta = torch.tensor(12.21)
+    mock_engine.state.gamma = torch.tensor([21.0, 6.0])
+    mock_engine.state.delta = "Some Text"
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+    mock_logger.log.assert_called_once_with(
+        {
+            "tag/alpha": 3.899,
+            "tag/beta": torch.tensor(12.21).item(),
+            "tag/gamma/0": 21.0,
+            "tag/gamma/1": 6.0,
+            "tag/delta": "Some Text",
+        },
+        step=5,
+        sync=None,
     )
 
 
