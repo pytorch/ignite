@@ -149,7 +149,7 @@ def test_bleu_batch_macro():
             + sentence_bleu(refs[1], hypotheses[1])
             + sentence_bleu(refs[2], hypotheses[2])
         ) / 3
-    assert bleu.compute() == reference_bleu_score
+    assert pytest.approx(bleu.compute()) == reference_bleu_score
 
     value = 0
     for _hypotheses, _refs in zip(hypotheses, refs):
@@ -159,8 +159,8 @@ def test_bleu_batch_macro():
     ref_1 = value / len(refs)
     ref_2 = bleu.compute()
 
-    assert ref_1 == reference_bleu_score
-    assert ref_2 == reference_bleu_score
+    assert pytest.approx(ref_1) == reference_bleu_score
+    assert pytest.approx(ref_2) == reference_bleu_score
 
 
 def test_bleu_batch_micro():
@@ -174,9 +174,9 @@ def test_bleu_batch_micro():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         reference_bleu_score = corpus_bleu(refs, hypotheses)
-    assert bleu.compute() == reference_bleu_score
+    assert pytest.approx(bleu.compute()) == reference_bleu_score
 
-    assert bleu._corpus_bleu(refs, hypotheses) == reference_bleu_score
+    assert pytest.approx(bleu._corpus_bleu(refs, hypotheses)) == reference_bleu_score
 
 
 @pytest.mark.parametrize(

@@ -29,35 +29,37 @@ class _Smoother:
             raise ValueError(f"Smooth is not valid (expected: {valid}, got: {method})")
         self.smooth = method
 
-    def __call__(self, numerators: Counter, denominators: Counter) -> Sequence[float]:
+    def __call__(self, numerators: torch.Tensor, denominators: torch.Tensor) -> Sequence[float]:
         method = getattr(self, self.smooth)
         return method(numerators, denominators)
 
     @staticmethod
-    def smooth1(numerators: Counter, denominators: Counter) -> Sequence[float]:
+    def smooth1(numerators: torch.Tensor, denominators: torch.Tensor) -> Sequence[float]:
         epsilon = 0.1
-        denominators_ = [max(1, d) for d in denominators.values()]
-        return [n / d if n != 0 else epsilon / d for n, d in zip(numerators.values(), denominators_)]
+        denominators_ = [max(1, d.item()) for d in denominators]
+        return [n.item() / d if n != 0 else epsilon / d for n, d in zip(numerators, denominators_)]
 
     @staticmethod
-    def nltk_smooth2(numerators: Counter, denominators: Counter) -> Sequence[float]:
-        denominators_ = [max(1, d) for d in denominators.values()]
-        return _Smoother._smooth2(numerators.values(), denominators_)
+    def nltk_smooth2(numerators: torch.Tensor, denominators: torch.Tensor) -> Sequence[float]:
+        denominators_ = torch.tensor([max(1, d.item()) for d in denominators])
+        return _Smoother._smooth2(numerators, denominators_)
 
     @staticmethod
-    def smooth2(numerators: Counter, denominators: Counter) -> Sequence[float]:
-        return _Smoother._smooth2(numerators.values(), denominators.values())
+    def smooth2(numerators: torch.Tensor, denominators: torch.Tensor) -> Sequence[float]:
+        return _Smoother._smooth2(numerators, denominators)
 
     @staticmethod
-    def _smooth2(
-        numerators: Union[ValuesView[int], Sequence[int]], denominators: Union[ValuesView[int], Sequence[int]]
-    ) -> Sequence[float]:
-        return [(n + 1) / (d + 1) if i != 0 else n / d for i, (n, d) in enumerate(zip(numerators, denominators))]
+    def _smooth2(numerators: torch.Tensor, denominators: torch.Tensor) -> Sequence[float]:
+
+        return [
+            (n.item() + 1) / (d.item() + 1) if i != 0 else n.item() / d.item()
+            for i, (n, d) in enumerate(zip(numerators, denominators))
+        ]
 
     @staticmethod
-    def no_smooth(numerators: Counter, denominators: Counter) -> Sequence[float]:
-        denominators_ = [max(1, d) for d in denominators.values()]
-        return [n / d for n, d in zip(numerators.values(), denominators_)]
+    def no_smooth(numerators: torch.Tensor, denominators: torch.Tensor) -> Sequence[float]:
+        denominators_ = [max(1, d) for d in denominators]
+        return [n.item() / d for n, d in zip(numerators, denominators_)]
 
 
 class Bleu(Metric):
@@ -145,8 +147,8 @@ class Bleu(Metric):
         self,
         references: Sequence[Sequence[Sequence[Any]]],
         candidates: Sequence[Sequence[Any]],
-        p_numerators: Counter,
-        p_denominators: Counter,
+        p_numerators: torch.Tensor,
+        p_denominators: torch.Tensor,
     ) -> Tuple[int, int]:
 
         if len(references) != len(candidates):
@@ -176,7 +178,7 @@ class Bleu(Metric):
         return (hyp_lengths, ref_lengths)
 
     def _brevity_penalty_smoothing(
-        self, p_numerators: Counter, p_denominators: Counter, hyp_length_sum: int, ref_length_sum: int,
+        self, p_numerators: torch.Tensor, p_denominators: torch.Tensor, hyp_length_sum: int, ref_length_sum: int,
     ) -> float:
 
         # Returns 0 if there's no matching n-grams
@@ -185,8 +187,8 @@ class Bleu(Metric):
         if p_numerators[1] == 0:
             return 0
 
-        # If no smoother, returns 0 if there's at least one a not matching n-grams
-        if self.smoother.smooth == "no_smooth" and min(p_numerators.values()) == 0:
+        # If no smoother, returns 0 if there's at least one a not matching n-grams]
+        if self.smoother.smooth == "no_smooth" and min(p_numerators[1:]).item() == 0:
             return 0
 
         # Calculate corpus-level brevity penalty.
@@ -196,7 +198,7 @@ class Bleu(Metric):
             bp = 1.0
 
         # Smoothing
-        p_n = self.smoother(p_numerators, p_denominators)
+        p_n = self.smoother(p_numerators[1:], p_denominators[1:])
 
         # Compute the geometric mean
         s = [w_i * math.log(p_i) for w_i, p_i in zip(self.weights, p_n)]
@@ -210,13 +212,12 @@ class Bleu(Metric):
         self, references: Sequence[Sequence[Sequence[Any]]], candidates: Sequence[Sequence[Any]],
     ) -> float:
 
-        p_numerators: Counter = Counter()
-        p_denominators: Counter = Counter()
+        p_numerators: torch.Tensor = torch.zeros(self.ngrams_order + 1)
+        p_denominators: torch.Tensor = torch.zeros(self.ngrams_order + 1)
 
         hyp_length_sum, ref_length_sum = self._n_gram_counter(
             references=references, candidates=candidates, p_numerators=p_numerators, p_denominators=p_denominators,
         )
-
         bleu_score = self._brevity_penalty_smoothing(
             p_numerators=p_numerators,
             p_denominators=p_denominators,
@@ -234,8 +235,8 @@ class Bleu(Metric):
             self._num_sentences = 0
 
         if self.average == "micro":
-            self.p_numerators: Counter = Counter()
-            self.p_denominators: Counter = Counter()
+            self.p_numerators = torch.zeros(self.ngrams_order + 1)
+            self.p_denominators = torch.zeros(self.ngrams_order + 1)
             self.hyp_length_sum = 0
             self.ref_length_sum = 0
 
