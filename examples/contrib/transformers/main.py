@@ -313,7 +313,7 @@ def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, con
         model.train()
 
         with autocast(enabled=with_amp):
-            y_pred = model(**input_batch)
+            y_pred = model(input_batch)
             loss = criterion(y_pred, labels)
 
         optimizer.zero_grad()
@@ -377,7 +377,7 @@ def create_evaluator(model, metrics, config, tag="val"):
             labels = labels.to(device, non_blocking=True, dtype=torch.float)
 
         with autocast(enabled=with_amp):
-            output = model(**input_batch)
+            output = model(input_batch)
         return output, labels
 
     evaluator = Engine(evaluate_step)

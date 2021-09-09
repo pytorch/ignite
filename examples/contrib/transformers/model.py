@@ -16,7 +16,7 @@ class TransformerModel(nn.Module):
             model_name, cache_dir=model_dir, config=self.config
         )
 
-    def forward(self, input_ids, attention_mask, token_type_ids):
-        output = self.transformer(input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)["logits"]
+    def forward(self, inputs):
+        output = self.transformer(**inputs)["logits"]
 
         return output
