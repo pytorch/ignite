@@ -372,7 +372,8 @@ if has_native_dist_support:
             start_processes = mp.spawn
             # start_method and start_processes in pytorch >= 1.5
             if LooseVersion(torch.__version__) >= LooseVersion("1.5.0"):
-                spawn_kwargs["start_method"] = kwargs.get("start_method", "spawn")
+                if "start_method" not in kwargs:
+                    kwargs["start_method"] = "fork"
                 start_processes = mp.start_processes
 
             if init_method in [None, "env://"]:
