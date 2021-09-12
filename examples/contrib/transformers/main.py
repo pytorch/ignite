@@ -373,7 +373,7 @@ def create_evaluator(model, metrics, config, tag="val"):
         labels = batch[1].view(-1, 1)
 
         if labels.device != device:
-            input_batch = {k: v.to(device, non_blocking=True, dtype=torch.long) for k, v in batch.items()}
+            input_batch = {k: v.to(device, non_blocking=True, dtype=torch.long) for k, v in batch[0].items()}
             labels = labels.to(device, non_blocking=True, dtype=torch.float)
 
         with autocast(enabled=with_amp):
