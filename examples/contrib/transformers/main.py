@@ -307,7 +307,7 @@ def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, con
         labels = batch[1].view(-1, 1)
 
         if labels.device != device:
-            input_batch = {k: v.to(device, non_blocking=True, dtype=torch.long) for k, v in batch.items()}
+            input_batch = {k: v.to(device, non_blocking=True, dtype=torch.long) for k, v in batch[0].items()}
             labels = labels.to(device, non_blocking=True, dtype=torch.float)
 
         model.train()
