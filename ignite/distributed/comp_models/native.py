@@ -374,9 +374,8 @@ if has_native_dist_support:
             default_start_method = "spawn"
             if LooseVersion(torch.__version__) >= LooseVersion("1.5.0"):
 
-                from IPython import get_ipython
-                shell = get_ipython().__class__.__name__
-                if shell == 'ZMQInteractiveShell':
+                in_jupyter = '__IPYTHON__' in globals()
+                if in_jupyter == True:
                     default_start_method = "fork"
                 spawn_kwargs["start_method"] = kwargs.get("start_method", default_start_method)
                 kwargs["start_method"] = "fork"
