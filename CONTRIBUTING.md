@@ -131,6 +131,12 @@ format and check codebase for compliance with PEP8.
 If you choose not to use pre-commit, you can take advantage of IDE extensions configured to black format or invoke
 black manually to format files and commit them.
 
+To install `flake8`, `black==19.10b0`, `isort==5.7.0` and `mypy`, please run
+```bash
+bash ./tests/run_code_style.sh install
+```
+
+To format files and commit changes:
 ```bash
 # This should autoformat the files
 bash ./tests/run_code_style.sh fmt
