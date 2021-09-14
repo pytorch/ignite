@@ -374,7 +374,7 @@ if has_native_dist_support:
             default_start_method = "spawn"
             if LooseVersion(torch.__version__) >= LooseVersion("1.5.0"):
 
-                if "__IPYTHON__" in globals():
+                if hasattr(__builtins__, "__IPYTHON__"):
                     # use fork in jupyter
                     default_start_method = "fork"
                 spawn_kwargs["start_method"] = kwargs.get("start_method", default_start_method)
