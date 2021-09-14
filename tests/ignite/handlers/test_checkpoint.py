@@ -1264,6 +1264,12 @@ def test_distrib_hvd(gloo_hvd_executor, get_rank_zero_dirname):
         np=nproc,
         do_init=True,
     )
+    gloo_hvd_executor(
+        _test_checkpoint_with_ddp, (device,), np=nproc, do_init=True,
+    )
+    gloo_hvd_executor(
+        _test_checkpoint_load_objects_ddp, (device,), np=nproc, do_init=True,
+    )
 
 
 def _test_tpu_saves_to_cpu(device, dirname):
