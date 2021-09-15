@@ -13,10 +13,6 @@ __all__ = ["ConfusionMatrix", "mIoU", "IoU", "DiceCoefficient", "cmAccuracy", "c
 class ConfusionMatrix(Metric):
     """Calculates confusion matrix for multi-class data.
 
-    The confusion matrix is formatted such that columns are predictions and rows are targets.
-    For example, if you were to plot the matrix, you could correctly assign to the horizontal axis
-    the label "predicted values" and to the vertical axis the label "actual values".
-
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     - `y_pred` must contain logits and has the following shape (batch_size, num_classes, ...).
       If you are doing binary classification, see Note for an example on how to get this.
@@ -64,6 +60,11 @@ class ConfusionMatrix(Metric):
             evaluator = create_supervised_evaluator(
                 model, metrics=metrics, output_transform=lambda x, y, y_pred: (y_pred, y)
             )
+
+    Note:
+        The confusion matrix is formatted such that columns are predictions and rows are targets.
+        For example, if you were to plot the matrix, you could correctly assign to the horizontal axis
+        the label "predicted values" and to the vertical axis the label "actual values".
 
     """
 
