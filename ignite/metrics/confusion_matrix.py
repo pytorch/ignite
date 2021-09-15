@@ -61,6 +61,11 @@ class ConfusionMatrix(Metric):
                 model, metrics=metrics, output_transform=lambda x, y, y_pred: (y_pred, y)
             )
 
+    Note:
+        The confusion matrix is formatted such that columns are predictions and rows are targets.
+        For example, if you were to plot the matrix, you could correctly assign to the horizontal axis
+        the label "predicted values" and to the vertical axis the label "actual values".
+
     """
 
     def __init__(
