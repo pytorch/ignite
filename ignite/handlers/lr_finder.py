@@ -118,7 +118,6 @@ class FastaiLRFinder:
             )
 
         self.logger.debug(f"Running LR finder for {num_iter} iterations")
-        print(f"num_iter {num_iter}")
         if start_lr is None:
             start_lr = optimizer.param_groups[0]["lr"]
         # Initialize the proper learning rate policy
