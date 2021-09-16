@@ -261,7 +261,7 @@ class Checkpoint(Serializable):
     def __init__(
         self,
         to_save: Mapping,
-        save_handler: Union[Callable, BaseSaveHandler],
+        save_handler: Union[str, Callable, BaseSaveHandler],
         filename_prefix: str = "",
         score_function: Optional[Callable] = None,
         score_name: Optional[str] = None,
@@ -286,8 +286,8 @@ class Checkpoint(Serializable):
             if "checkpointer" in to_save:
                 raise ValueError(f"Cannot have key 'checkpointer' if `include_self` is True: {to_save}")
 
-        if not (callable(save_handler) or isinstance(save_handler, BaseSaveHandler)):
-            raise TypeError("Argument `save_handler` should be callable or inherit from BaseSaveHandler")
+        if not (isinstance(save_handler, str) or callable(save_handler) or isinstance(save_handler, BaseSaveHandler)):
+            raise TypeError("Argument `save_handler` should be a string or callable or inherit from BaseSaveHandler")
 
         if global_step_transform is not None and not callable(global_step_transform):
             raise TypeError(f"global_step_transform should be a function, got {type(global_step_transform)} instead.")
@@ -295,6 +295,8 @@ class Checkpoint(Serializable):
         self.to_save = to_save
         self.filename_prefix = filename_prefix
         self.save_handler = save_handler
+        if isinstance(self.save_handler, str):
+            self.save_handler = DiskSaver(self.save_handler, create_dir=True)
         self.score_function = score_function
         self.score_name = score_name
         if self.score_name is not None and self.score_function is None:
