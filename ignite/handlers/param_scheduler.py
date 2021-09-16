@@ -946,7 +946,6 @@ class PiecewiseLinear(ParamScheduler):
         self.milestones = milestones
         self._index = 0
         self._state_attrs += ["values", "milestones", "_index"]
-        self.shit = 0
 
     def _get_start_end(self) -> Tuple[int, int, float, float]:
         if self.milestones[0] > self.event_index:
@@ -965,8 +964,6 @@ class PiecewiseLinear(ParamScheduler):
             return self._get_start_end()
 
     def get_param(self) -> float:
-        self.shit += 1
-        print(self.shit)
         start_index, end_index, start_value, end_value = self._get_start_end()
         return start_value + (end_value - start_value) * (self.event_index - start_index) / (end_index - start_index)
 

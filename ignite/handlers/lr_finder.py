@@ -98,26 +98,15 @@ class FastaiLRFinder:
         self._best_loss = None
         self._diverge_flag = False
 
-        # print(trainer.state.epoch_length)
-        # print(trainer.state.max_epochs)
-        # print(num_iter // trainer.state.epoch_length)
         # attach LRScheduler to trainer.
         if num_iter is None:
             num_iter = trainer.state.epoch_length * trainer.state.max_epochs
         else:
             max_iter = trainer.state.epoch_length * trainer.state.max_epochs  # type: ignore[operator]
-            print(f"max iters: {max_iter}")
             if max_iter < num_iter:
                 max_iter = num_iter
                 trainer.state.max_iters = num_iter
                 trainer.state.max_epochs = num_iter // trainer.state.epoch_length
-            print(f"max iters: {max_iter}")
-            if num_iter > max_iter:
-                warnings.warn(
-                    f"Desired num_iter {num_iter} is unreachable with the current run setup of {max_iter} iteration "
-                    f"({trainer.state.max_epochs} epochs)",
-                    UserWarning,
-                )
 
         if not trainer.has_event_handler(self._reached_num_iterations):
             trainer.add_event_handler(Events.ITERATION_COMPLETED, self._reached_num_iterations, num_iter)
@@ -504,7 +493,6 @@ class _ExponentialLR(_LRScheduler):
     def __init__(self, optimizer: Optimizer, start_lr: float, end_lr: float, num_iter: int, last_epoch: int = -1):
         self.end_lr = end_lr
         self.num_iter = num_iter
-        self.shit = 0
         super(_ExponentialLR, self).__init__(optimizer, last_epoch)
 
         # override base_lrs
@@ -512,8 +500,5 @@ class _ExponentialLR(_LRScheduler):
 
     def get_lr(self) -> List[float]:  # type: ignore
         curr_iter = self.last_epoch + 1  # type: ignore[attr-defined]
-        # print(self.num_iter)
-        self.shit += 1
-        print(self.shit)
         r = curr_iter / self.num_iter
         return [base_lr * (self.end_lr / base_lr) ** r for base_lr in self.base_lrs]  # type: ignore[attr-defined]

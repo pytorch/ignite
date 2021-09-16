@@ -321,12 +321,16 @@ def test_detach_terminates(lr_finder, to_save, dummy_engine, dataloader, recwarn
     # assert len(recwarn) == 0
 
 
-def test_temp(lr_finder, to_save, dummy_engine, dataloader):
-    # we have 100 batches
-    with lr_finder.attach(dummy_engine, to_save) as trainer_with_finder:
+def test_different_num_iters(lr_finder, to_save, dummy_engine, dataloader):
+    with lr_finder.attach(dummy_engine, to_save, num_iter=200) as trainer_with_finder:
         trainer_with_finder.run(dataloader)
+    len_lrs_few_iters = len(lr_finder._history["lr"])
 
-    assert False
+    with lr_finder.attach(dummy_engine, to_save, num_iter=1000) as trainer_with_finder:
+        trainer_with_finder.run(dataloader)
+    len_lrs_many_iters = len(lr_finder._history["lr"])
+
+    assert len_lrs_many_iters - len_lrs_few_iters > 500
 
 
 @pytest.mark.parametrize("step_mode", ["exp", "linear"])
