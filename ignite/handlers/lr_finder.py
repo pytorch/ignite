@@ -106,7 +106,7 @@ class FastaiLRFinder:
             if max_iter < num_iter:
                 max_iter = num_iter
                 trainer.state.max_iters = num_iter
-                trainer.state.max_epochs = num_iter // trainer.state.epoch_length
+                trainer.state.max_epochs = num_iter // trainer.state.epoch_length  # type: ignore[operator]
 
         if not trainer.has_event_handler(self._reached_num_iterations):
             trainer.add_event_handler(Events.ITERATION_COMPLETED, self._reached_num_iterations, num_iter)
