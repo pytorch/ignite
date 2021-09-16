@@ -144,7 +144,7 @@ def run(
     dropout=0.3,
     n_fc=768,
     max_length=256,
-    batch_size=128,
+    batch_size=32,
     weight_decay=0.01,
     num_workers=4,
     num_epochs=3,
@@ -225,7 +225,7 @@ def get_dataflow(config):
     )
 
     test_loader = idist.auto_dataloader(
-        test_dataset, batch_size=2 * config["batch_size"], num_workers=config["num_workers"], shuffle=False,
+        test_dataset, batch_size=config["batch_size"], num_workers=config["num_workers"], shuffle=False,
     )
     return train_loader, test_loader
 
