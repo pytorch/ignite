@@ -451,12 +451,12 @@ if has_native_dist_support:
         result_hostlist = []
         for node in node_list:
             nodelist_match = r"(.+)\[((,?[0-9]+-?,?-?){0,})\](.*)?"
-            if re.search(nodelist_match, node):
-                match = re.search(nodelist_match, node)
 
-                if match is None:
-                    raise ValueError(f"hostlist unvalid : {nodelist}")
+            match = re.search(nodelist_match, node)
 
+            if match is None:
+                result_hostlist.append(node)
+            else:
                 # holds the ranges of nodes as a string
                 # now we can manipulate the string and cast it to a list of numbers
                 num = str(match.group(2)).replace("[", "").replace("]", "")
@@ -497,7 +497,5 @@ if has_native_dist_support:
                 final_hostlist = [elem + match.group(4) for elem in hostlist_no_suffix]
 
                 result_hostlist += final_hostlist
-            else:
-                result_hostlist.append(node)
 
         return result_hostlist
