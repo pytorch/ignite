@@ -485,7 +485,7 @@ if has_native_dist_support:
                 final_list = [item for sublist in nodes_list for item in sublist]
 
                 # put final list in ascending order and append cluster name to each node number
-                final_list = list(set(sorted(final_list)))
+                final_list = list(sorted(set(final_list)))
 
                 # prepend leading zeros to numbers required
                 hostlist_tmp = [str(elem).zfill(lead_zeros + 1) for elem in final_list]

@@ -18,9 +18,8 @@ else:
     [
         ("localhost", "localhost"),
         ("quartz[4-8]", "quartz4,quartz5,quartz6,quartz7,quartz8"),
-        ("quartz-[1-2]", "quartz-1,quartz-2"),
-        ("qua-rt-z[1-2]", "qua-rt-z1,qua-rt-z2"),
-        ("q_ua-rtz[4,7]", "q_ua-rtz4,q_ua-rtz7"),
+        ("c1001a-[11,17]", "c1001a-11,c1001a-17"),
+        ("c1001a-s[11,17]", "c1001a-s11,c1001a-s17"),
         (
             "node[18-19,1-16,21-22]",
             "node1,node2,node3,node4,node5,"
