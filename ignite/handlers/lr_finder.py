@@ -3,6 +3,7 @@ import contextlib
 import logging
 import tempfile
 import warnings
+from math import ceil
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Union
 
@@ -106,7 +107,7 @@ class FastaiLRFinder:
             if max_iter < num_iter:
                 max_iter = num_iter
                 trainer.state.max_iters = num_iter
-                trainer.state.max_epochs = num_iter // trainer.state.epoch_length  # type: ignore[operator]
+                trainer.state.max_epochs = ceil(num_iter / trainer.state.epoch_length)  # type: ignore[operator]
 
         if not trainer.has_event_handler(self._reached_num_iterations):
             trainer.add_event_handler(Events.ITERATION_COMPLETED, self._reached_num_iterations, num_iter)

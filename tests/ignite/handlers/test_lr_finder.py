@@ -307,7 +307,8 @@ def test_num_iter_is_not_enough(lr_finder, to_save, dummy_engine, dataloader):
         with pytest.warns(UserWarning):
             trainer_with_finder.run(dataloader)
         assert_output_sizes(lr_finder, dummy_engine)
-        assert dummy_engine.state.iteration == len(dataloader)
+        assert dummy_engine.state.iteration != len(dataloader)
+        assert dummy_engine.state.iteration == 150
 
 
 def test_detach_terminates(lr_finder, to_save, dummy_engine, dataloader, recwarn):
@@ -322,15 +323,13 @@ def test_detach_terminates(lr_finder, to_save, dummy_engine, dataloader, recwarn
 
 
 def test_different_num_iters(lr_finder, to_save, dummy_engine, dataloader):
-    with lr_finder.attach(dummy_engine, to_save, num_iter=200) as trainer_with_finder:
+    with lr_finder.attach(dummy_engine, to_save, num_iter=200, diverge_th=float("inf")) as trainer_with_finder:
         trainer_with_finder.run(dataloader)
-    len_lrs_few_iters = len(lr_finder._history["lr"])
+        assert trainer_with_finder.state.iteration == 200  # num_iter
 
-    with lr_finder.attach(dummy_engine, to_save, num_iter=1000) as trainer_with_finder:
+    with lr_finder.attach(dummy_engine, to_save, num_iter=1000, diverge_th=float("inf")) as trainer_with_finder:
         trainer_with_finder.run(dataloader)
-    len_lrs_many_iters = len(lr_finder._history["lr"])
-
-    assert len_lrs_many_iters - len_lrs_few_iters > 500
+        assert trainer_with_finder.state.iteration == 1000  # num_iter
 
 
 @pytest.mark.parametrize("step_mode", ["exp", "linear"])
