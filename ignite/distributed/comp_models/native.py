@@ -450,7 +450,7 @@ if has_native_dist_support:
 
         result_hostlist = []
         for node in node_list:
-            nodelist_match = r"(\w+-?)\[((,?[0-9]+-?,?-?){0,})\](.*)?"
+            nodelist_match = r"(.+)\[((,?[0-9]+-?,?-?){0,})\](.*)?"
             if re.search(nodelist_match, node):
                 match = re.search(nodelist_match, node)
 
