@@ -144,7 +144,7 @@ def run(
     dropout=0.3,
     n_fc=768,
     max_length=256,
-    batch_size=128,
+    batch_size=32,
     weight_decay=0.01,
     num_workers=4,
     num_epochs=3,
@@ -303,21 +303,17 @@ def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, con
 
     def train_step(engine, batch):
 
-        input_ids = batch["input_ids"]
-        attention_mask = batch["attention_mask"]
-        token_type_ids = batch["token_type_ids"]
-        labels = batch["label"].view(-1, 1)
+        input_batch = batch[0]
+        labels = batch[1].view(-1, 1)
 
-        if input_ids.device != device:
-            input_ids = input_ids.to(device, non_blocking=True, dtype=torch.long)
-            attention_mask = attention_mask.to(device, non_blocking=True, dtype=torch.long)
-            token_type_ids = token_type_ids.to(device, non_blocking=True, dtype=torch.long)
+        if labels.device != device:
+            input_batch = {k: v.to(device, non_blocking=True, dtype=torch.long) for k, v in batch[0].items()}
             labels = labels.to(device, non_blocking=True, dtype=torch.float)
 
         model.train()
 
         with autocast(enabled=with_amp):
-            y_pred = model(input_ids, attention_mask, token_type_ids)
+            y_pred = model(input_batch)
             loss = criterion(y_pred, labels)
 
         optimizer.zero_grad()
@@ -372,19 +368,16 @@ def create_evaluator(model, metrics, config, tag="val"):
     @torch.no_grad()
     def evaluate_step(engine, batch):
         model.eval()
-        input_ids = batch["input_ids"]
-        attention_mask = batch["attention_mask"]
-        token_type_ids = batch["token_type_ids"]
-        labels = batch["label"].view(-1, 1)
 
-        if input_ids.device != device:
-            input_ids = input_ids.to(device, non_blocking=True, dtype=torch.long)
-            attention_mask = attention_mask.to(device, non_blocking=True, dtype=torch.long)
-            token_type_ids = token_type_ids.to(device, non_blocking=True, dtype=torch.long)
+        input_batch = batch[0]
+        labels = batch[1].view(-1, 1)
+
+        if labels.device != device:
+            input_batch = {k: v.to(device, non_blocking=True, dtype=torch.long) for k, v in batch[0].items()}
             labels = labels.to(device, non_blocking=True, dtype=torch.float)
 
         with autocast(enabled=with_amp):
-            output = model(input_ids, attention_mask, token_type_ids)
+            output = model(input_batch)
         return output, labels
 
     evaluator = Engine(evaluate_step)
