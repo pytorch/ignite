@@ -372,7 +372,14 @@ if has_native_dist_support:
             start_processes = mp.spawn
             # start_method and start_processes in pytorch >= 1.5
             if LooseVersion(torch.__version__) >= LooseVersion("1.5.0"):
-                spawn_kwargs["start_method"] = kwargs.get("start_method", "spawn")
+                import builtins
+
+                if "__IPYTHON__" in builtins.__dict__:
+                    # use fork in jupyter
+                    default_start_method = "fork"
+                else:
+                    default_start_method = "spawn"
+                spawn_kwargs["start_method"] = kwargs.get("start_method", default_start_method)
                 start_processes = mp.start_processes
 
             if init_method in [None, "env://"]:
@@ -443,13 +450,13 @@ if has_native_dist_support:
 
         result_hostlist = []
         for node in node_list:
-            nodelist_match = r"(\w+-?)\[((,?[0-9]+-?,?-?){0,})\](.*)?"
-            if re.search(nodelist_match, node):
-                match = re.search(nodelist_match, node)
+            nodelist_match = r"(.+)\[((,?[0-9]+-?,?-?){0,})\](.*)?"
 
-                if match is None:
-                    raise ValueError(f"hostlist unvalid : {nodelist}")
+            match = re.search(nodelist_match, node)
 
+            if match is None:
+                result_hostlist.append(node)
+            else:
                 # holds the ranges of nodes as a string
                 # now we can manipulate the string and cast it to a list of numbers
                 num = str(match.group(2)).replace("[", "").replace("]", "")
@@ -478,7 +485,7 @@ if has_native_dist_support:
                 final_list = [item for sublist in nodes_list for item in sublist]
 
                 # put final list in ascending order and append cluster name to each node number
-                final_list = list(set(sorted(final_list)))
+                final_list = list(sorted(set(final_list)))
 
                 # prepend leading zeros to numbers required
                 hostlist_tmp = [str(elem).zfill(lead_zeros + 1) for elem in final_list]
@@ -490,7 +497,5 @@ if has_native_dist_support:
                 final_hostlist = [elem + match.group(4) for elem in hostlist_no_suffix]
 
                 result_hostlist += final_hostlist
-            else:
-                result_hostlist.append(node)
 
         return result_hostlist

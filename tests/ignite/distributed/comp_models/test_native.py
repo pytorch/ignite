@@ -18,6 +18,15 @@ else:
     [
         ("localhost", "localhost"),
         ("quartz[4-8]", "quartz4,quartz5,quartz6,quartz7,quartz8"),
+        ("c1001a-[11,17]", "c1001a-11,c1001a-17"),
+        ("c1001a-s[11,17]", "c1001a-s11,c1001a-s17"),
+        (
+            "gpu-compute-on-demand-dy-g4dnxlarge-[1-4]",
+            "gpu-compute-on-demand-dy-g4dnxlarge-1,"
+            "gpu-compute-on-demand-dy-g4dnxlarge-2,"
+            "gpu-compute-on-demand-dy-g4dnxlarge-3,"
+            "gpu-compute-on-demand-dy-g4dnxlarge-4",
+        ),
         (
             "node[18-19,1-16,21-22]",
             "node1,node2,node3,node4,node5,"

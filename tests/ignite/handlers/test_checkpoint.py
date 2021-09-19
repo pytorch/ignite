@@ -1243,6 +1243,29 @@ def test_distrib_nccl_gpu(distributed_context_single_node_nccl, get_rank_zero_di
     _test_checkpoint_load_objects_ddp(device=device)
 
 
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
+def test_distrib_hvd(gloo_hvd_executor, get_rank_zero_dirname):
+
+    device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
+    nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
+    dirname = get_rank_zero_dirname()
+
+    gloo_hvd_executor(
+        _test_save_model_optimizer_lr_scheduler_with_state_dict,
+        (device, os.path.join(dirname, "1")),
+        np=nproc,
+        do_init=True,
+    )
+    gloo_hvd_executor(
+        _test_save_model_optimizer_lr_scheduler_with_state_dict,
+        ("cpu", os.path.join(dirname, "2"), True),
+        np=nproc,
+        do_init=True,
+    )
+
+
 def _test_tpu_saves_to_cpu(device, dirname):
     torch.manual_seed(0)
 
