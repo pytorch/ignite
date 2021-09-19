@@ -138,6 +138,7 @@ def test__native_dist_model_create_from_backend_bad_slurm_config():
     del os.environ["SLURM_LOCALID"]
     del os.environ["SLURM_NTASKS"]
     del os.environ["SLURM_JOB_NODELIST"]
+    del os.environ["SLURM_JOB_NUM_NODES"]
     del os.environ["RANK"]
 
 
@@ -241,6 +242,7 @@ def _test__native_dist_model_create_from_backend_slurm(local_rank, rank, world_s
     os.environ["SLURM_LOCALID"] = str(local_rank)
     os.environ["SLURM_NTASKS"] = str(world_size)
     os.environ["SLURM_JOB_NODELIST"] = "localhost"
+    os.environ["SLURM_JOB_NUM_NODES"] = "1"
 
     model = _NativeDistModel.create_from_backend(backend=backend, timeout=timeout)
 
@@ -270,6 +272,7 @@ def _test__native_dist_model_create_from_backend_slurm(local_rank, rank, world_s
     del os.environ["SLURM_LOCALID"]
     del os.environ["SLURM_NTASKS"]
     del os.environ["SLURM_JOB_NODELIST"]
+    del os.environ["SLURM_JOB_NUM_NODES"]
 
     assert "MASTER_ADDR" not in os.environ
     assert "MASTER_PORT" not in os.environ
