@@ -3,6 +3,7 @@ import contextlib
 import logging
 import tempfile
 import warnings
+from math import ceil
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Union
 
@@ -103,12 +104,10 @@ class FastaiLRFinder:
             num_iter = trainer.state.epoch_length * trainer.state.max_epochs
         else:
             max_iter = trainer.state.epoch_length * trainer.state.max_epochs  # type: ignore[operator]
-            if num_iter > max_iter:
-                warnings.warn(
-                    f"Desired num_iter {num_iter} is unreachable with the current run setup of {max_iter} iteration "
-                    f"({trainer.state.max_epochs} epochs)",
-                    UserWarning,
-                )
+            if max_iter < num_iter:
+                max_iter = num_iter
+                trainer.state.max_iters = num_iter
+                trainer.state.max_epochs = ceil(num_iter / trainer.state.epoch_length)  # type: ignore[operator]
 
         if not trainer.has_event_handler(self._reached_num_iterations):
             trainer.add_event_handler(Events.ITERATION_COMPLETED, self._reached_num_iterations, num_iter)
