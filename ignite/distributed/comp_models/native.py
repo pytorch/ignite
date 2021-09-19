@@ -215,13 +215,6 @@ if has_native_dist_support:
             all_env_vars_defined = [k in os.environ for k in env_vars]
 
             if "SLURM_JOB_ID" in os.environ:
-                # TO REMOVE:
-                # if any(all_env_vars_defined):
-                #     raise RuntimeError(
-                #         f"Defined env variables '{env_vars}' should not be specified with SLURM. Typically, this "
-                #         "happens when `torch.distributed.launch` or `torch.multiprocessing.spawn` are used. Please be "
-                #         "sure to use the `srun` command instead."
-                #     )
                 if rank is not None or world_size is not None:
                     raise ValueError("Arguments rank and world_size should not be specified with SLURM")
                 self._setup_env_in_slurm()
