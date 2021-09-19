@@ -9,7 +9,7 @@ from ignite.distributed.comp_models import has_native_dist_support
 if not has_native_dist_support:
     pytest.skip("Skip if no native dist support", allow_module_level=True)
 else:
-    from ignite.distributed.comp_models.native import _expand_hostlist, _NativeDistModel
+    from ignite.distributed.comp_models.native import _expand_hostlist, _NativeDistModel, _setup_ddp_vars_from_slurm_env
 
 
 # tests from https://github.com/LLNL/py-hostlist/blob/master/hostlist/unittest_hostlist.py
@@ -531,3 +531,114 @@ def test__native_dist_model_init_method_is_not_none(world_size, local_rank, get_
 
     with pytest.raises(ValueError, match=r"Both rank and world_size should be provided"):
         _NativeDistModel.create_from_backend(backend="gloo", rank=local_rank, init_method=init_method)
+
+
+@pytest.mark.parametrize(
+    "environ, expected",
+    [
+        # fmt: off
+        # usual SLURM env
+        (
+
+            {
+                "SLURM_PROCID": "1", "SLURM_LOCALID": "1", "SLURM_NTASKS": "2", "SLURM_JOB_NUM_NODES": "1",
+                "SLURM_JOB_NODELIST": "c1", "SLURM_JOB_ID": "12345",
+            },
+            [1, 1, 2, "c1", 17345]
+        ),
+        # usual SLURM env mnode
+        (
+            {
+                "SLURM_PROCID": "5", "SLURM_LOCALID": "1", "SLURM_NTASKS": "8", "SLURM_JOB_NUM_NODES": "2",
+                "SLURM_JOB_NODELIST": "c1, c2", "SLURM_JOB_ID": "12345",
+            },
+            [5, 1, 8, "c1", 17345]
+        ),
+        # usual SLURM env 1 node, 1 task + torch.distributed.launch
+        (
+            {
+                "SLURM_PROCID": "0", "SLURM_LOCALID": "0", "SLURM_NTASKS": "1", "SLURM_JOB_NUM_NODES": "1",
+                "SLURM_JOB_NODELIST": "c1", "SLURM_JOB_ID": "12345",
+                "MASTER_ADDR": "127.0.0.1", "MASTER_PORT": "2233", "RANK": "2", "LOCAL_RANK": "2", "WORLD_SIZE": "8",
+            },
+            [2, 2, 8, "127.0.0.1", 2233]
+        ),
+        # usual SLURM env + enroot's pytorch hook
+        (
+            {
+                "SLURM_PROCID": "3", "SLURM_LOCALID": "3", "SLURM_NTASKS": "4", "SLURM_JOB_NUM_NODES": "1",
+                "SLURM_JOB_NODELIST": "c1", "SLURM_JOB_ID": "12345",
+                "MASTER_ADDR": "c1", "MASTER_PORT": "12233", "RANK": "3", "LOCAL_RANK": "3", "WORLD_SIZE": "4",
+            },
+            [3, 3, 4, "c1", 12233]
+        ),
+        # usual SLURM env mnode + enroot's pytorch hook
+        (
+            {
+                "SLURM_PROCID": "3", "SLURM_LOCALID": "1", "SLURM_NTASKS": "4", "SLURM_JOB_NUM_NODES": "2",
+                "SLURM_JOB_NODELIST": "c1, c2", "SLURM_JOB_ID": "12345",
+                "MASTER_ADDR": "c1", "MASTER_PORT": "12233", "RANK": "3", "LOCAL_RANK": "1", "WORLD_SIZE": "4"
+            },
+            [3, 1, 4, "c1", 12233]
+        ),
+        # fmt: on
+    ],
+)
+def test__setup_ddp_vars_from_slurm_env(environ, expected):
+    ddp_keys = ["RANK", "LOCAL_RANK", "WORLD_SIZE", "MASTER_ADDR", "MASTER_PORT"]
+    ddp_vars = _setup_ddp_vars_from_slurm_env(environ)
+    for key, value in zip(ddp_keys, expected):
+        assert key in ddp_vars
+        assert ddp_vars[key] == value
+
+
+def test__setup_ddp_vars_from_slurm_env_bad_configs():
+    with pytest.raises(
+        RuntimeError, match=r"Environment variable defined for PyTorch Distributed context is inconsistent"
+    ):
+        environ = {
+            "SLURM_PROCID": "3",
+            "SLURM_LOCALID": "1",
+            "SLURM_NTASKS": "4",
+            "SLURM_JOB_NUM_NODES": "2",
+            "SLURM_JOB_NODELIST": "c1, c2",
+            "SLURM_JOB_ID": "12345",
+            "MASTER_ADDR": "another-addr",
+            "MASTER_PORT": "12233",
+            "RANK": "1",
+            "LOCAL_RANK": "1",
+            "WORLD_SIZE": "2",
+        }
+        _setup_ddp_vars_from_slurm_env(environ)
+
+    with pytest.raises(
+        RuntimeError, match=r"Environment variable defined for PyTorch Distributed context is inconsistent"
+    ):
+        environ = {
+            "SLURM_PROCID": "1",
+            "SLURM_LOCALID": "1",
+            "SLURM_NTASKS": "4",
+            "SLURM_JOB_NUM_NODES": "1",
+            "SLURM_JOB_NODELIST": "c1",
+            "SLURM_JOB_ID": "12345",
+            "MASTER_ADDR": "another-addr",
+            "MASTER_PORT": "12233",
+            "RANK": "1",
+            "LOCAL_RANK": "1",
+            "WORLD_SIZE": "2",
+        }
+        _setup_ddp_vars_from_slurm_env(environ)
+
+    with pytest.warns(UserWarning, match=r"We detected the following env variables"):
+        environ = {
+            "SLURM_PROCID": "3",
+            "SLURM_LOCALID": "1",
+            "SLURM_NTASKS": "4",
+            "SLURM_JOB_NUM_NODES": "2",
+            "SLURM_JOB_NODELIST": "c1, c2",
+            "SLURM_JOB_ID": "12345",
+            "RANK": "1",
+            "LOCAL_RANK": "1",
+            "WORLD_SIZE": "2",
+        }
+        _setup_ddp_vars_from_slurm_env(environ)
