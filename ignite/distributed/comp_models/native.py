@@ -249,7 +249,7 @@ if has_native_dist_support:
                 if k not in os.environ:
                     raise RuntimeError(f"SLURM distributed configuration is missing '{k}' in env variables")
 
-            ddp_vars = _setup_ddp_vars_from_slurm_env(os.environ)
+            ddp_vars = _setup_ddp_vars_from_slurm_env(cast(Dict, os.environ))
 
             # define DDP env vars required by PTH:
             for key, value in ddp_vars.items():
@@ -504,12 +504,12 @@ if has_native_dist_support:
         # To cover case 2), let's check that defined RANK >= SLURM_PROCID, LOCAL_RANK >= SLURM_LOCALID,
         #   WORLD_SIZE >= SLURM_NTASKS, SLURM_JOB_NUM_NODES == 1
 
-        ddp_vars = {
+        ddp_vars: Dict[str, Union[str, int]] = {
             "RANK": int(environ["SLURM_PROCID"]),
             "LOCAL_RANK": int(environ["SLURM_LOCALID"]),
             "WORLD_SIZE": int(environ["SLURM_NTASKS"]),
-            "MASTER_ADDR": None,
-            "MASTER_PORT": None,
+            "MASTER_ADDR": "",
+            "MASTER_PORT": -1,
         }
 
         pth_ddp_env_vars = {key: environ.get(key, None) for key in ddp_vars}
@@ -518,11 +518,10 @@ if has_native_dist_support:
             nnodes = int(environ["SLURM_JOB_NUM_NODES"])
             if nnodes > 1:
                 # ensure that all pth_ddp_env_vars are consistent with slurm vars
-                for key, slurm_var in ddp_vars.items():
-                    pth_var = pth_ddp_env_vars[key]
-                    if key in ["RANK", "LOCAL_RANK", "WORLD_SIZE"]:
-                        pth_var = int(pth_var)
-                    if slurm_var is not None and slurm_var != pth_var:
+                for key in ["RANK", "LOCAL_RANK", "WORLD_SIZE"]:
+                    slurm_var = cast(int, ddp_vars[key])
+                    pth_var = int(cast(str, pth_ddp_env_vars[key]))
+                    if slurm_var != pth_var:
                         raise RuntimeError(
                             "Environment variable defined for PyTorch Distributed context is inconsistent with "
                             f"equivalent SLURM env variable. {key}: {pth_var} vs {slurm_var}\n"
@@ -533,8 +532,8 @@ if has_native_dist_support:
                 # ensure that PTH RANK >= SLURM_PROCID, PTH LOCAL_RANK >= SLURM_LOCALID,
                 # PTH WORLD_SIZE >= SLURM_NTASKS
                 for key in ["RANK", "LOCAL_RANK", "WORLD_SIZE"]:
-                    slurm_var = ddp_vars[key]
-                    pth_var = int(pth_ddp_env_vars[key])
+                    slurm_var = cast(int, ddp_vars[key])
+                    pth_var = int(cast(str, pth_ddp_env_vars[key]))
                     if pth_var < slurm_var:
                         raise RuntimeError(
                             "Environment variable defined for PyTorch Distributed context is "
@@ -545,8 +544,8 @@ if has_native_dist_support:
                         )
                     ddp_vars[key] = pth_var
             # set up MASTER_ADDR and MASTER_PORT from PTH
-            ddp_vars["MASTER_ADDR"] = pth_ddp_env_vars["MASTER_ADDR"]
-            ddp_vars["MASTER_PORT"] = int(pth_ddp_env_vars["MASTER_PORT"])
+            ddp_vars["MASTER_ADDR"] = cast(str, pth_ddp_env_vars["MASTER_ADDR"])
+            ddp_vars["MASTER_PORT"] = int(cast(str, pth_ddp_env_vars["MASTER_PORT"]))
         elif any(defined_pth_ddp_env_vars):
             # Let's warn user about PTH env variables that we could not taken into account
             warnings.warn(
@@ -556,7 +555,7 @@ if has_native_dist_support:
                 f"{[k for k, v in pth_ddp_env_vars.items() if v is None]},\n"
             )
 
-        if ddp_vars["MASTER_ADDR"] is None:
+        if isinstance(ddp_vars["MASTER_ADDR"], str) and len(ddp_vars["MASTER_ADDR"]) < 1:
             try:
                 # use scontrol to expand hostname list
                 hostnames = subprocess.check_output(["scontrol", "show", "hostnames", environ["SLURM_JOB_NODELIST"]])
@@ -564,9 +563,9 @@ if has_native_dist_support:
                 # expand hostname list as scontrol
                 hostnames = " ".join(_expand_hostlist(environ["SLURM_JOB_NODELIST"])).encode("utf-8")
             # master address is the first hostname of nodes list
-            ddp_vars["MASTER_ADDR"] = hostnames.split()[0].decode("utf-8")
+            ddp_vars["MASTER_ADDR"] = str(hostnames.split()[0].decode("utf-8"))
 
-        if ddp_vars["MASTER_PORT"] is None:
+        if isinstance(ddp_vars["MASTER_PORT"], int) and ddp_vars["MASTER_PORT"] < 0:
             # port should be the same over all process
             slurm_port = environ["SLURM_JOB_ID"]
             slurm_port = slurm_port[-4:]

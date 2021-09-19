@@ -125,10 +125,11 @@ def test__native_dist_model_create_from_backend_bad_slurm_config():
     os.environ["SLURM_LOCALID"] = "0"
     os.environ["SLURM_NTASKS"] = "1"
     os.environ["SLURM_JOB_NODELIST"] = "localhost"
+    os.environ["SLURM_JOB_NUM_NODES"] = "1"
 
     os.environ["RANK"] = "1"
 
-    with pytest.raises(RuntimeError, match=r"Defined env variables"):
+    with pytest.warns(UserWarning, match=r"We detected the following env variables"):
         _NativeDistModel.create_from_backend(backend="gloo", timeout=timedelta(seconds=10))
 
     del os.environ["SLURM_JOB_ID"]
