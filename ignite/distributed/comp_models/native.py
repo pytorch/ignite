@@ -210,15 +210,13 @@ if has_native_dist_support:
 
             self._env_backup = os.environ.copy()
 
-            # check whether all necessary env vars are set or not
-            env_vars = ["RANK", "LOCAL_RANK", "WORLD_SIZE"]
-            all_env_vars_defined = [k in os.environ for k in env_vars]
-
             if "SLURM_JOB_ID" in os.environ:
                 if rank is not None or world_size is not None:
                     raise ValueError("Arguments rank and world_size should not be specified with SLURM")
                 self._setup_env_in_slurm()
             else:
+                env_vars = ["RANK", "LOCAL_RANK", "WORLD_SIZE"]
+                all_env_vars_defined = [k in os.environ for k in env_vars]
                 # check if all necessary env vars are set
                 # if partially defined raise an error
                 if any(all_env_vars_defined) and not all(all_env_vars_defined):
@@ -504,12 +502,12 @@ if has_native_dist_support:
         # To cover case 2), let's check that defined RANK >= SLURM_PROCID, LOCAL_RANK >= SLURM_LOCALID,
         #   WORLD_SIZE >= SLURM_NTASKS, SLURM_JOB_NUM_NODES == 1
 
-        ddp_vars: Dict[str, Union[str, int]] = {
+        ddp_vars: Dict[str, Union[str, int, None]] = {
             "RANK": int(environ["SLURM_PROCID"]),
             "LOCAL_RANK": int(environ["SLURM_LOCALID"]),
             "WORLD_SIZE": int(environ["SLURM_NTASKS"]),
-            "MASTER_ADDR": "",
-            "MASTER_PORT": -1,
+            "MASTER_ADDR": None,
+            "MASTER_PORT": None,
         }
 
         pth_ddp_env_vars = {key: environ.get(key, None) for key in ddp_vars}
@@ -555,7 +553,7 @@ if has_native_dist_support:
                 f"{[k for k, v in pth_ddp_env_vars.items() if v is None]},\n"
             )
 
-        if isinstance(ddp_vars["MASTER_ADDR"], str) and len(ddp_vars["MASTER_ADDR"]) < 1:
+        if ddp_vars["MASTER_ADDR"] is None:
             try:
                 # use scontrol to expand hostname list
                 hostnames = subprocess.check_output(["scontrol", "show", "hostnames", environ["SLURM_JOB_NODELIST"]])
@@ -565,10 +563,10 @@ if has_native_dist_support:
             # master address is the first hostname of nodes list
             ddp_vars["MASTER_ADDR"] = str(hostnames.split()[0].decode("utf-8"))
 
-        if isinstance(ddp_vars["MASTER_PORT"], int) and ddp_vars["MASTER_PORT"] < 0:
+        if ddp_vars["MASTER_PORT"] is None:
             # port should be the same over all process
             slurm_port = environ["SLURM_JOB_ID"]
             slurm_port = slurm_port[-4:]
             ddp_vars["MASTER_PORT"] = int(slurm_port) + 15000
 
-        return ddp_vars
+        return cast(Dict[str, Union[str, int]], ddp_vars)
