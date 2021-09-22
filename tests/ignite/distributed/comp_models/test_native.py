@@ -17,9 +17,11 @@ else:
     "hostlist, expected",
     [
         ("localhost", "localhost"),
+        ("compute!:b24_[1-2].r", "compute!:b24_1.r,compute!:b24_2.r"),
         ("quartz[4-8]", "quartz4,quartz5,quartz6,quartz7,quartz8"),
         ("c1001a-[11,17]", "c1001a-11,c1001a-17"),
         ("c1001a-s[11,17]", "c1001a-s11,c1001a-s17"),
+        ("c1009a-s17,c1010a-s11", "c1009a-s17,c1010a-s11"),
         (
             "gpu-compute-on-demand-dy-g4dnxlarge-[1-4]",
             "gpu-compute-on-demand-dy-g4dnxlarge-1,"
@@ -44,10 +46,17 @@ else:
         ("machine2-[02-4]vm1", "machine2-02vm1,machine2-03vm1,machine2-04vm1"),
         (
             "machine2-[02-3]vm1, machine4-[0003-5].vml2",
-            "machine2-02vm1,machine2-03vm1," "machine4-0003.vml2," "machine4-0004.vml2," "machine4-0005.vml2",
+            "machine2-02vm1,machine2-03vm1,machine4-0003.vml2,machine4-0004.vml2,machine4-0005.vml2",
         ),
         ("machine2-[009-11]vm1", "machine2-009vm1,machine2-010vm1,machine2-011vm1"),
         ("node[1,2,3]", "node1,node2,node3"),
+        (
+            "compute-b24-[1-3,5-9], compute-b25-[1,4,8],compute-b25-[2-9,13]",
+            "compute-b24-1,compute-b24-2,compute-b24-3,compute-b24-5,compute-b24-6,"
+            "compute-b24-7,compute-b24-8,compute-b24-9,compute-b25-1,compute-b25-4,"
+            "compute-b25-8,compute-b25-2,compute-b25-3,compute-b25-4,compute-b25-5,"
+            "compute-b25-6,compute-b25-7,compute-b25-8,compute-b25-9,compute-b25-13",
+        ),
     ],
 )
 def test_expand_hostlist(hostlist, expected):
@@ -645,5 +654,16 @@ def test__setup_ddp_vars_from_slurm_env_bad_configs():
             "RANK": "1",
             "LOCAL_RANK": "1",
             "WORLD_SIZE": "2",
+        }
+        _setup_ddp_vars_from_slurm_env(environ)
+
+    with pytest.raises(RuntimeError, match=r"No hostname detected in SLURM_JOB_NODELIST by ignite"):
+        environ = {
+            "SLURM_PROCID": "1",
+            "SLURM_LOCALID": "1",
+            "SLURM_NTASKS": "4",
+            "SLURM_JOB_NUM_NODES": "1",
+            "SLURM_JOB_NODELIST": "[]",
+            "SLURM_JOB_ID": "12345",
         }
         _setup_ddp_vars_from_slurm_env(environ)
