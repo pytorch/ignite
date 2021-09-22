@@ -656,3 +656,14 @@ def test__setup_ddp_vars_from_slurm_env_bad_configs():
             "WORLD_SIZE": "2",
         }
         _setup_ddp_vars_from_slurm_env(environ)
+
+    with pytest.raises(RuntimeError, match=r"No hostname detected in SLURM_JOB_NODELIST by ignite"):
+        environ = {
+            "SLURM_PROCID": "1",
+            "SLURM_LOCALID": "1",
+            "SLURM_NTASKS": "4",
+            "SLURM_JOB_NUM_NODES": "1",
+            "SLURM_JOB_NODELIST": "[]",
+            "SLURM_JOB_ID": "12345",
+        }
+        _setup_ddp_vars_from_slurm_env(environ)

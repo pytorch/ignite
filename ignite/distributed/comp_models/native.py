@@ -563,14 +563,21 @@ if has_native_dist_support:
             )
 
         if ddp_vars["MASTER_ADDR"] is None:
+            nodelist = environ["SLURM_JOB_NODELIST"]
             try:
                 # use scontrol to expand hostname list
-                hostnames = subprocess.check_output(["scontrol", "show", "hostnames", environ["SLURM_JOB_NODELIST"]])
+                hostnames = subprocess.check_output(["scontrol", "show", "hostnames", nodelist])
+                method = "scontrol"
             except FileNotFoundError:
                 # expand hostname list as scontrol
-                hostnames = " ".join(_expand_hostlist(environ["SLURM_JOB_NODELIST"])).encode("utf-8")
+                hostnames = " ".join(_expand_hostlist(nodelist)).encode("utf-8")
+                method = "ignite"
+            # at least one hostname should be defined
+            hostnames = hostnames.split()
+            if len(hostnames) < 1:
+                raise RuntimeError(f"No hostname detected in SLURM_JOB_NODELIST by {method} (nodelist={nodelist})")
             # master address is the first hostname of nodes list
-            ddp_vars["MASTER_ADDR"] = str(hostnames.split()[0].decode("utf-8"))
+            ddp_vars["MASTER_ADDR"] = str(hostnames[0].decode("utf-8"))
 
         if ddp_vars["MASTER_PORT"] is None:
             # port should be the same over all process
