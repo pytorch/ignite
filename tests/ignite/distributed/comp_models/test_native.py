@@ -17,6 +17,7 @@ else:
     "hostlist, expected",
     [
         ("localhost", "localhost"),
+        ("compute!:b24_[1-2].r", "compute!:b24_1.r,compute!:b24_2.r"),
         ("quartz[4-8]", "quartz4,quartz5,quartz6,quartz7,quartz8"),
         ("c1001a-[11,17]", "c1001a-11,c1001a-17"),
         ("c1001a-s[11,17]", "c1001a-s11,c1001a-s17"),
@@ -45,7 +46,7 @@ else:
         ("machine2-[02-4]vm1", "machine2-02vm1,machine2-03vm1,machine2-04vm1"),
         (
             "machine2-[02-3]vm1, machine4-[0003-5].vml2",
-            "machine2-02vm1,machine2-03vm1," "machine4-0003.vml2," "machine4-0004.vml2," "machine4-0005.vml2",
+            "machine2-02vm1,machine2-03vm1,machine4-0003.vml2,machine4-0004.vml2,machine4-0005.vml2",
         ),
         ("machine2-[009-11]vm1", "machine2-009vm1,machine2-010vm1,machine2-011vm1"),
         ("node[1,2,3]", "node1,node2,node3"),

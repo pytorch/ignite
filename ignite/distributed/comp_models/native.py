@@ -438,7 +438,9 @@ if has_native_dist_support:
         """
         result_hostlist = []
 
-        nodelist_match = r"([-.\w]+\[[-.\w,]*\][-.\w]*|[-.\w]*),?"
+        nodelist_match = r"([^,\[\]]+\[[^\[\]]*\][^,\[\]]*|[^,\[\]]*),?"
+
+        nodelist = nodelist.replace(" ", "")
 
         for node in re.findall(nodelist_match, nodelist):
 
