@@ -436,16 +436,19 @@ if has_native_dist_support:
 
         .. versionadded:: 0.4.6
         """
-        node_list = nodelist.split(", ")
-
         result_hostlist = []
-        for node in node_list:
-            nodelist_match = r"(.+)\[((,?[0-9]+-?,?-?){0,})\](.*)?"
 
-            match = re.search(nodelist_match, node)
+        nodelist_match = r"([-.\w]+\[[-.\w,]*\][-.\w]*|[-.\w]*),?"
+
+        for node in re.findall(nodelist_match, nodelist):
+
+            node_match = r"(.+)\[((,?[0-9]+-?,?-?){0,})\](.*)?"
+
+            match = re.search(node_match, node)
 
             if match is None:
-                result_hostlist.append(node)
+                if node:
+                    result_hostlist.append(node)
             else:
                 # holds the ranges of nodes as a string
                 # now we can manipulate the string and cast it to a list of numbers
