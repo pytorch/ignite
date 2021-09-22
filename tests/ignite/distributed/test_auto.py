@@ -204,7 +204,7 @@ def test_auto_methods_gloo(distributed_context_single_node_gloo):
     _test_auto_model_optimizer(ws, device)
 
     if ws > 1 and device.type == "cpu":
-        error_type = AssertionError if LooseVersion(torch.__version__) <= LooseVersion("1.9.0") else ValueError
+        error_type = AssertionError if LooseVersion(torch.__version__) <= LooseVersion("1.9.1") else ValueError
         with pytest.raises(error_type, match=r"SyncBatchNorm layers only work with GPU modules"):
             model = nn.Sequential(nn.Linear(20, 100), nn.BatchNorm1d(100))
             auto_model(model, sync_bn=True)
