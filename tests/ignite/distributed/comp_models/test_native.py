@@ -54,8 +54,8 @@ else:
             "compute-b24-1,compute-b24-2,compute-b24-3,compute-b24-5,compute-b24-6,"
             "compute-b24-7,compute-b24-8,compute-b24-9,compute-b25-1,compute-b25-4,"
             "compute-b25-8,compute-b25-2,compute-b25-3,compute-b25-4,compute-b25-5,"
-            "compute-b25-6,compute-b25-7,compute-b25-8,compute-b25-9,compute-b25-13"
-        )
+            "compute-b25-6,compute-b25-7,compute-b25-8,compute-b25-9,compute-b25-13",
+        ),
     ],
 )
 def test_expand_hostlist(hostlist, expected):
