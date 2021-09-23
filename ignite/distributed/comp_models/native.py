@@ -431,21 +431,30 @@ if has_native_dist_support:
 
         Source : https://github.com/LLNL/py-hostlist/blob/master/hostlist/hostlist.py
 
+        .. note::
+            The host names can be composed by any character except the special ones `[`, `]`, `,`. Only one
+            sequence `[...]` is supported per hostname.
+
         Args:
             nodelist: Compressed hostlist string
 
         .. versionadded:: 0.4.6
         """
-        node_list = nodelist.split(", ")
-
         result_hostlist = []
-        for node in node_list:
-            nodelist_match = r"(.+)\[((,?[0-9]+-?,?-?){0,})\](.*)?"
 
-            match = re.search(nodelist_match, node)
+        nodelist_match = r"([^,\[\]]+\[[^\[\]]*\][^,\[\]]*|[^,\[\]]*),?"
+
+        nodelist = nodelist.replace(" ", "")
+
+        for node in re.findall(nodelist_match, nodelist):
+
+            node_match = r"(.+)\[((,?[0-9]+-?,?-?){0,})\](.*)?"
+
+            match = re.search(node_match, node)
 
             if match is None:
-                result_hostlist.append(node)
+                if node:
+                    result_hostlist.append(node)
             else:
                 # holds the ranges of nodes as a string
                 # now we can manipulate the string and cast it to a list of numbers
@@ -554,14 +563,21 @@ if has_native_dist_support:
             )
 
         if ddp_vars["MASTER_ADDR"] is None:
+            nodelist = environ["SLURM_JOB_NODELIST"]
             try:
                 # use scontrol to expand hostname list
-                hostnames = subprocess.check_output(["scontrol", "show", "hostnames", environ["SLURM_JOB_NODELIST"]])
+                hostnames = subprocess.check_output(["scontrol", "show", "hostnames", nodelist])
+                method = "scontrol"
             except FileNotFoundError:
                 # expand hostname list as scontrol
-                hostnames = " ".join(_expand_hostlist(environ["SLURM_JOB_NODELIST"])).encode("utf-8")
+                hostnames = " ".join(_expand_hostlist(nodelist)).encode("utf-8")
+                method = "ignite"
+            # at least one hostname should be defined
+            hostname_list = hostnames.split()
+            if len(hostname_list) < 1:
+                raise RuntimeError(f"No hostname detected in SLURM_JOB_NODELIST by {method} (nodelist={nodelist})")
             # master address is the first hostname of nodes list
-            ddp_vars["MASTER_ADDR"] = str(hostnames.split()[0].decode("utf-8"))
+            ddp_vars["MASTER_ADDR"] = str(hostname_list[0].decode("utf-8"))
 
         if ddp_vars["MASTER_PORT"] is None:
             # port should be the same over all process
