@@ -434,8 +434,10 @@ def set_local_rank(index: int) -> None:
     """Method to hint the local rank in case if torch native distributed context is created by user
     without using :meth:`~ignite.distributed.utils.initialize` or :meth:`~ignite.distributed.utils.spawn`.
 
-    Usage:
+    Args:
+        index: local rank or current process index
 
+    Examples:
         User set up torch native distributed process group
 
         .. code-block:: python
@@ -448,10 +450,6 @@ def set_local_rank(index: int) -> None:
                 # ...
                 dist.init_process_group(**dist_info)
                 # ...
-
-    Args:
-        index: local rank or current process index
-
     """
     from ignite.distributed.comp_models.base import ComputationModel
 
@@ -570,19 +568,20 @@ def one_rank_only(rank: int = 0, with_barrier: bool = False) -> Callable:
         rank: rank number of the handler (default: 0).
         with_barrier: synchronisation with a barrier (default: False).
 
-    .. code-block:: python
+    Examples:
+        .. code-block:: python
 
-        engine = ...
+            engine = ...
 
-        @engine.on(...)
-        @one_rank_only() # means @one_rank_only(rank=0)
-        def some_handler(_):
-            ...
+            @engine.on(...)
+            @one_rank_only() # means @one_rank_only(rank=0)
+            def some_handler(_):
+                ...
 
-        @engine.on(...)
-        @one_rank_only(rank=1)
-        def some_handler(_):
-            ...
+            @engine.on(...)
+            @one_rank_only(rank=1)
+            def some_handler(_):
+                ...
     """
 
     def _one_rank_only(func: Callable) -> Callable:
