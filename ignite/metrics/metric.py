@@ -143,10 +143,9 @@ class Metric(metaclass=ABCMeta):
     Attributes:
         required_output_keys: dictionary defines required keys to be found in ``engine.state.output`` if the
             latter is a dictionary. Default, ``("y_pred", "y")``. This is useful with custom metrics that can require
-            other arguments than predictions ``y_pred`` and targets ``y``. See notes below for an example.
+            other arguments than predictions ``y_pred`` and targets ``y``. See an example below.
 
-    Note:
-
+    Examples:
         Let's implement a custom metric that requires ``y_pred``, ``y`` and ``x`` as input for ``update`` function.
         In the example below we show how to setup standard metric like Accuracy and the custom metric using by an
         ``evaluator`` created with :meth:`~ignite.engine.create_supervised_evaluator` method.
@@ -280,14 +279,14 @@ class Metric(metaclass=ABCMeta):
         """Helper method to update metric's computation. It is automatically attached to the
         `engine` with :meth:`~ignite.metrics.metric.Metric.attach`.
 
+        Args:
+            engine: the engine to which the metric must be attached
+
         Note:
             ``engine.state.output`` is used to compute metric values.
             The majority of implemented metrics accepts the following formats for ``engine.state.output``:
             ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``. ``y_pred`` and ``y`` can be torch tensors or
             list of tensors/numbers if applicable.
-
-        Args:
-            engine: the engine to which the metric must be attached
 
         .. versionchanged:: 0.4.5
             ``y_pred`` and ``y`` can be torch tensors or list of tensors/numbers
@@ -378,27 +377,26 @@ class Metric(metaclass=ABCMeta):
                 :attr:`ignite.metrics.metric.EpochWise.usage_name` (default) or
                 :attr:`ignite.metrics.metric.BatchWise.usage_name`.
 
-        Example:
+        Examples:
+            .. code-block:: python
 
-        .. code-block:: python
+                metric = ...
+                metric.attach(engine, "mymetric")
 
-            metric = ...
-            metric.attach(engine, "mymetric")
+                assert "mymetric" in engine.run(data).metrics
 
-            assert "mymetric" in engine.run(data).metrics
+                assert metric.is_attached(engine)
 
-            assert metric.is_attached(engine)
+            Example with usage:
 
-        Example with usage:
+            .. code-block:: python
 
-        .. code-block:: python
+                metric = ...
+                metric.attach(engine, "mymetric", usage=BatchWise.usage_name)
 
-            metric = ...
-            metric.attach(engine, "mymetric", usage=BatchWise.usage_name)
+                assert "mymetric" in engine.run(data).metrics
 
-            assert "mymetric" in engine.run(data).metrics
-
-            assert metric.is_attached(engine, usage=BatchWise.usage_name)
+                assert metric.is_attached(engine, usage=BatchWise.usage_name)
         """
         usage = self._check_usage(usage)
         if not engine.has_event_handler(self.started, usage.STARTED):
@@ -419,29 +417,28 @@ class Metric(metaclass=ABCMeta):
             usage: the usage of the metric. Valid string values should be
                 'epoch_wise' (default) or 'batch_wise'.
 
-        Example:
+        Examples:
+            .. code-block:: python
 
-        .. code-block:: python
+                metric = ...
+                engine = ...
+                metric.detach(engine)
 
-            metric = ...
-            engine = ...
-            metric.detach(engine)
+                assert "mymetric" not in engine.run(data).metrics
 
-            assert "mymetric" not in engine.run(data).metrics
+                assert not metric.is_attached(engine)
 
-            assert not metric.is_attached(engine)
+            Example with usage:
 
-        Example with usage:
+            .. code-block:: python
 
-        .. code-block:: python
+                metric = ...
+                engine = ...
+                metric.detach(engine, usage="batch_wise")
 
-            metric = ...
-            engine = ...
-            metric.detach(engine, usage="batch_wise")
+                assert "mymetric" not in engine.run(data).metrics
 
-            assert "mymetric" not in engine.run(data).metrics
-
-            assert not metric.is_attached(engine, usage="batch_wise")
+                assert not metric.is_attached(engine, usage="batch_wise")
         """
         usage = self._check_usage(usage)
         if engine.has_event_handler(self.completed, usage.COMPLETED):

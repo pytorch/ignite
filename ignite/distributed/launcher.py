@@ -25,8 +25,31 @@ class Parallel:
     2) Only initialize a processing group given the ``backend``
     (useful with tools like `torch.distributed.launch`_, `horovodrun`_, etc).
 
-    Examples:
+    Args:
+        backend: backend to use: `nccl`, `gloo`, `xla-tpu`, `horovod`. If None, no distributed
+            configuration.
+        nproc_per_node: optional argument, number of processes per
+            node to specify. If not None, :meth:`~ignite.distributed.launcher.Parallel.run`
+            will spawn ``nproc_per_node`` processes that run input function with its arguments.
+        nnodes: optional argument, number of nodes participating in distributed configuration.
+            If not None, :meth:`~ignite.distributed.launcher.Parallel.run` will spawn ``nproc_per_node``
+            processes that run input function with its arguments. Total world size is `nproc_per_node * nnodes`.
+            This option is only supported by native torch distributed module. For other modules, please setup
+            ``spawn_kwargs`` with backend specific arguments.
+        node_rank: optional argument, current machine index. Mandatory argument if ``nnodes`` is
+            specified and larger than one.
+            This option is only supported by native torch distributed module. For other modules, please setup
+            ``spawn_kwargs`` with backend specific arguments.
+        master_addr: optional argument, master node TCP/IP address for torch native backends
+            (`nccl`, `gloo`). Mandatory argument if ``nnodes`` is specified and larger than one.
+        master_port: optional argument, master node port for torch native backends
+            (`nccl`, `gloo`). Mandatory argument if ``master_addr`` is specified.
+        init_method: optional argument to specify processing group initialization method for torch native
+            backends (`nccl`, `gloo`). Default, "env://".
+            See more info: `dist.init_process_group`_.
+        spawn_kwargs: kwargs to ``idist.spawn`` function.
 
+    Examples:
         1) Single node or Multi-node, Multi-GPU training launched with `torch.distributed.launch`_ or `horovodrun`_
         tools
 
@@ -172,31 +195,6 @@ class Parallel:
 
     .. _torch.distributed.launch: https://pytorch.org/docs/stable/distributed.html#launch-utility
     .. _horovodrun: https://horovod.readthedocs.io/en/latest/api.html#module-horovod.run
-
-    Args:
-        backend: backend to use: `nccl`, `gloo`, `xla-tpu`, `horovod`. If None, no distributed
-            configuration.
-        nproc_per_node: optional argument, number of processes per
-            node to specify. If not None, :meth:`~ignite.distributed.launcher.Parallel.run`
-            will spawn ``nproc_per_node`` processes that run input function with its arguments.
-        nnodes: optional argument, number of nodes participating in distributed configuration.
-            If not None, :meth:`~ignite.distributed.launcher.Parallel.run` will spawn ``nproc_per_node``
-            processes that run input function with its arguments. Total world size is `nproc_per_node * nnodes`.
-            This option is only supported by native torch distributed module. For other modules, please setup
-            ``spawn_kwargs`` with backend specific arguments.
-        node_rank: optional argument, current machine index. Mandatory argument if ``nnodes`` is
-            specified and larger than one.
-            This option is only supported by native torch distributed module. For other modules, please setup
-            ``spawn_kwargs`` with backend specific arguments.
-        master_addr: optional argument, master node TCP/IP address for torch native backends
-            (`nccl`, `gloo`). Mandatory argument if ``nnodes`` is specified and larger than one.
-        master_port: optional argument, master node port for torch native backends
-            (`nccl`, `gloo`). Mandatory argument if ``master_addr`` is specified.
-        init_method: optional argument to specify processing group initialization method for torch native
-            backends (`nccl`, `gloo`). Default, "env://".
-            See more info: `dist.init_process_group`_.
-        spawn_kwargs: kwargs to ``idist.spawn`` function.
-
     .. _dist.init_process_group: https://pytorch.org/docs/stable/distributed.html#torch.distributed.init_process_group
     .. versionchanged:: 0.4.2
         ``backend`` now accepts `horovod` distributed framework.
@@ -282,23 +280,22 @@ class Parallel:
     def run(self, func: Callable, *args: Any, **kwargs: Any) -> None:
         """Execute ``func`` with provided arguments in distributed context.
 
-        Example
-
-        .. code-block:: python
-
-            def training(local_rank, config, **kwargs):
-                # ...
-                print(idist.get_rank(), ": run with config:", config, "- backend=", idist.backend())
-                # ...
-
-            with idist.Parallel(backend=backend) as parallel:
-                parallel.run(training, config, a=1, b=2)
-
         Args:
             func: function to execute. First argument of the function should be `local_rank` - local process
                 index.
             args: positional arguments of ``func`` (without `local_rank`).
             kwargs: keyword arguments of ``func``.
+
+        Examples:
+            .. code-block:: python
+    
+                def training(local_rank, config, **kwargs):
+                    # ...
+                    print(idist.get_rank(), ": run with config:", config, "- backend=", idist.backend())
+                    # ...
+    
+                with idist.Parallel(backend=backend) as parallel:
+                    parallel.run(training, config, a=1, b=2)
 
         """
         if self._spawn_params is not None and self.backend is not None:

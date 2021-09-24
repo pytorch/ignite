@@ -94,8 +94,7 @@ class FID(_BaseInceptionMetric):
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
 
-    Example:
-
+    Examples:
         .. code-block:: python
 
             import torch
