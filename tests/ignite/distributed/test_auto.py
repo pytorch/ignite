@@ -1,5 +1,4 @@
 import os
-from distutils.version import LooseVersion
 
 import pytest
 import torch
