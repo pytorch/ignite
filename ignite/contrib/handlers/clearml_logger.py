@@ -49,15 +49,10 @@ class ClearMLLogger(BaseLogger):
         clearml-init
 
     Args:
-        project_name: The name of the project in which the experiment will be created. If the project
-            does not exist, it is created. If ``project_name`` is ``None``, the repository name is used. (Optional)
-        task_name: The name of Task (experiment). If ``task_name`` is ``None``, the Python experiment
-            script's file name is used. (Optional)
-        task_type: Optional. The task type. Valid values are:
-            - ``TaskTypes.training`` (Default)
-            - ``TaskTypes.train``
-            - ``TaskTypes.testing``
-            - ``TaskTypes.inference``
+        kwargs: Keyword arguments accepted from
+            `clearml.Task
+            <https://clear.ml/docs/latest/docs/references/sdk/task#taskinit>`_.
+            All arguments are optional.
 
     Examples:
         .. code-block:: python
@@ -118,7 +113,7 @@ class ClearMLLogger(BaseLogger):
 
     """
 
-    def __init__(self, *_: Any, **kwargs: Any):
+    def __init__(self, **kwargs: Any):
         try:
             from clearml import Task
             from clearml.binding.frameworks.tensorflow_bind import WeightsGradientHistHelper
