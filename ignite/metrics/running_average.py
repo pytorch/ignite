@@ -25,22 +25,20 @@ class RunningAverage(Metric):
             use the ``src``'s device. Otherwise, defaults to CPU. Only applicable when the computed value
             from the metric is a tensor.
 
-
     Examples:
+        .. code-block:: python
 
-    .. code-block:: python
+            alpha = 0.98
+            acc_metric = RunningAverage(Accuracy(output_transform=lambda x: [x[1], x[2]]), alpha=alpha)
+            acc_metric.attach(trainer, 'running_avg_accuracy')
 
-        alpha = 0.98
-        acc_metric = RunningAverage(Accuracy(output_transform=lambda x: [x[1], x[2]]), alpha=alpha)
-        acc_metric.attach(trainer, 'running_avg_accuracy')
+            avg_output = RunningAverage(output_transform=lambda x: x[0], alpha=alpha)
+            avg_output.attach(trainer, 'running_avg_loss')
 
-        avg_output = RunningAverage(output_transform=lambda x: x[0], alpha=alpha)
-        avg_output.attach(trainer, 'running_avg_loss')
-
-        @trainer.on(Events.ITERATION_COMPLETED)
-        def log_running_avg_metrics(engine):
-            print("running avg accuracy:", engine.state.metrics['running_avg_accuracy'])
-            print("running avg loss:", engine.state.metrics['running_avg_loss'])
+            @trainer.on(Events.ITERATION_COMPLETED)
+            def log_running_avg_metrics(engine):
+                print("running avg accuracy:", engine.state.metrics['running_avg_accuracy'])
+                print("running avg loss:", engine.state.metrics['running_avg_loss'])
 
     """
 

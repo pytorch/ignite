@@ -105,18 +105,7 @@ class Accuracy(_BaseClassification):
     - `y` and `y_pred` must be in the following shape of (batch_size, num_categories, ...) and
       num_categories must be greater than 1 for multilabel cases.
 
-    In binary and multilabel cases, the elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of
-    predictions can be done as below:
-
-    .. code-block:: python
-
-        def thresholded_output_transform(output):
-            y_pred, y = output
-            y_pred = torch.round(y_pred)
-            return y_pred, y
-
-        binary_accuracy = Accuracy(thresholded_output_transform)
-
+    In binary and multilabel cases, the elements of `y` and `y_pred` should have 0 or 1 values.
 
     Args:
         output_transform: a callable that is used to transform the
@@ -128,6 +117,17 @@ class Accuracy(_BaseClassification):
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
 
+    Examples:
+        Thresholding of predictions can be done as below:
+
+        .. code-block:: python
+
+            def thresholded_output_transform(output):
+                y_pred, y = output
+                y_pred = torch.round(y_pred)
+                return y_pred, y
+
+            binary_accuracy = Accuracy(thresholded_output_transform)
     """
 
     def __init__(
