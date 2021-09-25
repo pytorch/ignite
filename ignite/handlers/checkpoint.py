@@ -183,7 +183,6 @@ class Checkpoint(Serializable):
             trainer.add_event_handler(Events.ITERATION_COMPLETED(every=1000), handler)
 
     Examples:
-
         Attach the handler to make checkpoints during training:
 
         .. code-block:: python
@@ -455,8 +454,7 @@ class Checkpoint(Serializable):
                 filename pattern: ``...{name}_{global_step}...``.
                 At least one of ``with_score`` and ``with_global_step`` should be True.
 
-        Example:
-
+        Examples:
             .. code-block:: python
 
                 from ignite.handlers import Checkpoint
@@ -499,8 +497,15 @@ class Checkpoint(Serializable):
     def load_objects(to_load: Mapping, checkpoint: Mapping, **kwargs: Any) -> None:
         """Helper method to apply ``load_state_dict`` on the objects from ``to_load`` using states from ``checkpoint``.
 
-        Exemples:
+        Args:
+            to_load: a dictionary with objects, e.g. `{"model": model, "optimizer": optimizer, ...}`
+            checkpoint: a dictionary with state_dicts to load, e.g. `{"model": model_state_dict,
+                "optimizer": opt_state_dict}`. If `to_load` contains a single key, then checkpoint can contain directly
+                corresponding state_dict.
+            kwargs: Keyword arguments accepted for `nn.Module.load_state_dict()`. Passing `strict=False` enables
+                the user to load part of the pretrained model (useful for example, in Transfer Learning)
 
+        Examples:
         .. code-block:: python
 
             import torch
@@ -522,14 +527,6 @@ class Checkpoint(Serializable):
         Note:
             If ``to_load`` contains objects of type torch `DistributedDataParallel`_ or
             `DataParallel`_, method ``load_state_dict`` will applied to their internal wrapped model (``obj.module``).
-
-        Args:
-            to_load: a dictionary with objects, e.g. `{"model": model, "optimizer": optimizer, ...}`
-            checkpoint: a dictionary with state_dicts to load, e.g. `{"model": model_state_dict,
-                "optimizer": opt_state_dict}`. If `to_load` contains a single key, then checkpoint can contain directly
-                corresponding state_dict.
-            kwargs: Keyword arguments accepted for `nn.Module.load_state_dict()`. Passing `strict=False` enables
-                the user to load part of the pretrained model (useful for example, in Transfer Learning)
 
         .. _DistributedDataParallel: https://pytorch.org/docs/stable/generated/
             torch.nn.parallel.DistributedDataParallel.html
@@ -589,31 +586,30 @@ class Checkpoint(Serializable):
             score_sign: sign of the score: 1.0 or -1.0. For error-like metrics, e.g. smaller is better,
                 a negative score sign should be used (objects with larger score are retained). Default, 1.0.
 
-        Exemples:
+        Examples:
+            .. code-block:: python
 
-        .. code-block:: python
+                from ignite.handlers import Checkpoint
 
-            from ignite.handlers import Checkpoint
+                best_acc_score = Checkpoint.get_default_score_fn("accuracy")
 
-            best_acc_score = Checkpoint.get_default_score_fn("accuracy")
+                best_model_handler = Checkpoint(
+                    to_save, save_handler, score_name="val_accuracy", score_function=best_acc_score
+                )
+                evaluator.add_event_handler(Events.COMPLETED, best_model_handler)
 
-            best_model_handler = Checkpoint(
-                to_save, save_handler, score_name="val_accuracy", score_function=best_acc_score
-            )
-            evaluator.add_event_handler(Events.COMPLETED, best_model_handler)
+            Usage with error-like metric:
 
-        Usage with error-like metric:
+            .. code-block:: python
 
-        .. code-block:: python
+                from ignite.handlers import Checkpoint
 
-            from ignite.handlers import Checkpoint
+                neg_loss_score = Checkpoint.get_default_score_fn("loss", -1.0)
 
-            neg_loss_score = Checkpoint.get_default_score_fn("loss", -1.0)
-
-            best_model_handler = Checkpoint(
-                to_save, save_handler, score_name="val_neg_loss", score_function=neg_loss_score
-            )
-            evaluator.add_event_handler(Events.COMPLETED, best_model_handler)
+                best_model_handler = Checkpoint(
+                    to_save, save_handler, score_name="val_neg_loss", score_function=neg_loss_score
+                )
+                evaluator.add_event_handler(Events.COMPLETED, best_model_handler)
 
         .. versionadded:: 0.4.3
         """
@@ -771,19 +767,21 @@ class ModelCheckpoint(Checkpoint):
         Accept ``kwargs`` for `torch.save` or `xm.save`
 
     Examples:
-        >>> import os
-        >>> from ignite.engine import Engine, Events
-        >>> from ignite.handlers import ModelCheckpoint
-        >>> from torch import nn
-        >>> trainer = Engine(lambda engine, batch: None)
-        >>> handler = ModelCheckpoint('/tmp/models', 'myprefix', n_saved=2, create_dir=True)
-        >>> model = nn.Linear(3, 3)
-        >>> trainer.add_event_handler(Events.EPOCH_COMPLETED(every=2), handler, {'mymodel': model})
-        >>> trainer.run([0, 1, 2, 3, 4], max_epochs=6)
-        >>> os.listdir('/tmp/models')
-        ['myprefix_mymodel_20.pt', 'myprefix_mymodel_30.pt']
-        >>> handler.last_checkpoint
-        ['/tmp/models/myprefix_mymodel_30.pt']
+        .. code-block:: python
+
+            import os
+            from ignite.engine import Engine, Events
+            from ignite.handlers import ModelCheckpoint
+            from torch import nn
+            trainer = Engine(lambda engine, batch: None)
+            handler = ModelCheckpoint('/tmp/models', 'myprefix', n_saved=2, create_dir=True)
+            model = nn.Linear(3, 3)
+            trainer.add_event_handler(Events.EPOCH_COMPLETED(every=2), handler, {'mymodel': model})
+            trainer.run([0, 1, 2, 3, 4], max_epochs=6)
+            os.listdir('/tmp/models')
+            # ['myprefix_mymodel_20.pt', 'myprefix_mymodel_30.pt']
+            handler.last_checkpoint
+            # ['/tmp/models/myprefix_mymodel_30.pt']
     """
 
     def __init__(
