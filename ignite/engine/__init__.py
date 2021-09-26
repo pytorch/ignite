@@ -421,6 +421,11 @@ def create_supervised_trainer(
     on_tpu = "xla" in device_type if device_type is not None else False
     mode, _scaler = _check_arg(on_tpu, amp_mode, scaler)
 
+    if gradient_accumulation_steps == 0:
+        raise ValueError(
+            "Gradient Accumulation steps can't be 0, if you don't want to use gradient accumulation set it to 1 (default)"
+        )
+
     if mode == "amp":
         _update = supervised_training_step_amp(
             model,
