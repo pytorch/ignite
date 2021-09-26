@@ -193,7 +193,7 @@ def _test_gradient_accumulation(
     optimizer = SGD(model.parameters(), 0.1)
 
     if trace:
-        example_input = torch.randn(1, 1)
+        example_input = torch.randn(1)
         model = torch.jit.trace(model, example_input)
 
     if amp_mode == "apex" and model_device == trainer_device == "cuda":
@@ -408,6 +408,7 @@ def test_create_supervised_trainer_with_cpu():
 def test_create_supervised_trainer_traced_with_cpu():
     _test_create_supervised_trainer(trainer_device="cpu", trace=True)
     _test_create_mocked_supervised_trainer(trainer_device="cpu", trace=True)
+    _test_gradient_accumulation(trainer_device="cpu", trace=True)
 
 
 @pytest.mark.skipif(find_spec("apex"), reason="Skip if APEX")
