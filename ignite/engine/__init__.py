@@ -423,7 +423,8 @@ def create_supervised_trainer(
 
     if gradient_accumulation_steps == 0:
         raise ValueError(
-            "Gradient Accumulation steps can't be 0, if you don't want to use gradient accumulation set it to 1 (default)"
+            "Gradient Accumulation steps can't be 0, if you don't want to use "
+            "gradient accumulation set it to 1 (default)"
         )
 
     if mode == "amp":
