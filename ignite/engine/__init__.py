@@ -85,7 +85,7 @@ def supervised_training_step(
         trainer = Engine(update_fn)
 
     .. versionadded:: 0.4.5
-    .. versionadded:: 0.5.0
+    .. versionchanged:: 0.5.0
         Added Gradient Accumulation.
     """
 
@@ -93,7 +93,9 @@ def supervised_training_step(
         model.train()
         x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
         y_pred = model(x)
-        loss = loss_fn(y_pred, y) / gradient_accumulation_steps
+        loss = loss_fn(y_pred, y)
+        if gradient_accumulation_steps > 1:
+            loss = loss / gradient_accumulation_steps
         loss.backward()
         if engine.state.iteration % gradient_accumulation_steps == 0:
             optimizer.step()
@@ -149,7 +151,7 @@ def supervised_training_step_amp(
         trainer = Engine(update_fn)
 
     .. versionadded:: 0.4.5
-    .. versionadded:: 0.5.0
+    .. versionchanged:: 0.5.0
         Added Gradient Accumulation.
     """
 
@@ -163,7 +165,9 @@ def supervised_training_step_amp(
         x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
         with autocast(enabled=True):
             y_pred = model(x)
-            loss = loss_fn(y_pred, y) / gradient_accumulation_steps
+            loss = loss_fn(y_pred, y)
+            if gradient_accumulation_steps > 1:
+                loss = loss / gradient_accumulation_steps
         if scaler:
             scaler.scale(loss).backward()
             if engine.state.iteration % gradient_accumulation_steps == 0:
@@ -223,7 +227,7 @@ def supervised_training_step_apex(
         trainer = Engine(update_fn)
 
     .. versionadded:: 0.4.5
-    .. versionadded:: 0.5.0
+    .. versionchanged:: 0.5.0
         Added Gradient Accumulation.
     """
 
@@ -236,7 +240,9 @@ def supervised_training_step_apex(
         model.train()
         x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
         y_pred = model(x)
-        loss = loss_fn(y_pred, y) / gradient_accumulation_steps
+        loss = loss_fn(y_pred, y)
+        if gradient_accumulation_steps > 1:
+            loss = loss / gradient_accumulation_steps
         with apex_amp.scale_loss(loss, optimizer) as scaled_loss:
             scaled_loss.backward()
         if engine.state.iteration % gradient_accumulation_steps == 0:
@@ -290,7 +296,7 @@ def supervised_training_step_tpu(
         trainer = Engine(update_fn)
 
     .. versionadded:: 0.4.5
-    .. versionadded:: 0.5.0
+    .. versionchanged:: 0.5.0
        Added Gradient Accumulation argument for all supervised training methods.
     """
     try:
@@ -302,7 +308,9 @@ def supervised_training_step_tpu(
         model.train()
         x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
         y_pred = model(x)
-        loss = loss_fn(y_pred, y) / gradient_accumulation_steps
+        loss = loss_fn(y_pred, y)
+        if gradient_accumulation_steps > 1:
+            loss = loss / gradient_accumulation_steps
         loss.backward()
         if engine.state.iteration % gradient_accumulation_steps == 0:
             xm.optimizer_step(optimizer, barrier=True)
@@ -413,7 +421,7 @@ def create_supervised_trainer(
         - Added ``amp_mode`` argument for automatic mixed precision.
         - Added ``scaler`` argument for gradient scaling.
 
-    .. versionadded:: 0.5.0
+    .. versionchanged:: 0.5.0
         Added Gradient Accumulation argument for all supervised training methods.
     """
 
