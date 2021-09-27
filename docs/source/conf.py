@@ -57,6 +57,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     "sphinx.ext.autosectionlabel",
+    "sphinx_copybutton",
 ]
 
 # katex options
@@ -123,7 +124,7 @@ html_favicon = "_templates/_static/img/ignite_logomark.svg"
 html_static_path = ["_static", "_templates/_static"]
 
 html_context = {
-    "css_files": [
+    "extra_css_files": [
         # 'https://fonts.googleapis.com/css?family=Lato',
         # '_static/css/pytorch_theme.css'
         "_static/css/ignite_theme.css",

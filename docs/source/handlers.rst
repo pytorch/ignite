@@ -17,6 +17,7 @@ Complete list of handlers
     early_stopping.EarlyStopping
     lr_finder.FastaiLRFinder
     terminate_on_nan.TerminateOnNan
+    TimeLimit
     time_profilers.BasicTimeProfiler
     time_profilers.HandlersTimeProfiler
     timing.Timer

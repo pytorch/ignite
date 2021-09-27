@@ -44,7 +44,7 @@ def compute_ngram_scores(candidate: Sequence[Any], reference: Sequence[Any], n: 
     Returns:
         The score containing the number of ngram co-occurences
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.5
     """
 
     # ngrams of the candidate
@@ -73,7 +73,7 @@ def compute_lcs_scores(candidate: Sequence[Any], reference: Sequence[Any]) -> Sc
     Returns:
         The score containing the length of longest common subsequence
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.5
     """
 
     # lcs of candidate and reference
@@ -213,9 +213,9 @@ class RougeN(_BaseRouge):
 
     .. code-block:: python
 
-        from ignite.metrics.rouge import RougeN
+        from ignite.metrics import RougeN
 
-        m = RougeN(ngrams=2, multiref="best")
+        m = RougeN(ngram=2, multiref="best")
 
         candidate = "the cat is not there".split()
         references = [
@@ -228,7 +228,7 @@ class RougeN(_BaseRouge):
         m.compute()
         >>> {'Rouge-2-P': 0.5, 'Rouge-2-R': 0.4, 'Rouge-2-F': 0.4}
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.5
     """
 
     def __init__(
@@ -280,7 +280,7 @@ class RougeL(_BaseRouge):
 
     .. code-block:: python
 
-        from ignite.metrics.rouge import RougeL
+        from ignite.metrics import RougeL
 
         m = RougeL(multiref="best")
 
@@ -295,7 +295,7 @@ class RougeL(_BaseRouge):
        m.compute()
        >>> {'Rouge-L-P': 0.6, 'Rouge-L-R': 0.5, 'Rouge-L-F': 0.5}
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.5
     """
 
     def __init__(
@@ -344,7 +344,7 @@ class Rouge(Metric):
 
         from ignite.metrics import Rouge
 
-        m = Rouge(variants=["L", "2"], multiref="best")
+        m = Rouge(variants=["L", 2], multiref="best")
 
         candidate = "the cat is not there".split()
         references = [
@@ -357,7 +357,7 @@ class Rouge(Metric):
         m.compute()
         >>> {'Rouge-L-P': 0.6, 'Rouge-L-R': 0.5, 'Rouge-L-F': 0.5, 'Rouge-2-P': 0.5, 'Rouge-2-R': 0.4, 'Rouge-2-F': 0.4}
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.5
     """
 
     def __init__(

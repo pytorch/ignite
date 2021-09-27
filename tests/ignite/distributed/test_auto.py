@@ -1,5 +1,4 @@
 import os
-from distutils.version import LooseVersion
 
 import pytest
 import torch
@@ -172,6 +171,13 @@ def _test_auto_model_optimizer(ws, device):
     else:
         assert isinstance(optimizer, optim.SGD) and not hasattr(optimizer, "wrapped_optimizer")
 
+    if idist.has_hvd_support and bnd in ("horovod",):
+        backward_passes_per_step = 2
+        optimizer = optim.SGD(model.parameters(), lr=0.01)
+        optimizer = auto_optim(optimizer, backward_passes_per_step=backward_passes_per_step)
+        assert isinstance(optimizer, optim.SGD) and hasattr(optimizer, "backward_passes_per_step")
+        assert optimizer.backward_passes_per_step == backward_passes_per_step
+
 
 def test_auto_methods_no_dist():
 
@@ -197,7 +203,7 @@ def test_auto_methods_gloo(distributed_context_single_node_gloo):
     _test_auto_model_optimizer(ws, device)
 
     if ws > 1 and device.type == "cpu":
-        error_type = AssertionError if LooseVersion(torch.__version__) <= LooseVersion("1.9.0") else ValueError
+        error_type = AssertionError if "dev" not in torch.__version__ else ValueError
         with pytest.raises(error_type, match=r"SyncBatchNorm layers only work with GPU modules"):
             model = nn.Sequential(nn.Linear(20, 100), nn.BatchNorm1d(100))
             auto_model(model, sync_bn=True)

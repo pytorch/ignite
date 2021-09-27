@@ -111,13 +111,6 @@ class Parallel:
             with idist.Parallel(backend=backend, init_method='tcp://10.1.1.20:23456', nproc_per_node=4) as parallel:
                 parallel.run(training, config, a=1, b=2)
 
-        Running the code from Jupyter
-
-        .. code-block:: python
-
-            with idist.Parallel(backend=backend, nproc_per_node=4, start_method="fork") as parallel:
-                parallel.run(training, config, a=1, b=2)
-
 
         3) Single node, Multi-TPU training launched with `python`
 
@@ -208,7 +201,7 @@ class Parallel:
     .. versionchanged:: 0.4.2
         ``backend`` now accepts `horovod` distributed framework.
 
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.5
         ``init_method`` added.
 
     """

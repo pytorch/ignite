@@ -556,7 +556,7 @@ def sync_all_reduce(*attrs: Any) -> Callable:
     Args:
         attrs: attribute names of decorated class
 
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.5
         - Ability to handle different reduction operations (SUM, MAX, MIN, PRODUCT).
     """
 
