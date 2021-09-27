@@ -288,12 +288,12 @@ class Parallel:
 
         Examples:
             .. code-block:: python
-    
+
                 def training(local_rank, config, **kwargs):
                     # ...
                     print(idist.get_rank(), ": run with config:", config, "- backend=", idist.backend())
                     # ...
-    
+
                 with idist.Parallel(backend=backend) as parallel:
                     parallel.run(training, config, a=1, b=2)
 
