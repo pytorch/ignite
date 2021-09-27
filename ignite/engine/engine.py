@@ -212,7 +212,8 @@ class Engine(Serializable):
                 engine = Engine(process_function)
                 engine.register_events(*TBPTT_Events, event_to_attr=TBPTT_event_to_attr)
                 engine.run(data)
-                # engine.state contains an attribute time_iteration, which can be accessed using engine.state.time_iteration
+                # engine.state contains an attribute time_iteration, which can be accessed
+                # using engine.state.time_iteration
         """
         if not (event_to_attr is None or isinstance(event_to_attr, dict)):
             raise ValueError(f"Expected event_to_attr to be dictionary. Got {type(event_to_attr)}.")
