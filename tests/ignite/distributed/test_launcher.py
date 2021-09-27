@@ -87,7 +87,7 @@ def _test_check_idist_parallel_torch_launch(init_method, fp, backend, nprocs):
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip because test uses torch launch")
-@pytest.mark.parametrize("init_method", [None, "tcp://0.0.0.0:22334", "FILE"])
+@pytest.mark.parametrize("init_method", [None, "tcp://0.0.0.0:29500", "FILE"])
 def test_check_idist_parallel_torch_launch_n_procs_gloo(init_method, dirname, exec_filepath):
     if init_method == "FILE":
         init_method = f"file://{dirname}/shared"
@@ -102,7 +102,7 @@ def test_check_idist_parallel_torch_launch_n_procs_gloo(init_method, dirname, ex
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip because test uses torch launch")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-@pytest.mark.parametrize("init_method", [None, "tcp://0.0.0.0:22334", "FILE"])
+@pytest.mark.parametrize("init_method", [None, "tcp://0.0.0.0:29500", "FILE"])
 def test_check_idist_parallel_torch_launch_n_procs_nccl(init_method, dirname, exec_filepath):
     if init_method == "FILE":
         init_method = f"file://{dirname}/shared"
@@ -198,7 +198,7 @@ def _test_func(index, ws, device, backend, true_init_method):
 @pytest.mark.distributed
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.parametrize("init_method", ["env://", "tcp://0.0.0.0:22334", "FILE"])
+@pytest.mark.parametrize("init_method", ["env://", "tcp://0.0.0.0:29500", "FILE"])
 @pytest.mark.parametrize(
     "backend",
     ["gloo", pytest.param("nccl", marks=pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU"))],
@@ -216,7 +216,7 @@ def test_idist_parallel_spawn_n_procs_native(init_method, backend, dirname):
 @pytest.mark.distributed
 @pytest.mark.skipif("WORLD_SIZE" not in os.environ, reason="Skip if not launched as multiproc")
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.parametrize("init_method", ["env://", "tcp://0.0.0.0:22334", "FILE"])
+@pytest.mark.parametrize("init_method", ["env://", "tcp://0.0.0.0:29500", "FILE"])
 @pytest.mark.parametrize(
     "backend",
     ["gloo", pytest.param("nccl", marks=pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU"))],

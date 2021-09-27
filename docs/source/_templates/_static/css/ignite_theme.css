@@ -209,3 +209,14 @@ so make sure not to go above that value */
   }
 }
 /* docsearch end */
+
+article.pytorch-article p.rubric {
+  font-weight: bold;
+  font-size: 1.25rem;
+  margin: 15px 0 10px 0;
+}
+
+.highlight pre {
+  border: 1px solid rgba(0,0,0,0.15);
+  border-radius: 4px;
+}
