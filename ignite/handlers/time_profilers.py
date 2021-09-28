@@ -14,24 +14,23 @@ class BasicTimeProfiler:
     events, data loading and data processing times.
 
     Examples:
+        .. code-block:: python
 
-    .. code-block:: python
+            from ignite.handlers import BasicTimeProfiler
 
-        from ignite.handlers import BasicTimeProfiler
+            trainer = Engine(train_updater)
 
-        trainer = Engine(train_updater)
+            # Create an object of the profiler and attach an engine to it
+            profiler = BasicTimeProfiler()
+            profiler.attach(trainer)
 
-        # Create an object of the profiler and attach an engine to it
-        profiler = BasicTimeProfiler()
-        profiler.attach(trainer)
+            @trainer.on(Events.EPOCH_COMPLETED)
+            def log_intermediate_results():
+                profiler.print_results(profiler.get_results())
 
-        @trainer.on(Events.EPOCH_COMPLETED)
-        def log_intermediate_results():
-            profiler.print_results(profiler.get_results())
+            trainer.run(dataloader, max_epochs=3)
 
-        trainer.run(dataloader, max_epochs=3)
-
-        profiler.write_results('path_to_dir/time_profiling.csv')
+            profiler.write_results('path_to_dir/time_profiling.csv')
 
     .. versionadded:: 0.4.6
     """
@@ -281,14 +280,13 @@ class BasicTimeProfiler:
 
             profiler.write_results('path_to_dir/awesome_filename.csv')
 
-        Example output:
+        Examples:
+            .. code-block:: text
 
-        .. code-block:: text
-
-            -----------------------------------------------------------------
-            epoch iteration processing_stats dataflow_stats Event_STARTED ...
-            1.0     1.0        0.00003         0.252387        0.125676
-            1.0     2.0        0.00029         0.252342        0.125123
+                -----------------------------------------------------------------
+                epoch iteration processing_stats dataflow_stats Event_STARTED ...
+                1.0     1.0        0.00003         0.252387        0.125676
+                1.0     2.0        0.00029         0.252342        0.125123
 
         """
         try:
@@ -362,41 +360,40 @@ class BasicTimeProfiler:
 
             profiler.print_results(results)
 
-        Example output:
+        Examples:
+            .. code-block:: text
 
-        .. code-block:: text
+                 ----------------------------------------------------
+                | Time profiling stats (in seconds):                 |
+                 ----------------------------------------------------
+                total  |  min/index  |  max/index  |  mean  |  std
 
-             ----------------------------------------------------
-            | Time profiling stats (in seconds):                 |
-             ----------------------------------------------------
-            total  |  min/index  |  max/index  |  mean  |  std
+                Processing function:
+                157.46292 | 0.01452/1501 | 0.26905/0 | 0.07730 | 0.01258
 
-            Processing function:
-            157.46292 | 0.01452/1501 | 0.26905/0 | 0.07730 | 0.01258
+                Dataflow:
+                6.11384 | 0.00008/1935 | 0.28461/1551 | 0.00300 | 0.02693
 
-            Dataflow:
-            6.11384 | 0.00008/1935 | 0.28461/1551 | 0.00300 | 0.02693
+                Event handlers:
+                2.82721
 
-            Event handlers:
-            2.82721
+                - Events.STARTED: []
+                0.00000
 
-            - Events.STARTED: []
-            0.00000
+                - Events.EPOCH_STARTED: []
+                0.00006 | 0.00000/0 | 0.00000/17 | 0.00000 | 0.00000
 
-            - Events.EPOCH_STARTED: []
-            0.00006 | 0.00000/0 | 0.00000/17 | 0.00000 | 0.00000
+                - Events.ITERATION_STARTED: ['PiecewiseLinear']
+                0.03482 | 0.00001/188 | 0.00018/679 | 0.00002 | 0.00001
 
-            - Events.ITERATION_STARTED: ['PiecewiseLinear']
-            0.03482 | 0.00001/188 | 0.00018/679 | 0.00002 | 0.00001
+                - Events.ITERATION_COMPLETED: ['TerminateOnNan']
+                0.20037 | 0.00006/866 | 0.00089/1943 | 0.00010 | 0.00003
 
-            - Events.ITERATION_COMPLETED: ['TerminateOnNan']
-            0.20037 | 0.00006/866 | 0.00089/1943 | 0.00010 | 0.00003
+                - Events.EPOCH_COMPLETED: ['empty_cuda_cache', 'training.<locals>.log_elapsed_time', ]
+                2.57860 | 0.11529/0 | 0.14977/13 | 0.12893 | 0.00790
 
-            - Events.EPOCH_COMPLETED: ['empty_cuda_cache', 'training.<locals>.log_elapsed_time', ]
-            2.57860 | 0.11529/0 | 0.14977/13 | 0.12893 | 0.00790
-
-            - Events.COMPLETED: []
-            not yet triggered
+                - Events.COMPLETED: []
+                not yet triggered
 
         """
 
@@ -465,24 +462,23 @@ class HandlersTimeProfiler:
     profiled by this profiler
 
     Examples:
+        .. code-block:: python
 
-    .. code-block:: python
+            from ignite.handlers import HandlersTimeProfiler
 
-        from ignite.handlers import HandlersTimeProfiler
+            trainer = Engine(train_updater)
 
-        trainer = Engine(train_updater)
+            # Create an object of the profiler and attach an engine to it
+            profiler = HandlersTimeProfiler()
+            profiler.attach(trainer)
 
-        # Create an object of the profiler and attach an engine to it
-        profiler = HandlersTimeProfiler()
-        profiler.attach(trainer)
+            @trainer.on(Events.EPOCH_COMPLETED)
+            def log_intermediate_results():
+                profiler.print_results(profiler.get_results())
 
-        @trainer.on(Events.EPOCH_COMPLETED)
-        def log_intermediate_results():
-            profiler.print_results(profiler.get_results())
+            trainer.run(dataloader, max_epochs=3)
 
-        trainer.run(dataloader, max_epochs=3)
-
-        profiler.write_results('path_to_dir/time_profiling.csv')
+            profiler.write_results('path_to_dir/time_profiling.csv')
 
     .. versionadded:: 0.4.6
     """
@@ -652,14 +648,13 @@ class HandlersTimeProfiler:
 
             profiler.write_results('path_to_dir/awesome_filename.csv')
 
-        Example output:
+        Examples:
+            .. code-block:: text
 
-        .. code-block:: text
-
-            -----------------------------------------------------------------
-            # processing_stats dataflow_stats training.<locals>.log_elapsed_time (EPOCH_COMPLETED) ...
-            1     0.00003         0.252387                          0.125676
-            2     0.00029         0.252342                          0.125123
+                -----------------------------------------------------------------
+                # processing_stats dataflow_stats training.<locals>.log_elapsed_time (EPOCH_COMPLETED) ...
+                1     0.00003         0.252387                          0.125676
+                2     0.00029         0.252342                          0.125123
 
         """
         try:
@@ -703,26 +698,25 @@ class HandlersTimeProfiler:
 
             profiler.print_results(results)
 
-        Example output:
+        Examples:
+            .. code-block:: text
 
-        .. code-block:: text
-
-            -----------------------------------------  -----------------------  -------------- ...
-            Handler                                    Event Name                     Total(s)
-            -----------------------------------------  -----------------------  --------------
-            run.<locals>.log_training_results          EPOCH_COMPLETED                19.43245
-            run.<locals>.log_validation_results        EPOCH_COMPLETED                 2.55271
-            run.<locals>.log_time                      EPOCH_COMPLETED                 0.00049
-            run.<locals>.log_intermediate_results      EPOCH_COMPLETED                 0.00106
-            run.<locals>.log_training_loss             ITERATION_COMPLETED               0.059
-            run.<locals>.log_time                      COMPLETED                 not triggered
-            -----------------------------------------  -----------------------  --------------
-            Total                                                                     22.04571
-            -----------------------------------------  -----------------------  --------------
-            Processing took total 11.29543s [min/index: 0.00393s/1875, max/index: 0.00784s/0,
-             mean: 0.00602s, std: 0.00034s]
-            Dataflow took total 16.24365s [min/index: 0.00533s/1874, max/index: 0.01129s/937,
-             mean: 0.00866s, std: 0.00113s]
+                -----------------------------------------  -----------------------  -------------- ...
+                Handler                                    Event Name                     Total(s)
+                -----------------------------------------  -----------------------  --------------
+                run.<locals>.log_training_results          EPOCH_COMPLETED                19.43245
+                run.<locals>.log_validation_results        EPOCH_COMPLETED                 2.55271
+                run.<locals>.log_time                      EPOCH_COMPLETED                 0.00049
+                run.<locals>.log_intermediate_results      EPOCH_COMPLETED                 0.00106
+                run.<locals>.log_training_loss             ITERATION_COMPLETED               0.059
+                run.<locals>.log_time                      COMPLETED                 not triggered
+                -----------------------------------------  -----------------------  --------------
+                Total                                                                     22.04571
+                -----------------------------------------  -----------------------  --------------
+                Processing took total 11.29543s [min/index: 0.00393s/1875, max/index: 0.00784s/0,
+                 mean: 0.00602s, std: 0.00034s]
+                Dataflow took total 16.24365s [min/index: 0.00533s/1874, max/index: 0.01129s/937,
+                 mean: 0.00866s, std: 0.00113s]
 
         """
         # adopted implementation of torch.autograd.profiler.build_table

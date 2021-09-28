@@ -35,21 +35,6 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> Union[DataLoader, "_MpDe
         Custom batch sampler is not adapted for distributed configuration. Please, make sure that provided batch
         sampler is compatible with distributed configuration.
 
-    Examples:
-
-    .. code-block:: python
-
-        import ignite.distribted as idist
-
-        train_loader = idist.auto_dataloader(
-            train_dataset,
-            batch_size=32,
-            num_workers=4,
-            shuffle=True,
-            pin_memory="cuda" in idist.device().type,
-            drop_last=True,
-        )
-
     Args:
         dataset: input torch dataset. If input dataset is `torch IterableDataset`_ then dataloader will be
             created without any distributed sampling. Please, make sure that the dataset itself produces
@@ -58,6 +43,20 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> Union[DataLoader, "_MpDe
 
     Returns:
         `torch DataLoader`_ or `XLA MpDeviceLoader`_ for XLA devices
+
+    Examples:
+        .. code-block:: python
+
+            import ignite.distribted as idist
+
+            train_loader = idist.auto_dataloader(
+                train_dataset,
+                batch_size=32,
+                num_workers=4,
+                shuffle=True,
+                pin_memory="cuda" in idist.device().type,
+                drop_last=True,
+            )
 
     .. _torch DataLoader: https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader
     .. _XLA MpDeviceLoader: https://github.com/pytorch/xla/blob/master/torch_xla/distributed/parallel_loader.py#L178
@@ -150,23 +149,6 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
     - wrap the model to `torch DataParallel`_ if no distributed context found and more than one CUDA devices available.
     - broadcast the initial variable states from rank 0 to all other processes if Horovod distributed framework is used.
 
-    Examples:
-
-    .. code-block:: python
-
-        import ignite.distribted as idist
-
-        model = idist.auto_model(model)
-
-    In addition with NVidia/Apex, it can be used in the following way:
-
-    .. code-block:: python
-
-        import ignite.distribted as idist
-
-        model, optimizer = amp.initialize(model, optimizer, opt_level=opt_level)
-        model = idist.auto_model(model)
-
     Args:
         model: model to adapt.
         sync_bn: if True, applies `torch convert_sync_batchnorm`_ to the model for native torch
@@ -177,6 +159,22 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
 
     Returns:
         torch.nn.Module
+
+    Examples:
+        .. code-block:: python
+
+            import ignite.distribted as idist
+
+            model = idist.auto_model(model)
+
+        In addition with NVidia/Apex, it can be used in the following way:
+
+        .. code-block:: python
+
+            import ignite.distribted as idist
+
+            model, optimizer = amp.initialize(model, optimizer, opt_level=opt_level)
+            model = idist.auto_model(model)
 
     .. _torch DistributedDataParallel: https://pytorch.org/docs/stable/generated/torch.nn.parallel.
         DistributedDataParallel.html
@@ -246,20 +244,19 @@ def auto_optim(optimizer: Optimizer, **kwargs: Any) -> Optimizer:
     For Horovod distributed configuration, optimizer is wrapped with Horovod Distributed Optimizer and
     its state is broadcasted from rank 0 to all other processes.
 
-    Examples:
-
-    .. code-block:: python
-
-        import ignite.distributed as idist
-
-        optimizer = idist.auto_optim(optimizer)
-
     Args:
         optimizer: input torch optimizer
         kwargs: kwargs to Horovod backend's DistributedOptimizer.
 
     Returns:
         Optimizer
+
+    Examples:
+        .. code-block:: python
+
+            import ignite.distributed as idist
+
+            optimizer = idist.auto_optim(optimizer)
 
     .. _xm.optimizer_step: http://pytorch.org/xla/release/1.5/index.html#torch_xla.core.xla_model.optimizer_step
 
@@ -289,15 +286,13 @@ class DistributedProxySampler(DistributedSampler):
 
     Code is based on https://github.com/pytorch/pytorch/issues/23430#issuecomment-562350407
 
-
-    .. note::
-        Input sampler is assumed to have a constant size.
-
     Args:
         sampler: Input torch data sampler.
         num_replicas: Number of processes participating in distributed training.
         rank: Rank of the current process within ``num_replicas``.
 
+    .. note::
+        Input sampler is assumed to have a constant size.
     """
 
     def __init__(self, sampler: Sampler, num_replicas: Optional[int] = None, rank: Optional[int] = None) -> None:
