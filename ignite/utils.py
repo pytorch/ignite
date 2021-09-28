@@ -108,48 +108,49 @@ def setup_logger(
     Returns:
         logging.Logger
 
-    For example, to improve logs readability when training with a trainer and evaluator:
+    Examples:
+        Improve logs readability when training with a trainer and evaluator:
 
-    .. code-block:: python
+        .. code-block:: python
 
-        from ignite.utils import setup_logger
+            from ignite.utils import setup_logger
 
-        trainer = ...
-        evaluator = ...
+            trainer = ...
+            evaluator = ...
 
-        trainer.logger = setup_logger("trainer")
-        evaluator.logger = setup_logger("evaluator")
+            trainer.logger = setup_logger("trainer")
+            evaluator.logger = setup_logger("evaluator")
 
-        trainer.run(data, max_epochs=10)
+            trainer.run(data, max_epochs=10)
 
-        # Logs will look like
-        # 2020-01-21 12:46:07,356 trainer INFO: Engine run starting with max_epochs=5.
-        # 2020-01-21 12:46:07,358 trainer INFO: Epoch[1] Complete. Time taken: 00:5:23
-        # 2020-01-21 12:46:07,358 evaluator INFO: Engine run starting with max_epochs=1.
-        # 2020-01-21 12:46:07,358 evaluator INFO: Epoch[1] Complete. Time taken: 00:01:02
-        # ...
+            # Logs will look like
+            # 2020-01-21 12:46:07,356 trainer INFO: Engine run starting with max_epochs=5.
+            # 2020-01-21 12:46:07,358 trainer INFO: Epoch[1] Complete. Time taken: 00:5:23
+            # 2020-01-21 12:46:07,358 evaluator INFO: Engine run starting with max_epochs=1.
+            # 2020-01-21 12:46:07,358 evaluator INFO: Epoch[1] Complete. Time taken: 00:01:02
+            # ...
 
-    Every existing logger can be reset if needed
+        Every existing logger can be reset if needed
 
-    .. code-block:: python
+        .. code-block:: python
 
-        logger = setup_logger(name="my-logger", format="=== %(name)s %(message)s")
-        logger.info("first message")
-        setup_logger(name="my-logger", format="+++ %(name)s %(message)s", reset=True)
-        logger.info("second message")
+            logger = setup_logger(name="my-logger", format="=== %(name)s %(message)s")
+            logger.info("first message")
+            setup_logger(name="my-logger", format="+++ %(name)s %(message)s", reset=True)
+            logger.info("second message")
 
-        # Logs will look like
-        # === my-logger first message
-        # +++ my-logger second message
+            # Logs will look like
+            # === my-logger first message
+            # +++ my-logger second message
 
-    Example to change the level of an existing internal logger
+        Change the level of an existing internal logger
 
-    .. code-block:: python
+        .. code-block:: python
 
-        setup_logger(
-            name="ignite.distributed.launcher.Parallel",
-            level=logging.WARNING
-        )
+            setup_logger(
+                name="ignite.distributed.launcher.Parallel",
+                level=logging.WARNING
+            )
 
     .. versionchanged:: 0.4.3
         Added ``stream`` parameter.
