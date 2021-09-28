@@ -506,23 +506,23 @@ class Checkpoint(Serializable):
                 the user to load part of the pretrained model (useful for example, in Transfer Learning)
 
         Examples:
-        .. code-block:: python
+            .. code-block:: python
 
-            import torch
-            from ignite.engine import Engine, Events
-            from ignite.handlers import ModelCheckpoint, Checkpoint
-            trainer = Engine(lambda engine, batch: None)
-            handler = ModelCheckpoint('/tmp/models', 'myprefix', n_saved=None, create_dir=True)
-            model = torch.nn.Linear(3, 3)
-            optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
-            to_save = {"weights": model, "optimizer": optimizer}
-            trainer.add_event_handler(Events.EPOCH_COMPLETED(every=2), handler, to_save)
-            trainer.run(torch.randn(10, 1), 5)
+                import torch
+                from ignite.engine import Engine, Events
+                from ignite.handlers import ModelCheckpoint, Checkpoint
+                trainer = Engine(lambda engine, batch: None)
+                handler = ModelCheckpoint('/tmp/models', 'myprefix', n_saved=None, create_dir=True)
+                model = torch.nn.Linear(3, 3)
+                optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
+                to_save = {"weights": model, "optimizer": optimizer}
+                trainer.add_event_handler(Events.EPOCH_COMPLETED(every=2), handler, to_save)
+                trainer.run(torch.randn(10, 1), 5)
 
-            to_load = to_save
-            checkpoint_fp = "/tmp/models/myprefix_checkpoint_40.pth"
-            checkpoint = torch.load(checkpoint_fp)
-            Checkpoint.load_objects(to_load=to_load, checkpoint=checkpoint)
+                to_load = to_save
+                checkpoint_fp = "/tmp/models/myprefix_checkpoint_40.pth"
+                checkpoint = torch.load(checkpoint_fp)
+                Checkpoint.load_objects(to_load=to_load, checkpoint=checkpoint)
 
         Note:
             If ``to_load`` contains objects of type torch `DistributedDataParallel`_ or
