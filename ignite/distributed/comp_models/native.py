@@ -431,12 +431,12 @@ if has_native_dist_support:
 
         Source : https://github.com/LLNL/py-hostlist/blob/master/hostlist/hostlist.py
 
+        Args:
+            nodelist: Compressed hostlist string
+
         .. note::
             The host names can be composed by any character except the special ones `[`, `]`, `,`. Only one
             sequence `[...]` is supported per hostname.
-
-        Args:
-            nodelist: Compressed hostlist string
 
         .. versionadded:: 0.4.6
         """
