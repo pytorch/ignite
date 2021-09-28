@@ -352,7 +352,8 @@ class Rouge(Metric):
             m.update((candidate, references))
 
             m.compute()
-            # {'Rouge-L-P': 0.6, 'Rouge-L-R': 0.5, 'Rouge-L-F': 0.5, 'Rouge-2-P': 0.5, 'Rouge-2-R': 0.4, 'Rouge-2-F': 0.4}
+            # {'Rouge-L-P': 0.6, 'Rouge-L-R': 0.5, 'Rouge-L-F': 0.5, 'Rouge-2-P': 0.5, 'Rouge-2-R': 0.4,
+            # 'Rouge-2-F': 0.4}
 
     .. versionadded:: 0.4.5
     """
