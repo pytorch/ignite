@@ -36,36 +36,36 @@ def ClassificationReport(
         device: optional device specification for internal storage.
         labels: Optional list of label indices to include in the report
 
-    .. code-block:: python
+    Examples:
+        .. code-block:: python
 
+            def process_function(engine, batch):
+                # ...
+                return y_pred, y
 
-        def process_function(engine, batch):
-            # ...
-            return y_pred, y
-
-        engine = Engine(process_function)
-        metric = ClassificationReport()
-        metric.attach(engine, "cr")
-        engine.run...
-        res = engine.state.metrics["cr"]
-        # result should be like
-        {
-          "0": {
-            "precision": 0.4891304347826087,
-            "recall": 0.5056179775280899,
-            "f1-score": 0.497237569060773
-          },
-          "1": {
-            "precision": 0.5157232704402516,
-            "recall": 0.4992389649923896,
-            "f1-score": 0.507347254447022
-          },
-          "macro avg": {
-            "precision": 0.5024268526114302,
-            "recall": 0.5024284712602398,
-            "f1-score": 0.5022924117538975
-          }
-        }
+            engine = Engine(process_function)
+            metric = ClassificationReport()
+            metric.attach(engine, "cr")
+            engine.run...
+            res = engine.state.metrics["cr"]
+            # result should be like
+            {
+              "0": {
+                "precision": 0.4891304347826087,
+                "recall": 0.5056179775280899,
+                "f1-score": 0.497237569060773
+              },
+              "1": {
+                "precision": 0.5157232704402516,
+                "recall": 0.4992389649923896,
+                "f1-score": 0.507347254447022
+              },
+              "macro avg": {
+                "precision": 0.5024268526114302,
+                "recall": 0.5024284712602398,
+                "f1-score": 0.5022924117538975
+              }
+            }
     """
 
     # setup all the underlying metrics

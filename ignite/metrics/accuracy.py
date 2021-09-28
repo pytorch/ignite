@@ -117,7 +117,6 @@ class Accuracy(_BaseClassification):
 
         binary_accuracy = Accuracy(thresholded_output_transform)
 
-
     Args:
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
@@ -127,7 +126,6 @@ class Accuracy(_BaseClassification):
         device: specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
-
     """
 
     def __init__(
