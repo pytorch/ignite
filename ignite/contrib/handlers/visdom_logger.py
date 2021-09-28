@@ -56,7 +56,6 @@ class VisdomLogger(BaseLogger):
         log less frequently or set `num_workers=1`.
 
     Examples:
-
         .. code-block:: python
 
             from ignite.contrib.handlers.visdom_logger import *
@@ -254,8 +253,23 @@ class _BaseVisDrawer:
 class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
     """Helper handler to log engine's output and/or metrics
 
-    Examples:
+    Args:
+        tag: common title for all produced plots. For example, "training"
+        metric_names: list of metric names to plot or a string "all" to plot all available
+            metrics.
+        output_transform: output transform function to prepare `engine.state.output` as a number.
+            For example, `output_transform = lambda output: output`
+            This function can also return a dictionary, e.g `{"loss": loss1, "another_loss": loss2}` to label the plot
+            with corresponding keys.
+        global_step_transform: global step transform function to output a desired global step.
+            Input of the function is `(engine, event_name)`. Output of function should be an integer.
+            Default is None, global_step based on attached engine. If provided,
+            uses function output as global_step. To setup global step from another engine, please use
+            :meth:`~ignite.contrib.handlers.visdom_logger.global_step_from_engine`.
+        show_legend: flag to show legend in the window
+        state_attributes: list of attributes of the ``trainer.state`` to plot.
 
+    Examples:
         .. code-block:: python
 
             from ignite.contrib.handlers.visdom_logger import *
@@ -327,31 +341,12 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
                 event_name=Events.ITERATION_COMPLETED
             )
 
-    Args:
-        tag: common title for all produced plots. For example, "training"
-        metric_names: list of metric names to plot or a string "all" to plot all available
-            metrics.
-        output_transform: output transform function to prepare `engine.state.output` as a number.
-            For example, `output_transform = lambda output: output`
-            This function can also return a dictionary, e.g `{"loss": loss1, "another_loss": loss2}` to label the plot
-            with corresponding keys.
-        global_step_transform: global step transform function to output a desired global step.
-            Input of the function is `(engine, event_name)`. Output of function should be an integer.
-            Default is None, global_step based on attached engine. If provided,
-            uses function output as global_step. To setup global step from another engine, please use
-            :meth:`~ignite.contrib.handlers.visdom_logger.global_step_from_engine`.
-        show_legend: flag to show legend in the window
-        state_attributes: list of attributes of the ``trainer.state`` to plot.
-
-    Note:
-
         Example of `global_step_transform`:
 
         .. code-block:: python
 
             def global_step_transform(engine, event_name):
                 return engine.state.get_event_attrib_value(event_name)
-
     """
 
     def __init__(
@@ -392,8 +387,14 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
 class OptimizerParamsHandler(BaseOptimizerParamsHandler, _BaseVisDrawer):
     """Helper handler to log optimizer parameters
 
-    Examples:
+    Args:
+        optimizer: torch optimizer or any object with attribute ``param_groups``
+            as a sequence.
+        param_name: parameter name
+        tag: common title for all produced plots. For example, "generator"
+        show_legend: flag to show legend in the window
 
+    Examples:
         .. code-block:: python
 
             from ignite.contrib.handlers.visdom_logger import *
@@ -413,13 +414,6 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler, _BaseVisDrawer):
                 event_name=Events.ITERATION_STARTED,
                 optimizer=optimizer
             )
-
-    Args:
-        optimizer: torch optimizer or any object with attribute ``param_groups``
-            as a sequence.
-        param_name: parameter name
-        tag: common title for all produced plots. For example, "generator"
-        show_legend: flag to show legend in the window
     """
 
     def __init__(
@@ -450,8 +444,13 @@ class WeightsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
     Handler iterates over named parameters of the model, applies reduction function to each parameter
     produce a scalar and then logs the scalar.
 
-    Examples:
+    Args:
+        model: model to log weights
+        reduction: function to reduce parameters into scalar
+        tag: common title for all produced plots. For example, "generator"
+        show_legend: flag to show legend in the window
 
+    Examples:
         .. code-block:: python
 
             from ignite.contrib.handlers.visdom_logger import *
@@ -465,12 +464,6 @@ class WeightsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
                 event_name=Events.ITERATION_COMPLETED,
                 log_handler=WeightsScalarHandler(model, reduction=torch.norm)
             )
-
-    Args:
-        model: model to log weights
-        reduction: function to reduce parameters into scalar
-        tag: common title for all produced plots. For example, "generator"
-        show_legend: flag to show legend in the window
     """
 
     def __init__(
@@ -500,8 +493,13 @@ class GradsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
     Handler iterates over the gradients of named parameters of the model, applies reduction function to each parameter
     produce a scalar and then logs the scalar.
 
-    Examples:
+    Args:
+        model: model to log weights
+        reduction: function to reduce parameters into scalar
+        tag: common title for all produced plots. For example, "generator"
+        show_legend: flag to show legend in the window
 
+    Examples:
         .. code-block:: python
 
             from ignite.contrib.handlers.visdom_logger import *
@@ -515,13 +513,6 @@ class GradsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
                 event_name=Events.ITERATION_COMPLETED,
                 log_handler=GradsScalarHandler(model, reduction=torch.norm)
             )
-
-    Args:
-        model: model to log weights
-        reduction: function to reduce parameters into scalar
-        tag: common title for all produced plots. For example, "generator"
-        show_legend: flag to show legend in the window
-
     """
 
     def __init__(

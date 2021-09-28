@@ -17,7 +17,6 @@ class GpuInfo(Metric):
         In case if gpu utilization reports "N/A" on a given GPU, corresponding metric value is not set.
 
     Examples:
-
         .. code-block:: python
 
             # Default GPU measurements
