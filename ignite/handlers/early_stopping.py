@@ -22,19 +22,18 @@ class EarlyStopping(Serializable):
             it defines an increase after the last event. Default value is False.
 
     Examples:
+        .. code-block:: python
 
-    .. code-block:: python
+            from ignite.engine import Engine, Events
+            from ignite.handlers import EarlyStopping
 
-        from ignite.engine import Engine, Events
-        from ignite.handlers import EarlyStopping
+            def score_function(engine):
+                val_loss = engine.state.metrics['nll']
+                return -val_loss
 
-        def score_function(engine):
-            val_loss = engine.state.metrics['nll']
-            return -val_loss
-
-        handler = EarlyStopping(patience=10, score_function=score_function, trainer=trainer)
-        # Note: the handler is attached to an *Evaluator* (runs one epoch on validation dataset).
-        evaluator.add_event_handler(Events.COMPLETED, handler)
+            handler = EarlyStopping(patience=10, score_function=score_function, trainer=trainer)
+            # Note: the handler is attached to an *Evaluator* (runs one epoch on validation dataset).
+            evaluator.add_event_handler(Events.COMPLETED, handler)
 
     """
 

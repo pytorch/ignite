@@ -20,19 +20,20 @@ class EpochOutputStore:
         data: a list of :class:`~ignite.engine.engine.Engine` outputs,
             optionally transformed by `output_transform`.
 
-    Examples::
+    Examples:
+        .. code-block:: python
 
-        eos = EpochOutputStore()
-        trainer = create_supervised_trainer(model, optimizer, loss)
-        train_evaluator = create_supervised_evaluator(model, metrics)
-        eos.attach(train_evaluator, 'output')
+            eos = EpochOutputStore()
+            trainer = create_supervised_trainer(model, optimizer, loss)
+            train_evaluator = create_supervised_evaluator(model, metrics)
+            eos.attach(train_evaluator, 'output')
 
-        @trainer.on(Events.EPOCH_COMPLETED)
-        def log_training_results(engine):
-            train_evaluator.run(train_loader)
-            output = train_evaluator.state.output
-            # output = [(y_pred0, y0), (y_pred1, y1), ...]
-            # do something with output, e.g., plotting
+            @trainer.on(Events.EPOCH_COMPLETED)
+            def log_training_results(engine):
+                train_evaluator.run(train_loader)
+                output = train_evaluator.state.output
+                # output = [(y_pred0, y0), (y_pred1, y1), ...]
+                # do something with output, e.g., plotting
 
     .. versionadded:: 0.4.5
     .. versionchanged:: 0.4.5

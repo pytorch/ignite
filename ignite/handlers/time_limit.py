@@ -17,7 +17,6 @@ class TimeLimit:
         limit_sec: Maximum time before training terminates (in seconds). Defaults to 28800.
 
     Examples:
-
         .. code-block:: python
 
             from ignite.engine import Events
