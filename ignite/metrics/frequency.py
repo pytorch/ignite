@@ -12,7 +12,6 @@ class Frequency(Metric):
     """Provides metrics for the number of examples processed per second.
 
     Examples:
-
         .. code-block:: python
 
             # Compute number of tokens processed

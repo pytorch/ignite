@@ -29,40 +29,39 @@ class PSNR(Metric):
             Setting the metric’s device to be the same as your update arguments ensures
             the update method is non-blocking. By default, CPU.
 
-    Example:
+    Examples:
+        To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
+        The output of the engine's ``process_function`` needs to be in format of
+        ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``.
 
-    To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
-    The output of the engine's ``process_function`` needs to be in format of
-    ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``.
+        .. code-block:: python
 
-    .. code-block:: python
-
-        def process_function(engine, batch):
+            def process_function(engine, batch):
+                # ...
+                return y_pred, y
+            engine = Engine(process_function)
+            psnr = PSNR(data_range=1.0)
+            psnr.attach(engine, "psnr")
             # ...
-            return y_pred, y
-        engine = Engine(process_function)
-        psnr = PSNR(data_range=1.0)
-        psnr.attach(engine, "psnr")
-        # ...
-        state = engine.run(data)
-        print(f"PSNR: {state.metrics['psnr']}")
+            state = engine.run(data)
+            print(f"PSNR: {state.metrics['psnr']}")
 
-    This metric by default accepts Grayscale or RGB images. But if you have YCbCr or YUV images, only
-    Y channel is needed for computing PSNR. And, this can be done with ``output_transform``. For instance,
+        This metric by default accepts Grayscale or RGB images. But if you have YCbCr or YUV images, only
+        Y channel is needed for computing PSNR. And, this can be done with ``output_transform``. For instance,
 
-    .. code-block:: python
+        .. code-block:: python
 
-        def get_y_channel(output):
-            y_pred, y = output
-            # y_pred and y are (B, 3, H, W) and YCbCr or YUV images
-            # let's select y channel
-            return y_pred[:, 0, ...], y[:, 0, ...]
+            def get_y_channel(output):
+                y_pred, y = output
+                # y_pred and y are (B, 3, H, W) and YCbCr or YUV images
+                # let's select y channel
+                return y_pred[:, 0, ...], y[:, 0, ...]
 
-        psnr = PSNR(data_range=219, output_transform=get_y_channel)
-        psnr.attach(engine, "psnr")
-        # ...
-        state = engine.run(data)
-        print(f"PSNR: {state.metrics['psrn']}")
+            psnr = PSNR(data_range=219, output_transform=get_y_channel)
+            psnr.attach(engine, "psnr")
+            # ...
+            state = engine.run(data)
+            print(f"PSNR: {state.metrics['psrn']}")
 
     .. versionadded:: 0.4.3
     """

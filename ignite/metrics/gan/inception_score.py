@@ -25,9 +25,6 @@ class InceptionScore(_BaseInceptionMetric):
 
     __ https://arxiv.org/pdf/1801.01973.pdf
 
-    .. note::
-        The default Inception model requires the `torchvision` module to be installed.
-
     Args:
         num_features: number of features predicted by the model or number of classes of the model. Default
             value is 1000.
@@ -47,8 +44,10 @@ class InceptionScore(_BaseInceptionMetric):
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
 
-    Example:
+    .. note::
+        The default Inception model requires the `torchvision` module to be installed.
 
+    Examples:
         .. code-block:: python
 
             from ignite.metric.gan import InceptionScore
