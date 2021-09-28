@@ -89,6 +89,12 @@ def supervised_training_step(
         Added Gradient Accumulation.
     """
 
+    if gradient_accumulation_steps <= 0:
+        raise ValueError(
+            "Gradient Accumulation steps can't be <= 0, if you don't want to use "
+            "gradient accumulation set it to 1 (default)"
+        )
+
     def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
         model.train()
         x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
@@ -159,6 +165,12 @@ def supervised_training_step_amp(
         from torch.cuda.amp import autocast
     except ImportError:
         raise ImportError("Please install torch>=1.6.0 to use amp_mode='amp'.")
+
+    if gradient_accumulation_steps <= 0:
+        raise ValueError(
+            "Gradient Accumulation steps can't be <= 0, if you don't want to use "
+            "gradient accumulation set it to 1 (default)"
+        )
 
     def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
         model.train()
@@ -236,6 +248,12 @@ def supervised_training_step_apex(
     except ModuleNotFoundError:
         raise ModuleNotFoundError("Please install apex from https://github.com/nvidia/apex to use amp_mode='apex'.")
 
+    if gradient_accumulation_steps <= 0:
+        raise ValueError(
+            "Gradient Accumulation steps can't be <= 0, if you don't want to use "
+            "gradient accumulation set it to 1 (default)"
+        )
+
     def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
         model.train()
         x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
@@ -303,6 +321,12 @@ def supervised_training_step_tpu(
         import torch_xla.core.xla_model as xm
     except ModuleNotFoundError:
         raise ModuleNotFoundError("torch_xla cannot be imported, please install PyTorch XLA.")
+
+    if gradient_accumulation_steps <= 0:
+        raise ValueError(
+            "Gradient Accumulation steps can't be be <= 0, if you don't want to use "
+            "gradient accumulation set it to 1 (default)"
+        )
 
     def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
         model.train()
@@ -429,9 +453,9 @@ def create_supervised_trainer(
     on_tpu = "xla" in device_type if device_type is not None else False
     mode, _scaler = _check_arg(on_tpu, amp_mode, scaler)
 
-    if gradient_accumulation_steps == 0:
+    if gradient_accumulation_steps <= 0:
         raise ValueError(
-            "Gradient Accumulation steps can't be 0, if you don't want to use "
+            "Gradient Accumulation steps can't be <= 0, if you don't want to use "
             "gradient accumulation set it to 1 (default)"
         )
 
