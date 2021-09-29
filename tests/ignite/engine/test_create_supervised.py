@@ -26,15 +26,12 @@ from ignite.metrics import MeanSquaredError
 
 test_create_supervised_parameters = (
     "gradient_accumulation_steps,loss,weight,bias",
-    [(0, 0, 0, 0), (1, 0.3054, 0.1501, 0.3601), (3, 0.0045, 0.0540, 0.1133)],
+    [(1, 0.3054, 0.1501, 0.3601), (3, 0.0045, 0.0540, 0.1133)],
 )
 
 
-def _test_create_supervised_trainer(
+def _default_create_supervised_trainer(
     gradient_accumulation_steps=1,
-    loss=0.17,
-    weight=0.013,
-    bias=0.08,
     model_device: Optional[str] = None,
     trainer_device: Optional[str] = None,
     trace: bool = False,
@@ -69,13 +66,35 @@ def _test_create_supervised_trainer(
         scaler=scaler,
         gradient_accumulation_steps=gradient_accumulation_steps,
     )
+    assert model.weight.data[0, 0].item() == approx(0.0)
+    assert model.bias.item() == approx(0.0)
+
+    return trainer, model
+
+
+def _test_create_supervised_trainer(
+    gradient_accumulation_steps=1,
+    loss=0.17,
+    weight=0.013,
+    bias=0.08,
+    model_device: Optional[str] = None,
+    trainer_device: Optional[str] = None,
+    trace: bool = False,
+    amp_mode: str = None,
+    scaler: Union[bool, "torch.cuda.amp.GradScaler"] = False,
+):
+    trainer, model = _default_create_supervised_trainer(
+        gradient_accumulation_steps=gradient_accumulation_steps,
+        model_device=model_device,
+        trainer_device=trainer_device,
+        trace=trace,
+        amp_mode=amp_mode,
+        scaler=scaler,
+    )
 
     x = torch.tensor([[0.1], [0.3], [0.7], [0.9], [1.3]])
     y = torch.tensor([[0.3], [0.5], [0.9], [1.3], [0.3]])
     data = [(_x, _y) for _x, _y in zip(x, y)]
-
-    assert model.weight.data[0, 0].item() == approx(0.0)
-    assert model.bias.item() == approx(0.0)
 
     if model_device == trainer_device or ((model_device == "cpu") ^ (trainer_device == "cpu")):
         state = trainer.run(data)
@@ -99,23 +118,10 @@ def _test_create_supervised_trainer(
 
 @pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0")
 def test_create_supervised_training_scalar_assignment():
-    model = Linear(1, 1)
-
-    model.weight.data.zero_()
-    model.bias.data.zero_()
-    optimizer = SGD(model.parameters(), 0.1)
 
     with mock.patch("ignite.engine._check_arg") as check_arg_mock:
         check_arg_mock.return_value = None, torch.cuda.amp.GradScaler(enabled=False)
-        trainer = create_supervised_trainer(
-            model,
-            optimizer,
-            mse_loss,
-            device="cpu",
-            output_transform=lambda x, y, y_pred, loss: (y_pred, loss.item()),
-            amp_mode=None,
-            scaler=True,
-        )
+        trainer, model = _default_create_supervised_trainer(model_device="cpu", trainer_device="cpu", scaler=True)
         assert hasattr(trainer.state, "scaler")
         assert isinstance(trainer.state.scaler, torch.cuda.amp.GradScaler)
 
@@ -131,30 +137,11 @@ def _test_create_mocked_supervised_trainer(
         with mock.patch("ignite.engine.supervised_training_step_apex") as training_step_apex_mock:
             with mock.patch("ignite.engine.supervised_training_step_tpu") as training_step_tpu_mock:
                 with mock.patch("ignite.engine.supervised_training_step") as training_step_mock:
-                    model = Linear(1, 1)
 
-                    if model_device:
-                        model.to(model_device)
-
-                    model.weight.data.zero_()
-                    model.bias.data.zero_()
-                    optimizer = SGD(model.parameters(), 0.1)
-
-                    if trace:
-                        example_input = torch.randn(1, 1)
-                        model = torch.jit.trace(model, example_input)
-
-                    if amp_mode == "apex" and model_device == trainer_device == "cuda":
-                        from apex import amp
-
-                        model, optimizer = amp.initialize(model, optimizer, opt_level="O2")
-
-                    trainer = create_supervised_trainer(
-                        model,
-                        optimizer,
-                        mse_loss,
-                        device=trainer_device,
-                        output_transform=lambda x, y, y_pred, loss: (y_pred, loss.item()),
+                    trainer, model = _default_create_supervised_trainer(
+                        model_device=model_device,
+                        trainer_device=trainer_device,
+                        trace=trace,
                         amp_mode=amp_mode,
                         scaler=scaler,
                     )
@@ -162,9 +149,6 @@ def _test_create_mocked_supervised_trainer(
                     x = torch.tensor([[0.1], [0.2]])
                     y = torch.tensor([[0.3], [0.5]])
                     data = [(x, y)]
-
-                    assert model.weight.data[0, 0].item() == approx(0.0)
-                    assert model.bias.item() == approx(0.0)
 
                     on_tpu = "xla" in trainer_device if trainer_device is not None else False
                     mode, _ = _check_arg(on_tpu, amp_mode, scaler)
@@ -182,7 +166,14 @@ def _test_create_mocked_supervised_trainer(
                             assert training_step_mock.called
 
 
-def _test_create_supervised_evaluator(
+def _test_create_supervised_trainer_wrong_accumulation(model_device=None, trainer_device=None):
+    with pytest.raises(ValueError, match="Gradient Accumulation steps can't be <= 0"):
+        _default_create_supervised_trainer(
+            gradient_accumulation_steps=0, model_device=model_device, trainer_device=trainer_device
+        )
+
+
+def _default_create_supervised_evaluator(
     model_device: Optional[str] = None,
     evaluator_device: Optional[str] = None,
     trace: bool = False,
@@ -202,6 +193,21 @@ def _test_create_supervised_evaluator(
 
     evaluator = create_supervised_evaluator(model, device=evaluator_device, amp_mode=amp_mode)
 
+    assert model.weight.data[0, 0].item() == approx(0.0)
+    assert model.bias.item() == approx(0.0)
+
+    return model, evaluator
+
+
+def _test_create_supervised_evaluator(
+    model_device: Optional[str] = None,
+    evaluator_device: Optional[str] = None,
+    trace: bool = False,
+    amp_mode: str = None,
+):
+    model, evaluator = _default_create_supervised_evaluator(
+        model_device=model_device, evaluator_device=evaluator_device, trace=trace, amp_mode=amp_mode
+    )
     x = torch.tensor([[1.0], [2.0]])
     y = torch.tensor([[3.0], [5.0]])
     data = [(x, y)]
@@ -234,19 +240,9 @@ def _test_mocked_supervised_evaluator(
 ):
     with mock.patch("ignite.engine.supervised_evaluation_step") as evaluation_step:
         with mock.patch("ignite.engine.supervised_evaluation_step_amp") as evaluation_step_amp:
-            model = Linear(1, 1)
-
-            if model_device:
-                model.to(model_device)
-
-            model.weight.data.zero_()
-            model.bias.data.zero_()
-
-            if trace:
-                example_input = torch.randn(1, 1)
-                model = torch.jit.trace(model, example_input)
-
-            evaluator = create_supervised_evaluator(model, device=evaluator_device, amp_mode=amp_mode)
+            model, evaluator = _default_create_supervised_evaluator(
+                model_device=model_device, evaluator_device=evaluator_device, trace=trace, amp_mode=amp_mode
+            )
 
             x = torch.tensor([[1.0], [2.0]])
             y = torch.tensor([[3.0], [5.0]])
@@ -338,52 +334,33 @@ def _test_create_evaluation_step(
 
 @pytest.mark.parametrize(*test_create_supervised_parameters)
 def test_create_supervised_trainer(gradient_accumulation_steps, loss, weight, bias):
-    if gradient_accumulation_steps == 0:
-        with pytest.raises(ValueError, match="Gradient Accumulation steps can't be <= 0"):
-            _test_create_supervised_trainer(gradient_accumulation_steps, loss, weight, bias)
-    else:
-        _test_create_supervised_trainer(gradient_accumulation_steps, loss, weight, bias)
+    _test_create_supervised_trainer_wrong_accumulation()
+    _test_create_supervised_trainer(gradient_accumulation_steps, loss, weight, bias)
     _test_create_mocked_supervised_trainer()
 
 
 @pytest.mark.parametrize(*test_create_supervised_parameters)
 def test_create_supervised_trainer_with_cpu(gradient_accumulation_steps, loss, weight, bias):
-    if gradient_accumulation_steps == 0:
-        with pytest.raises(ValueError, match="Gradient Accumulation steps can't be <= 0"):
-            _test_create_supervised_trainer(gradient_accumulation_steps, loss, weight, bias, trainer_device="cpu")
-    else:
-        _test_create_supervised_trainer(gradient_accumulation_steps, loss, weight, bias, trainer_device="cpu")
+    _test_create_supervised_trainer_wrong_accumulation(trainer_device="cpu")
+    _test_create_supervised_trainer(gradient_accumulation_steps, loss, weight, bias, trainer_device="cpu")
     _test_create_mocked_supervised_trainer(trainer_device="cpu")
 
 
 @pytest.mark.parametrize(*test_create_supervised_parameters)
 def test_create_supervised_trainer_traced_with_cpu(gradient_accumulation_steps, loss, weight, bias):
-    if gradient_accumulation_steps == 0:
-        with pytest.raises(ValueError, match="Gradient Accumulation steps can't be <= 0"):
-            _test_create_supervised_trainer(
-                gradient_accumulation_steps, loss, weight, bias, trainer_device="cpu", trace=True
-            )
-    else:
-        _test_create_supervised_trainer(
-            gradient_accumulation_steps, loss, weight, bias, trainer_device="cpu", trace=True
-        )
+    _test_create_supervised_trainer_wrong_accumulation(trainer_device="cpu")
+    _test_create_supervised_trainer(gradient_accumulation_steps, loss, weight, bias, trainer_device="cpu", trace=True)
     _test_create_mocked_supervised_trainer(trainer_device="cpu", trace=True)
 
 
 @pytest.mark.skipif(find_spec("apex"), reason="Skip if APEX")
 @pytest.mark.parametrize(*test_create_supervised_parameters)
 def test_create_supervised_trainer_apex_error(gradient_accumulation_steps, loss, weight, bias):
-    if gradient_accumulation_steps == 0:
-        with pytest.raises(ValueError, match="Gradient Accumulation steps can't be <= 0"):
-            _test_create_supervised_trainer(
-                gradient_accumulation_steps, loss, weight, bias, trainer_device="cpu", trace=True
-            )
-
-    else:
-        with pytest.raises(
-            ModuleNotFoundError, match="Please install apex from https://github.com/nvidia/apex to use amp_mode='apex'."
-        ):
-            _test_create_supervised_trainer(gradient_accumulation_steps, loss, weight, bias, amp_mode="apex")
+    _test_create_supervised_trainer_wrong_accumulation(trainer_device="cpu")
+    with pytest.raises(
+        ModuleNotFoundError, match="Please install apex from https://github.com/nvidia/apex to use amp_mode='apex'."
+    ):
+        _test_create_supervised_trainer(gradient_accumulation_steps, loss, weight, bias, amp_mode="apex")
 
 
 @pytest.fixture
@@ -399,20 +376,17 @@ def mock_torch_cuda_amp_module():
 def test_create_supervised_trainer_amp_error(
     gradient_accumulation_steps, loss, weight, bias, mock_torch_cuda_amp_module
 ):
-    if gradient_accumulation_steps == 0:
-        with pytest.raises(ValueError, match="Gradient Accumulation steps can't be <= 0"):
-            _test_create_supervised_trainer(gradient_accumulation_steps, loss, weight, bias, amp_mode="amp")
-
-    else:
-        with pytest.raises(ImportError, match="Please install torch>=1.6.0 to use amp_mode='amp'."):
-            _test_create_supervised_trainer(gradient_accumulation_steps, loss, weight, bias, amp_mode="amp")
+    _test_create_supervised_trainer_wrong_accumulation(trainer_device="cpu")
+    with pytest.raises(ImportError, match="Please install torch>=1.6.0 to use amp_mode='amp'."):
+        _test_create_supervised_trainer(gradient_accumulation_steps, loss, weight, bias, amp_mode="amp")
     with pytest.raises(ImportError, match="Please install torch>=1.6.0 to use scaler argument."):
-        _test_create_supervised_trainer(amp_mode="amp", scaler=True)
+        _test_create_supervised_trainer(gradient_accumulation_steps, loss, weight, bias, amp_mode="amp", scaler=True)
 
 
 @pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0")
 def test_create_supervised_trainer_scaler_not_amp():
     scaler = torch.cuda.amp.GradScaler(enabled=torch.cuda.is_available())
+
     with pytest.raises(ValueError, match=f"scaler argument is {scaler}, but amp_mode is None."):
         _test_create_supervised_trainer(amp_mode=None, scaler=scaler)
     with pytest.raises(ValueError, match="scaler argument is True, but amp_mode is None."):
@@ -427,20 +401,10 @@ def test_create_supervised_trainer_scaler_not_amp():
 @pytest.mark.parametrize(*test_create_supervised_parameters)
 def test_create_supervised_trainer_on_cuda(gradient_accumulation_steps, loss, weight, bias):
     model_device = trainer_device = "cuda"
-    if gradient_accumulation_steps == 0:
-        with pytest.raises(ValueError, match="Gradient Accumulation steps can't be <= 0"):
-            _test_create_supervised_trainer(
-                gradient_accumulation_steps,
-                loss,
-                weight,
-                bias,
-                model_device=model_device,
-                trainer_device=trainer_device,
-            )
-    else:
-        _test_create_supervised_trainer(
-            gradient_accumulation_steps, loss, weight, bias, model_device=model_device, trainer_device=trainer_device
-        )
+    _test_create_supervised_trainer_wrong_accumulation(model_device=model_device, trainer_device=trainer_device)
+    _test_create_supervised_trainer(
+        gradient_accumulation_steps, loss, weight, bias, model_device=model_device, trainer_device=trainer_device
+    )
     _test_create_mocked_supervised_trainer(model_device=model_device, trainer_device=trainer_device)
 
 
@@ -449,27 +413,16 @@ def test_create_supervised_trainer_on_cuda(gradient_accumulation_steps, loss, we
 @pytest.mark.parametrize(*test_create_supervised_parameters)
 def test_create_supervised_trainer_on_cuda_amp(gradient_accumulation_steps, loss, weight, bias):
     model_device = trainer_device = "cuda"
-    if gradient_accumulation_steps == 0:
-        with pytest.raises(ValueError, match="Gradient Accumulation steps can't be <= 0"):
-            _test_create_supervised_trainer(
-                gradient_accumulation_steps,
-                loss,
-                weight,
-                bias,
-                model_device=model_device,
-                trainer_device=trainer_device,
-                amp_mode="amp",
-            )
-    else:
-        _test_create_supervised_trainer(
-            gradient_accumulation_steps,
-            loss,
-            weight,
-            bias,
-            model_device=model_device,
-            trainer_device=trainer_device,
-            amp_mode="amp",
-        )
+    _test_create_supervised_trainer_wrong_accumulation(model_device=model_device, trainer_device=trainer_device)
+    _test_create_supervised_trainer(
+        gradient_accumulation_steps,
+        loss,
+        weight,
+        bias,
+        model_device=model_device,
+        trainer_device=trainer_device,
+        amp_mode="amp",
+    )
     _test_create_mocked_supervised_trainer(model_device=model_device, trainer_device=trainer_device, amp_mode="amp")
 
 
@@ -478,57 +431,33 @@ def test_create_supervised_trainer_on_cuda_amp(gradient_accumulation_steps, loss
 @pytest.mark.parametrize(*test_create_supervised_parameters)
 def test_create_supervised_trainer_on_cuda_amp_scaler(gradient_accumulation_steps, loss, weight, bias):
     model_device = trainer_device = "cuda"
-    if gradient_accumulation_steps == 0:
-        with pytest.raises(ValueError, match="Gradient Accumulation steps can't be <= 0"):
-            _test_create_supervised_trainer(
-                gradient_accumulation_steps,
-                loss,
-                weight,
-                bias,
-                model_device=model_device,
-                trainer_device=trainer_device,
-                amp_mode="amp",
-                scaler=True,
-            )
-    else:
-        _test_create_supervised_trainer(
-            gradient_accumulation_steps,
-            loss,
-            weight,
-            bias,
-            model_device=model_device,
-            trainer_device=trainer_device,
-            amp_mode="amp",
-            scaler=True,
-        )
+    _test_create_supervised_trainer_wrong_accumulation(model_device=model_device, trainer_device=trainer_device)
+
+    _test_create_supervised_trainer(
+        gradient_accumulation_steps,
+        loss,
+        weight,
+        bias,
+        model_device=model_device,
+        trainer_device=trainer_device,
+        amp_mode="amp",
+        scaler=True,
+    )
     _test_create_mocked_supervised_trainer(
         model_device=model_device, trainer_device=trainer_device, amp_mode="amp", scaler=True
     )
 
     scaler = torch.cuda.amp.GradScaler(enabled=torch.cuda.is_available())
-    if gradient_accumulation_steps == 0:
-        with pytest.raises(ValueError, match="Gradient Accumulation steps can't be <= 0"):
-            _test_create_supervised_trainer(
-                gradient_accumulation_steps,
-                loss,
-                weight,
-                bias,
-                model_device=model_device,
-                trainer_device=trainer_device,
-                amp_mode="amp",
-                scaler=scaler,
-            )
-    else:
-        _test_create_supervised_trainer(
-            gradient_accumulation_steps,
-            loss,
-            weight,
-            bias,
-            model_device=model_device,
-            trainer_device=trainer_device,
-            amp_mode="amp",
-            scaler=scaler,
-        )
+    _test_create_supervised_trainer(
+        gradient_accumulation_steps,
+        loss,
+        weight,
+        bias,
+        model_device=model_device,
+        trainer_device=trainer_device,
+        amp_mode="amp",
+        scaler=scaler,
+    )
     _test_create_mocked_supervised_trainer(
         model_device=model_device, trainer_device=trainer_device, amp_mode="amp", scaler=scaler
     )
@@ -539,27 +468,17 @@ def test_create_supervised_trainer_on_cuda_amp_scaler(gradient_accumulation_step
 @pytest.mark.parametrize(*test_create_supervised_parameters)
 def test_create_supervised_trainer_on_cuda_apex(gradient_accumulation_steps, loss, weight, bias):
     model_device = trainer_device = "cuda"
-    if gradient_accumulation_steps == 0:
-        with pytest.raises(ValueError, match="Gradient Accumulation steps can't be <= 0"):
-            _test_create_supervised_trainer(
-                gradient_accumulation_steps,
-                loss,
-                weight,
-                bias,
-                model_device=model_device,
-                trainer_device=trainer_device,
-                amp_mode="apex",
-            )
-    else:
-        _test_create_supervised_trainer(
-            gradient_accumulation_steps,
-            loss,
-            weight,
-            bias,
-            model_device=model_device,
-            trainer_device=trainer_device,
-            amp_mode="apex",
-        )
+    _test_create_supervised_trainer_wrong_accumulation(model_device=model_device, trainer_device=trainer_device)
+
+    _test_create_supervised_trainer(
+        gradient_accumulation_steps,
+        loss,
+        weight,
+        bias,
+        model_device=model_device,
+        trainer_device=trainer_device,
+        amp_mode="apex",
+    )
 
     _test_create_mocked_supervised_trainer(model_device=model_device, trainer_device=trainer_device, amp_mode="apex")
 
@@ -584,20 +503,10 @@ def test_create_supervised_trainer_on_tpu_no_xla():
 @pytest.mark.parametrize(*test_create_supervised_parameters)
 def test_create_supervised_trainer_on_tpu(gradient_accumulation_steps, loss, weight, bias):
     model_device = trainer_device = "xla"
-    if gradient_accumulation_steps == 0:
-        with pytest.raises(ValueError, match="Gradient Accumulation steps can't be <= 0"):
-            _test_create_supervised_trainer(
-                gradient_accumulation_steps,
-                loss,
-                weight,
-                bias,
-                model_device=model_device,
-                trainer_device=trainer_device,
-            )
-    else:
-        _test_create_supervised_trainer(
-            gradient_accumulation_steps, loss, weight, bias, model_device=model_device, trainer_device=trainer_device
-        )
+    _test_create_supervised_trainer_wrong_accumulation(model_device=model_device, trainer_device=trainer_device)
+    _test_create_supervised_trainer(
+        gradient_accumulation_steps, loss, weight, bias, model_device=model_device, trainer_device=trainer_device
+    )
     _test_create_mocked_supervised_trainer(model_device=model_device, trainer_device=trainer_device)
 
 
@@ -612,11 +521,8 @@ def test_create_supervised_trainer_on_tpu_amp():
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 @pytest.mark.parametrize(*test_create_supervised_parameters)
 def test_create_supervised_trainer_on_cuda_with_model_on_cpu(gradient_accumulation_steps, loss, weight, bias):
-    if gradient_accumulation_steps == 0:
-        with pytest.raises(ValueError, match="Gradient Accumulation steps can't be <= 0"):
-            _test_create_supervised_trainer(gradient_accumulation_steps, loss, weight, bias, trainer_device="cuda")
-    else:
-        _test_create_supervised_trainer(gradient_accumulation_steps, loss, weight, bias, trainer_device="cuda")
+    _test_create_supervised_trainer_wrong_accumulation(trainer_device="cuda")
+    _test_create_supervised_trainer(gradient_accumulation_steps, loss, weight, bias, trainer_device="cuda")
     _test_create_mocked_supervised_trainer(trainer_device="cuda")
 
 
