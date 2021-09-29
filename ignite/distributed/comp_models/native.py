@@ -461,24 +461,18 @@ if has_native_dist_support:
                 num = str(match.group(2)).replace("[", "").replace("]", "")
 
                 if len(num) == 0:
-                    raise ValueError(f"hostlist unvalid : {nodelist}")
+                    raise ValueError(f"hostlist invalid : {nodelist}")
 
                 num_list = num.split(",")
 
                 # find range of node numbers
-                ranges = [elem.split("-") for elem in num_list if "-" in elem]
+                ranges = [elem.split("-") if "-" in elem else [elem, elem] for elem in num_list]
 
                 # if the node numbers contain leading zeros, store them to be
-                if len(ranges):
-                    lead_zeros = max([len(s) - len(s.lstrip("0")) for s, _ in ranges])
-                else:
-                    lead_zeros = 0
+                lead_zeros = max([len(s) - len(s.lstrip("0")) for s, _ in ranges])
 
                 # list of expanded ranges of node numbers
                 nodes_list = [list(range(int(s), int(e) + 1)) for s, e in ranges]
-
-                # add list of single node numbers
-                nodes_list += [[int(elem)] for elem in num_list if "-" not in elem]
 
                 # flat the list
                 final_list = [item for sublist in nodes_list for item in sublist]
