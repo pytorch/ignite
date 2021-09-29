@@ -91,8 +91,8 @@ def supervised_training_step(
 
     if gradient_accumulation_steps <= 0:
         raise ValueError(
-            "Gradient Accumulation steps can't be <= 0, if you don't want to use "
-            "gradient accumulation set it to 1 (default)"
+            "Gradient_accumulation_steps must be strictly positive. "
+            "No gradient accumulation if the value set to one (default)."
         )
 
     def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
@@ -168,8 +168,8 @@ def supervised_training_step_amp(
 
     if gradient_accumulation_steps <= 0:
         raise ValueError(
-            "Gradient Accumulation steps can't be <= 0, if you don't want to use "
-            "gradient accumulation set it to 1 (default)"
+            "Gradient_accumulation_steps must be strictly positive. "
+            "No gradient accumulation if the value set to one (default)."
         )
 
     def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
@@ -250,8 +250,8 @@ def supervised_training_step_apex(
 
     if gradient_accumulation_steps <= 0:
         raise ValueError(
-            "Gradient Accumulation steps can't be <= 0, if you don't want to use "
-            "gradient accumulation set it to 1 (default)"
+            "Gradient_accumulation_steps must be strictly positive. "
+            "No gradient accumulation if the value set to one (default)."
         )
 
     def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
@@ -324,8 +324,8 @@ def supervised_training_step_tpu(
 
     if gradient_accumulation_steps <= 0:
         raise ValueError(
-            "Gradient Accumulation steps can't be be <= 0, if you don't want to use "
-            "gradient accumulation set it to 1 (default)"
+            "Gradient_accumulation_steps must be strictly positive. "
+            "No gradient accumulation if the value set to one (default)."
         )
 
     def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
@@ -452,12 +452,6 @@ def create_supervised_trainer(
     device_type = device.type if isinstance(device, torch.device) else device
     on_tpu = "xla" in device_type if device_type is not None else False
     mode, _scaler = _check_arg(on_tpu, amp_mode, scaler)
-
-    if gradient_accumulation_steps <= 0:
-        raise ValueError(
-            "Gradient Accumulation steps can't be <= 0, if you don't want to use "
-            "gradient accumulation set it to 1 (default)"
-        )
 
     if mode == "amp":
         _update = supervised_training_step_amp(

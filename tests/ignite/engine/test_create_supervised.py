@@ -167,7 +167,7 @@ def _test_create_mocked_supervised_trainer(
 
 
 def _test_create_supervised_trainer_wrong_accumulation(model_device=None, trainer_device=None):
-    with pytest.raises(ValueError, match="Gradient Accumulation steps can't be <= 0"):
+    with pytest.raises(ValueError, match="Gradient_accumulation_steps must be strictly positive."):
         _default_create_supervised_trainer(
             gradient_accumulation_steps=0, model_device=model_device, trainer_device=trainer_device
         )
