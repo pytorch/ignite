@@ -63,7 +63,7 @@ def test_expand_hostlist(hostlist, expected):
     assert _expand_hostlist(hostlist) == expected.split(",")
 
 
-def test_expand_hostlist_unvalid():
+def test_expand_hostlist_invalid():
     with pytest.raises(ValueError, match=r"hostlist invalid"):
         _expand_hostlist("invalid[]")
 
