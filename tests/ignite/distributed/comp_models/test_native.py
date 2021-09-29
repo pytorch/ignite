@@ -64,8 +64,8 @@ def test_expand_hostlist(hostlist, expected):
 
 
 def test_expand_hostlist_unvalid():
-    with pytest.raises(ValueError, match=r"hostlist unvalid"):
-        _expand_hostlist("unvalid[]")
+    with pytest.raises(ValueError, match=r"hostlist invalid"):
+        _expand_hostlist("invalid[]")
 
 
 @pytest.mark.distributed
