@@ -170,27 +170,6 @@ def test_multistep_scheduler(
     multi_step_state_parameter_scheduler.load_state_dict(state_dict)
 
 
-@pytest.mark.parametrize(
-    "max_epochs, initial_value, gamma, milestones", [(3, 10, 0.99, [3, 6]), (40, 5, 0.98, [3, 6, 9, 10, 11])],
-)
-def test_multistep_scheduler(
-    max_epochs, initial_value, gamma, milestones,
-):
-    engine = Engine(lambda e, b: None)
-    multi_step_state_parameter_scheduler = MultiStepStateScheduler(
-        param_name="multistep_scheduled_param", initial_value=initial_value, gamma=gamma, milestones=milestones,
-    )
-    multi_step_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
-    engine.run([0] * 8, max_epochs=max_epochs)
-    torch.testing.assert_allclose(
-        getattr(engine.state, "multistep_scheduled_param"),
-        initial_value * gamma ** bisect_right(milestones, max_epochs),
-    )
-
-    state_dict = multi_step_state_parameter_scheduler.state_dict()
-    multi_step_state_parameter_scheduler.load_state_dict(state_dict)
-
-
 def test_custom_scheduler():
 
     engine = Engine(lambda e, b: None)
