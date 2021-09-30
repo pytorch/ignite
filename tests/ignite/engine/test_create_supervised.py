@@ -121,7 +121,7 @@ def test_create_supervised_training_scalar_assignment():
 
     with mock.patch("ignite.engine._check_arg") as check_arg_mock:
         check_arg_mock.return_value = None, torch.cuda.amp.GradScaler(enabled=False)
-        trainer, model = _default_create_supervised_trainer(model_device="cpu", trainer_device="cpu", scaler=True)
+        trainer, _ = _default_create_supervised_trainer(model_device="cpu", trainer_device="cpu", scaler=True)
         assert hasattr(trainer.state, "scaler")
         assert isinstance(trainer.state.scaler, torch.cuda.amp.GradScaler)
 
@@ -138,7 +138,7 @@ def _test_create_mocked_supervised_trainer(
             with mock.patch("ignite.engine.supervised_training_step_tpu") as training_step_tpu_mock:
                 with mock.patch("ignite.engine.supervised_training_step") as training_step_mock:
 
-                    trainer, model = _default_create_supervised_trainer(
+                    trainer, _ = _default_create_supervised_trainer(
                         model_device=model_device,
                         trainer_device=trainer_device,
                         trace=trace,
@@ -240,7 +240,7 @@ def _test_mocked_supervised_evaluator(
 ):
     with mock.patch("ignite.engine.supervised_evaluation_step") as evaluation_step:
         with mock.patch("ignite.engine.supervised_evaluation_step_amp") as evaluation_step_amp:
-            model, evaluator = _default_create_supervised_evaluator(
+            _, evaluator = _default_create_supervised_evaluator(
                 model_device=model_device, evaluator_device=evaluator_device, trace=trace, amp_mode=amp_mode
             )
 
@@ -249,7 +249,7 @@ def _test_mocked_supervised_evaluator(
             data = [(x, y)]
 
             if model_device == evaluator_device or ((model_device == "cpu") ^ (evaluator_device == "cpu")):
-                state = evaluator.run(data)
+                evaluator.run(data)
 
                 if amp_mode == "amp":
                     assert evaluation_step_amp.called
