@@ -166,10 +166,10 @@ def _test_create_mocked_supervised_trainer(
                             assert training_step_mock.called
 
 
-def _test_create_supervised_trainer_wrong_accumulation(model_device=None, trainer_device=None):
+def _test_create_supervised_trainer_wrong_accumulation(model_device=None, trainer_device=None, amp_mode=None):
     with pytest.raises(ValueError, match="Gradient_accumulation_steps must be strictly positive."):
         _default_create_supervised_trainer(
-            gradient_accumulation_steps=0, model_device=model_device, trainer_device=trainer_device
+            gradient_accumulation_steps=0, model_device=model_device, trainer_device=trainer_device, amp_mode=amp_mode
         )
 
 
@@ -356,7 +356,10 @@ def test_create_supervised_trainer_traced_with_cpu(gradient_accumulation_steps, 
 @pytest.mark.skipif(find_spec("apex"), reason="Skip if APEX")
 @pytest.mark.parametrize(*test_create_supervised_parameters)
 def test_create_supervised_trainer_apex_error(gradient_accumulation_steps, loss, weight, bias):
-    _test_create_supervised_trainer_wrong_accumulation(trainer_device="cpu")
+    with pytest.raises(
+        ModuleNotFoundError, match="Please install apex from https://github.com/nvidia/apex to use amp_mode='apex'."
+    ):
+        _test_create_supervised_trainer_wrong_accumulation(trainer_device="cpu", amp_mode="apex")
     with pytest.raises(
         ModuleNotFoundError, match="Please install apex from https://github.com/nvidia/apex to use amp_mode='apex'."
     ):
@@ -376,7 +379,8 @@ def mock_torch_cuda_amp_module():
 def test_create_supervised_trainer_amp_error(
     gradient_accumulation_steps, loss, weight, bias, mock_torch_cuda_amp_module
 ):
-    _test_create_supervised_trainer_wrong_accumulation(trainer_device="cpu")
+    with pytest.raises(ImportError, match="Please install torch>=1.6.0 to use amp_mode='amp'."):
+        _test_create_supervised_trainer_wrong_accumulation(trainer_device="cpu", amp_mode="amp")
     with pytest.raises(ImportError, match="Please install torch>=1.6.0 to use amp_mode='amp'."):
         _test_create_supervised_trainer(gradient_accumulation_steps, loss, weight, bias, amp_mode="amp")
     with pytest.raises(ImportError, match="Please install torch>=1.6.0 to use scaler argument."):
@@ -413,7 +417,9 @@ def test_create_supervised_trainer_on_cuda(gradient_accumulation_steps, loss, we
 @pytest.mark.parametrize(*test_create_supervised_parameters)
 def test_create_supervised_trainer_on_cuda_amp(gradient_accumulation_steps, loss, weight, bias):
     model_device = trainer_device = "cuda"
-    _test_create_supervised_trainer_wrong_accumulation(model_device=model_device, trainer_device=trainer_device)
+    _test_create_supervised_trainer_wrong_accumulation(
+        model_device=model_device, trainer_device=trainer_device, amp_mode="amp"
+    )
     _test_create_supervised_trainer(
         gradient_accumulation_steps,
         loss,
@@ -431,7 +437,9 @@ def test_create_supervised_trainer_on_cuda_amp(gradient_accumulation_steps, loss
 @pytest.mark.parametrize(*test_create_supervised_parameters)
 def test_create_supervised_trainer_on_cuda_amp_scaler(gradient_accumulation_steps, loss, weight, bias):
     model_device = trainer_device = "cuda"
-    _test_create_supervised_trainer_wrong_accumulation(model_device=model_device, trainer_device=trainer_device)
+    _test_create_supervised_trainer_wrong_accumulation(
+        model_device=model_device, trainer_device=trainer_device, amp_mode="amp"
+    )
 
     _test_create_supervised_trainer(
         gradient_accumulation_steps,
@@ -468,7 +476,9 @@ def test_create_supervised_trainer_on_cuda_amp_scaler(gradient_accumulation_step
 @pytest.mark.parametrize(*test_create_supervised_parameters)
 def test_create_supervised_trainer_on_cuda_apex(gradient_accumulation_steps, loss, weight, bias):
     model_device = trainer_device = "cuda"
-    _test_create_supervised_trainer_wrong_accumulation(model_device=model_device, trainer_device=trainer_device)
+    _test_create_supervised_trainer_wrong_accumulation(
+        model_device=model_device, trainer_device=trainer_device, amp_mode="apex"
+    )
 
     _test_create_supervised_trainer(
         gradient_accumulation_steps,
