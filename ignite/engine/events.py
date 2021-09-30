@@ -140,7 +140,10 @@ class CallableEventWithFilter:
 
 class EventEnum(CallableEventWithFilter, Enum):  # type: ignore[misc]
     """Base class for all :class:`~ignite.engine.events.Events`. User defined custom events should also inherit
-    this class. For example, Custom events based on the loss calculation and backward pass can be created as follows:
+    this class.
+
+     Examples:
+         Custom events based on the loss calculation and backward pass can be created as follows:
 
         .. code-block:: python
 
@@ -436,20 +439,19 @@ class RemovableEventHandle:
         handler: Registered event handler, stored as weakref.
         engine: Target engine, stored as weakref.
 
-    Example usage:
+    Examples:
+        .. code-block:: python
 
-    .. code-block:: python
+            engine = Engine()
 
-        engine = Engine()
+            def print_epoch(engine):
+                print(f"Epoch: {engine.state.epoch}")
 
-        def print_epoch(engine):
-            print(f"Epoch: {engine.state.epoch}")
+            with engine.add_event_handler(Events.EPOCH_COMPLETED, print_epoch):
+                # print_epoch handler registered for a single run
+                engine.run(data)
 
-        with engine.add_event_handler(Events.EPOCH_COMPLETED, print_epoch):
-            # print_epoch handler registered for a single run
-            engine.run(data)
-
-        # print_epoch handler is now unregistered
+            # print_epoch handler is now unregistered
     """
 
     def __init__(

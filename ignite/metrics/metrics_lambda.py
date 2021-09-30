@@ -27,43 +27,41 @@ class MetricsLambda(Metric):
         kwargs: Sequence of other metrics or something
             else that will be fed to ``f`` as keyword arguments.
 
-    Example:
+    Examples:
+        .. code-block:: python
 
-    .. code-block:: python
+            precision = Precision(average=False)
+            recall = Recall(average=False)
 
-        precision = Precision(average=False)
-        recall = Recall(average=False)
+            def Fbeta(r, p, beta):
+                return torch.mean((1 + beta ** 2) * p * r / (beta ** 2 * p + r + 1e-20)).item()
 
-        def Fbeta(r, p, beta):
-            return torch.mean((1 + beta ** 2) * p * r / (beta ** 2 * p + r + 1e-20)).item()
+            F1 = MetricsLambda(Fbeta, recall, precision, 1)
+            F2 = MetricsLambda(Fbeta, recall, precision, 2)
+            F3 = MetricsLambda(Fbeta, recall, precision, 3)
+            F4 = MetricsLambda(Fbeta, recall, precision, 4)
 
-        F1 = MetricsLambda(Fbeta, recall, precision, 1)
-        F2 = MetricsLambda(Fbeta, recall, precision, 2)
-        F3 = MetricsLambda(Fbeta, recall, precision, 3)
-        F4 = MetricsLambda(Fbeta, recall, precision, 4)
+        When check if the metric is attached, if one of its dependency
+        metrics is detached, the metric is considered detached too.
 
-    When check if the metric is attached, if one of its dependency
-    metrics is detached, the metric is considered detached too.
+        .. code-block:: python
 
-    .. code-block:: python
+            engine = ...
+            precision = Precision(average=False)
 
-        engine = ...
-        precision = Precision(average=False)
+            aP = precision.mean()
 
-        aP = precision.mean()
+            aP.attach(engine, "aP")
 
-        aP.attach(engine, "aP")
+            assert aP.is_attached(engine)
+            # partially attached
+            assert not precision.is_attached(engine)
 
-        assert aP.is_attached(engine)
-        # partially attached
-        assert not precision.is_attached(engine)
+            precision.detach(engine)
 
-        precision.detach(engine)
-
-        assert not aP.is_attached(engine)
-        # fully attached
-        assert not precision.is_attached(engine)
-
+            assert not aP.is_attached(engine)
+            # fully attached
+            assert not precision.is_attached(engine)
     """
 
     def __init__(self, f: Callable, *args: Any, **kwargs: Any) -> None:

@@ -102,20 +102,19 @@ class Bleu(Metric):
             for more details refer https://www.nltk.org/_modules/nltk/translate/bleu_score.html
             Default: "macro"
 
-    Example:
+    Examples:
+        .. code-block:: python
 
-    .. code-block:: python
+            from ignite.metrics.nlp import Bleu
 
-        from ignite.metrics.nlp import Bleu
+            m = Bleu(ngram=4, smooth="smooth1")
 
-        m = Bleu(ngram=4, smooth="smooth1")
+            y_pred = "the the the the the the the"
+            y = ["the cat is on the mat", "there is a cat on the mat"]
 
-        y_pred = "the the the the the the the"
-        y = ["the cat is on the mat", "there is a cat on the mat"]
+            m.update(([y_pred.split()], [[_y.split() for _y in y]]))
 
-        m.update(([y_pred.split()], [[_y.split() for _y in y]]))
-
-        print(m.compute())
+            print(m.compute())
 
     .. versionadded:: 0.4.5
     .. versionchanged:: 0.5.0
