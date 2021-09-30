@@ -1,6 +1,6 @@
 import numbers
 from bisect import bisect_right
-from typing import Any, Callable, List, Tuple, Union
+from typing import Any, List, Tuple, Union
 
 from ignite.engine import CallableEventWithFilter, Engine, Events, EventsList
 from ignite.handlers import BaseParamScheduler
@@ -152,7 +152,7 @@ class LambdaStateScheduler(StateParamScheduler):
         super(LambdaStateScheduler, self).__init__(param_name, save_history)
 
         if not callable(lambda_obj):
-            raise ValueError(f"Expected lambda_obj to be callable.")
+            raise ValueError("Expected lambda_obj to be callable.")
 
         self.lambda_obj = lambda_obj
         self._state_attrs += ["lambda_obj"]
