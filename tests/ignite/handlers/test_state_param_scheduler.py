@@ -95,6 +95,22 @@ def test_pwlinear_scheduler_max_value(
 
 
 @pytest.mark.parametrize(
+    "max_epochs, milestones_values,", [(3, [(0,)]),],
+)
+def test_pwlinear_scheduler_exception(
+    max_epochs, milestones_values,
+):
+    # Testing max_value
+    engine = Engine(lambda e, b: None)
+    with pytest.raises(
+        ValueError, match=r"Argument milestones_values should be a list of pairs \(milestone, param_value\)"
+    ):
+        linear_state_parameter_scheduler = PiecewiseLinearStateScheduler(
+            param_name="linear_scheduled_param", milestones_values=milestones_values,
+        )
+
+
+@pytest.mark.parametrize(
     "max_epochs, initial_value, gamma", [(3, 10, 0.99), (40, 5, 0.98)],
 )
 def test_exponential_scheduler(max_epochs, initial_value, gamma):
@@ -154,21 +170,51 @@ def test_multistep_scheduler(
     multi_step_state_parameter_scheduler.load_state_dict(state_dict)
 
 
+@pytest.mark.parametrize(
+    "max_epochs, initial_value, gamma, milestones", [(3, 10, 0.99, [3, 6]), (40, 5, 0.98, [3, 6, 9, 10, 11])],
+)
+def test_multistep_scheduler(
+    max_epochs, initial_value, gamma, milestones,
+):
+    engine = Engine(lambda e, b: None)
+    multi_step_state_parameter_scheduler = MultiStepStateScheduler(
+        param_name="multistep_scheduled_param", initial_value=initial_value, gamma=gamma, milestones=milestones,
+    )
+    multi_step_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
+    engine.run([0] * 8, max_epochs=max_epochs)
+    torch.testing.assert_allclose(
+        getattr(engine.state, "multistep_scheduled_param"),
+        initial_value * gamma ** bisect_right(milestones, max_epochs),
+    )
+
+    state_dict = multi_step_state_parameter_scheduler.state_dict()
+    multi_step_state_parameter_scheduler.load_state_dict(state_dict)
+
+
 def test_custom_scheduler():
 
-    initial_value = 10
-    gamma = 0.99
     engine = Engine(lambda e, b: None)
 
-    def lambda_fn(event_index):
-        return initial_value * gamma ** (event_index % 9)
+    class LambdaState:
+        def __init__(self, initial_value, gamma):
+            self.initial_value = initial_value
+            self.gamma = gamma
 
-    lambda_state_parameter_scheduler = LambdaStateScheduler(param_name="custom_scheduled_param", lambda_fn=lambda_fn,)
+        def __call__(self, event_index):
+            return self.initial_value * self.gamma ** (event_index % 9)
+
+    lambda_state_parameter_scheduler = LambdaStateScheduler(
+        param_name="custom_scheduled_param", lambda_obj=LambdaState(initial_value=10, gamma=0.99),
+    )
     lambda_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
     engine.run([0] * 8, max_epochs=2)
-    torch.testing.assert_allclose(getattr(engine.state, "custom_scheduled_param"), lambda_fn(2))
+    torch.testing.assert_allclose(
+        getattr(engine.state, "custom_scheduled_param"), LambdaState(initial_value=10, gamma=0.99)(2)
+    )
     engine.run([0] * 8, max_epochs=20)
-    torch.testing.assert_allclose(getattr(engine.state, "custom_scheduled_param"), lambda_fn(20))
+    torch.testing.assert_allclose(
+        getattr(engine.state, "custom_scheduled_param"), LambdaState(initial_value=10, gamma=0.99)(20)
+    )
 
     state_dict = lambda_state_parameter_scheduler.state_dict()
     lambda_state_parameter_scheduler.load_state_dict(state_dict)
@@ -183,9 +229,20 @@ config3 = (
     MultiStepStateScheduler,
     {"param_name": "multistep_scheduled_param", "initial_value": 10, "gamma": 0.99, "milestones": [3, 6]},
 )
+
+
+class LambdaState:
+    def __init__(self, initial_value, gamma):
+        self.initial_value = initial_value
+        self.gamma = gamma
+
+    def __call__(self, event_index):
+        return self.initial_value * self.gamma ** (event_index % 9)
+
+
 config4 = (
     LambdaStateScheduler,
-    {"param_name": "custom_scheduled_param", "lambda_fn": lambda event_index: 10 * 0.99 ** (event_index % 9)},
+    {"param_name": "custom_scheduled_param", "lambda_obj": LambdaState(initial_value=10, gamma=0.99)},
 )
 
 
@@ -210,6 +267,34 @@ def test_simulate_and_plot_values(scheduler_cls, scheduler_kwargs):
         scheduler_cls.plot_values(num_events=len(data) * max_epochs, **scheduler_kwargs)
 
     _test(scheduler_cls, scheduler_kwargs)
+
+
+def test_torch_save_load():
+
+    lambda_state_parameter_scheduler = LambdaStateScheduler(
+        param_name="custom_scheduled_param", lambda_obj=LambdaState(initial_value=10, gamma=0.99),
+    )
+
+    torch.save(lambda_state_parameter_scheduler, "dummy_lambda_state_parameter_scheduler.pt")
+    loaded_lambda_state_parameter_scheduler = torch.load("dummy_lambda_state_parameter_scheduler.pt")
+
+    engine1 = Engine(lambda e, b: None)
+    lambda_state_parameter_scheduler.attach(engine1, Events.EPOCH_COMPLETED)
+    engine1.run([0] * 8, max_epochs=2)
+    torch.testing.assert_allclose(
+        getattr(engine1.state, "custom_scheduled_param"), LambdaState(initial_value=10, gamma=0.99)(2)
+    )
+
+    engine2 = Engine(lambda e, b: None)
+    loaded_lambda_state_parameter_scheduler.attach(engine2, Events.EPOCH_COMPLETED)
+    engine2.run([0] * 8, max_epochs=2)
+    torch.testing.assert_allclose(
+        getattr(engine2.state, "custom_scheduled_param"), LambdaState(initial_value=10, gamma=0.99)(2)
+    )
+
+    torch.testing.assert_allclose(
+        getattr(engine1.state, "custom_scheduled_param"), getattr(engine2.state, "custom_scheduled_param")
+    )
 
 
 def test_simulate_and_plot_values_no_matplotlib():
@@ -242,12 +327,15 @@ def test_docstring_examples():
 
     engine = Engine(lambda e, b: None)
 
-    initial_value = 10
-    gamma = 0.99
+    class LambdaState:
+        def __init__(self, initial_value, gamma):
+            self.initial_value = initial_value
+            self.gamma = gamma
 
-    param_scheduler = LambdaStateScheduler(
-        param_name="param", lambda_fn=lambda event_index: initial_value * gamma ** (event_index % 9),
-    )
+        def __call__(self, event_index):
+            return self.initial_value * self.gamma ** (event_index % 9)
+
+    param_scheduler = LambdaStateScheduler(param_name="param", lambda_obj=LambdaState(10, 0.99),)
 
     param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
 

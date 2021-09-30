@@ -33,9 +33,9 @@ class StateParamScheduler(BaseParamScheduler):
         engine: Engine,
         event: Union[str, Events, CallableEventWithFilter, EventsList] = Events.ITERATION_COMPLETED,
     ) -> None:
-        """Attach the handler to engine. After the handler is attached, the ``Engine.state`` will add a new attribute
-        with name ``param_name``. Then, current parameter value can be retrieved by from ``Engine.state`` when the
-        engine runs.
+        """Attach the handler to the engine. Once the handler is attached, the ``Engine.state`` will have a new
+        attribute with the name ``param_name``. Then the current value of the parameter can be retrieved from
+        ``Engine.state`` when the engine is running.
 
         Args:
             engine: trainer to which the handler will be attached.
@@ -44,9 +44,15 @@ class StateParamScheduler(BaseParamScheduler):
         """
         if hasattr(engine.state, self.param_name):
             raise ValueError(
-                f"Attribute: '{self.param_name}' is already in Engine.state and might be "
-                f"overridden by other StateParameterScheduler handlers. Please select another name."
+                f"Attribute: '{self.param_name}' is already defined in the Engine.state."
+                f"This may be a conflict between multiple StateParameterScheduler handlers."
+                f"Please choose another name."
             )
+
+        if self.save_history:
+            if not hasattr(engine.state, "param_history") or engine.state.param_history is None:  # type: ignore
+                setattr(engine.state, "param_history", {})
+                engine.state.param_history.setdefault(self.param_name, [])  # type: ignore[attr-defined]
 
         engine.add_event_handler(event, self)
 
@@ -55,9 +61,6 @@ class StateParamScheduler(BaseParamScheduler):
         value = self.get_param()
         setattr(engine.state, self.param_name, value)
         if self.save_history:
-            if not hasattr(engine.state, "param_history") or engine.state.param_history is None:  # type: ignore
-                setattr(engine.state, "param_history", {})
-            engine.state.param_history.setdefault(self.param_name, [])  # type: ignore[attr-defined]
             engine.state.param_history[self.param_name].append(value)  # type: ignore[attr-defined]
 
     @classmethod
@@ -104,11 +107,11 @@ class StateParamScheduler(BaseParamScheduler):
 
 
 class LambdaStateScheduler(StateParamScheduler):
-    """Update a parameter during training by using a user defined function.
-        User defined function is taking an event index as input and returns parameter value.
+    """Update a parameter during training by using a user defined callable object.
+        User defined callable object is taking an event index as input and returns parameter value.
 
     Args:
-        lambda_fn: user defined parameter update function.
+        lambda_obj: user defined callable object.
         param_name: name of parameter to update.
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
@@ -120,12 +123,18 @@ class LambdaStateScheduler(StateParamScheduler):
             ...
             engine = Engine(train_step)
 
-            initial_value = 10
-            gamma = 0.99
+            class LambdaState:
+                def __init__(self, initial_value, gamma):
+                    self.initial_value = initial_value
+                    self.gamma = gamma
+
+                def __call__(self, event_index):
+                    return self.initial_value * self.gamma ** (event_index % 9)
+
 
             param_scheduler = LambdaStateScheduler(
                 param_name="param",
-                lambda_fn=lambda event_index: initial_value * gamma ** (event_index % 9),
+                lambda_obj=LambdaState(10, 0.99),
             )
 
             param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
@@ -139,13 +148,17 @@ class LambdaStateScheduler(StateParamScheduler):
 
     """
 
-    def __init__(self, lambda_fn: Callable, param_name: str, save_history: bool = False):
+    def __init__(self, lambda_obj: Any, param_name: str, save_history: bool = False):
         super(LambdaStateScheduler, self).__init__(param_name, save_history)
-        self.lambda_fn = lambda_fn
-        self._state_attrs += ["lambda_fn"]
+
+        if not callable(lambda_obj):
+            raise ValueError(f"Expected lambda_obj to be callable.")
+
+        self.lambda_obj = lambda_obj
+        self._state_attrs += ["lambda_obj"]
 
     def get_param(self) -> Union[List[float], float]:
-        return self.lambda_fn(self.event_index)
+        return self.lambda_obj(self.event_index)
 
 
 class PiecewiseLinearStateScheduler(StateParamScheduler):
