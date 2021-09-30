@@ -209,24 +209,23 @@ class RougeN(_BaseRouge):
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
 
-    Example:
+    Examples:
+        .. code-block:: python
 
-    .. code-block:: python
+            from ignite.metrics import RougeN
 
-        from ignite.metrics import RougeN
+            m = RougeN(ngram=2, multiref="best")
 
-        m = RougeN(ngram=2, multiref="best")
+            candidate = "the cat is not there".split()
+            references = [
+                "the cat is on the mat".split(),
+                "there is a cat on the mat".split()
+            ]
 
-        candidate = "the cat is not there".split()
-        references = [
-            "the cat is on the mat".split(),
-            "there is a cat on the mat".split()
-        ]
+            m.update((candidate, references))
 
-        m.update((candidate, references))
-
-        m.compute()
-        >>> {'Rouge-2-P': 0.5, 'Rouge-2-R': 0.4, 'Rouge-2-F': 0.4}
+            m.compute()
+            # {'Rouge-2-P': 0.5, 'Rouge-2-R': 0.4, 'Rouge-2-F': 0.4}
 
     .. versionadded:: 0.4.5
     """
@@ -276,24 +275,23 @@ class RougeL(_BaseRouge):
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
 
-    Example:
+    Examples:
+        .. code-block:: python
 
-    .. code-block:: python
+            from ignite.metrics import RougeL
 
-        from ignite.metrics import RougeL
+            m = RougeL(multiref="best")
 
-        m = RougeL(multiref="best")
+            candidate = "the cat is not there".split()
+            references = [
+               "the cat is on the mat".split(),
+                "there is a cat on the mat".split()
+            ]
 
-        candidate = "the cat is not there".split()
-        references = [
-           "the cat is on the mat".split(),
-            "there is a cat on the mat".split()
-        ]
+            m.update((candidate, references))
 
-        m.update((candidate, references))
-
-       m.compute()
-       >>> {'Rouge-L-P': 0.6, 'Rouge-L-R': 0.5, 'Rouge-L-F': 0.5}
+           m.compute()
+           # {'Rouge-L-P': 0.6, 'Rouge-L-R': 0.5, 'Rouge-L-F': 0.5}
 
     .. versionadded:: 0.4.5
     """
@@ -338,24 +336,24 @@ class Rouge(Metric):
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
 
-    Example:
+    Examples:
+        .. code-block:: python
 
-    .. code-block:: python
+            from ignite.metrics import Rouge
 
-        from ignite.metrics import Rouge
+            m = Rouge(variants=["L", 2], multiref="best")
 
-        m = Rouge(variants=["L", 2], multiref="best")
+            candidate = "the cat is not there".split()
+            references = [
+                "the cat is on the mat".split(),
+                "there is a cat on the mat".split()
+            ]
 
-        candidate = "the cat is not there".split()
-        references = [
-            "the cat is on the mat".split(),
-            "there is a cat on the mat".split()
-        ]
+            m.update((candidate, references))
 
-        m.update((candidate, references))
-
-        m.compute()
-        >>> {'Rouge-L-P': 0.6, 'Rouge-L-R': 0.5, 'Rouge-L-F': 0.5, 'Rouge-2-P': 0.5, 'Rouge-2-R': 0.4, 'Rouge-2-F': 0.4}
+            m.compute()
+            # {'Rouge-L-P': 0.6, 'Rouge-L-R': 0.5, 'Rouge-L-F': 0.5, 'Rouge-2-P': 0.5, 'Rouge-2-R': 0.4,
+            # 'Rouge-2-F': 0.4}
 
     .. versionadded:: 0.4.5
     """

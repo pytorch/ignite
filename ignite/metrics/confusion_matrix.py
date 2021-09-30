@@ -36,10 +36,16 @@ class ConfusionMatrix(Metric):
             default, CPU.
 
     Note:
+        The confusion matrix is formatted such that columns are predictions and rows are targets.
+        For example, if you were to plot the matrix, you could correctly assign to the horizontal axis
+        the label "predicted values" and to the vertical axis the label "actual values".
+
+    Note:
         In case of the targets `y` in `(batch_size, ...)` format, target indices between 0 and `num_classes` only
         contribute to the confusion matrix and others are neglected. For example, if `num_classes=20` and target index
         equal 255 is encountered, then it is filtered out.
 
+    Examples:
         If you are doing binary classification with a single output unit, you may have to transform your network output,
         so that you have one value for each class. E.g. you can transform your network output into a one-hot vector
         with:
@@ -60,12 +66,6 @@ class ConfusionMatrix(Metric):
             evaluator = create_supervised_evaluator(
                 model, metrics=metrics, output_transform=lambda x, y, y_pred: (y_pred, y)
             )
-
-    Note:
-        The confusion matrix is formatted such that columns are predictions and rows are targets.
-        For example, if you were to plot the matrix, you could correctly assign to the horizontal axis
-        the label "predicted values" and to the vertical axis the label "actual values".
-
     """
 
     def __init__(
@@ -174,16 +174,15 @@ def IoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambd
         MetricsLambda
 
     Examples:
+        .. code-block:: python
 
-    .. code-block:: python
+            train_evaluator = ...
 
-        train_evaluator = ...
+            cm = ConfusionMatrix(num_classes=num_classes)
+            IoU(cm, ignore_index=0).attach(train_evaluator, 'IoU')
 
-        cm = ConfusionMatrix(num_classes=num_classes)
-        IoU(cm, ignore_index=0).attach(train_evaluator, 'IoU')
-
-        state = train_evaluator.run(train_dataset)
-        # state.metrics['IoU'] -> tensor of shape (num_classes - 1, )
+            state = train_evaluator.run(train_dataset)
+            # state.metrics['IoU'] -> tensor of shape (num_classes - 1, )
 
     """
     if not isinstance(cm, ConfusionMatrix):
@@ -225,18 +224,15 @@ def mIoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLamb
         MetricsLambda
 
     Examples:
+        .. code-block:: python
 
-    .. code-block:: python
+            train_evaluator = ...
 
-        train_evaluator = ...
+            cm = ConfusionMatrix(num_classes=num_classes)
+            mIoU(cm, ignore_index=0).attach(train_evaluator, 'mean IoU')
 
-        cm = ConfusionMatrix(num_classes=num_classes)
-        mIoU(cm, ignore_index=0).attach(train_evaluator, 'mean IoU')
-
-        state = train_evaluator.run(train_dataset)
-        # state.metrics['mean IoU'] -> scalar
-
-
+            state = train_evaluator.run(train_dataset)
+            # state.metrics['mean IoU'] -> scalar
     """
     iou = IoU(cm=cm, ignore_index=ignore_index).mean()  # type: MetricsLambda
     return iou
@@ -345,16 +341,14 @@ def JaccardIndex(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> Met
         MetricsLambda
 
     Examples:
+        .. code-block:: python
 
-    .. code-block:: python
+            train_evaluator = ...
 
-        train_evaluator = ...
+            cm = ConfusionMatrix(num_classes=num_classes)
+            JaccardIndex(cm, ignore_index=0).attach(train_evaluator, 'JaccardIndex')
 
-        cm = ConfusionMatrix(num_classes=num_classes)
-        JaccardIndex(cm, ignore_index=0).attach(train_evaluator, 'JaccardIndex')
-
-        state = train_evaluator.run(train_dataset)
-        # state.metrics['JaccardIndex'] -> tensor of shape (num_classes - 1, )
-
+            state = train_evaluator.run(train_dataset)
+            # state.metrics['JaccardIndex'] -> tensor of shape (num_classes - 1, )
     """
     return IoU(cm, ignore_index)

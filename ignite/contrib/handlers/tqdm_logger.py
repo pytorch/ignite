@@ -27,7 +27,6 @@ class ProgressBar(BaseLogger):
             "Predictions [5/10]" if number of epochs is more than one otherwise it is simply "Predictions".
 
     Examples:
-
         Simple progress bar
 
         .. code-block:: python
