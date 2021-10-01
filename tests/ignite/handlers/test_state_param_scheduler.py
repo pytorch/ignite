@@ -199,6 +199,18 @@ def test_custom_scheduler():
     lambda_state_parameter_scheduler.load_state_dict(state_dict)
 
 
+def test_custom_scheduler_must_be_callable():
+    class LambdaState:
+        def __init__(self, initial_value, gamma):
+            self.initial_value = initial_value
+            self.gamma = gamma
+
+    with pytest.raises(ValueError, match=r"Expected lambda_obj to be callable."):
+        lambda_state_parameter_scheduler = LambdaStateScheduler(
+            param_name="custom_scheduled_param", lambda_obj=LambdaState(initial_value=10, gamma=0.99),
+        )
+
+
 config1 = (
     PiecewiseLinearStateScheduler,
     {"param_name": "linear_scheduled_param", "milestones_values": [(3, 12), (5, 10)]},
