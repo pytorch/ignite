@@ -1,6 +1,6 @@
 import numbers
 from bisect import bisect_right
-from typing import Any, List, Tuple, Union
+from typing import Any, List, Sequence, Tuple, Union
 
 from ignite.engine import CallableEventWithFilter, Engine, Events, EventsList
 from ignite.handlers import BaseParamScheduler
@@ -203,6 +203,15 @@ class PiecewiseLinearStateScheduler(StateParamScheduler):
         self, milestones_values: List[Tuple[int, float]], param_name: str, save_history: bool = False,
     ):
         super(PiecewiseLinearStateScheduler, self).__init__(param_name, save_history)
+
+        if not isinstance(milestones_values, Sequence):
+            raise TypeError(
+                f"Argument milestones_values should be a list or tuple, but given {type(milestones_values)}"
+            )
+        if len(milestones_values) < 1:
+            raise ValueError(
+                f"Argument milestones_values should be with at least one value, but given {milestones_values}"
+            )
 
         values = []  # type: List[float]
         milestones = []  # type: List[int]

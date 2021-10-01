@@ -94,20 +94,25 @@ def test_pwlinear_scheduler_max_value(
     linear_state_parameter_scheduler.load_state_dict(state_dict)
 
 
-@pytest.mark.parametrize(
-    "max_epochs, milestones_values,", [(3, [(0,)]),],
-)
-def test_pwlinear_scheduler_exception(
-    max_epochs, milestones_values,
-):
-    # Testing max_value
-    engine = Engine(lambda e, b: None)
-    with pytest.raises(
-        ValueError, match=r"Argument milestones_values should be a list of pairs \(milestone, param_value\)"
-    ):
-        linear_state_parameter_scheduler = PiecewiseLinearStateScheduler(
-            param_name="linear_scheduled_param", milestones_values=milestones_values,
-        )
+def test_piecewiselinear_asserts():
+
+    with pytest.raises(TypeError, match=r"Argument milestones_values should be a list or tuple"):
+        PiecewiseLinearStateScheduler(param_name="linear_scheduled_param", milestones_values=None)
+
+    with pytest.raises(ValueError, match=r"Argument milestones_values should be with at least one value"):
+        PiecewiseLinearStateScheduler(param_name="linear_scheduled_param", milestones_values=[])
+
+    with pytest.raises(ValueError, match=r"Argument milestones_values should be a list of pairs"):
+        PiecewiseLinearStateScheduler(param_name="linear_scheduled_param", milestones_values=[(0.5,)])
+
+    with pytest.raises(ValueError, match=r"Argument milestones_values should be a list of pairs"):
+        PiecewiseLinearStateScheduler(param_name="linear_scheduled_param", milestones_values=[(10, 0.5), (0.6,)])
+
+    with pytest.raises(ValueError, match=r"Milestones should be increasing integers"):
+        PiecewiseLinearStateScheduler(param_name="linear_scheduled_param", milestones_values=[(10, 0.5), (5, 0.6)])
+
+    with pytest.raises(TypeError, match=r"Value of a milestone should be integer"):
+        PiecewiseLinearStateScheduler(param_name="linear_scheduled_param", milestones_values=[(0.5, 1)])
 
 
 @pytest.mark.parametrize(
@@ -199,7 +204,7 @@ def test_custom_scheduler():
     lambda_state_parameter_scheduler.load_state_dict(state_dict)
 
 
-def test_custom_scheduler_must_be_callable():
+def test_custom_scheduler_asserts():
     class LambdaState:
         def __init__(self, initial_value, gamma):
             self.initial_value = initial_value
@@ -256,6 +261,31 @@ def test_simulate_and_plot_values(scheduler_cls, scheduler_kwargs):
 
         # launch plot values
         scheduler_cls.plot_values(num_events=len(data) * max_epochs, **scheduler_kwargs)
+
+    _test(scheduler_cls, scheduler_kwargs)
+
+
+@pytest.mark.parametrize("scheduler_cls,scheduler_kwargs", [config1, config2, config3, config4])
+def test_state_param_asserts(scheduler_cls, scheduler_kwargs):
+    import re
+
+    def _test(scheduler_cls, scheduler_kwargs):
+        scheduler = scheduler_cls(**scheduler_kwargs)
+        with pytest.raises(
+            ValueError,
+            match=r"Attribute: '"
+            + re.escape(scheduler_kwargs["param_name"])
+            + "' is already defined in the Engine.state.This may be a conflict between multiple StateParameterScheduler"
+            + " handlers.Please choose another name.",
+        ):
+
+            trainer = Engine(lambda engine, batch: None)
+            event = Events.EPOCH_COMPLETED
+            max_epochs = 2
+            data = [0] * 10
+            scheduler.attach(trainer, event)
+            trainer.run(data, max_epochs=max_epochs)
+            scheduler.attach(trainer, event)
 
     _test(scheduler_cls, scheduler_kwargs)
 
