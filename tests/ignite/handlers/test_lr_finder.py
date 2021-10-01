@@ -311,15 +311,12 @@ def test_num_iter_is_not_enough(lr_finder, to_save, dummy_engine, dataloader):
         assert dummy_engine.state.iteration == 150
 
 
-def test_detach_terminates(lr_finder, to_save, dummy_engine, dataloader, recwarn):
+def test_detach_terminates(lr_finder, to_save, dummy_engine, dataloader):
     with lr_finder.attach(dummy_engine, to_save, end_lr=100, diverge_th=2) as trainer_with_finder:
         trainer_with_finder.run(dataloader)
 
     dummy_engine.run(dataloader, max_epochs=3)
     assert dummy_engine.state.epoch == 3
-    # Temporary fix for failing CI:
-    # https://github.com/pytorch/ignite/issues/2141
-    # assert len(recwarn) == 0
 
 
 def test_different_num_iters(lr_finder, to_save, dummy_engine, dataloader):

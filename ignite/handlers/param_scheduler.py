@@ -122,7 +122,6 @@ class BaseParamScheduler(metaclass=ABCMeta):
             matplotlib.lines.Line2D
 
         Examples:
-
             .. code-block:: python
 
                 import matplotlib.pylab as plt
@@ -362,17 +361,15 @@ class LinearCyclicalScheduler(CyclicalScheduler):
         usually be the number of batches in an epoch.
 
     Examples:
+        .. code-block:: python
 
-    .. code-block:: python
+            from ignite.handlers.param_scheduler import LinearCyclicalScheduler
 
-        from ignite.handlers.param_scheduler import LinearCyclicalScheduler
-
-        scheduler = LinearCyclicalScheduler(optimizer, 'lr', 1e-3, 1e-1, len(train_loader))
-        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
-        #
-        # Linearly increases the learning rate from 1e-3 to 1e-1 and back to 1e-3
-        # over the course of 1 epoch
-        #
+            scheduler = LinearCyclicalScheduler(optimizer, 'lr', 1e-3, 1e-1, len(train_loader))
+            trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+            #
+            # Linearly increases the learning rate from 1e-3 to 1e-1 and back to 1e-3
+            # over the course of 1 epoch
 
     .. versionadded:: 0.4.5
     """
@@ -410,34 +407,33 @@ class CosineAnnealingScheduler(CyclicalScheduler):
         usually be the number of batches in an epoch.
 
     Examples:
+        .. code-block:: python
 
-    .. code-block:: python
+            from ignite.handlers.param_scheduler import CosineAnnealingScheduler
 
-        from ignite.handlers.param_scheduler import CosineAnnealingScheduler
+            scheduler = CosineAnnealingScheduler(optimizer, 'lr', 1e-1, 1e-3, len(train_loader))
+            trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+            #
+            # Anneals the learning rate from 1e-1 to 1e-3 over the course of 1 epoch.
+            #
 
-        scheduler = CosineAnnealingScheduler(optimizer, 'lr', 1e-1, 1e-3, len(train_loader))
-        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
-        #
-        # Anneals the learning rate from 1e-1 to 1e-3 over the course of 1 epoch.
-        #
+        .. code-block:: python
 
-    .. code-block:: python
+            from ignite.handlers.param_scheduler import CosineAnnealingScheduler
+            from ignite.handlers.param_scheduler import LinearCyclicalScheduler
 
-        from ignite.handlers.param_scheduler import CosineAnnealingScheduler
-        from ignite.handlers.param_scheduler import LinearCyclicalScheduler
+            optimizer = SGD(
+                [
+                    {"params": model.base.parameters(), 'lr': 0.001},
+                    {"params": model.fc.parameters(), 'lr': 0.01},
+                ]
+            )
 
-        optimizer = SGD(
-            [
-                {"params": model.base.parameters(), 'lr': 0.001},
-                {"params": model.fc.parameters(), 'lr': 0.01},
-            ]
-        )
+            scheduler1 = LinearCyclicalScheduler(optimizer, 'lr', 1e-7, 1e-5, len(train_loader), param_group_index=0)
+            trainer.add_event_handler(Events.ITERATION_STARTED, scheduler1, "lr (base)")
 
-        scheduler1 = LinearCyclicalScheduler(optimizer, 'lr', 1e-7, 1e-5, len(train_loader), param_group_index=0)
-        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler1, "lr (base)")
-
-        scheduler2 = CosineAnnealingScheduler(optimizer, 'lr', 1e-5, 1e-3, len(train_loader), param_group_index=1)
-        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler2, "lr (fc)")
+            scheduler2 = CosineAnnealingScheduler(optimizer, 'lr', 1e-5, 1e-3, len(train_loader), param_group_index=1)
+            trainer.add_event_handler(Events.ITERATION_STARTED, scheduler2, "lr (fc)")
 
     .. [Smith17] Smith, Leslie N. "Cyclical learning rates for training neural networks."
                  Applications of Computer Vision (WACV), 2017 IEEE Winter Conference on. IEEE, 2017
@@ -465,23 +461,21 @@ class ConcatScheduler(ParamScheduler):
             `engine.state.param_history`, (default=False).
 
     Examples:
+        .. code-block:: python
 
-    .. code-block:: python
+            from ignite.handlers.param_scheduler import ConcatScheduler
+            from ignite.handlers.param_scheduler import LinearCyclicalScheduler
+            from ignite.handlers.param_scheduler import CosineAnnealingScheduler
 
-        from ignite.handlers.param_scheduler import ConcatScheduler
-        from ignite.handlers.param_scheduler import LinearCyclicalScheduler
-        from ignite.handlers.param_scheduler import CosineAnnealingScheduler
+            scheduler_1 = LinearCyclicalScheduler(optimizer, "lr", start_value=0.1, end_value=0.5, cycle_size=60)
+            scheduler_2 = CosineAnnealingScheduler(optimizer, "lr", start_value=0.5, end_value=0.01, cycle_size=60)
 
-        scheduler_1 = LinearCyclicalScheduler(optimizer, "lr", start_value=0.1, end_value=0.5, cycle_size=60)
-        scheduler_2 = CosineAnnealingScheduler(optimizer, "lr", start_value=0.5, end_value=0.01, cycle_size=60)
-
-        combined_scheduler = ConcatScheduler(schedulers=[scheduler_1, scheduler_2], durations=[30, ])
-        trainer.add_event_handler(Events.ITERATION_STARTED, combined_scheduler)
-        #
-        # Sets the Learning rate linearly from 0.1 to 0.5 over 30 iterations. Then
-        # starts an annealing schedule from 0.5 to 0.01 over 60 iterations.
-        # The annealing cycles are repeated indefinitely.
-        #
+            combined_scheduler = ConcatScheduler(schedulers=[scheduler_1, scheduler_2], durations=[30, ])
+            trainer.add_event_handler(Events.ITERATION_STARTED, combined_scheduler)
+            #
+            # Sets the Learning rate linearly from 0.1 to 0.5 over 30 iterations. Then
+            # starts an annealing schedule from 0.5 to 0.01 over 60 iterations.
+            # The annealing cycles are repeated indefinitely.
 
     .. versionadded:: 0.4.5
     """
@@ -823,7 +817,6 @@ def create_lr_scheduler_with_warmup(
         `lr_scheduler` provides its learning rate values as normally.
 
     Examples:
-
         .. code-block:: python
 
             torch_lr_scheduler = ExponentialLR(optimizer=optimizer, gamma=0.98)

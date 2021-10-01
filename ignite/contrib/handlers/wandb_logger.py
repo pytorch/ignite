@@ -27,7 +27,6 @@ class WandBLogger(BaseLogger):
             Please see `wandb.init <https://docs.wandb.ai/library/init>`_ for documentation of possible parameters.
 
     Examples:
-
         .. code-block:: python
 
             from ignite.contrib.handlers.wandb_logger import *
@@ -151,8 +150,23 @@ class WandBLogger(BaseLogger):
 class OutputHandler(BaseOutputHandler):
     """Helper handler to log engine's output and/or metrics
 
-    Examples:
+    Args:
+        tag: common title for all produced plots. For example, "training"
+        metric_names: list of metric names to plot or a string "all" to plot all available
+            metrics.
+        output_transform: output transform function to prepare `engine.state.output` as a number.
+            For example, `output_transform = lambda output: output`
+            This function can also return a dictionary, e.g `{"loss": loss1, "another_loss": loss2}` to label the plot
+            with corresponding keys.
+        global_step_transform: global step transform function to output a desired global step.
+            Input of the function is `(engine, event_name)`. Output of function should be an integer.
+            Default is None, global_step based on attached engine. If provided,
+            uses function output as global_step. To setup global step from another engine, please use
+            :meth:`~ignite.contrib.handlers.wandb_logger.global_step_from_engine`.
+        sync: If set to False, process calls to log in a seperate thread. Default (None) uses whatever
+            the default value of wandb.log.
 
+    Examples:
         .. code-block:: python
 
             from ignite.contrib.handlers.wandb_logger import *
@@ -240,24 +254,6 @@ class OutputHandler(BaseOutputHandler):
             )
 
 
-    Args:
-        tag: common title for all produced plots. For example, "training"
-        metric_names: list of metric names to plot or a string "all" to plot all available
-            metrics.
-        output_transform: output transform function to prepare `engine.state.output` as a number.
-            For example, `output_transform = lambda output: output`
-            This function can also return a dictionary, e.g `{"loss": loss1, "another_loss": loss2}` to label the plot
-            with corresponding keys.
-        global_step_transform: global step transform function to output a desired global step.
-            Input of the function is `(engine, event_name)`. Output of function should be an integer.
-            Default is None, global_step based on attached engine. If provided,
-            uses function output as global_step. To setup global step from another engine, please use
-            :meth:`~ignite.contrib.handlers.wandb_logger.global_step_from_engine`.
-        sync: If set to False, process calls to log in a seperate thread. Default (None) uses whatever
-            the default value of wandb.log.
-
-    Note:
-
         Example of `global_step_transform`:
 
         .. code-block:: python
@@ -300,8 +296,15 @@ class OutputHandler(BaseOutputHandler):
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):
     """Helper handler to log optimizer parameters
 
-    Examples:
+    Args:
+        optimizer: torch optimizer or any object with attribute ``param_groups``
+            as a sequence.
+        param_name: parameter name
+        tag: common title for all produced plots. For example, "generator"
+        sync: If set to False, process calls to log in a seperate thread. Default (None) uses whatever
+            the default value of wandb.log.
 
+    Examples:
         .. code-block:: python
 
             from ignite.contrib.handlers.wandb_logger import *
@@ -329,14 +332,6 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
                 event_name=Events.ITERATION_STARTED,
                 optimizer=optimizer
             )
-
-    Args:
-        optimizer: torch optimizer or any object with attribute ``param_groups``
-            as a sequence.
-        param_name: parameter name
-        tag: common title for all produced plots. For example, "generator"
-        sync: If set to False, process calls to log in a seperate thread. Default (None) uses whatever
-            the default value of wandb.log.
     """
 
     def __init__(
