@@ -409,7 +409,7 @@ def test_create_supervised_trainer_scaler_not_amp():
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_create_supervised_trainer_on_cuda(gradient_accumulation_steps, loss, weight, bias):
+def test_create_supervised_trainer_on_cuda():
     model_device = trainer_device = "cuda"
     _test_create_supervised_trainer_wrong_accumulation(model_device=model_device, trainer_device=trainer_device)
     _test_create_supervised_trainer(model_device=model_device, trainer_device=trainer_device)
@@ -418,7 +418,7 @@ def test_create_supervised_trainer_on_cuda(gradient_accumulation_steps, loss, we
 
 @pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_create_supervised_trainer_on_cuda_amp(gradient_accumulation_steps, loss, weight, bias):
+def test_create_supervised_trainer_on_cuda_amp():
     model_device = trainer_device = "cuda"
     _test_create_supervised_trainer_wrong_accumulation(
         model_device=model_device, trainer_device=trainer_device, amp_mode="amp"
@@ -431,7 +431,7 @@ def test_create_supervised_trainer_on_cuda_amp(gradient_accumulation_steps, loss
 
 @pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_create_supervised_trainer_on_cuda_amp_scaler(gradient_accumulation_steps, loss, weight, bias):
+def test_create_supervised_trainer_on_cuda_amp_scaler():
     model_device = trainer_device = "cuda"
     _test_create_supervised_trainer_wrong_accumulation(
         model_device=model_device, trainer_device=trainer_device, amp_mode="amp"
@@ -455,7 +455,7 @@ def test_create_supervised_trainer_on_cuda_amp_scaler(gradient_accumulation_step
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 @pytest.mark.skipif(not find_spec("apex"), reason="Skip if no APEX")
-def test_create_supervised_trainer_on_cuda_apex(gradient_accumulation_steps, loss, weight, bias):
+def test_create_supervised_trainer_on_cuda_apex():
     model_device = trainer_device = "cuda"
     _test_create_supervised_trainer_wrong_accumulation(
         model_device=model_device, trainer_device=trainer_device, amp_mode="apex"
@@ -485,7 +485,7 @@ def test_create_supervised_trainer_on_tpu_no_xla():
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_create_supervised_trainer_on_tpu(gradient_accumulation_steps, loss, weight, bias):
+def test_create_supervised_trainer_on_tpu():
     model_device = trainer_device = "xla"
     _test_create_supervised_trainer_wrong_accumulation(model_device=model_device, trainer_device=trainer_device)
     _test_create_supervised_trainer(model_device=model_device, trainer_device=trainer_device)
@@ -501,7 +501,7 @@ def test_create_supervised_trainer_on_tpu_amp():
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_create_supervised_trainer_on_cuda_with_model_on_cpu(gradient_accumulation_steps, loss, weight, bias):
+def test_create_supervised_trainer_on_cuda_with_model_on_cpu():
     _test_create_supervised_trainer_wrong_accumulation(trainer_device="cuda")
     _test_create_supervised_trainer(trainer_device="cuda")
     _test_create_mocked_supervised_trainer(trainer_device="cuda")
