@@ -187,6 +187,11 @@ def run(
         **spawn_kwargs: Other kwargs to spawn run in child processes: master_addr, master_port, node_rank, nnodes
 
     """
+    # check to see if the num_epochs is greater than num_warmup_epochs issue user friendly Error
+    if num_warmup_epochs>num_epochs:
+        raise ValueError(f"""The minimum number of warmup epochs is {num_warmup_epochs}, either increase the num_epochs 
+        or decrease the num_warmup_epochs""")
+
     # catch all local parameters
     config = locals()
     config.update(config["spawn_kwargs"])
