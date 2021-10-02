@@ -192,6 +192,9 @@ def run(
         with_amp (bool): if True, enables native automatic mixed precision. Default, False.
         **spawn_kwargs: Other kwargs to spawn run in child processes: master_addr, master_port, node_rank, nnodes
     """
+    # raise error if num_warmup_epochs is less than num_epochs
+    assert num_epochs >= num_warmup_epochs, 'num_epochs is less than num_warmup_epochs, Consider increasing num_epochs aor decreasing num_warmup_epochs'
+    
     # catch all local parameters
     config = locals()
     config.update(config["spawn_kwargs"])
