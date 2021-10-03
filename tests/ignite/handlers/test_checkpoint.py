@@ -73,6 +73,14 @@ def test_checkpoint_wrong_input():
         Checkpoint(ImmutableMapping(), lambda x: x, include_self=True)
 
 
+def test_save_handler_as_str(dirname):
+    model = DummyModel()
+    to_save = {"model": model}
+
+    checkpointer = Checkpoint(to_save, save_handler=dirname)
+    assert type(checkpointer.save_handler) is str
+
+
 def test_checkpoint_score_function_wrong_output():
     model = DummyModel()
     to_save = {"model": model}

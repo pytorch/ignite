@@ -298,7 +298,7 @@ class Checkpoint(Serializable):
         if isinstance(save_handler, str):
             self.save_handler = DiskSaver(save_handler, create_dir=True)
         else:
-            self.save_handler = save_handler
+            self.save_handler = save_handler  # type: ignore
         self.score_function = score_function
         self.score_name = score_name
         if self.score_name is not None and self.score_function is None:
