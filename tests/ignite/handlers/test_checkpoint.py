@@ -78,7 +78,7 @@ def test_save_handler_as_str(dirname):
     to_save = {"model": model}
 
     checkpointer = Checkpoint(to_save, save_handler=dirname)
-    assert type(checkpointer.save_handler) is str
+    assert isinstance(checkpointer.save_handler, DiskSaver)
 
 
 def test_checkpoint_score_function_wrong_output():
