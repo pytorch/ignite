@@ -3,6 +3,7 @@ import contextlib
 import logging
 import tempfile
 import warnings
+from math import ceil
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Union
 
@@ -25,29 +26,28 @@ class FastaiLRFinder:
     rates and what can be an optimal learning rate.
 
     Examples:
+        .. code-block:: python
 
-    .. code-block:: python
+            from ignite.handlers import FastaiLRFinder
 
-        from ignite.handlers import FastaiLRFinder
+            trainer = ...
+            model = ...
+            optimizer = ...
 
-        trainer = ...
-        model = ...
-        optimizer = ...
+            lr_finder = FastaiLRFinder()
+            to_save = {"model": model, "optimizer": optimizer}
 
-        lr_finder = FastaiLRFinder()
-        to_save = {"model": model, "optimizer": optimizer}
+            with lr_finder.attach(trainer, to_save=to_save) as trainer_with_lr_finder:
+                trainer_with_lr_finder.run(dataloader)
 
-        with lr_finder.attach(trainer, to_save=to_save) as trainer_with_lr_finder:
-            trainer_with_lr_finder.run(dataloader)
+            # Get lr_finder results
+            lr_finder.get_results()
 
-        # Get lr_finder results
-        lr_finder.get_results()
+            # Plot lr_finder results (requires matplotlib)
+            lr_finder.plot()
 
-        # Plot lr_finder results (requires matplotlib)
-        lr_finder.plot()
-
-        # get lr_finder suggestion for lr
-        lr_finder.lr_suggestion()
+            # get lr_finder suggestion for lr
+            lr_finder.lr_suggestion()
 
 
     Note:
@@ -103,12 +103,10 @@ class FastaiLRFinder:
             num_iter = trainer.state.epoch_length * trainer.state.max_epochs
         else:
             max_iter = trainer.state.epoch_length * trainer.state.max_epochs  # type: ignore[operator]
-            if num_iter > max_iter:
-                warnings.warn(
-                    f"Desired num_iter {num_iter} is unreachable with the current run setup of {max_iter} iteration "
-                    f"({trainer.state.max_epochs} epochs)",
-                    UserWarning,
-                )
+            if max_iter < num_iter:
+                max_iter = num_iter
+                trainer.state.max_iters = num_iter
+                trainer.state.max_epochs = ceil(num_iter / trainer.state.epoch_length)  # type: ignore[operator]
 
         if not trainer.has_event_handler(self._reached_num_iterations):
             trainer.add_event_handler(Events.ITERATION_COMPLETED, self._reached_num_iterations, num_iter)
@@ -340,12 +338,11 @@ class FastaiLRFinder:
         """
         Applying the suggested learning rate(s) on the given optimizer.
 
-        Note:
-            The given optimizer must be the same as the one we before found the suggested learning rate for.
-
         Args:
             optimizer: the optimizer to apply the suggested learning rate(s) on.
 
+        Note:
+            The given optimizer must be the same as the one we before found the suggested learning rate for.
         """
         sug_lr = self.lr_suggestion()
         if not isinstance(sug_lr, list):
@@ -378,14 +375,6 @@ class FastaiLRFinder:
     ) -> Any:
         """Attaches lr_finder to a given trainer. It also resets model and optimizer at the end of the run.
 
-        Usage:
-
-        .. code-block:: python
-
-            to_save = {"model": model, "optimizer": optimizer}
-            with lr_finder.attach(trainer, to_save=to_save) as trainer_with_lr_finder:
-                trainer_with_lr_finder.run(dataloader)
-
         Args:
             trainer: lr_finder is attached to this trainer. Please, keep in mind that all attached handlers
                 will be executed.
@@ -407,6 +396,13 @@ class FastaiLRFinder:
 
         Returns:
             trainer_with_lr_finder (trainer used for finding the lr)
+
+        Examples:
+            .. code-block:: python
+
+                to_save = {"model": model, "optimizer": optimizer}
+                with lr_finder.attach(trainer, to_save=to_save) as trainer_with_lr_finder:
+                    trainer_with_lr_finder.run(dataloader)
 
         Note:
             lr_finder cannot be attached to more than one trainer at a time.

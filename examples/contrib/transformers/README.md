@@ -34,6 +34,15 @@ python main.py run
 ```
 If needed, please, adjust the batch size to your GPU device with `--batch_size` argument.
 
+The default model is `bert-base-uncased` incase you need to change that use the `--model` argument, for details on which models can be used refer [here](https://huggingface.co/transformers/v3.0.2/model_doc/auto.html#automodelforsequenceclassification)
+
+Example: 
+```bash
+#Using DistilBERT which has 40% less parameters than bert-base-uncased
+python main.py run --model="distilbert-base-uncased"
+```
+
+
 For details on accepted arguments:
 
 ```bash

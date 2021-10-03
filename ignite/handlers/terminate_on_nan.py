@@ -25,10 +25,9 @@ class TerminateOnNan:
 
 
     Examples:
+        .. code-block:: python
 
-    .. code-block:: python
-
-        trainer.add_event_handler(Events.ITERATION_COMPLETED, TerminateOnNan())
+            trainer.add_event_handler(Events.ITERATION_COMPLETED, TerminateOnNan())
 
     """
 
