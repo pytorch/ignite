@@ -51,6 +51,7 @@ def supervised_training_step(
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
     output_transform: Callable = lambda x, y, y_pred, loss: loss.item(),
+    gradient_accumulation_steps: int = 1,
 ) -> Callable:
     """Factory function for supervised training.
 
@@ -67,7 +68,8 @@ def supervised_training_step(
             tuple of tensors `(batch_x, batch_y)`.
         output_transform: function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
-
+        gradient_accumulation_steps: Number of steps the gradients should be accumulated across.
+            (default: 1 (means no gradient accumulation))
     Returns:
         Callable: update function.
 
@@ -84,16 +86,27 @@ def supervised_training_step(
             trainer = Engine(update_fn)
 
     .. versionadded:: 0.4.5
+    .. versionchanged:: 0.5.0
+        Added Gradient Accumulation.
     """
+
+    if gradient_accumulation_steps <= 0:
+        raise ValueError(
+            "Gradient_accumulation_steps must be strictly positive. "
+            "No gradient accumulation if the value set to one (default)."
+        )
 
     def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
         model.train()
-        optimizer.zero_grad()
         x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
         y_pred = model(x)
         loss = loss_fn(y_pred, y)
+        if gradient_accumulation_steps > 1:
+            loss = loss / gradient_accumulation_steps
         loss.backward()
-        optimizer.step()
+        if engine.state.iteration % gradient_accumulation_steps == 0:
+            optimizer.step()
+            optimizer.zero_grad()
         return output_transform(x, y, y_pred, loss)
 
     return update
@@ -108,6 +121,7 @@ def supervised_training_step_amp(
     prepare_batch: Callable = _prepare_batch,
     output_transform: Callable = lambda x, y, y_pred, loss: loss.item(),
     scaler: Optional["torch.cuda.amp.GradScaler"] = None,
+    gradient_accumulation_steps: int = 1,
 ) -> Callable:
     """Factory function for supervised training using ``torch.cuda.amp``.
 
@@ -125,6 +139,8 @@ def supervised_training_step_amp(
         output_transform: function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
         scaler: GradScaler instance for gradient scaling. (default: None)
+        gradient_accumulation_steps: Number of steps the gradients should be accumulated across.
+            (default: 1 (means no gradient accumulation))
 
     Returns:
         Callable: update function
@@ -143,6 +159,8 @@ def supervised_training_step_amp(
             trainer = Engine(update_fn)
 
     .. versionadded:: 0.4.5
+    .. versionchanged:: 0.5.0
+        Added Gradient Accumulation.
     """
 
     try:
@@ -150,20 +168,31 @@ def supervised_training_step_amp(
     except ImportError:
         raise ImportError("Please install torch>=1.6.0 to use amp_mode='amp'.")
 
+    if gradient_accumulation_steps <= 0:
+        raise ValueError(
+            "Gradient_accumulation_steps must be strictly positive. "
+            "No gradient accumulation if the value set to one (default)."
+        )
+
     def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
         model.train()
-        optimizer.zero_grad()
         x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
         with autocast(enabled=True):
             y_pred = model(x)
             loss = loss_fn(y_pred, y)
+            if gradient_accumulation_steps > 1:
+                loss = loss / gradient_accumulation_steps
         if scaler:
             scaler.scale(loss).backward()
-            scaler.step(optimizer)
-            scaler.update()
+            if engine.state.iteration % gradient_accumulation_steps == 0:
+                scaler.step(optimizer)
+                scaler.update()
+                optimizer.zero_grad()
         else:
             loss.backward()
-            optimizer.step()
+            if engine.state.iteration % gradient_accumulation_steps == 0:
+                optimizer.step()
+                optimizer.zero_grad()
         return output_transform(x, y, y_pred, loss)
 
     return update
@@ -177,6 +206,7 @@ def supervised_training_step_apex(
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
     output_transform: Callable = lambda x, y, y_pred, loss: loss.item(),
+    gradient_accumulation_steps: int = 1,
 ) -> Callable:
     """Factory function for supervised training using apex.
 
@@ -193,6 +223,8 @@ def supervised_training_step_apex(
             tuple of tensors `(batch_x, batch_y)`.
         output_transform: function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
+        gradient_accumulation_steps: Number of steps the gradients should be accumulated across.
+            (default: 1 (means no gradient accumulation))
 
     Returns:
         Callable: update function.
@@ -210,6 +242,8 @@ def supervised_training_step_apex(
             trainer = Engine(update_fn)
 
     .. versionadded:: 0.4.5
+    .. versionchanged:: 0.5.0
+        Added Gradient Accumulation.
     """
 
     try:
@@ -217,15 +251,24 @@ def supervised_training_step_apex(
     except ModuleNotFoundError:
         raise ModuleNotFoundError("Please install apex from https://github.com/nvidia/apex to use amp_mode='apex'.")
 
+    if gradient_accumulation_steps <= 0:
+        raise ValueError(
+            "Gradient_accumulation_steps must be strictly positive. "
+            "No gradient accumulation if the value set to one (default)."
+        )
+
     def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
         model.train()
-        optimizer.zero_grad()
         x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
         y_pred = model(x)
         loss = loss_fn(y_pred, y)
+        if gradient_accumulation_steps > 1:
+            loss = loss / gradient_accumulation_steps
         with apex_amp.scale_loss(loss, optimizer) as scaled_loss:
             scaled_loss.backward()
-        optimizer.step()
+        if engine.state.iteration % gradient_accumulation_steps == 0:
+            optimizer.step()
+            optimizer.zero_grad()
         return output_transform(x, y, y_pred, loss)
 
     return update
@@ -239,6 +282,7 @@ def supervised_training_step_tpu(
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
     output_transform: Callable = lambda x, y, y_pred, loss: loss.item(),
+    gradient_accumulation_steps: int = 1,
 ) -> Callable:
     """Factory function for supervised training using ``torch_xla``.
 
@@ -255,6 +299,8 @@ def supervised_training_step_tpu(
             tuple of tensors `(batch_x, batch_y)`.
         output_transform: function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
+        gradient_accumulation_steps: Number of steps the gradients should be accumulated across.
+            (default: 1 (means no gradient accumulation))
 
     Returns:
         Callable: update function.
@@ -272,20 +318,31 @@ def supervised_training_step_tpu(
             trainer = Engine(update_fn)
 
     .. versionadded:: 0.4.5
+    .. versionchanged:: 0.5.0
+       Added Gradient Accumulation argument for all supervised training methods.
     """
     try:
         import torch_xla.core.xla_model as xm
     except ModuleNotFoundError:
         raise ModuleNotFoundError("torch_xla cannot be imported, please install PyTorch XLA.")
 
+    if gradient_accumulation_steps <= 0:
+        raise ValueError(
+            "Gradient_accumulation_steps must be strictly positive. "
+            "No gradient accumulation if the value set to one (default)."
+        )
+
     def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
         model.train()
-        optimizer.zero_grad()
         x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
         y_pred = model(x)
         loss = loss_fn(y_pred, y)
+        if gradient_accumulation_steps > 1:
+            loss = loss / gradient_accumulation_steps
         loss.backward()
-        xm.optimizer_step(optimizer, barrier=True)
+        if engine.state.iteration % gradient_accumulation_steps == 0:
+            xm.optimizer_step(optimizer, barrier=True)
+            optimizer.zero_grad()
         return output_transform(x, y, y_pred, loss)
 
     return update
@@ -330,6 +387,7 @@ def create_supervised_trainer(
     deterministic: bool = False,
     amp_mode: Optional[str] = None,
     scaler: Union[bool, "torch.cuda.amp.GradScaler"] = False,
+    gradient_accumulation_steps: int = 1,
 ) -> Engine:
     """Factory function for creating a trainer for supervised models.
 
@@ -356,6 +414,8 @@ def create_supervised_trainer(
             and ``amp_mode`` is ``amp``. If ``amp_mode`` is ``apex``, this argument will be ignored.
             If True, will create default GradScaler. If GradScaler instance is passed, it will be used instead.
             (default: False)
+        gradient_accumulation_steps: Number of steps the gradients should be accumulated across.
+            (default: 1 (means no gradient accumulation))
 
     Returns:
         a trainer engine with supervised update function.
@@ -388,6 +448,9 @@ def create_supervised_trainer(
 
         - Added ``amp_mode`` argument for automatic mixed precision.
         - Added ``scaler`` argument for gradient scaling.
+
+    .. versionchanged:: 0.5.0
+        Added Gradient Accumulation argument for all supervised training methods.
     """
 
     device_type = device.type if isinstance(device, torch.device) else device
@@ -396,19 +459,48 @@ def create_supervised_trainer(
 
     if mode == "amp":
         _update = supervised_training_step_amp(
-            model, optimizer, loss_fn, device, non_blocking, prepare_batch, output_transform, _scaler
+            model,
+            optimizer,
+            loss_fn,
+            device,
+            non_blocking,
+            prepare_batch,
+            output_transform,
+            _scaler,
+            gradient_accumulation_steps,
         )
     elif mode == "apex":
         _update = supervised_training_step_apex(
-            model, optimizer, loss_fn, device, non_blocking, prepare_batch, output_transform
+            model,
+            optimizer,
+            loss_fn,
+            device,
+            non_blocking,
+            prepare_batch,
+            output_transform,
+            gradient_accumulation_steps,
         )
     elif mode == "tpu":
         _update = supervised_training_step_tpu(
-            model, optimizer, loss_fn, device, non_blocking, prepare_batch, output_transform
+            model,
+            optimizer,
+            loss_fn,
+            device,
+            non_blocking,
+            prepare_batch,
+            output_transform,
+            gradient_accumulation_steps,
         )
     else:
         _update = supervised_training_step(
-            model, optimizer, loss_fn, device, non_blocking, prepare_batch, output_transform
+            model,
+            optimizer,
+            loss_fn,
+            device,
+            non_blocking,
+            prepare_batch,
+            output_transform,
+            gradient_accumulation_steps,
         )
 
     trainer = Engine(_update) if not deterministic else DeterministicEngine(_update)
