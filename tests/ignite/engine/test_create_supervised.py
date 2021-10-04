@@ -107,7 +107,7 @@ def _test_create_supervised_trainer(
 
         # Test for Gradient Accumulation Turned Off
         trainer, model = _default_create_supervised_trainer(
-            model_device=model_device, trainer_device=trainer_device, trace=trace, amp_mode=amp_mode, scaler=scaler,
+            model_device=model_device, trainer_device=trainer_device, trace=trace, amp_mode=None, scaler=None,
         )
         x = torch.tensor([[1.0], [1.0], [1.0], [1.0], [1.0]])
         data = [(_x, _y) for _x, _y in zip(x, x)]
