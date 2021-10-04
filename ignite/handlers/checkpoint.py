@@ -245,6 +245,14 @@ class Checkpoint(Serializable):
             trainer.run(data_loader, max_epochs=10)
             > ["best_model_9_accuracy=0.77.pt", "best_model_10_accuracy=0.78.pt", ]
 
+        Customize the `save_handler`:
+
+        .. code-block:: python
+
+            handler = Checkpoint(
+                to_save, save_handler=DiskSaver('/tmp/models', create_dir=True, **kwargs), n_saved=2
+            )
+
     .. versionchanged:: 0.4.3
 
         - Checkpoint can save model with same filename.
