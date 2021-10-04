@@ -261,6 +261,7 @@ class Checkpoint(Serializable):
     .. versionchanged:: 0.5.0
 
         - `score_name` can be used to define `score_function` automatically without providing `score_function`.
+        - `save_handler` automatically saves to disk if path to directory is provided.
     """
 
     Item = NamedTuple("Item", [("priority", int), ("filename", str)])
