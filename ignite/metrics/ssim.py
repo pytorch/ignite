@@ -46,7 +46,7 @@ class SSIM(Metric):
         >>> target = preds * 0.75
         >>> state = engine.run([[preds, target]])
         >>> state.metrics['ssim']
-        0.9218971489851053
+        0.9218971...
 
     .. versionadded:: 0.4.2
     """
