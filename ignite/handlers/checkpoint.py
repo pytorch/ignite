@@ -245,7 +245,7 @@ class Checkpoint(Serializable):
             trainer.run(data_loader, max_epochs=10)
             > ["best_model_9_accuracy=0.77.pt", "best_model_10_accuracy=0.78.pt", ]
 
-        Customise the `save_handler`:
+        Customise the ``save_handler``:
 
         .. code-block:: python
 
