@@ -6,8 +6,8 @@ from unittest.mock import patch
 import pytest
 from pytest import approx
 
-from ignite.contrib.handlers.time_profilers import BasicTimeProfiler, HandlersTimeProfiler
 from ignite.engine import Engine, EventEnum, Events
+from ignite.handlers.time_profilers import BasicTimeProfiler, HandlersTimeProfiler
 
 if sys.platform.startswith("darwin"):
     pytest.skip("Skip if on MacOS", allow_module_level=True)
