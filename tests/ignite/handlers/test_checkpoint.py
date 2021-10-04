@@ -50,7 +50,9 @@ def test_checkpoint_wrong_input():
     model = DummyModel()
     to_save = {"model": model}
 
-    with pytest.raises(TypeError, match=r"Argument `save_handler` should be callable"):
+    with pytest.raises(
+        TypeError, match=r"Argument `save_handler` should be a string or callable or inherit from BaseSaveHandler"
+    ):
         Checkpoint(to_save, 12, "prefix")
 
     with pytest.raises(TypeError, match=r"global_step_transform should be a function."):
