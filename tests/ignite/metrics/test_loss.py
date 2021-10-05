@@ -138,8 +138,10 @@ def test_kwargs_loss():
     loss = Loss(nll_loss)
 
     y_pred, y, _ = y_test_1()
-    loss.update((y_pred, y, {"weight": torch.tensor([0, 0, 0], dtype=torch.float)}))
-    assert_almost_equal(loss.compute(), 0)
+    kwargs = {"weight": torch.tensor([0.1, 0.1, 0.1])}
+    loss.update((y_pred, y, kwargs))
+    expected_value = nll_loss(y_pred, y, **kwargs)
+    assert_almost_equal(loss.compute(), expected_value)
 
 
 def test_reset():

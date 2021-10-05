@@ -73,12 +73,13 @@ class Checkpoint(Serializable):
             ``load_state_dict`` methods. If contains objects of type torch `DistributedDataParallel`_ or
             `DataParallel`_, their internal wrapped model is automatically saved (to avoid additional key ``module.`` in
             the state dictionary).
-        save_handler: Method or callable class to
-            use to save engine and other provided objects. Function receives two objects: checkpoint as a dictionary
+        save_handler: String, method or callable class
+            used to save engine and other provided objects. Function receives two objects: checkpoint as a dictionary
             and filename. If ``save_handler`` is callable class, it can
             inherit of :class:`~ignite.handlers.checkpoint.BaseSaveHandler` and optionally implement ``remove`` method
             to keep a fixed number of saved checkpoints. In case if user needs to save engine's checkpoint on a disk,
-            ``save_handler`` can be defined with :class:`~ignite.handlers.DiskSaver`.
+            ``save_handler`` can be defined with :class:`~ignite.handlers.DiskSaver` or a string specifying
+            directory name can be passed to ``save_handler``.
         filename_prefix: Prefix for the file name to which objects will be saved. See Note for details.
         score_function: If not None, it should be a function taking a single argument,
             :class:`~ignite.engine.engine.Engine` object, and returning a score (`float`). Objects with highest scores
@@ -188,7 +189,7 @@ class Checkpoint(Serializable):
         .. code-block:: python
 
             from ignite.engine import Engine, Events
-            from ignite.handlers import Checkpoint, DiskSaver
+            from ignite.handlers import Checkpoint
 
             trainer = ...
             model = ...
@@ -200,14 +201,14 @@ class Checkpoint(Serializable):
             if (checkpoint_iters):
                 # A: Output is "checkpoint_<iteration>.pt"
                 handler = Checkpoint(
-                    to_save, DiskSaver('/tmp/models', create_dir=True), n_saved=2
+                    to_save, '/tmp/models', n_saved=2
                 )
                 trainer.add_event_handler(Events.ITERATION_COMPLETED(every=1000), handler)
             else:
                 # B:Output is "checkpoint_<epoch>.pt"
                 gst = lambda *_: trainer.state.epoch
                 handler = Checkpoint(
-                    to_save, DiskSaver('/tmp/models', create_dir=True), n_saved=2, global_step_transform=gst
+                    to_save, '/tmp/models', n_saved=2, global_step_transform=gst
                 )
                 trainer.add_event_handler(Events.EPOCH_COMPLETED, handler)
 
@@ -221,7 +222,7 @@ class Checkpoint(Serializable):
         .. code-block:: python
 
             from ignite.engine import Engine, Events
-            from ignite.handlers import Checkpoint, DiskSaver, global_step_from_engine
+            from ignite.handlers import Checkpoint, global_step_from_engine
 
             trainer = ...
             evaluator = ...
@@ -233,7 +234,7 @@ class Checkpoint(Serializable):
 
             to_save = {'model': model}
             handler = Checkpoint(
-                to_save, DiskSaver('/tmp/models', create_dir=True),
+                to_save, '/tmp/models',
                 n_saved=2, filename_prefix='best',
                 score_name="accuracy",
                 global_step_transform=global_step_from_engine(trainer)
@@ -244,6 +245,14 @@ class Checkpoint(Serializable):
             trainer.run(data_loader, max_epochs=10)
             > ["best_model_9_accuracy=0.77.pt", "best_model_10_accuracy=0.78.pt", ]
 
+        Customise the ``save_handler``:
+
+        .. code-block:: python
+
+            handler = Checkpoint(
+                to_save, save_handler=DiskSaver('/tmp/models', create_dir=True, **kwargs), n_saved=2
+            )
+
     .. versionchanged:: 0.4.3
 
         - Checkpoint can save model with same filename.
@@ -252,6 +261,7 @@ class Checkpoint(Serializable):
     .. versionchanged:: 0.5.0
 
         - `score_name` can be used to define `score_function` automatically without providing `score_function`.
+        - `save_handler` automatically saves to disk if path to directory is provided.
     """
 
     Item = NamedTuple("Item", [("priority", int), ("filename", str)])
@@ -260,7 +270,7 @@ class Checkpoint(Serializable):
     def __init__(
         self,
         to_save: Mapping,
-        save_handler: Union[Callable, BaseSaveHandler],
+        save_handler: Union[str, Callable, BaseSaveHandler],
         filename_prefix: str = "",
         score_function: Optional[Callable] = None,
         score_name: Optional[str] = None,
@@ -285,15 +295,18 @@ class Checkpoint(Serializable):
             if "checkpointer" in to_save:
                 raise ValueError(f"Cannot have key 'checkpointer' if `include_self` is True: {to_save}")
 
-        if not (callable(save_handler) or isinstance(save_handler, BaseSaveHandler)):
-            raise TypeError("Argument `save_handler` should be callable or inherit from BaseSaveHandler")
+        if not (isinstance(save_handler, str) or callable(save_handler) or isinstance(save_handler, BaseSaveHandler)):
+            raise TypeError("Argument `save_handler` should be a string or callable or inherit from BaseSaveHandler")
 
         if global_step_transform is not None and not callable(global_step_transform):
             raise TypeError(f"global_step_transform should be a function, got {type(global_step_transform)} instead.")
 
         self.to_save = to_save
         self.filename_prefix = filename_prefix
-        self.save_handler = save_handler
+        if isinstance(save_handler, str):
+            self.save_handler = DiskSaver(save_handler, create_dir=True)
+        else:
+            self.save_handler = save_handler  # type: ignore
         self.score_function = score_function
         self.score_name = score_name
         if self.score_name is not None and self.score_function is None:
