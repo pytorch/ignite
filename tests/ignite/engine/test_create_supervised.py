@@ -102,7 +102,7 @@ def _test_create_supervised_trainer(
     @trainer.on(Events.ITERATION_COMPLETED(every=gradient_accumulation_steps))
     def _():
         theta[0] -= accumulation[0] / gradient_accumulation_steps
-        assert pytest.approx(model.weight.data[0, 0].item(), abs=1.e-5) == theta[0]
+        assert pytest.approx(model.weight.data[0, 0].item(), abs=1.0e-5) == theta[0]
         assert pytest.approx(trainer.state.output[-1], abs=1e-5) == loss[0]
         accumulation[0] = loss[0] = 0.0
 
