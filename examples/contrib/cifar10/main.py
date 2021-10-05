@@ -187,10 +187,10 @@ def run(
         **spawn_kwargs: Other kwargs to spawn run in child processes: master_addr, master_port, node_rank, nnodes
 
     """
-    # check to see if the num_epochs is greater than num_warmup_epochs
-    if num_warmup_epochs > num_epochs:
+    # check to see if the num_epochs is greater than or equal to num_warmup_epochs
+    if num_warmup_epochs >= num_epochs:
         raise ValueError(
-            "num_epochs cannot be less than num_warmup_epochs, please increase num_epochs or decrease num_warmup_epochs"
+            "num_epochs cannot be less than or equal to num_warmup_epochs, please increase num_epochs or decrease num_warmup_epochs"
         )
 
     # catch all local parameters
