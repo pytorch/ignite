@@ -32,14 +32,16 @@ def _default_create_supervised_trainer(
     trace: bool = False,
     amp_mode: str = None,
     scaler: Union[bool, "torch.cuda.amp.GradScaler"] = False,
+    bias: bool = True,
 ):
-    model = Linear(1, 1)
+    model = Linear(1, 1, bias=bias)
 
     if model_device:
         model.to(model_device)
 
     model.weight.data.zero_()
-    model.bias.data.zero_()
+    if bias:
+        model.bias.data.zero_()
     optimizer = SGD(model.parameters(), 0.1)
 
     if trace:
@@ -62,7 +64,8 @@ def _default_create_supervised_trainer(
         gradient_accumulation_steps=gradient_accumulation_steps,
     )
     assert model.weight.data[0, 0].item() == approx(0.0)
-    assert model.bias.item() == approx(0.0)
+    if bias:
+        assert model.bias.item() == approx(0.0)
 
     return trainer, model
 
@@ -107,22 +110,23 @@ def _test_create_supervised_trainer(
 
         # Test for Gradient Accumulation Turned Off
         trainer, model = _default_create_supervised_trainer(
-            model_device=model_device, trainer_device=trainer_device, trace=trace, amp_mode=None, scaler=None,
+            model_device=model_device,
+            trainer_device=trainer_device,
+            trace=trace,
+            amp_mode=None,
+            scaler=None,
+            bias=False,
         )
         x = torch.tensor([[1.0], [1.0], [1.0], [1.0], [1.0]])
         data = [(_x, _y) for _x, _y in zip(x, x)]
 
         for i in range(len(data)):
             original_weights = model.weight.data[0, 0].item()
-            original_bias = model.bias.item()
             state = trainer.run([data[i]])
-            assert state.output[-1] == pytest.approx((1 - (original_weights + original_bias)) ** 2), state.output[-1]
+            assert state.output[-1] == pytest.approx((1 - (original_weights)) ** 2), state.output[-1]
             assert model.weight.data[0, 0].item() == pytest.approx(
-                original_weights + 2 * 0.1 * (1 - (original_weights + original_bias))
+                original_weights + 2 * 0.1 * (1 - (original_weights))
             ), model.weight.item()
-            assert model.bias.item() == pytest.approx(
-                original_bias + 2 * 0.1 * (1 - (original_weights + original_bias))
-            ), model.bias.item()
 
     else:
         if LooseVersion(torch.__version__) >= LooseVersion("1.7.0"):
