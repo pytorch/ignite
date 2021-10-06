@@ -50,7 +50,9 @@ def test_checkpoint_wrong_input():
     model = DummyModel()
     to_save = {"model": model}
 
-    with pytest.raises(TypeError, match=r"Argument `save_handler` should be callable"):
+    with pytest.raises(
+        TypeError, match=r"Argument `save_handler` should be a string or callable or inherit from BaseSaveHandler"
+    ):
         Checkpoint(to_save, 12, "prefix")
 
     with pytest.raises(TypeError, match=r"global_step_transform should be a function."):
@@ -71,6 +73,14 @@ def test_checkpoint_wrong_input():
 
     with pytest.raises(TypeError, match="If `include_self` is True, then `to_save` must be mutable"):
         Checkpoint(ImmutableMapping(), lambda x: x, include_self=True)
+
+
+def test_save_handler_as_str(dirname):
+    model = DummyModel()
+    to_save = {"model": model}
+
+    checkpointer = Checkpoint(to_save, save_handler=dirname)
+    assert isinstance(checkpointer.save_handler, DiskSaver)
 
 
 def test_checkpoint_score_function_wrong_output():
