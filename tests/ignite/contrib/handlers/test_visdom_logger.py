@@ -870,8 +870,9 @@ def test_integration_no_server():
         VisdomLogger()
 
 
-@pytest.mark.skipif(sys.platform.startswith("win") or sys.platform.startswith("darwin"),
-                    reason="Skip on Windows and Macosx")
+@pytest.mark.skipif(
+    sys.platform.startswith("win") or sys.platform.startswith("darwin"), reason="Skip on Windows and Macosx"
+)
 def test_logger_init_hostname_port(visdom_server):
     # Explicit hostname, port
     vd_logger = VisdomLogger(server=visdom_server[0], port=visdom_server[1], num_workers=0)
@@ -879,8 +880,9 @@ def test_logger_init_hostname_port(visdom_server):
     vd_logger.close()
 
 
-@pytest.mark.skipif(sys.platform.startswith("win") or sys.platform.startswith("darwin"),
-                    reason="Skip on Windows and Macosx")
+@pytest.mark.skipif(
+    sys.platform.startswith("win") or sys.platform.startswith("darwin"), reason="Skip on Windows and Macosx"
+)
 def test_logger_init_env_vars(visdom_server):
     # As env vars
     import os
@@ -898,8 +900,9 @@ def _parse_content(content):
     return json.loads(content)
 
 
-@pytest.mark.skipif(sys.platform.startswith("win") or sys.platform.startswith("darwin"),
-                    reason="Skip on Windows and Macosx")
+@pytest.mark.skipif(
+    sys.platform.startswith("win") or sys.platform.startswith("darwin"), reason="Skip on Windows and Macosx"
+)
 def test_integration_no_executor(visdom_server):
     vd_logger = VisdomLogger(server=visdom_server[0], port=visdom_server[1], num_workers=0)
 
@@ -935,8 +938,9 @@ def test_integration_no_executor(visdom_server):
     vd_logger.close()
 
 
-@pytest.mark.skipif(sys.platform.startswith("win") or sys.platform.startswith("darwin"),
-                    reason="Skip on Windows and Macosx")
+@pytest.mark.skipif(
+    sys.platform.startswith("win") or sys.platform.startswith("darwin"), reason="Skip on Windows and Macosx"
+)
 def test_integration_with_executor(visdom_server):
     vd_logger = VisdomLogger(server=visdom_server[0], port=visdom_server[1], num_workers=1)
 
