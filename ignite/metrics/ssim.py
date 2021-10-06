@@ -36,17 +36,22 @@ class SSIM(Metric):
         ``y_pred`` and ``y`` can be un-normalized or normalized image tensors. Depending on that, the user might need
         to adjust ``data_range``. ``y_pred`` and ``y`` should have the same shape.
 
-        >>> def process_function(engine, batch):
-        ...     y_pred, y = batch
-        ...     return y_pred, y
-        >>> engine = Engine(process_function)
-        >>> metric = SSIM(data_range=1.0)
-        >>> metric.attach(engine, 'ssim')
-        >>> preds = torch.rand([4, 3, 16, 16])
-        >>> target = preds * 0.75
-        >>> state = engine.run([[preds, target]])
-        >>> state.metrics['ssim']
-        0.9218971...
+        .. testcode::
+
+            def process_function(engine, batch):
+                y_pred, y = batch
+                return y_pred, y
+            engine = Engine(process_function)
+            metric = SSIM(data_range=1.0)
+            metric.attach(engine, 'ssim')
+            preds = torch.rand([4, 3, 16, 16])
+            target = preds * 0.75
+            state = engine.run([[preds, target]])
+            print(state.metrics['ssim'])
+
+        .. testoutput::
+
+            0.9218971...
 
     .. versionadded:: 0.4.2
     """
