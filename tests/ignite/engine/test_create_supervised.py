@@ -391,6 +391,7 @@ def test_create_supervised_trainer_amp_error(mock_torch_cuda_amp_module):
         _test_create_supervised_trainer(amp_mode="amp", scaler=True)
 
 
+@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0")
 def test_create_supervised_trainer_scaler_not_amp():
     scaler = torch.cuda.amp.GradScaler(enabled=torch.cuda.is_available())
 
