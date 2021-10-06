@@ -977,7 +977,9 @@ def test_integration_with_executor(visdom_server):
     vd_logger.close()
 
 
-@pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
+@pytest.mark.skipif(
+    sys.platform.startswith("win") or sys.platform.startswith("darwin"), reason="Skip on Windows and Macosx"
+)
 def test_integration_with_executor_as_context_manager(visdom_server, visdom_server_stop):
 
     n_epochs = 5
