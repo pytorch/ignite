@@ -16,10 +16,11 @@ import os
 import sys
 
 sys.path.insert(0, os.path.abspath("../.."))
-import ignite
+from datetime import datetime
+
 import pytorch_sphinx_theme
 
-from datetime import datetime
+import ignite
 
 # -- Project information -----------------------------------------------------
 
@@ -133,7 +134,8 @@ html_context = {
 }
 
 html_last_updated_fmt = "%m/%d/%Y, %X"
-html_add_permalinks = "#"
+html_permalinks = True
+html_permalinks_icon = "#"
 
 # -- Options for HTMLHelp output ---------------------------------------------
 
@@ -226,10 +228,11 @@ sphinx.domains.python.type_to_xref = lambda t, e=None: addnodes.desc_type("", no
 
 from importlib import import_module
 from inspect import getmembers, isclass, isfunction
+
 import sphinx.ext.autosummary
-from sphinx.ext.autosummary import Autosummary
 from docutils.parsers.rst import directives
 from docutils.statemachine import StringList
+from sphinx.ext.autosummary import Autosummary
 
 
 class BetterAutosummary(Autosummary):

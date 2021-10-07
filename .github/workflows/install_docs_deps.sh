@@ -3,4 +3,4 @@ pip uninstall -y pkg-resources setuptools && pip install --upgrade setuptools pi
 pip install torch torchvision -f https://download.pytorch.org/whl/cpu/torch_stable.html -U
 pip install -r requirements-dev.txt
 pip install -r docs/requirements.txt
-pip install git+https://github.com/pytorch-ignite/sphinxcontrib-versioning.git
+pip install git+https://github.com/trsvchn/sphinxcontrib-versioning.git@update-sphinx
