@@ -217,12 +217,12 @@ napoleon_attr_annotations = True
 
 # -- A patch that turns-off cross refs for type annotations ------------------
 
-import sphinx.domains.python
-from docutils import nodes
-from sphinx import addnodes
+# import sphinx.domains.python
+# from docutils import nodes
+# from sphinx import addnodes
 
-# replaces pending_xref node with desc_type for type annotations
-sphinx.domains.python.type_to_xref = lambda t, e=None: addnodes.desc_type("", nodes.Text(t))
+# # replaces pending_xref node with desc_type for type annotations
+# sphinx.domains.python.type_to_xref = lambda t, e=None: addnodes.desc_type("", nodes.Text(t))
 
 # --- autosummary config -----------------------------------------------------
 autosummary_generate = True
