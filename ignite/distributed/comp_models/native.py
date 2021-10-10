@@ -125,11 +125,19 @@ if has_native_dist_support:
 
             dist.init_process_group(backend, init_method=init_method, **init_pg_kwargs)
 
-            # https://github.com/facebookresearch/maskrcnn-benchmark/issues/172
-            dist.barrier()
-
             if torch.cuda.is_available():
                 torch.cuda.set_device(self._local_rank)
+
+            # Call barrier after init_process_group as in
+            # https://github.com/facebookresearch/maskrcnn-benchmark/issues/172
+            # Define device ids for NCCL to avoid warnings
+            # [W ProcessGroupNCCL.cpp:1569] Rank 0 using best-guess GPU 0 to perform barrier as devices used by
+            # this process are currently unknown. This can potentially cause a hang if this rank to GPU mapping
+            # is incorrect.Specify device_ids in barrier() to force use of a particular device.
+            device_ids = None
+            if backend == dist.Backend.NCCL and LooseVersion(torch.__version__) >= LooseVersion("1.8.0"):
+                device_ids = [torch.cuda.current_device()]
+            dist.barrier(device_ids=device_ids)
 
             self._setup_attrs()
 
