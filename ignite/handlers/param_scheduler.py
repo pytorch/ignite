@@ -15,7 +15,138 @@ from torch.optim.optimizer import Optimizer
 from ignite.engine import Engine
 
 
-class ParamScheduler(metaclass=ABCMeta):
+class BaseParamScheduler(metaclass=ABCMeta):
+    r"""An abstract class for updating an engine state or optimizer's parameter value during
+    training.
+
+    Args:
+        param_name: name of engine state or optimizer's parameter to update.
+        save_history: whether to log the parameter values to
+            `engine.state.param_history`, (default=False).
+
+    .. versionadded:: 0.5.0
+
+    """
+
+    def __init__(
+        self, param_name: str, save_history: bool = False,
+    ):
+        self.param_name = param_name
+        self.event_index = 0
+        self._save_history = save_history
+        self._state_attrs = ["event_index", "param_name", "save_history"]
+
+    @property
+    def save_history(self) -> bool:
+        return self._save_history
+
+    @save_history.setter
+    def save_history(self, value: bool) -> None:
+        self._save_history = value
+
+    def state_dict(self) -> Dict[str, Any]:
+        """Returns a dictionary containing a whole state of BaseParamScheduler.
+
+        Returns:
+            dict:
+                a dictionary containing a whole state of BaseParamScheduler
+        """
+        destination = OrderedDict()
+        for name in self._state_attrs:
+            if hasattr(self, name):
+                val = getattr(self, name)
+                if hasattr(val, "state_dict"):
+                    val = val.state_dict()
+                destination[name] = copy(val)
+        return destination
+
+    def load_state_dict(self, state_dict: Mapping) -> None:
+        """Copies parameters from :attr:`state_dict` into this BaseParamScheduler.
+
+        Args:
+            state_dict: a dict containing parameters.
+        """
+        if not isinstance(state_dict, Mapping):
+            raise TypeError(f"Argument state_dict should be a dictionary, but given {type(state_dict)}")
+
+        for name in self._state_attrs:
+            if name not in state_dict:
+                raise ValueError(
+                    f"Required state attribute '{name}' is absent in provided state_dict '{state_dict.keys()}'"
+                )
+            val = state_dict[name]
+            obj = getattr(self, name)
+            if isinstance(val, Mapping) and hasattr(obj, "load_state_dict"):
+                obj.load_state_dict(val)
+            else:
+                setattr(self, name, val)
+
+    @abstractmethod
+    def get_param(self) -> Union[List[float], float]:
+        """Method to get current parameter values
+
+        Returns:
+            list of params, or scalar param
+        """
+        pass
+
+    @classmethod
+    @abstractmethod
+    def simulate_values(cls, num_events: int, **scheduler_kwargs: Any) -> List[List[int]]:
+        """Method to simulate scheduled values during `num_events` events.
+
+        Args:
+            num_events: number of events during the simulation.
+            scheduler_kwargs: parameter scheduler configuration kwargs.
+
+        Returns:
+            event_index, value
+        """
+        pass
+
+    @classmethod
+    def plot_values(cls, num_events: int, **scheduler_kwargs: Mapping) -> Any:
+        """Method to plot simulated scheduled values during `num_events` events.
+
+        This class requires `matplotlib package <https://matplotlib.org/>`_ to be installed:
+
+        .. code-block:: bash
+
+            pip install matplotlib
+
+        Args:
+            num_events: number of events during the simulation.
+            scheduler_kwargs: parameter scheduler configuration kwargs.
+
+        Returns:
+            matplotlib.lines.Line2D
+
+        Examples:
+            .. code-block:: python
+
+                import matplotlib.pylab as plt
+
+                plt.figure(figsize=(10, 7))
+                LinearCyclicalScheduler.plot_values(num_events=50, param_name='lr',
+                                                    start_value=1e-1, end_value=1e-3, cycle_size=10))
+        """
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            raise RuntimeError(
+                "This method requires matplotlib to be installed. "
+                "Please install it with command: \n pip install matplotlib"
+            )
+
+        values = cls.simulate_values(num_events=num_events, **scheduler_kwargs)
+        label = scheduler_kwargs.get("param_name", "learning rate")
+        ax = plt.plot([e for e, _ in values], [v for _, v in values], label=label)
+        plt.legend()
+        plt.grid(which="both")
+        return ax
+
+
+class ParamScheduler(BaseParamScheduler):
     """An abstract class for updating an optimizer's parameter value during
     training.
 
@@ -32,7 +163,7 @@ class ParamScheduler(metaclass=ABCMeta):
         More precisely, whatever the state of the optimizer (newly created or used by another scheduler) the scheduler
         sets defined absolute values.
 
-    .. versionadded:: 0.4.5
+
     """
 
     def __init__(
@@ -42,7 +173,7 @@ class ParamScheduler(metaclass=ABCMeta):
         save_history: bool = False,
         param_group_index: Optional[int] = None,
     ):
-
+        super(ParamScheduler, self).__init__(param_name, save_history)
         if not (
             isinstance(optimizer, Optimizer)
             or (hasattr(optimizer, "param_groups") and isinstance(optimizer.param_groups, Sequence))
@@ -54,10 +185,7 @@ class ParamScheduler(metaclass=ABCMeta):
 
         self.optimizer = optimizer
         self.param_group_index = param_group_index
-        self.param_name = param_name
-        self.event_index = 0
-        self._save_history = save_history
-        self._state_attrs = ["event_index", "param_name", "save_history", "param_group_index"]
+        self._state_attrs += ["param_group_index"]
 
     def __call__(self, engine: Optional[Engine], name: Optional[str] = None) -> None:
 
@@ -93,60 +221,6 @@ class ParamScheduler(metaclass=ABCMeta):
             return self.optimizer.param_groups
         return [self.optimizer.param_groups[self.param_group_index]]
 
-    @property
-    def save_history(self) -> bool:
-        return self._save_history
-
-    @save_history.setter
-    def save_history(self, value: bool) -> None:
-        self._save_history = value
-
-    def state_dict(self) -> Dict[str, Any]:
-        """Returns a dictionary containing a whole state of ParamScheduler.
-
-        Returns:
-            dict:
-                a dictionary containing a whole state of ParamScheduler
-        """
-        destination = OrderedDict()
-        for name in self._state_attrs:
-            if hasattr(self, name):
-                val = getattr(self, name)
-                if hasattr(val, "state_dict"):
-                    val = val.state_dict()
-                destination[name] = copy(val)
-        return destination
-
-    def load_state_dict(self, state_dict: Mapping) -> None:
-        """Copies parameters from :attr:`state_dict` into this ParamScheduler.
-
-        Args:
-            state_dict: a dict containing parameters.
-        """
-        if not isinstance(state_dict, Mapping):
-            raise TypeError(f"Argument state_dict should be a dictionary, but given {type(state_dict)}")
-
-        for name in self._state_attrs:
-            if name not in state_dict:
-                raise ValueError(
-                    f"Required state attribute '{name}' is absent in provided state_dict '{state_dict.keys()}'"
-                )
-            val = state_dict[name]
-            obj = getattr(self, name)
-            if isinstance(val, Mapping) and hasattr(obj, "load_state_dict"):
-                obj.load_state_dict(val)
-            else:
-                setattr(self, name, val)
-
-    @abstractmethod
-    def get_param(self) -> Union[List[float], float]:
-        """Method to get current optimizer's parameter values
-
-        Returns:
-            list of params, or scalar param
-        """
-        pass
-
     @classmethod
     def simulate_values(cls, num_events: int, **scheduler_kwargs: Any) -> List[List[int]]:
         """Method to simulate scheduled values during `num_events` events.
@@ -159,16 +233,18 @@ class ParamScheduler(metaclass=ABCMeta):
             event_index, value
 
         Examples:
-            .. code-block:: python
 
-                lr_values = np.array(LinearCyclicalScheduler.simulate_values(num_events=50, param_name='lr',
-                                                                             start_value=1e-1, end_value=1e-3,
-                                                                             cycle_size=10))
+        .. code-block:: python
 
-                plt.plot(lr_values[:, 0], lr_values[:, 1], label="learning rate")
-                plt.xlabel("events")
-                plt.ylabel("values")
-                plt.legend()
+            lr_values = np.array(LinearCyclicalScheduler.simulate_values(num_events=50, param_name='lr',
+                                                                         start_value=1e-1, end_value=1e-3,
+                                                                         cycle_size=10))
+
+            plt.plot(lr_values[:, 0], lr_values[:, 1], label="learning rate")
+            plt.xlabel("events")
+            plt.ylabel("values")
+            plt.legend()
+
         """
         keys_to_remove = ["optimizer", "save_history"]
         for key in keys_to_remove:
@@ -180,47 +256,6 @@ class ParamScheduler(metaclass=ABCMeta):
             scheduler(engine=None)
             values.append([i, scheduler.optimizer_param_groups[0][scheduler.param_name]])
         return values
-
-    @classmethod
-    def plot_values(cls, num_events: int, **scheduler_kwargs: Mapping) -> Any:
-        """Method to plot simulated scheduled values during `num_events` events.
-
-        This class requires `matplotlib package <https://matplotlib.org/>`_ to be installed:
-
-        .. code-block:: bash
-
-            pip install matplotlib
-
-        Args:
-            num_events: number of events during the simulation.
-            scheduler_kwargs: parameter scheduler configuration kwargs.
-
-        Returns:
-            matplotlib.lines.Line2D
-
-        Examples:
-            .. code-block:: python
-
-                import matplotlib.pylab as plt
-
-                plt.figure(figsize=(10, 7))
-                LinearCyclicalScheduler.plot_values(num_events=50, param_name='lr',
-                                                    start_value=1e-1, end_value=1e-3, cycle_size=10))
-        """
-        try:
-            import matplotlib.pylab as plt
-        except ImportError:
-            raise RuntimeError(
-                "This method requires matplotlib to be installed. "
-                "Please install it with command: \n pip install matplotlib"
-            )
-
-        values = cls.simulate_values(num_events=num_events, **scheduler_kwargs)
-        label = scheduler_kwargs.get("param_name", "learning rate")
-        ax = plt.plot([e for e, _ in values], [v for _, v in values], label=label)
-        plt.legend()
-        plt.grid(which="both")
-        return ax
 
 
 class CyclicalScheduler(ParamScheduler):
