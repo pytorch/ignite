@@ -256,7 +256,7 @@ class PiecewiseLinearStateScheduler(StateParamScheduler):
 class ExpStateScheduler(StateParamScheduler):
     """Update a parameter during training by using exponential function.
     The function decays the parameter value by gamma every step.
-    Based on the closed form of ExponentialLR from Pytorch
+    Based on the closed form of ExponentialLR from PyTorch
     https://pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.ExponentialLR.html
 
     Args:
@@ -303,7 +303,7 @@ class ExpStateScheduler(StateParamScheduler):
 class StepStateScheduler(StateParamScheduler):
     """Update a parameter during training by using a step function.
     This function decays the parameter value by gamma every step_size.
-    Based on StepLR from Pytorch.
+    Based on StepLR from PyTorch.
     https://pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.StepLR.html
 
     Args:
@@ -352,7 +352,7 @@ class StepStateScheduler(StateParamScheduler):
 class MultiStepStateScheduler(StateParamScheduler):
     """Update a parameter during training by using a multi step function.
     The function decays the parameter value by gamma once the number of steps reaches one of the milestones.
-    Based on MultiStepLR from Pytorch.
+    Based on MultiStepLR from PyTorch.
     https://pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.MultiStepLR.html
 
     Args:
