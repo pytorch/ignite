@@ -360,8 +360,6 @@ def test_docstring_examples():
 
     param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
 
-    # basic handler to print scheduled state parameter
-    # engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _: print(engine.state.param))
 
     engine.run([0] * 8, max_epochs=2)
 
@@ -375,8 +373,6 @@ def test_docstring_examples():
 
     param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
 
-    # basic handler to print scheduled state parameter
-    # engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _: print(engine.state.param))
 
     engine.run([0] * 8, max_epochs=40)
 
@@ -388,8 +384,6 @@ def test_docstring_examples():
 
     param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
 
-    # basic handler to print scheduled state parameter
-    # engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _: print(engine.state.param))
 
     engine.run([0] * 8, max_epochs=2)
 
@@ -401,8 +395,6 @@ def test_docstring_examples():
 
     param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
 
-    # basic handler to print scheduled state parameter
-    # engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _: print(engine.state.param))
 
     engine.run([0] * 8, max_epochs=10)
 
@@ -414,7 +406,5 @@ def test_docstring_examples():
 
     param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
 
-    # basic handler to print scheduled state parameter
-    # engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _: print(engine.state.param))
 
     engine.run([0] * 8, max_epochs=10)
