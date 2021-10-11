@@ -117,8 +117,10 @@ class Bleu(Metric):
             print(m.compute())
 
     .. versionadded:: 0.4.5
-    .. versionchanged:: 0.5.0
-        added ``average`` option to handle micro and macro averaging modes.
+    .. versionchanged:: 0.4.7
+
+        - ``update`` method has changed and now works on batch of inputs.
+        - added ``average`` option to handle micro and macro averaging modes.
     """
 
     def __init__(

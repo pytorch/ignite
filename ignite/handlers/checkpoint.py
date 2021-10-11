@@ -259,7 +259,7 @@ class Checkpoint(Serializable):
         - Checkpoint can save model with same filename.
         - Added ``greater_or_equal`` argument.
 
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.7
 
         - `score_name` can be used to define `score_function` automatically without providing `score_function`.
         - `save_handler` automatically saves to disk if path to directory is provided.

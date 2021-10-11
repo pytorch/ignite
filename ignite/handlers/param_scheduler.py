@@ -24,7 +24,7 @@ class BaseParamScheduler(metaclass=ABCMeta):
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.7
 
     """
 

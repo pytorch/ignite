@@ -19,7 +19,7 @@ class StateParamScheduler(BaseParamScheduler):
         More precisely, whatever the state of the engine (newly created or used by another scheduler) the scheduler
         sets defined absolute values.
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.7
 
     """
 
@@ -143,7 +143,7 @@ class LambdaStateScheduler(StateParamScheduler):
 
             engine.run([0] * 8, max_epochs=2)
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.7
 
     """
 
@@ -195,7 +195,7 @@ class PiecewiseLinearStateScheduler(StateParamScheduler):
             # the end of the iterations.
             #
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.7
     """
 
     def __init__(
@@ -284,7 +284,7 @@ class ExpStateScheduler(StateParamScheduler):
 
             engine.run([0] * 8, max_epochs=2)
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.7
 
     """
 
@@ -332,7 +332,7 @@ class StepStateScheduler(StateParamScheduler):
 
             engine.run([0] * 8, max_epochs=10)
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.7
 
     """
 
@@ -381,7 +381,7 @@ class MultiStepStateScheduler(StateParamScheduler):
 
             engine.run([0] * 8, max_epochs=10)
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.7
 
     """
 

@@ -86,7 +86,7 @@ def supervised_training_step(
             trainer = Engine(update_fn)
 
     .. versionadded:: 0.4.5
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.7
         Added Gradient Accumulation.
     """
 
@@ -159,7 +159,7 @@ def supervised_training_step_amp(
             trainer = Engine(update_fn)
 
     .. versionadded:: 0.4.5
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.7
         Added Gradient Accumulation.
     """
 
@@ -242,7 +242,7 @@ def supervised_training_step_apex(
             trainer = Engine(update_fn)
 
     .. versionadded:: 0.4.5
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.7
         Added Gradient Accumulation.
     """
 
@@ -318,7 +318,7 @@ def supervised_training_step_tpu(
             trainer = Engine(update_fn)
 
     .. versionadded:: 0.4.5
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.7
        Added Gradient Accumulation argument for all supervised training methods.
     """
     try:
@@ -449,7 +449,7 @@ def create_supervised_trainer(
         - Added ``amp_mode`` argument for automatic mixed precision.
         - Added ``scaler`` argument for gradient scaling.
 
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.7
         Added Gradient Accumulation argument for all supervised training methods.
     """
 
