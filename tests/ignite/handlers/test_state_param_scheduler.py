@@ -360,7 +360,6 @@ def test_docstring_examples():
 
     param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
 
-
     engine.run([0] * 8, max_epochs=2)
 
     # PiecewiseLinearStateScheduler
@@ -373,7 +372,6 @@ def test_docstring_examples():
 
     param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
 
-
     engine.run([0] * 8, max_epochs=40)
 
     # ExpStateScheduler
@@ -383,7 +381,6 @@ def test_docstring_examples():
     param_scheduler = ExpStateScheduler(param_name="param", initial_value=10, gamma=0.99)
 
     param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
-
 
     engine.run([0] * 8, max_epochs=2)
 
@@ -395,7 +392,6 @@ def test_docstring_examples():
 
     param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
 
-
     engine.run([0] * 8, max_epochs=10)
 
     # MultiStepStateScheduler
@@ -405,6 +401,5 @@ def test_docstring_examples():
     param_scheduler = MultiStepStateScheduler(param_name="param", initial_value=10, gamma=0.99, milestones=[3, 6],)
 
     param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
-
 
     engine.run([0] * 8, max_epochs=10)
