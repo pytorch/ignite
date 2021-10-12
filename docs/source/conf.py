@@ -229,13 +229,12 @@ napoleon_attr_annotations = True
 from importlib import import_module
 from inspect import getmembers, isclass, isfunction
 
-import sphinx.ext.autosummary
 from docutils.parsers.rst import directives
 from docutils.statemachine import StringList
 from sphinx.ext.autosummary import Autosummary
 
 
-class BetterAutosummary(Autosummary):
+class AutolistAutosummary(Autosummary):
     """Autosummary with autolisting for modules.
 
     By default it tries to import all public names (__all__),
@@ -320,9 +319,6 @@ class BetterAutosummary(Autosummary):
         return super().run()
 
 
-# Patch original Autosummary
-sphinx.ext.autosummary.Autosummary = BetterAutosummary
-
 # --- autosummary config -----------------------------------------------------
 autosummary_generate = True
 
@@ -342,3 +338,7 @@ nitpick_ignore = [
     ("py:class", "torch.optim.lr_scheduler._LRScheduler"),
     ("py:class", "torch.utils.data.dataloader.DataLoader"),
 ]
+
+
+def setup(app):
+    app.add_directive("autosummary", AutolistAutosummary, override=True)
