@@ -11,6 +11,7 @@ on:
 
 jobs:
   build-deploy:
+    if: (github.ref == 'refs/heads/master' && github.event_name == 'push') || github.event_name == 'release'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
