@@ -134,10 +134,12 @@ if has_native_dist_support:
             # [W ProcessGroupNCCL.cpp:1569] Rank 0 using best-guess GPU 0 to perform barrier as devices used by
             # this process are currently unknown. This can potentially cause a hang if this rank to GPU mapping
             # is incorrect.Specify device_ids in barrier() to force use of a particular device.
-            device_ids = None
             if backend == dist.Backend.NCCL and LooseVersion(torch.__version__) >= LooseVersion("1.8.0"):
                 device_ids = [torch.cuda.current_device()]
-            dist.barrier(device_ids=device_ids)
+                dist.barrier(device_ids=device_ids)
+            else:
+                # For older versions there is no device_ids arg
+                dist.barrier()
 
             self._setup_attrs()
 
