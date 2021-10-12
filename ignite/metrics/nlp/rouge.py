@@ -149,18 +149,19 @@ class _BaseRouge(Metric):
         self._num_examples = 0
 
     @reinit__is_reduced
-    def update(self, output: Tuple[Sequence[Any], Sequence[Sequence[Any]]]) -> None:
-        candidate, references = output[0], output[1]
-        multiref_scores = [self._compute_score(candidate=candidate, reference=reference,) for reference in references]
-        score = self._mutliref_reducer(multiref_scores)
-        precision = score.precision()
-        recall = score.recall()
-        self._precision += precision
-        self._recall += recall
-        precision_recall = precision * recall
-        if precision_recall > 0:  # avoid zero division
-            self._fmeasure += precision_recall / ((1 - self._alpha) * precision + self._alpha * recall)
-        self._num_examples += 1
+    def update(self, output: Tuple[Sequence[Sequence[Any]], Sequence[Sequence[Sequence[Any]]]]) -> None:
+        candidates, references = output
+        for _candidate, _reference in zip(candidates, references):
+            multiref_scores = [self._compute_score(candidate=_candidate, reference=_ref,) for _ref in _reference]
+            score = self._mutliref_reducer(multiref_scores)
+            precision = score.precision()
+            recall = score.recall()
+            self._precision += precision
+            self._recall += recall
+            precision_recall = precision * recall
+            if precision_recall > 0:  # avoid zero division
+                self._fmeasure += precision_recall / ((1 - self._alpha) * precision + self._alpha * recall)
+            self._num_examples += 1
 
     @sync_all_reduce("_precision", "_recall", "_fmeasure", "_num_examples")
     def compute(self) -> Mapping:
@@ -192,8 +193,8 @@ class RougeN(_BaseRouge):
     __ https://www.aclweb.org/anthology/W04-1013.pdf
 
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
-    - `y_pred` must be a sequence of tokens.
-    - `y` must be a list of sequence of tokens.
+    - `y_pred` (list(list(str))) must be a sequence of tokens.
+    - `y` (list(list(list(str))) must be a list of sequence of tokens.
 
     Args:
         ngram: ngram order (default: 4).
@@ -222,7 +223,7 @@ class RougeN(_BaseRouge):
                 "there is a cat on the mat".split()
             ]
 
-            m.update((candidate, references))
+            m.update(([candidate], [references]))
 
             m.compute()
             # {'Rouge-2-P': 0.5, 'Rouge-2-R': 0.4, 'Rouge-2-F': 0.4}
@@ -260,8 +261,8 @@ class RougeL(_BaseRouge):
     __ https://www.aclweb.org/anthology/W04-1013.pdf
 
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
-    - `y_pred` must be a sequence of tokens.
-    - `y` must be a list of sequence of tokens.
+    - `y_pred` (list(list(str))) must be a sequence of tokens.
+    - `y` (list(list(list(str))) must be a list of sequence of tokens.
 
     Args:
         multiref: reduces scores for multi references. Valid values are "best" and "average" (default: "average").
@@ -288,7 +289,7 @@ class RougeL(_BaseRouge):
                 "there is a cat on the mat".split()
             ]
 
-            m.update((candidate, references))
+            m.update(([candidate], [references]))
 
            m.compute()
            # {'Rouge-L-P': 0.6, 'Rouge-L-R': 0.5, 'Rouge-L-F': 0.5}
@@ -320,8 +321,8 @@ class Rouge(Metric):
     __ https://www.aclweb.org/anthology/W04-1013.pdf
 
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
-    - `y_pred` must be a sequence of tokens.
-    - `y` must be a list of sequence of tokens.
+    - `y_pred` (list(list(str))) must be a sequence of tokens.
+    - `y` (list(list(list(str))) must be a list of sequence of tokens.
 
     Args:
         variants: set of metrics computed. Valid inputs are "L" and integer 1 <= n <= 9.
@@ -349,13 +350,15 @@ class Rouge(Metric):
                 "there is a cat on the mat".split()
             ]
 
-            m.update((candidate, references))
+            m.update(([candidate], [references]))
 
             m.compute()
             # {'Rouge-L-P': 0.6, 'Rouge-L-R': 0.5, 'Rouge-L-F': 0.5, 'Rouge-2-P': 0.5, 'Rouge-2-R': 0.4,
             # 'Rouge-2-F': 0.4}
 
     .. versionadded:: 0.4.5
+    .. versionchanged:: 0.5.0
+        Changed input type to work on batch of inputs
     """
 
     def __init__(
@@ -388,7 +391,7 @@ class Rouge(Metric):
             m.reset()
 
     @reinit__is_reduced
-    def update(self, output: Tuple[Sequence[Any], Sequence[Sequence[Any]]]) -> None:
+    def update(self, output: Tuple[Sequence[Sequence[Any]], Sequence[Sequence[Sequence[Any]]]]) -> None:
         for m in self.internal_metrics:
             m.update(output)
 
