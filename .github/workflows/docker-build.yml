@@ -30,7 +30,7 @@ jobs:
       - name: Set versions
         id: set-versions
         working-directory: docker
-        run: | 
+        run: |
           echo "::set-output name=pth_version::$(python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_pytorch_version'))")"
           echo "::set-output name=hvd_version::$(python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_hvd_version'))")"
           echo "::set-output name=msdp_version::$(python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_msdp_version'))")"
