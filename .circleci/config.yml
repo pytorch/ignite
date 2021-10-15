@@ -26,7 +26,7 @@ parameters:
     default: "v0.23.0"
   build_docker_image_msdp_version:
     type: string
-    default: "v0.4.4"
+    default: "v0.5.4"
 
 # -------------------------------------------------------------------------------------
 # Environments to run the jobs in
