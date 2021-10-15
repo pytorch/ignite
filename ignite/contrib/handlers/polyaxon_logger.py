@@ -1,9 +1,6 @@
 """Polyaxon logger and its helper handlers."""
-import numbers
-import warnings
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, List, Optional, Union
 
-import torch
 from torch.optim import Optimizer
 
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler
@@ -28,9 +25,13 @@ class PolyaxonLogger(BaseLogger):
 
         pip install polyaxon-client
 
+    Args:
+        args: Positional arguments accepted from
+            `Experiment <https://polyaxon.com/docs/experimentation/tracking/client/>`_.
+        kwargs: Keyword arguments accepted from
+            `Experiment <https://polyaxon.com/docs/experimentation/tracking/client/>`_.
 
     Examples:
-
         .. code-block:: python
 
             from ignite.contrib.handlers.polyaxon_logger import *
@@ -87,13 +88,8 @@ class PolyaxonLogger(BaseLogger):
                 optimizer=optimizer,
                 param_name='lr'  # optional
             )
-
-    Args:
-        args: Positional arguments accepted from
-            `Experiment <https://polyaxon.com/docs/experimentation/tracking/client/>`_.
-        kwargs: Keyword arguments accepted from
-            `Experiment <https://polyaxon.com/docs/experimentation/tracking/client/>`_.
-
+            # to manually end a run
+            plx_logger.close()
     """
 
     def __init__(self, *args: Any, **kwargs: Any):
@@ -101,6 +97,7 @@ class PolyaxonLogger(BaseLogger):
             from polyaxon.tracking import Run
 
             self.experiment = Run(*args, **kwargs)
+
         except ImportError:
             try:
                 from polyaxon_client.tracking import Experiment
@@ -112,6 +109,12 @@ class PolyaxonLogger(BaseLogger):
                     "For Polyaxon v1.x please install it with command: \n pip install polyaxon\n"
                     "For Polyaxon v0.x please install it with command: \n pip install polyaxon-client"
                 )
+
+    def close(self) -> None:
+        try:
+            self.experiment.end()
+        except:
+            pass
 
     def __getattr__(self, attr: Any) -> Any:
         return getattr(self.experiment, attr)
@@ -126,8 +129,22 @@ class PolyaxonLogger(BaseLogger):
 class OutputHandler(BaseOutputHandler):
     """Helper handler to log engine's output and/or metrics.
 
-    Examples:
+    Args:
+        tag: common title for all produced plots. For example, "training"
+        metric_names: list of metric names to plot or a string "all" to plot all available
+            metrics.
+        output_transform: output transform function to prepare `engine.state.output` as a number.
+            For example, `output_transform = lambda output: output`
+            This function can also return a dictionary, e.g `{"loss": loss1, "another_loss": loss2}` to label the plot
+            with corresponding keys.
+        global_step_transform: global step transform function to output a desired global step.
+            Input of the function is `(engine, event_name)`. Output of function should be an integer.
+            Default is None, global_step based on attached engine. If provided,
+            uses function output as global_step. To setup global step from another engine, please use
+            :meth:`~ignite.contrib.handlers.polyaxon_logger.global_step_from_engine`.
+        state_attributes: list of attributes of the ``trainer.state`` to plot.
 
+    Examples:
         .. code-block:: python
 
             from ignite.contrib.handlers.polyaxon_logger import *
@@ -184,21 +201,18 @@ class OutputHandler(BaseOutputHandler):
                 global_step_transform=global_step_transform
             )
 
-    Args:
-        tag: common title for all produced plots. For example, "training"
-        metric_names: list of metric names to plot or a string "all" to plot all available
-            metrics.
-        output_transform: output transform function to prepare `engine.state.output` as a number.
-            For example, `output_transform = lambda output: output`
-            This function can also return a dictionary, e.g `{"loss": loss1, "another_loss": loss2}` to label the plot
-            with corresponding keys.
-        global_step_transform: global step transform function to output a desired global step.
-            Input of the function is `(engine, event_name)`. Output of function should be an integer.
-            Default is None, global_step based on attached engine. If provided,
-            uses function output as global_step. To setup global step from another engine, please use
-            :meth:`~ignite.contrib.handlers.polyaxon_logger.global_step_from_engine`.
+        Another example where the State Attributes ``trainer.state.alpha`` and ``trainer.state.beta``
+        are also logged along with the NLL and Accuracy after each iteration:
 
-    Note:
+        .. code-block:: python
+
+            plx_logger.attach_output_handler(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                tag="training",
+                metrics=["nll", "accuracy"],
+                state_attributes=["alpha", "beta"],
+            )
 
         Example of `global_step_transform`:
 
@@ -207,6 +221,8 @@ class OutputHandler(BaseOutputHandler):
             def global_step_transform(engine, event_name):
                 return engine.state.get_event_attrib_value(event_name)
 
+    ..  versionchanged:: 0.5.0
+        accepts an optional list of `state_attributes`
     """
 
     def __init__(
@@ -215,15 +231,18 @@ class OutputHandler(BaseOutputHandler):
         metric_names: Optional[List[str]] = None,
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable] = None,
+        state_attributes: Optional[List[str]] = None,
     ):
-        super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
+        super(OutputHandler, self).__init__(
+            tag, metric_names, output_transform, global_step_transform, state_attributes
+        )
 
     def __call__(self, engine: Engine, logger: PolyaxonLogger, event_name: Union[str, Events]) -> None:
 
         if not isinstance(logger, PolyaxonLogger):
             raise RuntimeError("Handler 'OutputHandler' works only with PolyaxonLogger")
 
-        metrics = self._setup_output_metrics(engine)
+        metrics = self._setup_output_metrics_state_attrs(engine, key_tuple=False)
 
         global_step = self.global_step_transform(engine, event_name)  # type: ignore[misc]
 
@@ -233,26 +252,21 @@ class OutputHandler(BaseOutputHandler):
                 " Please check the output of global_step_transform."
             )
 
-        rendered_metrics = {"step": global_step}  # type: Dict[str, Union[float, numbers.Number]]
-        for key, value in metrics.items():
-            if isinstance(value, numbers.Number):
-                rendered_metrics[f"{self.tag}/{key}"] = value
-            elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                rendered_metrics[f"{self.tag}/{key}"] = value.item()
-            elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
-                for i, v in enumerate(value):
-                    rendered_metrics[f"{self.tag}/{key}/{i}"] = v.item()
-            else:
-                warnings.warn(f"PolyaxonLogger output_handler can not log metrics value type {type(value)}")
+        metrics.update({"step": global_step})
 
-        logger.log_metrics(**rendered_metrics)
+        logger.log_metrics(**metrics)
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):
     """Helper handler to log optimizer parameters
 
-    Examples:
+    Args:
+        optimizer: torch optimizer or any object with attribute ``param_groups``
+            as a sequence.
+        param_name: parameter name
+        tag: common title for all produced plots. For example, "generator"
 
+    Examples:
         .. code-block:: python
 
             from ignite.contrib.handlers.polyaxon_logger import *
@@ -272,12 +286,6 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
                 event_name=Events.ITERATION_STARTED,
                 optimizer=optimizer
             )
-
-    Args:
-        optimizer: torch optimizer or any object with attribute ``param_groups``
-            as a sequence.
-        param_name: parameter name
-        tag: common title for all produced plots. For example, "generator"
     """
 
     def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None):

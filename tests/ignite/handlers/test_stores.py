@@ -1,7 +1,7 @@
 import pytest
 
-from ignite.contrib.handlers import EpochOutputStore
 from ignite.engine.engine import Engine, Events
+from ignite.handlers import EpochOutputStore
 
 
 @pytest.fixture
@@ -25,7 +25,7 @@ def test_no_transform(dummy_evaluator, eos):
     assert eos.data == [(1, 0)]
 
 
-def test_tranform(dummy_evaluator):
+def test_transform(dummy_evaluator):
     eos = EpochOutputStore(output_transform=lambda x: x[0])
     eos.attach(dummy_evaluator)
 
@@ -56,3 +56,9 @@ def test_attatch(dummy_evaluator, eos):
     eos.attach(dummy_evaluator)
     assert dummy_evaluator.has_event_handler(eos.reset, Events.EPOCH_STARTED)
     assert dummy_evaluator.has_event_handler(eos.update, Events.ITERATION_COMPLETED)
+
+
+def test_store_data(dummy_evaluator, eos):
+    eos.attach(dummy_evaluator, name="eval_data")
+    dummy_evaluator.run(range(1))
+    assert dummy_evaluator.state.eval_data == eos.data

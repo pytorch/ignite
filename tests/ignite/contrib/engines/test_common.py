@@ -39,7 +39,14 @@ class DummyModel(nn.Module):
 
 
 def _test_setup_common_training_handlers(
-    dirname, device, rank=0, local_rank=0, distributed=False, lr_scheduler=None, save_handler=None
+    dirname,
+    device,
+    rank=0,
+    local_rank=0,
+    distributed=False,
+    lr_scheduler=None,
+    save_handler=None,
+    output_transform=lambda loss: loss,
 ):
 
     lr = 0.01
@@ -49,7 +56,7 @@ def _test_setup_common_training_handlers(
     num_epochs = 10
 
     model = DummyModel().to(device)
-    if distributed and "cuda" in device:
+    if distributed and "cuda" in torch.device(device).type:
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank,], output_device=local_rank)
     optimizer = torch.optim.SGD(model.parameters(), lr=lr)
 
@@ -74,7 +81,7 @@ def _test_setup_common_training_handlers(
         loss = y_pred.mean()
         loss.backward()
         optimizer.step()
-        return loss
+        return output_transform(loss)
 
     train_sampler = None
     if distributed and idist.get_world_size() > 1:
@@ -141,6 +148,22 @@ def test_asserts_setup_common_training_handlers():
         train_sampler = MagicMock(spec=DistributedSampler)
         setup_common_training_handlers(trainer, train_sampler=train_sampler)
 
+    with pytest.raises(RuntimeError, match=r"This contrib module requires available GPU"):
+        setup_common_training_handlers(trainer, with_gpu_stats=True)
+
+    with pytest.raises(TypeError, match=r"Unhandled type of update_function's output."):
+        trainer = Engine(lambda e, b: None)
+        setup_common_training_handlers(
+            trainer,
+            output_names=["loss"],
+            with_pbar_on_iters=False,
+            with_pbars=False,
+            with_gpu_stats=False,
+            stop_on_nan=False,
+            clear_cuda_cache=False,
+        )
+        trainer.run([1])
+
 
 def test_no_warning_with_train_sampler(recwarn):
     from torch.utils.data import RandomSampler
@@ -165,8 +188,25 @@ def test_assert_setup_common_training_handlers_wrong_train_sampler(distributed_c
 
 
 def test_setup_common_training_handlers(dirname, capsys):
-
     _test_setup_common_training_handlers(dirname, device="cpu")
+
+    # Check epoch-wise pbar
+    captured = capsys.readouterr()
+    out = captured.err.split("\r")
+    out = list(map(lambda x: x.strip(), out))
+    out = list(filter(None, out))
+    assert "Epoch" in out[-1] or "Epoch" in out[-2], f"{out[-2]}, {out[-1]}"
+
+    _test_setup_common_training_handlers(dirname, device="cpu", output_transform=lambda loss: [loss])
+
+    # Check epoch-wise pbar
+    captured = capsys.readouterr()
+    out = captured.err.split("\r")
+    out = list(map(lambda x: x.strip(), out))
+    out = list(filter(None, out))
+    assert "Epoch" in out[-1] or "Epoch" in out[-2], f"{out[-2]}, {out[-1]}"
+
+    _test_setup_common_training_handlers(dirname, device="cpu", output_transform=lambda loss: {"batch_loss": loss})
 
     # Check epoch-wise pbar
     captured = capsys.readouterr()
@@ -541,17 +581,19 @@ def test_setup_neptune_logging(dirname):
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_gpu(dirname, distributed_context_single_node_nccl):
+def test_distrib_nccl_gpu(dirname, distributed_context_single_node_nccl):
+
     local_rank = distributed_context_single_node_nccl["local_rank"]
-    device = f"cuda:{local_rank}"
+    device = idist.device()
     _test_setup_common_training_handlers(dirname, device, rank=local_rank, local_rank=local_rank, distributed=True)
     test_add_early_stopping_by_val_score()
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-def test_distrib_cpu(dirname, distributed_context_single_node_gloo):
-    device = "cpu"
+def test_distrib_gloo_cpu_or_gpu(dirname, distributed_context_single_node_gloo):
+
+    device = idist.device()
     local_rank = distributed_context_single_node_gloo["local_rank"]
     _test_setup_common_training_handlers(dirname, device, rank=local_rank, local_rank=local_rank, distributed=True)
     _test_setup_common_training_handlers(
@@ -566,8 +608,9 @@ def test_distrib_cpu(dirname, distributed_context_single_node_gloo):
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_cpu(dirname, distributed_context_multi_node_gloo):
-    device = "cpu"
+def test_multinode_distrib_gloo_cpu_or_gpu(dirname, distributed_context_multi_node_gloo):
+
+    device = idist.device()
     rank = distributed_context_multi_node_gloo["rank"]
     _test_setup_common_training_handlers(dirname, device, rank=rank)
     test_add_early_stopping_by_val_score()
@@ -576,9 +619,10 @@ def test_multinode_distrib_cpu(dirname, distributed_context_multi_node_gloo):
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_gpu(dirname, distributed_context_multi_node_nccl):
+def test_multinode_distrib_nccl_gpu(dirname, distributed_context_multi_node_nccl):
+
     local_rank = distributed_context_multi_node_nccl["local_rank"]
     rank = distributed_context_multi_node_nccl["rank"]
-    device = f"cuda:{local_rank}"
+    device = idist.device()
     _test_setup_common_training_handlers(dirname, device, rank=rank, local_rank=local_rank, distributed=True)
     test_add_early_stopping_by_val_score()

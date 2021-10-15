@@ -15,9 +15,9 @@ class MetricsLambda(Metric):
     The result of the new metric is defined to be the result
     of applying the function to the result of argument metrics.
 
-    When update, this metric does not recursively update the metrics
+    When update, this metric recursively updates the metrics
     it depends on. When reset, all its dependency metrics would be
-    resetted. When attach, all its dependency metrics would be attached
+    resetted as well. When attach, all its dependency metrics would be attached
     automatically (but partially, e.g :meth:`~ignite.metrics.metric.Metric.is_attached()` will return False).
 
     Args:
@@ -27,43 +27,41 @@ class MetricsLambda(Metric):
         kwargs: Sequence of other metrics or something
             else that will be fed to ``f`` as keyword arguments.
 
-    Example:
+    Examples:
+        .. code-block:: python
 
-    .. code-block:: python
+            precision = Precision(average=False)
+            recall = Recall(average=False)
 
-        precision = Precision(average=False)
-        recall = Recall(average=False)
+            def Fbeta(r, p, beta):
+                return torch.mean((1 + beta ** 2) * p * r / (beta ** 2 * p + r + 1e-20)).item()
 
-        def Fbeta(r, p, beta):
-            return torch.mean((1 + beta ** 2) * p * r / (beta ** 2 * p + r + 1e-20)).item()
+            F1 = MetricsLambda(Fbeta, recall, precision, 1)
+            F2 = MetricsLambda(Fbeta, recall, precision, 2)
+            F3 = MetricsLambda(Fbeta, recall, precision, 3)
+            F4 = MetricsLambda(Fbeta, recall, precision, 4)
 
-        F1 = MetricsLambda(Fbeta, recall, precision, 1)
-        F2 = MetricsLambda(Fbeta, recall, precision, 2)
-        F3 = MetricsLambda(Fbeta, recall, precision, 3)
-        F4 = MetricsLambda(Fbeta, recall, precision, 4)
+        When check if the metric is attached, if one of its dependency
+        metrics is detached, the metric is considered detached too.
 
-    When check if the metric is attached, if one of its dependency
-    metrics is detached, the metric is considered detached too.
+        .. code-block:: python
 
-    .. code-block:: python
+            engine = ...
+            precision = Precision(average=False)
 
-        engine = ...
-        precision = Precision(average=False)
+            aP = precision.mean()
 
-        aP = precision.mean()
+            aP.attach(engine, "aP")
 
-        aP.attach(engine, "aP")
+            assert aP.is_attached(engine)
+            # partially attached
+            assert not precision.is_attached(engine)
 
-        assert aP.is_attached(engine)
-        # partially attached
-        assert not precision.is_attached(engine)
+            precision.detach(engine)
 
-        precision.detach(engine)
-
-        assert not aP.is_attached(engine)
-        # fully attached
-        assert not precision.is_attached(engine)
-
+            assert not aP.is_attached(engine)
+            # fully attached
+            assert not precision.is_attached(engine)
     """
 
     def __init__(self, f: Callable, *args: Any, **kwargs: Any) -> None:
@@ -71,6 +69,7 @@ class MetricsLambda(Metric):
         self.args = args
         self.kwargs = kwargs
         self.engine = None  # type: Optional[Engine]
+        self._updated = False
         super(MetricsLambda, self).__init__(device="cpu")
 
     @reinit__is_reduced
@@ -78,13 +77,21 @@ class MetricsLambda(Metric):
         for i in itertools.chain(self.args, self.kwargs.values()):
             if isinstance(i, Metric):
                 i.reset()
+        self._updated = False
 
     @reinit__is_reduced
     def update(self, output: Any) -> None:
-        # NB: this method does not recursively update dependency metrics,
-        # which might cause duplicate update issue. To update this metric,
-        # users should manually update its dependencies.
-        pass
+        if self.engine:
+            raise ValueError(
+                "MetricsLambda is already attached to an engine, "
+                "and MetricsLambda can't use update API while it's attached."
+            )
+
+        for i in itertools.chain(self.args, self.kwargs.values()):
+            if isinstance(i, Metric):
+                i.update(output)
+
+        self._updated = True
 
     def compute(self) -> Any:
         materialized = [_get_value_on_cpu(i) for i in self.args]
@@ -105,6 +112,10 @@ class MetricsLambda(Metric):
                     engine.add_event_handler(usage.ITERATION_COMPLETED, metric.iteration_completed)
 
     def attach(self, engine: Engine, name: str, usage: Union[str, MetricUsage] = EpochWise()) -> None:
+        if self._updated:
+            raise ValueError(
+                "The underlying metrics are already updated, can't attach while using reset/update/compute API."
+            )
         usage = self._check_usage(usage)
         # recursively attach all its dependencies (partially)
         self._internal_attach(engine, usage)

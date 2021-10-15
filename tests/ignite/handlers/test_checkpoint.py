@@ -2,6 +2,7 @@ import os
 import stat
 import warnings
 from collections import OrderedDict
+from collections.abc import Mapping
 from unittest.mock import MagicMock
 
 import pytest
@@ -49,19 +50,37 @@ def test_checkpoint_wrong_input():
     model = DummyModel()
     to_save = {"model": model}
 
-    with pytest.raises(TypeError, match=r"Argument `save_handler` should be callable"):
-        Checkpoint(to_save, 12, "prefix")
-
     with pytest.raises(
-        ValueError, match=r"If `score_name` is provided, then `score_function` should be also provided."
+        TypeError, match=r"Argument `save_handler` should be a string or callable or inherit from BaseSaveHandler"
     ):
-        Checkpoint(to_save, lambda x: x, score_name="acc")
+        Checkpoint(to_save, 12, "prefix")
 
     with pytest.raises(TypeError, match=r"global_step_transform should be a function."):
         Checkpoint(to_save, lambda x: x, score_function=lambda e: 123, score_name="acc", global_step_transform=123)
 
     with pytest.raises(ValueError, match=r"Cannot have key 'checkpointer' if `include_self` is True"):
         Checkpoint({"checkpointer": model}, lambda x: x, include_self=True)
+
+    class ImmutableMapping(Mapping):
+        def __getitem__(self, key):
+            return to_save[key]
+
+        def __iter__(self):
+            return iter(to_save)
+
+        def __len__(self):
+            return len(to_save)
+
+    with pytest.raises(TypeError, match="If `include_self` is True, then `to_save` must be mutable"):
+        Checkpoint(ImmutableMapping(), lambda x: x, include_self=True)
+
+
+def test_save_handler_as_str(dirname):
+    model = DummyModel()
+    to_save = {"model": model}
+
+    checkpointer = Checkpoint(to_save, save_handler=dirname)
+    assert isinstance(checkpointer.save_handler, DiskSaver)
 
 
 def test_checkpoint_score_function_wrong_output():
@@ -258,6 +277,45 @@ def test_checkpoint_with_score_function():
     optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
     to_save = {"model": model, "optimizer": optimizer}
     _test(to_save, {"model": model.state_dict(), "optimizer": optimizer.state_dict()}, "checkpoint")
+
+
+def test_checkpoint_with_score_name_only():
+    def _test(to_save, obj, name):
+        save_handler = MagicMock(spec=BaseSaveHandler)
+
+        trainer = Engine(lambda e, b: None)
+        evaluator = Engine(lambda e, b: None)
+        trainer.state = State(epoch=11, iteration=1)
+
+        checkpointer = Checkpoint(
+            to_save,
+            save_handler=save_handler,
+            global_step_transform=lambda _1, _2: trainer.state.epoch,
+            score_name="val_acc",
+        )
+
+        evaluator.state = State(epoch=1, iteration=1000, metrics={"val_acc": 0.77})
+
+        checkpointer(evaluator)
+        assert save_handler.call_count == 1
+
+        metadata = {"basename": name, "score_name": "val_acc", "priority": 0.77}
+        save_handler.assert_called_with(obj, f"{name}_11_val_acc=0.7700.pt", metadata)
+
+        trainer.state.epoch = 12
+        evaluator.state.metrics["val_acc"] = 0.78
+
+        checkpointer(evaluator)
+        assert save_handler.call_count == 2
+        metadata["priority"] = 0.78
+        save_handler.assert_called_with(obj, f"{name}_12_val_acc=0.7800.pt", metadata)
+        assert save_handler.remove.call_count == 1
+        save_handler.remove.assert_called_with(f"{name}_11_val_acc=0.7700.pt")
+        assert checkpointer.last_checkpoint == f"{name}_12_val_acc=0.7800.pt"
+
+    model = DummyModel()
+    to_save = {"model": model}
+    _test(to_save, model.state_dict(), "model")
 
 
 def test_checkpoint_with_score_name_and_function():
@@ -491,9 +549,6 @@ def test_model_checkpoint_args_validation(dirname):
 
     with pytest.raises(ValueError, match=r"Directory path '\S+' is not found"):
         ModelCheckpoint(os.path.join(dirname, "non_existing_dir"), _PREFIX, create_dir=False)
-
-    with pytest.raises(ValueError, match=r"If `score_name` is provided, then `score_function` "):
-        ModelCheckpoint(existing, _PREFIX, create_dir=False, score_name="test")
 
     with pytest.raises(TypeError, match=r"global_step_transform should be a function"):
         ModelCheckpoint(existing, _PREFIX, create_dir=False, global_step_transform=1234)
@@ -1175,8 +1230,9 @@ def _test_checkpoint_load_objects_ddp(device):
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-def test_distrib_cpu(distributed_context_single_node_gloo, get_rank_zero_dirname):
-    device = torch.device("cpu")
+def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo, get_rank_zero_dirname):
+
+    device = idist.device()
     dirname = get_rank_zero_dirname()
     _test_save_model_optimizer_lr_scheduler_with_state_dict(device, os.path.join(dirname, "1"))
     _test_save_model_optimizer_lr_scheduler_with_state_dict(device, os.path.join(dirname, "2"), on_zero_rank=True)
@@ -1187,13 +1243,37 @@ def test_distrib_cpu(distributed_context_single_node_gloo, get_rank_zero_dirname
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_gpu(distributed_context_single_node_nccl, get_rank_zero_dirname):
+def test_distrib_nccl_gpu(distributed_context_single_node_nccl, get_rank_zero_dirname):
+
     device = idist.device()
     dirname = get_rank_zero_dirname()
     _test_save_model_optimizer_lr_scheduler_with_state_dict(device, os.path.join(dirname, "1"))
     _test_save_model_optimizer_lr_scheduler_with_state_dict("cpu", os.path.join(dirname, "2"), on_zero_rank=True)
     _test_checkpoint_with_ddp(device=device)
     _test_checkpoint_load_objects_ddp(device=device)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
+def test_distrib_hvd(gloo_hvd_executor, get_rank_zero_dirname):
+
+    device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
+    nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
+    dirname = get_rank_zero_dirname()
+
+    gloo_hvd_executor(
+        _test_save_model_optimizer_lr_scheduler_with_state_dict,
+        (device, os.path.join(dirname, "1")),
+        np=nproc,
+        do_init=True,
+    )
+    gloo_hvd_executor(
+        _test_save_model_optimizer_lr_scheduler_with_state_dict,
+        ("cpu", os.path.join(dirname, "2"), True),
+        np=nproc,
+        do_init=True,
+    )
 
 
 def _test_tpu_saves_to_cpu(device, dirname):

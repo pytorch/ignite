@@ -1,7 +1,6 @@
 import logging
 import os
 import sys
-import warnings
 from collections import namedtuple
 
 import pytest
@@ -120,8 +119,8 @@ def test_setup_logger(capsys, dirname):
 
     def _test(stream):
 
-        trainer.logger = setup_logger("trainer", stream=stream, filepath=fp)
-        evaluator.logger = setup_logger("evaluator", stream=stream, filepath=fp)
+        trainer.logger = setup_logger("trainer", stream=stream, filepath=fp, reset=True)
+        evaluator.logger = setup_logger("evaluator", stream=stream, filepath=fp, reset=True)
 
         assert len(trainer.logger.handlers) == 2
         assert len(evaluator.logger.handlers) == 2
@@ -148,6 +147,32 @@ def test_setup_logger(capsys, dirname):
     _test(stream=None)
     _test(stream=sys.stderr)
     _test(stream=sys.stdout)
+
+    # Needed by windows to release FileHandler in the loggers
+    logging.shutdown()
+
+
+def _setup_a_logger_and_dump(name, message):
+    logger = setup_logger(name)
+    logger.info(message)
+
+
+def test_override_setup_logger(capsys):
+
+    _setup_a_logger_and_dump(__name__, "test_override_setup_logger")
+
+    source = capsys.readouterr().err.split("\n")
+
+    assert "tests.ignite.test_utils INFO: test_override_setup_logger" in source[0]
+
+    # change the logger level of _setup_a_logger_and_dump
+    setup_logger(name=__name__, level=logging.WARNING, reset=True)
+
+    _setup_a_logger_and_dump(__name__, "test_override_setup_logger")
+
+    source = capsys.readouterr().err.split("\n")
+
+    assert source[0] == ""
 
     # Needed by windows to release FileHandler in the loggers
     logging.shutdown()
@@ -191,21 +216,14 @@ def test_deprecated():
         return 24
 
     with pytest.deprecated_call():
-        func_check_warning()
-    assert func_check_warning() == 24
-    with warnings.catch_warnings(record=True) as w:
-        # Cause all warnings to always be triggered.
-        warnings.simplefilter("always")
+        assert func_check_warning() == 24
+    with pytest.warns(
+        DeprecationWarning,
+        match="This function has been deprecated since version 0.4.2 and will be removed in version 0.6.0."
+        + "\n Please refer to the documentation for more details.",
+    ):
         # Trigger a warning.
         func_check_warning()
-        # Verify some things
-        assert len(w) == 1
-        assert issubclass(w[-1].category, DeprecationWarning)
-        assert (
-            "This function has been deprecated since version 0.4.2 and will be removed in version 0.6.0."
-            + "\n Please refer to the documentation for more details."
-            in str(w[-1].message)
-        )
 
     # Test that the function raises Exception
     @deprecated("0.4.2", "0.6.0", reasons=("reason1", "reason2"), raise_exception=True)

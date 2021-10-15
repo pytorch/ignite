@@ -79,7 +79,7 @@ def test_median_absolute_percentage_error_2():
     assert np_median_absolute_percentage_error == pytest.approx(m.compute())
 
 
-def test_integration_median_absolute_percentage_error_with_output_transform():
+def test_integration_median_absolute_percentage_error():
 
     np.random.seed(1)
     size = 105
@@ -94,11 +94,11 @@ def test_integration_median_absolute_percentage_error_with_output_transform():
         idx = (engine.state.iteration - 1) * batch_size
         y_true_batch = np_y[idx : idx + batch_size]
         y_pred_batch = np_y_pred[idx : idx + batch_size]
-        return idx, torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+        return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
 
     engine = Engine(update_fn)
 
-    m = MedianAbsolutePercentageError(output_transform=lambda x: (x[1], x[2]))
+    m = MedianAbsolutePercentageError()
     m.attach(engine, "median_absolute_percentage_error")
 
     data = list(range(size // batch_size))
@@ -132,17 +132,16 @@ def _test_distrib_compute(device):
         res = m.compute()
 
         e = np.abs(np_y - np_y_pred) / np.abs(np_y)
-        np_res = 100.0 * np.median(e)
-
-        e_prepend = np.insert(e, 0, e[0], axis=0)
-        np_res_prepend = 100.0 * np.median(e_prepend)
 
         # The results between numpy.median() and torch.median() are Inconsistant
         # when the length of the array/tensor is even. So this is a hack to avoid that.
         # issue: https://github.com/pytorch/pytorch/issues/1837
         if np_y_pred.shape[0] % 2 == 0:
+            e_prepend = np.insert(e, 0, e[0], axis=0)
+            np_res_prepend = 100.0 * np.median(e_prepend)
             assert pytest.approx(res) == np_res_prepend
         else:
+            np_res = 100.0 * np.median(e)
             assert pytest.approx(res) == np_res
 
     for _ in range(3):
@@ -210,17 +209,18 @@ def _test_distrib_integration(device):
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_gpu(distributed_context_single_node_nccl):
-    device = torch.device(f"cuda:{distributed_context_single_node_nccl['local_rank']}")
+def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
+
+    device = idist.device()
     _test_distrib_compute(device)
     _test_distrib_integration(device)
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-def test_distrib_cpu(distributed_context_single_node_gloo):
+def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
 
-    device = torch.device("cpu")
+    device = idist.device()
     _test_distrib_compute(device)
     _test_distrib_integration(device)
 
@@ -240,8 +240,9 @@ def test_distrib_hvd(gloo_hvd_executor):
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
-    device = torch.device("cpu")
+def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
+
+    device = idist.device()
     _test_distrib_compute(device)
     _test_distrib_integration(device)
 
@@ -249,8 +250,9 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = torch.device(f"cuda:{distributed_context_multi_node_nccl['local_rank']}")
+def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
+
+    device = idist.device()
     _test_distrib_compute(device)
     _test_distrib_integration(device)
 

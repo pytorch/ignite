@@ -20,35 +20,6 @@ class Recall(_BasePrecisionRecall):
     - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...).
     - `y` must be in the following shape (batch_size, ...).
 
-    In binary and multilabel cases, the elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of
-    predictions can be done as below:
-
-    .. code-block:: python
-
-        def thresholded_output_transform(output):
-            y_pred, y = output
-            y_pred = torch.round(y_pred)
-            return y_pred, y
-
-        recall = Recall(output_transform=thresholded_output_transform)
-
-    In multilabel cases, average parameter should be True. However, if user would like to compute F1 metric, for
-    example, average parameter should be False. This can be done as shown below:
-
-    .. code-block:: python
-
-        precision = Precision(average=False)
-        recall = Recall(average=False)
-        F1 = precision * recall * 2 / (precision + recall + 1e-20)
-        F1 = MetricsLambda(lambda t: torch.mean(t).item(), F1)
-
-    .. warning::
-
-        In multilabel cases, if average is False, current implementation stores all input data (output and target) in
-        as tensors before computing a metric. This can potentially lead to a memory error if the input data is larger
-        than available RAM.
-
-
     Args:
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
@@ -62,6 +33,34 @@ class Recall(_BasePrecisionRecall):
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
 
+    Examples:
+        In binary and multilabel cases, the elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of
+        predictions can be done as below:
+
+        .. code-block:: python
+
+            def thresholded_output_transform(output):
+                y_pred, y = output
+                y_pred = torch.round(y_pred)
+                return y_pred, y
+
+            recall = Recall(output_transform=thresholded_output_transform)
+
+        In multilabel cases, average parameter should be True. However, if user would like to compute F1 metric, for
+        example, average parameter should be False. This can be done as shown below:
+
+        .. code-block:: python
+
+            precision = Precision(average=False)
+            recall = Recall(average=False)
+            F1 = precision * recall * 2 / (precision + recall + 1e-20)
+            F1 = MetricsLambda(lambda t: torch.mean(t).item(), F1)
+
+    .. warning::
+
+        In multilabel cases, if average is False, current implementation stores all input data (output and target) in
+        as tensors before computing a metric. This can potentially lead to a memory error if the input data is larger
+        than available RAM.
     """
 
     def __init__(
@@ -121,3 +120,5 @@ class Recall(_BasePrecisionRecall):
         else:
             self._true_positives += true_positives
             self._positives += actual_positives
+
+        self._updated = True

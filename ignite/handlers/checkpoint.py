@@ -6,8 +6,7 @@ import tempfile
 import warnings
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
-from tempfile import _TemporaryFileWrapper  # type: ignore[attr-defined]
-from typing import Any, Callable, Dict, List, Mapping, NamedTuple, Optional, Tuple, Union
+from typing import IO, Any, Callable, Dict, List, Mapping, NamedTuple, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -52,7 +51,6 @@ class BaseSaveHandler(metaclass=ABCMeta):
             metadata: metadata on checkpoint to save.
 
         """
-        pass
 
     @abstractmethod
     def remove(self, filename: str) -> None:
@@ -62,7 +60,6 @@ class BaseSaveHandler(metaclass=ABCMeta):
             filename: filename associated with checkpoint.
 
         """
-        pass
 
 
 class Checkpoint(Serializable):
@@ -76,18 +73,20 @@ class Checkpoint(Serializable):
             ``load_state_dict`` methods. If contains objects of type torch `DistributedDataParallel`_ or
             `DataParallel`_, their internal wrapped model is automatically saved (to avoid additional key ``module.`` in
             the state dictionary).
-        save_handler: Method or callable class to
-            use to save engine and other provided objects. Function receives two objects: checkpoint as a dictionary
+        save_handler: String, method or callable class
+            used to save engine and other provided objects. Function receives two objects: checkpoint as a dictionary
             and filename. If ``save_handler`` is callable class, it can
             inherit of :class:`~ignite.handlers.checkpoint.BaseSaveHandler` and optionally implement ``remove`` method
             to keep a fixed number of saved checkpoints. In case if user needs to save engine's checkpoint on a disk,
-            ``save_handler`` can be defined with :class:`~ignite.handlers.DiskSaver`.
+            ``save_handler`` can be defined with :class:`~ignite.handlers.DiskSaver` or a string specifying
+            directory name can be passed to ``save_handler``.
         filename_prefix: Prefix for the file name to which objects will be saved. See Note for details.
         score_function: If not None, it should be a function taking a single argument,
             :class:`~ignite.engine.engine.Engine` object, and returning a score (`float`). Objects with highest scores
             will be retained.
         score_name: If ``score_function`` not None, it is possible to store its value using
-            ``score_name``. See Notes for more details.
+            ``score_name``. If ``score_function`` is None, ``score_name`` can be used alone to define ``score_function``
+            as ``Checkpoint.get_default_score_fn(score_name)`` by default.
         n_saved: Number of objects that should be kept on disk. Older files will be removed. If set to
             `None`, all objects are kept.
         global_step_transform: global step transform function to output a desired global step.
@@ -185,13 +184,12 @@ class Checkpoint(Serializable):
             trainer.add_event_handler(Events.ITERATION_COMPLETED(every=1000), handler)
 
     Examples:
-
         Attach the handler to make checkpoints during training:
 
         .. code-block:: python
 
             from ignite.engine import Engine, Events
-            from ignite.handlers import Checkpoint, DiskSaver
+            from ignite.handlers import Checkpoint
 
             trainer = ...
             model = ...
@@ -203,14 +201,14 @@ class Checkpoint(Serializable):
             if (checkpoint_iters):
                 # A: Output is "checkpoint_<iteration>.pt"
                 handler = Checkpoint(
-                    to_save, DiskSaver('/tmp/models', create_dir=True), n_saved=2
+                    to_save, '/tmp/models', n_saved=2
                 )
                 trainer.add_event_handler(Events.ITERATION_COMPLETED(every=1000), handler)
             else:
                 # B:Output is "checkpoint_<epoch>.pt"
                 gst = lambda *_: trainer.state.epoch
                 handler = Checkpoint(
-                    to_save, DiskSaver('/tmp/models', create_dir=True), n_saved=2, global_step_transform=gst
+                    to_save, '/tmp/models', n_saved=2, global_step_transform=gst
                 )
                 trainer.add_event_handler(Events.EPOCH_COMPLETED, handler)
 
@@ -224,33 +222,46 @@ class Checkpoint(Serializable):
         .. code-block:: python
 
             from ignite.engine import Engine, Events
-            from ignite.handlers import Checkpoint, DiskSaver, global_step_from_engine
+            from ignite.handlers import Checkpoint, global_step_from_engine
 
             trainer = ...
             evaluator = ...
-            # Setup Accuracy metric computation on evaluator
+            # Setup Accuracy metric computation on evaluator.
+            # evaluator.state.metrics contain 'accuracy',
+            # which will be used to define ``score_function`` automatically.
             # Run evaluation on epoch completed event
             # ...
 
-            score_function = Checkpoint.get_default_score_fn("accuracy")
-
             to_save = {'model': model}
             handler = Checkpoint(
-                to_save, DiskSaver('/tmp/models', create_dir=True),
+                to_save, '/tmp/models',
                 n_saved=2, filename_prefix='best',
-                score_function=score_function, score_name="val_acc",
+                score_name="accuracy",
                 global_step_transform=global_step_from_engine(trainer)
             )
 
             evaluator.add_event_handler(Events.COMPLETED, handler)
 
             trainer.run(data_loader, max_epochs=10)
-            > ["best_model_9_val_acc=0.77.pt", "best_model_10_val_acc=0.78.pt", ]
+            > ["best_model_9_accuracy=0.77.pt", "best_model_10_accuracy=0.78.pt", ]
+
+        Customise the ``save_handler``:
+
+        .. code-block:: python
+
+            handler = Checkpoint(
+                to_save, save_handler=DiskSaver('/tmp/models', create_dir=True, **kwargs), n_saved=2
+            )
 
     .. versionchanged:: 0.4.3
 
         - Checkpoint can save model with same filename.
         - Added ``greater_or_equal`` argument.
+
+    .. versionchanged:: 0.5.0
+
+        - `score_name` can be used to define `score_function` automatically without providing `score_function`.
+        - `save_handler` automatically saves to disk if path to directory is provided.
     """
 
     Item = NamedTuple("Item", [("priority", int), ("filename", str)])
@@ -259,7 +270,7 @@ class Checkpoint(Serializable):
     def __init__(
         self,
         to_save: Mapping,
-        save_handler: Union[Callable, BaseSaveHandler],
+        save_handler: Union[str, Callable, BaseSaveHandler],
         filename_prefix: str = "",
         score_function: Optional[Callable] = None,
         score_name: Optional[str] = None,
@@ -284,20 +295,22 @@ class Checkpoint(Serializable):
             if "checkpointer" in to_save:
                 raise ValueError(f"Cannot have key 'checkpointer' if `include_self` is True: {to_save}")
 
-        if not (callable(save_handler) or isinstance(save_handler, BaseSaveHandler)):
-            raise TypeError("Argument `save_handler` should be callable or inherit from BaseSaveHandler")
-
-        if score_function is None and score_name is not None:
-            raise ValueError("If `score_name` is provided, then `score_function` " "should be also provided.")
+        if not (isinstance(save_handler, str) or callable(save_handler) or isinstance(save_handler, BaseSaveHandler)):
+            raise TypeError("Argument `save_handler` should be a string or callable or inherit from BaseSaveHandler")
 
         if global_step_transform is not None and not callable(global_step_transform):
             raise TypeError(f"global_step_transform should be a function, got {type(global_step_transform)} instead.")
 
         self.to_save = to_save
         self.filename_prefix = filename_prefix
-        self.save_handler = save_handler
+        if isinstance(save_handler, str):
+            self.save_handler = DiskSaver(save_handler, create_dir=True)
+        else:
+            self.save_handler = save_handler  # type: ignore
         self.score_function = score_function
         self.score_name = score_name
+        if self.score_name is not None and self.score_function is None:
+            self.score_function = self.get_default_score_fn(self.score_name)
         self.n_saved = n_saved
         self.ext = "pt"
         self.global_step_transform = global_step_transform
@@ -454,8 +467,7 @@ class Checkpoint(Serializable):
                 filename pattern: ``...{name}_{global_step}...``.
                 At least one of ``with_score`` and ``with_global_step`` should be True.
 
-        Example:
-
+        Examples:
             .. code-block:: python
 
                 from ignite.handlers import Checkpoint
@@ -498,30 +510,6 @@ class Checkpoint(Serializable):
     def load_objects(to_load: Mapping, checkpoint: Mapping, **kwargs: Any) -> None:
         """Helper method to apply ``load_state_dict`` on the objects from ``to_load`` using states from ``checkpoint``.
 
-        Exemples:
-
-        .. code-block:: python
-
-            import torch
-            from ignite.engine import Engine, Events
-            from ignite.handlers import ModelCheckpoint, Checkpoint
-            trainer = Engine(lambda engine, batch: None)
-            handler = ModelCheckpoint('/tmp/models', 'myprefix', n_saved=None, create_dir=True)
-            model = torch.nn.Linear(3, 3)
-            optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
-            to_save = {"weights": model, "optimizer": optimizer}
-            trainer.add_event_handler(Events.EPOCH_COMPLETED(every=2), handler, to_save)
-            trainer.run(torch.randn(10, 1), 5)
-
-            to_load = to_save
-            checkpoint_fp = "/tmp/models/myprefix_checkpoint_40.pth"
-            checkpoint = torch.load(checkpoint_fp)
-            Checkpoint.load_objects(to_load=to_load, checkpoint=checkpoint)
-
-        Note:
-            If ``to_load`` contains objects of type torch `DistributedDataParallel`_ or
-            `DataParallel`_, method ``load_state_dict`` will applied to their internal wrapped model (``obj.module``).
-
         Args:
             to_load: a dictionary with objects, e.g. `{"model": model, "optimizer": optimizer, ...}`
             checkpoint: a dictionary with state_dicts to load, e.g. `{"model": model_state_dict,
@@ -529,6 +517,29 @@ class Checkpoint(Serializable):
                 corresponding state_dict.
             kwargs: Keyword arguments accepted for `nn.Module.load_state_dict()`. Passing `strict=False` enables
                 the user to load part of the pretrained model (useful for example, in Transfer Learning)
+
+        Examples:
+            .. code-block:: python
+
+                import torch
+                from ignite.engine import Engine, Events
+                from ignite.handlers import ModelCheckpoint, Checkpoint
+                trainer = Engine(lambda engine, batch: None)
+                handler = ModelCheckpoint('/tmp/models', 'myprefix', n_saved=None, create_dir=True)
+                model = torch.nn.Linear(3, 3)
+                optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
+                to_save = {"weights": model, "optimizer": optimizer}
+                trainer.add_event_handler(Events.EPOCH_COMPLETED(every=2), handler, to_save)
+                trainer.run(torch.randn(10, 1), 5)
+
+                to_load = to_save
+                checkpoint_fp = "/tmp/models/myprefix_checkpoint_40.pth"
+                checkpoint = torch.load(checkpoint_fp)
+                Checkpoint.load_objects(to_load=to_load, checkpoint=checkpoint)
+
+        Note:
+            If ``to_load`` contains objects of type torch `DistributedDataParallel`_ or
+            `DataParallel`_, method ``load_state_dict`` will applied to their internal wrapped model (``obj.module``).
 
         .. _DistributedDataParallel: https://pytorch.org/docs/stable/generated/
             torch.nn.parallel.DistributedDataParallel.html
@@ -539,7 +550,7 @@ class Checkpoint(Serializable):
         if not isinstance(checkpoint, collections.Mapping):
             raise TypeError(f"Argument checkpoint should be a dictionary, but given {type(checkpoint)}")
 
-        if len(kwargs) > 1 or any(k for k in kwargs.keys() if k not in ["strict"]):
+        if len(kwargs) > 1 or any(k for k in kwargs if k not in ["strict"]):
             warnings.warn("kwargs contains keys other than strict and these will be ignored")
 
         is_state_dict_strict = kwargs.get("strict", True)
@@ -588,31 +599,30 @@ class Checkpoint(Serializable):
             score_sign: sign of the score: 1.0 or -1.0. For error-like metrics, e.g. smaller is better,
                 a negative score sign should be used (objects with larger score are retained). Default, 1.0.
 
-        Exemples:
+        Examples:
+            .. code-block:: python
 
-        .. code-block:: python
+                from ignite.handlers import Checkpoint
 
-            from ignite.handlers import Checkpoint
+                best_acc_score = Checkpoint.get_default_score_fn("accuracy")
 
-            best_acc_score = Checkpoint.get_default_score_fn("accuracy")
+                best_model_handler = Checkpoint(
+                    to_save, save_handler, score_name="val_accuracy", score_function=best_acc_score
+                )
+                evaluator.add_event_handler(Events.COMPLETED, best_model_handler)
 
-            best_model_handler = Checkpoint(
-                to_save, save_handler, score_name="val_accuracy", score_function=best_acc_score
-            )
-            evaluator.add_event_handler(Events.COMPLETED, best_model_handler)
+            Usage with error-like metric:
 
-        Usage with error-like metric:
+            .. code-block:: python
 
-        .. code-block:: python
+                from ignite.handlers import Checkpoint
 
-            from ignite.handlers import Checkpoint
+                neg_loss_score = Checkpoint.get_default_score_fn("loss", -1.0)
 
-            neg_loss_score = Checkpoint.get_default_score_fn("loss", -1.0)
-
-            best_model_handler = Checkpoint(
-                to_save, save_handler, score_name="val_neg_loss", score_function=neg_loss_score
-            )
-            evaluator.add_event_handler(Events.COMPLETED, best_model_handler)
+                best_model_handler = Checkpoint(
+                    to_save, save_handler, score_name="val_neg_loss", score_function=neg_loss_score
+                )
+                evaluator.add_event_handler(Events.COMPLETED, best_model_handler)
 
         .. versionadded:: 0.4.3
         """
@@ -694,10 +704,10 @@ class DiskSaver(BaseSaveHandler):
         else:
             tmp_file = None
             tmp_name = ""
-            tmp = None  # type: _TemporaryFileWrapper
+            tmp: Optional[IO[bytes]] = None
             if rank == 0:
                 tmp = tempfile.NamedTemporaryFile(delete=False, dir=self.dirname)
-                tmp_file = tmp.file
+                tmp_file = tmp.file  # type: ignore
                 tmp_name = tmp.name
             try:
                 func(checkpoint, tmp_file, **self.kwargs)
@@ -770,19 +780,21 @@ class ModelCheckpoint(Checkpoint):
         Accept ``kwargs`` for `torch.save` or `xm.save`
 
     Examples:
-        >>> import os
-        >>> from ignite.engine import Engine, Events
-        >>> from ignite.handlers import ModelCheckpoint
-        >>> from torch import nn
-        >>> trainer = Engine(lambda engine, batch: None)
-        >>> handler = ModelCheckpoint('/tmp/models', 'myprefix', n_saved=2, create_dir=True)
-        >>> model = nn.Linear(3, 3)
-        >>> trainer.add_event_handler(Events.EPOCH_COMPLETED(every=2), handler, {'mymodel': model})
-        >>> trainer.run([0, 1, 2, 3, 4], max_epochs=6)
-        >>> os.listdir('/tmp/models')
-        ['myprefix_mymodel_20.pt', 'myprefix_mymodel_30.pt']
-        >>> handler.last_checkpoint
-        ['/tmp/models/myprefix_mymodel_30.pt']
+        .. code-block:: python
+
+            import os
+            from ignite.engine import Engine, Events
+            from ignite.handlers import ModelCheckpoint
+            from torch import nn
+            trainer = Engine(lambda engine, batch: None)
+            handler = ModelCheckpoint('/tmp/models', 'myprefix', n_saved=2, create_dir=True)
+            model = nn.Linear(3, 3)
+            trainer.add_event_handler(Events.EPOCH_COMPLETED(every=2), handler, {'mymodel': model})
+            trainer.run([0, 1, 2, 3, 4], max_epochs=6)
+            os.listdir('/tmp/models')
+            # ['myprefix_mymodel_20.pt', 'myprefix_mymodel_30.pt']
+            handler.last_checkpoint
+            # ['/tmp/models/myprefix_mymodel_30.pt']
     """
 
     def __init__(

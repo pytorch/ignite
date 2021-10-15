@@ -53,147 +53,43 @@ def test_multiclass_wrong_inputs():
         ConfusionMatrix.normalize(None, None)
 
 
-def test_multiclass_input_N():
-    # Multiclass input data of shape (N, )
-    def _test_N():
-        num_classes = 4
-        cm = ConfusionMatrix(num_classes=num_classes)
-        y_pred = torch.rand(10, num_classes)
-        y = torch.randint(0, num_classes, size=(10,)).long()
-        cm.update((y_pred, y))
+def test_multiclass_input():
+    def _test(y_pred, y, num_classes, cm, batch_size):
+        cm.reset()
+        if batch_size > 1:
+            n_iters = y.shape[0] // batch_size + 1
+            for i in range(n_iters):
+                idx = i * batch_size
+                cm.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+        else:
+            cm.update((y_pred, y))
+
         np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
         np_y = y.numpy().ravel()
         assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
 
-        num_classes = 10
-        cm = ConfusionMatrix(num_classes=num_classes)
-        y_pred = torch.rand(4, num_classes)
-        y = torch.randint(0, num_classes, size=(4,)).long()
-        cm.update((y_pred, y))
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        np_y = y.numpy().ravel()
-        assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
-
-        # 2-classes
-        num_classes = 2
-        cm = ConfusionMatrix(num_classes=num_classes)
-        y_pred = torch.rand(4, num_classes)
-        y = torch.randint(0, num_classes, size=(4,)).long()
-        cm.update((y_pred, y))
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        np_y = y.numpy().ravel()
-        assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
-
-        # Batched Updates
-        num_classes = 5
-        cm = ConfusionMatrix(num_classes=num_classes)
-
-        y_pred = torch.rand(100, num_classes)
-        y = torch.randint(0, num_classes, size=(100,)).long()
-
-        batch_size = 16
-        n_iters = y.shape[0] // batch_size + 1
-
-        for i in range(n_iters):
-            idx = i * batch_size
-            cm.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
+    def get_test_cases():
+        return [
+            # Multiclass input data of shape (N, )
+            (torch.rand(10, 4), torch.randint(0, 4, size=(10,)).long(), 4, 1),
+            (torch.rand(4, 10), torch.randint(0, 10, size=(4,)).long(), 10, 1),
+            (torch.rand(4, 2), torch.randint(0, 2, size=(4,)).long(), 2, 1),
+            (torch.rand(100, 5), torch.randint(0, 5, size=(100,)).long(), 5, 16),
+            # Multiclass input data of shape (N, L)
+            (torch.rand(10, 4, 5), torch.randint(0, 4, size=(10, 5)).long(), 4, 1),
+            (torch.rand(4, 10, 5), torch.randint(0, 10, size=(4, 5)).long(), 10, 1),
+            (torch.rand(100, 9, 7), torch.randint(0, 9, size=(100, 7)).long(), 9, 16),
+            # Multiclass input data of shape (N, H, W, ...)
+            (torch.rand(4, 5, 12, 10), torch.randint(0, 5, size=(4, 12, 10)).long(), 5, 1),
+            (torch.rand(4, 5, 10, 12, 8), torch.randint(0, 5, size=(4, 10, 12, 8)).long(), 5, 1),
+            (torch.rand(100, 3, 8, 8), torch.randint(0, 3, size=(100, 8, 8)).long(), 3, 16),
+        ]
 
     # check multiple random inputs as random exact occurencies are rare
-    for _ in range(10):
-        _test_N()
-
-
-def test_multiclass_input_NL():
-    # Multiclass input data of shape (N, L)
-    def _test_NL():
-        num_classes = 4
-        cm = ConfusionMatrix(num_classes=num_classes)
-
-        y_pred = torch.rand(10, num_classes, 5)
-        y = torch.randint(0, num_classes, size=(10, 5)).long()
-        cm.update((y_pred, y))
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        np_y = y.numpy().ravel()
-        assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
-
-        num_classes = 10
-        cm = ConfusionMatrix(num_classes=num_classes)
-        y_pred = torch.rand(4, num_classes, 5)
-        y = torch.randint(0, num_classes, size=(4, 5)).long()
-        cm.update((y_pred, y))
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        np_y = y.numpy().ravel()
-        assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
-
-        # Batched Updates
-        num_classes = 9
-        cm = ConfusionMatrix(num_classes=num_classes)
-
-        y_pred = torch.rand(100, num_classes, 7)
-        y = torch.randint(0, num_classes, size=(100, 7)).long()
-
-        batch_size = 16
-        n_iters = y.shape[0] // batch_size + 1
-
-        for i in range(n_iters):
-            idx = i * batch_size
-            cm.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
-
-    # check multiple random inputs as random exact occurencies are rare
-    for _ in range(10):
-        _test_NL()
-
-
-def test_multiclass_input_NHW():
-    # Multiclass input data of shape (N, H, W, ...)
-    def _test_NHW():
-        num_classes = 5
-        cm = ConfusionMatrix(num_classes=num_classes)
-
-        y_pred = torch.rand(4, num_classes, 12, 10)
-        y = torch.randint(0, num_classes, size=(4, 12, 10)).long()
-        cm.update((y_pred, y))
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        np_y = y.numpy().ravel()
-        assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
-
-        num_classes = 5
-        cm = ConfusionMatrix(num_classes=num_classes)
-        y_pred = torch.rand(4, num_classes, 10, 12, 8)
-        y = torch.randint(0, num_classes, size=(4, 10, 12, 8)).long()
-        cm.update((y_pred, y))
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        np_y = y.numpy().ravel()
-        assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
-
-        # Batched Updates
-        num_classes = 3
-        cm = ConfusionMatrix(num_classes=num_classes)
-        y_pred = torch.rand(100, num_classes, 8, 8)
-        y = torch.randint(0, num_classes, size=(100, 8, 8)).long()
-
-        batch_size = 16
-        n_iters = y.shape[0] // batch_size + 1
-
-        for i in range(n_iters):
-            idx = i * batch_size
-            cm.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
-
-    # check multiple random inputs as random exact occurencies are rare
-    for _ in range(10):
-        _test_NHW()
+    for _ in range(5):
+        for y_pred, y, num_classes, batch_size in get_test_cases():
+            cm = ConfusionMatrix(num_classes=num_classes)
+            _test(y_pred, y, num_classes, cm, batch_size)
 
 
 def test_ignored_out_of_num_classes_indices():
@@ -211,11 +107,11 @@ def test_ignored_out_of_num_classes_indices():
 def get_y_true_y_pred():
     # Generate an image with labels 0 (background), 1, 2
     # 3 classes:
-    y_true = np.zeros((30, 30), dtype=np.int)
+    y_true = np.zeros((30, 30), dtype=np.int32)
     y_true[1:11, 1:11] = 1
     y_true[15:25, 15:25] = 2
 
-    y_pred = np.zeros((30, 30), dtype=np.int)
+    y_pred = np.zeros((30, 30), dtype=np.int32)
     y_pred[5:15, 1:11] = 1
     y_pred[20:30, 20:30] = 2
     return y_true, y_pred
@@ -693,18 +589,18 @@ def test_jaccard_index():
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
+def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
 
-    device = torch.device(f"cuda:{local_rank}")
+    device = idist.device()
     _test_distrib_multiclass_images(device)
     _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-def test_distrib_cpu(distributed_context_single_node_gloo):
+def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
 
-    device = torch.device("cpu")
+    device = idist.device()
     _test_distrib_multiclass_images(device)
     _test_distrib_accumulator_device(device)
 
@@ -719,24 +615,6 @@ def test_distrib_hvd(gloo_hvd_executor):
 
     gloo_hvd_executor(_test_distrib_multiclass_images, (device,), np=nproc, do_init=True)
     gloo_hvd_executor(_test_distrib_accumulator_device, (device,), np=nproc, do_init=True)
-
-
-@pytest.mark.multinode_distributed
-@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
-    device = torch.device("cpu")
-    _test_distrib_multiclass_images(device)
-    _test_distrib_accumulator_device(device)
-
-
-@pytest.mark.multinode_distributed
-@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = torch.device(f"cuda:{distributed_context_multi_node_nccl['local_rank']}")
-    _test_distrib_multiclass_images(device)
-    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.tpu
@@ -760,3 +638,23 @@ def _test_distrib_xla_nprocs(index):
 def test_distrib_xla_nprocs(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
     xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
+
+    device = idist.device()
+    _test_distrib_multiclass_images(device)
+    _test_distrib_accumulator_device(device)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
+
+    device = idist.device()
+    _test_distrib_multiclass_images(device)
+    _test_distrib_accumulator_device(device)

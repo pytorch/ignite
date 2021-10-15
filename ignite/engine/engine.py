@@ -31,7 +31,6 @@ class Engine(Serializable):
         last_event_name: last event name triggered by the engine.
 
     Examples:
-
         Create a basic trainer
 
         .. code-block:: python
@@ -158,63 +157,63 @@ class Engine(Serializable):
                 or an object derived from :class:`~ignite.engine.events.EventEnum`. See example below.
             event_to_attr: A dictionary to map an event to a state attribute.
 
-        Example usage:
+        Examples:
+            .. code-block:: python
 
-        .. code-block:: python
+                from ignite.engine import Engine, Events, EventEnum
 
-            from ignite.engine import Engine, Events, EventEnum
+                class CustomEvents(EventEnum):
+                    FOO_EVENT = "foo_event"
+                    BAR_EVENT = "bar_event"
 
-            class CustomEvents(EventEnum):
-                FOO_EVENT = "foo_event"
-                BAR_EVENT = "bar_event"
+                def process_function(e, batch):
+                    # ...
+                    trainer.fire_event("bwd_event")
+                    loss.backward()
+                    # ...
+                    trainer.fire_event("opt_event")
+                    optimizer.step()
 
-            def process_function(e, batch):
-                # ...
-                trainer.fire_event("bwd_event")
-                loss.backward()
-                # ...
-                trainer.fire_event("opt_event")
-                optimizer.step()
+                trainer = Engine(process_function)
+                trainer.register_events(*CustomEvents)
+                trainer.register_events("bwd_event", "opt_event")
 
-            trainer = Engine(process_function)
-            trainer.register_events(*CustomEvents)
-            trainer.register_events("bwd_event", "opt_event")
+                @trainer.on(Events.EPOCH_COMPLETED)
+                def trigger_custom_event():
+                    if required(...):
+                        trainer.fire_event(CustomEvents.FOO_EVENT)
+                    else:
+                        trainer.fire_event(CustomEvents.BAR_EVENT)
 
-            @trainer.on(Events.EPOCH_COMPLETED)
-            def trigger_custom_event():
-                if required(...):
-                    trainer.fire_event(CustomEvents.FOO_EVENT)
-                else:
-                    trainer.fire_event(CustomEvents.BAR_EVENT)
+                @trainer.on(CustomEvents.FOO_EVENT)
+                def do_foo_op():
+                    # ...
 
-            @trainer.on(CustomEvents.FOO_EVENT)
-            def do_foo_op():
-                # ...
+                @trainer.on(CustomEvents.BAR_EVENT)
+                def do_bar_op():
+                    # ...
 
-            @trainer.on(CustomEvents.BAR_EVENT)
-            def do_bar_op():
-                # ...
+            Example with State Attribute:
 
-        Example with State Attribute:
+            .. code-block:: python
 
-        .. code-block:: python
+                from enum import Enum
+                from ignite.engine import Engine, EventEnum
 
-            from enum import Enum
-            from ignite.engine import Engine, EventEnum
+                class TBPTT_Events(EventEnum):
+                    TIME_ITERATION_STARTED = "time_iteration_started"
+                    TIME_ITERATION_COMPLETED = "time_iteration_completed"
 
-            class TBPTT_Events(EventEnum):
-                TIME_ITERATION_STARTED = "time_iteration_started"
-                TIME_ITERATION_COMPLETED = "time_iteration_completed"
+                TBPTT_event_to_attr = {
+                    TBPTT_Events.TIME_ITERATION_STARTED: 'time_iteration',
+                    TBPTT_Events.TIME_ITERATION_COMPLETED: 'time_iteration'
+                }
 
-            TBPTT_event_to_attr = {
-                TBPTT_Events.TIME_ITERATION_STARTED: 'time_iteration',
-                TBPTT_Events.TIME_ITERATION_COMPLETED: 'time_iteration'
-            }
-
-            engine = Engine(process_function)
-            engine.register_events(*TBPTT_Events, event_to_attr=TBPTT_event_to_attr)
-            engine.run(data)
-            # engine.state contains an attribute time_iteration, which can be accessed using engine.state.time_iteration
+                engine = Engine(process_function)
+                engine.register_events(*TBPTT_Events, event_to_attr=TBPTT_event_to_attr)
+                engine.run(data)
+                # engine.state contains an attribute time_iteration, which can be accessed
+                # using engine.state.time_iteration
         """
         if not (event_to_attr is None or isinstance(event_to_attr, dict)):
             raise ValueError(f"Expected event_to_attr to be dictionary. Got {type(event_to_attr)}.")
@@ -266,24 +265,23 @@ class Engine(Serializable):
             Note that other arguments can be passed to the handler in addition to the `*args` and  `**kwargs`
             passed here, for example during :attr:`~ignite.engine.events.Events.EXCEPTION_RAISED`.
 
-        Example usage:
+        Examples:
+            .. code-block:: python
 
-        .. code-block:: python
+                engine = Engine(process_function)
 
-            engine = Engine(process_function)
+                def print_epoch(engine):
+                    print(f"Epoch: {engine.state.epoch}")
 
-            def print_epoch(engine):
-                print(f"Epoch: {engine.state.epoch}")
+                engine.add_event_handler(Events.EPOCH_COMPLETED, print_epoch)
 
-            engine.add_event_handler(Events.EPOCH_COMPLETED, print_epoch)
+                events_list = Events.EPOCH_COMPLETED | Events.COMPLETED
 
-            events_list = Events.EPOCH_COMPLETED | Events.COMPLETED
+                def execute_something():
+                    # do some thing not related to engine
+                    pass
 
-            def execute_something():
-                # do some thing not related to engine
-                pass
-
-            engine.add_event_handler(events_list, execute_something)
+                engine.add_event_handler(events_list, execute_something)
 
         Note:
             Since v0.3.0, Events become more flexible and allow to pass an event filter to the Engine.
@@ -379,20 +377,19 @@ class Engine(Serializable):
             args: optional args to be passed to `handler`.
             kwargs: optional keyword args to be passed to `handler`.
 
-        Example usage:
+        Examples:
+            .. code-block:: python
 
-        .. code-block:: python
+                engine = Engine(process_function)
 
-            engine = Engine(process_function)
+                @engine.on(Events.EPOCH_COMPLETED)
+                def print_epoch():
+                    print(f"Epoch: {engine.state.epoch}")
 
-            @engine.on(Events.EPOCH_COMPLETED)
-            def print_epoch():
-                print(f"Epoch: {engine.state.epoch}")
-
-            @engine.on(Events.EPOCH_COMPLETED | Events.COMPLETED)
-            def execute_something():
-                # do some thing not related to engine
-                pass
+                @engine.on(Events.EPOCH_COMPLETED | Events.COMPLETED)
+                def execute_something():
+                    # do some thing not related to engine
+                    pass
         """
 
         def decorator(f: Callable) -> Callable:
@@ -572,7 +569,7 @@ class Engine(Serializable):
         Args:
             data: Collection of batches allowing repeated iteration (e.g., list or `DataLoader`).
 
-        Example usage:
+        Examples:
             User can switch data provider during the training:
 
             .. code-block:: python
@@ -807,6 +804,7 @@ class Engine(Serializable):
                 )
 
             while True:
+                self.state.batch = self.state.output = None
                 try:
                     # Avoid Events.GET_BATCH_STARTED triggered twice when data iter is restarted
                     if self.last_event_name != Events.DATALOADER_STOP_ITERATION:
@@ -851,9 +849,6 @@ class Engine(Serializable):
                 self._fire_event(Events.ITERATION_STARTED)
                 self.state.output = self._process_function(self, self.state.batch)
                 self._fire_event(Events.ITERATION_COMPLETED)
-
-                # TODO: remove refs on batch to avoid high mem consumption ? -> need verification
-                # self.state.batch = None
 
                 if self.should_terminate or self.should_terminate_single_epoch:
                     self._fire_event(Events.TERMINATE_SINGLE_EPOCH, iter_counter=iter_counter)

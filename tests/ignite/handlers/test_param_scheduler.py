@@ -5,7 +5,8 @@ import pytest
 import torch
 from torch.optim.lr_scheduler import ExponentialLR, StepLR
 
-from ignite.contrib.handlers.param_scheduler import (
+from ignite.engine import Engine, Events
+from ignite.handlers.param_scheduler import (
     ConcatScheduler,
     CosineAnnealingScheduler,
     LinearCyclicalScheduler,
@@ -15,7 +16,6 @@ from ignite.contrib.handlers.param_scheduler import (
     PiecewiseLinear,
     create_lr_scheduler_with_warmup,
 )
-from ignite.engine import Engine, Events
 from tests.ignite.contrib.handlers import MockFP16DeepSpeedZeroOptimizer
 
 try:
@@ -899,7 +899,7 @@ def test_simulate_and_plot_values():
     )
 
     with pytest.raises(RuntimeError, match=r"This method requires matplotlib to be installed."):
-        with patch.dict("sys.modules", {"matplotlib.pylab": None}):
+        with patch.dict("sys.modules", {"matplotlib.pyplot": None}):
             _test(
                 PiecewiseLinear,
                 optimizer=optimizer,

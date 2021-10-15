@@ -29,17 +29,18 @@ class AveragePrecision(EpochMetric):
             no issues. User will be warned in case there are any issues computing the function.
         device: optional device specification for internal storage.
 
-    AveragePrecision expects y to be comprised of 0's and 1's. y_pred must either be probability estimates or
-    confidence values. To apply an activation to y_pred, use output_transform as shown below:
+    Examples:
+        AveragePrecision expects y to be comprised of 0's and 1's. y_pred must either be probability estimates or
+        confidence values. To apply an activation to y_pred, use output_transform as shown below:
 
-    .. code-block:: python
+        .. code-block:: python
 
-        def activated_output_transform(output):
-            y_pred, y = output
-            y_pred = torch.softmax(y_pred, dim=1)
-            return y_pred, y
+            def activated_output_transform(output):
+                y_pred, y = output
+                y_pred = torch.softmax(y_pred, dim=1)
+                return y_pred, y
 
-        avg_precision = AveragePrecision(activated_output_transform)
+            avg_precision = AveragePrecision(activated_output_transform)
 
     """
 

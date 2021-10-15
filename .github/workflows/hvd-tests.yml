@@ -60,6 +60,13 @@ jobs:
           pip install horovod
           python setup.py install
 
+      # Download MNIST: https://github.com/pytorch/ignite/issues/1737
+      # to "/tmp" for cpu tests
+      - name: Download MNIST
+        uses: pytorch-ignite/download-mnist-github-action@master
+        with:
+          target_dir: /tmp
+
       - name: Run Tests
         shell: bash -l {0}
         run: |
@@ -70,4 +77,4 @@ jobs:
         with:
           file: ./coverage.xml
           flags: hvd-cpu
-          fail_ci_if_error: true
+          fail_ci_if_error: false

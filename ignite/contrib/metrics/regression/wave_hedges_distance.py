@@ -33,7 +33,7 @@ class WaveHedgesDistance(_BaseRegression):
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
 
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.5
         - Works with DDP.
     """
 
@@ -43,7 +43,7 @@ class WaveHedgesDistance(_BaseRegression):
 
     def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output[0].detach(), output[1].detach()
-        errors = torch.abs(y.view_as(y_pred) - y_pred) / torch.max(y_pred, y.view_as(y_pred))
+        errors = torch.abs(y.view_as(y_pred) - y_pred) / (torch.max(y_pred, y.view_as(y_pred)) + 1e-30)
         self._sum_of_errors += torch.sum(errors).to(self._device)
 
     @sync_all_reduce("_sum_of_errors")

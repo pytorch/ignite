@@ -73,7 +73,7 @@ def test_wrong_inputs():
 def test_rouge_n_alpha(ngram, candidate, reference, expected):
     for alpha in [0, 1, 0.3, 0.5, 0.8]:
         rouge = RougeN(ngram=ngram, alpha=alpha)
-        rouge.update((candidate, [reference]))
+        rouge.update(([candidate], [[reference]]))
         results = rouge.compute()
         assert results[f"Rouge-{ngram}-P"] == expected[0]
         assert results[f"Rouge-{ngram}-R"] == expected[1]
@@ -110,8 +110,7 @@ def test_rouge_metrics(candidates, references):
         lower_split_candidates = [candidate.lower().split() for candidate in candidates]
 
         m = Rouge(variants=[1, 2, 4, "L"], multiref=multiref, alpha=0.5)
-        for candidate, references_per_candidate in zip(lower_split_candidates, lower_split_references):
-            m.update((candidate, references_per_candidate))
+        m.update((lower_split_candidates, lower_split_references))
         results = m.compute()
 
         for key in ["1", "2", "4", "L"]:
@@ -134,9 +133,9 @@ def _test_distrib_integration(device):
 
     def update(_, i):
         candidate, references = data[i + size * rank]
-        lower_split_references = [reference.lower().split() for reference in references]
-        lower_split_candidate = candidate.lower().split()
-        return lower_split_candidate, lower_split_references
+        lower_split_references = [reference.lower().split() for reference in references[0]]
+        lower_split_candidate = candidate[0].lower().split()
+        return [lower_split_candidate], [lower_split_references]
 
     def _test(metric_device):
         engine = Engine(update)
@@ -158,11 +157,10 @@ def _test_distrib_integration(device):
         )
         rouge_1_f, rouge_2_f, rouge_l_f = (0, 0, 0)
         for candidate, references in data:
-            scores = evaluator.get_scores([candidate], [references])
+            scores = evaluator.get_scores(candidate, references)
             rouge_1_f += scores["rouge-1"]["f"]
             rouge_2_f += scores["rouge-2"]["f"]
             rouge_l_f += scores["rouge-l"]["f"]
-
         assert pytest.approx(engine.state.metrics["Rouge-1-F"], abs=1e-4) == rouge_1_f / len(data)
         assert pytest.approx(engine.state.metrics["Rouge-2-F"], abs=1e-4) == rouge_2_f / len(data)
         assert pytest.approx(engine.state.metrics["Rouge-L-F"], abs=1e-4) == rouge_l_f / len(data)
@@ -176,15 +174,17 @@ def _test_distrib_integration(device):
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
-    device = torch.device(f"cuda:{local_rank}")
+def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
+
+    device = idist.device()
     _test_distrib_integration(device)
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-def test_distrib_cpu(distributed_context_single_node_gloo):
-    device = torch.device("cpu")
+def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
+
+    device = idist.device()
     _test_distrib_integration(device)
 
 
@@ -202,16 +202,18 @@ def test_distrib_hvd(gloo_hvd_executor):
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
-    device = torch.device("cpu")
+def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
+
+    device = idist.device()
     _test_distrib_integration(device)
 
 
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = torch.device(f"cuda:{distributed_context_multi_node_nccl['local_rank']}")
+def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
+
+    device = idist.device()
     _test_distrib_integration(device)
 
 

@@ -174,6 +174,13 @@ def run(
         **spawn_kwargs: Other kwargs to spawn run in child processes: master_addr, master_port, node_rank, nnodes
 
     """
+    # check to see if the num_epochs is greater than or equal to num_warmup_epochs
+    if num_warmup_epochs >= num_epochs:
+        raise ValueError(
+            "num_epochs cannot be less than or equal to num_warmup_epochs, please increase num_epochs or decrease "
+            "num_warmup_epochs"
+        )
+
     # catch all local parameters
     config = locals()
     config.update(config["spawn_kwargs"])
@@ -188,14 +195,15 @@ def run(
 
 def get_dataflow(config):
     # - Get train/test datasets
-    if idist.get_rank() > 0:
-        # Ensure that only rank 0 download the dataset
+    if idist.get_local_rank() > 0:
+        # Ensure that only local rank 0 download the dataset
+        # Thus each node will download a copy of the dataset
         idist.barrier()
 
     train_dataset, test_dataset = utils.get_train_test_datasets(config["data_path"])
 
-    if idist.get_rank() == 0:
-        # Ensure that only rank 0 download the dataset
+    if idist.get_local_rank() == 0:
+        # Ensure that only local rank 0 download the dataset
         idist.barrier()
 
     # Setup data loader also adapted to distributed config: nccl, gloo, xla-tpu

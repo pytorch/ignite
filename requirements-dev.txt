@@ -6,6 +6,8 @@ pytest-cov
 pytest-xdist
 dill
 # Test contrib dependencies
+scipy
+pytorch_fid==0.1.1
 tqdm
 scikit-learn
 matplotlib
@@ -17,6 +19,7 @@ wandb
 mlflow
 neptune-client
 tensorboard
+torchvision
 pynvml
 clearml
 scikit-image
@@ -25,3 +28,4 @@ nltk
 # Examples dependencies
 pandas
 gym
+mkl

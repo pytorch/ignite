@@ -28,23 +28,30 @@ class SSIM(Metric):
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
 
-    Example:
+    Examples:
+        To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
+        The output of the engine's ``process_function`` needs to be in the format of
+        ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``.
 
-    To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
-    The output of the engine's ``process_function`` needs to be in the format of
-    ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``.
+        ``y_pred`` and ``y`` can be un-normalized or normalized image tensors. Depending on that, the user might need
+        to adjust ``data_range``. ``y_pred`` and ``y`` should have the same shape.
 
-    ``y_pred`` and ``y`` can be un-normalized or normalized image tensors. Depending on that, the user might need
-    to adjust ``data_range``. ``y_pred`` and ``y`` should have the same shape.
+        .. testcode::
 
-    .. code-block:: python
+            def process_function(engine, batch):
+                y_pred, y = batch
+                return y_pred, y
+            engine = Engine(process_function)
+            metric = SSIM(data_range=1.0)
+            metric.attach(engine, 'ssim')
+            preds = torch.rand([4, 3, 16, 16])
+            target = preds * 0.75
+            state = engine.run([[preds, target]])
+            print(state.metrics['ssim'])
 
-        def process_function(engine, batch):
-            # ...
-            return y_pred, y
-        engine = Engine(process_function)
-        metric = SSIM(data_range=1.0)
-        metric.attach(engine, "ssim")
+        .. testoutput::
+
+            0.9218971...
 
     .. versionadded:: 0.4.2
     """

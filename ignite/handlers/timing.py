@@ -24,56 +24,63 @@ class Timer:
         the examples below.
 
     Examples:
-
         Measuring total time of the epoch:
 
-        >>> from ignite.handlers import Timer
-        >>> import time
-        >>> work = lambda : time.sleep(0.1)
-        >>> idle = lambda : time.sleep(0.1)
-        >>> t = Timer(average=False)
-        >>> for _ in range(10):
-        ...    work()
-        ...    idle()
-        ...
-        >>> t.value()
-        2.003073937026784
+        .. code-block:: python
+
+            from ignite.handlers import Timer
+            import time
+            work = lambda : time.sleep(0.1)
+            idle = lambda : time.sleep(0.1)
+            t = Timer(average=False)
+            for _ in range(10):
+                work()
+                idle()
+
+            t.value()
+            # 2.003073937026784
 
         Measuring average time of the epoch:
 
-        >>> t = Timer(average=True)
-        >>> for _ in range(10):
-        ...    work()
-        ...    idle()
-        ...    t.step()
-        ...
-        >>> t.value()
-        0.2003182829997968
+        .. code-block:: python
+
+            t = Timer(average=True)
+            for _ in range(10):
+                work()
+                idle()
+                t.step()
+
+            t.value()
+            # 0.2003182829997968
 
         Measuring average time it takes to execute a single ``work()`` call:
 
-        >>> t = Timer(average=True)
-        >>> for _ in range(10):
-        ...    t.resume()
-        ...    work()
-        ...    t.pause()
-        ...    idle()
-        ...    t.step()
-        ...
-        >>> t.value()
-        0.10016545779653825
+        .. code-block:: python
+
+            t = Timer(average=True)
+            for _ in range(10):
+                t.resume()
+                work()
+                t.pause()
+                idle()
+                t.step()
+
+            t.value()
+            # 0.10016545779653825
 
         Using the Timer to measure average time it takes to process a single batch of examples:
 
-        >>> from ignite.engine import Engine, Events
-        >>> from ignite.handlers import Timer
-        >>> trainer = Engine(training_update_function)
-        >>> timer = Timer(average=True)
-        >>> timer.attach(trainer,
-        ...              start=Events.EPOCH_STARTED,
-        ...              resume=Events.ITERATION_STARTED,
-        ...              pause=Events.ITERATION_COMPLETED,
-        ...              step=Events.ITERATION_COMPLETED)
+        .. code-block:: python
+
+            from ignite.engine import Engine, Events
+            from ignite.handlers import Timer
+            trainer = Engine(training_update_function)
+            timer = Timer(average=True)
+            timer.attach(trainer,
+                         start=Events.STARTED,
+                         resume=Events.ITERATION_STARTED,
+                         pause=Events.ITERATION_COMPLETED,
+                         step=Events.ITERATION_COMPLETED)
     """
 
     def __init__(self, average: bool = False):

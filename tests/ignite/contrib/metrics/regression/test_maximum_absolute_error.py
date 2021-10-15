@@ -73,8 +73,8 @@ def test_integration():
         m = MaximumAbsoluteError()
         m.attach(engine, "mae")
 
-        np_y = y.numpy()
-        np_y_pred = y_pred.numpy()
+        np_y = y.numpy().ravel()
+        np_y_pred = y_pred.numpy().ravel()
 
         data = list(range(y_pred.shape[0] // batch_size))
         mae = engine.run(data, max_epochs=1).metrics["mae"]
@@ -86,13 +86,11 @@ def test_integration():
     def get_test_cases():
         test_cases = [
             (torch.rand(size=(100,)), torch.rand(size=(100,)), 10),
-            (torch.rand(size=(200,)), torch.rand(size=(200,)), 10),
-            (torch.rand(size=(100,)), torch.rand(size=(100,)), 20),
-            (torch.rand(size=(200,)), torch.rand(size=(200,)), 20),
+            (torch.rand(size=(100, 1)), torch.rand(size=(100, 1)), 20),
         ]
         return test_cases
 
-    for _ in range(10):
+    for _ in range(5):
         # check multiple random inputs as random exact occurencies are rare
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
@@ -183,17 +181,18 @@ def _test_distrib_integration(device):
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_gpu(distributed_context_single_node_nccl):
-    device = torch.device(f"cuda:{distributed_context_single_node_nccl['local_rank']}")
+def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
+
+    device = idist.device()
     _test_distrib_compute(device)
     _test_distrib_integration(device)
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-def test_distrib_cpu(distributed_context_single_node_gloo):
+def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
 
-    device = torch.device("cpu")
+    device = idist.device()
     _test_distrib_compute(device)
     _test_distrib_integration(device)
 
@@ -213,8 +212,9 @@ def test_distrib_hvd(gloo_hvd_executor):
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
-    device = torch.device("cpu")
+def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
+
+    device = idist.device()
     _test_distrib_compute(device)
     _test_distrib_integration(device)
 
@@ -222,8 +222,9 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = torch.device(f"cuda:{distributed_context_multi_node_nccl['local_rank']}")
+def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
+
+    device = idist.device()
     _test_distrib_compute(device)
     _test_distrib_integration(device)
 

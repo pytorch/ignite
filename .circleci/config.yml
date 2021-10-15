@@ -4,11 +4,11 @@ parameters:
   pytorch_stable_image:
     type: string
     # https://hub.docker.com/r/pytorch/pytorch/tags
-    default: "pytorch/pytorch:1.8.1-cuda11.1-cudnn8-runtime"
+    default: "pytorch/pytorch:1.9.0-cuda11.1-cudnn8-runtime"
   pytorch_stable_image_devel:
     type: string
     # https://hub.docker.com/r/pytorch/pytorch/tags
-    default: "pytorch/pytorch:1.8.1-cuda11.1-cudnn8-devel"
+    default: "pytorch/pytorch:1.9.0-cuda11.1-cudnn8-devel"
   workingdir:
     type: string
     default: "/tmp/ignite"
@@ -86,6 +86,10 @@ run_pytorch_container: &run_pytorch_container
         docker run --gpus=all --rm -itd --shm-size 16G -v ${wd}:/ignite -w /ignite --name pthd << pipeline.parameters.pytorch_stable_image >>
         docker exec -it pthd nvidia-smi
         docker exec -it pthd ls
+        # temporarily manually install v1.9.1
+        # https://github.com/pytorch/ignite/pull/2211#issuecomment-927080841
+        export update_pth_cmd='conda install -y pytorch==1.9.1 -c pytorch -c nvidia'
+        docker exec -it pthd /bin/bash -c "$update_pth_cmd"
 
 run_pytorch_devel_container: &run_pytorch_devel_container
   - run:
@@ -96,6 +100,10 @@ run_pytorch_devel_container: &run_pytorch_devel_container
         docker run --gpus=all --rm -itd --shm-size 16G -v ${wd}:/ignite -w /ignite --name pthd << pipeline.parameters.pytorch_stable_image_devel >>
         docker exec -it pthd nvidia-smi
         docker exec -it pthd ls
+        # temporarily manually install v1.9.1
+        # https://github.com/pytorch/ignite/pull/2211#issuecomment-927080841
+        export update_pth_cmd='conda install -y pytorch==1.9.1 -c pytorch -c nvidia'
+        docker exec -it pthd /bin/bash -c "$update_pth_cmd"
 
 install_dependencies: &install_dependencies
   - run:
@@ -107,6 +115,21 @@ install_dependencies: &install_dependencies
         docker exec -it pthd /bin/bash -c "$install_git_apex_cmd"
         export install_ignite_cmd='python setup.py install'
         docker exec -it pthd /bin/bash -c "$install_ignite_cmd"
+
+# https://github.com/pytorch/ignite/issues/1737
+download_mnist: &download_mnist
+  - run:
+      name: Download MNIST
+      command: |
+        export tmp_mnist_dir='/tmp/mnist'
+        export tests_mnist_dir='/tmp'
+        export examples_mnist_dir='.'
+        export download_mnist_cmd="git clone https://github.com/pytorch-ignite/download-mnist-github-action.git $tmp_mnist_dir"
+        docker exec -it pthd /bin/bash -c "$download_mnist_cmd"
+        export get_mnist_cmd_tests="python $tmp_mnist_dir/cp.py $tmp_mnist_dir $tests_mnist_dir/MNIST/raw"
+        docker exec -it pthd /bin/bash -c "$get_mnist_cmd_tests"
+        export get_mnist_cmd_examples="python $tmp_mnist_dir/cp.py $tmp_mnist_dir $examples_mnist_dir/MNIST/raw"
+        docker exec -it pthd /bin/bash -c "$get_mnist_cmd_examples"
 
 # -------------------------------------------------------------------------------------
 # Jobs to run
@@ -126,6 +149,7 @@ jobs:
       - <<: *pull_pytorch_stable_image
       - <<: *run_pytorch_container
       - <<: *install_dependencies
+      - <<: *download_mnist
       - run:
           name: Run GPU Unit Tests and Examples
           command: |
@@ -135,14 +159,6 @@ jobs:
             docker exec -it pthd /bin/bash -c "${test_cmd}"
 
             # MNIST tests
-
-            # 0) download MNIST
-            # https://github.com/pytorch/ignite/issues/1737
-            export raw_mnist_dir='./MNIST/raw'
-            export download_mnist_cmd="git clone https://github.com/pytorch-ignite/download-mnist-github-action.git $raw_mnist_dir"
-            docker exec -it pthd /bin/bash -c "$download_mnist_cmd"
-            export mnist0_cmd="CUDA_VISIBLE_DEVICES=0 python $raw_mnist_dir/run.py ."
-            docker exec -it pthd /bin/bash -c "$mnist0_cmd"
 
             # 1) mnist.py
             export minst1_cmd='CUDA_VISIBLE_DEVICES=0 python examples/mnist/mnist.py --epochs=1'
@@ -193,12 +209,29 @@ jobs:
             bash .circleci/trigger_if_modified.sh "^(ignite|tests|examples|\.circleci).*"
 
       - run:
+          name: Update CUDA Driver for Windows
+          command: |
+            curl -O https://raw.githubusercontent.com/pytorch/pytorch/master/.circleci/scripts/windows_cuda_install.sh
+            mkdir -p "C:/Program Files (x86)/Microsoft Visual Studio/2019/BuildTools/MSBuild/Microsoft/VC/v160/BuildCustomizations/"
+            JOB_EXECUTOR="windows-with-nvidia-gpu" CUDA_VERSION="11.3" VC_PRODUCT="BuildTools" VC_YEAR="2019" bash ./windows_cuda_install.sh
+            bash -c "'/c/Program Files/NVIDIA Corporation/NVSMI/nvidia-smi.exe'"
+
+      - run:
           name: Install dependencies
           command: |
             conda --version
-            conda install -y pytorch torchvision cudatoolkit=11.1 -c pytorch -c conda-forge
+            # We have to use cuda 10.2 on Windows:
+            # https://github.com/pytorch/ignite/issues/1843
+            conda install -y pytorch torchvision cudatoolkit=10.2 -c pytorch
             pip install -r requirements-dev.txt
             pip install .
+
+      - run:
+          # https://github.com/pytorch/ignite/issues/1737
+          name: Download MNIST
+          command: |
+            git clone https://github.com/pytorch-ignite/download-mnist-github-action.git /tmp/mnist
+            python /tmp/mnist/cp.py /tmp/mnist /tmp/MNIST/raw
 
       - run:
           name: Run GPU Unit Tests
@@ -220,6 +253,7 @@ jobs:
       - <<: *pull_pytorch_stable_image
       - <<: *run_pytorch_container
       - <<: *install_dependencies
+      - <<: *download_mnist
       - run:
           name: Run 1 Node 2 GPUs Unit Tests
           command: |
@@ -299,6 +333,7 @@ jobs:
       - <<: *pull_pytorch_stable_devel_image
       - <<: *run_pytorch_devel_container
       - <<: *install_dependencies
+      - <<: *download_mnist
       - run:
           name: "Install Horovod with NCCL GPU ops"
           command: |

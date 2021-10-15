@@ -388,12 +388,12 @@ For details, see :class:`~ignite.engine.events.State`.
 Basic time profiling
 ````````````````````
 
-User can setup :class:`~ignite.contrib.handlers.time_profilers.BasicTimeProfiler` to fetch times spent in data
+User can setup :class:`~ignite.handlers.time_profilers.BasicTimeProfiler` to fetch times spent in data
 processing, training step, event handlers:
 
 .. code-block:: python
 
-    from ignite.contrib.handlers import BasicTimeProfiler
+    from ignite.handlers import BasicTimeProfiler
 
     trainer = ...
 
@@ -443,18 +443,18 @@ Typical output:
     - Events.COMPLETED: []
     not yet triggered
 
-For details, see :class:`~ignite.contrib.handlers.time_profilers.BasicTimeProfiler`.
+For details, see :class:`~ignite.handlers.time_profilers.BasicTimeProfiler`.
 
 
 Event handlers time profiling
 `````````````````````````````
 
 If you want to get time breakdown per handler basis then you can setup
-:class:`~ignite.contrib.handlers.time_profilers.HandlersTimeProfiler`:
+:class:`~ignite.handlers.time_profilers.HandlersTimeProfiler`:
 
 .. code-block:: python
 
-    from ignite.contrib.handlers import HandlersTimeProfiler
+    from ignite.handlers import HandlersTimeProfiler
 
     trainer = ...
 
@@ -489,7 +489,7 @@ Typical output:
     Dataflow took total 16.24365s [min/index: 0.00533s/1874, max/index: 0.01129s/937,
      mean: 0.00866s, std: 0.00113s]
 
-For details, see :class:`~ignite.contrib.handlers.time_profilers.HandlersTimeProfiler`.
+For details, see :class:`~ignite.handlers.time_profilers.HandlersTimeProfiler`.
 
 
 Custom time measures

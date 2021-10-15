@@ -39,21 +39,21 @@ class ReproducibleBatchSampler(BatchSampler):
     """Reproducible batch sampler. This class internally iterates and stores indices of the input batch sampler.
     This helps to start providing data batches from an iteration in a deterministic way.
 
-    Example:
-
-        Setup dataloader with `ReproducibleBatchSampler` and start providing data batches from an iteration
-
-    .. code-block:: python
-
-        from ignite.engine.deterministic import update_dataloader
-
-        dataloader = update_dataloader(dataloader, ReproducibleBatchSampler(dataloader.batch_sampler))
-        # rewind dataloader to a specific iteration:
-        dataloader.batch_sampler.start_iteration = start_iteration
-
     Args:
         batch_sampler: batch sampler same as used with `torch.utils.data.DataLoader`.
         start_iteration: optional start iteration.
+
+    Examples:
+        Setup dataloader with `ReproducibleBatchSampler` and start providing data batches from an iteration
+
+        .. code-block:: python
+
+            from ignite.engine.deterministic import update_dataloader
+
+            dataloader = update_dataloader(dataloader, ReproducibleBatchSampler(dataloader.batch_sampler))
+            # rewind dataloader to a specific iteration:
+            dataloader.batch_sampler.start_iteration = start_iteration
+
     """
 
     def __init__(self, batch_sampler: BatchSampler, start_iteration: Optional[int] = None):
@@ -98,6 +98,10 @@ def _get_rng_states() -> List[Any]:
 
 def _set_rng_states(rng_states: List[Any]) -> None:
     random.setstate(rng_states[0])
+
+    if "cpu" not in rng_states[1].device.type:
+        rng_states[1] = rng_states[1].cpu()
+
     torch.set_rng_state(rng_states[1])
     try:
         import numpy as np

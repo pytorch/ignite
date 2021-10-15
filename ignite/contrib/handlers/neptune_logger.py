@@ -1,7 +1,5 @@
 """Neptune logger and its helper handlers."""
-import numbers
 import tempfile
-import warnings
 from typing import Any, Callable, List, Mapping, Optional, Union
 
 import torch
@@ -40,9 +38,7 @@ class NeptuneLogger(BaseLogger):
         pip install neptune-client
 
     Args:
-        api_token: Required in online mode. Neputne API token, found on https://neptune.ai.
-            Read how to get your API key
-            https://docs.neptune.ai/security-and-privacy/api-tokens/how-to-find-and-set-neptune-api-token.html.
+        api_token: Required in online mode. Neptune API token, found on https://neptune.ai.
         project_name: Required in online mode. Qualified name of a project in a form of
            "namespace/project_name" for example "tom/minst-classification".
            If None, the value of NEPTUNE_PROJECT environment variable will be taken.
@@ -67,7 +63,6 @@ class NeptuneLogger(BaseLogger):
            Tags are displayed in the experiment’s Details and can be viewed in experiments view as a column.
 
     Examples:
-
         .. code-block:: python
 
             from ignite.contrib.handlers.neptune_logger import *
@@ -162,7 +157,7 @@ class NeptuneLogger(BaseLogger):
                                project_name="shared/pytorch-ignite-integration",
                                experiment_name="cnn-mnist", # Optional,
                                params={"max_epochs": 10}, # Optional,
-                               tags=["pytorch-ignite","minst"] # Optional
+                               tags=["pytorch-ignite","mnist"] # Optional
                                ) as npt_logger:
 
                 trainer = Engine(update_fn)
@@ -218,8 +213,22 @@ class NeptuneLogger(BaseLogger):
 class OutputHandler(BaseOutputHandler):
     """Helper handler to log engine's output and/or metrics
 
-    Examples:
+    Args:
+        tag: common title for all produced plots. For example, "training"
+        metric_names: list of metric names to plot or a string "all" to plot all available
+            metrics.
+        output_transform: output transform function to prepare `engine.state.output` as a number.
+            For example, `output_transform = lambda output: output`
+            This function can also return a dictionary, e.g `{"loss": loss1, "another_loss": loss2}` to label the plot
+            with corresponding keys.
+        global_step_transform: global step transform function to output a desired global step.
+            Input of the function is `(engine, event_name)`. Output of function should be an integer.
+            Default is None, global_step based on attached engine. If provided,
+            uses function output as global_step. To setup global step from another engine, please use
+            :meth:`~ignite.contrib.handlers.neptune_logger.global_step_from_engine`.
+        state_attributes: list of attributes of the ``trainer.state`` to plot.
 
+    Examples:
         .. code-block:: python
 
             from ignite.contrib.handlers.neptune_logger import *
@@ -292,21 +301,18 @@ class OutputHandler(BaseOutputHandler):
                 global_step_transform=global_step_transform
             )
 
-    Args:
-        tag: common title for all produced plots. For example, "training"
-        metric_names: list of metric names to plot or a string "all" to plot all available
-            metrics.
-        output_transform: output transform function to prepare `engine.state.output` as a number.
-            For example, `output_transform = lambda output: output`
-            This function can also return a dictionary, e.g `{"loss": loss1, "another_loss": loss2}` to label the plot
-            with corresponding keys.
-        global_step_transform: global step transform function to output a desired global step.
-            Input of the function is `(engine, event_name)`. Output of function should be an integer.
-            Default is None, global_step based on attached engine. If provided,
-            uses function output as global_step. To setup global step from another engine, please use
-            :meth:`~ignite.contrib.handlers.neptune_logger.global_step_from_engine`.
+        Another example where the State Attributes ``trainer.state.alpha`` and ``trainer.state.beta``
+        are also logged along with the NLL and Accuracy after each iteration:
 
-    Note:
+        .. code-block:: python
+
+            npt_logger.attach_output_handler(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                tag="training",
+                metrics=["nll", "accuracy"],
+                state_attributes=["alpha", "beta"],
+            )
 
         Example of `global_step_transform`:
 
@@ -315,6 +321,8 @@ class OutputHandler(BaseOutputHandler):
             def global_step_transform(engine, event_name):
                 return engine.state.get_event_attrib_value(event_name)
 
+    ..  versionchanged:: 0.5.0
+        accepts an optional list of `state_attributes`
     """
 
     def __init__(
@@ -323,15 +331,18 @@ class OutputHandler(BaseOutputHandler):
         metric_names: Optional[Union[str, List[str]]] = None,
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable] = None,
+        state_attributes: Optional[List[str]] = None,
     ):
-        super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
+        super(OutputHandler, self).__init__(
+            tag, metric_names, output_transform, global_step_transform, state_attributes
+        )
 
     def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, Events]) -> None:
 
         if not isinstance(logger, NeptuneLogger):
             raise TypeError("Handler OutputHandler works only with NeptuneLogger")
 
-        metrics = self._setup_output_metrics(engine)
+        metrics = self._setup_output_metrics_state_attrs(engine, key_tuple=False)
 
         global_step = self.global_step_transform(engine, event_name)  # type: ignore[misc]
 
@@ -342,20 +353,19 @@ class OutputHandler(BaseOutputHandler):
             )
 
         for key, value in metrics.items():
-            if isinstance(value, numbers.Number) or isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                logger.log_metric(f"{self.tag}/{key}", x=global_step, y=value)
-            elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
-                for i, v in enumerate(value):
-                    logger.log_metric(f"{self.tag}/{key}/{i}", x=global_step, y=v.item())
-            else:
-                warnings.warn(f"NeptuneLogger output_handler can not log metrics value type {type(value)}")
+            logger.log_metric(key, x=global_step, y=value)
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):
     """Helper handler to log optimizer parameters
 
-    Examples:
+    Args:
+        optimizer: torch optimizer or any object with attribute ``param_groups``
+            as a sequence.
+        param_name: parameter name
+        tag: common title for all produced plots. For example, "generator"
 
+    Examples:
         .. code-block:: python
 
             from ignite.contrib.handlers.neptune_logger import *
@@ -383,12 +393,6 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
                 event_name=Events.ITERATION_STARTED,
                 optimizer=optimizer
             )
-
-    Args:
-        optimizer: torch optimizer or any object with attribute ``param_groups``
-            as a sequence.
-        param_name: parameter name
-        tag: common title for all produced plots. For example, "generator"
     """
 
     def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None):
@@ -414,8 +418,12 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
     Handler iterates over named parameters of the model, applies reduction function to each parameter
     produce a scalar and then logs the scalar.
 
-    Examples:
+    Args:
+        model: model to log weights
+        reduction: function to reduce parameters into scalar
+        tag: common title for all produced plots. For example, "generator"
 
+    Examples:
         .. code-block:: python
 
             from ignite.contrib.handlers.neptune_logger import *
@@ -437,12 +445,6 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
                 event_name=Events.ITERATION_COMPLETED,
                 log_handler=WeightsScalarHandler(model, reduction=torch.norm)
             )
-
-    Args:
-        model: model to log weights
-        reduction: function to reduce parameters into scalar
-        tag: common title for all produced plots. For example, "generator"
-
     """
 
     def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
@@ -470,8 +472,12 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
     Handler iterates over the gradients of named parameters of the model, applies reduction function to each parameter
     produce a scalar and then logs the scalar.
 
-    Examples:
+    Args:
+        model: model to log weights
+        reduction: function to reduce parameters into scalar
+        tag: common title for all produced plots. For example, "generator"
 
+    Examples:
         .. code-block:: python
 
             from ignite.contrib.handlers.neptune_logger import *
@@ -493,12 +499,6 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
                 event_name=Events.ITERATION_COMPLETED,
                 log_handler=GradsScalarHandler(model, reduction=torch.norm)
             )
-
-    Args:
-        model: model to log weights
-        reduction: function to reduce parameters into scalar
-        tag: common title for all produced plots. For example, "generator"
-
     """
 
     def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
@@ -528,7 +528,6 @@ class NeptuneSaver(BaseSaveHandler):
             NeptuneLogger class.
 
     Examples:
-
         .. code-block:: python
 
             from ignite.contrib.handlers.neptune_logger import *

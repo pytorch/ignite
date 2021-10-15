@@ -4,7 +4,7 @@ from typing import Any, Callable, Iterator, List, Optional, Union
 import torch
 import torch.nn as nn
 from torch.optim.optimizer import Optimizer
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, IterableDataset
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import Sampler
 
@@ -25,8 +25,9 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> Union[DataLoader, "_MpDe
 
     - batch size is scaled by world size: ``batch_size / world_size`` if larger or equal world size.
     - number of workers is scaled by number of local processes: ``num_workers / nprocs`` if larger or equal world size.
-    - if no sampler provided by user, `torch DistributedSampler`_ is setup.
-    - if a sampler is provided by user, it is wrapped by :class:`~ignite.distributed.auto.DistributedProxySampler`.
+    - if no sampler provided by user, a `torch DistributedSampler`_ is setup.
+    - if a `torch DistributedSampler`_ is provided by user, it is used without wrapping it.
+    - if another sampler is provided, it is wrapped by :class:`~ignite.distributed.auto.DistributedProxySampler`.
     - if the default device is 'cuda', `pin_memory` is automatically set to `True`.
 
     .. warning::
@@ -34,32 +35,34 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> Union[DataLoader, "_MpDe
         Custom batch sampler is not adapted for distributed configuration. Please, make sure that provided batch
         sampler is compatible with distributed configuration.
 
-    Examples:
-
-    .. code-block:: python
-
-        import ignite.distribted as idist
-
-        train_loader = idist.auto_dataloader(
-            train_dataset,
-            batch_size=32,
-            num_workers=4,
-            shuffle=True,
-            pin_memory="cuda" in idist.device().type,
-            drop_last=True,
-        )
-
     Args:
-        dataset: input torch dataset
+        dataset: input torch dataset. If input dataset is `torch IterableDataset`_ then dataloader will be
+            created without any distributed sampling. Please, make sure that the dataset itself produces
+            different data on different ranks.
         kwargs: keyword arguments for `torch DataLoader`_.
 
     Returns:
         `torch DataLoader`_ or `XLA MpDeviceLoader`_ for XLA devices
 
+    Examples:
+        .. code-block:: python
+
+            import ignite.distribted as idist
+
+            train_loader = idist.auto_dataloader(
+                train_dataset,
+                batch_size=32,
+                num_workers=4,
+                shuffle=True,
+                pin_memory="cuda" in idist.device().type,
+                drop_last=True,
+            )
+
     .. _torch DataLoader: https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader
     .. _XLA MpDeviceLoader: https://github.com/pytorch/xla/blob/master/torch_xla/distributed/parallel_loader.py#L178
     .. _torch DistributedSampler:
         https://pytorch.org/docs/stable/data.html#torch.utils.data.distributed.DistributedSampler
+    .. _torch IterableDataset: https://pytorch.org/docs/stable/data.html#torch.utils.data.IterableDataset
     """
     rank = idist.get_rank()
     world_size = idist.get_world_size()
@@ -74,19 +77,29 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> Union[DataLoader, "_MpDe
             kwargs["num_workers"] = (kwargs["num_workers"] + nproc - 1) // nproc
 
         if "batch_sampler" not in kwargs:
-            if kwargs.get("sampler", None) is not None:
-                sampler = DistributedProxySampler(
-                    kwargs["sampler"], num_replicas=world_size, rank=rank
-                )  # type: Union[DistributedProxySampler, DistributedSampler, Sampler]
-            else:
-                sampler = DistributedSampler(
-                    dataset, num_replicas=world_size, rank=rank, shuffle=kwargs.get("shuffle", True)
+            if isinstance(dataset, IterableDataset):
+                logger.info(
+                    "Found iterable dataset, dataloader will be created without any distributed sampling. "
+                    "Please, make sure that the dataset itself produces different data on different ranks."
                 )
-                # we need to remove "shuffle" from kwargs if sampler is used
-                if "shuffle" in kwargs:
-                    del kwargs["shuffle"]
-
-            kwargs["sampler"] = sampler
+            else:
+                sampler: Optional[Union[DistributedProxySampler, DistributedSampler, Sampler]]
+                sampler = kwargs.get("sampler", None)
+                if isinstance(sampler, DistributedSampler):
+                    if sampler.rank != rank:
+                        warnings.warn(f"Found distributed sampler with rank={sampler.rank}, but process rank is {rank}")
+                    if sampler.num_replicas != world_size:
+                        warnings.warn(
+                            f"Found distributed sampler with num_replicas={sampler.num_replicas}, "
+                            f"but world size is {world_size}"
+                        )
+                elif sampler is None:
+                    # removes "shuffle" from kwargs if sampler is used
+                    shuffle = kwargs.pop("shuffle", True)
+                    sampler = DistributedSampler(dataset, num_replicas=world_size, rank=rank, shuffle=shuffle)
+                else:
+                    sampler = DistributedProxySampler(sampler, num_replicas=world_size, rank=rank)
+                kwargs["sampler"] = sampler
         else:
             warnings.warn(
                 "Found batch_sampler in provided kwargs. Please, make sure that it is compatible "
@@ -136,23 +149,6 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
     - wrap the model to `torch DataParallel`_ if no distributed context found and more than one CUDA devices available.
     - broadcast the initial variable states from rank 0 to all other processes if Horovod distributed framework is used.
 
-    Examples:
-
-    .. code-block:: python
-
-        import ignite.distribted as idist
-
-        model = idist.auto_model(model)
-
-    In addition with NVidia/Apex, it can be used in the following way:
-
-    .. code-block:: python
-
-        import ignite.distribted as idist
-
-        model, optimizer = amp.initialize(model, optimizer, opt_level=opt_level)
-        model = idist.auto_model(model)
-
     Args:
         model: model to adapt.
         sync_bn: if True, applies `torch convert_sync_batchnorm`_ to the model for native torch
@@ -163,6 +159,22 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
 
     Returns:
         torch.nn.Module
+
+    Examples:
+        .. code-block:: python
+
+            import ignite.distribted as idist
+
+            model = idist.auto_model(model)
+
+        In addition with NVidia/Apex, it can be used in the following way:
+
+        .. code-block:: python
+
+            import ignite.distribted as idist
+
+            model, optimizer = amp.initialize(model, optimizer, opt_level=opt_level)
+            model = idist.auto_model(model)
 
     .. _torch DistributedDataParallel: https://pytorch.org/docs/stable/generated/torch.nn.parallel.
         DistributedDataParallel.html
@@ -188,23 +200,23 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
     # distributed data parallel model
     if idist.get_world_size() > 1:
         bnd = idist.backend()
-        if idist.has_native_dist_support and bnd == idist_native.NCCL:
+        if idist.has_native_dist_support and bnd in (idist_native.NCCL, idist_native.GLOO, idist_native.MPI):
             if sync_bn:
                 logger.info("Convert batch norm to sync batch norm")
                 model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
-            if "device_ids" in kwargs:
-                raise ValueError(f"Argument kwargs should not contain 'device_ids', but got {kwargs}")
+            if torch.cuda.is_available():
+                if "device_ids" in kwargs:
+                    raise ValueError(f"Argument kwargs should not contain 'device_ids', but got {kwargs}")
 
-            lrank = idist.get_local_rank()
-            logger.info(f"Apply torch DistributedDataParallel on model, device id: {lrank}")
-            model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[lrank,], **kwargs)
-        elif idist.has_native_dist_support and bnd == idist_native.GLOO:
-            if sync_bn:
-                logger.info("Convert batch norm to sync batch norm")
-                model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
+                lrank = idist.get_local_rank()
+                logger.info(f"Apply torch DistributedDataParallel on model, device id: {lrank}")
+                kwargs["device_ids"] = [
+                    lrank,
+                ]
+            else:
+                logger.info("Apply torch DistributedDataParallel on model")
 
-            logger.info("Apply torch DistributedDataParallel on model")
             model = torch.nn.parallel.DistributedDataParallel(model, **kwargs)
         elif idist.has_hvd_support and bnd == idist_hvd.HOROVOD:
             import horovod.torch as hvd
@@ -220,7 +232,7 @@ def auto_model(model: nn.Module, sync_bn: bool = False, **kwargs: Any) -> nn.Mod
     return model
 
 
-def auto_optim(optimizer: Optimizer) -> Optimizer:
+def auto_optim(optimizer: Optimizer, **kwargs: Any) -> Optimizer:
     """Helper method to adapt optimizer for non-distributed and distributed configurations (supporting
     all available backends from :meth:`~ignite.distributed.utils.available_backends()`).
 
@@ -232,24 +244,27 @@ def auto_optim(optimizer: Optimizer) -> Optimizer:
     For Horovod distributed configuration, optimizer is wrapped with Horovod Distributed Optimizer and
     its state is broadcasted from rank 0 to all other processes.
 
-    Examples:
-
-    .. code-block:: python
-
-        import ignite.distributed as idist
-
-        optimizer = idist.auto_optim(optimizer)
-
     Args:
         optimizer: input torch optimizer
+        kwargs: kwargs to Horovod backend's DistributedOptimizer.
 
     Returns:
         Optimizer
+
+    Examples:
+        .. code-block:: python
+
+            import ignite.distributed as idist
+
+            optimizer = idist.auto_optim(optimizer)
 
     .. _xm.optimizer_step: http://pytorch.org/xla/release/1.5/index.html#torch_xla.core.xla_model.optimizer_step
 
     .. versionchanged:: 0.4.2
         Added Horovod distributed optimizer.
+
+    .. versionchanged:: 0.5.0
+        Added kwargs to ``idist.auto_optim``.
     """
     bnd = idist.backend()
     if idist.has_xla_support and bnd == idist_xla.XLA_TPU:
@@ -259,7 +274,7 @@ def auto_optim(optimizer: Optimizer) -> Optimizer:
     if idist.has_hvd_support and bnd == idist_hvd.HOROVOD:
         import horovod.torch as hvd
 
-        optimizer = hvd.DistributedOptimizer(optimizer)
+        optimizer = hvd.DistributedOptimizer(optimizer, **kwargs)
         hvd.broadcast_optimizer_state(optimizer, root_rank=0)
         return optimizer
 
@@ -271,21 +286,22 @@ class DistributedProxySampler(DistributedSampler):
 
     Code is based on https://github.com/pytorch/pytorch/issues/23430#issuecomment-562350407
 
-
-    .. note::
-        Input sampler is assumed to have a constant size.
-
     Args:
         sampler: Input torch data sampler.
         num_replicas: Number of processes participating in distributed training.
         rank: Rank of the current process within ``num_replicas``.
 
+    .. note::
+        Input sampler is assumed to have a constant size.
     """
 
     def __init__(self, sampler: Sampler, num_replicas: Optional[int] = None, rank: Optional[int] = None) -> None:
 
         if not isinstance(sampler, Sampler):
             raise TypeError(f"Argument sampler should be instance of torch Sampler, but given: {type(sampler)}")
+
+        if isinstance(sampler, DistributedSampler):
+            raise TypeError("Argument sampler must not be a distributed sampler already")
 
         if not hasattr(sampler, "__len__"):
             raise TypeError("Argument sampler should have length")

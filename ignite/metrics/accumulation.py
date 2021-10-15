@@ -58,7 +58,7 @@ class VariableAccumulation(Metric):
         self.num_examples = 0
 
     def _check_output_type(self, output: Union[float, torch.Tensor]) -> None:
-        if not (isinstance(output, numbers.Number) or isinstance(output, torch.Tensor)):
+        if not isinstance(output, (numbers.Number, torch.Tensor)):
             raise TypeError(f"Output should be a number or torch.Tensor, but given {type(output)}")
 
     @reinit__is_reduced
@@ -67,8 +67,8 @@ class VariableAccumulation(Metric):
 
         if isinstance(output, torch.Tensor):
             output = output.detach()
-            if output.device != self._device:
-                output = output.to(self._device)
+            if not (output.device == self._device and output.dtype == self.accumulator.dtype):
+                output = output.to(self.accumulator)
 
         self.accumulator = self._op(self.accumulator, output)
 
@@ -99,18 +99,6 @@ class Average(VariableAccumulation):
         For input `x` being an ND `torch.Tensor` with N > 1, the first dimension is seen as the number of samples and
         is summed up and added to the accumulator: `accumulator += x.sum(dim=0)`
 
-    Examples:
-
-    .. code-block:: python
-
-        evaluator = ...
-
-        custom_var_mean = Average(output_transform=lambda output: output['custom_var'])
-        custom_var_mean.attach(evaluator, 'mean_custom_var')
-
-        state = evaluator.run(dataset)
-        # state.metrics['mean_custom_var'] -> average of output['custom_var']
-
     Args:
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
@@ -119,6 +107,17 @@ class Average(VariableAccumulation):
         device: specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
+
+    Examples:
+        .. code-block:: python
+
+            evaluator = ...
+
+            custom_var_mean = Average(output_transform=lambda output: output['custom_var'])
+            custom_var_mean.attach(evaluator, 'mean_custom_var')
+
+            state = evaluator.run(dataset)
+            # state.metrics['mean_custom_var'] -> average of output['custom_var']
     """
 
     def __init__(
@@ -147,6 +146,15 @@ class GeometricAverage(VariableAccumulation):
     - ``update`` must receive output of the form `x`.
     - `x` can be a positive number or a positive `torch.Tensor`, such that ``torch.log(x)`` is not `nan`.
 
+    Args:
+        output_transform: a callable that is used to transform the
+            :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
+            form expected by the metric. This can be useful if, for example, you have a multi-output model and
+            you want to compute the metric with respect to one of the outputs.
+        device: specifies which device updates are accumulated on. Setting the metric's
+            device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
+            default, CPU.
+
     Note:
 
         Number of samples is updated following the rule:
@@ -157,15 +165,6 @@ class GeometricAverage(VariableAccumulation):
 
         For input `x` being an ND `torch.Tensor` with N > 1, the first dimension is seen as the number of samples and
         is aggregated and added to the accumulator: `accumulator *= prod(x, dim=0)`
-
-    Args:
-        output_transform: a callable that is used to transform the
-            :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
-            form expected by the metric. This can be useful if, for example, you have a multi-output model and
-            you want to compute the metric with respect to one of the outputs.
-        device: specifies which device updates are accumulated on. Setting the metric's
-            device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
-            default, CPU.
 
     """
 

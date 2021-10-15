@@ -500,14 +500,14 @@ def test_run_check_triggered_events_on_iterator():
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_gpu(distributed_context_single_node_nccl):
+def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
     _test_run_check_triggered_events_on_iterator()
     _test_run_check_triggered_events()
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-def test_distrib_cpu(distributed_context_single_node_gloo):
+def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
     _test_run_check_triggered_events_on_iterator()
     _test_run_check_triggered_events()
 
@@ -515,7 +515,7 @@ def test_distrib_cpu(distributed_context_single_node_gloo):
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
+def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
     _test_run_check_triggered_events_on_iterator()
     _test_run_check_triggered_events()
 
@@ -523,7 +523,7 @@ def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
+def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
     _test_run_check_triggered_events_on_iterator()
     _test_run_check_triggered_events()
 
@@ -702,8 +702,7 @@ def test_run_finite_iterator_no_epoch_length_2():
 
 def test_faq_inf_iterator_with_epoch_length():
     # Code snippet from FAQ
-
-    import torch
+    # import torch
 
     torch.manual_seed(12)
 
@@ -727,8 +726,7 @@ def test_faq_inf_iterator_with_epoch_length():
 
 def test_faq_inf_iterator_no_epoch_length():
     # Code snippet from FAQ
-
-    import torch
+    # import torch
 
     torch.manual_seed(12)
 
@@ -756,8 +754,7 @@ def test_faq_inf_iterator_no_epoch_length():
 
 def test_faq_fin_iterator_unknw_size():
     # Code snippet from FAQ
-
-    import torch
+    # import torch
 
     torch.manual_seed(12)
 
@@ -782,9 +779,8 @@ def test_faq_fin_iterator_unknw_size():
     assert trainer.state.epoch == 5
     assert trainer.state.iteration == 5 * 11
 
-    # # # # #
-
-    import torch
+    # Code snippet from FAQ
+    # import torch
 
     torch.manual_seed(12)
 
@@ -808,8 +804,7 @@ def test_faq_fin_iterator_unknw_size():
 
 def test_faq_fin_iterator():
     # Code snippet from FAQ
-
-    import torch
+    # import torch
 
     torch.manual_seed(12)
 
@@ -836,9 +831,8 @@ def test_faq_fin_iterator():
     assert trainer.state.epoch == 5
     assert trainer.state.iteration == 5 * size
 
-    # # # # #
-
-    import torch
+    # Code snippet from FAQ
+    # import torch
 
     torch.manual_seed(12)
 
@@ -935,3 +929,60 @@ def test_is_done_with_max_iters():
 
     state = State(iteration=250, epoch=1, max_epochs=3, epoch_length=100, max_iters=250)
     assert Engine._is_done(state)
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_batch_is_released_before_new_one_is_loaded_on_cuda():
+    torch.cuda.empty_cache()
+
+    engine = Engine(lambda e, b: None)
+
+    def _test():
+        mem_consumption = []
+
+        def dataloader():
+            for _ in range(4):
+                mem_consumption.append(torch.cuda.memory_allocated())
+                batch = torch.randn(10).cuda()
+                mem_consumption.append(torch.cuda.memory_allocated())
+                yield batch
+
+        engine.run(dataloader(), max_epochs=2, epoch_length=2)
+        return mem_consumption
+
+    mem_consumption1 = _test()
+    # mem_consumption should look like [0, 512, 512, 512, 512, 512, 512, 512]
+    assert len(set(mem_consumption1[1:])) == 1
+
+    mem_consumption2 = _test()
+    assert len(set(mem_consumption2[1:])) == 1
+
+    assert mem_consumption1 == mem_consumption2
+
+
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_output_is_released_before_new_one_is_assigned_on_cuda():
+    torch.cuda.empty_cache()
+
+    def _test():
+        mem_consumption = []
+
+        def update_fn(engine, batch):
+            mem_consumption.append(torch.cuda.memory_allocated())
+            output = torch.rand(10).cuda()
+            mem_consumption.append(torch.cuda.memory_allocated())
+            return output
+
+        engine = Engine(update_fn)
+        engine.run([0, 1], max_epochs=2)
+
+        return mem_consumption
+
+    mem_consumption1 = _test()
+    # mem_consumption ~ [0, 512, 0, 512, 0, 512, 0, 512]
+    assert len(set(mem_consumption1)) == 2
+
+    mem_consumption2 = _test()
+    assert len(set(mem_consumption2)) == 2
+
+    assert mem_consumption1 == mem_consumption2

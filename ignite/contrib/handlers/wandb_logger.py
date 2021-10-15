@@ -27,7 +27,6 @@ class WandBLogger(BaseLogger):
             Please see `wandb.init <https://docs.wandb.ai/library/init>`_ for documentation of possible parameters.
 
     Examples:
-
         .. code-block:: python
 
             from ignite.contrib.handlers.wandb_logger import *
@@ -81,6 +80,9 @@ class WandBLogger(BaseLogger):
                 param_name='lr'  # optional
             )
 
+            # We need to close the logger when we are done
+            wandb_logger.close()
+
         If you want to log model gradients, the model call graph, etc., use the logger as wrapper of wandb. Refer
         to the documentation of wandb.watch for details:
 
@@ -115,6 +117,8 @@ class WandBLogger(BaseLogger):
                 global_step_transform=global_step_from_engine(trainer)
             )
             evaluator.add_event_handler(Events.COMPLETED, model_checkpoint, {'model': model})
+
+
     """
 
     def __init__(self, *args: Any, **kwargs: Any):
@@ -133,6 +137,9 @@ class WandBLogger(BaseLogger):
     def __getattr__(self, attr: Any) -> Any:
         return getattr(self._wandb, attr)  # type: ignore[misc]
 
+    def close(self) -> None:
+        self._wandb.finish()
+
     def _create_output_handler(self, *args: Any, **kwargs: Any) -> "OutputHandler":
         return OutputHandler(*args, **kwargs)
 
@@ -143,8 +150,23 @@ class WandBLogger(BaseLogger):
 class OutputHandler(BaseOutputHandler):
     """Helper handler to log engine's output and/or metrics
 
-    Examples:
+    Args:
+        tag: common title for all produced plots. For example, "training"
+        metric_names: list of metric names to plot or a string "all" to plot all available
+            metrics.
+        output_transform: output transform function to prepare `engine.state.output` as a number.
+            For example, `output_transform = lambda output: output`
+            This function can also return a dictionary, e.g `{"loss": loss1, "another_loss": loss2}` to label the plot
+            with corresponding keys.
+        global_step_transform: global step transform function to output a desired global step.
+            Input of the function is `(engine, event_name)`. Output of function should be an integer.
+            Default is None, global_step based on attached engine. If provided,
+            uses function output as global_step. To setup global step from another engine, please use
+            :meth:`~ignite.contrib.handlers.wandb_logger.global_step_from_engine`.
+        sync: If set to False, process calls to log in a seperate thread. Default (None) uses whatever
+            the default value of wandb.log.
 
+    Examples:
         .. code-block:: python
 
             from ignite.contrib.handlers.wandb_logger import *
@@ -218,23 +240,19 @@ class OutputHandler(BaseOutputHandler):
                 global_step_transform=global_step_transform
             )
 
-    Args:
-        tag: common title for all produced plots. For example, "training"
-        metric_names: list of metric names to plot or a string "all" to plot all available
-            metrics.
-        output_transform: output transform function to prepare `engine.state.output` as a number.
-            For example, `output_transform = lambda output: output`
-            This function can also return a dictionary, e.g `{"loss": loss1, "another_loss": loss2}` to label the plot
-            with corresponding keys.
-        global_step_transform: global step transform function to output a desired global step.
-            Input of the function is `(engine, event_name)`. Output of function should be an integer.
-            Default is None, global_step based on attached engine. If provided,
-            uses function output as global_step. To setup global step from another engine, please use
-            :meth:`~ignite.contrib.handlers.wandb_logger.global_step_from_engine`.
-        sync: If set to False, process calls to log in a seperate thread. Default (None) uses whatever
-            the default value of wandb.log.
+        Another example where the State Attributes ``trainer.state.alpha`` and ``trainer.state.beta``
+        are also logged along with the NLL and Accuracy after each iteration:
 
-    Note:
+        .. code-block:: python
+
+            wandb_logger.attach_output_handler(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                tag="training",
+                metrics=["nll", "accuracy"],
+                state_attributes=["alpha", "beta"],
+            )
+
 
         Example of `global_step_transform`:
 
@@ -243,6 +261,8 @@ class OutputHandler(BaseOutputHandler):
             def global_step_transform(engine, event_name):
                 return engine.state.get_event_attrib_value(event_name)
 
+    ..  versionchanged:: 0.5.0
+        accepts an optional list of `state_attributes`
     """
 
     def __init__(
@@ -252,8 +272,9 @@ class OutputHandler(BaseOutputHandler):
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable] = None,
         sync: Optional[bool] = None,
+        state_attributes: Optional[List[str]] = None,
     ):
-        super().__init__(tag, metric_names, output_transform, global_step_transform)
+        super().__init__(tag, metric_names, output_transform, global_step_transform, state_attributes)
         self.sync = sync
 
     def __call__(self, engine: Engine, logger: WandBLogger, event_name: Union[str, Events]) -> None:
@@ -268,18 +289,22 @@ class OutputHandler(BaseOutputHandler):
                 " Please check the output of global_step_transform."
             )
 
-        metrics = self._setup_output_metrics(engine)
-        if self.tag is not None:
-            metrics = {f"{self.tag}/{name}": value for name, value in metrics.items()}
-
+        metrics = self._setup_output_metrics_state_attrs(engine, log_text=True, key_tuple=False)
         logger.log(metrics, step=global_step, sync=self.sync)
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):
     """Helper handler to log optimizer parameters
 
-    Examples:
+    Args:
+        optimizer: torch optimizer or any object with attribute ``param_groups``
+            as a sequence.
+        param_name: parameter name
+        tag: common title for all produced plots. For example, "generator"
+        sync: If set to False, process calls to log in a seperate thread. Default (None) uses whatever
+            the default value of wandb.log.
 
+    Examples:
         .. code-block:: python
 
             from ignite.contrib.handlers.wandb_logger import *
@@ -307,14 +332,6 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
                 event_name=Events.ITERATION_STARTED,
                 optimizer=optimizer
             )
-
-    Args:
-        optimizer: torch optimizer or any object with attribute ``param_groups``
-            as a sequence.
-        param_name: parameter name
-        tag: common title for all produced plots. For example, "generator"
-        sync: If set to False, process calls to log in a seperate thread. Default (None) uses whatever
-            the default value of wandb.log.
     """
 
     def __init__(

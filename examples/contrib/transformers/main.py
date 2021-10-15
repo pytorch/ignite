@@ -144,7 +144,7 @@ def run(
     dropout=0.3,
     n_fc=768,
     max_length=256,
-    batch_size=128,
+    batch_size=32,
     weight_decay=0.01,
     num_workers=4,
     num_epochs=3,
@@ -192,6 +192,13 @@ def run(
         with_amp (bool): if True, enables native automatic mixed precision. Default, False.
         **spawn_kwargs: Other kwargs to spawn run in child processes: master_addr, master_port, node_rank, nnodes
     """
+    # check to see if the num_epochs is greater than or equal to num_warmup_epochs
+    if num_warmup_epochs >= num_epochs:
+        raise ValueError(
+            "num_epochs cannot be less than or equal to num_warmup_epochs, please increase num_epochs or decrease "
+            "num_warmup_epochs"
+        )
+
     # catch all local parameters
     config = locals()
     config.update(config["spawn_kwargs"])
@@ -206,16 +213,17 @@ def run(
 
 def get_dataflow(config):
     # - Get train/test datasets
-    if idist.get_rank() > 0:
-        # Ensure that only rank 0 download the dataset
+    if idist.get_local_rank() > 0:
+        # Ensure that only local rank 0 download the dataset
+        # Thus each node will download a copy of the dataset
         idist.barrier()
 
     train_dataset, test_dataset = utils.get_dataset(
         config["data_dir"], config["model"], config["tokenizer_dir"], config["max_length"]
     )
 
-    if idist.get_rank() == 0:
-        # Ensure that only rank 0 download the dataset
+    if idist.get_local_rank() == 0:
+        # Ensure that only local rank 0 download the dataset
         idist.barrier()
 
     # Setup data loader also adapted to distributed config: nccl, gloo, xla-tpu
@@ -302,21 +310,17 @@ def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, con
 
     def train_step(engine, batch):
 
-        input_ids = batch["input_ids"]
-        attention_mask = batch["attention_mask"]
-        token_type_ids = batch["token_type_ids"]
-        labels = batch["label"].view(-1, 1)
+        input_batch = batch[0]
+        labels = batch[1].view(-1, 1)
 
-        if input_ids.device != device:
-            input_ids = input_ids.to(device, non_blocking=True, dtype=torch.long)
-            attention_mask = attention_mask.to(device, non_blocking=True, dtype=torch.long)
-            token_type_ids = token_type_ids.to(device, non_blocking=True, dtype=torch.long)
+        if labels.device != device:
+            input_batch = {k: v.to(device, non_blocking=True, dtype=torch.long) for k, v in batch[0].items()}
             labels = labels.to(device, non_blocking=True, dtype=torch.float)
 
         model.train()
 
         with autocast(enabled=with_amp):
-            y_pred = model(input_ids, attention_mask, token_type_ids)
+            y_pred = model(input_batch)
             loss = criterion(y_pred, labels)
 
         optimizer.zero_grad()
@@ -371,19 +375,16 @@ def create_evaluator(model, metrics, config, tag="val"):
     @torch.no_grad()
     def evaluate_step(engine, batch):
         model.eval()
-        input_ids = batch["input_ids"]
-        attention_mask = batch["attention_mask"]
-        token_type_ids = batch["token_type_ids"]
-        labels = batch["label"].view(-1, 1)
 
-        if input_ids.device != device:
-            input_ids = input_ids.to(device, non_blocking=True, dtype=torch.long)
-            attention_mask = attention_mask.to(device, non_blocking=True, dtype=torch.long)
-            token_type_ids = token_type_ids.to(device, non_blocking=True, dtype=torch.long)
+        input_batch = batch[0]
+        labels = batch[1].view(-1, 1)
+
+        if labels.device != device:
+            input_batch = {k: v.to(device, non_blocking=True, dtype=torch.long) for k, v in batch[0].items()}
             labels = labels.to(device, non_blocking=True, dtype=torch.float)
 
         with autocast(enabled=with_amp):
-            output = model(input_ids, attention_mask, token_type_ids)
+            output = model(input_batch)
         return output, labels
 
     evaluator = Engine(evaluate_step)

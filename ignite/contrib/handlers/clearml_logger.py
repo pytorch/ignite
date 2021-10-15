@@ -1,5 +1,4 @@
 """ClearML logger and its helper handlers."""
-import numbers
 import os
 import tempfile
 import warnings
@@ -50,18 +49,12 @@ class ClearMLLogger(BaseLogger):
         clearml-init
 
     Args:
-        project_name: The name of the project in which the experiment will be created. If the project
-            does not exist, it is created. If ``project_name`` is ``None``, the repository name is used. (Optional)
-        task_name: The name of Task (experiment). If ``task_name`` is ``None``, the Python experiment
-            script's file name is used. (Optional)
-        task_type: Optional. The task type. Valid values are:
-            - ``TaskTypes.training`` (Default)
-            - ``TaskTypes.train``
-            - ``TaskTypes.testing``
-            - ``TaskTypes.inference``
+        kwargs: Keyword arguments accepted from
+            `clearml.Task
+            <https://clear.ml/docs/latest/docs/references/sdk/task#taskinit>`_.
+            All arguments are optional.
 
     Examples:
-
         .. code-block:: python
 
             from ignite.contrib.handlers.clearml_logger import *
@@ -120,7 +113,7 @@ class ClearMLLogger(BaseLogger):
 
     """
 
-    def __init__(self, *_: Any, **kwargs: Any):
+    def __init__(self, **kwargs: Any):
         try:
             from clearml import Task
             from clearml.binding.frameworks.tensorflow_bind import WeightsGradientHistHelper
@@ -203,8 +196,22 @@ class ClearMLLogger(BaseLogger):
 class OutputHandler(BaseOutputHandler):
     """Helper handler to log engine's output and/or metrics
 
-    Examples:
+    Args:
+        tag: common title for all produced plots. For example, "training"
+        metric_names: list of metric names to plot or a string "all" to plot all available
+            metrics.
+        output_transform: output transform function to prepare `engine.state.output` as a number.
+            For example, `output_transform = lambda output: output`
+            This function can also return a dictionary, e.g `{"loss": loss1, "another_loss": loss2}` to label the plot
+            with corresponding keys.
+        global_step_transform: global step transform function to output a desired global step.
+            Input of the function is `(engine, event_name)`. Output of function should be an integer.
+            Default is None, global_step based on attached engine. If provided,
+            uses function output as global_step. To setup global step from another engine, please use
+            :meth:`~ignite.contrib.handlers.clearml_logger.global_step_from_engine`.
+        state_attributes: list of attributes of the ``trainer.state`` to plot.
 
+    Examples:
         .. code-block:: python
 
             from ignite.contrib.handlers.clearml_logger import *
@@ -270,28 +277,30 @@ class OutputHandler(BaseOutputHandler):
                 global_step_transform=global_step_transform
             )
 
-    Args:
-        tag: common title for all produced plots. For example, "training"
-        metric_names: list of metric names to plot or a string "all" to plot all available
-            metrics.
-        output_transform: output transform function to prepare `engine.state.output` as a number.
-            For example, `output_transform = lambda output: output`
-            This function can also return a dictionary, e.g `{"loss": loss1, "another_loss": loss2}` to label the plot
-            with corresponding keys.
-        global_step_transform: global step transform function to output a desired global step.
-            Input of the function is `(engine, event_name)`. Output of function should be an integer.
-            Default is None, global_step based on attached engine. If provided,
-            uses function output as global_step. To setup global step from another engine, please use
-            :meth:`~ignite.contrib.handlers.clearml_logger.global_step_from_engine`.
+        Another example where the State Attributes ``trainer.state.alpha`` and ``trainer.state.beta``
+        are also logged along with the NLL and Accuracy after each iteration:
 
-    Note:
-        Example of `global_step_transform`:
+        .. code-block:: python
+
+            clearml_logger.attach(
+                trainer,
+                log_handler=OutputHandler(
+                    tag="training",
+                    metric_names=["nll", "accuracy"],
+                    state_attributes=["alpha", "beta"],
+                ),
+                event_name=Events.ITERATION_COMPLETED
+            )
+
+        Example of `global_step_transform`
 
         .. code-block:: python
 
             def global_step_transform(engine, event_name):
                 return engine.state.get_event_attrib_value(event_name)
 
+    ..  versionchanged:: 0.5.0
+        accepts an optional list of `state_attributes`
     """
 
     def __init__(
@@ -300,15 +309,18 @@ class OutputHandler(BaseOutputHandler):
         metric_names: Optional[List[str]] = None,
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable] = None,
+        state_attributes: Optional[List[str]] = None,
     ):
-        super(OutputHandler, self).__init__(tag, metric_names, output_transform, global_step_transform)
+        super(OutputHandler, self).__init__(
+            tag, metric_names, output_transform, global_step_transform, state_attributes
+        )
 
     def __call__(self, engine: Engine, logger: ClearMLLogger, event_name: Union[str, Events]) -> None:
 
         if not isinstance(logger, ClearMLLogger):
             raise RuntimeError("Handler OutputHandler works only with ClearMLLogger")
 
-        metrics = self._setup_output_metrics(engine)
+        metrics = self._setup_output_metrics_state_attrs(engine)
 
         global_step = self.global_step_transform(engine, event_name)  # type: ignore[misc]
 
@@ -319,22 +331,24 @@ class OutputHandler(BaseOutputHandler):
             )
 
         for key, value in metrics.items():
-            if isinstance(value, numbers.Number) or isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                logger.clearml_logger.report_scalar(title=self.tag, series=key, iteration=global_step, value=value)
-            elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
-                for i, v in enumerate(value):
-                    logger.clearml_logger.report_scalar(
-                        title=f"{self.tag}/{key}", series=str(i), iteration=global_step, value=v.item()
-                    )
-            else:
-                warnings.warn(f"ClearMLLogger output_handler can not log metrics value type {type(value)}")
+            if len(key) == 2:
+                logger.clearml_logger.report_scalar(title=key[0], series=key[1], iteration=global_step, value=value)
+            elif len(key) == 3:
+                logger.clearml_logger.report_scalar(
+                    title=f"{key[0]}/{key[1]}", series=key[2], iteration=global_step, value=value
+                )
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):
     """Helper handler to log optimizer parameters
 
-    Examples:
+    Args:
+        optimizer: torch optimizer or any object with attribute ``param_groups``
+            as a sequence.
+        param_name: parameter name
+        tag: common title for all produced plots. For example, "generator"
 
+    Examples:
         .. code-block:: python
 
             from ignite.contrib.handlers.clearml_logger import *
@@ -358,12 +372,6 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
                 event_name=Events.ITERATION_STARTED,
                 optimizer=optimizer
             )
-
-    Args:
-        optimizer: torch optimizer or any object with attribute ``param_groups``
-            as a sequence.
-        param_name: parameter name
-        tag: common title for all produced plots. For example, "generator"
     """
 
     def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None):
@@ -390,8 +398,12 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
     Handler iterates over named parameters of the model, applies reduction function to each parameter
     produce a scalar and then logs the scalar.
 
-    Examples:
+    Args:
+        model: model to log weights
+        reduction: function to reduce parameters into scalar
+        tag: common title for all produced plots. For example, "generator"
 
+    Examples:
         .. code-block:: python
 
             from ignite.contrib.handlers.clearml_logger import *
@@ -409,12 +421,6 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
                 event_name=Events.ITERATION_COMPLETED,
                 log_handler=WeightsScalarHandler(model, reduction=torch.norm)
             )
-
-    Args:
-        model: model to log weights
-        reduction: function to reduce parameters into scalar
-        tag: common title for all produced plots. For example, "generator"
-
     """
 
     def __init__(self, model: Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
@@ -443,8 +449,11 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
 class WeightsHistHandler(BaseWeightsHistHandler):
     """Helper handler to log model's weights as histograms.
 
-    Examples:
+    Args:
+        model: model to log weights
+        tag: common title for all produced plots. For example, 'generator'
 
+    Examples:
         .. code-block:: python
 
             from ignite.contrib.handlers.clearml_logger import *
@@ -462,11 +471,6 @@ class WeightsHistHandler(BaseWeightsHistHandler):
                 event_name=Events.ITERATION_COMPLETED,
                 log_handler=WeightsHistHandler(model)
             )
-
-    Args:
-        model: model to log weights
-        tag: common title for all produced plots. For example, 'generator'
-
     """
 
     def __init__(self, model: Module, tag: Optional[str] = None):
@@ -497,8 +501,12 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
     Handler iterates over the gradients of named parameters of the model, applies reduction function to each parameter
     produce a scalar and then logs the scalar.
 
-    Examples:
+    Args:
+        model: model to log weights
+        reduction: function to reduce parameters into scalar
+        tag: common title for all produced plots. For example, "generator"
 
+    Examples:
         .. code-block:: python
 
             from ignite.contrib.handlers.clearml_logger import *
@@ -516,12 +524,6 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
                 event_name=Events.ITERATION_COMPLETED,
                 log_handler=GradsScalarHandler(model, reduction=torch.norm)
             )
-
-    Args:
-        model: model to log weights
-        reduction: function to reduce parameters into scalar
-        tag: common title for all produced plots. For example, "generator"
-
     """
 
     def __init__(self, model: Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
@@ -549,8 +551,11 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
 class GradsHistHandler(BaseWeightsHistHandler):
     """Helper handler to log model's gradients as histograms.
 
-    Examples:
+    Args:
+        model: model to log weights
+        tag: common title for all produced plots. For example, 'generator'
 
+    Examples:
         .. code-block:: python
 
             from ignite.contrib.handlers.clearml_logger import *
@@ -568,11 +573,6 @@ class GradsHistHandler(BaseWeightsHistHandler):
                 event_name=Events.ITERATION_COMPLETED,
                 log_handler=GradsHistHandler(model)
             )
-
-    Args:
-        model: model to log weights
-        tag: common title for all produced plots. For example, 'generator'
-
     """
 
     def __init__(self, model: Module, tag: Optional[str] = None):
@@ -612,7 +612,6 @@ class ClearMLSaver(DiskSaver):
             directory will be created.
 
     Examples:
-
         .. code-block:: python
 
             from ignite.contrib.handlers.clearml_logger import *

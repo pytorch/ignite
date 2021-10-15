@@ -85,12 +85,13 @@ def to_onehot(indices: torch.Tensor, num_classes: int) -> torch.Tensor:
 
 
 def setup_logger(
-    name: Optional[str] = None,
+    name: Optional[str] = "ignite",
     level: int = logging.INFO,
     stream: Optional[TextIO] = None,
     format: str = "%(asctime)s %(name)s %(levelname)s: %(message)s",
     filepath: Optional[str] = None,
     distributed_rank: Optional[int] = None,
+    reset: bool = False,
 ) -> logging.Logger:
     """Setups logger: name, level, format etc.
 
@@ -102,58 +103,92 @@ def setup_logger(
         filepath: Optional logging file path. If not None, logs are written to the file.
         distributed_rank: Optional, rank in distributed configuration to avoid logger setup for workers.
             If None, distributed_rank is initialized to the rank of process.
+        reset: if True, reset an existing logger rather than keep format, handlers, and level.
 
     Returns:
         logging.Logger
 
-    For example, to improve logs readability when training with a trainer and evaluator:
+    Examples:
+        Improve logs readability when training with a trainer and evaluator:
 
-    .. code-block:: python
+        .. code-block:: python
 
-        from ignite.utils import setup_logger
+            from ignite.utils import setup_logger
 
-        trainer = ...
-        evaluator = ...
+            trainer = ...
+            evaluator = ...
 
-        trainer.logger = setup_logger("trainer")
-        evaluator.logger = setup_logger("evaluator")
+            trainer.logger = setup_logger("trainer")
+            evaluator.logger = setup_logger("evaluator")
 
-        trainer.run(data, max_epochs=10)
+            trainer.run(data, max_epochs=10)
 
-        # Logs will look like
-        # 2020-01-21 12:46:07,356 trainer INFO: Engine run starting with max_epochs=5.
-        # 2020-01-21 12:46:07,358 trainer INFO: Epoch[1] Complete. Time taken: 00:5:23
-        # 2020-01-21 12:46:07,358 evaluator INFO: Engine run starting with max_epochs=1.
-        # 2020-01-21 12:46:07,358 evaluator INFO: Epoch[1] Complete. Time taken: 00:01:02
-        # ...
+            # Logs will look like
+            # 2020-01-21 12:46:07,356 trainer INFO: Engine run starting with max_epochs=5.
+            # 2020-01-21 12:46:07,358 trainer INFO: Epoch[1] Complete. Time taken: 00:5:23
+            # 2020-01-21 12:46:07,358 evaluator INFO: Engine run starting with max_epochs=1.
+            # 2020-01-21 12:46:07,358 evaluator INFO: Epoch[1] Complete. Time taken: 00:01:02
+            # ...
+
+        Every existing logger can be reset if needed
+
+        .. code-block:: python
+
+            logger = setup_logger(name="my-logger", format="=== %(name)s %(message)s")
+            logger.info("first message")
+            setup_logger(name="my-logger", format="+++ %(name)s %(message)s", reset=True)
+            logger.info("second message")
+
+            # Logs will look like
+            # === my-logger first message
+            # +++ my-logger second message
+
+        Change the level of an existing internal logger
+
+        .. code-block:: python
+
+            setup_logger(
+                name="ignite.distributed.launcher.Parallel",
+                level=logging.WARNING
+            )
 
     .. versionchanged:: 0.4.3
         Added ``stream`` parameter.
+
+    .. versionchanged:: 0.4.5
+        Added ``reset`` parameter.
     """
+    # check if the logger already exists
+    existing = name is None or name in logging.root.manager.loggerDict
+
+    # if existing, get the logger otherwise create a new one
     logger = logging.getLogger(name)
-
-    # don't propagate to ancestors
-    # the problem here is to attach handlers to loggers
-    # should we provide a default configuration less open ?
-    if name is not None:
-        logger.propagate = False
-
-    # Remove previous handlers
-    if logger.hasHandlers():
-        for h in list(logger.handlers):
-            logger.removeHandler(h)
-
-    formatter = logging.Formatter(format)
 
     if distributed_rank is None:
         import ignite.distributed as idist
 
         distributed_rank = idist.get_rank()
 
+    # Remove previous handlers
+    if distributed_rank > 0 or reset:
+
+        if logger.hasHandlers():
+            for h in list(logger.handlers):
+                logger.removeHandler(h)
+
     if distributed_rank > 0:
+
+        # Add null handler to avoid multiple parallel messages
         logger.addHandler(logging.NullHandler())
-    else:
+
+    # Keep the existing configuration if not reset
+    if existing and not reset:
+        return logger
+
+    if distributed_rank == 0:
         logger.setLevel(level)
+
+        formatter = logging.Formatter(format)
 
         ch = logging.StreamHandler(stream=stream)
         ch.setLevel(level)
@@ -166,6 +201,12 @@ def setup_logger(
             fh.setFormatter(formatter)
             logger.addHandler(fh)
 
+    # don't propagate to ancestors
+    # the problem here is to attach handlers to loggers
+    # should we provide a default configuration less open ?
+    if name is not None:
+        logger.propagate = False
+
     return logger
 
 
@@ -177,12 +218,22 @@ def manual_seed(seed: int) -> None:
 
     .. versionchanged:: 0.4.3
         Added ``torch.cuda.manual_seed_all(seed)``.
+
+    .. versionchanged:: 0.4.5
+        Added ``torch_xla.core.xla_model.set_rng_state(seed)``.
     """
     random.seed(seed)
     torch.manual_seed(seed)
 
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
+
+    try:
+        import torch_xla.core.xla_model as xm
+
+        xm.set_rng_state(seed)
+    except ImportError:
+        pass
 
     try:
         import numpy as np
@@ -213,7 +264,7 @@ def deprecated(
             warnings.warn(deprecation_warning, DeprecationWarning, stacklevel=2)
             return func(*args, **kwargs)
 
-        appended_doc = f".. deprecated:: {deprecated_in}" + ("\n\n\t" if len(reasons) else "")
+        appended_doc = f".. deprecated:: {deprecated_in}" + ("\n\n\t" if len(reasons) > 0 else "")
 
         for reason in reasons:
             appended_doc += "\n\t- " + reason

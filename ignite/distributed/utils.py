@@ -206,8 +206,28 @@ def spawn(
     """Spawns ``nproc_per_node`` processes that run ``fn`` with ``args``/``kwargs_dict`` and initialize
     distributed configuration defined by ``backend``.
 
-    Examples:
+    Args:
+        backend: backend to use: `nccl`, `gloo`, `xla-tpu`, `horovod`
+        fn: function to called as the entrypoint of the spawned process.
+            This function must be defined at the top level of a module so it can be pickled and spawned.
+            This is a requirement imposed by multiprocessing. The function is called as ``fn(i, *args, **kwargs_dict)``,
+            where `i` is the process index and args is the passed through tuple of arguments.
+        args: arguments passed to `fn`.
+        kwargs_dict: kwargs passed to `fn`.
+        nproc_per_node: number of processes to spawn on a single node. Default, 1.
+        kwargs: acceptable kwargs according to provided backend:
 
+            - | "nccl" or "gloo" : ``nnodes`` (default, 1), ``node_rank`` (default, 0), ``master_addr``
+              | (default, "127.0.0.1"), ``master_port`` (default, 2222), ``init_method`` (default, "env://"),
+              | `timeout` to `dist.init_process_group`_ function
+              | and kwargs for `mp.start_processes`_ function.
+
+            - | "xla-tpu" : ``nnodes`` (default, 1), ``node_rank`` (default, 0) and kwargs to `xmp.spawn`_ function.
+
+            - | "horovod": ``hosts`` (default, None) and other kwargs to `hvd_run`_ function. Arguments ``nnodes=1``
+              | and ``node_rank=0`` are tolerated and ignored, otherwise an exception is raised.
+
+    Examples:
         1) Launch single node multi-GPU training using torch native distributed framework
 
         .. code-block:: python
@@ -283,27 +303,6 @@ def spawn(
 
             idist.spawn("xla-tpu", train_fn, args=(a, b, c), kwargs_dict={"d": 23}, nproc_per_node=8)
 
-    Args:
-        backend: backend to use: `nccl`, `gloo`, `xla-tpu`, `horovod`
-        fn: function to called as the entrypoint of the spawned process.
-            This function must be defined at the top level of a module so it can be pickled and spawned.
-            This is a requirement imposed by multiprocessing. The function is called as ``fn(i, *args, **kwargs_dict)``,
-            where `i` is the process index and args is the passed through tuple of arguments.
-        args: arguments passed to `fn`.
-        kwargs_dict: kwargs passed to `fn`.
-        nproc_per_node: number of processes to spawn on a single node. Default, 1.
-        kwargs: acceptable kwargs according to provided backend:
-
-            - | "nccl" or "gloo" : ``nnodes`` (default, 1), ``node_rank`` (default, 0), ``master_addr``
-              | (default, "127.0.0.1"), ``master_port`` (default, 2222), ``init_method`` (default, "env://"),
-              | `timeout` to `dist.init_process_group`_ function
-              | and kwargs for `mp.start_processes`_ function.
-
-            - | "xla-tpu" : ``nnodes`` (default, 1), ``node_rank`` (default, 0) and kwargs to `xmp.spawn`_ function.
-
-            - | "horovod": ``hosts`` (default, None) and other kwargs to `hvd_run`_ function. Arguments ``nnodes=1``
-              | and ``node_rank=0`` are tolerated and ignored, otherwise an exception is raised.
-
     .. _dist.init_process_group: https://pytorch.org/docs/stable/distributed.html#torch.distributed.init_process_group
     .. _mp.start_processes: https://pytorch.org/docs/stable/multiprocessing.html#torch.multiprocessing.spawn
     .. _xmp.spawn: http://pytorch.org/xla/release/1.6/index.html#torch_xla.distributed.xla_multiprocessing.spawn
@@ -361,25 +360,34 @@ def all_gather(tensor: Union[torch.Tensor, float, str]) -> Union[torch.Tensor, f
     return _model.all_gather(tensor)
 
 
-def broadcast(tensor: Union[torch.Tensor, float, str], src: int = 0) -> Union[torch.Tensor, float, str]:
+def broadcast(
+    tensor: Union[torch.Tensor, float, str, None], src: int = 0, safe_mode: bool = False
+) -> Union[torch.Tensor, float, str]:
     """Helper method to perform broadcast operation.
 
     Args:
         tensor: tensor or number or str to broadcast to participating processes.
-            Make sure to respect dtype of torch tensor input for all processes, otherwise execution will crash.
+            Make sure to respect data type of torch tensor input for all processes, otherwise execution will crash.
+            Can use None for non-source data with ``safe_mode=True``.
         src: source rank. Default, 0.
+        safe_mode: if True, non source input data can be ``None`` or anything (will be discarded), otherwise data
+            type of the input ``tensor`` should be respected for all processes. Please, keep in mind, this mode is
+            working only for dense tensors as source input if a tensor is provided. There are additional collective
+            ops are performed before doing the broadcast and, thus, can be slower than without using this mode.
+            Default, False.
 
     Returns:
         torch.Tensor or string or number
 
     Examples:
-
         .. code-block:: python
 
+            y = None
             if idist.get_rank() == 0:
                 t1 = torch.rand(4, 5, 6, device=idist.device())
                 s1 = "abc"
                 x = 12.3456
+                y = torch.rand(1, 2, 3, device=idist.device())
             else:
                 t1 = torch.empty(4, 5, 6, device=idist.device())
                 s1 = ""
@@ -397,12 +405,20 @@ def broadcast(tensor: Union[torch.Tensor, float, str], src: int = 0) -> Union[to
             x = idist.broadcast(x, src=0)
             # >>> x = 12.3456
 
+            # Broadcast any of those types from rank 0,
+            # but other ranks do not define the placeholder
+            y = idist.broadcast(y, src=0, safe_mode=True)
+            assert isinstance(y, torch.Tensor)
+
     .. versionadded:: 0.4.2
+
+    .. versionchanged:: 0.4.5
+        added ``safe_mode``
     """
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
 
-    return _model.broadcast(tensor, src=src)
+    return _model.broadcast(tensor, src=src, safe_mode=safe_mode)
 
 
 def barrier() -> None:
@@ -418,8 +434,10 @@ def set_local_rank(index: int) -> None:
     """Method to hint the local rank in case if torch native distributed context is created by user
     without using :meth:`~ignite.distributed.utils.initialize` or :meth:`~ignite.distributed.utils.spawn`.
 
-    Usage:
+    Args:
+        index: local rank or current process index
 
+    Examples:
         User set up torch native distributed process group
 
         .. code-block:: python
@@ -432,10 +450,6 @@ def set_local_rank(index: int) -> None:
                 # ...
                 dist.init_process_group(**dist_info)
                 # ...
-
-    Args:
-        index: local rank or current process index
-
     """
     from ignite.distributed.comp_models.base import ComputationModel
 
@@ -459,8 +473,17 @@ def _assert_backend(backend: str) -> None:
 def initialize(backend: str, **kwargs: Any) -> None:
     """Initializes distributed configuration according to provided ``backend``
 
-    Examples:
+    Args:
+        backend: backend: `nccl`, `gloo`, `xla-tpu`, `horovod`.
+        kwargs: acceptable kwargs according to provided backend:
 
+            - | "nccl" or "gloo" : ``timeout(=timedelta(minutes=30))``, ``init_method(=None)``,
+              | ``rank(=None)``, ``world_size(=None)``.
+              | By default, ``init_method`` will be "env://". See more info about parameters: `torch_init`_.
+
+            - | "horovod" : comm(=None), more info: `hvd_init`_.
+
+    Examples:
         Launch single node multi-GPU training with ``torch.distributed.launch`` utility.
 
         .. code-block:: python
@@ -489,23 +512,13 @@ def initialize(backend: str, **kwargs: Any) -> None:
             idist.finalize()
 
 
-    Args:
-        backend: backend: `nccl`, `gloo`, `xla-tpu`, `horovod`.
-        kwargs: acceptable kwargs according to provided backend:
-
-            - | "nccl" or "gloo" : ``timeout(=timedelta(minutes=30))``, ``init_method(=None)``,
-              | ``rank(=None)``, ``world_size(=None)``.
-              | By default, ``init_method`` will be "env://". See more info about parameters: `torch_init`_.
-
-            - | "horovod" : comm(=None), more info: `hvd_init`_.
-
     .. _torch_init: https://pytorch.org/docs/stable/distributed.html#torch.distributed.init_process_group
-    .. _hvd_init: https://horovod.readthedocs.io/en/latest/api.html#horovod.torch.init
+    .. _hvd_init: https://horovod.readthedocs.io/en/latest/api.html#module-horovod.torch
 
     .. versionchanged:: 0.4.2
         ``backend`` now accepts `horovod` distributed framework.
 
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.5
         ``kwargs`` now accepts ``init_method``, ``rank``, ``world_size`` for PyTorch native distributed backend.
     """
     if not (has_xla_support or has_native_dist_support or has_hvd_support):
@@ -555,19 +568,20 @@ def one_rank_only(rank: int = 0, with_barrier: bool = False) -> Callable:
         rank: rank number of the handler (default: 0).
         with_barrier: synchronisation with a barrier (default: False).
 
-    .. code-block:: python
+    Examples:
+        .. code-block:: python
 
-        engine = ...
+            engine = ...
 
-        @engine.on(...)
-        @one_rank_only() # means @one_rank_only(rank=0)
-        def some_handler(_):
-            ...
+            @engine.on(...)
+            @one_rank_only() # means @one_rank_only(rank=0)
+            def some_handler(_):
+                ...
 
-        @engine.on(...)
-        @one_rank_only(rank=1)
-        def some_handler(_):
-            ...
+            @engine.on(...)
+            @one_rank_only(rank=1)
+            def some_handler(_):
+                ...
     """
 
     def _one_rank_only(func: Callable) -> Callable:

@@ -99,6 +99,124 @@ def test_metrics_lambda_reset():
     assert m2.list_ is None
 
 
+def test_metrics_lambda_update_and_attach_together():
+
+    y_pred = torch.randint(0, 2, size=(15, 10, 4)).float()
+    y = torch.randint(0, 2, size=(15, 10, 4)).long()
+
+    def update_fn(engine, batch):
+        y_pred, y = batch
+        return y_pred, y
+
+    engine = Engine(update_fn)
+
+    precision = Precision(average=False)
+    recall = Recall(average=False)
+
+    def Fbeta(r, p, beta):
+        return torch.mean((1 + beta ** 2) * p * r / (beta ** 2 * p + r)).item()
+
+    F1 = MetricsLambda(Fbeta, recall, precision, 1)
+
+    F1.attach(engine, "f1")
+    with pytest.raises(ValueError, match=r"MetricsLambda is already attached to an engine"):
+        F1.update((y_pred, y))
+
+    y_pred = torch.randint(0, 2, size=(15, 10, 4)).float()
+    y = torch.randint(0, 2, size=(15, 10, 4)).long()
+
+    F1 = MetricsLambda(Fbeta, recall, precision, 1)
+    F1.update((y_pred, y))
+
+    engine = Engine(update_fn)
+
+    with pytest.raises(ValueError, match=r"The underlying metrics are already updated"):
+        F1.attach(engine, "f1")
+
+    F1.reset()
+    F1.attach(engine, "f1")
+
+
+def test_metrics_lambda_update():
+
+    """
+    Test if the underlying metrics are updated
+    """
+    y_pred = torch.randint(0, 2, size=(15, 10, 4)).float()
+    y = torch.randint(0, 2, size=(15, 10, 4)).long()
+
+    precision = Precision(average=False)
+    recall = Recall(average=False)
+
+    def Fbeta(r, p, beta):
+        return torch.mean((1 + beta ** 2) * p * r / (beta ** 2 * p + r)).item()
+
+    F1 = MetricsLambda(Fbeta, recall, precision, 1)
+
+    F1.update((y_pred, y))
+
+    assert precision._updated
+    assert recall._updated
+
+    F1.reset()
+
+    assert not precision._updated
+    assert not recall._updated
+
+    """
+    Test multiple updates and if the inputs of
+    the underlying metrics are updated multiple times
+    """
+    y_pred1 = torch.randint(0, 2, size=(15,))
+    y1 = torch.randint(0, 2, size=(15,))
+
+    y_pred2 = torch.randint(0, 2, size=(15,))
+    y2 = torch.randint(0, 2, size=(15,))
+
+    F1.update((y_pred1, y1))
+    F1.update((y_pred2, y2))
+
+    # Compute true_positives and positives for precision
+    correct1 = y1 * y_pred1
+    all_positives1 = y_pred1.sum(dim=0)
+    if correct1.sum() == 0:
+        true_positives1 = torch.zeros_like(all_positives1)
+    else:
+        true_positives1 = correct1.sum(dim=0)
+
+    correct2 = y2 * y_pred2
+    all_positives2 = y_pred2.sum(dim=0)
+    if correct2.sum() == 0:
+        true_positives2 = torch.zeros_like(all_positives2)
+    else:
+        true_positives2 = correct2.sum(dim=0)
+
+    true_positives = true_positives1 + true_positives2
+    positives = all_positives1 + all_positives2
+
+    assert precision._type == "binary"
+    assert precision._true_positives == true_positives
+    assert precision._positives == positives
+
+    # Computing positivies for recall is different
+    positives1 = y1.sum(dim=0)
+    positives2 = y2.sum(dim=0)
+    positives = positives1 + positives2
+
+    assert recall._type == "binary"
+    assert recall._true_positives == true_positives
+    assert recall._positives == positives
+
+    """
+    Test compute
+    """
+    F1.reset()
+    F1.update((y_pred1, y1))
+    F1_metrics_lambda = F1.compute()
+    F1_sklearn = f1_score(y1.numpy(), y_pred1.numpy())
+    assert pytest.approx(F1_metrics_lambda) == F1_sklearn
+
+
 def test_integration():
     np.random.seed(1)
 
@@ -402,18 +520,18 @@ def _test_distrib_metrics_on_diff_devices(device):
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
+def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
 
-    device = torch.device(f"cuda:{local_rank}")
+    device = idist.device()
     _test_distrib_integration(device)
     _test_distrib_metrics_on_diff_devices(device)
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-def test_distrib_cpu(local_rank, distributed_context_single_node_gloo):
+def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
 
-    device = torch.device("cpu")
+    device = idist.device()
     _test_distrib_integration(device)
 
 
@@ -432,16 +550,18 @@ def test_distrib_hvd(gloo_hvd_executor):
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
-    device = torch.device("cpu")
+def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
+
+    device = idist.device()
     _test_distrib_integration(device)
 
 
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = torch.device(f"cuda:{distributed_context_multi_node_nccl['local_rank']}")
+def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
+
+    device = idist.device()
     _test_distrib_integration(device)
     _test_distrib_metrics_on_diff_devices(device)
 

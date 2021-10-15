@@ -25,8 +25,31 @@ class Parallel:
     2) Only initialize a processing group given the ``backend``
     (useful with tools like `torch.distributed.launch`_, `horovodrun`_, etc).
 
-    Examples:
+    Args:
+        backend: backend to use: `nccl`, `gloo`, `xla-tpu`, `horovod`. If None, no distributed
+            configuration.
+        nproc_per_node: optional argument, number of processes per
+            node to specify. If not None, :meth:`~ignite.distributed.launcher.Parallel.run`
+            will spawn ``nproc_per_node`` processes that run input function with its arguments.
+        nnodes: optional argument, number of nodes participating in distributed configuration.
+            If not None, :meth:`~ignite.distributed.launcher.Parallel.run` will spawn ``nproc_per_node``
+            processes that run input function with its arguments. Total world size is `nproc_per_node * nnodes`.
+            This option is only supported by native torch distributed module. For other modules, please setup
+            ``spawn_kwargs`` with backend specific arguments.
+        node_rank: optional argument, current machine index. Mandatory argument if ``nnodes`` is
+            specified and larger than one.
+            This option is only supported by native torch distributed module. For other modules, please setup
+            ``spawn_kwargs`` with backend specific arguments.
+        master_addr: optional argument, master node TCP/IP address for torch native backends
+            (`nccl`, `gloo`). Mandatory argument if ``nnodes`` is specified and larger than one.
+        master_port: optional argument, master node port for torch native backends
+            (`nccl`, `gloo`). Mandatory argument if ``master_addr`` is specified.
+        init_method: optional argument to specify processing group initialization method for torch native
+            backends (`nccl`, `gloo`). Default, "env://".
+            See more info: `dist.init_process_group`_.
+        spawn_kwargs: kwargs to ``idist.spawn`` function.
 
+    Examples:
         1) Single node or Multi-node, Multi-GPU training launched with `torch.distributed.launch`_ or `horovodrun`_
         tools
 
@@ -101,15 +124,16 @@ class Parallel:
 
         .. code-block:: python
 
-            with idist.Parallel(backend=backend,init_method='file:///d:/tmp/some_file', nproc_per_node=4) as parallel:
+            with idist.Parallel(backend=backend, init_method='file:///d:/tmp/some_file', nproc_per_node=4) as parallel:
                 parallel.run(training, config, a=1, b=2)
 
         Initializing the process using ``tcp://``
 
         .. code-block:: python
 
-            with idist.Parallel(backend=backend,init_method='tcp://10.1.1.20:23456', nproc_per_node=4) as parallel:
+            with idist.Parallel(backend=backend, init_method='tcp://10.1.1.20:23456', nproc_per_node=4) as parallel:
                 parallel.run(training, config, a=1, b=2)
+
 
         3) Single node, Multi-TPU training launched with `python`
 
@@ -171,36 +195,11 @@ class Parallel:
 
     .. _torch.distributed.launch: https://pytorch.org/docs/stable/distributed.html#launch-utility
     .. _horovodrun: https://horovod.readthedocs.io/en/latest/api.html#module-horovod.run
-
-    Args:
-        backend: backend to use: `nccl`, `gloo`, `xla-tpu`, `horovod`. If None, no distributed
-            configuration.
-        nproc_per_node: optional argument, number of processes per
-            node to specify. If not None, :meth:`~ignite.distributed.launcher.Parallel.run`
-            will spawn ``nproc_per_node`` processes that run input function with its arguments.
-        nnodes: optional argument, number of nodes participating in distributed configuration.
-            If not None, :meth:`~ignite.distributed.launcher.Parallel.run` will spawn ``nproc_per_node``
-            processes that run input function with its arguments. Total world size is `nproc_per_node * nnodes`.
-            This option is only supported by native torch distributed module. For other modules, please setup
-            ``spawn_kwargs`` with backend specific arguments.
-        node_rank: optional argument, current machine index. Mandatory argument if ``nnodes`` is
-            specified and larger than one.
-            This option is only supported by native torch distributed module. For other modules, please setup
-            ``spawn_kwargs`` with backend specific arguments.
-        master_addr: optional argument, master node TCP/IP address for torch native backends
-            (`nccl`, `gloo`). Mandatory argument if ``nnodes`` is specified and larger than one.
-        master_port: optional argument, master node port for torch native backends
-            (`nccl`, `gloo`). Mandatory argument if ``master_addr`` is specified.
-        init_method: optional argument to specify processing group initialization method for torch native
-            backends (`nccl`, `gloo`). Default, "env://".
-            See more info: `dist.init_process_group`_.
-        spawn_kwargs: kwargs to ``idist.spawn`` function.
-
     .. _dist.init_process_group: https://pytorch.org/docs/stable/distributed.html#torch.distributed.init_process_group
     .. versionchanged:: 0.4.2
         ``backend`` now accepts `horovod` distributed framework.
 
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.5
         ``init_method`` added.
 
     """
@@ -229,8 +228,6 @@ class Parallel:
         self.backend = backend
         self._spawn_params = None
         self.init_method = init_method
-        self.logger = setup_logger(__name__ + "." + self.__class__.__name__, distributed_rank=0)
-        # distributed_rank=0 <=> explicit rank 0, avoid call idist. Critical for TPU on Colab, avoid context setup
 
         if self.backend is not None:
             if nproc_per_node is not None:
@@ -238,10 +235,8 @@ class Parallel:
                     nproc_per_node, nnodes, node_rank, master_addr, master_port, init_method, **spawn_kwargs
                 )
 
-        if self._spawn_params is not None:
-            self.logger.info(f"Initialized distributed launcher with backend: '{self.backend}'")
-            msg = "\n\t".join([f"{k}: {v}" for k, v in self._spawn_params.items() if v is not None])
-            self.logger.info(f"- Parameters to spawn processes: \n\t{msg}")
+        # The logger will be setup after the idist.initialize() call
+        self._logger = None
 
     @staticmethod
     def _setup_spawn_params(
@@ -285,44 +280,62 @@ class Parallel:
     def run(self, func: Callable, *args: Any, **kwargs: Any) -> None:
         """Execute ``func`` with provided arguments in distributed context.
 
-        Example
-
-        .. code-block:: python
-
-            def training(local_rank, config, **kwargs):
-                # ...
-                print(idist.get_rank(), ": run with config:", config, "- backend=", idist.backend())
-                # ...
-
-            with idist.Parallel(backend=backend) as parallel:
-                parallel.run(training, config, a=1, b=2)
-
         Args:
             func: function to execute. First argument of the function should be `local_rank` - local process
                 index.
             args: positional arguments of ``func`` (without `local_rank`).
             kwargs: keyword arguments of ``func``.
 
+        Examples:
+            .. code-block:: python
+
+                def training(local_rank, config, **kwargs):
+                    # ...
+                    print(idist.get_rank(), ": run with config:", config, "- backend=", idist.backend())
+                    # ...
+
+                with idist.Parallel(backend=backend) as parallel:
+                    parallel.run(training, config, a=1, b=2)
+
         """
         if self._spawn_params is not None and self.backend is not None:
-            self.logger.info(f"Spawn function '{func}' in {self._spawn_params['nproc_per_node']} processes")
+            self._logger.info(  # type: ignore[attr-defined]
+                f"Spawn function '{func}' in {self._spawn_params['nproc_per_node']} processes"
+            )
             idist.spawn(self.backend, func, args=args, kwargs_dict=kwargs, **self._spawn_params)
         else:
-            self.logger.info(f"- Run '{func}' in {idist.get_world_size()} processes")
+            self._logger.info(f"- Run '{func}' in {idist.get_world_size()} processes")  # type: ignore[attr-defined]
             local_rank = idist.get_local_rank()
             func(local_rank, *args, **kwargs)
 
-        self.logger.info("End of run")
+        self._logger.info("End of run")  # type: ignore[attr-defined]
 
     def __enter__(self) -> "Parallel":
-        if (self.backend is not None) and self._spawn_params is None:
+        if self.backend is not None and self._spawn_params is None:
             idist.initialize(self.backend, init_method=self.init_method)
-            self.logger = setup_logger(__name__ + "." + self.__class__.__name__)
-            self.logger.info(f"Initialized processing group with backend: '{self.backend}'")
+
+        # The logger can be setup from now since idist.initialize() has been called (if needed)
+        self._logger = setup_logger(__name__ + "." + self.__class__.__name__)  # type: ignore[assignment]
+
+        if self.backend is not None:
+            if self._spawn_params is None:
+                self._logger.info(  # type: ignore[attr-defined]
+                    f"Initialized processing group with backend: '{self.backend}'"
+                )
+            else:
+                self._logger.info(  # type: ignore[attr-defined]
+                    f"Initialized distributed launcher with backend: '{self.backend}'"
+                )
+                msg = "\n\t".join([f"{k}: {v}" for k, v in self._spawn_params.items() if v is not None])
+                self._logger.info(  # type: ignore[attr-defined]
+                    f"- Parameters to spawn processes: \n\t{msg}"
+                )
 
         return self
 
     def __exit__(self, *args: Any, **kwargs: Any) -> None:
         if (self.backend is not None) and self._spawn_params is None:
-            self.logger.info(f"Finalized processing group with backend: '{self.backend}'")
+            self._logger.info(  # type: ignore[attr-defined]
+                f"Finalized processing group with backend: '{self.backend}'"
+            )
             idist.finalize()

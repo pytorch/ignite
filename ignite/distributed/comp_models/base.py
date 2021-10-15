@@ -100,6 +100,56 @@ class ComputationModel(metaclass=ABCMeta):
         return cast(int, size.item())
 
     @staticmethod
+    def _encode_input_data(x: Union[torch.Tensor, float, str, None], is_src: bool) -> List[int]:
+        encoded_msg = [-1] * 512
+        if not is_src:
+            # Discard input type if not source
+            return encoded_msg
+
+        if isinstance(x, torch.Tensor):
+            shape = x.shape
+            dtype = str(x.dtype)
+            msg = [0, len(shape), *shape, len(dtype), *list(bytearray(dtype, "utf-8"))]
+            encoded_msg[: len(msg)] = msg
+        elif isinstance(x, Number):
+            encoded_msg[0] = 1
+        elif isinstance(x, str):
+            encoded_msg[0] = 2
+        return encoded_msg
+
+    @staticmethod
+    def _decode_as_placeholder(encoded_msg: List[int], device: torch.device) -> Union[torch.Tensor, float, str]:
+        if encoded_msg[0] == 0:
+            len_shape = encoded_msg[1]
+            le = 2 + len_shape
+            shape = encoded_msg[2:le] if len_shape > 0 else []
+            len_dtype = encoded_msg[le]
+            dtype_str = bytearray(encoded_msg[le + 1 : le + 1 + len_dtype]).decode("utf-8")
+            dtype = eval(dtype_str)
+            return torch.empty(shape, device=device, dtype=dtype)
+        elif encoded_msg[0] == 1:
+            return 0.0
+        elif encoded_msg[0] == 2:
+            return ""
+        else:
+            raise RuntimeError(f"Internal error: unhandled dtype {encoded_msg[0]}, encoded_msg={encoded_msg}")
+
+    def _setup_placeholder(
+        self, x: Union[torch.Tensor, float, str, None], device: torch.device, is_src: bool
+    ) -> Union[torch.Tensor, float, str]:
+
+        encoded_msg_per_rank = self._encode_input_data(x, is_src)
+        encoded_msg_all_ranks = self._do_all_reduce(torch.tensor(encoded_msg_per_rank, device=device), "MAX")
+
+        if is_src:
+            if x is None:
+                raise RuntimeError("Internal error, x is None. Please, file an issue if you encounter this error.")
+            return x
+
+        encoded_msg = encoded_msg_all_ranks.cpu().tolist()
+        return self._decode_as_placeholder(encoded_msg, device)
+
+    @staticmethod
     def _decode_str(xs: torch.Tensor) -> List[str]:
         # xs.shape = (n, size + 1), e.g. (world_size, size + 1)
         out = [bytearray(x[: x[-1]].tolist()).decode("utf-8") for x in xs]
@@ -168,15 +218,29 @@ class ComputationModel(metaclass=ABCMeta):
 
         return self._collective_op(tensor, self._do_all_gather)
 
-    def broadcast(self, tensor: Union[torch.Tensor, float, str], src: int = 0) -> Union[torch.Tensor, float, str]:
-        if not isinstance(tensor, (torch.Tensor, Number, str)):
+    def broadcast(
+        self, tensor: Union[torch.Tensor, float, str, None], src: int = 0, safe_mode: bool = False
+    ) -> Union[torch.Tensor, float, str]:
+        if not (isinstance(tensor, (torch.Tensor, Number, str)) or tensor is None):
             raise TypeError(f"Unhandled input type {type(tensor)}")
 
         rank = self.get_rank()
+        if tensor is None:
+            if rank == src:
+                raise ValueError("Source data can not be None")
+            elif not safe_mode:
+                raise ValueError("Argument safe_mode should be True if None is passed for non src rank")
+
         device = self.device()
         tensor_to_number = tensor_to_str = False
 
-        if isinstance(tensor, Number):
+        if safe_mode:
+            tensor = self._setup_placeholder(tensor, device, rank == src)
+
+        if tensor is None:
+            raise RuntimeError("Internal error, tensor is None. Please, file an issue if you encounter this error.")
+
+        if isinstance(tensor, (Number, float)):  # have to use Number and float to satisfy mypy
             tensor_to_number = True
             if rank != src:
                 tensor = torch.empty(1, device=device, dtype=torch.float)
@@ -278,7 +342,11 @@ class _SerialModel(ComputationModel):
             return tensor
         return cast(Union[List[float], List[str]], [tensor])
 
-    def broadcast(self, tensor: Union[torch.Tensor, float, str], src: int = 0) -> Union[torch.Tensor, float, str]:
+    def broadcast(
+        self, tensor: Union[torch.Tensor, float, str, None], src: int = 0, safe_mode: bool = False
+    ) -> Union[torch.Tensor, float, str]:
+        if tensor is None:
+            raise ValueError("Argument tensor should not be None")
         return tensor
 
     def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:

@@ -2,7 +2,8 @@ import warnings
 from abc import ABCMeta, abstractmethod
 from collections.abc import Mapping
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple, Union
+from numbers import Number
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Tuple, Union
 
 import torch
 
@@ -142,10 +143,9 @@ class Metric(metaclass=ABCMeta):
     Attributes:
         required_output_keys: dictionary defines required keys to be found in ``engine.state.output`` if the
             latter is a dictionary. Default, ``("y_pred", "y")``. This is useful with custom metrics that can require
-            other arguments than predictions ``y_pred`` and targets ``y``. See notes below for an example.
+            other arguments than predictions ``y_pred`` and targets ``y``. See an example below.
 
-    Note:
-
+    Examples:
         Let's implement a custom metric that requires ``y_pred``, ``y`` and ``x`` as input for ``update`` function.
         In the example below we show how to setup standard metric like Accuracy and the custom metric using by an
         ``evaluator`` created with :meth:`~ignite.engine.create_supervised_evaluator` method.
@@ -281,6 +281,15 @@ class Metric(metaclass=ABCMeta):
 
         Args:
             engine: the engine to which the metric must be attached
+
+        Note:
+            ``engine.state.output`` is used to compute metric values.
+            The majority of implemented metrics accepts the following formats for ``engine.state.output``:
+            ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``. ``y_pred`` and ``y`` can be torch tensors or
+            list of tensors/numbers if applicable.
+
+        .. versionchanged:: 0.4.5
+            ``y_pred`` and ``y`` can be torch tensors or list of tensors/numbers
         """
 
         output = self._output_transform(engine.state.output)
@@ -296,11 +305,25 @@ class Metric(metaclass=ABCMeta):
                     f"it should contain {self.required_output_keys} keys, but given {list(output.keys())}"
                 )
             output = tuple(output[k] for k in self.required_output_keys)
-        self.update(output)
+
+        if isinstance(output, Sequence) and all([_is_list_of_tensors_or_numbers(o) for o in output]):
+            if not (len(output) == 2 and len(output[0]) == len(output[1])):
+                raise ValueError(
+                    f"Output should have 2 items of the same length, "
+                    f"got {len(output)} and {len(output[0])}, {len(output[1])}"
+                )
+            for o1, o2 in zip(output[0], output[1]):
+                # o1 and o2 are list of tensors or numbers
+                tensor_o1 = _to_batched_tensor(o1)
+                tensor_o2 = _to_batched_tensor(o2, device=tensor_o1.device)
+                self.update((tensor_o1, tensor_o2))
+        else:
+            self.update(output)
 
     def completed(self, engine: Engine, name: str) -> None:
         """Helper method to compute metric's value and put into the engine. It is automatically attached to the
-        `engine` with :meth:`~ignite.metrics.metric.Metric.attach`.
+        `engine` with :meth:`~ignite.metrics.metric.Metric.attach`. If metrics' value is torch tensor, it is
+        explicitly sent to CPU device.
 
         Args:
             engine: the engine to which the metric must be attached
@@ -308,6 +331,10 @@ class Metric(metaclass=ABCMeta):
 
         .. versionchanged:: 0.4.3
             Added dict in metrics results.
+
+        .. versionchanged:: 0.4.5
+            metric's value is put on CPU if torch tensor.
+
         """
         result = self.compute()
         if isinstance(result, Mapping):
@@ -318,8 +345,11 @@ class Metric(metaclass=ABCMeta):
                 engine.state.metrics[key] = value
             engine.state.metrics[name] = result
         else:
-            if isinstance(result, torch.Tensor) and len(result.size()) == 0:
-                result = result.item()
+            if isinstance(result, torch.Tensor):
+                if len(result.size()) == 0:
+                    result = result.item()
+                elif "cpu" not in result.device.type:
+                    result = result.cpu()
 
             engine.state.metrics[name] = result
 
@@ -347,27 +377,26 @@ class Metric(metaclass=ABCMeta):
                 :attr:`ignite.metrics.metric.EpochWise.usage_name` (default) or
                 :attr:`ignite.metrics.metric.BatchWise.usage_name`.
 
-        Example:
+        Examples:
+            .. code-block:: python
 
-        .. code-block:: python
+                metric = ...
+                metric.attach(engine, "mymetric")
 
-            metric = ...
-            metric.attach(engine, "mymetric")
+                assert "mymetric" in engine.run(data).metrics
 
-            assert "mymetric" in engine.run(data).metrics
+                assert metric.is_attached(engine)
 
-            assert metric.is_attached(engine)
+            Example with usage:
 
-        Example with usage:
+            .. code-block:: python
 
-        .. code-block:: python
+                metric = ...
+                metric.attach(engine, "mymetric", usage=BatchWise.usage_name)
 
-            metric = ...
-            metric.attach(engine, "mymetric", usage=BatchWise.usage_name)
+                assert "mymetric" in engine.run(data).metrics
 
-            assert "mymetric" in engine.run(data).metrics
-
-            assert metric.is_attached(engine, usage=BatchWise.usage_name)
+                assert metric.is_attached(engine, usage=BatchWise.usage_name)
         """
         usage = self._check_usage(usage)
         if not engine.has_event_handler(self.started, usage.STARTED):
@@ -388,29 +417,28 @@ class Metric(metaclass=ABCMeta):
             usage: the usage of the metric. Valid string values should be
                 'epoch_wise' (default) or 'batch_wise'.
 
-        Example:
+        Examples:
+            .. code-block:: python
 
-        .. code-block:: python
+                metric = ...
+                engine = ...
+                metric.detach(engine)
 
-            metric = ...
-            engine = ...
-            metric.detach(engine)
+                assert "mymetric" not in engine.run(data).metrics
 
-            assert "mymetric" not in engine.run(data).metrics
+                assert not metric.is_attached(engine)
 
-            assert not metric.is_attached(engine)
+            Example with usage:
 
-        Example with usage:
+            .. code-block:: python
 
-        .. code-block:: python
+                metric = ...
+                engine = ...
+                metric.detach(engine, usage="batch_wise")
 
-            metric = ...
-            engine = ...
-            metric.detach(engine, usage="batch_wise")
+                assert "mymetric" not in engine.run(data).metrics
 
-            assert "mymetric" not in engine.run(data).metrics
-
-            assert not metric.is_attached(engine, usage="batch_wise")
+                assert not metric.is_attached(engine, usage="batch_wise")
         """
         usage = self._check_usage(usage)
         if engine.has_event_handler(self.completed, usage.COMPLETED):
@@ -525,7 +553,7 @@ def sync_all_reduce(*attrs: Any) -> Callable:
     Args:
         attrs: attribute names of decorated class
 
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.5
         - Ability to handle different reduction operations (SUM, MAX, MIN, PRODUCT).
     """
 
@@ -579,3 +607,13 @@ def reinit__is_reduced(func: Callable) -> Callable:
 
     setattr(wrapper, "_decorated", True)
     return wrapper
+
+
+def _is_list_of_tensors_or_numbers(x: Sequence[Union[torch.Tensor, float]]) -> bool:
+    return isinstance(x, Sequence) and all([isinstance(t, (torch.Tensor, Number)) for t in x])
+
+
+def _to_batched_tensor(x: Union[torch.Tensor, float], device: Optional[torch.device] = None) -> torch.Tensor:
+    if isinstance(x, torch.Tensor):
+        return x.unsqueeze(dim=0)
+    return torch.tensor([x,], device=device)

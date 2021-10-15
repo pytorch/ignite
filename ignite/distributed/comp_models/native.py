@@ -1,8 +1,9 @@
 import os
+import re
 import subprocess
 import warnings
 from distutils.version import LooseVersion
-from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, cast
+from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union, cast
 
 import torch
 import torch.distributed as dist
@@ -31,7 +32,7 @@ if has_native_dist_support:
         In this implementation we assume the following mapping between backend and devices:
 
         - NCCL <-> GPU
-        - GLOO <-> CPU
+        - GLOO <-> CPU or GPU
         - MPI  <-> CPU
 
         """
@@ -85,6 +86,7 @@ if has_native_dist_support:
             """
             super(_NativeDistModel, self).__init__()
             self._env_backup = None  # type: Optional[Dict[str, str]]
+            self._local_rank = None  # type: Optional[int]
             self._master_port = None  # type: Optional[int]
             self._master_addr = None  # type: Optional[str]
             self._init_method = None  # type: Optional[str]
@@ -123,11 +125,21 @@ if has_native_dist_support:
 
             dist.init_process_group(backend, init_method=init_method, **init_pg_kwargs)
 
-            # https://github.com/facebookresearch/maskrcnn-benchmark/issues/172
-            dist.barrier()
-
-            if backend == dist.Backend.NCCL:
+            if torch.cuda.is_available():
                 torch.cuda.set_device(self._local_rank)
+
+            # Call barrier after init_process_group as in
+            # https://github.com/facebookresearch/maskrcnn-benchmark/issues/172
+            # Define device ids for NCCL to avoid warnings
+            # [W ProcessGroupNCCL.cpp:1569] Rank 0 using best-guess GPU 0 to perform barrier as devices used by
+            # this process are currently unknown. This can potentially cause a hang if this rank to GPU mapping
+            # is incorrect.Specify device_ids in barrier() to force use of a particular device.
+            if backend == dist.Backend.NCCL and LooseVersion(torch.__version__) >= LooseVersion("1.8.0"):
+                device_ids = [torch.cuda.current_device()]
+                dist.barrier(device_ids=device_ids)
+            else:
+                # For older versions there is no device_ids arg
+                dist.barrier()
 
             self._setup_attrs()
 
@@ -139,7 +151,7 @@ if has_native_dist_support:
         def _compute_nproc_per_node(self) -> int:
             local_rank = self.get_local_rank()
             device = torch.device("cpu")
-            if self.backend() == dist.Backend.NCCL:
+            if torch.cuda.is_available():
                 # we manually set cuda device to local rank in order to avoid a hang on all_reduce
                 device = torch.device(f"cuda:{local_rank}")
             tensor = torch.tensor([self.get_local_rank() + 1]).to(device)
@@ -150,7 +162,7 @@ if has_native_dist_support:
             import socket
 
             device = "cpu"
-            if self.backend() == dist.Backend.NCCL:
+            if torch.cuda.is_available():
                 index = torch.cuda.current_device()
                 device = f"cuda:{index}"
             hostname = socket.gethostname()
@@ -186,7 +198,7 @@ if has_native_dist_support:
 
         def _identify_local_rank(self) -> None:
 
-            if "SLURM_JOBID" in os.environ:
+            if "SLURM_JOB_ID" in os.environ:
                 os.environ["LOCAL_RANK"] = os.environ["SLURM_LOCALID"]
 
             if "LOCAL_RANK" in os.environ:
@@ -208,48 +220,51 @@ if has_native_dist_support:
 
             self._env_backup = os.environ.copy()
 
-            if "SLURM_JOBID" in os.environ:
+            if "SLURM_JOB_ID" in os.environ:
                 if rank is not None or world_size is not None:
                     raise ValueError("Arguments rank and world_size should not be specified with SLURM")
                 self._setup_env_in_slurm()
-                return
+            else:
+                env_vars = ["RANK", "LOCAL_RANK", "WORLD_SIZE"]
+                all_env_vars_defined = [k in os.environ for k in env_vars]
+                # check if all necessary env vars are set
+                # if partially defined raise an error
+                if any(all_env_vars_defined) and not all(all_env_vars_defined):
+                    raise RuntimeError(f"PyTorch distributed configuration should define env variables '{env_vars}'")
 
-            # check if all necessary env vars are set
-            # if partially defined raise an error
-            necessary_env_vars = ["RANK", "LOCAL_RANK", "WORLD_SIZE"]
-            all_env_vars_defined = [k in os.environ for k in necessary_env_vars]
-            if any(all_env_vars_defined) and not all(all_env_vars_defined):
-                raise RuntimeError(
-                    f"PyTorch distributed configuration should define env variables '{necessary_env_vars}'"
+                os.environ["RANK"] = os.environ.get("RANK", f"{rank if rank is not None else 0}")
+                os.environ["WORLD_SIZE"] = os.environ.get(
+                    "WORLD_SIZE", f"{world_size if world_size is not None else 1}"
                 )
+                os.environ["LOCAL_RANK"] = os.environ.get("LOCAL_RANK", "0")
+                os.environ["MASTER_PORT"] = os.environ.get("MASTER_PORT", "15000")
+                os.environ["MASTER_ADDR"] = os.environ.get("MASTER_ADDR", "127.0.0.1")
 
-            os.environ["RANK"] = os.environ.get("RANK", f"{rank if rank is not None else 0}")
-            os.environ["WORLD_SIZE"] = os.environ.get("WORLD_SIZE", f"{world_size if world_size is not None else 1}")
-            os.environ["LOCAL_RANK"] = os.environ.get("LOCAL_RANK", "0")
-            os.environ["MASTER_PORT"] = os.environ.get("MASTER_PORT", "15000")
-            os.environ["MASTER_ADDR"] = os.environ.get("MASTER_ADDR", "127.0.0.1")
             self._local_rank = int(os.environ["LOCAL_RANK"])
             self._master_addr = os.environ["MASTER_ADDR"]
             self._master_port = int(os.environ["MASTER_PORT"])
 
         def _setup_env_in_slurm(self) -> None:
-            for k in ["SLURM_PROCID", "SLURM_LOCALID", "SLURM_NTASKS", "SLURM_JOB_NODELIST"]:
+            slurm_env_req_vars = [
+                "SLURM_JOB_ID",
+                "SLURM_PROCID",
+                "SLURM_LOCALID",
+                "SLURM_NTASKS",
+                "SLURM_JOB_NODELIST",
+                "SLURM_JOB_NUM_NODES",
+            ]
+            for k in slurm_env_req_vars:
                 if k not in os.environ:
                     raise RuntimeError(f"SLURM distributed configuration is missing '{k}' in env variables")
 
-            os.environ["RANK"] = os.environ["SLURM_PROCID"]
-            os.environ["LOCAL_RANK"] = os.environ["SLURM_LOCALID"]
-            os.environ["WORLD_SIZE"] = os.environ["SLURM_NTASKS"]
-            # port should be the same over all process
-            slurm_port = os.environ["SLURM_JOB_ID"]
-            slurm_port = slurm_port[-4:]
-            os.environ["MASTER_PORT"] = str(int(slurm_port) + 15000)
-            # master address is the first hostname of nodes list
-            hostnames = subprocess.check_output(["scontrol", "show", "hostnames", os.environ["SLURM_JOB_NODELIST"]])
-            os.environ["MASTER_ADDR"] = hostnames.split()[0].decode("utf-8")
+            ddp_vars = _setup_ddp_vars_from_slurm_env(cast(Dict, os.environ))
+
+            # define DDP env vars required by PTH:
+            for key, value in ddp_vars.items():
+                os.environ[key] = str(value)
 
         def get_local_rank(self) -> int:
-            return self._local_rank
+            return cast(int, self._local_rank)
 
         def get_rank(self) -> int:
             return dist.get_rank()
@@ -267,7 +282,7 @@ if has_native_dist_support:
             return cast(int, self._node)
 
         def device(self) -> torch.device:
-            if self.backend() == dist.Backend.NCCL:
+            if torch.cuda.is_available():
                 index = torch.cuda.current_device()
                 if index < self.get_local_rank():
                     warnings.warn(
@@ -282,6 +297,10 @@ if has_native_dist_support:
 
         def finalize(self) -> None:
             dist.destroy_process_group()
+            # restore backed-up env
+            self._restore_env()
+
+        def _restore_env(self) -> None:
             # restore backed-up env
             if self._env_backup is not None:
                 os.environ.clear()
@@ -353,7 +372,14 @@ if has_native_dist_support:
             start_processes = mp.spawn
             # start_method and start_processes in pytorch >= 1.5
             if LooseVersion(torch.__version__) >= LooseVersion("1.5.0"):
-                spawn_kwargs["start_method"] = kwargs.get("start_method", "spawn")
+                import builtins
+
+                if "__IPYTHON__" in builtins.__dict__:
+                    # use fork in jupyter
+                    default_start_method = "fork"
+                else:
+                    default_start_method = "spawn"
+                spawn_kwargs["start_method"] = kwargs.get("start_method", default_start_method)
                 start_processes = mp.start_processes
 
             if init_method in [None, "env://"]:
@@ -409,3 +435,158 @@ if has_native_dist_support:
 
         def barrier(self) -> None:
             dist.barrier()
+
+    def _expand_hostlist(nodelist: str) -> List[str]:
+        """Expand a compressed hostlist string and returns all hosts listed.
+
+        Source : https://github.com/LLNL/py-hostlist/blob/master/hostlist/hostlist.py
+
+        Args:
+            nodelist: Compressed hostlist string
+
+        .. note::
+            The host names can be composed by any character except the special ones `[`, `]`, `,`. Only one
+            sequence `[...]` is supported per hostname.
+
+        .. versionadded:: 0.4.6
+        """
+        result_hostlist = []
+
+        nodelist_match = r"([^,\[\]]+\[[^\[\]]*\][^,\[\]]*|[^,\[\]]*),?"
+
+        nodelist = nodelist.replace(" ", "")
+
+        for node in re.findall(nodelist_match, nodelist):
+
+            node_match = r"(.+)\[((,?[0-9]+-?,?-?){0,})\](.*)?"
+
+            match = re.search(node_match, node)
+
+            if match is None:
+                if node:
+                    result_hostlist.append(node)
+            else:
+                # holds the ranges of nodes as a string
+                # now we can manipulate the string and cast it to a list of numbers
+                num = str(match.group(2)).replace("[", "").replace("]", "")
+
+                if len(num) == 0:
+                    raise ValueError(f"hostlist invalid : {nodelist}")
+
+                num_list = num.split(",")
+
+                # find range of node numbers
+                ranges = [elem.split("-") if "-" in elem else [elem, elem] for elem in num_list]
+
+                # if the node numbers contain leading zeros, store them to be
+                lead_zeros = max([len(s) - len(s.lstrip("0")) for s, _ in ranges])
+
+                # list of expanded ranges of node numbers
+                nodes_list = [list(range(int(s), int(e) + 1)) for s, e in ranges]
+
+                # flat the list
+                final_list = [item for sublist in nodes_list for item in sublist]
+
+                # put final list in ascending order and append cluster name to each node number
+                final_list = list(sorted(set(final_list)))
+
+                # prepend leading zeros to numbers required
+                hostlist_tmp = [str(elem).zfill(lead_zeros + 1) for elem in final_list]
+
+                # append hostname to the node numbers
+                hostlist_no_suffix = [match.group(1) + elem for elem in hostlist_tmp]
+
+                # append suffix to hostlist if there is one
+                final_hostlist = [elem + match.group(4) for elem in hostlist_no_suffix]
+
+                result_hostlist += final_hostlist
+
+        return result_hostlist
+
+    def _setup_ddp_vars_from_slurm_env(environ: Dict[str, str]) -> Dict[str, Union[str, int]]:
+        """Method to setup DDP env vars required by PyTorch from SLURM env
+        """
+        # 1) Tools like enroot can have hooks to translate slurm env vars to RANK, LOCAL_RANK, WORLD_SIZE etc
+        # See https://github.com/NVIDIA/enroot/blob/v3.1.0/conf/hooks/extra/50-slurm-pytorch.sh
+        # 2) User can use torch.distributed.launch tool to schedule on N local GPUs using 1 node, 1 task by SLURM
+        # To cover case 1), let's ensure that defined RANK == SLURM_PROCID, LOCAL_RANK == SLURM_LOCALID,
+        #   WORLD_SIZE == SLURM_NTASKS. We will use defined MASTER_ADDR and MASTER_PORT instead of defining
+        #   them by our means
+        # To cover case 2), let's check that defined RANK >= SLURM_PROCID, LOCAL_RANK >= SLURM_LOCALID,
+        #   WORLD_SIZE >= SLURM_NTASKS, SLURM_JOB_NUM_NODES == 1
+
+        ddp_vars: Dict[str, Union[str, int, None]] = {
+            "RANK": int(environ["SLURM_PROCID"]),
+            "LOCAL_RANK": int(environ["SLURM_LOCALID"]),
+            "WORLD_SIZE": int(environ["SLURM_NTASKS"]),
+            "MASTER_ADDR": None,
+            "MASTER_PORT": None,
+        }
+
+        pth_ddp_env_vars = {key: environ.get(key, None) for key in ddp_vars}
+        defined_pth_ddp_env_vars = [v is not None for v in pth_ddp_env_vars.values()]
+        if all(defined_pth_ddp_env_vars):
+            nnodes = int(environ["SLURM_JOB_NUM_NODES"])
+            if nnodes > 1:
+                # ensure that all pth_ddp_env_vars are consistent with slurm vars
+                for key in ["RANK", "LOCAL_RANK", "WORLD_SIZE"]:
+                    slurm_var = cast(int, ddp_vars[key])
+                    pth_var = int(cast(str, pth_ddp_env_vars[key]))
+                    if slurm_var != pth_var:
+                        raise RuntimeError(
+                            "Environment variable defined for PyTorch Distributed context is inconsistent with "
+                            f"equivalent SLURM env variable. {key}: {pth_var} vs {slurm_var}\n"
+                            f"SLURM vars: {ddp_vars}\n"
+                            f"PTH vars: {pth_ddp_env_vars}\n"
+                        )
+            else:
+                # ensure that PTH RANK >= SLURM_PROCID, PTH LOCAL_RANK >= SLURM_LOCALID,
+                # PTH WORLD_SIZE >= SLURM_NTASKS
+                for key in ["RANK", "LOCAL_RANK", "WORLD_SIZE"]:
+                    slurm_var = cast(int, ddp_vars[key])
+                    pth_var = int(cast(str, pth_ddp_env_vars[key]))
+                    if pth_var < slurm_var:
+                        raise RuntimeError(
+                            "Environment variable defined for PyTorch Distributed context is "
+                            "inconsistent with equivalent SLURM env variable. "
+                            f"We expect that {key}: {pth_var} >= {slurm_var}\n"
+                            f"SLURM vars: {ddp_vars}\n"
+                            f"PTH vars: {pth_ddp_env_vars}\n"
+                        )
+                    ddp_vars[key] = pth_var
+            # set up MASTER_ADDR and MASTER_PORT from PTH
+            ddp_vars["MASTER_ADDR"] = cast(str, pth_ddp_env_vars["MASTER_ADDR"])
+            ddp_vars["MASTER_PORT"] = int(cast(str, pth_ddp_env_vars["MASTER_PORT"]))
+        elif any(defined_pth_ddp_env_vars):
+            # Let's warn user about PTH env variables that we could not taken into account
+            warnings.warn(
+                "We detected the following env variables: "
+                f"{[(k, v) for k, v in pth_ddp_env_vars.items() if v is not None]},\n"
+                "but will not take them into account as the following env vars are missing:"
+                f"{[k for k, v in pth_ddp_env_vars.items() if v is None]},\n"
+            )
+
+        if ddp_vars["MASTER_ADDR"] is None:
+            nodelist = environ["SLURM_JOB_NODELIST"]
+            try:
+                # use scontrol to expand hostname list
+                hostnames = subprocess.check_output(["scontrol", "show", "hostnames", nodelist])
+                method = "scontrol"
+            except FileNotFoundError:
+                # expand hostname list as scontrol
+                hostnames = " ".join(_expand_hostlist(nodelist)).encode("utf-8")
+                method = "ignite"
+            # at least one hostname should be defined
+            hostname_list = hostnames.split()
+            if len(hostname_list) < 1:
+                raise RuntimeError(f"No hostname detected in SLURM_JOB_NODELIST by {method} (nodelist={nodelist})")
+            # master address is the first hostname of nodes list
+            ddp_vars["MASTER_ADDR"] = str(hostname_list[0].decode("utf-8"))
+
+        if ddp_vars["MASTER_PORT"] is None:
+            # port should be the same over all process
+            slurm_port = environ["SLURM_JOB_ID"]
+            slurm_port = slurm_port[-4:]
+            ddp_vars["MASTER_PORT"] = int(slurm_port) + 15000
+
+        return cast(Dict[str, Union[str, int]], ddp_vars)

@@ -308,6 +308,7 @@ Complete list of metrics
     VariableAccumulation
     Accuracy
     confusion_matrix.ConfusionMatrix
+    ClassificationReport
     DiceCoefficient
     JaccardIndex
     IoU
@@ -333,6 +334,8 @@ Complete list of metrics
     Rouge
     RougeL
     RougeN
+    InceptionScore
+    FID
 
 Helpers for customizing metrics
 -------------------------------
