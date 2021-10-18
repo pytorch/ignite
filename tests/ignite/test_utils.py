@@ -258,5 +258,5 @@ def test_hash_checkpoint(tmp_path):
     assert hash_checkpoint_path.name == f"squeezenet1_0-{sha_hash[:8]}.pt"
 
     # test non-existent checkpoint_path
-    with pytest.raises(FileNotFoundError, match=rf'not_found.pt does not exist in {tmp_path}*'):
-        hash_checkpoint(f'{tmp_path}/not_found.pt', tmp_path)
+    with pytest.raises(FileNotFoundError, match=rf"not_found.pt does not exist in {tmp_path}*"):
+        hash_checkpoint(f"{tmp_path}/not_found.pt", tmp_path)
