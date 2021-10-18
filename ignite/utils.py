@@ -304,6 +304,9 @@ def hash_checkpoint(checkpoint_path: Union[str, Path], output_dir: Union[str, Pa
     if isinstance(checkpoint_path, str):
         checkpoint_path = Path(checkpoint_path)
 
+    if not checkpoint_path.exists():
+        raise FileNotFoundError(f'{checkpoint_path.name} does not exist in {checkpoint_path.parent}.')
+
     if isinstance(output_dir, str):
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
