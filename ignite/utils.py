@@ -323,6 +323,6 @@ def hash_checkpoint(checkpoint_path: Union[str, Path], output_dir: Union[str, Pa
     new_filename = "-".join((old_filename, sha_hash[:8])) + ".pt"
 
     hash_checkpoint_path = output_dir / new_filename
-    shutil.move(checkpoint_path, hash_checkpoint_path)
+    shutil.move(str(checkpoint_path), hash_checkpoint_path)
 
     return hash_checkpoint_path, sha_hash
