@@ -7,7 +7,7 @@ import pytest
 import torch
 
 from ignite.engine import Engine, Events
-from ignite.utils import convert_tensor, deprecated, setup_logger, to_onehot
+from ignite.utils import convert_tensor, deprecated, hash_checkpoint, setup_logger, to_onehot
 
 
 def test_convert_tensor():
@@ -242,3 +242,17 @@ def test_deprecated():
 
 def test_smoke__utils():
     from ignite._utils import apply_to_tensor, apply_to_type, convert_tensor, to_onehot  # noqa: F401
+
+
+def test_hash_checkpoint(tmp_path):
+    # download lightweight model
+    from torchvision.models import squeezenet1_0
+
+    model = squeezenet1_0()
+    torch.hub.download_url_to_file(
+        "https://download.pytorch.org/models/squeezenet1_0-b66bff10.pth", f"{tmp_path}/squeezenet1_0.pt",
+    )
+    hash_checkpoint_path, sha_hash = hash_checkpoint(f"{tmp_path}/squeezenet1_0.pt", str(tmp_path))
+    model.load_state_dict(torch.load(hash_checkpoint_path), True)
+    assert sha_hash[:8] == "b66bff10"
+    assert hash_checkpoint_path.name == f"squeezenet1_0-{sha_hash[:8]}.pt"

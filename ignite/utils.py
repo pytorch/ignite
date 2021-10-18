@@ -1,13 +1,24 @@
 import collections.abc as collections
 import functools
+import hashlib
 import logging
 import random
+import shutil
 import warnings
+from pathlib import Path
 from typing import Any, Callable, Dict, Optional, TextIO, Tuple, Type, TypeVar, Union, cast
 
 import torch
 
-__all__ = ["convert_tensor", "apply_to_tensor", "apply_to_type", "to_onehot", "setup_logger", "manual_seed"]
+__all__ = [
+    "convert_tensor",
+    "apply_to_tensor",
+    "apply_to_type",
+    "to_onehot",
+    "setup_logger",
+    "manual_seed",
+    "hash_checkpoint",
+]
 
 
 def convert_tensor(
@@ -272,3 +283,46 @@ def deprecated(
         return cast(F, wrapper)
 
     return decorator
+
+
+def hash_checkpoint(checkpoint_path: Union[str, Path], output_dir: Union[str, Path],) -> Tuple[Path, str]:
+    """
+    Hash the checkpoint file in the format of <filename>-<hash>.<ext>
+    to be used with ``check_hash`` of :func:`torch.hub.load_state_dict_from_url`.
+
+    Args:
+        checkpoint_path: Path to the checkpoint file.
+        output_dir: Output directory to store the hashed checkpoint file.
+
+    Returns:
+        Path to the hashed checkpoint file, The 8 digits of SHA256 hash.
+
+    .. tip::
+        Since hashing the checkpoint file usually occurs at the end of final training,
+        it is more convenient to run the function from the command line and PyTorch-Ignite
+        provided the command line interface for that.
+
+        .. code-block:: shell
+
+            $ python -m ignite.hash <path-to-checkpoint-file> <output-dir>
+            $ pythom -m ignite.hash squeezenet1_0.pt hashed-checkpoint/
+
+        Run ``python -m ignite.hash -h`` for more information.
+
+    .. versionadded:: 0.5.0
+    """
+
+    if isinstance(checkpoint_path, str):
+        checkpoint_path = Path(checkpoint_path)
+
+    if isinstance(output_dir, str):
+        output_dir = Path(output_dir)
+
+    sha_hash = hashlib.sha256(checkpoint_path.read_bytes()).hexdigest()
+    old_filename = checkpoint_path.stem
+    new_filename = "-".join((old_filename, sha_hash[:8])) + ".pt"
+
+    hash_checkpoint_path = output_dir / new_filename
+    shutil.move(checkpoint_path, hash_checkpoint_path)
+
+    return hash_checkpoint_path, sha_hash
