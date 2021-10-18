@@ -297,18 +297,6 @@ def hash_checkpoint(checkpoint_path: Union[str, Path], output_dir: Union[str, Pa
     Returns:
         Path to the hashed checkpoint file, The 8 digits of SHA256 hash.
 
-    .. tip::
-        Since hashing the checkpoint file usually occurs at the end of final training,
-        it is more convenient to run the function from the command line and PyTorch-Ignite
-        provided the command line interface for that.
-
-        .. code-block:: shell
-
-            $ python -m ignite.hash <path-to-checkpoint-file> <output-dir>
-            $ pythom -m ignite.hash squeezenet1_0.pt hashed-checkpoint/
-
-        Run ``python -m ignite.hash -h`` for more information.
-
     .. versionadded:: 0.5.0
     """
 
