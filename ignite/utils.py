@@ -292,11 +292,11 @@ def hash_checkpoint(checkpoint_path: Union[str, Path], output_dir: Union[str, Pa
 
     Args:
         checkpoint_path: Path to the checkpoint file.
-        output_dir: Output directory to store the hashed checkpoint file.
-            (will be created if not exist)
+        output_dir: Output directory to store the hashed checkpoint file
+            (will be created if not exist).
 
     Returns:
-        Path to the hashed checkpoint file, The first 8 digits of SHA256 hash.
+        Path to the hashed checkpoint file, the first 8 digits of SHA256 hash.
 
     .. versionadded:: 0.5.0
     """
