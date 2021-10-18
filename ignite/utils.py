@@ -292,10 +292,11 @@ def hash_checkpoint(checkpoint_path: Union[str, Path], output_dir: Union[str, Pa
 
     Args:
         checkpoint_path: Path to the checkpoint file.
-        output_dir: Output directory to store the hashed checkpoint file.
+        output_dir: Output directory to store the hashed checkpoint file
+            (will be created if not exist).
 
     Returns:
-        Path to the hashed checkpoint file, The 8 digits of SHA256 hash.
+        Path to the hashed checkpoint file, the first 8 digits of SHA256 hash.
 
     .. versionadded:: 0.5.0
     """
@@ -303,8 +304,12 @@ def hash_checkpoint(checkpoint_path: Union[str, Path], output_dir: Union[str, Pa
     if isinstance(checkpoint_path, str):
         checkpoint_path = Path(checkpoint_path)
 
+    if not checkpoint_path.exists():
+        raise FileNotFoundError(f"{checkpoint_path.name} does not exist in {checkpoint_path.parent}.")
+
     if isinstance(output_dir, str):
         output_dir = Path(output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
 
     sha_hash = hashlib.sha256(checkpoint_path.read_bytes()).hexdigest()
     old_filename = checkpoint_path.stem

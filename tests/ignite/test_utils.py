@@ -256,3 +256,7 @@ def test_hash_checkpoint(tmp_path):
     model.load_state_dict(torch.load(hash_checkpoint_path), True)
     assert sha_hash[:8] == "b66bff10"
     assert hash_checkpoint_path.name == f"squeezenet1_0-{sha_hash[:8]}.pt"
+
+    # test non-existent checkpoint_path
+    with pytest.raises(FileNotFoundError, match=r"not_found.pt does not exist in *"):
+        hash_checkpoint(f"{tmp_path}/not_found.pt", tmp_path)
