@@ -59,9 +59,9 @@ class StateParamScheduler(BaseParamScheduler):
             setattr(engine.state, self.param_name, None)
 
         if self.save_history:
-            if not hasattr(engine.state, "param_history") or engine.state.param_history is None:  # type: ignore
+            if not hasattr(engine.state, "param_history") or engine.state.param_history is None:
                 setattr(engine.state, "param_history", {})
-            engine.state.param_history.setdefault(self.param_name, [])  # type: ignore[attr-defined]
+            engine.state.param_history.setdefault(self.param_name, [])
 
         engine.add_event_handler(event, self)
 
@@ -70,7 +70,7 @@ class StateParamScheduler(BaseParamScheduler):
         value = self.get_param()
         setattr(engine.state, self.param_name, value)
         if self.save_history:
-            engine.state.param_history[self.param_name].append(value)  # type: ignore[attr-defined]
+            engine.state.param_history[self.param_name].append(value)
 
     @classmethod
     def simulate_values(cls, num_events: int, **scheduler_kwargs: Any) -> List[List[int]]:

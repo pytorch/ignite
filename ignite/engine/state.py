@@ -3,14 +3,16 @@ from typing import Any, Dict, Iterable, Optional, Union
 
 from torch.utils.data import DataLoader
 
-from ignite.engine.events import CallableEventWithFilter, Events
+from ignite.base.events import CallableEventWithFilter
+from ignite.base.events_driven import EventsDrivenState
+from ignite.engine.events import Events
 
 __all__ = [
     "State",
 ]
 
 
-class State:
+class State(EventsDrivenState):
     """An object that is used to pass internal and user-defined state between event handlers. By default, state
     contains the following attributes:
 
@@ -46,6 +48,7 @@ class State:
         "epoch": [Events.EPOCH_STARTED, Events.EPOCH_COMPLETED, Events.STARTED, Events.COMPLETED],
     }  # Optional[Dict[str, List[Events]]]
 
+    # deprecated
     event_to_attr = {
         Events.GET_BATCH_STARTED: "iteration",
         Events.GET_BATCH_COMPLETED: "iteration",
@@ -58,9 +61,8 @@ class State:
     }  # type: Dict[Union[str, "Events", "CallableEventWithFilter"], str]
 
     def __init__(self, **kwargs: Any) -> None:
+        super(State, self).__init__(attr_to_events=State.attr_to_events, **kwargs)
 
-        self.iteration = 0
-        self.epoch = 0
         self.epoch_length = None  # type: Optional[int]
         self.max_epochs = None  # type: Optional[int]
         self.max_iters = None  # type: Optional[int]
@@ -77,18 +79,18 @@ class State:
         for k, v in kwargs.items():
             setattr(self, k, v)
 
-        self._update_attrs()
+        # If it's a standalone state with no engine provided, then we must update
+        # all the attributes and set all initial values to zeros,
+        # epoch and iteration included. We do this to keep BC compatibility,
+        # as we now don't keep iteration and epoch here in state,
+        # instead of that, we use engine._allowed_events_counts to keep track of them.
+        if self._engine is None:
+            self._update_attrs()
 
     def _update_attrs(self) -> None:
-        for value in self.event_to_attr.values():
-            if not hasattr(self, value):
-                setattr(self, value, 0)
-
-    def get_event_attrib_value(self, event_name: Union[str, Events, CallableEventWithFilter]) -> int:
-        """Get the value of Event attribute with given `event_name`."""
-        if event_name not in State.event_to_attr:
-            raise RuntimeError(f"Unknown event name '{event_name}'")
-        return getattr(self, State.event_to_attr[event_name])
+        for key in self.attr_to_events.keys():
+            if not hasattr(self, key):
+                setattr(self, key, 0)
 
     def __repr__(self) -> str:
         s = "State:\n"

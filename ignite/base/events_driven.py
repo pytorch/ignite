@@ -2,7 +2,7 @@ import functools
 import logging
 import weakref
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, Union
 
 from ignite.base.events import CallableEventWithFilter, EventEnum, EventsList, RemovableEventHandle
 from ignite.engine.utils import _check_signature
@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 
 
 class EventsDriven:
+
     """Base class for events-driven engines without state. This class is mainly
     responsible for registering events and triggering events, it also keeps track of
     the allowed events, and how many times they have been triggered.
@@ -270,13 +271,30 @@ class EventsDrivenState:
         attr_to_events: Optional[Dict[str, List["Events"]]] = None,
         **kwargs: Any,
     ):
-
-        self._attr_to_events = attr_to_events if attr_to_events else defaultdict(list)  # type: Dict[str, List[Events]]
+        self._attr_to_events = (
+            dict(attr_to_events) if attr_to_events is not None else defaultdict(list)
+        )  # type: Dict[str, List[Events]]
         self._engine = engine  # type: Optional[EventsDriven]
 
     @property
     def engine(self) -> Optional[EventsDriven]:
         return self._engine
+
+    @engine.setter
+    def engine(self, new_engine: EventsDriven) -> None:
+        # First: check if new engines counted events corresponds to _attr_to_events
+        for events in self._attr_to_events.values():
+            if not all([e in new_engine._allowed_events for e in events]):
+                raise ValueError(f"Input engine does not contain one or more of {events}")
+
+        self._engine = new_engine
+
+        for k, v in dict(self.__dict__).items():
+            if k in self._attr_to_events:
+                # We should remove attribute that is synced with engine
+                del self.__dict__[k]
+                for event in self._attr_to_events[k]:
+                    self._engine._allowed_events_counts[event] = v
 
     def __getattr__(self, attr: str) -> Any:
         evnts = None
