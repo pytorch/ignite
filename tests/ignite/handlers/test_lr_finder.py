@@ -320,25 +320,27 @@ def test_detach_terminates(lr_finder, to_save, dummy_engine, dataloader):
 
 
 def test_different_num_iters(lr_finder, to_save, dummy_engine, dataloader):
-    with lr_finder.attach(dummy_engine, to_save, num_iter=200, diverge_th=float("inf")) as trainer_with_finder:
-        trainer_with_finder.run(dataloader)
-        assert trainer_with_finder.state.iteration == 200  # num_iter
+    with pytest.warns(UserWarning, match=r"Run completed without loss diverging"):
+        with lr_finder.attach(dummy_engine, to_save, num_iter=200, diverge_th=float("inf")) as trainer_with_finder:
+            trainer_with_finder.run(dataloader)
+            assert trainer_with_finder.state.iteration == 200  # num_iter
 
-    with lr_finder.attach(dummy_engine, to_save, num_iter=1000, diverge_th=float("inf")) as trainer_with_finder:
-        trainer_with_finder.run(dataloader)
-        assert trainer_with_finder.state.iteration == 1000  # num_iter
+    with pytest.warns(UserWarning, match=r"Run completed without loss diverging"):
+        with lr_finder.attach(dummy_engine, to_save, num_iter=1000, diverge_th=float("inf")) as trainer_with_finder:
+            trainer_with_finder.run(dataloader)
+            assert trainer_with_finder.state.iteration == 1000  # num_iter
 
 
 @pytest.mark.parametrize("step_mode", ["exp", "linear"])
 def test_start_lr(lr_finder, to_save, dummy_engine, dataloader, step_mode):
     with lr_finder.attach(
-        dummy_engine, to_save, start_lr=0.01, end_lr=0.1, num_iter=5, step_mode=step_mode
+        dummy_engine, to_save, start_lr=0.01, end_lr=10, num_iter=5, step_mode=step_mode, diverge_th=1
     ) as trainer_with_finder:
         trainer_with_finder.run(dataloader)
     history = lr_finder.get_results()
 
     if step_mode == "exp":
-        assert 0.01 < history["lr"][0] < 0.016
+        assert 0.01 < history["lr"][0] < 0.16
     else:
         assert pytest.approx(history["lr"][0]) == 0.01
 
@@ -516,7 +518,7 @@ def test_plot_multiple_param_groups(
     ) as trainer_with_finder:
         trainer_with_finder.run(dataloader_plot)
 
-    ax = lr_finder.plot(skip_end=0)
+    ax = lr_finder.plot(skip_start=0, skip_end=0)
     assert ax is not None
     assert ax.get_xscale() == "log"
     assert ax.get_xlabel() == "Learning rate"
@@ -528,7 +530,7 @@ def test_plot_multiple_param_groups(
     from matplotlib import pyplot as plt
 
     fig, ax = plt.subplots()
-    lr_finder.plot(skip_end=0, ax=ax)
+    lr_finder.plot(skip_start=0, skip_end=0, ax=ax)
     assert ax.get_xscale() == "log"
     assert ax.get_xlabel() == "Learning rate"
     assert ax.get_ylabel() == "Loss"

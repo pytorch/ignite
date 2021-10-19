@@ -899,7 +899,7 @@ def test_simulate_and_plot_values():
     )
 
     with pytest.raises(RuntimeError, match=r"This method requires matplotlib to be installed."):
-        with patch.dict("sys.modules", {"matplotlib.pylab": None}):
+        with patch.dict("sys.modules", {"matplotlib.pyplot": None}):
             _test(
                 PiecewiseLinear,
                 optimizer=optimizer,

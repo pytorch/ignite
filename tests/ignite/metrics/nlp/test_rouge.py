@@ -73,7 +73,7 @@ def test_wrong_inputs():
 def test_rouge_n_alpha(ngram, candidate, reference, expected):
     for alpha in [0, 1, 0.3, 0.5, 0.8]:
         rouge = RougeN(ngram=ngram, alpha=alpha)
-        rouge.update((candidate, [reference]))
+        rouge.update(([candidate], [[reference]]))
         results = rouge.compute()
         assert results[f"Rouge-{ngram}-P"] == expected[0]
         assert results[f"Rouge-{ngram}-R"] == expected[1]
@@ -110,8 +110,7 @@ def test_rouge_metrics(candidates, references):
         lower_split_candidates = [candidate.lower().split() for candidate in candidates]
 
         m = Rouge(variants=[1, 2, 4, "L"], multiref=multiref, alpha=0.5)
-        for candidate, references_per_candidate in zip(lower_split_candidates, lower_split_references):
-            m.update((candidate, references_per_candidate))
+        m.update((lower_split_candidates, lower_split_references))
         results = m.compute()
 
         for key in ["1", "2", "4", "L"]:
@@ -136,7 +135,7 @@ def _test_distrib_integration(device):
         candidate, references = data[i + size * rank]
         lower_split_references = [reference.lower().split() for reference in references[0]]
         lower_split_candidate = candidate[0].lower().split()
-        return lower_split_candidate, lower_split_references
+        return [lower_split_candidate], [lower_split_references]
 
     def _test(metric_device):
         engine = Engine(update)
@@ -158,11 +157,10 @@ def _test_distrib_integration(device):
         )
         rouge_1_f, rouge_2_f, rouge_l_f = (0, 0, 0)
         for candidate, references in data:
-            scores = evaluator.get_scores([candidate[0]], [references[0]])
+            scores = evaluator.get_scores(candidate, references)
             rouge_1_f += scores["rouge-1"]["f"]
             rouge_2_f += scores["rouge-2"]["f"]
             rouge_l_f += scores["rouge-l"]["f"]
-
         assert pytest.approx(engine.state.metrics["Rouge-1-F"], abs=1e-4) == rouge_1_f / len(data)
         assert pytest.approx(engine.state.metrics["Rouge-2-F"], abs=1e-4) == rouge_2_f / len(data)
         assert pytest.approx(engine.state.metrics["Rouge-L-F"], abs=1e-4) == rouge_l_f / len(data)
