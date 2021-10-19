@@ -330,9 +330,28 @@ Following the issue [#2230](https://github.com/pytorch/ignite/issues/2230), PyTo
 [`.. testcode::`]: https://www.sphinx-doc.org/en/master/usage/extensions/doctest.html#directive-testcode
 [`.. testoutput::`]: https://www.sphinx-doc.org/en/master/usage/extensions/doctest.html#directive-testoutput
 
-PyTorch-Ignite uses the second option, **Sphinx directives**. Every code that needs to be tested should be under `.. testcode::` and expected output should be under `.. testoutput::`.
+PyTorch-Ignite uses the second option, **Sphinx directives**. Every code that needs to be tested should be under `.. testcode::` and expected output should be under `.. testoutput::`. For example:
 
-If the floating point results are needed for assertion and the results can vary per operating systems and PyTorch versions, we could assert the results up to 4 or 6 decimal places and match the rest of the results with `...`. Refer [an example here](https://github.com/pytorch/ignite/pull/2241/files#diff-fade24f3d7d60aa791f85f0552747eae4deef34314e9d509daf791524dc78d3fR54).
+```py
+.. testcode::
+
+    def process_function(engine, batch):
+        y_pred, y = batch
+        return y_pred, y
+    engine = Engine(process_function)
+    metric = SSIM(data_range=1.0)
+    metric.attach(engine, 'ssim')
+    preds = torch.rand([4, 3, 16, 16])
+    target = preds * 0.75
+    state = engine.run([[preds, target]])
+    print(state.metrics['ssim'])
+
+.. testoutput::
+
+    0.9218971...
+```
+
+If the floating point results are needed for assertion and the results can vary per operating systems and PyTorch versions, we could assert the results up to 4 or 6 decimal places and match the rest of the results with `...`.
 
 To make writing doctests easy, there are some configuratons defined in `conf.py`. Search `doctest_global_setup` in [conf.py](docs/source/conf.py) to see which variables and functions are available.
 
