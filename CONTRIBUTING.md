@@ -330,7 +330,9 @@ Following the issue [#2230](https://github.com/pytorch/ignite/issues/2230), PyTo
 [`.. testcode::`]: https://www.sphinx-doc.org/en/master/usage/extensions/doctest.html#directive-testcode
 [`.. testoutput::`]: https://www.sphinx-doc.org/en/master/usage/extensions/doctest.html#directive-testoutput
 
-PyTorch-Ignite uses the second option, **Sphinx directives**. Every code that needs to be tested should be under `.. testcode::` and expected output should be under `.. testoutput::`. Refer to [sphinx.ext.doctest](https://www.sphinx-doc.org/en/master/usage/extensions/doctest.html) to learn more about how Sphinx runs doctest.
+PyTorch-Ignite uses the second option, **Sphinx directives**. Every code that needs to be tested should be under `.. testcode::` and expected output should be under `.. testoutput::`.
+
+If the floating point results are needed for assertion and the results can vary per operating systems and PyTorch versions, we could assert the results up to 4 or 6 decimal places and match the rest of the results with `...`. Refer [an example here](https://github.com/pytorch/ignite/pull/2241/files#diff-fade24f3d7d60aa791f85f0552747eae4deef34314e9d509daf791524dc78d3fR54).
 
 To make writing doctests easy, there are some configuratons defined in `conf.py`. Search `doctest_global_setup` in [conf.py](docs/source/conf.py) to see which variables and functions are available.
 
