@@ -319,3 +319,24 @@ python -m http.server <port>
 ```
 
 Then open the browser at `localhost:<port>` (e.g. `localhost:1234`) and click to `html` folder.
+
+#### Examples testing (doctests)
+
+Following the issue [#2230](https://github.com/pytorch/ignite/issues/2230), PyTorch-Ignite is starting to add doctest. There are two ways to add doctest as per [Sphinx documentation](https://www.sphinx-doc.org/en/master/usage/extensions/doctest.html):
+
+1. Python REPL style `>>>`
+2. Sphinx directives [`.. testcode::`] and [`.. testoutput::`]
+
+[`.. testcode::`]: https://www.sphinx-doc.org/en/master/usage/extensions/doctest.html#directive-testcode
+[`.. testoutput::`]: https://www.sphinx-doc.org/en/master/usage/extensions/doctest.html#directive-testoutput
+
+PyTorch-Ignite uses the second option, **Sphinx directives**. Every code that needs to be tested should be under `.. testcode::` and expected output should be under `.. testoutput::`. Refer to [sphinx.ext.doctest](https://www.sphinx-doc.org/en/master/usage/extensions/doctest.html) to learn more about how Sphinx runs doctest.
+
+To make writing doctests easy, there are some configuratons defined in `conf.py`. Search `doctest_global_setup` in [conf.py](docs/source/conf.py) to see which variables and functions are available.
+
+To run doctests locally:
+
+```sh
+cd docs
+make html && make doctest
+```
