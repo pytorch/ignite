@@ -109,7 +109,7 @@ class Average(VariableAccumulation):
             default, CPU.
 
     Examples:
-        .. code-block:: python
+        .. testcode::
 
             evaluator = ...
 
