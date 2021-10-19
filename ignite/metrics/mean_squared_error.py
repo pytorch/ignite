@@ -50,7 +50,7 @@ class MeanSquaredError(Metric):
 
         .. testoutput::
 
-            0.20881052315235138
+            0.2088...
     """
 
     @reinit__is_reduced

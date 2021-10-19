@@ -50,7 +50,7 @@ class MeanAbsoluteError(Metric):
 
         .. testoutput::
 
-            1.2788945436477661
+            1.2788...
     """
 
     @reinit__is_reduced
