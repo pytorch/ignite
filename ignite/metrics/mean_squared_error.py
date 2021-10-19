@@ -43,14 +43,19 @@ class MeanSquaredError(Metric):
             engine = Engine(process_function)
             metric = MeanSquaredError()
             metric.attach(engine, 'mse')
-            preds = torch.rand([4, 10])
+            preds = torch.Tensor([
+                [1, 2, 4, 1],
+                [2, 3, 1, 5],
+                [1, 3, 5, 1],
+                [1, 5, 1 ,11]
+            ])
             target = preds * 0.75
             state = engine.run([[preds, target]])
             print(state.metrics['mse'])
 
         .. testoutput::
 
-            0.2088...
+            3.828125
     """
 
     @reinit__is_reduced
