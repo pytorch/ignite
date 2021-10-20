@@ -322,15 +322,9 @@ Then open the browser at `localhost:<port>` (e.g. `localhost:1234`) and click to
 
 #### Examples testing (doctests)
 
-Following the issue [#2230](https://github.com/pytorch/ignite/issues/2230), PyTorch-Ignite is starting to add doctest. There are two ways to add doctest as per [Sphinx documentation](https://www.sphinx-doc.org/en/master/usage/extensions/doctest.html):
-
-1. Python REPL style `>>>`
-2. Sphinx directives [`.. testcode::`] and [`.. testoutput::`]
-
-[`.. testcode::`]: https://www.sphinx-doc.org/en/master/usage/extensions/doctest.html#directive-testcode
-[`.. testoutput::`]: https://www.sphinx-doc.org/en/master/usage/extensions/doctest.html#directive-testoutput
-
-PyTorch-Ignite uses the second option, **Sphinx directives**. Every code that needs to be tested should be under `.. testcode::` and expected output should be under `.. testoutput::`. For example:
+PyTorch-Ignite uses **Sphinx directives**. Every code that needs to be tested
+should be under `.. testcode::` and expected output should be under
+`.. testoutput::`. For example:
 
 ```py
 .. testcode::
@@ -351,7 +345,7 @@ PyTorch-Ignite uses the second option, **Sphinx directives**. Every code that ne
     0.9218971...
 ```
 
-If the floating point results are needed for assertion and the results can vary per operating systems and PyTorch versions, we could assert the results up to 4 or 6 decimal places and match the rest of the results with `...`.
+If the floating point results are needed for assertion and the results can vary per operating systems and PyTorch versions, we could assert the results up to 4 or 6 decimal places and match the rest of the results with `...`. Learn more about `sphinx.ext.doctest` in [the official documentation](https://www.sphinx-doc.org/en/master/usage/extensions/doctest.html).
 
 To make writing doctests easy, there are some configuratons defined in `conf.py`. Search `doctest_global_setup` in [conf.py](docs/source/conf.py) to see which variables and functions are available.
 
