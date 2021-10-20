@@ -312,6 +312,7 @@ def hash_checkpoint(checkpoint_path: Union[str, Path], output_dir: Union[str, Pa
         output_dir.mkdir(parents=True, exist_ok=True)
 
     hash_obj = hashlib.sha256()
+    # taken from https://github.com/pytorch/vision/blob/main/references/classification/utils.py
     with checkpoint_path.open("rb") as f:
         # Read and update hash string value in blocks of 4KB
         for byte_block in iter(lambda: f.read(4096), b""):
