@@ -311,7 +311,14 @@ def hash_checkpoint(checkpoint_path: Union[str, Path], output_dir: Union[str, Pa
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
 
-    sha_hash = hashlib.sha256(checkpoint_path.read_bytes()).hexdigest()
+    hash_obj = hashlib.sha256()
+    # taken from https://github.com/pytorch/vision/blob/main/references/classification/utils.py
+    with checkpoint_path.open("rb") as f:
+        # Read and update hash string value in blocks of 4KB
+        for byte_block in iter(lambda: f.read(4096), b""):
+            hash_obj.update(byte_block)
+    sha_hash = hash_obj.hexdigest()
+
     old_filename = checkpoint_path.stem
     new_filename = "-".join((old_filename, sha_hash[:8])) + ".pt"
 
