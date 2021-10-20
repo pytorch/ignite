@@ -26,6 +26,36 @@ class MeanAbsoluteError(Metric):
         device: specifies which device updates are accumulated on. Setting the
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
+
+    Examples:
+        To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
+        The output of the engine's ``process_function`` needs to be in the format of
+        ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``. If not, ``output_tranform`` can be added
+        to the metric to transform the output into the form expected by the metric.
+
+        ``y_pred`` and ``y`` should have the same shape.
+
+        .. testcode::
+
+            def process_function(engine, batch):
+                y_pred, y = batch
+                return y_pred, y
+            engine = Engine(process_function)
+            metric = MeanAbsoluteError()
+            metric.attach(engine, 'mae')
+            preds = torch.Tensor([
+                [1, 2, 4, 1],
+                [2, 3, 1, 5],
+                [1, 3, 5, 1],
+                [1, 5, 1 ,11]
+            ])
+            target = preds * 0.75
+            state = engine.run([[preds, target]])
+            print(state.metrics['mae'])
+
+        .. testoutput::
+
+            2.9375
     """
 
     @reinit__is_reduced
