@@ -319,3 +319,39 @@ python -m http.server <port>
 ```
 
 Then open the browser at `localhost:<port>` (e.g. `localhost:1234`) and click to `html` folder.
+
+#### Examples testing (doctests)
+
+PyTorch-Ignite uses **Sphinx directives**. Every code that needs to be tested
+should be under `.. testcode::` and expected output should be under
+`.. testoutput::`. For example:
+
+```py
+.. testcode::
+
+    def process_function(engine, batch):
+        y_pred, y = batch
+        return y_pred, y
+    engine = Engine(process_function)
+    metric = SSIM(data_range=1.0)
+    metric.attach(engine, 'ssim')
+    preds = torch.rand([4, 3, 16, 16])
+    target = preds * 0.75
+    state = engine.run([[preds, target]])
+    print(state.metrics['ssim'])
+
+.. testoutput::
+
+    0.9218971...
+```
+
+If the floating point results are needed for assertion and the results can vary per operating systems and PyTorch versions, we could assert the results up to 4 or 6 decimal places and match the rest of the results with `...`. Learn more about `sphinx.ext.doctest` in [the official documentation](https://www.sphinx-doc.org/en/master/usage/extensions/doctest.html).
+
+To make writing doctests easy, there are some configuratons defined in `conf.py`. Search `doctest_global_setup` in [conf.py](docs/source/conf.py) to see which variables and functions are available.
+
+To run doctests locally:
+
+```sh
+cd docs
+make html && make doctest
+```
