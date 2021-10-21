@@ -4,11 +4,11 @@ parameters:
   pytorch_stable_image:
     type: string
     # https://hub.docker.com/r/pytorch/pytorch/tags
-    default: "pytorch/pytorch:1.9.0-cuda11.1-cudnn8-runtime"
+    default: "pytorch/pytorch:1.10.0-cuda11.3-cudnn8-runtime"
   pytorch_stable_image_devel:
     type: string
     # https://hub.docker.com/r/pytorch/pytorch/tags
-    default: "pytorch/pytorch:1.9.0-cuda11.1-cudnn8-devel"
+    default: "pytorch/pytorch:1.10.0-cuda11.3-cudnn8-devel"
   workingdir:
     type: string
     default: "/tmp/ignite"
@@ -54,7 +54,7 @@ install_latest_nvidia: &install_latest_nvidia
       name: Install latest NVidia-driver and CUDA
       command: |
         sudo apt-get purge nvidia* && sudo apt-get autoremove
-        sudo apt-get update && sudo apt-get install -y --no-install-recommends nvidia-455 cuda-drivers-455
+        sudo apt-get update && sudo apt-get install -y --no-install-recommends nvidia-495 cuda-drivers-495
         # Install nvidia-container-runtime
         sudo apt-get install -y nvidia-container-runtime
         # Reload driver : https://stackoverflow.com/a/45319156/6309199
@@ -86,9 +86,6 @@ run_pytorch_container: &run_pytorch_container
         docker run --gpus=all --rm -itd --shm-size 16G -v ${wd}:/ignite -w /ignite --name pthd << pipeline.parameters.pytorch_stable_image >>
         docker exec -it pthd nvidia-smi
         docker exec -it pthd ls
-        # temporarily manually install v1.9.1
-        # https://github.com/pytorch/ignite/pull/2211#issuecomment-927080841
-        export update_pth_cmd='conda install -y pytorch==1.9.1 -c pytorch -c nvidia'
         docker exec -it pthd /bin/bash -c "$update_pth_cmd"
 
 run_pytorch_devel_container: &run_pytorch_devel_container
@@ -100,9 +97,6 @@ run_pytorch_devel_container: &run_pytorch_devel_container
         docker run --gpus=all --rm -itd --shm-size 16G -v ${wd}:/ignite -w /ignite --name pthd << pipeline.parameters.pytorch_stable_image_devel >>
         docker exec -it pthd nvidia-smi
         docker exec -it pthd ls
-        # temporarily manually install v1.9.1
-        # https://github.com/pytorch/ignite/pull/2211#issuecomment-927080841
-        export update_pth_cmd='conda install -y pytorch==1.9.1 -c pytorch -c nvidia'
         docker exec -it pthd /bin/bash -c "$update_pth_cmd"
 
 install_dependencies: &install_dependencies
