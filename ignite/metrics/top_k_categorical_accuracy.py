@@ -24,6 +24,48 @@ class TopKCategoricalAccuracy(Metric):
         device: specifies which device updates are accumulated on. Setting the
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
+
+    Examples:
+        To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
+        The output of the engine's ``process_function`` needs to be in the format of
+        ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``. If not, ``output_tranform`` can be added
+        to the metric to transform the output into the form expected by the metric.
+
+        .. testcode::
+
+            def process_function(engine, batch):
+                y_pred, y = batch
+                return y_pred, y
+
+            def one_hot_to_binary_output_transform(output):
+                y_pred, y = output
+                y = torch.argmax(y, dim=1)  # one-hot vector to label index vector
+                return y_pred, y
+
+            engine = Engine(process_function)
+            metric = TopKCategoricalAccuracy(
+                k=2, output_transform=one_hot_to_binary_output_transform)
+            metric.attach(engine, 'top_k_accuracy')
+
+            preds = torch.Tensor([
+                [0.7, 0.2, 0.05, 0.05],     # 1 is in the top 2
+                [0.2, 0.3, 0.4, 0.1],       # 0 is not in the top 2
+                [0.4, 0.4, 0.1, 0.1],       # 0 is in the top 2
+                [0.7, 0.05, 0.2, 0.05]      # 2 is in the top 2
+            ])
+            target = torch.Tensor([         # targets as one-hot vectors
+                [0, 1, 0, 0],
+                [1, 0, 0, 0],
+                [1, 0, 0, 0],
+                [0, 0, 1, 0]
+            ])
+
+            state = engine.run([[preds, target]])
+            print(state.metrics['top_k_accuracy'])
+
+        .. testoutput::
+
+            0.75
     """
 
     def __init__(
