@@ -63,7 +63,6 @@ class TopKCategoricalAccuracy(Metric):
             state = engine.run([[preds, target]])
             print(state.metrics['top_k_accuracy'])
 
-
         .. testoutput::
 
             0.75
