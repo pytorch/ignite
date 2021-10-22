@@ -86,7 +86,6 @@ run_pytorch_container: &run_pytorch_container
         docker run --gpus=all --rm -itd --shm-size 16G -v ${wd}:/ignite -w /ignite --name pthd << pipeline.parameters.pytorch_stable_image >>
         docker exec -it pthd nvidia-smi
         docker exec -it pthd ls
-        docker exec -it pthd /bin/bash -c "$update_pth_cmd"
 
 run_pytorch_devel_container: &run_pytorch_devel_container
   - run:
@@ -97,7 +96,6 @@ run_pytorch_devel_container: &run_pytorch_devel_container
         docker run --gpus=all --rm -itd --shm-size 16G -v ${wd}:/ignite -w /ignite --name pthd << pipeline.parameters.pytorch_stable_image_devel >>
         docker exec -it pthd nvidia-smi
         docker exec -it pthd ls
-        docker exec -it pthd /bin/bash -c "$update_pth_cmd"
 
 install_dependencies: &install_dependencies
   - run:
