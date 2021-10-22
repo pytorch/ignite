@@ -150,7 +150,7 @@ class Accuracy(_BaseClassification):
 
         .. testoutput::
 
-            0.75  
+            0.75
     """
 
     def __init__(
