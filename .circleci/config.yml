@@ -4,11 +4,11 @@ parameters:
   pytorch_stable_image:
     type: string
     # https://hub.docker.com/r/pytorch/pytorch/tags
-    default: "pytorch/pytorch:1.9.0-cuda11.1-cudnn8-runtime"
+    default: "pytorch/pytorch:1.10.0-cuda11.3-cudnn8-runtime"
   pytorch_stable_image_devel:
     type: string
     # https://hub.docker.com/r/pytorch/pytorch/tags
-    default: "pytorch/pytorch:1.9.0-cuda11.1-cudnn8-devel"
+    default: "pytorch/pytorch:1.10.0-cuda11.3-cudnn8-devel"
   workingdir:
     type: string
     default: "/tmp/ignite"
@@ -26,7 +26,7 @@ parameters:
 one_gpu: &one_gpu
   machine:
     # https://circleci.com/docs/2.0/configuration-reference/#available-linux-gpu-images
-    image: ubuntu-1604-cuda-11.1:202012-01 # CUDA v11.1, Docker v19.03.13, nvidia-container-toolkit v1.4.0-1
+    image: ubuntu-2004-cuda-11.2:202103-01 # CUDA v11.2.1, Docker v20.10.5, nvidia-container-toolkit v1.4.2-1
     docker_layer_caching: true
   # https://circleci.com/product/features/resource-classes/#linux-vm
   resource_class: gpu.small
@@ -40,7 +40,7 @@ one_gpu_windows: &one_gpu_windows
 two_gpus: &two_gpus
   machine:
     # https://circleci.com/docs/2.0/configuration-reference/#available-linux-gpu-images
-    image: ubuntu-1604-cuda-11.1:202012-01 # CUDA v11.1, Docker v19.03.13, nvidia-container-toolkit v1.4.0-1
+    image: ubuntu-2004-cuda-11.2:202103-01 # CUDA v11.2.1, Docker v20.10.5, nvidia-container-toolkit v1.4.2-1
     docker_layer_caching: true
   # https://circleci.com/product/features/resource-classes/#linux-vm
   resource_class: gpu.medium
@@ -54,12 +54,12 @@ install_latest_nvidia: &install_latest_nvidia
       name: Install latest NVidia-driver and CUDA
       command: |
         sudo apt-get purge nvidia* && sudo apt-get autoremove
-        sudo apt-get update && sudo apt-get install -y --no-install-recommends nvidia-455 cuda-drivers-455
+        sudo apt-get update && sudo apt-get install -y --no-install-recommends nvidia-driver-470
         # Install nvidia-container-runtime
         sudo apt-get install -y nvidia-container-runtime
         # Reload driver : https://stackoverflow.com/a/45319156/6309199
         # lsof | grep nvidia -> kill Xvfb
-        sudo lsof | grep "/usr/bin/Xvfb" | head -1 | awk '{print $2}' | xargs -I {} sudo kill -9 {}
+        sudo lsof | grep "/usr/bin/Xvfb" | head -1 | awk '{print $2}' | xargs -I {} sudo kill -9 {} || echo "Command 'sudo lsof ...' is failed"
         # lsmod | grep nvidia
         sudo rmmod nvidia_uvm && sudo rmmod nvidia_drm && sudo rmmod nvidia_modeset && sudo rmmod nvidia
         # reload driver
@@ -86,9 +86,6 @@ run_pytorch_container: &run_pytorch_container
         docker run --gpus=all --rm -itd --shm-size 16G -v ${wd}:/ignite -w /ignite --name pthd << pipeline.parameters.pytorch_stable_image >>
         docker exec -it pthd nvidia-smi
         docker exec -it pthd ls
-        # temporarily manually install v1.9.1
-        # https://github.com/pytorch/ignite/pull/2211#issuecomment-927080841
-        export update_pth_cmd='conda install -y pytorch==1.9.1 -c pytorch -c nvidia'
         docker exec -it pthd /bin/bash -c "$update_pth_cmd"
 
 run_pytorch_devel_container: &run_pytorch_devel_container
@@ -100,9 +97,6 @@ run_pytorch_devel_container: &run_pytorch_devel_container
         docker run --gpus=all --rm -itd --shm-size 16G -v ${wd}:/ignite -w /ignite --name pthd << pipeline.parameters.pytorch_stable_image_devel >>
         docker exec -it pthd nvidia-smi
         docker exec -it pthd ls
-        # temporarily manually install v1.9.1
-        # https://github.com/pytorch/ignite/pull/2211#issuecomment-927080841
-        export update_pth_cmd='conda install -y pytorch==1.9.1 -c pytorch -c nvidia'
         docker exec -it pthd /bin/bash -c "$update_pth_cmd"
 
 install_dependencies: &install_dependencies
@@ -208,13 +202,13 @@ jobs:
           command: |
             bash .circleci/trigger_if_modified.sh "^(ignite|tests|examples|\.circleci).*"
 
-      - run:
-          name: Update CUDA Driver for Windows
-          command: |
-            curl -O https://raw.githubusercontent.com/pytorch/pytorch/master/.circleci/scripts/windows_cuda_install.sh
-            mkdir -p "C:/Program Files (x86)/Microsoft Visual Studio/2019/BuildTools/MSBuild/Microsoft/VC/v160/BuildCustomizations/"
-            JOB_EXECUTOR="windows-with-nvidia-gpu" CUDA_VERSION="11.3" VC_PRODUCT="BuildTools" VC_YEAR="2019" bash ./windows_cuda_install.sh
-            bash -c "'/c/Program Files/NVIDIA Corporation/NVSMI/nvidia-smi.exe'"
+      # - run:
+      #     name: Update CUDA Driver for Windows
+      #     command: |
+      #       curl -O https://raw.githubusercontent.com/pytorch/pytorch/master/.circleci/scripts/windows_cuda_install.sh
+      #       mkdir -p "C:/Program Files (x86)/Microsoft Visual Studio/2019/BuildTools/MSBuild/Microsoft/VC/v160/BuildCustomizations/"
+      #       JOB_EXECUTOR="windows-with-nvidia-gpu" CUDA_VERSION="11.3" VC_PRODUCT="BuildTools" VC_YEAR="2019" bash ./windows_cuda_install.sh
+      #       bash -c "'/c/Program Files/NVIDIA Corporation/NVSMI/nvidia-smi.exe'"
 
       - run:
           name: Install dependencies
@@ -222,9 +216,11 @@ jobs:
             conda --version
             # We have to use cuda 10.2 on Windows:
             # https://github.com/pytorch/ignite/issues/1843
-            conda install -y pytorch torchvision cudatoolkit=10.2 -c pytorch
+            conda install -y pytorch==1.9.1 torchvision cudatoolkit=10.2 -c pytorch
             pip install -r requirements-dev.txt
             pip install .
+            python -c "import torch; print(torch.__version__, torch.version.cuda, torch.cuda.is_available())"
+            python -c "import torch; torch.cuda.is_available()"
 
       - run:
           # https://github.com/pytorch/ignite/issues/1737
@@ -330,6 +326,7 @@ jobs:
           name: Trigger job if modified
           command: |
             bash .circleci/trigger_if_modified.sh "^(ignite|tests|examples|\.circleci).*"
+      - <<: *install_latest_nvidia
       - <<: *pull_pytorch_stable_devel_image
       - <<: *run_pytorch_devel_container
       - <<: *install_dependencies
@@ -461,7 +458,10 @@ workflows:
     unless: << pipeline.parameters.should_build_docker_images >>
     jobs:
       - one_gpu_tests
-      - one_gpu_windows_tests
+      # Disabled windows tests as NVidia driver is too old
+      # > c:\tools\miniconda3\lib\site-packages\torch\cuda\__init__.py:52: UserWarning: CUDA initialization: The NVIDIA driver on your system is too old (found version 10010). Please update your GPU driver by downloading and installing a new version from the URL: http://www.nvidia.com/Download/index.aspx Alternatively, go to: https://pytorch.org to install a PyTorch version that has been compiled with your version of the CUDA driver. (Triggered internally at  ..\c10\cuda\CUDAFunctions.cpp:115.)
+      # > return torch._C._cuda_getDeviceCount() > 0
+      # - one_gpu_windows_tests
       - two_gpus_tests
       - two_gpus_check_dist_cifar10_example
       - two_gpus_hvd_tests
