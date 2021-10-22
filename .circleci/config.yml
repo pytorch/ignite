@@ -54,7 +54,7 @@ install_latest_nvidia: &install_latest_nvidia
       name: Install latest NVidia-driver and CUDA
       command: |
         sudo apt-get purge nvidia* && sudo apt-get autoremove
-        sudo apt-get update && sudo apt-get install -y --no-install-recommends nvidia-495 cuda-drivers-495
+        sudo apt-get update && sudo apt-get install -y --no-install-recommends nvidia-driver-470
         # Install nvidia-container-runtime
         sudo apt-get install -y nvidia-container-runtime
         # Reload driver : https://stackoverflow.com/a/45319156/6309199
@@ -458,7 +458,10 @@ workflows:
     unless: << pipeline.parameters.should_build_docker_images >>
     jobs:
       - one_gpu_tests
-      - one_gpu_windows_tests
+      # Disabled windows tests as NVidia driver is too old
+      # > c:\tools\miniconda3\lib\site-packages\torch\cuda\__init__.py:52: UserWarning: CUDA initialization: The NVIDIA driver on your system is too old (found version 10010). Please update your GPU driver by downloading and installing a new version from the URL: http://www.nvidia.com/Download/index.aspx Alternatively, go to: https://pytorch.org to install a PyTorch version that has been compiled with your version of the CUDA driver. (Triggered internally at  ..\c10\cuda\CUDAFunctions.cpp:115.)
+      # > return torch._C._cuda_getDeviceCount() > 0
+      # - one_gpu_windows_tests
       - two_gpus_tests
       - two_gpus_check_dist_cifar10_example
       - two_gpus_hvd_tests
