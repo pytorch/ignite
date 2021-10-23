@@ -992,7 +992,7 @@ class PiecewiseLinear(ParamScheduler):
         .. testcode::
 
             features, labels = generate_linear_data_with_noise(
-                torch.tensor(w=[2.1, 3.4, 1, 0.2]), b=1.4, num_examples=100)
+                w=torch.tensor([2.1, 3.4, 1, 0.2]), b=1.4, num_examples=100)
             train_dataloader = get_dataloader(features, labels, batch_size=4)
 
             model = nn.Sequential(nn.Linear(4, 1))
