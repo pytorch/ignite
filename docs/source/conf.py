@@ -351,4 +351,13 @@ from ignite.metrics import *
 from ignite.utils import *
 
 manual_seed(666)
+
+def evaluator(metric, metric_name):
+    def process_function(engine, batch):
+        y_pred, y = batch
+        return y_pred, y
+    engine = Engine(process_function)
+    metric.attach(engine, metric_name)
+    return engine
+
 """

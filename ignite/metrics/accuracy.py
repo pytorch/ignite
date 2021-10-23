@@ -137,16 +137,13 @@ class Accuracy(_BaseClassification):
 
         .. testcode::
 
-            def process_function(engine, batch):
-                y_pred, y = batch
-                return y_pred, y
-            engine = Engine(process_function)
-            metric = Accuracy()
-            metric.attach(engine, 'accuracy')
+
+            metric_name='accuracy'
+            engine=evaluator(Accuracy(), metric_name)
             preds = torch.Tensor([[1,0,0,1]])
             target = torch.Tensor([[1,0,0,0]])
             state = engine.run([[preds, target]])
-            print(state.metrics['accuracy'])
+            print(state.metrics[metric_name])
 
         .. testoutput::
 
