@@ -376,6 +376,16 @@ default_model = nn.Sequential(OrderedDict([
 ]))
 
 manual_seed(666)
+
+def generate_linear_data_with_noise(w, b, num_examples):
+    X = torch.normal(0, 1, (num_examples, len(w)))
+    y = torch.matmul(X, w) + b
+    y += torch.normal(0, 0.01, y.shape)
+    return X, y.reshape((-1, 1))
+
+def get_dataloader(features, labels, batch_size):
+    dataset = torch.utils.data.TensorDataset(*(features, labels))
+    return torch.utils.data.DataLoader(dataset, batch_size, shuffle=True)
 """
 
 

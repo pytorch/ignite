@@ -987,6 +987,25 @@ class PiecewiseLinear(ParamScheduler):
         # from 0.3 to 0.1 between 21st and 30th iterations and remains 0.1 until the end of the iterations.
         #
 
+    Example:
+
+        .. testcode::
+
+            features, labels = generate_linear_data_with_noise(
+                torch.tensor([2.1, 3.4, 1, 0.2]), 1.4, 100)
+            train_dataloader = get_dataloader(features, labels, batch_size=4)
+
+            model = nn.Sequential(nn.Linear(4, 1))
+            optimizer = optim.SGD(model.parameters(), lr=0.5)
+            criterion = nn.MSELoss()
+            scheduler = PiecewiseLinear(optimizer, "lr",
+                                        milestones_values=[(1, 0.5), (4, 0.3), (8, 0.1)])
+
+            trainer = create_supervised_trainer(model, optimizer, criterion)
+            trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+
+            trainer.run(train_dataloader, max_epochs=10)
+    
     .. versionadded:: 0.4.5
     """
 
