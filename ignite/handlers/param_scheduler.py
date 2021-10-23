@@ -1005,7 +1005,7 @@ class PiecewiseLinear(ParamScheduler):
             trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
 
             trainer.run(train_dataloader, max_epochs=10)
-    
+
     .. versionadded:: 0.4.5
     """
 
