@@ -266,6 +266,19 @@ def test_simulate_and_plot_values(scheduler_cls, scheduler_kwargs):
 
 
 @pytest.mark.parametrize("scheduler_cls,scheduler_kwargs", [config1, config2, config3, config4])
+def test_simulate_values(scheduler_cls, scheduler_kwargs):
+    def _test(scheduler_cls, scheduler_kwargs):
+        max_epochs = 2
+        data = [0] * 10
+        scheduler_cls.simulate_values(num_events=len(data) * max_epochs, **scheduler_kwargs)
+
+    assert "save_history" not in scheduler_kwargs
+    _test(scheduler_cls, scheduler_kwargs)
+    scheduler_kwargs["save_history"] = True
+    _test(scheduler_cls, scheduler_kwargs)
+
+
+@pytest.mark.parametrize("scheduler_cls,scheduler_kwargs", [config1, config2, config3, config4])
 def test_state_param_asserts(scheduler_cls, scheduler_kwargs):
     import re
 
