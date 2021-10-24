@@ -991,15 +991,16 @@ class PiecewiseLinear(ParamScheduler):
 
         .. testcode::
 
-            features, labels = generate_linear_data_with_noise(
-                w=torch.tensor([2.1, 3.4, 1, 0.2]), b=1.4, num_examples=100)
-            train_dataloader = get_dataloader(features, labels, batch_size=4)
+            features = torch.Tensor([2, 3, 4, 5, 6, 7, 8, 9, 10]).reshape(-1, 1)
+            labels = torch.Tensor([1, 2, 3, 4, 5, 6, 7, 8, 9]).reshape(-1, 1)
+            dataset = torch.utils.data.TensorDataset(*(features, labels))
+            train_dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
 
-            model = nn.Sequential(nn.Linear(4, 1))
-            optimizer = optim.SGD(model.parameters(), lr=0.5)
+            model = nn.Linear(1, 1)
+            optimizer = optim.SGD(model.parameters(), lr=0.05)
             criterion = nn.MSELoss()
             scheduler = PiecewiseLinear(optimizer, "lr",
-                                        milestones_values=[(10, 0.5), (40, 0.3), (80, 0.1)])
+                                        milestones_values=[(10, 0.01), (40, 0.001), (100, 0.0001)])
 
             trainer = create_supervised_trainer(model, optimizer, criterion)
             trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
