@@ -19,7 +19,7 @@ jobs:
         with:
           python-version: 3.7
 
-      - run: sudo npm install katex@0.13.0 -g
+      - run: sudo npm install katex -g
       - uses: actions/cache@v2
         with:
           path: ~/.cache/pip
@@ -71,7 +71,7 @@ jobs:
         with:
           python-version: 3.7
 
-      - run: sudo npm install katex@0.13.0 -g
+      - run: sudo npm install katex -g
       - uses: actions/cache@v2
         with:
           path: ~/.cache/pip
