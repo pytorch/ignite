@@ -15,6 +15,30 @@ from ignite.handlers.state_param_scheduler import (
 config1 = (3, [(2, 0), (5, 10)], True, [0.0, 0.0, 3.3333333333333335])
 expected_hist2 = [0.0] * 10 + [float(i) for i in range(1, 11)] + [10.0] * 10
 config2 = (30, [(10, 0), (20, 10)], True, expected_hist2)
+config3 = (
+    PiecewiseLinearStateScheduler,
+    {"param_name": "linear_scheduled_param", "milestones_values": [(3, 12), (5, 10)]},
+)
+config4 = (ExpStateScheduler, {"param_name": "exp_scheduled_param", "initial_value": 10, "gamma": 0.99})
+config5 = (
+    MultiStepStateScheduler,
+    {"param_name": "multistep_scheduled_param", "initial_value": 10, "gamma": 0.99, "milestones": [3, 6]},
+)
+
+
+class LambdaState:
+    def __init__(self, initial_value, gamma):
+        self.initial_value = initial_value
+        self.gamma = gamma
+
+    def __call__(self, event_index):
+        return self.initial_value * self.gamma ** (event_index % 9)
+
+
+config6 = (
+    LambdaStateScheduler,
+    {"param_name": "custom_scheduled_param", "lambda_obj": LambdaState(initial_value=10, gamma=0.99)},
+)
 
 
 @pytest.mark.parametrize(
@@ -216,33 +240,7 @@ def test_custom_scheduler_asserts():
         )
 
 
-config1 = (
-    PiecewiseLinearStateScheduler,
-    {"param_name": "linear_scheduled_param", "milestones_values": [(3, 12), (5, 10)]},
-)
-config2 = (ExpStateScheduler, {"param_name": "exp_scheduled_param", "initial_value": 10, "gamma": 0.99})
-config3 = (
-    MultiStepStateScheduler,
-    {"param_name": "multistep_scheduled_param", "initial_value": 10, "gamma": 0.99, "milestones": [3, 6]},
-)
-
-
-class LambdaState:
-    def __init__(self, initial_value, gamma):
-        self.initial_value = initial_value
-        self.gamma = gamma
-
-    def __call__(self, event_index):
-        return self.initial_value * self.gamma ** (event_index % 9)
-
-
-config4 = (
-    LambdaStateScheduler,
-    {"param_name": "custom_scheduled_param", "lambda_obj": LambdaState(initial_value=10, gamma=0.99)},
-)
-
-
-@pytest.mark.parametrize("scheduler_cls,scheduler_kwargs", [config1, config2, config3, config4])
+@pytest.mark.parametrize("scheduler_cls,scheduler_kwargs", [config3, config4, config5, config6])
 def test_simulate_and_plot_values(scheduler_cls, scheduler_kwargs):
 
     import matplotlib
@@ -265,7 +263,20 @@ def test_simulate_and_plot_values(scheduler_cls, scheduler_kwargs):
     _test(scheduler_cls, scheduler_kwargs)
 
 
-@pytest.mark.parametrize("scheduler_cls,scheduler_kwargs", [config1, config2, config3, config4])
+@pytest.mark.parametrize("scheduler_cls,scheduler_kwargs", [config3, config4, config5, config6])
+def test_simulate_values(scheduler_cls, scheduler_kwargs):
+    def _test(scheduler_cls, scheduler_kwargs):
+        max_epochs = 2
+        data = [0] * 10
+        scheduler_cls.simulate_values(num_events=len(data) * max_epochs, **scheduler_kwargs)
+
+    assert "save_history" not in scheduler_kwargs
+    _test(scheduler_cls, scheduler_kwargs)
+    scheduler_kwargs["save_history"] = True
+    _test(scheduler_cls, scheduler_kwargs)
+
+
+@pytest.mark.parametrize("scheduler_cls,scheduler_kwargs", [config3, config4, config5, config6])
 def test_state_param_asserts(scheduler_cls, scheduler_kwargs):
     import re
 
