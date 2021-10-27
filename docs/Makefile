@@ -2,7 +2,7 @@
 #
 
 # You can set these variables from the command line.
-SPHINXOPTS    =
+SPHINXOPTS    = -j auto -WT --keep-going --color
 SPHINXBUILD   = sphinx-build
 SPHINXPROJ    = ignite
 SOURCEDIR     = source
