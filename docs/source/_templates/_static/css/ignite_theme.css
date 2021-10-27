@@ -217,6 +217,20 @@ article.pytorch-article p.rubric {
 }
 
 .highlight pre {
-  border: 1px solid rgba(0,0,0,0.15);
+  border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 4px;
+}
+
+/* Sphinx >=3.5: Fix class/method names, because of spans */
+article.pytorch-article .class dt > span span.pre {
+  color: inherit;
+  font-size: 87.5%;
+  font-family: IBMPlexMono, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+}
+
+/* Sphinx >=3.5: Fix annotations */
+article.pytorch-article .class dt span.pre {
+  color: inherit;
+  padding: 2px 0.2px;
 }
