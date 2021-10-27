@@ -120,9 +120,7 @@ def test_reproducible_batch_sampler():
         resumed_seen_batches = []
         for b in dataloader_:
             resumed_seen_batches.append(b)
-        # temporarily disable this while running on torch nightly
-        if "dev" not in torch.__version__:
-            assert all([(b1 == b2).all() for b1, b2 in zip(seen_batches[resume_epoch], resumed_seen_batches)])
+        assert all([(b1 == b2).all() for b1, b2 in zip(seen_batches[resume_epoch], resumed_seen_batches)])
 
 
 def _test_keep_random_state(with_numpy):
@@ -333,11 +331,9 @@ def _test_resume_random_dataloader_from_epoch(device, _setup_sampler, sampler_ty
 
 @pytest.mark.skipif("win" in sys.platform, reason="Skip extremely slow test on Windows/MacOSX")
 def test_resume_random_dataloader_from_epoch():
-    # temporarily disable this while running on torch nightly
-    if "dev" not in torch.__version__:
-        _test_resume_random_dataloader_from_epoch("cpu", setup_sampler)
-        _test_resume_random_dataloader_from_epoch("cpu", setup_sampler, sampler_type="weighted")
-        _test_resume_random_dataloader_from_epoch("cpu", setup_sampler, sampler_type="distributed")
+    _test_resume_random_dataloader_from_epoch("cpu", setup_sampler)
+    _test_resume_random_dataloader_from_epoch("cpu", setup_sampler, sampler_type="weighted")
+    _test_resume_random_dataloader_from_epoch("cpu", setup_sampler, sampler_type="distributed")
 
 
 class AugmentedData:
@@ -445,11 +441,9 @@ def _test_resume_random_dataloader_from_iter(device, _setup_sampler, sampler_typ
 
 @pytest.mark.skipif("win" in sys.platform, reason="Skip extremely slow test on Windows/MacOSX")
 def test_resume_random_dataloader_from_iter():
-    # temporarily disable this while running on torch nightly
-    if "dev" not in torch.__version__:
-        _test_resume_random_dataloader_from_iter("cpu", setup_sampler)
-        _test_resume_random_dataloader_from_iter("cpu", setup_sampler, sampler_type="weighted")
-        _test_resume_random_dataloader_from_iter("cpu", setup_sampler, sampler_type="distributed")
+    _test_resume_random_dataloader_from_iter("cpu", setup_sampler)
+    _test_resume_random_dataloader_from_iter("cpu", setup_sampler, sampler_type="weighted")
+    _test_resume_random_dataloader_from_iter("cpu", setup_sampler, sampler_type="distributed")
 
 
 def _test_resume_random_data_iterator_from_epoch(device):
@@ -808,12 +802,10 @@ def _test_gradients_on_resume(
 def test_gradients_on_resume_cpu(dirname):
     with pytest.raises(AssertionError):
         _test_gradients_on_resume(dirname, "cpu", with_dataaugs=True, save_iter=25)
-    # temporarily disable this while running on torch nightly
-    if "dev" not in torch.__version__:
-        _test_gradients_on_resume(dirname, "cpu", with_dataaugs=False, save_iter=25)
-        # resume from epoch
-        _test_gradients_on_resume(dirname, "cpu", with_dataaugs=True, save_epoch=3)
-        _test_gradients_on_resume(dirname, "cpu", with_dataaugs=False, save_epoch=3)
+    _test_gradients_on_resume(dirname, "cpu", with_dataaugs=False, save_iter=25)
+    # resume from epoch
+    _test_gradients_on_resume(dirname, "cpu", with_dataaugs=True, save_epoch=3)
+    _test_gradients_on_resume(dirname, "cpu", with_dataaugs=False, save_epoch=3)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")

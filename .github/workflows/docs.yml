@@ -19,7 +19,7 @@ jobs:
         with:
           python-version: 3.7
 
-      - run: sudo npm install katex@0.13.0 -g
+      - run: sudo npm install katex -g
       - uses: actions/cache@v2
         with:
           path: ~/.cache/pip
@@ -61,3 +61,28 @@ jobs:
       - name: make linkcheck
         working-directory: ./docs/
         run: make linkcheck --jobs 2 SPHINXOPTS="--color -W"
+
+  doctest:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
+      - run: sudo npm install katex -g
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ hashFiles('requirements-dev.txt') }}-${{ hashFiles('docs/requirements.txt') }}
+
+      - name: Install docs deps
+        run: bash .github/workflows/install_docs_deps.sh
+
+      - name: make doctest
+        working-directory: ./docs/
+        run: |
+          make html SPHINXOPTS="--color -W"
+          make doctest
+          make coverage

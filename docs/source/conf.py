@@ -330,6 +330,18 @@ nitpick_ignore = [
     ("py:class", "torch.utils.data.dataloader.DataLoader"),
 ]
 
+# doctest config
+doctest_global_setup = """
+import torch
+from torch import nn, optim
+
+from ignite.engine import *
+from ignite.handlers import *
+from ignite.metrics import *
+from ignite.utils import *
+
+manual_seed(666)
+"""
 
 def setup(app):
     app.add_directive("autosummary", AutolistAutosummary, override=True)

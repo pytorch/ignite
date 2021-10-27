@@ -2,12 +2,13 @@ import logging
 import os
 import sys
 from collections import namedtuple
+from distutils.version import LooseVersion
 
 import pytest
 import torch
 
 from ignite.engine import Engine, Events
-from ignite.utils import convert_tensor, deprecated, setup_logger, to_onehot
+from ignite.utils import convert_tensor, deprecated, hash_checkpoint, setup_logger, to_onehot
 
 
 def test_convert_tensor():
@@ -242,3 +243,22 @@ def test_deprecated():
 
 def test_smoke__utils():
     from ignite._utils import apply_to_tensor, apply_to_type, convert_tensor, to_onehot  # noqa: F401
+
+
+@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.5.0"), reason="Skip if < 1.5.0")
+def test_hash_checkpoint(tmp_path):
+    # download lightweight model
+    from torchvision.models import squeezenet1_0
+
+    model = squeezenet1_0()
+    torch.hub.download_url_to_file(
+        "https://download.pytorch.org/models/squeezenet1_0-b66bff10.pth", f"{tmp_path}/squeezenet1_0.pt",
+    )
+    hash_checkpoint_path, sha_hash = hash_checkpoint(f"{tmp_path}/squeezenet1_0.pt", str(tmp_path))
+    model.load_state_dict(torch.load(str(hash_checkpoint_path), "cpu"), True)
+    assert sha_hash[:8] == "b66bff10"
+    assert hash_checkpoint_path.name == f"squeezenet1_0-{sha_hash[:8]}.pt"
+
+    # test non-existent checkpoint_path
+    with pytest.raises(FileNotFoundError, match=r"not_found.pt does not exist in *"):
+        hash_checkpoint(f"{tmp_path}/not_found.pt", tmp_path)

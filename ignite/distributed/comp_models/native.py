@@ -150,12 +150,11 @@ if has_native_dist_support:
 
         def _compute_nproc_per_node(self) -> int:
             local_rank = self.get_local_rank()
-            device = torch.device("cpu")
-            if torch.cuda.is_available():
-                # we manually set cuda device to local rank in order to avoid a hang on all_reduce
-                device = torch.device(f"cuda:{local_rank}")
-            tensor = torch.tensor([self.get_local_rank() + 1]).to(device)
-            dist.all_reduce(tensor, op=dist.ReduceOp.MAX)
+            # Create new cpu group to get nproc_per_node such we avoid using
+            # badly configured NCCL
+            gloo_group = dist.new_group(backend="gloo")
+            tensor = torch.tensor([local_rank + 1]).to("cpu")
+            dist.all_reduce(tensor, op=dist.ReduceOp.MAX, group=gloo_group)
             return int(tensor.item())
 
         def _get_all_hostnames(self) -> List[Tuple[str, ...]]:
