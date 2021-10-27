@@ -343,5 +343,6 @@ from ignite.utils import *
 manual_seed(666)
 """
 
+
 def setup(app):
     app.add_directive("autosummary", AutolistAutosummary, override=True)
