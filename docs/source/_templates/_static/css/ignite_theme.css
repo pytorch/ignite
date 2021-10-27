@@ -219,6 +219,7 @@ article.pytorch-article p.rubric {
 .highlight pre {
   border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 4px;
+  line-height: 1.375rem;
 }
 
 /* Sphinx >=3.5: Fix class/method names, because of spans */
