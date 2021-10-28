@@ -60,7 +60,7 @@ jobs:
 
       - name: make linkcheck
         working-directory: ./docs/
-        run: make linkcheck --jobs 2 SPHINXOPTS="--color -W"
+        run: make linkcheck
 
   doctest:
     if: github.event_name == 'pull_request' || github.event_name == 'push'
@@ -83,6 +83,6 @@ jobs:
       - name: make doctest
         working-directory: ./docs/
         run: |
-          make html SPHINXOPTS="--color -W"
+          make html
           make doctest
           make coverage

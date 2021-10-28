@@ -16,10 +16,11 @@ import os
 import sys
 
 sys.path.insert(0, os.path.abspath("../.."))
-import ignite
+from datetime import datetime
+
 import pytorch_sphinx_theme
 
-from datetime import datetime
+import ignite
 
 # -- Project information -----------------------------------------------------
 
@@ -133,7 +134,8 @@ html_context = {
 }
 
 html_last_updated_fmt = "%m/%d/%Y, %X"
-html_add_permalinks = "#"
+html_permalinks = True
+html_permalinks_icon = "#"
 
 # -- Options for HTMLHelp output ---------------------------------------------
 
@@ -213,26 +215,17 @@ autoclass_content = "both"
 autodoc_typehints = "description"
 napoleon_attr_annotations = True
 
-# -- A patch that turns-off cross refs for type annotations ------------------
-
-import sphinx.domains.python
-from docutils import nodes
-from sphinx import addnodes
-
-# replaces pending_xref node with desc_type for type annotations
-sphinx.domains.python.type_to_xref = lambda t, e=None: addnodes.desc_type("", nodes.Text(t))
-
 # -- Autosummary patch to get list of a classes, funcs automatically ----------
 
 from importlib import import_module
 from inspect import getmembers, isclass, isfunction
-import sphinx.ext.autosummary
-from sphinx.ext.autosummary import Autosummary
+
 from docutils.parsers.rst import directives
 from docutils.statemachine import StringList
+from sphinx.ext.autosummary import Autosummary
 
 
-class BetterAutosummary(Autosummary):
+class AutolistAutosummary(Autosummary):
     """Autosummary with autolisting for modules.
 
     By default it tries to import all public names (__all__),
@@ -317,9 +310,6 @@ class BetterAutosummary(Autosummary):
         return super().run()
 
 
-# Patch original Autosummary
-sphinx.ext.autosummary.Autosummary = BetterAutosummary
-
 # --- autosummary config -----------------------------------------------------
 autosummary_generate = True
 
@@ -352,3 +342,7 @@ from ignite.utils import *
 
 manual_seed(666)
 """
+
+
+def setup(app):
+    app.add_directive("autosummary", AutolistAutosummary, override=True)
