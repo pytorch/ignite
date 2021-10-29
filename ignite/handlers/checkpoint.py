@@ -559,7 +559,7 @@ class Checkpoint(Serializable):
 
         Checkpoint._check_objects(to_load, "load_state_dict")
         if not isinstance(checkpoint, collections.Mapping):
-            raise TypeError(f"Argument checkpoint should be a dictionary, but given {type(checkpoint)}")
+            raise TypeError(f"Argument checkpoint should be a string or a dictionary, but given {type(checkpoint)}")
 
         if len(kwargs) > 1 or any(k for k in kwargs if k not in ["strict"]):
             warnings.warn("kwargs contains keys other than strict and these will be ignored")
