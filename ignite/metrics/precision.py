@@ -90,14 +90,23 @@ class Precision(_BasePrecisionRecall):
         In binary and multilabel cases, the elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of
         predictions can be done as below:
 
-        .. code-block:: python
+        .. testcode::
 
-            def thresholded_output_transform(output):
+            def thresholded_output_transform(engine, output):
                 y_pred, y = output
                 y_pred = torch.round(y_pred)
                 return y_pred, y
+            engine = Engine(thresholded_output_transform)
+            metric = Precision()
+            metric.attach(engine, 'precision')
+            preds = torch.tensor([1.0, 0.0, 0.0, 1.0])
+            target = torch.tensor([0.0, 0.0, 1.0, 1.0])
+            state = engine.run([[preds, target]])
+            print(state.metrics['precision'])
 
-            precision = Precision(output_transform=thresholded_output_transform)
+        .. testoutput::
+
+            0.5
 
         In multilabel cases, average parameter should be True. However, if user would like to compute F1 metric, for
         example, average parameter should be False. This can be done as shown below:
