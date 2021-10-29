@@ -558,7 +558,7 @@ class Checkpoint(Serializable):
             checkpoint_obj = checkpoint
 
         Checkpoint._check_objects(to_load, "load_state_dict")
-        if not isinstance(checkpoint, collections.Mapping):
+        if not isinstance(checkpoint, (collections.Mapping, str)):
             raise TypeError(f"Argument checkpoint should be a string or a dictionary, but given {type(checkpoint)}")
 
         if len(kwargs) > 1 or any(k for k in kwargs if k not in ["strict"]):
