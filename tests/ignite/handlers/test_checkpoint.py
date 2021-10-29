@@ -1070,7 +1070,7 @@ def test_save_model_optimizer_lr_scheduler_with_validation(dirname):
 
 def test_checkpoint_load_objects():
 
-    with pytest.raises(TypeError, match=r"Argument checkpoint should be a dictionary"):
+    with pytest.raises(TypeError, match=r"Argument checkpoint should be a string or a dictionary"):
         Checkpoint.load_objects({}, [])
 
     with pytest.raises(TypeError, match=r"should have `load_state_dict` method"):
@@ -1107,6 +1107,17 @@ def test_checkpoint_load_objects_from_saved_file(dirname):
     trainer = Engine(lambda e, b: None)
     trainer.state = State(epoch=0, iteration=0)
 
+    # case: load from filepath
+    handler = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=1)
+    to_save = _get_multiple_objs_to_save()
+    handler(trainer, to_save)
+    fname = handler.last_checkpoint
+    assert isinstance(fname, str)
+    assert os.path.join(dirname, _PREFIX) in fname
+    assert os.path.exists(fname)
+    Checkpoint.load_objects(to_save, fname)
+    os.remove(fname)
+
     # case: multiple objects
     handler = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=1)
     to_save = _get_multiple_objs_to_save()
@@ -1142,6 +1153,7 @@ def test_checkpoint_load_objects_from_saved_file(dirname):
     assert os.path.exists(fname)
     loaded_objects = torch.load(fname)
     Checkpoint.load_objects(to_save, loaded_objects)
+    os.remove(fname)
 
 
 def test_load_checkpoint_with_different_num_classes(dirname):
