@@ -2,7 +2,7 @@ import warnings
 from abc import ABCMeta, abstractmethod
 from inspect import signature
 from numbers import Number
-from typing import Any, Callable, Dict, List, Mapping, Optional, Union, cast
+from typing import Any, Callable, Dict, List, Optional, Union, cast
 
 import torch
 
