@@ -1,6 +1,8 @@
+import warnings
 from abc import ABCMeta, abstractmethod
+from inspect import signature
 from numbers import Number
-from typing import Any, Callable, List, Optional, Union, cast
+from typing import Any, Callable, Dict, List, Mapping, Optional, Union, cast
 
 import torch
 
@@ -275,8 +277,20 @@ class ComputationModel(metaclass=ABCMeta):
     def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
         pass
 
+    def _check_barrier_fn_kwargs(self, barrier_fn: Callable, kwargs_dict: Dict[str, Any]) -> Dict[str, Any]:
+        bnd_keys = set()
+        for param in signature(barrier_fn).parameters.values():
+            if param.kind == param.POSITIONAL_OR_KEYWORD:
+                bnd_keys.add(param.name)
+        extra_keys = set(kwargs_dict) - bnd_keys
+        if extra_keys:
+            warnings.warn(f"Extra keys : {extra_keys} will not be used by {self._backend}.")
+        for k in extra_keys:
+            del kwargs_dict[k]
+        return kwargs_dict
+
     @abstractmethod
-    def barrier(self) -> None:
+    def barrier(self, **kwargs: Any) -> None:
         pass
 
 
@@ -358,5 +372,5 @@ class _SerialModel(ComputationModel):
     def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
         return tensor
 
-    def barrier(self) -> None:
+    def barrier(self, **kwargs: Any) -> None:
         pass

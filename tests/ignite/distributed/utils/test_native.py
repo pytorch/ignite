@@ -272,6 +272,29 @@ def test_idist_barrier_gloo(distributed_context_single_node_gloo):
     _test_distrib_barrier(device)
 
 
+@pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_idist_barrier_kwargs_nccl(distributed_context_single_node_nccl):
+
+    device = idist.device()
+    from torch.distributed import GroupMember
+
+    kwargs_dict = {"group": GroupMember.WORLD, "async_op": False, "device_ids": None}
+    _test_distrib_barrier(device, **kwargs_dict)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
+def test_idist_barrier_kwargs_gloo(distributed_context_single_node_gloo):
+
+    device = idist.device()
+    from torch.distributed import GroupMember
+
+    kwargs_dict = {"group": GroupMember.WORLD, "async_op": False, "device_ids": None}
+    _test_distrib_barrier(device, **kwargs_dict)
+
+
 def _test_idist_methods_overhead(ok_factor):
     import time
 

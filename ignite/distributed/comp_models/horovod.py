@@ -194,7 +194,12 @@ if has_hvd_support:
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
             return hvd.broadcast(tensor, root_rank=src)
 
-        def barrier(self) -> None:
+        def barrier(self, **kwargs: Any) -> None:
+            kwargs = self._check_barrier_fn_kwargs(barrier_fn=hvd.allreduce, kwargs_dict=kwargs)
+            if "tensor" in kwargs:
+                del kwargs["tensor"]
+            if "name" in kwargs:
+                del kwargs["name"]
             # https://github.com/horovod/horovod/issues/159#issuecomment-424834603
             # hvd.allreduce(torch.tensor(0, device=self.device()), name="barrier")
-            hvd.allreduce(torch.tensor(0, device="cpu"), name="barrier")
+            hvd.allreduce(tensor=torch.tensor(0, device="cpu"), name="barrier", **kwargs)

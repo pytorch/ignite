@@ -421,13 +421,13 @@ def broadcast(
     return _model.broadcast(tensor, src=src, safe_mode=safe_mode)
 
 
-def barrier() -> None:
+def barrier(**kwargs: Any) -> None:
     """Helper method to synchronize all processes.
     """
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
 
-    _model.barrier()
+    _model.barrier(**kwargs)
 
 
 def set_local_rank(index: int) -> None:

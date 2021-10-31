@@ -160,5 +160,8 @@ if has_xla_support:
             xm.all_reduce("sum", [tensor,])
             return tensor
 
-        def barrier(self) -> None:
-            xm.rendezvous("barrier")
+        def barrier(self, **kwargs: Any) -> None:
+            kwargs = self._check_barrier_fn_kwargs(barrier_fn=xm.rendezvous, kwargs_dict=kwargs)
+            if "tag" in kwargs:
+                del kwargs["tag"]
+            xm.rendezvous(tag="barrier", **kwargs)
