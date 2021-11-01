@@ -38,7 +38,7 @@ class MeanPairwiseDistance(Metric):
         .. testcode::
 
             metric = MeanPairwiseDistance(p=4)
-            metric.attach(default_evaluator, 'l4_distance')
+            metric.attach(default_evaluator, 'mpd')
             preds = torch.Tensor([
                 [1, 2, 4, 1],
                 [2, 3, 1, 5],
@@ -47,7 +47,7 @@ class MeanPairwiseDistance(Metric):
             ])
             target = preds * 0.75
             state = default_evaluator.run([[preds, target]])
-            print(state.metrics['l4_distance'])
+            print(state.metrics['mpd'])
 
         .. testoutput::
 
