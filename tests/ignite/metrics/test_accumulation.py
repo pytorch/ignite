@@ -1,5 +1,4 @@
 import os
-from importlib.util import find_spec
 
 import numpy as np
 import pytest
@@ -500,8 +499,10 @@ def test_distrib_xla_nprocs(xmp_executor):
     xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-@pytest.mark.skipif(not find_spec("apex"), reason="Skip if no APEX")
+# Enable this test when apex issue is fixed
+# @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
+# @pytest.mark.skipif(not find_spec("apex"), reason="Skip if no APEX")
+@pytest.mark.skip(reason="Temporarily disabled, as it fails because of an issue from apex side")
 def test_apex_average_on_cuda():
     device = "cuda"
     _test_apex_average(device, amp_mode="apex", opt_level="O0")
