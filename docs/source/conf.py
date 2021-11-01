@@ -341,6 +341,14 @@ from ignite.metrics import *
 from ignite.utils import *
 
 manual_seed(666)
+
+# create default evaluator for doctests
+
+def process_function(engine, batch):
+    y_pred, y = batch
+    return y_pred, y
+
+default_evaluator = Engine(process_function)
 """
 
 
