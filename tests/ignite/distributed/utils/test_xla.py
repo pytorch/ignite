@@ -190,11 +190,30 @@ def _test_idist_barrier_xla_in_child_proc(index):
 
 
 @pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_idist_barrier_kwargs_xla():
+
+    device = idist.device()
+    kwargs_dict = {"tag": "barrier", "payload": b"", "replicas": []}
+    _test_distrib_barrier(device, **kwargs_dict)
+
+
+@pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_idist_barrier_xla_in_child_proc(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
     xmp_executor(_test_idist_barrier_xla_in_child_proc, args=(), nprocs=n)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_idist_barrier_kwargs_xla_in_child_proc(xmp_executor):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+    kwargs_dict = {"tag": "barrier", "payload": b"", "replicas": []}
+    xmp_executor(_test_idist_barrier_xla_in_child_proc, args=(), nprocs=n, **kwargs_dict)
 
 
 @pytest.mark.tpu

@@ -282,7 +282,7 @@ class ComputationModel(metaclass=ABCMeta):
         for param in signature(barrier_fn).parameters.values():
             if param.kind == param.POSITIONAL_OR_KEYWORD:
                 bnd_keys.add(param.name)
-        extra_keys = set(kwargs_dict) - bnd_keys
+        extra_keys = sorted(list(set(kwargs_dict) - bnd_keys))
         if extra_keys:
             warnings.warn(f"Extra keys : {extra_keys} will not be used by {self._backend}.")
         for k in extra_keys:

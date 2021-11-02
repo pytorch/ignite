@@ -184,6 +184,29 @@ def test_idist_barrier_hvd(gloo_hvd_executor):
     gloo_hvd_executor(_test_distrib_barrier, (device,), np=np, do_init=True)
 
 
+@pytest.mark.distributed
+@pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
+def test_idist_barrier_kwargs_hvd(gloo_hvd_executor):
+    from horovod.torch.compression import Compression
+    from horovod.torch.mpi_ops import global_process_set
+
+    device = "cpu" if not torch.cuda.is_available() else "cuda"
+    np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
+
+    kwargs_dict = dict(
+        tensor=torch.tensor(0, device="cpu"),
+        average=None,
+        name=None,
+        compression=Compression.none,
+        op=None,
+        prescale_factor=1.0,
+        postscale_factor=1.0,
+        process_set=global_process_set,
+    )
+    gloo_hvd_executor(_test_distrib_barrier, (device,), np=np, do_init=True, **kwargs_dict)
+
+
 def _test_idist_methods_overhead(ok_factor, sync_model):
     import time
 
