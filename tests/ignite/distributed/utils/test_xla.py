@@ -184,9 +184,9 @@ def test_idist_barrier_xla():
     _test_distrib_barrier(device)
 
 
-def _test_idist_barrier_xla_in_child_proc(index):
+def _test_idist_barrier_xla_in_child_proc(index, kwargs_dict=None):
     device = idist.device()
-    _test_distrib_barrier(device)
+    _test_distrib_barrier(device, kwargs_dict)
 
 
 @pytest.mark.tpu
@@ -196,7 +196,7 @@ def test_idist_barrier_kwargs_xla():
 
     device = idist.device()
     kwargs_dict = {"tag": "barrier", "payload": b"", "replicas": []}
-    _test_distrib_barrier(device, **kwargs_dict)
+    _test_distrib_barrier(device, kwargs_dict)
 
 
 @pytest.mark.tpu
@@ -213,7 +213,7 @@ def test_idist_barrier_xla_in_child_proc(xmp_executor):
 def test_idist_barrier_kwargs_xla_in_child_proc(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
     kwargs_dict = {"tag": "barrier", "payload": b"", "replicas": []}
-    xmp_executor(_test_idist_barrier_xla_in_child_proc, args=(), nprocs=n, **kwargs_dict)
+    xmp_executor(_test_idist_barrier_xla_in_child_proc, args=(kwargs_dict,), nprocs=n)
 
 
 @pytest.mark.tpu
