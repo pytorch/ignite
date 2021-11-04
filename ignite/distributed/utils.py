@@ -423,6 +423,20 @@ def broadcast(
 
 def barrier(**kwargs: Any) -> None:
     """Helper method to synchronize all processes.
+    Args:
+        kwargs: acceptable kwargs according to provided backend:
+
+            - | "nccl" or "gloo" : ``group`` (default, GroupMember.WORLD), ``async_op`` (default, False),
+              | ``device_ids`` (default, None).
+
+            - | "horovod" : ``average`` (default, None), ``compression`` (default, Compression.none),
+              | ``op`` (default, None), ``prescale_factor`` (default, 1.0), ``postscale_factor`` (default, 1.0),
+              | ``process_set`` (default, global_process_set). Arguments ``tensor=torch.tensor(0, device="cpu")`` and
+              | ``name="barrier"`` are redefined.
+
+            - | "xla-tpu" : ``payload`` (default, b""), ``replicas`` (default, []). Argument ``tag="barrier"`` is
+              | redefined.
+
     """
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
