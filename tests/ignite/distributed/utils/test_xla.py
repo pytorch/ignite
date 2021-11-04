@@ -198,6 +198,14 @@ def test_idist_barrier_kwargs_xla():
     kwargs_dict = {"tag": "barrier", "payload": b"", "replicas": []}
     _test_distrib_barrier(device, kwargs_dict)
 
+    from torch.distributed import GroupMember
+
+    kwargs_dict.update({"group": GroupMember.WORLD, "async_op": False, "device_ids": None})
+    with pytest.warns(
+        UserWarning, match=r"Extra keys : \['async_op', 'device_ids', 'group'\] will not be used by xla-tpu."
+    ):
+        _test_distrib_barrier(device, kwargs_dict)
+
 
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
