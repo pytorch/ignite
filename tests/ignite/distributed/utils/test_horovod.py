@@ -206,14 +206,6 @@ def test_idist_barrier_kwargs_hvd(gloo_hvd_executor):
     )
     gloo_hvd_executor(_test_distrib_barrier, (device, kwargs_dict,), np=np, do_init=True)
 
-    from torch.distributed import GroupMember
-
-    kwargs_dict.update({"group": GroupMember.WORLD, "async_op": False, "device_ids": None})
-    with pytest.warns(
-        UserWarning, match=r"Extra keys : \['async_op', 'device_ids', 'group'\] will not be used by horovod."
-    ):
-        gloo_hvd_executor(_test_distrib_barrier, (device, kwargs_dict,), np=np, do_init=True)
-
 
 def _test_idist_methods_overhead(ok_factor, sync_model):
     import time
