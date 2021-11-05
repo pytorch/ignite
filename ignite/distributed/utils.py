@@ -439,7 +439,7 @@ def barrier(**kwargs: Any) -> None:
               | Argument ``tag="barrier"`` is redefined.
 
     .. versionchanged:: 0.5.1
-    Method now accepts ``kwargs`` for all supported backends.
+        Method now accepts ``kwargs`` for all supported backends.
     """
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)

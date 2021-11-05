@@ -202,7 +202,8 @@ def test_idist_barrier_kwargs_xla():
 
     kwargs_dict.update({"group": GroupMember.WORLD, "async_op": False, "device_ids": None})
     with pytest.warns(
-        UserWarning, match=r"Extra keys : \['async_op', 'device_ids', 'group'\] will not be used by xla-tpu."
+        UserWarning,
+        match=r"Extra keys : \{((, )?('async_op'|'group'|'device_ids')(, )?)+\} will not be used by xla-tpu.",
     ):
         _test_distrib_barrier(device, kwargs_dict)
 

@@ -284,7 +284,9 @@ def test_idist_barrier_kwargs_nccl(distributed_context_single_node_nccl):
     _test_distrib_barrier(device, kwargs_dict)
 
     kwargs_dict.update({"tag": "barrier", "payload": b"", "replicas": []})
-    with pytest.warns(UserWarning, match=r"Extra keys : \['payload', 'replicas', 'tag'\] will not be used by nccl."):
+    with pytest.warns(
+        UserWarning, match=r"Extra keys : \{((, )?('payload'|'replicas'|'tag')(, )?)+\} will not be used by nccl."
+    ):
         _test_distrib_barrier(device, kwargs_dict)
 
 
@@ -299,7 +301,9 @@ def test_idist_barrier_kwargs_gloo(distributed_context_single_node_gloo):
     _test_distrib_barrier(device, kwargs_dict)
 
     kwargs_dict.update({"tag": "barrier", "payload": b"", "replicas": []})
-    with pytest.warns(UserWarning, match=r"Extra keys : \['payload', 'replicas', 'tag'\] will not be used by gloo."):
+    with pytest.warns(
+        UserWarning, match=r"Extra keys : \{((, )?('payload'|'replicas'|'tag')(, )?)+\} will not be used by gloo."
+    ):
         _test_distrib_barrier(device, kwargs_dict)
 
 

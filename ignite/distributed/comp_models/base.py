@@ -278,15 +278,19 @@ class ComputationModel(metaclass=ABCMeta):
         pass
 
     def _check_barrier_fn_kwargs(self, barrier_fn: Callable, kwargs_dict: Dict[str, Any]) -> Dict[str, Any]:
-        bnd_keys = set()
-        for param in signature(barrier_fn).parameters.values():
-            if param.kind == param.POSITIONAL_OR_KEYWORD:
-                bnd_keys.add(param.name)
-        extra_keys = sorted(list(set(kwargs_dict) - bnd_keys))
+        fn_params_name = set(
+            map(
+                lambda param: param.name,
+                filter(
+                    lambda param: param.kind == param.POSITIONAL_OR_KEYWORD, signature(barrier_fn).parameters.values()
+                ),
+            )
+        )
+        extra_keys = kwargs_dict.keys() - fn_params_name
         if extra_keys:
             warnings.warn(f"Extra keys : {extra_keys} will not be used by {self._backend}.")
-        for k in extra_keys:
-            del kwargs_dict[k]
+            for k in extra_keys:
+                del kwargs_dict[k]
         return kwargs_dict
 
     @abstractmethod
