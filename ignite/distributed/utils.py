@@ -423,6 +423,7 @@ def broadcast(
 
 def barrier(**kwargs: Any) -> None:
     """Helper method to synchronize all processes.
+
     Args:
         kwargs: acceptable kwargs according to provided backend:
 
@@ -431,12 +432,14 @@ def barrier(**kwargs: Any) -> None:
 
             - | "horovod" : ``average`` (default, None), ``compression`` (default, Compression.none),
               | ``op`` (default, None), ``prescale_factor`` (default, 1.0), ``postscale_factor`` (default, 1.0),
-              | ``process_set`` (default, global_process_set). Arguments ``tensor=torch.tensor(0, device="cpu")`` and
-              | ``name="barrier"`` are redefined.
+              | ``process_set`` (default, global_process_set).
+              | Arguments ``tensor=torch.tensor(0, device="cpu")`` and ``name="barrier"`` are redefined.
 
-            - | "xla-tpu" : ``payload`` (default, b""), ``replicas`` (default, []). Argument ``tag="barrier"`` is
-              | redefined.
+            - | "xla-tpu" : ``payload`` (default, b""), ``replicas`` (default, []).
+              | Argument ``tag="barrier"`` is redefined.
 
+    .. versionchanged:: 0.5.1
+    Method now accepts ``kwargs`` for all supported backends.
     """
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
