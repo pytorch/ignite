@@ -34,22 +34,23 @@ class PSNR(Metric):
         The output of the engine's ``process_function`` needs to be in format of
         ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``.
 
-        .. code-block:: python
+        .. testcode::
 
-            def process_function(engine, batch):
-                # ...
-                return y_pred, y
-            engine = Engine(process_function)
             psnr = PSNR(data_range=1.0)
-            psnr.attach(engine, "psnr")
-            # ...
-            state = engine.run(data)
-            print(f"PSNR: {state.metrics['psnr']}")
+            psnr.attach(default_evaluator, 'psnr')
+            preds = torch.rand([4, 3, 16, 16])
+            target = preds * 0.75
+            state = default_evaluator.run([[preds, target]])
+            print(state.metrics['psnr'])
+
+        .. testoutput::
+
+            16.8671405...
 
         This metric by default accepts Grayscale or RGB images. But if you have YCbCr or YUV images, only
         Y channel is needed for computing PSNR. And, this can be done with ``output_transform``. For instance,
 
-        .. code-block:: python
+        .. testcode::
 
             def get_y_channel(output):
                 y_pred, y = output
@@ -58,10 +59,15 @@ class PSNR(Metric):
                 return y_pred[:, 0, ...], y[:, 0, ...]
 
             psnr = PSNR(data_range=219, output_transform=get_y_channel)
-            psnr.attach(engine, "psnr")
-            # ...
-            state = engine.run(data)
-            print(f"PSNR: {state.metrics['psrn']}")
+            psnr.attach(default_evaluator, 'psnr')
+            preds = 219 * torch.rand([4, 3, 16, 16])
+            target = preds * 0.75
+            state = default_evaluator.run([[preds, target]])
+            print(state.metrics['psnr'])
+
+        .. testoutput::
+
+            16.7027966...
 
     .. versionadded:: 0.4.3
     """
