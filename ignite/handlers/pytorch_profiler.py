@@ -1,11 +1,12 @@
 # coding: utf-8
-from typing import Any, Callable, Union
-import os
-from ignite.engine import Engine, Events
-import ignite.distributed as idist
 import datetime
+import os
+from typing import Any, Callable, Union
 
 import torch
+
+import ignite.distributed as idist
+from ignite.engine import Engine, Events
 
 
 class PyTorchProfiler:
