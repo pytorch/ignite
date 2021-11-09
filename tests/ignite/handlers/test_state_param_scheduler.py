@@ -168,7 +168,10 @@ def test_multiple_scheduler_with_save_history(max_epochs, initial_value, gamma):
     )
     exp_state_parameter_scheduler1.attach(engine, Events.EPOCH_COMPLETED)
     exp_state_parameter_scheduler2.attach(engine, Events.EPOCH_COMPLETED)
-    engine.run([0] * 8, max_epochs=max_epochs)
+    try:
+        engine.run([0] * 8, max_epochs=max_epochs)
+    except KeyError as exc:
+        assert False, f"engine.run raised an exception : {exc}"
 
 
 @pytest.mark.parametrize(
