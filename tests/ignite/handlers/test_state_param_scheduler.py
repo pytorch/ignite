@@ -156,6 +156,22 @@ def test_exponential_scheduler(max_epochs, initial_value, gamma):
 
 
 @pytest.mark.parametrize(
+    "max_epochs, initial_value, gamma", [(3, 10, 0.99)],
+)
+def test_multiple_scheduler_with_save_history(max_epochs, initial_value, gamma):
+    engine = Engine(lambda e, b: None)
+    exp_state_parameter_scheduler1 = ExpStateScheduler(
+        param_name="exp_scheduled_param1", initial_value=initial_value, gamma=gamma, save_history=True
+    )
+    exp_state_parameter_scheduler2 = ExpStateScheduler(
+        param_name="exp_scheduled_param2", initial_value=initial_value, gamma=gamma, save_history=True
+    )
+    exp_state_parameter_scheduler1.attach(engine, Events.EPOCH_COMPLETED)
+    exp_state_parameter_scheduler2.attach(engine, Events.EPOCH_COMPLETED)
+    engine.run([0] * 8, max_epochs=max_epochs)
+
+
+@pytest.mark.parametrize(
     "max_epochs, initial_value, gamma, step_size", [(3, 10, 0.99, 5), (40, 5, 0.98, 22)],
 )
 def test_step_scheduler(

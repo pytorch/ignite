@@ -52,7 +52,7 @@ class StateParamScheduler(BaseParamScheduler):
         if self.save_history:
             if not hasattr(engine.state, "param_history") or engine.state.param_history is None:  # type: ignore
                 setattr(engine.state, "param_history", {})
-                engine.state.param_history.setdefault(self.param_name, [])  # type: ignore[attr-defined]
+            engine.state.param_history.setdefault(self.param_name, [])  # type: ignore[attr-defined]
 
         engine.add_event_handler(event, self)
 
