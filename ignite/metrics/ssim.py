@@ -38,15 +38,11 @@ class SSIM(Metric):
 
         .. testcode::
 
-            def process_function(engine, batch):
-                y_pred, y = batch
-                return y_pred, y
-            engine = Engine(process_function)
             metric = SSIM(data_range=1.0)
-            metric.attach(engine, 'ssim')
+            metric.attach(default_evaluator, 'ssim')
             preds = torch.rand([4, 3, 16, 16])
             target = preds * 0.75
-            state = engine.run([[preds, target]])
+            state = default_evaluator.run([[preds, target]])
             print(state.metrics['ssim'])
 
         .. testoutput::
