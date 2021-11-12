@@ -24,15 +24,24 @@ class CohenKappa(EpochMetric):
             no issues. User will be warned in case there are any issues computing the function.
         device: optional device specification for internal storage.
 
-    .. code-block:: python
+    Examples:
+        To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
+        The output of the engine's ``process_function`` needs to be in the format of
+        ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``. If not, ``output_tranform`` can be added
+        to the metric to transform the output into the form expected by the metric.
+        
+        .. testcode::
 
-        def activated_output_transform(output):
-            y_pred, y = output
-            return y_pred, y
+            metric = CohenKappa()
+            metric.attach(default_evaluator, 'ck')
+            y_true = torch.Tensor([2, 0, 2, 2, 0, 1])
+            y_pred = torch.Tensor([0, 0, 2, 2, 0, 2])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics['ck'])
 
-        weights = None or linear or quadratic
+        .. testoutput::
 
-        cohen_kappa = CohenKappa(activated_output_transform, weights)
+            0.4285...
 
     """
 
