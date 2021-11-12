@@ -33,7 +33,22 @@ class GeometricMeanAbsoluteError(_BaseRegression):
         device: specifies which device updates are accumulated on. Setting the
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
+    .. testcode::
 
+            def process_function(engine, batch):
+                y_pred, y = batch
+                return y_pred, y
+            engine = Engine(process_function)
+            metric = GeometricMeanAbsoluteError()
+            metric.attach(engine, 'gmae')
+            preds = torch.Tensor([[3.8], [9.9], [-5.4], [2.1]])
+            target = preds * 1.5
+            state = engine.run([[preds, target]])
+            print(state.metrics['gmae'])
+            
+    .. testoutput::
+
+            2.2723
     .. versionchanged:: 0.4.5
         - Works with DDP.
     """
