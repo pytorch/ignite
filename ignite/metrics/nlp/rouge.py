@@ -211,7 +211,8 @@ class RougeN(_BaseRouge):
             default, CPU.
 
     Examples:
-        .. code-block:: python
+
+        .. testcode::
 
             from ignite.metrics import RougeN
 
@@ -225,8 +226,11 @@ class RougeN(_BaseRouge):
 
             m.update(([candidate], [references]))
 
-            m.compute()
-            # {'Rouge-2-P': 0.5, 'Rouge-2-R': 0.4, 'Rouge-2-F': 0.4}
+            print(m.compute())
+
+        .. testoutput::
+
+            {'Rouge-2-P': 0.5, 'Rouge-2-R': 0.4, 'Rouge-2-F': 0.4}
 
     .. versionadded:: 0.4.5
     """
@@ -277,7 +281,8 @@ class RougeL(_BaseRouge):
             default, CPU.
 
     Examples:
-        .. code-block:: python
+
+        .. testcode::
 
             from ignite.metrics import RougeL
 
@@ -291,8 +296,11 @@ class RougeL(_BaseRouge):
 
             m.update(([candidate], [references]))
 
-           m.compute()
-           # {'Rouge-L-P': 0.6, 'Rouge-L-R': 0.5, 'Rouge-L-F': 0.5}
+            print(m.compute())
+
+        .. testoutput::
+
+           {'Rouge-L-P': 0.6, 'Rouge-L-R': 0.5, 'Rouge-L-F': 0.5}
 
     .. versionadded:: 0.4.5
     """
@@ -338,7 +346,8 @@ class Rouge(Metric):
             default, CPU.
 
     Examples:
-        .. code-block:: python
+
+        .. testcode::
 
             from ignite.metrics import Rouge
 
@@ -352,9 +361,11 @@ class Rouge(Metric):
 
             m.update(([candidate], [references]))
 
-            m.compute()
-            # {'Rouge-L-P': 0.6, 'Rouge-L-R': 0.5, 'Rouge-L-F': 0.5, 'Rouge-2-P': 0.5, 'Rouge-2-R': 0.4,
-            # 'Rouge-2-F': 0.4}
+            print(m.compute())
+
+        .. testoutput::
+
+            {'Rouge-L-P': 0.6, 'Rouge-L-R': 0.5, 'Rouge-L-F': 0.5, 'Rouge-2-P': 0.5, 'Rouge-2-R': 0.4, 'Rouge-2-F': 0.4}
 
     .. versionadded:: 0.4.5
     .. versionchanged:: 0.5.0
