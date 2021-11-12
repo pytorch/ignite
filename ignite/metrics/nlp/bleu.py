@@ -103,7 +103,8 @@ class Bleu(Metric):
             Default: "macro"
 
     Examples:
-        .. code-block:: python
+
+        .. testcode::
 
             from ignite.metrics.nlp import Bleu
 
@@ -115,6 +116,10 @@ class Bleu(Metric):
             m.update(([y_pred.split()], [[_y.split() for _y in y]]))
 
             print(m.compute())
+
+        .. testoutput::
+
+            tensor(0.0393, dtype=torch.float64)
 
     .. versionadded:: 0.4.5
     .. versionchanged:: 0.5.0
