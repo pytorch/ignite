@@ -29,7 +29,7 @@ class CohenKappa(EpochMetric):
         The output of the engine's ``process_function`` needs to be in the format of
         ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``. If not, ``output_tranform`` can be added
         to the metric to transform the output into the form expected by the metric.
-        
+
         .. testcode::
 
             metric = CohenKappa()
