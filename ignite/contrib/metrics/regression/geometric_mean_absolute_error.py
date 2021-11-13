@@ -34,6 +34,18 @@ class GeometricMeanAbsoluteError(_BaseRegression):
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
 
+    .. testcode::
+
+            metric = GeometricMeanAbsoluteError()
+            metric.attach(default_evaluator, 'gmae')
+            y_pred = torch.Tensor([[3.8], [9.9], [-5.4], [2.1]])
+            y_true = y_pred * 1.5
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics['gmae'])
+
+    .. testoutput::
+
+            2.2723...
     .. versionchanged:: 0.4.5
         - Works with DDP.
     """

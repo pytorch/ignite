@@ -34,6 +34,18 @@ class FractionalAbsoluteError(_BaseRegression):
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
 
+    .. testcode::
+
+            metric = FractionalAbsoluteError()
+            metric.attach(default_evaluator, 'fractional_abs_error')
+            y_pred = torch.Tensor([[3.8], [9.9], [-5.4], [2.1]])
+            y_true = y_pred * 0.8
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics['fractional_abs_error'])
+
+    .. testoutput::
+
+            0.2222...
     .. versionchanged:: 0.4.5
         - Works with DDP.
     """

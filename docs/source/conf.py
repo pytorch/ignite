@@ -339,6 +339,7 @@ from ignite.engine import *
 from ignite.handlers import *
 from ignite.metrics import *
 from ignite.utils import *
+from ignite.contrib.metrics.regression import *
 
 from ignite.contrib.metrics import *
 
