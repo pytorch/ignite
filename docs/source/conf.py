@@ -341,6 +341,8 @@ from ignite.metrics import *
 from ignite.utils import *
 from ignite.contrib.metrics.regression import *
 
+from ignite.contrib.metrics import *
+
 manual_seed(666)
 
 # create default evaluator for doctests
