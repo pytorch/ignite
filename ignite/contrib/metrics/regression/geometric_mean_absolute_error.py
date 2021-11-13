@@ -51,7 +51,7 @@ class GeometricMeanAbsoluteError(_BaseRegression):
         .. testoutput::
 
                 2.2723...
-                
+  
     .. versionchanged:: 0.4.5
         - Works with DDP.
     """
