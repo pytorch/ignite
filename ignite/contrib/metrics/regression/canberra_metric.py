@@ -36,23 +36,19 @@ class CanberraMetric(_BaseRegression):
 
     .. _`Botchkarev 2018`:
         https://arxiv.org/ftp/arxiv/papers/1809/1809.03006.pdf
-    
+
     .. testcode::
 
-            def process_function(engine, batch):
-                y_pred, y = batch
-                return y_pred, y
-            engine = Engine(process_function)
             metric = CanberraMetric()
-            metric.attach(engine, 'canberra')
-            preds = torch.Tensor([[3.8], [9.9], [-5.4], [2.1]])
-            target = preds * 1.5
-            state = engine.run([[preds, target]])
+            metric.attach(default_evaluator, 'canberra')
+            y_pred = torch.Tensor([[3.8], [9.9], [-5.4], [2.1]])
+            y_true = y_pred * 1.5
+            state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics['canberra'])
-            
+
     .. testoutput::
 
-            0.8000
+            0.8000...
     .. versionchanged:: 0.4.3
 
         - Fixed implementation: ``abs`` in denominator.
