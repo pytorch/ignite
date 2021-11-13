@@ -38,6 +38,25 @@ class MedianAbsoluteError(EpochMetric):
             you want to compute the metric with respect to one of the outputs.
             By default, metrics require the output as ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
         device: optional device specification for internal storage.
+
+
+    Examples:
+        To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
+        The output of the engine's ``process_function`` needs to be in format of
+        ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``.
+
+        .. testcode::
+
+            metric = MedianAbsoluteError()
+            metric.attach(default_evaluator, 'mae')
+            y_true = torch.Tensor([0, 1, 2, 3, 4, 5])
+            y_pred = y_true * 0.75
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics['mae'])
+
+        .. testoutput::
+
+            0.5...
     """
 
     def __init__(
