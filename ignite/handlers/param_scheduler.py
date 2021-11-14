@@ -991,21 +991,26 @@ class PiecewiseLinear(ParamScheduler):
 
         .. testcode::
 
-            features = torch.Tensor([2, 3, 4, 5, 6, 7, 8, 9, 10]).reshape(-1, 1)
-            labels = torch.Tensor([1, 2, 3, 4, 5, 6, 7, 8, 9]).reshape(-1, 1)
-            dataset = torch.utils.data.TensorDataset(*(features, labels))
-            train_dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
+            tensor = torch.zeros([1], requires_grad=True)
+            optimizer = torch.optim.SGD([tensor], lr=0)
 
-            model = nn.Linear(1, 1)
-            optimizer = optim.SGD(model.parameters(), lr=0.05)
-            criterion = nn.MSELoss()
-            scheduler = PiecewiseLinear(optimizer, "lr",
-                                        milestones_values=[(10, 0.01), (40, 0.001), (100, 0.0001)])
+            milestones_values = [(1, 1.0), (3, 0.8), (5, 0.2)]
+            scheduler = PiecewiseLinear(optimizer, "lr", milestones_values=milestones_values)
 
-            trainer = create_supervised_trainer(model, optimizer, criterion)
-            trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+            def save_lr(engine):
+                lrs.append(optimizer.param_groups[0]["lr"])
 
-            trainer.run(train_dataloader, max_epochs=10)
+            trainer = Engine(lambda engine, batch: None)
+            trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
+            trainer.add_event_handler(Events.ITERATION_COMPLETED, save_lr)
+            
+            lrs = []
+            trainer.run([0] * 6, max_epochs=1)
+            print(lrs)
+
+        .. testoutput::
+
+            [1.0, 1.0, 0.9, 0.8, 0.5, 0.2]
 
     .. versionadded:: 0.4.5
     """
