@@ -276,6 +276,7 @@ def test_simulate_values(scheduler_cls, scheduler_kwargs):
     _test(scheduler_cls, scheduler_kwargs)
 
 
+@pytest.mark.skip
 @pytest.mark.parametrize("scheduler_cls,scheduler_kwargs", [config3, config4, config5, config6])
 def test_state_param_asserts(scheduler_cls, scheduler_kwargs):
     import re
@@ -414,3 +415,51 @@ def test_docstring_examples():
     param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
 
     engine.run([0] * 8, max_epochs=10)
+
+
+@pytest.mark.parametrize("create_new", [True, False])
+def test_param_scheduler_with_ema_handler(create_new):
+    import torch.nn as nn
+
+    from ignite.handlers import EMAHandler
+
+    model = nn.Linear(2, 1)
+    trainer = Engine(lambda e, b: model(b))
+    data = torch.rand(100, 2)
+
+    param_name = "ema_decay"
+    save_history = True
+    ema_handler = EMAHandler(model)
+    ema_handler.attach(trainer, name=param_name, event=Events.ITERATION_COMPLETED)
+
+    ema_decay_scheduler = PiecewiseLinearStateScheduler(
+        param_name=param_name,
+        milestones_values=[(0, 0.0), (10 * len(data), 0.999)],
+        save_history=save_history,
+        create_new=create_new,
+    )
+
+    if create_new:
+        with pytest.warns(
+            UserWarning,
+            match=r"Attribute: 'ema_decay' is already defined in the Engine.state. "
+            r"PiecewiseLinearStateScheduler will create a new parameter ema_decay_PiecewiseLinearStateScheduler_0 in"
+            r" Engine.state.",
+        ):
+            ema_decay_scheduler.attach(trainer, Events.ITERATION_COMPLETED)
+    else:
+        with pytest.warns(
+            UserWarning,
+            match=r"Attribute: 'ema_decay' is already defined in the Engine.state. "
+            r"PiecewiseLinearStateScheduler will override its values.",
+        ):
+            ema_decay_scheduler.attach(trainer, Events.ITERATION_COMPLETED)
+
+    trainer.run(data, max_epochs=20)
+    if create_new:
+        assert "ema_decay_PiecewiseLinearStateScheduler_0" in vars(trainer.state).keys()
+        assert "ema_decay_PiecewiseLinearStateScheduler_0" in trainer.state.param_history
+        assert "ema_decay" in vars(trainer.state).keys()
+    else:
+        assert "ema_decay" in vars(trainer.state).keys()
+        assert "ema_decay" in trainer.state.param_history

@@ -1,4 +1,6 @@
 import numbers
+import re
+import warnings
 from bisect import bisect_right
 from typing import Any, List, Sequence, Tuple, Union
 
@@ -23,10 +25,9 @@ class StateParamScheduler(BaseParamScheduler):
 
     """
 
-    def __init__(
-        self, param_name: str, save_history: bool = False,
-    ):
+    def __init__(self, param_name: str, save_history: bool = False, create_new: bool = False):
         super(StateParamScheduler, self).__init__(param_name, save_history)
+        self.create_new = create_new
 
     def attach(
         self,
@@ -43,16 +44,35 @@ class StateParamScheduler(BaseParamScheduler):
 
         """
         if hasattr(engine.state, self.param_name):
-            raise ValueError(
-                f"Attribute: '{self.param_name}' is already defined in the Engine.state."
-                f"This may be a conflict between multiple StateParameterScheduler handlers."
-                f"Please choose another name."
-            )
+            if not self.create_new:
+                warnings.warn(
+                    f"Attribute: '{self.param_name}' is already defined in the Engine.state. "
+                    f"{type(self).__name__} will override its values."
+                )
+            else:
+                pattern = r"^(" + re.escape(self.param_name) + "_" + re.escape(type(self).__name__) + "_)([0-9]+)$"
+                matched_params = []
+                for engine_params in vars(engine.state).keys():
+                    match = re.match(pattern, engine_params)
+                    if match:
+                        matched_params.append(int(match.groups()[1]))
+                if matched_params:
+                    new_param = self.param_name + "_" + type(self).__name__ + "_" + str(sorted(matched_params)[-1] + 1)
+                else:
+                    new_param = self.param_name + "_" + type(self).__name__ + "_0"
+
+                warnings.warn(
+                    f"Attribute: '{self.param_name}' is already defined in the Engine.state. "
+                    f"{type(self).__name__} will create a new parameter {new_param} in Engine.state."
+                )
+                self.param_name = new_param
+
+        setattr(engine.state, self.param_name, None)
 
         if self.save_history:
             if not hasattr(engine.state, "param_history") or engine.state.param_history is None:  # type: ignore
                 setattr(engine.state, "param_history", {})
-                engine.state.param_history.setdefault(self.param_name, [])  # type: ignore[attr-defined]
+            engine.state.param_history.setdefault(self.param_name, [])  # type: ignore[attr-defined]
 
         engine.add_event_handler(event, self)
 
@@ -147,8 +167,8 @@ class LambdaStateScheduler(StateParamScheduler):
 
     """
 
-    def __init__(self, lambda_obj: Any, param_name: str, save_history: bool = False):
-        super(LambdaStateScheduler, self).__init__(param_name, save_history)
+    def __init__(self, lambda_obj: Any, param_name: str, save_history: bool = False, create_new: bool = False):
+        super(LambdaStateScheduler, self).__init__(param_name, save_history, create_new)
 
         if not callable(lambda_obj):
             raise ValueError("Expected lambda_obj to be callable.")
@@ -199,9 +219,13 @@ class PiecewiseLinearStateScheduler(StateParamScheduler):
     """
 
     def __init__(
-        self, milestones_values: List[Tuple[int, float]], param_name: str, save_history: bool = False,
+        self,
+        milestones_values: List[Tuple[int, float]],
+        param_name: str,
+        save_history: bool = False,
+        create_new: bool = False,
     ):
-        super(PiecewiseLinearStateScheduler, self).__init__(param_name, save_history)
+        super(PiecewiseLinearStateScheduler, self).__init__(param_name, save_history, create_new)
 
         if not isinstance(milestones_values, Sequence):
             raise TypeError(
@@ -289,9 +313,9 @@ class ExpStateScheduler(StateParamScheduler):
     """
 
     def __init__(
-        self, initial_value: float, gamma: float, param_name: str, save_history: bool = False,
+        self, initial_value: float, gamma: float, param_name: str, save_history: bool = False, create_new: bool = False,
     ):
-        super(ExpStateScheduler, self).__init__(param_name, save_history)
+        super(ExpStateScheduler, self).__init__(param_name, save_history, create_new)
         self.initial_value = initial_value
         self.gamma = gamma
         self._state_attrs += ["initial_value", "gamma"]
@@ -337,9 +361,15 @@ class StepStateScheduler(StateParamScheduler):
     """
 
     def __init__(
-        self, initial_value: float, gamma: float, step_size: int, param_name: str, save_history: bool = False,
+        self,
+        initial_value: float,
+        gamma: float,
+        step_size: int,
+        param_name: str,
+        save_history: bool = False,
+        create_new: bool = False,
     ):
-        super(StepStateScheduler, self).__init__(param_name, save_history)
+        super(StepStateScheduler, self).__init__(param_name, save_history, create_new)
         self.initial_value = initial_value
         self.gamma = gamma
         self.step_size = step_size
@@ -386,9 +416,15 @@ class MultiStepStateScheduler(StateParamScheduler):
     """
 
     def __init__(
-        self, initial_value: float, gamma: float, milestones: List[int], param_name: str, save_history: bool = False,
+        self,
+        initial_value: float,
+        gamma: float,
+        milestones: List[int],
+        param_name: str,
+        save_history: bool = False,
+        create_new: bool = False,
     ):
-        super(MultiStepStateScheduler, self).__init__(param_name, save_history)
+        super(MultiStepStateScheduler, self).__init__(param_name, save_history, create_new)
         self.initial_value = initial_value
         self.gamma = gamma
         self.milestones = milestones
