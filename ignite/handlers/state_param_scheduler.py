@@ -15,6 +15,9 @@ class StateParamScheduler(BaseParamScheduler):
         param_name: name of parameter to update.
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
+        create_new: in case `param_name` already exists in `engine.state`, whether to authorize `StateParamScheduler`
+            create a new parameter based on `StateParamScheduler` class name.
+            By default, this option is `False` meaning that `StateParamScheduler` will override `param_name` values.
 
     Note:
         Parameter scheduler works independently of the internal state of the attached engine.
