@@ -1003,7 +1003,7 @@ class PiecewiseLinear(ParamScheduler):
             trainer = Engine(lambda engine, batch: None)
             trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
             trainer.add_event_handler(Events.ITERATION_COMPLETED, save_lr)
-            
+
             lrs = []
             trainer.run([0] * 6, max_epochs=1)
             print(lrs)
