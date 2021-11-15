@@ -276,32 +276,6 @@ def test_simulate_values(scheduler_cls, scheduler_kwargs):
     _test(scheduler_cls, scheduler_kwargs)
 
 
-@pytest.mark.skip
-@pytest.mark.parametrize("scheduler_cls,scheduler_kwargs", [config3, config4, config5, config6])
-def test_state_param_asserts(scheduler_cls, scheduler_kwargs):
-    import re
-
-    def _test(scheduler_cls, scheduler_kwargs):
-        scheduler = scheduler_cls(**scheduler_kwargs)
-        with pytest.raises(
-            ValueError,
-            match=r"Attribute: '"
-            + re.escape(scheduler_kwargs["param_name"])
-            + "' is already defined in the Engine.state.This may be a conflict between multiple StateParameterScheduler"
-            + " handlers.Please choose another name.",
-        ):
-
-            trainer = Engine(lambda engine, batch: None)
-            event = Events.EPOCH_COMPLETED
-            max_epochs = 2
-            data = [0] * 10
-            scheduler.attach(trainer, event)
-            trainer.run(data, max_epochs=max_epochs)
-            scheduler.attach(trainer, event)
-
-    _test(scheduler_cls, scheduler_kwargs)
-
-
 def test_torch_save_load():
 
     lambda_state_parameter_scheduler = LambdaStateScheduler(

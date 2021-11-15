@@ -1,5 +1,4 @@
 import numbers
-import re
 import warnings
 from bisect import bisect_right
 from typing import Any, List, Sequence, Tuple, Union
