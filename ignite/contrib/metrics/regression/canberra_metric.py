@@ -37,6 +37,24 @@ class CanberraMetric(_BaseRegression):
     .. _`Botchkarev 2018`:
         https://arxiv.org/ftp/arxiv/papers/1809/1809.03006.pdf
 
+    Examples:
+        To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
+        The output of the engine's ``process_function`` needs to be in format of
+        ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``.
+
+        .. testcode::
+
+                metric = CanberraMetric()
+                metric.attach(default_evaluator, 'canberra')
+                y_pred = torch.Tensor([[3.8], [9.9], [-5.4], [2.1]])
+                y_true = y_pred * 1.5
+                state = default_evaluator.run([[y_pred, y_true]])
+                print(state.metrics['canberra'])
+
+        .. testoutput::
+
+                0.8000...
+
     .. versionchanged:: 0.4.3
 
         - Fixed implementation: ``abs`` in denominator.

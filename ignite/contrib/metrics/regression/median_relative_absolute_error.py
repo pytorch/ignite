@@ -28,7 +28,6 @@ class MedianRelativeAbsoluteError(EpochMetric):
         Current implementation stores all input data (output and target) in as tensors before computing a metric.
         This can potentially lead to a memory error if the input data is larger than available RAM.
 
-
     __ https://arxiv.org/abs/1809.03006
 
     Args:
@@ -38,6 +37,24 @@ class MedianRelativeAbsoluteError(EpochMetric):
             you want to compute the metric with respect to one of the outputs.
             By default, metrics require the output as ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
         device: optional device specification for internal storage.
+
+    Examples:
+        To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
+        The output of the engine's ``process_function`` needs to be in format of
+        ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``.
+
+        .. testcode::
+
+            metric = MedianRelativeAbsoluteError()
+            metric.attach(default_evaluator, 'mrae')
+            y_true = torch.Tensor([0, 1, 2, 3, 4, 5])
+            y_pred = y_true * 0.75
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics['mrae'])
+
+        .. testoutput::
+
+            0.5...
     """
 
     def __init__(
