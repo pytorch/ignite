@@ -414,7 +414,7 @@ def test_param_scheduler_with_ema_handler_attach_exception():
 
     with pytest.raises(
         ValueError,
-        match=r"Attribute: `ema_decay` already exists in the engine.state. "
+        match=r"Attribute 'ema_decay' already exists in the engine.state. "
         r"This may be a conflict between multiple handlers. "
         r"Please choose another name.",
     ):
@@ -440,7 +440,7 @@ def test_param_scheduler_attach_warning():
 
     with pytest.warns(
         UserWarning,
-        match=r"Attribute: `ema_decay` is not defined in the engine.state. "
-        r"PiecewiseLinearStateScheduler will create it. Remove this warning by setting `create_new=True`.",
+        match=r"Attribute 'ema_decay' is not defined in the engine.state. "
+        r"PiecewiseLinearStateScheduler will create it. Remove this warning by setting create_new=True.",
     ):
         ema_decay_scheduler.attach(trainer, Events.ITERATION_COMPLETED)
