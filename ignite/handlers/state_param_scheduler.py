@@ -13,11 +13,9 @@ class StateParamScheduler(BaseParamScheduler):
 
     Args:
         param_name: name of parameter to update.
-        save_history: whether to log the parameter values to
-            `engine.state.param_history`, (default=False).
-        create_new: in case `param_name` already exists in `engine.state`, whether to authorize `StateParamScheduler`
-            create a new parameter based on `StateParamScheduler` class name.
-            By default, this option is `False` meaning that `StateParamScheduler` will override `param_name` values.
+        save_history: whether to log the parameter values to ``engine.state.param_history``, (default=False).
+        create_new: whether to create ``param_name`` on ``engine.state`` taking into account whether ``param_name``
+            attribute already exists or not. Overrides existing attribute by default, (default=False).
 
     Note:
         Parameter scheduler works independently of the internal state of the attached engine.
@@ -47,30 +45,21 @@ class StateParamScheduler(BaseParamScheduler):
 
         """
         if hasattr(engine.state, self.param_name):
-            if not self.create_new:
-                warnings.warn(
-                    f"Attribute: '{self.param_name}' is already defined in the Engine.state. "
-                    f"{type(self).__name__} will override its values."
+            if self.create_new:
+                raise ValueError(
+                    f"Attribute: `{self.param_name}` already exists in the engine.state. "
+                    f"This may be a conflict between multiple handlers. "
+                    f"Please choose another name."
                 )
             else:
-                pattern = r"^(" + re.escape(self.param_name) + "_" + re.escape(type(self).__name__) + "_)([0-9]+)$"
-                matched_params = []
-                for engine_params in vars(engine.state).keys():
-                    match = re.match(pattern, engine_params)
-                    if match:
-                        matched_params.append(int(match.groups()[1]))
-                if matched_params:
-                    new_param = self.param_name + "_" + type(self).__name__ + "_" + str(sorted(matched_params)[-1] + 1)
-                else:
-                    new_param = self.param_name + "_" + type(self).__name__ + "_0"
-
+                setattr(engine.state, self.param_name, None)
+        else:
+            if not self.create_new:
                 warnings.warn(
-                    f"Attribute: '{self.param_name}' is already defined in the Engine.state. "
-                    f"{type(self).__name__} will create a new parameter {new_param} in Engine.state."
+                    f"Attribute: `{self.param_name}` is not defined in the engine.state. "
+                    f"{type(self).__name__} will create it. Remove this warning by setting `create_new=True`."
                 )
-                self.param_name = new_param
-
-        setattr(engine.state, self.param_name, None)
+            setattr(engine.state, self.param_name, None)
 
         if self.save_history:
             if not hasattr(engine.state, "param_history") or engine.state.param_history is None:  # type: ignore
