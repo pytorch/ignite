@@ -412,14 +412,13 @@ def test_param_scheduler_with_ema_handler_attach_exception():
         create_new=create_new,
     )
 
-    if create_new:
-        with pytest.raises(
-            ValueError,
-            match=r"Attribute: `ema_decay` already exists in the engine.state. "
-            r"This may be a conflict between multiple handlers. "
-            r"Please choose another name.",
-        ):
-            ema_decay_scheduler.attach(trainer, Events.ITERATION_COMPLETED)
+    with pytest.raises(
+        ValueError,
+        match=r"Attribute: `ema_decay` already exists in the engine.state. "
+        r"This may be a conflict between multiple handlers. "
+        r"Please choose another name.",
+    ):
+        ema_decay_scheduler.attach(trainer, Events.ITERATION_COMPLETED)
 
 
 def test_param_scheduler_attach_warning():
@@ -430,7 +429,7 @@ def test_param_scheduler_attach_warning():
     trainer = Engine(lambda e, b: model(b))
     param_name = "ema_decay"
     save_history = True
-    create_new = True
+    create_new = False
 
     ema_decay_scheduler = PiecewiseLinearStateScheduler(
         param_name=param_name,
@@ -439,10 +438,9 @@ def test_param_scheduler_attach_warning():
         create_new=create_new,
     )
 
-    if not create_new:
-        with pytest.warns(
-            UserWarning,
-            match=r"Attribute: `ema_decay` is not defined in the engine.state. "
-            r"PiecewiseLinearStateScheduler will create it. Remove this warning by setting `create_new=True`.",
-        ):
-            ema_decay_scheduler.attach(trainer, Events.ITERATION_COMPLETED)
+    with pytest.warns(
+        UserWarning,
+        match=r"Attribute: `ema_decay` is not defined in the engine.state. "
+        r"PiecewiseLinearStateScheduler will create it. Remove this warning by setting `create_new=True`.",
+    ):
+        ema_decay_scheduler.attach(trainer, Events.ITERATION_COMPLETED)
