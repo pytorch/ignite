@@ -46,7 +46,7 @@ class StateParamScheduler(BaseParamScheduler):
         if hasattr(engine.state, self.param_name):
             if self.create_new:
                 raise ValueError(
-                    f"Attribute: `{self.param_name}` already exists in the engine.state. "
+                    f"Attribute '{self.param_name}' already exists in the engine.state. "
                     f"This may be a conflict between multiple handlers. "
                     f"Please choose another name."
                 )
