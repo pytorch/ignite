@@ -50,8 +50,6 @@ class StateParamScheduler(BaseParamScheduler):
                     f"This may be a conflict between multiple handlers. "
                     f"Please choose another name."
                 )
-            else:
-                setattr(engine.state, self.param_name, None)
         else:
             if not self.create_new:
                 warnings.warn(
