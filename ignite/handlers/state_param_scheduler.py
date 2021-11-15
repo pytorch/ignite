@@ -53,8 +53,8 @@ class StateParamScheduler(BaseParamScheduler):
         else:
             if not self.create_new:
                 warnings.warn(
-                    f"Attribute: `{self.param_name}` is not defined in the engine.state. "
-                    f"{type(self).__name__} will create it. Remove this warning by setting `create_new=True`."
+                    f"Attribute '{self.param_name}' is not defined in the engine.state. "
+                    f"{type(self).__name__} will create it. Remove this warning by setting create_new=True."
                 )
             setattr(engine.state, self.param_name, None)
 
