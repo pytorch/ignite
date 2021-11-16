@@ -371,8 +371,8 @@ class LinearCyclicalScheduler(CyclicalScheduler):
 
             default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
 
-            @default_trainer.on(Events.ITERATION_COMPLETED)         
-            def print_lr():  
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def print_lr():
                 print(default_optimizer.param_groups[0]["lr"])
 
             default_trainer.run([0] * 9, max_epochs=1)
