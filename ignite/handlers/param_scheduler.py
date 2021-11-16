@@ -360,15 +360,30 @@ class LinearCyclicalScheduler(CyclicalScheduler):
         usually be the number of batches in an epoch.
 
     Examples:
-        .. code-block:: python
+
+        .. testcode::
 
             from ignite.handlers.param_scheduler import LinearCyclicalScheduler
 
-            scheduler = LinearCyclicalScheduler(optimizer, 'lr', 1e-3, 1e-1, len(train_loader))
-            trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
-            #
-            # Linearly increases the learning rate from 1e-3 to 1e-1 and back to 1e-3
-            # over the course of 1 epoch
+            # Linearly increases the learning rate from 0.0 to 1.0 and back to 0.0
+            # over a cycle of 4 iterations
+            scheduler = LinearCyclicalScheduler(default_optimizer, "lr", 0.0, 1.0, 4)
+
+            default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+
+            @default_trainer.on(Events.ITERATION_COMPLETED)         
+            def print_lr():  
+                print(default_optimizer.param_groups[0]["lr"])
+
+            default_trainer.run([0] * 9, max_epochs=1)
+
+        .. testoutput::
+
+            0.0
+            0.5
+            1.0
+            0.5
+            ...
 
     .. versionadded:: 0.4.5
     """

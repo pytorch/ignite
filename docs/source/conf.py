@@ -340,18 +340,29 @@ from ignite.handlers import *
 from ignite.metrics import *
 from ignite.utils import *
 from ignite.contrib.metrics.regression import *
-
 from ignite.contrib.metrics import *
 
 manual_seed(666)
 
 # create default evaluator for doctests
 
-def process_function(engine, batch):
+def eval_step(engine, batch):
     y_pred, y = batch
     return y_pred, y
 
-default_evaluator = Engine(process_function)
+default_evaluator = Engine(eval_step)
+
+# create default optimizer for doctests
+
+param_tensor = torch.zeros([1], requires_grad=True)
+default_optimizer = torch.optim.SGD([param_tensor], lr=0)
+
+# create default trainer for doctests
+
+def train_step(engine, batch):
+    return 0.0
+
+default_trainer = Engine(train_step)
 """
 
 
