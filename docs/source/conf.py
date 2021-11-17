@@ -332,6 +332,8 @@ nitpick_ignore = [
 
 # doctest config
 doctest_global_setup = """
+from collections import OrderedDict
+
 import torch
 from torch import nn, optim
 
@@ -341,8 +343,6 @@ from ignite.metrics import *
 from ignite.utils import *
 from ignite.contrib.metrics.regression import *
 from ignite.contrib.metrics import *
-
-manual_seed(666)
 
 # create default evaluator for doctests
 
@@ -358,11 +358,24 @@ param_tensor = torch.zeros([1], requires_grad=True)
 default_optimizer = torch.optim.SGD([param_tensor], lr=0)
 
 # create default trainer for doctests
+# as handlers could be attached to the trainer,
+# each test must defined his own trainer using `.. testsetup:`
 
-def train_step(engine, batch):
-    return 0.0
+def get_default_trainer():
 
-default_trainer = Engine(train_step)
+    def train_step(engine, batch):
+        return 0.0
+
+    return Engine(train_step)
+
+# create default model for doctests
+
+default_model = nn.Sequential(OrderedDict([
+    ('base', nn.Linear(4, 2)),
+    ('fc', nn.Linear(2, 1))
+]))
+
+manual_seed(666)
 """
 
 

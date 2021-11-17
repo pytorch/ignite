@@ -361,7 +361,11 @@ class LinearCyclicalScheduler(CyclicalScheduler):
 
     Examples:
 
-        .. testcode::
+        .. testsetup:: *
+
+            default_trainer = get_default_trainer()
+
+        .. testcode:: 1
 
             from ignite.handlers.param_scheduler import LinearCyclicalScheduler
 
@@ -377,7 +381,7 @@ class LinearCyclicalScheduler(CyclicalScheduler):
 
             default_trainer.run([0] * 9, max_epochs=1)
 
-        .. testoutput::
+        .. testoutput:: 1
 
             0.0
             0.5
@@ -385,6 +389,43 @@ class LinearCyclicalScheduler(CyclicalScheduler):
             0.5
             ...
 
+        .. testcode:: 2
+
+            from ignite.handlers.param_scheduler import LinearCyclicalScheduler
+
+            optimizer = torch.optim.SGD(
+                [
+                    {"params": default_model.base.parameters(), "lr": 0.001},
+                    {"params": default_model.fc.parameters(), "lr": 0.01},
+                ]
+            )
+
+            # Linearly increases the learning rate from 0.0 to 1.0 and back to 0.0
+            # over a cycle of 4 iterations
+            scheduler1 = LinearCyclicalScheduler(optimizer, "lr", 0.0, 1.0, 4, param_group_index=0)
+
+            # Linearly increases the learning rate from 1.0 to 0.0 and back to 0.1
+            # over a cycle of 4 iterations
+            scheduler2 = LinearCyclicalScheduler(optimizer, "lr", 0.0, 0.1, 4, param_group_index=1)
+
+            default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler1)
+            default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler2)
+
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def print_lr():
+                print(optimizer.param_groups[0]["lr"], 
+                      optimizer.param_groups[1]["lr"])
+
+            default_trainer.run([0] * 9, max_epochs=1)
+
+        .. testoutput:: 2
+
+            0.0 0.0
+            0.5 0.05
+            1.0 0.1
+            0.5 0.05
+            ...
+        
     .. versionadded:: 0.4.5
     """
 
