@@ -1,7 +1,9 @@
+import re
 from unittest.mock import patch
 
 import pytest
 import torch
+import torch.nn as nn
 
 from ignite.engine import Engine, Events
 from ignite.handlers.state_param_scheduler import (
@@ -391,56 +393,67 @@ def test_docstring_examples():
     engine.run([0] * 8, max_epochs=10)
 
 
-def test_param_scheduler_with_ema_handler_attach_exception():
-    import torch.nn as nn
+def test_param_scheduler_attach_exception():
+    trainer = Engine(lambda e, b: None)
+    param_name = "state_param"
 
-    from ignite.handlers import EMAHandler
+    setattr(trainer.state, param_name, None)
 
-    data = torch.rand(100, 2)
-    model = nn.Linear(2, 1)
-    trainer = Engine(lambda e, b: model(b))
-    param_name = "ema_decay"
     save_history = True
     create_new = True
 
-    ema_handler = EMAHandler(model)
-    ema_handler.attach(trainer, name=param_name, event=Events.ITERATION_COMPLETED)
-    ema_decay_scheduler = PiecewiseLinearStateScheduler(
+    param_scheduler = PiecewiseLinearStateScheduler(
         param_name=param_name,
-        milestones_values=[(0, 0.0), (10 * len(data), 0.999)],
+        milestones_values=[(0, 0.0), (10, 0.999)],
         save_history=save_history,
         create_new=create_new,
     )
 
     with pytest.raises(
         ValueError,
-        match=r"Attribute 'ema_decay' already exists in the engine.state. "
+        match=r"Attribute '" + re.escape(param_name) + "' already exists in the engine.state. "
         r"This may be a conflict between multiple handlers. "
         r"Please choose another name.",
     ):
-        ema_decay_scheduler.attach(trainer, Events.ITERATION_COMPLETED)
+        param_scheduler.attach(trainer, Events.ITERATION_COMPLETED)
 
 
 def test_param_scheduler_attach_warning():
-    import torch.nn as nn
-
-    data = torch.rand(100, 2)
-    model = nn.Linear(2, 1)
-    trainer = Engine(lambda e, b: model(b))
-    param_name = "ema_decay"
+    trainer = Engine(lambda e, b: None)
+    param_name = "state_param"
     save_history = True
     create_new = False
 
-    ema_decay_scheduler = PiecewiseLinearStateScheduler(
+    param_scheduler = PiecewiseLinearStateScheduler(
         param_name=param_name,
-        milestones_values=[(0, 0.0), (10 * len(data), 0.999)],
+        milestones_values=[(0, 0.0), (10, 0.999)],
         save_history=save_history,
         create_new=create_new,
     )
 
     with pytest.warns(
         UserWarning,
-        match=r"Attribute 'ema_decay' is not defined in the engine.state. "
+        match=r"Attribute '" + re.escape(param_name) + "' is not defined in the engine.state. "
         r"PiecewiseLinearStateScheduler will create it. Remove this warning by setting create_new=True.",
     ):
-        ema_decay_scheduler.attach(trainer, Events.ITERATION_COMPLETED)
+        param_scheduler.attach(trainer, Events.ITERATION_COMPLETED)
+
+
+def test_param_scheduler_with_ema_handler():
+
+    from ignite.handlers import EMAHandler
+
+    model = nn.Linear(2, 1)
+    trainer = Engine(lambda e, b: model(b))
+    data = torch.rand(100, 2)
+
+    param_name = "ema_decay"
+
+    ema_handler = EMAHandler(model)
+    ema_handler.attach(trainer, name=param_name, event=Events.ITERATION_COMPLETED)
+
+    ema_decay_scheduler = PiecewiseLinearStateScheduler(
+        param_name=param_name, milestones_values=[(0, 0.0), (10, 0.999),], save_history=True
+    )
+    ema_decay_scheduler.attach(trainer, Events.ITERATION_COMPLETED)
+    trainer.run(data, max_epochs=20)
