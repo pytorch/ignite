@@ -413,7 +413,7 @@ class LinearCyclicalScheduler(CyclicalScheduler):
 
             @default_trainer.on(Events.ITERATION_COMPLETED)
             def print_lr():
-                print(optimizer.param_groups[0]["lr"], 
+                print(optimizer.param_groups[0]["lr"],
                       optimizer.param_groups[1]["lr"])
 
             default_trainer.run([0] * 9, max_epochs=1)
@@ -425,7 +425,7 @@ class LinearCyclicalScheduler(CyclicalScheduler):
             1.0 0.1
             0.5 0.05
             ...
-        
+
     .. versionadded:: 0.4.5
     """
 
