@@ -42,7 +42,7 @@ class Loss(Metric):
         and the Loss metric using an ``evaluator`` created with
         :meth:`~ignite.engine.create_supervised_evaluator` method.
 
-        .. code-block:: python
+        ..testcode::
 
             import torch
             import torch.nn as nn
@@ -54,6 +54,7 @@ class Loss(Metric):
             model = ...
 
             criterion = nll_loss
+            
 
             metrics = {
                 "Accuracy": Accuracy(),
