@@ -360,15 +360,71 @@ class LinearCyclicalScheduler(CyclicalScheduler):
         usually be the number of batches in an epoch.
 
     Examples:
-        .. code-block:: python
+
+        .. testsetup:: *
+
+            default_trainer = get_default_trainer()
+
+        .. testcode:: 1
 
             from ignite.handlers.param_scheduler import LinearCyclicalScheduler
 
-            scheduler = LinearCyclicalScheduler(optimizer, 'lr', 1e-3, 1e-1, len(train_loader))
-            trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
-            #
-            # Linearly increases the learning rate from 1e-3 to 1e-1 and back to 1e-3
-            # over the course of 1 epoch
+            # Linearly increases the learning rate from 0.0 to 1.0 and back to 0.0
+            # over a cycle of 4 iterations
+            scheduler = LinearCyclicalScheduler(default_optimizer, "lr", 0.0, 1.0, 4)
+
+            default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def print_lr():
+                print(default_optimizer.param_groups[0]["lr"])
+
+            default_trainer.run([0] * 9, max_epochs=1)
+
+        .. testoutput:: 1
+
+            0.0
+            0.5
+            1.0
+            0.5
+            ...
+
+        .. testcode:: 2
+
+            from ignite.handlers.param_scheduler import LinearCyclicalScheduler
+
+            optimizer = torch.optim.SGD(
+                [
+                    {"params": default_model.base.parameters(), "lr": 0.001},
+                    {"params": default_model.fc.parameters(), "lr": 0.01},
+                ]
+            )
+
+            # Linearly increases the learning rate from 0.0 to 1.0 and back to 0.0
+            # over a cycle of 4 iterations
+            scheduler1 = LinearCyclicalScheduler(optimizer, "lr", 0.0, 1.0, 4, param_group_index=0)
+
+            # Linearly increases the learning rate from 1.0 to 0.0 and back to 0.1
+            # over a cycle of 4 iterations
+            scheduler2 = LinearCyclicalScheduler(optimizer, "lr", 0.0, 0.1, 4, param_group_index=1)
+
+            default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler1)
+            default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler2)
+
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def print_lr():
+                print(optimizer.param_groups[0]["lr"],
+                      optimizer.param_groups[1]["lr"])
+
+            default_trainer.run([0] * 9, max_epochs=1)
+
+        .. testoutput:: 2
+
+            0.0 0.0
+            0.5 0.05
+            1.0 0.1
+            0.5 0.05
+            ...
 
     .. versionadded:: 0.4.5
     """
