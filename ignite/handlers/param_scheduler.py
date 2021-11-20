@@ -1023,7 +1023,7 @@ class PiecewiseLinear(ParamScheduler):
 
         .. testcode:: 2
 
-            from ignite.handlers.param_scheduler import LinearCyclicalScheduler
+            from ignite.handlers.param_scheduler import PiecewiseLinear
 
             optimizer = torch.optim.SGD(
                 [
@@ -1035,10 +1035,16 @@ class PiecewiseLinear(ParamScheduler):
             milestones_values1 = [(1, 0.1), (3, 0.08), (5, 0.02)]
             scheduler2 = PiecewiseLinear(
                 optimizer, "lr", milestones_values=milestones_values1, param_group_index=0)
+            # Sets lr equal to 0.1 for till the first iteration
+            # Then linearly reduces lr from 0.1 to 0.08 till the third iteration
+            # Then linearly reduces lr from 0.08 to 0.05 till the fifth iteration
 
             milestones_values2 = [(1, 1.0), (3, 0.8), (5, 0.2)]
             scheduler1 = PiecewiseLinear(
                 optimizer, "lr", milestones_values=milestones_values2, param_group_index=1)
+            # Sets lr equal to 1 for till the first iteration
+            # Then linearly reduces lr from 1 to 0.8 till the third iteration
+            # Then linearly reduces lr from 0.8 to 0.5 till the fifth iteration
 
             default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler1)
             default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler2)
