@@ -42,6 +42,11 @@ config6 = (
     {"param_name": "custom_scheduled_param", "lambda_obj": LambdaState(initial_value=10, gamma=0.99)},
 )
 
+config7 = (
+    StepStateScheduler,
+    {"param_name": "step_scheduled_param", "initial_value": 10, "gamma": 0.99, "step_size": 5},
+)
+
 
 @pytest.mark.parametrize(
     "max_epochs, milestones_values,  save_history, expected_param_history", [config1, config2],
@@ -329,6 +334,28 @@ def test_simulate_and_plot_values_no_matplotlib():
                 gamma=0.99,
                 milestones=[3, 6],
             )
+
+
+def test_multiple_scheduler_with_save_history():
+    engine_multiple_schedulers = Engine(lambda e, b: None)
+    configs = [config3, config4, config5, config6, config7]
+    for scheduler, config in configs:
+        if "save_history" in config:
+            del config["save_history"]
+        _scheduler = scheduler(**config, save_history=True)
+        _scheduler.attach(engine_multiple_schedulers)
+
+    engine_multiple_schedulers.run([0] * 8, max_epochs=2)
+
+    for scheduler, config in configs:
+        engine = Engine(lambda e, b: None)
+        _scheduler = scheduler(**config, save_history=True)
+        _scheduler.attach(engine)
+        engine.run([0] * 8, max_epochs=2)
+        torch.testing.assert_allclose(
+            engine_multiple_schedulers.state.param_history[config["param_name"]],
+            engine.state.param_history[config["param_name"]],
+        )
 
 
 def test_docstring_examples():
