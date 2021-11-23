@@ -259,14 +259,14 @@ def distributed_context_multi_node_nccl(multi_node_conf):
     _destroy_mnodes_dist_context()
 
 
-def _xla_template_worker_task(index, fn, args):
+def _xla_template_worker_task(index, fn, args, kwargs=None):
     import torch_xla.core.xla_model as xm
 
     xm.rendezvous("init")
-    fn(index, *args)
+    fn(index, *args, **kwargs)
 
 
-def _xla_execute(fn, args, nprocs):
+def _xla_execute(fn, args, nprocs, kwargs_dict=None):
 
     import torch_xla.distributed.xla_multiprocessing as xmp
 
@@ -275,7 +275,7 @@ def _xla_execute(fn, args, nprocs):
         spawn_kwargs["start_method"] = "fork"
 
     try:
-        xmp.spawn(_xla_template_worker_task, args=(fn, args), nprocs=nprocs, **spawn_kwargs)
+        xmp.spawn(_xla_template_worker_task, args=(fn, args, kwargs_dict), nprocs=nprocs, **spawn_kwargs)
     except SystemExit as ex_:
         assert ex_.code == 0, "Didn't successfully exit in XLA test"
 
@@ -294,7 +294,7 @@ def mock_gpu_is_not_available():
         yield mock_cuda
 
 
-def _hvd_task_with_init(func, args):
+def _hvd_task_with_init(func, args, kwargs):
     import horovod.torch as hvd
 
     hvd.init()
@@ -302,11 +302,11 @@ def _hvd_task_with_init(func, args):
     if torch.cuda.is_available():
         torch.cuda.set_device(lrank)
 
-    func(*args)
+    func(*args, **kwargs)
     hvd.shutdown()
 
 
-def _gloo_hvd_execute(func, args, np=1, do_init=False):
+def _gloo_hvd_execute(func, args, np=1, do_init=False, kwargs_dict=None):
     try:
         # old API
         from horovod.run.runner import run
@@ -317,7 +317,7 @@ def _gloo_hvd_execute(func, args, np=1, do_init=False):
     kwargs = dict(use_gloo=True, np=np)
 
     if do_init:
-        return run(_hvd_task_with_init, args=(func, args), **kwargs)
+        return run(_hvd_task_with_init, args=(func, args, kwargs_dict), **kwargs)
 
     return run(func, args=args, **kwargs)
 

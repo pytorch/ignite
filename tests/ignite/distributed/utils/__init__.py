@@ -215,7 +215,7 @@ def _test_distrib_broadcast(device):
             idist.broadcast(None, src=0)
 
 
-def _test_distrib_barrier(device, kwargs_dict=None):
+def _test_distrib_barrier(device, **kwargs):
 
     t = torch.tensor([idist.get_rank()], device=device, dtype=torch.float)
     true_res = sum([i for i in range(idist.get_world_size())])
@@ -223,7 +223,7 @@ def _test_distrib_barrier(device, kwargs_dict=None):
     if idist.get_rank() == 0:
         t += 10.0
 
-    idist.barrier(**kwargs_dict) if kwargs_dict else idist.barrier()
+    idist.barrier(**kwargs)
 
     tt = idist.all_reduce(t)
     assert tt.item() == true_res + 10.0

@@ -204,7 +204,7 @@ def test_idist_barrier_kwargs_hvd(gloo_hvd_executor):
         postscale_factor=1.0,
         process_set=global_process_set,
     )
-    gloo_hvd_executor(_test_distrib_barrier, (device, kwargs_dict,), np=np, do_init=True)
+    gloo_hvd_executor(_test_distrib_barrier, (device,), np=np, do_init=True, kwargs_dict=kwargs_dict)
 
 
 def _test_idist_methods_overhead(ok_factor, sync_model):

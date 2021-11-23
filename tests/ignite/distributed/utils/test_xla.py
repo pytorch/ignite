@@ -186,7 +186,7 @@ def test_idist_barrier_xla():
 
 def _test_idist_barrier_xla_in_child_proc(index, kwargs_dict=None):
     device = idist.device()
-    _test_distrib_barrier(device, kwargs_dict)
+    _test_distrib_barrier(device, **kwargs_dict)
 
 
 @pytest.mark.tpu
@@ -196,16 +196,16 @@ def test_idist_barrier_kwargs_xla():
 
     device = idist.device()
     kwargs_dict = {"tag": "barrier", "payload": b"", "replicas": []}
-    _test_distrib_barrier(device, kwargs_dict)
+    _test_distrib_barrier(device, **kwargs_dict)
 
     from torch.distributed import GroupMember
 
     kwargs_dict.update({"group": GroupMember.WORLD, "async_op": False, "device_ids": None})
     with pytest.warns(
         UserWarning,
-        match=r"Extra keys : \{((, )?('async_op'|'group'|'device_ids')(, )?)+\} will not be used by xla-tpu.",
+        match=r"Extra params : \{((, )?('async_op'|'group'|'device_ids')(, )?)+\} will not be used by xla-tpu.",
     ):
-        _test_distrib_barrier(device, kwargs_dict)
+        _test_distrib_barrier(device, **kwargs_dict)
 
 
 @pytest.mark.tpu
@@ -222,7 +222,7 @@ def test_idist_barrier_xla_in_child_proc(xmp_executor):
 def test_idist_barrier_kwargs_xla_in_child_proc(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
     kwargs_dict = {"tag": "barrier", "payload": b"", "replicas": []}
-    xmp_executor(_test_idist_barrier_xla_in_child_proc, args=(kwargs_dict,), nprocs=n)
+    xmp_executor(_test_idist_barrier_xla_in_child_proc, args=(), nprocs=n, kwargs_dict=kwargs_dict)
 
 
 @pytest.mark.tpu

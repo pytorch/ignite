@@ -161,7 +161,5 @@ if has_xla_support:
             return tensor
 
         def barrier(self, **kwargs: Any) -> None:
-            kwargs = self._check_barrier_fn_kwargs(barrier_fn=xm.rendezvous, kwargs_dict=kwargs)
-            if "tag" in kwargs:
-                del kwargs["tag"]
-            xm.rendezvous(tag="barrier", **kwargs)
+            kwargs = self._check_signature(fn=xm.rendezvous, **kwargs)
+            xm.rendezvous(**kwargs)
