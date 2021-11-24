@@ -44,35 +44,21 @@ class Loss(Metric):
 
         ..testcode::
 
-            from torch.nn.functional import nll_loss
-
-            from ignite.metrics import Accuracy, Loss
-            from ignite.engine import create_supervised_evaluator
-
-
-            model = default_model
-            criterion = nll_loss
-
-            metrics = {
-                "Accuracy": Accuracy(),
-                "Loss": Loss(criterion)
-            }
-
-            def process_function(engine, batch):
-            y_pred, y = batch, criterion_kwargs = {"reduction": "sum"}
-            return y_pred, y, criterion_kwargs
-            engine = Engine(process_function)
-            metric = Loss(criterion)
-            metric.attach(engine, 'loss')
-            
-
+            metric = Loss(nll_loss)
+            metric.attach(default_evaluator, 'loss')
+            data = [(torch.rand(4, 10), torch.randint(0, 3, size=(4,)))]
+            state = default_evaluator.run(data)
             print(state.metrics['loss'])
 
-            res = evaluator.run(data)
+        .. testoutput::
+
+            -0.1587529...
 
     """
 
     required_output_keys = ("y_pred", "y", "criterion_kwargs")
+
+    print(required_output_keys)
 
     def __init__(
         self,
