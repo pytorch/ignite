@@ -347,8 +347,7 @@ from ignite.contrib.metrics import *
 # create default evaluator for doctests
 
 def eval_step(engine, batch):
-    y_pred, y = batch
-    return y_pred, y
+    return batch
 
 default_evaluator = Engine(eval_step)
 

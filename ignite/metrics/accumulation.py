@@ -99,6 +99,8 @@ class Average(VariableAccumulation):
         For input `x` being an ND `torch.Tensor` with N > 1, the first dimension is seen as the number of samples and
         is summed up and added to the accumulator: `accumulator += x.sum(dim=0)`
 
+        ``output_tranform`` can be added to the metric to transform the output into the form expected by the metric.
+
     Args:
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
@@ -109,15 +111,53 @@ class Average(VariableAccumulation):
             default, CPU.
 
     Examples:
-        .. code-block:: python
 
-            evaluator = ...
+        .. testcode::
 
-            custom_var_mean = Average(output_transform=lambda output: output['custom_var'])
-            custom_var_mean.attach(evaluator, 'mean_custom_var')
+            metric = Average()
+            metric.attach(default_evaluator, 'avg')
+            # Case 1. input is er
+            data = torch.Tensor([0, 1, 2, 3, 4])
+            state = default_evaluator.run(data)
+            print(state.metrics['avg'])
 
-            state = evaluator.run(dataset)
-            # state.metrics['mean_custom_var'] -> average of output['custom_var']
+        .. testoutput::
+
+            2.0
+
+        .. testcode::
+
+            metric = Average()
+            metric.attach(default_evaluator, 'avg')
+            # Case 2. input is a 1D torch.Tensor
+            data = torch.Tensor([
+                [0, 0, 0],
+                [1, 1, 1],
+                [2, 2, 2],
+                [3, 3, 3]
+            ])
+            state = default_evaluator.run(data)
+            print(state.metrics['avg'])
+
+        .. testoutput::
+
+            tensor([1.5000, 1.5000, 1.5000], dtype=torch.float64)
+
+        .. testcode::
+
+            metric = Average()
+            metric.attach(default_evaluator, 'avg')
+            # Case 3. input is a ND torch.Tensor
+            data = [
+                torch.Tensor([[0, 0, 0], [1, 1, 1]]),
+                torch.Tensor([[2, 2, 2], [3, 3, 3]])
+            ]
+            state = default_evaluator.run(data)
+            print(state.metrics['avg'])
+
+        .. testoutput::
+
+            tensor([1.5000, 1.5000, 1.5000], dtype=torch.float64)
     """
 
     def __init__(
@@ -166,6 +206,56 @@ class GeometricAverage(VariableAccumulation):
         For input `x` being an ND `torch.Tensor` with N > 1, the first dimension is seen as the number of samples and
         is aggregated and added to the accumulator: `accumulator *= prod(x, dim=0)`
 
+        ``output_tranform`` can be added to the metric to transform the output into the form expected by the metric.
+
+    Examples:
+
+        .. testcode::
+
+            metric = GeometricAverage()
+            metric.attach(default_evaluator, 'avg')
+            # Case 1. input is er
+            data = torch.Tensor([1, 2, 3])
+            state = default_evaluator.run(data)
+            print(state.metrics['avg'])
+
+        .. testoutput::
+
+            1.8171...
+
+        .. testcode::
+
+            metric = GeometricAverage()
+            metric.attach(default_evaluator, 'avg')
+            # Case 2. input is a 1D torch.Tensor
+            data = torch.Tensor([
+                [1, 1, 1],
+                [2, 2, 2],
+                [3, 3, 3],
+                [4, 4, 4],
+            ])
+            state = default_evaluator.run(data)
+            print(state.metrics['avg'])
+
+        .. testoutput::
+
+            tensor([2.2134, 2.2134, 2.2134], dtype=torch.float64)
+
+        .. testcode::
+
+            metric = GeometricAverage()
+            metric.attach(default_evaluator, 'avg')
+            # Case 3. input is a ND torch.Tensor
+            data = [
+                torch.Tensor([[1, 1, 1], [2, 2, 2]]),
+                torch.Tensor([[3, 3, 3], [4, 4, 4]])
+            ]
+            state = default_evaluator.run(data)
+            print(state.metrics['avg'])
+
+        .. testoutput::
+
+            tensor([2.2134, 2.2134, 2.2134], dtype=torch.float64)
     """
 
     def __init__(
