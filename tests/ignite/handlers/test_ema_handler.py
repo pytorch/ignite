@@ -41,10 +41,18 @@ def _get_dummy_step_fn(model: Union[nn.Module, DataParallel, DistributedDataPara
     return step_fn
 
 
-@pytest.mark.parametrize("init_momentum", [-1, 2])
-def test_ema_invalid_momentum(get_dummy_model, init_momentum):
+@pytest.mark.parametrize("momentum", [-1, 2])
+def test_ema_invalid_momentum(get_dummy_model, momentum):
     with pytest.raises(ValueError, match="Invalid momentum"):
-        EMAHandler(get_dummy_model(), init_momentum=init_momentum)
+        EMAHandler(get_dummy_model(), momentum=momentum)
+
+
+def test_ema_deprecated_(get_dummy_model):
+    with pytest.warns(UserWarning, match="Argument 'momentum_warmup' will be deprecated in the future"):
+        EMAHandler(get_dummy_model(), momentum_warmup=0.0001)
+
+    with pytest.warns(UserWarning, match="Argument 'warmup_iters' will be deprecated in the future."):
+        EMAHandler(get_dummy_model(), warmup_iters=10)
 
 
 def test_ema_invalid_model():
@@ -84,7 +92,8 @@ def test_ema_load_state_dict(get_dummy_model):
     assert ema_model.weight.data.allclose(model_1.weight.data)
 
 
-def test_ema_engine_momentum(get_dummy_model):
+def test_ema_get_const_momentum(get_dummy_model):
+    """Test if momentum retrieved from the engine is constant and equal to the handler's momentum"""
     model = get_dummy_model()
     step_fn = _get_dummy_step_fn(model)
     engine = Engine(step_fn)
@@ -92,10 +101,9 @@ def test_ema_engine_momentum(get_dummy_model):
     def assert_const_momentum(engine: Engine, const_momentum):
         assert engine.state.ema_momentum == const_momentum
 
-    ema_handler = EMAHandler(model, init_momentum=0.002)
+    ema_handler = EMAHandler(model, momentum=0.002)
     ema_handler.attach(engine)
-    # attach the assertion handler after ema_handler, so the momentum is first updated and then tested
-    engine.add_event_handler(Events.ITERATION_COMPLETED, assert_const_momentum, ema_handler.init_momentum)
+    engine.add_event_handler(Events.ITERATION_COMPLETED, assert_const_momentum, ema_handler.momentum)
     engine.run(range(2))
 
 
@@ -131,11 +139,10 @@ def test_ema_buffer():
 def test_ema_two_handlers(get_dummy_model):
     """Test when two EMA handlers are attached to a trainer"""
     model_1 = get_dummy_model()
-    # momentum will be constantly 0.5
-    ema_handler_1 = EMAHandler(model_1, init_momentum=0.5)
+    ema_handler_1 = EMAHandler(model_1, momentum=0.5)
 
     model_2 = get_dummy_model()
-    ema_handler_2 = EMAHandler(model_2, init_momentum=0.5)
+    ema_handler_2 = EMAHandler(model_2, momentum=0.5)
 
     def _step_fn(engine: Engine, batch: Any):
         model_1.weight.data.add_(1)
@@ -182,8 +189,7 @@ def _test_ema_final_weight(model, device=None, ddp=False, interval=1):
     step_fn = _get_dummy_step_fn(model)
     engine = Engine(step_fn)
 
-    # momentum will be constantly 0.5
-    ema_handler = EMAHandler(model, init_momentum=0.5)
+    ema_handler = EMAHandler(model, momentum=0.5)
     ema_handler.attach(engine, "model", event=Events.ITERATION_COMPLETED(every=interval))
 
     # engine will run 4 iterations

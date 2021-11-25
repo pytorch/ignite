@@ -1,6 +1,6 @@
 import warnings
 from copy import deepcopy
-from typing import Union
+from typing import Optional, Union
 
 import torch.nn as nn
 
@@ -17,26 +17,30 @@ class EMAHandler:
 
     where :math:`\theta_{\text{EMA}, t}` and :math:`\theta_{t}` are the EMA weights and online model weights at
     :math:`t`-th iteration, respectively; :math:`\lambda` is the update momentum. Current momentum can be retrieved
-    from the engine's state with an attribute name like ``Engine.state.ema_momentum``, and the attribute name need to
-    be the same as the one used in the ``attach`` method.
+    from ``Engine.state.ema_momentum``.
 
     Args:
           model: the online model for which an EMA model will be computed. If ``model`` is ``DataParallel`` or
               ``DistributedDataParallel``, the EMA smoothing will be applied to ``model.module`` .
-          init_momentum: the initial momentum, should be float in range :math:`\left(0, 1 \right)`. If no
-              ``StateParamScheduler`` is used, the momentum will always be ``init_momentum`` during the whole
-              training process. Otherwise, the momentum will be scheduled by the ``StateParamScheduler``.
+          momentum: the update momentum after warmup phase, should be float in range :math:`\left(0, 1 \right)`.
+          momentum_warmup: the initial update momentum during warmup phase. This argument is not used.
+          warmup_iters: iterations of warmup. This argument is not used.
 
     Attributes:
           ema_model: the exponential moving averaged model.
           model: the online model that is tracked by EMAHandler. It is ``model.module`` if ``model`` in
               the initialization method is an instance of ``DistributedDataParallel``.
-          init_momentum: the initial momentum.
+          momentum: the update momentum.
 
     Note:
           The EMA model is already in ``eval`` mode. If model in the arguments is an ``nn.Module`` or
           ``DistributedDataParallel``, the EMA model is an ``nn.Module`` and it is on the same device as the online
           model. If the model is an ``nn.DataParallel``, then the EMA model is an ``nn.DataParallel``.
+
+    .. warning::
+        The arguments `momentum_warmup` and `warmup_iters` will be deprecated in the future. In the current version,
+        these two argument have no effect on the momentum. I.e., the momentum will be constant during the training.
+        If users need to change the momentum, please use a ``StateParamScheduler``.
 
 
     Note:
@@ -53,7 +57,7 @@ class EMAHandler:
               device = torch.device("cuda:0")
               model = nn.Linear(2, 1).to(device)
               # update the ema every 5 iterations
-              ema_handler = EMAHandler(model, init_momentum=0.0002)
+              ema_handler = EMAHandler(model, momentum=0.0002)
               # get the ema model, which is an instance of nn.Module
               ema_model = ema_handler.ema_model
               trainer = Engine(train_step_fn)
@@ -114,15 +118,34 @@ class EMAHandler:
 
     """
 
-    def __init__(self, model: nn.Module, init_momentum: float = 0.0002,) -> None:
-        if not 0 < init_momentum < 1:
-            raise ValueError(f"Invalid momentum: {init_momentum}")
+    def __init__(
+        self,
+        model: nn.Module,
+        momentum: float = 0.0002,
+        momentum_warmup: Optional[float] = None,
+        warmup_iters: Optional[int] = None,
+    ) -> None:
+        if not 0 < momentum < 1:
+            raise ValueError(f"Invalid momentum: {momentum}")
+        if momentum_warmup is not None:
+            warnings.warn(
+                "Argument 'momentum_warmup' will be deprecated in the future. In the current version,"
+                "it has no effect on the ema momentum. Please use the ParamStateScheduler to schedule"
+                "the ema momentum."
+            )
+        if warmup_iters is not None:
+            warnings.warn(
+                "Argument 'warmup_iters' will be deprecated in the future. In the current version, "
+                "it has no effect on the ema momentum. Please use the ParamStateScheduler to schedule"
+                "the ema momentum."
+            )
         if not isinstance(model, nn.Module):
             raise ValueError(
                 f"model should be an instance of nn.Module or its subclasses, but got"
                 f"model: {model.__class__.__name__}"
             )
-        self.init_momentum = init_momentum
+        # TODO: in the next version, rename momentum to init_momentum, which is more rigorous
+        self.momentum = momentum
 
         if isinstance(model, nn.parallel.DistributedDataParallel):
             model = model.module
@@ -177,5 +200,5 @@ class EMAHandler:
                     category=UserWarning,
                 )
         else:
-            setattr(engine.state, name, self.init_momentum)
+            setattr(engine.state, name, self.momentum)
         engine.add_event_handler(event, self._update_ema_model, name)
