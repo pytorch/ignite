@@ -61,18 +61,14 @@ class Loss(Metric):
             engine = Engine(process_function)
             metric = Loss(criterion, output_transform=output_transform)
             metric.attach(engine, 'loss')
-            y_pred = torch.Tensor([
-                    [0.6700, 0.9327, 0.3307, 0.9657, 0.5026, 0.5136, 0.4327, 0.3655, 0.5784, 0.7256],
-                    [0.7358, 0.4609, 0.5122, 0.1045, 0.0030, 0.4085, 0.7060, 0.7697, 0.1859, 0.2599],
-                    [0.1652, 0.6846, 0.1873, 0.6037, 0.4760, 0.8666, 0.2732, 0.7021, 0.4156, 0.6474],
-                    [0.5057, 0.2380, 0.4412, 0.0578, 0.3471, 0.7685, 0.7794, 0.7815, 0.4093, 0.2081]])
-            y_true = torch.LongTensor([2, 1, 2, 2])
-            state = engine.run([[y_pred, y_true]])
+            y_pred = torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]])
+            y_true = torch.LongTensor([2, 2])
+            state = engine.run([[y_pred, y_true], ])
             print(state.metrics['loss'])
 
         .. testoutput::
 
-            -1.4201000...
+            -0.6999999...
 
     """
 
