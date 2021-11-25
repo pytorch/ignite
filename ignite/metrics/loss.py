@@ -42,9 +42,10 @@ class Loss(Metric):
         and the Loss metric using an ``evaluator`` created with
         :meth:`~ignite.engine.create_supervised_evaluator` method.
 
-        ..testcode::
+        .. testcode::
 
-            metric = Loss(nll_loss)
+            criterion = nll_loss
+            metric = Loss(criterion)
             metric.attach(default_evaluator, 'loss')
             data = [(torch.rand(4, 10), torch.randint(0, 3, size=(4,)))]
             state = default_evaluator.run(data)
