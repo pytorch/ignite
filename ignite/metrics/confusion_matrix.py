@@ -46,11 +46,33 @@ class ConfusionMatrix(Metric):
         equal 255 is encountered, then it is filtered out.
 
     Examples:
+
+        .. testcode:: 1
+
+            metric = ConfusionMatrix(num_classes=3)
+            metric.attach(default_evaluator, 'cm')
+            y_true = torch.Tensor([0, 1, 0, 1, 2]).long()
+            y_pred = torch.Tensor([
+                [0.0, 1.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.0, 1.0, 0.0],
+            ])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics['cm'])
+
+        .. testoutput:: 1
+
+            tensor([[1, 1, 0],
+                    [0, 2, 0],
+                    [0, 1, 0]])
+
         If you are doing binary classification with a single output unit, you may have to transform your network output,
         so that you have one value for each class. E.g. you can transform your network output into a one-hot vector
         with:
 
-        .. code-block:: python
+        .. testcode:: 2
 
             def binary_one_hot_output_transform(output):
                 y_pred, y = output
@@ -59,13 +81,17 @@ class ConfusionMatrix(Metric):
                 y = y.long()
                 return y_pred, y
 
-            metrics = {
-                "confusion_matrix": ConfusionMatrix(2, output_transform=binary_one_hot_output_transform),
-            }
+            metric = ConfusionMatrix(num_classes=2, output_transform=binary_one_hot_output_transform)
+            metric.attach(default_evaluator, 'cm')
+            y_true = torch.Tensor([0, 1, 0, 1, 0]).long()
+            y_pred = torch.Tensor([0, 0, 1, 1, 0])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics['cm'])
 
-            evaluator = create_supervised_evaluator(
-                model, metrics=metrics, output_transform=lambda x, y, y_pred: (y_pred, y)
-            )
+        .. testoutput:: 2
+
+            tensor([[2, 1],
+                    [1, 1]])
     """
 
     def __init__(
@@ -174,16 +200,26 @@ def IoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambd
         MetricsLambda
 
     Examples:
-        .. code-block:: python
 
-            train_evaluator = ...
+        .. testcode::
 
-            cm = ConfusionMatrix(num_classes=num_classes)
-            IoU(cm, ignore_index=0).attach(train_evaluator, 'IoU')
+            cm = ConfusionMatrix(num_classes=3)
+            metric = IoU(cm)
+            metric.attach(default_evaluator, 'iou')
+            y_true = torch.Tensor([0, 1, 0, 1, 2]).long()
+            y_pred = torch.Tensor([
+                [0.0, 1.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.0, 1.0, 0.0],
+            ])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics['iou'])
 
-            state = train_evaluator.run(train_dataset)
-            # state.metrics['IoU'] -> tensor of shape (num_classes - 1, )
+        .. testoutput::
 
+            tensor([0.5000, 0.5000, 0.0000], dtype=torch.float64)
     """
     if not isinstance(cm, ConfusionMatrix):
         raise TypeError(f"Argument cm should be instance of ConfusionMatrix, but given {type(cm)}")
@@ -224,15 +260,26 @@ def mIoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLamb
         MetricsLambda
 
     Examples:
-        .. code-block:: python
 
-            train_evaluator = ...
+        .. testcode::
 
-            cm = ConfusionMatrix(num_classes=num_classes)
-            mIoU(cm, ignore_index=0).attach(train_evaluator, 'mean IoU')
+            cm = ConfusionMatrix(num_classes=3)
+            metric = mIoU(cm, ignore_index=0)
+            metric.attach(default_evaluator, 'miou')
+            y_true = torch.Tensor([0, 1, 0, 1, 2]).long()
+            y_pred = torch.Tensor([
+                [0.0, 1.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.0, 1.0, 0.0],
+            ])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics['miou'])
 
-            state = train_evaluator.run(train_dataset)
-            # state.metrics['mean IoU'] -> scalar
+        .. testoutput::
+
+            0.24999...
     """
     iou = IoU(cm=cm, ignore_index=ignore_index).mean()  # type: MetricsLambda
     return iou
@@ -297,6 +344,28 @@ def DiceCoefficient(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> 
     Args:
         cm: instance of confusion matrix metric
         ignore_index: index to ignore, e.g. background index
+
+    Examples:
+
+        .. testcode::
+
+            cm = ConfusionMatrix(num_classes=3)
+            metric = DiceCoefficient(cm, ignore_index=0)
+            metric.attach(default_evaluator, 'dice')
+            y_true = torch.Tensor([0, 1, 0, 1, 2]).long()
+            y_pred = torch.Tensor([
+                [0.0, 1.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.0, 1.0, 0.0],
+            ])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics['dice'])
+
+        .. testoutput::
+
+            tensor([0.6667, 0.0000], dtype=torch.float64)
     """
 
     if not isinstance(cm, ConfusionMatrix):
@@ -341,14 +410,25 @@ def JaccardIndex(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> Met
         MetricsLambda
 
     Examples:
-        .. code-block:: python
 
-            train_evaluator = ...
+        .. testcode::
 
-            cm = ConfusionMatrix(num_classes=num_classes)
-            JaccardIndex(cm, ignore_index=0).attach(train_evaluator, 'JaccardIndex')
+            cm = ConfusionMatrix(num_classes=3)
+            metric = JaccardIndex(cm, ignore_index=0)
+            metric.attach(default_evaluator, 'jac')
+            y_true = torch.Tensor([0, 1, 0, 1, 2]).long()
+            y_pred = torch.Tensor([
+                [0.0, 1.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.0, 1.0, 0.0],
+            ])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics['jac'])
 
-            state = train_evaluator.run(train_dataset)
-            # state.metrics['JaccardIndex'] -> tensor of shape (num_classes - 1, )
+        .. testoutput::
+
+            tensor([0.5000, 0.0000], dtype=torch.float64)
     """
     return IoU(cm, ignore_index)
