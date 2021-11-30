@@ -987,6 +987,84 @@ class PiecewiseLinear(ParamScheduler):
         # from 0.3 to 0.1 between 21st and 30th iterations and remains 0.1 until the end of the iterations.
         #
 
+    Examples:
+
+        .. testsetup:: *
+
+            default_trainer = get_default_trainer()
+
+        .. testcode:: 1
+
+            from ignite.handlers.param_scheduler import PiecewiseLinear
+
+            milestones_values = [(1, 1.0), (3, 0.8), (5, 0.2)]
+            scheduler = PiecewiseLinear(
+                default_optimizer, "lr", milestones_values=milestones_values)
+            # Sets lr equal to 1 for till the first iteration
+            # Then linearly reduces lr from 1 to 0.8 till the third iteration
+            # Then linearly reduces lr from 0.8 to 0.5 till the fifth iteration
+
+            default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def print_lr():
+                print(default_optimizer.param_groups[0]["lr"])
+
+            default_trainer.run([0] * 6, max_epochs=1)
+
+        .. testoutput:: 1
+
+            1.0
+            1.0
+            0.9
+            0.8
+            0.5
+            0.2
+
+        .. testcode:: 2
+
+            from ignite.handlers.param_scheduler import PiecewiseLinear
+
+            optimizer = torch.optim.SGD(
+                [
+                    {"params": default_model.base.parameters(), "lr": 0.1},
+                    {"params": default_model.fc.parameters(), "lr": 1.0},
+                ]
+            )
+
+            milestones_values1 = [(1, 0.1), (3, 0.08), (5, 0.02)]
+            scheduler2 = PiecewiseLinear(
+                optimizer, "lr", milestones_values=milestones_values1, param_group_index=0)
+            # Sets lr equal to 0.1 for till the first iteration
+            # Then linearly reduces lr from 0.1 to 0.08 till the third iteration
+            # Then linearly reduces lr from 0.08 to 0.05 till the fifth iteration
+
+            milestones_values2 = [(1, 1.0), (3, 0.8), (5, 0.2)]
+            scheduler1 = PiecewiseLinear(
+                optimizer, "lr", milestones_values=milestones_values2, param_group_index=1)
+            # Sets lr equal to 1 for till the first iteration
+            # Then linearly reduces lr from 1 to 0.8 till the third iteration
+            # Then linearly reduces lr from 0.8 to 0.5 till the fifth iteration
+
+            default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler1)
+            default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler2)
+
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def print_lr():
+                print(optimizer.param_groups[0]["lr"],
+                      optimizer.param_groups[1]["lr"])
+
+            default_trainer.run([0] * 6, max_epochs=1)
+
+        .. testoutput:: 2
+
+            0.1 1.0
+            0.1 1.0
+            0.09 0.9
+            0.08 0.8
+            0.05 0.5
+            0.02 0.2
+
     .. versionadded:: 0.4.5
     """
 
