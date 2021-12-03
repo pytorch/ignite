@@ -87,17 +87,113 @@ class Precision(_BasePrecisionRecall):
             default, CPU.
 
     Examples:
+        
+        Binary case
+
+        .. testcode:: 1
+
+            metric = Precision(average=False)
+            metric.attach(default_evaluator, "precision")
+            y_true = torch.Tensor([1, 0, 1, 1, 0, 1])
+            y_pred = torch.Tensor([1, 0, 1, 0, 1, 1])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["precision"])
+
+        .. testoutput:: 1
+
+            0.75
+
+        Multiclass case
+
+        .. testcode:: 2
+
+            metric = Precision(average=False)
+            metric.attach(default_evaluator, "precision")
+            y_true = torch.Tensor([2, 0, 2, 1, 0, 1]).long()
+            y_pred = torch.Tensor([
+                [0.0266, 0.1719, 0.3055],
+                [0.6886, 0.3978, 0.8176],
+                [0.9230, 0.0197, 0.8395],
+                [0.1785, 0.2670, 0.6084],
+                [0.8448, 0.7177, 0.7288],
+                [0.7748, 0.9542, 0.8573],
+            ])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["precision"])
+
+        .. testoutput:: 2
+
+            tensor([0.5000, 1.0000, 0.3333], dtype=torch.float64)
+
+        Precision can be computed as the unweighted average across all classes:
+
+        .. testcode:: 3
+
+            metric = Precision(average=True)
+            metric.attach(default_evaluator, "precision")
+            y_true = torch.Tensor([2, 0, 2, 1, 0, 1]).long()
+            y_pred = torch.Tensor([
+                [0.0266, 0.1719, 0.3055],
+                [0.6886, 0.3978, 0.8176],
+                [0.9230, 0.0197, 0.8395],
+                [0.1785, 0.2670, 0.6084],
+                [0.8448, 0.7177, 0.7288],
+                [0.7748, 0.9542, 0.8573],
+            ])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["precision"])
+
+        .. testoutput:: 3
+
+            0.6111...
+
+        Multilabel case
+
+        .. testcode:: 4
+
+            metric = Precision(average=True, is_multilabel=True)
+            metric.attach(default_evaluator, "precision")
+            y_true = torch.Tensor([
+                [0, 0, 1, 0, 1],
+                [0, 0, 0, 0, 1],
+                [0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 1],
+                [0, 1, 1, 0, 1],
+            ])
+            y_pred = torch.Tensor([
+                [1, 1, 0, 0, 0],
+                [1, 0, 1, 0, 0],
+                [1, 0, 0, 0, 0],
+                [1, 0, 1, 1, 1],
+                [1, 1, 0, 0, 1],
+            ])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["precision"])
+
+        .. testoutput:: 4
+
+            0.23333...
+
         In binary and multilabel cases, the elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of
         predictions can be done as below:
 
-        .. code-block:: python
+        .. testcode:: 5
 
             def thresholded_output_transform(output):
                 y_pred, y = output
                 y_pred = torch.round(y_pred)
                 return y_pred, y
 
-            precision = Precision(output_transform=thresholded_output_transform)
+            metric = Precision(average=False, output_transform=thresholded_output_transform)
+            metric.attach(default_evaluator, "precision")
+            y_true = torch.Tensor([1, 0, 1, 1, 0, 1])
+            y_pred = torch.Tensor([0.6, 0.2, 0.9, 0.4, 0.7, 0.65])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["precision"])
+            
+        .. testoutput:: 5
+
+            0.75
 
         In multilabel cases, average parameter should be True. However, if user would like to compute F1 metric, for
         example, average parameter should be False. This can be done as shown below:
