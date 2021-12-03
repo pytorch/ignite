@@ -42,9 +42,13 @@ class Loss(Metric):
         and the Loss metric using an ``evaluator`` created with
         :meth:`~ignite.engine.create_supervised_evaluator` method.
 
+        .. testsetup:: *
+        
+            default_trainer = get_default_trainer()
+
         .. testcode::
 
-            model = nn.Linear(10, 3)
+            model = default_model
 
             criterion = nll_loss
             c_kwargs = {"reduction": "sum"}
@@ -73,8 +77,6 @@ class Loss(Metric):
     """
 
     required_output_keys = ("y_pred", "y", "criterion_kwargs")
-
-    print(required_output_keys)
 
     def __init__(
         self,
