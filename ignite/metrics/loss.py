@@ -53,21 +53,16 @@ class Loss(Metric):
             criterion = nll_loss
             c_kwargs = {"reduction": "sum"}
 
-            def process_function(engine, batch):
-                y_pred, y = batch
-                return y_pred, y
-
             def output_transform(output):
                 y_pred, y = output
                 criterion_kwargs = c_kwargs
                 return y_pred, y, c_kwargs 
 
-            engine = Engine(process_function)
             metric = Loss(criterion, output_transform=output_transform)
-            metric.attach(engine, 'loss')
+            metric.attach(default_evaluator, 'loss')
             y_pred = torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]])
-            y_true = torch.LongTensor([2, 2])
-            state = engine.run([[y_pred, y_true], ])
+            y_true = torch.tensor([2, 2]).long()
+            state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics['loss'])
 
         .. testoutput::
