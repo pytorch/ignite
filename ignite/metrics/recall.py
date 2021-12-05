@@ -137,7 +137,7 @@ class Recall(_BasePrecisionRecall):
             y_pred = torch.Tensor([0.6, 0.2, 0.9, 0.4, 0.7, 0.65])
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["recall"])
-            
+
         .. testoutput:: 5
 
             0.75
