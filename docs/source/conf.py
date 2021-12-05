@@ -336,6 +336,7 @@ from collections import OrderedDict
 
 import torch
 from torch import nn, optim
+import numpy as np
 
 from ignite.engine import *
 from ignite.handlers import *
@@ -373,6 +374,11 @@ default_model = nn.Sequential(OrderedDict([
     ('base', nn.Linear(4, 2)),
     ('fc', nn.Linear(2, 1))
 ]))
+
+def sigmoid_output_transform(output):
+    y_pred, y = output
+    y_pred = torch.sigmoid(y_pred)
+    return y_pred, y
 
 manual_seed(666)
 """
