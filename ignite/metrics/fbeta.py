@@ -112,7 +112,7 @@ def Fbeta(
 
             tensor([0.5000, 0.6667, 0.4000], dtype=torch.float64)
 
-        The elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of predictions can 
+        The elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of predictions can
         be done as below:
 
         .. testcode:: 4
@@ -130,7 +130,7 @@ def Fbeta(
             y_pred = torch.Tensor([0.6, 0.2, 0.9, 0.4, 0.7, 0.65])
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["f-beta"])
-            
+
         .. testoutput:: 4
 
             0.7499...
