@@ -1,7 +1,9 @@
+import re
 from unittest.mock import patch
 
 import pytest
 import torch
+import torch.nn as nn
 
 from ignite.engine import Engine, Events
 from ignite.handlers.state_param_scheduler import (
@@ -281,31 +283,6 @@ def test_simulate_values(scheduler_cls, scheduler_kwargs):
     _test(scheduler_cls, scheduler_kwargs)
 
 
-@pytest.mark.parametrize("scheduler_cls,scheduler_kwargs", [config3, config4, config5, config6])
-def test_state_param_asserts(scheduler_cls, scheduler_kwargs):
-    import re
-
-    def _test(scheduler_cls, scheduler_kwargs):
-        scheduler = scheduler_cls(**scheduler_kwargs)
-        with pytest.raises(
-            ValueError,
-            match=r"Attribute: '"
-            + re.escape(scheduler_kwargs["param_name"])
-            + "' is already defined in the Engine.state.This may be a conflict between multiple StateParameterScheduler"
-            + " handlers.Please choose another name.",
-        ):
-
-            trainer = Engine(lambda engine, batch: None)
-            event = Events.EPOCH_COMPLETED
-            max_epochs = 2
-            data = [0] * 10
-            scheduler.attach(trainer, event)
-            trainer.run(data, max_epochs=max_epochs)
-            scheduler.attach(trainer, event)
-
-    _test(scheduler_cls, scheduler_kwargs)
-
-
 def test_torch_save_load():
 
     lambda_state_parameter_scheduler = LambdaStateScheduler(
@@ -441,3 +418,69 @@ def test_docstring_examples():
     param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
 
     engine.run([0] * 8, max_epochs=10)
+
+
+def test_param_scheduler_attach_exception():
+    trainer = Engine(lambda e, b: None)
+    param_name = "state_param"
+
+    setattr(trainer.state, param_name, None)
+
+    save_history = True
+    create_new = True
+
+    param_scheduler = PiecewiseLinearStateScheduler(
+        param_name=param_name,
+        milestones_values=[(0, 0.0), (10, 0.999)],
+        save_history=save_history,
+        create_new=create_new,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match=r"Attribute '" + re.escape(param_name) + "' already exists in the engine.state. "
+        r"This may be a conflict between multiple handlers. "
+        r"Please choose another name.",
+    ):
+        param_scheduler.attach(trainer, Events.ITERATION_COMPLETED)
+
+
+def test_param_scheduler_attach_warning():
+    trainer = Engine(lambda e, b: None)
+    param_name = "state_param"
+    save_history = True
+    create_new = False
+
+    param_scheduler = PiecewiseLinearStateScheduler(
+        param_name=param_name,
+        milestones_values=[(0, 0.0), (10, 0.999)],
+        save_history=save_history,
+        create_new=create_new,
+    )
+
+    with pytest.warns(
+        UserWarning,
+        match=r"Attribute '" + re.escape(param_name) + "' is not defined in the engine.state. "
+        r"PiecewiseLinearStateScheduler will create it. Remove this warning by setting create_new=True.",
+    ):
+        param_scheduler.attach(trainer, Events.ITERATION_COMPLETED)
+
+
+def test_param_scheduler_with_ema_handler():
+
+    from ignite.handlers import EMAHandler
+
+    model = nn.Linear(2, 1)
+    trainer = Engine(lambda e, b: model(b))
+    data = torch.rand(100, 2)
+
+    param_name = "ema_decay"
+
+    ema_handler = EMAHandler(model)
+    ema_handler.attach(trainer, name=param_name, event=Events.ITERATION_COMPLETED)
+
+    ema_decay_scheduler = PiecewiseLinearStateScheduler(
+        param_name=param_name, milestones_values=[(0, 0.0), (10, 0.999),], save_history=True
+    )
+    ema_decay_scheduler.attach(trainer, Events.ITERATION_COMPLETED)
+    trainer.run(data, max_epochs=20)
