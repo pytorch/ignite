@@ -41,15 +41,18 @@ class ROC_AUC(EpochMetric):
     ROC_AUC expects y to be comprised of 0's and 1's. y_pred must either be probability estimates or confidence
     values. To apply an activation to y_pred, use output_transform as shown below:
 
-    .. code-block:: python
+    .. testcode::
 
-        def activated_output_transform(output):
-            y_pred, y = output
-            y_pred = torch.sigmoid(y_pred)
-            return y_pred, y
+        roc_auc = ROC_AUC(sigmoid_output_transform)
+        roc_auc.attach(default_evaluator, 'roc_auc')
+        y_pred = torch.tensor([[-3], [0.4], [0.9], [8]])
+        y_true = torch.tensor([[0], [0], [1], [0]])
+        state = default_evaluator.run([[y_pred, y_true]])
+        print(state.metrics['roc_auc'])
 
-        roc_auc = ROC_AUC(activated_output_transform)
+    .. testoutput::
 
+        0.6666...
     """
 
     def __init__(
@@ -88,15 +91,22 @@ class RocCurve(EpochMetric):
     RocCurve expects y to be comprised of 0's and 1's. y_pred must either be probability estimates or confidence
     values. To apply an activation to y_pred, use output_transform as shown below:
 
-    .. code-block:: python
+    .. testcode::
 
-        def activated_output_transform(output):
-            y_pred, y = output
-            y_pred = torch.sigmoid(y_pred)
-            return y_pred, y
+        roc_auc = RocCurve(sigmoid_output_transform)
+        roc_auc.attach(default_evaluator, 'roc_auc')
+        y_pred = torch.tensor([-3, 0.4, 0.9, 8])
+        y_true = torch.tensor([0, 0, 1, 0])
+        state = default_evaluator.run([[y_pred, y_true]])
+        print("FPR", [round(i, 3) for i in state.metrics['roc_auc'][0].tolist()])
+        print("TPR", [round(i, 3) for i in state.metrics['roc_auc'][1].tolist()])
+        print("Thresholds", [round(i, 3) for i in state.metrics['roc_auc'][2].tolist()])
 
-        roc_auc = RocCurve(activated_output_transform)
+    .. testoutput::
 
+        FPR [0.0, 0.333, 0.333, 1.0]
+        TPR [0.0, 0.0, 1.0, 1.0]
+        Thresholds [2.0, 1.0, 0.711, 0.047]
     """
 
     def __init__(self, output_transform: Callable = lambda x: x, check_compute_fn: bool = False) -> None:
