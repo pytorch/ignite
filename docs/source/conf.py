@@ -336,6 +336,7 @@ from collections import OrderedDict
 
 import torch
 from torch import nn, optim
+from torch.nn.functional import nll_loss
 
 from ignite.engine import *
 from ignite.handlers import *
