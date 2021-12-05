@@ -43,9 +43,10 @@ class ROC_AUC(EpochMetric):
 
     .. testcode::
 
-        roc_auc = ROC_AUC(sigmoid_output_transform)
+        roc_auc = ROC_AUC()
+        #The ``output_transform`` arg of the metric can be used to perform a sigmoid on the ``y_pred``.
         roc_auc.attach(default_evaluator, 'roc_auc')
-        y_pred = torch.tensor([[-3], [0.4], [0.9], [8]])
+        y_pred = torch.tensor([[0.0474], [0.5987], [0.7109], [0.9997]])
         y_true = torch.tensor([[0], [0], [1], [0]])
         state = default_evaluator.run([[y_pred, y_true]])
         print(state.metrics['roc_auc'])
@@ -93,9 +94,10 @@ class RocCurve(EpochMetric):
 
     .. testcode::
 
-        roc_auc = RocCurve(sigmoid_output_transform)
+        roc_auc = RocCurve()
+        #The ``output_transform`` arg of the metric can be used to perform a sigmoid on the ``y_pred``.
         roc_auc.attach(default_evaluator, 'roc_auc')
-        y_pred = torch.tensor([-3, 0.4, 0.9, 8])
+        y_pred = torch.tensor([0.0474, 0.5987, 0.7109, 0.9997])
         y_true = torch.tensor([0, 0, 1, 0])
         state = default_evaluator.run([[y_pred, y_true]])
         print("FPR", [round(i, 3) for i in state.metrics['roc_auc'][0].tolist()])

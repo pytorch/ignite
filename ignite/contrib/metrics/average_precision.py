@@ -35,14 +35,11 @@ class AveragePrecision(EpochMetric):
 
         .. testcode::
 
-            def activated_output_transform(output):
-                y_pred, y = output
-                y_pred = torch.softmax(y_pred, dim=1)
-                return y_pred, y
-            y_pred = torch.Tensor([[3.89, 0.21], [0.30, 0.9], [0.46, 0.14], [0.16, 0.2]])
-            y_true = torch.tensor([[1, 1], [1, 1], [1, 0], [0, 1]])
+            y_pred = torch.Tensor([[0.79, 0.21], [0.30, 0.70], [0.46, 0.54], [0.16, 0.84]])
+            y_true = torch.tensor([[1, 1], [1, 1], [0, 1], [0, 1]])
 
-            avg_precision = AveragePrecision(activated_output_transform)
+            avg_precision = AveragePrecision()
+            #The ``output_transform`` arg of the metric can be used to perform a softmax on the ``y_pred``.
             avg_precision.attach(default_evaluator, 'average_precision')
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics['average_precision'])

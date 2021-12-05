@@ -374,11 +374,6 @@ default_model = nn.Sequential(OrderedDict([
     ('fc', nn.Linear(2, 1))
 ]))
 
-def sigmoid_output_transform(output):
-    y_pred, y = output
-    y_pred = torch.sigmoid(y_pred)
-    return y_pred, y
-
 manual_seed(666)
 """
 

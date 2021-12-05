@@ -37,13 +37,10 @@ class PrecisionRecallCurve(EpochMetric):
 
     .. testcode::
 
-        def activated_output_transform(output):
-            y_pred, y = output
-            y_pred = torch.sigmoid(y_pred)
-            return y_pred, y
-        y_pred = torch.tensor([-3, 0.4, 0.9, 8])
+        y_pred = torch.tensor([0.0474, 0.5987, 0.7109, 0.9997])
         y_true = torch.tensor([0, 0, 1, 1])
-        prec_recall_curve = PrecisionRecallCurve(activated_output_transform)
+        prec_recall_curve = PrecisionRecallCurve()
+        #The ``output_transform`` arg of the metric can be used to perform a sigmoid on the ``y_pred``.
         prec_recall_curve.attach(default_evaluator, 'prec_recall_curve')
         state = default_evaluator.run([[y_pred, y_true]])
 
