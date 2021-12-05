@@ -360,15 +360,71 @@ class LinearCyclicalScheduler(CyclicalScheduler):
         usually be the number of batches in an epoch.
 
     Examples:
-        .. code-block:: python
+
+        .. testsetup:: *
+
+            default_trainer = get_default_trainer()
+
+        .. testcode:: 1
 
             from ignite.handlers.param_scheduler import LinearCyclicalScheduler
 
-            scheduler = LinearCyclicalScheduler(optimizer, 'lr', 1e-3, 1e-1, len(train_loader))
-            trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
-            #
-            # Linearly increases the learning rate from 1e-3 to 1e-1 and back to 1e-3
-            # over the course of 1 epoch
+            # Linearly increases the learning rate from 0.0 to 1.0 and back to 0.0
+            # over a cycle of 4 iterations
+            scheduler = LinearCyclicalScheduler(default_optimizer, "lr", 0.0, 1.0, 4)
+
+            default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def print_lr():
+                print(default_optimizer.param_groups[0]["lr"])
+
+            default_trainer.run([0] * 9, max_epochs=1)
+
+        .. testoutput:: 1
+
+            0.0
+            0.5
+            1.0
+            0.5
+            ...
+
+        .. testcode:: 2
+
+            from ignite.handlers.param_scheduler import LinearCyclicalScheduler
+
+            optimizer = torch.optim.SGD(
+                [
+                    {"params": default_model.base.parameters(), "lr": 0.001},
+                    {"params": default_model.fc.parameters(), "lr": 0.01},
+                ]
+            )
+
+            # Linearly increases the learning rate from 0.0 to 1.0 and back to 0.0
+            # over a cycle of 4 iterations
+            scheduler1 = LinearCyclicalScheduler(optimizer, "lr", 0.0, 1.0, 4, param_group_index=0)
+
+            # Linearly increases the learning rate from 1.0 to 0.0 and back to 0.1
+            # over a cycle of 4 iterations
+            scheduler2 = LinearCyclicalScheduler(optimizer, "lr", 0.0, 0.1, 4, param_group_index=1)
+
+            default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler1)
+            default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler2)
+
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def print_lr():
+                print(optimizer.param_groups[0]["lr"],
+                      optimizer.param_groups[1]["lr"])
+
+            default_trainer.run([0] * 9, max_epochs=1)
+
+        .. testoutput:: 2
+
+            0.0 0.0
+            0.5 0.05
+            1.0 0.1
+            0.5 0.05
+            ...
 
     .. versionadded:: 0.4.5
     """
@@ -930,6 +986,84 @@ class PiecewiseLinear(ParamScheduler):
         # 10th and 20th iterations. Next there is a jump to 0.3 at the 21st iteration and LR decreases linearly
         # from 0.3 to 0.1 between 21st and 30th iterations and remains 0.1 until the end of the iterations.
         #
+
+    Examples:
+
+        .. testsetup:: *
+
+            default_trainer = get_default_trainer()
+
+        .. testcode:: 1
+
+            from ignite.handlers.param_scheduler import PiecewiseLinear
+
+            milestones_values = [(1, 1.0), (3, 0.8), (5, 0.2)]
+            scheduler = PiecewiseLinear(
+                default_optimizer, "lr", milestones_values=milestones_values)
+            # Sets lr equal to 1 for till the first iteration
+            # Then linearly reduces lr from 1 to 0.8 till the third iteration
+            # Then linearly reduces lr from 0.8 to 0.5 till the fifth iteration
+
+            default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def print_lr():
+                print(default_optimizer.param_groups[0]["lr"])
+
+            default_trainer.run([0] * 6, max_epochs=1)
+
+        .. testoutput:: 1
+
+            1.0
+            1.0
+            0.9
+            0.8
+            0.5
+            0.2
+
+        .. testcode:: 2
+
+            from ignite.handlers.param_scheduler import PiecewiseLinear
+
+            optimizer = torch.optim.SGD(
+                [
+                    {"params": default_model.base.parameters(), "lr": 0.1},
+                    {"params": default_model.fc.parameters(), "lr": 1.0},
+                ]
+            )
+
+            milestones_values1 = [(1, 0.1), (3, 0.08), (5, 0.02)]
+            scheduler2 = PiecewiseLinear(
+                optimizer, "lr", milestones_values=milestones_values1, param_group_index=0)
+            # Sets lr equal to 0.1 for till the first iteration
+            # Then linearly reduces lr from 0.1 to 0.08 till the third iteration
+            # Then linearly reduces lr from 0.08 to 0.05 till the fifth iteration
+
+            milestones_values2 = [(1, 1.0), (3, 0.8), (5, 0.2)]
+            scheduler1 = PiecewiseLinear(
+                optimizer, "lr", milestones_values=milestones_values2, param_group_index=1)
+            # Sets lr equal to 1 for till the first iteration
+            # Then linearly reduces lr from 1 to 0.8 till the third iteration
+            # Then linearly reduces lr from 0.8 to 0.5 till the fifth iteration
+
+            default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler1)
+            default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler2)
+
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def print_lr():
+                print(optimizer.param_groups[0]["lr"],
+                      optimizer.param_groups[1]["lr"])
+
+            default_trainer.run([0] * 6, max_epochs=1)
+
+        .. testoutput:: 2
+
+            0.1 1.0
+            0.1 1.0
+            0.09 0.9
+            0.08 0.8
+            0.05 0.5
+            0.02 0.2
 
     .. versionadded:: 0.4.5
     """
