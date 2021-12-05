@@ -336,7 +336,6 @@ from collections import OrderedDict
 
 import torch
 from torch import nn, optim
-import numpy as np
 
 from ignite.engine import *
 from ignite.handlers import *
