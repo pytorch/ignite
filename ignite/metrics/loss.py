@@ -49,16 +49,8 @@ class Loss(Metric):
         .. testcode::
 
             model = default_model
-
             criterion = nll_loss
-            c_kwargs = {"reduction": "sum"}
-
-            def output_transform(output):
-                y_pred, y = output
-                criterion_kwargs = c_kwargs
-                return y_pred, y, c_kwargs 
-
-            metric = Loss(criterion, output_transform=output_transform)
+            metric = Loss(criterion)
             metric.attach(default_evaluator, 'loss')
             y_pred = torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]])
             y_true = torch.tensor([2, 2]).long()
@@ -67,7 +59,7 @@ class Loss(Metric):
 
         .. testoutput::
 
-            -0.6999999...
+            -0.3499999...
 
     """
 
