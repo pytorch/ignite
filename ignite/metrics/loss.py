@@ -42,35 +42,24 @@ class Loss(Metric):
         and the Loss metric using an ``evaluator`` created with
         :meth:`~ignite.engine.create_supervised_evaluator` method.
 
-        .. code-block:: python
+        .. testsetup:: *
 
-            import torch
-            import torch.nn as nn
-            from torch.nn.functional import nll_loss
+            default_trainer = get_default_trainer()
 
-            from ignite.metrics import Accuracy, Loss
-            from ignite.engine import create_supervised_evaluator
+        .. testcode::
 
-            model = ...
+            model = default_model
+            criterion = nn.NLLLoss()
+            metric = Loss(criterion)
+            metric.attach(default_evaluator, 'loss')
+            y_pred = torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]])
+            y_true = torch.tensor([2, 2]).long()
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics['loss'])
 
-            criterion = nll_loss
+        .. testoutput::
 
-            metrics = {
-                "Accuracy": Accuracy(),
-                "Loss": Loss(criterion)
-            }
-
-            # global criterion kwargs
-            criterion_kwargs = {...}
-
-            evaluator = create_supervised_evaluator(
-                model,
-                metrics=metrics,
-                output_transform=lambda x, y, y_pred: {
-                    "x": x, "y": y, "y_pred": y_pred, "criterion_kwargs": criterion_kwargs}
-            )
-
-            res = evaluator.run(data)
+            -0.3499999...
 
     """
 
