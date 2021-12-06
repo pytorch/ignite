@@ -49,7 +49,7 @@ class Loss(Metric):
         .. testcode::
 
             model = default_model
-            criterion = nll_loss
+            criterion = nn.NLLLoss()
             metric = Loss(criterion)
             metric.attach(default_evaluator, 'loss')
             y_pred = torch.tensor([[0.1, 0.4, 0.5], [0.1, 0.7, 0.2]])
