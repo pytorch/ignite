@@ -32,17 +32,36 @@ class PrecisionRecallCurve(EpochMetric):
             #sklearn.metrics.precision_recall_curve>`_ is run on the first batch of data to ensure there are
             no issues. User will be warned in case there are any issues computing the function.
 
-    PrecisionRecallCurve expects y to be comprised of 0's and 1's. y_pred must either be probability estimates
-    or confidence values. To apply an activation to y_pred, use output_transform as shown below:
+    Note:
+        PrecisionRecallCurve expects y to be comprised of 0's and 1's. y_pred must either be probability estimates
+        or confidence values. To apply an activation to y_pred, use output_transform as shown below:
 
-    .. code-block:: python
+        .. code-block:: python
 
-        def activated_output_transform(output):
-            y_pred, y = output
-            y_pred = torch.sigmoid(y_pred)
-            return y_pred, y
+            def sigmoid_output_transform(output):
+                y_pred, y = output
+                y_pred = torch.sigmoid(y_pred)
+                return y_pred, y
+            avg_precision = PrecisionRecallCurve(sigmoid_output_transform)
 
-        roc_auc = PrecisionRecallCurve(activated_output_transform)
+    Examples:
+        .. testcode::
+
+            y_pred = torch.tensor([0.0474, 0.5987, 0.7109, 0.9997])
+            y_true = torch.tensor([0, 0, 1, 1])
+            prec_recall_curve = PrecisionRecallCurve()
+            prec_recall_curve.attach(default_evaluator, 'prec_recall_curve')
+            state = default_evaluator.run([[y_pred, y_true]])
+
+            print("Precision", [round(i, 4) for i in state.metrics['prec_recall_curve'][0].tolist()])
+            print("Recall", [round(i, 4) for i in state.metrics['prec_recall_curve'][1].tolist()])
+            print("Thresholds", [round(i, 4) for i in state.metrics['prec_recall_curve'][2].tolist()])
+
+        .. testoutput::
+
+            Precision [1.0, 1.0, 1.0]
+            Recall [1.0, 0.5, 0.0]
+            Thresholds [0.7109, 0.9997]
 
     """
 
