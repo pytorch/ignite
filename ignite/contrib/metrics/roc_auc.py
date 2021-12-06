@@ -38,22 +38,33 @@ class ROC_AUC(EpochMetric):
             no issues. User will be warned in case there are any issues computing the function.
         device: optional device specification for internal storage.
 
-    ROC_AUC expects y to be comprised of 0's and 1's. y_pred must either be probability estimates or confidence
-    values. To apply an activation to y_pred, use output_transform as shown below:
+    Note:
 
-    .. testcode::
+        ROC_AUC expects y to be comprised of 0's and 1's. y_pred must either be probability estimates or confidence
+        values. To apply an activation to y_pred, use output_transform as shown below:
 
-        roc_auc = ROC_AUC()
-        #The ``output_transform`` arg of the metric can be used to perform a sigmoid on the ``y_pred``.
-        roc_auc.attach(default_evaluator, 'roc_auc')
-        y_pred = torch.tensor([[0.0474], [0.5987], [0.7109], [0.9997]])
-        y_true = torch.tensor([[0], [0], [1], [0]])
-        state = default_evaluator.run([[y_pred, y_true]])
-        print(state.metrics['roc_auc'])
+        .. code-block:: python
 
-    .. testoutput::
+            def sigmoid_output_transform(output):
+                y_pred, y = output
+                y_pred = torch.sigmoid(y_pred)
+                return y_pred, y
+            avg_precision = ROC_AUC(sigmoid_output_transform)
 
-        0.6666...
+    Examples:
+        .. testcode::
+
+            roc_auc = ROC_AUC()
+            #The ``output_transform`` arg of the metric can be used to perform a sigmoid on the ``y_pred``.
+            roc_auc.attach(default_evaluator, 'roc_auc')
+            y_pred = torch.tensor([[0.0474], [0.5987], [0.7109], [0.9997]])
+            y_true = torch.tensor([[0], [0], [1], [0]])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics['roc_auc'])
+
+        .. testoutput::
+
+            0.6666...
     """
 
     def __init__(
@@ -88,27 +99,36 @@ class RocCurve(EpochMetric):
             <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_curve.html#
             sklearn.metrics.roc_curve>`_ is run on the first batch of data to ensure there are
             no issues. User will be warned in case there are any issues computing the function.
+    Note:
+        RocCurve expects y to be comprised of 0's and 1's. y_pred must either be probability estimates or confidence
+        values. To apply an activation to y_pred, use output_transform as shown below:
 
-    RocCurve expects y to be comprised of 0's and 1's. y_pred must either be probability estimates or confidence
-    values. To apply an activation to y_pred, use output_transform as shown below:
+        .. code-block:: python
 
-    .. testcode::
+            def sigmoid_output_transform(output):
+                y_pred, y = output
+                y_pred = torch.sigmoid(y_pred)
+                return y_pred, y
+            avg_precision = RocCurve(sigmoid_output_transform)
 
-        roc_auc = RocCurve()
-        #The ``output_transform`` arg of the metric can be used to perform a sigmoid on the ``y_pred``.
-        roc_auc.attach(default_evaluator, 'roc_auc')
-        y_pred = torch.tensor([0.0474, 0.5987, 0.7109, 0.9997])
-        y_true = torch.tensor([0, 0, 1, 0])
-        state = default_evaluator.run([[y_pred, y_true]])
-        print("FPR", [round(i, 3) for i in state.metrics['roc_auc'][0].tolist()])
-        print("TPR", [round(i, 3) for i in state.metrics['roc_auc'][1].tolist()])
-        print("Thresholds", [round(i, 3) for i in state.metrics['roc_auc'][2].tolist()])
+    Examples:
+        .. testcode::
 
-    .. testoutput::
+            roc_auc = RocCurve()
+            #The ``output_transform`` arg of the metric can be used to perform a sigmoid on the ``y_pred``.
+            roc_auc.attach(default_evaluator, 'roc_auc')
+            y_pred = torch.tensor([0.0474, 0.5987, 0.7109, 0.9997])
+            y_true = torch.tensor([0, 0, 1, 0])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print("FPR", [round(i, 3) for i in state.metrics['roc_auc'][0].tolist()])
+            print("TPR", [round(i, 3) for i in state.metrics['roc_auc'][1].tolist()])
+            print("Thresholds", [round(i, 3) for i in state.metrics['roc_auc'][2].tolist()])
 
-        FPR [0.0, 0.333, 0.333, 1.0]
-        TPR [0.0, 0.0, 1.0, 1.0]
-        Thresholds [2.0, 1.0, 0.711, 0.047]
+        .. testoutput::
+
+            FPR [0.0, 0.333, 0.333, 1.0]
+            TPR [0.0, 0.0, 1.0, 1.0]
+            Thresholds [2.0, 1.0, 0.711, 0.047]
     """
 
     def __init__(self, output_transform: Callable = lambda x: x, check_compute_fn: bool = False) -> None:
