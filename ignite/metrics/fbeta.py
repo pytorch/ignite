@@ -25,6 +25,10 @@ def Fbeta(
 
     where :math:`\beta` is a positive real factor.
 
+    - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
+    - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...).
+    - `y` must be in the following shape (batch_size, ...).
+
     Args:
         beta: weight of precision in harmonic mean
         average: if True, F-beta score is computed as the unweighted average (across all classes
@@ -40,6 +44,96 @@ def Fbeta(
 
     Returns:
         MetricsLambda, F-beta metric
+
+    Examples:
+
+        Binary case
+
+        .. testcode:: 1
+
+            P = Precision(average=False)
+            R = Recall(average=False)
+            metric = Fbeta(beta=1.0, precision=P, recall=R)
+            metric.attach(default_evaluator, "f-beta")
+            y_true = torch.Tensor([1, 0, 1, 1, 0, 1])
+            y_pred = torch.Tensor([1, 0, 1, 0, 1, 1])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["f-beta"])
+
+        .. testoutput:: 1
+
+            0.7499...
+
+        Multiclass case
+
+        .. testcode:: 2
+
+            P = Precision(average=False)
+            R = Recall(average=False)
+            metric = Fbeta(beta=1.0, precision=P, recall=R)
+            metric.attach(default_evaluator, "f-beta")
+            y_true = torch.Tensor([2, 0, 2, 1, 0, 1]).long()
+            y_pred = torch.Tensor([
+                [0.0266, 0.1719, 0.3055],
+                [0.6886, 0.3978, 0.8176],
+                [0.9230, 0.0197, 0.8395],
+                [0.1785, 0.2670, 0.6084],
+                [0.8448, 0.7177, 0.7288],
+                [0.7748, 0.9542, 0.8573],
+            ])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["f-beta"])
+
+        .. testoutput:: 2
+
+            0.5222...
+
+        F-beta can be computed for each class as done below:
+
+        .. testcode:: 3
+
+            P = Precision(average=False)
+            R = Recall(average=False)
+            metric = Fbeta(beta=1.0, average=False, precision=P, recall=R)
+            metric.attach(default_evaluator, "f-beta")
+            y_true = torch.Tensor([2, 0, 2, 1, 0, 1]).long()
+            y_pred = torch.Tensor([
+                [0.0266, 0.1719, 0.3055],
+                [0.6886, 0.3978, 0.8176],
+                [0.9230, 0.0197, 0.8395],
+                [0.1785, 0.2670, 0.6084],
+                [0.8448, 0.7177, 0.7288],
+                [0.7748, 0.9542, 0.8573],
+            ])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["f-beta"])
+
+        .. testoutput:: 3
+
+            tensor([0.5000, 0.6667, 0.4000], dtype=torch.float64)
+
+        The elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of predictions can
+        be done as below:
+
+        .. testcode:: 4
+
+            def thresholded_output_transform(output):
+                y_pred, y = output
+                y_pred = torch.round(y_pred)
+                return y_pred, y
+
+            P = Precision(average=False, output_transform=thresholded_output_transform)
+            R = Recall(average=False, output_transform=thresholded_output_transform)
+            metric = Fbeta(beta=1.0, precision=P, recall=R)
+            metric.attach(default_evaluator, "f-beta")
+            y_true = torch.Tensor([1, 0, 1, 1, 0, 1])
+            y_pred = torch.Tensor([0.6, 0.2, 0.9, 0.4, 0.7, 0.65])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["f-beta"])
+
+        .. testoutput:: 4
+
+            0.7499...
     """
     if not (beta > 0):
         raise ValueError(f"Beta should be a positive integer, but given {beta}")
