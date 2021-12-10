@@ -52,7 +52,7 @@ class ClearMLLogger(BaseLogger):
         kwargs: Keyword arguments accepted from
             `clearml.Task
             <https://clear.ml/docs/latest/docs/references/sdk/task#taskinit>`_.
-            All arguments are optional. If a ClearML Task has already been created, 
+            All arguments are optional. If a ClearML Task has already been created,
             kwargs will be ignored and the current ClearML Task will be used.
 
     Examples:
@@ -150,7 +150,7 @@ class ClearMLLogger(BaseLogger):
         else:
             # Try to retrieve current the ClearML Task before trying to create a new one
             self._task = Task.current_task()
-            if self._task is None: 
+            if self._task is None:
                 self._task = Task.init(
                     project_name=kwargs.get("project_name"),
                     task_name=kwargs.get("task_name"),
