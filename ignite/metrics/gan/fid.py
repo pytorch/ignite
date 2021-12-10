@@ -95,15 +95,28 @@ class FID(_BaseInceptionMetric):
             non-blocking. By default, CPU.
 
     Examples:
+    
         .. code-block:: python
 
-            import torch
-            from ignite.metric.gan import FID
+            metric = FID()
+            metric.attach(default_evaluator, "fid")
+            y_true = torch.rand(10, 3, 299, 299)
+            y_pred = torch.rand(10, 3, 299, 299)
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["fid"])
 
-            y_pred, y = torch.rand(10, 3, 299, 299), torch.rand(10, 3, 299, 299)
-            m = FID()
-            m.update((y_pred, y))
-            print(m.compute())
+        .. testcode::
+
+            metric = FID(num_features=1, feature_extractor=default_model)
+            metric.attach(default_evaluator, "fid")
+            y_true = torch.ones(10, 4)
+            y_pred = torch.ones(10, 4)
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["fid"])
+
+        .. testoutput::
+
+            0.0
 
     .. versionadded:: 0.4.6
     """
