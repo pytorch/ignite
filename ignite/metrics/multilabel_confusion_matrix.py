@@ -38,6 +38,40 @@ class MultiLabelConfusionMatrix(Metric):
             default, CPU.
         normalized: whether to normalize confusion matrix by its sum or not.
 
+    Example:
+
+        .. testcode::
+
+            metric = MultiLabelConfusionMatrix(num_classes=3)
+            metric.attach(default_evaluator, "mlcm")
+            y_true = torch.Tensor([
+                [0, 0, 1],
+                [0, 0, 0],
+                [0, 0, 0],
+                [1, 0, 0],
+                [0, 1, 1],
+            ]).long()
+            y_pred = torch.Tensor([
+                [1, 1, 0],
+                [1, 0, 1],
+                [1, 0, 0],
+                [1, 0, 1],
+                [1, 1, 0],
+            ]).long()
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["mlcm"])
+
+        .. testoutput::
+
+            tensor([[[0, 4],
+                    [0, 1]],
+
+                    [[3, 1],
+                    [0, 1]],
+
+                    [[1, 2],
+                    [2, 0]]])
+
     .. versionadded:: 0.4.5
 
     """
