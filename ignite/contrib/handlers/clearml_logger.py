@@ -52,7 +52,8 @@ class ClearMLLogger(BaseLogger):
         kwargs: Keyword arguments accepted from
             `clearml.Task
             <https://clear.ml/docs/latest/docs/references/sdk/task#taskinit>`_.
-            All arguments are optional.
+            All arguments are optional. If a ClearML has already been created, 
+            kwargs will be ignored and the current task will be used.
 
     Examples:
         .. code-block:: python
