@@ -64,13 +64,13 @@ class MultiLabelConfusionMatrix(Metric):
         .. testoutput::
 
             tensor([[[0, 4],
-                    [0, 1]],
+                     [0, 1]],
 
                     [[3, 1],
-                    [0, 1]],
+                     [0, 1]],
 
                     [[1, 2],
-                    [2, 0]]])
+                     [2, 0]]])
 
     .. versionadded:: 0.4.5
 
