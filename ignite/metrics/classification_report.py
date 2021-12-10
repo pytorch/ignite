@@ -37,35 +37,72 @@ def ClassificationReport(
         labels: Optional list of label indices to include in the report
 
     Examples:
-        .. code-block:: python
 
-            def process_function(engine, batch):
-                # ...
-                return y_pred, y
+        Multiclass case
 
-            engine = Engine(process_function)
-            metric = ClassificationReport()
-            metric.attach(engine, "cr")
-            engine.run...
-            res = engine.state.metrics["cr"]
-            # result should be like
-            {
-              "0": {
-                "precision": 0.4891304347826087,
-                "recall": 0.5056179775280899,
-                "f1-score": 0.497237569060773
-              },
-              "1": {
-                "precision": 0.5157232704402516,
-                "recall": 0.4992389649923896,
-                "f1-score": 0.507347254447022
-              },
-              "macro avg": {
-                "precision": 0.5024268526114302,
-                "recall": 0.5024284712602398,
-                "f1-score": 0.5022924117538975
-              }
-            }
+        .. testcode:: 1
+
+            metric = ClassificationReport(output_dict=True)
+            metric.attach(default_evaluator, "cr")
+            y_true = torch.Tensor([2, 0, 2, 1, 0, 1]).long()
+            y_pred = torch.Tensor([
+                [0.0266, 0.1719, 0.3055],
+                [0.6886, 0.3978, 0.8176],
+                [0.9230, 0.0197, 0.8395],
+                [0.1785, 0.2670, 0.6084],
+                [0.8448, 0.7177, 0.7288],
+                [0.7748, 0.9542, 0.8573],
+            ])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["cr"].keys())
+            print(state.metrics["cr"]["0"])
+            print(state.metrics["cr"]["1"])
+            print(state.metrics["cr"]["2"])
+            print(state.metrics["cr"]["macro avg"])
+        
+        .. testoutput:: 1
+
+            dict_keys(['0', '1', '2', 'macro avg'])
+            {'precision': 0.5, 'recall': 0.5, 'f1-score': 0.4999...}
+            {'precision': 1.0, 'recall': 0.5, 'f1-score': 0.6666...}
+            {'precision': 0.3333..., 'recall': 0.5, 'f1-score': 0.3999...}
+            {'precision': 0.6111..., 'recall': 0.5, 'f1-score': 0.5222...}
+
+        Multilabel case, the shapes must be (batch_size, num_categories, ...)
+
+        .. testcode:: 2
+
+            metric = ClassificationReport(output_dict=True, is_multilabel=True)
+            metric.attach(default_evaluator, "cr")
+            y_true = torch.Tensor([
+                [0, 0, 1],
+                [0, 0, 0],
+                [0, 0, 0],
+                [1, 0, 0],
+                [0, 1, 1],
+            ]).unsqueeze(0)
+            y_pred = torch.Tensor([
+                [1, 1, 0],
+                [1, 0, 1],
+                [1, 0, 0],
+                [1, 0, 1],
+                [1, 1, 0],
+            ]).unsqueeze(0)
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["cr"].keys())
+            print(state.metrics["cr"]["0"])
+            print(state.metrics["cr"]["1"])
+            print(state.metrics["cr"]["2"])
+            print(state.metrics["cr"]["macro avg"])
+
+        .. testoutput:: 2
+
+            dict_keys(['0', '1', '2', 'macro avg'])
+            {'precision': 0.2, 'recall': 1.0, 'f1-score': 0.3333...}
+            {'precision': 0.5, 'recall': 1.0, 'f1-score': 0.6666...}
+            {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0}
+            {'precision': 0.2333..., 'recall': 0.6666..., 'f1-score': 0.3333...}
+
     """
 
     # setup all the underlying metrics
