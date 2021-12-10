@@ -148,6 +148,7 @@ class ClearMLLogger(BaseLogger):
 
             self._task = _Stub()
         else:
+            # Try to retrieve current task before trying to create a new one
             self._task = Task.current_task()
             if self._task is None: 
                 self._task = Task.init(
