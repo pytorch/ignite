@@ -147,12 +147,14 @@ class ClearMLLogger(BaseLogger):
 
             self._task = _Stub()
         else:
-            self._task = Task.init(
-                project_name=kwargs.get("project_name"),
-                task_name=kwargs.get("task_name"),
-                task_type=kwargs.get("task_type", Task.TaskTypes.training),
-                **experiment_kwargs,
-            )
+            self._task = Task.current_task()
+            if self._task is None: 
+                self._task = Task.init(
+                    project_name=kwargs.get("project_name"),
+                    task_name=kwargs.get("task_name"),
+                    task_type=kwargs.get("task_type", Task.TaskTypes.training),
+                    **experiment_kwargs,
+                )
 
         self.clearml_logger = self._task.get_logger()
 
