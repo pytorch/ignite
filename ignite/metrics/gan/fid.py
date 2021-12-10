@@ -95,7 +95,7 @@ class FID(_BaseInceptionMetric):
             non-blocking. By default, CPU.
 
     Examples:
-    
+
         .. code-block:: python
 
             metric = FID()
