@@ -7,6 +7,7 @@ from packaging import version
 from ignite.distributed.comp_models.base import ComputationModel
 
 try:
+    import horovod
     import horovod.torch as hvd
 
     try:
@@ -24,6 +25,7 @@ except ImportError:
 if has_hvd_support:
 
     HOROVOD = "horovod"
+    HOROVOD_VERSION = horovod.__version__
 
     class _HorovodDistModel(ComputationModel):
         """Private class for `Horovod <https://horovod.readthedocs.io/en/stable/>`_ distributed computation model.
@@ -196,7 +198,7 @@ if has_hvd_support:
             return hvd.broadcast(tensor, root_rank=src)
 
         def barrier(self, *args: Any, **kwargs: Any) -> None:
-            if version.parse(hvd.__version__) < version.parse("0.23.0"):
+            if version.parse(HOROVOD_VERSION) < version.parse("0.23.0"):
                 if len(args) or len(kwargs):
                     warnings.warn(
                         f"Arguments {list(args) + list(kwargs)} are not passed to horovod barrier method. "
