@@ -59,7 +59,7 @@ def ClassificationReport(
             print(state.metrics["cr"]["1"])
             print(state.metrics["cr"]["2"])
             print(state.metrics["cr"]["macro avg"])
-        
+
         .. testoutput:: 1
 
             dict_keys(['0', '1', '2', 'macro avg'])
