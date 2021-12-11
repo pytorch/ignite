@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractmethod
+from inspect import signature
 from numbers import Number
-from typing import Any, Callable, List, Optional, Union, cast
+from typing import Any, Callable, Dict, List, Optional, Union, cast
 
 import torch
 
@@ -275,8 +276,22 @@ class ComputationModel(metaclass=ABCMeta):
     def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
         pass
 
+    def _check_signature(self, fn: Callable, *args: Any, **kwargs: Any) -> None:
+        try:
+            fn_signature = signature(fn)
+            fn_signature.bind(*args, **kwargs)
+        except TypeError as exc:
+            fn_params = list(fn_signature.parameters)
+            exception_msg = str(exc)
+            passed_params = list(args) + list(kwargs)
+            raise ValueError(
+                f"Error calling {fn} for {self._backend}: "
+                f"takes parameters {fn_params} but will be called with {passed_params}"
+                f"({exception_msg})."
+            )
+
     @abstractmethod
-    def barrier(self) -> None:
+    def barrier(self, *args: Any, **kwargs: Any) -> None:
         pass
 
 
@@ -358,5 +373,5 @@ class _SerialModel(ComputationModel):
     def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
         return tensor
 
-    def barrier(self) -> None:
+    def barrier(self, *args: Any, **kwargs: Any) -> None:
         pass

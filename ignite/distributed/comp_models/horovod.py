@@ -2,6 +2,7 @@ import warnings
 from typing import Any, Callable, Mapping, Optional, Tuple, cast
 
 import torch
+from packaging import version
 
 from ignite.distributed.comp_models.base import ComputationModel
 
@@ -194,7 +195,16 @@ if has_hvd_support:
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
             return hvd.broadcast(tensor, root_rank=src)
 
-        def barrier(self) -> None:
-            # https://github.com/horovod/horovod/issues/159#issuecomment-424834603
-            # hvd.allreduce(torch.tensor(0, device=self.device()), name="barrier")
-            hvd.allreduce(torch.tensor(0, device="cpu"), name="barrier")
+        def barrier(self, *args: Any, **kwargs: Any) -> None:
+            if version.parse(hvd.__version__) < version.parse("0.23.0"):
+                if len(args) or len(kwargs):
+                    warnings.warn(
+                        f"Arguments {list(args) + list(kwargs)} are not passed to horovod barrier method. "
+                        f"Please use horovod version > '0.23.0'"
+                    )
+                # https://github.com/horovod/horovod/issues/159#issuecomment-424834603
+                # hvd.allreduce(torch.tensor(0, device=self.device()), name="barrier")
+                hvd.allreduce(torch.tensor(0, device="cpu"), name="barrier")
+            else:
+                self._check_signature(hvd.barrier, *args, **kwargs)
+                hvd.barrier(*args, **kwargs)

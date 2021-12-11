@@ -1,3 +1,4 @@
+import warnings
 from typing import Any, Callable, Mapping, Optional, Tuple, cast
 
 import torch
@@ -160,5 +161,12 @@ if has_xla_support:
             xm.all_reduce("sum", [tensor,])
             return tensor
 
-        def barrier(self) -> None:
-            xm.rendezvous("barrier")
+        def barrier(self, *args: Any, **kwargs: Any) -> None:
+            if not len(args) and "tag" not in kwargs:
+                warnings.warn(
+                    f"`tag` parameter is mandatory and is set by default to `barrier` for {self._backend} `rendezvous`"
+                    f" method."
+                )
+                kwargs["tag"] = "barrier"
+            self._check_signature(xm.rendezvous, *args, **kwargs)
+            xm.rendezvous(*args, **kwargs)

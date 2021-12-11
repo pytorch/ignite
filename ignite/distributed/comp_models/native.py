@@ -432,8 +432,9 @@ if has_native_dist_support:
             dist.broadcast(tensor, src=src)
             return tensor
 
-        def barrier(self) -> None:
-            dist.barrier()
+        def barrier(self, *args: Any, **kwargs: Any) -> None:
+            self._check_signature(dist.barrier, *args, **kwargs)
+            dist.barrier(*args, **kwargs)
 
     def _expand_hostlist(nodelist: str) -> List[str]:
         """Expand a compressed hostlist string and returns all hosts listed.
