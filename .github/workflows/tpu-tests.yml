@@ -49,6 +49,7 @@ jobs:
           restore-keys: |
             ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.xla-version }}-
 
+      # mkl version fixed due to https://github.com/pytorch/ignite/issues/2350
       - name: Install Torch XLA and others
         run: |
 
