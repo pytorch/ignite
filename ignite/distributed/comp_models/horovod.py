@@ -202,7 +202,7 @@ if has_hvd_support:
                 if len(args) or len(kwargs):
                     warnings.warn(
                         f"Arguments {list(args) + list(kwargs)} are not passed to horovod barrier method. "
-                        f"Please use horovod version > '0.23.0'"
+                        f"Please use horovod version>='0.23.0'"
                     )
                 # https://github.com/horovod/horovod/issues/159#issuecomment-424834603
                 # hvd.allreduce(torch.tensor(0, device=self.device()), name="barrier")
