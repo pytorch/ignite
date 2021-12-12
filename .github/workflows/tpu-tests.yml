@@ -54,7 +54,7 @@ jobs:
 
           ## Install openblas, mkl, gsutil
           sudo apt-get install -y libopenblas-dev libomp5-10 libomp5
-          pip install mkl requests gsutil
+          pip install mkl==2021.4.0 requests gsutil
 
           ## Install torch & xla
           curl https://raw.githubusercontent.com/pytorch/xla/master/contrib/scripts/env-setup.py -o pytorch-xla-env-setup.py
