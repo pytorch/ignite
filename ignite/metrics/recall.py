@@ -94,32 +94,32 @@ class Recall(_BasePrecisionRecall):
 
             0.5
 
-        Multilabel case
+        Multilabel case, the shapes must be (batch_size, num_categories, ...)
 
         .. testcode:: 4
 
-            metric = Recall(average=True, is_multilabel=True)
+            metric = Recall(is_multilabel=True)
             metric.attach(default_evaluator, "recall")
             y_true = torch.Tensor([
-                [0, 0, 1, 0, 1],
-                [0, 0, 0, 0, 1],
-                [0, 0, 0, 0, 1],
-                [1, 0, 0, 0, 1],
-                [0, 1, 1, 0, 1],
-            ])
+                [0, 0, 1],
+                [0, 0, 0],
+                [0, 0, 0],
+                [1, 0, 0],
+                [0, 1, 1],
+            ]).unsqueeze(0)
             y_pred = torch.Tensor([
-                [1, 1, 0, 0, 0],
-                [1, 0, 1, 0, 0],
-                [1, 0, 0, 0, 0],
-                [1, 0, 1, 1, 1],
-                [1, 1, 0, 0, 1],
-            ])
+                [1, 1, 0],
+                [1, 0, 1],
+                [1, 0, 0],
+                [1, 0, 1],
+                [1, 1, 0],
+            ]).unsqueeze(0)
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["recall"])
 
         .. testoutput:: 4
 
-            0.33333...
+            tensor([1., 1., 0.], dtype=torch.float64)
 
         In binary and multilabel cases, the elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of
         predictions can be done as below:
