@@ -348,10 +348,10 @@ jobs:
       - run:
           name: Run 1 Node 2 GPUs Unit Tests
           command: |
-            export test_cmd='bash tests/run_gpu_tests.sh'
+            export test_cmd='bash tests/run_gpu_tests.sh 1 hvd'
             docker exec -it pthd /bin/bash -c "${test_cmd}"
             # no CUDA devices Horovod tests
-            export test_cmd='CUDA_VISIBLE_DEVICES="" pytest --cov ignite --cov-append --cov-report term-missing --cov-report xml -vvv tests/ -m distributed'
+            export test_cmd='CUDA_VISIBLE_DEVICES="" pytest --cov ignite --cov-append --cov-report term-missing --cov-report xml -vvv tests/ -m distributed -k hvd'
             docker exec -it pthd /bin/bash -c "${test_cmd}"
 
       - run:
