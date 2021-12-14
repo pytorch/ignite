@@ -102,9 +102,10 @@ install_dependencies: &install_dependencies
       name: Install dependencies
       command: |
         docker exec -it pthd pip install -r requirements-dev.txt
-        export install_apex_cmd='pip install -v --disable-pip-version-check --no-cache-dir git+https://github.com/NVIDIA/apex'
-        export install_git_apex_cmd="apt-get update && apt-get install -y --no-install-recommends git && ${install_apex_cmd}"
-        docker exec -it pthd /bin/bash -c "$install_git_apex_cmd"
+        # Commented APEX installation, https://github.com/pytorch/ignite/issues/2299
+        # export install_apex_cmd='pip install -v --disable-pip-version-check --no-cache-dir git+https://github.com/NVIDIA/apex'
+        # export install_git_apex_cmd="apt-get update && apt-get install -y --no-install-recommends git && ${install_apex_cmd}"
+        # docker exec -it pthd /bin/bash -c "$install_git_apex_cmd"
         export install_ignite_cmd='python setup.py install'
         docker exec -it pthd /bin/bash -c "$install_ignite_cmd"
 
@@ -113,6 +114,9 @@ download_mnist: &download_mnist
   - run:
       name: Download MNIST
       command: |
+        export install_git_cmd="apt-get update && apt-get install -y --no-install-recommends git"
+        docker exec -it pthd /bin/bash -c "$install_git_cmd"
+
         export tmp_mnist_dir='/tmp/mnist'
         export tests_mnist_dir='/tmp'
         export examples_mnist_dir='.'
@@ -337,7 +341,7 @@ jobs:
             # and https://github.com/horovod/horovod/issues/1944#issuecomment-628192778
             docker exec -it pthd /bin/bash -c "apt-get update && apt-get install -y git"
             docker exec -it pthd /bin/bash -c "git clone --recursive https://github.com/horovod/horovod.git /horovod && cd /horovod && python setup.py sdist"
-            docker exec -it pthd /bin/bash -c "conda install -y cmake nccl=2.8 -c conda-forge"
+            docker exec -it pthd /bin/bash -c "conda install -y cmake nccl=2.11 -c conda-forge"
             docker exec -it pthd /bin/bash -c 'cd /horovod && HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_NCCL_LINK=SHARED HOROVOD_WITHOUT_MPI=1 HOROVOD_WITH_PYTORCH=1 pip install -v $(ls /horovod/dist/horovod-*.tar.gz) && ldconfig'
             docker exec -it pthd horovodrun --check-build
 
