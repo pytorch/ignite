@@ -81,7 +81,7 @@ def _test_ssim(y_pred, y, data_range, kernel_size, sigma, gaussian, use_sample_c
         skimg_y,
         win_size=kernel_size,
         sigma=sigma,
-        channel_axis=3,
+        channel_axis=-1,
         gaussian_weights=gaussian,
         data_range=data_range,
         use_sample_covariance=use_sample_covariance,
@@ -142,7 +142,7 @@ def _test_distrib_integration(device, tol=1e-4):
             np_true,
             win_size=11,
             sigma=1.5,
-            channel_axis=3,
+            channel_axis=-1,
             gaussian_weights=True,
             data_range=1.0,
             use_sample_covariance=False,
@@ -161,7 +161,7 @@ def _test_distrib_integration(device, tol=1e-4):
 
         np_pred = y_pred.permute(0, 2, 3, 1).cpu().numpy()
         np_true = np_pred * 0.65
-        true_res = ski_ssim(np_pred, np_true, win_size=7, channel_axis=3, gaussian_weights=False, data_range=1.0)
+        true_res = ski_ssim(np_pred, np_true, win_size=7, channel_axis=-1, gaussian_weights=False, data_range=1.0)
 
         assert pytest.approx(res, abs=tol) == true_res
 
