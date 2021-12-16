@@ -303,6 +303,13 @@ def _hvd_task_with_init(func, args):
         torch.cuda.set_device(lrank)
 
     func(*args)
+
+    # Added a sleep to avoid flaky failures on circle ci
+    # Sometimes a rank is terminated before final collective
+    # op is finished.
+    # https://github.com/pytorch/ignite/pull/2357
+    time.sleep(2)
+
     hvd.shutdown()
 
 
