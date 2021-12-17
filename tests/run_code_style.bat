@@ -22,7 +22,7 @@ mypy --config-file mypy.ini
 goto end
 
 :install
-pip install flake8 "black==19.10b0" "isort==5.7.0" mypy
+pip install flake8 "black==19.10b0" "isort==5.7.0" "mypy==0.910"
 goto end
 
 :end
