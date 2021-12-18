@@ -198,8 +198,8 @@ class DeterministicEngine(Engine):
 
     def _setup_engine(self) -> None:
         if self.state.dataloader is None:
-            raise RuntimeError(
-                "Internal error, self.state.dataloader is None. Please, file an issue if you encounter this error."
+            raise ValueError(
+                "Deterministic engine does not support the option of data=None. Please, provide data as iterable"
             )
 
         self._dataloader_len = self._get_data_length(self.state.dataloader)
