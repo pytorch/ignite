@@ -138,7 +138,7 @@ def training(local_rank, config, logger, with_clearml):
         tb_logger.attach(
             evaluator,
             log_handler=vis.predictions_gt_images_handler(
-                img_denormalize_fn=img_denormalize, n_images=15, another_engine=trainer, prefix_tag="validation",
+                img_denormalize_fn=img_denormalize, n_images=15, another_engine=trainer, prefix_tag="validation"
             ),
             event_name=Events.ITERATION_COMPLETED(event_filter=custom_event_filter),
         )
@@ -296,7 +296,7 @@ def setup_experiment_tracking(config, with_clearml, task_type="training"):
 
             schema = TrainvalConfigSchema if task_type == "training" else InferenceConfigSchema
 
-            task = Task.init("Pascal-VOC12 Training", config.config_filepath.stem, task_type=task_type,)
+            task = Task.init("Pascal-VOC12 Training", config.config_filepath.stem, task_type=task_type)
             task.connect_configuration(config.config_filepath.as_posix())
 
             task.upload_artifact(config.script_filepath.name, config.script_filepath.as_posix())
@@ -313,12 +313,8 @@ def setup_experiment_tracking(config, with_clearml, task_type="training"):
             output_path = output_path / datetime.now().strftime("%Y%m%d-%H%M%S")
             output_path.mkdir(parents=True, exist_ok=True)
 
-            shutil.copyfile(
-                config.script_filepath.as_posix(), output_path / config.script_filepath.name,
-            )
-            shutil.copyfile(
-                config.config_filepath.as_posix(), output_path / config.config_filepath.name,
-            )
+            shutil.copyfile(config.script_filepath.as_posix(), output_path / config.script_filepath.name)
+            shutil.copyfile(config.config_filepath.as_posix(), output_path / config.config_filepath.name)
 
         output_path = output_path.as_posix()
     return Path(idist.broadcast(output_path, src=0))
@@ -419,9 +415,7 @@ def evaluation(local_rank, config, logger, with_clearml):
     # Setup Tensorboard logger
     if rank == 0:
         tb_logger = common.TensorboardLogger(log_dir=config.output_path.as_posix())
-        tb_logger.attach_output_handler(
-            evaluator, event_name=Events.COMPLETED, tag="validation", metric_names="all",
-        )
+        tb_logger.attach_output_handler(evaluator, event_name=Events.COMPLETED, tag="validation", metric_names="all")
 
     # Log confusion matrix to ClearML:
     if with_clearml:
@@ -473,6 +467,4 @@ def run_evaluation(config_filepath, backend="nccl", with_clearml=True):
 
 if __name__ == "__main__":
 
-    fire.Fire(
-        {"download": download_datasets, "training": run_training, "eval": run_evaluation,}
-    )
+    fire.Fire({"download": download_datasets, "training": run_training, "eval": run_evaluation})
