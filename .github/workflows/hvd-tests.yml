@@ -14,6 +14,7 @@ on:
       - ".github/workflows/hvd-tests.yml"
 
 concurrency:
+  # check auto-cancel
   # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>
   group: hvd-tests-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
   cancel-in-progress: true
