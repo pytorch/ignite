@@ -894,3 +894,10 @@ def test__set_rng_states_cuda():
     rng_states = [random.getstate(), torch.get_rng_state().cuda(), np.random.get_state()]
     _set_rng_states(rng_states)
     assert rng_states[1].device.type == "cpu"
+
+
+def test_engine_no_data_asserts():
+    trainer = DeterministicEngine(lambda e, b: None)
+
+    with pytest.raises(ValueError, match=r"Deterministic engine does not support the option of data=None"):
+        trainer.run(max_epochs=10, epoch_length=10)
