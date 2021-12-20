@@ -101,7 +101,9 @@ class EMAHandler:
               trainer.run(...)
 
           The following example shows how to perform warm-up to the EMA momentum:
-          .. code-block::python
+
+          .. code-block:: python
+
               device = torch.device("cuda:0")
               model = nn.Linear(2, 1).to(device)
               # linearly change the EMA momentum from 0.2 to 0.002 in the first 100 iterations,
