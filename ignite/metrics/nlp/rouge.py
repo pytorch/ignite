@@ -152,7 +152,7 @@ class _BaseRouge(Metric):
     def update(self, output: Tuple[Sequence[Sequence[Any]], Sequence[Sequence[Sequence[Any]]]]) -> None:
         candidates, references = output
         for _candidate, _reference in zip(candidates, references):
-            multiref_scores = [self._compute_score(candidate=_candidate, reference=_ref,) for _ref in _reference]
+            multiref_scores = [self._compute_score(candidate=_candidate, reference=_ref) for _ref in _reference]
             score = self._mutliref_reducer(multiref_scores)
             precision = score.precision()
             recall = score.recall()

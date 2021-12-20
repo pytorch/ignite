@@ -451,7 +451,7 @@ class Checkpoint(Serializable):
 
     @staticmethod
     def setup_filename_pattern(
-        with_prefix: bool = True, with_score: bool = True, with_score_name: bool = True, with_global_step: bool = True,
+        with_prefix: bool = True, with_score: bool = True, with_score_name: bool = True, with_global_step: bool = True
     ) -> str:
         """Helper method to get the default filename pattern for a checkpoint.
 

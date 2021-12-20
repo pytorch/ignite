@@ -191,8 +191,7 @@ def test_deprecated():
     # Test on function with docs, @deprecated without reasons
     @deprecated("0.4.2", "0.6.0")
     def func_no_reasons():
-        """Docs are cool
-        """
+        """Docs are cool"""
         return 24
 
     assert func_no_reasons.__doc__ == "**Deprecated function**.\n\n    Docs are cool\n        .. deprecated:: 0.4.2"
@@ -200,8 +199,7 @@ def test_deprecated():
     # Test on function with docs, @deprecated with reasons
     @deprecated("0.4.2", "0.6.0", reasons=("r1", "r2"))
     def func_no_warnings():
-        """Docs are very cool
-        """
+        """Docs are very cool"""
         return 24
 
     assert (
@@ -212,8 +210,7 @@ def test_deprecated():
     # Tests that the function emits DeprecationWarning
     @deprecated("0.4.2", "0.6.0", reasons=("r1", "r2"))
     def func_check_warning():
-        """Docs are very ...
-        """
+        """Docs are very ..."""
         return 24
 
     with pytest.deprecated_call():
@@ -252,7 +249,7 @@ def test_hash_checkpoint(tmp_path):
 
     model = squeezenet1_0()
     torch.hub.download_url_to_file(
-        "https://download.pytorch.org/models/squeezenet1_0-b66bff10.pth", f"{tmp_path}/squeezenet1_0.pt",
+        "https://download.pytorch.org/models/squeezenet1_0-b66bff10.pth", f"{tmp_path}/squeezenet1_0.pt"
     )
     hash_checkpoint_path, sha_hash = hash_checkpoint(f"{tmp_path}/squeezenet1_0.pt", str(tmp_path))
     model.load_state_dict(torch.load(str(hash_checkpoint_path), "cpu"), True)

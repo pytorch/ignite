@@ -24,14 +24,14 @@ def test_wrong_input_shapes():
         m.update((torch.rand(4), torch.rand(4, 1)))
 
     with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
-        m.update((torch.rand(4, 1), torch.rand(4,)))
+        m.update((torch.rand(4, 1), torch.rand(4)))
 
 
 def test_r2_score():
 
     size = 51
-    np_y_pred = np.random.rand(size,)
-    np_y = np.random.rand(size,)
+    np_y_pred = np.random.rand(size)
+    np_y = np.random.rand(size)
 
     m = R2Score()
     y_pred = torch.from_numpy(np_y_pred)

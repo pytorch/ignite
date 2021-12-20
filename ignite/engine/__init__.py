@@ -33,9 +33,7 @@ __all__ = [
 def _prepare_batch(
     batch: Sequence[torch.Tensor], device: Optional[Union[str, torch.device]] = None, non_blocking: bool = False
 ) -> Tuple[Union[torch.Tensor, Sequence, Mapping, str, bytes], ...]:
-    """Prepare batch for training: pass to a device with options.
-
-    """
+    """Prepare batch for training: pass to a device with options."""
     x, y = batch
     return (
         convert_tensor(x, device=device, non_blocking=non_blocking),

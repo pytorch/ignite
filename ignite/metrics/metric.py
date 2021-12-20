@@ -204,7 +204,7 @@ class Metric(metaclass=ABCMeta):
     _required_output_keys = required_output_keys
 
     def __init__(
-        self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu"),
+        self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu")
     ):
         self._output_transform = output_transform
 
@@ -616,4 +616,4 @@ def _is_list_of_tensors_or_numbers(x: Sequence[Union[torch.Tensor, float]]) -> b
 def _to_batched_tensor(x: Union[torch.Tensor, float], device: Optional[torch.device] = None) -> torch.Tensor:
     if isinstance(x, torch.Tensor):
         return x.unsqueeze(dim=0)
-    return torch.tensor([x,], device=device)
+    return torch.tensor([x], device=device)

@@ -283,9 +283,7 @@ def _test_resume_random_dataloader_from_epoch(device, _setup_sampler, sampler_ty
                         sampler.set_epoch(engine.state.epoch - 1)
 
                 torch.manual_seed(87)
-                engine.run(
-                    orig_dataloader, max_epochs=max_epochs, epoch_length=epoch_length,
-                )
+                engine.run(orig_dataloader, max_epochs=max_epochs, epoch_length=epoch_length)
 
                 batch_checker = BatchChecker(seen_batchs, init_counter=resume_epoch * epoch_length)
 
@@ -390,9 +388,7 @@ def _test_resume_random_dataloader_from_iter(device, _setup_sampler, sampler_typ
                         sampler.set_epoch(engine.state.epoch)
 
                 torch.manual_seed(12)
-                engine.run(
-                    orig_dataloader, max_epochs=max_epochs, epoch_length=epoch_length,
-                )
+                engine.run(orig_dataloader, max_epochs=max_epochs, epoch_length=epoch_length)
 
                 batch_checker = BatchChecker(seen_batchs, init_counter=resume_iteration)
 
@@ -471,9 +467,7 @@ def _test_resume_random_data_iterator_from_epoch(device):
 
             engine = DeterministicEngine(update_fn)
             torch.manual_seed(121)
-            engine.run(
-                infinite_data_iterator(), max_epochs=max_epochs, epoch_length=epoch_length,
-            )
+            engine.run(infinite_data_iterator(), max_epochs=max_epochs, epoch_length=epoch_length)
 
             batch_checker = BatchChecker(seen_batchs, init_counter=resume_epoch * epoch_length)
 
@@ -527,9 +521,7 @@ def _test_resume_random_data_iterator_from_iter(device):
             engine = DeterministicEngine(update_fn)
 
             torch.manual_seed(24)
-            engine.run(
-                infinite_data_iterator(), max_epochs=max_epochs, epoch_length=epoch_length,
-            )
+            engine.run(infinite_data_iterator(), max_epochs=max_epochs, epoch_length=epoch_length)
 
             batch_checker = BatchChecker(seen_batchs, init_counter=resume_iteration)
 
