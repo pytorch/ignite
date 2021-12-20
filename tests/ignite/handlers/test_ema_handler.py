@@ -81,7 +81,7 @@ def test_ema_warmup_func(get_dummy_model):
     engine_1.add_event_handler(
         Events.ITERATION_COMPLETED, check_ema_momentum, momentum_warmup_1, momentum, warmup_iters
     )
-    engine_1.run(range(2))
+    engine_1.run(range(10))
 
     # momentum_warmup > momentum
     model_2 = get_dummy_model()
@@ -91,7 +91,7 @@ def test_ema_warmup_func(get_dummy_model):
     engine_2.add_event_handler(
         Events.ITERATION_COMPLETED, check_ema_momentum, momentum_warmup_2, momentum, warmup_iters
     )
-    engine_2.run(range(2))
+    engine_2.run(range(10))
 
 
 def test_ema_invalid_model():
@@ -143,7 +143,7 @@ def test_ema_get_const_momentum(get_dummy_model):
     ema_handler = EMAHandler(model, momentum=0.002)
     ema_handler.attach(engine)
     engine.add_event_handler(Events.ITERATION_COMPLETED, assert_const_momentum, ema_handler.momentum)
-    engine.run(range(2))
+    engine.run(range(10))
 
 
 def test_ema_buffer():
