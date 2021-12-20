@@ -47,12 +47,51 @@ def test_ema_invalid_momentum(get_dummy_model, momentum):
         EMAHandler(get_dummy_model(), momentum=momentum)
 
 
-def test_ema_deprecated_(get_dummy_model):
-    with pytest.warns(UserWarning, match="Argument 'momentum_warmup' will be deprecated in the future"):
-        EMAHandler(get_dummy_model(), momentum_warmup=0.0001)
+def test_has_momentum_scheduler(get_dummy_model):
+    """Test the handler has attribute `momentum_scheduler` and `_momentum_lambda_obj`"""
+    momentum_warmup = 0.0
+    warmup_iters = 10
+    ema_handler = EMAHandler(get_dummy_model(), momentum_warmup=momentum_warmup, warmup_iters=warmup_iters)
+    assert hasattr(ema_handler, "momentum_scheduler")
+    assert hasattr(ema_handler, "_momentum_lambda_obj")
 
-    with pytest.warns(UserWarning, match="Argument 'warmup_iters' will be deprecated in the future."):
-        EMAHandler(get_dummy_model(), warmup_iters=10)
+
+def test_ema_warmup_func(get_dummy_model):
+    """Test the built-in linear warmup function for the EMA momentum"""
+    momentum = 0.5
+    momentum_warmup_1 = 0.0
+    momentum_warmup_2 = 1.0
+    warmup_iters = 5
+
+    def check_ema_momentum(engine: Engine, momentum_warmup, final_momentum, warmup_iters):
+        if engine.state.iteration == 1:
+            assert engine.state.ema_momentum == momentum_warmup
+        elif engine.state.iteration >= 1 + warmup_iters:
+            assert engine.state.ema_momentum == final_momentum
+        else:
+            min_momentum = min(momentum, momentum_warmup)
+            max_momentum = max(momentum, momentum_warmup)
+            assert min_momentum <= engine.state.ema_momentum <= max_momentum
+
+    # momentum_warmup < momentum
+    model_1 = get_dummy_model()
+    engine_1 = Engine(_get_dummy_step_fn(model_1))
+    ema_handler_1 = EMAHandler(model_1, momentum, momentum_warmup_1, warmup_iters)
+    ema_handler_1.attach(engine_1)
+    engine_1.add_event_handler(
+        Events.ITERATION_COMPLETED, check_ema_momentum, momentum_warmup_1, momentum, warmup_iters
+    )
+    engine_1.run(range(2))
+
+    # momentum_warmup > momentum
+    model_2 = get_dummy_model()
+    engine_2 = Engine(_get_dummy_step_fn(model_2))
+    ema_handler_2 = EMAHandler(model_2, momentum, momentum_warmup_2, warmup_iters)
+    ema_handler_2.attach(engine_2)
+    engine_2.add_event_handler(
+        Events.ITERATION_COMPLETED, check_ema_momentum, momentum_warmup_2, momentum, warmup_iters
+    )
+    engine_2.run(range(2))
 
 
 def test_ema_invalid_model():
