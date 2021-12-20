@@ -194,7 +194,7 @@ def test_deprecated():
         """Docs are cool"""
         return 24
 
-    assert func_no_reasons.__doc__ == "**Deprecated function**.\n\n    Docs are cool        .. deprecated:: 0.4.2"
+    assert func_no_reasons.__doc__ == "**Deprecated function**.\n\n    Docs are cool.. deprecated:: 0.4.2"
 
     # Test on function with docs, @deprecated with reasons
     @deprecated("0.4.2", "0.6.0", reasons=("r1", "r2"))
@@ -204,7 +204,7 @@ def test_deprecated():
 
     assert (
         func_no_warnings.__doc__
-        == "**Deprecated function**.\n\n    Docs are very cool\n        .. deprecated:: 0.4.2\n\n\t\n\t- r1\n\t- r2"
+        == "**Deprecated function**.\n\n    Docs are very cool.. deprecated:: 0.4.2\n\n\t\n\t- r1\n\t- r2"
     )
 
     # Tests that the function emits DeprecationWarning
