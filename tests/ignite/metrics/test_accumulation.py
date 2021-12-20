@@ -355,7 +355,7 @@ def _test_distrib_integration(device):
         assert len(true_val) == shape[-1]
 
         np.testing.assert_almost_equal(
-            state.metrics["agg_custom_var"].cpu().numpy(), true_val, decimal=int(np.log10(1.0 / tol)),
+            state.metrics["agg_custom_var"].cpu().numpy(), true_val, decimal=int(np.log10(1.0 / tol))
         )
 
         size = 100

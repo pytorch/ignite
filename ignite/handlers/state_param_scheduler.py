@@ -302,7 +302,7 @@ class ExpStateScheduler(StateParamScheduler):
     """
 
     def __init__(
-        self, initial_value: float, gamma: float, param_name: str, save_history: bool = False, create_new: bool = False,
+        self, initial_value: float, gamma: float, param_name: str, save_history: bool = False, create_new: bool = False
     ):
         super(ExpStateScheduler, self).__init__(param_name, save_history, create_new)
         self.initial_value = initial_value

@@ -288,7 +288,7 @@ class FastaiLRFinder:
                 ]
             for lr in sug_lr:
                 ax.scatter(
-                    lr, corresponding_loss, color="red" if len(sug_lr) == 1 else None, s=75, marker="o", zorder=3,
+                    lr, corresponding_loss, color="red" if len(sug_lr) == 1 else None, s=75, marker="o", zorder=3
                 )
 
         # handle skip_end=0 properly

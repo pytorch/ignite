@@ -327,9 +327,7 @@ class Parallel:
                     f"Initialized distributed launcher with backend: '{self.backend}'"
                 )
                 msg = "\n\t".join([f"{k}: {v}" for k, v in self._spawn_params.items() if v is not None])
-                self._logger.info(  # type: ignore[attr-defined]
-                    f"- Parameters to spawn processes: \n\t{msg}"
-                )
+                self._logger.info(f"- Parameters to spawn processes: \n\t{msg}")  # type: ignore[attr-defined]
 
         return self
 

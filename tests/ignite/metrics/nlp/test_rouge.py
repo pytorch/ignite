@@ -85,7 +85,7 @@ def test_rouge_n_alpha(ngram, candidate, reference, expected):
 
 
 @pytest.mark.parametrize(
-    "candidates, references", [corpus.sample_1, corpus.sample_2, corpus.sample_3, corpus.sample_4, corpus.sample_5,],
+    "candidates, references", [corpus.sample_1, corpus.sample_2, corpus.sample_3, corpus.sample_4, corpus.sample_5]
 )
 def test_rouge_metrics(candidates, references):
     for multiref in ["average", "best"]:

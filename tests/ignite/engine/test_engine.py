@@ -580,9 +580,7 @@ def test_altered_random_state():
     torch.manual_seed(1)
     epoch_length = 6
     trainer = Engine(train_fn)
-    trainer.run(
-        random_train_data_generator(size), max_epochs=4, epoch_length=epoch_length,
-    )
+    trainer.run(random_train_data_generator(size), max_epochs=4, epoch_length=epoch_length)
 
     def val_fn(_1, _2):
         pass
@@ -601,9 +599,7 @@ def test_altered_random_state():
         evaluator.run(random_val_data_generator(size), epoch_length=4)
 
     torch.manual_seed(1)
-    trainer.run(
-        random_train_data_generator(size), max_epochs=4, epoch_length=epoch_length,
-    )
+    trainer.run(random_train_data_generator(size), max_epochs=4, epoch_length=epoch_length)
 
     for i in range(epoch_length):
         assert train_batches[epoch_length + i] != train_batches[2 * epoch_length + i]
