@@ -5,6 +5,7 @@ from typing import Optional, Union
 import torch.nn as nn
 
 from ignite.engine import CallableEventWithFilter, Engine, Events, EventsList
+from ignite.handlers.param_scheduler import BaseParamScheduler
 from ignite.handlers.state_param_scheduler import LambdaStateScheduler
 
 __all__ = ["EMAHandler"]
@@ -152,11 +153,10 @@ class EMAHandler:
         if not 0 < momentum < 1:
             raise ValueError(f"Invalid momentum: {momentum}")
         self.momentum = momentum
+        self._momentum_lambda_obj: Optional[EMAWarmUp] = None
         if momentum_warmup is not None and warmup_iters is not None:
-            self.momentum_scheduler = None
+            self.momentum_scheduler: Optional[BaseParamScheduler] = None
             self._momentum_lambda_obj = EMAWarmUp(momentum_warmup, warmup_iters, momentum)
-        else:
-            self._momentum_lambda_obj = None  # type: ignore[assignment]
 
         if not isinstance(model, nn.Module):
             raise ValueError(
@@ -221,10 +221,8 @@ class EMAHandler:
             setattr(engine.state, name, self.momentum)
 
         if self._momentum_lambda_obj is not None:
-            self.momentum_scheduler = LambdaStateScheduler(
-                self._momentum_lambda_obj, param_name="ema_momentum"
-            )  # type: ignore[assignment]
+            self.momentum_scheduler = LambdaStateScheduler(self._momentum_lambda_obj, param_name="ema_momentum")
 
             # first update the momentum and then update the EMA model
-            self.momentum_scheduler.attach(engine, event)  # type: ignore[attr-defined]
+            self.momentum_scheduler.attach(engine, event)
         engine.add_event_handler(event, self._update_ema_model, name)
