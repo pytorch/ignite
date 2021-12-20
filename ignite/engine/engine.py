@@ -446,12 +446,14 @@ class Engine(Serializable):
         return self._fire_event(event_name)
 
     def terminate(self) -> None:
-        """Sends terminate signal to the engine, so that it terminates completely the run after the current iteration."""
+        """Sends terminate signal to the engine, so that it terminates completely the run after
+        the current iteration."""
         self.logger.info("Terminate signaled. Engine will stop after current iteration is finished.")
         self.should_terminate = True
 
     def terminate_epoch(self) -> None:
-        """Sends terminate signal to the engine, so that it terminates the current epoch after the current iteration."""
+        """Sends terminate signal to the engine, so that it terminates the current epoch
+        after the current iteration."""
         self.logger.info(
             "Terminate current epoch is signaled. "
             "Current epoch iteration will stop after current iteration is finished."

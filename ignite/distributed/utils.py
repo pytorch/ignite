@@ -149,7 +149,8 @@ def get_rank() -> int:
 
 
 def get_local_rank() -> int:
-    """Returns local process rank within current distributed configuration. Returns 0 if no distributed configuration."""
+    """Returns local process rank within current distributed configuration.
+    Returns 0 if no distributed configuration."""
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
 
