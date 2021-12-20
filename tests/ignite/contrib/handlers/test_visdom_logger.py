@@ -163,7 +163,7 @@ def test_output_handler_metric_names(dirname):
                 win=None,
                 update=None,
                 opts=wrapper.windows["tag/a"]["opts"],
-                name="tag/a,",
+                name="tag/a",
             ),
             call(
                 X=[5],
