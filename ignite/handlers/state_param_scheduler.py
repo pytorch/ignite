@@ -4,7 +4,7 @@ from bisect import bisect_right
 from typing import Any, List, Sequence, Tuple, Union
 
 from ignite.engine import CallableEventWithFilter, Engine, Events, EventsList
-from ignite.handlers import BaseParamScheduler
+from ignite.handlers.param_scheduler import BaseParamScheduler
 
 
 class StateParamScheduler(BaseParamScheduler):
