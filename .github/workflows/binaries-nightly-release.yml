@@ -44,11 +44,14 @@ jobs:
         shell: bash -l {0}
         run: |
           python setup.py sdist bdist_wheel
+          twine --version
           twine check dist/*
           TWINE_USERNAME="${{ secrets.PYPI_USER }}" TWINE_PASSWORD="${{ secrets.PYPI_TOKEN }}" twine upload --verbose dist/*
 
       - uses: JasonEtco/create-an-issue@v2
         name: Create issue if nightly releases failed
         if: failure()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           filename: .github/failed_schedule_issue_template.md
