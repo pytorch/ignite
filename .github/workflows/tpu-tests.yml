@@ -13,6 +13,11 @@ on:
       - "tests/run_tpu_tests.sh"
       - ".github/workflows/tpu-tests.yml"
 
+concurrency:
+  # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>
+  group: tpu-tests-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
+  cancel-in-progress: true
+
 jobs:
   tpu-tests:
     runs-on: ubuntu-latest
