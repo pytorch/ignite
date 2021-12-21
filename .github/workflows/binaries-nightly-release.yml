@@ -1,10 +1,11 @@
 name: Nightly Releases
 
 on:
-  # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions#onschedule
-  schedule:
-    # Run at 00:00 UTC Every Day
-    - cron: "0 0 * * *"
+  # # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions#onschedule
+  # schedule:
+  #   # Run at 00:00 UTC Every Day
+  #   - cron: "0 0 * * *"
+  pull_request
 
 jobs:
   build-publish:
@@ -28,8 +29,6 @@ jobs:
         run: |
           conda install -y pytorch torchvision cpuonly -c pytorch-nightly
           pip install -r requirements-dev.txt
-          pip install --upgrade --no-cache-dir twine
-          python setup.py install
 
       - name: Build and Publish Conda binaries
         shell: bash -l {0}
@@ -37,21 +36,26 @@ jobs:
           ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
           UPLOAD_USER: "pytorch-nightly"
         run: |
-          chmod +x ./conda.recipe/build_and_upload.sh
-          ./conda.recipe/build_and_upload.sh
+          # chmod +x ./conda.recipe/build_and_upload.sh
+          # ./conda.recipe/build_and_upload.sh
+          conda install -y conda-build conda-verify anaconda-client
+          conda config --set anaconda_upload no
+          conda build --no-test --output-folder conda_build conda.recipe -c pytorch
 
       - name: Build and Publish PyPi binaries
         shell: bash -l {0}
         run: |
+          # pip uninstall -y twine pkginfo
+          # pip install --upgrade --no-cache-dir twine 'pkginfo>=1.8.2'
           python setup.py sdist bdist_wheel
           twine --version
           twine check dist/*
-          TWINE_USERNAME="${{ secrets.PYPI_USER }}" TWINE_PASSWORD="${{ secrets.PYPI_TOKEN }}" twine upload --verbose dist/*
+          # TWINE_USERNAME="${{ secrets.PYPI_USER }}" TWINE_PASSWORD="${{ secrets.PYPI_TOKEN }}" twine upload --verbose dist/*
 
-      - uses: JasonEtco/create-an-issue@v2
-        name: Create issue if nightly releases failed
-        if: failure()
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          filename: .github/failed_schedule_issue_template.md
+      # - uses: JasonEtco/create-an-issue@v2
+      #   name: Create issue if nightly releases failed
+      #   if: failure()
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     filename: .github/failed_schedule_issue_template.md
