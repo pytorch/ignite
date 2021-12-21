@@ -28,8 +28,6 @@ jobs:
         run: |
           conda install -y pytorch torchvision cpuonly -c pytorch-nightly
           pip install -r requirements-dev.txt
-          pip install --upgrade --no-cache-dir twine
-          python setup.py install
 
       - name: Build and Publish Conda binaries
         shell: bash -l {0}
@@ -43,6 +41,9 @@ jobs:
       - name: Build and Publish PyPi binaries
         shell: bash -l {0}
         run: |
+          # workaround to fix https://github.com/pytorch/ignite/issues/2373
+          pip uninstall -y twine pkginfo
+          pip install --upgrade --no-cache-dir twine 'pkginfo>=1.8.2'
           python setup.py sdist bdist_wheel
           twine --version
           twine check dist/*
