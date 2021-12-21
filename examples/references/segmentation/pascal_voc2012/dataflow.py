@@ -66,7 +66,7 @@ class VOCSegmentationOpencv(VOCSegmentation):
             return {
                 "image": img,
                 "mask": mask,
-                "meta": {"index": index, "image_path": self.images[index], "mask_path": self.masks[index],},
+                "meta": {"index": index, "image_path": self.images[index], "mask_path": self.masks[index]},
             }
 
         return {"image": img, "mask": mask}
@@ -93,7 +93,7 @@ class SBDatasetOpencv(SBDataset):
             return {
                 "image": img,
                 "mask": mask,
-                "meta": {"index": index, "image_path": self.images[index], "mask_path": self.masks[index],},
+                "meta": {"index": index, "image_path": self.images[index], "mask_path": self.masks[index]},
             }
 
         return {"image": img, "mask": mask}
@@ -101,12 +101,12 @@ class SBDatasetOpencv(SBDataset):
 
 def get_train_dataset(root_path, return_meta=False):
     return VOCSegmentationOpencv(
-        root=root_path, year="2012", image_set="train", download=False, return_meta=return_meta,
+        root=root_path, year="2012", image_set="train", download=False, return_meta=return_meta
     )
 
 
 def get_val_dataset(root_path, return_meta=False):
-    return VOCSegmentationOpencv(root=root_path, year="2012", image_set="val", download=False, return_meta=return_meta,)
+    return VOCSegmentationOpencv(root=root_path, year="2012", image_set="val", download=False, return_meta=return_meta)
 
 
 def get_train_noval_sbdataset(root_path, return_meta=False):
@@ -187,7 +187,7 @@ def get_train_val_loaders(
 
 
 def get_inference_dataloader(
-    root_path, mode, transforms, batch_size=16, num_workers=8, pin_memory=True, limit_num_samples=None,
+    root_path, mode, transforms, batch_size=16, num_workers=8, pin_memory=True, limit_num_samples=None
 ):
     assert mode in ("train", "test"), "Mode should be 'train' or 'test'"
 

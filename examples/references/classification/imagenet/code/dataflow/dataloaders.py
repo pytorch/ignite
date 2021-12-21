@@ -52,16 +52,16 @@ def get_train_val_loaders(
         train_eval_ds = train_ds
 
     train_loader = idist.auto_dataloader(
-        train_ds, shuffle=True, batch_size=batch_size, num_workers=num_workers, drop_last=True,
+        train_ds, shuffle=True, batch_size=batch_size, num_workers=num_workers, drop_last=True
     )
 
     val_batch_size = batch_size * 4 if val_batch_size is None else val_batch_size
     val_loader = idist.auto_dataloader(
-        val_ds, shuffle=False, batch_size=val_batch_size, num_workers=num_workers, drop_last=False,
+        val_ds, shuffle=False, batch_size=val_batch_size, num_workers=num_workers, drop_last=False
     )
 
     train_eval_loader = idist.auto_dataloader(
-        train_eval_ds, shuffle=False, batch_size=val_batch_size, num_workers=num_workers, drop_last=False,
+        train_eval_ds, shuffle=False, batch_size=val_batch_size, num_workers=num_workers, drop_last=False
     )
 
     return train_loader, val_loader, train_eval_loader

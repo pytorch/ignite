@@ -122,7 +122,7 @@ def _test_distrib_all_reduce(device):
 def _test_distrib_all_gather(device):
 
     res = torch.tensor(idist.all_gather(10), device=device)
-    true_res = torch.tensor([10,] * idist.get_world_size(), device=device)
+    true_res = torch.tensor([10] * idist.get_world_size(), device=device)
     assert (res == true_res).all()
 
     t = torch.tensor(idist.get_rank(), device=device)
@@ -134,7 +134,7 @@ def _test_distrib_all_gather(device):
     if idist.get_rank() == 0:
         x = "abc"
     res = idist.all_gather(x)
-    true_res = ["abc",] + ["test-test"] * (idist.get_world_size() - 1)
+    true_res = ["abc"] + ["test-test"] * (idist.get_world_size() - 1)
     assert res == true_res
 
     base_x = "tests/ignite/distributed/utils/test_native.py" * 2000
@@ -143,7 +143,7 @@ def _test_distrib_all_gather(device):
         x = "abc"
 
     res = idist.all_gather(x)
-    true_res = ["abc",] + [base_x] * (idist.get_world_size() - 1)
+    true_res = ["abc"] + [base_x] * (idist.get_world_size() - 1)
     assert res == true_res
 
     t = torch.arange(100, device=device).reshape(4, 25) * (idist.get_rank() + 1)

@@ -48,8 +48,8 @@ def test_optimizer_params():
     assert wrapper.windows["lr/group_0"]["win"] is not None
 
     mock_logger.vis.line.assert_called_once_with(
-        X=[123,],
-        Y=[0.01,],
+        X=[123],
+        Y=[0.01],
         env=mock_logger.vis.env,
         win=None,
         update=None,
@@ -68,8 +68,8 @@ def test_optimizer_params():
     assert wrapper.windows["generator/lr/group_0"]["win"] is not None
 
     mock_logger.vis.line.assert_called_once_with(
-        X=[123,],
-        Y=[0.01,],
+        X=[123],
+        Y=[0.01],
         env=mock_logger.vis.env,
         win=None,
         update=None,
@@ -106,8 +106,8 @@ def test_output_handler_output_transform(dirname):
     assert wrapper.windows["tag/output"]["win"] is not None
 
     mock_logger.vis.line.assert_called_once_with(
-        X=[123,],
-        Y=[12345,],
+        X=[123],
+        Y=[12345],
         env=mock_logger.vis.env,
         win=None,
         update=None,
@@ -126,8 +126,8 @@ def test_output_handler_output_transform(dirname):
     assert wrapper.windows["another_tag/loss"]["win"] is not None
 
     mock_logger.vis.line.assert_called_once_with(
-        X=[123,],
-        Y=[12345,],
+        X=[123],
+        Y=[12345],
         env=mock_logger.vis.env,
         win=None,
         update=None,
@@ -157,8 +157,8 @@ def test_output_handler_metric_names(dirname):
     mock_logger.vis.line.assert_has_calls(
         [
             call(
-                X=[5,],
-                Y=[12.23,],
+                X=[5],
+                Y=[12.23],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -166,8 +166,8 @@ def test_output_handler_metric_names(dirname):
                 name="tag/a",
             ),
             call(
-                X=[5,],
-                Y=[23.45,],
+                X=[5],
+                Y=[23.45],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -178,7 +178,7 @@ def test_output_handler_metric_names(dirname):
         any_order=True,
     )
 
-    wrapper = OutputHandler("tag", metric_names=["a",])
+    wrapper = OutputHandler("tag", metric_names=["a"])
 
     mock_engine = MagicMock()
     mock_engine.state = State(metrics={"a": torch.Tensor([0.0, 1.0, 2.0, 3.0])})
@@ -200,8 +200,8 @@ def test_output_handler_metric_names(dirname):
     mock_logger.vis.line.assert_has_calls(
         [
             call(
-                X=[5,],
-                Y=[0.0,],
+                X=[5],
+                Y=[0.0],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -209,8 +209,8 @@ def test_output_handler_metric_names(dirname):
                 name="tag/a/0",
             ),
             call(
-                X=[5,],
-                Y=[1.0,],
+                X=[5],
+                Y=[1.0],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -218,8 +218,8 @@ def test_output_handler_metric_names(dirname):
                 name="tag/a/1",
             ),
             call(
-                X=[5,],
-                Y=[2.0,],
+                X=[5],
+                Y=[2.0],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -227,8 +227,8 @@ def test_output_handler_metric_names(dirname):
                 name="tag/a/2",
             ),
             call(
-                X=[5,],
-                Y=[3.0,],
+                X=[5],
+                Y=[3.0],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -259,8 +259,8 @@ def test_output_handler_metric_names(dirname):
     mock_logger.vis.line.assert_has_calls(
         [
             call(
-                X=[7,],
-                Y=[55.56,],
+                X=[7],
+                Y=[55.56],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -291,8 +291,8 @@ def test_output_handler_metric_names(dirname):
     mock_logger.vis.line.assert_has_calls(
         [
             call(
-                X=[5,],
-                Y=[12.23,],
+                X=[5],
+                Y=[12.23],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -300,8 +300,8 @@ def test_output_handler_metric_names(dirname):
                 name="tag/a",
             ),
             call(
-                X=[5,],
-                Y=[23.45,],
+                X=[5],
+                Y=[23.45],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -341,8 +341,8 @@ def test_output_handler_both(dirname):
     mock_logger.vis.line.assert_has_calls(
         [
             call(
-                X=[5,],
-                Y=[12.23,],
+                X=[5],
+                Y=[12.23],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -350,8 +350,8 @@ def test_output_handler_both(dirname):
                 name="tag/a",
             ),
             call(
-                X=[5,],
-                Y=[23.45,],
+                X=[5],
+                Y=[23.45],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -359,8 +359,8 @@ def test_output_handler_both(dirname):
                 name="tag/b",
             ),
             call(
-                X=[5,],
-                Y=[12345,],
+                X=[5],
+                Y=[12345],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -388,8 +388,8 @@ def test_output_handler_both(dirname):
     mock_logger.vis.line.assert_has_calls(
         [
             call(
-                X=[6,],
-                Y=[12.23,],
+                X=[6],
+                Y=[12.23],
                 env=mock_logger.vis.env,
                 win=wrapper.windows["tag/a"]["win"],
                 update="append",
@@ -397,8 +397,8 @@ def test_output_handler_both(dirname):
                 name="tag/a",
             ),
             call(
-                X=[6,],
-                Y=[23.45,],
+                X=[6],
+                Y=[23.45],
                 env=mock_logger.vis.env,
                 win=wrapper.windows["tag/b"]["win"],
                 update="append",
@@ -406,8 +406,8 @@ def test_output_handler_both(dirname):
                 name="tag/b",
             ),
             call(
-                X=[6,],
-                Y=[12345,],
+                X=[6],
+                Y=[12345],
                 env=mock_logger.vis.env,
                 win=wrapper.windows["tag/loss"]["win"],
                 update="append",
@@ -450,8 +450,8 @@ def test_output_handler_state_attrs():
     mock_logger.vis.line.assert_has_calls(
         [
             call(
-                X=[5,],
-                Y=[3.899,],
+                X=[5],
+                Y=[3.899],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -459,8 +459,8 @@ def test_output_handler_state_attrs():
                 name="tag/alpha",
             ),
             call(
-                X=[5,],
-                Y=[12.0,],
+                X=[5],
+                Y=[12.0],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -468,8 +468,8 @@ def test_output_handler_state_attrs():
                 name="tag/beta",
             ),
             call(
-                X=[5,],
-                Y=[21.0,],
+                X=[5],
+                Y=[21.0],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -477,8 +477,8 @@ def test_output_handler_state_attrs():
                 name="tag/gamma/0",
             ),
             call(
-                X=[5,],
-                Y=[6.0,],
+                X=[5],
+                Y=[6.0],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -530,8 +530,8 @@ def test_output_handler_with_global_step_transform():
     mock_logger.vis.line.assert_has_calls(
         [
             call(
-                X=[10,],
-                Y=[12345,],
+                X=[10],
+                Y=[12345],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -571,8 +571,8 @@ def test_output_handler_with_global_step_from_engine():
     mock_logger.vis.line.assert_has_calls(
         [
             call(
-                X=[mock_another_engine.state.epoch,],
-                Y=[mock_engine.state.output,],
+                X=[mock_another_engine.state.epoch],
+                Y=[mock_engine.state.output],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -592,8 +592,8 @@ def test_output_handler_with_global_step_from_engine():
     mock_logger.vis.line.assert_has_calls(
         [
             call(
-                X=[mock_another_engine.state.epoch,],
-                Y=[mock_engine.state.output,],
+                X=[mock_another_engine.state.epoch],
+                Y=[mock_engine.state.output],
                 env=mock_logger.vis.env,
                 win=wrapper.windows["tag/loss"]["win"],
                 update="append",
@@ -655,8 +655,8 @@ def test_weights_scalar_handler():
         mock_logger.vis.line.assert_has_calls(
             [
                 call(
-                    X=[5,],
-                    Y=[0.0,],
+                    X=[5],
+                    Y=[0.0],
                     env=mock_logger.vis.env,
                     win=None,
                     update=None,
@@ -664,8 +664,8 @@ def test_weights_scalar_handler():
                     name=tag_prefix + "weights_norm/fc1/weight",
                 ),
                 call(
-                    X=[5,],
-                    Y=[0.0,],
+                    X=[5],
+                    Y=[0.0],
                     env=mock_logger.vis.env,
                     win=None,
                     update=None,
@@ -673,8 +673,8 @@ def test_weights_scalar_handler():
                     name=tag_prefix + "weights_norm/fc1/bias",
                 ),
                 call(
-                    X=[5,],
-                    Y=[12.0,],
+                    X=[5],
+                    Y=[12.0],
                     env=mock_logger.vis.env,
                     win=None,
                     update=None,
@@ -682,7 +682,7 @@ def test_weights_scalar_handler():
                     name=tag_prefix + "weights_norm/fc2/weight",
                 ),
                 call(
-                    X=[5,],
+                    X=[5],
                     Y=ANY,
                     env=mock_logger.vis.env,
                     win=None,
@@ -729,8 +729,8 @@ def test_weights_scalar_handler_custom_reduction():
     mock_logger.vis.line.assert_has_calls(
         [
             call(
-                X=[5,],
-                Y=[12.34,],
+                X=[5],
+                Y=[12.34],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -738,8 +738,8 @@ def test_weights_scalar_handler_custom_reduction():
                 name="weights_norm/fc1/weight",
             ),
             call(
-                X=[5,],
-                Y=[12.34,],
+                X=[5],
+                Y=[12.34],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -747,8 +747,8 @@ def test_weights_scalar_handler_custom_reduction():
                 name="weights_norm/fc1/bias",
             ),
             call(
-                X=[5,],
-                Y=[12.34,],
+                X=[5],
+                Y=[12.34],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -756,8 +756,8 @@ def test_weights_scalar_handler_custom_reduction():
                 name="weights_norm/fc2/weight",
             ),
             call(
-                X=[5,],
-                Y=[12.34,],
+                X=[5],
+                Y=[12.34],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -820,7 +820,7 @@ def test_grads_scalar_handler():
         mock_logger.vis.line.assert_has_calls(
             [
                 call(
-                    X=[5,],
+                    X=[5],
                     Y=ANY,
                     env=mock_logger.vis.env,
                     win=None,
@@ -829,7 +829,7 @@ def test_grads_scalar_handler():
                     name=tag_prefix + "grads_norm/fc1/weight",
                 ),
                 call(
-                    X=[5,],
+                    X=[5],
                     Y=ANY,
                     env=mock_logger.vis.env,
                     win=None,
@@ -838,7 +838,7 @@ def test_grads_scalar_handler():
                     name=tag_prefix + "grads_norm/fc1/bias",
                 ),
                 call(
-                    X=[5,],
+                    X=[5],
                     Y=ANY,
                     env=mock_logger.vis.env,
                     win=None,
@@ -847,7 +847,7 @@ def test_grads_scalar_handler():
                     name=tag_prefix + "grads_norm/fc2/weight",
                 ),
                 call(
-                    X=[5,],
+                    X=[5],
                     Y=ANY,
                     env=mock_logger.vis.env,
                     win=None,
