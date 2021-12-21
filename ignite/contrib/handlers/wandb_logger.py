@@ -24,7 +24,7 @@ class WandBLogger(BaseLogger):
     Args:
         args: Positional arguments accepted by `wandb.init`.
         kwargs: Keyword arguments accepted by `wandb.init`.
-            Please see `wandb.init <https://docs.wandb.ai/library/init>`_ for documentation of possible parameters.
+            Please see `wandb.init <https://docs.wandb.ai/guides/track/launch>`_ for documentation of possible parameters.
 
     Examples:
         .. code-block:: python

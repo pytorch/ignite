@@ -47,7 +47,7 @@ Join Core Team
 
 We are looking for motivated contributors to become collaborators and help out with the project.
 We can start considering a candidate after several successfully merged GitHub pull requests.
-If you are interested, for more details, please, contact Victor (vfdev-5#4458) on `PyTorch-Ignite Discord <https://discord.gg/djZtm3EmKj>`_.
+If you are interested, for more details, please, contact Victor (vfdev-5#4458) on `PyTorch-Ignite Discord <https://discord.com/invite/djZtm3EmKj>`_.
 
 
 Citing PyTorch-Ignite

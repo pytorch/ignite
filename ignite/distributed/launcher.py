@@ -15,7 +15,7 @@ class Parallel:
 
     - XLA on TPUs via `pytorch/xla <https://github.com/pytorch/xla>`_ (if installed)
 
-    - using `Horovod distributed framework <https://horovod.readthedocs.io>`_ (if installed)
+    - using `Horovod distributed framework <https://horovod.readthedocs.io/en/stable/>`_ (if installed)
 
     Namely, it can:
 

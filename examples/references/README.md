@@ -1,6 +1,6 @@
 # Reproducible trainings with Ignite
 
-Inspired by [torchvision/references](https://github.com/pytorch/vision/tree/master/references), we provide several
+Inspired by [torchvision/references](https://github.com/pytorch/vision/tree/main/references), we provide several
 reproducible baselines for vision tasks:
 
 - [x] Classification
