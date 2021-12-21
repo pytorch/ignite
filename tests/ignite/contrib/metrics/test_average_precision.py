@@ -240,7 +240,7 @@ def _test_distrib_integration_binary_input(device):
     def get_tests(is_N):
         if is_N:
             y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(),)).to(device)
-            y_preds = torch.rand(offset * idist.get_world_size(),).to(device)
+            y_preds = torch.rand(offset * idist.get_world_size()).to(device)
 
             def update_fn(engine, i):
                 return (

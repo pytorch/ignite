@@ -106,15 +106,15 @@ def ClassificationReport(
     """
 
     # setup all the underlying metrics
-    precision = Precision(average=False, is_multilabel=is_multilabel, output_transform=output_transform, device=device,)
-    recall = Recall(average=False, is_multilabel=is_multilabel, output_transform=output_transform, device=device,)
+    precision = Precision(average=False, is_multilabel=is_multilabel, output_transform=output_transform, device=device)
+    recall = Recall(average=False, is_multilabel=is_multilabel, output_transform=output_transform, device=device)
     fbeta = Fbeta(beta, average=False, precision=precision, recall=recall)
     averaged_precision = precision.mean()
     averaged_recall = recall.mean()
     averaged_fbeta = fbeta.mean()
 
     def _wrapper(
-        recall_metric: Metric, precision_metric: Metric, f: Metric, a_recall: Metric, a_precision: Metric, a_f: Metric,
+        recall_metric: Metric, precision_metric: Metric, f: Metric, a_recall: Metric, a_precision: Metric, a_f: Metric
     ) -> Union[Collection[str], Dict]:
         p_tensor, r_tensor, f_tensor = precision_metric, recall_metric, f
         if p_tensor.shape != r_tensor.shape:
@@ -141,4 +141,4 @@ def ClassificationReport(
     def _get_label_for_class(idx: int) -> str:
         return labels[idx] if labels else str(idx)
 
-    return MetricsLambda(_wrapper, recall, precision, fbeta, averaged_recall, averaged_precision, averaged_fbeta,)
+    return MetricsLambda(_wrapper, recall, precision, fbeta, averaged_recall, averaged_precision, averaged_fbeta)
