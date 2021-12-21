@@ -45,8 +45,8 @@ jobs:
       - name: Build and Publish PyPi binaries
         shell: bash -l {0}
         run: |
-          # pip uninstall -y twine pkginfo
-          # pip install --upgrade --no-cache-dir twine 'pkginfo>=1.8.2'
+          pip uninstall -y twine pkginfo
+          pip install --upgrade --no-cache-dir twine 'pkginfo>=1.8.2'
           python setup.py sdist bdist_wheel
           twine --version
           twine check dist/*
