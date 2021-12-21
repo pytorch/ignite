@@ -61,9 +61,7 @@ config7 = (
 )
 
 
-@pytest.mark.parametrize(
-    "max_epochs, milestones_values,  save_history, expected_param_history", [config1, config2],
-)
+@pytest.mark.parametrize("max_epochs, milestones_values,  save_history, expected_param_history", [config1, config2])
 def test_pwlinear_scheduler_linear_increase_history(
     max_epochs, milestones_values, save_history, expected_param_history
 ):
@@ -87,9 +85,7 @@ def test_pwlinear_scheduler_linear_increase_history(
     pw_linear_step_parameter_scheduler.load_state_dict(state_dict)
 
 
-@pytest.mark.parametrize(
-    "max_epochs, milestones_values", [(3, [(3, 12), (5, 10)]), (5, [(10, 12), (20, 10)]),],
-)
+@pytest.mark.parametrize("max_epochs, milestones_values", [(3, [(3, 12), (5, 10)]), (5, [(10, 12), (20, 10)])])
 def test_pwlinear_scheduler_step_constant(max_epochs, milestones_values):
     # Testing step_constant
     engine = Engine(lambda e, b: None)
@@ -106,7 +102,7 @@ def test_pwlinear_scheduler_step_constant(max_epochs, milestones_values):
 
 @pytest.mark.parametrize(
     "max_epochs, milestones_values, expected_val",
-    [(2, [(0, 0), (3, 10)], 6.666666666666667), (10, [(0, 0), (20, 10)], 5.0),],
+    [(2, [(0, 0), (3, 10)], 6.666666666666667), (10, [(0, 0), (20, 10)], 5.0)],
 )
 def test_pwlinear_scheduler_linear_increase(max_epochs, milestones_values, expected_val):
     # Testing linear increase
@@ -122,12 +118,8 @@ def test_pwlinear_scheduler_linear_increase(max_epochs, milestones_values, expec
     linear_state_parameter_scheduler.load_state_dict(state_dict)
 
 
-@pytest.mark.parametrize(
-    "max_epochs, milestones_values,", [(3, [(0, 0), (3, 10)]), (40, [(0, 0), (20, 10)])],
-)
-def test_pwlinear_scheduler_max_value(
-    max_epochs, milestones_values,
-):
+@pytest.mark.parametrize("max_epochs, milestones_values,", [(3, [(0, 0), (3, 10)]), (40, [(0, 0), (20, 10)])])
+def test_pwlinear_scheduler_max_value(max_epochs, milestones_values):
     # Testing max_value
     engine = Engine(lambda e, b: None)
     linear_state_parameter_scheduler = PiecewiseLinearStateScheduler(
@@ -162,9 +154,7 @@ def test_piecewiselinear_asserts():
         PiecewiseLinearStateScheduler(param_name="linear_scheduled_param", milestones_values=[(0.5, 1)])
 
 
-@pytest.mark.parametrize(
-    "max_epochs, initial_value, gamma", [(3, 10, 0.99), (40, 5, 0.98)],
-)
+@pytest.mark.parametrize("max_epochs, initial_value, gamma", [(3, 10, 0.99), (40, 5, 0.98)])
 def test_exponential_scheduler(max_epochs, initial_value, gamma):
     engine = Engine(lambda e, b: None)
     exp_state_parameter_scheduler = ExpStateScheduler(
@@ -178,12 +168,8 @@ def test_exponential_scheduler(max_epochs, initial_value, gamma):
     exp_state_parameter_scheduler.load_state_dict(state_dict)
 
 
-@pytest.mark.parametrize(
-    "max_epochs, initial_value, gamma, step_size", [(3, 10, 0.99, 5), (40, 5, 0.98, 22)],
-)
-def test_step_scheduler(
-    max_epochs, initial_value, gamma, step_size,
-):
+@pytest.mark.parametrize("max_epochs, initial_value, gamma, step_size", [(3, 10, 0.99, 5), (40, 5, 0.98, 22)])
+def test_step_scheduler(max_epochs, initial_value, gamma, step_size):
     engine = Engine(lambda e, b: None)
     step_state_parameter_scheduler = StepStateScheduler(
         param_name="step_scheduled_param",
@@ -206,11 +192,9 @@ from bisect import bisect_right
 
 
 @pytest.mark.parametrize(
-    "max_epochs, initial_value, gamma, milestones", [(3, 10, 0.99, [3, 6]), (40, 5, 0.98, [3, 6, 9, 10, 11])],
+    "max_epochs, initial_value, gamma, milestones", [(3, 10, 0.99, [3, 6]), (40, 5, 0.98, [3, 6, 9, 10, 11])]
 )
-def test_multistep_scheduler(
-    max_epochs, initial_value, gamma, milestones,
-):
+def test_multistep_scheduler(max_epochs, initial_value, gamma, milestones):
     engine = Engine(lambda e, b: None)
     multi_step_state_parameter_scheduler = MultiStepStateScheduler(
         param_name="multistep_scheduled_param",
@@ -368,7 +352,7 @@ def test_multiple_scheduler_with_save_history():
         if "save_history" in config:
             del config["save_history"]
         _scheduler = scheduler(**config, save_history=True)
-        _scheduler.attach(engine_multiple_schedulers,)
+        _scheduler.attach(engine_multiple_schedulers)
 
     engine_multiple_schedulers.run([0] * 8, max_epochs=2)
 
@@ -507,7 +491,7 @@ def test_param_scheduler_with_ema_handler():
     ema_handler.attach(trainer, name=param_name, event=Events.ITERATION_COMPLETED)
 
     ema_decay_scheduler = PiecewiseLinearStateScheduler(
-        param_name=param_name, milestones_values=[(0, 0.0), (10, 0.999),], save_history=True
+        param_name=param_name, milestones_values=[(0, 0.0), (10, 0.999)], save_history=True
     )
     ema_decay_scheduler.attach(trainer, Events.ITERATION_COMPLETED)
     trainer.run(data, max_epochs=20)

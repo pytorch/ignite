@@ -8,7 +8,7 @@ from ignite.metrics.nlp.utils import lcs, modified_precision, ngrams
     [
         ([], 1, [], []),
         ([0, 1, 2], 1, [(0,), (1,), (2,)], [1, 1, 1]),
-        ([0, 1, 2], 2, [(0, 1,), (1, 2,),], [1, 1],),
+        ([0, 1, 2], 2, [(0, 1), (1, 2)], [1, 1]),
         ([0, 1, 2], 3, [(0, 1, 2)], [1]),
         ([0, 0, 0], 1, [(0,)], [3]),
         ([0, 0, 0], 2, [(0, 0)], [2]),
@@ -23,7 +23,7 @@ def test_ngrams(sequence, n, expected_keys, expected_values):
 
 @pytest.mark.parametrize(
     "seq_a, seq_b, expected",
-    [([], [], 0), ([0, 1, 2], [0, 1, 2], 3), ([0, 1, 2], [0, 3, 2], 2), ("academy", "abracadabra", 4),],
+    [([], [], 0), ([0, 1, 2], [0, 1, 2], 3), ([0, 1, 2], [0, 3, 2], 2), ("academy", "abracadabra", 4)],
 )
 def test_lcs(seq_a, seq_b, expected):
     assert lcs(seq_a, seq_b) == expected

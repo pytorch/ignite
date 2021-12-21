@@ -28,9 +28,7 @@ class BaseParamScheduler(metaclass=ABCMeta):
 
     """
 
-    def __init__(
-        self, param_name: str, save_history: bool = False,
-    ):
+    def __init__(self, param_name: str, save_history: bool = False):
         self.param_name = param_name
         self.event_index = 0
         self._save_history = save_history
@@ -497,8 +495,7 @@ class CosineAnnealingScheduler(CyclicalScheduler):
     """
 
     def get_param(self) -> float:
-        """Method to get current optimizer's parameter value
-        """
+        """Method to get current optimizer's parameter value"""
         cycle_progress = self.event_index / self.cycle_size
         return self.start_value + ((self.end_value - self.start_value) / 2) * (1 - math.cos(math.pi * cycle_progress))
 
@@ -782,8 +779,7 @@ class LRScheduler(ParamScheduler):
         super(LRScheduler, self).__call__(engine, name)
 
     def get_param(self) -> Union[float, List[float]]:
-        """Method to get current optimizer's parameter value
-        """
+        """Method to get current optimizer's parameter value"""
         # Emulate context manager for pytorch>=1.4
         self.lr_scheduler._get_lr_called_within_step = True  # type: ignore[attr-defined]
         lr_list = cast(List[float], self.lr_scheduler.get_lr())

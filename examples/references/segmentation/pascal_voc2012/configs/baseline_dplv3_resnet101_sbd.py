@@ -110,7 +110,7 @@ momentum = 0.9
 nesterov = False
 
 optimizer = optim.SGD(
-    [{"params": model.backbone.parameters()}, {"params": model.classifier.parameters()},],
+    [{"params": model.backbone.parameters()}, {"params": model.classifier.parameters()}],
     lr=1.0,
     momentum=momentum,
     weight_decay=weight_decay,

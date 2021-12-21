@@ -13,7 +13,7 @@ train_transform = Compose(
     ]
 )
 
-test_transform = Compose([ToTensor(), Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),])
+test_transform = Compose([ToTensor(), Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))])
 
 
 def get_train_test_datasets(path):

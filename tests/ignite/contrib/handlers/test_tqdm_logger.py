@@ -157,9 +157,7 @@ def test_pbar_with_metric(capsys):
     RunningAverage(alpha=0.5, output_transform=lambda x: x).attach(trainer, "batchloss")
 
     pbar = ProgressBar()
-    pbar.attach(
-        trainer, metric_names=["batchloss",],
-    )
+    pbar.attach(trainer, metric_names=["batchloss"])
 
     trainer.run(data=data, max_epochs=1)
 
@@ -227,7 +225,7 @@ def test_pbar_with_state_attrs(capsys):
     RunningAverage(alpha=0.5, output_transform=lambda x: x).attach(trainer, "batchloss")
 
     pbar = ProgressBar()
-    pbar.attach(trainer, metric_names=["batchloss",], state_attributes=["alpha", "beta", "gamma"])
+    pbar.attach(trainer, metric_names=["batchloss"], state_attributes=["alpha", "beta", "gamma"])
 
     trainer.run(data=data, max_epochs=1)
 

@@ -51,7 +51,7 @@ def get_rank_zero_dirname(dirname):
 
 @pytest.fixture()
 def local_rank(worker_id):
-    """ use a different account in each xdist worker """
+    """use a different account in each xdist worker"""
 
     if "gw" in worker_id:
         lrank = int(worker_id.replace("gw", ""))

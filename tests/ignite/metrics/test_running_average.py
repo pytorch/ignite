@@ -192,11 +192,11 @@ def test_epoch_unbound():
 
 def test_multiple_attach():
     n_iters = 100
-    errD_values = iter(np.random.rand(n_iters,))
-    errG_values = iter(np.random.rand(n_iters,))
-    D_x_values = iter(np.random.rand(n_iters,))
-    D_G_z1 = iter(np.random.rand(n_iters,))
-    D_G_z2 = iter(np.random.rand(n_iters,))
+    errD_values = iter(np.random.rand(n_iters))
+    errG_values = iter(np.random.rand(n_iters))
+    D_x_values = iter(np.random.rand(n_iters))
+    D_G_z1 = iter(np.random.rand(n_iters))
+    D_G_z2 = iter(np.random.rand(n_iters))
 
     def update_fn(engine, batch):
         return {
