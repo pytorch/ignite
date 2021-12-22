@@ -422,7 +422,7 @@ def barrier(*args: Any, **kwargs: Any) -> None:
     """Helper method to synchronize all processes.
 
     Args:
-        args: acceptable kwargs according to provided backend
+        args: acceptable args according to provided backend
         kwargs: acceptable kwargs according to provided backend
 
             - | "nccl" or "gloo" : ``group`` (default, GroupMember.WORLD), ``async_op`` (default, False),
