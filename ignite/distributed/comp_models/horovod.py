@@ -1,8 +1,8 @@
 import warnings
+from distutils.version import LooseVersion
 from typing import Any, Callable, Mapping, Optional, Tuple, cast
 
 import torch
-from packaging import version
 
 from ignite.distributed.comp_models.base import ComputationModel
 
@@ -196,7 +196,7 @@ if has_hvd_support:
             return hvd.broadcast(tensor, root_rank=src)
 
         def barrier(self, *args: Any, **kwargs: Any) -> None:
-            if version.parse(HOROVOD_VERSION) < version.parse("0.23.0"):
+            if LooseVersion(HOROVOD_VERSION) < LooseVersion("0.23.0"):
                 if len(args) or len(kwargs):
                     warnings.warn(
                         f"Arguments {list(args) + list(kwargs)} are not passed to horovod barrier method. "
