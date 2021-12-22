@@ -1,5 +1,4 @@
 from abc import ABCMeta, abstractmethod
-from inspect import signature
 from numbers import Number
 from typing import Any, Callable, List, Optional, Union, cast
 
