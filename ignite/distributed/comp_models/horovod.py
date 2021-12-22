@@ -208,5 +208,4 @@ if has_hvd_support:
                 # hvd.allreduce(torch.tensor(0, device=self.device()), name="barrier")
                 hvd.allreduce(torch.tensor(0, device="cpu"), name="barrier")
             else:
-                self._check_signature(hvd.barrier, *args, **kwargs)
                 hvd.barrier(*args, **kwargs)

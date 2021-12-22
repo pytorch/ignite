@@ -276,20 +276,6 @@ class ComputationModel(metaclass=ABCMeta):
     def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
         pass
 
-    def _check_signature(self, fn: Callable, *args: Any, **kwargs: Any) -> None:
-        try:
-            fn_signature = signature(fn)
-            fn_signature.bind(*args, **kwargs)
-        except TypeError as exc:
-            fn_params = list(fn_signature.parameters)
-            exception_msg = str(exc)
-            passed_params = list(args) + list(kwargs)
-            raise ValueError(
-                f"Error calling {fn} for {self._backend}: "
-                f"takes parameters {fn_params} but will be called with {passed_params}"
-                f"({exception_msg})."
-            )
-
     @abstractmethod
     def barrier(self, *args: Any, **kwargs: Any) -> None:
         pass

@@ -168,5 +168,4 @@ if has_xla_support:
                     f" method."
                 )
                 kwargs["tag"] = "barrier"
-            self._check_signature(xm.rendezvous, *args, **kwargs)
             xm.rendezvous(*args, **kwargs)

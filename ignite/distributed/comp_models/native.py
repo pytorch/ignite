@@ -433,7 +433,6 @@ if has_native_dist_support:
             return tensor
 
         def barrier(self, *args: Any, **kwargs: Any) -> None:
-            self._check_signature(dist.barrier, *args, **kwargs)
             dist.barrier(*args, **kwargs)
 
     def _expand_hostlist(nodelist: str) -> List[str]:
