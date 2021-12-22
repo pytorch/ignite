@@ -428,7 +428,7 @@ def barrier(*args: Any, **kwargs: Any) -> None:
             - | "nccl" or "gloo" : ``group`` (default, GroupMember.WORLD), ``async_op`` (default, False),
               | ``device_ids`` (default, None).
 
-            - | "horovod" : for ``horovod__version__>="0.23.0"``, ``process_set`` (default, global_process_set).
+            - | "horovod" : for version >= "0.23.0", ``process_set`` (default, global_process_set).
 
             - | "xla-tpu" : ``tag``, ``payload`` (default, b""), ``replicas`` (default, []).
 
