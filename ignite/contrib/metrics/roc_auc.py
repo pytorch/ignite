@@ -80,7 +80,7 @@ class ROC_AUC(EpochMetric):
             raise RuntimeError("This contrib module requires sklearn to be installed.")
 
         super(ROC_AUC, self).__init__(
-            roc_auc_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn, device=device,
+            roc_auc_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn, device=device
         )
 
 

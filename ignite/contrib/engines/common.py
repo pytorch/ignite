@@ -562,8 +562,7 @@ def setup_trains_logging(
     log_every_iters: int = 100,
     **kwargs: Any,
 ) -> ClearMLLogger:
-    """``setup_trains_logging`` was renamed to :func:`~ignite.contrib.engines.common.setup_clearml_logging`.
-    """
+    """``setup_trains_logging`` was renamed to :func:`~ignite.contrib.engines.common.setup_clearml_logging`."""
     warnings.warn("setup_trains_logging was renamed to setup_clearml_logging.")
     return setup_clearml_logging(trainer, optimizers, evaluators, log_every_iters, **kwargs)
 

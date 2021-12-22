@@ -33,7 +33,7 @@ except Exception as e:
     print(traceback.format_exc())
     """
     try:
-        out = client.containers.run(args.image, f"python -c '{try_except_cmd}'", auto_remove=True, stderr=True,)
+        out = client.containers.run(args.image, f"python -c '{try_except_cmd}'", auto_remove=True, stderr=True)
         assert isinstance(out, bytes), type(out)
         out = out.decode("utf-8").strip()
 

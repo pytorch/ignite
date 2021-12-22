@@ -96,7 +96,7 @@ class ComputationModel(metaclass=ABCMeta):
         return padded_x.unsqueeze(0)
 
     def _get_max_length(self, x: str, device: torch.device) -> int:
-        size = torch.tensor([len(x),], device=device)
+        size = torch.tensor([len(x)], device=device)
         size = self._do_all_reduce(size, "MAX")
         return cast(int, size.item())
 
@@ -246,7 +246,7 @@ class ComputationModel(metaclass=ABCMeta):
             if rank != src:
                 tensor = torch.empty(1, device=device, dtype=torch.float)
             else:
-                tensor = torch.tensor([tensor,], device=device, dtype=torch.float)
+                tensor = torch.tensor([tensor], device=device, dtype=torch.float)
         elif isinstance(tensor, str):
             tensor_to_str = True
             max_length = self._get_max_length(tensor, device)
@@ -282,8 +282,7 @@ class ComputationModel(metaclass=ABCMeta):
 
 
 class _SerialModel(ComputationModel):
-    """Private class defines non-distributed computation model for code compatibility with other distributed models.
-    """
+    """Private class defines non-distributed computation model for code compatibility with other distributed models."""
 
     name = "serial"
     available_backends = ()

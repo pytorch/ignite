@@ -232,7 +232,7 @@ def IoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambd
             raise ValueError(f"ignore_index should be non-negative integer, but given {ignore_index}")
 
     # Increase floating point precision and pass to CPU
-    cm = cm.type(torch.DoubleTensor)
+    cm = cm.to(torch.double)
     iou = cm.diag() / (cm.sum(dim=1) + cm.sum(dim=0) - cm.diag() + 1e-15)  # type: MetricsLambda
     if ignore_index is not None:
         ignore_idx = ignore_index  # type: int  # used due to typing issues with mympy
@@ -295,7 +295,7 @@ def cmAccuracy(cm: ConfusionMatrix) -> MetricsLambda:
         MetricsLambda
     """
     # Increase floating point precision and pass to CPU
-    cm = cm.type(torch.DoubleTensor)
+    cm = cm.to(torch.double)
     accuracy = cm.diag().sum() / (cm.sum() + 1e-15)  # type: MetricsLambda
     return accuracy
 
@@ -311,7 +311,7 @@ def cmPrecision(cm: ConfusionMatrix, average: bool = True) -> MetricsLambda:
     """
 
     # Increase floating point precision and pass to CPU
-    cm = cm.type(torch.DoubleTensor)
+    cm = cm.to(torch.double)
     precision = cm.diag() / (cm.sum(dim=0) + 1e-15)  # type: MetricsLambda
     if average:
         mean = precision.mean()  # type: MetricsLambda
@@ -330,7 +330,7 @@ def cmRecall(cm: ConfusionMatrix, average: bool = True) -> MetricsLambda:
     """
 
     # Increase floating point precision and pass to CPU
-    cm = cm.type(torch.DoubleTensor)
+    cm = cm.to(torch.double)
     recall = cm.diag() / (cm.sum(dim=1) + 1e-15)  # type: MetricsLambda
     if average:
         mean = recall.mean()  # type: MetricsLambda
@@ -376,7 +376,7 @@ def DiceCoefficient(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> 
             raise ValueError(f"ignore_index should be non-negative integer, but given {ignore_index}")
 
     # Increase floating point precision and pass to CPU
-    cm = cm.type(torch.DoubleTensor)
+    cm = cm.to(torch.double)
     dice = 2.0 * cm.diag() / (cm.sum(dim=1) + cm.sum(dim=0) + 1e-15)  # type: MetricsLambda
 
     if ignore_index is not None:

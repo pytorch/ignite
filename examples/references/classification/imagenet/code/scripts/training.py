@@ -61,7 +61,7 @@ def create_trainer(model, optimizer, criterion, train_sampler, config, logger):
             "supervised batch loss": loss.item(),
         }
 
-    output_names = getattr(config, "output_names", ["supervised batch loss",])
+    output_names = getattr(config, "output_names", ["supervised batch loss"])
     lr_scheduler = config.lr_scheduler
 
     trainer = Engine(train_update_function)
@@ -97,7 +97,7 @@ def create_evaluators(model, metrics, config):
         device=config.device,
         non_blocking=True,
         prepare_batch=config.prepare_batch,
-        output_transform=lambda x, y, y_pred: (model_output_transform(y_pred), y,),
+        output_transform=lambda x, y, y_pred: (model_output_transform(y_pred), y),
     )
     train_evaluator = create_supervised_evaluator(**evaluator_args)
     evaluator = create_supervised_evaluator(**evaluator_args)

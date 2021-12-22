@@ -446,14 +446,14 @@ class Engine(Serializable):
         return self._fire_event(event_name)
 
     def terminate(self) -> None:
-        """Sends terminate signal to the engine, so that it terminates completely the run after the current iteration.
-        """
+        """Sends terminate signal to the engine, so that it terminates completely the run after
+        the current iteration."""
         self.logger.info("Terminate signaled. Engine will stop after current iteration is finished.")
         self.should_terminate = True
 
     def terminate_epoch(self) -> None:
-        """Sends terminate signal to the engine, so that it terminates the current epoch after the current iteration.
-        """
+        """Sends terminate signal to the engine, so that it terminates the current epoch
+        after the current iteration."""
         self.logger.info(
             "Terminate current epoch is signaled. "
             "Current epoch iteration will stop after current iteration is finished."
@@ -600,12 +600,12 @@ class Engine(Serializable):
 
     def run(
         self,
-        data: Iterable,
+        data: Optional[Iterable] = None,
         max_epochs: Optional[int] = None,
         max_iters: Optional[int] = None,
         epoch_length: Optional[int] = None,
     ) -> State:
-        """Runs the `process_function` over the passed data.
+        """Runs the ``process_function`` over the passed data.
 
         Engine has a state and the following logic is applied in this function:
 
@@ -617,7 +617,8 @@ class Engine(Serializable):
         - If state is defined, engine is NOT "done", then input arguments if provided override defined state.
 
         Args:
-            data: Collection of batches allowing repeated iteration (e.g., list or `DataLoader`).
+            data: Collection of batches allowing repeated iteration (e.g., list or `DataLoader`). If not provided, then
+                ``epoch_length`` is required and ``batch`` argument of ``process_function`` will be ``None``.
             max_epochs: Max epochs to run for (default: None).
                 If a new state should be created (first run or run again from ended engine), it's default value is 1.
                 If run is resuming from a state, provided `max_epochs` will be taken into account and should be larger
@@ -656,7 +657,7 @@ class Engine(Serializable):
                 trainer.run(train_loader, max_epochs=2)
 
         """
-        if not isinstance(data, Iterable):
+        if data is not None and not isinstance(data, Iterable):
             raise TypeError("Argument data should be iterable")
 
         if self.state.max_epochs is not None:
@@ -680,6 +681,9 @@ class Engine(Serializable):
         if self.state.max_epochs is None or self._is_done(self.state):
             # Create new state
             if epoch_length is None:
+                if data is None:
+                    raise ValueError("epoch_length should be provided if data is None")
+
                 epoch_length = self._get_data_length(data)
                 if epoch_length is not None and epoch_length < 1:
                     raise ValueError("Input data has zero size. Please provide non-empty data")
@@ -707,6 +711,8 @@ class Engine(Serializable):
                 f"Engine run resuming from iteration {self.state.iteration}, "
                 f"epoch {self.state.epoch} until {self.state.max_epochs} epochs"
             )
+            if self.state.epoch_length is None and data is None:
+                raise ValueError("epoch_length should be provided if data is None")
 
         self.state.dataloader = data
         return self._internal_run()
@@ -725,14 +731,20 @@ class Engine(Serializable):
             pass
         return None
 
-    def _setup_engine(self) -> None:
+    def _setup_dataloader_iter(self) -> None:
         if self.state.dataloader is None:
-            raise RuntimeError(
-                "Internal error, self.state.dataloader is None. Please, file an issue if you encounter this error."
-            )
+            if self.state.epoch_length is None:
+                raise RuntimeError(
+                    "Internal error, self.state.epoch_length is None. "
+                    "Please, file an issue if you encounter this error."
+                )
+            self._dataloader_iter = _get_none_data_iter(self.state.epoch_length)
+        else:
+            self._dataloader_iter = iter(self.state.dataloader)
 
+    def _setup_engine(self) -> None:
+        self._setup_dataloader_iter()
         iteration = self.state.iteration
-        self._dataloader_iter = iter(self.state.dataloader)
 
         # Below we define initial counter value for _run_once_on_dataset to measure a single epoch
         if self.state.epoch_length is not None:
@@ -796,11 +808,8 @@ class Engine(Serializable):
         try:
             if self._dataloader_iter is None:
                 raise RuntimeError(
-                    "Internal error, self._dataloader_iter is None. Please, file an issue if you encounter this error."
-                )
-            if self.state.dataloader is None:
-                raise RuntimeError(
-                    "Internal error, self.state.dataloader is None. Please, file an issue if you encounter this error."
+                    "Internal error, self._dataloader_iter is None. "
+                    "Please, file an issue if you encounter this error."
                 )
 
             while True:
@@ -839,7 +848,7 @@ class Engine(Serializable):
                         break
 
                     self._fire_event(Events.DATALOADER_STOP_ITERATION)
-                    self.set_data(self.state.dataloader)
+                    self._setup_dataloader_iter()
 
                     should_exit = True
 
@@ -853,7 +862,7 @@ class Engine(Serializable):
                 if self.should_terminate or self.should_terminate_single_epoch:
                     self._fire_event(Events.TERMINATE_SINGLE_EPOCH, iter_counter=iter_counter)
                     self.should_terminate_single_epoch = False
-                    self.set_data(self.state.dataloader)
+                    self._setup_dataloader_iter()
                     break
 
                 if self.state.epoch_length is not None and iter_counter == self.state.epoch_length:
@@ -868,3 +877,9 @@ class Engine(Serializable):
             self._handle_exception(e)
 
         return time.time() - start_time
+
+
+def _get_none_data_iter(size: int) -> Iterator:
+    # Sized iterator for data as None
+    for _ in range(size):
+        yield None

@@ -47,7 +47,7 @@ def test_binary_wrong_inputs():
 
     with pytest.raises(ValueError, match=r"For binary cases, y_pred must be comprised of 0's and 1's"):
         # y_pred values are not thresholded to 0, 1 values
-        acc.update((torch.rand(10,), torch.randint(0, 2, size=(10,)).long(),))
+        acc.update((torch.rand(10), torch.randint(0, 2, size=(10,)).long()))
 
     with pytest.raises(ValueError, match=r"y must have shape of "):
         # incompatible shapes

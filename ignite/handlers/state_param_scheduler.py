@@ -4,7 +4,7 @@ from bisect import bisect_right
 from typing import Any, List, Sequence, Tuple, Union
 
 from ignite.engine import CallableEventWithFilter, Engine, Events, EventsList
-from ignite.handlers import BaseParamScheduler
+from ignite.handlers.param_scheduler import BaseParamScheduler
 
 
 class StateParamScheduler(BaseParamScheduler):
@@ -302,7 +302,7 @@ class ExpStateScheduler(StateParamScheduler):
     """
 
     def __init__(
-        self, initial_value: float, gamma: float, param_name: str, save_history: bool = False, create_new: bool = False,
+        self, initial_value: float, gamma: float, param_name: str, save_history: bool = False, create_new: bool = False
     ):
         super(ExpStateScheduler, self).__init__(param_name, save_history, create_new)
         self.initial_value = initial_value

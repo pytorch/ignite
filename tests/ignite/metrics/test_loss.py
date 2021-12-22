@@ -123,7 +123,7 @@ def test_gradient_based_loss():
 
     def loss_fn(y_pred, x):
         gradients = torch.autograd.grad(
-            outputs=y_pred, inputs=x, grad_outputs=torch.ones_like(y_pred), create_graph=True,
+            outputs=y_pred, inputs=x, grad_outputs=torch.ones_like(y_pred), create_graph=True
         )[0]
 
         gradients = gradients.flatten(start_dim=1)

@@ -121,9 +121,7 @@ def test_wrong_inputs():
     err_str = (
         "Number of Training Features and Testing Features should be equal (torch.Size([9, 2]) != torch.Size([5, 2]))"
     )
-    with pytest.raises(
-        ValueError, match=re.escape(err_str),
-    ):
+    with pytest.raises(ValueError, match=re.escape(err_str)):
         FID(num_features=2, feature_extractor=torch.nn.Identity()).update((torch.rand(9, 2), torch.rand(5, 2)))
 
     with pytest.raises(TypeError, match=r"Argument feature_extractor must be of type torch.nn.Module"):
