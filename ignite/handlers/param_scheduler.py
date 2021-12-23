@@ -543,21 +543,39 @@ class ConcatScheduler(ParamScheduler):
             `engine.state.param_history`, (default=False).
 
     Examples:
-        .. code-block:: python
 
-            from ignite.handlers.param_scheduler import ConcatScheduler
-            from ignite.handlers.param_scheduler import LinearCyclicalScheduler
-            from ignite.handlers.param_scheduler import CosineAnnealingScheduler
+        .. testsetup::
 
-            scheduler_1 = LinearCyclicalScheduler(optimizer, "lr", start_value=0.1, end_value=0.5, cycle_size=60)
-            scheduler_2 = CosineAnnealingScheduler(optimizer, "lr", start_value=0.5, end_value=0.01, cycle_size=60)
+            default_trainer = get_default_trainer()
 
-            combined_scheduler = ConcatScheduler(schedulers=[scheduler_1, scheduler_2], durations=[30, ])
-            trainer.add_event_handler(Events.ITERATION_STARTED, combined_scheduler)
-            #
-            # Sets the Learning rate linearly from 0.1 to 0.5 over 30 iterations. Then
-            # starts an annealing schedule from 0.5 to 0.01 over 60 iterations.
+        .. testcode::
+
+            scheduler_1 = LinearCyclicalScheduler(default_optimizer, "lr", 0.0, 1.0, 8)
+            scheduler_2 = CosineAnnealingScheduler(default_optimizer, "lr", 1.0, 0.2, 4)
+
+            # Sets the Learning rate linearly from 0.0 to 1.0 over 4 iterations. Then
+            # starts an annealing schedule from 1.0 to 0.2 over the next 4 iterations.
             # The annealing cycles are repeated indefinitely.
+            combined_scheduler = ConcatScheduler(schedulers=[scheduler_1, scheduler_2], durations=[4, ])
+
+            default_trainer.add_event_handler(Events.ITERATION_STARTED, combined_scheduler)
+
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def print_lr():
+                print(default_optimizer.param_groups[0]["lr"])
+
+            default_trainer.run([0] * 8, max_epochs=1)
+
+        .. testoutput::
+
+            0.0
+            0.25
+            0.5
+            0.75
+            1.0
+            0.8828...
+            0.6000...
+            0.3171...
 
     .. versionadded:: 0.4.5
     """
