@@ -176,7 +176,7 @@ class DeterministicEngine(Engine):
             in each iteration, and returns data to be stored in the engine's state.
     """
 
-    def __init__(self, process_function: Callable[["DeterministicEngine", Any], Any]):
+    def __init__(self, process_function: Callable[[Engine, Any], Any]):
         super(DeterministicEngine, self).__init__(process_function)
         self.state_dict_user_keys.append("rng_states")
         self.add_event_handler(Events.STARTED, self._init_run)
