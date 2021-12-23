@@ -217,7 +217,7 @@ def test_idist_barrier_xla_in_child_proc(xmp_executor):
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_idist_barrier_with_args_xla_in_child_proc(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
-    xmp_executor(_test_idist_barrier_xla_in_child_proc, args=("barrier"), nprocs=n)
+    xmp_executor(_test_idist_barrier_xla_in_child_proc, args=("barrier",), nprocs=n)
 
 
 @pytest.mark.tpu
