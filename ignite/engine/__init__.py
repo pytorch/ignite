@@ -48,7 +48,7 @@ def supervised_training_step(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
-    output_transform: Callable = lambda x, y, y_pred, loss: loss.item(),
+    output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
     gradient_accumulation_steps: int = 1,
 ) -> Callable:
     """Factory function for supervised training.
@@ -117,7 +117,7 @@ def supervised_training_step_amp(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
-    output_transform: Callable = lambda x, y, y_pred, loss: loss.item(),
+    output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
     scaler: Optional["torch.cuda.amp.GradScaler"] = None,
     gradient_accumulation_steps: int = 1,
 ) -> Callable:
@@ -203,7 +203,7 @@ def supervised_training_step_apex(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
-    output_transform: Callable = lambda x, y, y_pred, loss: loss.item(),
+    output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
     gradient_accumulation_steps: int = 1,
 ) -> Callable:
     """Factory function for supervised training using apex.
@@ -279,7 +279,7 @@ def supervised_training_step_tpu(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
-    output_transform: Callable = lambda x, y, y_pred, loss: loss.item(),
+    output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
     gradient_accumulation_steps: int = 1,
 ) -> Callable:
     """Factory function for supervised training using ``torch_xla``.
@@ -381,7 +381,7 @@ def create_supervised_trainer(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
-    output_transform: Callable = lambda x, y, y_pred, loss: loss.item(),
+    output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
     deterministic: bool = False,
     amp_mode: Optional[str] = None,
     scaler: Union[bool, "torch.cuda.amp.GradScaler"] = False,
@@ -417,6 +417,50 @@ def create_supervised_trainer(
 
     Returns:
         a trainer engine with supervised update function.
+
+    Examples:
+
+        Create a trainer
+
+        .. code-block:: python
+
+            from ignite.engine import create_supervised_trainer
+            from ignite.utils import convert_tensor
+            from ignite.contrib.handlers.tqdm_logger import ProgressBar
+
+            model = ...
+            loss = ...
+            optimizer = ...
+            dataloader = ...
+
+            def prepare_batch_fn(batch, device, non_blocking):
+                x = ...  # get x from batch
+                y = ...  # get y from batch
+
+                # return a tuple of (x, y) that can be directly runned as
+                # `loss_fn(model(x), y)`
+                return (
+                    convert_tensor(x, device, non_blocking),
+                    convert_tensor(y, device, non_blocking)
+                )
+
+            def output_transform_fn(x, y, y_pred, loss):
+                # return only the loss is actually the default behavior for
+                # trainer engine, but you can return anything you want
+                return loss.item()
+
+            trainer = create_supervised_trainer(
+                model,
+                optimizer,
+                loss,
+                prepare_batch=prepare_batch_fn,
+                output_transform=output_transform_fn
+            )
+
+            pbar = ProgressBar()
+            pbar.attach(trainer, output_transform=lambda x: {"loss": x})
+
+            trainer.run(dataloader, max_epochs=5)
 
     Note:
         If ``scaler`` is True, GradScaler instance will be created internally and trainer state has attribute named
@@ -513,7 +557,7 @@ def supervised_evaluation_step(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
-    output_transform: Callable = lambda x, y, y_pred: (y_pred, y),
+    output_transform: Callable[[Any, Any, Any], Any] = lambda x, y, y_pred: (y_pred, y),
 ) -> Callable:
     """
     Factory function for supervised evaluation.
@@ -561,7 +605,7 @@ def supervised_evaluation_step_amp(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
-    output_transform: Callable = lambda x, y, y_pred: (y_pred, y),
+    output_transform: Callable[[Any, Any, Any], Any] = lambda x, y, y_pred: (y_pred, y),
 ) -> Callable:
     """
     Factory function for supervised evaluation using ``torch.cuda.amp``.
@@ -615,7 +659,7 @@ def create_supervised_evaluator(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
-    output_transform: Callable = lambda x, y, y_pred: (y_pred, y),
+    output_transform: Callable[[Any, Any, Any], Any] = lambda x, y, y_pred: (y_pred, y),
     amp_mode: Optional[str] = None,
 ) -> Engine:
     """
