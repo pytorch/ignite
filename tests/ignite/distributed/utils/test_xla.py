@@ -179,32 +179,58 @@ def test_idist_broadcast_xla_in_child_proc(xmp_executor):
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_idist_barrier_xla():
+    with pytest.warns(
+        UserWarning,
+        match=r"`tag` parameter is mandatory and is set by default to `barrier` for xla-tpu `rendezvous` method.",
+    ):
+        device = idist.device()
+        _test_distrib_barrier(device)
 
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_idist_barrier_xla_with_args():
     device = idist.device()
-    _test_distrib_barrier(device)
+    _test_distrib_barrier(device, "barrier")
 
 
-def _test_idist_barrier_xla_in_child_proc(index):
+def _test_idist_barrier_xla_in_child_proc(index, *args):
     device = idist.device()
-    _test_distrib_barrier(device)
+    _test_distrib_barrier(device, *args)
 
 
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_idist_barrier_xla_in_child_proc(xmp_executor):
+    with pytest.warns(
+        UserWarning,
+        match=r"`tag` parameter is mandatory and is set by default to `barrier` for xla-tpu `rendezvous` method.",
+    ):
+        n = int(os.environ["NUM_TPU_WORKERS"])
+        xmp_executor(_test_idist_barrier_xla_in_child_proc, args=(), nprocs=n)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_idist_barrier_with_args_xla_in_child_proc(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
-    xmp_executor(_test_idist_barrier_xla_in_child_proc, args=(), nprocs=n)
+    xmp_executor(_test_idist_barrier_xla_in_child_proc, args=("barrier"), nprocs=n)
 
 
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_idist_one_rank_only_xla():
-
-    device = idist.device()
-    _test_distrib_one_rank_only(device=device)
-    _test_distrib_one_rank_only_with_engine(device=device)
+    with pytest.warns(
+        UserWarning,
+        match=r"`tag` parameter is mandatory and is set by default to `barrier` for xla-tpu `rendezvous` method.",
+    ):
+        device = idist.device()
+        _test_distrib_one_rank_only(device=device)
+        _test_distrib_one_rank_only_with_engine(device=device)
 
 
 def _test_idist_one_rank_only_xla_nprocs(index):
@@ -217,5 +243,9 @@ def _test_idist_one_rank_only_xla_nprocs(index):
 @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_idist_one_rank_only_xla_nprocs(xmp_executor):
-    n = int(os.environ["NUM_TPU_WORKERS"])
-    xmp_executor(_test_idist_one_rank_only_xla_nprocs, args=(), nprocs=n)
+    with pytest.warns(
+        UserWarning,
+        match=r"`tag` parameter is mandatory and is set by default to `barrier` for xla-tpu `rendezvous` method.",
+    ):
+        n = int(os.environ["NUM_TPU_WORKERS"])
+        xmp_executor(_test_idist_one_rank_only_xla_nprocs, args=(), nprocs=n)

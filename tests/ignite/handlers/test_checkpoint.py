@@ -1310,9 +1310,13 @@ def _test_tpu_saves_to_cpu(device, dirname):
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
 @pytest.mark.skipif(not idist.has_xla_support, reason="Not on TPU device")
 def test_distrib_single_device_xla(dirname):
-    assert "xla" in idist.device().type
-    _test_tpu_saves_to_cpu(idist.device(), os.path.join(dirname, "1"))
-    _test_save_model_optimizer_lr_scheduler_with_state_dict(idist.device(), os.path.join(dirname, "2"))
+    with pytest.warns(
+        UserWarning,
+        match=r"`tag` parameter is mandatory and is set by default to `barrier` for xla-tpu `rendezvous` method.",
+    ):
+        assert "xla" in idist.device().type
+        _test_tpu_saves_to_cpu(idist.device(), os.path.join(dirname, "1"))
+        _test_save_model_optimizer_lr_scheduler_with_state_dict(idist.device(), os.path.join(dirname, "2"))
 
 
 def _test_tpu_saves_to_cpu_nprocs(index, dirname):
@@ -1330,8 +1334,12 @@ def _test_tpu_saves_to_cpu_nprocs(index, dirname):
 @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
 @pytest.mark.skipif(not idist.has_xla_support, reason="Not on TPU device")
 def test_distrib_single_device_xla_nprocs(xmp_executor, dirname):
-    n = int(os.environ["NUM_TPU_WORKERS"])
-    xmp_executor(_test_tpu_saves_to_cpu_nprocs, args=(dirname,), nprocs=n)
+    with pytest.warns(
+        UserWarning,
+        match=r"`tag` parameter is mandatory and is set by default to `barrier` for xla-tpu `rendezvous` method.",
+    ):
+        n = int(os.environ["NUM_TPU_WORKERS"])
+        xmp_executor(_test_tpu_saves_to_cpu_nprocs, args=(dirname,), nprocs=n)
 
 
 def test_checkpoint_filename_pattern():

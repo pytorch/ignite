@@ -956,9 +956,13 @@ def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
 @pytest.mark.skipif(not idist.has_xla_support, reason="Not on TPU device")
 def test_distrib_single_device_xla():
-    device = idist.device()
-    assert "xla" in device.type
-    _test_save_model_optimizer_lr_scheduler_with_state_dict(device)
+    with pytest.warns(
+        UserWarning,
+        match=r"`tag` parameter is mandatory and is set by default to `barrier` for xla-tpu `rendezvous` method.",
+    ):
+        device = idist.device()
+        assert "xla" in device.type
+        _test_save_model_optimizer_lr_scheduler_with_state_dict(device)
 
 
 def _test_save_model_optimizer_lr_scheduler_with_state_dict_xla_nprocs(index):
@@ -975,5 +979,9 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict_xla_nprocs(index):
 @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
 @pytest.mark.skipif(not idist.has_xla_support, reason="Not on TPU device")
 def test_distrib_single_device_xla_nprocs(xmp_executor):
-    n = int(os.environ["NUM_TPU_WORKERS"])
-    xmp_executor(_test_save_model_optimizer_lr_scheduler_with_state_dict_xla_nprocs, args=(), nprocs=n)
+    with pytest.warns(
+        UserWarning,
+        match=r"`tag` parameter is mandatory and is set by default to `barrier` for xla-tpu `rendezvous` method.",
+    ):
+        n = int(os.environ["NUM_TPU_WORKERS"])
+        xmp_executor(_test_save_model_optimizer_lr_scheduler_with_state_dict_xla_nprocs, args=(), nprocs=n)
