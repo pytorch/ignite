@@ -98,15 +98,14 @@ class PyTorchProfiler:
             profile_memory=self.profile_memory,
             with_stack=self.with_stack,
             with_flops=self.with_flops,
-            with_modules=self.with_modules,
         )
         self._profiler.__enter__()
 
     def _exit_profiler(self):
-        self._profiler.__exit__()
+        self._profiler.__exit__(0, 0, 0)
 
     def _profiler_step(self):
-        self.profiler.step()
+        self._profiler.step()
 
     def attach(self, engine: Engine,) -> None:
         """Attach the profiler to the engine.
@@ -114,10 +113,9 @@ class PyTorchProfiler:
         Args:
             engine: engine object.
         """
-
-        engine._event_handlers[Events.EPOCH_STARTED].append((self._profiler_create, {}, {}))
-        engine._event_handlers[Events.GET_BATCH_COMPLETED].append((self._profiler_step, {}, {}))
-        engine._event_handlers[Events.EPOCH_COMPLETED].append((self._profile_create.__exit__(), {}, {}))
+        engine.add_event_handler(Events.EPOCH_STARTED, self._profiler_create)
+        engine.add_event_handler(Events.GET_BATCH_COMPLETED, self._profiler_step)
+        engine.add_event_handler(Events.EPOCH_COMPLETED, self._exit_profiler)
 
     def get_results(self, n: int = -1, sort_key: str = "self_cuda_memory_usage", top_level_events_only=False):
         if sort_key not in self.SORT_KEYS:
