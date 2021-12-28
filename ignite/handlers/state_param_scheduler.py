@@ -309,7 +309,7 @@ class ExpStateScheduler(StateParamScheduler):
 
             epoch = 1, param = 0.9
             epoch = 2, param = 0.81
-            epoch = 3, param = 0.7290000000000001
+            epoch = 3, param = 0.7290...
             epoch = 4, param = 0.6561
 
     .. versionadded:: 0.5.0
