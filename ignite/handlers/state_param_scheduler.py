@@ -296,6 +296,7 @@ class ExpStateScheduler(StateParamScheduler):
             # Epoch 2, param changes from 0.9 to 0.9*0.9, param = 0.81
             # Epoch 3, param changes from 0.81 to 0.81*0.9, param = 0.729
             # Epoch 4, param changes from 0.81 to 0.729*0.9, param = 0.6561
+            
             param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
 
             @engine.on(Events.EPOCH_COMPLETED)
@@ -305,6 +306,7 @@ class ExpStateScheduler(StateParamScheduler):
             engine.run([0], max_epochs=4)
 
         .. testoutput::
+
             epoch = 1, param = 0.9
             epoch = 2, param = 0.81
             epoch = 3, param = 0.7290...
