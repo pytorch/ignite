@@ -291,7 +291,7 @@ class ExpStateScheduler(StateParamScheduler):
                 param_name="param", initial_value=1, gamma=0.9, create_new=True
             )
 
-            # parameter is param, initial_value sets param to 1, gamma is set as 0.9 
+            # parameter is param, initial_value sets param to 1, gamma is set as 0.9
             # Epoch 1, param changes from 1 to 1*0.9, param = 0.9
             # Epoch 2, param changes from 0.9 to 0.9*0.9, param = 0.81
             # Epoch 3, param changes from 0.81 to 0.81*0.9, param = 0.729
@@ -309,7 +309,7 @@ class ExpStateScheduler(StateParamScheduler):
               epoch = 2, param = 0.81
               epoch = 3, param = 0.7290...
               epoch = 4, param = 0.6561
-              
+
     .. versionadded:: 0.5.0
 
     """
