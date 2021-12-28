@@ -354,7 +354,7 @@ default_evaluator = Engine(eval_step)
 # create default optimizer for doctests
 
 param_tensor = torch.zeros([1], requires_grad=True)
-default_optimizer = torch.optim.SGD([param_tensor], lr=0)
+default_optimizer = torch.optim.SGD([param_tensor], lr=0.1)
 
 # create default trainer for doctests
 # as handlers could be attached to the trainer,
