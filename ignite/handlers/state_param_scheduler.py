@@ -283,7 +283,7 @@ class ExpStateScheduler(StateParamScheduler):
 
         .. testsetup::
 
-            engine = get_default_trainer()
+            default_trainer = get_default_trainer()
 
         .. testcode::
 
@@ -297,13 +297,13 @@ class ExpStateScheduler(StateParamScheduler):
             # Epoch 3, param changes from 0.81 to 0.81*0.9, param = 0.729
             # Epoch 4, param changes from 0.81 to 0.729*0.9, param = 0.6561
 
-            param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
+            param_scheduler.attach(default_trainer, Events.EPOCH_COMPLETED)
 
-            @engine.on(Events.EPOCH_COMPLETED)
+            @default_trainer.on(Events.EPOCH_COMPLETED)
             def print_param():
-                print(engine.state.param)
+                print(default_trainer.state.param)
 
-            engine.run([0], max_epochs=4)
+            default_trainer.run([0], max_epochs=4)
 
         .. testoutput::
 
