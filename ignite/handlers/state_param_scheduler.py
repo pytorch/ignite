@@ -328,22 +328,40 @@ class StepStateScheduler(StateParamScheduler):
             `engine.state.param_history`, (default=False).
 
     Examples:
-
-        .. code-block:: python
-
-            ...
-            engine = Engine(train_step)
-
+        
+        .. testsetup::
+            engine = get_default_trainer()
+        
+        .. testcode::
             param_scheduler = StepStateScheduler(
-                param_name="param", initial_value=10, gamma=0.99, step_size=5
-            )
+                    param_name="param", initial_value=1, gamma=0.9, step_size=5, create_new=True
+                    )
 
+            # parameter is param, initial_value sets param to 1, gamma is set as 0.9
+            # Epoch 1 to 4, param does not change as step size is 5,  
+            # Epoch 5, param changes from 1 to 1*0.9, param = 0.9 
+            # Epoch 5 to 9, param = 0.9 as step size is 5,
+            # Epoch 10, param changes from 0.9 to 0.9*0.9, param = 0.81
+            # Epoch 10 to 14, param = 0.81, as step size is 5
+            # Epoch 15, param changes from 0.81 to 0.81*0.9, param = 0.729
+            # and so on ... the param change at Epoch = 5, 10, 15, 20, . . . 
+            
             param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
 
-            # basic handler to print scheduled state parameter
-            engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _ : print(engine.state.param))
+            @engine.on(Events.EPOCH_COMPLETED)
+            def print_param():
+                if (engine.state.epoch)%5 == 0:
+                    print(f"epoch = {engine.state.epoch}, param = {engine.state.param}")
+            
+            engine.run([0], max_epochs=25)
+        
+        .. testoutput::
 
-            engine.run([0] * 8, max_epochs=10)
+            epoch = 5, param = 0.9
+            epoch = 10, param = 0.81
+            epoch = 15, param = 0.7290...
+            epoch = 20, param = 0.6561
+            epoch = 25, param = 0.5904...
 
     .. versionadded:: 0.5.0
 
