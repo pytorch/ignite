@@ -353,7 +353,7 @@ class StepStateScheduler(StateParamScheduler):
 
             @engine.on(Events.EPOCH_COMPLETED)
             def print_param():
-                if (engine.state.epoch)%5 == 0:
+                if engine.state.epoch % 5 == 0:
                     print(f"epoch = {engine.state.epoch}, param = {engine.state.param}")
 
             engine.run([0], max_epochs=25)
