@@ -35,7 +35,7 @@ CKPT_PREFIX = "networks"
 
 
 class Net(nn.Module):
-    """ A base class for both generator and the discriminator.
+    """A base class for both generator and the discriminator.
     Provides a common weight initialization scheme.
 
     """
@@ -56,7 +56,7 @@ class Net(nn.Module):
 
 
 class Generator(Net):
-    """ Generator network.
+    """Generator network.
 
     Args:
         nf (int): Number of filters in the second-to-last deconv layer
@@ -95,7 +95,7 @@ class Generator(Net):
 
 
 class Discriminator(Net):
-    """ Discriminator network.
+    """Discriminator network.
 
     Args:
         nf (int): Number of filters in the first conv layer.
@@ -133,9 +133,7 @@ class Discriminator(Net):
 
 
 def check_manual_seed(seed):
-    """ If manual seed is not specified, choose a random one and communicate it to the user.
-
-    """
+    """If manual seed is not specified, choose a random one and communicate it to the user."""
 
     seed = seed or random.randint(1, 10000)
     random.seed(seed)
@@ -311,8 +309,8 @@ def main(
     @trainer.on(Events.ITERATION_COMPLETED(every=PRINT_FREQ))
     def print_logs(engine):
         fname = os.path.join(output_dir, LOGS_FNAME)
-        columns = ["iteration",] + list(engine.state.metrics.keys())
-        values = [str(engine.state.iteration),] + [str(round(value, 5)) for value in engine.state.metrics.values()]
+        columns = ["iteration"] + list(engine.state.metrics.keys())
+        values = [str(engine.state.iteration)] + [str(round(value, 5)) for value in engine.state.metrics.values()]
 
         with open(fname, "a") as f:
             if f.tell() == 0:

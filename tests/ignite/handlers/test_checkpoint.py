@@ -526,7 +526,7 @@ def test_checkpoint_save_handler_callable():
 
     to_save = {"model": DummyModel()}
 
-    checkpointer = Checkpoint(to_save, save_handler=save_handler,)
+    checkpointer = Checkpoint(to_save, save_handler=save_handler)
 
     trainer = Engine(lambda e, b: None)
 
@@ -797,7 +797,7 @@ def test_with_engine(dirname):
     model = DummyModel()
     to_save = {"model": model}
     engine.add_event_handler(Events.EPOCH_COMPLETED, handler, to_save)
-    engine.run([0, 1,], max_epochs=4)
+    engine.run([0, 1], max_epochs=4)
 
     expected = sorted([f"{_PREFIX}_{name}_{i}.pt" for i in [3 * 2, 4 * 2]])
 
@@ -1203,9 +1203,7 @@ def _test_checkpoint_with_ddp(device):
     torch.manual_seed(0)
 
     model = DummyModel().to(device)
-    device_ids = (
-        None if "cpu" in device.type else [device,]
-    )
+    device_ids = None if "cpu" in device.type else [device]
     ddp_model = nn.parallel.DistributedDataParallel(model, device_ids=device_ids)
     to_save = {"model": ddp_model}
 
@@ -1223,9 +1221,7 @@ def _test_checkpoint_with_ddp(device):
 
 def _test_checkpoint_load_objects_ddp(device):
     model = DummyModel().to(device)
-    device_ids = (
-        None if "cpu" in device.type else [device,]
-    )
+    device_ids = None if "cpu" in device.type else [device]
     ddp_model = nn.parallel.DistributedDataParallel(model, device_ids=device_ids)
     opt = torch.optim.SGD(ddp_model.parameters(), lr=0.01)
 
@@ -1598,7 +1594,7 @@ def test_checkpoint_reset():
     assert save_handler.call_count == 3
     assert checkpointer.last_checkpoint == "model_124.pt"
     assert len(checkpointer._saved) == 1
-    assert sorted([item.filename for item in checkpointer._saved]) == sorted(["model_124.pt",])
+    assert sorted([item.filename for item in checkpointer._saved]) == sorted(["model_124.pt"])
 
 
 def test_checkpoint_reset_with_engine(dirname):
@@ -1609,7 +1605,7 @@ def test_checkpoint_reset_with_engine(dirname):
     model = DummyModel()
     to_save = {"model": model}
     engine.add_event_handler(Events.EPOCH_COMPLETED, handler, to_save)
-    engine.run([0, 1,], max_epochs=10)
+    engine.run([0, 1], max_epochs=10)
 
     expected = sorted([f"{_PREFIX}_{name}_{i}.pt" for i in [9 * 2, 10 * 2]])
     assert sorted(os.listdir(dirname)) == expected
@@ -1617,7 +1613,7 @@ def test_checkpoint_reset_with_engine(dirname):
 
     handler.reset()
     engine.state.max_epochs = None
-    engine.run([0, 1,], max_epochs=2)
+    engine.run([0, 1], max_epochs=2)
 
     expected += [f"{_PREFIX}_{name}_{i}.pt" for i in [1 * 2, 2 * 2]]
     assert sorted(os.listdir(dirname)) == sorted(expected)

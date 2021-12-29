@@ -337,15 +337,15 @@ def test_concat_scheduler_asserts():
     scheduler_3 = CosineAnnealingScheduler(optimizer_2, "lr", start_value=0.0, end_value=1.0, cycle_size=10)
 
     with pytest.raises(ValueError, match=r"schedulers should be related to same optimizer"):
-        ConcatScheduler([scheduler_1, scheduler_3], durations=[30,])
+        ConcatScheduler([scheduler_1, scheduler_3], durations=[30])
 
     scheduler_4 = CosineAnnealingScheduler(optimizer, "lr2", start_value=0.0, end_value=1.0, cycle_size=10)
 
     with pytest.raises(ValueError, match=r"schedulers should be related to same param_name"):
-        ConcatScheduler([scheduler_1, scheduler_4], durations=[30,])
+        ConcatScheduler([scheduler_1, scheduler_4], durations=[30])
 
     with pytest.raises(ValueError, match=r"schedulers should be related to same optimizer"):
-        ConcatScheduler.simulate_values(3, [scheduler_1, scheduler_3], durations=[30,])
+        ConcatScheduler.simulate_values(3, [scheduler_1, scheduler_3], durations=[30])
 
 
 def test_concat_scheduler_state_dict():
@@ -1300,5 +1300,5 @@ def test_lr_scheduling_on_non_torch_optimizers():
     trainer.run([0] * 15, max_epochs=1)
 
     assert lrs == list(
-        map(pytest.approx, [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95,],)
+        map(pytest.approx, [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95])
     )

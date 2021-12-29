@@ -24,7 +24,7 @@ def trigger_new_pipeline(data, headers):
         "https://circleci.com/api/v2/project/gh/pytorch/ignite/pipeline", data=json.dumps(data), headers=headers
     )
     assert_result(result, 201)
-    output = get_output(result.text, ["id",])
+    output = get_output(result.text, ["id"])
     return output["id"]
 
 
@@ -46,7 +46,7 @@ def get_workflow_id(pipeline_id, headers):
     while True:
         result = requests.get(f"https://circleci.com/api/v2/pipeline/{pipeline_id}/workflow", headers=headers)
         assert_result(result, 200)
-        output = get_output(result.text, ["items",])
+        output = get_output(result.text, ["items"])
         items = output["items"]
         if len(items) > 1:
             raise RuntimeError(f"Incorrect number of workflow ids: {len(items)} != 1\n" f"items: {items}")

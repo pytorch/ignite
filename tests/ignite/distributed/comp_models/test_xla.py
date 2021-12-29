@@ -42,9 +42,7 @@ def _test_xla_spawn_fn(local_rank, world_size, device):
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
 def test__xla_dist_model_spawn_one_proc():
     try:
-        _XlaDistModel.spawn(
-            _test_xla_spawn_fn, args=(1, "xla"), kwargs_dict={}, nproc_per_node=1,
-        )
+        _XlaDistModel.spawn(_test_xla_spawn_fn, args=(1, "xla"), kwargs_dict={}, nproc_per_node=1)
     except SystemExit:
         pass
 
@@ -55,9 +53,7 @@ def test__xla_dist_model_spawn_one_proc():
 def test__xla_dist_model_spawn_n_procs():
     n = int(os.environ["NUM_TPU_WORKERS"])
     try:
-        _XlaDistModel.spawn(
-            _test_xla_spawn_fn, args=(n, "xla"), kwargs_dict={}, nproc_per_node=n,
-        )
+        _XlaDistModel.spawn(_test_xla_spawn_fn, args=(n, "xla"), kwargs_dict={}, nproc_per_node=n)
     except SystemExit:
         pass
 
@@ -187,7 +183,7 @@ def main_fold(fold):
 
     # THIS CAN BE A CAUSE OF CRASH if DEVICE is OTHER THAN device
     tensor = torch.tensor([fold + 1.0], dtype=torch.float).to(comp_model.device())
-    xm.all_reduce("max", [tensor,])
+    xm.all_reduce("max", [tensor])
 
     time.sleep(0.01 * fold)
 

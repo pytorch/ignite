@@ -133,8 +133,7 @@ def model_name() -> str:
 
 
 def get_world_size() -> int:
-    """Returns world size of current distributed configuration. Returns 1 if no distributed configuration.
-    """
+    """Returns world size of current distributed configuration. Returns 1 if no distributed configuration."""
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
 
@@ -142,8 +141,7 @@ def get_world_size() -> int:
 
 
 def get_rank() -> int:
-    """Returns process rank within current distributed configuration. Returns 0 if no distributed configuration.
-    """
+    """Returns process rank within current distributed configuration. Returns 0 if no distributed configuration."""
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
 
@@ -151,8 +149,8 @@ def get_rank() -> int:
 
 
 def get_local_rank() -> int:
-    """Returns local process rank within current distributed configuration. Returns 0 if no distributed configuration.
-    """
+    """Returns local process rank within current distributed configuration.
+    Returns 0 if no distributed configuration."""
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
 
@@ -190,8 +188,7 @@ def get_node_rank() -> int:
 
 
 def hostname() -> str:
-    """Returns host name for current process within current distributed configuration.
-    """
+    """Returns host name for current process within current distributed configuration."""
     return socket.gethostname()
 
 
@@ -422,8 +419,7 @@ def broadcast(
 
 
 def barrier() -> None:
-    """Helper method to synchronize all processes.
-    """
+    """Helper method to synchronize all processes."""
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
 
@@ -543,8 +539,7 @@ def finalize() -> None:
 
 
 def show_config() -> None:
-    """Helper method to display distributed configuration via ``logging``.
-    """
+    """Helper method to display distributed configuration via ``logging``."""
 
     # setup parallel logger
     logger = setup_logger(__name__)

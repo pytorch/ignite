@@ -5,6 +5,7 @@ on:
       - "ignite/**"
       - "tests/ignite/**"
       - "tests/run_cpu_tests.sh"
+      - "tests/run_code_style.sh"
       - "examples/**.py"
       - "requirements-dev.txt"
       - ".github/workflows/unit-tests.yml"
@@ -14,9 +15,15 @@ on:
       - "ignite/**"
       - "tests/ignite/**"
       - "tests/run_cpu_tests.sh"
+      - "tests/run_code_style.sh"
       - "examples/**.py"
       - "requirements-dev.txt"
       - ".github/workflows/unit-tests.yml"
+
+concurrency:
+  # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>
+  group: unit-tests-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -29,7 +36,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: [3.7, 3.8, 3.9]
         pytorch-channel: [pytorch, pytorch-nightly]
         include:
           # includes a single build on windows

@@ -1,9 +1,10 @@
 import numbers
+import warnings
 from bisect import bisect_right
 from typing import Any, List, Sequence, Tuple, Union
 
 from ignite.engine import CallableEventWithFilter, Engine, Events, EventsList
-from ignite.handlers import BaseParamScheduler
+from ignite.handlers.param_scheduler import BaseParamScheduler
 
 
 class StateParamScheduler(BaseParamScheduler):
@@ -11,8 +12,9 @@ class StateParamScheduler(BaseParamScheduler):
 
     Args:
         param_name: name of parameter to update.
-        save_history: whether to log the parameter values to
-            `engine.state.param_history`, (default=False).
+        save_history: whether to log the parameter values to ``engine.state.param_history``, (default=False).
+        create_new: whether to create ``param_name`` on ``engine.state`` taking into account whether ``param_name``
+            attribute already exists or not. Overrides existing attribute by default, (default=False).
 
     Note:
         Parameter scheduler works independently of the internal state of the attached engine.
@@ -23,10 +25,9 @@ class StateParamScheduler(BaseParamScheduler):
 
     """
 
-    def __init__(
-        self, param_name: str, save_history: bool = False,
-    ):
+    def __init__(self, param_name: str, save_history: bool = False, create_new: bool = False):
         super(StateParamScheduler, self).__init__(param_name, save_history)
+        self.create_new = create_new
 
     def attach(
         self,
@@ -43,16 +44,24 @@ class StateParamScheduler(BaseParamScheduler):
 
         """
         if hasattr(engine.state, self.param_name):
-            raise ValueError(
-                f"Attribute: '{self.param_name}' is already defined in the Engine.state."
-                f"This may be a conflict between multiple StateParameterScheduler handlers."
-                f"Please choose another name."
-            )
+            if self.create_new:
+                raise ValueError(
+                    f"Attribute '{self.param_name}' already exists in the engine.state. "
+                    f"This may be a conflict between multiple handlers. "
+                    f"Please choose another name."
+                )
+        else:
+            if not self.create_new:
+                warnings.warn(
+                    f"Attribute '{self.param_name}' is not defined in the engine.state. "
+                    f"{type(self).__name__} will create it. Remove this warning by setting create_new=True."
+                )
+            setattr(engine.state, self.param_name, None)
 
         if self.save_history:
             if not hasattr(engine.state, "param_history") or engine.state.param_history is None:  # type: ignore
                 setattr(engine.state, "param_history", {})
-                engine.state.param_history.setdefault(self.param_name, [])  # type: ignore[attr-defined]
+            engine.state.param_history.setdefault(self.param_name, [])  # type: ignore[attr-defined]
 
         engine.add_event_handler(event, self)
 
@@ -147,8 +156,8 @@ class LambdaStateScheduler(StateParamScheduler):
 
     """
 
-    def __init__(self, lambda_obj: Any, param_name: str, save_history: bool = False):
-        super(LambdaStateScheduler, self).__init__(param_name, save_history)
+    def __init__(self, lambda_obj: Any, param_name: str, save_history: bool = False, create_new: bool = False):
+        super(LambdaStateScheduler, self).__init__(param_name, save_history, create_new)
 
         if not callable(lambda_obj):
             raise ValueError("Expected lambda_obj to be callable.")
@@ -199,9 +208,13 @@ class PiecewiseLinearStateScheduler(StateParamScheduler):
     """
 
     def __init__(
-        self, milestones_values: List[Tuple[int, float]], param_name: str, save_history: bool = False,
+        self,
+        milestones_values: List[Tuple[int, float]],
+        param_name: str,
+        save_history: bool = False,
+        create_new: bool = False,
     ):
-        super(PiecewiseLinearStateScheduler, self).__init__(param_name, save_history)
+        super(PiecewiseLinearStateScheduler, self).__init__(param_name, save_history, create_new)
 
         if not isinstance(milestones_values, Sequence):
             raise TypeError(
@@ -268,30 +281,45 @@ class ExpStateScheduler(StateParamScheduler):
 
     Examples:
 
-        .. code-block:: python
+        .. testsetup::
 
-            ...
-            engine = Engine(train_step)
+            default_trainer = get_default_trainer()
+
+        .. testcode::
 
             param_scheduler = ExpStateScheduler(
-                param_name="param", initial_value=10, gamma=0.99
+                param_name="param", initial_value=1, gamma=0.9, create_new=True
             )
 
-            param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
+            # parameter is param, initial_value sets param to 1, gamma is set as 0.9
+            # Epoch 1, param changes from 1 to 1*0.9, param = 0.9
+            # Epoch 2, param changes from 0.9 to 0.9*0.9, param = 0.81
+            # Epoch 3, param changes from 0.81 to 0.81*0.9, param = 0.729
+            # Epoch 4, param changes from 0.81 to 0.729*0.9, param = 0.6561
 
-            # basic handler to print scheduled state parameter
-            engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _ : print(engine.state.param))
+            param_scheduler.attach(default_trainer, Events.EPOCH_COMPLETED)
 
-            engine.run([0] * 8, max_epochs=2)
+            @default_trainer.on(Events.EPOCH_COMPLETED)
+            def print_param():
+                print(default_trainer.state.param)
+
+            default_trainer.run([0], max_epochs=4)
+
+        .. testoutput::
+
+            0.9
+            0.81
+            0.7290...
+            0.6561
 
     .. versionadded:: 0.5.0
 
     """
 
     def __init__(
-        self, initial_value: float, gamma: float, param_name: str, save_history: bool = False,
+        self, initial_value: float, gamma: float, param_name: str, save_history: bool = False, create_new: bool = False
     ):
-        super(ExpStateScheduler, self).__init__(param_name, save_history)
+        super(ExpStateScheduler, self).__init__(param_name, save_history, create_new)
         self.initial_value = initial_value
         self.gamma = gamma
         self._state_attrs += ["initial_value", "gamma"]
@@ -337,9 +365,15 @@ class StepStateScheduler(StateParamScheduler):
     """
 
     def __init__(
-        self, initial_value: float, gamma: float, step_size: int, param_name: str, save_history: bool = False,
+        self,
+        initial_value: float,
+        gamma: float,
+        step_size: int,
+        param_name: str,
+        save_history: bool = False,
+        create_new: bool = False,
     ):
-        super(StepStateScheduler, self).__init__(param_name, save_history)
+        super(StepStateScheduler, self).__init__(param_name, save_history, create_new)
         self.initial_value = initial_value
         self.gamma = gamma
         self.step_size = step_size
@@ -386,9 +420,15 @@ class MultiStepStateScheduler(StateParamScheduler):
     """
 
     def __init__(
-        self, initial_value: float, gamma: float, milestones: List[int], param_name: str, save_history: bool = False,
+        self,
+        initial_value: float,
+        gamma: float,
+        milestones: List[int],
+        param_name: str,
+        save_history: bool = False,
+        create_new: bool = False,
     ):
-        super(MultiStepStateScheduler, self).__init__(param_name, save_history)
+        super(MultiStepStateScheduler, self).__init__(param_name, save_history, create_new)
         self.initial_value = initial_value
         self.gamma = gamma
         self.milestones = milestones
