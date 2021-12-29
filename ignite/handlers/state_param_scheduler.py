@@ -331,7 +331,7 @@ class StepStateScheduler(StateParamScheduler):
 
         .. testsetup::
 
-            engine = get_default_trainer()
+            default_trainer = get_default_trainer()
 
         .. testcode::
 
@@ -349,14 +349,14 @@ class StepStateScheduler(StateParamScheduler):
             # Epoch 15, param changes from 0.81 to 0.81*0.9, param = 0.729
             # and so on ... the param change at Epoch = 5, 10, 15, 20, . . .
 
-            param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
+            param_scheduler.attach(default_trainer, Events.EPOCH_COMPLETED)
 
-            @engine.on(Events.EPOCH_COMPLETED)
+            @default_trainer.on(Events.EPOCH_COMPLETED)
             def print_param():
-                if engine.state.epoch % 5 == 0:
-                    print(engine.state.param)
+                if default_trainer.state.epoch % 5 == 0:
+                    print(default_trainer.state.param)
 
-            engine.run([0], max_epochs=25)
+            default_trainer.run([0], max_epochs=25)
 
         .. testoutput::
 
