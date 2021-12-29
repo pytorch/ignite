@@ -338,7 +338,7 @@ class StepStateScheduler(StateParamScheduler):
 
             param_scheduler = StepStateScheduler(
                 param_name="param", initial_value=1, gamma=0.9, step_size=5, create_new=True
-                    )
+                )
 
             # parameter is param, initial_value sets param to 1, gamma is set as 0.9
             # Epoch 1 to 4, param does not change as step size is 5,
