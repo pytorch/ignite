@@ -107,7 +107,10 @@ class PyTorchProfiler:
     def _profiler_step(self):
         self._profiler.step()
 
-    def attach(self, engine: Engine,) -> None:
+    def attach(
+        self,
+        engine: Engine,
+    ) -> None:
         """Attach the profiler to the engine.
 
         Args:
