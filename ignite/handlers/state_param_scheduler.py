@@ -366,10 +366,9 @@ class StepStateScheduler(StateParamScheduler):
 
             param_scheduler.attach(default_trainer, Events.EPOCH_COMPLETED)
 
-            @default_trainer.on(Events.EPOCH_COMPLETED)
+            @default_trainer.on(Events.EPOCH_COMPLETED(every=5))
             def print_param():
-                if default_trainer.state.epoch % 5 == 0:
-                    print(default_trainer.state.param)
+                print(default_trainer.state.param)
 
             default_trainer.run([0], max_epochs=25)
 
