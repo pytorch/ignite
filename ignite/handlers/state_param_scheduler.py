@@ -335,7 +335,6 @@ class StepStateScheduler(StateParamScheduler):
 
         .. testcode::
 
-            from ignite.handlers.state_param_scheduler import StepStateScheduler
 
             param_scheduler = StepStateScheduler(
                     param_name="param", initial_value=1, gamma=0.9, step_size=5, create_new=True
