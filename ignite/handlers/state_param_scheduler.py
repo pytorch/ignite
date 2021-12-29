@@ -281,21 +281,36 @@ class ExpStateScheduler(StateParamScheduler):
 
     Examples:
 
-        .. code-block:: python
+        .. testsetup::
 
-            ...
-            engine = Engine(train_step)
+            default_trainer = get_default_trainer()
+
+        .. testcode::
 
             param_scheduler = ExpStateScheduler(
-                param_name="param", initial_value=10, gamma=0.99
+                param_name="param", initial_value=1, gamma=0.9, create_new=True
             )
 
-            param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
+            # parameter is param, initial_value sets param to 1, gamma is set as 0.9
+            # Epoch 1, param changes from 1 to 1*0.9, param = 0.9
+            # Epoch 2, param changes from 0.9 to 0.9*0.9, param = 0.81
+            # Epoch 3, param changes from 0.81 to 0.81*0.9, param = 0.729
+            # Epoch 4, param changes from 0.81 to 0.729*0.9, param = 0.6561
 
-            # basic handler to print scheduled state parameter
-            engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _ : print(engine.state.param))
+            param_scheduler.attach(default_trainer, Events.EPOCH_COMPLETED)
 
-            engine.run([0] * 8, max_epochs=2)
+            @default_trainer.on(Events.EPOCH_COMPLETED)
+            def print_param():
+                print(default_trainer.state.param)
+
+            default_trainer.run([0], max_epochs=4)
+
+        .. testoutput::
+
+            0.9
+            0.81
+            0.7290...
+            0.6561
 
     .. versionadded:: 0.5.0
 
