@@ -363,7 +363,7 @@ class StepStateScheduler(StateParamScheduler):
             0.9
             0.81
             0.7290...
-            epoch = 20, param = 0.6561
+            0.6561
             epoch = 25, param = 0.5904...
 
     .. versionadded:: 0.5.0
