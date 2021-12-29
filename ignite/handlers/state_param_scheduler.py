@@ -360,7 +360,7 @@ class StepStateScheduler(StateParamScheduler):
 
         .. testoutput::
 
-            epoch = 5, param = 0.9
+            0.9
             epoch = 10, param = 0.81
             epoch = 15, param = 0.7290...
             epoch = 20, param = 0.6561
