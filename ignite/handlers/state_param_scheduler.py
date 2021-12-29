@@ -350,7 +350,6 @@ class StepStateScheduler(StateParamScheduler):
 
         .. testcode::
 
-
             param_scheduler = StepStateScheduler(
                 param_name="param", initial_value=1, gamma=0.9, step_size=5, create_new=True
             )
