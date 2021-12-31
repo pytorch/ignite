@@ -1108,8 +1108,6 @@ class PiecewiseLinear(ParamScheduler):
 
         .. testcode:: 2
 
-            from ignite.handlers.param_scheduler import PiecewiseLinear
-
             optimizer = torch.optim.SGD(
                 [
                     {"params": default_model.base.parameters(), "lr": 0.1},

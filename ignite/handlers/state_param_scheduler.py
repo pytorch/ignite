@@ -181,28 +181,48 @@ class PiecewiseLinearStateScheduler(StateParamScheduler):
 
     Examples:
 
-        .. code-block:: python
+        .. testsetup::
 
-            ...
-            engine = Engine(train_step)
+            default_trainer = get_default_trainer()
+
+        .. testcode::
 
             param_scheduler = PiecewiseLinearStateScheduler(
-                param_name="param",
-                milestones_values=[(10, 0.5), (20, 0.45), (21, 0.3), (30, 0.1), (40, 0.1)]
+                param_name="param",  milestones_values=[(5, 1.0), (10, 0.8), (15, 0.6)], create_new=True
             )
 
-            param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
+            # parameter is param, milestone (5, 1.0) sets param to 1.0
+            # milestone is (5, 1.0), param=1  for Epoch 1 to 5,
+            # next milestone is (10, 0.8), param linearly reduces from 1.0 to 0.8
+            # Epoch 10, param = 0.8
+            # next milestone is (15,0.6), param linearly reduces from 0.8 to 0.6
+            # Epoch 15, param = 0.6
 
-            # basic handler to print scheduled state parameter
-            engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _ : print(engine.state.param))
+            param_scheduler.attach(default_trainer, Events.EPOCH_COMPLETED)
 
-            engine.run([0] * 8, max_epochs=40)
-            #
-            # Sets the state parameter value to 0.5 over the first 10 iterations, then decreases linearly from 0.5 to
-            # 0.45 between 10th and 20th iterations. Next there is a jump to 0.3 at the 21st iteration and the state
-            # parameter value decreases linearly from 0.3 to 0.1 between 21st and 30th iterations and remains 0.1 until
-            # the end of the iterations.
-            #
+            @default_trainer.on(Events.EPOCH_COMPLETED)
+            def print_param():
+                print(default_trainer.state.param)
+
+            default_trainer.run([0], max_epochs=15)
+
+        .. testoutput::
+
+            1.0
+            1.0
+            1.0
+            1.0
+            1.0
+            0.96
+            0.92
+            0.88
+            0.8400...
+            0.8
+            0.76
+            0.72
+            0.68
+            0.64
+            0.6
 
     .. versionadded:: 0.5.0
     """
