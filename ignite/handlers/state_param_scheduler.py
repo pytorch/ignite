@@ -444,7 +444,7 @@ class MultiStepStateScheduler(StateParamScheduler):
 
         .. testcode::
 
-            param_scheduler =MultiStepStateScheduler(
+            param_scheduler = MultiStepStateScheduler(
                 param_name="param", initial_value=1, gamma=0.9, milestones=[3, 6, 9, 12]
             )
 
