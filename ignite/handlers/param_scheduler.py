@@ -1080,8 +1080,6 @@ class PiecewiseLinear(ParamScheduler):
 
         .. testcode:: 1
 
-            from ignite.handlers.param_scheduler import PiecewiseLinear
-
             milestones_values = [(1, 1.0), (3, 0.8), (5, 0.2)]
             scheduler = PiecewiseLinear(
                 default_optimizer, "lr", milestones_values=milestones_values)
