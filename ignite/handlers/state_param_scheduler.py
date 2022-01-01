@@ -126,10 +126,11 @@ class LambdaStateScheduler(StateParamScheduler):
 
     Examples:
 
-        .. code-block:: python
+        .. testsetup::
 
-            ...
-            engine = Engine(train_step)
+            default_trainer = get_default_trainer()
+
+        .. testcode::
 
             class LambdaState:
                 def __init__(self, initial_value, gamma):
@@ -139,18 +140,39 @@ class LambdaStateScheduler(StateParamScheduler):
                 def __call__(self, event_index):
                     return self.initial_value * self.gamma ** (event_index % 9)
 
-
             param_scheduler = LambdaStateScheduler(
-                param_name="param",
-                lambda_obj=LambdaState(10, 0.99),
+                param_name="param", lambda_obj=LambdaState(1, 0.9), create_new=True
             )
 
-            param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
+            # parameter is param, initial_value sets param to 1 and in this example gamma = 1
+            # using class 'LambdaState' user defined callable object can be created
+            # update a parameter during training by using a user defined callable object
+            # user defined callable object is taking an event index as input and returns parameter value
+            # in this example, we update as initial_value * gamma ** (event_endex % 9)
+            # in every Epoch the parameter is updated as 1 * 0.9 ** (Epoch % 9)
+            # In Epoch 3, parameter param = 1 * 0.9 ** (3 % 9) = 0.729
+            # In Epoch 10, parameter param = 1 * 0.9 ** (10 % 9) = 0.9
 
-            # basic handler to print scheduled state parameter
-            engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _ : print(engine.state.param))
+            param_scheduler.attach(default_trainer, Events.EPOCH_COMPLETED)
 
-            engine.run([0] * 8, max_epochs=2)
+            @default_trainer.on(Events.EPOCH_COMPLETED)
+            def print_param():
+                print(default_trainer.state.param)
+
+            default_trainer.run([0], max_epochs=10)
+
+        .. testoutput::
+
+            0.9
+            0.81
+            0.7290...
+            0.6561
+            0.5904...
+            0.5314...
+            0.4782...
+            0.4304...
+            1.0
+            0.9
 
     .. versionadded:: 0.5.0
 
