@@ -123,9 +123,9 @@ class LambdaStateScheduler(StateParamScheduler):
         param_name: name of parameter to update.
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
-        create_new: whether to create ``param_name`` on 
-            ``engine.state`` taking into account whether 
-            ``param_name`` attribute already exists or not. 
+        create_new: whether to create ``param_name`` on
+            ``engine.state`` taking into account whether
+            ``param_name`` attribute already exists or not.
             Overrides existing attribute by default, (default=False).
 
     Examples:
@@ -204,9 +204,9 @@ class PiecewiseLinearStateScheduler(StateParamScheduler):
         param_name: name of parameter to update.
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
-        create_new: whether to create ``param_name`` on 
-            ``engine.state`` taking into account whether 
-            ``param_name`` attribute already exists or not. 
+        create_new: whether to create ``param_name`` on
+            ``engine.state`` taking into account whether
+            ``param_name`` attribute already exists or not.
             Overrides existing attribute by default, (default=False).
 
     Examples:
@@ -328,9 +328,9 @@ class ExpStateScheduler(StateParamScheduler):
         param_name: name of parameter to update.
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
-        create_new: whether to create ``param_name`` on 
-            ``engine.state`` taking into account whether 
-            ``param_name`` attribute already exists or not. 
+        create_new: whether to create ``param_name`` on
+            ``engine.state`` taking into account whether
+            ``param_name`` attribute already exists or not.
             Overrides existing attribute by default, (default=False).
 
     Examples:
@@ -395,9 +395,9 @@ class StepStateScheduler(StateParamScheduler):
         param_name: name of parameter to update.
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
-        create_new: whether to create ``param_name`` on 
-            ``engine.state`` taking into account whether 
-            ``param_name`` attribute already exists or not. 
+        create_new: whether to create ``param_name`` on
+            ``engine.state`` taking into account whether
+            ``param_name`` attribute already exists or not.
             Overrides existing attribute by default, (default=False).
 
     Examples:
@@ -473,9 +473,9 @@ class MultiStepStateScheduler(StateParamScheduler):
         param_name: name of parameter to update.
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
-        create_new: whether to create ``param_name`` on 
-            ``engine.state`` taking into account whether 
-            ``param_name`` attribute already exists or not. 
+        create_new: whether to create ``param_name`` on
+            ``engine.state`` taking into account whether
+            ``param_name`` attribute already exists or not.
             Overrides existing attribute by default, (default=False).
 
     Examples:
