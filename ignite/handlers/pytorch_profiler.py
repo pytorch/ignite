@@ -1,5 +1,5 @@
 # coding: utf-8
-import datetime
+from datetime import datetime
 import os
 from typing import Any, Callable, Union
 
@@ -107,10 +107,7 @@ class PyTorchProfiler:
     def _profiler_step(self):
         self._profiler.step()
 
-    def attach(
-        self,
-        engine: Engine,
-    ) -> None:
+    def attach(self, engine: Engine,) -> None:
         """Attach the profiler to the engine.
 
         Args:
@@ -126,22 +123,16 @@ class PyTorchProfiler:
                 f" The sort_key {sort_key} is not accepted. Please choose a sort key from {self.SORT_KEYS}"
             )
 
-        return self.profiler.key_averages().table(
+        return self._profiler.key_averages().table(
             sort_by=sort_key, row_limit=n, top_level_events_only=top_level_events_only
         )
 
     def write_results(self, n: int = -1, sort_key: str = "self_cuda_memory_usage", top_level_events_only=False):
-        try:
-            import pandas as pd
-        except ImportError:
-            raise RuntimeError("Need pandas to write results as files")
-
-        results_df = pd.DataFrame(self.get_results(n, sort_key, top_level_events_only))
-
         now = datetime.now().strftime("%Y%m%d-%H%M%S")
-        file_name = f"{idist.backend()}_{now}.csv"
+        file_name = f"{idist.backend()}_{now}.txt"
 
-        results_df.to_csv(os.path.join(self.output_path, file_name), index=False)
+        with open(os.path.join(self.output_path, file_name), "w") as f:
+            f.write(self.get_results(n, sort_key, top_level_events_only))
 
     def print_results(self, n: int = -1, sort_key: str = "self_cuda_memory_usage", top_level_events_only=False):
         print(self.get_results(n, sort_key, top_level_events_only))
