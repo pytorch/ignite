@@ -43,31 +43,6 @@ _Click on the image to see complete code_
 
 <!-- ############################################################################################################### -->
 
-# Table of Contents
-
-- [Table of Contents](#table-of-contents)
-- [Why Ignite?](#why-ignite)
-  - [Simplified training and validation loop](#simplified-training-and-validation-loop)
-  - [Power of Events & Handlers](#power-of-events--handlers)
-    - [Execute any number of functions whenever you wish](#execute-any-number-of-functions-whenever-you-wish)
-    - [Built-in events filtering](#built-in-events-filtering)
-    - [Stack events to share some actions](#stack-events-to-share-some-actions)
-    - [Custom events to go beyond standard events](#custom-events-to-go-beyond-standard-events)
-  - [Out-of-the-box metrics](#out-of-the-box-metrics)
-- [Installation](#installation)
-- [Getting Started](#getting-started)
-- [Other Documentation](#other-documentation)
-  - [Additional Materials](#additional-materials)
-  - [Code-Generator application](#code-generator-application)
-- [Communication](#communication)
-  - [User feedback](#user-feedback)
-- [Contributing](#contributing)
-- [Projects using Ignite](#projects-using-ignite)
-- [Citing Ignite](#citing-ignite)
-- [About the team & Disclaimer](#about-the-team--disclaimer)
-
-<!-- ############################################################################################################### -->
-
 # Why Ignite?
 
 Ignite is a **library** that provides three high-level features:
@@ -283,17 +258,7 @@ Here is the order we suggest for getting started:
 - ["Questions on Github"](https://github.com/pytorch/ignite/issues?q=is%3Aissue+label%3Aquestion+) and
   ["Questions on Discuss.PyTorch"](https://discuss.pytorch.org/c/ignite).
 - [Project's Roadmap](https://github.com/pytorch/ignite/wiki/Roadmap)
-
-## Additional Materials
-
-- [Distributed Training Made Easy with PyTorch-Ignite](https://labs.quansight.org/blog/2021/06/distributed-made-easy-with-ignite/)
-- [PyTorch Ecosystem Day 2021 Breakout session presentation](https://colab.research.google.com/drive/1qhUgWQ0N2U71IVShLpocyeY4AhlDCPRd)
-- [Tutorial blog post about PyTorch-Ignite](https://labs.quansight.org/blog/2020/09/pytorch-ignite/)
-- [8 Creators and Core Contributors Talk About Their Model Training Libraries From PyTorch Ecosystem](https://neptune.ai/blog/model-training-libraries-pytorch-ecosystem?utm_source=reddit&utm_medium=post&utm_campaign=blog-model-training-libraries-pytorch-ecosystem)
-- Ignite Posters from Pytorch Developer Conferences:
-  - [2021](https://drive.google.com/file/d/1YXrkJIepPk_KltSG1ZfWRtA5IRgPFz_U)
-  - [2019](https://drive.google.com/open?id=1bqIl-EM6GCCCoSixFZxhIbuF25F2qTZg)
-  - [2018](https://drive.google.com/open?id=1_2vzBJ0KeCjGv1srojMHiJRvceSVbVR5)
+- [Talks](https://pytorch-ignite.ai/talks/)
 
 <!-- ############################################################################################################### -->
 
@@ -315,19 +280,6 @@ The easiest way to create your training scripts with PyTorch-Ignite:
 
 - [GitHub Discussions](https://github.com/pytorch/ignite/discussions): general library-related discussions, ideas, Q&A, etc.
 
-## User feedback
-
-We have created a form for ["user feedback"](https://github.com/pytorch/ignite/issues/new/choose). We
-appreciate any type of feedback, and this is how we would like to see our
-community:
-
-- If you like the project and want to say thanks, this the right
-  place.
-- If you do not like something, please, share it with us, and we can
-  see how to improve it.
-
-Thank you!
-
 <!-- ############################################################################################################### -->
 
 # Contributing
@@ -340,12 +292,8 @@ As always, PRs are welcome :)
 
 # Projects using Ignite
 
-- [Research papers](https://pytorch-ignite.ai/ecosystem/#research-papers)
-- [Blog articles, tutorials, books](https://pytorch-ignite.ai/ecosystem/#blog-articles-tutorials-books)
-- [Toolkits](https://pytorch-ignite.ai/ecosystem/#toolkits)
-- [Others](https://pytorch-ignite.ai/ecosystem/#others)
-
-See other projects at ["Used by"](https://github.com/pytorch/ignite/network/dependents?package_id=UGFja2FnZS02NzI5ODEwNA%3D%3D)
+- [Ecosystem](https://pytorch-ignite.ai/ecosystem/)
+- Other projects at ["Used by"](https://github.com/pytorch/ignite/network/dependents?package_id=UGFja2FnZS02NzI5ODEwNA%3D%3D)
 
 If your project implements a paper, represents other use-cases not
 covered in our official tutorials, Kaggle competition's code, or just
