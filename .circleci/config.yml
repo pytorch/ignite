@@ -328,7 +328,6 @@ jobs:
           name: Trigger job if modified
           command: |
             bash .circleci/trigger_if_modified.sh "^(ignite|tests|examples|\.circleci).*"
-      - <<: *install_latest_nvidia
       - <<: *pull_pytorch_stable_devel_image
       - <<: *run_pytorch_devel_container
       - <<: *install_dependencies
