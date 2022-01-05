@@ -5,7 +5,12 @@ on:
   schedule:
     # Run at 00:00 UTC Every Day
     - cron: "0 0 * * *"
-
+    
+  # python-version: is list of versions of python to be tested.
+  # pytorch-version: is list of versions of PyTorch to be tested.
+  # PyTorch version testing is done on every PyTorch version in the list with every python version in the list.
+  # and in exclude: we can give the particular PyTorch and python version to remove from testing.
+  
 jobs:
   build:
     runs-on: ubuntu-latest
