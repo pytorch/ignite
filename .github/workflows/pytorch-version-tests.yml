@@ -26,7 +26,7 @@ jobs:
             python-version: 3.9 
           - pytorch-version: 1.6.0
             python-version: 3.9 
-          # disabling python 3.9 support with PyTorch 1.7.1 and 1.8.1,to stop repeated pytorch-version test fail.
+          # disabling python 3.9 support with PyTorch 1.7.1 and 1.8.1, to stop repeated pytorch-version test fail.
           # https://github.com/pytorch/ignite/issues/2383
           - pytorch-version: 1.7.1
             python-version: 3.9
