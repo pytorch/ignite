@@ -6,11 +6,6 @@ on:
     # Run at 00:00 UTC Every Day
     - cron: "0 0 * * *"
     
-  # python-version: is list of versions of python to be tested.
-  # pytorch-version: is list of versions of PyTorch to be tested.
-  # PyTorch version testing is done on every PyTorch version in the list with every python version in the list.
-  # and in exclude: we can give the particular PyTorch and python version to remove from testing.
-  
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -31,6 +26,8 @@ jobs:
             python-version: 3.9 
           - pytorch-version: 1.6.0
             python-version: 3.9 
+          # disabling python 3.9 support with PyTorch 1.7.1 and 1.8.1,to stop repeated pytorch-version test fail.
+          # https://github.com/pytorch/ignite/issues/2383
           - pytorch-version: 1.7.1
             python-version: 3.9
           - pytorch-version: 1.8.1
