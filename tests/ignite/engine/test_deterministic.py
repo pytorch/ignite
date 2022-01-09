@@ -904,17 +904,4 @@ def test_state_dict():
     assert "max_epochs" in sd and sd["max_epochs"] is None
     assert "epoch_length" in sd and sd["epoch_length"] is None
     assert "rng_states" in sd and sd["rng_states"] is not None
-
-    def _test(state):
-        engine.state = state
-        sd = engine.state_dict()
-        assert isinstance(sd, Mapping) and len(sd) == len(engine._state_dict_all_req_keys) + 1 + len(
-            engine.state_dict_user_keys
-        )
-        assert sd["iteration"] == engine.state.iteration
-        assert sd["epoch_length"] == engine.state.epoch_length
-        assert sd["max_epochs"] == engine.state.max_epochs
-        assert sd["rng_states"] == engine.state.rng_states
-
-    _test(State(iteration=500, epoch_length=1000, max_epochs=100, rng_states=None))
-    _test(State(epoch=5, epoch_length=1000, max_epochs=100, rng_states=None))
+    
