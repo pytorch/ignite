@@ -1,4 +1,5 @@
 import os
+from collections.abc import Mapping
 import random
 import sys
 from unittest.mock import patch
@@ -11,7 +12,7 @@ from torch.optim import SGD
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler
 
 import ignite.distributed as idist
-from ignite.engine import Events
+from ignite.engine import Events, State
 from ignite.engine.deterministic import (
     DeterministicEngine,
     ReproducibleBatchSampler,
@@ -893,3 +894,27 @@ def test_engine_no_data_asserts():
 
     with pytest.raises(ValueError, match=r"Deterministic engine does not support the option of data=None"):
         trainer.run(max_epochs=10, epoch_length=10)
+
+
+def test_state_dict():
+    engine = DeterministicEngine(lambda e, b: 1)
+    sd = engine.state_dict()
+    assert isinstance(sd, Mapping) and len(sd) == 4
+    assert "iteration" in sd and sd["iteration"] == 0
+    assert "max_epochs" in sd and sd["max_epochs"] is None
+    assert "epoch_length" in sd and sd["epoch_length"] is None
+    assert "rng_states" in sd and sd["rng_states"] is None
+
+    def _test(state):
+        engine.state = state
+        sd = engine.state_dict()
+        assert isinstance(sd, Mapping) and len(sd) == len(engine._state_dict_all_req_keys) + 1 + len(
+            engine.state_dict_user_keys
+        )
+        assert sd["iteration"] == engine.state.iteration
+        assert sd["epoch_length"] == engine.state.epoch_length
+        assert sd["max_epochs"] == engine.state.max_epochs
+        assert sd["rng_states"] == engine.state.rng_states
+
+    _test(State(iteration=500, epoch_length=1000, max_epochs=100, rng_states=None))
+    _test(State(epoch=5, epoch_length=1000, max_epochs=100, rng_states=None))
