@@ -1,7 +1,7 @@
 import os
-from collections.abc import Mapping
 import random
 import sys
+from collections.abc import Mapping
 from unittest.mock import patch
 
 import numpy as np
