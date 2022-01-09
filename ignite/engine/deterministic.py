@@ -185,8 +185,8 @@ class DeterministicEngine(Engine):
         self.add_event_handler(Events.DATALOADER_STOP_ITERATION | Events.TERMINATE_SINGLE_EPOCH, self._setup_seed)
 
     def state_dict(self) -> OrderedDict:
+        setattr(self.state, "rng_states", _get_rng_states())
         state_dict = super(DeterministicEngine, self).state_dict()
-        state_dict["rng_states"] = _get_rng_states()
         return state_dict
 
     def _init_run(self) -> None:
