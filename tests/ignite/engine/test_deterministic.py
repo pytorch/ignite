@@ -903,7 +903,7 @@ def test_state_dict():
     assert "iteration" in sd and sd["iteration"] == 0
     assert "max_epochs" in sd and sd["max_epochs"] is None
     assert "epoch_length" in sd and sd["epoch_length"] is None
-    assert "rng_states" in sd and sd["rng_states"] is None
+    assert "rng_states" in sd and sd["rng_states"] is not None
 
     def _test(state):
         engine.state = state
