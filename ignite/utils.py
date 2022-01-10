@@ -298,7 +298,7 @@ def hash_checkpoint(checkpoint_path: Union[str, Path], output_dir: Union[str, Pa
     Returns:
         Path to the hashed checkpoint file, the first 8 digits of SHA256 hash.
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.8
     """
 
     if isinstance(checkpoint_path, str):
