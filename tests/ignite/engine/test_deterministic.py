@@ -12,7 +12,7 @@ from torch.optim import SGD
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler
 
 import ignite.distributed as idist
-from ignite.engine import Events, State
+from ignite.engine import Events
 from ignite.engine.deterministic import (
     DeterministicEngine,
     ReproducibleBatchSampler,
