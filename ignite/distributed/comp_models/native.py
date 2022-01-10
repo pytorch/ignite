@@ -354,8 +354,8 @@ if has_native_dist_support:
             nproc_per_node: int = 1,
             nnodes: int = 1,
             node_rank: int = 0,
-            master_addr: Optional[str] = None,
-            master_port: Optional[int] = None,
+            master_addr: Optional[str] = "127.0.0.1",
+            master_port: Optional[int] = 2222,
             backend: str = "nccl",
             init_method: Optional[str] = None,
             **kwargs: Any,
@@ -380,10 +380,8 @@ if has_native_dist_support:
                 spawn_kwargs["start_method"] = kwargs.get("start_method", default_start_method)
                 start_processes = mp.start_processes
 
-            if init_method in [None, "env://"]:
+            if init_method is None:
                 init_method = "env://"
-                master_addr = "127.0.0.1"
-                master_port = 2222
 
             start_processes(
                 _NativeDistModel._dist_worker_task_fn,
