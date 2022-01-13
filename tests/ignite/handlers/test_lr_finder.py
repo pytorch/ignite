@@ -1,5 +1,6 @@
 import copy
 import os
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import matplotlib
@@ -483,34 +484,35 @@ def test_no_matplotlib(no_site_packages, lr_finder):
         lr_finder.plot()
 
 
-def test_plot_single_param_group(lr_finder, mnist_to_save, dummy_engine_mnist, mnist_dataloader):
+def test_plot_single_param_group(dirname, lr_finder, mnist_to_save, dummy_engine_mnist, mnist_dataloader):
 
     with lr_finder.attach(dummy_engine_mnist, mnist_to_save, end_lr=20, smooth_f=0.04) as trainer_with_finder:
         trainer_with_finder.run(mnist_dataloader)
 
+    def _test(ax):
+        assert ax is not None
+        assert ax.get_xscale() == "log"
+        assert ax.get_xlabel() == "Learning rate"
+        assert ax.get_ylabel() == "Loss"
+        filepath = Path(dirname) / "dummy.jpg"
+        ax.figure.savefig(filepath)
+        assert filepath.exists()
+        filepath.unlink()
+
     lr_finder.plot()
     ax = lr_finder.plot(skip_end=0)
-    assert ax is not None
-    assert ax.get_xscale() == "log"
-    assert ax.get_xlabel() == "Learning rate"
-    assert ax.get_ylabel() == "Loss"
-    ax.figure.savefig("dummy.jpg")
-    assert os.path.exists("dummy.jpg")
+    _test(ax)
 
     # Passing axes object
     from matplotlib import pyplot as plt
 
-    fig, ax = plt.subplots()
+    _, ax = plt.subplots()
     lr_finder.plot(skip_end=0, ax=ax)
-    assert ax.get_xscale() == "log"
-    assert ax.get_xlabel() == "Learning rate"
-    assert ax.get_ylabel() == "Loss"
-    ax.figure.savefig("dummy2.jpg")
-    assert os.path.exists("dummy2.jpg")
+    _test(ax)
 
 
 def test_plot_multiple_param_groups(
-    lr_finder, to_save_mulitple_param_groups, dummy_engine_mulitple_param_groups, dataloader_plot
+    dirname, lr_finder, to_save_mulitple_param_groups, dummy_engine_mulitple_param_groups, dataloader_plot
 ):
 
     with lr_finder.attach(
@@ -518,24 +520,25 @@ def test_plot_multiple_param_groups(
     ) as trainer_with_finder:
         trainer_with_finder.run(dataloader_plot)
 
+    def _test(ax):
+        assert ax is not None
+        assert ax.get_xscale() == "log"
+        assert ax.get_xlabel() == "Learning rate"
+        assert ax.get_ylabel() == "Loss"
+        filepath = Path(dirname) / "dummy_muliple_param_groups.jpg"
+        ax.figure.savefig(filepath)
+        assert filepath.exists()
+        filepath.unlink()
+
     ax = lr_finder.plot(skip_start=0, skip_end=0)
-    assert ax is not None
-    assert ax.get_xscale() == "log"
-    assert ax.get_xlabel() == "Learning rate"
-    assert ax.get_ylabel() == "Loss"
-    ax.figure.savefig("dummy_muliple_param_groups.jpg")
-    assert os.path.exists("dummy_muliple_param_groups.jpg")
+    _test(ax)
 
     # Passing axes object
     from matplotlib import pyplot as plt
 
-    fig, ax = plt.subplots()
+    _, ax = plt.subplots()
     lr_finder.plot(skip_start=0, skip_end=0, ax=ax)
-    assert ax.get_xscale() == "log"
-    assert ax.get_xlabel() == "Learning rate"
-    assert ax.get_ylabel() == "Loss"
-    ax.figure.savefig("dummy_muliple_param_groups2.jpg")
-    assert os.path.exists("dummy_muliple_param_groups2.jpg")
+    _test(ax)
 
 
 def _test_distrib_log_lr_and_loss(device):
@@ -562,7 +565,7 @@ def _test_distrib_log_lr_and_loss(device):
     assert pytest.approx(lr_finder._history["loss"][-1]) == expected_loss
 
 
-def _test_distrib_integration_mnist(device):
+def _test_distrib_integration_mnist(dirname, device):
     from torch.utils.data import DataLoader
     from torchvision.datasets import MNIST
     from torchvision.transforms import Compose, Normalize, ToTensor
@@ -598,8 +601,9 @@ def _test_distrib_integration_mnist(device):
 
     if idist.get_rank() == 0:
         ax = lr_finder.plot(skip_end=0)
-        ax.figure.savefig("distrib_dummy.jpg")
-        assert os.path.exists("distrib_dummy.jpg")
+        filepath = Path(dirname) / "distrib_dummy.jpg"
+        ax.figure.savefig(filepath)
+        assert filepath.exists()
 
     sug_lr = lr_finder.lr_suggestion()
     assert 1e-3 <= sug_lr <= 1
@@ -610,37 +614,37 @@ def _test_distrib_integration_mnist(device):
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
+def test_distrib_gloo_cpu_or_gpu(dirname, distributed_context_single_node_gloo):
 
     device = idist.device()
     _test_distrib_log_lr_and_loss(device)
-    _test_distrib_integration_mnist(device)
+    _test_distrib_integration_mnist(dirname, device)
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
+def test_distrib_nccl_gpu(dirname, distributed_context_single_node_nccl):
 
     device = idist.device()
     _test_distrib_log_lr_and_loss(device)
-    _test_distrib_integration_mnist(device)
+    _test_distrib_integration_mnist(dirname, device)
 
 
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
 @pytest.mark.skipif(not idist.has_xla_support, reason="Not on TPU device")
-def test_distrib_single_device_xla():
+def test_distrib_single_device_xla(dirname):
     device = idist.device()
     assert "xla" in device.type
     _test_distrib_log_lr_and_loss(device)
-    _test_distrib_integration_mnist(device)
+    _test_distrib_integration_mnist(dirname, device)
 
 
-def _test_distrib_log_lr_and_loss_xla_nprocs(index):
+def _test_distrib_log_lr_and_loss_xla_nprocs(index, dirname):
     device = idist.device()
     _test_distrib_log_lr_and_loss(device)
-    _test_distrib_integration_mnist(device)
+    _test_distrib_integration_mnist(dirname, device)
 
     import time
 
@@ -649,8 +653,8 @@ def _test_distrib_log_lr_and_loss_xla_nprocs(index):
 
 
 @pytest.mark.tpu
-@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS is in env vars")
 @pytest.mark.skipif(not idist.has_xla_support, reason="Not on TPU device")
-def test_distrib_single_device_xla_nprocs(xmp_executor):
+def test_distrib_xla_nprocs(dirname, xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
-    xmp_executor(_test_distrib_log_lr_and_loss_xla_nprocs, args=(), nprocs=n)
+    xmp_executor(_test_distrib_log_lr_and_loss_xla_nprocs, args=(dirname,), nprocs=n)
