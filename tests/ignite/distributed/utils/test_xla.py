@@ -182,12 +182,14 @@ def test_idist_barrier_xla():
     device = idist.device()
     _test_distrib_barrier(device)
 
+
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_idist_barrier_xla_args():
     device = idist.device()
     _test_distrib_barrier(device, "barrier")
+
 
 def _test_idist_barrier_xla_in_child_proc(index):
     device = idist.device()
