@@ -653,8 +653,8 @@ def _test_distrib_log_lr_and_loss_xla_nprocs(index, dirname):
 
 
 @pytest.mark.tpu
-@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS is in env vars")
 @pytest.mark.skipif(not idist.has_xla_support, reason="Not on TPU device")
-def test_distrib_single_device_xla_nprocs(dirname, xmp_executor):
+def test_distrib_xla_nprocs(dirname, xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
-    xmp_executor(_test_distrib_log_lr_and_loss_xla_nprocs, args=(dirname), nprocs=n)
+    xmp_executor(_test_distrib_log_lr_and_loss_xla_nprocs, args=(dirname,), nprocs=n)
