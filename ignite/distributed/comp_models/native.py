@@ -382,8 +382,14 @@ if has_native_dist_support:
 
             if init_method in [None, "env://"]:
                 init_method = "env://"
-                master_addr = "127.0.0.1"
-                master_port = 2222
+                if master_port is None:
+                    master_port = 2222
+                if master_addr is None:
+                    master_addr = "127.0.0.1"
+            elif master_addr is not None:
+                raise ValueError("master_addr should be None if init_method is provided other then 'env://'")
+            elif master_port is not None:
+                raise ValueError("master_port should be None if init_method is provided other then 'env://'")
 
             start_processes(
                 _NativeDistModel._dist_worker_task_fn,
