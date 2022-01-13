@@ -123,13 +123,18 @@ class LambdaStateScheduler(StateParamScheduler):
         param_name: name of parameter to update.
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
+        create_new: whether to create ``param_name`` on
+            ``engine.state`` taking into account whether
+            ``param_name`` attribute already exists or not.
+            Overrides existing attribute by default, (default=False).
 
     Examples:
 
-        .. code-block:: python
+        .. testsetup::
 
-            ...
-            engine = Engine(train_step)
+            default_trainer = get_default_trainer()
+
+        .. testcode::
 
             class LambdaState:
                 def __init__(self, initial_value, gamma):
@@ -139,18 +144,39 @@ class LambdaStateScheduler(StateParamScheduler):
                 def __call__(self, event_index):
                     return self.initial_value * self.gamma ** (event_index % 9)
 
-
             param_scheduler = LambdaStateScheduler(
-                param_name="param",
-                lambda_obj=LambdaState(10, 0.99),
+                param_name="param", lambda_obj=LambdaState(1, 0.9), create_new=True
             )
 
-            param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
+            # parameter is param, initial_value sets param to 1 and in this example gamma = 1
+            # using class 'LambdaState' user defined callable object can be created
+            # update a parameter during training by using a user defined callable object
+            # user defined callable object is taking an event index as input and returns parameter value
+            # in this example, we update as initial_value * gamma ** (event_endex % 9)
+            # in every Epoch the parameter is updated as 1 * 0.9 ** (Epoch % 9)
+            # In Epoch 3, parameter param = 1 * 0.9 ** (3 % 9) = 0.729
+            # In Epoch 10, parameter param = 1 * 0.9 ** (10 % 9) = 0.9
 
-            # basic handler to print scheduled state parameter
-            engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _ : print(engine.state.param))
+            param_scheduler.attach(default_trainer, Events.EPOCH_COMPLETED)
 
-            engine.run([0] * 8, max_epochs=2)
+            @default_trainer.on(Events.EPOCH_COMPLETED)
+            def print_param():
+                print(default_trainer.state.param)
+
+            default_trainer.run([0], max_epochs=10)
+
+        .. testoutput::
+
+            0.9
+            0.81
+            0.7290...
+            0.6561
+            0.5904...
+            0.5314...
+            0.4782...
+            0.4304...
+            1.0
+            0.9
 
     .. versionadded:: 0.5.0
 
@@ -178,31 +204,55 @@ class PiecewiseLinearStateScheduler(StateParamScheduler):
         param_name: name of parameter to update.
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
+        create_new: whether to create ``param_name`` on
+            ``engine.state`` taking into account whether
+            ``param_name`` attribute already exists or not.
+            Overrides existing attribute by default, (default=False).
 
     Examples:
 
-        .. code-block:: python
+        .. testsetup::
 
-            ...
-            engine = Engine(train_step)
+            default_trainer = get_default_trainer()
+
+        .. testcode::
 
             param_scheduler = PiecewiseLinearStateScheduler(
-                param_name="param",
-                milestones_values=[(10, 0.5), (20, 0.45), (21, 0.3), (30, 0.1), (40, 0.1)]
+                param_name="param",  milestones_values=[(5, 1.0), (10, 0.8), (15, 0.6)], create_new=True
             )
 
-            param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
+            # parameter is param, milestone (5, 1.0) sets param to 1.0
+            # milestone is (5, 1.0), param=1  for Epoch 1 to 5,
+            # next milestone is (10, 0.8), param linearly reduces from 1.0 to 0.8
+            # Epoch 10, param = 0.8
+            # next milestone is (15,0.6), param linearly reduces from 0.8 to 0.6
+            # Epoch 15, param = 0.6
 
-            # basic handler to print scheduled state parameter
-            engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _ : print(engine.state.param))
+            param_scheduler.attach(default_trainer, Events.EPOCH_COMPLETED)
 
-            engine.run([0] * 8, max_epochs=40)
-            #
-            # Sets the state parameter value to 0.5 over the first 10 iterations, then decreases linearly from 0.5 to
-            # 0.45 between 10th and 20th iterations. Next there is a jump to 0.3 at the 21st iteration and the state
-            # parameter value decreases linearly from 0.3 to 0.1 between 21st and 30th iterations and remains 0.1 until
-            # the end of the iterations.
-            #
+            @default_trainer.on(Events.EPOCH_COMPLETED)
+            def print_param():
+                print(default_trainer.state.param)
+
+            default_trainer.run([0], max_epochs=15)
+
+        .. testoutput::
+
+            1.0
+            1.0
+            1.0
+            1.0
+            1.0
+            0.96
+            0.92
+            0.88
+            0.8400...
+            0.8
+            0.76
+            0.72
+            0.68
+            0.64
+            0.6
 
     .. versionadded:: 0.5.0
     """
@@ -278,24 +328,43 @@ class ExpStateScheduler(StateParamScheduler):
         param_name: name of parameter to update.
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
+        create_new: whether to create ``param_name`` on
+            ``engine.state`` taking into account whether
+            ``param_name`` attribute already exists or not.
+            Overrides existing attribute by default, (default=False).
 
     Examples:
 
-        .. code-block:: python
+        .. testsetup::
 
-            ...
-            engine = Engine(train_step)
+            default_trainer = get_default_trainer()
+
+        .. testcode::
 
             param_scheduler = ExpStateScheduler(
-                param_name="param", initial_value=10, gamma=0.99
+                param_name="param", initial_value=1, gamma=0.9, create_new=True
             )
 
-            param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
+            # parameter is param, initial_value sets param to 1, gamma is set as 0.9
+            # Epoch 1, param changes from 1 to 1*0.9, param = 0.9
+            # Epoch 2, param changes from 0.9 to 0.9*0.9, param = 0.81
+            # Epoch 3, param changes from 0.81 to 0.81*0.9, param = 0.729
+            # Epoch 4, param changes from 0.81 to 0.729*0.9, param = 0.6561
 
-            # basic handler to print scheduled state parameter
-            engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _ : print(engine.state.param))
+            param_scheduler.attach(default_trainer, Events.EPOCH_COMPLETED)
 
-            engine.run([0] * 8, max_epochs=2)
+            @default_trainer.on(Events.EPOCH_COMPLETED)
+            def print_param():
+                print(default_trainer.state.param)
+
+            default_trainer.run([0], max_epochs=4)
+
+        .. testoutput::
+
+            0.9
+            0.81
+            0.7290...
+            0.6561
 
     .. versionadded:: 0.5.0
 
@@ -326,24 +395,47 @@ class StepStateScheduler(StateParamScheduler):
         param_name: name of parameter to update.
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
+        create_new: whether to create ``param_name`` on
+            ``engine.state`` taking into account whether
+            ``param_name`` attribute already exists or not.
+            Overrides existing attribute by default, (default=False).
 
     Examples:
 
-        .. code-block:: python
+        .. testsetup::
 
-            ...
-            engine = Engine(train_step)
+            default_trainer = get_default_trainer()
+
+        .. testcode::
 
             param_scheduler = StepStateScheduler(
-                param_name="param", initial_value=10, gamma=0.99, step_size=5
+                param_name="param", initial_value=1, gamma=0.9, step_size=5, create_new=True
             )
 
-            param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
+            # parameter is param, initial_value sets param to 1, gamma is set as 0.9
+            # Epoch 1 to 4, param does not change as step size is 5,
+            # Epoch 5, param changes from 1 to 1*0.9, param = 0.9
+            # Epoch 5 to 9, param = 0.9 as step size is 5,
+            # Epoch 10, param changes from 0.9 to 0.9*0.9, param = 0.81
+            # Epoch 10 to 14, param = 0.81, as step size is 5
+            # Epoch 15, param changes from 0.81 to 0.81*0.9, param = 0.729
+            # and so on ... the param change at Epoch = 5, 10, 15, 20, . . .
 
-            # basic handler to print scheduled state parameter
-            engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _ : print(engine.state.param))
+            param_scheduler.attach(default_trainer, Events.EPOCH_COMPLETED)
 
-            engine.run([0] * 8, max_epochs=10)
+            @default_trainer.on(Events.EPOCH_COMPLETED(every=5))
+            def print_param():
+                print(default_trainer.state.param)
+
+            default_trainer.run([0], max_epochs=25)
+
+        .. testoutput::
+
+            0.9
+            0.81
+            0.7290...
+            0.6561
+            0.5904...
 
     .. versionadded:: 0.5.0
 
@@ -381,24 +473,55 @@ class MultiStepStateScheduler(StateParamScheduler):
         param_name: name of parameter to update.
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
+        create_new: whether to create ``param_name`` on
+            ``engine.state`` taking into account whether
+            ``param_name`` attribute already exists or not.
+            Overrides existing attribute by default, (default=False).
 
     Examples:
 
-        .. code-block:: python
+        .. testsetup::
 
-            ...
-            engine = Engine(train_step)
+            default_trainer = get_default_trainer()
+
+        .. testcode::
 
             param_scheduler = MultiStepStateScheduler(
-                param_name="param", initial_value=10, gamma=0.99, milestones=[3, 6],
+                param_name="param", initial_value=1, gamma=0.9, milestones=[3, 6, 9, 12]
             )
 
-            param_scheduler.attach(engine, Events.EPOCH_COMPLETED)
+            # parameter is param, initial_value sets param to 1, gamma is set as 0.9
+            # Epoch 1 to 2, param does not change as milestone is 3
+            # Epoch 3, param changes from 1 to 1*0.9, param = 0.9
+            # Epoch 3 to 5, param does not change as milestone is 6
+            # Epoch 6, param changes from 0.9 to 0.9*0.9, param = 0.81
+            # Epoch 6 to 8, param does not change as milestone is 9
+            # Epoch 9, param changes from 0.81 to 0.81*0.9, param = 0.729
+            # Epoch 9 to 11, param does not change as milestone is 12
+            # Epoch 12, param changes from 0.729 to 0.729*0.9, param = 0.6561
 
-            # basic handler to print scheduled state parameter
-            engine.add_event_handler(Events.EPOCH_COMPLETED, lambda _ : print(engine.state.param))
+            param_scheduler.attach(default_trainer, Events.EPOCH_COMPLETED)
 
-            engine.run([0] * 8, max_epochs=10)
+            @default_trainer.on(Events.EPOCH_COMPLETED)
+            def print_param():
+                print(default_trainer.state.param)
+
+            default_trainer.run([0], max_epochs=12)
+
+        .. testoutput::
+
+            1.0
+            1.0
+            0.9
+            0.9
+            0.9
+            0.81
+            0.81
+            0.81
+            0.7290...
+            0.7290...
+            0.7290...
+            0.6561
 
     .. versionadded:: 0.5.0
 

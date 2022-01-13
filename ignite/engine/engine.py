@@ -120,7 +120,7 @@ class Engine(Serializable):
     _state_dict_all_req_keys = ("epoch_length", "max_epochs")
     _state_dict_one_of_opt_keys = ("iteration", "epoch")
 
-    def __init__(self, process_function: Callable):
+    def __init__(self, process_function: Callable[["Engine", Any], Any]):
         self._event_handlers = defaultdict(list)  # type: Dict[Any, List]
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self._process_function = process_function
