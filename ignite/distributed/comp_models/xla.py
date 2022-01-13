@@ -160,11 +160,5 @@ if has_xla_support:
             xm.all_reduce("sum", [tensor])
             return tensor
 
-        def barrier(self, *args: Any, **kwargs: Any) -> None:
-            if not len(args) and "tag" not in kwargs:
-                warnings.warn(
-                    f"`tag` parameter is mandatory and is set by default to `barrier` for {self._backend} `rendezvous`"
-                    f" method."
-                )
-                kwargs["tag"] = "barrier"
-            xm.rendezvous(*args, **kwargs)
+        def barrier(self, *args: Any, tag="barrier", **kwargs: Any) -> None:
+            xm.rendezvous(tag, *args, **kwargs)
