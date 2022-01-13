@@ -1,4 +1,5 @@
 import re
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -291,14 +292,15 @@ def test_simulate_values(scheduler_cls, scheduler_kwargs):
     _test(scheduler_cls, scheduler_kwargs)
 
 
-def test_torch_save_load():
+def test_torch_save_load(dirname):
 
     lambda_state_parameter_scheduler = LambdaStateScheduler(
         param_name="custom_scheduled_param", lambda_obj=LambdaState(initial_value=10, gamma=0.99), create_new=True
     )
 
-    torch.save(lambda_state_parameter_scheduler, "dummy_lambda_state_parameter_scheduler.pt")
-    loaded_lambda_state_parameter_scheduler = torch.load("dummy_lambda_state_parameter_scheduler.pt")
+    filepath = Path(dirname) / "dummy_lambda_state_parameter_scheduler.pt"
+    torch.save(lambda_state_parameter_scheduler, filepath)
+    loaded_lambda_state_parameter_scheduler = torch.load(filepath)
 
     engine1 = Engine(lambda e, b: None)
     lambda_state_parameter_scheduler.attach(engine1, Events.EPOCH_COMPLETED)
