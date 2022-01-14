@@ -480,11 +480,14 @@ def initialize(backend: str, **kwargs: Any) -> None:
             - | "horovod" : comm(=None), more info: `hvd_init`_.
 
     Examples:
-        Launch single node multi-GPU training with ``torch.distributed.launch`` utility.
+        Launch single node multi-GPU training with ``torchrun`` or ``torch.distributed.launch`` utility.
 
         .. code-block:: python
 
+            # >>> torchrun -nproc_per_node=4 main.py
+            # or
             # >>> python -m torch.distributed.launch --nproc_per_node=4 main.py
+
 
             # main.py
 
