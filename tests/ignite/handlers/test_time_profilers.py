@@ -794,7 +794,7 @@ def test_write_results_basic_profiler(dirname):
     profiler.attach(dummy_trainer)
 
     dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
-    fp = os.path.join(dirname, "test_log.csv")
+    fp = Path(dirname) / "test_log.csv"
     profiler.write_results(fp)
 
     assert os.path.isfile(fp)
@@ -817,7 +817,7 @@ def test_write_results_handlers_profiler(dirname):
     profiler.attach(dummy_trainer)
 
     dummy_trainer.run(range(true_num_iters), max_epochs=true_max_epochs)
-    fp = os.path.join(dirname, "test_log.csv")
+    fp = Path(dirname) / "test_log.csv"
     profiler.write_results(fp)
 
     assert os.path.isfile(fp)

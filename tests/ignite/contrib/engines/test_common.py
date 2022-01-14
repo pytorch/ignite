@@ -408,7 +408,7 @@ def test_setup_tb_logging(dirname):
 
     tb_logger = _test_setup_logging(
         setup_logging_fn=setup_tb_logging,
-        kwargs_dict={"output_path": os.path.join(dirname, "t1")},
+        kwargs_dict={"output_path": Path(dirname) / "t1"},
         output_handler_cls=handlers.tensorboard_logger.OutputHandler,
         opt_params_handler_cls=handlers.tensorboard_logger.OptimizerParamsHandler,
         with_eval=False,
@@ -417,7 +417,7 @@ def test_setup_tb_logging(dirname):
     tb_logger.close()
     tb_logger = _test_setup_logging(
         setup_logging_fn=setup_tb_logging,
-        kwargs_dict={"output_path": os.path.join(dirname, "t2")},
+        kwargs_dict={"output_path": Path(dirname) / "t2"},
         output_handler_cls=handlers.tensorboard_logger.OutputHandler,
         opt_params_handler_cls=handlers.tensorboard_logger.OptimizerParamsHandler,
         with_eval=True,
@@ -426,7 +426,7 @@ def test_setup_tb_logging(dirname):
     tb_logger.close()
     tb_logger = _test_setup_logging(
         setup_logging_fn=setup_tb_logging,
-        kwargs_dict={"output_path": os.path.join(dirname, "t3")},
+        kwargs_dict={"output_path": Path(dirname) / "t3"},
         output_handler_cls=handlers.tensorboard_logger.OutputHandler,
         opt_params_handler_cls=handlers.tensorboard_logger.OptimizerParamsHandler,
         with_eval=True,
@@ -486,7 +486,7 @@ def test_setup_plx_logging():
 def test_setup_mlflow_logging(dirname):
     mlf_logger = _test_setup_logging(
         setup_logging_fn=setup_mlflow_logging,
-        kwargs_dict={"tracking_uri": os.path.join(dirname, "p1")},
+        kwargs_dict={"tracking_uri": Path(dirname) / "p1"},
         output_handler_cls=handlers.mlflow_logger.OutputHandler,
         opt_params_handler_cls=handlers.mlflow_logger.OptimizerParamsHandler,
         with_eval=False,
@@ -495,7 +495,7 @@ def test_setup_mlflow_logging(dirname):
     mlf_logger.close()
     mlf_logger = _test_setup_logging(
         setup_logging_fn=setup_mlflow_logging,
-        kwargs_dict={"tracking_uri": os.path.join(dirname, "p2")},
+        kwargs_dict={"tracking_uri": Path(dirname) / "p2"},
         output_handler_cls=handlers.mlflow_logger.OutputHandler,
         opt_params_handler_cls=handlers.mlflow_logger.OptimizerParamsHandler,
         with_eval=True,

@@ -20,8 +20,8 @@ from ignite.handlers import ModelCheckpoint
 
 def check_paths(args):
     try:
-        if args.checkpoint_model_dir is not None and not (os.path.exists(args.checkpoint_model_dir)):
-            os.makedirs(args.checkpoint_model_dir)
+        if args.checkpoint_model_dir is not None and not (Path(args.checkpoint_model_dir).exists()):
+            Path.mkdir(args.checkpoint_model_dir, parents=True)
     except OSError as e:
         raise OSError(e)
 

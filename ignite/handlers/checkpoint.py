@@ -664,7 +664,7 @@ class DiskSaver(BaseSaveHandler):
     """
 
     def __init__(
-        self, dirname: str, atomic: bool = True, create_dir: bool = True, require_empty: bool = True, **kwargs: Any
+        self, dirname: Union[str, Path], atomic: bool = True, create_dir: bool = True, require_empty: bool = True, **kwargs: Any
     ):
         self.dirname = os.path.expanduser(dirname)
         self._atomic = atomic
@@ -673,12 +673,12 @@ class DiskSaver(BaseSaveHandler):
 
     @staticmethod
     @idist.one_rank_only()
-    def _check_and_setup(dirname: str, create_dir: bool, require_empty: bool) -> None:
+    def _check_and_setup(dirname: Union[str, Path], create_dir: bool, require_empty: bool) -> None:
         if create_dir:
-            if not os.path.exists(dirname):
-                os.makedirs(dirname)
+            if not Path(dirname).exists():
+                Path.mkdir(dirname, parents=True)
         # Ensure that dirname exists
-        if not os.path.exists(dirname):
+        if not Path(dirname).exists():
             raise ValueError(f"Directory path '{dirname}' is not found")
 
         if require_empty:
@@ -691,8 +691,8 @@ class DiskSaver(BaseSaveHandler):
                     ""
                 )
 
-    def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None) -> None:
-        path = os.path.join(self.dirname, filename)
+    def __call__(self, checkpoint: Mapping, x: str, metadata: Optional[Mapping] = None) -> None:
+        path = Path(self.dirname, filename).exists()
 
         if idist.has_xla_support:
             self._save_xla(checkpoint, path)
@@ -736,7 +736,7 @@ class DiskSaver(BaseSaveHandler):
 
     @idist.one_rank_only()
     def remove(self, filename: str) -> None:
-        path = os.path.join(self.dirname, filename)
+        path = Path(self.dirname, filename).exists()
         os.remove(path)
 
 
@@ -846,7 +846,7 @@ class ModelCheckpoint(Checkpoint):
                 f"Unable to save checkpoint, save_handler should be DiskSaver, got {type(self.save_handler)}."
             )
 
-        return os.path.join(self.save_handler.dirname, self._saved[-1].filename)
+        return Path(self.save_handler.dirname, self._saved[-1].filename).exists()
 
     def __call__(self, engine: Engine, to_save: Mapping):  # type: ignore
 

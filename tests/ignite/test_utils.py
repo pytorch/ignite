@@ -116,7 +116,7 @@ def test_setup_logger(capsys, dirname):
     trainer.logger.addHandler(logging.NullHandler())
     trainer.logger.addHandler(logging.NullHandler())
 
-    fp = os.path.join(dirname, "log")
+    fp = Path(dirname) / "log"
 
     def _test(stream):
 

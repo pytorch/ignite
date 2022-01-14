@@ -8,7 +8,7 @@ def visdom_offline_logfile(dirname):
 
     import os
 
-    log_file = os.path.join(dirname, "logs.visdom")
+    log_file = Path(dirname) / "logs.visdom"
     yield log_file
 
 
