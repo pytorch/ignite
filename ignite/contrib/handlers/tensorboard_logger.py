@@ -421,23 +421,31 @@ class WeightsHistHandler(BaseWeightsHistHandler):
             )
     """
 
-    def __init__(self, model: nn.Module, tag: Optional[str] = None):
+    def __init__(self, model, tag=None, names_whitelist=None, names_blacklist=None):
         super(WeightsHistHandler, self).__init__(model, tag=tag)
+        self._selected_layers = None
+        self.names_whitelist = None
 
-    def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, Events]) -> None:
+    def __call__(self, engine, logger, event_name):
         if not isinstance(logger, TensorboardLogger):
             raise RuntimeError("Handler 'WeightsHistHandler' works only with TensorboardLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = f"{self.tag}/" if self.tag else ""
         for name, p in self.model.named_parameters():
-            if p.grad is None:
+            
+            if self._selected_layers is None:
+                self._selected_layers = []
+            if any([key in name for key in self.names_whitelist]):
+                self._selected_layers.append(name)
+            elif name not in self._selected_layers:
                 continue
+            # if self.names_whitelist is not None and name not in self.names_whitelist:
+            #     continue
 
             name = name.replace(".", "/")
             logger.writer.add_histogram(
-                tag=f"{tag_prefix}weights/{name}", values=p.data.detach().cpu().numpy(), global_step=global_step
-            )
+                    tag=f"{tag_prefix}weights/{name}", values=p.data.detach().cpu().numpy(), global_step=global_step,)
 
 
 class GradsScalarHandler(BaseWeightsScalarHandler):
