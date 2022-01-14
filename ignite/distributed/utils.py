@@ -482,7 +482,7 @@ def initialize(backend: str, **kwargs: Any) -> None:
     Examples:
         Launch single node multi-GPU training with ``torchrun`` or ``torch.distributed.launch`` utility.
 
-        .. code-block:: python
+        .. code-block:: bash
 
             # >>> torchrun -nproc_per_node=4 main.py
             # or
