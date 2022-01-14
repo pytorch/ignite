@@ -472,7 +472,7 @@ def test__native_dist_model_warning_index_less_localrank(local_rank, world_size)
     dist.destroy_process_group()
 
 
-def _test_dist_spawn_fn(local_rank, backend, world_size, device):
+def _test_dist_spawn_fn(local_rank, backend, world_size, device, **kwargs):
     from ignite.distributed.utils import _model
 
     assert dist.is_available() and dist.is_initialized()
@@ -484,12 +484,22 @@ def _test_dist_spawn_fn(local_rank, backend, world_size, device):
     assert _model.get_world_size() == world_size
     assert _model.device().type == torch.device(device).type
 
+    if "master_addr" in kwargs:
+        assert os.environ["MASTER_ADDR"] == kwargs["master_addr"]
+    if "master_port" in kwargs:
+        assert os.environ["MASTER_PORT"] == str(kwargs["master_port"])
+
 
 def _test__native_dist_model_spawn(backend, num_workers_per_machine, device, init_method=None, **spawn_kwargs):
+    kwargs_dict = {}
+    for key in ["master_addr", "master_port"]:
+        if key in spawn_kwargs:
+            kwargs_dict[key] = spawn_kwargs[key]
+
     _NativeDistModel.spawn(
         _test_dist_spawn_fn,
         args=(backend, num_workers_per_machine, device),
-        kwargs_dict={},
+        kwargs_dict=kwargs_dict,
         backend=backend,
         nproc_per_node=num_workers_per_machine,
         init_method=init_method,
@@ -499,31 +509,56 @@ def _test__native_dist_model_spawn(backend, num_workers_per_machine, device, ini
 
 @pytest.mark.distributed
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-@pytest.mark.parametrize("init_method", [None, "env://", "tcp://0.0.0.0:22334", "FILE"])
+@pytest.mark.parametrize("init_method", [None, "CUSTOM_ADDR_PORT", "env://", "tcp://0.0.0.0:22334", "FILE"])
 def test__native_dist_model_spawn_gloo(init_method, dirname):
+    spawn_kwargs = {}
+
     if init_method == "FILE":
         init_method = f"file://{dirname}/shared"
+    elif init_method == "CUSTOM_ADDR_PORT":
+        init_method = None
+        spawn_kwargs["master_addr"] = "0.0.0.0"
+        spawn_kwargs["master_port"] = 2345
 
     nproc = torch.cuda.device_count() if torch.cuda.is_available() else 4
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    _test__native_dist_model_spawn("gloo", num_workers_per_machine=nproc, device=device, init_method=init_method)
+    _test__native_dist_model_spawn(
+        "gloo", num_workers_per_machine=nproc, device=device, init_method=init_method, **spawn_kwargs
+    )
     if device.type == "cpu":
+        spawn_kwargs["start_method"] = "fork"
         _test__native_dist_model_spawn(
-            "gloo", num_workers_per_machine=nproc, device=device, start_method="fork", init_method=init_method
+            "gloo", num_workers_per_machine=nproc, device=device, init_method=init_method, **spawn_kwargs
         )
+
+    if init_method not in [None, "env://"]:
+        with pytest.raises(ValueError, match=r"master_addr should be None if init_method is provided"):
+            _test__native_dist_model_spawn(
+                "gloo", num_workers_per_machine=nproc, device=device, init_method=init_method, master_addr="abc"
+            )
+        with pytest.raises(ValueError, match=r"master_port should be None if init_method is provided"):
+            _test__native_dist_model_spawn(
+                "gloo", num_workers_per_machine=nproc, device=device, init_method=init_method, master_port=123
+            )
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-@pytest.mark.parametrize("init_method", [None, "tcp://0.0.0.0:22334", "FILE"])
+@pytest.mark.parametrize("init_method", [None, "CUSTOM_ADDR_PORT", "tcp://0.0.0.0:22334", "FILE"])
 def test__native_dist_model_spawn_nccl(init_method, dirname):
+    spawn_kwargs = {}
+
     if init_method == "FILE":
         init_method = f"file://{dirname}/shared"
+    elif init_method == "CUSTOM_ADDR_PORT":
+        init_method = None
+        spawn_kwargs["master_addr"] = "0.0.0.0"
+        spawn_kwargs["master_port"] = 2345
 
-    num_workers_per_machine = torch.cuda.device_count()
+    nproc = torch.cuda.device_count()
     _test__native_dist_model_spawn(
-        "nccl", num_workers_per_machine=num_workers_per_machine, device="cuda", init_method=init_method
+        "nccl", num_workers_per_machine=nproc, device="cuda", init_method=init_method, **spawn_kwargs
     )
 
 

@@ -84,8 +84,7 @@ class BaseOutputHandler(BaseHandler):
     def _setup_output_metrics_state_attrs(
         self, engine: Engine, log_text: Optional[bool] = False, key_tuple: Optional[bool] = True
     ) -> Dict[Any, Any]:
-        """Helper method to setup metrics and state attributes to log
-        """
+        """Helper method to setup metrics and state attributes to log"""
         metrics_state_attrs = OrderedDict()
         if self.metric_names is not None:
             if isinstance(self.metric_names, str) and self.metric_names == "all":

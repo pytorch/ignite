@@ -37,12 +37,8 @@ class MeanSquaredError(Metric):
 
         .. testcode::
 
-            def process_function(engine, batch):
-                y_pred, y = batch
-                return y_pred, y
-            engine = Engine(process_function)
             metric = MeanSquaredError()
-            metric.attach(engine, 'mse')
+            metric.attach(default_evaluator, 'mse')
             preds = torch.Tensor([
                 [1, 2, 4, 1],
                 [2, 3, 1, 5],
@@ -50,7 +46,7 @@ class MeanSquaredError(Metric):
                 [1, 5, 1 ,11]
             ])
             target = preds * 0.75
-            state = engine.run([[preds, target]])
+            state = default_evaluator.run([[preds, target]])
             print(state.metrics['mse'])
 
         .. testoutput::

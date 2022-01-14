@@ -34,6 +34,24 @@ class FractionalBias(_BaseRegression):
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
 
+    Examples:
+        To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
+        The output of the engine's ``process_function`` needs to be in format of
+        ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``.
+
+        .. testcode::
+
+                metric = FractionalBias()
+                metric.attach(default_evaluator, 'fractional_bias')
+                y_pred = torch.Tensor([[3.8], [9.9], [5.4], [2.1]])
+                y_true = y_pred * 1.5
+                state = default_evaluator.run([[y_pred, y_true]])
+                print(state.metrics['fractional_bias'])
+
+        .. testoutput::
+
+                0.4000...
+
     .. versionchanged:: 0.4.5
         - Works with DDP.
     """

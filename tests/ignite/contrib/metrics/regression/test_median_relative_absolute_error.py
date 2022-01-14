@@ -28,10 +28,10 @@ def test_wrong_input_shapes():
         m.update((torch.rand(4, 1), torch.rand(4, 1, 2)))
 
     with pytest.raises(ValueError, match=r"Predictions should be of shape"):
-        m.update((torch.rand(4, 1, 2), torch.rand(4,),))
+        m.update((torch.rand(4, 1, 2), torch.rand(4)))
 
     with pytest.raises(ValueError, match=r"Targets should be of shape"):
-        m.update((torch.rand(4,), torch.rand(4, 1, 2),))
+        m.update((torch.rand(4), torch.rand(4, 1, 2)))
 
 
 def test_median_relative_absolute_error():
@@ -42,8 +42,8 @@ def test_median_relative_absolute_error():
     # Size of dataset will be odd for these tests
 
     size = 51
-    np_y_pred = np.random.rand(size,)
-    np_y = np.random.rand(size,)
+    np_y_pred = np.random.rand(size)
+    np_y = np.random.rand(size)
     np_median_absolute_relative_error = np.median(np.abs(np_y - np_y_pred) / np.abs(np_y - np_y.mean()))
 
     m = MedianRelativeAbsoluteError()

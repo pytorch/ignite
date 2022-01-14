@@ -426,7 +426,7 @@ def test_on_decorator():
 
 def test_returns_state():
     engine = Engine(MagicMock(return_value=1))
-    state = engine.run([0,])
+    state = engine.run([0])
 
     assert isinstance(state, State)
 

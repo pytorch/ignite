@@ -426,10 +426,10 @@ def test_create_supervised_trainer_on_cuda_amp():
         model_device=model_device, trainer_device=trainer_device, amp_mode="amp"
     )
     _test_create_supervised_trainer(
-        gradient_accumulation_steps=1, model_device=model_device, trainer_device=trainer_device, amp_mode="amp",
+        gradient_accumulation_steps=1, model_device=model_device, trainer_device=trainer_device, amp_mode="amp"
     )
     _test_create_supervised_trainer(
-        gradient_accumulation_steps=3, model_device=model_device, trainer_device=trainer_device, amp_mode="amp",
+        gradient_accumulation_steps=3, model_device=model_device, trainer_device=trainer_device, amp_mode="amp"
     )
     _test_create_mocked_supervised_trainer(model_device=model_device, trainer_device=trainer_device, amp_mode="amp")
 
@@ -478,18 +478,19 @@ def test_create_supervised_trainer_on_cuda_amp_scaler():
     )
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-@pytest.mark.skipif(not find_spec("apex"), reason="Skip if no APEX")
+# @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
+# @pytest.mark.skipif(not find_spec("apex"), reason="Skip if no APEX")
+@pytest.mark.skip(reason="Temporarily disabled, as it fails because of an issue from apex side")
 def test_create_supervised_trainer_on_cuda_apex():
     model_device = trainer_device = "cuda"
     _test_create_supervised_trainer_wrong_accumulation(
         model_device=model_device, trainer_device=trainer_device, amp_mode="apex"
     )
     _test_create_supervised_trainer(
-        gradient_accumulation_steps=1, model_device=model_device, trainer_device=trainer_device, amp_mode="apex",
+        gradient_accumulation_steps=1, model_device=model_device, trainer_device=trainer_device, amp_mode="apex"
     )
     _test_create_supervised_trainer(
-        gradient_accumulation_steps=3, model_device=model_device, trainer_device=trainer_device, amp_mode="apex",
+        gradient_accumulation_steps=3, model_device=model_device, trainer_device=trainer_device, amp_mode="apex"
     )
     _test_create_mocked_supervised_trainer(model_device=model_device, trainer_device=trainer_device, amp_mode="apex")
 

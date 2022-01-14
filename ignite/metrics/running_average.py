@@ -26,20 +26,52 @@ class RunningAverage(Metric):
             from the metric is a tensor.
 
     Examples:
-        .. code-block:: python
 
-            alpha = 0.98
-            acc_metric = RunningAverage(Accuracy(output_transform=lambda x: [x[1], x[2]]), alpha=alpha)
-            acc_metric.attach(trainer, 'running_avg_accuracy')
+        .. testcode:: 1
 
-            avg_output = RunningAverage(output_transform=lambda x: x[0], alpha=alpha)
-            avg_output.attach(trainer, 'running_avg_loss')
+            accuracy = Accuracy()
+            metric = RunningAverage(accuracy)
+            metric.attach(default_evaluator, 'running_avg_accuracy')
 
-            @trainer.on(Events.ITERATION_COMPLETED)
-            def log_running_avg_metrics(engine):
-                print("running avg accuracy:", engine.state.metrics['running_avg_accuracy'])
-                print("running avg loss:", engine.state.metrics['running_avg_loss'])
+            @default_evaluator.on(Events.ITERATION_COMPLETED)
+            def log_running_avg_metrics():
+                print(default_evaluator.state.metrics['running_avg_accuracy'])
 
+            y_true = [torch.Tensor(y) for y in [[0], [1], [0], [1], [0], [1]]]
+            y_pred = [torch.Tensor(y) for y in [[0], [0], [0], [1], [1], [1]]]
+
+            state = default_evaluator.run(zip(y_pred, y_true))
+
+        .. testoutput:: 1
+
+            1.0
+            0.98
+            0.98039...
+            0.98079...
+            0.96117...
+            0.96195...
+
+        .. testcode:: 2
+
+            metric = RunningAverage(output_transform=lambda x: x.item())
+            metric.attach(default_evaluator, 'running_avg_accuracy')
+
+            @default_evaluator.on(Events.ITERATION_COMPLETED)
+            def log_running_avg_metrics():
+                print(default_evaluator.state.metrics['running_avg_accuracy'])
+
+            y = [torch.Tensor(y) for y in [[0], [1], [0], [1], [0], [1]]]
+
+            state = default_evaluator.run(y)
+
+        .. testoutput:: 2
+
+            0.0
+            0.020000...
+            0.019600...
+            0.039208...
+            0.038423...
+            0.057655...
     """
 
     required_output_keys = None

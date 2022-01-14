@@ -436,7 +436,7 @@ class WeightsHistHandler(BaseWeightsHistHandler):
 
             name = name.replace(".", "/")
             logger.writer.add_histogram(
-                tag=f"{tag_prefix}weights/{name}", values=p.data.detach().cpu().numpy(), global_step=global_step,
+                tag=f"{tag_prefix}weights/{name}", values=p.data.detach().cpu().numpy(), global_step=global_step
             )
 
 

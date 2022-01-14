@@ -50,10 +50,10 @@ def test__encode_input_data():
     assert encoded_msg == [-1] * 512
 
     encoded_msg = ComputationModel._encode_input_data(12.0, is_src=True)
-    assert encoded_msg == [1,] + [-1] * 511
+    assert encoded_msg == [1] + [-1] * 511
 
     encoded_msg = ComputationModel._encode_input_data("abc", is_src=True)
-    assert encoded_msg == [2,] + [-1] * 511
+    assert encoded_msg == [2] + [-1] * 511
 
     t = torch.rand(2, 512, 32, 32, 64)
     encoded_msg = ComputationModel._encode_input_data(t, is_src=True)

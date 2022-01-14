@@ -82,8 +82,7 @@ if has_native_dist_support:
             rank: Optional[int] = None,
             **kwargs: Any,
         ) -> None:
-            """This is a private method. Please, use `create_from_backend` or `create_from_context`
-            """
+            """This is a private method. Please, use `create_from_backend` or `create_from_context`"""
             super(_NativeDistModel, self).__init__()
             self._env_backup = None  # type: Optional[Dict[str, str]]
             self._local_rank = None  # type: Optional[int]
@@ -177,7 +176,7 @@ if has_native_dist_support:
             from collections import Counter
 
             c = Counter(hostnames)  # type: Counter
-            sizes = torch.tensor([0,] + list(c.values()))
+            sizes = torch.tensor([0] + list(c.values()))
             cumsum_sizes = torch.cumsum(sizes, dim=0)
             node_rank = (rank // cumsum_sizes[1:]).clamp(0, 1).sum().item()
             local_rank = rank - cumsum_sizes[node_rank].item()
@@ -383,8 +382,14 @@ if has_native_dist_support:
 
             if init_method in [None, "env://"]:
                 init_method = "env://"
-                master_addr = "127.0.0.1"
-                master_port = 2222
+                if master_port is None:
+                    master_port = 2222
+                if master_addr is None:
+                    master_addr = "127.0.0.1"
+            elif master_addr is not None:
+                raise ValueError("master_addr should be None if init_method is provided other then 'env://'")
+            elif master_port is not None:
+                raise ValueError("master_port should be None if init_method is provided other then 'env://'")
 
             start_processes(
                 _NativeDistModel._dist_worker_task_fn,
@@ -503,8 +508,7 @@ if has_native_dist_support:
         return result_hostlist
 
     def _setup_ddp_vars_from_slurm_env(environ: Dict[str, str]) -> Dict[str, Union[str, int]]:
-        """Method to setup DDP env vars required by PyTorch from SLURM env
-        """
+        """Method to setup DDP env vars required by PyTorch from SLURM env"""
         # 1) Tools like enroot can have hooks to translate slurm env vars to RANK, LOCAL_RANK, WORLD_SIZE etc
         # See https://github.com/NVIDIA/enroot/blob/v3.1.0/conf/hooks/extra/50-slurm-pytorch.sh
         # 2) User can use torch.distributed.launch tool to schedule on N local GPUs using 1 node, 1 task by SLURM

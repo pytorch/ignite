@@ -69,9 +69,7 @@ def _plx_log_params(params_dict):
     from polyaxon_client.tracking import Experiment
 
     plx_exp = Experiment()
-    plx_exp.log_params(
-        **{"pytorch version": torch.__version__, "ignite version": ignite.__version__,}
-    )
+    plx_exp.log_params(**{"pytorch version": torch.__version__, "ignite version": ignite.__version__})
     plx_exp.log_params(**params_dict)
 
 
@@ -86,9 +84,7 @@ def _mlflow_log_artifact(fp):
 
 @idist.one_rank_only()
 def _mlflow_log_params(params_dict):
-    mlflow.log_params(
-        {"pytorch version": torch.__version__, "ignite version": ignite.__version__,}
-    )
+    mlflow.log_params({"pytorch version": torch.__version__, "ignite version": ignite.__version__})
     mlflow.log_params(params_dict)
 
 

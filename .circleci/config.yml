@@ -26,7 +26,7 @@ parameters:
 one_gpu: &one_gpu
   machine:
     # https://circleci.com/docs/2.0/configuration-reference/#available-linux-gpu-images
-    image: ubuntu-2004-cuda-11.2:202103-01 # CUDA v11.2.1, Docker v20.10.5, nvidia-container-toolkit v1.4.2-1
+    image: ubuntu-2004-cuda-11.4:202110-01 # CUDA v11.4.2, Docker v20.10.7, nvidia-container-toolkit v1.5.1-1
     docker_layer_caching: true
   # https://circleci.com/product/features/resource-classes/#linux-vm
   resource_class: gpu.small
@@ -40,7 +40,7 @@ one_gpu_windows: &one_gpu_windows
 two_gpus: &two_gpus
   machine:
     # https://circleci.com/docs/2.0/configuration-reference/#available-linux-gpu-images
-    image: ubuntu-2004-cuda-11.2:202103-01 # CUDA v11.2.1, Docker v20.10.5, nvidia-container-toolkit v1.4.2-1
+    image: ubuntu-2004-cuda-11.4:202110-01 # CUDA v11.4.2, Docker v20.10.7, nvidia-container-toolkit v1.5.1-1
     docker_layer_caching: true
   # https://circleci.com/product/features/resource-classes/#linux-vm
   resource_class: gpu.medium
@@ -102,9 +102,10 @@ install_dependencies: &install_dependencies
       name: Install dependencies
       command: |
         docker exec -it pthd pip install -r requirements-dev.txt
-        export install_apex_cmd='pip install -v --disable-pip-version-check --no-cache-dir git+https://github.com/NVIDIA/apex'
-        export install_git_apex_cmd="apt-get update && apt-get install -y --no-install-recommends git && ${install_apex_cmd}"
-        docker exec -it pthd /bin/bash -c "$install_git_apex_cmd"
+        # Commented APEX installation, https://github.com/pytorch/ignite/issues/2299
+        # export install_apex_cmd='pip install -v --disable-pip-version-check --no-cache-dir git+https://github.com/NVIDIA/apex'
+        # export install_git_apex_cmd="apt-get update && apt-get install -y --no-install-recommends git && ${install_apex_cmd}"
+        # docker exec -it pthd /bin/bash -c "$install_git_apex_cmd"
         export install_ignite_cmd='python setup.py install'
         docker exec -it pthd /bin/bash -c "$install_ignite_cmd"
 
@@ -113,6 +114,9 @@ download_mnist: &download_mnist
   - run:
       name: Download MNIST
       command: |
+        export install_git_cmd="apt-get update && apt-get install -y --no-install-recommends git"
+        docker exec -it pthd /bin/bash -c "$install_git_cmd"
+
         export tmp_mnist_dir='/tmp/mnist'
         export tests_mnist_dir='/tmp'
         export examples_mnist_dir='.'
@@ -324,7 +328,6 @@ jobs:
           name: Trigger job if modified
           command: |
             bash .circleci/trigger_if_modified.sh "^(ignite|tests|examples|\.circleci).*"
-      - <<: *install_latest_nvidia
       - <<: *pull_pytorch_stable_devel_image
       - <<: *run_pytorch_devel_container
       - <<: *install_dependencies
@@ -336,18 +339,18 @@ jobs:
             # Following https://github.com/horovod/horovod/blob/master/Dockerfile.test.gpu
             # and https://github.com/horovod/horovod/issues/1944#issuecomment-628192778
             docker exec -it pthd /bin/bash -c "apt-get update && apt-get install -y git"
-            docker exec -it pthd /bin/bash -c "git clone --recursive https://github.com/horovod/horovod.git /horovod && cd /horovod && python setup.py sdist"
-            docker exec -it pthd /bin/bash -c "conda install -y cmake nccl=2.8 -c conda-forge"
+            docker exec -it pthd /bin/bash -c "git clone --recursive https://github.com/horovod/horovod.git -b v0.23.0 /horovod && cd /horovod && python setup.py sdist"
+            docker exec -it pthd /bin/bash -c "conda install -y cmake nccl=2.11 -c conda-forge"
             docker exec -it pthd /bin/bash -c 'cd /horovod && HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_NCCL_LINK=SHARED HOROVOD_WITHOUT_MPI=1 HOROVOD_WITH_PYTORCH=1 pip install -v $(ls /horovod/dist/horovod-*.tar.gz) && ldconfig'
             docker exec -it pthd horovodrun --check-build
 
       - run:
           name: Run 1 Node 2 GPUs Unit Tests
           command: |
-            export test_cmd='bash tests/run_gpu_tests.sh'
+            export test_cmd='bash tests/run_gpu_tests.sh 1 hvd'
             docker exec -it pthd /bin/bash -c "${test_cmd}"
             # no CUDA devices Horovod tests
-            export test_cmd='CUDA_VISIBLE_DEVICES="" pytest --cov ignite --cov-append --cov-report term-missing --cov-report xml -vvv tests/ -m distributed'
+            export test_cmd='CUDA_VISIBLE_DEVICES="" pytest --cov ignite --cov-append --cov-report term-missing --cov-report xml -vvv tests/ -m distributed -k hvd'
             docker exec -it pthd /bin/bash -c "${test_cmd}"
 
       - run:

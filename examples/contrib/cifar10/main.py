@@ -223,11 +223,11 @@ def get_dataflow(config):
 
     # Setup data loader also adapted to distributed config: nccl, gloo, xla-tpu
     train_loader = idist.auto_dataloader(
-        train_dataset, batch_size=config["batch_size"], num_workers=config["num_workers"], shuffle=True, drop_last=True,
+        train_dataset, batch_size=config["batch_size"], num_workers=config["num_workers"], shuffle=True, drop_last=True
     )
 
     test_loader = idist.auto_dataloader(
-        test_dataset, batch_size=2 * config["batch_size"], num_workers=config["num_workers"], shuffle=False,
+        test_dataset, batch_size=2 * config["batch_size"], num_workers=config["num_workers"], shuffle=False
     )
     return train_loader, test_loader
 

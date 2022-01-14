@@ -13,6 +13,11 @@ on:
       - "tests/run_cpu_tests.sh"
       - ".github/workflows/hvd-tests.yml"
 
+concurrency:
+  # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>
+  group: hvd-tests-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
+  cancel-in-progress: true
+
 jobs:
   horovod-tests:
     runs-on: ubuntu-latest

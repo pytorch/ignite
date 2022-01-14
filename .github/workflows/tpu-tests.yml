@@ -13,6 +13,11 @@ on:
       - "tests/run_tpu_tests.sh"
       - ".github/workflows/tpu-tests.yml"
 
+concurrency:
+  # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>
+  group: tpu-tests-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
+  cancel-in-progress: true
+
 jobs:
   tpu-tests:
     runs-on: ubuntu-latest
@@ -49,12 +54,13 @@ jobs:
           restore-keys: |
             ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.xla-version }}-
 
+      # mkl version fixed due to https://github.com/pytorch/ignite/issues/2350
       - name: Install Torch XLA and others
         run: |
 
           ## Install openblas, mkl, gsutil
           sudo apt-get install -y libopenblas-dev libomp5-10 libomp5
-          pip install mkl requests gsutil
+          pip install mkl==2021.4.0 requests gsutil
 
           ## Install torch & xla
           curl https://raw.githubusercontent.com/pytorch/xla/master/contrib/scripts/env-setup.py -o pytorch-xla-env-setup.py

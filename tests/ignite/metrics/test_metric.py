@@ -437,7 +437,7 @@ def test_pytorch_operators():
         d = data(y_pred, y)
         state = validator.run(d, max_epochs=1, epoch_length=y_pred.shape[0])
 
-        assert set(state.metrics.keys()) == set([metric_name,])
+        assert set(state.metrics.keys()) == set([metric_name])
         np_y_pred = np.argmax(y_pred.numpy(), axis=-1).ravel()
         np_y = y.numpy().ravel()
         assert state.metrics[metric_name] == approx(compute_true_value_fn(np_y_pred, np_y))
@@ -961,7 +961,7 @@ def test_override_required_output_keys():
     evaluator.run(data)
 
 
-@pytest.mark.parametrize("shapes", [[(10,), ()], [(5, 32, 32), (5, 32, 32)],])
+@pytest.mark.parametrize("shapes", [[(10,), ()], [(5, 32, 32), (5, 32, 32)]])
 def test_list_of_tensors_and_numbers(shapes):
     def check_fn(output):
         assert len(output) == 2
