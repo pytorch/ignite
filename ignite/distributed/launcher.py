@@ -23,7 +23,7 @@ class Parallel:
     provided ``backend`` (useful for standalone scripts).
 
     2) Only initialize a processing group given the ``backend``
-    (useful with tools like `torch.distributed.launch`_, `horovodrun`_, etc).
+    (useful with tools like `torchrun`_, `torch.distributed.launch`_, `horovodrun`_, etc).
 
     Args:
         backend: backend to use: `nccl`, `gloo`, `xla-tpu`, `horovod`. If None, no distributed
@@ -50,13 +50,16 @@ class Parallel:
         spawn_kwargs: kwargs to ``idist.spawn`` function.
 
     Examples:
-        1) Single node or Multi-node, Multi-GPU training launched with `torch.distributed.launch`_ or `horovodrun`_
+        1) Single node or Multi-node, Multi-GPU training launched with `torchrun`,
+        `torch.distributed.launch`_ or `horovodrun`_
         tools
 
         Single node option with 4 GPUs
 
         .. code-block:: bash
 
+            torchrun -nproc_per_node=4 main.py
+            # or if you prefer using the old method
             python -m torch.distributed.launch --nproc_per_node=4 --use_env main.py
             # or if installed horovod
             horovodrun -np=4 python main.py
@@ -66,6 +69,10 @@ class Parallel:
         .. code-block:: bash
 
             ## node 0
+            torchrun --nnodes=2 --node_rank=0 --master_addr=master --master_port=3344 \
+            --nproc_per_node=8  main.py
+
+            # or if you prefer using the old method
             python -m torch.distributed.launch --nnodes=2 --node_rank=0 --master_addr=master \
                 --master_port=3344 --nproc_per_node=8 --use_env main.py
 
@@ -73,6 +80,10 @@ class Parallel:
             horovodrun -np 16 -H hostname1:8,hostname2:8 python main.py
 
             ## node 1
+            torchrun --nnodes=2 --node_rank=1 --master_addr=master --master_port=3344 \
+            --nproc_per_node=8 main.py
+
+            # or if you prefer using the old method
             python -m torch.distributed.launch --nnodes=2 --node_rank=1 --master_addr=master \
                 --master_port=3344 --nproc_per_node=8 --use_env main.py
 
@@ -192,7 +203,7 @@ class Parallel:
                 parallel.run(training, config, a=1, b=2)
 
 
-
+    .. _torchrun: https://pytorch.org/docs/stable/elastic/run.html#launcher-api
     .. _torch.distributed.launch: https://pytorch.org/docs/stable/distributed.html#launch-utility
     .. _horovodrun: https://horovod.readthedocs.io/en/latest/api.html#module-horovod.run
     .. _dist.init_process_group: https://pytorch.org/docs/stable/distributed.html#torch.distributed.init_process_group
