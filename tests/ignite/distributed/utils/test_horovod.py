@@ -174,14 +174,24 @@ def test_idist_broadcast_hvd(gloo_hvd_executor):
     gloo_hvd_executor(_test_distrib_broadcast, (device,), np=np, do_init=True)
 
 
+def _test_idist_barrier_hvd_in_child_proc(device, args, kwargs):
+    _test_distrib_barrier(device, *args, **kwargs)
+
+
+from horovod.common.process_sets import global_process_set
+
+
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-def test_idist_barrier_hvd(gloo_hvd_executor):
+@pytest.mark.parametrize(
+    "args, kwargs", [([], {}), ([global_process_set], {}), ([], {"process_set": global_process_set})]
+)
+def test_idist_barrier_hvd(gloo_hvd_executor, args, kwargs):
 
     device = "cpu" if not torch.cuda.is_available() else "cuda"
     np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
-    gloo_hvd_executor(_test_distrib_barrier, (device,), np=np, do_init=True)
+    gloo_hvd_executor(_test_idist_barrier_hvd_in_child_proc, (device, args, kwargs), np=np, do_init=True)
 
 
 def _test_idist_methods_overhead(ok_factor, sync_model):

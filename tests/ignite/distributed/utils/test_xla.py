@@ -211,7 +211,12 @@ def _test_idist_barrier_xla_in_child_proc(index, args, kwargs):
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
 @pytest.mark.parametrize(
     "args,kwargs",
-    [([], {}), ([b"test_payload", []], {}), ([b"test_payload", []], {"tag": "test_barrier"})],
+    [
+        ([], {}),
+        ([b"test_payload", []], {}),
+        ([b"test_payload", []], {"tag": "test_barrier"}),
+        ([], {"payload": b"test_payload", "replicas": [], "tag": "test_barrier"}),
+    ],
 )
 def test_idist_barrier_xla_in_child_proc(xmp_executor, args, kwargs):
     n = int(os.environ["NUM_TPU_WORKERS"])
