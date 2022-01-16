@@ -17,6 +17,9 @@ from tests.ignite.distributed.utils import (
     _test_sync,
 )
 
+if has_hvd_support:
+    from horovod.common.process_sets import global_process_set
+
 
 @pytest.mark.skipif(has_hvd_support, reason="Skip if has Horovod package")
 def test_hvd_distrib_spawn_no_hvd_support():
@@ -176,9 +179,6 @@ def test_idist_broadcast_hvd(gloo_hvd_executor):
 
 def _test_idist_barrier_hvd_in_child_proc(device, args, kwargs):
     _test_distrib_barrier(device, *args, **kwargs)
-
-
-from horovod.common.process_sets import global_process_set
 
 
 @pytest.mark.distributed
