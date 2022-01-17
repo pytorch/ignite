@@ -108,5 +108,8 @@ if __name__ == "__main__":
     if "vision" in image_type:
         run_python_cmd("import cv2")
 
+    if "nlp" in image_type:
+        run_python_cmd("import torchtext, transformers")
+
     if "apex" in image_type:
         run_python_cmd("import apex")
