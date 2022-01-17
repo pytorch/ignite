@@ -40,11 +40,11 @@ def exec_filepath():
     yield fp.as_posix()
 
 
-def execute(cmd):
+def execute(cmd, env=None):
 
     import ignite
 
-    env = dict(os.environ)
+    env = dict(os.environ) if env is None else env
     env["PYTHONPATH"] = f"{os.path.dirname(ignite.__path__[0])}"
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
     process.wait()
@@ -155,6 +155,38 @@ def _test_check_idist_parallel_spawn(fp, backend, nprocs):
 def test_check_idist_parallel_spawn_n_procs_gloo(exec_filepath):
     np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
     _test_check_idist_parallel_spawn(exec_filepath, "gloo", np)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
+def test_smoke_test_check_idist_parallel_spawn_multinode_n_procs_gloo(exec_filepath):
+    # Just a smoke test from check_idist_parallel.py for an emulated multi-node configuration
+    cmd1 = "export CUDA_VISIBLE_DEVICES= && "
+    cmd1 += 'bash -c "python tests/ignite/distributed/check_idist_parallel.py --backend=gloo --nproc_per_node=2 '
+    cmd1 += '--nnodes=2 --node_rank=0 --master_addr=localhost --master_port=3344 &"'
+    os.system(cmd1)
+
+    cmd2 = [
+        sys.executable,
+        exec_filepath,
+        "--backend=gloo",
+        "--nproc_per_node=2",
+        "--nnodes=2",
+        "--node_rank=1",
+        "--master_addr=localhost",
+        "--master_port=3344",
+    ]
+    env = dict(os.environ)
+    env["CUDA_VISIBLE_DEVICES"] = ""
+    out = execute(cmd2)
+
+    assert "backend=gloo" in out
+    assert "nproc_per_node: 2" in out
+    assert "nnodes: 2" in out
+    assert "master_addr: localhost" in out
+    assert "master_port: 3344" in out
+    assert "End of run" in out
 
 
 @pytest.mark.distributed
