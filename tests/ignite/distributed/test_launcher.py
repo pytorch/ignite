@@ -63,15 +63,11 @@ def test_check_idist_parallel_no_dist(exec_filepath):
 
 
 def _test_check_idist_parallel_torch_launch(init_method, fp, backend, nprocs):
-    # python -m torch.distributed.launch --nproc_per_node=nprocs --use_env \
-    #   tests/ignite/distributed/check_idist_parallel.py --backend=backend
+    # torchrun --nproc_per_node=nprocs tests/ignite/distributed/check_idist_parallel.py --backend=backend
 
     cmd = [
-        sys.executable,
-        "-m",
-        "torch.distributed.launch",
+        "torchrun",
         f"--nproc_per_node={nprocs}",
-        "--use_env",
         fp,
         f"--backend={backend}",
     ]
