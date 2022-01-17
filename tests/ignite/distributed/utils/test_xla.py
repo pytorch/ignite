@@ -181,18 +181,10 @@ def test_idist_broadcast_xla_in_child_proc(xmp_executor):
 @pytest.mark.parametrize(
     "args,kwargs",
     [
-        (
-            [],
-            {},
-        ),
-        (
-            [b"test_payload", []],
-            {},
-        ),
-        (
-            [b"test_payload", []],
-            {"tag": "test_barrier"},
-        ),
+        ([], {}),
+        ([b"test_payload", []], {}),
+        ([b"test_payload", []], {"tag": "test_barrier"}),
+        ([], {"payload": b"test_payload", "replicas": [], "tag": "test_barrier"}),
     ],
 )
 def test_idist_barrier_xla(args, kwargs):
