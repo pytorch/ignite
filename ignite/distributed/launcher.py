@@ -57,7 +57,7 @@ class Parallel:
 
         .. code-block:: bash
 
-            torchrun -nproc_per_node=4 main.py
+            torchrun --nproc_per_node=4 main.py
             # or if installed horovod
             horovodrun -np=4 python main.py
 
@@ -91,7 +91,7 @@ class Parallel:
                 # ...
 
             backend = "nccl"  # or "horovod" if package is installed
-            
+
             config = {"key": "value"}
 
             with idist.Parallel(backend=backend) as parallel:
@@ -191,7 +191,7 @@ class Parallel:
                 "master_addr": "master",
                 "master_port": 15000
             }
-            
+
             config = {"key": "value"}
 
             with idist.Parallel(backend="nccl", **dist_config) as parallel:
