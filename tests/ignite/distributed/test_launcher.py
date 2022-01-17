@@ -175,7 +175,7 @@ def test_smoke_test_check_idist_parallel_spawn_multinode_n_procs_gloo(exec_filep
     ]
     env = dict(os.environ)
     env["CUDA_VISIBLE_DEVICES"] = ""
-    out = execute(cmd2)
+    out = execute(cmd2, env=env)
 
     assert "backend=gloo" in out
     assert "nproc_per_node: 2" in out
