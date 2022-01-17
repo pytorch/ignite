@@ -69,6 +69,7 @@ _Click on the image to see complete code_
 - [Contributing](#contributing)
 - [Projects using Ignite](#projects-using-ignite)
 - [Citing Ignite](#citing-ignite)
+- [Frequently Asked Questions](#frequently-asked-questions)
 - [About the team & Disclaimer](#about-the-team--disclaimer)
 
 <!-- ############################################################################################################### -->
@@ -346,7 +347,7 @@ For more details, see [here](docker).
 
 Few pointers to get you started:
 
-- [Quick Start Guide: Essentials of getting a project up and running](https://pytorch.org/ignite/quickstart.html)
+- [Quick Start Guide: Essentials of getting a project up and running](https://pytorch-ignite.ai/tutorials/beginner/01-getting-started/)
 - [Concepts of the library: Engine, Events & Handlers, State, Metrics](https://pytorch.org/ignite/concepts.html)
 - Full-featured template examples (coming soon)
 
@@ -562,10 +563,15 @@ If you use PyTorch-Ignite in a scientific publication, we would appreciate citat
 
 <!-- ############################################################################################################### -->
 
+# Frequently Asked Questions: FAQ
+If you have any queeries, please refer to our curated list of [FAQ](https://pytorch-ignite.ai/how-to-guides/).
+
+<!-- ############################################################################################################### -->
+
 # About the team & Disclaimer
 
 PyTorch-Ignite is a [NumFOCUS Affiliated Project](https://www.numfocus.org/), operated and maintained by volunteers in the PyTorch community in their capacities as individuals
-(and not as representatives of their employers). See the ["About us"](https://pytorch.org/ignite/master/about.html)
+(and not as representatives of their employers). See the ["About us"](https://pytorch-ignite.ai/about/community/)
 page for a list of core contributors. For usage questions and issues, please see the various channels
 [here](#communication). For all other questions and inquiries, please send an email
 to contact@pytorch-ignite.ai.
