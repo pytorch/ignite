@@ -285,8 +285,6 @@ def test_idist_barrier_nccl(distributed_context_single_node_nccl, args, kwargs):
         ([], {}),
         ([GroupMember.WORLD, False], {}),
         ([GroupMember.WORLD, True], {}),
-        ([GroupMember.NON_GROUP_MEMBER, True], {}),
-        ([GroupMember.NON_GROUP_MEMBER, False], {}),
     ],
 )
 def test_idist_barrier_gloo(distributed_context_single_node_gloo, args, kwargs):
