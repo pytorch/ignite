@@ -1,3 +1,4 @@
+# mypy: no-warn-unused-ignores
 """Neptune logger and its helper handlers."""
 import tempfile
 from typing import Any, Callable, List, Mapping, Optional, Union

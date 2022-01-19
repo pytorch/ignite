@@ -1,3 +1,4 @@
+# mypy: no-warn-unused-ignores
 """Visdom logger and its helper handlers."""
 import os
 from typing import Any, Callable, Dict, List, Optional, Union, cast

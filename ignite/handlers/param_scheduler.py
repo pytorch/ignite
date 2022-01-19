@@ -1,3 +1,4 @@
+# mypy: no-warn-unused-ignores
 import itertools
 import math
 import numbers

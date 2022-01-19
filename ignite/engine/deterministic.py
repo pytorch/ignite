@@ -1,3 +1,4 @@
+# mypy: no-warn-unused-ignores
 import random
 import warnings
 from collections import OrderedDict

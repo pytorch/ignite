@@ -585,7 +585,7 @@ class HandlersTimeProfiler:
         if not engine.has_event_handler(self._as_first_started):
             engine._event_handlers[Events.STARTED].insert(0, (self._as_first_started, (engine,), {}))
 
-    def get_results(self) -> List[List[Union[str, float]]]:
+    def get_results(self) -> List[List[Union[str, float, Tuple[Union[str, float], Union[str, float]]]]]:
         """
         Method to fetch the aggregated profiler results after the engine is run
 

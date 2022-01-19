@@ -1,3 +1,4 @@
+# mypy: no-warn-unused-ignores
 import collections.abc as collections
 import numbers
 import os
