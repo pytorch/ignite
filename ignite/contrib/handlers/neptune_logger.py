@@ -1,4 +1,3 @@
-# mypy: no-warn-unused-ignores
 """Neptune logger and its helper handlers."""
 import tempfile
 from typing import Any, Callable, List, Mapping, Optional, Union
@@ -586,7 +585,7 @@ class NeptuneSaver(BaseSaveHandler):
         with tempfile.NamedTemporaryFile() as tmp:
             # we can not use tmp.name to open tmp.file twice on Win32
             # https://docs.python.org/3/library/tempfile.html#tempfile.NamedTemporaryFile
-            torch.save(checkpoint, tmp.file)  # type: ignore[attr-defined]
+            torch.save(checkpoint, tmp.file)
             self._logger.log_artifact(tmp.name, filename)
 
     @idist.one_rank_only(with_barrier=True)

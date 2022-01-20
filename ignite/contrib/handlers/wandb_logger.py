@@ -1,4 +1,3 @@
-# mypy: no-warn-unused-ignores
 """WandB logger and its helper handlers."""
 from typing import Any, Callable, List, Optional, Union
 
