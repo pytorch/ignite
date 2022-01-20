@@ -718,7 +718,7 @@ class DiskSaver(BaseSaveHandler):
             tmp: Optional[IO[bytes]] = None
             if rank == 0:
                 tmp = tempfile.NamedTemporaryFile(delete=False, dir=self.dirname)
-                tmp_file = tmp.file  
+                tmp_file = tmp.file 
                 tmp_name = tmp.name
             try:
                 func(checkpoint, tmp_file, **self.kwargs)
