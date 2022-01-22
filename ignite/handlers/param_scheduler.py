@@ -893,7 +893,7 @@ class LRScheduler(ParamScheduler):
             torch.save(obj, cache_filepath.as_posix())
 
             values = []
-            scheduler = cls(save_history=False, lr_scheduler=lr_scheduler, **kwargs)  # type: ignore[call-arg]
+            scheduler = cls(save_history=False, lr_scheduler=lr_scheduler, **kwargs)
             for i in range(num_events):
                 params = [p[scheduler.param_name] for p in scheduler.optimizer_param_groups]
                 values.append([i] + params)

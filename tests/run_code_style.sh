@@ -12,5 +12,5 @@ elif [ $1 = "fmt" ]; then
 elif [ $1 = "mypy" ]; then
     mypy --config-file mypy.ini
 elif [ $1 = "install" ]; then
-    pip install flake8 "black==21.12b0" "isort==5.7.0" "mypy==0.910"
+    pip install flake8 "black==21.12b0" "isort==5.7.0" "mypy"
 fi

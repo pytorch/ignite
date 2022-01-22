@@ -251,12 +251,12 @@ class DeterministicEngine(Engine):
         if isinstance(data, DataLoader):
             try:
                 # following is unsafe for IterableDatasets
-                iteration %= len(data.batch_sampler)  # type: ignore[attr-defined, arg-type]
+                iteration %= len(data.batch_sampler)  # type: ignore[arg-type]
                 # Synchronize dataflow according to state.iteration
                 self._setup_seed()
                 if iteration > 0:
                     # batch sampler is ReproducibleBatchSampler
-                    data.batch_sampler.start_iteration = iteration  # type: ignore[attr-defined, union-attr]
+                    data.batch_sampler.start_iteration = iteration  # type: ignore[union-attr]
                 return iter(data)
             except TypeError as e:
                 # Probably we can do nothing with DataLoader built upon IterableDatasets
