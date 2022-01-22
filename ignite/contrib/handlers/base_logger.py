@@ -105,7 +105,7 @@ class BaseOutputHandler(BaseHandler):
             if not isinstance(output_dict, dict):
                 output_dict = {"output": output_dict}
 
-            metrics_state_attrs.update({name: value for name, value in output_dict.items()})
+            metrics_state_attrs.update(output_dict)
 
         if self.state_attributes is not None:
             metrics_state_attrs.update({name: getattr(engine.state, name, None) for name in self.state_attributes})
