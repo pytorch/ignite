@@ -796,6 +796,10 @@ class LRScheduler(ParamScheduler):
 
         .. testcode::
 
+            @default_trainer.on(Events.ITERATION_STARTED)
+            def print_lr():
+                print(default_optimizer.param_groups[0]["lr"])
+
             from torch.optim.lr_scheduler import StepLR
 
             torch_lr_scheduler = StepLR(default_optimizer, step_size=3, gamma=0.1)
@@ -809,20 +813,16 @@ class LRScheduler(ParamScheduler):
             # the first lr value from the optimizer, otherwise it is will be skipped:
             default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
 
-            @default_trainer.on(Events.ITERATION_COMPLETED)
-            def print_lr():
-                print(default_optimizer.param_groups[0]["lr"])
-
             default_trainer.run([0] * 8, max_epochs=1)
 
         .. testoutput::
 
             0.1
             0.1
+            0.1
             0.010...
             0.010...
             0.010...
-            0.001...
             0.001...
             0.001...
 
@@ -955,7 +955,7 @@ def create_lr_scheduler_with_warmup(
                                                         warmup_end_value=0.1,
                                                         warmup_duration=3)
 
-            default_trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
+            default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
 
             @default_trainer.on(Events.ITERATION_COMPLETED)
             def print_lr():
