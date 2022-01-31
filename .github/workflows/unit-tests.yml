@@ -36,7 +36,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.7, 3.8, 3.9, 3.10]
+        python-version: [3.7, 3.8, 3.9, "3.10"]
         pytorch-channel: [pytorch, pytorch-nightly]
         include:
           # includes a single build on windows
@@ -52,7 +52,7 @@ jobs:
         exclude:
           # temporarily exclude stable on 3.10 as not yet released
           - pytorch-channel: pytorch
-            python-version: 3.10
+            python-version: "3.10"
 
     steps:
       - uses: actions/checkout@v2
