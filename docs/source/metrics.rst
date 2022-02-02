@@ -23,6 +23,15 @@ value is then computed using the output of the engine's ``process_function``:
     state = engine.run(data)
     print(f"Accuracy: {state.metrics['accuracy']}")
 
+Internal Functioning of Metrics
+-------------------------------
+
+The metrics as stated above are computed in a online fashion, which means that the accuracy is calculated and 
+updated for an epoch and then reseted before the next epoch. For doing this we use three public API reset,
+update and compute :ref:`read about them here<Reset, Update, Compute API>`. We internally accumulate some counters
+when there is a update call. The metric's value is computed on each compute call and counters are reset on each reset
+call.
+
 
 If the engine's output is not in the format ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``, the user can
 use the ``output_transform`` argument to transform it:
