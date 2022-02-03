@@ -1397,43 +1397,43 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
     """Reduce LR when a metric stops improving.
     Wrapper of torch.optim.lr_scheduler.ReduceLROnPlateau .
     Args:
-        optimizer (Optimizer): Wrapped optimizer.
-        metric_name (str): metric whose improvement is monitored.
+        optimizer: Wrapped optimizer.
+        metric_name: metric whose improvement is monitored.
             Must be attached the to same engine.
-        mode (str): One of `min`, `max`. In `min` mode, lr will
+        mode: One of `min`, `max`. In `min` mode, lr will
             be reduced when the metric monitored has stopped
             decreasing; in `max` mode it will be reduced when the
             metric monitored has stopped increasing. Default: 'min'.
-        factor (float): Factor by which the learning rate will be
+        factor: Factor by which the learning rate will be
             reduced. new_lr = lr * factor. Default: 0.1.
-        patience (int): Number of epochs with no improvement after
+        patience: Number of epochs with no improvement after
             which learning rate will be reduced. For example, if
             `patience = 2`, then we will ignore the first 2 epochs
             with no improvement, and will only decrease the LR after the
             3rd epoch if the loss still hasn't improved then.
             Default: 10.
-        threshold (float): Threshold for measuring the new optimum,
+        threshold: Threshold for measuring the new optimum,
             to only focus on significant changes. Default: 1e-4.
-        threshold_mode (str): One of `rel`, `abs`. In `rel` mode,
+        threshold_mode: One of `rel`, `abs`. In `rel` mode,
             dynamic_threshold = best * ( 1 + threshold ) in 'max'
             mode or best * ( 1 - threshold ) in `min` mode.
             In `abs` mode, dynamic_threshold = best + threshold in
             `max` mode or best - threshold in `min` mode. Default: 'rel'.
-        cooldown (int): Number of epochs to wait before resuming
+        cooldown: Number of epochs to wait before resuming
             normal operation after lr has been reduced. Default: 0.
-        min_lr (float or list): A scalar or a list of scalars. A
+        min_lr: A scalar or a list of scalars. A
             lower bound on the learning rate of all param groups
             or each group respectively. Default: 0.
-        eps (float): Minimal decay applied to lr. If the difference
+        eps: Minimal decay applied to lr. If the difference
             between new and old lr is smaller than eps, the update is
             ignored. Default: 1e-8.
-        trainer (Engine): Trainer engine to log LR history in its
+        trainer: Trainer engine to log LR history in its
             `state.output.param_history`. Is used if `save_history`
             is true. Default: None.
-        save_history (bool): Whether to save history or not. If true,
+        save_history: Whether to save history or not. If true,
             history will be logged in `trainer`'s `state.output.param_history`.
             Default: False.
-        param_group_index (int): `optimizer`'s parameters group
+        param_group_index: `optimizer`'s parameters group
             to use.  Default: None. Use all `optimizer`'s paramater groups.
 
     Examples:

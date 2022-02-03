@@ -52,8 +52,8 @@ If user would like to provide already downloaded dataset, the path can be setup 
 Let's start training on a single node with 2 gpus:
 
 ```bash
-# using torch.distributed.launch
-python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py run --backend="nccl"
+# using torchrun
+torchrun --nproc_per_node=2 main.py run --backend="nccl"
 ```
 
 or
@@ -92,18 +92,18 @@ Let's start training on two nodes with 2 gpus each. We assuming that master node
 1. Execute on master node
 
 ```bash
-python -u -m torch.distributed.launch \
+torchrun \
     --nnodes=2 \
     --nproc_per_node=2 \
     --node_rank=0 \
-    --master_addr=master --master_port=2222 --use_env \
+    --master_addr=master --master_port=2222 \
     main.py run --backend="nccl"
 ```
 
 2. Execute on worker node
 
 ```bash
-python -u -m torch.distributed.launch \
+torchrun \
     --nnodes=2 \
     --nproc_per_node=2 \
     --node_rank=1 \
@@ -134,14 +134,14 @@ python main.py run --resume-from=/tmp/output-cifar10/resnet18_backend-None-1_sto
 Initial training on a single node with 2 gpus with a stop on 1000 iteration (~11 epochs):
 
 ```bash
-# using torch.distributed.launch
-python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py run --backend="nccl" --stop_iteration=1000
+# using torchrun
+torchrun --nproc_per_node=2 main.py run --backend="nccl" --stop_iteration=1000
 ```
 
 Resume from the latest checkpoint
 
 ```bash
-python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py run --backend="nccl" \
+torchrun --nproc_per_node=2 main.py run --backend="nccl" \
     --resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-1000/training_checkpoint_1000.pt
 ```
 
