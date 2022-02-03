@@ -1454,6 +1454,7 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
     """
 
     def __init__(
+<<<<<<< Updated upstream
             self,
             optimizer: Optimizer,
             metric_name: str,
@@ -1493,6 +1494,47 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
     def get_param(self) -> Union[float, List[float]]:
       lrs = [pg['lr'] for pg in self.optimizer_param_groups]
       return lrs[0] if len(lrs) == 1 else lrs
+=======
+        self,
+        optimizer: Optimizer,
+        metric_name: str,
+        mode='min', factor: float = 0.1, patience: int = 10,
+        threshold: float = 1e-4, threshold_mode: str = 'rel', cooldown: int = 0,
+        min_lr: Union[float, List[float]] = 0., eps: float = 1e-8,
+        trainer: Engine = None, save_history: bool = False, param_group_index: int = None
+    ):
+        super(ReduceLROnPlateauScheduler, self).__init__(optimizer, 'lr',
+                                                       save_history=save_history,
+                                                       param_group_index=param_group_index)
+        self.metric_name = metric_name
+        self.trainer = trainer
+        self.optimizer = optimizer
+
+        if param_group_index:
+            if not isinstance(min_lr, float):
+                raise TypeError(
+                    f"When param_group_index is given, min_lr should be a float, but given {type(min_lr)}"
+                )
+        else:
+            _min_lr = min_lr
+            min_lr = [0] * len(optimizer.param_groups)
+            min_lr[param_group_index] = _min_lr
+
+        self.scheduler = ReduceLROnPlateau(optimizer, mode=mode, factor=factor, patience=patience,
+                                         threshold=threshold, threshold_mode=threshold_mode,
+                                         cooldown=cooldown, min_lr=min_lr, eps=eps)
+        self.scheduler._reduce_lr = self._reduce_lr
+
+        self._state_attrs += ["metric_name"]
+
+    def __call__(self, engine: Engine, name: Optional[str]=None):
+        self.scheduler.step(engine.state.metrics[self.metric_name])
+        super().__call__(self.trainer, name)
+
+    def get_param(self) -> Union[float, List[float]]:
+        lrs = [pg['lr'] for pg in self.optimizer_param_groups]
+        return lrs[0] if len(lrs) == 1 else lrs
+>>>>>>> Stashed changes
 
     def _reduce_lr(self, epoch):
         for i, param_group in enumerate(self.optimizer_param_groups):
@@ -1502,7 +1544,11 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
                 param_group['lr'] = new_lr
 
     def state_dict(self):
+<<<<<<< Updated upstream
       return self.scheduler.state_dict()
+=======
+        return self.scheduler.state_dict()
+>>>>>>> Stashed changes
 
 
 def _get_fake_optimizer(
