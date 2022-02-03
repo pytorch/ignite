@@ -1395,38 +1395,13 @@ class ParamGroupScheduler:
 
 class ReduceLROnPlateauScheduler(ParamScheduler):
     """Reduce LR when a metric stops improving.
-    Wrapper of torch.optim.lr_scheduler.ReduceLROnPlateau .
+    Wrapper of torch.optim.lr_scheduler.ReduceLROnPlateau
+    <https://pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.ReduceLROnPlateau.html>.
+
     Args:
         optimizer: Wrapped optimizer.
         metric_name: metric whose improvement is monitored.
             Must be attached the to same engine.
-        mode: One of `min`, `max`. In `min` mode, lr will
-            be reduced when the metric monitored has stopped
-            decreasing; in `max` mode it will be reduced when the
-            metric monitored has stopped increasing. Default: 'min'.
-        factor: Factor by which the learning rate will be
-            reduced. new_lr = lr * factor. Default: 0.1.
-        patience: Number of epochs with no improvement after
-            which learning rate will be reduced. For example, if
-            `patience = 2`, then we will ignore the first 2 epochs
-            with no improvement, and will only decrease the LR after the
-            3rd epoch if the loss still hasn't improved then.
-            Default: 10.
-        threshold: Threshold for measuring the new optimum,
-            to only focus on significant changes. Default: 1e-4.
-        threshold_mode: One of `rel`, `abs`. In `rel` mode,
-            dynamic_threshold = best * ( 1 + threshold ) in 'max'
-            mode or best * ( 1 - threshold ) in `min` mode.
-            In `abs` mode, dynamic_threshold = best + threshold in
-            `max` mode or best - threshold in `min` mode. Default: 'rel'.
-        cooldown: Number of epochs to wait before resuming
-            normal operation after lr has been reduced. Default: 0.
-        min_lr: A scalar or a list of scalars. A
-            lower bound on the learning rate of all param groups
-            or each group respectively. Default: 0.
-        eps: Minimal decay applied to lr. If the difference
-            between new and old lr is smaller than eps, the update is
-            ignored. Default: 1e-8.
         trainer: Trainer engine to log LR history in its
             `state.output.param_history`. Is used if `save_history`
             is true. Default: None.
@@ -1435,6 +1410,8 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
             Default: False.
         param_group_index: `optimizer`'s parameters group
             to use.  Default: None. Use all `optimizer`'s paramater groups.
+        **scheduler_kwargs: Keyword arguments to be passed to the wrapped
+            `ReduceLROnPlateau`.
 
     Examples:
 
@@ -1459,17 +1436,10 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
         self,
         optimizer: Optimizer,
         metric_name: str,
-        mode="min",
-        factor: float = 0.1,
-        patience: int = 10,
-        threshold: float = 1e-4,
-        threshold_mode: str = "rel",
-        cooldown: int = 0,
-        min_lr: Union[float, List[float]] = 0.0,
-        eps: float = 1e-8,
-        trainer: Engine = None,
+        trainer: Optional[Engine] = None,
         save_history: bool = False,
-        param_group_index: int = None,
+        param_group_index: Optional[int] = None,
+        **scheduler_kwargs: Any,
     ):
         super(ReduceLROnPlateauScheduler, self).__init__(
             optimizer, "lr", save_history=save_history, param_group_index=param_group_index
@@ -1478,30 +1448,29 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
         self.trainer = trainer
         self.optimizer = optimizer
 
-        if param_group_index:
+        if "min_lr" in scheduler_kwargs and param_group_index is not None:
+            min_lr = scheduler_kwargs["min_lr"]
             if not isinstance(min_lr, float):
                 raise TypeError(f"When param_group_index is given, min_lr should be a float, but given {type(min_lr)}")
-        else:
             _min_lr = min_lr
             min_lr = [0] * len(optimizer.param_groups)
             min_lr[param_group_index] = _min_lr
+        else:
+            min_lr = 0
+        _scheduler_kwargs = scheduler_kwargs.copy()
+        _scheduler_kwargs["min_lr"] = min_lr
 
-        self.scheduler = ReduceLROnPlateau(
-            optimizer,
-            mode=mode,
-            factor=factor,
-            patience=patience,
-            threshold=threshold,
-            threshold_mode=threshold_mode,
-            cooldown=cooldown,
-            min_lr=min_lr,
-            eps=eps,
-        )
-        self.scheduler._reduce_lr = self._reduce_lr
+        self.scheduler = ReduceLROnPlateau(optimizer, **_scheduler_kwargs)
+        self.scheduler._reduce_lr = self._reduce_lr  # type: ignore[attr-defined]
 
         self._state_attrs += ["metric_name"]
 
-    def __call__(self, engine: Engine, name: Optional[str] = None):
+    def __call__(self, engine: Engine, name: Optional[str] = None) -> None:  # type: ignore[override]
+        if not hasattr(engine.state, "metrics") or self.metric_name not in engine.state.metrics:
+            raise ValueError(
+                "Argument engine should have in its 'state', attribute 'metrics'"
+                f"which itself has the metric {self.metric_name}."
+            )
         self.scheduler.step(engine.state.metrics[self.metric_name])
         super().__call__(self.trainer, name)
 
@@ -1509,14 +1478,14 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
         lrs = [pg["lr"] for pg in self.optimizer_param_groups]
         return lrs[0] if len(lrs) == 1 else lrs
 
-    def _reduce_lr(self, epoch):
+    def _reduce_lr(self, epoch: int) -> None:
         for i, param_group in enumerate(self.optimizer_param_groups):
             old_lr = float(param_group["lr"])
-            new_lr = max(old_lr * self.scheduler.factor, self.scheduler.min_lrs[i])
-            if old_lr - new_lr > self.scheduler.eps:
+            new_lr = max(old_lr * self.scheduler.factor, self.scheduler.min_lrs[i])  # type: ignore[attr-defined]
+            if old_lr - new_lr > self.scheduler.eps:  # type: ignore[attr-defined]
                 param_group["lr"] = new_lr
 
-    def state_dict(self):
+    def state_dict(self) -> Dict[str, Any]:
         return self.scheduler.state_dict()
 
 
