@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Type, Union, cast
 
 import torch
-from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
+from torch.optim.lr_scheduler import ReduceLROnPlateau, _LRScheduler
 from torch.optim.optimizer import Optimizer
 
 from ignite.engine import Engine
@@ -1394,7 +1394,7 @@ class ParamGroupScheduler:
 
 
 class ReduceLROnPlateauScheduler(ParamScheduler):
-    """ Reduce LR when a metric stops improving.
+    """Reduce LR when a metric stops improving.
     Wrapper of torch.optim.lr_scheduler.ReduceLROnPlateau .
     Args:
         optimizer (Optimizer): Wrapped optimizer.
@@ -1459,15 +1459,20 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
         self,
         optimizer: Optimizer,
         metric_name: str,
-        mode='min', factor: float = 0.1, patience: int = 10,
-        threshold: float = 1e-4, threshold_mode: str = 'rel', cooldown: int = 0,
-        min_lr: Union[float, List[float]] = 0., eps: float = 1e-8,
-        trainer: Engine = None, save_history: bool = False, param_group_index: int = None
+        mode="min",
+        factor: float = 0.1,
+        patience: int = 10,
+        threshold: float = 1e-4,
+        threshold_mode: str = "rel",
+        cooldown: int = 0,
+        min_lr: Union[float, List[float]] = 0.0,
+        eps: float = 1e-8,
+        trainer: Engine = None,
+        save_history: bool = False,
+        param_group_index: int = None,
     ):
         super(ReduceLROnPlateauScheduler, self).__init__(
-            optimizer, 'lr',
-            save_history=save_history,
-            param_group_index=param_group_index
+            optimizer, "lr", save_history=save_history, param_group_index=param_group_index
         )
         self.metric_name = metric_name
         self.trainer = trainer
@@ -1475,18 +1480,22 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
 
         if param_group_index:
             if not isinstance(min_lr, float):
-                raise TypeError(
-                    f"When param_group_index is given, min_lr should be a float, but given {type(min_lr)}"
-                )
+                raise TypeError(f"When param_group_index is given, min_lr should be a float, but given {type(min_lr)}")
         else:
             _min_lr = min_lr
             min_lr = [0] * len(optimizer.param_groups)
             min_lr[param_group_index] = _min_lr
 
         self.scheduler = ReduceLROnPlateau(
-            optimizer, mode=mode, factor=factor, patience=patience,
-            threshold=threshold, threshold_mode=threshold_mode,
-            cooldown=cooldown, min_lr=min_lr, eps=eps,
+            optimizer,
+            mode=mode,
+            factor=factor,
+            patience=patience,
+            threshold=threshold,
+            threshold_mode=threshold_mode,
+            cooldown=cooldown,
+            min_lr=min_lr,
+            eps=eps,
         )
         self.scheduler._reduce_lr = self._reduce_lr
 
@@ -1497,15 +1506,15 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
         super().__call__(self.trainer, name)
 
     def get_param(self) -> Union[float, List[float]]:
-        lrs = [pg['lr'] for pg in self.optimizer_param_groups]
+        lrs = [pg["lr"] for pg in self.optimizer_param_groups]
         return lrs[0] if len(lrs) == 1 else lrs
 
     def _reduce_lr(self, epoch):
         for i, param_group in enumerate(self.optimizer_param_groups):
-            old_lr = float(param_group['lr'])
+            old_lr = float(param_group["lr"])
             new_lr = max(old_lr * self.scheduler.factor, self.scheduler.min_lrs[i])
-            if old_lr-new_lr > self.scheduler.eps:
-                param_group['lr'] = new_lr
+            if old_lr - new_lr > self.scheduler.eps:
+                param_group["lr"] = new_lr
 
     def state_dict(self):
         return self.scheduler.state_dict()

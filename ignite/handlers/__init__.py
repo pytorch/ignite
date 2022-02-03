@@ -16,8 +16,8 @@ from ignite.handlers.param_scheduler import (
     ParamGroupScheduler,
     ParamScheduler,
     PiecewiseLinear,
-    create_lr_scheduler_with_warmup,
     ReduceLROnPlateauScheduler,
+    create_lr_scheduler_with_warmup,
 )
 from ignite.handlers.state_param_scheduler import (
     ExpStateScheduler,

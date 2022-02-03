@@ -21,8 +21,8 @@ from ignite.handlers.param_scheduler import (
     ParamGroupScheduler,
     ParamScheduler,
     PiecewiseLinear,
-    create_lr_scheduler_with_warmup,
     ReduceLROnPlateauScheduler,
+    create_lr_scheduler_with_warmup,
 )
 
 __all__ = [

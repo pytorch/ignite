@@ -14,8 +14,8 @@ from ignite.handlers.param_scheduler import (
     ParamGroupScheduler,
     ParamScheduler,
     PiecewiseLinear,
-    create_lr_scheduler_with_warmup,
     ReduceLROnPlateauScheduler,
+    create_lr_scheduler_with_warmup,
 )
 from tests.ignite.contrib.handlers import MockFP16DeepSpeedZeroOptimizer
 
@@ -1308,8 +1308,7 @@ def test_lr_scheduling_on_non_torch_optimizers():
 def test_reduce_lr_on_plateau_scheduler():
     tensor1 = torch.zeros([1], requires_grad=True)
     tensor2 = torch.zeros([1], requires_grad=True)
-    optimizer = torch.optim.SGD([{'params':[tensor1]} ,
-                                {'params': [tensor2]}], lr=1)
+    optimizer = torch.optim.SGD([{"params": [tensor1]}, {"params": [tensor2]}], lr=1)
 
     data = [0] * 8
     max_epochs = 10
@@ -1321,28 +1320,35 @@ def test_reduce_lr_on_plateau_scheduler():
         evaluator.run(data)
 
     scheduler = ReduceLROnPlateauScheduler(
-        optimizer, metric_name='acc', mode='max', factor=0.5,
-        patience=1, threshold_mode='abs', threshold=1.99,
-        min_lr=1e-7, save_history=True, trainer=trainer,
-        param_group_index=0
+        optimizer,
+        metric_name="acc",
+        mode="max",
+        factor=0.5,
+        patience=1,
+        threshold_mode="abs",
+        threshold=1.99,
+        min_lr=1e-7,
+        save_history=True,
+        trainer=trainer,
+        param_group_index=0,
     )
     evaluator = Engine(lambda engine, batch: None)
-    evaluator.state.metrics = {'acc': 0.}
+    evaluator.state.metrics = {"acc": 0.0}
     generate_acc = iter([3, 7, 7, 9, 10, 11, 8, 8, 4, 7])
 
     @evaluator.on(Events.COMPLETED)
     def set_acc():
-        evaluator.state.metrics['acc'] = next(generate_acc)
+        evaluator.state.metrics["acc"] = next(generate_acc)
 
     evaluator.add_event_handler(Events.COMPLETED, scheduler)
 
     trainer.run(data, max_epochs=max_epochs)
 
-    lrs = [param[0] for param in trainer.state.param_history['lr']]
+    lrs = [param[0] for param in trainer.state.param_history["lr"]]
     assert lrs == list(
         map(
             pytest.approx,
             [1, 1, 1, 1, 1, 1, 1, 0.5, 0.5, 0.25],
         )
     )
-    assert optimizer.param_groups[1]['lr'] == 1
+    assert optimizer.param_groups[1]["lr"] == 1
