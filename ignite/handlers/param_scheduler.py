@@ -1504,7 +1504,7 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
         for i, param_group in enumerate(self.optimizer_param_groups):
             old_lr = float(param_group['lr'])
             new_lr = max(old_lr * self.scheduler.factor, self.scheduler.min_lrs[i])
-            if old_lr-new_lr > self.scheduler.eps:
+            if old_lr - new_lr > self.scheduler.eps:
                 param_group['lr'] = new_lr
 
     def state_dict(self):
