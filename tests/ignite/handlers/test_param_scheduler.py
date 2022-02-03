@@ -1315,18 +1315,21 @@ def test_reduce_lr_on_plateau_scheduler():
     max_epochs = 10
 
     trainer = Engine(lambda engine, batch: None)
+
     @trainer.on(Events.EPOCH_COMPLETED)
     def evaluate():
         evaluator.run(data)
 
-    scheduler = ReduceLROnPlateauScheduler(optimizer, metric_name='acc', mode='max', factor=0.5,
-                                            patience=1, threshold_mode='abs', threshold=1.99,
-                                            min_lr=1e-7, save_history=True, trainer=trainer,
-                                            param_group_index=0)
-
+    scheduler = ReduceLROnPlateauScheduler(
+        optimizer, metric_name='acc', mode='max', factor=0.5,
+        patience=1, threshold_mode='abs', threshold=1.99,
+        min_lr=1e-7, save_history=True, trainer=trainer,
+        param_group_index=0
+    )
     evaluator = Engine(lambda engine, batch: None)
     evaluator.state.metrics = {'acc': 0.}
     generate_acc = iter([3, 7, 7, 9, 10, 11, 8, 8, 4, 7])
+
     @evaluator.on(Events.COMPLETED)
     def set_acc():
         evaluator.state.metrics['acc'] = next(generate_acc)
@@ -1339,18 +1342,7 @@ def test_reduce_lr_on_plateau_scheduler():
     assert lrs == list(
         map(
             pytest.approx,
-            [
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            0.5,
-            0.5,
-            0.25
-            ],
+            [1, 1, 1, 1, 1, 1, 1, 0.5, 0.5, 0.25],
         )
     )
     assert optimizer.param_groups[1]['lr'] == 1

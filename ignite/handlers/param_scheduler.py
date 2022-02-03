@@ -1435,7 +1435,7 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
             Default: False.
         param_group_index (int): `optimizer`'s parameters group
             to use.  Default: None. Use all `optimizer`'s paramater groups.
-    
+
     Examples:
 
         .. code-block:: python
@@ -1444,10 +1444,12 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
             # more than 1 unit after at most 2 epochs, otherwise LR
             # would get multiplied by 0.5 .
 
-            scheduler = ReduceLROnPlateauScheduler(optimizer,
-                                          metric_name="metric-name", mode="max",
-                                          factor=0.5, patience=1, threshold_mode='abs',
-                                          threshold=1, trainer=trainer)
+            scheduler = ReduceLROnPlateauScheduler(
+                optimizer,
+                metric_name="metric-name", mode="max",
+                factor=0.5, patience=1, threshold_mode='abs',
+                threshold=1, trainer=trainer
+            )
 
             evaluator.add_event_handler(Events.COMPLETED, scheduler)
 
@@ -1462,9 +1464,11 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
         min_lr: Union[float, List[float]] = 0., eps: float = 1e-8,
         trainer: Engine = None, save_history: bool = False, param_group_index: int = None
     ):
-        super(ReduceLROnPlateauScheduler, self).__init__(optimizer, 'lr',
-                                                       save_history=save_history,
-                                                       param_group_index=param_group_index)
+        super(ReduceLROnPlateauScheduler, self).__init__(
+            optimizer, 'lr',
+            save_history=save_history,
+            param_group_index=param_group_index
+        )
         self.metric_name = metric_name
         self.trainer = trainer
         self.optimizer = optimizer
@@ -1479,9 +1483,11 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
             min_lr = [0] * len(optimizer.param_groups)
             min_lr[param_group_index] = _min_lr
 
-        self.scheduler = ReduceLROnPlateau(optimizer, mode=mode, factor=factor, patience=patience,
-                                         threshold=threshold, threshold_mode=threshold_mode,
-                                         cooldown=cooldown, min_lr=min_lr, eps=eps)
+        self.scheduler = ReduceLROnPlateau(
+            optimizer, mode = mode, factor = factor, patience = patience,
+            threshold = threshold, threshold_mode = threshold_mode,
+            cooldown = cooldown, min_lr = min_lr, eps = eps
+        )
         self.scheduler._reduce_lr = self._reduce_lr
 
         self._state_attrs += ["metric_name"]
