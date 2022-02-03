@@ -293,6 +293,7 @@ pip install -r requirements.txt
 
 [Katex](https://katex.org/) is also needed to build the documentation.
 To install katex, you need to have [nodejs](https://nodejs.org/en/) installed.
+Optionaly, we can install `nodejs/npm` using conda: `conda install nodejs`.
 Then you can install katex with [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/) (if installed).
 
 ```bash
