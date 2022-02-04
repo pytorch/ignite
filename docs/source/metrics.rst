@@ -4,7 +4,16 @@ ignite.metrics
 Metrics provide a way to compute various quantities of interest in an online
 fashion without having to store the entire output history of a model.
 
-In practice a user needs to attach the metric instance to an engine. The metric
+Attach Engine API
+------------------
+
+The metrics as stated above are computed in a online fashion,which means that the metric instance accumulates some internal counter on 
+each iteration and accuracy value is computed once epoch is ended. Internal counters are reset after every epoch.
+For doing this we use three public APIs ``reset`` , ``update`` and ``compute`` :ref:`read about them here<Reset, Update, Compute API>`. We internally accumulate some counters
+when there is a update call. The metric's value is computed on each compute call and counters are reset on each reset
+call. 
+
+In practice a user needs to attach the metric instance to an engine which attaches the ``reset`` , ``compute`` and ``update`` methods to the events. The metric
 value is then computed using the output of the engine's ``process_function``:
 
 .. code-block:: python
@@ -23,14 +32,6 @@ value is then computed using the output of the engine's ``process_function``:
     state = engine.run(data)
     print(f"Accuracy: {state.metrics['accuracy']}")
 
-Internal Functioning of Metrics
--------------------------------
-
-The metrics as stated above are computed in a online fashion, which means that the accuracy is calculated and 
-updated for an epoch and then reseted before the next epoch. For doing this we use three public API reset,
-update and compute :ref:`read about them here<Reset, Update, Compute API>`. We internally accumulate some counters
-when there is a update call. The metric's value is computed on each compute call and counters are reset on each reset
-call.
 
 
 If the engine's output is not in the format ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``, the user can
