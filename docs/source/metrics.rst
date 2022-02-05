@@ -7,14 +7,13 @@ fashion without having to store the entire output history of a model.
 Attach Engine API
 ------------------
 
-The metrics as stated above are computed in a online fashion,which means that the metric instance accumulates some internal counter on 
+The metrics as stated above are computed in a online fashion, which means that the metric instance accumulates some internal counter on 
 each iteration and accuracy value is computed once epoch is ended. Internal counters are reset after every epoch.
-For doing this we use three public APIs ``reset`` , ``update`` and ``compute`` :ref:`read about them here<Reset, Update, Compute API>`. We internally accumulate some counters
-when there is a update call. The metric's value is computed on each compute call and counters are reset on each reset
-call. 
 
-In practice a user needs to attach the metric instance to an engine which attaches the ``reset`` , ``compute`` and ``update`` methods to the events. The metric
-value is then computed using the output of the engine's ``process_function``:
+In practice a user needs to attach the metric instance to an engine which attaches the ``reset`` , ``compute`` and ``update`` methods to the :class:`~ignite.engine.events.Events`.
+The reset() method is triggered during ``EPOCH_STARTED`` event and it is responsible to reset the metric to its initial state. The update() method is triggered
+during ``ITERATION_COMPLETED`` event as it updates the state of the metric using the passed batch output. And compute() is triggered during ``EPOCH_COMPLETED``
+event. It computes the metric based on its accumulated states. The metric value is computed using the output of the engine's ``process_function``:
 
 .. code-block:: python
 
