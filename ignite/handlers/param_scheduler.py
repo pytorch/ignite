@@ -1463,12 +1463,12 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
         self.scheduler = ReduceLROnPlateau(optimizer, **_scheduler_kwargs)
         self.scheduler._reduce_lr = self._reduce_lr  # type: ignore[attr-defined]
 
-        self._state_attrs += ["metric_name"]
+        self._state_attrs += ["metric_name", "scheduler"]
 
     def __call__(self, engine: Engine, name: Optional[str] = None) -> None:  # type: ignore[override]
         if not hasattr(engine.state, "metrics") or self.metric_name not in engine.state.metrics:
             raise ValueError(
-                "Argument engine should have in its 'state', attribute 'metrics'"
+                "Argument engine should have in its 'state', attribute 'metrics' "
                 f"which itself has the metric {self.metric_name}."
             )
         self.scheduler.step(engine.state.metrics[self.metric_name])
@@ -1484,9 +1484,6 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
             new_lr = max(old_lr * self.scheduler.factor, self.scheduler.min_lrs[i])  # type: ignore[attr-defined]
             if old_lr - new_lr > self.scheduler.eps:  # type: ignore[attr-defined]
                 param_group["lr"] = new_lr
-
-    def state_dict(self) -> Dict[str, Any]:
-        return self.scheduler.state_dict()
 
 
 def _get_fake_optimizer(

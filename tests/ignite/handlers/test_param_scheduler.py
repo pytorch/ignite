@@ -1352,3 +1352,24 @@ def test_reduce_lr_on_plateau_scheduler():
         )
     )
     assert optimizer.param_groups[1]["lr"] == 1
+
+
+def test_reduce_lr_on_plateau_scheduler_asserts():
+    tensor1 = torch.zeros([1], requires_grad=True)
+    tensor2 = torch.zeros([1], requires_grad=True)
+    optimizer = torch.optim.SGD([{"params": [tensor1]}, {"params": [tensor2]}], lr=1)
+
+    with pytest.raises(TypeError, match=r"When param_group_index is given, min_lr should be a float, but given"):
+        ReduceLROnPlateauScheduler(
+            optimizer,
+            metric_name="acc",
+            min_lr=[1e-7, 1e-8],
+            param_group_index=0,
+        )
+
+    with pytest.raises(
+        ValueError, match=r"Argument engine should have in its 'state', attribute 'metrics' which itself has the metric"
+    ):
+        scheduler = ReduceLROnPlateauScheduler(optimizer, metric_name="acc")
+        evaluator = Engine(lambda engine, batch: None)
+        scheduler(evaluator)
