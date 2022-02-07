@@ -11,7 +11,7 @@ The metrics as stated above are computed in a online fashion, which means that t
 each iteration and metric value is computed once the epoch is ended. Internal counters are reset after every epoch. In practice, this is done with the 
 help of three methods:- :meth:`~ignite.metrics.metric.Metric.reset()`, :meth:`~ignite.metrics.metric.Metric.update()` and :meth:`~ignite.metrics.metric.Metric.compute()`.
 
-Therefore, a user needs to attach the metric instance to an engine which attaches the above three methods to the :class:`~ignite.engine.events.Events`.
+Therefore, a user needs to attach the metric instance to an engine which attaches the above three methods to the class :class:`~ignite.engine.events.Events`.
 The :meth:`~ignite.metrics.metric.Metric.reset()` method is triggered during ``EPOCH_STARTED`` event and it is responsible to reset the metric to its initial state. The :meth:`~ignite.metrics.metric.Metric.update()` method is triggered
 during ``ITERATION_COMPLETED`` event as it updates the state of the metric using the passed batch output. And :meth:`~ignite.metrics.metric.Metric.compute()` is triggered during ``EPOCH_COMPLETED``
 event. It computes the metric based on its accumulated states. The metric value is computed using the output of the engine's ``process_function``:
@@ -31,7 +31,6 @@ event. It computes the metric based on its accumulated states. The metric value 
     # ...
     state = engine.run(data)
     print(f"Accuracy: {state.metrics['accuracy']}")
-
 
 
 If the engine's output is not in the format ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``, the user can
