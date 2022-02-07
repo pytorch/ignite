@@ -57,8 +57,8 @@ def _test_integration_multiclass(device, output_dict):
             assert sklearn_result[str(i)]["f1-score"] == pytest.approx(res[label_i]["f1-score"])
             assert sklearn_result[str(i)]["recall"] == pytest.approx(res[label_i]["recall"])
         assert sklearn_result["macro avg"]["precision"] == pytest.approx(res["macro avg"]["precision"])
-        assert sklearn_result["macro avg"]["recall"] == pytest.approx(res["macro avg"]["recall"]) 
-        assert sklearn_result["macro avg"]["f1-score"] == pytest.approx(res["macro avg"]["f1-score"]) 
+        assert sklearn_result["macro avg"]["recall"] == pytest.approx(res["macro avg"]["recall"])
+        assert sklearn_result["macro avg"]["f1-score"] == pytest.approx(res["macro avg"]["f1-score"])
 
     for _ in range(5):
         # check multiple random inputs as random exact occurencies are rare
@@ -151,6 +151,7 @@ def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
     _test_integration_multiclass(device, False)
     _test_integration_multilabel(device, True)
     _test_integration_multilabel(device, False)
+
 
 @pytest.mark.xfail
 @pytest.mark.distributed
