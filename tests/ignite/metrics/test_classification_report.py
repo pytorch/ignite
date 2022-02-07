@@ -140,6 +140,7 @@ def _test_integration_multilabel(device, output_dict):
             _test(metric_device, 1, ["0", "1", "2", "3", "4", "5", "6"])
             _test(metric_device, 2, ["0", "1", "2", "3", "4", "5", "6"])
 
+
 @pytest.mark.xfail
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
@@ -164,6 +165,7 @@ def test_distrib_gloo_cpu_or_gpu(local_rank, distributed_context_single_node_glo
     _test_integration_multilabel(device, True)
     _test_integration_multilabel(device, False)
 
+
 @pytest.mark.xfail
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
@@ -186,6 +188,7 @@ def _test_distrib_xla_nprocs(index):
     _test_integration_multiclass(device, False)
     _test_integration_multilabel(device, True)
     _test_integration_multilabel(device, False)
+
 
 @pytest.mark.xfail
 @pytest.mark.tpu
