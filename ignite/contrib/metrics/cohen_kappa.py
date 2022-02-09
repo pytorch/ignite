@@ -30,6 +30,8 @@ class CohenKappa(EpochMetric):
         ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``. If not, ``output_tranform`` can be added
         to the metric to transform the output into the form expected by the metric.
 
+        .. include:: defaults.rst
+
         .. testcode::
 
             metric = CohenKappa()

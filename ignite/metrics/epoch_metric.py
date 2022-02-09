@@ -42,6 +42,8 @@ class EpochMetric(Metric):
 
     Example:
 
+        .. include:: defaults.rst
+
         .. testcode::
 
             def mse_fn(y_preds, y_targets):

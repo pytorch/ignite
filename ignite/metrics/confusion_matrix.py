@@ -47,7 +47,9 @@ class ConfusionMatrix(Metric):
 
     Examples:
 
-        .. testcode:: 1
+        .. include:: defaults.rst
+
+        .. testcode::
 
             metric = ConfusionMatrix(num_classes=3)
             metric.attach(default_evaluator, 'cm')
@@ -62,7 +64,7 @@ class ConfusionMatrix(Metric):
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics['cm'])
 
-        .. testoutput:: 1
+        .. testoutput::
 
             tensor([[1, 1, 0],
                     [0, 2, 0],
@@ -72,7 +74,7 @@ class ConfusionMatrix(Metric):
         so that you have one value for each class. E.g. you can transform your network output into a one-hot vector
         with:
 
-        .. testcode:: 2
+        .. testcode::
 
             def binary_one_hot_output_transform(output):
                 y_pred, y = output
@@ -88,7 +90,7 @@ class ConfusionMatrix(Metric):
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics['cm'])
 
-        .. testoutput:: 2
+        .. testoutput::
 
             tensor([[2, 1],
                     [1, 1]])
@@ -201,6 +203,8 @@ def IoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambd
 
     Examples:
 
+        .. include:: defaults.rst
+
         .. testcode::
 
             cm = ConfusionMatrix(num_classes=3)
@@ -260,6 +264,8 @@ def mIoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLamb
         MetricsLambda
 
     Examples:
+
+        .. include:: defaults.rst
 
         .. testcode::
 
@@ -347,6 +353,8 @@ def DiceCoefficient(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> 
 
     Examples:
 
+        .. include:: defaults.rst
+
         .. testcode::
 
             cm = ConfusionMatrix(num_classes=3)
@@ -410,6 +418,8 @@ def JaccardIndex(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> Met
         MetricsLambda
 
     Examples:
+
+        .. include:: defaults.rst
 
         .. testcode::
 

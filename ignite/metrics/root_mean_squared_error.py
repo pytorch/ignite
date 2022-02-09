@@ -35,6 +35,8 @@ class RootMeanSquaredError(MeanSquaredError):
 
         ``y_pred`` and ``y`` should have the same shape.
 
+        .. include:: defaults.rst
+
         .. testcode::
 
             metric = RootMeanSquaredError()

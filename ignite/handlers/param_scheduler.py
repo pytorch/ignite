@@ -359,11 +359,11 @@ class LinearCyclicalScheduler(CyclicalScheduler):
 
     Examples:
 
-        .. testsetup:: *
+        .. include:: defaults.rst
+
+        .. testcode::
 
             default_trainer = get_default_trainer()
-
-        .. testcode:: 1
 
             # Linearly increases the learning rate from 0.0 to 1.0 and back to 0.0
             # over a cycle of 4 iterations
@@ -377,7 +377,7 @@ class LinearCyclicalScheduler(CyclicalScheduler):
 
             default_trainer.run([0] * 9, max_epochs=1)
 
-        .. testoutput:: 1
+        .. testoutput::
 
             0.0
             0.5
@@ -385,7 +385,9 @@ class LinearCyclicalScheduler(CyclicalScheduler):
             0.5
             ...
 
-        .. testcode:: 2
+        .. testcode::
+
+            default_trainer = get_default_trainer()
 
             optimizer = torch.optim.SGD(
                 [
@@ -412,7 +414,7 @@ class LinearCyclicalScheduler(CyclicalScheduler):
 
             default_trainer.run([0] * 9, max_epochs=1)
 
-        .. testoutput:: 2
+        .. testoutput::
 
             0.0 0.0
             0.5 0.05
@@ -457,11 +459,11 @@ class CosineAnnealingScheduler(CyclicalScheduler):
 
     Examples:
 
-        .. testsetup:: *
+        .. include:: defaults.rst
+
+        .. testcode::
 
             default_trainer = get_default_trainer()
-
-        .. testcode:: 1
 
             # CosineAnnealing increases the learning rate from 0.0 to 1.0
             # over a cycle of 4 iterations
@@ -475,7 +477,7 @@ class CosineAnnealingScheduler(CyclicalScheduler):
 
             default_trainer.run([0] * 9, max_epochs=1)
 
-        .. testoutput:: 1
+        .. testoutput::
 
             0.0
             0.1464...
@@ -483,7 +485,9 @@ class CosineAnnealingScheduler(CyclicalScheduler):
             0.8535...
             ...
 
-        .. testcode:: 2
+        .. testcode::
+
+            default_trainer = get_default_trainer()
 
             optimizer = torch.optim.SGD(
                 [
@@ -510,7 +514,7 @@ class CosineAnnealingScheduler(CyclicalScheduler):
 
             default_trainer.run([0] * 9, max_epochs=1)
 
-        .. testoutput:: 2
+        .. testoutput::
 
             0.0 0.0
             0.1464... 0.01464...
@@ -544,11 +548,11 @@ class ConcatScheduler(ParamScheduler):
 
     Examples:
 
-        .. testsetup::
-
-            default_trainer = get_default_trainer()
+        .. include:: defaults.rst
 
         .. testcode::
+
+            default_trainer = get_default_trainer()
 
             scheduler_1 = LinearCyclicalScheduler(default_optimizer, "lr", 0.0, 1.0, 8)
             scheduler_2 = CosineAnnealingScheduler(default_optimizer, "lr", 1.0, 0.2, 4)
@@ -790,11 +794,11 @@ class LRScheduler(ParamScheduler):
 
     Examples:
 
-        .. testsetup::
-
-            default_trainer = get_default_trainer()
+        .. include:: defaults.rst
 
         .. testcode::
+
+            default_trainer = get_default_trainer()
 
             @default_trainer.on(Events.ITERATION_STARTED)
             def print_lr():
@@ -940,15 +944,15 @@ def create_lr_scheduler_with_warmup(
 
     Examples:
 
-        .. testsetup::
-
-            default_trainer = get_default_trainer()
+        .. include:: defaults.rst
 
         .. testcode::
 
             from torch.optim.lr_scheduler import ExponentialLR
 
             torch_lr_scheduler = ExponentialLR(optimizer=default_optimizer, gamma=0.98)
+
+            default_trainer = get_default_trainer()
 
             scheduler = create_lr_scheduler_with_warmup(torch_lr_scheduler,
                                                         warmup_start_value=0.0,
@@ -1074,11 +1078,11 @@ class PiecewiseLinear(ParamScheduler):
 
     Examples:
 
-        .. testsetup:: *
+        .. include:: defaults.rst
+
+        .. testcode::
 
             default_trainer = get_default_trainer()
-
-        .. testcode:: 1
 
             milestones_values = [(1, 1.0), (3, 0.8), (5, 0.2)]
             scheduler = PiecewiseLinear(
@@ -1095,7 +1099,7 @@ class PiecewiseLinear(ParamScheduler):
 
             default_trainer.run([0] * 6, max_epochs=1)
 
-        .. testoutput:: 1
+        .. testoutput::
 
             1.0
             1.0
@@ -1104,7 +1108,9 @@ class PiecewiseLinear(ParamScheduler):
             0.5
             0.2
 
-        .. testcode:: 2
+        .. testcode::
+
+            default_trainer = get_default_trainer()
 
             optimizer = torch.optim.SGD(
                 [
@@ -1137,7 +1143,7 @@ class PiecewiseLinear(ParamScheduler):
 
             default_trainer.run([0] * 6, max_epochs=1)
 
-        .. testoutput:: 2
+        .. testoutput::
 
             0.1 1.0
             0.1 1.0
@@ -1220,11 +1226,11 @@ class ParamGroupScheduler:
 
     Examples:
 
-        .. testsetup::
-
-            default_trainer = get_default_trainer()
+        .. include:: defaults.rst
 
         .. testcode::
+
+            default_trainer = get_default_trainer()
 
             optimizer = torch.optim.SGD(
                 [

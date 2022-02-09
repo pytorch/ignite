@@ -130,11 +130,11 @@ class LambdaStateScheduler(StateParamScheduler):
 
     Examples:
 
-        .. testsetup::
-
-            default_trainer = get_default_trainer()
+        .. include:: defaults.rst
 
         .. testcode::
+
+            default_trainer = get_default_trainer()
 
             class LambdaState:
                 def __init__(self, initial_value, gamma):
@@ -211,11 +211,11 @@ class PiecewiseLinearStateScheduler(StateParamScheduler):
 
     Examples:
 
-        .. testsetup::
-
-            default_trainer = get_default_trainer()
+        .. include:: defaults.rst
 
         .. testcode::
+
+            default_trainer = get_default_trainer()
 
             param_scheduler = PiecewiseLinearStateScheduler(
                 param_name="param",  milestones_values=[(5, 1.0), (10, 0.8), (15, 0.6)], create_new=True
@@ -335,11 +335,11 @@ class ExpStateScheduler(StateParamScheduler):
 
     Examples:
 
-        .. testsetup::
-
-            default_trainer = get_default_trainer()
+        .. include:: defaults.rst
 
         .. testcode::
+
+            default_trainer = get_default_trainer()
 
             param_scheduler = ExpStateScheduler(
                 param_name="param", initial_value=1, gamma=0.9, create_new=True
@@ -402,11 +402,11 @@ class StepStateScheduler(StateParamScheduler):
 
     Examples:
 
-        .. testsetup::
-
-            default_trainer = get_default_trainer()
+        .. include:: defaults.rst
 
         .. testcode::
+
+            default_trainer = get_default_trainer()
 
             param_scheduler = StepStateScheduler(
                 param_name="param", initial_value=1, gamma=0.9, step_size=5, create_new=True
@@ -480,11 +480,11 @@ class MultiStepStateScheduler(StateParamScheduler):
 
     Examples:
 
-        .. testsetup::
-
-            default_trainer = get_default_trainer()
+        .. include:: defaults.rst
 
         .. testcode::
+
+            default_trainer = get_default_trainer()
 
             param_scheduler = MultiStepStateScheduler(
                 param_name="param", initial_value=1, gamma=0.9, milestones=[3, 6, 9, 12]

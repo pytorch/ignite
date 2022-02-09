@@ -39,6 +39,8 @@ class FractionalAbsoluteError(_BaseRegression):
         The output of the engine's ``process_function`` needs to be in format of
         ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``.
 
+        .. include:: defaults.rst
+
         .. testcode::
 
                 metric = FractionalAbsoluteError()

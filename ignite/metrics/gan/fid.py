@@ -96,14 +96,7 @@ class FID(_BaseInceptionMetric):
 
     Examples:
 
-        .. code-block:: python
-
-            metric = FID()
-            metric.attach(default_evaluator, "fid")
-            y_true = torch.rand(10, 3, 299, 299)
-            y_pred = torch.rand(10, 3, 299, 299)
-            state = default_evaluator.run([[y_pred, y_true]])
-            print(state.metrics["fid"])
+        .. include:: defaults.rst
 
         .. testcode::
 

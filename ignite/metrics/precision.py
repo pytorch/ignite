@@ -88,9 +88,11 @@ class Precision(_BasePrecisionRecall):
 
     Examples:
 
+        .. include:: defaults.rst
+
         Binary case
 
-        .. testcode:: 1
+        .. testcode::
 
             metric = Precision(average=False)
             metric.attach(default_evaluator, "precision")
@@ -99,13 +101,13 @@ class Precision(_BasePrecisionRecall):
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["precision"])
 
-        .. testoutput:: 1
+        .. testoutput::
 
             0.75
 
         Multiclass case
 
-        .. testcode:: 2
+        .. testcode::
 
             metric = Precision(average=False)
             metric.attach(default_evaluator, "precision")
@@ -121,13 +123,13 @@ class Precision(_BasePrecisionRecall):
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["precision"])
 
-        .. testoutput:: 2
+        .. testoutput::
 
             tensor([0.5000, 1.0000, 0.3333], dtype=torch.float64)
 
         Precision can be computed as the unweighted average across all classes:
 
-        .. testcode:: 3
+        .. testcode::
 
             metric = Precision(average=True)
             metric.attach(default_evaluator, "precision")
@@ -143,13 +145,13 @@ class Precision(_BasePrecisionRecall):
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["precision"])
 
-        .. testoutput:: 3
+        .. testoutput::
 
             0.6111...
 
         Multilabel case, the shapes must be (batch_size, num_categories, ...)
 
-        .. testcode:: 4
+        .. testcode::
 
             metric = Precision(is_multilabel=True)
             metric.attach(default_evaluator, "precision")
@@ -170,14 +172,14 @@ class Precision(_BasePrecisionRecall):
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["precision"])
 
-        .. testoutput:: 4
+        .. testoutput::
 
             tensor([0.2000, 0.5000, 0.0000], dtype=torch.float64)
 
         In binary and multilabel cases, the elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of
         predictions can be done as below:
 
-        .. testcode:: 5
+        .. testcode::
 
             def thresholded_output_transform(output):
                 y_pred, y = output
@@ -191,7 +193,7 @@ class Precision(_BasePrecisionRecall):
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["precision"])
 
-        .. testoutput:: 5
+        .. testoutput::
 
             0.75
 

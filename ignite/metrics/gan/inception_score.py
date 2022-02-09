@@ -49,6 +49,8 @@ class InceptionScore(_BaseInceptionMetric):
 
     Examples:
 
+        .. include:: defaults.rst
+
         .. code-block:: python
 
             metric = InceptionScore()

@@ -36,6 +36,8 @@ class SSIM(Metric):
         ``y_pred`` and ``y`` can be un-normalized or normalized image tensors. Depending on that, the user might need
         to adjust ``data_range``. ``y_pred`` and ``y`` should have the same shape.
 
+        .. include:: defaults.rst
+
         .. testcode::
 
             metric = SSIM(data_range=1.0)

@@ -117,57 +117,11 @@ class Accuracy(_BaseClassification):
 
     Examples:
 
-        .. toggle::
-
-            .. testcode::
-
-                from collections import OrderedDict
-
-                import torch
-                from torch import nn, optim
-
-                from ignite.engine import *
-                from ignite.handlers import *
-                from ignite.metrics import *
-                from ignite.utils import *
-                from ignite.contrib.metrics.regression import *
-                from ignite.contrib.metrics import *
-
-                # create default evaluator for doctests
-
-                def eval_step(engine, batch):
-                    return batch
-
-                default_evaluator = Engine(eval_step)
-
-                # create default optimizer for doctests
-
-                param_tensor = torch.zeros([1], requires_grad=True)
-                default_optimizer = torch.optim.SGD([param_tensor], lr=0.1)
-
-                # create default trainer for doctests
-                # as handlers could be attached to the trainer,
-                # each test must defined his own trainer using `.. testsetup:`
-
-                def get_default_trainer():
-
-                    def train_step(engine, batch):
-                        return 0.0
-
-                    return Engine(train_step)
-
-                # create default model for doctests
-
-                default_model = nn.Sequential(OrderedDict([
-                    ('base', nn.Linear(4, 2)),
-                    ('fc', nn.Linear(2, 1))
-                ]))
-
-                manual_seed(666)
+        .. include:: defaults.rst
 
         Binary case
 
-        .. testcode:: 1
+        .. testcode::
 
             metric = Accuracy()
             metric.attach(default_evaluator, "accuracy")
@@ -176,13 +130,13 @@ class Accuracy(_BaseClassification):
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["accuracy"])
 
-        .. testoutput:: 1
+        .. testoutput::
 
             0.6666...
 
         Multiclass case
 
-        .. testcode:: 2
+        .. testcode::
 
             metric = Accuracy()
             metric.attach(default_evaluator, "accuracy")
@@ -198,13 +152,13 @@ class Accuracy(_BaseClassification):
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["accuracy"])
 
-        .. testoutput:: 2
+        .. testoutput::
 
             0.5
 
         Multilabel case
 
-        .. testcode:: 3
+        .. testcode::
 
             metric = Accuracy(is_multilabel=True)
             metric.attach(default_evaluator, "accuracy")
@@ -225,14 +179,14 @@ class Accuracy(_BaseClassification):
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["accuracy"])
 
-        .. testoutput:: 3
+        .. testoutput::
 
             0.2
 
         In binary and multilabel cases, the elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of
         predictions can be done as below:
 
-        .. testcode:: 4
+        .. testcode::
 
             def thresholded_output_transform(output):
                 y_pred, y = output
@@ -246,7 +200,7 @@ class Accuracy(_BaseClassification):
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["accuracy"])
 
-        .. testoutput:: 4
+        .. testoutput::
 
             0.6666...
     """

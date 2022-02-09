@@ -45,6 +45,9 @@ class PrecisionRecallCurve(EpochMetric):
             avg_precision = PrecisionRecallCurve(sigmoid_output_transform)
 
     Examples:
+
+        .. include:: defaults.rst
+
         .. testcode::
 
             y_pred = torch.tensor([0.0474, 0.5987, 0.7109, 0.9997])
