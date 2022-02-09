@@ -7,11 +7,11 @@ fashion without having to store the entire output history of a model.
 Attach Engine API
 ------------------
 
-The metrics as stated above are computed in a online fashion, which means that the metric instance accumulates some internal counter on 
+The metrics as stated above are computed in a online fashion, which means that the metric instance accumulates some internal counters on 
 each iteration and metric value is computed once the epoch is ended. Internal counters are reset after every epoch. In practice, this is done with the 
-help of three methods:- :meth:`~ignite.metrics.metric.Metric.reset()`, :meth:`~ignite.metrics.metric.Metric.update()` and :meth:`~ignite.metrics.metric.Metric.compute()`.
+help of three methods: :meth:`~ignite.metrics.metric.Metric.reset()`, :meth:`~ignite.metrics.metric.Metric.update()` and :meth:`~ignite.metrics.metric.Metric.compute()`.
 
-Therefore, a user needs to attach the metric instance to an engine which attaches the above three methods to the class :class:`~ignite.engine.events.Events`.
+Therefore, a user needs to attach the metric instance to the engine so that the above three methods can be triggered on execution of certain :class:`~ignite.engine.events.Events`.
 The :meth:`~ignite.metrics.metric.Metric.reset()` method is triggered on ``EPOCH_STARTED`` event and it is responsible to reset the metric to its initial state. The :meth:`~ignite.metrics.metric.Metric.update()` method is triggered
 on ``ITERATION_COMPLETED`` event as it updates the state of the metric using the passed batch output. And :meth:`~ignite.metrics.metric.Metric.compute()` is triggered on ``EPOCH_COMPLETED``
 event. It computes the metric based on its accumulated states. The metric value is computed using the output of the engine's ``process_function``:
