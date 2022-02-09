@@ -36,7 +36,7 @@ class PSNR(Metric):
 
         .. include:: defaults.rst
 
-        .. testcode:: 
+        .. testcode::
 
             psnr = PSNR(data_range=1.0)
             psnr.attach(default_evaluator, 'psnr')
