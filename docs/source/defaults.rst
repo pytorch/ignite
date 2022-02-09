@@ -2,7 +2,7 @@
 
 .. toggle::
 
-    .. code-block:: python
+    .. testcode:: default, 1, 2, 3, 4, 5
 
         from collections import OrderedDict
 
