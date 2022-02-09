@@ -131,6 +131,7 @@ class LambdaStateScheduler(StateParamScheduler):
     Examples:
 
         .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 
@@ -212,6 +213,7 @@ class PiecewiseLinearStateScheduler(StateParamScheduler):
     Examples:
 
         .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 
@@ -336,6 +338,7 @@ class ExpStateScheduler(StateParamScheduler):
     Examples:
 
         .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 
@@ -403,6 +406,7 @@ class StepStateScheduler(StateParamScheduler):
     Examples:
 
         .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 
@@ -481,6 +485,7 @@ class MultiStepStateScheduler(StateParamScheduler):
     Examples:
 
         .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 

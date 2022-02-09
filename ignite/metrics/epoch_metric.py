@@ -43,6 +43,7 @@ class EpochMetric(Metric):
     Example:
 
         .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 

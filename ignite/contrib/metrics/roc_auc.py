@@ -54,6 +54,7 @@ class ROC_AUC(EpochMetric):
     Examples:
 
         .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 
@@ -117,6 +118,7 @@ class RocCurve(EpochMetric):
     Examples:
 
         .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 

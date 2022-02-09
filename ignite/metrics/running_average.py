@@ -28,6 +28,7 @@ class RunningAverage(Metric):
     Examples:
 
         .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode:: 1
 

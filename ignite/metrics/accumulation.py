@@ -113,6 +113,7 @@ class Average(VariableAccumulation):
     Examples:
 
         .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 
@@ -213,6 +214,7 @@ class GeometricAverage(VariableAccumulation):
     Examples:
 
         .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 

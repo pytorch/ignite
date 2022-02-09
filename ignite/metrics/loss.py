@@ -43,6 +43,7 @@ class Loss(Metric):
         :meth:`~ignite.engine.create_supervised_evaluator` method.
 
         .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 

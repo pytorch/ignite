@@ -54,6 +54,7 @@ class GeometricMeanRelativeAbsoluteError(_BaseRegression):
         ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``.
 
         .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 

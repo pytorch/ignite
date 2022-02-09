@@ -97,6 +97,7 @@ class FID(_BaseInceptionMetric):
     Examples:
 
         .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 

@@ -360,6 +360,7 @@ class LinearCyclicalScheduler(CyclicalScheduler):
     Examples:
 
         .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode:: 1
 
@@ -460,6 +461,7 @@ class CosineAnnealingScheduler(CyclicalScheduler):
     Examples:
 
         .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode:: 1
 
@@ -549,6 +551,7 @@ class ConcatScheduler(ParamScheduler):
     Examples:
 
         .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 
@@ -795,6 +798,7 @@ class LRScheduler(ParamScheduler):
     Examples:
 
         .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 
@@ -945,6 +949,7 @@ def create_lr_scheduler_with_warmup(
     Examples:
 
         .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 
@@ -1079,6 +1084,7 @@ class PiecewiseLinear(ParamScheduler):
     Examples:
 
         .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode:: 1
 
@@ -1227,6 +1233,7 @@ class ParamGroupScheduler:
     Examples:
 
         .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 

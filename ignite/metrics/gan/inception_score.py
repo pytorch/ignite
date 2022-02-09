@@ -50,6 +50,7 @@ class InceptionScore(_BaseInceptionMetric):
     Examples:
 
         .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. code-block:: python
 

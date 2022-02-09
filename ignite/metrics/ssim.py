@@ -37,6 +37,7 @@ class SSIM(Metric):
         to adjust ``data_range``. ``y_pred`` and ``y`` should have the same shape.
 
         .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 

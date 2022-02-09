@@ -32,6 +32,7 @@ class TopKCategoricalAccuracy(Metric):
         to the metric to transform the output into the form expected by the metric.
 
         .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 

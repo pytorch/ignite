@@ -41,6 +41,7 @@ class MultiLabelConfusionMatrix(Metric):
     Example:
 
         .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 

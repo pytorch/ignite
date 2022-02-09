@@ -47,6 +47,7 @@ class PrecisionRecallCurve(EpochMetric):
     Examples:
 
         .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 

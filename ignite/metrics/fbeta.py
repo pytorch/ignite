@@ -48,6 +48,7 @@ def Fbeta(
     Examples:
 
         .. include:: defaults.rst
+            :start-after: :orphan:
 
         Binary case
 

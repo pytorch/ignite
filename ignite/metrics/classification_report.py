@@ -39,6 +39,7 @@ def ClassificationReport(
     Examples:
 
         .. include:: defaults.rst
+            :start-after: :orphan:
 
         Multiclass case
 

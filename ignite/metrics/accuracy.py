@@ -118,6 +118,7 @@ class Accuracy(_BaseClassification):
     Examples:
 
         .. include:: defaults.rst
+            :start-after: :orphan:
 
         Binary case
 
