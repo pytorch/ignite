@@ -59,7 +59,12 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.autosectionlabel",
     "sphinx_copybutton",
+    "sphinx_togglebutton",
 ]
+
+# toggle button hint text
+togglebutton_hint = "Show default setup"
+togglebutton_hint_hide = "Hide default setup"
 
 # katex options
 katex_prerender = True
