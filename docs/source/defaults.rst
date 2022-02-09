@@ -1,6 +1,8 @@
+:orphan:
+
 .. toggle::
 
-    .. testcode:: default, 1, 2, 3, 4, 5
+    .. code-block:: python
 
         from collections import OrderedDict
 
