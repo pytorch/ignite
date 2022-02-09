@@ -51,7 +51,7 @@ def Fbeta(
 
         Binary case
 
-        .. testcode::
+        .. testcode:: 1
 
             P = Precision(average=False)
             R = Recall(average=False)
@@ -62,13 +62,13 @@ def Fbeta(
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["f-beta"])
 
-        .. testoutput::
+        .. testoutput:: 1
 
             0.7499...
 
         Multiclass case
 
-        .. testcode::
+        .. testcode:: 2
 
             P = Precision(average=False)
             R = Recall(average=False)
@@ -86,13 +86,13 @@ def Fbeta(
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["f-beta"])
 
-        .. testoutput::
+        .. testoutput:: 2
 
             0.5222...
 
         F-beta can be computed for each class as done below:
 
-        .. testcode::
+        .. testcode:: 3
 
             P = Precision(average=False)
             R = Recall(average=False)
@@ -110,14 +110,14 @@ def Fbeta(
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["f-beta"])
 
-        .. testoutput::
+        .. testoutput:: 3
 
             tensor([0.5000, 0.6667, 0.4000], dtype=torch.float64)
 
         The elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of predictions can
         be done as below:
 
-        .. testcode::
+        .. testcode:: 4
 
             def thresholded_output_transform(output):
                 y_pred, y = output
@@ -133,7 +133,7 @@ def Fbeta(
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["f-beta"])
 
-        .. testoutput::
+        .. testoutput:: 4
 
             0.7499...
     """

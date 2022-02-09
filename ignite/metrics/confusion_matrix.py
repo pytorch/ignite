@@ -49,7 +49,7 @@ class ConfusionMatrix(Metric):
 
         .. include:: defaults.rst
 
-        .. testcode::
+        .. testcode:: 1
 
             metric = ConfusionMatrix(num_classes=3)
             metric.attach(default_evaluator, 'cm')
@@ -64,7 +64,7 @@ class ConfusionMatrix(Metric):
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics['cm'])
 
-        .. testoutput::
+        .. testoutput:: 1
 
             tensor([[1, 1, 0],
                     [0, 2, 0],
@@ -74,7 +74,7 @@ class ConfusionMatrix(Metric):
         so that you have one value for each class. E.g. you can transform your network output into a one-hot vector
         with:
 
-        .. testcode::
+        .. testcode:: 2
 
             def binary_one_hot_output_transform(output):
                 y_pred, y = output
@@ -90,7 +90,7 @@ class ConfusionMatrix(Metric):
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics['cm'])
 
-        .. testoutput::
+        .. testoutput:: 2
 
             tensor([[2, 1],
                     [1, 1]])

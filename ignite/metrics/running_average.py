@@ -29,7 +29,7 @@ class RunningAverage(Metric):
 
         .. include:: defaults.rst
 
-        .. testcode::
+        .. testcode:: 1
 
             accuracy = Accuracy()
             metric = RunningAverage(accuracy)
@@ -44,7 +44,7 @@ class RunningAverage(Metric):
 
             state = default_evaluator.run(zip(y_pred, y_true))
 
-        .. testoutput::
+        .. testoutput:: 1
 
             1.0
             0.98
@@ -53,7 +53,7 @@ class RunningAverage(Metric):
             0.96117...
             0.96195...
 
-        .. testcode::
+        .. testcode:: 2
 
             metric = RunningAverage(output_transform=lambda x: x.item())
             metric.attach(default_evaluator, 'running_avg_accuracy')
@@ -66,7 +66,7 @@ class RunningAverage(Metric):
 
             state = default_evaluator.run(y)
 
-        .. testoutput::
+        .. testoutput:: 2
 
             0.0
             0.020000...

@@ -121,7 +121,7 @@ class Accuracy(_BaseClassification):
 
         Binary case
 
-        .. testcode::
+        .. testcode:: 1
 
             metric = Accuracy()
             metric.attach(default_evaluator, "accuracy")
@@ -130,13 +130,13 @@ class Accuracy(_BaseClassification):
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["accuracy"])
 
-        .. testoutput::
+        .. testoutput:: 1
 
             0.6666...
 
         Multiclass case
 
-        .. testcode::
+        .. testcode:: 2
 
             metric = Accuracy()
             metric.attach(default_evaluator, "accuracy")
@@ -152,13 +152,13 @@ class Accuracy(_BaseClassification):
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["accuracy"])
 
-        .. testoutput::
+        .. testoutput:: 2
 
             0.5
 
         Multilabel case
 
-        .. testcode::
+        .. testcode:: 3
 
             metric = Accuracy(is_multilabel=True)
             metric.attach(default_evaluator, "accuracy")
@@ -179,14 +179,14 @@ class Accuracy(_BaseClassification):
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["accuracy"])
 
-        .. testoutput::
+        .. testoutput:: 3
 
             0.2
 
         In binary and multilabel cases, the elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of
         predictions can be done as below:
 
-        .. testcode::
+        .. testcode:: 4
 
             def thresholded_output_transform(output):
                 y_pred, y = output
@@ -200,7 +200,7 @@ class Accuracy(_BaseClassification):
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["accuracy"])
 
-        .. testoutput::
+        .. testoutput:: 4
 
             0.6666...
     """

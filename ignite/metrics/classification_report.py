@@ -42,7 +42,7 @@ def ClassificationReport(
 
         Multiclass case
 
-        .. testcode::
+        .. testcode:: 1
 
             metric = ClassificationReport(output_dict=True)
             metric.attach(default_evaluator, "cr")
@@ -62,7 +62,7 @@ def ClassificationReport(
             print(state.metrics["cr"]["2"])
             print(state.metrics["cr"]["macro avg"])
 
-        .. testoutput::
+        .. testoutput:: 1
 
             dict_keys(['0', '1', '2', 'macro avg'])
             {'precision': 0.5, 'recall': 0.5, 'f1-score': 0.4999...}
@@ -72,7 +72,7 @@ def ClassificationReport(
 
         Multilabel case, the shapes must be (batch_size, num_categories, ...)
 
-        .. testcode::
+        .. testcode:: 2
 
             metric = ClassificationReport(output_dict=True, is_multilabel=True)
             metric.attach(default_evaluator, "cr")
@@ -97,7 +97,7 @@ def ClassificationReport(
             print(state.metrics["cr"]["2"])
             print(state.metrics["cr"]["macro avg"])
 
-        .. testoutput::
+        .. testoutput:: 2
 
             dict_keys(['0', '1', '2', 'macro avg'])
             {'precision': 0.2, 'recall': 1.0, 'f1-score': 0.3333...}

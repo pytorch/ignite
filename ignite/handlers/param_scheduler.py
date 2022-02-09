@@ -361,7 +361,7 @@ class LinearCyclicalScheduler(CyclicalScheduler):
 
         .. include:: defaults.rst
 
-        .. testcode::
+        .. testcode:: 1
 
             default_trainer = get_default_trainer()
 
@@ -377,7 +377,7 @@ class LinearCyclicalScheduler(CyclicalScheduler):
 
             default_trainer.run([0] * 9, max_epochs=1)
 
-        .. testoutput::
+        .. testoutput:: 1
 
             0.0
             0.5
@@ -385,7 +385,7 @@ class LinearCyclicalScheduler(CyclicalScheduler):
             0.5
             ...
 
-        .. testcode::
+        .. testcode:: 2
 
             default_trainer = get_default_trainer()
 
@@ -414,7 +414,7 @@ class LinearCyclicalScheduler(CyclicalScheduler):
 
             default_trainer.run([0] * 9, max_epochs=1)
 
-        .. testoutput::
+        .. testoutput:: 2
 
             0.0 0.0
             0.5 0.05
@@ -461,7 +461,7 @@ class CosineAnnealingScheduler(CyclicalScheduler):
 
         .. include:: defaults.rst
 
-        .. testcode::
+        .. testcode:: 1
 
             default_trainer = get_default_trainer()
 
@@ -477,7 +477,7 @@ class CosineAnnealingScheduler(CyclicalScheduler):
 
             default_trainer.run([0] * 9, max_epochs=1)
 
-        .. testoutput::
+        .. testoutput:: 1
 
             0.0
             0.1464...
@@ -485,7 +485,7 @@ class CosineAnnealingScheduler(CyclicalScheduler):
             0.8535...
             ...
 
-        .. testcode::
+        .. testcode:: 2
 
             default_trainer = get_default_trainer()
 
@@ -514,7 +514,7 @@ class CosineAnnealingScheduler(CyclicalScheduler):
 
             default_trainer.run([0] * 9, max_epochs=1)
 
-        .. testoutput::
+        .. testoutput:: 2
 
             0.0 0.0
             0.1464... 0.01464...
@@ -1080,7 +1080,7 @@ class PiecewiseLinear(ParamScheduler):
 
         .. include:: defaults.rst
 
-        .. testcode::
+        .. testcode:: 1
 
             default_trainer = get_default_trainer()
 
@@ -1099,7 +1099,7 @@ class PiecewiseLinear(ParamScheduler):
 
             default_trainer.run([0] * 6, max_epochs=1)
 
-        .. testoutput::
+        .. testoutput:: 1
 
             1.0
             1.0
@@ -1108,7 +1108,7 @@ class PiecewiseLinear(ParamScheduler):
             0.5
             0.2
 
-        .. testcode::
+        .. testcode:: 2
 
             default_trainer = get_default_trainer()
 
@@ -1143,7 +1143,7 @@ class PiecewiseLinear(ParamScheduler):
 
             default_trainer.run([0] * 6, max_epochs=1)
 
-        .. testoutput::
+        .. testoutput:: 2
 
             0.1 1.0
             0.1 1.0
