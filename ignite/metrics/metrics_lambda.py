@@ -29,6 +29,9 @@ class MetricsLambda(Metric):
 
     Examples:
 
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         .. testcode::
 
             precision = Precision(average=False)

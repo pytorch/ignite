@@ -47,6 +47,9 @@ class ConfusionMatrix(Metric):
 
     Examples:
 
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         .. testcode:: 1
 
             metric = ConfusionMatrix(num_classes=3)
@@ -201,6 +204,9 @@ def IoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambd
 
     Examples:
 
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         .. testcode::
 
             cm = ConfusionMatrix(num_classes=3)
@@ -260,6 +266,9 @@ def mIoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLamb
         MetricsLambda
 
     Examples:
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 
@@ -347,6 +356,9 @@ def DiceCoefficient(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> 
 
     Examples:
 
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         .. testcode::
 
             cm = ConfusionMatrix(num_classes=3)
@@ -410,6 +422,9 @@ def JaccardIndex(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> Met
         MetricsLambda
 
     Examples:
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 

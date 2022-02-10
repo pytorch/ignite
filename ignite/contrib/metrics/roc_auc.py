@@ -52,6 +52,10 @@ class ROC_AUC(EpochMetric):
             avg_precision = ROC_AUC(sigmoid_output_transform)
 
     Examples:
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         .. testcode::
 
             roc_auc = ROC_AUC()
@@ -112,6 +116,10 @@ class RocCurve(EpochMetric):
             avg_precision = RocCurve(sigmoid_output_transform)
 
     Examples:
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         .. testcode::
 
             roc_auc = RocCurve()
