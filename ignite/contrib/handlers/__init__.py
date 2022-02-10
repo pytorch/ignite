@@ -17,7 +17,6 @@ from ignite.handlers.param_scheduler import (
     LRScheduler,
     ParamGroupScheduler,
     PiecewiseLinear,
-    ReduceLROnPlateauScheduler,
     create_lr_scheduler_with_warmup,
 )
 from ignite.handlers.time_profilers import BasicTimeProfiler, HandlersTimeProfiler

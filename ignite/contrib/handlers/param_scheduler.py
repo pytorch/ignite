@@ -21,7 +21,6 @@ from ignite.handlers.param_scheduler import (
     ParamGroupScheduler,
     ParamScheduler,
     PiecewiseLinear,
-    ReduceLROnPlateauScheduler,
     create_lr_scheduler_with_warmup,
 )
 
@@ -35,7 +34,6 @@ __all__ = [
     "PiecewiseLinear",
     "CyclicalScheduler",
     "create_lr_scheduler_with_warmup",
-    "ReduceLROnPlateauScheduler",
 ]
 
 ConcatScheduler = ConcatScheduler
@@ -47,4 +45,3 @@ ParamScheduler = ParamScheduler
 PiecewiseLinear = PiecewiseLinear
 CyclicalScheduler = CyclicalScheduler
 create_lr_scheduler_with_warmup = create_lr_scheduler_with_warmup
-ReduceLROnPlateauScheduler = ReduceLROnPlateauScheduler

@@ -1353,6 +1353,17 @@ def test_reduce_lr_on_plateau_scheduler():
     )
     assert optimizer.param_groups[1]["lr"] == 1
 
+    values = ReduceLROnPlateauScheduler.simulate_values(
+        5, [10, 9, 9, 9, 8.1], 1.0, save_history=True, factor=0.5, patience=2, threshold=0.1
+    )
+    values = np.array(values)[:, 1].tolist()
+    assert values == list(
+        map(
+            pytest.approx,
+            [1.0, 1.0, 1.0, 0.5, 0.5],
+        )
+    )
+
 
 def test_reduce_lr_on_plateau_scheduler_asserts():
     tensor1 = torch.zeros([1], requires_grad=True)
@@ -1373,3 +1384,7 @@ def test_reduce_lr_on_plateau_scheduler_asserts():
         scheduler = ReduceLROnPlateauScheduler(optimizer, metric_name="acc")
         evaluator = Engine(lambda engine, batch: None)
         scheduler(evaluator)
+
+    with pytest.raises(ValueError, match=r"Length of argument metric_values should be equal to num_events."):
+        metric_values = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
+        ReduceLROnPlateauScheduler.simulate_values(5, metric_values, 0.01)

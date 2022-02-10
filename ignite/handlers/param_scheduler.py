@@ -1395,8 +1395,8 @@ class ParamGroupScheduler:
 
 class ReduceLROnPlateauScheduler(ParamScheduler):
     """Reduce LR when a metric stops improving.
-    Wrapper of torch.optim.lr_scheduler.ReduceLROnPlateau
-    <https://pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.ReduceLROnPlateau.html>.
+    Wrapper of `torch.optim.lr_scheduler.ReduceLROnPlateau
+    <https://pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.ReduceLROnPlateau.html>`_.
 
     Args:
         optimizer: Wrapped optimizer.
@@ -1459,6 +1459,7 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
             min_lr = 0
         _scheduler_kwargs = scheduler_kwargs.copy()
         _scheduler_kwargs["min_lr"] = min_lr
+        _scheduler_kwargs["verbose"] = False
 
         self.scheduler = ReduceLROnPlateau(optimizer, **_scheduler_kwargs)
         self.scheduler._reduce_lr = self._reduce_lr  # type: ignore[attr-defined]
@@ -1484,6 +1485,47 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
             new_lr = max(old_lr * self.scheduler.factor, self.scheduler.min_lrs[i])  # type: ignore[attr-defined]
             if old_lr - new_lr > self.scheduler.eps:  # type: ignore[attr-defined]
                 param_group["lr"] = new_lr
+
+    @classmethod
+    def simulate_values(  # type: ignore[override]
+        cls, num_events: int, metric_values: List[float], init_lr: float, **scheduler_kwargs: Any
+    ) -> List[List[int]]:
+        """Method to simulate scheduled values during num_events events.
+
+        Args:
+            num_events: number of events during the simulation.
+            metric_values: values to change LR based on.
+            init_lr: initial LR to start with.
+            scheduler_kwargs: kwargs passed to construct an instance of
+                :class:`ignite.handlers.param_scheduler.ReduceLROnPlateauScheduler`.
+
+        Returns:
+            event_index, value
+
+        """
+        if len(metric_values) != num_events:
+            raise ValueError(
+                "Length of argument metric_values should be equal to num_events. "
+                f"{len(metric_values)} != {num_events}"
+            )
+
+        keys_to_remove = ["optimizer", "metric_name", "save_history"]
+        for key in keys_to_remove:
+            if key in scheduler_kwargs:
+                del scheduler_kwargs[key]
+        values = []
+        scheduler = cls(
+            optimizer=_get_fake_optimizer(torch.optim.SGD, lr=init_lr),
+            metric_name="metric",
+            save_history=False,
+            **scheduler_kwargs,
+        )
+        engine = Engine(lambda _, __: None)
+        for i in range(num_events):
+            engine.state.metrics["metric"] = metric_values[i]
+            scheduler(engine=engine)
+            values.append([i, scheduler.optimizer_param_groups[0][scheduler.param_name]])
+        return values
 
 
 def _get_fake_optimizer(
