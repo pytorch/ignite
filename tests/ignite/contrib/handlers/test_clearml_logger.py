@@ -1,7 +1,7 @@
 import math
 import os
 from collections import defaultdict
-from unittest.mock import ANY, MagicMock, Mock, call
+from unittest.mock import ANY, call, MagicMock, Mock
 
 import clearml
 import pytest
@@ -13,13 +13,13 @@ import ignite.distributed as idist
 from ignite.contrib.handlers.clearml_logger import (
     ClearMLLogger,
     ClearMLSaver,
+    global_step_from_engine,
     GradsHistHandler,
     GradsScalarHandler,
     OptimizerParamsHandler,
     OutputHandler,
     WeightsHistHandler,
     WeightsScalarHandler,
-    global_step_from_engine,
 )
 from ignite.contrib.handlers.trains_logger import TrainsLogger
 from ignite.engine import Engine, Events, State

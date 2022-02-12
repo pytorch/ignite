@@ -196,7 +196,7 @@ def main_fold(fold):
 def test__xla_dist_model_run_parallel_n_threads_without_sync():
     # tests issue : https://github.com/pytorch/ignite/issues/1096
     import torch_xla.core.xla_model as xm
-    from joblib import Parallel, delayed
+    from joblib import delayed, Parallel
 
     devices = xm.get_xla_supported_devices()
     folds = 1
