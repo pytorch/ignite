@@ -276,7 +276,7 @@ class ComputationModel(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def barrier(self) -> None:
+    def barrier(self, *args: Any, **kwargs: Any) -> None:
         pass
 
 
@@ -357,5 +357,5 @@ class _SerialModel(ComputationModel):
     def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
         return tensor
 
-    def barrier(self) -> None:
+    def barrier(self, *args: Any, **kwargs: Any) -> None:
         pass

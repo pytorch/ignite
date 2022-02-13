@@ -1,4 +1,5 @@
 import warnings
+from distutils.version import LooseVersion
 from typing import Any, Callable, Mapping, Optional, Tuple, cast
 
 import torch
@@ -6,6 +7,7 @@ import torch
 from ignite.distributed.comp_models.base import ComputationModel
 
 try:
+    import horovod
     import horovod.torch as hvd
 
     try:
@@ -23,6 +25,7 @@ except ImportError:
 if has_hvd_support:
 
     HOROVOD = "horovod"
+    HOROVOD_VERSION = horovod.__version__
 
     class _HorovodDistModel(ComputationModel):
         """Private class for `Horovod <https://horovod.readthedocs.io/en/stable/>`_ distributed computation model."""
@@ -192,7 +195,15 @@ if has_hvd_support:
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
             return hvd.broadcast(tensor, root_rank=src)
 
-        def barrier(self) -> None:
-            # https://github.com/horovod/horovod/issues/159#issuecomment-424834603
-            # hvd.allreduce(torch.tensor(0, device=self.device()), name="barrier")
-            hvd.allreduce(torch.tensor(0, device="cpu"), name="barrier")
+        def barrier(self, *args: Any, **kwargs: Any) -> None:
+            if LooseVersion(HOROVOD_VERSION) < LooseVersion("0.23.0"):
+                if len(args) or len(kwargs):
+                    warnings.warn(
+                        f"Arguments {list(args) + list(kwargs)} are not passed to horovod barrier method. "
+                        f"Please use horovod version>='0.23.0'"
+                    )
+                # https://github.com/horovod/horovod/issues/159#issuecomment-424834603
+                # hvd.allreduce(torch.tensor(0, device=self.device()), name="barrier")
+                hvd.allreduce(torch.tensor(0, device="cpu"), name="barrier")
+            else:
+                hvd.barrier(*args, **kwargs)

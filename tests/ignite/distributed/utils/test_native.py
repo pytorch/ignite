@@ -255,21 +255,40 @@ def test_idist_broadcast_gloo(distributed_context_single_node_gloo):
     _test_distrib_broadcast(device)
 
 
+from torch.distributed import GroupMember
+
+
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_idist_barrier_nccl(distributed_context_single_node_nccl):
+@pytest.mark.parametrize(
+    "args,kwargs",
+    [
+        ([], {}),
+        ([GroupMember.WORLD, False], {}),
+        ([GroupMember.WORLD, True], {}),
+    ],
+)
+def test_idist_barrier_nccl(distributed_context_single_node_nccl, args, kwargs):
 
     device = idist.device()
-    _test_distrib_barrier(device)
+    _test_distrib_barrier(device, *args, **kwargs)
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
-def test_idist_barrier_gloo(distributed_context_single_node_gloo):
+@pytest.mark.parametrize(
+    "args,kwargs",
+    [
+        ([], {}),
+        ([GroupMember.WORLD, False], {}),
+        ([GroupMember.WORLD, True], {}),
+    ],
+)
+def test_idist_barrier_gloo(distributed_context_single_node_gloo, args, kwargs):
 
     device = idist.device()
-    _test_distrib_barrier(device)
+    _test_distrib_barrier(device, *args, **kwargs)
 
 
 def _test_idist_methods_overhead(ok_factor):

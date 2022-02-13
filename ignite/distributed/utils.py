@@ -418,12 +418,28 @@ def broadcast(
     return _model.broadcast(tensor, src=src, safe_mode=safe_mode)
 
 
-def barrier() -> None:
-    """Helper method to synchronize all processes."""
+def barrier(*args: Any, **kwargs: Any) -> None:
+    """Helper method to synchronize all processes.
+
+    Args:
+        args: acceptable args according to provided backend
+        kwargs: acceptable kwargs according to provided backend
+
+            - | "nccl" or "gloo" : ``group`` (default, GroupMember.WORLD), ``async_op`` (default, False),
+              | ``device_ids`` (default, None).
+
+            - | "horovod" : for version >= "0.23.0", ``process_set`` (default, global_process_set).
+
+            - | "xla-tpu" : ``tag``, ``payload`` (default, b""), ``replicas`` (default, []).
+
+    .. versionchanged:: 0.5.1
+        Method now accepts ``args`` and  ``kwargs`` for all supported backends.
+
+    """
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
 
-    _model.barrier()
+    _model.barrier(*args, **kwargs)
 
 
 def set_local_rank(index: int) -> None:
