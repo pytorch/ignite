@@ -3,6 +3,7 @@ import stat
 import warnings
 from collections import OrderedDict
 from collections.abc import Mapping
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
@@ -535,20 +536,20 @@ def test_checkpoint_save_handler_callable():
 
 
 def test_model_checkpoint_args_validation(dirname):
-    existing = os.path.join(dirname, "existing_dir")
-    nonempty = os.path.join(dirname, "nonempty")
+    existing = Path(dirname) / "existing_dir"
+    nonempty = Path(dirname) / "nonempty"
 
-    os.makedirs(existing)
-    os.makedirs(nonempty)
+    Path.mkdir(existing, parents=True)
+    Path.mkdir(nonempty, parents=True)
 
-    with open(os.path.join(nonempty, f"{_PREFIX}_name_0.pt"), "w"):
+    with open(Path(nonempty) / f"{_PREFIX}_name_0.pt", "w"):
         pass
 
     with pytest.raises(ValueError, match=r"with extension '.pt' are already present "):
         ModelCheckpoint(nonempty, _PREFIX)
 
     with pytest.raises(ValueError, match=r"Directory path '\S+' is not found"):
-        ModelCheckpoint(os.path.join(dirname, "non_existing_dir"), _PREFIX, create_dir=False)
+        ModelCheckpoint(Path(dirname) / "non_existing_dir", _PREFIX, create_dir=False)
 
     with pytest.raises(TypeError, match=r"global_step_transform should be a function"):
         ModelCheckpoint(existing, _PREFIX, create_dir=False, global_step_transform=1234)
@@ -569,16 +570,16 @@ def test_model_checkpoint_simple_recovery(dirname):
     h(engine, to_save)
 
     fname = h.last_checkpoint
-    assert isinstance(fname, str)
-    assert os.path.join(dirname, _PREFIX) in fname
-    assert os.path.exists(fname)
+    assert isinstance(fname, str) or isinstance(fname, Path)
+    assert str(Path(dirname) / _PREFIX) in str(fname)
+    assert Path(fname).exists()
     loaded_objects = torch.load(fname)
     assert loaded_objects == model.state_dict()
 
 
 def test_model_checkpoint_simple_recovery_from_existing_non_empty(dirname):
     def _test(ext, require_empty):
-        previous_fname = os.path.join(dirname, f"{_PREFIX}_obj_{1}{ext}")
+        previous_fname = Path(dirname) / f"{_PREFIX}_obj_{1}{ext}"
         with open(previous_fname, "w") as f:
             f.write("test")
 
@@ -592,10 +593,10 @@ def test_model_checkpoint_simple_recovery_from_existing_non_empty(dirname):
 
         fname = h.last_checkpoint
         ext = ".pt"
-        assert isinstance(fname, str)
-        assert os.path.join(dirname, f"{_PREFIX}_model_{1}{ext}") == fname
-        assert os.path.exists(fname)
-        assert os.path.exists(previous_fname)
+        assert isinstance(fname, str) or isinstance(fname, Path)
+        assert Path(dirname) / f"{_PREFIX}_model_{1}{ext}" == fname
+        assert Path(fname).exists()
+        assert Path(previous_fname).exists()
         loaded_objects = torch.load(fname)
         assert loaded_objects == model.state_dict()
         os.remove(fname)
@@ -635,8 +636,8 @@ def test_disk_saver_atomic(dirname):
                 saver(_to_save, fname)
         except Exception:
             pass
-        fp = os.path.join(saver.dirname, fname)
-        assert os.path.exists(fp) == expected
+        fp = Path(saver.dirname) / fname
+        assert Path(fp).exists() == expected
 
         if expected:
             # related to https://github.com/pytorch/ignite/issues/1876
@@ -663,8 +664,8 @@ def test_disk_saver_zipfile_serialization_keyword(dirname):
     saver = DiskSaver(dirname, create_dir=False, _use_new_zipfile_serialization=False)
     fname = "test.pt"
     saver(to_save, fname)
-    fp = os.path.join(saver.dirname, fname)
-    assert os.path.exists(fp)
+    fp = Path(saver.dirname) / fname
+    assert Path(fp).exists()
     saver.remove(fname)
 
 
@@ -816,7 +817,7 @@ def test_with_state_dict(dirname):
     engine.add_event_handler(Events.EPOCH_COMPLETED, handler, to_save)
     engine.run([0, 1, 2], max_epochs=4)
 
-    saved_model = os.path.join(dirname, os.listdir(dirname)[0])
+    saved_model = Path(dirname) / os.listdir(dirname)[0]
     load_model = torch.load(saved_model)
 
     assert not isinstance(load_model, DummyModel)
@@ -892,7 +893,7 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname, on_
 
     saved_objects = sorted(os.listdir(dirname))
     # saved object is ['PREFIX_checkpoint_3.pt', ]
-    saved_checkpoint = os.path.join(dirname, saved_objects[0])
+    saved_checkpoint = Path(dirname) / saved_objects[0]
 
     if idist.has_xla_support:
         device = "cpu"
@@ -999,7 +1000,7 @@ def _test_save_model_optimizer_lr_scheduler_with_validation(device, dirname, on_
     trainer.run([0, 1, 2], max_epochs=3)
 
     saved_objects = sorted(os.listdir(dirname))
-    saved_checkpoint = os.path.join(dirname, saved_objects[0])
+    saved_checkpoint = Path(dirname) / saved_objects[0]
 
     loaded_obj = torch.load(saved_checkpoint, map_location=device)
     for f in ["trainer", "model", "optim", "lr_scheduler", "early_stop", "checkpointer"]:
@@ -1112,10 +1113,10 @@ def test_checkpoint_load_objects_from_saved_file(dirname):
     to_save = _get_multiple_objs_to_save()
     handler(trainer, to_save)
     fname = handler.last_checkpoint
-    assert isinstance(fname, str)
-    assert os.path.join(dirname, _PREFIX) in fname
-    assert os.path.exists(fname)
-    Checkpoint.load_objects(to_save, fname)
+    assert isinstance(fname, str) or isinstance(fname, Path)
+    assert str(Path(dirname) / _PREFIX) in str(fname)
+    assert Path(fname).exists()
+    Checkpoint.load_objects(to_save, str(fname))
     os.remove(fname)
 
     # case: multiple objects
@@ -1123,9 +1124,9 @@ def test_checkpoint_load_objects_from_saved_file(dirname):
     to_save = _get_multiple_objs_to_save()
     handler(trainer, to_save)
     fname = handler.last_checkpoint
-    assert isinstance(fname, str)
-    assert os.path.join(dirname, _PREFIX) in fname
-    assert os.path.exists(fname)
+    assert isinstance(fname, str) or isinstance(fname, Path)
+    assert str(Path(dirname) / _PREFIX) in str(fname)
+    assert Path(fname).exists()
     loaded_objects = torch.load(fname)
     Checkpoint.load_objects(to_save, loaded_objects)
     os.remove(fname)
@@ -1135,9 +1136,9 @@ def test_checkpoint_load_objects_from_saved_file(dirname):
     to_save = _get_multiple_objs_to_save()
     handler(trainer, to_save)
     fname = handler.last_checkpoint
-    assert isinstance(fname, str)
-    assert os.path.join(dirname, _PREFIX) in fname
-    assert os.path.exists(fname)
+    assert isinstance(fname, str) or isinstance(fname, Path)
+    assert str(Path(dirname) / _PREFIX) in str(fname)
+    assert Path(fname).exists()
     loaded_objects = torch.load(fname)
     to_load = {"model": to_save["model"]}
     Checkpoint.load_objects(to_load, loaded_objects)
@@ -1148,9 +1149,9 @@ def test_checkpoint_load_objects_from_saved_file(dirname):
     to_save = _get_single_obj_to_save()
     handler(trainer, to_save)
     fname = handler.last_checkpoint
-    assert isinstance(fname, str)
-    assert os.path.join(dirname, _PREFIX) in fname
-    assert os.path.exists(fname)
+    assert isinstance(fname, str) or isinstance(fname, Path)
+    assert str(Path(dirname) / _PREFIX) in str(fname)
+    assert Path(fname).exists()
     loaded_objects = torch.load(fname)
     Checkpoint.load_objects(to_save, loaded_objects)
     os.remove(fname)
@@ -1189,7 +1190,7 @@ def test_disksaver_wrong_input(dirname):
         DiskSaver("/tmp/non-existing-folder", create_dir=False)
 
     def _test(ext):
-        previous_fname = os.path.join(dirname, f"{_PREFIX}_obj_{1}{ext}")
+        previous_fname = Path(dirname) / f"{_PREFIX}_obj_{1}{ext}"
         with open(previous_fname, "w") as f:
             f.write("test")
 
@@ -1242,8 +1243,8 @@ def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo, get_rank_
 
     device = idist.device()
     dirname = get_rank_zero_dirname()
-    _test_save_model_optimizer_lr_scheduler_with_state_dict(device, os.path.join(dirname, "1"))
-    _test_save_model_optimizer_lr_scheduler_with_state_dict(device, os.path.join(dirname, "2"), on_zero_rank=True)
+    _test_save_model_optimizer_lr_scheduler_with_state_dict(device, Path(dirname) / "1")
+    _test_save_model_optimizer_lr_scheduler_with_state_dict(device, Path(dirname) / "2", on_zero_rank=True)
     _test_checkpoint_with_ddp(device)
     _test_checkpoint_load_objects_ddp(device)
 
@@ -1255,8 +1256,8 @@ def test_distrib_nccl_gpu(distributed_context_single_node_nccl, get_rank_zero_di
 
     device = idist.device()
     dirname = get_rank_zero_dirname()
-    _test_save_model_optimizer_lr_scheduler_with_state_dict(device, os.path.join(dirname, "1"))
-    _test_save_model_optimizer_lr_scheduler_with_state_dict("cpu", os.path.join(dirname, "2"), on_zero_rank=True)
+    _test_save_model_optimizer_lr_scheduler_with_state_dict(device, Path(dirname) / "1")
+    _test_save_model_optimizer_lr_scheduler_with_state_dict("cpu", Path(dirname) / "2", on_zero_rank=True)
     _test_checkpoint_with_ddp(device=device)
     _test_checkpoint_load_objects_ddp(device=device)
 
@@ -1272,13 +1273,13 @@ def test_distrib_hvd(gloo_hvd_executor, get_rank_zero_dirname):
 
     gloo_hvd_executor(
         _test_save_model_optimizer_lr_scheduler_with_state_dict,
-        (device, os.path.join(dirname, "1")),
+        (device, Path(dirname) / "1"),
         np=nproc,
         do_init=True,
     )
     gloo_hvd_executor(
         _test_save_model_optimizer_lr_scheduler_with_state_dict,
-        ("cpu", os.path.join(dirname, "2"), True),
+        ("cpu", Path(dirname) / "2", True),
         np=nproc,
         do_init=True,
     )
@@ -1299,9 +1300,9 @@ def _test_tpu_saves_to_cpu(device, dirname):
     idist.barrier()
 
     fname = h.last_checkpoint
-    assert isinstance(fname, str)
-    assert os.path.join(dirname, _PREFIX) in fname
-    assert os.path.exists(fname)
+    assert isinstance(fname, str) or isinstance(fname, Path)
+    assert str(Path(dirname) / _PREFIX) in str(fname)
+    assert Path(fname).exists()
     loaded_objects = torch.load(fname)
     assert loaded_objects == model.cpu().state_dict()
 
@@ -1311,14 +1312,14 @@ def _test_tpu_saves_to_cpu(device, dirname):
 @pytest.mark.skipif(not idist.has_xla_support, reason="Not on TPU device")
 def test_distrib_single_device_xla(dirname):
     assert "xla" in idist.device().type
-    _test_tpu_saves_to_cpu(idist.device(), os.path.join(dirname, "1"))
-    _test_save_model_optimizer_lr_scheduler_with_state_dict(idist.device(), os.path.join(dirname, "2"))
+    _test_tpu_saves_to_cpu(idist.device(), Path(dirname) / "1")
+    _test_save_model_optimizer_lr_scheduler_with_state_dict(idist.device(), Path(dirname) / "2")
 
 
 def _test_tpu_saves_to_cpu_nprocs(index, dirname):
     device = idist.device()
-    _test_tpu_saves_to_cpu(device, os.path.join(dirname, "1"))
-    _test_save_model_optimizer_lr_scheduler_with_state_dict(device, os.path.join(dirname, "2"))
+    _test_tpu_saves_to_cpu(device, Path(dirname) / "1")
+    _test_save_model_optimizer_lr_scheduler_with_state_dict(device, Path(dirname) / "2")
 
     import time
 
@@ -1609,7 +1610,7 @@ def test_checkpoint_reset_with_engine(dirname):
 
     expected = sorted([f"{_PREFIX}_{name}_{i}.pt" for i in [9 * 2, 10 * 2]])
     assert sorted(os.listdir(dirname)) == expected
-    assert "PREFIX_model_20.pt" in handler.last_checkpoint
+    assert "PREFIX_model_20.pt" in str(handler.last_checkpoint)
 
     handler.reset()
     engine.state.max_epochs = None
@@ -1617,7 +1618,7 @@ def test_checkpoint_reset_with_engine(dirname):
 
     expected += [f"{_PREFIX}_{name}_{i}.pt" for i in [1 * 2, 2 * 2]]
     assert sorted(os.listdir(dirname)) == sorted(expected)
-    assert "PREFIX_model_4.pt" in handler.last_checkpoint
+    assert "PREFIX_model_4.pt" in str(handler.last_checkpoint)
 
 
 def test_greater_or_equal():

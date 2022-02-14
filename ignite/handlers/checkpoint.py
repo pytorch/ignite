@@ -6,6 +6,7 @@ import tempfile
 import warnings
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
+from pathlib import Path
 from typing import IO, Any, Callable, Dict, List, Mapping, NamedTuple, Optional, Tuple, Union
 
 import torch
@@ -36,7 +37,7 @@ class BaseSaveHandler(metaclass=ABCMeta):
     """
 
     @abstractmethod
-    def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None) -> None:
+    def __call__(self, checkpoint: Mapping, filename: Union[str, Path], metadata: Optional[Mapping] = None) -> None:
         """Method to save `checkpoint` with `filename`. Additionally, metadata dictionary is provided.
 
         Metadata contains:
@@ -53,7 +54,7 @@ class BaseSaveHandler(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def remove(self, filename: str) -> None:
+    def remove(self, filename: Union[str, Path]) -> None:
         """Method to remove saved checkpoint.
 
         Args:
@@ -271,7 +272,7 @@ class Checkpoint(Serializable):
         self,
         to_save: Mapping,
         save_handler: Union[str, Callable, BaseSaveHandler],
-        filename_prefix: str = "",
+        filename_prefix: Union[str, Path] = "",
         score_function: Optional[Callable] = None,
         score_name: Optional[str] = None,
         n_saved: Optional[int] = 1,
@@ -664,7 +665,12 @@ class DiskSaver(BaseSaveHandler):
     """
 
     def __init__(
-        self, dirname: str, atomic: bool = True, create_dir: bool = True, require_empty: bool = True, **kwargs: Any
+        self,
+        dirname: Union[str, Path],
+        atomic: bool = True,
+        create_dir: bool = True,
+        require_empty: bool = True,
+        **kwargs: Any,
     ):
         self.dirname = os.path.expanduser(dirname)
         self._atomic = atomic
@@ -673,12 +679,12 @@ class DiskSaver(BaseSaveHandler):
 
     @staticmethod
     @idist.one_rank_only()
-    def _check_and_setup(dirname: str, create_dir: bool, require_empty: bool) -> None:
+    def _check_and_setup(dirname: Union[str, Path], create_dir: bool, require_empty: bool) -> None:
         if create_dir:
-            if not os.path.exists(dirname):
-                os.makedirs(dirname)
+            if not Path(dirname).exists():
+                Path.mkdir(dirname, parents=True)
         # Ensure that dirname exists
-        if not os.path.exists(dirname):
+        if not Path(dirname).exists():
             raise ValueError(f"Directory path '{dirname}' is not found")
 
         if require_empty:
@@ -691,8 +697,8 @@ class DiskSaver(BaseSaveHandler):
                     ""
                 )
 
-    def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None) -> None:
-        path = os.path.join(self.dirname, filename)
+    def __call__(self, checkpoint: Mapping, filename: Union[str, Path], metadata: Optional[Mapping] = None) -> None:
+        path = Path(self.dirname) / filename
 
         if idist.has_xla_support:
             self._save_xla(checkpoint, path)
@@ -700,16 +706,16 @@ class DiskSaver(BaseSaveHandler):
             self._save_native(checkpoint, path)
 
     @idist.one_rank_only()
-    def _save_native(self, checkpoint: Mapping, path: str) -> None:
+    def _save_native(self, checkpoint: Mapping, path: Union[str, Path]) -> None:
         self._save_func(checkpoint, path, torch.save)
 
-    def _save_xla(self, checkpoint: Mapping, path: str) -> None:
+    def _save_xla(self, checkpoint: Mapping, path: Union[str, Path]) -> None:
         import torch_xla.core.xla_model as xm
 
         # all tpu procs should enter here as internally performs sync across device
         self._save_func(checkpoint, path, xm.save, rank=idist.get_rank())
 
-    def _save_func(self, checkpoint: Mapping, path: str, func: Callable, rank: int = 0) -> None:
+    def _save_func(self, checkpoint: Mapping, path: Union[str, Path], func: Callable, rank: int = 0) -> None:
         if not self._atomic:
             func(checkpoint, path, **self.kwargs)
         else:
@@ -735,8 +741,8 @@ class DiskSaver(BaseSaveHandler):
                     os.chmod(path, os.stat(path).st_mode | stat.S_IRGRP | stat.S_IROTH)
 
     @idist.one_rank_only()
-    def remove(self, filename: str) -> None:
-        path = os.path.join(self.dirname, filename)
+    def remove(self, filename: Union[str, Path]) -> None:
+        path = Path(self.dirname) / filename
         os.remove(path)
 
 
@@ -810,8 +816,8 @@ class ModelCheckpoint(Checkpoint):
 
     def __init__(
         self,
-        dirname: str,
-        filename_prefix: str,
+        dirname: Union[str, Path],
+        filename_prefix: Union[str, Path],
         score_function: Optional[Callable] = None,
         score_name: Optional[str] = None,
         n_saved: Union[int, None] = 1,
@@ -846,7 +852,7 @@ class ModelCheckpoint(Checkpoint):
                 f"Unable to save checkpoint, save_handler should be DiskSaver, got {type(self.save_handler)}."
             )
 
-        return os.path.join(self.save_handler.dirname, self._saved[-1].filename)
+        return Path(self.save_handler.dirname) / self._saved[-1].filename
 
     def __call__(self, engine: Engine, to_save: Mapping):  # type: ignore
 

@@ -1,6 +1,7 @@
 import math
 import os
 from collections import defaultdict
+from pathlib import Path
 from unittest.mock import ANY, MagicMock, Mock, call
 
 import clearml
@@ -893,7 +894,7 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, on_zero_rank
 
     saved_objects = sorted(os.listdir(clearml_saver.dirname))
     # saved object is ['PREFIX_checkpoint_3.pt', ]
-    saved_checkpoint = os.path.join(clearml_saver.dirname, saved_objects[0])
+    saved_checkpoint = Path(clearml_saver.dirname) / saved_objects[0]
 
     if idist.has_xla_support:
         device = "cpu"

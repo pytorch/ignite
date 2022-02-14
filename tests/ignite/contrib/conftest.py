@@ -1,14 +1,13 @@
 import random
-
 import pytest
 
 
 @pytest.fixture()
 def visdom_offline_logfile(dirname):
 
-    import os
+    from pathlib import Path
 
-    log_file = os.path.join(dirname, "logs.visdom")
+    log_file = Path(dirname) / "logs.visdom"
     yield log_file
 
 

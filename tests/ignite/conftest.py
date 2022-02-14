@@ -3,6 +3,7 @@ import shutil
 import sys
 import tempfile
 import time
+from pathlib import Path
 
 import pytest
 import torch
@@ -26,13 +27,14 @@ def get_fixed_dirname(worker_id):
         nonlocal path
         path += name
         time.sleep(0.5 * lrank)
-        os.makedirs(path, exist_ok=True)
+        path = Path(path)
+        Path.mkdir(path, parents=True)
         return path
 
     yield getter
 
     time.sleep(1.0 * lrank + 1.0)
-    if os.path.exists(path):
+    if Path(path).exists():
         shutil.rmtree(path)
     # sort of sync
     time.sleep(1.0)
@@ -136,7 +138,7 @@ def _setup_free_port(local_rank):
         while counter > 0:
             counter -= 1
             time.sleep(1)
-            if not os.path.exists(port_file):
+            if not Path(port_file).exists():
                 continue
             with open(port_file, "r") as h:
                 port = h.readline()
