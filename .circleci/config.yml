@@ -29,7 +29,7 @@ one_gpu: &one_gpu
     image: ubuntu-2004-cuda-11.4:202110-01 # CUDA v11.4.2, Docker v20.10.7, nvidia-container-toolkit v1.5.1-1
     docker_layer_caching: true
   # https://circleci.com/product/features/resource-classes/#linux-vm
-  resource_class: gpu.small
+  resource_class: gpu.nvidia.small
 
 one_gpu_windows: &one_gpu_windows
   machine:
@@ -43,7 +43,7 @@ two_gpus: &two_gpus
     image: ubuntu-2004-cuda-11.4:202110-01 # CUDA v11.4.2, Docker v20.10.7, nvidia-container-toolkit v1.5.1-1
     docker_layer_caching: true
   # https://circleci.com/product/features/resource-classes/#linux-vm
-  resource_class: gpu.medium
+  resource_class: gpu.nvidia.medium
 
 # -------------------------------------------------------------------------------------
 # Re-usable commands
