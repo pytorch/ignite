@@ -8,13 +8,11 @@ goto end
 
 :lint
 flake8 ignite tests examples --config setup.cfg
-isort . --check --settings setup.cfg
-black . --check --config pyproject.toml
+ufmt diff .
 goto end
 
 :fmt
-isort . --settings setup.cfg
-black . --config pyproject.toml
+ufmt format .
 goto end
 
 :mypy
@@ -22,7 +20,7 @@ mypy --config-file mypy.ini
 goto end
 
 :install
-pip install flake8 "black==21.12b0" "isort==5.7.0" "mypy==0.910"
+pip install flake8 "black==21.12b0" "usort==1.0.1" "ufmt==1.3.1.post1" "mypy"
 goto end
 
 :end

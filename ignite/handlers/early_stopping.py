@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Callable, Mapping, Optional, cast
+from typing import Callable, cast, Mapping, Optional
 
 from ignite.base import Serializable
 from ignite.engine import Engine

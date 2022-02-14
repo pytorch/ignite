@@ -14,10 +14,10 @@ from torch.utils.data import BatchSampler, DataLoader, RandomSampler
 import ignite.distributed as idist
 from ignite.engine import Events
 from ignite.engine.deterministic import (
-    DeterministicEngine,
-    ReproducibleBatchSampler,
     _set_rng_states,
+    DeterministicEngine,
     keep_random_state,
+    ReproducibleBatchSampler,
     update_dataloader,
 )
 from ignite.utils import manual_seed

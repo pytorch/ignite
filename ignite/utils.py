@@ -6,7 +6,7 @@ import random
 import shutil
 import warnings
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, TextIO, Tuple, Type, TypeVar, Union, cast
+from typing import Any, Callable, cast, Dict, Optional, TextIO, Tuple, Type, TypeVar, Union
 
 import torch
 

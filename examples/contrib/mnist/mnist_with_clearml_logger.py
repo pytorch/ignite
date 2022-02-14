@@ -24,13 +24,13 @@ from torchvision.transforms import Compose, Normalize, ToTensor
 from ignite.contrib.handlers.clearml_logger import (
     ClearMLLogger,
     ClearMLSaver,
+    global_step_from_engine,
     GradsHistHandler,
     GradsScalarHandler,
     WeightsHistHandler,
     WeightsScalarHandler,
-    global_step_from_engine,
 )
-from ignite.engine import Events, create_supervised_evaluator, create_supervised_trainer
+from ignite.engine import create_supervised_evaluator, create_supervised_trainer, Events
 from ignite.handlers import Checkpoint
 from ignite.metrics import Accuracy, Loss
 from ignite.utils import setup_logger

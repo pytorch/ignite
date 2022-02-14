@@ -1,6 +1,6 @@
 import os
 import time
-from unittest.mock import MagicMock, Mock, call
+from unittest.mock import call, MagicMock, Mock
 
 import numpy as np
 import pytest
