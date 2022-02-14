@@ -112,6 +112,9 @@ class Average(VariableAccumulation):
 
     Examples:
 
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         .. testcode::
 
             metric = Average()
@@ -209,6 +212,9 @@ class GeometricAverage(VariableAccumulation):
         ``output_tranform`` can be added to the metric to transform the output into the form expected by the metric.
 
     Examples:
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 

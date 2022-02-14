@@ -35,6 +35,9 @@ class MeanPairwiseDistance(Metric):
 
         ``y_pred`` and ``y`` should have the same shape.
 
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         .. testcode::
 
             metric = MeanPairwiseDistance(p=4)

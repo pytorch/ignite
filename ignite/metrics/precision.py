@@ -88,6 +88,9 @@ class Precision(_BasePrecisionRecall):
 
     Examples:
 
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         Binary case
 
         .. testcode:: 1

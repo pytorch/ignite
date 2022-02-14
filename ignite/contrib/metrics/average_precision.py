@@ -42,6 +42,10 @@ class AveragePrecision(EpochMetric):
             avg_precision = AveragePrecision(activated_output_transform)
 
     Examples:
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         .. testcode::
 
             y_pred = torch.Tensor([[0.79, 0.21], [0.30, 0.70], [0.46, 0.54], [0.16, 0.84]])
