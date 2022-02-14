@@ -42,6 +42,9 @@ class EpochMetric(Metric):
 
     Example:
 
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         .. testcode::
 
             def mse_fn(y_preds, y_targets):
