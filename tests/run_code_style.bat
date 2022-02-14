@@ -8,7 +8,7 @@ goto end
 
 :lint
 flake8 ignite tests examples --config setup.cfg
-ufmt check .
+ufmt diff .
 goto end
 
 :fmt
