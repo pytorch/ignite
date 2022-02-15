@@ -4,6 +4,8 @@ ignite.metrics
 Metrics provide a way to compute various quantities of interest in an online
 fashion without having to store the entire output history of a model.
 
+.. _attach-engine:
+
 Attach Engine API
 ------------------
 
