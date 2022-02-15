@@ -674,17 +674,17 @@ class DiskSaver(BaseSaveHandler):
     ):
         self.dirname = os.path.expanduser(dirname)
         self._atomic = atomic
-        self._check_and_setup(dirname, create_dir, require_empty)
+        self._check_and_setup(Path(dirname), create_dir, require_empty)
         self.kwargs = kwargs
 
     @staticmethod
     @idist.one_rank_only()
-    def _check_and_setup(dirname: Union[str, Path], create_dir: bool, require_empty: bool) -> None:
+    def _check_and_setup(dirname: Path, create_dir: bool, require_empty: bool) -> None:
         if create_dir:
-            if not Path(dirname).exists():
+            if not dirname.exists():
                 Path.mkdir(dirname, parents=True)
         # Ensure that dirname exists
-        if not Path(dirname).exists():
+        if not dirname.exists():
             raise ValueError(f"Directory path '{dirname}' is not found")
 
         if require_empty:
@@ -706,16 +706,16 @@ class DiskSaver(BaseSaveHandler):
             self._save_native(checkpoint, path)
 
     @idist.one_rank_only()
-    def _save_native(self, checkpoint: Mapping, path: Union[str, Path]) -> None:
+    def _save_native(self, checkpoint: Mapping, path: Path) -> None:
         self._save_func(checkpoint, path, torch.save)
 
-    def _save_xla(self, checkpoint: Mapping, path: Union[str, Path]) -> None:
+    def _save_xla(self, checkpoint: Mapping, path: Path) -> None:
         import torch_xla.core.xla_model as xm
 
         # all tpu procs should enter here as internally performs sync across device
         self._save_func(checkpoint, path, xm.save, rank=idist.get_rank())
 
-    def _save_func(self, checkpoint: Mapping, path: Union[str, Path], func: Callable, rank: int = 0) -> None:
+    def _save_func(self, checkpoint: Mapping, path: Path, func: Callable, rank: int = 0) -> None:
         if not self._atomic:
             func(checkpoint, path, **self.kwargs)
         else:
