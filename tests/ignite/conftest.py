@@ -12,7 +12,7 @@ import torch.distributed as dist
 
 @pytest.fixture()
 def dirname():
-    path = tempfile.mkdtemp()
+    path = Path(tempfile.mkdtemp())
     yield path
     shutil.rmtree(path)
 
@@ -27,8 +27,7 @@ def get_fixed_dirname(worker_id):
         nonlocal path
         path += name
         time.sleep(0.5 * lrank)
-        path = Path(path)
-        Path.mkdir(path, parents=True)
+        os.makedirs(path, exist_ok=True)
         return path
 
     yield getter
@@ -45,7 +44,7 @@ def get_rank_zero_dirname(dirname):
     def func():
         import ignite.distributed as idist
 
-        zero_rank_dirname = idist.all_gather(dirname)[0]
+        zero_rank_dirname = idist.all_gather(str(dirname))[0]
         return zero_rank_dirname
 
     yield func
