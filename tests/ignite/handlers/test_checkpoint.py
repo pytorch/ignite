@@ -80,7 +80,7 @@ def test_save_handler_as_str(dirname):
     model = DummyModel()
     to_save = {"model": model}
 
-    checkpointer = Checkpoint(to_save, save_handler=dirname)
+    checkpointer = Checkpoint(to_save, save_handler=str(dirname))
     assert isinstance(checkpointer.save_handler, DiskSaver)
 
 
