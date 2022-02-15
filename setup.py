@@ -1,13 +1,12 @@
 import io
 import os
 import re
-from pathlib import Path
 
 from setuptools import find_packages, setup
 
 
 def read(*names, **kwargs):
-    with io.open(Path(os.path.dirname(__file__), *names), encoding=kwargs.get("encoding", "utf8")) as fp:
+    with io.open(os.path.join(os.path.dirname(__file__), *names), encoding=kwargs.get("encoding", "utf8")) as fp:
         return fp.read()
 
 
