@@ -5,9 +5,7 @@ import pytest
 @pytest.fixture()
 def visdom_offline_logfile(dirname):
 
-    from pathlib import Path
-
-    log_file = Path(dirname) / "logs.visdom"
+    log_file = dirname / "logs.visdom"
     yield log_file
 
 
