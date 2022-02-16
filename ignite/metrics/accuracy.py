@@ -116,9 +116,7 @@ class Accuracy(_BaseClassification):
             default, CPU.
 
     Examples:
-        Here, we first declare the metric which is accuracy in this case, then we attach the metric instance to the 
-        engine ( ``default_evaluator`` here) for a very specific reason which is explained in :ref:`attach-engine`. After that, we run the 
-        engine or the ``default_evaluator`` and print the metric value. 
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
 
         .. include:: defaults.rst
             :start-after: :orphan:
