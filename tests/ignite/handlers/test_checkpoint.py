@@ -12,7 +12,7 @@ from pkg_resources import parse_version
 
 import ignite.distributed as idist
 from ignite.engine import Engine, Events, State
-from ignite.handlers import Checkpoint, DiskSaver, EarlyStopping, ModelCheckpoint, global_step_from_engine
+from ignite.handlers import Checkpoint, DiskSaver, EarlyStopping, global_step_from_engine, ModelCheckpoint
 from ignite.handlers.checkpoint import BaseSaveHandler
 
 _PREFIX = "PREFIX"

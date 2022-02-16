@@ -4,7 +4,7 @@ from typing import Callable, Optional, Sequence, Union
 
 import torch
 
-from ignite.metrics.gan.utils import InceptionModel, _BaseInceptionMetric
+from ignite.metrics.gan.utils import _BaseInceptionMetric, InceptionModel
 from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
 __all__ = [
@@ -96,14 +96,8 @@ class FID(_BaseInceptionMetric):
 
     Examples:
 
-        .. code-block:: python
-
-            metric = FID()
-            metric.attach(default_evaluator, "fid")
-            y_true = torch.rand(10, 3, 299, 299)
-            y_pred = torch.rand(10, 3, 299, 299)
-            state = default_evaluator.run([[y_pred, y_true]])
-            print(state.metrics["fid"])
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 

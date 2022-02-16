@@ -1,4 +1,4 @@
-from typing import Callable, Sequence, Union, cast
+from typing import Callable, cast, Sequence, Union
 
 import torch
 
@@ -87,6 +87,9 @@ class Precision(_BasePrecisionRecall):
             default, CPU.
 
     Examples:
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
         Binary case
 

@@ -6,7 +6,7 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from copy import copy
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Type, Union, cast
+from typing import Any, cast, Dict, List, Mapping, Optional, Sequence, Tuple, Type, Union
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
@@ -359,11 +359,12 @@ class LinearCyclicalScheduler(CyclicalScheduler):
 
     Examples:
 
-        .. testsetup:: *
-
-            default_trainer = get_default_trainer()
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode:: 1
+
+            default_trainer = get_default_trainer()
 
             # Linearly increases the learning rate from 0.0 to 1.0 and back to 0.0
             # over a cycle of 4 iterations
@@ -386,6 +387,8 @@ class LinearCyclicalScheduler(CyclicalScheduler):
             ...
 
         .. testcode:: 2
+
+            default_trainer = get_default_trainer()
 
             optimizer = torch.optim.SGD(
                 [
@@ -457,11 +460,12 @@ class CosineAnnealingScheduler(CyclicalScheduler):
 
     Examples:
 
-        .. testsetup:: *
-
-            default_trainer = get_default_trainer()
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode:: 1
+
+            default_trainer = get_default_trainer()
 
             # CosineAnnealing increases the learning rate from 0.0 to 1.0
             # over a cycle of 4 iterations
@@ -484,6 +488,8 @@ class CosineAnnealingScheduler(CyclicalScheduler):
             ...
 
         .. testcode:: 2
+
+            default_trainer = get_default_trainer()
 
             optimizer = torch.optim.SGD(
                 [
@@ -544,11 +550,12 @@ class ConcatScheduler(ParamScheduler):
 
     Examples:
 
-        .. testsetup::
-
-            default_trainer = get_default_trainer()
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
+
+            default_trainer = get_default_trainer()
 
             scheduler_1 = LinearCyclicalScheduler(default_optimizer, "lr", 0.0, 1.0, 8)
             scheduler_2 = CosineAnnealingScheduler(default_optimizer, "lr", 1.0, 0.2, 4)
@@ -790,15 +797,12 @@ class LRScheduler(ParamScheduler):
 
     Examples:
 
-        .. testsetup::
-
-            default_trainer = get_default_trainer()
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 
-            @default_trainer.on(Events.ITERATION_STARTED)
-            def print_lr():
-                print(default_optimizer.param_groups[0]["lr"])
+            default_trainer = get_default_trainer()
 
             from torch.optim.lr_scheduler import StepLR
 
@@ -806,12 +810,16 @@ class LRScheduler(ParamScheduler):
 
             scheduler = LRScheduler(torch_lr_scheduler)
 
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def print_lr():
+                print(default_optimizer.param_groups[0]["lr"])
+
             # In this example, we assume to have installed PyTorch>=1.1.0
             # (with new `torch.optim.lr_scheduler` behaviour) and
             # we attach scheduler to Events.ITERATION_COMPLETED
             # instead of Events.ITERATION_STARTED to make sure to use
             # the first lr value from the optimizer, otherwise it is will be skipped:
-            default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+            default_trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
 
             default_trainer.run([0] * 8, max_epochs=1)
 
@@ -940,15 +948,16 @@ def create_lr_scheduler_with_warmup(
 
     Examples:
 
-        .. testsetup::
-
-            default_trainer = get_default_trainer()
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 
             from torch.optim.lr_scheduler import ExponentialLR
 
             torch_lr_scheduler = ExponentialLR(optimizer=default_optimizer, gamma=0.98)
+
+            default_trainer = get_default_trainer()
 
             scheduler = create_lr_scheduler_with_warmup(torch_lr_scheduler,
                                                         warmup_start_value=0.0,
@@ -1074,11 +1083,12 @@ class PiecewiseLinear(ParamScheduler):
 
     Examples:
 
-        .. testsetup:: *
-
-            default_trainer = get_default_trainer()
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode:: 1
+
+            default_trainer = get_default_trainer()
 
             milestones_values = [(1, 1.0), (3, 0.8), (5, 0.2)]
             scheduler = PiecewiseLinear(
@@ -1105,6 +1115,8 @@ class PiecewiseLinear(ParamScheduler):
             0.2
 
         .. testcode:: 2
+
+            default_trainer = get_default_trainer()
 
             optimizer = torch.optim.SGD(
                 [
@@ -1220,11 +1232,12 @@ class ParamGroupScheduler:
 
     Examples:
 
-        .. testsetup::
-
-            default_trainer = get_default_trainer()
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
+
+            default_trainer = get_default_trainer()
 
             optimizer = torch.optim.SGD(
                 [

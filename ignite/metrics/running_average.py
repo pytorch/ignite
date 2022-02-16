@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Sequence, Union, cast
+from typing import Callable, cast, Optional, Sequence, Union
 
 import torch
 
@@ -26,6 +26,9 @@ class RunningAverage(Metric):
             from the metric is a tensor.
 
     Examples:
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode:: 1
 

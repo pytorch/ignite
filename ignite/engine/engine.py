@@ -4,7 +4,7 @@ import math
 import time
 import warnings
 import weakref
-from collections import OrderedDict, defaultdict
+from collections import defaultdict, OrderedDict
 from collections.abc import Mapping
 from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Tuple, Union
 

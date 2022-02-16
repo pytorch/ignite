@@ -1,6 +1,6 @@
 import functools
 from collections import OrderedDict
-from typing import Any, Callable, Dict, List, Mapping, Sequence, Tuple, Union, cast
+from typing import Any, Callable, cast, Dict, List, Mapping, Sequence, Tuple, Union
 
 import torch
 

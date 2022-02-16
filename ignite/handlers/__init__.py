@@ -10,13 +10,13 @@ from ignite.handlers.param_scheduler import (
     BaseParamScheduler,
     ConcatScheduler,
     CosineAnnealingScheduler,
+    create_lr_scheduler_with_warmup,
     CyclicalScheduler,
     LinearCyclicalScheduler,
     LRScheduler,
     ParamGroupScheduler,
     ParamScheduler,
     PiecewiseLinear,
-    create_lr_scheduler_with_warmup,
 )
 from ignite.handlers.state_param_scheduler import (
     ExpStateScheduler,

@@ -1,17 +1,17 @@
 import sys
-from unittest.mock import ANY, MagicMock, call, patch
+from unittest.mock import ANY, call, MagicMock, patch
 
 import pytest
 import torch
 
 from ignite.contrib.handlers.visdom_logger import (
+    _DummyExecutor,
+    global_step_from_engine,
     GradsScalarHandler,
     OptimizerParamsHandler,
     OutputHandler,
     VisdomLogger,
     WeightsScalarHandler,
-    _DummyExecutor,
-    global_step_from_engine,
 )
 from ignite.engine import Engine, Events, State
 
