@@ -80,11 +80,28 @@ conda activate pytorch-ignite-dev
 
 ### Installation
 
-To get the development installation with the necessary dependencies, run the following:
+1) Make a fork of the repository on the GitHub (see [here](https://github.com/firstcontributions/first-contributions#fork-this-repository) for details). 
+As a result, for example your username is `happy-ignite-developer`, then you should be able to see your fork on the GitHub, e.g https://github.com/happy-ignite-developer/ignite.git
+
+2) Clone your fork locally and setup `upstream`. Assuming your username is `happy-ignite-developer`:
 
 ```bash
-git clone https://github.com/pytorch/ignite.git
+git clone https://github.com/happy-ignite-developer/ignite.git
 cd ignite
+git remote add upstream https://github.com/pytorch/ignite.git
+git remote -v
+```
+You might see the following output:
+```
+origin  https://github.com/happy-ignite-developer/ignite.git (fetch)
+origin  https://github.com/happy-ignite-developer/ignite.git (push)
+upstream        https://github.com/pytorch/ignite (fetch)
+upstream        https://github.com/pytorch/ignite (push)
+```
+3) Sync and install all necessary dependencies:
+
+```bash
+git pull upstream master
 python setup.py develop
 pip install -r requirements-dev.txt
 bash ./tests/run_code_style.sh install
@@ -216,10 +233,11 @@ To change any config for specif folder, please see the file mypy.ini
 
 #### Send a PR
 
-If everything is OK, please send a Pull Request to https://github.com/pytorch/ignite
+If everything is OK, please send a Pull Request to https://github.com/pytorch/ignite from your fork.
 
 If you are not familiar with creating a Pull Request, here are some guides:
 
+- https://github.com/firstcontributions/first-contributions
 - http://stackoverflow.com/questions/14680711/how-to-do-a-github-pull-request
 - https://help.github.com/articles/creating-a-pull-request/
 
