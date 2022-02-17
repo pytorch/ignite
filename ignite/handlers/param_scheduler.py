@@ -6,7 +6,7 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from copy import copy
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Type, Union, cast
+from typing import Any, cast, Dict, List, Mapping, Optional, Sequence, Tuple, Type, Union
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
@@ -804,22 +804,22 @@ class LRScheduler(ParamScheduler):
 
             default_trainer = get_default_trainer()
 
-            @default_trainer.on(Events.ITERATION_STARTED)
-            def print_lr():
-                print(default_optimizer.param_groups[0]["lr"])
-
             from torch.optim.lr_scheduler import StepLR
 
             torch_lr_scheduler = StepLR(default_optimizer, step_size=3, gamma=0.1)
 
             scheduler = LRScheduler(torch_lr_scheduler)
 
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def print_lr():
+                print(default_optimizer.param_groups[0]["lr"])
+
             # In this example, we assume to have installed PyTorch>=1.1.0
             # (with new `torch.optim.lr_scheduler` behaviour) and
             # we attach scheduler to Events.ITERATION_COMPLETED
             # instead of Events.ITERATION_STARTED to make sure to use
             # the first lr value from the optimizer, otherwise it is will be skipped:
-            default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+            default_trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
 
             default_trainer.run([0] * 8, max_epochs=1)
 

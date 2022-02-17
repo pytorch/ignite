@@ -1,7 +1,7 @@
 import os
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, call
+from unittest.mock import call, MagicMock
 
 import pytest
 import torch

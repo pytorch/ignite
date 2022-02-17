@@ -8,7 +8,7 @@ from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, r
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics import ConfusionMatrix, IoU, JaccardIndex, mIoU
-from ignite.metrics.confusion_matrix import DiceCoefficient, cmAccuracy, cmPrecision, cmRecall
+from ignite.metrics.confusion_matrix import cmAccuracy, cmPrecision, cmRecall, DiceCoefficient
 
 torch.manual_seed(12)
 

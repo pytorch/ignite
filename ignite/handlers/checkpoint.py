@@ -7,7 +7,7 @@ import warnings
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from pathlib import Path
-from typing import IO, Any, Callable, Dict, List, Mapping, NamedTuple, Optional, Tuple, Union
+from typing import Any, Callable, Dict, IO, List, Mapping, NamedTuple, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn

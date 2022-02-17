@@ -69,10 +69,12 @@ togglebutton_hint = "Show default setup"
 togglebutton_hint_hide = "Hide default setup"
 
 # Copy defaults.rst to source/generated to be discoverable in docstrings
-src_folder = os.path.dirname(__file__)
-gen_folder = Path(src_folder) / "generated"
-Path.mkdir(gen_folder, exist_ok=True)
-shutil.copy(Path(src_folder) / "defaults.rst", gen_folder)
+# Skip this step for previous versions of ignite
+if Path('defaults.rst').exists():
+    src_folder = os.path.dirname(__file__)
+    gen_folder = Path(src_folder) / "generated"
+    Path.mkdir(gen_folder, exist_ok=True)
+    shutil.copy(Path(src_folder) / "defaults.rst", gen_folder)
 
 # katex options
 katex_prerender = True

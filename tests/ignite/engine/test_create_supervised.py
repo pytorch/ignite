@@ -14,11 +14,11 @@ from torch.optim import SGD
 
 import ignite.distributed as idist
 from ignite.engine import (
-    Engine,
-    Events,
     _check_arg,
     create_supervised_evaluator,
     create_supervised_trainer,
+    Engine,
+    Events,
     supervised_evaluation_step,
     supervised_evaluation_step_amp,
     supervised_training_step_tpu,

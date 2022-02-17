@@ -4,7 +4,7 @@ from collections import Counter
 
 import pytest
 import torch
-from nltk.translate.bleu_score import SmoothingFunction, corpus_bleu, sentence_bleu
+from nltk.translate.bleu_score import corpus_bleu, sentence_bleu, SmoothingFunction
 
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError

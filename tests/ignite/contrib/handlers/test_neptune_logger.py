@@ -2,20 +2,20 @@ import math
 import sys
 import warnings
 from pathlib import Path
-from unittest.mock import ANY, MagicMock, call
+from unittest.mock import ANY, call, MagicMock
 
 import pytest
 import torch
 
 import ignite.distributed as idist
 from ignite.contrib.handlers.neptune_logger import (
+    global_step_from_engine,
     GradsScalarHandler,
     NeptuneLogger,
     NeptuneSaver,
     OptimizerParamsHandler,
     OutputHandler,
     WeightsScalarHandler,
-    global_step_from_engine,
 )
 from ignite.engine import Engine, Events, State
 from ignite.handlers.checkpoint import Checkpoint

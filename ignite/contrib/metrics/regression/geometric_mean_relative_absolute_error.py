@@ -1,4 +1,4 @@
-from typing import List, Tuple, cast
+from typing import cast, List, Tuple
 
 import torch
 
