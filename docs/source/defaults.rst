@@ -1,5 +1,7 @@
 :orphan:
 
+For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
 .. toggle::
 
     .. testcode:: default, 1, 2, 3, 4, 5
