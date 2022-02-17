@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, List, Tuple, Type, Union
+from typing import List, Tuple, Type, TYPE_CHECKING, Union
 
 from ignite.distributed.comp_models.base import _SerialModel
 from ignite.distributed.comp_models.horovod import has_hvd_support

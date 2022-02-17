@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import Mapping
 from functools import wraps
 from numbers import Number
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple, TYPE_CHECKING, Union
 
 import torch
 
