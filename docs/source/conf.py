@@ -70,7 +70,7 @@ togglebutton_hint_hide = "Hide default setup"
 
 # Copy defaults.rst to source/generated to be discoverable in docstrings
 # Skip this step for previous versions of ignite
-if Path('defaults.rst').exists():
+if Path("defaults.rst").exists():
     src_folder = os.path.dirname(__file__)
     gen_folder = Path(src_folder) / "generated"
     Path.mkdir(gen_folder, exist_ok=True)
