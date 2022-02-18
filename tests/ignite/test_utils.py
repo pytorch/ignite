@@ -2,7 +2,6 @@ import logging
 import sys
 from collections import namedtuple
 from distutils.version import LooseVersion
-from pathlib import Path
 
 import pytest
 import torch
@@ -116,7 +115,7 @@ def test_setup_logger(capsys, dirname):
     trainer.logger.addHandler(logging.NullHandler())
     trainer.logger.addHandler(logging.NullHandler())
 
-    fp = Path(dirname) / "log"
+    fp = dirname / "log"
 
     def _test(stream):
 

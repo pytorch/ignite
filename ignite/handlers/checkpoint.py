@@ -272,7 +272,7 @@ class Checkpoint(Serializable):
         self,
         to_save: Mapping,
         save_handler: Union[str, Path, Callable, BaseSaveHandler],
-        filename_prefix: Optional[str] = "",
+        filename_prefix: str = "",
         score_function: Optional[Callable] = None,
         score_name: Optional[str] = None,
         n_saved: Optional[int] = 1,
@@ -681,7 +681,7 @@ class DiskSaver(BaseSaveHandler):
     ):
         self.dirname = Path(dirname).expanduser()
         self._atomic = atomic
-        self._check_and_setup(Path(dirname), create_dir, require_empty)
+        self._check_and_setup(self.dirname, create_dir, require_empty)
         self.kwargs = kwargs
 
     @staticmethod
