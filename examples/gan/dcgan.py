@@ -309,7 +309,7 @@ def main(
 
     @trainer.on(Events.ITERATION_COMPLETED(every=PRINT_FREQ))
     def print_logs(engine):
-        fname = Path(output_dir) / LOGS_FNAME
+        fname = output_dir / LOGS_FNAME
         columns = ["iteration"] + list(engine.state.metrics.keys())
         values = [str(engine.state.iteration)] + [str(round(value, 5)) for value in engine.state.metrics.values()]
 
@@ -327,14 +327,14 @@ def main(
     @trainer.on(Events.EPOCH_COMPLETED)
     def save_fake_example(engine):
         fake = netG(fixed_noise)
-        path = Path(output_dir) / FAKE_IMG_FNAME.format(engine.state.epoch)
+        path = output_dir / FAKE_IMG_FNAME.format(engine.state.epoch)
         vutils.save_image(fake.detach(), path, normalize=True)
 
     # adding handlers using `trainer.on` decorator API
     @trainer.on(Events.EPOCH_COMPLETED)
     def save_real_example(engine):
         img, y = engine.state.batch
-        path = Path(output_dir) / REAL_IMG_FNAME.format(engine.state.epoch)
+        path = output_dir / REAL_IMG_FNAME.format(engine.state.epoch)
         vutils.save_image(img, path, normalize=True)
 
     # adding handlers using `trainer.add_event_handler` method API
@@ -372,11 +372,11 @@ def main(
             warnings.warn("Loss plots will not be generated -- pandas or matplotlib not found")
 
         else:
-            df = pd.read_csv(Path(output_dir) / LOGS_FNAME, delimiter="\t", index_col="iteration")
+            df = pd.read_csv(output_dir / LOGS_FNAME, delimiter="\t", index_col="iteration")
             _ = df.plot(subplots=True, figsize=(20, 20))
             _ = plt.xlabel("Iteration number")
             fig = plt.gcf()
-            path = Path(output_dir) / PLOT_FNAME
+            path = output_dir / PLOT_FNAME
 
             fig.savefig(path)
 
@@ -442,10 +442,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
     dev = "cpu" if (not torch.cuda.is_available() or args.no_cuda) else "cuda:0"
 
+    args.outputdir = Path(args.output_dir)
     try:
-        Path.mkdir(args.output_dir, parents=True)
+        args.output_dir.mkdir(parents=True)
     except FileExistsError:
-        if (not os.path.isdir(args.output_dir)) or (len(os.listdir(args.output_dir)) > 0):
+        if (not args.output_dir.is_dir()) or (len(os.listdir(args.output_dir)) > 0):
             raise FileExistsError("Please provide a path to a non-existing or empty directory.")
 
     main(

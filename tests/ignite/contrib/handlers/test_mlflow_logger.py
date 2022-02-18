@@ -1,5 +1,4 @@
 import sys
-from pathlib import Path
 from unittest.mock import call, MagicMock
 
 import pytest

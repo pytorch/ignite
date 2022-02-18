@@ -44,7 +44,7 @@ def get_rank_zero_dirname(dirname):
     def func():
         import ignite.distributed as idist
 
-        zero_rank_dirname = idist.all_gather(str(dirname))[0]
+        zero_rank_dirname = Path(idist.all_gather(str(dirname))[0])
         return zero_rank_dirname
 
     yield func

@@ -22,8 +22,9 @@ test_transform = Compose([ToTensor(), Normalize((0.485, 0.456, 0.406), (0.229, 0
 
 
 def get_train_test_datasets(path):
-    if not Path(path).exists():
-        Path.mkdir(path, parents=True)
+    path = Path(path)
+    if not path.exists():
+        path.mkdir(parents=True)
         download = True
     else:
         download = True if len(os.listdir(path)) < 1 else False

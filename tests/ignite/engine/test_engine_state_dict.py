@@ -1,5 +1,4 @@
 from collections.abc import Mapping
-from pathlib import Path
 
 import pytest
 import torch
@@ -189,7 +188,7 @@ def test_state_dict_with_user_keys_integration(dirname):
     def init_user_values(_):
         engine.state.alpha = 0.1
 
-    fp = Path(dirname) / "engine.pt"
+    fp = dirname / "engine.pt"
 
     @engine.on(Events.COMPLETED)
     def save_engine(_):
@@ -199,7 +198,7 @@ def test_state_dict_with_user_keys_integration(dirname):
 
     engine.run([0, 1])
 
-    assert Path(fp).exists()
+    assert fp.exists()
     state_dict = torch.load(fp)
     assert "alpha" in state_dict and state_dict["alpha"] == 0.1
 

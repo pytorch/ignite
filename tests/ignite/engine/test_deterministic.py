@@ -2,7 +2,6 @@ import os
 import random
 import sys
 from collections.abc import Mapping
-from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
@@ -718,7 +717,7 @@ def _test_gradients_on_resume(
         def save_chkpt(_):
             if debug:
                 print(trainer.state.iteration, "save_chkpt")
-            fp = Path(dirname) / "test.pt"
+            fp = dirname / "test.pt"
             from ignite.engine.deterministic import _repr_rng_state
 
             tsd = trainer.state_dict()
