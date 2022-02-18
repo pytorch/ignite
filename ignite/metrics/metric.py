@@ -378,6 +378,9 @@ class Metric(metaclass=ABCMeta):
                 :attr:`ignite.metrics.metric.BatchWise.usage_name`.
 
         Examples:
+
+            For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
             .. code-block:: python
 
                 metric = ...
