@@ -23,7 +23,7 @@ try:
 except ImportError:
     has_multiplicative_lr = False
 else:
-    from distutils.version import Version
+    from packaging.version import Version
 
     # https://github.com/pytorch/pytorch/issues/32756
     has_multiplicative_lr = Version(torch.__version__) >= Version("1.5.0")
