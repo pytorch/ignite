@@ -1,5 +1,4 @@
 import os
-from packaging.version import Version
 from importlib.util import find_spec
 from typing import Optional, Union
 from unittest import mock
@@ -7,6 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import torch
+from packaging.version import Version
 from pytest import approx
 from torch.nn import Linear
 from torch.nn.functional import mse_loss

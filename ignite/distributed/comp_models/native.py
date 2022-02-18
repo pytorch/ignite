@@ -2,12 +2,12 @@ import os
 import re
 import subprocess
 import warnings
-from packaging.version import Version
 from typing import Any, Callable, cast, Dict, List, Mapping, Optional, Tuple, Union
 
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
+from packaging.version import Version
 
 from ignite.distributed.comp_models.base import ComputationModel
 

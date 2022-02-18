@@ -2,10 +2,10 @@ import logging
 import os
 import sys
 from collections import namedtuple
-from packaging.version import Version
 
 import pytest
 import torch
+from packaging.version import Version
 
 from ignite.engine import Engine, Events
 from ignite.utils import convert_tensor, deprecated, hash_checkpoint, setup_logger, to_onehot

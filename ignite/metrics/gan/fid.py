@@ -1,8 +1,8 @@
 import warnings
-from packaging.version import Version
 from typing import Callable, Optional, Sequence, Union
 
 import torch
+from packaging.version import Version
 
 from ignite.metrics.gan.utils import _BaseInceptionMetric, InceptionModel
 from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce

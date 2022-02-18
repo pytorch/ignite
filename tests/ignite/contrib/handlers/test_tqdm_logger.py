@@ -2,12 +2,12 @@
 import sys
 import time
 from argparse import Namespace
-from packaging.version import Version
 from unittest.mock import patch
 
 import numpy as np
 import pytest
 import torch
+from packaging.version import Version
 
 from ignite.contrib.handlers import ProgressBar
 from ignite.engine import Engine, Events
