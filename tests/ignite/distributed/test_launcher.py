@@ -1,7 +1,7 @@
 import os
 import subprocess
 import sys
-from distutils.version import LooseVersion
+from packaging.version import Version
 from pathlib import Path
 
 import pytest
@@ -67,7 +67,7 @@ def _test_check_idist_parallel_torch_launch(init_method, fp, backend, nprocs):
     # torchrun --nproc_per_node=nprocs tests/ignite/distributed/check_idist_parallel.py --backend=backend
 
     cmd = []
-    if LooseVersion(torch.__version__) >= LooseVersion("1.10.0"):
+    if Version(torch.__version__) >= Version("1.10.0"):
         cmd += ["torchrun"]
     else:
         cmd += [

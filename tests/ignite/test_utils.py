@@ -2,7 +2,7 @@ import logging
 import os
 import sys
 from collections import namedtuple
-from distutils.version import LooseVersion
+from packaging.version import Version
 
 import pytest
 import torch
@@ -242,7 +242,7 @@ def test_smoke__utils():
     from ignite._utils import apply_to_tensor, apply_to_type, convert_tensor, to_onehot  # noqa: F401
 
 
-@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.5.0"), reason="Skip if < 1.5.0")
+@pytest.mark.skipif(Version(torch.__version__) < Version("1.5.0"), reason="Skip if < 1.5.0")
 def test_hash_checkpoint(tmp_path):
     # download lightweight model
     from torchvision.models import squeezenet1_0

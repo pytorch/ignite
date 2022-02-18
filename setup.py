@@ -26,6 +26,7 @@ VERSION = find_version("ignite", "__init__.py")
 
 requirements = [
     "torch>=1.3,<2",
+    "packaging"
 ]
 
 setup(
