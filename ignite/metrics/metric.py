@@ -150,6 +150,8 @@ class Metric(metaclass=ABCMeta):
         In the example below we show how to setup standard metric like Accuracy and the custom metric using by an
         ``evaluator`` created with :meth:`~ignite.engine.create_supervised_evaluator` method.
 
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
         .. code-block:: python
 
             # https://discuss.pytorch.org/t/how-access-inputs-in-custom-ignite-metric/91221/5
@@ -378,8 +380,6 @@ class Metric(metaclass=ABCMeta):
                 :attr:`ignite.metrics.metric.BatchWise.usage_name`.
 
         Examples:
-
-            For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
 
             .. code-block:: python
 
