@@ -466,8 +466,8 @@ workflows:
       # Can not run tests on 2 GPUs on Circle-CI
       # Now, they are running on GHA self-hosted
       - two_gpus_tests
-      # - two_gpus_check_dist_cifar10_example
-      # - two_gpus_hvd_tests
+      - two_gpus_check_dist_cifar10_example
+      - two_gpus_hvd_tests
   docker_images:
     when: << pipeline.parameters.should_build_docker_images >>
     jobs:
