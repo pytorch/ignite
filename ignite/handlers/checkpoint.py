@@ -355,7 +355,7 @@ class Checkpoint(Serializable):
         self._saved = []
 
     @property
-    def last_checkpoint(self) -> Optional[str]:
+    def last_checkpoint(self) -> Optional[Union[str, Path]]:
         if len(self._saved) < 1:
             return None
         return self._saved[-1].filename
@@ -850,7 +850,7 @@ class ModelCheckpoint(Checkpoint):
         )
 
     @property
-    def last_checkpoint(self) -> Optional[Path]:
+    def last_checkpoint(self) -> Optional[Union[str, Path]]:
         if len(self._saved) < 1:
             return None
 
