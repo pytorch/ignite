@@ -442,7 +442,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     dev = "cpu" if (not torch.cuda.is_available() or args.no_cuda) else "cuda:0"
 
-    args.outputdir = Path(args.output_dir)
+    args.output_dir = Path(args.output_dir)
     try:
         args.output_dir.mkdir(parents=True)
     except FileExistsError:

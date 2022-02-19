@@ -15,9 +15,8 @@
 import os
 import shutil
 import sys
-from pathlib import Path
 
-sys.path.insert(0, Path("../..").resolve())
+sys.path.insert(0, os.path.abspath("../.."))
 from datetime import datetime
 
 import pytorch_sphinx_theme
@@ -70,11 +69,11 @@ togglebutton_hint_hide = "Hide default setup"
 
 # Copy defaults.rst to source/generated to be discoverable in docstrings
 # Skip this step for previous versions of ignite
-if Path("defaults.rst").exists():
-    src_folder = Path(__file__).parent
-    gen_folder = src_folder / "generated"
-    gen_folder.mkdir(exist_ok=True)
-    shutil.copy(src_folder / "defaults.rst", gen_folder)
+if os.path.exists("defaults.rst"):
+    src_folder = os.path.dirname(__file__)
+    gen_folder = os.path.join(src_folder, "generated")
+    os.makedirs(gen_folder, exist_ok=True)
+    shutil.copy(os.path.join(src_folder, "defaults.rst"), gen_folder)
 
 # katex options
 katex_prerender = True
