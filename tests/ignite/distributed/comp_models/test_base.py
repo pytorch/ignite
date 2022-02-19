@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from ignite.distributed.comp_models.base import ComputationModel, _SerialModel
+from ignite.distributed.comp_models.base import _SerialModel, ComputationModel
 
 
 def test_serial_model():

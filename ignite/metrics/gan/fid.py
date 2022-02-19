@@ -4,7 +4,7 @@ from typing import Callable, Optional, Sequence, Union
 
 import torch
 
-from ignite.metrics.gan.utils import InceptionModel, _BaseInceptionMetric
+from ignite.metrics.gan.utils import _BaseInceptionMetric, InceptionModel
 from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
 __all__ = [

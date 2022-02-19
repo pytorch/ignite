@@ -3,7 +3,7 @@ from typing import Callable, Optional, Union
 import torch
 
 from ignite.exceptions import NotComputableError
-from ignite.metrics.gan.utils import InceptionModel, _BaseInceptionMetric
+from ignite.metrics.gan.utils import _BaseInceptionMetric, InceptionModel
 
 # These decorators helps with distributed settings
 from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce

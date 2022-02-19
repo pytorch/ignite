@@ -2,7 +2,7 @@ import numbers
 import weakref
 from enum import Enum
 from types import DynamicClassAttribute
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Iterator, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, TYPE_CHECKING, Union
 
 from torch.utils.data import DataLoader
 

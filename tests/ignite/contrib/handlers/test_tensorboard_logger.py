@@ -1,11 +1,12 @@
 import math
 import os
-from unittest.mock import ANY, MagicMock, call, patch
+from unittest.mock import ANY, call, MagicMock, patch
 
 import pytest
 import torch
 
 from ignite.contrib.handlers.tensorboard_logger import (
+    global_step_from_engine,
     GradsHistHandler,
     GradsScalarHandler,
     OptimizerParamsHandler,
@@ -13,7 +14,6 @@ from ignite.contrib.handlers.tensorboard_logger import (
     TensorboardLogger,
     WeightsHistHandler,
     WeightsScalarHandler,
-    global_step_from_engine,
 )
 from ignite.engine import Engine, Events, State
 

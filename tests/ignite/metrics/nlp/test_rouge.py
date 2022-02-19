@@ -8,7 +8,7 @@ import torch
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics.nlp import Rouge
-from ignite.metrics.nlp.rouge import RougeL, RougeN, compute_ngram_scores
+from ignite.metrics.nlp.rouge import compute_ngram_scores, RougeL, RougeN
 
 from . import CorpusForTest
 
