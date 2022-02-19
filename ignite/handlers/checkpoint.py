@@ -850,7 +850,7 @@ class ModelCheckpoint(Checkpoint):
         )
 
     @property
-    def last_checkpoint(self) -> Union[Path, None]:
+    def last_checkpoint(self) -> Optional[str]:
         if len(self._saved) < 1:
             return None
 
