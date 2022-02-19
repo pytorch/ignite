@@ -42,6 +42,8 @@ class Loss(Metric):
         and the Loss metric using an ``evaluator`` created with
         :meth:`~ignite.engine.create_supervised_evaluator` method.
 
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
         .. include:: defaults.rst
             :start-after: :orphan:
 
