@@ -1,8 +1,8 @@
 # coding: utf-8
 import argparse
-import os
 import random
 from collections import OrderedDict
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -20,8 +20,8 @@ from ignite.handlers import ModelCheckpoint
 
 def check_paths(args):
     try:
-        if args.checkpoint_model_dir is not None and not (os.path.exists(args.checkpoint_model_dir)):
-            os.makedirs(args.checkpoint_model_dir)
+        if args.checkpoint_model_dir is not None and not (Path(args.checkpoint_model_dir).exists()):
+            Path(args.checkpoint_model_dir).mkdir(parents=True)
     except OSError as e:
         raise OSError(e)
 
