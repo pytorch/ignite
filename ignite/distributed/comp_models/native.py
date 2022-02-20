@@ -2,12 +2,12 @@ import os
 import re
 import subprocess
 import warnings
-from distutils.version import LooseVersion
 from typing import Any, Callable, cast, Dict, List, Mapping, Optional, Tuple, Union
 
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
+from packaging.version import Version
 
 from ignite.distributed.comp_models.base import ComputationModel
 
@@ -133,7 +133,7 @@ if has_native_dist_support:
             # [W ProcessGroupNCCL.cpp:1569] Rank 0 using best-guess GPU 0 to perform barrier as devices used by
             # this process are currently unknown. This can potentially cause a hang if this rank to GPU mapping
             # is incorrect.Specify device_ids in barrier() to force use of a particular device.
-            if backend == dist.Backend.NCCL and LooseVersion(torch.__version__) >= LooseVersion("1.8.0"):
+            if backend == dist.Backend.NCCL and Version(torch.__version__) >= Version("1.8.0"):
                 device_ids = [torch.cuda.current_device()]
                 dist.barrier(device_ids=device_ids)
             else:
@@ -369,7 +369,7 @@ if has_native_dist_support:
 
             start_processes = mp.spawn
             # start_method and start_processes in pytorch >= 1.5
-            if LooseVersion(torch.__version__) >= LooseVersion("1.5.0"):
+            if Version(torch.__version__) >= Version("1.5.0"):
                 import builtins
 
                 if "__IPYTHON__" in builtins.__dict__:

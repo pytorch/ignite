@@ -1,4 +1,4 @@
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional
 
 from ignite.engine import Engine
 from ignite.engine.events import Events
@@ -17,6 +17,7 @@ from ignite.handlers.param_scheduler import (
     ParamGroupScheduler,
     ParamScheduler,
     PiecewiseLinear,
+    ReduceLROnPlateauScheduler,
 )
 from ignite.handlers.state_param_scheduler import (
     ExpStateScheduler,
@@ -62,6 +63,7 @@ __all__ = [
     "ExpStateScheduler",
     "StepStateScheduler",
     "MultiStepStateScheduler",
+    "ReduceLROnPlateauScheduler",
 ]
 
 
