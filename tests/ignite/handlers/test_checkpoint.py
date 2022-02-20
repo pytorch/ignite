@@ -1671,3 +1671,22 @@ def test_get_default_score_fn():
     score_fn = Checkpoint.get_default_score_fn("loss", -1)
     score = score_fn(engine)
     assert score == -0.123
+
+
+@pytest.mark.parametrize("obj_to_save", ["optim", "trainer"])
+def test_load_single_object(obj_to_save, dirname):
+    # Checks https://github.com/pytorch/ignite/issues/2479
+
+    trainer = Engine(lambda e, b: None)
+    if obj_to_save == "optim":
+        t = torch.tensor(0.0)
+        optim = torch.optim.SGD([t], lr=0.1)
+        to_save = {"optim": optim}
+    elif obj_to_save == "trainer":
+        to_save = {"trainer": trainer}
+
+    c = Checkpoint(to_save, save_handler=dirname)
+    c(trainer)
+
+    checkpoint_fp = dirname / c.last_checkpoint
+    Checkpoint.load_objects(to_load=to_save, checkpoint=str(checkpoint_fp))

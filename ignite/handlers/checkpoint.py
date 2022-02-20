@@ -573,25 +573,27 @@ class Checkpoint(Serializable):
             warnings.warn("kwargs contains keys other than strict and these will be ignored")
 
         is_state_dict_strict = kwargs.get("strict", True)
+
+        def _load_object(obj: Any, chkpt_obj: Any) -> None:
+            if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
+                obj = obj.module
+            if isinstance(obj, torch.nn.Module):
+                obj.load_state_dict(chkpt_obj, strict=is_state_dict_strict)
+            else:
+                obj.load_state_dict(chkpt_obj)
+
         if len(to_load) == 1:
             # single object and checkpoint is directly a state_dict
             key, obj = list(to_load.items())[0]
             if key not in checkpoint_obj:
-                if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
-                    obj = obj.module
-                obj.load_state_dict(checkpoint_obj, strict=is_state_dict_strict)
+                _load_object(obj, checkpoint_obj)
                 return
 
         # multiple objects to load
         for k, obj in to_load.items():
             if k not in checkpoint_obj:
                 raise ValueError(f"Object labeled by '{k}' from `to_load` is not found in the checkpoint")
-            if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
-                obj = obj.module
-            if isinstance(obj, torch.nn.Module):
-                obj.load_state_dict(checkpoint_obj[k], strict=is_state_dict_strict)
-            else:
-                obj.load_state_dict(checkpoint_obj[k])
+            _load_object(obj, checkpoint_obj[k])
 
     def state_dict(self) -> "OrderedDict[str, List[Tuple[int, str]]]":
         """Method returns state dict with saved items: list of ``(priority, filename)`` pairs.
