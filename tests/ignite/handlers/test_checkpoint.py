@@ -1063,7 +1063,7 @@ def _test_save_model_optimizer_lr_scheduler_with_validation(device, dirname, on_
     # If Checkpoint's state was restored correctly, it should continue to respect n_saved
     # and delete old checkpoints, and have the correct last_checkpoint.
     assert os.listdir(dirname) == ["checkpoint_4.pt"]
-    assert checkpointer2.last_checkpoint == str(Path(dirname) / "checkpoint_4.pt")
+    assert checkpointer2.last_checkpoint == dirname / "checkpoint_4.pt"
 
 
 def test_save_model_optimizer_lr_scheduler_with_validation(dirname):
