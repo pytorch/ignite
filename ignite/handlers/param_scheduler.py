@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, cast, Dict, List, Mapping, Optional, Sequence, Tuple, Type, Union
 
 import torch
-from torch.optim.lr_scheduler import ReduceLROnPlateau, _LRScheduler
+from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
 from torch.optim.optimizer import Optimizer
 
 from ignite.engine import Engine
@@ -1482,9 +1482,9 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
             default_trainer.run([0.] * 8)
 
             print(default_trainer.state.param_history["lr"])
-        
+
         .. testoutput::
-        
+
             [[0.1], [0.1], [0.1], [0.1], [0.1], [0.1], [0.05], [0.05]]
 
     .. versionadded:: 0.4.8

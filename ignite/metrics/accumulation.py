@@ -112,6 +112,8 @@ class Average(VariableAccumulation):
 
     Examples:
 
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
         .. include:: defaults.rst
             :start-after: :orphan:
 
@@ -212,6 +214,8 @@ class GeometricAverage(VariableAccumulation):
         ``output_tranform`` can be added to the metric to transform the output into the form expected by the metric.
 
     Examples:
+
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
 
         .. include:: defaults.rst
             :start-after: :orphan:
