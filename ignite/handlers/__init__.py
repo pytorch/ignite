@@ -18,6 +18,7 @@ from ignite.handlers.param_scheduler import (
     ParamScheduler,
     PiecewiseLinear,
     ReduceLROnPlateauScheduler,
+    StepParamScheduler,
 )
 from ignite.handlers.state_param_scheduler import (
     ExpStateScheduler,
@@ -64,6 +65,7 @@ __all__ = [
     "StepStateScheduler",
     "MultiStepStateScheduler",
     "ReduceLROnPlateauScheduler",
+    "StepParamScheduler",
 ]
 
 

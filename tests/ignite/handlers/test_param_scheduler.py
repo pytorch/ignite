@@ -16,6 +16,7 @@ from ignite.handlers.param_scheduler import (
     ParamScheduler,
     PiecewiseLinear,
     ReduceLROnPlateauScheduler,
+    StepParamScheduler,
 )
 from tests.ignite.contrib.handlers import MockFP16DeepSpeedZeroOptimizer
 
@@ -1388,3 +1389,35 @@ def test_reduce_lr_on_plateau_scheduler_asserts():
     with pytest.raises(ValueError, match=r"Length of argument metric_values should be equal to num_events."):
         metric_values = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
         ReduceLROnPlateauScheduler.simulate_values(5, metric_values, 0.01)
+    assert optimizer.param_groups[1]["lr"] == 1
+
+
+def test_step_param_scheduler():
+    tensor = torch.zeros([1], requires_grad=True)
+    optimizer = torch.optim.SGD([tensor], lr=1)
+
+    scheduler = StepParamScheduler(optimizer, gamma=0.5)
+    state_dict = scheduler.state_dict()
+
+    data = [0] * 2
+    max_epochs = 2
+    simulated_values = StepParamScheduler.simulate_values(num_events=len(data) * max_epochs, gamma=0.5)
+
+    def save_lr(engine):
+        lrs.append(optimizer.param_groups[0]["lr"])
+
+    trainer = Engine(lambda engine, batch: None)
+    trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+    trainer.add_event_handler(Events.ITERATION_COMPLETED, save_lr)
+
+    lrs = []
+    trainer.run(data, max_epochs=max_epochs)
+    assert lrs == list(
+        map(
+            pytest.approx,
+            [1, 0.5, 0.25, 0.125],
+        )
+    )
+    scheduler.load_state_dict(state_dict)
+    lrs = [0.01, 0.005, 0.0025, 0.00125]
+    assert lrs == pytest.approx([v for i, v in simulated_values])

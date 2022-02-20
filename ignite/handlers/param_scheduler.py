@@ -1592,6 +1592,82 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
         return values
 
 
+class StepParamScheduler(ParamScheduler):
+    """Decay optimizer's parameter `param_name` by `gamma` at each
+     `step_size` steps.
+    Args:
+        optimizer: Torch optimizer or any object with attribute `param_groups`
+            as a sequence.
+        param_name: Name of optimizer's parameter to update.
+        gamma: Value to multiply parameter by at each `step_size`
+               steps, (default=0.1).
+        step_size: Period of parameter decay (default=1).
+        save_history: Whether to log the parameter values to
+            `engine.state.param_history`, (default=False).
+        param_group_index: Optimizer's parameters group to use.
+
+    Examples:
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
+        .. testcode::
+
+            optimizer = torch.optim.SGD(default_model.parameters(), lr=1)
+            scheduler = StepParamScheduler(default_optimizer, 'lr', step_size=3)
+            default_trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
+            @default_trainer.on(Events.ITERATION_STARTED)
+            def print_lr():
+                print(default_optimizer.param_groups[0]["lr"])
+            default_trainer.run([0] * 8, max_epochs=1)
+
+        .. testoutput::
+
+            1
+            1
+            1
+            0.1
+            0.1
+            0.1
+            0.01
+            0.01
+
+    .. versionadded:: 0.4.8
+    """
+
+    def __init__(
+        self,
+        optimizer: Optimizer,
+        param_name: str,
+        gamma: float = 0.1,
+        step_size: int = 1,
+        save_history: bool = False,
+        param_group_index: Optional[int] = None,
+    ):
+        super(StepParamScheduler, self).__init__(
+            optimizer, param_name, save_history=save_history, param_group_index=param_group_index
+        )
+        if step_size <= 0:
+            raise ValueError(f"Argument step_size should be greater than zero, but given {step_size}")
+        self.gamma = gamma
+        self.step_size = step_size
+        self.current_step = step_size - 1
+
+        self._state_attrs += ["gamma", "step_size", "current_step"]
+
+    def get_param(self) -> Union[List[float], float]:
+        gamma = 1 if self.current_step != 0 else self.gamma
+
+        self.current_step -= 1
+        if self.current_step == -1:
+            self.current_step += self.step_size
+
+        if len(self.optimizer_param_groups) == 1:
+            return self.optimizer_param_groups[0][self.param_name] * gamma
+        else:
+            return [pg[self.param_name] * gamma for pg in self.optimizer_param_groups]
+
+
 def _get_fake_optimizer(
     optimizer_cls: Optional[Union[Type[Optimizer], Type[torch.optim.SGD]]] = None, **kwargs: Any
 ) -> Union[Optimizer, torch.optim.SGD]:
