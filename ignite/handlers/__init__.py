@@ -18,6 +18,7 @@ from ignite.handlers.param_scheduler import (
     ParamScheduler,
     PiecewiseLinear,
 )
+from ignite.handlers.pytorch_profiler import PyTorchProfiler
 from ignite.handlers.state_param_scheduler import (
     ExpStateScheduler,
     LambdaStateScheduler,
@@ -62,6 +63,7 @@ __all__ = [
     "ExpStateScheduler",
     "StepStateScheduler",
     "MultiStepStateScheduler",
+    "PyTorchProfiler",
 ]
 
 
