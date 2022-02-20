@@ -10,13 +10,13 @@ from ignite.handlers.param_scheduler import (
     ConcatScheduler,
     CosineAnnealingScheduler,
     create_lr_scheduler_with_warmup,
+    create_lr_scheduler_with_warmup,
     LinearCyclicalScheduler,
     LRScheduler,
     ParamGroupScheduler,
     ParamScheduler,
     PiecewiseLinear,
     ReduceLROnPlateauScheduler,
-    create_lr_scheduler_with_warmup,
 )
 from tests.ignite.contrib.handlers import MockFP16DeepSpeedZeroOptimizer
 

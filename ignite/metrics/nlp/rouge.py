@@ -212,6 +212,8 @@ class RougeN(_BaseRouge):
 
     Examples:
 
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
         .. testcode::
 
             from ignite.metrics import RougeN
@@ -282,6 +284,8 @@ class RougeL(_BaseRouge):
 
     Examples:
 
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
         .. testcode::
 
             from ignite.metrics import RougeL
@@ -346,6 +350,8 @@ class Rouge(Metric):
             default, CPU.
 
     Examples:
+
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
 
         .. testcode::
 

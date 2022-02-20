@@ -47,6 +47,8 @@ class ConfusionMatrix(Metric):
 
     Examples:
 
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
         .. include:: defaults.rst
             :start-after: :orphan:
 
@@ -204,6 +206,8 @@ def IoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambd
 
     Examples:
 
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
         .. include:: defaults.rst
             :start-after: :orphan:
 
@@ -266,6 +270,8 @@ def mIoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLamb
         MetricsLambda
 
     Examples:
+
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
 
         .. include:: defaults.rst
             :start-after: :orphan:
@@ -356,6 +362,8 @@ def DiceCoefficient(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> 
 
     Examples:
 
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
         .. include:: defaults.rst
             :start-after: :orphan:
 
@@ -422,6 +430,8 @@ def JaccardIndex(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> Met
         MetricsLambda
 
     Examples:
+
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
 
         .. include:: defaults.rst
             :start-after: :orphan:
