@@ -23,10 +23,10 @@ try:
 except ImportError:
     has_multiplicative_lr = False
 else:
-    from distutils.version import LooseVersion
+    from packaging.version import Version
 
     # https://github.com/pytorch/pytorch/issues/32756
-    has_multiplicative_lr = LooseVersion(torch.__version__) >= LooseVersion("1.5.0")
+    has_multiplicative_lr = Version(torch.__version__) >= Version("1.5.0")
 
 
 class FakeParamScheduler(ParamScheduler):
