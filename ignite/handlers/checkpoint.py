@@ -574,7 +574,7 @@ class Checkpoint(Serializable):
 
         is_state_dict_strict = kwargs.get("strict", True)
 
-        def _load_object(obj, chkpt_obj):
+        def _load_object(obj: Any, chkpt_obj: Any) -> None:
             if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
                 obj = obj.module
             if isinstance(obj, torch.nn.Module):

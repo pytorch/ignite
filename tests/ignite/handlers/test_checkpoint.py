@@ -1688,8 +1688,5 @@ def test_load_single_object(obj_to_save, dirname):
     c = Checkpoint(to_save, save_handler=dirname)
     c(trainer)
 
-    # Update this code once merged https://github.com/pytorch/ignite/pull/2461
-    from pathlib import Path
-
-    checkpoint_fp = Path(dirname) / c.last_checkpoint
+    checkpoint_fp = dirname / c.last_checkpoint
     Checkpoint.load_objects(to_load=to_save, checkpoint=str(checkpoint_fp))
