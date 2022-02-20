@@ -419,3 +419,30 @@ Example with :class:`ignite.handlers.param_scheduler.ReduceLROnPlateauScheduler`
 
 
 .. image:: ./_static/img/schedulers/reduce_lr_on_plateau_example.png
+
+Example with :class:`ignite.handlers.param_scheduler.StepParamScheduler`
+`````````````````````````````````````````````````````````````````````````````````````
+
+.. code-block:: python
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from ignite.handlers import StepParamScheduler
+
+    num_events = 10
+
+    lr_values = np.array(StepParamScheduler.simulate_values(
+        num_events, gamma=0.5, step_size=3
+        )
+    )
+
+    plt.figure(figsize=(5, 5))
+    plt.suptitle("StepParamScheduler")
+    plt.plot(lr_values[:, 1], label="learning rate")
+    plt.xticks(lr_values[:, 0])
+    plt.xlabel("events")
+    plt.ylabel("values")
+    plt.legend()
+
+
+.. image:: ./_static/img/schedulers/step_param_scheduler_example.png
