@@ -2,6 +2,7 @@ import itertools
 import math
 import numbers
 import tempfile
+import warnings
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from copy import copy
@@ -9,7 +10,7 @@ from pathlib import Path
 from typing import Any, cast, Dict, List, Mapping, Optional, Sequence, Tuple, Type, Union
 
 import torch
-from torch.optim.lr_scheduler import _LRScheduler
+from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
 from torch.optim.optimizer import Optimizer
 
 from ignite.engine import Engine
@@ -1404,6 +1405,191 @@ class ParamGroupScheduler:
                 s.optimizer.load_state_dict(objs["optimizer"])  # type: ignore[attr-defined]
 
             return values
+
+
+class ReduceLROnPlateauScheduler(ParamScheduler):
+    """Reduce LR when a metric stops improving.
+    Wrapper of `torch.optim.lr_scheduler.ReduceLROnPlateau
+    <https://pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.ReduceLROnPlateau.html>`_.
+
+    Args:
+        optimizer: Wrapped optimizer.
+        metric_name: metric whose improvement is monitored.
+            Must be attached to the same engine.
+        trainer: Trainer engine to log LR history in its
+            `state.output.param_history`. Is used if `save_history`
+            is true. Default: None.
+        save_history: Whether to save history or not. If true,
+            history will be logged in `trainer`'s `state.output.param_history`.
+            Default: False.
+        param_group_index: `optimizer`'s parameters group
+            to use.  Default: None. Use all `optimizer`'s paramater groups.
+        **scheduler_kwargs: Keyword arguments to be passed to the wrapped
+            `ReduceLROnPlateau`.
+
+    Examples:
+
+        .. code-block python
+
+            # Metric 'metric-name' should surpass its best value by
+            # more than 1 unit after at most 2 epochs, otherwise LR
+            # would get multiplied by 0.5 .
+
+            scheduler = ReduceLROnPlateauScheduler(
+                default_optimizer,
+                metric_name="metric-name", mode="max",
+                factor=0.5, patience=1, threshold_mode='abs',
+                threshold=1, trainer=trainer
+            )
+
+            metric = Accuracy()
+            default_evaluator.attach(metric, "accuracy")
+
+            default_evaluator.add_event_handler(Events.COMPLETED, scheduler)
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
+        .. testcode::
+
+            default_trainer = get_default_trainer()
+
+            # Metric `loss` should decrease more than
+            # a tenth of best loss after at most
+            # three iterations. Then best loss would get
+            # updated, otherwise lr is multiplied by 2
+
+            scheduler = ReduceLROnPlateauScheduler(
+                default_optimizer, "loss",
+                save_history=True, mode="min",
+                factor=0.5, patience=3, threshold_mode='rel',
+                threshold=0.1, trainer=default_trainer
+            )
+
+            metric_values = iter([10, 5, 3, 4, 4, 4, 5, 1])
+            default_evaluator.state.metrics = {"loss": None}
+
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def set_metric_val():
+                default_evaluator.state.metrics["loss"] = next(metric_values)
+
+            default_evaluator.add_event_handler(Events.COMPLETED, scheduler)
+
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def trigger_eval():
+                default_evaluator.run([0.])
+
+            default_trainer.run([0.] * 8)
+
+            print(default_trainer.state.param_history["lr"])
+
+        .. testoutput::
+
+            [[0.1], [0.1], [0.1], [0.1], [0.1], [0.1], [0.05], [0.05]]
+
+    .. versionadded:: 0.4.8
+    """
+
+    def __init__(
+        self,
+        optimizer: Optimizer,
+        metric_name: str,
+        trainer: Optional[Engine] = None,
+        save_history: bool = False,
+        param_group_index: Optional[int] = None,
+        **scheduler_kwargs: Any,
+    ):
+        super(ReduceLROnPlateauScheduler, self).__init__(
+            optimizer, "lr", save_history=save_history, param_group_index=param_group_index
+        )
+        self.metric_name = metric_name
+        self.trainer = trainer
+        self.optimizer = optimizer
+
+        if "min_lr" in scheduler_kwargs and param_group_index is not None:
+            min_lr = scheduler_kwargs["min_lr"]
+            if not isinstance(min_lr, float):
+                raise TypeError(f"When param_group_index is given, min_lr should be a float, but given {type(min_lr)}")
+            _min_lr = min_lr
+            min_lr = [0] * len(optimizer.param_groups)
+            min_lr[param_group_index] = _min_lr
+        else:
+            min_lr = 0
+        _scheduler_kwargs = scheduler_kwargs.copy()
+        _scheduler_kwargs["min_lr"] = min_lr
+
+        if "verbose" in _scheduler_kwargs:
+            warnings.warn(
+                "Found verbose=True in provided scheduler_kwargs. "
+                "It would be set to False. Please use save_history instead."
+            )
+            _scheduler_kwargs["verbose"] = False
+
+        self.scheduler = ReduceLROnPlateau(optimizer, **_scheduler_kwargs)
+        self.scheduler._reduce_lr = self._reduce_lr  # type: ignore[attr-defined]
+
+        self._state_attrs += ["metric_name", "scheduler"]
+
+    def __call__(self, engine: Engine, name: Optional[str] = None) -> None:  # type: ignore[override]
+        if not hasattr(engine.state, "metrics") or self.metric_name not in engine.state.metrics:
+            raise ValueError(
+                "Argument engine should have in its 'state', attribute 'metrics' "
+                f"which itself has the metric {self.metric_name}."
+            )
+        self.scheduler.step(engine.state.metrics[self.metric_name])
+        super().__call__(self.trainer, name)
+
+    def get_param(self) -> Union[float, List[float]]:
+        lrs = [pg["lr"] for pg in self.optimizer_param_groups]
+        return lrs[0] if len(lrs) == 1 else lrs
+
+    def _reduce_lr(self, epoch: int) -> None:
+        for i, param_group in enumerate(self.optimizer_param_groups):
+            old_lr = float(param_group["lr"])
+            new_lr = max(old_lr * self.scheduler.factor, self.scheduler.min_lrs[i])  # type: ignore[attr-defined]
+            if old_lr - new_lr > self.scheduler.eps:  # type: ignore[attr-defined]
+                param_group["lr"] = new_lr
+
+    @classmethod
+    def simulate_values(  # type: ignore[override]
+        cls, num_events: int, metric_values: List[float], init_lr: float, **scheduler_kwargs: Any
+    ) -> List[List[int]]:
+        """Method to simulate scheduled values during num_events events.
+
+        Args:
+            num_events: number of events during the simulation.
+            metric_values: values to change LR based on.
+            init_lr: initial LR to start with.
+            scheduler_kwargs: kwargs passed to construct an instance of
+                :class:`ignite.handlers.param_scheduler.ReduceLROnPlateauScheduler`.
+
+        Returns:
+            event_index, value
+
+        """
+        if len(metric_values) != num_events:
+            raise ValueError(
+                "Length of argument metric_values should be equal to num_events. "
+                f"{len(metric_values)} != {num_events}"
+            )
+
+        keys_to_remove = ["optimizer", "metric_name", "save_history"]
+        for key in keys_to_remove:
+            if key in scheduler_kwargs:
+                del scheduler_kwargs[key]
+        values = []
+        scheduler = cls(
+            optimizer=_get_fake_optimizer(torch.optim.SGD, lr=init_lr),
+            metric_name="metric",
+            save_history=False,
+            **scheduler_kwargs,
+        )
+        engine = Engine(lambda _, __: None)
+        for i in range(num_events):
+            engine.state.metrics["metric"] = metric_values[i]
+            scheduler(engine=engine)
+            values.append([i, scheduler.optimizer_param_groups[0][scheduler.param_name]])
+        return values
 
 
 def _get_fake_optimizer(

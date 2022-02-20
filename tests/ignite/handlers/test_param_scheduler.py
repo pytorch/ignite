@@ -15,6 +15,7 @@ from ignite.handlers.param_scheduler import (
     ParamGroupScheduler,
     ParamScheduler,
     PiecewiseLinear,
+    ReduceLROnPlateauScheduler,
 )
 from tests.ignite.contrib.handlers import MockFP16DeepSpeedZeroOptimizer
 
@@ -1302,3 +1303,88 @@ def test_lr_scheduling_on_non_torch_optimizers():
     assert lrs == list(
         map(pytest.approx, [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95])
     )
+
+
+def test_reduce_lr_on_plateau_scheduler():
+    tensor1 = torch.zeros([1], requires_grad=True)
+    tensor2 = torch.zeros([1], requires_grad=True)
+    optimizer = torch.optim.SGD([{"params": [tensor1]}, {"params": [tensor2]}], lr=1)
+
+    data = [0] * 8
+    max_epochs = 10
+
+    trainer = Engine(lambda engine, batch: None)
+
+    @trainer.on(Events.EPOCH_COMPLETED)
+    def evaluate():
+        evaluator.run(data)
+
+    scheduler = ReduceLROnPlateauScheduler(
+        optimizer,
+        metric_name="acc",
+        mode="max",
+        factor=0.5,
+        patience=1,
+        threshold_mode="abs",
+        threshold=1.99,
+        min_lr=1e-7,
+        save_history=True,
+        trainer=trainer,
+        param_group_index=0,
+    )
+    evaluator = Engine(lambda engine, batch: None)
+    evaluator.state.metrics = {"acc": 0.0}
+    generate_acc = iter([3, 7, 7, 9, 10, 11, 8, 8, 4, 7])
+
+    @evaluator.on(Events.COMPLETED)
+    def set_acc():
+        evaluator.state.metrics["acc"] = next(generate_acc)
+
+    evaluator.add_event_handler(Events.COMPLETED, scheduler)
+
+    trainer.run(data, max_epochs=max_epochs)
+
+    lrs = [param[0] for param in trainer.state.param_history["lr"]]
+    assert lrs == list(
+        map(
+            pytest.approx,
+            [1, 1, 1, 1, 1, 1, 1, 0.5, 0.5, 0.25],
+        )
+    )
+    assert optimizer.param_groups[1]["lr"] == 1
+
+    values = ReduceLROnPlateauScheduler.simulate_values(
+        5, [10, 9, 9, 9, 8.1], 1.0, save_history=True, factor=0.5, patience=2, threshold=0.1
+    )
+    values = np.array(values)[:, 1].tolist()
+    assert values == list(
+        map(
+            pytest.approx,
+            [1.0, 1.0, 1.0, 0.5, 0.5],
+        )
+    )
+
+
+def test_reduce_lr_on_plateau_scheduler_asserts():
+    tensor1 = torch.zeros([1], requires_grad=True)
+    tensor2 = torch.zeros([1], requires_grad=True)
+    optimizer = torch.optim.SGD([{"params": [tensor1]}, {"params": [tensor2]}], lr=1)
+
+    with pytest.raises(TypeError, match=r"When param_group_index is given, min_lr should be a float, but given"):
+        ReduceLROnPlateauScheduler(
+            optimizer,
+            metric_name="acc",
+            min_lr=[1e-7, 1e-8],
+            param_group_index=0,
+        )
+
+    with pytest.raises(
+        ValueError, match=r"Argument engine should have in its 'state', attribute 'metrics' which itself has the metric"
+    ):
+        scheduler = ReduceLROnPlateauScheduler(optimizer, metric_name="acc")
+        evaluator = Engine(lambda engine, batch: None)
+        scheduler(evaluator)
+
+    with pytest.raises(ValueError, match=r"Length of argument metric_values should be equal to num_events."):
+        metric_values = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
+        ReduceLROnPlateauScheduler.simulate_values(5, metric_values, 0.01)
