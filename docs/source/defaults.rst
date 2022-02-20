@@ -30,7 +30,7 @@
 
         # create default trainer for doctests
         # as handlers could be attached to the trainer,
-        # each test must defined his own trainer using `.. testsetup:`
+        # each test must define his own trainer using `.. testsetup:`
 
         def get_default_trainer():
 

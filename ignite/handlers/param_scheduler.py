@@ -2,6 +2,7 @@ import itertools
 import math
 import numbers
 import tempfile
+import warnings
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from copy import copy
@@ -1414,7 +1415,7 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
     Args:
         optimizer: Wrapped optimizer.
         metric_name: metric whose improvement is monitored.
-            Must be attached the to same engine.
+            Must be attached to the same engine.
         trainer: Trainer engine to log LR history in its
             `state.output.param_history`. Is used if `save_history`
             is true. Default: None.
@@ -1428,21 +1429,65 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
 
     Examples:
 
-        .. code-block:: python
+        .. code-block python
 
             # Metric 'metric-name' should surpass its best value by
             # more than 1 unit after at most 2 epochs, otherwise LR
             # would get multiplied by 0.5 .
 
             scheduler = ReduceLROnPlateauScheduler(
-                optimizer,
+                default_optimizer,
                 metric_name="metric-name", mode="max",
                 factor=0.5, patience=1, threshold_mode='abs',
                 threshold=1, trainer=trainer
             )
 
-            evaluator.add_event_handler(Events.COMPLETED, scheduler)
+            metric = Accuracy()
+            default_evaluator.attach(metric, "accuracy")
 
+            default_evaluator.add_event_handler(Events.COMPLETED, scheduler)
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
+        .. testcode::
+
+            default_trainer = get_default_trainer()
+
+            # Metric `loss` should decrease more than
+            # a tenth of best loss after at most
+            # three iterations. Then best loss would get
+            # updated, otherwise lr is multiplied by 2
+
+            scheduler = ReduceLROnPlateauScheduler(
+                default_optimizer, "loss",
+                save_history=True, mode="min",
+                factor=0.5, patience=3, threshold_mode='rel',
+                threshold=0.1, trainer=default_trainer
+            )
+
+            metric_values = iter([10, 5, 3, 4, 4, 4, 5, 1])
+            default_evaluator.state.metrics = {"loss": None}
+
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def set_metric_val():
+                default_evaluator.state.metrics["loss"] = next(metric_values)
+
+            default_evaluator.add_event_handler(Events.COMPLETED, scheduler)
+
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def trigger_eval():
+                default_evaluator.run([0.])
+
+            default_trainer.run([0.] * 8)
+
+            print(default_trainer.state.param_history["lr"])
+        
+        .. testoutput::
+        
+            [[0.1], [0.1], [0.1], [0.1], [0.1], [0.1], [0.05], [0.05]]
+
+    .. versionadded:: 0.4.8
     """
 
     def __init__(
@@ -1472,7 +1517,13 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
             min_lr = 0
         _scheduler_kwargs = scheduler_kwargs.copy()
         _scheduler_kwargs["min_lr"] = min_lr
-        _scheduler_kwargs["verbose"] = False
+
+        if "verbose" in _scheduler_kwargs:
+            warnings.warn(
+                "Found verbose=True in provided scheduler_kwargs. "
+                "It would be set to False. Please use save_history instead."
+            )
+            _scheduler_kwargs["verbose"] = False
 
         self.scheduler = ReduceLROnPlateau(optimizer, **_scheduler_kwargs)
         self.scheduler._reduce_lr = self._reduce_lr  # type: ignore[attr-defined]
