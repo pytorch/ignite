@@ -275,7 +275,7 @@ class Checkpoint(Serializable):
         filename_prefix: str = "",
         score_function: Optional[Callable] = None,
         score_name: Optional[str] = None,
-        n_saved: Optional[int] = 1,
+        n_saved: Union[int, None] = 1,
         global_step_transform: Optional[Callable] = None,
         filename_pattern: Optional[str] = None,
         include_self: bool = False,
@@ -358,7 +358,11 @@ class Checkpoint(Serializable):
     def last_checkpoint(self) -> Optional[Union[str, Path]]:
         if len(self._saved) < 1:
             return None
-        return self._saved[-1].filename
+
+        if not isinstance(self.save_handler, DiskSaver):
+            return self._saved[-1].filename
+
+        return self.save_handler.dirname / self._saved[-1].filename
 
     def _check_lt_n_saved(self, or_equal: bool = False) -> bool:
         if self.n_saved is None:
@@ -798,12 +802,21 @@ class ModelCheckpoint(Checkpoint):
             Input of the function is `(engine, event_name)`. Output of function should be an integer.
             Default is None, global_step based on attached engine. If provided, uses function output as global_step.
             To setup global step from another engine, please use :meth:`~ignite.handlers.global_step_from_engine`.
+        filename_pattern: If ``filename_pattern`` is provided, this pattern will be used to render
+            checkpoint filenames. If the pattern is not defined, the default pattern would be used.
+            See :class:`~ignite.handlers.checkpoint.Checkpoint` for details.
         include_self: Whether to include the `state_dict` of this object in the checkpoint. If `True`, then
             there must not be another object in ``to_save`` with key ``checkpointer``.
+        greater_or_equal: if `True`, the latest equally scored model is stored. Otherwise, the first model.
+            Default, `False`.
         kwargs: Accepted keyword arguments for `torch.save` or `xm.save` in `DiskSaver`.
 
     .. versionchanged:: 0.4.2
         Accept ``kwargs`` for `torch.save` or `xm.save`
+
+    .. versionchanged:: 0.5.0
+        Accept ``filename_pattern`` and ``greater_or_equal`` for parity
+        with :class:`~ignite.handlers.checkpoint.Checkpoint`
 
     Examples:
         .. code-block:: python
@@ -826,7 +839,7 @@ class ModelCheckpoint(Checkpoint):
     def __init__(
         self,
         dirname: Union[str, Path],
-        filename_prefix: str,
+        filename_prefix: str = "",
         score_function: Optional[Callable] = None,
         score_name: Optional[str] = None,
         n_saved: Union[int, None] = 1,
@@ -834,7 +847,9 @@ class ModelCheckpoint(Checkpoint):
         require_empty: bool = True,
         create_dir: bool = True,
         global_step_transform: Optional[Callable] = None,
+        filename_pattern: Optional[str] = None,
         include_self: bool = False,
+        greater_or_equal: bool = False,
         **kwargs: Any,
     ):
 
@@ -848,7 +863,9 @@ class ModelCheckpoint(Checkpoint):
             score_name=score_name,
             n_saved=n_saved,
             global_step_transform=global_step_transform,
+            filename_pattern=filename_pattern,
             include_self=include_self,
+            greater_or_equal=greater_or_equal,
         )
 
     @property
@@ -857,9 +874,7 @@ class ModelCheckpoint(Checkpoint):
             return None
 
         if not isinstance(self.save_handler, DiskSaver):
-            raise RuntimeError(
-                f"Unable to save checkpoint, save_handler should be DiskSaver, got {type(self.save_handler)}."
-            )
+            raise RuntimeError(f"Internal error, save_handler should be DiskSaver, but has {type(self.save_handler)}.")
 
         return self.save_handler.dirname / self._saved[-1].filename
 
