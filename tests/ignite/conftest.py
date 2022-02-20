@@ -3,6 +3,7 @@ import shutil
 import sys
 import tempfile
 import time
+from pathlib import Path
 
 import pytest
 import torch
@@ -11,7 +12,7 @@ import torch.distributed as dist
 
 @pytest.fixture()
 def dirname():
-    path = tempfile.mkdtemp()
+    path = Path(tempfile.mkdtemp())
     yield path
     shutil.rmtree(path)
 
@@ -32,7 +33,7 @@ def get_fixed_dirname(worker_id):
     yield getter
 
     time.sleep(1.0 * lrank + 1.0)
-    if os.path.exists(path):
+    if Path(path).exists():
         shutil.rmtree(path)
     # sort of sync
     time.sleep(1.0)
@@ -43,7 +44,7 @@ def get_rank_zero_dirname(dirname):
     def func():
         import ignite.distributed as idist
 
-        zero_rank_dirname = idist.all_gather(dirname)[0]
+        zero_rank_dirname = Path(idist.all_gather(str(dirname))[0])
         return zero_rank_dirname
 
     yield func
@@ -136,7 +137,7 @@ def _setup_free_port(local_rank):
         while counter > 0:
             counter -= 1
             time.sleep(1)
-            if not os.path.exists(port_file):
+            if not Path(port_file).exists():
                 continue
             with open(port_file, "r") as h:
                 port = h.readline()

@@ -1,5 +1,4 @@
 import logging
-import os
 import sys
 from collections import namedtuple
 
@@ -116,7 +115,7 @@ def test_setup_logger(capsys, dirname):
     trainer.logger.addHandler(logging.NullHandler())
     trainer.logger.addHandler(logging.NullHandler())
 
-    fp = os.path.join(dirname, "log")
+    fp = dirname / "log"
 
     def _test(stream):
 
