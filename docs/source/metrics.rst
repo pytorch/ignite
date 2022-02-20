@@ -4,11 +4,13 @@ ignite.metrics
 Metrics provide a way to compute various quantities of interest in an online
 fashion without having to store the entire output history of a model.
 
+.. _attach-engine:
+
 Attach Engine API
 ------------------
 
-The metrics as stated above are computed in a online fashion, which means that the metric instance accumulates some internal counters on 
-each iteration and metric value is computed once the epoch is ended. Internal counters are reset after every epoch. In practice, this is done with the 
+The metrics as stated above are computed in a online fashion, which means that the metric instance accumulates some internal counters on
+each iteration and metric value is computed once the epoch is ended. Internal counters are reset after every epoch. In practice, this is done with the
 help of three methods: :meth:`~ignite.metrics.metric.Metric.reset()`, :meth:`~ignite.metrics.metric.Metric.update()` and :meth:`~ignite.metrics.metric.Metric.compute()`.
 
 Therefore, a user needs to attach the metric instance to the engine so that the above three methods can be triggered on execution of certain :class:`~ignite.engine.events.Events`.

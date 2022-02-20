@@ -12,7 +12,7 @@ on:
 
 concurrency:
   # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>
-  group: unit-tests-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
+  group: gpu-tests-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
   cancel-in-progress: true
 
 jobs:
