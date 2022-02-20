@@ -764,7 +764,7 @@ class ClearMLSaver(DiskSaver):
             warnings.warn("Checkpoint metadata missing or basename cannot be found")
             basename = "checkpoint"
 
-        checkpoint_key = (self.dirname, basename)
+        checkpoint_key = (str(self.dirname), basename)
 
         cb_context = self._CallbacksContext(
             callback_type=WeightsFileHandler.CallbackType,
