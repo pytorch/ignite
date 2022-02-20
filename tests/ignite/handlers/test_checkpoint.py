@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 import pytest
 import torch
 import torch.nn as nn
-from pkg_resources import parse_version
+from packaging.version import Version
 
 import ignite.distributed as idist
 from ignite.engine import Engine, Events, State
@@ -654,7 +654,7 @@ def test_disk_saver_atomic(dirname):
 
 
 @pytest.mark.skipif(
-    parse_version(torch.__version__) < parse_version("1.4.0"), reason="Zipfile serialization was introduced in 1.4.0"
+    Version(torch.__version__) < Version("1.4.0"), reason="Zipfile serialization was introduced in 1.4.0"
 )
 def test_disk_saver_zipfile_serialization_keyword(dirname):
     model = DummyModel()
