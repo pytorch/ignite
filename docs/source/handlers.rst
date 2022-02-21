@@ -53,6 +53,7 @@ Parameter scheduler
     ParamGroupScheduler
     ParamScheduler
     PiecewiseLinear
+    ReduceLROnPlateauScheduler
     create_lr_scheduler_with_warmup
 
 State Parameter scheduler
@@ -379,3 +380,42 @@ Concatenate with torch schedulers
 
 
 .. image:: ./_static/img/schedulers/concat_linear_exp_step_lr.png
+
+
+Example with :class:`ignite.handlers.param_scheduler.ReduceLROnPlateauScheduler`
+`````````````````````````````````````````````````````````````````````````````````````
+
+.. code-block:: python
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from ignite.handlers import ReduceLROnPlateauScheduler
+
+    metric_values = [0.7, 0.78, 0.81, 0.82, 0.82, 0.83, 0.80, 0.81, 0.84, 0.78]
+    num_events = 10
+    init_lr = 0.1
+
+    lr_values = np.array(ReduceLROnPlateauScheduler.simulate_values(
+        num_events, metric_values, init_lr, 
+        factor=0.5, patience=1, mode='max', threshold=0.01, threshold_mode='abs'
+        )
+    )
+
+    plt.figure(figsize=(15, 5))
+    plt.suptitle("ReduceLROnPlateauScheduler")
+    plt.subplot(121)
+    plt.plot(lr_values[:, 1], label="learning rate")
+    plt.xticks(lr_values[:, 0])
+    plt.xlabel("events")
+    plt.ylabel("values")
+    plt.legend()
+
+    plt.subplot(122)
+    plt.plot(metric_values, label="metric")
+    plt.xticks(lr_values[:, 0])
+    plt.xlabel("events")
+    plt.ylabel("values")
+    plt.legend()
+
+
+.. image:: ./_static/img/schedulers/reduce_lr_on_plateau_example.png

@@ -49,6 +49,8 @@ class InceptionScore(_BaseInceptionMetric):
 
     Examples:
 
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
         .. include:: defaults.rst
             :start-after: :orphan:
 

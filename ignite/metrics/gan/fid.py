@@ -1,8 +1,8 @@
 import warnings
-from distutils.version import LooseVersion
 from typing import Callable, Optional, Sequence, Union
 
 import torch
+from packaging.version import Version
 
 from ignite.metrics.gan.utils import _BaseInceptionMetric, InceptionModel
 from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
@@ -96,6 +96,8 @@ class FID(_BaseInceptionMetric):
 
     Examples:
 
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
         .. include:: defaults.rst
             :start-after: :orphan:
 
@@ -151,7 +153,7 @@ class FID(_BaseInceptionMetric):
 
         total += features
 
-        if LooseVersion(torch.__version__) <= LooseVersion("1.7.0"):
+        if Version(torch.__version__) <= Version("1.7.0"):
             sigma += torch.ger(features, features)
         else:
             sigma += torch.outer(features, features)
@@ -161,7 +163,7 @@ class FID(_BaseInceptionMetric):
         Calculates covariance from mean and sum of products of variables
         """
 
-        if LooseVersion(torch.__version__) <= LooseVersion("1.7.0"):
+        if Version(torch.__version__) <= Version("1.7.0"):
             sub_matrix = torch.ger(total, total)
         else:
             sub_matrix = torch.outer(total, total)
