@@ -1,5 +1,4 @@
 import math
-import os
 import sys
 import warnings
 from unittest.mock import ANY, call, MagicMock
@@ -476,7 +475,7 @@ def test_neptune_saver_serializable(dirname):
     to_save_serializable = {"model": model}
 
     saver = NeptuneSaver(mock_logger)
-    fname = os.path.join(dirname, "test.pt")
+    fname = dirname / "test.pt"
     saver(to_save_serializable, fname)
 
     assert mock_logger.log_artifact.call_count == 1
