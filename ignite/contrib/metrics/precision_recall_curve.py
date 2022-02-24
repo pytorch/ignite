@@ -68,11 +68,13 @@ class PrecisionRecallCurve(EpochMetric):
             self.precision_recall_curve_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
         )
 
-    def precision_recall_curve_compute(self) -> Callable[[torch.Tensor, torch.Tensor],float]:
+    def precision_recall_curve_compute(self) -> Callable[[torch.Tensor, torch.Tensor], float]:
         from sklearn.metrics import precision_recall_curve
+
         def wrapper(y_preds: torch.Tensor, y_targets: torch.Tensor) -> float:
 
             y_true = y_targets.numpy()
             y_pred = y_preds.numpy()
             return precision_recall_curve(y_true, y_pred)
+
         return wrapper
