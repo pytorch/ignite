@@ -1595,6 +1595,7 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
 class StepParamScheduler(ParamScheduler):
     """Decay optimizer's parameter `param_name` by `gamma` at each
      `step_size` steps.
+
     Args:
         optimizer: Torch optimizer or any object with attribute `param_groups`
             as a sequence.
@@ -1613,12 +1614,17 @@ class StepParamScheduler(ParamScheduler):
 
         .. testcode::
 
+            default_trainer = get_default_trainer()
+
             optimizer = torch.optim.SGD(default_model.parameters(), lr=1)
             scheduler = StepParamScheduler(default_optimizer, 'lr', step_size=3)
+
             default_trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
+
             @default_trainer.on(Events.ITERATION_STARTED)
             def print_lr():
                 print(default_optimizer.param_groups[0]["lr"])
+
             default_trainer.run([0] * 8, max_epochs=1)
 
         .. testoutput::

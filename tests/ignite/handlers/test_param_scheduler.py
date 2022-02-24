@@ -1393,15 +1393,18 @@ def test_reduce_lr_on_plateau_scheduler_asserts():
 
 
 def test_step_param_scheduler():
-    tensor = torch.zeros([1], requires_grad=True)
-    optimizer = torch.optim.SGD([tensor], lr=1)
+    tensor1 = torch.zeros([1], requires_grad=True)
+    tensor2 = torch.zeros([1], requires_grad=True)
+    optimizer = torch.optim.SGD([{"params": [tensor1]}, {"params": [tensor2]}], lr=1)
 
-    scheduler = StepParamScheduler(optimizer, gamma=0.5)
+    scheduler = StepParamScheduler(optimizer, "lr", gamma=0.5)
     state_dict = scheduler.state_dict()
 
     data = [0] * 2
     max_epochs = 2
-    simulated_values = StepParamScheduler.simulate_values(num_events=len(data) * max_epochs, gamma=0.5)
+    simulated_values = StepParamScheduler.simulate_values(
+        num_events=len(data) * max_epochs, param_name="lr", gamma=0.5, step_size=2
+    )
 
     def save_lr(engine):
         lrs.append(optimizer.param_groups[0]["lr"])
@@ -1415,9 +1418,12 @@ def test_step_param_scheduler():
     assert lrs == list(
         map(
             pytest.approx,
-            [1, 0.5, 0.25, 0.125],
+            [0.5, 0.25, 0.125, 0.0625],
         )
     )
     scheduler.load_state_dict(state_dict)
-    lrs = [0.01, 0.005, 0.0025, 0.00125]
+    lrs = [0.01, 0.005, 0.005, 0.0025]
     assert lrs == pytest.approx([v for i, v in simulated_values])
+
+    with pytest.raises(ValueError, match=r"Argument step_size should be greater than zero, but given"):
+        StepParamScheduler("lr", step_size=-1)

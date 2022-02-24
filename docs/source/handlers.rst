@@ -54,6 +54,7 @@ Parameter scheduler
     ParamScheduler
     PiecewiseLinear
     ReduceLROnPlateauScheduler
+    StepParamScheduler
     create_lr_scheduler_with_warmup
 
 State Parameter scheduler
@@ -432,7 +433,7 @@ Example with :class:`ignite.handlers.param_scheduler.StepParamScheduler`
     num_events = 10
 
     lr_values = np.array(StepParamScheduler.simulate_values(
-        num_events, gamma=0.5, step_size=3
+        num_events, param_name="lr", gamma=0.5, step_size=3
         )
     )
 
