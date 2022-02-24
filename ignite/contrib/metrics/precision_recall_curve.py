@@ -60,7 +60,7 @@ class PrecisionRecallCurve(EpochMetric):
 
     def __init__(self, output_transform: Callable = lambda x: x, check_compute_fn: bool = False) -> None:
         try:
-            from sklearn.metrics import precision_recall_curve
+            from sklearn.metrics import precision_recall_curve # noqa: F401
         except ImportError:
             raise RuntimeError("This contrib module requires sklearn to be installed.")
 
