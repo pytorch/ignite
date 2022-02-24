@@ -5,17 +5,6 @@ import torch
 from ignite.metrics import EpochMetric
 
 
-def precision_recall_curve_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor) -> Tuple[Any, Any, Any]:
-    try:
-        from sklearn.metrics import precision_recall_curve
-    except ImportError:
-        raise RuntimeError("This contrib module requires sklearn to be installed.")
-
-    y_true = y_targets.numpy()
-    y_pred = y_preds.numpy()
-    return precision_recall_curve(y_true, y_pred)
-
-
 class PrecisionRecallCurve(EpochMetric):
     """Compute precision-recall pairs for different probability thresholds for binary classification task
     by accumulating predictions and the ground-truth during an epoch and applying
@@ -70,6 +59,20 @@ class PrecisionRecallCurve(EpochMetric):
     """
 
     def __init__(self, output_transform: Callable = lambda x: x, check_compute_fn: bool = False) -> None:
+        try:
+            from sklearn.metrics import cohen_kappa_score  # noqa: F401
+        except ImportError:
+            raise RuntimeError("This contrib module requires sklearn to be installed.")
+        self.precision_recall_curve_compute_fn = self.precision_recall_curve_compute()
         super(PrecisionRecallCurve, self).__init__(
-            precision_recall_curve_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
+            self.precision_recall_curve_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
         )
+
+    def precision_recall_curve_compute(self) -> Callable[[torch.Tensor, torch.Tensor],float]:
+        from sklearn.metrics import precision_recall_curve
+        def wrapper(y_preds: torch.Tensor, y_targets: torch.Tensor) -> float:
+
+            y_true = y_targets.numpy()
+            y_pred = y_preds.numpy()
+            return precision_recall_curve(y_true, y_pred)
+        return wrapper
