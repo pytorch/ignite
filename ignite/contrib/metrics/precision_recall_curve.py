@@ -60,15 +60,16 @@ class PrecisionRecallCurve(EpochMetric):
 
     def __init__(self, output_transform: Callable = lambda x: x, check_compute_fn: bool = False) -> None:
         try:
-            from sklearn.metrics import cohen_kappa_score  # noqa: F401
+            from sklearn.metrics import precision_recall_curve
         except ImportError:
             raise RuntimeError("This contrib module requires sklearn to be installed.")
-        self.precision_recall_curve_compute_fn = self.precision_recall_curve_compute()
+
         super(PrecisionRecallCurve, self).__init__(
-            self.precision_recall_curve_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
+            self.precision_recall_curve_compute(), output_transform=output_transform, check_compute_fn=check_compute_fn
         )
 
     def precision_recall_curve_compute(self) -> Callable[[torch.Tensor, torch.Tensor], float]:
+        """Returns a function computing the precision_recall_curve from scikit-learn."""
         from sklearn.metrics import precision_recall_curve
 
         def wrapper(y_preds: torch.Tensor, y_targets: torch.Tensor) -> float:
