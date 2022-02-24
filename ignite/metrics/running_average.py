@@ -27,23 +27,27 @@ class RunningAverage(Metric):
 
     Examples:
 
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
         .. include:: defaults.rst
             :start-after: :orphan:
 
         .. testcode:: 1
 
+            default_trainer = get_default_trainer()
+
             accuracy = Accuracy()
             metric = RunningAverage(accuracy)
-            metric.attach(default_evaluator, 'running_avg_accuracy')
+            metric.attach(default_trainer, 'running_avg_accuracy')
 
-            @default_evaluator.on(Events.ITERATION_COMPLETED)
+            @default_trainer.on(Events.ITERATION_COMPLETED)
             def log_running_avg_metrics():
-                print(default_evaluator.state.metrics['running_avg_accuracy'])
+                print(default_trainer.state.metrics['running_avg_accuracy'])
 
             y_true = [torch.Tensor(y) for y in [[0], [1], [0], [1], [0], [1]]]
             y_pred = [torch.Tensor(y) for y in [[0], [0], [0], [1], [1], [1]]]
 
-            state = default_evaluator.run(zip(y_pred, y_true))
+            state = default_trainer.run(zip(y_pred, y_true))
 
         .. testoutput:: 1
 
@@ -56,16 +60,18 @@ class RunningAverage(Metric):
 
         .. testcode:: 2
 
-            metric = RunningAverage(output_transform=lambda x: x.item())
-            metric.attach(default_evaluator, 'running_avg_accuracy')
+            default_trainer = get_default_trainer()
 
-            @default_evaluator.on(Events.ITERATION_COMPLETED)
+            metric = RunningAverage(output_transform=lambda x: x.item())
+            metric.attach(default_trainer, 'running_avg_accuracy')
+
+            @default_trainer.on(Events.ITERATION_COMPLETED)
             def log_running_avg_metrics():
-                print(default_evaluator.state.metrics['running_avg_accuracy'])
+                print(default_trainer.state.metrics['running_avg_accuracy'])
 
             y = [torch.Tensor(y) for y in [[0], [1], [0], [1], [0], [1]]]
 
-            state = default_evaluator.run(y)
+            state = default_trainer.run(y)
 
         .. testoutput:: 2
 

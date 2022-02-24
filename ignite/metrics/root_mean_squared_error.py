@@ -35,6 +35,8 @@ class RootMeanSquaredError(MeanSquaredError):
 
         ``y_pred`` and ``y`` should have the same shape.
 
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
         .. include:: defaults.rst
             :start-after: :orphan:
 

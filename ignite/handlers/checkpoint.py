@@ -6,6 +6,7 @@ import tempfile
 import warnings
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
+from pathlib import Path
 from typing import Any, Callable, Dict, IO, List, Mapping, NamedTuple, Optional, Tuple, Union
 
 import torch
@@ -270,11 +271,11 @@ class Checkpoint(Serializable):
     def __init__(
         self,
         to_save: Mapping,
-        save_handler: Union[str, Callable, BaseSaveHandler],
+        save_handler: Union[str, Path, Callable, BaseSaveHandler],
         filename_prefix: str = "",
         score_function: Optional[Callable] = None,
         score_name: Optional[str] = None,
-        n_saved: Optional[int] = 1,
+        n_saved: Union[int, None] = 1,
         global_step_transform: Optional[Callable] = None,
         filename_pattern: Optional[str] = None,
         include_self: bool = False,
@@ -295,15 +296,22 @@ class Checkpoint(Serializable):
             if "checkpointer" in to_save:
                 raise ValueError(f"Cannot have key 'checkpointer' if `include_self` is True: {to_save}")
 
-        if not (isinstance(save_handler, str) or callable(save_handler) or isinstance(save_handler, BaseSaveHandler)):
-            raise TypeError("Argument `save_handler` should be a string or callable or inherit from BaseSaveHandler")
+        if not (
+            isinstance(save_handler, str)
+            or isinstance(save_handler, Path)
+            or callable(save_handler)
+            or isinstance(save_handler, BaseSaveHandler)
+        ):
+            raise TypeError(
+                "Argument `save_handler` should be a string or Path object or callable or inherit from BaseSaveHandler"
+            )
 
         if global_step_transform is not None and not callable(global_step_transform):
             raise TypeError(f"global_step_transform should be a function, got {type(global_step_transform)} instead.")
 
         self.to_save = to_save
         self.filename_prefix = filename_prefix
-        if isinstance(save_handler, str):
+        if isinstance(save_handler, str) or isinstance(save_handler, Path):
             self.save_handler = DiskSaver(save_handler, create_dir=True)
         else:
             self.save_handler = save_handler  # type: ignore
@@ -347,10 +355,14 @@ class Checkpoint(Serializable):
         self._saved = []
 
     @property
-    def last_checkpoint(self) -> Optional[str]:
+    def last_checkpoint(self) -> Optional[Union[str, Path]]:
         if len(self._saved) < 1:
             return None
-        return self._saved[-1].filename
+
+        if not isinstance(self.save_handler, DiskSaver):
+            return self._saved[-1].filename
+
+        return self.save_handler.dirname / self._saved[-1].filename
 
     def _check_lt_n_saved(self, or_equal: bool = False) -> bool:
         if self.n_saved is None:
@@ -565,25 +577,27 @@ class Checkpoint(Serializable):
             warnings.warn("kwargs contains keys other than strict and these will be ignored")
 
         is_state_dict_strict = kwargs.get("strict", True)
+
+        def _load_object(obj: Any, chkpt_obj: Any) -> None:
+            if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
+                obj = obj.module
+            if isinstance(obj, torch.nn.Module):
+                obj.load_state_dict(chkpt_obj, strict=is_state_dict_strict)
+            else:
+                obj.load_state_dict(chkpt_obj)
+
         if len(to_load) == 1:
             # single object and checkpoint is directly a state_dict
             key, obj = list(to_load.items())[0]
             if key not in checkpoint_obj:
-                if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
-                    obj = obj.module
-                obj.load_state_dict(checkpoint_obj, strict=is_state_dict_strict)
+                _load_object(obj, checkpoint_obj)
                 return
 
         # multiple objects to load
         for k, obj in to_load.items():
             if k not in checkpoint_obj:
                 raise ValueError(f"Object labeled by '{k}' from `to_load` is not found in the checkpoint")
-            if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
-                obj = obj.module
-            if isinstance(obj, torch.nn.Module):
-                obj.load_state_dict(checkpoint_obj[k], strict=is_state_dict_strict)
-            else:
-                obj.load_state_dict(checkpoint_obj[k])
+            _load_object(obj, checkpoint_obj[k])
 
     def state_dict(self) -> "OrderedDict[str, List[Tuple[int, str]]]":
         """Method returns state dict with saved items: list of ``(priority, filename)`` pairs.
@@ -664,21 +678,26 @@ class DiskSaver(BaseSaveHandler):
     """
 
     def __init__(
-        self, dirname: str, atomic: bool = True, create_dir: bool = True, require_empty: bool = True, **kwargs: Any
+        self,
+        dirname: Union[str, Path],
+        atomic: bool = True,
+        create_dir: bool = True,
+        require_empty: bool = True,
+        **kwargs: Any,
     ):
-        self.dirname = os.path.expanduser(dirname)
+        self.dirname = Path(dirname).expanduser()
         self._atomic = atomic
-        self._check_and_setup(dirname, create_dir, require_empty)
+        self._check_and_setup(self.dirname, create_dir, require_empty)
         self.kwargs = kwargs
 
     @staticmethod
     @idist.one_rank_only()
-    def _check_and_setup(dirname: str, create_dir: bool, require_empty: bool) -> None:
+    def _check_and_setup(dirname: Path, create_dir: bool, require_empty: bool) -> None:
         if create_dir:
-            if not os.path.exists(dirname):
-                os.makedirs(dirname)
+            if not dirname.exists():
+                dirname.mkdir(parents=True)
         # Ensure that dirname exists
-        if not os.path.exists(dirname):
+        if not dirname.exists():
             raise ValueError(f"Directory path '{dirname}' is not found")
 
         if require_empty:
@@ -692,7 +711,7 @@ class DiskSaver(BaseSaveHandler):
                 )
 
     def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None) -> None:
-        path = os.path.join(self.dirname, filename)
+        path = self.dirname / filename
 
         if idist.has_xla_support:
             self._save_xla(checkpoint, path)
@@ -700,16 +719,16 @@ class DiskSaver(BaseSaveHandler):
             self._save_native(checkpoint, path)
 
     @idist.one_rank_only()
-    def _save_native(self, checkpoint: Mapping, path: str) -> None:
+    def _save_native(self, checkpoint: Mapping, path: Path) -> None:
         self._save_func(checkpoint, path, torch.save)
 
-    def _save_xla(self, checkpoint: Mapping, path: str) -> None:
+    def _save_xla(self, checkpoint: Mapping, path: Path) -> None:
         import torch_xla.core.xla_model as xm
 
         # all tpu procs should enter here as internally performs sync across device
         self._save_func(checkpoint, path, xm.save, rank=idist.get_rank())
 
-    def _save_func(self, checkpoint: Mapping, path: str, func: Callable, rank: int = 0) -> None:
+    def _save_func(self, checkpoint: Mapping, path: Path, func: Callable, rank: int = 0) -> None:
         if not self._atomic:
             func(checkpoint, path, **self.kwargs)
         else:
@@ -736,8 +755,8 @@ class DiskSaver(BaseSaveHandler):
 
     @idist.one_rank_only()
     def remove(self, filename: str) -> None:
-        path = os.path.join(self.dirname, filename)
-        os.remove(path)
+        path = self.dirname / filename
+        path.unlink()
 
 
 class ModelCheckpoint(Checkpoint):
@@ -783,12 +802,21 @@ class ModelCheckpoint(Checkpoint):
             Input of the function is `(engine, event_name)`. Output of function should be an integer.
             Default is None, global_step based on attached engine. If provided, uses function output as global_step.
             To setup global step from another engine, please use :meth:`~ignite.handlers.global_step_from_engine`.
+        filename_pattern: If ``filename_pattern`` is provided, this pattern will be used to render
+            checkpoint filenames. If the pattern is not defined, the default pattern would be used.
+            See :class:`~ignite.handlers.checkpoint.Checkpoint` for details.
         include_self: Whether to include the `state_dict` of this object in the checkpoint. If `True`, then
             there must not be another object in ``to_save`` with key ``checkpointer``.
+        greater_or_equal: if `True`, the latest equally scored model is stored. Otherwise, the first model.
+            Default, `False`.
         kwargs: Accepted keyword arguments for `torch.save` or `xm.save` in `DiskSaver`.
 
     .. versionchanged:: 0.4.2
         Accept ``kwargs`` for `torch.save` or `xm.save`
+
+    .. versionchanged:: 0.5.0
+        Accept ``filename_pattern`` and ``greater_or_equal`` for parity
+        with :class:`~ignite.handlers.checkpoint.Checkpoint`
 
     Examples:
         .. code-block:: python
@@ -810,8 +838,8 @@ class ModelCheckpoint(Checkpoint):
 
     def __init__(
         self,
-        dirname: str,
-        filename_prefix: str,
+        dirname: Union[str, Path],
+        filename_prefix: str = "",
         score_function: Optional[Callable] = None,
         score_name: Optional[str] = None,
         n_saved: Union[int, None] = 1,
@@ -819,7 +847,9 @@ class ModelCheckpoint(Checkpoint):
         require_empty: bool = True,
         create_dir: bool = True,
         global_step_transform: Optional[Callable] = None,
+        filename_pattern: Optional[str] = None,
         include_self: bool = False,
+        greater_or_equal: bool = False,
         **kwargs: Any,
     ):
 
@@ -833,20 +863,20 @@ class ModelCheckpoint(Checkpoint):
             score_name=score_name,
             n_saved=n_saved,
             global_step_transform=global_step_transform,
+            filename_pattern=filename_pattern,
             include_self=include_self,
+            greater_or_equal=greater_or_equal,
         )
 
     @property
-    def last_checkpoint(self) -> Union[str, None]:
+    def last_checkpoint(self) -> Optional[Union[str, Path]]:
         if len(self._saved) < 1:
             return None
 
         if not isinstance(self.save_handler, DiskSaver):
-            raise RuntimeError(
-                f"Unable to save checkpoint, save_handler should be DiskSaver, got {type(self.save_handler)}."
-            )
+            raise RuntimeError(f"Internal error, save_handler should be DiskSaver, but has {type(self.save_handler)}.")
 
-        return os.path.join(self.save_handler.dirname, self._saved[-1].filename)
+        return self.save_handler.dirname / self._saved[-1].filename
 
     def __call__(self, engine: Engine, to_save: Mapping):  # type: ignore
 
