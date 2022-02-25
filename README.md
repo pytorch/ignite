@@ -516,7 +516,8 @@ Toolkits
 - [DeepSeismic - Deep Learning for Seismic Imaging and Interpretation](https://github.com/microsoft/seismic-deeplearning)
 - [Nussl - a flexible, object-oriented Python audio source separation library](https://github.com/nussl/nussl)
 - [PyTorch Adapt - A fully featured and modular domain adaptation library](https://github.com/KevinMusgrave/pytorch-adapt)
-
+- [gnina-torch: PyTorch implementation of GNINA scoring function](https://github.com/RMeli/gnina-torch)
+ 
 </details>
 
 <details>
