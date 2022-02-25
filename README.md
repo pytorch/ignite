@@ -533,6 +533,7 @@ Others
 - [Logging with ChainerUI](https://chainerui.readthedocs.io/en/latest/reference/module.html#external-library-support)
 - [FixMatch experiments in PyTorch and Ignite (CTA dataaug policy)](https://github.com/vfdev-5/FixMatch-pytorch)
 - [Kaggle Birdcall Identification Competition: 1st place solution](https://github.com/ryanwongsa/kaggle-birdsong-recognition)
+- [Logging with Aim - An open-source experiment tracker](https://aimstack.readthedocs.io/en/latest/quick_start/integrations.html#integration-with-pytorch-ignite)
 
 </details>
 
