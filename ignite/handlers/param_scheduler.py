@@ -795,6 +795,7 @@ class LRScheduler(ParamScheduler):
         lr_scheduler: lr_scheduler object to wrap.
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
+        use_legacy: whether for LRScheduler to behave previously, (default=False).
 
     Examples:
 
@@ -808,19 +809,15 @@ class LRScheduler(ParamScheduler):
             from torch.optim.lr_scheduler import StepLR
 
             torch_lr_scheduler = StepLR(default_optimizer, step_size=3, gamma=0.1)
-
             scheduler = LRScheduler(torch_lr_scheduler)
+
+            # In this example, we assume to have installed PyTorch>=1.1.0
+            # (with new `torch.optim.lr_scheduler` behaviour)
+            default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
 
             @default_trainer.on(Events.ITERATION_COMPLETED)
             def print_lr():
                 print(default_optimizer.param_groups[0]["lr"])
-
-            # In this example, we assume to have installed PyTorch>=1.1.0
-            # (with new `torch.optim.lr_scheduler` behaviour) and
-            # we attach scheduler to Events.ITERATION_COMPLETED
-            # instead of Events.ITERATION_STARTED to make sure to use
-            # the first lr value from the optimizer, otherwise it is will be skipped:
-            default_trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
 
             default_trainer.run([0] * 8, max_epochs=1)
 
@@ -838,7 +835,7 @@ class LRScheduler(ParamScheduler):
     .. versionadded:: 0.4.5
     """
 
-    def __init__(self, lr_scheduler: _LRScheduler, save_history: bool = False):
+    def __init__(self, lr_scheduler: _LRScheduler, save_history: bool = False, use_legacy: bool = False):
 
         if not isinstance(lr_scheduler, _LRScheduler):
             raise TypeError(
@@ -852,11 +849,18 @@ class LRScheduler(ParamScheduler):
             param_name="lr",
             save_history=save_history,
         )
+        if use_legacy:
+            warnings.warn(
+                "we attach scheduler to Events.ITERATION_COMPLETED"
+                "instead of Events.ITERATION_STARTED to make sure to use"
+                "the first lr value from the optimizer, otherwise it is will be skipped"
+            )
+            self.lr_scheduler.last_epoch += 1  # type: ignore[attr-defined]
         self._state_attrs += ["lr_scheduler"]
 
     def __call__(self, engine: Optional[Engine], name: Optional[str] = None) -> None:
-        self.lr_scheduler.last_epoch += 1  # type: ignore[attr-defined]
         super(LRScheduler, self).__call__(engine, name)
+        self.lr_scheduler.last_epoch += 1  # type: ignore[attr-defined]
 
     def get_param(self) -> Union[float, List[float]]:
         """Method to get current optimizer's parameter value"""
@@ -904,9 +908,9 @@ class LRScheduler(ParamScheduler):
             values = []
             scheduler = cls(save_history=False, lr_scheduler=lr_scheduler, **kwargs)
             for i in range(num_events):
+                scheduler(engine=None)
                 params = [p[scheduler.param_name] for p in scheduler.optimizer_param_groups]
                 values.append([i] + params)
-                scheduler(engine=None)
 
             obj = torch.load(cache_filepath.as_posix())
             lr_scheduler.load_state_dict(obj["lr_scheduler"])
@@ -1015,7 +1019,7 @@ def create_lr_scheduler_with_warmup(
             if init_lr != param_group_warmup_end_value:
                 milestones_values.append((warmup_duration, init_lr))
 
-            lr_scheduler = LRScheduler(lr_scheduler, save_history=save_history)
+            lr_scheduler = LRScheduler(lr_scheduler, save_history=save_history, use_legacy=True)
         else:
             init_lr = lr_scheduler.get_param()
             if init_lr == param_group_warmup_end_value:
