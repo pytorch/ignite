@@ -157,8 +157,14 @@ class EpochMetric(Metric):
             result = self.compute_fn(_prediction_tensor, _target_tensor)
 
         if ws > 1:
-            # broadcast result to all processes
-            result = cast(float, idist.broadcast(result, src=0))
+            if isinstance(result,tuple):
+                l = len(result)
+                for i in range(l):
+                    result[i] = idist.broadcast(result[i], src=0)
+
+            else:
+                # broadcast result to all processes
+                result = cast(float, idist.broadcast(result, src=0))
 
         return result
 
