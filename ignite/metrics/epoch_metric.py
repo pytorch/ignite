@@ -157,7 +157,7 @@ class EpochMetric(Metric):
             result = self.compute_fn(_prediction_tensor, _target_tensor)
 
         if ws > 1:
-            if isinstance(result,tuple):
+            if isinstance(result, tuple):
                 l = len(result)
                 for i in range(l):
                     result[i] = idist.broadcast(result[i], src=0)
