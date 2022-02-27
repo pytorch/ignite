@@ -643,55 +643,73 @@ def test_lr_scheduler():
         tensor = torch.zeros([1], requires_grad=True)
         optimizer1 = torch.optim.SGD([tensor], lr=0.01)
         optimizer2 = torch.optim.SGD([tensor], lr=0.01)
+        optimizer3 = torch.optim.SGD([tensor], lr=0.01)
         opt_state_dict1 = optimizer1.state_dict()
         opt_state_dict2 = optimizer2.state_dict()
+        opt_state_dict3 = optimizer3.state_dict()
 
         torch_lr_scheduler1 = torch_lr_scheduler_cls(optimizer=optimizer1, **kwargs)
-        scheduler = LRScheduler(torch_lr_scheduler1)
-        state_dict1 = scheduler.state_dict()
+        scheduler1 = LRScheduler(torch_lr_scheduler1)
+        state_dict1 = scheduler1.state_dict()
 
         torch_lr_scheduler2 = torch_lr_scheduler_cls(optimizer=optimizer2, **kwargs)
-        state_dict2 = torch_lr_scheduler2.state_dict()
+        scheduler2 = LRScheduler(torch_lr_scheduler2, use_legacy=True)
+        state_dict2 = scheduler2.state_dict()
+
+        torch_lr_scheduler3 = torch_lr_scheduler_cls(optimizer=optimizer3, **kwargs)
+        state_dict3 = torch_lr_scheduler3.state_dict()
 
         def dummy_update(engine, batch):
             optimizer1.step()
             optimizer2.step()
+            optimizer3.step()
 
         trainer = Engine(dummy_update)
 
+        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler1)
+
         @trainer.on(Events.ITERATION_STARTED)
-        def save_lr(engine):
-            lrs.append(optimizer1.param_groups[0]["lr"])
+        def save_lr1(engine):
+            lrs1.append(optimizer1.param_groups[0]["lr"])
+
+        @trainer.on(Events.ITERATION_STARTED)
+        def save_lr2(engine):
+            lrs2.append(optimizer2.param_groups[0]["lr"])
 
         @trainer.on(Events.ITERATION_STARTED)
         def save_true_lr(engine):
-            lrs_true.append(optimizer2.param_groups[0]["lr"])
+            lrs_true.append(optimizer3.param_groups[0]["lr"])
 
         @trainer.on(Events.ITERATION_COMPLETED)
         def torch_lr_scheduler_step(engine):
-            torch_lr_scheduler2.step()
+            torch_lr_scheduler3.step()
 
-        trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
+        trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler2)
 
         for _ in range(2):
-            lrs = []
+            lrs1 = []
+            lrs2 = []
             lrs_true = []
             data = [0] * 10
             max_epochs = 2
             trainer.run(data, max_epochs=max_epochs)
-            assert lrs_true == pytest.approx(lrs), f"{_}: {lrs_true} ({len(lrs_true)}) vs {lrs} ({len(lrs)})"
+            assert lrs_true == pytest.approx(lrs1), f"{_}: {lrs_true} ({len(lrs_true)}) vs {lrs1} ({len(lrs1)})"
+            assert lrs_true == pytest.approx(lrs2), f"{_}: {lrs_true} ({len(lrs_true)}) vs {lrs2} ({len(lrs2)})"
             optimizer1.load_state_dict(opt_state_dict1)
-            scheduler.load_state_dict(state_dict1)
+            scheduler1.load_state_dict(state_dict1)
             optimizer2.load_state_dict(opt_state_dict2)
-            torch_lr_scheduler2.load_state_dict(state_dict2)
+            scheduler2.load_state_dict(state_dict2)
+            optimizer3.load_state_dict(opt_state_dict3)
+            torch_lr_scheduler3.load_state_dict(state_dict3)
 
-        optimizer3 = torch.optim.SGD([tensor], lr=0.01)
-        torch_lr_scheduler3 = torch_lr_scheduler_cls(optimizer=optimizer3, **kwargs)
+        optimizer4 = torch.optim.SGD([tensor], lr=0.01)
+        torch_lr_scheduler4 = torch_lr_scheduler_cls(optimizer=optimizer4, **kwargs)
 
         simulated_values = LRScheduler.simulate_values(
-            num_events=len(data) * max_epochs, lr_scheduler=torch_lr_scheduler3
+            num_events=len(data) * max_epochs, lr_scheduler=torch_lr_scheduler4
         )
-        assert lrs == pytest.approx([v for i, v in simulated_values])
+        assert lrs1 == pytest.approx([v for i, v in simulated_values])
+        assert lrs2 == pytest.approx([v for i, v in simulated_values])
 
     _test(StepLR, step_size=5, gamma=0.5)
     _test(ExponentialLR, gamma=0.78)
@@ -817,11 +835,8 @@ def test_simulate_and_plot_values():
 
     def _test(scheduler_cls, **scheduler_kwargs):
 
-        optimizer = None
-        event = Events.ITERATION_STARTED
         if scheduler_cls == LRScheduler:
             optimizer = scheduler_kwargs["lr_scheduler"].optimizer
-            event = Events.ITERATION_COMPLETED
         elif scheduler_cls == ConcatScheduler:
             optimizer = scheduler_kwargs["optimizer"]
             del scheduler_kwargs["optimizer"]
@@ -832,7 +847,7 @@ def test_simulate_and_plot_values():
 
         max_epochs = 2
         data = [0] * 10
-        # simulated_values = scheduler_cls.simulate_values(num_events=len(data) * max_epochs, **scheduler_kwargs)
+        simulated_values = scheduler_cls.simulate_values(num_events=len(data) * max_epochs, **scheduler_kwargs)
 
         scheduler = scheduler_cls(**scheduler_kwargs)
 
@@ -842,21 +857,15 @@ def test_simulate_and_plot_values():
             lrs.append(optimizer.param_groups[0]["lr"])
 
         trainer = Engine(lambda engine, batch: None)
-        trainer.add_event_handler(event, scheduler)
+        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
         trainer.add_event_handler(Events.ITERATION_STARTED, save_lr)
         trainer.run(data, max_epochs=max_epochs)
 
-        # assert lrs == pytest.approx([v for i, v in simulated_values])
-
-        if scheduler_cls == LRScheduler or scheduler_cls == ConcatScheduler:
-            # As internal state of torch lr scheduler has been changed the following checks will fail
-            return
+        assert lrs == pytest.approx([v for i, v in simulated_values])
 
         # reexecute to check if no internal changes
-        # simulated_values = scheduler_cls.simulate_values(num_events=len(data) * max_epochs,
-        #                                                  save_history=True,  # this will be removed
-        #                                                  **scheduler_kwargs)
-        # assert lrs == pytest.approx([v for i, v in simulated_values])
+        simulated_values = scheduler_cls.simulate_values(num_events=len(data) * max_epochs, **scheduler_kwargs)
+        assert lrs == pytest.approx([v for i, v in simulated_values])
 
         # launch plot values
         scheduler_cls.plot_values(num_events=len(data) * max_epochs, **scheduler_kwargs)
