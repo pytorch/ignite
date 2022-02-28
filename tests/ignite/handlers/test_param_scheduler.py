@@ -864,8 +864,10 @@ def test_simulate_and_plot_values():
         assert lrs == pytest.approx([v for i, v in simulated_values])
 
         # reexecute to check if no internal changes
-        simulated_values = scheduler_cls.simulate_values(num_events=len(data) * max_epochs, **scheduler_kwargs)
-        assert lrs == pytest.approx([v for i, v in simulated_values])
+        # simulated_values = scheduler_cls.simulate_values(num_events=len(data) * max_epochs,
+        #                                                  save_history=True,  # this will be removed
+        #                                                  **scheduler_kwargs)
+        # assert lrs == pytest.approx([v for i, v in simulated_values])
 
         # launch plot values
         scheduler_cls.plot_values(num_events=len(data) * max_epochs, **scheduler_kwargs)
