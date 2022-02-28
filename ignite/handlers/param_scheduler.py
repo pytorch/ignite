@@ -795,7 +795,7 @@ class LRScheduler(ParamScheduler):
         lr_scheduler: lr_scheduler object to wrap.
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
-        use_legacy: whether for LRScheduler to behave previously, (default=False).
+        use_legacy: if True, scheduler should be attached to ``Events.ITERATION_COMPLETED``, (default=False).
 
     Examples:
 
@@ -811,8 +811,6 @@ class LRScheduler(ParamScheduler):
             torch_lr_scheduler = StepLR(default_optimizer, step_size=3, gamma=0.1)
             scheduler = LRScheduler(torch_lr_scheduler)
 
-            # In this example, we assume to have installed PyTorch>=1.1.0
-            # (with new `torch.optim.lr_scheduler` behaviour)
             default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
 
             @default_trainer.on(Events.ITERATION_COMPLETED)
@@ -851,7 +849,7 @@ class LRScheduler(ParamScheduler):
         )
         if use_legacy:
             warnings.warn(
-                "we attach scheduler to Events.ITERATION_COMPLETED"
+                "Please make sure to attach scheduler to Events.ITERATION_COMPLETED"
                 "instead of Events.ITERATION_STARTED to make sure to use"
                 "the first lr value from the optimizer, otherwise it is will be skipped"
             )
