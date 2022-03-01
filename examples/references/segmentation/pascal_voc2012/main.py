@@ -6,14 +6,14 @@ import fire
 import torch
 
 try:
-    from torch.cuda.amp import GradScaler, autocast
+    from torch.cuda.amp import autocast, GradScaler
 except ImportError:
     raise RuntimeError("Please, use recent PyTorch version, e.g. >=1.6.0")
 
 import dataflow as data
 import utils
 import vis
-from py_config_runner import ConfigObject, InferenceConfigSchema, TrainvalConfigSchema, get_params
+from py_config_runner import ConfigObject, get_params, InferenceConfigSchema, TrainvalConfigSchema
 
 import ignite.distributed as idist
 from ignite.contrib.engines import common

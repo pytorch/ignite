@@ -104,6 +104,8 @@ class Bleu(Metric):
 
     Examples:
 
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
         .. testcode::
 
             from ignite.metrics.nlp import Bleu

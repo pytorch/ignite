@@ -5,7 +5,7 @@ from pathlib import Path
 
 import torch
 from apex import amp
-from py_config_runner.config_utils import TRAINVAL_CONFIG, assert_config, get_params
+from py_config_runner.config_utils import assert_config, get_params, TRAINVAL_CONFIG
 from py_config_runner.utils import set_seed
 from utils import exp_tracking
 from utils.handlers import predictions_gt_images_handler
@@ -13,7 +13,7 @@ from utils.handlers import predictions_gt_images_handler
 import ignite
 import ignite.distributed as idist
 from ignite.contrib.engines import common
-from ignite.engine import Engine, Events, _prepare_batch, create_supervised_evaluator
+from ignite.engine import _prepare_batch, create_supervised_evaluator, Engine, Events
 from ignite.metrics import Accuracy, TopKCategoricalAccuracy
 from ignite.utils import setup_logger
 

@@ -1,5 +1,5 @@
 import warnings
-from typing import Callable, List, Tuple, Union, cast
+from typing import Callable, cast, List, Tuple, Union
 
 import torch
 
@@ -41,6 +41,11 @@ class EpochMetric(Metric):
         device: optional device specification for internal storage.
 
     Example:
+
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 

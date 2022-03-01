@@ -35,6 +35,11 @@ class Recall(_BasePrecisionRecall):
 
     Examples:
 
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         Binary case
 
         .. testcode:: 1

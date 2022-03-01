@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import Mapping
 from functools import wraps
 from numbers import Number
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple, TYPE_CHECKING, Union
 
 import torch
 
@@ -149,6 +149,8 @@ class Metric(metaclass=ABCMeta):
         Let's implement a custom metric that requires ``y_pred``, ``y`` and ``x`` as input for ``update`` function.
         In the example below we show how to setup standard metric like Accuracy and the custom metric using by an
         ``evaluator`` created with :meth:`~ignite.engine.create_supervised_evaluator` method.
+
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
 
         .. code-block:: python
 
@@ -378,6 +380,7 @@ class Metric(metaclass=ABCMeta):
                 :attr:`ignite.metrics.metric.BatchWise.usage_name`.
 
         Examples:
+
             .. code-block:: python
 
                 metric = ...

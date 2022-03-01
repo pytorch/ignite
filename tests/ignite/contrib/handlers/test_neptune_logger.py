@@ -1,21 +1,20 @@
 import math
-import os
 import sys
 import warnings
-from unittest.mock import ANY, MagicMock, call
+from unittest.mock import ANY, call, MagicMock
 
 import pytest
 import torch
 
 import ignite.distributed as idist
 from ignite.contrib.handlers.neptune_logger import (
+    global_step_from_engine,
     GradsScalarHandler,
     NeptuneLogger,
     NeptuneSaver,
     OptimizerParamsHandler,
     OutputHandler,
     WeightsScalarHandler,
-    global_step_from_engine,
 )
 from ignite.engine import Engine, Events, State
 from ignite.handlers.checkpoint import Checkpoint
@@ -476,7 +475,7 @@ def test_neptune_saver_serializable(dirname):
     to_save_serializable = {"model": model}
 
     saver = NeptuneSaver(mock_logger)
-    fname = os.path.join(dirname, "test.pt")
+    fname = dirname / "test.pt"
     saver(to_save_serializable, fname)
 
     assert mock_logger.log_artifact.call_count == 1

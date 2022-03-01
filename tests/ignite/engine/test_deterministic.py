@@ -14,10 +14,10 @@ from torch.utils.data import BatchSampler, DataLoader, RandomSampler
 import ignite.distributed as idist
 from ignite.engine import Events
 from ignite.engine.deterministic import (
-    DeterministicEngine,
-    ReproducibleBatchSampler,
     _set_rng_states,
+    DeterministicEngine,
     keep_random_state,
+    ReproducibleBatchSampler,
     update_dataloader,
 )
 from ignite.utils import manual_seed
@@ -717,7 +717,7 @@ def _test_gradients_on_resume(
         def save_chkpt(_):
             if debug:
                 print(trainer.state.iteration, "save_chkpt")
-            fp = os.path.join(dirname, "test.pt")
+            fp = dirname / "test.pt"
             from ignite.engine.deterministic import _repr_rng_state
 
             tsd = trainer.state_dict()

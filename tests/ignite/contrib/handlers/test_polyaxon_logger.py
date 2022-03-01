@@ -1,14 +1,14 @@
 import os
-from unittest.mock import MagicMock, call
+from unittest.mock import call, MagicMock
 
 import pytest
 import torch
 
 from ignite.contrib.handlers.polyaxon_logger import (
+    global_step_from_engine,
     OptimizerParamsHandler,
     OutputHandler,
     PolyaxonLogger,
-    global_step_from_engine,
 )
 from ignite.engine import Engine, Events, State
 
