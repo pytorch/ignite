@@ -575,7 +575,6 @@ def test_model_checkpoint_simple_recovery(dirname):
     assert str(dirname / _PREFIX) in str(fname)
     assert fname.exists()
     loaded_objects = torch.load(fname)
-    print("fname=", fname)
     assert loaded_objects == model.state_dict()
     to_load = {"model": DummyModel()}
     h.reload_objects(to_load=to_load, global_step=1)
