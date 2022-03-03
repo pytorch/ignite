@@ -99,8 +99,8 @@ class PrecisionRecallCurve(EpochMetric):
 
         if ws > 1:
             # broadcast result to all processes
-            precision = cast(float, idist.broadcast(precision, src=0))
-            recall = cast(float, idist.broadcast(recall, src=0))
-            thresholds = cast(float, idist.broadcast(thresholds, src=0))
+            precision = cast(torch.Tensor, idist.broadcast(precision, src=0))
+            recall = cast(torch.Tensor, idist.broadcast(recall, src=0))
+            thresholds = cast(torch.Tensor, idist.broadcast(thresholds, src=0))
 
         return precision, recall, thresholds
