@@ -76,7 +76,7 @@ class PrecisionRecallCurve(EpochMetric):
             precision_recall_curve_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
         )
 
-    def compute(self) -> float:
+    def compute(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         if len(self._predictions) < 1 or len(self._targets) < 1:
             raise NotComputableError("EpochMetric must have at least one example before it can be computed.")
 
@@ -90,9 +90,9 @@ class PrecisionRecallCurve(EpochMetric):
             _target_tensor = cast(torch.Tensor, idist.all_gather(_target_tensor))
         self._is_reduced = True
 
-        precision = torch.zeros(1, len(self._predictions))
-        recall = torch.zeros(1, len(self._predictions))
-        thresholds = torch.zeros(1, len(self._predictions) - 1)
+        precision = torch.zeros(len(self._predictions))
+        recall = torch.zeros(len(self._predictions))
+        thresholds = torch.zeros(len(self._predictions) - 1)
         if idist.get_rank() == 0:
             # Run compute_fn on zero rank only
             precision, recall, thresholds = self.compute_fn(_prediction_tensor, _target_tensor)
