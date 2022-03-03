@@ -52,6 +52,7 @@ class PrecisionRecallCurve(EpochMetric):
             :start-after: :orphan:
 
         .. testcode::
+
             y_pred = torch.tensor([0.0474, 0.5987, 0.7109, 0.9997])
             y_true = torch.tensor([0, 0, 1, 1])
             prec_recall_curve = PrecisionRecallCurve()
