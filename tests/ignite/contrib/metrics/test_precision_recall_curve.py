@@ -6,6 +6,7 @@ import sklearn
 import torch
 from sklearn.metrics import precision_recall_curve
 
+import ignite.distributed as idist
 from ignite.contrib.metrics.precision_recall_curve import PrecisionRecallCurve
 from ignite.engine import Engine
 from ignite.metrics.epoch_metric import EpochMetricWarning
@@ -124,3 +125,35 @@ def test_check_compute_fn():
 
     em = PrecisionRecallCurve(check_compute_fn=False)
     em.update(output)
+
+def _test_distrib_binary_input(device):
+
+    rank = idist.get_rank()
+    torch.manual_seed(12)
+
+    def _test(y_pred, y, batch_size, metric_device):
+
+        metric_device = torch.device(metric_device)
+        prc = PrecisionRecallCurve(device=metric_device)
+
+        torch.manual_seed(10 + rank)
+
+        prc.reset()
+        if batch_size > 1:
+            n_iters = y.shape[0] // batch_size + 1
+            for i in range(n_iters):
+                idx = i * batch_size
+                prc.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+        else:
+            prc.update((y_pred, y))
+
+        # gather y_pred, y
+        y_pred = idist.all_gather(y_pred)
+        y = idist.all_gather(y)
+
+        np_y = y.cpu().numpy()
+        np_y_pred = y_pred.cpu().numpy()
+
+        res = prc.compute()
+        assert isinstance(res, float)
+        assert PrecisionRecallCurve(np_y, np_y_pred) == pytest.approx(res)
