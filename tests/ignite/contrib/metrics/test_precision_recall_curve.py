@@ -126,6 +126,7 @@ def test_check_compute_fn():
     em = PrecisionRecallCurve(check_compute_fn=False)
     em.update(output)
 
+
 def _test_distrib_binary_input(device):
 
     rank = idist.get_rank()

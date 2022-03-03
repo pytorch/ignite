@@ -1,10 +1,10 @@
-from typing import Any, Callable, Tuple,cast
+from typing import Any, Callable, cast, Tuple
 
 import torch
 
 import ignite.distributed as idist
-from ignite.metrics import EpochMetric
 from ignite.exceptions import NotComputableError
+from ignite.metrics import EpochMetric
 
 
 def precision_recall_curve_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor) -> Tuple[Any, Any, Any]:
@@ -75,6 +75,7 @@ class PrecisionRecallCurve(EpochMetric):
         super(PrecisionRecallCurve, self).__init__(
             precision_recall_curve_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
         )
+
     def compute(self) -> float:
         if len(self._predictions) < 1 or len(self._targets) < 1:
             raise NotComputableError("EpochMetric must have at least one example before it can be computed.")
@@ -89,13 +90,12 @@ class PrecisionRecallCurve(EpochMetric):
             _target_tensor = cast(torch.Tensor, idist.all_gather(_target_tensor))
         self._is_reduced = True
 
-        precision = torch.zeros(1,len(self._predictions))
-        recall = torch.zeros(1,len(self._predictions))
-        thresholds = torch.zeros(1,len(self._predictions)-1)
+        precision = torch.zeros(1, len(self._predictions))
+        recall = torch.zeros(1, len(self._predictions))
+        thresholds = torch.zeros(1, len(self._predictions) - 1)
         if idist.get_rank() == 0:
             # Run compute_fn on zero rank only
-            precision,recall,thresholds = self.compute_fn(_prediction_tensor, _target_tensor)
-
+            precision, recall, thresholds = self.compute_fn(_prediction_tensor, _target_tensor)
 
         if ws > 1:
             # broadcast result to all processes
@@ -103,4 +103,4 @@ class PrecisionRecallCurve(EpochMetric):
             recall = cast(float, idist.broadcast(recall, src=0))
             thresholds = cast(float, idist.broadcast(thresholds, src=0))
 
-        return precision,recall,thresholds
+        return precision, recall, thresholds
