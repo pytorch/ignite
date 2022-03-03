@@ -327,6 +327,18 @@ class Checkpoint(Serializable):
         self.include_self = include_self
         self.greater_or_equal = greater_or_equal
 
+    def __get_filename_pattern(self, global_step: Optional[int]) -> str:
+        if self.filename_pattern is None:
+            filename_pattern = self.setup_filename_pattern(
+                with_prefix=len(self.filename_prefix) > 0,
+                with_score=self.score_function is not None,
+                with_score_name=self.score_name is not None,
+                with_global_step=global_step is not None,
+            )
+        else:
+            filename_pattern = self.filename_pattern
+        return filename_pattern
+
     def reset(self) -> None:
         """Method to reset saved checkpoint names.
 
@@ -402,15 +414,7 @@ class Checkpoint(Serializable):
                     name = k
                 checkpoint = checkpoint[name]
 
-            if self.filename_pattern is None:
-                filename_pattern = self.setup_filename_pattern(
-                    with_prefix=len(self.filename_prefix) > 0,
-                    with_score=self.score_function is not None,
-                    with_score_name=self.score_name is not None,
-                    with_global_step=global_step is not None,
-                )
-            else:
-                filename_pattern = self.filename_pattern
+            filename_pattern = self.__get_filename_pattern(global_step)
 
             filename_dict = {
                 "filename_prefix": self.filename_prefix,
@@ -598,6 +602,37 @@ class Checkpoint(Serializable):
             if k not in checkpoint_obj:
                 raise ValueError(f"Object labeled by '{k}' from `to_load` is not found in the checkpoint")
             _load_object(obj, checkpoint_obj[k])
+
+    def reload_objects(self, to_load: Mapping, load_kwargs: Optional[Dict] = None, **filename_components: Any) -> None:
+
+        global_step = filename_components.get("global_step", None)
+
+        filename_pattern = self.__get_filename_pattern(global_step)
+
+        checkpoint = self._setup_checkpoint()
+        name = "checkpoint"
+        if len(checkpoint) == 1:
+            for k in checkpoint:
+                name = k
+        name = filename_components.get("name", name)
+        score = filename_components.get("score", None)
+
+        filename_dict = {
+            "filename_prefix": self.filename_prefix,
+            "ext": self.ext,
+            "name": name,
+            "score_name": self.score_name,
+            "score": score,
+            "global_step": global_step,
+        }
+
+        checkpoint_fp = filename_pattern.format(**filename_dict)
+
+        path = self.save_handler.dirname / checkpoint_fp
+
+        load_kwargs = {} if load_kwargs is None else load_kwargs
+
+        Checkpoint.load_objects(to_load=to_load, checkpoint=str(path), **load_kwargs)
 
     def state_dict(self) -> "OrderedDict[str, List[Tuple[int, str]]]":
         """Method returns state dict with saved items: list of ``(priority, filename)`` pairs.
