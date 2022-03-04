@@ -1,7 +1,7 @@
+import os
 from typing import Tuple
 from unittest.mock import patch
 
-import os
 import numpy as np
 import pytest
 import sklearn
@@ -161,6 +161,7 @@ def _test_distrib_binary_input(device):
         assert isinstance(res, Tuple)
         assert PrecisionRecallCurve(np_y, np_y_pred) == pytest.approx(res)
 
+
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
@@ -168,6 +169,8 @@ def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
 
     device = idist.device()
     _test_distrib_binary_input(device)
+
+
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
@@ -186,6 +189,7 @@ def test_distrib_hvd(gloo_hvd_executor):
 
     gloo_hvd_executor(_test_distrib_binary_input, (device,), np=nproc, do_init=True)
 
+
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
@@ -194,6 +198,7 @@ def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
     device = idist.device()
     _test_distrib_binary_input(device)
 
+
 @pytest.mark.multinode_distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
@@ -201,6 +206,7 @@ def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
 
     device = idist.device()
     _test_distrib_binary_input(device)
+
 
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
