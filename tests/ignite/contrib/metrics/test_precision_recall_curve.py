@@ -129,7 +129,7 @@ def test_check_compute_fn():
     em.update(output)
 
 
-def _test_distrib_binary_input(device):
+def _test_distrib_compute(device):
 
     rank = idist.get_rank()
     torch.manual_seed(12)
@@ -160,6 +160,56 @@ def _test_distrib_binary_input(device):
         res = prc.compute()
         assert isinstance(res, Tuple)
         assert PrecisionRecallCurve(np_y, np_y_pred) == pytest.approx(res)
+        for _ in range(3):
+            _test("cpu")
+            if device.type != "xla":
+                _test(idist.device())
+
+def _test_distrib_integration(device):
+
+    rank = idist.get_rank()
+    torch.manual_seed(12)
+
+    def _test(n_epochs, metric_device):
+        metric_device = torch.device(metric_device)
+        n_iters = 80
+        size = 151
+        y_true = torch.rand(size=(size,)).to(device)
+        y_preds = torch.rand(size=(size,)).to(device)
+
+        def update(engine, i):
+            return (
+                y_preds[i * size : (i + 1) * size],
+                y_true[i * size : (i + 1) * size],
+            )
+
+        engine = Engine(update)
+
+        prc = PrecisionRecallCurve(device=metric_device)
+        prc.attach(engine, "mare")
+
+        data = list(range(n_iters))
+        engine.run(data=data, max_epochs=n_epochs)
+
+        assert "mare" in engine.state.metrics
+
+        res = engine.state.metrics["mare"]
+
+        np_y_true = y_true.cpu().numpy().ravel()
+        np_y_preds = y_preds.cpu().numpy().ravel()
+
+        e = np.abs(np_y_true - np_y_preds) / np.abs(np_y_true - np_y_true.mean())
+        np_res = np.median(e)
+
+        assert pytest.approx(res) == np_res
+
+    metric_devices = ["cpu"]
+    if device.type != "xla":
+        metric_devices.append(idist.device())
+    for metric_device in metric_devices:
+        for _ in range(2):
+            _test(n_epochs=1, metric_device=metric_device)
+            _test(n_epochs=2, metric_device=metric_device)
 
 
 @pytest.mark.distributed
@@ -168,7 +218,8 @@ def _test_distrib_binary_input(device):
 def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
 
     device = idist.device()
-    _test_distrib_binary_input(device)
+    _test_distrib_compute(device)
+    _test_distrib_integration(device)
 
 
 @pytest.mark.distributed
@@ -176,7 +227,8 @@ def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
 def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
 
     device = idist.device()
-    _test_distrib_binary_input(device)
+    _test_distrib_compute(device)
+    _test_distrib_integration(device)
 
 
 @pytest.mark.distributed
@@ -187,7 +239,8 @@ def test_distrib_hvd(gloo_hvd_executor):
     device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
 
-    gloo_hvd_executor(_test_distrib_binary_input, (device,), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_distrib_compute, (device,), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_distrib_integration, (device,), np=nproc, do_init=True)
 
 
 @pytest.mark.multinode_distributed
@@ -196,7 +249,8 @@ def test_distrib_hvd(gloo_hvd_executor):
 def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
 
     device = idist.device()
-    _test_distrib_binary_input(device)
+    _test_distrib_compute(device)
+    _test_distrib_integration(device)
 
 
 @pytest.mark.multinode_distributed
@@ -205,7 +259,8 @@ def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
 def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
 
     device = idist.device()
-    _test_distrib_binary_input(device)
+    _test_distrib_compute(device)
+    _test_distrib_integration(device)
 
 
 @pytest.mark.tpu
@@ -213,9 +268,19 @@ def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_distrib_single_device_xla():
     device = idist.device()
-    _test_distrib_binary_input(device)
+    _test_distrib_compute(device)
+    _test_distrib_integration(device)
 
 
 def _test_distrib_xla_nprocs(index):
     device = idist.device()
-    _test_distrib_binary_input(device)
+    _test_distrib_compute(device)
+    _test_distrib_integration(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_xla_nprocs(xmp_executor):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+    xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)
