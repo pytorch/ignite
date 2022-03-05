@@ -536,28 +536,37 @@ class Checkpoint(Serializable):
 
         Examples:
             .. code-block:: python
+                import tempfile
+                from pathlib import Path
 
                 import torch
+
                 from ignite.engine import Engine, Events
                 from ignite.handlers import ModelCheckpoint, Checkpoint
+
                 trainer = Engine(lambda engine, batch: None)
-                handler = ModelCheckpoint('/tmp/models', 'myprefix', n_saved=None, create_dir=True)
-                model = torch.nn.Linear(3, 3)
-                optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
-                to_save = {"weights": model, "optimizer": optimizer}
-                trainer.add_event_handler(Events.EPOCH_COMPLETED(every=2), handler, to_save)
-                trainer.run(torch.randn(10, 1), 5)
 
-                to_load = to_save
-                checkpoint_fp = "/tmp/models/myprefix_checkpoint_40.pth"
-                checkpoint = torch.load(checkpoint_fp)
-                Checkpoint.load_objects(to_load=to_load, checkpoint=checkpoint)
+                with tempfile.TemporaryDirectory() as tmpdirname:
+                    handler = ModelCheckpoint(tmpdirname, 'myprefix', n_saved=None, create_dir=True)
 
-                # or using a string for checkpoint filepath
+                    model = torch.nn.Linear(3, 3)
+                    optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
 
-                to_load = to_save
-                checkpoint_fp = "/tmp/models/myprefix_checkpoint_40.pth"
-                Checkpoint.load_objects(to_load=to_load, checkpoint=checkpoint_fp)
+                    to_save = {"weights": model, "optimizer": optimizer}
+
+                    trainer.add_event_handler(Events.EPOCH_COMPLETED(every=2), handler, to_save)
+                    trainer.run(torch.randn(10, 1), 5)
+
+                    to_load = to_save
+                    checkpoint_fp = Path(tmpdirname) / 'myprefix_checkpoint_40.pt'
+                    checkpoint = torch.load(checkpoint_fp)
+                    Checkpoint.load_objects(to_load=to_load, checkpoint=checkpoint)
+
+                    # or using a string for checkpoint filepath
+
+                    to_load = to_save
+                    checkpoint_fp = Path(tmpdirname) / 'myprefix_checkpoint_40.pt'
+                    Checkpoint.load_objects(to_load=to_load, checkpoint=checkpoint_fp)
 
         Note:
             If ``to_load`` contains objects of type torch `DistributedDataParallel`_ or
@@ -604,6 +613,50 @@ class Checkpoint(Serializable):
             _load_object(obj, checkpoint_obj[k])
 
     def reload_objects(self, to_load: Mapping, load_kwargs: Optional[Dict] = None, **filename_components: Any) -> None:
+        """Helper method to apply ``load_state_dict`` on the objects from ``to_load``. Filename components such as
+        name, score and global state can be configured.
+
+        Args:
+            to_load: a dictionary with objects, e.g. `{"model": model, "optimizer": optimizer, ...}`
+            load_kwargs: Keyword arguments accepted for `nn.Module.load_state_dict()`. Passing `strict=False` enables
+                the user to load part of the pretrained model (useful for example, in Transfer Learning)
+            filename_components: Filename components used to define the checkpoint file path.
+                Keyword arguments accepted are `name`, `score` and `global_state`.
+
+        Examples:
+            .. code-block:: python
+                import tempfile
+
+                import torch
+
+                from ignite.engine import Engine, Events
+                from ignite.handlers import ModelCheckpoint, Checkpoint
+
+                trainer = Engine(lambda engine, batch: None)
+
+                with tempfile.TemporaryDirectory() as tmpdirname:
+                    checkpoint = ModelCheckpoint(tmpdirname, 'myprefix', n_saved=None, create_dir=True)
+
+                    model = torch.nn.Linear(3, 3)
+                    optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
+
+                    to_save = {"weights": model, "optimizer": optimizer}
+
+                    trainer.add_event_handler(Events.EPOCH_COMPLETED(every=2), checkpoint, to_save)
+                    trainer.run(torch.randn(10, 1), 5)
+
+                    to_load = to_save
+                    # load checkpoint myprefix_checkpoint_40.pt
+                    checkpoint.load_objects(to_load=to_load, global_step=40)
+
+        Note:
+            If ``to_load`` contains objects of type torch `DistributedDataParallel`_ or
+            `DataParallel`_, method ``load_state_dict`` will applied to their internal wrapped model (``obj.module``).
+
+        .. _DistributedDataParallel: https://pytorch.org/docs/stable/generated/
+            torch.nn.parallel.DistributedDataParallel.html
+        .. _DataParallel: https://pytorch.org/docs/stable/generated/torch.nn.DataParallel.html
+        """
 
         global_step = filename_components.get("global_step", None)
 
