@@ -1124,6 +1124,7 @@ def test_checkpoint_load_objects_from_saved_file(dirname):
     assert str(dirname / _PREFIX) in str(fname)
     assert fname.exists()
     Checkpoint.load_objects(to_save, str(fname))
+    Checkpoint.load_objects(to_save, fname)
     fname.unlink()
 
     # case: multiple objects

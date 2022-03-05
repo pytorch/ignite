@@ -577,7 +577,7 @@ class Checkpoint(Serializable):
         .. _DataParallel: https://pytorch.org/docs/stable/generated/torch.nn.DataParallel.html
         """
 
-        if isinstance(checkpoint, str):
+        if isinstance(checkpoint, (str, Path)):
             checkpoint_obj = torch.load(checkpoint)
         else:
             checkpoint_obj = checkpoint
@@ -685,7 +685,7 @@ class Checkpoint(Serializable):
 
         load_kwargs = {} if load_kwargs is None else load_kwargs
 
-        Checkpoint.load_objects(to_load=to_load, checkpoint=str(path), **load_kwargs)
+        Checkpoint.load_objects(to_load=to_load, checkpoint=path, **load_kwargs)
 
     def state_dict(self) -> "OrderedDict[str, List[Tuple[int, str]]]":
         """Method returns state dict with saved items: list of ``(priority, filename)`` pairs.
