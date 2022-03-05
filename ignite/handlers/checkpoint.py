@@ -523,14 +523,14 @@ class Checkpoint(Serializable):
                 raise TypeError(f"Object {type(obj)} should have `{attr}` method")
 
     @staticmethod
-    def load_objects(to_load: Mapping, checkpoint: Union[str, Mapping], **kwargs: Any) -> None:
+    def load_objects(to_load: Mapping, checkpoint: Union[str, Mapping, Path], **kwargs: Any) -> None:
         """Helper method to apply ``load_state_dict`` on the objects from ``to_load`` using states from ``checkpoint``.
 
         Args:
             to_load: a dictionary with objects, e.g. `{"model": model, "optimizer": optimizer, ...}`
-            checkpoint: a string filepath or a dictionary with state_dicts to load, e.g. `{"model": model_state_dict,
-                "optimizer": opt_state_dict}`. If `to_load` contains a single key, then checkpoint can contain
-                directly corresponding state_dict.
+            checkpoint: a path, a string filepath or a dictionary with state_dicts to load, e.g.
+                `{"model": model_state_dict, "optimizer": opt_state_dict}`. If `to_load` contains a single key,
+                then checkpoint can contain directly corresponding state_dict.
             kwargs: Keyword arguments accepted for `nn.Module.load_state_dict()`. Passing `strict=False` enables
                 the user to load part of the pretrained model (useful for example, in Transfer Learning)
 
@@ -825,7 +825,7 @@ class DiskSaver(BaseSaveHandler):
             tmp: Optional[IO[bytes]] = None
             if rank == 0:
                 tmp = tempfile.NamedTemporaryFile(delete=False, dir=self.dirname)
-                tmp_file = tmp.file
+                tmp_file = tmp.file  # type: ignore[attr-defined]
                 tmp_name = tmp.name
             try:
                 func(checkpoint, tmp_file, **self.kwargs)
