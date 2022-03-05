@@ -536,6 +536,7 @@ class Checkpoint(Serializable):
 
         Examples:
             .. code-block:: python
+
                 import tempfile
                 from pathlib import Path
 
@@ -625,6 +626,7 @@ class Checkpoint(Serializable):
 
         Examples:
             .. code-block:: python
+
                 import tempfile
 
                 import torch
