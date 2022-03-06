@@ -199,7 +199,7 @@ def _test_distrib_integration(device):
         np_y_true = y_true.cpu().numpy().ravel()
         np_y_preds = y_preds.cpu().numpy().ravel()
 
-        sk_precision,sk_recall,sk_thresholds = precision_recall_curve(np_y_true, np_y_preds)
+        sk_precision, sk_recall, sk_thresholds = precision_recall_curve(np_y_true, np_y_preds)
         assert pytest.approx(precision) == sk_precision
         assert pytest.approx(recall) == sk_recall
         assert pytest.approx(thresholds) == sk_thresholds
