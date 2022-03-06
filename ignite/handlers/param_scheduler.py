@@ -796,6 +796,7 @@ class LRScheduler(ParamScheduler):
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
         use_legacy: if True, scheduler should be attached to ``Events.ITERATION_COMPLETED``, (default=False).
+        keep_first_lr: whether to keep first lr. Only needed for internal use. Do not touch!
 
     Examples:
 
@@ -833,7 +834,13 @@ class LRScheduler(ParamScheduler):
     .. versionadded:: 0.4.5
     """
 
-    def __init__(self, lr_scheduler: _LRScheduler, save_history: bool = False, use_legacy: bool = False):
+    def __init__(
+        self,
+        lr_scheduler: _LRScheduler,
+        save_history: bool = False,
+        use_legacy: bool = False,
+        keep_first_lr: bool = False,
+    ):
 
         if not isinstance(lr_scheduler, _LRScheduler):
             raise TypeError(
@@ -854,6 +861,10 @@ class LRScheduler(ParamScheduler):
                 "the first lr value from the optimizer, otherwise it is will be skipped"
             )
             self.lr_scheduler.last_epoch += 1  # type: ignore[attr-defined]
+        if keep_first_lr:
+            self.lr_scheduler._get_lr_called_within_step = True  # type: ignore[attr-defined]
+            self.first_lr = self.lr_scheduler.get_lr()
+            self.lr_scheduler._get_lr_called_within_step = False  # type: ignore[attr-defined]
         self._state_attrs += ["lr_scheduler"]
 
     def __call__(self, engine: Optional[Engine], name: Optional[str] = None) -> None:
@@ -863,9 +874,14 @@ class LRScheduler(ParamScheduler):
     def get_param(self) -> Union[float, List[float]]:
         """Method to get current optimizer's parameter value"""
         # Emulate context manager for pytorch>=1.4
-        self.lr_scheduler._get_lr_called_within_step = True  # type: ignore[attr-defined]
-        lr_list = cast(List[float], self.lr_scheduler.get_lr())
-        self.lr_scheduler._get_lr_called_within_step = False  # type: ignore[attr-defined]
+        if hasattr(self, "first_lr"):
+            lr_list = self.first_lr
+            del self.first_lr
+        else:
+            self.lr_scheduler._get_lr_called_within_step = True  # type: ignore[attr-defined]
+            lr_list = cast(List[float], self.lr_scheduler.get_lr())
+            self.lr_scheduler._get_lr_called_within_step = False  # type: ignore[attr-defined]
+
         if len(lr_list) == 1:
             return lr_list[0]
         else:
@@ -1009,23 +1025,19 @@ def create_lr_scheduler_with_warmup(
         else:
             param_group_warmup_end_value = warmup_end_value
 
-        milestones_values = [(0, warmup_start_value), (warmup_duration - 1, param_group_warmup_end_value)]
-
         if isinstance(lr_scheduler, _LRScheduler):
             init_lr = param_group["lr"]
-
-            if init_lr != param_group_warmup_end_value:
-                milestones_values.append((warmup_duration, init_lr))
-
-            lr_scheduler = LRScheduler(lr_scheduler, save_history=save_history, use_legacy=True)
+            lr_scheduler = LRScheduler(lr_scheduler, save_history=save_history, keep_first_lr=True)
         else:
             init_lr = lr_scheduler.get_param()
-            if init_lr == param_group_warmup_end_value:
-                if warmup_duration > 2:
-                    d = (param_group_warmup_end_value - warmup_start_value) / (warmup_duration - 1)
-                    milestones_values[-1] = (warmup_duration - 2, param_group_warmup_end_value - d)
-                else:
-                    milestones_values.pop(-1)
+
+        milestones_values = [(0, warmup_start_value), (warmup_duration - 1, param_group_warmup_end_value)]
+        if init_lr == param_group_warmup_end_value:
+            if warmup_duration > 2:
+                d = (param_group_warmup_end_value - warmup_start_value) / (warmup_duration - 1)
+                milestones_values[-1] = (warmup_duration - 2, param_group_warmup_end_value - d)
+            else:
+                milestones_values.pop(-1)
 
         warmup_schedulers.append(
             PiecewiseLinear(
