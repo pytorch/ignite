@@ -863,7 +863,7 @@ class LRScheduler(ParamScheduler):
             self.lr_scheduler.last_epoch += 1  # type: ignore[attr-defined]
         if keep_first_lr:
             self.lr_scheduler._get_lr_called_within_step = True  # type: ignore[attr-defined]
-            self.first_lr = self.lr_scheduler.get_lr()
+            self.first_lr = cast(List[float], self.lr_scheduler.get_lr())
             self.lr_scheduler._get_lr_called_within_step = False  # type: ignore[attr-defined]
         self._state_attrs += ["lr_scheduler"]
 
