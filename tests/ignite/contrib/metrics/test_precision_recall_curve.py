@@ -187,22 +187,22 @@ def _test_distrib_integration(device):
         engine = Engine(update)
 
         prc = PrecisionRecallCurve(device=metric_device)
-        prc.attach(engine, "mare")
+        prc.attach(engine, "prc")
 
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=n_epochs)
 
-        assert "mare" in engine.state.metrics
+        assert "prc" in engine.state.metrics
 
-        res = engine.state.metrics["mare"]
+        precision, recall, thresholds = engine.state.metrics["prc"]
 
         np_y_true = y_true.cpu().numpy().ravel()
         np_y_preds = y_preds.cpu().numpy().ravel()
 
-        e = np.abs(np_y_true - np_y_preds) / np.abs(np_y_true - np_y_true.mean())
-        np_res = np.median(e)
-
-        assert pytest.approx(res) == np_res
+        sk_precision,sk_recall,sk_thresholds = precision_recall_curve(np_y_true, np_y_preds)
+        assert pytest.approx(precision) == sk_precision
+        assert pytest.approx(recall) == sk_recall
+        assert pytest.approx(thresholds) == sk_thresholds
 
     metric_devices = ["cpu"]
     if device.type != "xla":
