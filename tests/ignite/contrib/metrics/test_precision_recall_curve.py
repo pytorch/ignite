@@ -160,6 +160,7 @@ def _test_distrib_compute(device):
         res = prc.compute()
         assert isinstance(res, Tuple)
         assert PrecisionRecallCurve(np_y, np_y_pred) == pytest.approx(res)
+
     for _ in range(3):
         _test("cpu")
         if device.type != "xla":
