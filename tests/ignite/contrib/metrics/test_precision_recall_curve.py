@@ -160,10 +160,10 @@ def _test_distrib_compute(device):
         res = prc.compute()
         assert isinstance(res, Tuple)
         assert PrecisionRecallCurve(np_y, np_y_pred) == pytest.approx(res)
-        for _ in range(3):
-            _test("cpu")
-            if device.type != "xla":
-                _test(idist.device())
+    for _ in range(3):
+        _test("cpu")
+        if device.type != "xla":
+            _test(idist.device())
 
 
 def _test_distrib_integration(device):
@@ -195,11 +195,18 @@ def _test_distrib_integration(device):
         assert "prc" in engine.state.metrics
 
         precision, recall, thresholds = engine.state.metrics["prc"]
+        precision = precision.numpy()
+        recall = recall.numpy()
+        thresholds = thresholds.numpy()
 
         np_y_true = y_true.cpu().numpy().ravel()
         np_y_preds = y_preds.cpu().numpy().ravel()
 
         sk_precision, sk_recall, sk_thresholds = precision_recall_curve(np_y_true, np_y_preds)
+
+        assert precision.shape == sk_precision.shape
+        assert recall.shape == sk_recall.shape
+        assert thresholds.shape == sk_thresholds.shape
         assert pytest.approx(precision) == sk_precision
         assert pytest.approx(recall) == sk_recall
         assert pytest.approx(thresholds) == sk_thresholds
