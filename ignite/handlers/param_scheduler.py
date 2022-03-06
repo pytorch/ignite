@@ -861,6 +861,7 @@ class LRScheduler(ParamScheduler):
                 "the first lr value from the optimizer, otherwise it is will be skipped"
             )
             self.lr_scheduler.last_epoch += 1  # type: ignore[attr-defined]
+        self.keep_first_lr = keep_first_lr
         if keep_first_lr:
             self.lr_scheduler._get_lr_called_within_step = True  # type: ignore[attr-defined]
             self.first_lr = cast(List[float], self.lr_scheduler.get_lr())
@@ -874,9 +875,8 @@ class LRScheduler(ParamScheduler):
     def get_param(self) -> Union[float, List[float]]:
         """Method to get current optimizer's parameter value"""
         # Emulate context manager for pytorch>=1.4
-        if hasattr(self, "first_lr"):
+        if self.keep_first_lr and self.lr_scheduler.last_epoch == 0:
             lr_list = self.first_lr
-            del self.first_lr
         else:
             self.lr_scheduler._get_lr_called_within_step = True  # type: ignore[attr-defined]
             lr_list = cast(List[float], self.lr_scheduler.get_lr())
