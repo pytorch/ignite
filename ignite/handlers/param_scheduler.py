@@ -875,7 +875,7 @@ class LRScheduler(ParamScheduler):
     def get_param(self) -> Union[float, List[float]]:
         """Method to get current optimizer's parameter value"""
         # Emulate context manager for pytorch>=1.4
-        if self.keep_first_lr and self.lr_scheduler.last_epoch == 0:
+        if self.keep_first_lr and self.lr_scheduler.last_epoch == 0:  # type: ignore[attr-defined]
             lr_list = self.first_lr
         else:
             self.lr_scheduler._get_lr_called_within_step = True  # type: ignore[attr-defined]
