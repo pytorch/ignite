@@ -1,4 +1,4 @@
-from typing import Any, Callable, cast, Tuple
+from typing import Any, Callable, cast, Tuple, Union
 
 import torch
 
@@ -71,9 +71,17 @@ class PrecisionRecallCurve(EpochMetric):
 
     """
 
-    def __init__(self, output_transform: Callable = lambda x: x, check_compute_fn: bool = False) -> None:
+    def __init__(
+        self,
+        output_transform: Callable = lambda x: x,
+        check_compute_fn: bool = False,
+        device: Union[str, torch.device] = torch.device("cpu"),
+    ) -> None:
         super(PrecisionRecallCurve, self).__init__(
-            precision_recall_curve_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
+            precision_recall_curve_compute_fn,
+            output_transform=output_transform,
+            check_compute_fn=check_compute_fn,
+            device=device,
         )
 
     def compute(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:

@@ -160,12 +160,27 @@ def _test_distrib_compute(device):
         res = prc.compute()
 
         assert isinstance(res, Tuple)
-        assert PrecisionRecallCurve(np_y, np_y_pred) == pytest.approx(res)
+        assert precision_recall_curve(np_y, np_y_pred)[0] == pytest.approx(res[0])
+        assert precision_recall_curve(np_y, np_y_pred)[1] == pytest.approx(res[1])
+        assert precision_recall_curve(np_y, np_y_pred)[2] == pytest.approx(res[2])
 
-    for _ in range(3):
-        _test("cpu")
-        if device.type != "xla":
-            _test(idist.device())
+    def get_test_cases():
+        test_cases = [
+            # Binary input data of shape (N,) or (N, 1)
+            (torch.randint(0, 2, size=(10,)), torch.randint(0, 2, size=(10,)), 1),
+            (torch.randint(0, 2, size=(10, 1)), torch.randint(0, 2, size=(10, 1)), 1),
+            # updated batches
+            (torch.randint(0, 2, size=(50,)), torch.randint(0, 2, size=(50,)), 16),
+            (torch.randint(0, 2, size=(50, 1)), torch.randint(0, 2, size=(50, 1)), 16),
+        ]
+        return test_cases
+
+    for _ in range(5):
+        test_cases = get_test_cases()
+        for y_pred, y, batch_size in test_cases:
+            _test(y_pred, y, batch_size, "cpu")
+            if device.type != "xla":
+                _test(y_pred, y, batch_size, idist.device())
 
 
 def _test_distrib_integration(device):
@@ -177,8 +192,8 @@ def _test_distrib_integration(device):
         metric_device = torch.device(metric_device)
         n_iters = 80
         size = 151
-        y_true = torch.rand(size=(size,)).to(device)
-        y_preds = torch.rand(size=(size,)).to(device)
+        y_true = torch.randint(0, 2, (size,)).to(device)
+        y_preds = torch.randint(0, 2, (size,)).to(device)
 
         def update(engine, i):
             return (
@@ -197,9 +212,6 @@ def _test_distrib_integration(device):
         assert "prc" in engine.state.metrics
 
         precision, recall, thresholds = engine.state.metrics["prc"]
-        precision = precision.numpy()
-        recall = recall.numpy()
-        thresholds = thresholds.numpy()
 
         np_y_true = y_true.cpu().numpy().ravel()
         np_y_preds = y_preds.cpu().numpy().ravel()
