@@ -158,6 +158,7 @@ def _test_distrib_compute(device):
         np_y_pred = y_pred.cpu().numpy()
 
         res = prc.compute()
+
         assert isinstance(res, Tuple)
         assert PrecisionRecallCurve(np_y, np_y_pred) == pytest.approx(res)
 
