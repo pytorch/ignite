@@ -41,6 +41,9 @@ def test_precision_recall_curve():
 
     precision_recall_curve_metric.update((y_pred, y))
     precision, recall, thresholds = precision_recall_curve_metric.compute()
+    precision = precision.numpy()
+    recall = recall.numpy()
+    thresholds = thresholds.numpy()
 
     assert np.array_equal(precision, sk_precision)
     assert np.array_equal(recall, sk_recall)
@@ -73,7 +76,9 @@ def test_integration_precision_recall_curve_with_output_transform():
 
     data = list(range(size // batch_size))
     precision, recall, thresholds = engine.run(data, max_epochs=1).metrics["precision_recall_curve"]
-
+    precision = precision.numpy()
+    recall = recall.numpy()
+    thresholds = thresholds.numpy()
     assert np.array_equal(precision, sk_precision)
     assert np.array_equal(recall, sk_recall)
     # assert thresholds almost equal, due to numpy->torch->numpy conversion
