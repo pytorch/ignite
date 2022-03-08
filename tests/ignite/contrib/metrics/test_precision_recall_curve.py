@@ -111,9 +111,9 @@ def test_integration_precision_recall_curve_with_activated_output_transform():
 
     data = list(range(size // batch_size))
     precision, recall, thresholds = engine.run(data, max_epochs=1).metrics["precision_recall_curve"]
-    precision = precision.numpy()
-    recall = recall.numpy()
-    thresholds = thresholds.numpy()
+    precision = precision.cpu().numpy()
+    recall = recall.cpu().numpy()
+    thresholds = thresholds.cpu().numpy()
 
     assert pytest.approx(precision) == sk_precision
     assert pytest.approx(recall) == sk_recall
@@ -168,9 +168,9 @@ def _test_distrib_compute(device):
         res = prc.compute()
 
         assert isinstance(res, Tuple)
-        assert precision_recall_curve(np_y, np_y_pred)[0] == pytest.approx(res[0])
-        assert precision_recall_curve(np_y, np_y_pred)[1] == pytest.approx(res[1])
-        assert precision_recall_curve(np_y, np_y_pred)[2] == pytest.approx(res[2])
+        assert precision_recall_curve(np_y, np_y_pred)[0] == pytest.approx(res[0].cpu().numpy())
+        assert precision_recall_curve(np_y, np_y_pred)[1] == pytest.approx(res[1].cpu().numpy())
+        assert precision_recall_curve(np_y, np_y_pred)[2] == pytest.approx(res[2].cpu().numpy())
 
     def get_test_cases():
         test_cases = [
@@ -183,9 +183,11 @@ def _test_distrib_compute(device):
         ]
         return test_cases
 
-    for _ in range(5):
+    for _ in range(3):
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
+            y_pred = y_pred.to(device)
+            y = y.to(device)
             _test(y_pred, y, batch_size, "cpu")
             if device.type != "xla":
                 _test(y_pred, y, batch_size, idist.device())
@@ -229,9 +231,9 @@ def _test_distrib_integration(device):
         assert precision.shape == sk_precision.shape
         assert recall.shape == sk_recall.shape
         assert thresholds.shape == sk_thresholds.shape
-        assert pytest.approx(precision) == sk_precision
-        assert pytest.approx(recall) == sk_recall
-        assert pytest.approx(thresholds) == sk_thresholds
+        assert pytest.approx(precision.cpu().numpy()) == sk_precision
+        assert pytest.approx(recall.cpu().numpy()) == sk_recall
+        assert pytest.approx(thresholds.cpu().numpy()) == sk_thresholds
 
     metric_devices = ["cpu"]
     if device.type != "xla":
