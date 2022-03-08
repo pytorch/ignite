@@ -1,5 +1,5 @@
 import warnings
-from typing import Callable, cast, List, Tuple, Union
+from typing import Any, Callable, cast, List, Tuple, Union
 
 import torch
 
@@ -136,7 +136,7 @@ class EpochMetric(Metric):
             except Exception as e:
                 warnings.warn(f"Probably, there can be a problem with `compute_fn`:\n {e}.", EpochMetricWarning)
 
-    def compute(self) -> float:
+    def compute(self) -> Any:
         if len(self._predictions) < 1 or len(self._targets) < 1:
             raise NotComputableError("EpochMetric must have at least one example before it can be computed.")
 
