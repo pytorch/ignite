@@ -13,8 +13,8 @@ def precision_recall_curve_compute_fn(y_preds: torch.Tensor, y_targets: torch.Te
     except ImportError:
         raise RuntimeError("This contrib module requires sklearn to be installed.")
 
-    y_true = y_targets.numpy()
-    y_pred = y_preds.numpy()
+    y_true = y_targets.cpu().numpy()
+    y_pred = y_preds.cpu().numpy()
     return precision_recall_curve(y_true, y_pred)
 
 

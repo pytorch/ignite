@@ -111,9 +111,9 @@ def test_integration_precision_recall_curve_with_activated_output_transform():
 
     data = list(range(size // batch_size))
     precision, recall, thresholds = engine.run(data, max_epochs=1).metrics["precision_recall_curve"]
-    precision = precision.numpy()
-    recall = recall.numpy()
-    thresholds = thresholds.numpy()
+    precision = precision.cpu().numpy()
+    recall = recall.cpu().numpy()
+    thresholds = thresholds.cpu().numpy()
 
     assert pytest.approx(precision) == sk_precision
     assert pytest.approx(recall) == sk_recall
