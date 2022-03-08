@@ -45,8 +45,8 @@ def test_precision_recall_curve():
     recall = recall.numpy()
     thresholds = thresholds.numpy()
 
-    assert np.array_equal(precision, sk_precision)
-    assert np.array_equal(recall, sk_recall)
+    assert pytest.approx(precision) == sk_precision
+    assert pytest.approx(recall) == sk_recall
     # assert thresholds almost equal, due to numpy->torch->numpy conversion
     np.testing.assert_array_almost_equal(thresholds, sk_thresholds)
 
@@ -79,8 +79,8 @@ def test_integration_precision_recall_curve_with_output_transform():
     precision = precision.numpy()
     recall = recall.numpy()
     thresholds = thresholds.numpy()
-    assert np.array_equal(precision, sk_precision)
-    assert np.array_equal(recall, sk_recall)
+    assert pytest.approx(precision) == sk_precision
+    assert pytest.approx(recall) == sk_recall
     # assert thresholds almost equal, due to numpy->torch->numpy conversion
     np.testing.assert_array_almost_equal(thresholds, sk_thresholds)
 
@@ -111,9 +111,12 @@ def test_integration_precision_recall_curve_with_activated_output_transform():
 
     data = list(range(size // batch_size))
     precision, recall, thresholds = engine.run(data, max_epochs=1).metrics["precision_recall_curve"]
+    precision = precision.numpy()
+    recall = recall.numpy()
+    thresholds = thresholds.numpy()
 
-    assert np.array_equal(precision, sk_precision)
-    assert np.array_equal(recall, sk_recall)
+    assert pytest.approx(precision) == sk_precision
+    assert pytest.approx(recall) == sk_recall
     # assert thresholds almost equal, due to numpy->torch->numpy conversion
     np.testing.assert_array_almost_equal(thresholds, sk_thresholds)
 
