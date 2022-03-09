@@ -327,7 +327,7 @@ class Checkpoint(Serializable):
         self.include_self = include_self
         self.greater_or_equal = greater_or_equal
 
-    def __get_filename_pattern(self, global_step: Optional[int]) -> str:
+    def _get_filename_pattern(self, global_step: Optional[int]) -> str:
         if self.filename_pattern is None:
             filename_pattern = self.setup_filename_pattern(
                 with_prefix=len(self.filename_prefix) > 0,
@@ -414,7 +414,7 @@ class Checkpoint(Serializable):
                     name = k
                 checkpoint = checkpoint[name]
 
-            filename_pattern = self.__get_filename_pattern(global_step)
+            filename_pattern = self._get_filename_pattern(global_step)
 
             filename_dict = {
                 "filename_prefix": self.filename_prefix,
@@ -662,7 +662,7 @@ class Checkpoint(Serializable):
 
         global_step = filename_components.get("global_step", None)
 
-        filename_pattern = self.__get_filename_pattern(global_step)
+        filename_pattern = self._get_filename_pattern(global_step)
 
         checkpoint = self._setup_checkpoint()
         name = "checkpoint"
