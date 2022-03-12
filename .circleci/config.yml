@@ -408,24 +408,24 @@ jobs:
             cd docker
             export PTH_VERSION=`python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_pytorch_version'))"`
             export HVD_VERSION=`python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_hvd_version'))"`
-            bash build.sh hvd hvd-base
-            bash build.sh hvd hvd-vision
-            bash build.sh hvd hvd-nlp
             bash build.sh hvd hvd-apex
             bash build.sh hvd hvd-apex-vision
             bash build.sh hvd hvd-apex-nlp
+            bash build.sh hvd hvd-base
+            bash build.sh hvd hvd-vision
+            bash build.sh hvd hvd-nlp
 
       - run:
           name: Build all PyTorch-Ignite images
           command: |
             cd docker
             export PTH_VERSION=`python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_pytorch_version'))"`
-            bash build.sh main base
-            bash build.sh main vision
-            bash build.sh main nlp
             bash build.sh main apex
             bash build.sh main apex-vision
             bash build.sh main apex-nlp
+            bash build.sh main base
+            bash build.sh main vision
+            bash build.sh main nlp
 
       - run:
           name: Build all MS DeepSpeed flavoured PyTorch-Ignite images
