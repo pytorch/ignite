@@ -576,6 +576,9 @@ def test_model_checkpoint_simple_recovery(dirname):
     assert fname.exists()
     loaded_objects = torch.load(fname)
     assert loaded_objects == model.state_dict()
+    to_load = {"model": DummyModel()}
+    h.reload_objects(to_load=to_load, global_step=1)
+    assert to_load["model"].state_dict() == model.state_dict()
 
 
 def test_model_checkpoint_simple_recovery_from_existing_non_empty(dirname):
@@ -600,6 +603,9 @@ def test_model_checkpoint_simple_recovery_from_existing_non_empty(dirname):
         assert previous_fname.exists()
         loaded_objects = torch.load(fname)
         assert loaded_objects == model.state_dict()
+        to_load = {"model": DummyModel()}
+        h.reload_objects(to_load=to_load, global_step=1)
+        assert to_load["model"].state_dict() == model.state_dict()
         fname.unlink()
 
     _test(".txt", require_empty=True)
@@ -1118,6 +1124,7 @@ def test_checkpoint_load_objects_from_saved_file(dirname):
     assert str(dirname / _PREFIX) in str(fname)
     assert fname.exists()
     Checkpoint.load_objects(to_save, str(fname))
+    Checkpoint.load_objects(to_save, fname)
     fname.unlink()
 
     # case: multiple objects
