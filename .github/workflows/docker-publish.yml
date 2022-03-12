@@ -1,30 +1,89 @@
 name: Trigger Build And Publish Docker Images
 
 on:
-  push:
-    branches:
-      - master
-    paths:
-      - docker/**
-      - ".github/workflows/docker-publish.yml"
+  # push:
+  #   branches:
+  #     - master
+  #   paths:
+  #     - docker/**
+  #     - ".github/workflows/docker-publish.yml"
+  pull_request
 
 jobs:
   build-publish:
-    name: Trigger Build and Push Docker images to Docker Hub
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, 2-gpus]
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      max-parallel: 1
+      fail-fast: true
 
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
-          python-version: 3.7
-      - name: Trigger Circle-CI pipeline
-        env:
-          CIRCLE_TOKEN: ${{ secrets.CIRCLE_TOKEN }}
+          python-version: 3.8
+      - name: Install deps
         run: |
-          pip install requests
+          pip --version
+          pip install docker
+      - name: Build all Horovod flavoured PyTorch-Ignite images
+        run: |
+          cd docker
+          export PTH_VERSION=`python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_pytorch_version'))"`
+          export HVD_VERSION=`python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_hvd_version'))"`
+          bash build.sh hvd hvd-base
+          bash build.sh hvd hvd-vision
+          bash build.sh hvd hvd-nlp
+          bash build.sh hvd hvd-apex
+          bash build.sh hvd hvd-apex-vision
+          bash build.sh hvd hvd-apex-nlp
+      - name: Build all Horovod flavoured PyTorch-Ignite images
+        run: |
+          cd docker
+          export PTH_VERSION=`python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_pytorch_version'))"`
+          bash build.sh main base
+          bash build.sh main vision
+          bash build.sh main nlp
+          bash build.sh main apex
+          bash build.sh main apex-vision
+          bash build.sh main apex-nlp
+      - name: Build all MS DeepSpeed flavoured PyTorch-Ignite images
+        run: |
+          cd docker
+          export PTH_VERSION=`python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_pytorch_version'))"`
+          export MSDP_VERSION=`python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_msdp_version'))"`
+          bash build.sh msdp msdp-apex
+          bash build.sh msdp msdp-apex-vision
+          bash build.sh msdp msdp-apex-nlp
+      - name: List built images
+        run: docker images | grep pytorchignite
+      - name: Push all PyTorch-Ignite Docker images
+        run: |
+          cd docker
+          bash push_all.sh
+      - name: Clean up
+        run: |
+          docker images | grep 'pytorchignite\|<none>' | awk '{print $3}' | xargs docker rmi -f
 
-          if [ $GITHUB_EVENT_NAME == 'pull_request' ]; then should_publish_docker_images=false; else should_publish_docker_images=true; fi
-          branch=$GITHUB_REF
+    # # Disabled this behaviour as docker images can't built on CircleCI anymore
+    # # Using self-hosted now
+    # name: Trigger Build and Push Docker images to Docker Hub
+    # runs-on: ubuntu-latest
 
-          python -u .github/workflows/trigger_circle_ci.py $should_publish_docker_images $branch
+    # steps:
+    #   - uses: actions/checkout@v2
+    #   - uses: actions/setup-python@v2
+    #     with:
+    #       python-version: 3.7
+    #   - name: Trigger Circle-CI pipeline
+    #     env:
+    #       CIRCLE_TOKEN: ${{ secrets.CIRCLE_TOKEN }}
+    #     run: |
+    #       pip install requests
+
+    #       if [ $GITHUB_EVENT_NAME == 'pull_request' ]; then should_publish_docker_images=false; else should_publish_docker_images=true; fi
+    #       branch=$GITHUB_REF
+
+    #       python -u .github/workflows/trigger_circle_ci.py $should_publish_docker_images $branch
