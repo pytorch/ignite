@@ -1426,4 +1426,4 @@ def test_step_param_scheduler():
     assert lrs == pytest.approx([v for i, v in simulated_values])
 
     with pytest.raises(ValueError, match=r"Argument step_size should be greater than zero, but given"):
-        StepParamScheduler("lr", step_size=-1)
+        StepParamScheduler(optimizer, "lr", step_size=-1)
