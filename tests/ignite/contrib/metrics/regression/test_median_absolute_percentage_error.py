@@ -159,13 +159,15 @@ def _test_distrib_integration(device):
         metric_device = torch.device(metric_device)
         n_iters = 80
         size = 105
-        y_true = torch.rand(size=(size,)).to(device)
-        y_preds = torch.rand(size=(size,)).to(device)
+
+        offset = n_iters * size
+        y_true = torch.randint(0, 2, size=(offset * idist.get_world_size(),)).to(device)
+        y_preds = torch.randint(0, 2, size=(offset * idist.get_world_size(),)).to(device)
 
         def update(engine, i):
             return (
-                y_preds[i * size : (i + 1) * size],
-                y_true[i * size : (i + 1) * size],
+                y_preds[i * size + rank * offset : (i + 1) * size + rank * offset],
+                y_true[i * size + rank * offset : (i + 1) * size + rank * offset],
             )
 
         engine = Engine(update)
