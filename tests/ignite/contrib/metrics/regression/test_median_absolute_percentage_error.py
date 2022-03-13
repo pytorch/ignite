@@ -161,8 +161,8 @@ def _test_distrib_integration(device):
         size = 105
 
         offset = n_iters * size
-        y_true = torch.randint(0, 2, size=(offset * idist.get_world_size(),)).to(device)
-        y_preds = torch.randint(0, 2, size=(offset * idist.get_world_size(),)).to(device)
+        y_true = torch.rand(size=(offset * idist.get_world_size(),)).to(device)
+        y_preds = torch.rand(size=(offset * idist.get_world_size(),)).to(device)
 
         def update(engine, i):
             return (
@@ -195,9 +195,9 @@ def _test_distrib_integration(device):
         # when the length of the array/tensor is even. So this is a hack to avoid that.
         # issue: https://github.com/pytorch/pytorch/issues/1837
         if np_y_preds.shape[0] % 2 == 0:
-            assert pytest.approx(res) == np_res_prepend
+            assert pytest.approx(res, rel=1e-2) == np_res_prepend
         else:
-            assert pytest.approx(res) == np_res
+            assert pytest.approx(res, rel=1e-2) == np_res
 
     metric_devices = ["cpu"]
     if device.type != "xla":

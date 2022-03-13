@@ -161,8 +161,8 @@ def _test_distrib_integration(device):
         size = 151
 
         offset = n_iters * size
-        y_true = torch.randint(0, 2, size=(offset * idist.get_world_size(),)).to(device)
-        y_preds = torch.randint(0, 2, size=(offset * idist.get_world_size(),)).to(device)
+        y_true = torch.rand(size=(offset * idist.get_world_size(),)).to(device)
+        y_preds = torch.rand(size=(offset * idist.get_world_size(),)).to(device)
 
         def update(engine, i):
             return (
@@ -188,7 +188,7 @@ def _test_distrib_integration(device):
         e = np.abs(np_y_true - np_y_preds) / np.abs(np_y_true - np_y_true.mean())
         np_res = np.median(e)
 
-        assert pytest.approx(res) == np_res
+        assert pytest.approx(res, rel=1e-3) == np_res
 
     metric_devices = ["cpu"]
     if device.type != "xla":
