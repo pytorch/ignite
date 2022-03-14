@@ -1,12 +1,13 @@
 name: Trigger Build And Publish Docker Images
 
 on:
-  push:
-    branches:
-      - master
-    paths:
-      - docker/**
-      - ".github/workflows/docker-publish.yml"
+  # push:
+  #   branches:
+  #     - master
+  #   paths:
+  #     - docker/**
+  #     - ".github/workflows/docker-publish.yml"
+  push
 
 jobs:
   build-publish:
