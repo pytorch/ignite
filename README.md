@@ -236,13 +236,25 @@ F1_mean.attach(engine, "F1")
 
 # Installation
 
-Checkout this guide to [install PyTorch-Ignite from pip, conda, source or use pre-built docker images](https://pytorch-ignite.ai/how-to-guides/01-installation/).
+From [pip](https://pypi.org/project/pytorch-ignite/):
+
+```bash
+pip install pytorch-ignite
+```
+
+From [conda](https://anaconda.org/pytorch/ignite):
+
+```bash
+conda install ignite -c pytorch
+```
+
+Checkout this guide to [install PyTorch-Ignite from source or use pre-built docker images](https://pytorch-ignite.ai/how-to-guides/01-installation/).
 
 <!-- ############################################################################################################### -->
 
-# Getting Started
+# Documentation and Getting Started
 
-Here is the order we suggest for getting started:
+The website for the library containing an overview can be found at: https://pytorch-ignite.ai/. Here is the order we suggest for getting started:
 
 1. [Getting Started Guide for essentials of setting up a project](https://pytorch-ignite.ai/tutorials/beginner/01-getting-started/)
 2. [Tutorials for the beginner, intermediate and advanced user](https://pytorch-ignite.ai/tutorials/)
@@ -253,7 +265,7 @@ Here is the order we suggest for getting started:
 
 # Other Documentation
 
-- Stable API documentation and an overview of the library: https://pytorch.org/ignite/
+- Stable API documentation: https://pytorch.org/ignite/
 - Development version API documentation: https://pytorch.org/ignite/master/
 - ["Questions on Github"](https://github.com/pytorch/ignite/issues?q=is%3Aissue+label%3Aquestion+) and
   ["Questions on Discuss.PyTorch"](https://discuss.pytorch.org/c/ignite).
