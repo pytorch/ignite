@@ -1,6 +1,6 @@
 [tool.black]
 line-length = 120
-target-version = ['py36', 'py37', 'py38']
+target-version = ['py37', 'py38', 'py39']
 include = '\.pyi?$'
 exclude = '''
 
@@ -22,3 +22,27 @@ exclude = '''
                      # the root of the project
 )
 '''
+
+[tool.usort.known]
+first_party = [
+    "ignite",
+]
+third_party = [
+    "clearml",
+    "dill",
+    "matplotlib",
+    "numpy",
+    "pkg_resources",
+    "pytest",
+    "requests",
+    "setuptools",
+    "skimage",
+    "sklearn",
+    "torch",
+    "torchvision",
+]
+
+[tool.ufmt]
+excludes = [
+    "assets/",
+]

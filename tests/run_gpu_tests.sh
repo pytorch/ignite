@@ -6,6 +6,11 @@ else
     ngpus=$1
 fi
 
+pattern=""
+if [ -n "$2" ]; then
+    pattern="-k $2"
+fi
+
 set -xeu
 
 pytest --cov ignite --cov-report term-missing --cov-report xml -vvv tests/ -k 'cuda'
@@ -15,7 +20,7 @@ if [ "${SKIP_DISTRIB_TESTS:-0}" -eq "1" ]; then
     exit 0
 fi
 
-pytest --cov ignite --cov-append --cov-report term-missing --cov-report xml -vvv tests/ -m distributed
+pytest --cov ignite --cov-append --cov-report term-missing --cov-report xml -vvv tests/ -m distributed ${pattern}
 
 
 if [ ${ngpus} -gt 1 ]; then

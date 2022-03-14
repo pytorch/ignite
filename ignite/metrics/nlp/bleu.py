@@ -104,6 +104,8 @@ class Bleu(Metric):
 
     Examples:
 
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
         .. testcode::
 
             from ignite.metrics.nlp import Bleu
@@ -181,7 +183,7 @@ class Bleu(Metric):
         return hyp_lengths, ref_lengths
 
     def _brevity_penalty_smoothing(
-        self, p_numerators: torch.Tensor, p_denominators: torch.Tensor, hyp_length_sum: int, ref_length_sum: int,
+        self, p_numerators: torch.Tensor, p_denominators: torch.Tensor, hyp_length_sum: int, ref_length_sum: int
     ) -> float:
 
         # Returns 0 if there's no matching n-grams
@@ -208,18 +210,16 @@ class Bleu(Metric):
         gm = bp * math.exp(math.fsum(s))
         return gm
 
-    def _sentence_bleu(self, references: Sequence[Sequence[Any]], candidates: Sequence[Any],) -> float:
+    def _sentence_bleu(self, references: Sequence[Sequence[Any]], candidates: Sequence[Any]) -> float:
         return self._corpus_bleu([references], [candidates])
 
-    def _corpus_bleu(
-        self, references: Sequence[Sequence[Sequence[Any]]], candidates: Sequence[Sequence[Any]],
-    ) -> float:
+    def _corpus_bleu(self, references: Sequence[Sequence[Sequence[Any]]], candidates: Sequence[Sequence[Any]]) -> float:
 
         p_numerators: torch.Tensor = torch.zeros(self.ngrams_order + 1)
         p_denominators: torch.Tensor = torch.zeros(self.ngrams_order + 1)
 
         hyp_length_sum, ref_length_sum = self._n_gram_counter(
-            references=references, candidates=candidates, p_numerators=p_numerators, p_denominators=p_denominators,
+            references=references, candidates=candidates, p_numerators=p_numerators, p_denominators=p_denominators
         )
         bleu_score = self._brevity_penalty_smoothing(
             p_numerators=p_numerators,

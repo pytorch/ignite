@@ -19,7 +19,7 @@ class ManhattanDistance(_BaseRegression):
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     - `y` and `y_pred` must be of same shape `(N, )` or `(N, 1)`.
 
-    __ https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.DistanceMetric.html
+    __ https://scikit-learn.org/stable/modules/generated/sklearn.metrics.DistanceMetric.html
 
     Parameters are inherited from ``Metric.__init__``.
 
@@ -37,6 +37,9 @@ class ManhattanDistance(_BaseRegression):
         To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
         The output of the engine's ``process_function`` needs to be in format of
         ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``.
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 

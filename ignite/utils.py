@@ -6,7 +6,7 @@ import random
 import shutil
 import warnings
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, TextIO, Tuple, Type, TypeVar, Union, cast
+from typing import Any, Callable, cast, Dict, Optional, TextIO, Tuple, Type, TypeVar, Union
 
 import torch
 
@@ -285,7 +285,7 @@ def deprecated(
     return decorator
 
 
-def hash_checkpoint(checkpoint_path: Union[str, Path], output_dir: Union[str, Path],) -> Tuple[Path, str]:
+def hash_checkpoint(checkpoint_path: Union[str, Path], output_dir: Union[str, Path]) -> Tuple[Path, str]:
     """
     Hash the checkpoint file in the format of ``<filename>-<hash>.<ext>``
     to be used with ``check_hash`` of :func:`torch.hub.load_state_dict_from_url`.

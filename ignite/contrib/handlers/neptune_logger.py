@@ -463,7 +463,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
 
             name = name.replace(".", "/")
             logger.log_metric(
-                f"{tag_prefix}weights_{self.reduction.__name__}/{name}", x=global_step, y=self.reduction(p.data),
+                f"{tag_prefix}weights_{self.reduction.__name__}/{name}", x=global_step, y=self.reduction(p.data)
             )
 
 
@@ -516,7 +516,7 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
 
             name = name.replace(".", "/")
             logger.log_metric(
-                f"{tag_prefix}grads_{self.reduction.__name__}/{name}", x=global_step, y=self.reduction(p.grad),
+                f"{tag_prefix}grads_{self.reduction.__name__}/{name}", x=global_step, y=self.reduction(p.grad)
             )
 
 
@@ -585,7 +585,7 @@ class NeptuneSaver(BaseSaveHandler):
         with tempfile.NamedTemporaryFile() as tmp:
             # we can not use tmp.name to open tmp.file twice on Win32
             # https://docs.python.org/3/library/tempfile.html#tempfile.NamedTemporaryFile
-            torch.save(checkpoint, tmp.file)  # type: ignore[attr-defined]
+            torch.save(checkpoint, tmp.file)
             self._logger.log_artifact(tmp.name, filename)
 
     @idist.one_rank_only(with_barrier=True)

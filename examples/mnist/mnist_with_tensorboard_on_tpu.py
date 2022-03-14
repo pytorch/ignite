@@ -25,7 +25,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, Normalize, ToTensor
 
-from ignite.engine import Events, create_supervised_evaluator, create_supervised_trainer
+from ignite.engine import create_supervised_evaluator, create_supervised_trainer, Events
 from ignite.metrics import Accuracy, Loss, RunningAverage
 
 try:
@@ -84,7 +84,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
 
     # Create trainer and evaluator
     trainer = create_supervised_trainer(
-        model, optimizer, criterion, device=device, output_transform=lambda x, y, y_pred, loss: [loss.item(),]
+        model, optimizer, criterion, device=device, output_transform=lambda x, y, y_pred, loss: [loss.item()]
     )
 
     val_metrics = {"accuracy": Accuracy(), "nll": Loss(criterion)}

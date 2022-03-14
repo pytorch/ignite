@@ -21,7 +21,7 @@ def initialize(config):
         import horovod.torch as hvd
 
         optimizer = hvd.DistributedOptimizer(
-            optimizer, named_parameters=model.named_parameters(), backward_passes_per_step=accumulation_steps,
+            optimizer, named_parameters=model.named_parameters(), backward_passes_per_step=accumulation_steps
         )
         hvd.broadcast_optimizer_state(optimizer, root_rank=0)
         if accumulation_steps > 1:

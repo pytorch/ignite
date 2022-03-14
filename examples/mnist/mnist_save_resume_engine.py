@@ -11,7 +11,7 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, Normalize, ToTensor
 from tqdm import tqdm
 
-from ignite.engine import Events, create_supervised_evaluator, create_supervised_trainer
+from ignite.engine import create_supervised_evaluator, create_supervised_trainer, Events
 from ignite.handlers import Checkpoint, DiskSaver
 from ignite.metrics import Accuracy, Loss
 from ignite.utils import manual_seed
@@ -50,8 +50,7 @@ class Net(nn.Module):
 
 
 def get_data_loaders(train_batch_size, val_batch_size):
-    """Method to setup data loaders: train_loader and val_loader
-    """
+    """Method to setup data loaders: train_loader and val_loader"""
     data_transform = Compose([ToTensor(), Normalize((0.1307,), (0.3081,))])
 
     train_loader = DataLoader(
@@ -71,8 +70,7 @@ def get_data_loaders(train_batch_size, val_batch_size):
 
 
 def log_model_weights(engine, model=None, fp=None, **kwargs):
-    """Helper method to log norms of model weights: print and dump into a file
-    """
+    """Helper method to log norms of model weights: print and dump into a file"""
     assert model and fp
     output = {"total": 0.0}
     max_counter = 5
@@ -92,8 +90,7 @@ def log_model_weights(engine, model=None, fp=None, **kwargs):
 
 
 def log_model_grads(engine, model=None, fp=None, **kwargs):
-    """Helper method to log norms of model gradients: print and dump into a file
-    """
+    """Helper method to log norms of model gradients: print and dump into a file"""
     assert model and fp
     output = {"grads/total": 0.0}
     max_counter = 5
@@ -116,8 +113,7 @@ def log_model_grads(engine, model=None, fp=None, **kwargs):
 
 
 def log_data_stats(engine, fp=None, **kwargs):
-    """Helper method to log mean/std of input batch of images and median of batch of targets.
-    """
+    """Helper method to log mean/std of input batch of images and median of batch of targets."""
     assert fp
     x, y = engine.state.batch
     output = {

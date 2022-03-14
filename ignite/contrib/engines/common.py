@@ -1,7 +1,7 @@
 import numbers
 import warnings
 from functools import partial
-from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Sequence, Union, cast
+from typing import Any, Callable, cast, Dict, Iterable, Mapping, Optional, Sequence, Union
 
 import torch
 import torch.nn as nn
@@ -12,6 +12,7 @@ from torch.utils.data.distributed import DistributedSampler
 import ignite.distributed as idist
 from ignite.contrib.handlers import (
     ClearMLLogger,
+    global_step_from_engine,
     LRScheduler,
     MLflowLogger,
     NeptuneLogger,
@@ -20,7 +21,6 @@ from ignite.contrib.handlers import (
     TensorboardLogger,
     VisdomLogger,
     WandBLogger,
-    global_step_from_engine,
 )
 from ignite.contrib.handlers.base_logger import BaseLogger
 from ignite.contrib.metrics import GpuInfo
@@ -562,8 +562,7 @@ def setup_trains_logging(
     log_every_iters: int = 100,
     **kwargs: Any,
 ) -> ClearMLLogger:
-    """``setup_trains_logging`` was renamed to :func:`~ignite.contrib.engines.common.setup_clearml_logging`.
-    """
+    """``setup_trains_logging`` was renamed to :func:`~ignite.contrib.engines.common.setup_clearml_logging`."""
     warnings.warn("setup_trains_logging was renamed to setup_clearml_logging.")
     return setup_clearml_logging(trainer, optimizers, evaluators, log_every_iters, **kwargs)
 

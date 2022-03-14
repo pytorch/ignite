@@ -33,7 +33,7 @@ except Exception as e:
     print(traceback.format_exc())
     """
     try:
-        out = client.containers.run(args.image, f"python -c '{try_except_cmd}'", auto_remove=True, stderr=True,)
+        out = client.containers.run(args.image, f"python -c '{try_except_cmd}'", auto_remove=True, stderr=True)
         assert isinstance(out, bytes), type(out)
         out = out.decode("utf-8").strip()
 
@@ -107,6 +107,9 @@ if __name__ == "__main__":
 
     if "vision" in image_type:
         run_python_cmd("import cv2")
+
+    if "nlp" in image_type:
+        run_python_cmd("import torchtext, transformers")
 
     if "apex" in image_type:
         run_python_cmd("import apex")

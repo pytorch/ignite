@@ -45,6 +45,9 @@ class MedianAbsoluteError(EpochMetric):
         The output of the engine's ``process_function`` needs to be in format of
         ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``.
 
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         .. testcode::
 
             metric = MedianAbsoluteError()
@@ -60,9 +63,9 @@ class MedianAbsoluteError(EpochMetric):
     """
 
     def __init__(
-        self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu"),
+        self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu")
     ):
 
         super(MedianAbsoluteError, self).__init__(
-            median_absolute_error_compute_fn, output_transform=output_transform, device=device,
+            median_absolute_error_compute_fn, output_transform=output_transform, device=device
         )

@@ -1,4 +1,4 @@
-from typing import List, Tuple, cast
+from typing import cast, List, Tuple
 
 import torch
 
@@ -52,6 +52,9 @@ class GeometricMeanRelativeAbsoluteError(_BaseRegression):
         To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
         The output of the engine's ``process_function`` needs to be in format of
         ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``.
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 

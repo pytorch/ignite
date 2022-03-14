@@ -49,10 +49,9 @@ class ClearMLLogger(BaseLogger):
         clearml-init
 
     Args:
-        kwargs: Keyword arguments accepted from
-            `clearml.Task
-            <https://clear.ml/docs/latest/docs/references/sdk/task#taskinit>`_.
-            All arguments are optional.
+        kwargs: Keyword arguments accepted from ``Task.init`` method.
+            All arguments are optional. If a ClearML Task has already been created,
+            kwargs will be ignored and the current ClearML Task will be used.
 
     Examples:
         .. code-block:: python
@@ -147,12 +146,15 @@ class ClearMLLogger(BaseLogger):
 
             self._task = _Stub()
         else:
-            self._task = Task.init(
-                project_name=kwargs.get("project_name"),
-                task_name=kwargs.get("task_name"),
-                task_type=kwargs.get("task_type", Task.TaskTypes.training),
-                **experiment_kwargs,
-            )
+            # Try to retrieve current the ClearML Task before trying to create a new one
+            self._task = Task.current_task()
+            if self._task is None:
+                self._task = Task.init(
+                    project_name=kwargs.get("project_name"),
+                    task_name=kwargs.get("task_name"),
+                    task_type=kwargs.get("task_type", Task.TaskTypes.training),
+                    **experiment_kwargs,
+                )
 
         self.clearml_logger = self._task.get_logger()
 
@@ -762,7 +764,7 @@ class ClearMLSaver(DiskSaver):
             warnings.warn("Checkpoint metadata missing or basename cannot be found")
             basename = "checkpoint"
 
-        checkpoint_key = (self.dirname, basename)
+        checkpoint_key = (str(self.dirname), basename)
 
         cb_context = self._CallbacksContext(
             callback_type=WeightsFileHandler.CallbackType,

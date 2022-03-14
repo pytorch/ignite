@@ -1,10 +1,10 @@
 import warnings
-from distutils.version import LooseVersion
 from typing import Callable, Optional, Sequence, Union
 
 import torch
+from packaging.version import Version
 
-from ignite.metrics.gan.utils import InceptionModel, _BaseInceptionMetric
+from ignite.metrics.gan.utils import _BaseInceptionMetric, InceptionModel
 from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
 __all__ = [
@@ -67,7 +67,7 @@ class FID(_BaseInceptionMetric):
 
     Remark:
 
-        This implementation is inspired by pytorch_fid package which can be found `here`__
+        This implementation is inspired by `pytorch_fid` package which can be found `here`__
 
         __ https://github.com/mseitzer/pytorch-fid
 
@@ -95,15 +95,65 @@ class FID(_BaseInceptionMetric):
             non-blocking. By default, CPU.
 
     Examples:
-        .. code-block:: python
 
-            import torch
-            from ignite.metric.gan import FID
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
 
-            y_pred, y = torch.rand(10, 3, 299, 299), torch.rand(10, 3, 299, 299)
-            m = FID()
-            m.update((y_pred, y))
-            print(m.compute())
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
+        .. testcode::
+
+            metric = FID(num_features=1, feature_extractor=default_model)
+            metric.attach(default_evaluator, "fid")
+            y_true = torch.ones(10, 4)
+            y_pred = torch.ones(10, 4)
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["fid"])
+
+        .. testoutput::
+
+            0.0
+
+    .. note::
+
+        The default `torchvision` model used is InceptionV3 pretrained on ImageNet.
+        This can lead to differences in results with `pytorch_fid`. To find comparable results,
+        the following model wrapper should be used:
+
+        .. code::
+
+            import torch.nn as nn
+
+            # wrapper class as feature_extractor
+            class WrapperInceptionV3(nn.Module):
+
+                def __init__(self, fid_incv3):
+                    super().__init__()
+                    self.fid_incv3 = fid_incv3
+
+                @torch.no_grad()
+                def forward(self, x):
+                    y = self.fid_incv3(x)
+                    y = y[0]
+                    y = y[:, :, 0, 0]
+                    return y
+
+            # use cpu rather than cuda to get comparable results
+            device = "cpu"
+
+            # pytorch_fid model
+            dims = 2048
+            block_idx = InceptionV3.BLOCK_INDEX_BY_DIM[dims]
+            model = InceptionV3([block_idx]).to(device)
+
+            # wrapper model to pytorch_fid model
+            wrapper_model = WrapperInceptionV3(model)
+            wrapper_model.eval();
+
+            # comparable metric
+            pytorch_fid_metric = FID(num_features=dims, feature_extractor=wrapper_model)
+
+        Important, `pytorch_fid` results depend on the batch size if the device is `cuda`.
 
     .. versionadded:: 0.4.6
     """
@@ -144,7 +194,7 @@ class FID(_BaseInceptionMetric):
 
         total += features
 
-        if LooseVersion(torch.__version__) <= LooseVersion("1.7.0"):
+        if Version(torch.__version__) <= Version("1.7.0"):
             sigma += torch.ger(features, features)
         else:
             sigma += torch.outer(features, features)
@@ -154,7 +204,7 @@ class FID(_BaseInceptionMetric):
         Calculates covariance from mean and sum of products of variables
         """
 
-        if LooseVersion(torch.__version__) <= LooseVersion("1.7.0"):
+        if Version(torch.__version__) <= Version("1.7.0"):
             sub_matrix = torch.ger(total, total)
         else:
             sub_matrix = torch.outer(total, total)

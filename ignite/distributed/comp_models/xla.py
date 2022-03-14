@@ -1,4 +1,4 @@
-from typing import Any, Callable, Mapping, Optional, Tuple, cast
+from typing import Any, Callable, cast, Mapping, Optional, Tuple
 
 import torch
 
@@ -45,8 +45,7 @@ if has_xla_support:
             return _XlaDistModel(backend=backend, **kwargs)
 
         def __init__(self, backend: Optional[str] = None, **kwargs: Any):
-            """This is a private method. Please, use `create_from_backend` or `create_from_context`
-            """
+            """This is a private method. Please, use `create_from_backend` or `create_from_context`"""
             super(_XlaDistModel, self).__init__()
             if backend is not None:
                 self._create_from_backend(backend, **kwargs)
@@ -65,7 +64,7 @@ if has_xla_support:
 
         def _compute_nproc_per_node(self) -> int:
             tensor = torch.tensor([self.get_local_rank() + 1.0], dtype=torch.float).to(self.device())
-            xm.all_reduce("max", [tensor,])
+            xm.all_reduce("max", [tensor])
             return int(tensor.item())
 
         def get_local_rank(self) -> int:
@@ -142,7 +141,7 @@ if has_xla_support:
             if op not in self._reduce_op_map:
                 raise ValueError(f"Unsupported reduction operation: '{op}'")
             op = self._reduce_op_map[op]
-            xm.all_reduce(op, [tensor,])
+            xm.all_reduce(op, [tensor])
             return tensor
 
         def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
@@ -150,14 +149,14 @@ if has_xla_support:
             group_size = self.get_world_size()
             output = torch.zeros((group_size,) + tensor.shape, dtype=tensor.dtype, device=tensor.device)
             output[self.get_rank() % group_size] = tensor
-            xm.all_reduce("sum", [output,])
+            xm.all_reduce("sum", [output])
             return output.reshape(-1, *output.shape[2:])
 
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
             # from https://github.com/jysohn23/xla/blob/model-parallel-colab/Gather_Scatter_Broadcast_PyTorch_XLA.ipynb
             if src != self.get_rank():
                 tensor.fill_(0.0)
-            xm.all_reduce("sum", [tensor,])
+            xm.all_reduce("sum", [tensor])
             return tensor
 
         def barrier(self) -> None:

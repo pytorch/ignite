@@ -1,6 +1,6 @@
 """Visdom logger and its helper handlers."""
 import os
-from typing import Any, Callable, Dict, List, Optional, Union, cast
+from typing import Any, Callable, cast, Dict, List, Optional, Union
 
 import torch
 import torch.nn as nn
@@ -417,7 +417,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler, _BaseVisDrawer):
     """
 
     def __init__(
-        self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None, show_legend: bool = False,
+        self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None, show_legend: bool = False
     ):
         super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
@@ -467,7 +467,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
     """
 
     def __init__(
-        self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None, show_legend: bool = False,
+        self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None, show_legend: bool = False
     ):
         super(WeightsScalarHandler, self).__init__(model, reduction, tag=tag)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
@@ -516,7 +516,7 @@ class GradsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
     """
 
     def __init__(
-        self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None, show_legend: bool = False,
+        self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None, show_legend: bool = False
     ):
         super(GradsScalarHandler, self).__init__(model, reduction, tag)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)

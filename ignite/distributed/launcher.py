@@ -23,7 +23,7 @@ class Parallel:
     provided ``backend`` (useful for standalone scripts).
 
     2) Only initialize a processing group given the ``backend``
-    (useful with tools like `torch.distributed.launch`_, `horovodrun`_, etc).
+    (useful with tools like `torchrun`_, `horovodrun`_, etc).
 
     Args:
         backend: backend to use: `nccl`, `gloo`, `xla-tpu`, `horovod`. If None, no distributed
@@ -50,14 +50,14 @@ class Parallel:
         spawn_kwargs: kwargs to ``idist.spawn`` function.
 
     Examples:
-        1) Single node or Multi-node, Multi-GPU training launched with `torch.distributed.launch`_ or `horovodrun`_
+        1) Single node or Multi-node, Multi-GPU training launched with `torchrun` or `horovodrun`_
         tools
 
         Single node option with 4 GPUs
 
         .. code-block:: bash
 
-            python -m torch.distributed.launch --nproc_per_node=4 --use_env main.py
+            torchrun --nproc_per_node=4 main.py
             # or if installed horovod
             horovodrun -np=4 python main.py
 
@@ -66,15 +66,15 @@ class Parallel:
         .. code-block:: bash
 
             ## node 0
-            python -m torch.distributed.launch --nnodes=2 --node_rank=0 --master_addr=master \
-                --master_port=3344 --nproc_per_node=8 --use_env main.py
+            torchrun --nnodes=2 --node_rank=0 --master_addr=master --master_port=3344 \
+            --nproc_per_node=8 main.py
 
             # or if installed horovod
             horovodrun -np 16 -H hostname1:8,hostname2:8 python main.py
 
             ## node 1
-            python -m torch.distributed.launch --nnodes=2 --node_rank=1 --master_addr=master \
-                --master_port=3344 --nproc_per_node=8 --use_env main.py
+            torchrun --nnodes=2 --node_rank=1 --master_addr=master --master_port=3344 \
+            --nproc_per_node=8 main.py
 
 
         User code is the same for both options:
@@ -91,6 +91,8 @@ class Parallel:
                 # ...
 
             backend = "nccl"  # or "horovod" if package is installed
+
+            config = {"key": "value"}
 
             with idist.Parallel(backend=backend) as parallel:
                 parallel.run(training, config, a=1, b=2)
@@ -152,6 +154,8 @@ class Parallel:
                 print(idist.get_rank(), ": run with config:", config, "- backend=", idist.backend())
                 # ...
 
+            config = {"key": "value"}
+
             with idist.Parallel(backend="xla-tpu", nproc_per_node=8) as parallel:
                 parallel.run(training, config, a=1, b=2)
 
@@ -188,12 +192,13 @@ class Parallel:
                 "master_port": 15000
             }
 
+            config = {"key": "value"}
+
             with idist.Parallel(backend="nccl", **dist_config) as parallel:
                 parallel.run(training, config, a=1, b=2)
 
 
-
-    .. _torch.distributed.launch: https://pytorch.org/docs/stable/distributed.html#launch-utility
+    .. _torchrun: https://pytorch.org/docs/stable/elastic/run.html#launcher-api
     .. _horovodrun: https://horovod.readthedocs.io/en/latest/api.html#module-horovod.run
     .. _dist.init_process_group: https://pytorch.org/docs/stable/distributed.html#torch.distributed.init_process_group
     .. versionchanged:: 0.4.2
@@ -260,9 +265,9 @@ class Parallel:
             node_rank = 0
         if node_rank >= nnodes or node_rank < 0:
             raise ValueError(f"Argument node_rank should be between 0 and {nnodes - 1}, but given {node_rank}")
-        if nnodes > 1 and (master_addr is None or master_port is None or init_method is None):
+        if nnodes > 1 and (master_addr is None or master_port is None) and init_method is None:
             raise ValueError(
-                "If number of nodes larger than one, arguments master_addr and master_port or init_method"
+                "If number of nodes larger than one, arguments master_addr and master_port or init_method "
                 f"should be specified, but given master_addr={master_addr}, master_port={master_port} and "
                 f"init_method={init_method}."
             )
@@ -293,6 +298,8 @@ class Parallel:
                     # ...
                     print(idist.get_rank(), ": run with config:", config, "- backend=", idist.backend())
                     # ...
+
+                config = {"key": "value"}
 
                 with idist.Parallel(backend=backend) as parallel:
                     parallel.run(training, config, a=1, b=2)
@@ -327,9 +334,7 @@ class Parallel:
                     f"Initialized distributed launcher with backend: '{self.backend}'"
                 )
                 msg = "\n\t".join([f"{k}: {v}" for k, v in self._spawn_params.items() if v is not None])
-                self._logger.info(  # type: ignore[attr-defined]
-                    f"- Parameters to spawn processes: \n\t{msg}"
-                )
+                self._logger.info(f"- Parameters to spawn processes: \n\t{msg}")  # type: ignore[attr-defined]
 
         return self
 

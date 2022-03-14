@@ -1,21 +1,20 @@
 import math
-import os
 import sys
 import warnings
-from unittest.mock import ANY, MagicMock, call
+from unittest.mock import ANY, call, MagicMock
 
 import pytest
 import torch
 
 import ignite.distributed as idist
 from ignite.contrib.handlers.neptune_logger import (
+    global_step_from_engine,
     GradsScalarHandler,
     NeptuneLogger,
     NeptuneSaver,
     OptimizerParamsHandler,
     OutputHandler,
     WeightsScalarHandler,
-    global_step_from_engine,
 )
 from ignite.engine import Engine, Events, State
 from ignite.handlers.checkpoint import Checkpoint
@@ -94,11 +93,9 @@ def test_output_handler_metric_names():
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
     assert mock_logger.log_metric.call_count == 2
-    mock_logger.log_metric.assert_has_calls(
-        [call("tag/a", y=12.23, x=5), call("tag/b", y=23.45, x=5)], any_order=True,
-    )
+    mock_logger.log_metric.assert_has_calls([call("tag/a", y=12.23, x=5), call("tag/b", y=23.45, x=5)], any_order=True)
 
-    wrapper = OutputHandler("tag", metric_names=["a",],)
+    wrapper = OutputHandler("tag", metric_names=["a"])
 
     mock_engine = MagicMock()
     mock_logger.log_metric = MagicMock()
@@ -134,9 +131,7 @@ def test_output_handler_metric_names():
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
     assert mock_logger.log_metric.call_count == 1
-    mock_logger.log_metric.assert_has_calls(
-        [call("tag/a", y=55.56, x=7),], any_order=True,
-    )
+    mock_logger.log_metric.assert_has_calls([call("tag/a", y=55.56, x=7)], any_order=True)
 
     # all metrics
     wrapper = OutputHandler("tag", metric_names="all")
@@ -149,9 +144,7 @@ def test_output_handler_metric_names():
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
     assert mock_logger.log_metric.call_count == 2
-    mock_logger.log_metric.assert_has_calls(
-        [call("tag/a", y=12.23, x=5), call("tag/b", y=23.45, x=5),], any_order=True,
-    )
+    mock_logger.log_metric.assert_has_calls([call("tag/a", y=12.23, x=5), call("tag/b", y=23.45, x=5)], any_order=True)
 
     # log a torch tensor (ndimension = 0)
     wrapper = OutputHandler("tag", metric_names="all")
@@ -165,7 +158,7 @@ def test_output_handler_metric_names():
 
     assert mock_logger.log_metric.call_count == 2
     mock_logger.log_metric.assert_has_calls(
-        [call("tag/a", y=torch.tensor(12.23).item(), x=5), call("tag/b", y=torch.tensor(23.45).item(), x=5),],
+        [call("tag/a", y=torch.tensor(12.23).item(), x=5), call("tag/b", y=torch.tensor(23.45).item(), x=5)],
         any_order=True,
     )
 
@@ -342,13 +335,13 @@ def test_weights_scalar_handler_frozen_layers(dummy_model_factory):
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
     mock_logger.log_metric.assert_has_calls(
-        [call("weights_norm/fc2/weight", y=12.0, x=5), call("weights_norm/fc2/bias", y=math.sqrt(12.0), x=5),],
+        [call("weights_norm/fc2/weight", y=12.0, x=5), call("weights_norm/fc2/bias", y=math.sqrt(12.0), x=5)],
         any_order=True,
     )
 
     with pytest.raises(AssertionError):
         mock_logger.log_metric.assert_has_calls(
-            [call("weights_norm/fc1/weight", y=12.0, x=5), call("weights_norm/fc1/bias", y=math.sqrt(12.0), x=5),],
+            [call("weights_norm/fc1/weight", y=12.0, x=5), call("weights_norm/fc1/bias", y=math.sqrt(12.0), x=5)],
             any_order=True,
         )
 
@@ -417,12 +410,12 @@ def test_grads_scalar_handler_frozen_layers(dummy_model_factory, norm_mock):
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
     mock_logger.log_metric.assert_has_calls(
-        [call("grads_norm/fc2/weight", y=ANY, x=5), call("grads_norm/fc2/bias", y=ANY, x=5),], any_order=True,
+        [call("grads_norm/fc2/weight", y=ANY, x=5), call("grads_norm/fc2/bias", y=ANY, x=5)], any_order=True
     )
 
     with pytest.raises(AssertionError):
         mock_logger.log_metric.assert_has_calls(
-            [call("grads_norm/fc1/weight", y=ANY, x=5), call("grads_norm/fc1/bias", y=ANY, x=5),], any_order=True,
+            [call("grads_norm/fc1/weight", y=ANY, x=5), call("grads_norm/fc1/bias", y=ANY, x=5)], any_order=True
         )
     assert mock_logger.log_metric.call_count == 2
     assert norm_mock.call_count == 2
@@ -482,7 +475,7 @@ def test_neptune_saver_serializable(dirname):
     to_save_serializable = {"model": model}
 
     saver = NeptuneSaver(mock_logger)
-    fname = os.path.join(dirname, "test.pt")
+    fname = dirname / "test.pt"
     saver(to_save_serializable, fname)
 
     assert mock_logger.log_artifact.call_count == 1

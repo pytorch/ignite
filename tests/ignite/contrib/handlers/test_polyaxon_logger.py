@@ -1,14 +1,14 @@
 import os
-from unittest.mock import MagicMock, call
+from unittest.mock import call, MagicMock
 
 import pytest
 import torch
 
 from ignite.contrib.handlers.polyaxon_logger import (
+    global_step_from_engine,
     OptimizerParamsHandler,
     OutputHandler,
     PolyaxonLogger,
-    global_step_from_engine,
 )
 from ignite.engine import Engine, Events, State
 
@@ -63,7 +63,7 @@ def test_output_handler_metric_names():
     assert mock_logger.log_metrics.call_count == 1
     mock_logger.log_metrics.assert_called_once_with(step=5, **{"tag/a": 12.23, "tag/b": 23.45, "tag/c": 10.0})
 
-    wrapper = OutputHandler("tag", metric_names=["a",])
+    wrapper = OutputHandler("tag", metric_names=["a"])
 
     mock_engine = MagicMock()
     mock_engine.state = State(metrics={"a": torch.Tensor([0.0, 1.0, 2.0, 3.0])})
@@ -76,7 +76,7 @@ def test_output_handler_metric_names():
 
     assert mock_logger.log_metrics.call_count == 1
     mock_logger.log_metrics.assert_has_calls(
-        [call(step=5, **{"tag/a/0": 0.0, "tag/a/1": 1.0, "tag/a/2": 2.0, "tag/a/3": 3.0}),], any_order=True
+        [call(step=5, **{"tag/a/0": 0.0, "tag/a/1": 1.0, "tag/a/2": 2.0, "tag/a/3": 3.0})], any_order=True
     )
 
     wrapper = OutputHandler("tag", metric_names=["a", "c"])
@@ -212,8 +212,7 @@ def test_output_handler_state_attrs():
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
     mock_logger.log_metrics.assert_called_once_with(
-        **{"tag/alpha": 3.899, "tag/beta": torch.tensor(12.21).item(), "tag/gamma/0": 21.0, "tag/gamma/1": 6.0,},
-        step=5,
+        **{"tag/alpha": 3.899, "tag/beta": torch.tensor(12.21).item(), "tag/gamma/0": 21.0, "tag/gamma/1": 6.0}, step=5
     )
 
 
@@ -322,7 +321,5 @@ def no_site_packages():
 
 def test_no_polyaxon_client(no_site_packages):
 
-    with pytest.raises(
-        RuntimeError, match=r"This contrib module requires polyaxon",
-    ):
+    with pytest.raises(RuntimeError, match=r"This contrib module requires polyaxon"):
         PolyaxonLogger()

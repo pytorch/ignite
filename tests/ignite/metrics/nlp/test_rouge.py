@@ -8,7 +8,7 @@ import torch
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics.nlp import Rouge
-from ignite.metrics.nlp.rouge import RougeL, RougeN, compute_ngram_scores
+from ignite.metrics.nlp.rouge import compute_ngram_scores, RougeL, RougeN
 
 from . import CorpusForTest
 
@@ -85,7 +85,7 @@ def test_rouge_n_alpha(ngram, candidate, reference, expected):
 
 
 @pytest.mark.parametrize(
-    "candidates, references", [corpus.sample_1, corpus.sample_2, corpus.sample_3, corpus.sample_4, corpus.sample_5,],
+    "candidates, references", [corpus.sample_1, corpus.sample_2, corpus.sample_3, corpus.sample_4, corpus.sample_5]
 )
 def test_rouge_metrics(candidates, references):
     for multiref in ["average", "best"]:

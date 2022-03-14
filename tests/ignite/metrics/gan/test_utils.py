@@ -5,7 +5,7 @@ import pytest
 import torch
 import torchvision
 
-from ignite.metrics.gan.utils import InceptionModel, _BaseInceptionMetric
+from ignite.metrics.gan.utils import _BaseInceptionMetric, InceptionModel
 
 
 class DummyInceptionMetric(_BaseInceptionMetric):

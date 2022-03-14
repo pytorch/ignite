@@ -1,5 +1,5 @@
 import warnings
-from typing import Callable, List, Tuple, Union, cast
+from typing import Any, Callable, cast, List, Tuple, Union
 
 import torch
 
@@ -39,6 +39,29 @@ class EpochMetric(Metric):
             issues. If issues exist, user is warned that there might be an issue with the ``compute_fn``.
             Default, True.
         device: optional device specification for internal storage.
+
+    Example:
+
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
+        .. testcode::
+
+            def mse_fn(y_preds, y_targets):
+                return torch.mean(((y_preds - y_targets.type_as(y_preds)) ** 2)).item()
+
+            metric = EpochMetric(mse_fn)
+            metric.attach(default_evaluator, "mse")
+            y_true = torch.Tensor([0, 1, 2, 3, 4, 5])
+            y_pred = y_true * 0.75
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["mse"])
+
+        .. testoutput::
+
+            0.5729...
 
     Warnings:
         EpochMetricWarning: User is warned that there are issues with ``compute_fn`` on a batch of data processed.
@@ -113,7 +136,7 @@ class EpochMetric(Metric):
             except Exception as e:
                 warnings.warn(f"Probably, there can be a problem with `compute_fn`:\n {e}.", EpochMetricWarning)
 
-    def compute(self) -> float:
+    def compute(self) -> Any:
         if len(self._predictions) < 1 or len(self._targets) < 1:
             raise NotComputableError("EpochMetric must have at least one example before it can be computed.")
 

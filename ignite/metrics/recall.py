@@ -34,17 +34,118 @@ class Recall(_BasePrecisionRecall):
             default, CPU.
 
     Examples:
+
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
+        Binary case
+
+        .. testcode:: 1
+
+            metric = Recall(average=False)
+            metric.attach(default_evaluator, "recall")
+            y_true = torch.Tensor([1, 0, 1, 1, 0, 1])
+            y_pred = torch.Tensor([1, 0, 1, 0, 1, 1])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["recall"])
+
+        .. testoutput:: 1
+
+            0.75
+
+        Multiclass case
+
+        .. testcode:: 2
+
+            metric = Recall(average=False)
+            metric.attach(default_evaluator, "recall")
+            y_true = torch.Tensor([2, 0, 2, 1, 0, 1]).long()
+            y_pred = torch.Tensor([
+                [0.0266, 0.1719, 0.3055],
+                [0.6886, 0.3978, 0.8176],
+                [0.9230, 0.0197, 0.8395],
+                [0.1785, 0.2670, 0.6084],
+                [0.8448, 0.7177, 0.7288],
+                [0.7748, 0.9542, 0.8573],
+            ])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["recall"])
+
+        .. testoutput:: 2
+
+            tensor([0.5000, 0.5000, 0.5000], dtype=torch.float64)
+
+        Precision can be computed as the unweighted average across all classes:
+
+        .. testcode:: 3
+
+            metric = Recall(average=True)
+            metric.attach(default_evaluator, "recall")
+            y_true = torch.Tensor([2, 0, 2, 1, 0, 1]).long()
+            y_pred = torch.Tensor([
+                [0.0266, 0.1719, 0.3055],
+                [0.6886, 0.3978, 0.8176],
+                [0.9230, 0.0197, 0.8395],
+                [0.1785, 0.2670, 0.6084],
+                [0.8448, 0.7177, 0.7288],
+                [0.7748, 0.9542, 0.8573],
+            ])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["recall"])
+
+        .. testoutput:: 3
+
+            0.5
+
+        Multilabel case, the shapes must be (batch_size, num_categories, ...)
+
+        .. testcode:: 4
+
+            metric = Recall(is_multilabel=True)
+            metric.attach(default_evaluator, "recall")
+            y_true = torch.Tensor([
+                [0, 0, 1],
+                [0, 0, 0],
+                [0, 0, 0],
+                [1, 0, 0],
+                [0, 1, 1],
+            ]).unsqueeze(0)
+            y_pred = torch.Tensor([
+                [1, 1, 0],
+                [1, 0, 1],
+                [1, 0, 0],
+                [1, 0, 1],
+                [1, 1, 0],
+            ]).unsqueeze(0)
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["recall"])
+
+        .. testoutput:: 4
+
+            tensor([1., 1., 0.], dtype=torch.float64)
+
         In binary and multilabel cases, the elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of
         predictions can be done as below:
 
-        .. code-block:: python
+        .. testcode:: 5
 
             def thresholded_output_transform(output):
                 y_pred, y = output
                 y_pred = torch.round(y_pred)
                 return y_pred, y
 
-            recall = Recall(output_transform=thresholded_output_transform)
+            metric = Recall(average=False, output_transform=thresholded_output_transform)
+            metric.attach(default_evaluator, "recall")
+            y_true = torch.Tensor([1, 0, 1, 1, 0, 1])
+            y_pred = torch.Tensor([0.6, 0.2, 0.9, 0.4, 0.7, 0.65])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["recall"])
+
+        .. testoutput:: 5
+
+            0.75
 
         In multilabel cases, average parameter should be True. However, if user would like to compute F1 metric, for
         example, average parameter should be False. This can be done as shown below:

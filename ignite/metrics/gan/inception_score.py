@@ -3,7 +3,7 @@ from typing import Callable, Optional, Union
 import torch
 
 from ignite.exceptions import NotComputableError
-from ignite.metrics.gan.utils import InceptionModel, _BaseInceptionMetric
+from ignite.metrics.gan.utils import _BaseInceptionMetric, InceptionModel
 
 # These decorators helps with distributed settings
 from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
@@ -48,16 +48,31 @@ class InceptionScore(_BaseInceptionMetric):
         The default Inception model requires the `torchvision` module to be installed.
 
     Examples:
+
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         .. code-block:: python
 
-            from ignite.metric.gan import InceptionScore
-            import torch
+            metric = InceptionScore()
+            metric.attach(default_evaluator, "is")
+            y = torch.rand(10, 3, 299, 299)
+            state = default_evaluator.run([y])
+            print(state.metrics["is"])
 
-            images = torch.rand(10, 3, 299, 299)
+        .. testcode::
 
-            m = InceptionScore()
-            m.update(images)
-            print(m.compute())
+            metric = InceptionScore(num_features=1, feature_extractor=default_model)
+            metric.attach(default_evaluator, "is")
+            y = torch.zeros(10, 4)
+            state = default_evaluator.run([y])
+            print(state.metrics["is"])
+
+        .. testoutput::
+
+            1.0
 
     .. versionadded:: 0.4.6
     """

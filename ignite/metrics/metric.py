@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import Mapping
 from functools import wraps
 from numbers import Number
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple, TYPE_CHECKING, Union
 
 import torch
 
@@ -150,6 +150,8 @@ class Metric(metaclass=ABCMeta):
         In the example below we show how to setup standard metric like Accuracy and the custom metric using by an
         ``evaluator`` created with :meth:`~ignite.engine.create_supervised_evaluator` method.
 
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
         .. code-block:: python
 
             # https://discuss.pytorch.org/t/how-access-inputs-in-custom-ignite-metric/91221/5
@@ -204,7 +206,7 @@ class Metric(metaclass=ABCMeta):
     _required_output_keys = required_output_keys
 
     def __init__(
-        self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu"),
+        self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu")
     ):
         self._output_transform = output_transform
 
@@ -378,6 +380,7 @@ class Metric(metaclass=ABCMeta):
                 :attr:`ignite.metrics.metric.BatchWise.usage_name`.
 
         Examples:
+
             .. code-block:: python
 
                 metric = ...
@@ -616,4 +619,4 @@ def _is_list_of_tensors_or_numbers(x: Sequence[Union[torch.Tensor, float]]) -> b
 def _to_batched_tensor(x: Union[torch.Tensor, float], device: Optional[torch.device] = None) -> torch.Tensor:
     if isinstance(x, torch.Tensor):
         return x.unsqueeze(dim=0)
-    return torch.tensor([x,], device=device)
+    return torch.tensor([x], device=device)

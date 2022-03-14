@@ -1,6 +1,6 @@
 import os
 import sys
-from unittest.mock import MagicMock, call
+from unittest.mock import call, MagicMock
 
 import pytest
 import torch
@@ -57,7 +57,7 @@ def _test_setup_common_training_handlers(
 
     model = DummyModel().to(device)
     if distributed and "cuda" in torch.device(device).type:
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank,], output_device=local_rank)
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[local_rank], output_device=local_rank)
     optimizer = torch.optim.SGD(model.parameters(), lr=lr)
 
     if lr_scheduler is None:
@@ -98,7 +98,7 @@ def _test_setup_common_training_handlers(
         save_handler=save_handler,
         lr_scheduler=lr_scheduler,
         with_gpu_stats=False,
-        output_names=["batch_loss",],
+        output_names=["batch_loss"],
         with_pbars=True,
         with_pbar_on_iters=True,
         log_every_iters=50,
@@ -358,8 +358,8 @@ def _test_setup_logging(
             evaluators = evaluators["validation"]
 
     if with_optim:
-        t = torch.tensor([0,])
-        optimizers = {"optimizer": torch.optim.SGD([t,], lr=0.01)}
+        t = torch.tensor([0])
+        optimizers = {"optimizer": torch.optim.SGD([t], lr=0.01)}
         if as_class:
             optimizers = optimizers["optimizer"]
 
@@ -408,7 +408,7 @@ def test_setup_tb_logging(dirname):
 
     tb_logger = _test_setup_logging(
         setup_logging_fn=setup_tb_logging,
-        kwargs_dict={"output_path": os.path.join(dirname, "t1")},
+        kwargs_dict={"output_path": dirname / "t1"},
         output_handler_cls=handlers.tensorboard_logger.OutputHandler,
         opt_params_handler_cls=handlers.tensorboard_logger.OptimizerParamsHandler,
         with_eval=False,
@@ -417,7 +417,7 @@ def test_setup_tb_logging(dirname):
     tb_logger.close()
     tb_logger = _test_setup_logging(
         setup_logging_fn=setup_tb_logging,
-        kwargs_dict={"output_path": os.path.join(dirname, "t2")},
+        kwargs_dict={"output_path": dirname / "t2"},
         output_handler_cls=handlers.tensorboard_logger.OutputHandler,
         opt_params_handler_cls=handlers.tensorboard_logger.OptimizerParamsHandler,
         with_eval=True,
@@ -426,7 +426,7 @@ def test_setup_tb_logging(dirname):
     tb_logger.close()
     tb_logger = _test_setup_logging(
         setup_logging_fn=setup_tb_logging,
-        kwargs_dict={"output_path": os.path.join(dirname, "t3")},
+        kwargs_dict={"output_path": dirname / "t3"},
         output_handler_cls=handlers.tensorboard_logger.OutputHandler,
         opt_params_handler_cls=handlers.tensorboard_logger.OptimizerParamsHandler,
         with_eval=True,
@@ -486,7 +486,7 @@ def test_setup_plx_logging():
 def test_setup_mlflow_logging(dirname):
     mlf_logger = _test_setup_logging(
         setup_logging_fn=setup_mlflow_logging,
-        kwargs_dict={"tracking_uri": os.path.join(dirname, "p1")},
+        kwargs_dict={"tracking_uri": str(dirname / "p1")},
         output_handler_cls=handlers.mlflow_logger.OutputHandler,
         opt_params_handler_cls=handlers.mlflow_logger.OptimizerParamsHandler,
         with_eval=False,
@@ -495,7 +495,7 @@ def test_setup_mlflow_logging(dirname):
     mlf_logger.close()
     mlf_logger = _test_setup_logging(
         setup_logging_fn=setup_mlflow_logging,
-        kwargs_dict={"tracking_uri": os.path.join(dirname, "p2")},
+        kwargs_dict={"tracking_uri": str(dirname / "p2")},
         output_handler_cls=handlers.mlflow_logger.OutputHandler,
         opt_params_handler_cls=handlers.mlflow_logger.OptimizerParamsHandler,
         with_eval=True,

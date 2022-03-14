@@ -395,7 +395,7 @@ def test_recursive_attachment():
         d = data(y_pred, y)
         state = validator.run(d, max_epochs=1, epoch_length=y_pred.shape[0])
 
-        assert set(state.metrics.keys()) == set([metric_name,])
+        assert set(state.metrics.keys()) == set([metric_name])
         np_y_pred = y_pred.numpy().ravel()
         np_y = y.numpy().ravel()
         assert state.metrics[metric_name] == approx(compute_true_value_fn(np_y_pred, np_y))

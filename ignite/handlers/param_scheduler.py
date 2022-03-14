@@ -2,14 +2,15 @@ import itertools
 import math
 import numbers
 import tempfile
+import warnings
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from copy import copy
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Type, Union, cast
+from typing import Any, cast, Dict, List, Mapping, Optional, Sequence, Tuple, Type, Union
 
 import torch
-from torch.optim.lr_scheduler import _LRScheduler
+from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
 from torch.optim.optimizer import Optimizer
 
 from ignite.engine import Engine
@@ -28,9 +29,7 @@ class BaseParamScheduler(metaclass=ABCMeta):
 
     """
 
-    def __init__(
-        self, param_name: str, save_history: bool = False,
-    ):
+    def __init__(self, param_name: str, save_history: bool = False):
         self.param_name = param_name
         self.event_index = 0
         self._save_history = save_history
@@ -361,13 +360,12 @@ class LinearCyclicalScheduler(CyclicalScheduler):
 
     Examples:
 
-        .. testsetup:: *
-
-            default_trainer = get_default_trainer()
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode:: 1
 
-            from ignite.handlers.param_scheduler import LinearCyclicalScheduler
+            default_trainer = get_default_trainer()
 
             # Linearly increases the learning rate from 0.0 to 1.0 and back to 0.0
             # over a cycle of 4 iterations
@@ -391,7 +389,7 @@ class LinearCyclicalScheduler(CyclicalScheduler):
 
         .. testcode:: 2
 
-            from ignite.handlers.param_scheduler import LinearCyclicalScheduler
+            default_trainer = get_default_trainer()
 
             optimizer = torch.optim.SGD(
                 [
@@ -402,19 +400,19 @@ class LinearCyclicalScheduler(CyclicalScheduler):
 
             # Linearly increases the learning rate from 0.0 to 1.0 and back to 0.0
             # over a cycle of 4 iterations
-            scheduler1 = LinearCyclicalScheduler(optimizer, "lr", 0.0, 1.0, 4, param_group_index=0)
+            scheduler1 = LinearCyclicalScheduler(optimizer, "lr (base)", 0.0, 1.0, 4, param_group_index=0)
 
-            # Linearly increases the learning rate from 1.0 to 0.0 and back to 0.1
+            # Linearly increases the learning rate from 0.0 to 0.1 and back to 0.0
             # over a cycle of 4 iterations
-            scheduler2 = LinearCyclicalScheduler(optimizer, "lr", 0.0, 0.1, 4, param_group_index=1)
+            scheduler2 = LinearCyclicalScheduler(optimizer, "lr (fc)", 0.0, 0.1, 4, param_group_index=1)
 
             default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler1)
             default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler2)
 
             @default_trainer.on(Events.ITERATION_COMPLETED)
             def print_lr():
-                print(optimizer.param_groups[0]["lr"],
-                      optimizer.param_groups[1]["lr"])
+                print(optimizer.param_groups[0]["lr (base)"],
+                      optimizer.param_groups[1]["lr (fc)"])
 
             default_trainer.run([0] * 9, max_epochs=1)
 
@@ -462,33 +460,70 @@ class CosineAnnealingScheduler(CyclicalScheduler):
         usually be the number of batches in an epoch.
 
     Examples:
-        .. code-block:: python
 
-            from ignite.handlers.param_scheduler import CosineAnnealingScheduler
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
-            scheduler = CosineAnnealingScheduler(optimizer, 'lr', 1e-1, 1e-3, len(train_loader))
-            trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
-            #
-            # Anneals the learning rate from 1e-1 to 1e-3 over the course of 1 epoch.
-            #
+        .. testcode:: 1
 
-        .. code-block:: python
+            default_trainer = get_default_trainer()
 
-            from ignite.handlers.param_scheduler import CosineAnnealingScheduler
-            from ignite.handlers.param_scheduler import LinearCyclicalScheduler
+            # CosineAnnealing increases the learning rate from 0.0 to 1.0
+            # over a cycle of 4 iterations
+            scheduler = CosineAnnealingScheduler(default_optimizer, "lr", 0.0, 1.0, 4)
 
-            optimizer = SGD(
+            default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def print_lr():
+                print(default_optimizer.param_groups[0]["lr"])
+
+            default_trainer.run([0] * 9, max_epochs=1)
+
+        .. testoutput:: 1
+
+            0.0
+            0.1464...
+            0.4999...
+            0.8535...
+            ...
+
+        .. testcode:: 2
+
+            default_trainer = get_default_trainer()
+
+            optimizer = torch.optim.SGD(
                 [
-                    {"params": model.base.parameters(), 'lr': 0.001},
-                    {"params": model.fc.parameters(), 'lr': 0.01},
+                    {"params": default_model.base.parameters(), "lr": 0.001},
+                    {"params": default_model.fc.parameters(), "lr": 0.01},
                 ]
             )
 
-            scheduler1 = LinearCyclicalScheduler(optimizer, 'lr', 1e-7, 1e-5, len(train_loader), param_group_index=0)
-            trainer.add_event_handler(Events.ITERATION_STARTED, scheduler1, "lr (base)")
+            # CosineAnnealing increases the learning rate from 0.0 to 1.0
+            # over a cycle of 4 iterations
+            scheduler_1 = CosineAnnealingScheduler(optimizer, "lr (base)", 0.0, 1.0, 4, param_group_index=0)
 
-            scheduler2 = CosineAnnealingScheduler(optimizer, 'lr', 1e-5, 1e-3, len(train_loader), param_group_index=1)
-            trainer.add_event_handler(Events.ITERATION_STARTED, scheduler2, "lr (fc)")
+            # CosineAnnealing increases the learning rate from 0.0 to 0.1
+            # over a cycle of 4 iterations
+            scheduler_2 = CosineAnnealingScheduler(optimizer, "lr (fc)", 0.0, 0.1, 4, param_group_index=1)
+
+            default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler_1)
+            default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler_2)
+
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def print_lr():
+                print(optimizer.param_groups[0]["lr (base)"],
+                      optimizer.param_groups[1]["lr (fc)"])
+
+            default_trainer.run([0] * 9, max_epochs=1)
+
+        .. testoutput:: 2
+
+            0.0 0.0
+            0.1464... 0.01464...
+            0.4999... 0.04999...
+            0.8535... 0.08535...
+            ...
 
     .. [Smith17] Smith, Leslie N. "Cyclical learning rates for training neural networks."
                  Applications of Computer Vision (WACV), 2017 IEEE Winter Conference on. IEEE, 2017
@@ -497,8 +532,7 @@ class CosineAnnealingScheduler(CyclicalScheduler):
     """
 
     def get_param(self) -> float:
-        """Method to get current optimizer's parameter value
-        """
+        """Method to get current optimizer's parameter value"""
         cycle_progress = self.event_index / self.cycle_size
         return self.start_value + ((self.end_value - self.start_value) / 2) * (1 - math.cos(math.pi * cycle_progress))
 
@@ -516,21 +550,40 @@ class ConcatScheduler(ParamScheduler):
             `engine.state.param_history`, (default=False).
 
     Examples:
-        .. code-block:: python
 
-            from ignite.handlers.param_scheduler import ConcatScheduler
-            from ignite.handlers.param_scheduler import LinearCyclicalScheduler
-            from ignite.handlers.param_scheduler import CosineAnnealingScheduler
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
-            scheduler_1 = LinearCyclicalScheduler(optimizer, "lr", start_value=0.1, end_value=0.5, cycle_size=60)
-            scheduler_2 = CosineAnnealingScheduler(optimizer, "lr", start_value=0.5, end_value=0.01, cycle_size=60)
+        .. testcode::
 
-            combined_scheduler = ConcatScheduler(schedulers=[scheduler_1, scheduler_2], durations=[30, ])
-            trainer.add_event_handler(Events.ITERATION_STARTED, combined_scheduler)
-            #
-            # Sets the Learning rate linearly from 0.1 to 0.5 over 30 iterations. Then
-            # starts an annealing schedule from 0.5 to 0.01 over 60 iterations.
+            default_trainer = get_default_trainer()
+
+            scheduler_1 = LinearCyclicalScheduler(default_optimizer, "lr", 0.0, 1.0, 8)
+            scheduler_2 = CosineAnnealingScheduler(default_optimizer, "lr", 1.0, 0.2, 4)
+
+            # Sets the Learning rate linearly from 0.0 to 1.0 over 4 iterations. Then
+            # starts an annealing schedule from 1.0 to 0.2 over the next 4 iterations.
             # The annealing cycles are repeated indefinitely.
+            combined_scheduler = ConcatScheduler(schedulers=[scheduler_1, scheduler_2], durations=[4, ])
+
+            default_trainer.add_event_handler(Events.ITERATION_STARTED, combined_scheduler)
+
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def print_lr():
+                print(default_optimizer.param_groups[0]["lr"])
+
+            default_trainer.run([0] * 8, max_epochs=1)
+
+        .. testoutput::
+
+            0.0
+            0.25
+            0.5
+            0.75
+            1.0
+            0.8828...
+            0.6000...
+            0.3171...
 
     .. versionadded:: 0.4.5
     """
@@ -743,20 +796,44 @@ class LRScheduler(ParamScheduler):
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
 
-    .. code-block:: python
+    Examples:
 
-        from ignite.handlers.param_scheduler import LRScheduler
-        from torch.optim.lr_scheduler import StepLR
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
-        step_scheduler = StepLR(optimizer, step_size=3, gamma=0.1)
-        scheduler = LRScheduler(step_scheduler)
+        .. testcode::
 
-        # In this example, we assume to have installed PyTorch>=1.1.0
-        # (with new `torch.optim.lr_scheduler` behaviour) and
-        # we attach scheduler to Events.ITERATION_COMPLETED
-        # instead of Events.ITERATION_STARTED to make sure to use
-        # the first lr value from the optimizer, otherwise it is will be skipped:
-        trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
+            default_trainer = get_default_trainer()
+
+            from torch.optim.lr_scheduler import StepLR
+
+            torch_lr_scheduler = StepLR(default_optimizer, step_size=3, gamma=0.1)
+
+            scheduler = LRScheduler(torch_lr_scheduler)
+
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def print_lr():
+                print(default_optimizer.param_groups[0]["lr"])
+
+            # In this example, we assume to have installed PyTorch>=1.1.0
+            # (with new `torch.optim.lr_scheduler` behaviour) and
+            # we attach scheduler to Events.ITERATION_COMPLETED
+            # instead of Events.ITERATION_STARTED to make sure to use
+            # the first lr value from the optimizer, otherwise it is will be skipped:
+            default_trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
+
+            default_trainer.run([0] * 8, max_epochs=1)
+
+        .. testoutput::
+
+            0.1
+            0.1
+            0.1
+            0.010...
+            0.010...
+            0.010...
+            0.001...
+            0.001...
 
     .. versionadded:: 0.4.5
     """
@@ -782,8 +859,7 @@ class LRScheduler(ParamScheduler):
         super(LRScheduler, self).__call__(engine, name)
 
     def get_param(self) -> Union[float, List[float]]:
-        """Method to get current optimizer's parameter value
-        """
+        """Method to get current optimizer's parameter value"""
         # Emulate context manager for pytorch>=1.4
         self.lr_scheduler._get_lr_called_within_step = True  # type: ignore[attr-defined]
         lr_list = cast(List[float], self.lr_scheduler.get_lr())
@@ -826,7 +902,7 @@ class LRScheduler(ParamScheduler):
             torch.save(obj, cache_filepath.as_posix())
 
             values = []
-            scheduler = cls(save_history=False, lr_scheduler=lr_scheduler, **kwargs)  # type: ignore[call-arg]
+            scheduler = cls(save_history=False, lr_scheduler=lr_scheduler, **kwargs)
             for i in range(num_events):
                 params = [p[scheduler.param_name] for p in scheduler.optimizer_param_groups]
                 values.append([i] + params)
@@ -872,21 +948,41 @@ def create_lr_scheduler_with_warmup(
         `lr_scheduler` provides its learning rate values as normally.
 
     Examples:
-        .. code-block:: python
 
-            torch_lr_scheduler = ExponentialLR(optimizer=optimizer, gamma=0.98)
-            lr_values = [None] * 100
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
+        .. testcode::
+
+            from torch.optim.lr_scheduler import ExponentialLR
+
+            torch_lr_scheduler = ExponentialLR(optimizer=default_optimizer, gamma=0.98)
+
+            default_trainer = get_default_trainer()
+
             scheduler = create_lr_scheduler_with_warmup(torch_lr_scheduler,
                                                         warmup_start_value=0.0,
                                                         warmup_end_value=0.1,
-                                                        warmup_duration=10,
-                                                        output_simulated_values=lr_values)
-            lr_values = np.array(lr_values)
-            # Plot simulated values
-            plt.plot(lr_values[:, 0], lr_values[:, 1], label="learning rate")
+                                                        warmup_duration=3)
 
-            # Attach to the trainer
-            trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+            default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def print_lr():
+                print(default_optimizer.param_groups[0]["lr"])
+
+            default_trainer.run([0] * 8, max_epochs=1)
+
+        .. testoutput::
+
+            0.0
+            0.05
+            0.1
+            0.098
+            0.09604
+            0.09411...
+            0.09223...
+            0.09039...
 
     .. versionadded:: 0.4.5
     """
@@ -985,7 +1081,83 @@ class PiecewiseLinear(ParamScheduler):
         # Sets the learning rate to 0.5 over the first 10 iterations, then decreases linearly from 0.5 to 0.45 between
         # 10th and 20th iterations. Next there is a jump to 0.3 at the 21st iteration and LR decreases linearly
         # from 0.3 to 0.1 between 21st and 30th iterations and remains 0.1 until the end of the iterations.
-        #
+
+    Examples:
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
+        .. testcode:: 1
+
+            default_trainer = get_default_trainer()
+
+            milestones_values = [(1, 1.0), (3, 0.8), (5, 0.2)]
+            scheduler = PiecewiseLinear(
+                default_optimizer, "lr", milestones_values=milestones_values)
+            # Sets lr equal to 1 for till the first iteration
+            # Then linearly reduces lr from 1 to 0.8 till the third iteration
+            # Then linearly reduces lr from 0.8 to 0.5 till the fifth iteration
+
+            default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def print_lr():
+                print(default_optimizer.param_groups[0]["lr"])
+
+            default_trainer.run([0] * 6, max_epochs=1)
+
+        .. testoutput:: 1
+
+            1.0
+            1.0
+            0.9
+            0.8
+            0.5
+            0.2
+
+        .. testcode:: 2
+
+            default_trainer = get_default_trainer()
+
+            optimizer = torch.optim.SGD(
+                [
+                    {"params": default_model.base.parameters(), "lr": 0.1},
+                    {"params": default_model.fc.parameters(), "lr": 1.0},
+                ]
+            )
+
+            milestones_values1 = [(1, 0.1), (3, 0.08), (5, 0.02)]
+            scheduler2 = PiecewiseLinear(
+                optimizer, "lr", milestones_values=milestones_values1, param_group_index=0)
+            # Sets lr equal to 0.1 for till the first iteration
+            # Then linearly reduces lr from 0.1 to 0.08 till the third iteration
+            # Then linearly reduces lr from 0.08 to 0.05 till the fifth iteration
+
+            milestones_values2 = [(1, 1.0), (3, 0.8), (5, 0.2)]
+            scheduler1 = PiecewiseLinear(
+                optimizer, "lr", milestones_values=milestones_values2, param_group_index=1)
+            # Sets lr equal to 1 for till the first iteration
+            # Then linearly reduces lr from 1 to 0.8 till the third iteration
+            # Then linearly reduces lr from 0.8 to 0.5 till the fifth iteration
+
+            default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler1)
+            default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler2)
+
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def print_lr():
+                print(optimizer.param_groups[0]["lr"],
+                      optimizer.param_groups[1]["lr"])
+
+            default_trainer.run([0] * 6, max_epochs=1)
+
+        .. testoutput:: 2
+
+            0.1 1.0
+            0.1 1.0
+            0.09 0.9
+            0.08 0.8
+            0.05 0.5
+            0.02 0.2
 
     .. versionadded:: 0.4.5
     """
@@ -1059,23 +1231,49 @@ class ParamGroupScheduler:
         names: list of names of schedulers.
         save_history: whether to save history or not.
 
-    .. code-block:: python
+    Examples:
 
-        optimizer = SGD(
-            [
-                {"params": model.base.parameters(), 'lr': 0.001),
-                {"params": model.fc.parameters(), 'lr': 0.01),
-            ]
-        )
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
-        scheduler1 = LinearCyclicalScheduler(optimizer, 'lr', 1e-7, 1e-5, len(train_loader), param_group_index=0)
-        scheduler2 = CosineAnnealingScheduler(optimizer, 'lr', 1e-5, 1e-3, len(train_loader), param_group_index=1)
-        lr_schedulers = [scheduler1, scheduler2]
-        names = ["lr (base)", "lr (fc)"]
+        .. testcode::
 
-        scheduler = ParamGroupScheduler(schedulers=lr_schedulers, names=names)
-        # Attach single scheduler to the trainer
-        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+            default_trainer = get_default_trainer()
+
+            optimizer = torch.optim.SGD(
+                [
+                    {"params": default_model.base.parameters(), "lr": 0.001},
+                    {"params": default_model.fc.parameters(), "lr": 0.01},
+                ]
+            )
+
+            # CosineAnnealing increases the learning rate from 0.0 to 1.0
+            # over a cycle of 4 iterations
+            scheduler_1 = CosineAnnealingScheduler(optimizer, "lr", 0.0, 1.0, 4, param_group_index=0)
+
+            # CosineAnnealing increases the learning rate from 0.0 to 0.1
+            # over a cycle of 4 iterations
+            scheduler_2 = CosineAnnealingScheduler(optimizer, "lr", 0.0, 0.1, 4, param_group_index=1)
+
+            scheduler = ParamGroupScheduler(schedulers=[scheduler_1, scheduler_2],
+                                            names=["lr (base)", "lr (fc)"])
+
+            default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def print_lr():
+                print(optimizer.param_groups[0]["lr"],
+                      optimizer.param_groups[1]["lr"])
+
+            default_trainer.run([0] * 8, max_epochs=1)
+
+        .. testoutput::
+
+            0.0 0.0
+            0.1464... 0.01464...
+            0.4999... 0.04999...
+            0.8535... 0.08535...
+            ...
 
     .. versionadded:: 0.4.5
     """
@@ -1207,6 +1405,191 @@ class ParamGroupScheduler:
                 s.optimizer.load_state_dict(objs["optimizer"])  # type: ignore[attr-defined]
 
             return values
+
+
+class ReduceLROnPlateauScheduler(ParamScheduler):
+    """Reduce LR when a metric stops improving.
+    Wrapper of `torch.optim.lr_scheduler.ReduceLROnPlateau
+    <https://pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.ReduceLROnPlateau.html>`_.
+
+    Args:
+        optimizer: Wrapped optimizer.
+        metric_name: metric whose improvement is monitored.
+            Must be attached to the same engine.
+        trainer: Trainer engine to log LR history in its
+            `state.output.param_history`. Is used if `save_history`
+            is true. Default: None.
+        save_history: Whether to save history or not. If true,
+            history will be logged in `trainer`'s `state.output.param_history`.
+            Default: False.
+        param_group_index: `optimizer`'s parameters group
+            to use.  Default: None. Use all `optimizer`'s paramater groups.
+        **scheduler_kwargs: Keyword arguments to be passed to the wrapped
+            `ReduceLROnPlateau`.
+
+    Examples:
+
+        .. code-block python
+
+            # Metric 'metric-name' should surpass its best value by
+            # more than 1 unit after at most 2 epochs, otherwise LR
+            # would get multiplied by 0.5 .
+
+            scheduler = ReduceLROnPlateauScheduler(
+                default_optimizer,
+                metric_name="metric-name", mode="max",
+                factor=0.5, patience=1, threshold_mode='abs',
+                threshold=1, trainer=trainer
+            )
+
+            metric = Accuracy()
+            default_evaluator.attach(metric, "accuracy")
+
+            default_evaluator.add_event_handler(Events.COMPLETED, scheduler)
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
+        .. testcode::
+
+            default_trainer = get_default_trainer()
+
+            # Metric `loss` should decrease more than
+            # a tenth of best loss after at most
+            # three iterations. Then best loss would get
+            # updated, otherwise lr is multiplied by 2
+
+            scheduler = ReduceLROnPlateauScheduler(
+                default_optimizer, "loss",
+                save_history=True, mode="min",
+                factor=0.5, patience=3, threshold_mode='rel',
+                threshold=0.1, trainer=default_trainer
+            )
+
+            metric_values = iter([10, 5, 3, 4, 4, 4, 5, 1])
+            default_evaluator.state.metrics = {"loss": None}
+
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def set_metric_val():
+                default_evaluator.state.metrics["loss"] = next(metric_values)
+
+            default_evaluator.add_event_handler(Events.COMPLETED, scheduler)
+
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def trigger_eval():
+                default_evaluator.run([0.])
+
+            default_trainer.run([0.] * 8)
+
+            print(default_trainer.state.param_history["lr"])
+
+        .. testoutput::
+
+            [[0.1], [0.1], [0.1], [0.1], [0.1], [0.1], [0.05], [0.05]]
+
+    .. versionadded:: 0.4.8
+    """
+
+    def __init__(
+        self,
+        optimizer: Optimizer,
+        metric_name: str,
+        trainer: Optional[Engine] = None,
+        save_history: bool = False,
+        param_group_index: Optional[int] = None,
+        **scheduler_kwargs: Any,
+    ):
+        super(ReduceLROnPlateauScheduler, self).__init__(
+            optimizer, "lr", save_history=save_history, param_group_index=param_group_index
+        )
+        self.metric_name = metric_name
+        self.trainer = trainer
+        self.optimizer = optimizer
+
+        if "min_lr" in scheduler_kwargs and param_group_index is not None:
+            min_lr = scheduler_kwargs["min_lr"]
+            if not isinstance(min_lr, float):
+                raise TypeError(f"When param_group_index is given, min_lr should be a float, but given {type(min_lr)}")
+            _min_lr = min_lr
+            min_lr = [0] * len(optimizer.param_groups)
+            min_lr[param_group_index] = _min_lr
+        else:
+            min_lr = 0
+        _scheduler_kwargs = scheduler_kwargs.copy()
+        _scheduler_kwargs["min_lr"] = min_lr
+
+        if "verbose" in _scheduler_kwargs:
+            warnings.warn(
+                "Found verbose=True in provided scheduler_kwargs. "
+                "It would be set to False. Please use save_history instead."
+            )
+            _scheduler_kwargs["verbose"] = False
+
+        self.scheduler = ReduceLROnPlateau(optimizer, **_scheduler_kwargs)
+        self.scheduler._reduce_lr = self._reduce_lr  # type: ignore[attr-defined]
+
+        self._state_attrs += ["metric_name", "scheduler"]
+
+    def __call__(self, engine: Engine, name: Optional[str] = None) -> None:  # type: ignore[override]
+        if not hasattr(engine.state, "metrics") or self.metric_name not in engine.state.metrics:
+            raise ValueError(
+                "Argument engine should have in its 'state', attribute 'metrics' "
+                f"which itself has the metric {self.metric_name}."
+            )
+        self.scheduler.step(engine.state.metrics[self.metric_name])
+        super().__call__(self.trainer, name)
+
+    def get_param(self) -> Union[float, List[float]]:
+        lrs = [pg["lr"] for pg in self.optimizer_param_groups]
+        return lrs[0] if len(lrs) == 1 else lrs
+
+    def _reduce_lr(self, epoch: int) -> None:
+        for i, param_group in enumerate(self.optimizer_param_groups):
+            old_lr = float(param_group["lr"])
+            new_lr = max(old_lr * self.scheduler.factor, self.scheduler.min_lrs[i])  # type: ignore[attr-defined]
+            if old_lr - new_lr > self.scheduler.eps:  # type: ignore[attr-defined]
+                param_group["lr"] = new_lr
+
+    @classmethod
+    def simulate_values(  # type: ignore[override]
+        cls, num_events: int, metric_values: List[float], init_lr: float, **scheduler_kwargs: Any
+    ) -> List[List[int]]:
+        """Method to simulate scheduled values during num_events events.
+
+        Args:
+            num_events: number of events during the simulation.
+            metric_values: values to change LR based on.
+            init_lr: initial LR to start with.
+            scheduler_kwargs: kwargs passed to construct an instance of
+                :class:`ignite.handlers.param_scheduler.ReduceLROnPlateauScheduler`.
+
+        Returns:
+            event_index, value
+
+        """
+        if len(metric_values) != num_events:
+            raise ValueError(
+                "Length of argument metric_values should be equal to num_events. "
+                f"{len(metric_values)} != {num_events}"
+            )
+
+        keys_to_remove = ["optimizer", "metric_name", "save_history"]
+        for key in keys_to_remove:
+            if key in scheduler_kwargs:
+                del scheduler_kwargs[key]
+        values = []
+        scheduler = cls(
+            optimizer=_get_fake_optimizer(torch.optim.SGD, lr=init_lr),
+            metric_name="metric",
+            save_history=False,
+            **scheduler_kwargs,
+        )
+        engine = Engine(lambda _, __: None)
+        for i in range(num_events):
+            engine.state.metrics["metric"] = metric_values[i]
+            scheduler(engine=engine)
+            values.append([i, scheduler.optimizer_param_groups[0][scheduler.param_name]])
+        return values
 
 
 def _get_fake_optimizer(

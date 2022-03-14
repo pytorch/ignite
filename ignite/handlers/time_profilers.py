@@ -1,6 +1,6 @@
 import functools
 from collections import OrderedDict
-from typing import Any, Callable, Dict, List, Mapping, Sequence, Tuple, Union, cast
+from typing import Any, Callable, cast, Dict, List, Mapping, Sequence, Tuple, Union
 
 import torch
 
@@ -261,7 +261,7 @@ class BasicTimeProfiler:
             [
                 ("processing_stats", self._compute_basic_stats(self.processing_times)),
                 ("dataflow_stats", self._compute_basic_stats(self.dataflow_times)),
-                ("event_handlers_stats", event_handlers_stats,),
+                ("event_handlers_stats", event_handlers_stats),
                 (
                     "event_handlers_names",
                     {str(e.name).replace(".", "_") + "_names": v for e, v in self.event_handlers_names.items()},
@@ -585,7 +585,7 @@ class HandlersTimeProfiler:
         if not engine.has_event_handler(self._as_first_started):
             engine._event_handlers[Events.STARTED].insert(0, (self._as_first_started, (engine,), {}))
 
-    def get_results(self) -> List[List[Union[str, float]]]:
+    def get_results(self) -> List[List[Union[str, float, Tuple[Union[str, float], Union[str, float]]]]]:
         """
         Method to fetch the aggregated profiler results after the engine is run
 
@@ -601,7 +601,7 @@ class HandlersTimeProfiler:
                 for h in self.event_handlers_times[e]
             ]
         )
-        total_eh_time = round(float(total_eh_time), 5,)
+        total_eh_time = round(float(total_eh_time), 5)
 
         def compute_basic_stats(
             times: Union[Sequence, torch.Tensor]
@@ -681,9 +681,9 @@ class HandlersTimeProfiler:
         # pad all tensors to have same length
         cols = [torch.nn.functional.pad(x, pad=(0, max_len - x.numel()), mode="constant", value=0) for x in cols]
 
-        results_dump = torch.stack(cols, dim=1,).numpy()
+        results_dump = torch.stack(cols, dim=1).numpy()
 
-        results_df = pd.DataFrame(data=results_dump, columns=headers,)
+        results_df = pd.DataFrame(data=results_dump, columns=headers)
         results_df.to_csv(output_path, index=False)
 
     @staticmethod

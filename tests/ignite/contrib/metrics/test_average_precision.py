@@ -205,6 +205,8 @@ def _test_distrib_binary_and_multilabel_inputs(device):
     for _ in range(3):
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
+            y_pred = y_pred.to(device)
+            y = y.to(device)
             _test(y_pred, y, batch_size, "cpu")
             if device.type != "xla":
                 _test(y_pred, y, batch_size, idist.device())
@@ -240,7 +242,7 @@ def _test_distrib_integration_binary_input(device):
     def get_tests(is_N):
         if is_N:
             y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(),)).to(device)
-            y_preds = torch.rand(offset * idist.get_world_size(),).to(device)
+            y_preds = torch.rand(offset * idist.get_world_size()).to(device)
 
             def update_fn(engine, i):
                 return (

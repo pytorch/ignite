@@ -24,9 +24,7 @@ readme = read("README.md").replace(
 
 VERSION = find_version("ignite", "__init__.py")
 
-requirements = [
-    "torch>=1.3,<2",
-]
+requirements = ["torch>=1.3,<2", "packaging"]
 
 setup(
     # Metadata
@@ -40,7 +38,7 @@ setup(
     long_description=readme,
     license="BSD",
     # Package info
-    packages=find_packages(exclude=("tests", "tests.*",)),
+    packages=find_packages(exclude=("tests", "tests.*")),
     package_data={"ignite": ["py.typed"]},
     zip_safe=False,
     install_requires=requirements,

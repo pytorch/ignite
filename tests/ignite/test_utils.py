@@ -1,11 +1,10 @@
 import logging
-import os
 import sys
 from collections import namedtuple
-from distutils.version import LooseVersion
 
 import pytest
 import torch
+from packaging.version import Version
 
 from ignite.engine import Engine, Events
 from ignite.utils import convert_tensor, deprecated, hash_checkpoint, setup_logger, to_onehot
@@ -116,7 +115,7 @@ def test_setup_logger(capsys, dirname):
     trainer.logger.addHandler(logging.NullHandler())
     trainer.logger.addHandler(logging.NullHandler())
 
-    fp = os.path.join(dirname, "log")
+    fp = dirname / "log"
 
     def _test(stream):
 
@@ -191,29 +190,26 @@ def test_deprecated():
     # Test on function with docs, @deprecated without reasons
     @deprecated("0.4.2", "0.6.0")
     def func_no_reasons():
-        """Docs are cool
-        """
+        """Docs are cool"""
         return 24
 
-    assert func_no_reasons.__doc__ == "**Deprecated function**.\n\n    Docs are cool\n        .. deprecated:: 0.4.2"
+    assert func_no_reasons.__doc__ == "**Deprecated function**.\n\n    Docs are cool.. deprecated:: 0.4.2"
 
     # Test on function with docs, @deprecated with reasons
     @deprecated("0.4.2", "0.6.0", reasons=("r1", "r2"))
     def func_no_warnings():
-        """Docs are very cool
-        """
+        """Docs are very cool"""
         return 24
 
     assert (
         func_no_warnings.__doc__
-        == "**Deprecated function**.\n\n    Docs are very cool\n        .. deprecated:: 0.4.2\n\n\t\n\t- r1\n\t- r2"
+        == "**Deprecated function**.\n\n    Docs are very cool.. deprecated:: 0.4.2\n\n\t\n\t- r1\n\t- r2"
     )
 
     # Tests that the function emits DeprecationWarning
     @deprecated("0.4.2", "0.6.0", reasons=("r1", "r2"))
     def func_check_warning():
-        """Docs are very ...
-        """
+        """Docs are very ..."""
         return 24
 
     with pytest.deprecated_call():
@@ -245,14 +241,14 @@ def test_smoke__utils():
     from ignite._utils import apply_to_tensor, apply_to_type, convert_tensor, to_onehot  # noqa: F401
 
 
-@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.5.0"), reason="Skip if < 1.5.0")
+@pytest.mark.skipif(Version(torch.__version__) < Version("1.5.0"), reason="Skip if < 1.5.0")
 def test_hash_checkpoint(tmp_path):
     # download lightweight model
     from torchvision.models import squeezenet1_0
 
     model = squeezenet1_0()
     torch.hub.download_url_to_file(
-        "https://download.pytorch.org/models/squeezenet1_0-b66bff10.pth", f"{tmp_path}/squeezenet1_0.pt",
+        "https://download.pytorch.org/models/squeezenet1_0-b66bff10.pth", f"{tmp_path}/squeezenet1_0.pt"
     )
     hash_checkpoint_path, sha_hash = hash_checkpoint(f"{tmp_path}/squeezenet1_0.pt", str(tmp_path))
     model.load_state_dict(torch.load(str(hash_checkpoint_path), "cpu"), True)

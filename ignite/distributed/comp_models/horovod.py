@@ -1,5 +1,5 @@
 import warnings
-from typing import Any, Callable, Mapping, Optional, Tuple, cast
+from typing import Any, Callable, cast, Mapping, Optional, Tuple
 
 import torch
 
@@ -25,8 +25,7 @@ if has_hvd_support:
     HOROVOD = "horovod"
 
     class _HorovodDistModel(ComputationModel):
-        """Private class for `Horovod <https://horovod.readthedocs.io/en/stable/>`_ distributed computation model.
-        """
+        """Private class for `Horovod <https://horovod.readthedocs.io/en/stable/>`_ distributed computation model."""
 
         name = "horovod-dist"
 
@@ -60,8 +59,7 @@ if has_hvd_support:
             return _HorovodDistModel(backend, **kwargs)
 
         def __init__(self, backend: Optional[str] = None, **kwargs: Any) -> None:
-            """This is a private method. Please, use `create_from_backend` or `create_from_context`
-            """
+            """This is a private method. Please, use `create_from_backend` or `create_from_context`"""
             super(_HorovodDistModel, self).__init__()
             if backend is not None:
                 self._create_from_backend(backend, **kwargs)

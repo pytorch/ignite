@@ -6,7 +6,8 @@ import tempfile
 import warnings
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
-from typing import IO, Any, Callable, Dict, List, Mapping, NamedTuple, Optional, Tuple, Union
+from pathlib import Path
+from typing import Any, Callable, Dict, IO, List, Mapping, NamedTuple, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -270,11 +271,11 @@ class Checkpoint(Serializable):
     def __init__(
         self,
         to_save: Mapping,
-        save_handler: Union[str, Callable, BaseSaveHandler],
+        save_handler: Union[str, Path, Callable, BaseSaveHandler],
         filename_prefix: str = "",
         score_function: Optional[Callable] = None,
         score_name: Optional[str] = None,
-        n_saved: Optional[int] = 1,
+        n_saved: Union[int, None] = 1,
         global_step_transform: Optional[Callable] = None,
         filename_pattern: Optional[str] = None,
         include_self: bool = False,
@@ -295,15 +296,22 @@ class Checkpoint(Serializable):
             if "checkpointer" in to_save:
                 raise ValueError(f"Cannot have key 'checkpointer' if `include_self` is True: {to_save}")
 
-        if not (isinstance(save_handler, str) or callable(save_handler) or isinstance(save_handler, BaseSaveHandler)):
-            raise TypeError("Argument `save_handler` should be a string or callable or inherit from BaseSaveHandler")
+        if not (
+            isinstance(save_handler, str)
+            or isinstance(save_handler, Path)
+            or callable(save_handler)
+            or isinstance(save_handler, BaseSaveHandler)
+        ):
+            raise TypeError(
+                "Argument `save_handler` should be a string or Path object or callable or inherit from BaseSaveHandler"
+            )
 
         if global_step_transform is not None and not callable(global_step_transform):
             raise TypeError(f"global_step_transform should be a function, got {type(global_step_transform)} instead.")
 
         self.to_save = to_save
         self.filename_prefix = filename_prefix
-        if isinstance(save_handler, str):
+        if isinstance(save_handler, str) or isinstance(save_handler, Path):
             self.save_handler = DiskSaver(save_handler, create_dir=True)
         else:
             self.save_handler = save_handler  # type: ignore
@@ -318,6 +326,18 @@ class Checkpoint(Serializable):
         self._saved = []  # type: List["Checkpoint.Item"]
         self.include_self = include_self
         self.greater_or_equal = greater_or_equal
+
+    def _get_filename_pattern(self, global_step: Optional[int]) -> str:
+        if self.filename_pattern is None:
+            filename_pattern = self.setup_filename_pattern(
+                with_prefix=len(self.filename_prefix) > 0,
+                with_score=self.score_function is not None,
+                with_score_name=self.score_name is not None,
+                with_global_step=global_step is not None,
+            )
+        else:
+            filename_pattern = self.filename_pattern
+        return filename_pattern
 
     def reset(self) -> None:
         """Method to reset saved checkpoint names.
@@ -347,10 +367,14 @@ class Checkpoint(Serializable):
         self._saved = []
 
     @property
-    def last_checkpoint(self) -> Optional[str]:
+    def last_checkpoint(self) -> Optional[Union[str, Path]]:
         if len(self._saved) < 1:
             return None
-        return self._saved[-1].filename
+
+        if not isinstance(self.save_handler, DiskSaver):
+            return self._saved[-1].filename
+
+        return self.save_handler.dirname / self._saved[-1].filename
 
     def _check_lt_n_saved(self, or_equal: bool = False) -> bool:
         if self.n_saved is None:
@@ -390,15 +414,7 @@ class Checkpoint(Serializable):
                     name = k
                 checkpoint = checkpoint[name]
 
-            if self.filename_pattern is None:
-                filename_pattern = self.setup_filename_pattern(
-                    with_prefix=len(self.filename_prefix) > 0,
-                    with_score=self.score_function is not None,
-                    with_score_name=self.score_name is not None,
-                    with_global_step=global_step is not None,
-                )
-            else:
-                filename_pattern = self.filename_pattern
+            filename_pattern = self._get_filename_pattern(global_step)
 
             filename_dict = {
                 "filename_prefix": self.filename_prefix,
@@ -451,7 +467,7 @@ class Checkpoint(Serializable):
 
     @staticmethod
     def setup_filename_pattern(
-        with_prefix: bool = True, with_score: bool = True, with_score_name: bool = True, with_global_step: bool = True,
+        with_prefix: bool = True, with_score: bool = True, with_score_name: bool = True, with_global_step: bool = True
     ) -> str:
         """Helper method to get the default filename pattern for a checkpoint.
 
@@ -507,41 +523,51 @@ class Checkpoint(Serializable):
                 raise TypeError(f"Object {type(obj)} should have `{attr}` method")
 
     @staticmethod
-    def load_objects(to_load: Mapping, checkpoint: Union[str, Mapping], **kwargs: Any) -> None:
+    def load_objects(to_load: Mapping, checkpoint: Union[str, Mapping, Path], **kwargs: Any) -> None:
         """Helper method to apply ``load_state_dict`` on the objects from ``to_load`` using states from ``checkpoint``.
 
         Args:
             to_load: a dictionary with objects, e.g. `{"model": model, "optimizer": optimizer, ...}`
-            checkpoint: a string filepath or a dictionary with state_dicts to load, e.g. `{"model": model_state_dict,
-                "optimizer": opt_state_dict}`. If `to_load` contains a single key, then checkpoint can contain
-                directly corresponding state_dict.
+            checkpoint: a path, a string filepath or a dictionary with state_dicts to load, e.g.
+                `{"model": model_state_dict, "optimizer": opt_state_dict}`. If `to_load` contains a single key,
+                then checkpoint can contain directly corresponding state_dict.
             kwargs: Keyword arguments accepted for `nn.Module.load_state_dict()`. Passing `strict=False` enables
                 the user to load part of the pretrained model (useful for example, in Transfer Learning)
 
         Examples:
             .. code-block:: python
 
+                import tempfile
+                from pathlib import Path
+
                 import torch
+
                 from ignite.engine import Engine, Events
                 from ignite.handlers import ModelCheckpoint, Checkpoint
+
                 trainer = Engine(lambda engine, batch: None)
-                handler = ModelCheckpoint('/tmp/models', 'myprefix', n_saved=None, create_dir=True)
-                model = torch.nn.Linear(3, 3)
-                optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
-                to_save = {"weights": model, "optimizer": optimizer}
-                trainer.add_event_handler(Events.EPOCH_COMPLETED(every=2), handler, to_save)
-                trainer.run(torch.randn(10, 1), 5)
 
-                to_load = to_save
-                checkpoint_fp = "/tmp/models/myprefix_checkpoint_40.pth"
-                checkpoint = torch.load(checkpoint_fp)
-                Checkpoint.load_objects(to_load=to_load, checkpoint=checkpoint)
+                with tempfile.TemporaryDirectory() as tmpdirname:
+                    handler = ModelCheckpoint(tmpdirname, 'myprefix', n_saved=None, create_dir=True)
 
-                # or using a string for checkpoint filepath
+                    model = torch.nn.Linear(3, 3)
+                    optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
 
-                to_load = to_save
-                checkpoint_fp = "/tmp/models/myprefix_checkpoint_40.pth"
-                Checkpoint.load_objects(to_load=to_load, checkpoint=checkpoint_fp)
+                    to_save = {"weights": model, "optimizer": optimizer}
+
+                    trainer.add_event_handler(Events.EPOCH_COMPLETED(every=2), handler, to_save)
+                    trainer.run(torch.randn(10, 1), 5)
+
+                    to_load = to_save
+                    checkpoint_fp = Path(tmpdirname) / 'myprefix_checkpoint_40.pt'
+                    checkpoint = torch.load(checkpoint_fp)
+                    Checkpoint.load_objects(to_load=to_load, checkpoint=checkpoint)
+
+                    # or using a string for checkpoint filepath
+
+                    to_load = to_save
+                    checkpoint_fp = Path(tmpdirname) / 'myprefix_checkpoint_40.pt'
+                    Checkpoint.load_objects(to_load=to_load, checkpoint=checkpoint_fp)
 
         Note:
             If ``to_load`` contains objects of type torch `DistributedDataParallel`_ or
@@ -552,38 +578,116 @@ class Checkpoint(Serializable):
         .. _DataParallel: https://pytorch.org/docs/stable/generated/torch.nn.DataParallel.html
         """
 
-        if isinstance(checkpoint, str):
+        if isinstance(checkpoint, (str, Path)):
             checkpoint_obj = torch.load(checkpoint)
         else:
             checkpoint_obj = checkpoint
 
         Checkpoint._check_objects(to_load, "load_state_dict")
-        if not isinstance(checkpoint, (collections.Mapping, str)):
+        if not isinstance(checkpoint, (collections.Mapping, str, Path)):
             raise TypeError(f"Argument checkpoint should be a string or a dictionary, but given {type(checkpoint)}")
 
         if len(kwargs) > 1 or any(k for k in kwargs if k not in ["strict"]):
             warnings.warn("kwargs contains keys other than strict and these will be ignored")
 
         is_state_dict_strict = kwargs.get("strict", True)
+
+        def _load_object(obj: Any, chkpt_obj: Any) -> None:
+            if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
+                obj = obj.module
+            if isinstance(obj, torch.nn.Module):
+                obj.load_state_dict(chkpt_obj, strict=is_state_dict_strict)
+            else:
+                obj.load_state_dict(chkpt_obj)
+
         if len(to_load) == 1:
             # single object and checkpoint is directly a state_dict
             key, obj = list(to_load.items())[0]
             if key not in checkpoint_obj:
-                if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
-                    obj = obj.module
-                obj.load_state_dict(checkpoint_obj, strict=is_state_dict_strict)
+                _load_object(obj, checkpoint_obj)
                 return
 
         # multiple objects to load
         for k, obj in to_load.items():
             if k not in checkpoint_obj:
                 raise ValueError(f"Object labeled by '{k}' from `to_load` is not found in the checkpoint")
-            if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
-                obj = obj.module
-            if isinstance(obj, torch.nn.Module):
-                obj.load_state_dict(checkpoint_obj[k], strict=is_state_dict_strict)
-            else:
-                obj.load_state_dict(checkpoint_obj[k])
+            _load_object(obj, checkpoint_obj[k])
+
+    def reload_objects(self, to_load: Mapping, load_kwargs: Optional[Dict] = None, **filename_components: Any) -> None:
+        """Helper method to apply ``load_state_dict`` on the objects from ``to_load``. Filename components such as
+        name, score and global state can be configured.
+
+        Args:
+            to_load: a dictionary with objects, e.g. `{"model": model, "optimizer": optimizer, ...}`
+            load_kwargs: Keyword arguments accepted for `nn.Module.load_state_dict()`. Passing `strict=False` enables
+                the user to load part of the pretrained model (useful for example, in Transfer Learning)
+            filename_components: Filename components used to define the checkpoint file path.
+                Keyword arguments accepted are `name`, `score` and `global_state`.
+
+        Examples:
+            .. code-block:: python
+
+                import tempfile
+
+                import torch
+
+                from ignite.engine import Engine, Events
+                from ignite.handlers import ModelCheckpoint, Checkpoint
+
+                trainer = Engine(lambda engine, batch: None)
+
+                with tempfile.TemporaryDirectory() as tmpdirname:
+                    checkpoint = ModelCheckpoint(tmpdirname, 'myprefix', n_saved=None, create_dir=True)
+
+                    model = torch.nn.Linear(3, 3)
+                    optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
+
+                    to_save = {"weights": model, "optimizer": optimizer}
+
+                    trainer.add_event_handler(Events.EPOCH_COMPLETED(every=2), checkpoint, to_save)
+                    trainer.run(torch.randn(10, 1), 5)
+
+                    to_load = to_save
+                    # load checkpoint myprefix_checkpoint_40.pt
+                    checkpoint.load_objects(to_load=to_load, global_step=40)
+
+        Note:
+            If ``to_load`` contains objects of type torch `DistributedDataParallel`_ or
+            `DataParallel`_, method ``load_state_dict`` will applied to their internal wrapped model (``obj.module``).
+
+        .. _DistributedDataParallel: https://pytorch.org/docs/stable/generated/
+            torch.nn.parallel.DistributedDataParallel.html
+        .. _DataParallel: https://pytorch.org/docs/stable/generated/torch.nn.DataParallel.html
+        """
+
+        global_step = filename_components.get("global_step", None)
+
+        filename_pattern = self._get_filename_pattern(global_step)
+
+        checkpoint = self._setup_checkpoint()
+        name = "checkpoint"
+        if len(checkpoint) == 1:
+            for k in checkpoint:
+                name = k
+        name = filename_components.get("name", name)
+        score = filename_components.get("score", None)
+
+        filename_dict = {
+            "filename_prefix": self.filename_prefix,
+            "ext": self.ext,
+            "name": name,
+            "score_name": self.score_name,
+            "score": score,
+            "global_step": global_step,
+        }
+
+        checkpoint_fp = filename_pattern.format(**filename_dict)
+
+        path = self.save_handler.dirname / checkpoint_fp
+
+        load_kwargs = {} if load_kwargs is None else load_kwargs
+
+        Checkpoint.load_objects(to_load=to_load, checkpoint=path, **load_kwargs)
 
     def state_dict(self) -> "OrderedDict[str, List[Tuple[int, str]]]":
         """Method returns state dict with saved items: list of ``(priority, filename)`` pairs.
@@ -664,21 +768,26 @@ class DiskSaver(BaseSaveHandler):
     """
 
     def __init__(
-        self, dirname: str, atomic: bool = True, create_dir: bool = True, require_empty: bool = True, **kwargs: Any
+        self,
+        dirname: Union[str, Path],
+        atomic: bool = True,
+        create_dir: bool = True,
+        require_empty: bool = True,
+        **kwargs: Any,
     ):
-        self.dirname = os.path.expanduser(dirname)
+        self.dirname = Path(dirname).expanduser()
         self._atomic = atomic
-        self._check_and_setup(dirname, create_dir, require_empty)
+        self._check_and_setup(self.dirname, create_dir, require_empty)
         self.kwargs = kwargs
 
     @staticmethod
     @idist.one_rank_only()
-    def _check_and_setup(dirname: str, create_dir: bool, require_empty: bool) -> None:
+    def _check_and_setup(dirname: Path, create_dir: bool, require_empty: bool) -> None:
         if create_dir:
-            if not os.path.exists(dirname):
-                os.makedirs(dirname)
+            if not dirname.exists():
+                dirname.mkdir(parents=True)
         # Ensure that dirname exists
-        if not os.path.exists(dirname):
+        if not dirname.exists():
             raise ValueError(f"Directory path '{dirname}' is not found")
 
         if require_empty:
@@ -692,7 +801,7 @@ class DiskSaver(BaseSaveHandler):
                 )
 
     def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None) -> None:
-        path = os.path.join(self.dirname, filename)
+        path = self.dirname / filename
 
         if idist.has_xla_support:
             self._save_xla(checkpoint, path)
@@ -700,16 +809,16 @@ class DiskSaver(BaseSaveHandler):
             self._save_native(checkpoint, path)
 
     @idist.one_rank_only()
-    def _save_native(self, checkpoint: Mapping, path: str) -> None:
+    def _save_native(self, checkpoint: Mapping, path: Path) -> None:
         self._save_func(checkpoint, path, torch.save)
 
-    def _save_xla(self, checkpoint: Mapping, path: str) -> None:
+    def _save_xla(self, checkpoint: Mapping, path: Path) -> None:
         import torch_xla.core.xla_model as xm
 
         # all tpu procs should enter here as internally performs sync across device
         self._save_func(checkpoint, path, xm.save, rank=idist.get_rank())
 
-    def _save_func(self, checkpoint: Mapping, path: str, func: Callable, rank: int = 0) -> None:
+    def _save_func(self, checkpoint: Mapping, path: Path, func: Callable, rank: int = 0) -> None:
         if not self._atomic:
             func(checkpoint, path, **self.kwargs)
         else:
@@ -718,7 +827,7 @@ class DiskSaver(BaseSaveHandler):
             tmp: Optional[IO[bytes]] = None
             if rank == 0:
                 tmp = tempfile.NamedTemporaryFile(delete=False, dir=self.dirname)
-                tmp_file = tmp.file  # type: ignore
+                tmp_file = tmp.file
                 tmp_name = tmp.name
             try:
                 func(checkpoint, tmp_file, **self.kwargs)
@@ -736,8 +845,8 @@ class DiskSaver(BaseSaveHandler):
 
     @idist.one_rank_only()
     def remove(self, filename: str) -> None:
-        path = os.path.join(self.dirname, filename)
-        os.remove(path)
+        path = self.dirname / filename
+        path.unlink()
 
 
 class ModelCheckpoint(Checkpoint):
@@ -783,12 +892,21 @@ class ModelCheckpoint(Checkpoint):
             Input of the function is `(engine, event_name)`. Output of function should be an integer.
             Default is None, global_step based on attached engine. If provided, uses function output as global_step.
             To setup global step from another engine, please use :meth:`~ignite.handlers.global_step_from_engine`.
+        filename_pattern: If ``filename_pattern`` is provided, this pattern will be used to render
+            checkpoint filenames. If the pattern is not defined, the default pattern would be used.
+            See :class:`~ignite.handlers.checkpoint.Checkpoint` for details.
         include_self: Whether to include the `state_dict` of this object in the checkpoint. If `True`, then
             there must not be another object in ``to_save`` with key ``checkpointer``.
+        greater_or_equal: if `True`, the latest equally scored model is stored. Otherwise, the first model.
+            Default, `False`.
         kwargs: Accepted keyword arguments for `torch.save` or `xm.save` in `DiskSaver`.
 
     .. versionchanged:: 0.4.2
         Accept ``kwargs`` for `torch.save` or `xm.save`
+
+    .. versionchanged:: 0.5.0
+        Accept ``filename_pattern`` and ``greater_or_equal`` for parity
+        with :class:`~ignite.handlers.checkpoint.Checkpoint`
 
     Examples:
         .. code-block:: python
@@ -810,8 +928,8 @@ class ModelCheckpoint(Checkpoint):
 
     def __init__(
         self,
-        dirname: str,
-        filename_prefix: str,
+        dirname: Union[str, Path],
+        filename_prefix: str = "",
         score_function: Optional[Callable] = None,
         score_name: Optional[str] = None,
         n_saved: Union[int, None] = 1,
@@ -819,7 +937,9 @@ class ModelCheckpoint(Checkpoint):
         require_empty: bool = True,
         create_dir: bool = True,
         global_step_transform: Optional[Callable] = None,
+        filename_pattern: Optional[str] = None,
         include_self: bool = False,
+        greater_or_equal: bool = False,
         **kwargs: Any,
     ):
 
@@ -833,20 +953,20 @@ class ModelCheckpoint(Checkpoint):
             score_name=score_name,
             n_saved=n_saved,
             global_step_transform=global_step_transform,
+            filename_pattern=filename_pattern,
             include_self=include_self,
+            greater_or_equal=greater_or_equal,
         )
 
     @property
-    def last_checkpoint(self) -> Union[str, None]:
+    def last_checkpoint(self) -> Optional[Union[str, Path]]:
         if len(self._saved) < 1:
             return None
 
         if not isinstance(self.save_handler, DiskSaver):
-            raise RuntimeError(
-                f"Unable to save checkpoint, save_handler should be DiskSaver, got {type(self.save_handler)}."
-            )
+            raise RuntimeError(f"Internal error, save_handler should be DiskSaver, but has {type(self.save_handler)}.")
 
-        return os.path.join(self.save_handler.dirname, self._saved[-1].filename)
+        return self.save_handler.dirname / self._saved[-1].filename
 
     def __call__(self, engine: Engine, to_save: Mapping):  # type: ignore
 

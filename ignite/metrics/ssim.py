@@ -36,6 +36,11 @@ class SSIM(Metric):
         ``y_pred`` and ``y`` can be un-normalized or normalized image tensors. Depending on that, the user might need
         to adjust ``data_range``. ``y_pred`` and ``y`` should have the same shape.
 
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         .. testcode::
 
             metric = SSIM(data_range=1.0)

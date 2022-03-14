@@ -28,7 +28,13 @@ class MetricsLambda(Metric):
             else that will be fed to ``f`` as keyword arguments.
 
     Examples:
-        .. code-block:: python
+
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
+        .. testcode::
 
             precision = Precision(average=False)
             recall = Recall(average=False)
@@ -40,6 +46,26 @@ class MetricsLambda(Metric):
             F2 = MetricsLambda(Fbeta, recall, precision, 2)
             F3 = MetricsLambda(Fbeta, recall, precision, 3)
             F4 = MetricsLambda(Fbeta, recall, precision, 4)
+
+            F1.attach(default_evaluator, "F1")
+            F2.attach(default_evaluator, "F2")
+            F3.attach(default_evaluator, "F3")
+            F4.attach(default_evaluator, "F4")
+
+            y_true = torch.Tensor([1, 0, 1, 0, 0, 1])
+            y_pred = torch.Tensor([1, 0, 1, 0, 1, 1])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["F1"])
+            print(state.metrics["F2"])
+            print(state.metrics["F3"])
+            print(state.metrics["F4"])
+
+        .. testoutput::
+
+            0.8571...
+            0.9375...
+            0.9677...
+            0.9807...
 
         When check if the metric is attached, if one of its dependency
         metrics is detached, the metric is considered detached too.
