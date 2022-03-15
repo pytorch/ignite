@@ -138,7 +138,7 @@ class CallableEventWithFilter:
         return EventsList() | self | other
 
 
-class EventEnum(CallableEventWithFilter, Enum):  # type: ignore[misc]
+class EventEnum(CallableEventWithFilter, Enum):
     """Base class for all :class:`~ignite.engine.events.Events`. User defined custom events should also inherit
     this class.
 
