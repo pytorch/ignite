@@ -194,7 +194,6 @@ def _test_distrib_compute(device):
 
 
 def _test_distrib_integration(device):
-
     def _test(n_epochs, metric_device):
         metric_device = torch.device(metric_device)
         rank = idist.get_rank()
