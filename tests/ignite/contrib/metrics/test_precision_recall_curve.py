@@ -231,9 +231,9 @@ def _test_distrib_integration(device):
         assert precision.shape == sk_precision.shape
         assert recall.shape == sk_recall.shape
         assert thresholds.shape == sk_thresholds.shape
-        assert pytest.approx(precision.cpu().numpy()) == sk_precision
-        assert pytest.approx(recall.cpu().numpy()) == sk_recall
-        assert pytest.approx(thresholds.cpu().numpy()) == sk_thresholds
+        assert pytest.approx(precision.cpu().numpy(), rel=1e-1) == sk_precision
+        assert pytest.approx(recall.cpu().numpy(), rel=1e-1) == sk_recall
+        assert pytest.approx(thresholds.cpu().numpy(), rel=1e-1) == sk_thresholds
 
     metric_devices = ["cpu"]
     if device.type != "xla":
