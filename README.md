@@ -269,7 +269,7 @@ The website for the library containing an overview can be found at: https://pyto
 
 ## Code-Generator application
 
-The easiest way to create your training scripts with PyTorch-Ignite https://code-generator.pytorch-ignite.ai/
+The easiest way to create your training scripts with PyTorch-Ignite:  https://code-generator.pytorch-ignite.ai/
 
 <!-- ############################################################################################################### -->
 
