@@ -261,9 +261,7 @@ The website for the library containing an overview can be found at: https://pyto
 3. [How-to Guides for code recipes with minimal explanation](https://pytorch-ignite.ai/how-to-guides/)
 4. [Concepts to understand the essence of the library](https://pytorch-ignite.ai/concepts/)
 
-<!-- ############################################################################################################### -->
-
-# Other Documentation
+Apart from the above, here are some other helpful links:
 
 - Stable API documentation: https://pytorch.org/ignite/
 - Development version API documentation: https://pytorch.org/ignite/master/
