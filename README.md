@@ -256,27 +256,20 @@ Checkout this guide to [install PyTorch-Ignite from source or use pre-built dock
 
 The website for the library containing an overview can be found at: https://pytorch-ignite.ai/. Here is the order we suggest for getting started:
 
-1. [Getting Started Guide for essentials of setting up a project](https://pytorch-ignite.ai/tutorials/beginner/01-getting-started/)
-2. [Tutorials for the beginner, intermediate and advanced user](https://pytorch-ignite.ai/tutorials/)
-3. [How-to Guides for code recipes with minimal explanation](https://pytorch-ignite.ai/how-to-guides/)
-4. [Concepts to understand the essence of the library](https://pytorch-ignite.ai/concepts/)
-
-Apart from the above, here are some other helpful links:
-
-- Stable API documentation: https://pytorch.org/ignite/
-- Development version API documentation: https://pytorch.org/ignite/master/
-- ["Questions on Github"](https://github.com/pytorch/ignite/issues?q=is%3Aissue+label%3Aquestion+) and
-  ["Questions on Discuss.PyTorch"](https://discuss.pytorch.org/c/ignite).
-- [Project's Roadmap](https://github.com/pytorch/ignite/wiki/Roadmap)
-- [Talks](https://pytorch-ignite.ai/talks/)
+1. [Getting Started Guide](https://pytorch-ignite.ai/tutorials/beginner/01-getting-started/) for essentials of setting up a project.
+2. [Tutorials](https://pytorch-ignite.ai/tutorials/) for the beginner, intermediate and advanced user.
+3. [How-to Guides](https://pytorch-ignite.ai/how-to-guides/) for code recipes with minimal explanation.
+4. [Concepts](https://pytorch-ignite.ai/concepts/) to understand the essence of the library.
+5. [Stable](https://pytorch.org/ignite/) / [Development](https://pytorch.org/ignite/master/) API documentations.
+6. Previously asked questions on [Github](https://github.com/pytorch/ignite/issues?q=is%3Aissue+label%3Aquestion+) and [Discuss.PyTorch](https://discuss.pytorch.org/c/ignite).
+7. [Talks](https://pytorch-ignite.ai/talks/) for visual learners.
+8. [Project's Roadmap](https://github.com/pytorch/ignite/wiki/Roadmap) to look out for upcoming features.
 
 <!-- ############################################################################################################### -->
 
 ## Code-Generator application
 
-The easiest way to create your training scripts with PyTorch-Ignite:
-
-- https://code-generator.pytorch-ignite.ai/
+The easiest way to create your training scripts with PyTorch-Ignite https://code-generator.pytorch-ignite.ai/
 
 <!-- ############################################################################################################### -->
 
