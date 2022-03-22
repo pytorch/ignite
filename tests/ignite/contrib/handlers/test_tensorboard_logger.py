@@ -6,7 +6,6 @@ import pytest
 import torch
 
 from ignite.contrib.handlers.tensorboard_logger import (
-    FixedWeightsHistHandler,
     global_step_from_engine,
     GradsHistHandler,
     GradsScalarHandler,
@@ -348,6 +347,28 @@ def test_weights_hist_handler_wrong_setup():
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
+def test_weights_hist_handler_whitelist_wrong_setup(dummy_model_factory):
+
+    model = dummy_model_factory(with_buffer=True)
+
+    with pytest.raises(
+        ValueError,
+        match="Whitelist weights should not be Buffers as they are considered persistent. Given buffer name `buffer1`",
+    ):
+        WeightsHistHandler(model, whitelist=["buffer1"])
+
+    with pytest.raises(ValueError, match="Whitelist weight `fc3` is not among model's parameters or submodules"):
+        WeightsHistHandler(model, whitelist=["fc1.bias", model.fc2, "fc3"])
+
+    with pytest.raises(ValueError, match="Module .+ is not among model's submodules"):
+        WeightsHistHandler(model, whitelist=[torch.nn.Linear(10, 10)])
+
+    with pytest.raises(
+        ValueError, match="Whitelist weights shoud be string or nn.Module, given <class 'torch.nn.parameter.Parameter'>"
+    ):
+        WeightsHistHandler(model, whitelist=[model.fc1.bias])
+
+
 def test_weights_hist_handler(dummy_model_factory):
 
     model = dummy_model_factory(with_grads=True, with_frozen_layer=False)
@@ -381,63 +402,10 @@ def test_weights_hist_handler(dummy_model_factory):
     _test(tag="tag")
 
 
-def test_weights_hist_handler_frozen_layers(dummy_model_factory):
-
-    model = dummy_model_factory(with_grads=True, with_frozen_layer=True)
-
-    wrapper = WeightsHistHandler(model)
-    mock_logger = MagicMock(spec=TensorboardLogger)
-    mock_logger.writer = MagicMock()
-
-    mock_engine = MagicMock()
-    mock_engine.state = State()
-    mock_engine.state.epoch = 5
-
-    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
-
-    mock_logger.writer.add_histogram.assert_has_calls(
-        [
-            call(tag="weights/fc2/weight", values=ANY, global_step=5),
-            call(tag="weights/fc2/bias", values=ANY, global_step=5),
-        ],
-        any_order=True,
-    )
-
-    with pytest.raises(AssertionError):
-        mock_logger.writer.add_histogram.assert_has_calls(
-            [
-                call(tag="weights/fc1/weight", values=ANY, global_step=5),
-                call(tag="weights/fc1/bias", values=ANY, global_step=5),
-            ],
-            any_order=True,
-        )
-    assert mock_logger.writer.add_histogram.call_count == 2
-
-
-def test_fixed_weights_hist_handler_wrong_setup(dummy_model_factory):
-    model = dummy_model_factory(with_buffer=True)
-
-    with pytest.raises(
-        ValueError, match="Weights should not be Buffers as they are considered persistent. Given buffer name `buffer1`"
-    ):
-        FixedWeightsHistHandler(model, ["buffer1"])
-
-    with pytest.raises(ValueError, match="Weight `fc3` is not among model's parameters or submodules"):
-        FixedWeightsHistHandler(model, ["fc1.bias", model.fc2, "fc3"])
-
-    with pytest.raises(ValueError, match="Module .+ is not among model's submodules"):
-        FixedWeightsHistHandler(model, [torch.nn.Linear(10, 10)])
-
-    with pytest.raises(
-        ValueError, match="Weights shoud be string or nn.Module, given <class 'torch.nn.parameter.Parameter'>"
-    ):
-        FixedWeightsHistHandler(model, [model.fc1.bias])
-
-
-def test_fixed_weights_hist_handler(dummy_model_factory):
+def test_weights_hist_handler_whitelist(dummy_model_factory):
     model = dummy_model_factory()
 
-    wrapper = FixedWeightsHistHandler(model, ["fc2.weight"])
+    wrapper = WeightsHistHandler(model, whitelist=["fc2.weight"])
     mock_logger = MagicMock(spec=TensorboardLogger)
     mock_logger.writer = MagicMock()
 
@@ -449,7 +417,7 @@ def test_fixed_weights_hist_handler(dummy_model_factory):
     mock_logger.writer.add_histogram.assert_called_once_with(tag="weights/fc2/weight", values=ANY, global_step=5)
     mock_logger.writer.reset_mock()
 
-    wrapper = FixedWeightsHistHandler(model, [model.fc1], tag="model")
+    wrapper = WeightsHistHandler(model, tag="model", whitelist=[model.fc1])
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
     mock_logger.writer.add_histogram.assert_has_calls(
         [
@@ -459,13 +427,7 @@ def test_fixed_weights_hist_handler(dummy_model_factory):
         any_order=True,
     )
 
-    assert (
-        call(tag="model/weights/fc2/weight", values=ANY, global_step=5)
-        not in mock_logger.writer.add_histogram.mock_calls
-    )
-    assert (
-        call(tag="model/weights/fc2/bias", values=ANY, global_step=5) not in mock_logger.writer.add_histogram.mock_calls
-    )
+    assert mock_logger.writer.add_histogram.call_count == 2
 
 
 def test_grads_scalar_handler_wrong_setup():

@@ -1,7 +1,5 @@
 """TensorBoard logger and its helper handlers."""
-from statistics import mode
 from typing import Any, Callable, List, Optional, Union
-from unicodedata import name
 
 import torch
 import torch.nn as nn
@@ -406,6 +404,10 @@ class WeightsHistHandler(BaseWeightsHistHandler):
     Args:
         model: model to log weights
         tag: common title for all produced plots. For example, "generator"
+        whitelist: specific weights to log. Should be list of model's submodules or their names, or names of
+            model's parameters. Names should be fully-qualified. For more information please refer to `PyTorch docs
+            <https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.get_submodule>`_.
+            If not given, all of model's weights are logged.
 
     Examples:
         .. code-block:: python
@@ -421,38 +423,7 @@ class WeightsHistHandler(BaseWeightsHistHandler):
                 event_name=Events.ITERATION_COMPLETED,
                 log_handler=WeightsHistHandler(model)
             )
-    """
 
-    def __init__(self, model: nn.Module, tag: Optional[str] = None):
-        super(WeightsHistHandler, self).__init__(model, tag=tag)
-
-    def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, Events]) -> None:
-        if not isinstance(logger, TensorboardLogger):
-            raise RuntimeError("Handler 'WeightsHistHandler' works only with TensorboardLogger")
-
-        global_step = engine.state.get_event_attrib_value(event_name)
-        tag_prefix = f"{self.tag}/" if self.tag else ""
-        for name, p in self.model.named_parameters():
-            if p.grad is None:
-                continue
-
-            name = name.replace(".", "/")
-            logger.writer.add_histogram(
-                tag=f"{tag_prefix}weights/{name}", values=p.data.detach().cpu().numpy(), global_step=global_step
-            )
-
-
-class FixedWeightsHistHandler(BaseWeightsHistHandler):
-    """Helper handler to log a fixed set of model's weights as histograms.
-
-    Args:
-        model: model to log weights
-        weights: list of model's submodules or their names, or names of
-            model's parameters. Names should be fully-qualified. For more information please refer to `PyTorch docs
-            <https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.get_submodule>`_.
-        tag: common title for all produced plots. For example, "generator"
-
-    Examples:
         .. code-block:: python
 
             from ignite.contrib.handlers.tensorboard_logger import *
@@ -467,20 +438,24 @@ class FixedWeightsHistHandler(BaseWeightsHistHandler):
             tb_logger.attach(
                 trainer,
                 event_name=Events.ITERATION_COMPLETED,
-                log_handler=FixedWeightsHistHandler(model, weights)
+                log_handler=WeightsHistHandler(model, weights)
             )
     """
 
     def __init__(
         self,
         model: nn.Module,
-        weights: List[Union[str, nn.Module]],
-        tag: Optional[str] = None
-    ): # type: ignore[override]
-        super(FixedWeightsHistHandler, self).__init__(model, tag=tag)
-        
+        tag: Optional[str] = None,
+        whitelist: List[Union[str, nn.Module]] = None
+    ):  # type: ignore[override]
+        super(WeightsHistHandler, self).__init__(model, tag=tag)
+
+        self.weights = None
+        if whitelist is None:
+            return
+
         self.weights = {}
-        for item in weights:
+        for item in whitelist:
             if isinstance(item, str):
                 try:
                     for n, p in model.get_submodule(item).named_parameters(prefix=item):
@@ -492,12 +467,12 @@ class FixedWeightsHistHandler(BaseWeightsHistHandler):
                         try:
                             _ = model.get_buffer(item)
                             raise ValueError(
-                                "Weights should not be Buffers as they are"
+                                "Whitelist weights should not be Buffers as they are"
                                 f" considered persistent. Given buffer name `{item}`"
                             )
                         except AttributeError as e:
                             raise ValueError(
-                                f"Weight `{item}` is not among model's parameters or submodules"
+                                f"Whitelist weight `{item}` is not among model's parameters or submodules"
                             ) from e
             elif isinstance(item, nn.Module):
                 name = None
@@ -511,15 +486,16 @@ class FixedWeightsHistHandler(BaseWeightsHistHandler):
                 else:
                     raise ValueError(f"Module {item} is not among model's submodules")
             else:
-                raise ValueError(f"Weights shoud be string or nn.Module, given {type(item)}")
+                raise ValueError(f"Whitelist weights shoud be string or nn.Module, given {type(item)}")
 
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, TensorboardLogger):
-            raise RuntimeError("Handler 'FixedWeightsHistHandler' works only with TensorboardLogger")
+            raise RuntimeError("Handler 'WeightsHistHandler' works only with TensorboardLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = f"{self.tag}/" if self.tag else ""
-        for name, p in self.weights.items():
+        weights = self.weights.items() if self.weights is not None else self.model.named_parameters()
+        for name, p in weights:
 
             name = name.replace(".", "/")
             logger.writer.add_histogram(
