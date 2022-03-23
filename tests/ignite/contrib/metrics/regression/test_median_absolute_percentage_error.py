@@ -151,12 +151,10 @@ def _test_distrib_compute(device):
 
 
 def _test_distrib_integration(device):
-
-    rank = idist.get_rank()
-    torch.manual_seed(12)
-
     def _test(n_epochs, metric_device):
         metric_device = torch.device(metric_device)
+        rank = idist.get_rank()
+        torch.manual_seed(rank)
         n_iters = 80
         size = 105
 

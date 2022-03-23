@@ -150,12 +150,10 @@ def _test_distrib_compute(device):
 
 
 def _test_distrib_integration(device):
-
-    rank = idist.get_rank()
-    torch.manual_seed(12)
-
     def _test(n_epochs, metric_device):
         metric_device = torch.device(metric_device)
+        rank = idist.get_rank()
+        torch.manual_seed(rank)
         n_iters = 80
         size = 105
 
@@ -187,7 +185,7 @@ def _test_distrib_integration(device):
         e = np.abs(np_y_true - np_y_preds)
         np_res = np.median(e)
 
-        assert pytest.approx(res, rel=1) == np_res
+        assert pytest.approx(res, rel=1e-3) == np_res
 
     metric_devices = ["cpu"]
     if device.type != "xla":
