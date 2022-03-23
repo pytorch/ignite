@@ -193,9 +193,9 @@ def _test_distrib_integration(device):
         # when the length of the array/tensor is even. So this is a hack to avoid that.
         # issue: https://github.com/pytorch/pytorch/issues/1837
         if np_y_preds.shape[0] % 2 == 0:
-            assert pytest.approx(res, rel=1e-2) == np_res_prepend
+            assert pytest.approx(res) == np_res_prepend
         else:
-            assert pytest.approx(res, rel=1e-2) == np_res
+            assert pytest.approx(res) == np_res
 
     metric_devices = ["cpu"]
     if device.type != "xla":

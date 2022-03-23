@@ -185,7 +185,7 @@ def _test_distrib_integration(device):
         e = np.abs(np_y_true - np_y_preds)
         np_res = np.median(e)
 
-        assert pytest.approx(res, rel=1e-3) == np_res
+        assert pytest.approx(res) == np_res
 
     metric_devices = ["cpu"]
     if device.type != "xla":
