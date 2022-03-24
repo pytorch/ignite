@@ -368,6 +368,11 @@ def test_weights_hist_handler_whitelist_wrong_setup(dummy_model_factory):
     ):
         WeightsHistHandler(model, whitelist=[model.fc1.bias])
 
+    with pytest.warns(UserWarning, match="Given callable whitelist does not select any parameter to be logged."):
+        def weight_selector(_, __):
+            return False
+        WeightsHistHandler(model, whitelist=weight_selector)
+
 
 def test_weights_hist_handler(dummy_model_factory):
 
@@ -419,6 +424,7 @@ def test_weights_hist_handler_whitelist(dummy_model_factory):
 
     wrapper = WeightsHistHandler(model, tag="model", whitelist=[model.fc1])
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+
     mock_logger.writer.add_histogram.assert_has_calls(
         [
             call(tag="model/weights/fc1/weight", values=ANY, global_step=5),
@@ -426,7 +432,21 @@ def test_weights_hist_handler_whitelist(dummy_model_factory):
         ],
         any_order=True,
     )
+    assert mock_logger.writer.add_histogram.call_count == 2
+    mock_logger.writer.reset_mock()
 
+    def weight_selector(n, _):
+        return "bias" in n
+    wrapper = WeightsHistHandler(model, whitelist=weight_selector)
+    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+
+    mock_logger.writer.add_histogram.assert_has_calls(
+        [
+            call(tag="weights/fc1/bias", values=ANY, global_step=5),
+            call(tag="weights/fc2/bias", values=ANY, global_step=5),
+        ],
+        any_order=True,
+    )
     assert mock_logger.writer.add_histogram.call_count == 2
 
 

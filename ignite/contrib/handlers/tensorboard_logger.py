@@ -1,4 +1,5 @@
 """TensorBoard logger and its helper handlers."""
+import warnings
 from typing import Any, Callable, List, Optional, Union
 
 import torch
@@ -405,7 +406,9 @@ class WeightsHistHandler(BaseWeightsHistHandler):
         model: model to log weights
         tag: common title for all produced plots. For example, "generator"
         whitelist: specific weights to log. Should be list of model's submodules or their names, or names of
-            model's parameters. Names should be fully-qualified. For more information please refer to `PyTorch docs
+            model's parameters or a callable which gets weight along with its name
+            and determines if it should be logged. Names should be fully-qualified.
+            For more information please refer to `PyTorch docs
             <https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.get_submodule>`_.
             If not given, all of model's weights are logged.
 
@@ -438,7 +441,24 @@ class WeightsHistHandler(BaseWeightsHistHandler):
             tb_logger.attach(
                 trainer,
                 event_name=Events.ITERATION_COMPLETED,
-                log_handler=WeightsHistHandler(model, weights)
+                log_handler=WeightsHistHandler(model, whitelist=weights)
+            )
+
+        .. code-block:: python
+
+            from ignite.contrib.handlers.tensorboard_logger import *
+
+            # Create a logger
+            tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
+
+            # Log weights which their name include 'conv'.
+            weight_selector = lambda name, p: 'conv' in name
+
+            # Attach the logger to the trainer to log weights norm after each iteration
+            tb_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=WeightsHistHandler(model, whitelist=weight_selector)
             )
     """
 
@@ -446,7 +466,7 @@ class WeightsHistHandler(BaseWeightsHistHandler):
         self,
         model: nn.Module,
         tag: Optional[str] = None,
-        whitelist: List[Union[str, nn.Module]] = None
+        whitelist: Optional[Union[List[Union[str, nn.Module]], Callable[[str, nn.Parameter], bool]]] = None,
     ):  # type: ignore[override]
         super(WeightsHistHandler, self).__init__(model, tag=tag)
 
@@ -455,6 +475,15 @@ class WeightsHistHandler(BaseWeightsHistHandler):
             return
 
         self.weights = {}
+        if callable(whitelist):
+            for n, p in model.named_parameters():
+                if whitelist(n, p):
+                    self.weights[n] = p
+
+            if len(self.weights) == 0:
+                warnings.warn("Given callable whitelist does not " "select any parameter to be logged.")
+            return
+
         for item in whitelist:
             if isinstance(item, str):
                 try:
