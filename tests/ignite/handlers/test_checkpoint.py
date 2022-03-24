@@ -203,49 +203,50 @@ def test_checkpoint_with_dp():
     metadata = {"basename": "model", "score_name": None, "priority": 0}
     save_handler.assert_called_with(model.state_dict(), "model_0.pt", metadata)
 
-    @pytest.mark.parametrize("filename_prefix", ["", "dummytask"])
-    @pytest.mark.parametrize(
-        "to_save, obj, name",
-        [
-            ({"model": model}, model.state_dict(), "model"),
-            (
-                {"model": model, "optimizer": optimizer},
-                {"model": model.state_dict(), "optimizer": optimizer.state_dict()},
-                "checkpoint",
-            ),
-        ],
+
+@pytest.mark.parametrize("filename_prefix", ["", "dummytask"])
+@pytest.mark.parametrize(
+    "to_save, obj, name",
+    [
+        ({"model": model}, model.state_dict(), "model"),
+        (
+            {"model": model, "optimizer": optimizer},
+            {"model": model.state_dict(), "optimizer": optimizer.state_dict()},
+            "checkpoint",
+        ),
+    ],
+)
+def test_checkpoint_with_global_step_transform(filename_prefix, to_save, obj, name):
+    save_handler = MagicMock(spec=BaseSaveHandler)
+
+    checkpointer = Checkpoint(
+        to_save,
+        save_handler=save_handler,
+        filename_prefix=filename_prefix,
+        global_step_transform=lambda e, _: e.state.epoch,
     )
-    def test_checkpoint_with_global_step_transform(filename_prefix, to_save, obj, name):
-        save_handler = MagicMock(spec=BaseSaveHandler)
 
-        checkpointer = Checkpoint(
-            to_save,
-            save_handler=save_handler,
-            filename_prefix=filename_prefix,
-            global_step_transform=lambda e, _: e.state.epoch,
-        )
+    trainer = Engine(lambda e, b: None)
+    trainer.state = State(epoch=2, iteration=1)
 
-        trainer = Engine(lambda e, b: None)
-        trainer.state = State(epoch=2, iteration=1)
+    checkpointer(trainer)
+    assert save_handler.call_count == 1
 
-        checkpointer(trainer)
-        assert save_handler.call_count == 1
+    if len(filename_prefix) > 0:
+        filename_prefix += "_"
 
-        if len(filename_prefix) > 0:
-            filename_prefix += "_"
+    metadata = {"basename": f"{filename_prefix}{name}", "score_name": None, "priority": 2}
+    save_handler.assert_called_with(obj, f"{filename_prefix}{name}_2.pt", metadata)
 
-        metadata = {"basename": f"{filename_prefix}{name}", "score_name": None, "priority": 2}
-        save_handler.assert_called_with(obj, f"{filename_prefix}{name}_2.pt", metadata)
-
-        trainer.state.epoch = 12
-        trainer.state.iteration = 1234
-        checkpointer(trainer)
-        assert save_handler.call_count == 2
-        metadata["priority"] = 12
-        save_handler.assert_called_with(obj, f"{filename_prefix}{name}_12.pt", metadata)
-        assert save_handler.remove.call_count == 1
-        save_handler.remove.assert_called_with(f"{filename_prefix}{name}_2.pt")
-        assert checkpointer.last_checkpoint == f"{filename_prefix}{name}_12.pt"
+    trainer.state.epoch = 12
+    trainer.state.iteration = 1234
+    checkpointer(trainer)
+    assert save_handler.call_count == 2
+    metadata["priority"] = 12
+    save_handler.assert_called_with(obj, f"{filename_prefix}{name}_12.pt", metadata)
+    assert save_handler.remove.call_count == 1
+    save_handler.remove.assert_called_with(f"{filename_prefix}{name}_2.pt")
+    assert checkpointer.last_checkpoint == f"{filename_prefix}{name}_12.pt"
 
 
 @pytest.mark.parametrize(
