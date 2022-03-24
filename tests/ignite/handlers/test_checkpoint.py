@@ -26,8 +26,11 @@ class DummyModel(nn.Module):
 
     def forward(self, x):
         return self.net(x)
+
+
 model = DummyModel()
-optimizer = torch.optim.SGD(model.parameters(), lr=0.1) 
+optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+
 
 class DummyPretrainedModel(nn.Module):
     def __init__(self):
@@ -78,7 +81,7 @@ def test_checkpoint_wrong_input():
 
 
 def test_save_handler_as_str(dirname):
-    
+
     to_save = {"model": model}
 
     checkpointer = Checkpoint(to_save, save_handler=dirname)
@@ -86,7 +89,7 @@ def test_save_handler_as_str(dirname):
 
 
 def test_checkpoint_score_function_wrong_output():
-    
+
     to_save = {"model": model}
 
     checkpointer = Checkpoint(to_save, lambda x: x, score_function=lambda e: {"1": 1}, score_name="acc")
@@ -96,79 +99,92 @@ def test_checkpoint_score_function_wrong_output():
         checkpointer(trainer)
 
 
-@pytest.mark.parametrize("to_save,obj,name",
-                             [
-                                 ({"model": model},model.state_dict(),"model"),
-                                 ({"model": model, "optimizer": optimizer},{"model": model.state_dict(), "optimizer": optimizer.state_dict()},"checkpoint")
-                             ])
+@pytest.mark.parametrize(
+    "to_save,obj,name",
+    [
+        ({"model": model}, model.state_dict(), "model"),
+        (
+            {"model": model, "optimizer": optimizer},
+            {"model": model.state_dict(), "optimizer": optimizer.state_dict()},
+            "checkpoint",
+        ),
+    ],
+)
 def test_checkpoint_default(to_save, obj, name):
-        save_handler = MagicMock(spec=BaseSaveHandler)
+    save_handler = MagicMock(spec=BaseSaveHandler)
 
-        checkpointer = Checkpoint(to_save, save_handler=save_handler)
-        assert checkpointer.last_checkpoint is None
+    checkpointer = Checkpoint(to_save, save_handler=save_handler)
+    assert checkpointer.last_checkpoint is None
 
-        trainer = Engine(lambda e, b: None)
-        trainer.state = State(epoch=0, iteration=0)
+    trainer = Engine(lambda e, b: None)
+    trainer.state = State(epoch=0, iteration=0)
 
-        checkpointer(trainer)
-        assert save_handler.call_count == 1
+    checkpointer(trainer)
+    assert save_handler.call_count == 1
 
-        metadata = {"basename": name, "score_name": None, "priority": 0}
-        save_handler.assert_called_with(obj, f"{name}_0.pt", metadata)
+    metadata = {"basename": name, "score_name": None, "priority": 0}
+    save_handler.assert_called_with(obj, f"{name}_0.pt", metadata)
 
-        trainer.state.epoch = 12
-        trainer.state.iteration = 1234
-        checkpointer(trainer)
-        assert save_handler.call_count == 2
-        metadata["priority"] = 1234
-        save_handler.assert_called_with(obj, f"{name}_1234.pt", metadata)
-        assert save_handler.remove.call_count == 1
-        save_handler.remove.assert_called_with(f"{name}_0.pt")
-        assert checkpointer.last_checkpoint == f"{name}_1234.pt"
-@pytest.mark.parametrize("to_save,obj,name",
-                             [
-                                 ({"model": model},model.state_dict(),"model"),
-                                 ({"model": model, "optimizer": optimizer},{"model": model.state_dict(), "optimizer": optimizer.state_dict()},"checkpoint")
-                             ])
-def test_checkpoint_include_self_state_dict(to_save,obj,name):
-        save_handler = MagicMock(spec=BaseSaveHandler)
+    trainer.state.epoch = 12
+    trainer.state.iteration = 1234
+    checkpointer(trainer)
+    assert save_handler.call_count == 2
+    metadata["priority"] = 1234
+    save_handler.assert_called_with(obj, f"{name}_1234.pt", metadata)
+    assert save_handler.remove.call_count == 1
+    save_handler.remove.assert_called_with(f"{name}_0.pt")
+    assert checkpointer.last_checkpoint == f"{name}_1234.pt"
 
-        checkpointer = Checkpoint(to_save, save_handler=save_handler, include_self=True)
-        assert checkpointer.last_checkpoint is None
 
-        trainer = Engine(lambda e, b: None)
-        trainer.state = State(epoch=0, iteration=0)
+@pytest.mark.parametrize(
+    "to_save,obj,name",
+    [
+        ({"model": model}, model.state_dict(), "model"),
+        (
+            {"model": model, "optimizer": optimizer},
+            {"model": model.state_dict(), "optimizer": optimizer.state_dict()},
+            "checkpoint",
+        ),
+    ],
+)
+def test_checkpoint_include_self_state_dict(to_save, obj, name):
+    save_handler = MagicMock(spec=BaseSaveHandler)
 
-        checkpointer(trainer)
-        assert save_handler.call_count == 1
+    checkpointer = Checkpoint(to_save, save_handler=save_handler, include_self=True)
+    assert checkpointer.last_checkpoint is None
 
-        fname = f"{name}_0.pt"
-        obj["checkpointer"] = OrderedDict([("saved", [(0, fname)])])
+    trainer = Engine(lambda e, b: None)
+    trainer.state = State(epoch=0, iteration=0)
 
-        metadata = {"basename": name, "score_name": None, "priority": 0}
-        save_handler.assert_called_with(obj, fname, metadata)
+    checkpointer(trainer)
+    assert save_handler.call_count == 1
 
-        # Swap object, state should be maintained
-        checkpointer2 = Checkpoint(to_save, save_handler=save_handler, include_self=True)
-        checkpointer2.load_state_dict(checkpointer.state_dict())
-        assert checkpointer2.last_checkpoint == fname
+    fname = f"{name}_0.pt"
+    obj["checkpointer"] = OrderedDict([("saved", [(0, fname)])])
 
-        trainer.state.epoch = 12
-        trainer.state.iteration = 1234
-        checkpointer2(trainer)
-        assert save_handler.call_count == 2
-        metadata["priority"] = 1234
+    metadata = {"basename": name, "score_name": None, "priority": 0}
+    save_handler.assert_called_with(obj, fname, metadata)
 
-        # This delete only happens if state was restored correctly.
-        save_handler.remove.assert_called_with(f"{name}_0.pt")
+    # Swap object, state should be maintained
+    checkpointer2 = Checkpoint(to_save, save_handler=save_handler, include_self=True)
+    checkpointer2.load_state_dict(checkpointer.state_dict())
+    assert checkpointer2.last_checkpoint == fname
 
-        fname = f"{name}_1234.pt"
-        obj["checkpointer"] = OrderedDict([("saved", [(1234, fname)])])
+    trainer.state.epoch = 12
+    trainer.state.iteration = 1234
+    checkpointer2(trainer)
+    assert save_handler.call_count == 2
+    metadata["priority"] = 1234
 
-        save_handler.assert_called_with(obj, fname, metadata)
-        assert save_handler.remove.call_count == 1
-        assert checkpointer2.last_checkpoint == fname
+    # This delete only happens if state was restored correctly.
+    save_handler.remove.assert_called_with(f"{name}_0.pt")
 
+    fname = f"{name}_1234.pt"
+    obj["checkpointer"] = OrderedDict([("saved", [(1234, fname)])])
+
+    save_handler.assert_called_with(obj, fname, metadata)
+    assert save_handler.remove.call_count == 1
+    assert checkpointer2.last_checkpoint == fname
 
 
 def test_checkpoint_with_dp():
@@ -187,148 +203,165 @@ def test_checkpoint_with_dp():
     metadata = {"basename": "model", "score_name": None, "priority": 0}
     save_handler.assert_called_with(model.state_dict(), "model_0.pt", metadata)
 
+
 for prefix in ["", "dummytask"]:
-    @pytest.mark.parametrize("prefix,to_save,obj,name",
-                             [
-                                 (prefix,{"model": model},model.state_dict(),"model"),
-                                 (prefix,{"model": model, "optimizer": optimizer},{"model": model.state_dict(), "optimizer": optimizer.state_dict()},"checkpoint")
-                             ])
-    def test_checkpoint_with_global_step_transform(prefix,to_save,obj,name):
-            save_handler = MagicMock(spec=BaseSaveHandler)
 
-            checkpointer = Checkpoint(
-                to_save,
-                save_handler=save_handler,
-                filename_prefix=filename_prefix,
-                global_step_transform=lambda e, _: e.state.epoch,
-            )
-
-            trainer = Engine(lambda e, b: None)
-            trainer.state = State(epoch=2, iteration=1)
-
-            checkpointer(trainer)
-            assert save_handler.call_count == 1
-
-            if len(filename_prefix) > 0:
-                filename_prefix += "_"
-
-            metadata = {"basename": f"{filename_prefix}{name}", "score_name": None, "priority": 2}
-            save_handler.assert_called_with(obj, f"{filename_prefix}{name}_2.pt", metadata)
-
-            trainer.state.epoch = 12
-            trainer.state.iteration = 1234
-            checkpointer(trainer)
-            assert save_handler.call_count == 2
-            metadata["priority"] = 12
-            save_handler.assert_called_with(obj, f"{filename_prefix}{name}_12.pt", metadata)
-            assert save_handler.remove.call_count == 1
-            save_handler.remove.assert_called_with(f"{filename_prefix}{name}_2.pt")
-            assert checkpointer.last_checkpoint == f"{filename_prefix}{name}_12.pt"
-            
-@pytest.mark.parametrize("to_save,obj,name",
-                             [
-                                 ({"model": model},model.state_dict(),"model"),
-                                 ({"model": model, "optimizer": optimizer},{"model": model.state_dict(), "optimizer": optimizer.state_dict()},"checkpoint")
-                             ])
-def test_checkpoint_with_score_function(to_save, obj, name):
+    @pytest.mark.parametrize(
+        "filename_prefix,to_save,obj,name",
+        [
+            (prefix, {"model": model}, model.state_dict(), "model"),
+            (
+                prefix,
+                {"model": model, "optimizer": optimizer},
+                {"model": model.state_dict(), "optimizer": optimizer.state_dict()},
+                "checkpoint",
+            ),
+        ],
+    )
+    def test_checkpoint_with_global_step_transform(filename_prefix, to_save, obj, name):
         save_handler = MagicMock(spec=BaseSaveHandler)
-
-        checkpointer = Checkpoint(to_save, save_handler=save_handler, score_function=lambda e: e.state.score)
-
-        trainer = Engine(lambda e, b: None)
-        trainer.state = State(epoch=1, iteration=1, score=0.77)
-
-        checkpointer(trainer)
-        assert save_handler.call_count == 1
-
-        metadata = {"basename": name, "score_name": None, "priority": 0.77}
-        save_handler.assert_called_with(obj, f"{name}_0.7700.pt", metadata)
-
-        trainer.state.epoch = 12
-        trainer.state.iteration = 1234
-        trainer.state.score = 0.78
-
-        checkpointer(trainer)
-        assert save_handler.call_count == 2
-        metadata["priority"] = 0.78
-        save_handler.assert_called_with(obj, f"{name}_0.7800.pt", metadata)
-        assert save_handler.remove.call_count == 1
-        save_handler.remove.assert_called_with(f"{name}_0.7700.pt")
-        assert checkpointer.last_checkpoint == f"{name}_0.7800.pt"
-
-
-@pytest.mark.parametrize("to_save,obj,name",
-                             [
-                                 ({"model": model},model.state_dict(),"model")
-                             ])
-def test_checkpoint_with_score_name_only(to_save, obj, name):
-        save_handler = MagicMock(spec=BaseSaveHandler)
-
-        trainer = Engine(lambda e, b: None)
-        evaluator = Engine(lambda e, b: None)
-        trainer.state = State(epoch=11, iteration=1)
 
         checkpointer = Checkpoint(
             to_save,
             save_handler=save_handler,
-            global_step_transform=lambda _1, _2: trainer.state.epoch,
-            score_name="val_acc",
-        )
-
-        evaluator.state = State(epoch=1, iteration=1000, metrics={"val_acc": 0.77})
-
-        checkpointer(evaluator)
-        assert save_handler.call_count == 1
-
-        metadata = {"basename": name, "score_name": "val_acc", "priority": 0.77}
-        save_handler.assert_called_with(obj, f"{name}_11_val_acc=0.7700.pt", metadata)
-
-        trainer.state.epoch = 12
-        evaluator.state.metrics["val_acc"] = 0.78
-
-        checkpointer(evaluator)
-        assert save_handler.call_count == 2
-        metadata["priority"] = 0.78
-        save_handler.assert_called_with(obj, f"{name}_12_val_acc=0.7800.pt", metadata)
-        assert save_handler.remove.call_count == 1
-        save_handler.remove.assert_called_with(f"{name}_11_val_acc=0.7700.pt")
-        assert checkpointer.last_checkpoint == f"{name}_12_val_acc=0.7800.pt"
-
-
-
-@pytest.mark.parametrize("to_save,obj,name",
-                             [
-                                 ({"model": model},model.state_dict(),"model"),
-                                 ({"model": model, "optimizer": optimizer},{"model": model.state_dict(), "optimizer": optimizer.state_dict()},"checkpoint")
-                             ])
-def test_checkpoint_with_score_name_and_function(to_save, obj, name):
-        save_handler = MagicMock(spec=BaseSaveHandler)
-
-        checkpointer = Checkpoint(
-            to_save, save_handler=save_handler, score_name="loss", score_function=lambda e: e.state.score
+            filename_prefix=filename_prefix,
+            global_step_transform=lambda e, _: e.state.epoch,
         )
 
         trainer = Engine(lambda e, b: None)
-        trainer.state = State(epoch=1, iteration=1, score=-0.77)
+        trainer.state = State(epoch=2, iteration=1)
 
         checkpointer(trainer)
         assert save_handler.call_count == 1
 
-        metadata = {"basename": name, "score_name": "loss", "priority": -0.77}
-        save_handler.assert_called_with(obj, f"{name}_loss=-0.7700.pt", metadata)
+        if len(filename_prefix) > 0:
+            filename_prefix += "_"
+
+        metadata = {"basename": f"{filename_prefix}{name}", "score_name": None, "priority": 2}
+        save_handler.assert_called_with(obj, f"{filename_prefix}{name}_2.pt", metadata)
 
         trainer.state.epoch = 12
         trainer.state.iteration = 1234
-        trainer.state.score = -0.76
-
         checkpointer(trainer)
         assert save_handler.call_count == 2
-        metadata["priority"] = -0.76
-        save_handler.assert_called_with(obj, f"{name}_loss=-0.7600.pt", metadata)
+        metadata["priority"] = 12
+        save_handler.assert_called_with(obj, f"{filename_prefix}{name}_12.pt", metadata)
         assert save_handler.remove.call_count == 1
-        save_handler.remove.assert_called_with(f"{name}_loss=-0.7700.pt")
-        assert checkpointer.last_checkpoint == f"{name}_loss=-0.7600.pt"
+        save_handler.remove.assert_called_with(f"{filename_prefix}{name}_2.pt")
+        assert checkpointer.last_checkpoint == f"{filename_prefix}{name}_12.pt"
 
+
+@pytest.mark.parametrize(
+    "to_save,obj,name",
+    [
+        ({"model": model}, model.state_dict(), "model"),
+        (
+            {"model": model, "optimizer": optimizer},
+            {"model": model.state_dict(), "optimizer": optimizer.state_dict()},
+            "checkpoint",
+        ),
+    ],
+)
+def test_checkpoint_with_score_function(to_save, obj, name):
+    save_handler = MagicMock(spec=BaseSaveHandler)
+
+    checkpointer = Checkpoint(to_save, save_handler=save_handler, score_function=lambda e: e.state.score)
+
+    trainer = Engine(lambda e, b: None)
+    trainer.state = State(epoch=1, iteration=1, score=0.77)
+
+    checkpointer(trainer)
+    assert save_handler.call_count == 1
+
+    metadata = {"basename": name, "score_name": None, "priority": 0.77}
+    save_handler.assert_called_with(obj, f"{name}_0.7700.pt", metadata)
+
+    trainer.state.epoch = 12
+    trainer.state.iteration = 1234
+    trainer.state.score = 0.78
+
+    checkpointer(trainer)
+    assert save_handler.call_count == 2
+    metadata["priority"] = 0.78
+    save_handler.assert_called_with(obj, f"{name}_0.7800.pt", metadata)
+    assert save_handler.remove.call_count == 1
+    save_handler.remove.assert_called_with(f"{name}_0.7700.pt")
+    assert checkpointer.last_checkpoint == f"{name}_0.7800.pt"
+
+
+@pytest.mark.parametrize("to_save,obj,name", [({"model": model}, model.state_dict(), "model")])
+def test_checkpoint_with_score_name_only(to_save, obj, name):
+    save_handler = MagicMock(spec=BaseSaveHandler)
+
+    trainer = Engine(lambda e, b: None)
+    evaluator = Engine(lambda e, b: None)
+    trainer.state = State(epoch=11, iteration=1)
+
+    checkpointer = Checkpoint(
+        to_save,
+        save_handler=save_handler,
+        global_step_transform=lambda _1, _2: trainer.state.epoch,
+        score_name="val_acc",
+    )
+
+    evaluator.state = State(epoch=1, iteration=1000, metrics={"val_acc": 0.77})
+
+    checkpointer(evaluator)
+    assert save_handler.call_count == 1
+
+    metadata = {"basename": name, "score_name": "val_acc", "priority": 0.77}
+    save_handler.assert_called_with(obj, f"{name}_11_val_acc=0.7700.pt", metadata)
+
+    trainer.state.epoch = 12
+    evaluator.state.metrics["val_acc"] = 0.78
+
+    checkpointer(evaluator)
+    assert save_handler.call_count == 2
+    metadata["priority"] = 0.78
+    save_handler.assert_called_with(obj, f"{name}_12_val_acc=0.7800.pt", metadata)
+    assert save_handler.remove.call_count == 1
+    save_handler.remove.assert_called_with(f"{name}_11_val_acc=0.7700.pt")
+    assert checkpointer.last_checkpoint == f"{name}_12_val_acc=0.7800.pt"
+
+
+@pytest.mark.parametrize(
+    "to_save,obj,name",
+    [
+        ({"model": model}, model.state_dict(), "model"),
+        (
+            {"model": model, "optimizer": optimizer},
+            {"model": model.state_dict(), "optimizer": optimizer.state_dict()},
+            "checkpoint",
+        ),
+    ],
+)
+def test_checkpoint_with_score_name_and_function(to_save, obj, name):
+    save_handler = MagicMock(spec=BaseSaveHandler)
+
+    checkpointer = Checkpoint(
+        to_save, save_handler=save_handler, score_name="loss", score_function=lambda e: e.state.score
+    )
+
+    trainer = Engine(lambda e, b: None)
+    trainer.state = State(epoch=1, iteration=1, score=-0.77)
+
+    checkpointer(trainer)
+    assert save_handler.call_count == 1
+
+    metadata = {"basename": name, "score_name": "loss", "priority": -0.77}
+    save_handler.assert_called_with(obj, f"{name}_loss=-0.7700.pt", metadata)
+
+    trainer.state.epoch = 12
+    trainer.state.iteration = 1234
+    trainer.state.score = -0.76
+
+    checkpointer(trainer)
+    assert save_handler.call_count == 2
+    metadata["priority"] = -0.76
+    save_handler.assert_called_with(obj, f"{name}_loss=-0.7600.pt", metadata)
+    assert save_handler.remove.call_count == 1
+    save_handler.remove.assert_called_with(f"{name}_loss=-0.7700.pt")
+    assert checkpointer.last_checkpoint == f"{name}_loss=-0.7600.pt"
 
 
 def test_checkpoint_with_int_score():
@@ -375,81 +408,75 @@ def test_checkpoint_with_int_score():
     _test(to_save, {"model": model.state_dict(), "optimizer": optimizer.state_dict()}, "checkpoint")
     _test(to_save, {"model": model.state_dict(), "optimizer": optimizer.state_dict()}, "checkpoint", "epoch")
 
-@pytest.mark.parametrize("to_save,obj,name",
-                             [
-                                 ({"model": model},model.state_dict(),"model")
-                             ])
+
+@pytest.mark.parametrize("to_save,obj,name", [({"model": model}, model.state_dict(), "model")])
 def test_checkpoint_with_score_function_and_trainer_epoch(to_save, obj, name):
-        save_handler = MagicMock(spec=BaseSaveHandler)
+    save_handler = MagicMock(spec=BaseSaveHandler)
 
-        trainer = Engine(lambda e, b: None)
-        evaluator = Engine(lambda e, b: None)
-        trainer.state = State(epoch=11, iteration=1)
+    trainer = Engine(lambda e, b: None)
+    evaluator = Engine(lambda e, b: None)
+    trainer.state = State(epoch=11, iteration=1)
 
-        checkpointer = Checkpoint(
-            to_save,
-            save_handler=save_handler,
-            global_step_transform=lambda _1, _2: trainer.state.epoch,
-            score_function=lambda e: e.state.metrics["val_acc"],
-        )
+    checkpointer = Checkpoint(
+        to_save,
+        save_handler=save_handler,
+        global_step_transform=lambda _1, _2: trainer.state.epoch,
+        score_function=lambda e: e.state.metrics["val_acc"],
+    )
 
-        evaluator.state = State(epoch=1, iteration=1000, metrics={"val_acc": 0.77})
-        checkpointer(evaluator)
-        assert save_handler.call_count == 1
+    evaluator.state = State(epoch=1, iteration=1000, metrics={"val_acc": 0.77})
+    checkpointer(evaluator)
+    assert save_handler.call_count == 1
 
-        metadata = {"basename": name, "score_name": None, "priority": 0.77}
-        save_handler.assert_called_with(obj, f"{name}_11_0.7700.pt", metadata)
+    metadata = {"basename": name, "score_name": None, "priority": 0.77}
+    save_handler.assert_called_with(obj, f"{name}_11_0.7700.pt", metadata)
 
-        trainer.state.epoch = 12
-        evaluator.state.metrics["val_acc"] = 0.78
+    trainer.state.epoch = 12
+    evaluator.state.metrics["val_acc"] = 0.78
 
-        checkpointer(evaluator)
-        assert save_handler.call_count == 2
-        metadata["priority"] = 0.78
-        save_handler.assert_called_with(obj, f"{name}_12_0.7800.pt", metadata)
-        assert save_handler.remove.call_count == 1
-        save_handler.remove.assert_called_with(f"{name}_11_0.7700.pt")
-        assert checkpointer.last_checkpoint == f"{name}_12_0.7800.pt"
+    checkpointer(evaluator)
+    assert save_handler.call_count == 2
+    metadata["priority"] = 0.78
+    save_handler.assert_called_with(obj, f"{name}_12_0.7800.pt", metadata)
+    assert save_handler.remove.call_count == 1
+    save_handler.remove.assert_called_with(f"{name}_11_0.7700.pt")
+    assert checkpointer.last_checkpoint == f"{name}_12_0.7800.pt"
 
-@pytest.mark.parametrize("to_save,obj,name",
-                             [
-                                 ({"model": model},model.state_dict(),"model")
-                             ])
+
+@pytest.mark.parametrize("to_save,obj,name", [({"model": model}, model.state_dict(), "model")])
 def test_checkpoint_with_score_name_and_function_and_trainer_epoch(to_save, obj, name):
-        save_handler = MagicMock(spec=BaseSaveHandler)
+    save_handler = MagicMock(spec=BaseSaveHandler)
 
-        trainer = Engine(lambda e, b: None)
-        evaluator = Engine(lambda e, b: None)
-        trainer.state = State(epoch=11, iteration=1)
+    trainer = Engine(lambda e, b: None)
+    evaluator = Engine(lambda e, b: None)
+    trainer.state = State(epoch=11, iteration=1)
 
-        checkpointer = Checkpoint(
-            to_save,
-            save_handler=save_handler,
-            global_step_transform=lambda _1, _2: trainer.state.epoch,
-            score_name="val_acc",
-            score_function=lambda e: e.state.metrics["val_acc"],
-        )
+    checkpointer = Checkpoint(
+        to_save,
+        save_handler=save_handler,
+        global_step_transform=lambda _1, _2: trainer.state.epoch,
+        score_name="val_acc",
+        score_function=lambda e: e.state.metrics["val_acc"],
+    )
 
-        evaluator.state = State(epoch=1, iteration=1000, metrics={"val_acc": 0.77})
+    evaluator.state = State(epoch=1, iteration=1000, metrics={"val_acc": 0.77})
 
-        checkpointer(evaluator)
-        assert save_handler.call_count == 1
+    checkpointer(evaluator)
+    assert save_handler.call_count == 1
 
-        metadata = {"basename": name, "score_name": "val_acc", "priority": 0.77}
-        save_handler.assert_called_with(obj, f"{name}_11_val_acc=0.7700.pt", metadata)
+    metadata = {"basename": name, "score_name": "val_acc", "priority": 0.77}
+    save_handler.assert_called_with(obj, f"{name}_11_val_acc=0.7700.pt", metadata)
 
-        trainer.state.epoch = 12
-        evaluator.state.metrics["val_acc"] = 0.78
+    trainer.state.epoch = 12
+    evaluator.state.metrics["val_acc"] = 0.78
 
-        checkpointer(evaluator)
-        assert save_handler.call_count == 2
-        metadata["priority"] = 0.78
-        save_handler.assert_called_with(obj, f"{name}_12_val_acc=0.7800.pt", metadata)
-        assert save_handler.remove.call_count == 1
-        save_handler.remove.assert_called_with(f"{name}_11_val_acc=0.7700.pt")
-        assert checkpointer.last_checkpoint == f"{name}_12_val_acc=0.7800.pt"
-
-
+    checkpointer(evaluator)
+    assert save_handler.call_count == 2
+    metadata["priority"] = 0.78
+    save_handler.assert_called_with(obj, f"{name}_12_val_acc=0.7800.pt", metadata)
+    assert save_handler.remove.call_count == 1
+    save_handler.remove.assert_called_with(f"{name}_11_val_acc=0.7700.pt")
+    assert checkpointer.last_checkpoint == f"{name}_12_val_acc=0.7800.pt"
 
 
 def test_checkpoint_last_checkpoint():
@@ -1590,7 +1617,7 @@ def test_checkpoint_load_state_dict():
 def test_checkpoint_fixed_filename():
     model = DummyModel()
     to_save = {"model": model}
-    
+
     def _test(n_saved):
         save_handler = MagicMock(spec=BaseSaveHandler)
         checkpointer = Checkpoint(to_save, save_handler=save_handler, n_saved=n_saved, filename_pattern="{name}.{ext}")
