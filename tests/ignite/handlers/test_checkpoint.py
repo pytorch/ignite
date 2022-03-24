@@ -100,7 +100,7 @@ def test_checkpoint_score_function_wrong_output():
 
 
 @pytest.mark.parametrize(
-    "to_save,obj,name",
+    "to_save, obj, name",
     [
         ({"model": model}, model.state_dict(), "model"),
         (
