@@ -203,15 +203,12 @@ def test_checkpoint_with_dp():
     metadata = {"basename": "model", "score_name": None, "priority": 0}
     save_handler.assert_called_with(model.state_dict(), "model_0.pt", metadata)
 
-
-for prefix in ["", "dummytask"]:
-
+    @pytest.mark.parametrize("filename_prefix", ["", "dummytask"])
     @pytest.mark.parametrize(
-        "filename_prefix,to_save,obj,name",
+        "to_save,obj,name",
         [
-            (prefix, {"model": model}, model.state_dict(), "model"),
+            ({"model": model}, model.state_dict(), "model"),
             (
-                prefix,
                 {"model": model, "optimizer": optimizer},
                 {"model": model.state_dict(), "optimizer": optimizer.state_dict()},
                 "checkpoint",
