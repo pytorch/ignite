@@ -78,7 +78,7 @@ def test_zero_div():
         loss.compute()
 
 
-@pytest.mark.parametrize("y_test_1,y_test_2", [(y_test_1(),y_test_2())])
+@pytest.mark.parametrize("y_test_1, y_test_2", [(y_test_1(), y_test_2())])
 def test_compute(y_test_1, y_test_2):
     loss = Loss(nll_loss)
 
@@ -91,9 +91,17 @@ def test_compute(y_test_1, y_test_2):
     assert_almost_equal(loss.compute(), expected_loss)  # average
 
 
-@pytest.mark.parametrize("y_test_1,y_test_2", [(y_test_1(),y_test_2())])
+@pytest.mark.parametrize("y_test_1, y_test_2", [(y_test_1(), y_test_2())])
 def test_compute_on_criterion(y_test_1, y_test_2):
-    test_compute(y_test_1, y_test_2)
+    loss = Loss(nn.NLLLoss())
+
+    y_pred, y, expected_loss = y_test_1
+    loss.update((y_pred, y))
+    assert_almost_equal(loss.compute(), expected_loss)
+
+    y_pred, y, expected_loss = y_test_2
+    loss.update((y_pred, y))
+    assert_almost_equal(loss.compute(), expected_loss)  # average
 
 
 @pytest.mark.parametrize("y_test", [y_test_1()])
@@ -200,6 +208,7 @@ def _test_distrib_accumulator_device(device, y_test_1):
         assert (
             loss._sum.device == metric_device
         ), f"{type(loss._sum.device)}:{loss._sum.device} vs {type(metric_device)}:{metric_device}"
+
 
 @pytest.mark.parametrize("y_test", [y_test_1(requires_grad=True)])
 def test_sum_detached(y_test):
