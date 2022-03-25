@@ -56,8 +56,8 @@ class ConfusionMatrix(Metric):
 
             metric = ConfusionMatrix(num_classes=3)
             metric.attach(default_evaluator, 'cm')
-            y_true = torch.Tensor([0, 1, 0, 1, 2]).long()
-            y_pred = torch.Tensor([
+            y_true = torch.tensor([0, 1, 0, 1, 2])
+            y_pred = torch.tensor([
                 [0.0, 1.0, 0.0],
                 [0.0, 1.0, 0.0],
                 [1.0, 0.0, 0.0],
@@ -88,8 +88,8 @@ class ConfusionMatrix(Metric):
 
             metric = ConfusionMatrix(num_classes=2, output_transform=binary_one_hot_output_transform)
             metric.attach(default_evaluator, 'cm')
-            y_true = torch.Tensor([0, 1, 0, 1, 0]).long()
-            y_pred = torch.Tensor([0, 0, 1, 1, 0])
+            y_true = torch.tensor([0, 1, 0, 1, 0])
+            y_pred = torch.tensor([0, 0, 1, 1, 0])
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics['cm'])
 
@@ -216,8 +216,8 @@ def IoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambd
             cm = ConfusionMatrix(num_classes=3)
             metric = IoU(cm)
             metric.attach(default_evaluator, 'iou')
-            y_true = torch.Tensor([0, 1, 0, 1, 2]).long()
-            y_pred = torch.Tensor([
+            y_true = torch.tensor([0, 1, 0, 1, 2])
+            y_pred = torch.tensor([
                 [0.0, 1.0, 0.0],
                 [0.0, 1.0, 0.0],
                 [1.0, 0.0, 0.0],
@@ -281,8 +281,8 @@ def mIoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLamb
             cm = ConfusionMatrix(num_classes=3)
             metric = mIoU(cm, ignore_index=0)
             metric.attach(default_evaluator, 'miou')
-            y_true = torch.Tensor([0, 1, 0, 1, 2]).long()
-            y_pred = torch.Tensor([
+            y_true = torch.tensor([0, 1, 0, 1, 2])
+            y_pred = torch.tensor([
                 [0.0, 1.0, 0.0],
                 [0.0, 1.0, 0.0],
                 [1.0, 0.0, 0.0],
@@ -372,8 +372,8 @@ def DiceCoefficient(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> 
             cm = ConfusionMatrix(num_classes=3)
             metric = DiceCoefficient(cm, ignore_index=0)
             metric.attach(default_evaluator, 'dice')
-            y_true = torch.Tensor([0, 1, 0, 1, 2]).long()
-            y_pred = torch.Tensor([
+            y_true = torch.tensor([0, 1, 0, 1, 2])
+            y_pred = torch.tensor([
                 [0.0, 1.0, 0.0],
                 [0.0, 1.0, 0.0],
                 [1.0, 0.0, 0.0],
@@ -441,8 +441,8 @@ def JaccardIndex(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> Met
             cm = ConfusionMatrix(num_classes=3)
             metric = JaccardIndex(cm, ignore_index=0)
             metric.attach(default_evaluator, 'jac')
-            y_true = torch.Tensor([0, 1, 0, 1, 2]).long()
-            y_pred = torch.Tensor([
+            y_true = torch.tensor([0, 1, 0, 1, 2])
+            y_pred = torch.tensor([
                 [0.0, 1.0, 0.0],
                 [0.0, 1.0, 0.0],
                 [1.0, 0.0, 0.0],
