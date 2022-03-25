@@ -44,7 +44,7 @@ class MeanAbsoluteError(Metric):
 
             metric = MeanAbsoluteError()
             metric.attach(default_evaluator, 'mae')
-            preds = torch.Tensor([
+            preds = torch.tensor([
                 [1, 2, 4, 1],
                 [2, 3, 1, 5],
                 [1, 3, 5, 1],
