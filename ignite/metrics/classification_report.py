@@ -49,8 +49,8 @@ def ClassificationReport(
 
             metric = ClassificationReport(output_dict=True)
             metric.attach(default_evaluator, "cr")
-            y_true = torch.Tensor([2, 0, 2, 1, 0, 1]).long()
-            y_pred = torch.Tensor([
+            y_true = torch.tensor([2, 0, 2, 1, 0, 1])
+            y_pred = torch.tensor([
                 [0.0266, 0.1719, 0.3055],
                 [0.6886, 0.3978, 0.8176],
                 [0.9230, 0.0197, 0.8395],
@@ -79,14 +79,14 @@ def ClassificationReport(
 
             metric = ClassificationReport(output_dict=True, is_multilabel=True)
             metric.attach(default_evaluator, "cr")
-            y_true = torch.Tensor([
+            y_true = torch.tensor([
                 [0, 0, 1],
                 [0, 0, 0],
                 [0, 0, 0],
                 [1, 0, 0],
                 [0, 1, 1],
             ]).unsqueeze(0)
-            y_pred = torch.Tensor([
+            y_pred = torch.tensor([
                 [1, 1, 0],
                 [1, 0, 1],
                 [1, 0, 0],

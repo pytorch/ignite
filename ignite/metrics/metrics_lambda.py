@@ -52,8 +52,8 @@ class MetricsLambda(Metric):
             F3.attach(default_evaluator, "F3")
             F4.attach(default_evaluator, "F4")
 
-            y_true = torch.Tensor([1, 0, 1, 0, 0, 1])
-            y_pred = torch.Tensor([1, 0, 1, 0, 1, 1])
+            y_true = torch.tensor([1, 0, 1, 0, 0, 1])
+            y_pred = torch.tensor([1, 0, 1, 0, 1, 1])
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["F1"])
             print(state.metrics["F2"])
