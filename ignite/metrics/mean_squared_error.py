@@ -11,7 +11,7 @@ __all__ = ["MeanSquaredError"]
 class MeanSquaredError(Metric):
     r"""Calculates the `mean squared error <https://en.wikipedia.org/wiki/Mean_squared_error>`_.
 
-    .. math:: \text{MSE} = \frac{1}{N} \sum_{i=1}^N \left(y_{i} - x_{i} \right)^2
+    .. math:: \text{MSE} = \frac{1}{N} \sum_{i=1}^N \|y_{i} - x_{i}\|^2
 
     where :math:`y_{i}` is the prediction tensor and :math:`x_{i}` is ground true tensor.
 
