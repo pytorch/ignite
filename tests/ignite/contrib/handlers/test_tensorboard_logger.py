@@ -369,8 +369,10 @@ def test_weights_hist_handler_whitelist_wrong_setup(dummy_model_factory):
         WeightsHistHandler(model, whitelist=[model.fc1.bias])
 
     with pytest.warns(UserWarning, match="Given callable whitelist does not select any parameter to be logged."):
+
         def weight_selector(_, __):
             return False
+
         WeightsHistHandler(model, whitelist=weight_selector)
 
 
@@ -437,6 +439,7 @@ def test_weights_hist_handler_whitelist(dummy_model_factory):
 
     def weight_selector(n, _):
         return "bias" in n
+
     wrapper = WeightsHistHandler(model, whitelist=weight_selector)
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
