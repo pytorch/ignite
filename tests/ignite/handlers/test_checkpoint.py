@@ -287,39 +287,43 @@ def test_checkpoint_with_score_function(to_save, obj, name):
     assert checkpointer.last_checkpoint == f"{name}_0.7800.pt"
 
 
-@pytest.mark.parametrize("to_save, obj, name", [({"model": model}, model.state_dict(), "model")])
-def test_checkpoint_with_score_name_only(to_save, obj, name):
-    save_handler = MagicMock(spec=BaseSaveHandler)
+def test_checkpoint_with_score_name_only():
+    def _test(to_save, obj, name):
+        save_handler = MagicMock(spec=BaseSaveHandler)
 
-    trainer = Engine(lambda e, b: None)
-    evaluator = Engine(lambda e, b: None)
-    trainer.state = State(epoch=11, iteration=1)
+        trainer = Engine(lambda e, b: None)
+        evaluator = Engine(lambda e, b: None)
+        trainer.state = State(epoch=11, iteration=1)
 
-    checkpointer = Checkpoint(
-        to_save,
-        save_handler=save_handler,
-        global_step_transform=lambda _1, _2: trainer.state.epoch,
-        score_name="val_acc",
-    )
+        checkpointer = Checkpoint(
+            to_save,
+            save_handler=save_handler,
+            global_step_transform=lambda _1, _2: trainer.state.epoch,
+            score_name="val_acc",
+        )
 
-    evaluator.state = State(epoch=1, iteration=1000, metrics={"val_acc": 0.77})
+        evaluator.state = State(epoch=1, iteration=1000, metrics={"val_acc": 0.77})
 
-    checkpointer(evaluator)
-    assert save_handler.call_count == 1
+        checkpointer(evaluator)
+        assert save_handler.call_count == 1
 
-    metadata = {"basename": name, "score_name": "val_acc", "priority": 0.77}
-    save_handler.assert_called_with(obj, f"{name}_11_val_acc=0.7700.pt", metadata)
+        metadata = {"basename": name, "score_name": "val_acc", "priority": 0.77}
+        save_handler.assert_called_with(obj, f"{name}_11_val_acc=0.7700.pt", metadata)
 
-    trainer.state.epoch = 12
-    evaluator.state.metrics["val_acc"] = 0.78
+        trainer.state.epoch = 12
+        evaluator.state.metrics["val_acc"] = 0.78
 
-    checkpointer(evaluator)
-    assert save_handler.call_count == 2
-    metadata["priority"] = 0.78
-    save_handler.assert_called_with(obj, f"{name}_12_val_acc=0.7800.pt", metadata)
-    assert save_handler.remove.call_count == 1
-    save_handler.remove.assert_called_with(f"{name}_11_val_acc=0.7700.pt")
-    assert checkpointer.last_checkpoint == f"{name}_12_val_acc=0.7800.pt"
+        checkpointer(evaluator)
+        assert save_handler.call_count == 2
+        metadata["priority"] = 0.78
+        save_handler.assert_called_with(obj, f"{name}_12_val_acc=0.7800.pt", metadata)
+        assert save_handler.remove.call_count == 1
+        save_handler.remove.assert_called_with(f"{name}_11_val_acc=0.7700.pt")
+        assert checkpointer.last_checkpoint == f"{name}_12_val_acc=0.7800.pt"
+
+    model = DummyModel()
+    to_save = {"model": model}
+    _test(to_save, model.state_dict(), "model")
 
 
 @pytest.mark.parametrize(
@@ -407,74 +411,82 @@ def test_checkpoint_with_int_score():
     _test(to_save, {"model": model.state_dict(), "optimizer": optimizer.state_dict()}, "checkpoint", "epoch")
 
 
-@pytest.mark.parametrize("to_save, obj, name", [({"model": model}, model.state_dict(), "model")])
-def test_checkpoint_with_score_function_and_trainer_epoch(to_save, obj, name):
-    save_handler = MagicMock(spec=BaseSaveHandler)
+def test_checkpoint_with_score_function_and_trainer_epoch():
+    def _test(to_save, obj, name):
+        save_handler = MagicMock(spec=BaseSaveHandler)
 
-    trainer = Engine(lambda e, b: None)
-    evaluator = Engine(lambda e, b: None)
-    trainer.state = State(epoch=11, iteration=1)
+        trainer = Engine(lambda e, b: None)
+        evaluator = Engine(lambda e, b: None)
+        trainer.state = State(epoch=11, iteration=1)
 
-    checkpointer = Checkpoint(
-        to_save,
-        save_handler=save_handler,
-        global_step_transform=lambda _1, _2: trainer.state.epoch,
-        score_function=lambda e: e.state.metrics["val_acc"],
-    )
+        checkpointer = Checkpoint(
+            to_save,
+            save_handler=save_handler,
+            global_step_transform=lambda _1, _2: trainer.state.epoch,
+            score_function=lambda e: e.state.metrics["val_acc"],
+        )
 
-    evaluator.state = State(epoch=1, iteration=1000, metrics={"val_acc": 0.77})
-    checkpointer(evaluator)
-    assert save_handler.call_count == 1
+        evaluator.state = State(epoch=1, iteration=1000, metrics={"val_acc": 0.77})
+        checkpointer(evaluator)
+        assert save_handler.call_count == 1
 
-    metadata = {"basename": name, "score_name": None, "priority": 0.77}
-    save_handler.assert_called_with(obj, f"{name}_11_0.7700.pt", metadata)
+        metadata = {"basename": name, "score_name": None, "priority": 0.77}
+        save_handler.assert_called_with(obj, f"{name}_11_0.7700.pt", metadata)
 
-    trainer.state.epoch = 12
-    evaluator.state.metrics["val_acc"] = 0.78
+        trainer.state.epoch = 12
+        evaluator.state.metrics["val_acc"] = 0.78
 
-    checkpointer(evaluator)
-    assert save_handler.call_count == 2
-    metadata["priority"] = 0.78
-    save_handler.assert_called_with(obj, f"{name}_12_0.7800.pt", metadata)
-    assert save_handler.remove.call_count == 1
-    save_handler.remove.assert_called_with(f"{name}_11_0.7700.pt")
-    assert checkpointer.last_checkpoint == f"{name}_12_0.7800.pt"
+        checkpointer(evaluator)
+        assert save_handler.call_count == 2
+        metadata["priority"] = 0.78
+        save_handler.assert_called_with(obj, f"{name}_12_0.7800.pt", metadata)
+        assert save_handler.remove.call_count == 1
+        save_handler.remove.assert_called_with(f"{name}_11_0.7700.pt")
+        assert checkpointer.last_checkpoint == f"{name}_12_0.7800.pt"
+
+    model = DummyModel()
+    to_save = {"model": model}
+    _test(to_save, model.state_dict(), "model")
 
 
-@pytest.mark.parametrize("to_save, obj, name", [({"model": model}, model.state_dict(), "model")])
-def test_checkpoint_with_score_name_and_function_and_trainer_epoch(to_save, obj, name):
-    save_handler = MagicMock(spec=BaseSaveHandler)
+def test_checkpoint_with_score_name_and_function_and_trainer_epoch():
+    def _test(to_save, obj, name):
+        save_handler = MagicMock(spec=BaseSaveHandler)
 
-    trainer = Engine(lambda e, b: None)
-    evaluator = Engine(lambda e, b: None)
-    trainer.state = State(epoch=11, iteration=1)
+        trainer = Engine(lambda e, b: None)
+        evaluator = Engine(lambda e, b: None)
+        trainer.state = State(epoch=11, iteration=1)
 
-    checkpointer = Checkpoint(
-        to_save,
-        save_handler=save_handler,
-        global_step_transform=lambda _1, _2: trainer.state.epoch,
-        score_name="val_acc",
-        score_function=lambda e: e.state.metrics["val_acc"],
-    )
+        checkpointer = Checkpoint(
+            to_save,
+            save_handler=save_handler,
+            global_step_transform=lambda _1, _2: trainer.state.epoch,
+            score_name="val_acc",
+            score_function=lambda e: e.state.metrics["val_acc"],
+        )
 
-    evaluator.state = State(epoch=1, iteration=1000, metrics={"val_acc": 0.77})
+        evaluator.state = State(epoch=1, iteration=1000, metrics={"val_acc": 0.77})
 
-    checkpointer(evaluator)
-    assert save_handler.call_count == 1
+        checkpointer(evaluator)
+        assert save_handler.call_count == 1
 
-    metadata = {"basename": name, "score_name": "val_acc", "priority": 0.77}
-    save_handler.assert_called_with(obj, f"{name}_11_val_acc=0.7700.pt", metadata)
+        metadata = {"basename": name, "score_name": "val_acc", "priority": 0.77}
+        save_handler.assert_called_with(obj, f"{name}_11_val_acc=0.7700.pt", metadata)
 
-    trainer.state.epoch = 12
-    evaluator.state.metrics["val_acc"] = 0.78
+        trainer.state.epoch = 12
+        evaluator.state.metrics["val_acc"] = 0.78
 
-    checkpointer(evaluator)
-    assert save_handler.call_count == 2
-    metadata["priority"] = 0.78
-    save_handler.assert_called_with(obj, f"{name}_12_val_acc=0.7800.pt", metadata)
-    assert save_handler.remove.call_count == 1
-    save_handler.remove.assert_called_with(f"{name}_11_val_acc=0.7700.pt")
-    assert checkpointer.last_checkpoint == f"{name}_12_val_acc=0.7800.pt"
+        checkpointer(evaluator)
+        assert save_handler.call_count == 2
+        metadata["priority"] = 0.78
+        save_handler.assert_called_with(obj, f"{name}_12_val_acc=0.7800.pt", metadata)
+        assert save_handler.remove.call_count == 1
+        save_handler.remove.assert_called_with(f"{name}_11_val_acc=0.7700.pt")
+        assert checkpointer.last_checkpoint == f"{name}_12_val_acc=0.7800.pt"
+
+    model = DummyModel()
+    to_save = {"model": model}
+    _test(to_save, model.state_dict(), "model")
 
 
 def test_checkpoint_last_checkpoint():
