@@ -122,7 +122,7 @@ class Average(VariableAccumulation):
             metric = Average()
             metric.attach(default_evaluator, 'avg')
             # Case 1. input is er
-            data = torch.Tensor([0, 1, 2, 3, 4])
+            data = torch.tensor([0, 1, 2, 3, 4])
             state = default_evaluator.run(data)
             print(state.metrics['avg'])
 
@@ -135,7 +135,7 @@ class Average(VariableAccumulation):
             metric = Average()
             metric.attach(default_evaluator, 'avg')
             # Case 2. input is a 1D torch.Tensor
-            data = torch.Tensor([
+            data = torch.tensor([
                 [0, 0, 0],
                 [1, 1, 1],
                 [2, 2, 2],
@@ -154,8 +154,8 @@ class Average(VariableAccumulation):
             metric.attach(default_evaluator, 'avg')
             # Case 3. input is a ND torch.Tensor
             data = [
-                torch.Tensor([[0, 0, 0], [1, 1, 1]]),
-                torch.Tensor([[2, 2, 2], [3, 3, 3]])
+                torch.tensor([[0, 0, 0], [1, 1, 1]]),
+                torch.tensor([[2, 2, 2], [3, 3, 3]])
             ]
             state = default_evaluator.run(data)
             print(state.metrics['avg'])
@@ -238,7 +238,7 @@ class GeometricAverage(VariableAccumulation):
             metric = GeometricAverage()
             metric.attach(default_evaluator, 'avg')
             # Case 2. input is a 1D torch.Tensor
-            data = torch.Tensor([
+            data = torch.tensor([
                 [1, 1, 1],
                 [2, 2, 2],
                 [3, 3, 3],
@@ -257,8 +257,8 @@ class GeometricAverage(VariableAccumulation):
             metric.attach(default_evaluator, 'avg')
             # Case 3. input is a ND torch.Tensor
             data = [
-                torch.Tensor([[1, 1, 1], [2, 2, 2]]),
-                torch.Tensor([[3, 3, 3], [4, 4, 4]])
+                torch.tensor([[1, 1, 1], [2, 2, 2]]),
+                torch.tensor([[3, 3, 3], [4, 4, 4]])
             ]
             state = default_evaluator.run(data)
             print(state.metrics['avg'])
