@@ -78,37 +78,23 @@ def test_zero_div():
         loss.compute()
 
 
-@pytest.mark.parametrize("y_test_1, y_test_2", [(y_test_1(), y_test_2())])
-def test_compute(y_test_1, y_test_2):
-    loss = Loss(nll_loss)
+@pytest.mark.parametrize("criterion", [(nll_loss, nn.NLLLoss())])
+def test_compute(criterion):
+    loss = Loss(criterion)
 
-    y_pred, y, expected_loss = y_test_1
+    y_pred, y, expected_loss = y_test_1()
     loss.update((y_pred, y))
     assert_almost_equal(loss.compute(), expected_loss)
 
-    y_pred, y, expected_loss = y_test_2
+    y_pred, y, expected_loss = y_test_2()
     loss.update((y_pred, y))
     assert_almost_equal(loss.compute(), expected_loss)  # average
 
 
-@pytest.mark.parametrize("y_test_1, y_test_2", [(y_test_1(), y_test_2())])
-def test_compute_on_criterion(y_test_1, y_test_2):
-    loss = Loss(nn.NLLLoss())
-
-    y_pred, y, expected_loss = y_test_1
-    loss.update((y_pred, y))
-    assert_almost_equal(loss.compute(), expected_loss)
-
-    y_pred, y, expected_loss = y_test_2
-    loss.update((y_pred, y))
-    assert_almost_equal(loss.compute(), expected_loss)  # average
-
-
-@pytest.mark.parametrize("y_test", [y_test_1()])
-def test_non_averaging_loss(y_test):
+def test_non_averaging_loss():
     loss = Loss(nn.NLLLoss(reduction="none"))
 
-    y_pred, y, _ = y_test
+    y_pred, y, _ = y_test_1()
     with pytest.raises(ValueError):
         loss.update((y_pred, y))
 
@@ -131,11 +117,10 @@ def test_gradient_based_loss():
     loss.update((y_pred, x))
 
 
-@pytest.mark.parametrize("y_test", [y_test_1()])
-def test_kwargs_loss(y_test):
+def test_kwargs_loss():
     loss = Loss(nll_loss)
 
-    y_pred, y, _ = y_test
+    y_pred, y, _ = y_test_1()
     kwargs = {"weight": torch.tensor([0.1, 0.1, 0.1])}
     loss.update((y_pred, y, kwargs))
     expected_value = nll_loss(y_pred, y, **kwargs)
@@ -210,11 +195,10 @@ def _test_distrib_accumulator_device(device, y_test_1):
         ), f"{type(loss._sum.device)}:{loss._sum.device} vs {type(metric_device)}:{metric_device}"
 
 
-@pytest.mark.parametrize("y_test", [y_test_1(requires_grad=True)])
-def test_sum_detached(y_test):
+def test_sum_detached():
     loss = Loss(nll_loss)
 
-    y_pred, y, _ = y_test
+    y_pred, y, _ = y_test_1(requires_grad=True)
     loss.update((y_pred, y))
 
     assert not loss._sum.requires_grad
