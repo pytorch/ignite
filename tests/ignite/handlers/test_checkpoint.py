@@ -582,35 +582,32 @@ def test_model_checkpoint_simple_recovery(dirname):
     assert to_load["model"].state_dict() == model.state_dict()
 
 
-def test_model_checkpoint_simple_recovery_from_existing_non_empty(dirname):
-    def _test(ext, require_empty):
-        previous_fname = dirname / f"{_PREFIX}_obj_{1}{ext}"
-        with open(previous_fname, "w") as f:
-            f.write("test")
+@pytest.mark.parametrize(" ext, require_empty", [(".txt", True), (".pt", False)])
+def test_model_checkpoint_simple_recovery_from_existing_non_empty(ext, require_empty, dirname):
 
-        h = ModelCheckpoint(dirname, _PREFIX, create_dir=True, require_empty=require_empty)
-        engine = Engine(lambda e, b: None)
-        engine.state = State(epoch=0, iteration=1)
+    previous_fname = dirname / f"{_PREFIX}_obj_{1}{ext}"
+    with open(previous_fname, "w") as f:
+        f.write("test")
 
-        model = DummyModel()
-        to_save = {"model": model}
-        h(engine, to_save)
+    h = ModelCheckpoint(dirname, _PREFIX, create_dir=True, require_empty=require_empty)
+    engine = Engine(lambda e, b: None)
+    engine.state = State(epoch=0, iteration=1)
 
-        fname = h.last_checkpoint
-        ext = ".pt"
-        assert isinstance(fname, Path)
-        assert dirname / f"{_PREFIX}_model_{1}{ext}" == fname
-        assert fname.exists()
-        assert previous_fname.exists()
-        loaded_objects = torch.load(fname)
-        assert loaded_objects == model.state_dict()
-        to_load = {"model": DummyModel()}
-        h.reload_objects(to_load=to_load, global_step=1)
-        assert to_load["model"].state_dict() == model.state_dict()
-        fname.unlink()
+    to_save = {"model": model}
+    h(engine, to_save)
 
-    _test(".txt", require_empty=True)
-    _test(".pt", require_empty=False)
+    fname = h.last_checkpoint
+    ext = ".pt"
+    assert isinstance(fname, Path)
+    assert dirname / f"{_PREFIX}_model_{1}{ext}" == fname
+    assert fname.exists()
+    assert previous_fname.exists()
+    loaded_objects = torch.load(fname)
+    assert loaded_objects == model.state_dict()
+    to_load = {"model": DummyModel()}
+    h.reload_objects(to_load=to_load, global_step=1)
+    assert to_load["model"].state_dict() == model.state_dict()
+    fname.unlink()
 
 
 def test_model_checkpoint_invalid_save_handler(dirname):
