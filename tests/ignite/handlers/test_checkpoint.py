@@ -582,7 +582,7 @@ def test_model_checkpoint_simple_recovery(dirname):
     assert to_load["model"].state_dict() == model.state_dict()
 
 
-@pytest.mark.parametrize(" ext, require_empty", [(".txt", True), (".pt", False)])
+@pytest.mark.parametrize("ext, require_empty", [(".txt", True), (".pt", False)])
 def test_model_checkpoint_simple_recovery_from_existing_non_empty(ext, require_empty, dirname):
 
     previous_fname = dirname / f"{_PREFIX}_obj_{1}{ext}"
