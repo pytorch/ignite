@@ -353,7 +353,7 @@ def test_weights_hist_handler_whitelist_wrong_setup(dummy_model_factory):
 
     with pytest.raises(
         ValueError,
-        match="Whitelist weights should not be Buffers as they are considered persistent. Given buffer name `buffer1`",
+        match="Whitelist weights should not be Buffers as they do not have gradient. Given buffer name `buffer1`",
     ):
         WeightsHistHandler(model, whitelist=["buffer1"])
 

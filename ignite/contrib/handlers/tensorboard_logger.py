@@ -451,7 +451,7 @@ class WeightsHistHandler(BaseWeightsHistHandler):
             # Create a logger
             tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
 
-            # Log weights which their name include 'conv'.
+            # Log weights which name include 'conv'.
             weight_selector = lambda name, p: 'conv' in name
 
             # Attach the logger to the trainer to log weights norm after each iteration
@@ -467,55 +467,66 @@ class WeightsHistHandler(BaseWeightsHistHandler):
         model: nn.Module,
         tag: Optional[str] = None,
         whitelist: Optional[Union[List[Union[str, nn.Module]], Callable[[str, nn.Parameter], bool]]] = None,
-    ):  # type: ignore[override]
+    ):
         super(WeightsHistHandler, self).__init__(model, tag=tag)
 
-        self.weights = None
         if whitelist is None:
-            return
 
-        self.weights = {}
-        if callable(whitelist):
+            self.weights = dict(model.named_parameters()).items()
+        elif callable(whitelist):
+
+            weights = {}
             for n, p in model.named_parameters():
                 if whitelist(n, p):
-                    self.weights[n] = p
+                    weights[n] = p
 
-            if len(self.weights) == 0:
-                warnings.warn("Given callable whitelist does not " "select any parameter to be logged.")
-            return
+            if len(weights) == 0:
+                warnings.warn("Given callable whitelist does not select any parameter to be logged.")
+            self.weights = weights.items()
+        else:
 
-        for item in whitelist:
-            if isinstance(item, str):
-                try:
-                    for n, p in model.get_submodule(item).named_parameters(prefix=item):
-                        self.weights[n] = p
-                except AttributeError:
+            weights = {}
+            for item in whitelist:
+                name = None
+                if isinstance(item, str):
+                    module_path, _, name = item.rpartition(".")
                     try:
-                        self.weights[item] = model.get_parameter(item)
-                    except AttributeError:
-                        try:
-                            _ = model.get_buffer(item)
+                        module = model.get_submodule(module_path)
+                        member = getattr(module, name)
+                        if isinstance(member, nn.Parameter):
+                            weights[item] = member
+                            continue
+                        elif isinstance(member, torch.Tensor):
                             raise ValueError(
-                                "Whitelist weights should not be Buffers as they are"
-                                f" considered persistent. Given buffer name `{item}`"
+                                "Whitelist weights should not be Buffers as they do"
+                                f" not have gradient. Given buffer name `{item}`"
                             )
-                        except AttributeError as e:
+                        elif isinstance(member, nn.Module):
+                            name = item
+                            item = member
+                        else:
                             raise ValueError(
                                 f"Whitelist weight `{item}` is not among model's parameters or submodules"
-                            ) from e
-            elif isinstance(item, nn.Module):
-                name = None
-                for n, m in model.named_modules():
-                    if m == item:
-                        name = n
-                        break
+                            )
+                    except AttributeError:
+                        raise ValueError(
+                            f"Whitelist weight `{item}` is not among model's parameters or submodules"
+                        )
+                elif not isinstance(item, nn.Module):
+                    raise ValueError(f"Whitelist weights shoud be string or nn.Module, given {type(item)}")
+                
+                if name is None:
+                    for n, m in model.named_modules():
+                        if m == item:
+                            name = n
+                            break
                 if name is not None:
                     for n, p in item.named_parameters(prefix=name):
-                        self.weights[n] = p
+                        weights[n] = p
                 else:
                     raise ValueError(f"Module {item} is not among model's submodules")
-            else:
-                raise ValueError(f"Whitelist weights shoud be string or nn.Module, given {type(item)}")
+            self.weights = weights.items()
+                
 
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, TensorboardLogger):
@@ -523,8 +534,7 @@ class WeightsHistHandler(BaseWeightsHistHandler):
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = f"{self.tag}/" if self.tag else ""
-        weights = self.weights.items() if self.weights is not None else self.model.named_parameters()
-        for name, p in weights:
+        for name, p in self.weights:
 
             name = name.replace(".", "/")
             logger.writer.add_histogram(
