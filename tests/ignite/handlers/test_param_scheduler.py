@@ -637,12 +637,12 @@ def test_lr_scheduler_asserts():
     [
         (StepLR, ({"step_size": 5, "gamma": 0.5})),
         (ExponentialLR, ({"gamma": 0.78})),
-        (MultiplicativeLR, ({"lr_lambda": lambda epoch: 0.95})),
+        (MultiplicativeLR if has_multiplicative_lr else None, ({"lr_lambda": lambda epoch: 0.95})),
     ],
 )
 def test_lr_scheduler(torch_lr_scheduler_cls, kwargs):
 
-    if torch_lr_scheduler_cls == MultiplicativeLR and not has_multiplicative_lr:
+    if torch_lr_scheduler_cls is None:
         return
 
     tensor = torch.zeros([1], requires_grad=True)
