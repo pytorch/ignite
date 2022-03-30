@@ -78,7 +78,7 @@ def test_zero_div():
         loss.compute()
 
 
-@pytest.mark.parametrize("criterion", [(nll_loss, nn.NLLLoss())])
+@pytest.mark.parametrize("criterion", [nll_loss, nn.NLLLoss()])
 def test_compute(criterion):
     loss = Loss(criterion)
 
