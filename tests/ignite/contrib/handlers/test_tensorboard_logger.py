@@ -347,35 +347,6 @@ def test_weights_hist_handler_wrong_setup():
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
-def test_weights_hist_handler_whitelist_wrong_setup(dummy_model_factory):
-
-    model = dummy_model_factory(with_buffer=True)
-
-    with pytest.raises(
-        ValueError,
-        match="Whitelist weights should not be Buffers as they do not have gradient. Given buffer name `buffer1`",
-    ):
-        WeightsHistHandler(model, whitelist=["buffer1"])
-
-    with pytest.raises(ValueError, match="Whitelist weight `fc3` is not among model's parameters or submodules"):
-        WeightsHistHandler(model, whitelist=["fc1.bias", model.fc2, "fc3"])
-
-    with pytest.raises(ValueError, match="Module .+ is not among model's submodules"):
-        WeightsHistHandler(model, whitelist=[torch.nn.Linear(10, 10)])
-
-    with pytest.raises(
-        ValueError, match="Whitelist weights shoud be string or nn.Module, given <class 'torch.nn.parameter.Parameter'>"
-    ):
-        WeightsHistHandler(model, whitelist=[model.fc1.bias])
-
-    with pytest.warns(UserWarning, match="Given callable whitelist does not select any parameter to be logged."):
-
-        def weight_selector(_, __):
-            return False
-
-        WeightsHistHandler(model, whitelist=weight_selector)
-
-
 def test_weights_hist_handler(dummy_model_factory):
 
     model = dummy_model_factory(with_grads=True, with_frozen_layer=False)
@@ -424,7 +395,7 @@ def test_weights_hist_handler_whitelist(dummy_model_factory):
     mock_logger.writer.add_histogram.assert_called_once_with(tag="weights/fc2/weight", values=ANY, global_step=5)
     mock_logger.writer.reset_mock()
 
-    wrapper = WeightsHistHandler(model, tag="model", whitelist=[model.fc1])
+    wrapper = WeightsHistHandler(model, tag="model", whitelist=["fc1"])
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
     mock_logger.writer.add_histogram.assert_has_calls(
@@ -436,21 +407,6 @@ def test_weights_hist_handler_whitelist(dummy_model_factory):
     )
     assert mock_logger.writer.add_histogram.call_count == 2
     mock_logger.writer.reset_mock()
-
-    def weight_selector(n, _):
-        return "bias" in n
-
-    wrapper = WeightsHistHandler(model, whitelist=weight_selector)
-    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
-
-    mock_logger.writer.add_histogram.assert_has_calls(
-        [
-            call(tag="weights/fc1/bias", values=ANY, global_step=5),
-            call(tag="weights/fc2/bias", values=ANY, global_step=5),
-        ],
-        any_order=True,
-    )
-    assert mock_logger.writer.add_histogram.call_count == 2
 
 
 def test_grads_scalar_handler_wrong_setup():
