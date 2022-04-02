@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 """TQDM logger."""
-import pytest
-pytest.importorskip("tqdm", reason="tqdm not installed")
-
 from collections import OrderedDict
 from typing import Any, Callable, List, Optional, Union
 
