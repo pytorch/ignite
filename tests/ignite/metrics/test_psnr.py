@@ -3,7 +3,6 @@ import os
 import numpy as np
 import pytest
 import torch
-from skimage.metrics import peak_signal_noise_ratio as ski_psnr
 
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
@@ -30,6 +29,9 @@ def test_invalid_psnr():
 
 
 def _test_psnr(y_pred, y, data_range, device):
+    skimage = pytest.importorskip("skimage")
+    from skimage.metrics import peak_signal_noise_ratio as ski_psnr
+
     psnr = PSNR(data_range=data_range, device=device)
     psnr.update((y_pred, y))
     psnr_compute = psnr.compute()
@@ -93,6 +95,8 @@ def _test(
     compute_y_channel=False,
 ):
     from ignite.engine import Engine
+    skimage = pytest.importorskip("skimage")
+    from skimage.metrics import peak_signal_noise_ratio as ski_psnr
 
     def update(engine, i):
         return (

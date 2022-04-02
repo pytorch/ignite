@@ -1,4 +1,5 @@
-import dill
+import pytest
+dill = pytest.importorskip("dill")
 
 from ignite.metrics import Metric
 
