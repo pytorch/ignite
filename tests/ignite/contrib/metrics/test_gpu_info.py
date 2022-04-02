@@ -20,6 +20,8 @@ def test_no_gpu():
 
 
 def _test_gpu_info(device="cpu"):
+    pytest.importorskip("pynvml", reason="pynvml is not installed")
+
     gpu_info = GpuInfo()
 
     # increase code cov
