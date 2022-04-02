@@ -405,6 +405,7 @@ def _test_setup_logging(
 
 
 def test_setup_tb_logging(dirname):
+    pytest.importorskip("tensorboard", reason="tensorboard is not installed")
 
     tb_logger = _test_setup_logging(
         setup_logging_fn=setup_tb_logging,
@@ -439,6 +440,8 @@ def test_setup_tb_logging(dirname):
 
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_setup_visdom_logging(visdom_offline_logfile):
+    pytest.importorskip("visdom", reason="visdom is not installed")
+
     vis_logger = _test_setup_logging(
         setup_logging_fn=setup_visdom_logging,
         kwargs_dict={"offline": True, "log_to_filename": visdom_offline_logfile},
@@ -461,6 +464,7 @@ def test_setup_visdom_logging(visdom_offline_logfile):
 
 
 def test_setup_plx_logging():
+    pytest.importorskip("polyaxon", reason="polyaxon is not installed")
 
     os.environ["POLYAXON_NO_OP"] = "1"
 
@@ -484,6 +488,8 @@ def test_setup_plx_logging():
 
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_setup_mlflow_logging(dirname):
+    pytest.importorskip("mlflow", reason="mlflow is not installed")
+
     mlf_logger = _test_setup_logging(
         setup_logging_fn=setup_mlflow_logging,
         kwargs_dict={"tracking_uri": str(dirname / "p1")},
@@ -505,6 +511,7 @@ def test_setup_mlflow_logging(dirname):
 
 
 def test_setup_wandb_logging(dirname):
+    pytest.importorskip("wandb", reason="wandb is not installed")
 
     from unittest.mock import patch
 
@@ -513,6 +520,8 @@ def test_setup_wandb_logging(dirname):
 
 
 def test_setup_clearml_logging():
+
+    pytest.importorskip("clearml", reason="clearml is not installed")
 
     handlers.clearml_logger.ClearMLLogger.set_bypass_mode(True)
 
@@ -558,6 +567,8 @@ def test_setup_clearml_logging():
 
 
 def test_setup_neptune_logging(dirname):
+    pytest.importorskip("neptune", reason="neptune is not installed")
+
     npt_logger = _test_setup_logging(
         setup_logging_fn=setup_neptune_logging,
         kwargs_dict={"offline_mode": True},
