@@ -19,6 +19,7 @@ from ignite.metrics import RunningAverage
 if sys.platform.startswith("win"):
     pytest.skip("Skip on Windows", allow_module_level=True)
 
+
 def get_tqdm_version():
     import tqdm
 
