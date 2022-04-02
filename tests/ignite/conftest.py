@@ -16,7 +16,7 @@ def dirname():
     yield path
     shutil.rmtree(path)
 
-
+# Requires pytest-xdist installed!
 @pytest.fixture()
 def get_fixed_dirname(worker_id):
     # multi-proc friendly fixed tmp dirname
