@@ -1,7 +1,9 @@
+import pytest
+pytest.importorskip("visdom", reason="visdom is not installed")
+
 import sys
 from unittest.mock import ANY, call, MagicMock, patch
 
-import pytest
 import torch
 
 from ignite.contrib.handlers.visdom_logger import (

@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
+import pytest
+pytest.importorskip("tqdm", reason="tqdm not installed")
+
 import sys
 import time
 from argparse import Namespace
 from unittest.mock import patch
 
 import numpy as np
-import pytest
 import torch
 from packaging.version import Version
 
@@ -16,7 +18,6 @@ from ignite.metrics import RunningAverage
 
 if sys.platform.startswith("win"):
     pytest.skip("Skip on Windows", allow_module_level=True)
-
 
 def get_tqdm_version():
     import tqdm

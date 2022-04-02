@@ -1,8 +1,10 @@
+import pytest
+pytest.importorskip("tensorboard", reason="tensorboard is not installed")
+
 import math
 import os
 from unittest.mock import ANY, call, MagicMock, patch
 
-import pytest
 import torch
 
 from ignite.contrib.handlers.tensorboard_logger import (

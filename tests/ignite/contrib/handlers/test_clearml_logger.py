@@ -3,9 +3,10 @@ import os
 from collections import defaultdict
 from unittest.mock import ANY, call, MagicMock, Mock
 
-import clearml
 import pytest
 import torch
+
+clearml = pytest.importorskip("clearml")
 from clearml.binding.frameworks import WeightsFileHandler
 from clearml.model import Framework
 

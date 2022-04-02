@@ -1,7 +1,9 @@
+import pytest
+pytest.importorskip("polyaxon", reason="polyaxon is not installed.")
+
 import os
 from unittest.mock import call, MagicMock
 
-import pytest
 import torch
 
 from ignite.contrib.handlers.polyaxon_logger import (

@@ -1,7 +1,9 @@
+import pytest
+pytest.importorskip("mlflow", reason="mlflow is not installed")
+
 import sys
 from unittest.mock import call, MagicMock
 
-import pytest
 import torch
 
 from ignite.contrib.handlers.mlflow_logger import (
