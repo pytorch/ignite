@@ -3,7 +3,9 @@ import re
 from unittest.mock import patch
 
 import pytest
+
 pytorch_fid_score = pytest.importorskip("pytorch_fid.pytorch_fid")
+
 import scipy
 import torch
 from numpy import cov

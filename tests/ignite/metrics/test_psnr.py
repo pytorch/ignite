@@ -94,9 +94,10 @@ def _test(
     output_transform=lambda x: x,
     compute_y_channel=False,
 ):
-    from ignite.engine import Engine
     skimage = pytest.importorskip("skimage")
     from skimage.metrics import peak_signal_noise_ratio as ski_psnr
+
+    from ignite.engine import Engine
 
     def update(engine, i):
         return (

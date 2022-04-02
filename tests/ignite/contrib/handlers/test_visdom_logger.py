@@ -1,4 +1,5 @@
 import pytest
+
 pytest.importorskip("visdom", reason="visdom is not installed")
 
 import sys

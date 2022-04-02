@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import pytest
+
 pytest.importorskip("tqdm", reason="tqdm not installed")
 
 import sys

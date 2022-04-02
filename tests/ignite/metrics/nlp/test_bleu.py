@@ -4,6 +4,7 @@ from collections import Counter
 
 import pytest
 import torch
+
 nltk = pytest.importorskip("nltk")
 from nltk.translate.bleu_score import corpus_bleu, sentence_bleu, SmoothingFunction
 

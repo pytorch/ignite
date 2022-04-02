@@ -1,8 +1,10 @@
 import os
 
 import pytest
+
 nltk = pytest.importorskip("nltk", reason="nltk not installed")
 pyrouge = pytest.importorskip("rouge", reason="rouge not installed")
+
 import torch
 
 import ignite.distributed as idist

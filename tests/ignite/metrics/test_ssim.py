@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 import torch
 
-
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics import SSIM

@@ -4,7 +4,9 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
+
 matplotlib = pytest.importorskip("matplotlib")
+
 import torch
 import torch.nn.functional as F
 from torch import nn

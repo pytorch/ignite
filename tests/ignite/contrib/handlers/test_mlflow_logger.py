@@ -1,4 +1,5 @@
 import pytest
+
 pytest.importorskip("mlflow", reason="mlflow is not installed")
 
 import sys

@@ -1,4 +1,5 @@
 import pytest
+
 pytest.importorskip("neptune", reason="neptune-client is not installed")
 
 import math
