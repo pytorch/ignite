@@ -784,7 +784,7 @@ def test_event_handler_total_time_handlers_profiler():
 
 
 def test_write_results_basic_profiler(dirname):
-    pytest.importorskip("pandas", "pandas is not installed")
+    pytest.importorskip("pandas", reason="pandas is not installed")
 
     true_event_handler_time = 0.125
     true_max_epochs = 3
@@ -809,7 +809,7 @@ def test_write_results_basic_profiler(dirname):
 
 
 def test_write_results_handlers_profiler(dirname):
-    pytest.importorskip("pandas", "pandas is not installed")
+    pytest.importorskip("pandas", reason="pandas is not installed")
 
     true_event_handler_time = 0.125
     true_max_epochs = 3
