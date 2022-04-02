@@ -806,9 +806,7 @@ def test_piecewiselinear(milestones_as_np_int):
 
 
 def test_simulate_and_plot_values():
-
-    import matplotlib
-
+    matplotlib = pytest.importorskip("matplotlib", reason="matplotlib not installed")
     matplotlib.use("Agg")
 
     def _test(scheduler_cls, **scheduler_kwargs):

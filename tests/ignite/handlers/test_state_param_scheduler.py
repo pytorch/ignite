@@ -258,9 +258,7 @@ def test_custom_scheduler_asserts():
 
 @pytest.mark.parametrize("scheduler_cls,scheduler_kwargs", [config3, config4, config5, config6])
 def test_simulate_and_plot_values(scheduler_cls, scheduler_kwargs):
-
-    import matplotlib
-
+    matplotlib = pytest.importorskip("matplotlib", reason="matplotlib not installed")
     matplotlib.use("Agg")
 
     def _test(scheduler_cls, scheduler_kwargs):
