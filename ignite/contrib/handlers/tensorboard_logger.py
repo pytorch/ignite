@@ -405,8 +405,8 @@ class WeightsHistHandler(BaseWeightsHistHandler):
     Args:
         model: model to log weights
         tag: common title for all produced plots. For example, "generator"
-        whitelist: specific weights to log. Should be list of model's submodules or their names, or names of
-            model's parameters or a callable which gets weight along with its name
+        whitelist: specific weights to log. Should be list of model's submodules
+            or parameters names, or a callable which gets weight along with its name
             and determines if it should be logged. Names should be fully-qualified.
             For more information please refer to `PyTorch docs
             <https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.get_submodule>`_.
@@ -434,8 +434,8 @@ class WeightsHistHandler(BaseWeightsHistHandler):
             # Create a logger
             tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
 
-            # Log weights of `fc` layer and `base` submodule's last layer
-            weights = ['fc', model.base[-1]]
+            # Log weights of `fc` layer
+            weights = ['fc']
 
             # Attach the logger to the trainer to log weights norm after each iteration
             tb_logger.attach(
@@ -466,22 +466,27 @@ class WeightsHistHandler(BaseWeightsHistHandler):
         self,
         model: nn.Module,
         tag: Optional[str] = None,
-        whitelist: Optional[List[str]] = None,
+        whitelist: Optional[Union[List[str], Callable[[str, nn.Parameter], bool]]] = None,
     ):
         super(WeightsHistHandler, self).__init__(model, tag=tag)
 
+        weights = {}
         if whitelist is None:
 
-            self.weights = dict(model.named_parameters()).items()
+            weights = dict(model.named_parameters())
+        elif callable(whitelist):
+
+            for n, p in model.named_parameters():
+                if whitelist(n, p):
+                    weights[n] = p
         else:
 
-            weights = {}
             for n, p in model.named_parameters():
                 for item in whitelist:
                     if n.startswith(item):
                         weights[n] = p
 
-            self.weights = weights.items()
+        self.weights = weights.items()
                 
 
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, Events]) -> None:

@@ -408,6 +408,21 @@ def test_weights_hist_handler_whitelist(dummy_model_factory):
     assert mock_logger.writer.add_histogram.call_count == 2
     mock_logger.writer.reset_mock()
 
+    def weight_selector(n, _):
+        return "bias" in n
+
+    wrapper = WeightsHistHandler(model, tag="model", whitelist=weight_selector)
+    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+
+    mock_logger.writer.add_histogram.assert_has_calls(
+        [
+            call(tag="model/weights/fc1/bias", values=ANY, global_step=5),
+            call(tag="model/weights/fc2/bias", values=ANY, global_step=5),
+        ],
+        any_order=True,
+    )
+    assert mock_logger.writer.add_histogram.call_count == 2
+
 
 def test_grads_scalar_handler_wrong_setup():
 
