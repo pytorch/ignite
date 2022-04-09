@@ -27,7 +27,8 @@ def test_zero_sample():
         (torch.empty(50, 1).uniform_(-10, 10), torch.empty(50, 1).uniform_(-10, 10), 16),
     ],
 )
-def test_compute(test_cases):
+@pytest.mark.parametrize("dummy_val", [(0, 1, 2, 3, 4)])
+def test_compute(test_cases, dummy_val):
 
     rmse = RootMeanSquaredError()
 
@@ -50,10 +51,8 @@ def test_compute(test_cases):
         assert isinstance(res, float)
         assert pytest.approx(res) == np_res
 
-    for _ in range(5):
-        # check multiple random inputs as random exact occurencies are rare
-        (y_pred, y, batch_size) = test_cases
-        _test(y_pred, y, batch_size)
+    (y_pred, y, batch_size) = test_cases
+    _test(y_pred, y, batch_size)
 
 
 def _test_distrib_integration(device, tol=1e-6):
