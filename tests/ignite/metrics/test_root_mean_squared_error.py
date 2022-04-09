@@ -17,7 +17,17 @@ def test_zero_sample():
         rmse.compute()
 
 
-def test_compute():
+@pytest.mark.parametrize(
+    "test_cases",
+    [
+        (torch.empty(10).uniform_(0, 10), torch.empty(10).uniform_(0, 10), 1),
+        (torch.empty(10, 1).uniform_(-10, 10), torch.empty(10, 1).uniform_(-10, 10), 1),
+        # updated batches
+        (torch.empty(50).uniform_(0, 10), torch.empty(50).uniform_(0, 10), 16),
+        (torch.empty(50, 1).uniform_(-10, 10), torch.empty(50, 1).uniform_(-10, 10), 16),
+    ],
+)
+def test_compute(test_cases):
 
     rmse = RootMeanSquaredError()
 
@@ -40,23 +50,10 @@ def test_compute():
         assert isinstance(res, float)
         assert pytest.approx(res) == np_res
 
-    def get_test_cases():
-
-        test_cases = [
-            (torch.empty(10).uniform_(0, 10), torch.empty(10).uniform_(0, 10), 1),
-            (torch.empty(10, 1).uniform_(-10, 10), torch.empty(10, 1).uniform_(-10, 10), 1),
-            # updated batches
-            (torch.empty(50).uniform_(0, 10), torch.empty(50).uniform_(0, 10), 16),
-            (torch.empty(50, 1).uniform_(-10, 10), torch.empty(50, 1).uniform_(-10, 10), 16),
-        ]
-
-        return test_cases
-
     for _ in range(5):
         # check multiple random inputs as random exact occurencies are rare
-        test_cases = get_test_cases()
-        for y_pred, y, batch_size in test_cases:
-            _test(y_pred, y, batch_size)
+        (y_pred, y, batch_size) = test_cases
+        _test(y_pred, y, batch_size)
 
 
 def _test_distrib_integration(device, tol=1e-6):
