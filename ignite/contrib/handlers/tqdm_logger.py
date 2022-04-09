@@ -119,8 +119,7 @@ class ProgressBar(BaseLogger):
         persist: bool = False,
         bar_format: Union[
             str, None
-        ] = "{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}% \
-        |{bar}{postfix} [{elapsed}<{remaining}]",
+        ] = "{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]",
         **tqdm_kwargs: Any,
     ):
 
