@@ -1,5 +1,4 @@
 """TensorBoard logger and its helper handlers."""
-import warnings
 from typing import Any, Callable, List, Optional, Union
 
 import torch
@@ -487,7 +486,6 @@ class WeightsHistHandler(BaseWeightsHistHandler):
                         weights[n] = p
 
         self.weights = weights.items()
-                
 
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, TensorboardLogger):
