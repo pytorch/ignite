@@ -380,11 +380,10 @@ def test_weights_hist_handler(dummy_model_factory):
     _test(tag="tag")
 
 
-def test_weights_hist_handler_frozen_layers(dummy_model_factory):
+def test_weights_hist_handler_whitelist(dummy_model_factory):
+    model = dummy_model_factory()
 
-    model = dummy_model_factory(with_grads=True, with_frozen_layer=True)
-
-    wrapper = WeightsHistHandler(model)
+    wrapper = WeightsHistHandler(model, whitelist=["fc2.weight"])
     mock_logger = MagicMock(spec=TensorboardLogger)
     mock_logger.writer = MagicMock()
 
@@ -393,23 +392,35 @@ def test_weights_hist_handler_frozen_layers(dummy_model_factory):
     mock_engine.state.epoch = 5
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+    mock_logger.writer.add_histogram.assert_called_once_with(tag="weights/fc2/weight", values=ANY, global_step=5)
+    mock_logger.writer.reset_mock()
+
+    wrapper = WeightsHistHandler(model, tag="model", whitelist=["fc1"])
+    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
     mock_logger.writer.add_histogram.assert_has_calls(
         [
-            call(tag="weights/fc2/weight", values=ANY, global_step=5),
-            call(tag="weights/fc2/bias", values=ANY, global_step=5),
+            call(tag="model/weights/fc1/weight", values=ANY, global_step=5),
+            call(tag="model/weights/fc1/bias", values=ANY, global_step=5),
         ],
         any_order=True,
     )
+    assert mock_logger.writer.add_histogram.call_count == 2
+    mock_logger.writer.reset_mock()
 
-    with pytest.raises(AssertionError):
-        mock_logger.writer.add_histogram.assert_has_calls(
-            [
-                call(tag="weights/fc1/weight", values=ANY, global_step=5),
-                call(tag="weights/fc1/bias", values=ANY, global_step=5),
-            ],
-            any_order=True,
-        )
+    def weight_selector(n, _):
+        return "bias" in n
+
+    wrapper = WeightsHistHandler(model, tag="model", whitelist=weight_selector)
+    wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
+
+    mock_logger.writer.add_histogram.assert_has_calls(
+        [
+            call(tag="model/weights/fc1/bias", values=ANY, global_step=5),
+            call(tag="model/weights/fc2/bias", values=ANY, global_step=5),
+        ],
+        any_order=True,
+    )
     assert mock_logger.writer.add_histogram.call_count == 2
 
 

@@ -28,7 +28,7 @@ def dummy_model_factory():
             self.fc2.weight.data.fill_(1.0)
             self.fc2.bias.data.fill_(1.0)
 
-    def get_dummy_model(with_grads=True, with_frozen_layer=False):
+    def get_dummy_model(with_grads=True, with_frozen_layer=False, with_buffer=False):
         model = DummyModel()
         if with_grads:
             model.fc2.weight.grad = torch.zeros_like(model.fc2.weight)
@@ -41,6 +41,9 @@ def dummy_model_factory():
         if with_frozen_layer:
             for param in model.fc1.parameters():
                 param.requires_grad = False
+
+        if with_buffer:
+            model.register_buffer("buffer1", torch.ones(1))
         return model
 
     return get_dummy_model
