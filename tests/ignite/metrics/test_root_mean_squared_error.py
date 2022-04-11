@@ -17,18 +17,19 @@ def test_zero_sample():
         rmse.compute()
 
 
-@pytest.mark.parametrize(
-    "test_cases",
-    [
+@pytest.fixture
+def generate_tests():
+    return [
         (torch.empty(10).uniform_(0, 10), torch.empty(10).uniform_(0, 10), 1),
         (torch.empty(10, 1).uniform_(-10, 10), torch.empty(10, 1).uniform_(-10, 10), 1),
         # updated batches
         (torch.empty(50).uniform_(0, 10), torch.empty(50).uniform_(0, 10), 16),
         (torch.empty(50, 1).uniform_(-10, 10), torch.empty(50, 1).uniform_(-10, 10), 16),
-    ],
-)
-@pytest.mark.parametrize("dummy_val", [(0, 1, 2, 3, 4)])
-def test_compute(test_cases, dummy_val):
+    ]
+
+
+@pytest.mark.parametrize("n_times", range(5))
+def test_compute(n_times, generate_tests):
 
     rmse = RootMeanSquaredError()
 
@@ -51,8 +52,9 @@ def test_compute(test_cases, dummy_val):
         assert isinstance(res, float)
         assert pytest.approx(res) == np_res
 
-    (y_pred, y, batch_size) = test_cases
-    _test(y_pred, y, batch_size)
+    for test in generate_tests:
+        (y_pred, y, batch_size) = test
+        _test(y_pred, y, batch_size)
 
 
 def _test_distrib_integration(device, tol=1e-6):
