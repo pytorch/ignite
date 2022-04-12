@@ -28,12 +28,13 @@ def generate_tests():
     ]
 
 
-@pytest.mark.parametrize("n_times", range(5))
+@pytest.mark.parametrize("n_times", range(3))
 def test_compute(n_times, generate_tests):
 
     rmse = RootMeanSquaredError()
 
-    def _test(y_pred, y, batch_size):
+    for test in generate_tests:
+        (y_pred, y, batch_size) = test
         rmse.reset()
         if batch_size > 1:
             n_iters = y.shape[0] // batch_size + 1
@@ -51,10 +52,6 @@ def test_compute(n_times, generate_tests):
 
         assert isinstance(res, float)
         assert pytest.approx(res) == np_res
-
-    for test in generate_tests:
-        (y_pred, y, batch_size) = test
-        _test(y_pred, y, batch_size)
 
 
 def _test_distrib_integration(device, tol=1e-6):
