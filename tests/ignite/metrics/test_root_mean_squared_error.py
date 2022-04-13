@@ -28,30 +28,30 @@ def generate_tests():
     ]
 
 
+@pytest.mark.parametrize("test_num", range(4))
 @pytest.mark.parametrize("n_times", range(3))
-def test_compute(n_times, generate_tests):
+def test_compute(test_num, n_times, generate_tests):
 
     rmse = RootMeanSquaredError()
 
-    for test in generate_tests:
-        (y_pred, y, batch_size) = test
-        rmse.reset()
-        if batch_size > 1:
-            n_iters = y.shape[0] // batch_size + 1
-            for i in range(n_iters):
-                idx = i * batch_size
-                rmse.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-        else:
-            rmse.update((y_pred, y))
+    (y_pred, y, batch_size) = generate_tests[test_num]
+    rmse.reset()
+    if batch_size > 1:
+        n_iters = y.shape[0] // batch_size + 1
+        for i in range(n_iters):
+            idx = i * batch_size
+            rmse.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+    else:
+        rmse.update((y_pred, y))
 
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().ravel()
+    np_y = y.numpy().ravel()
+    np_y_pred = y_pred.numpy().ravel()
 
-        np_res = np.sqrt(np.power((np_y - np_y_pred), 2.0).sum() / np_y.shape[0])
-        res = rmse.compute()
+    np_res = np.sqrt(np.power((np_y - np_y_pred), 2.0).sum() / np_y.shape[0])
+    res = rmse.compute()
 
-        assert isinstance(res, float)
-        assert pytest.approx(res) == np_res
+    assert isinstance(res, float)
+    assert pytest.approx(res) == np_res
 
 
 def _test_distrib_integration(device, tol=1e-6):
