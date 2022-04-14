@@ -461,7 +461,7 @@ class WeightsHistHandler(BaseWeightsHistHandler):
             )
 
     ..  versionchanged:: 0.5.0
-        accepts an optional `whitelist` parameter
+        optional argument `whitelist` added.
     """
 
     def __init__(
