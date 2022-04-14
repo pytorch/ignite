@@ -17,24 +17,23 @@ def test_zero_sample():
         rmse.compute()
 
 
-@pytest.fixture
-def generate_tests():
+@pytest.fixture(params=[0, 1, 2, 3])
+def generate_tests(request):
     return [
         (torch.empty(10).uniform_(0, 10), torch.empty(10).uniform_(0, 10), 1),
         (torch.empty(10, 1).uniform_(-10, 10), torch.empty(10, 1).uniform_(-10, 10), 1),
         # updated batches
         (torch.empty(50).uniform_(0, 10), torch.empty(50).uniform_(0, 10), 16),
         (torch.empty(50, 1).uniform_(-10, 10), torch.empty(50, 1).uniform_(-10, 10), 16),
-    ]
+    ][request.param]
 
 
-@pytest.mark.parametrize("test_num", range(4))
 @pytest.mark.parametrize("n_times", range(3))
-def test_compute(test_num, n_times, generate_tests):
+def test_compute(n_times, generate_tests):
 
     rmse = RootMeanSquaredError()
 
-    (y_pred, y, batch_size) = generate_tests[test_num]
+    (y_pred, y, batch_size) = generate_tests
     rmse.reset()
     if batch_size > 1:
         n_iters = y.shape[0] // batch_size + 1
