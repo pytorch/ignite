@@ -18,7 +18,7 @@ class MeanAveragePrecision(Metric):
         if iou_thresholds is None:
             iou_thresholds = torch.range(0.5, 0.99, 0.05)
         self.iou_thresholds = torch.tensor(iou_thresholds, device=device)
-        self.rec_thresholds = torch.range(0, 1, 0.01)
+        self.rec_thresholds = torch.range(0, 1, 0.01, device=device)
         super(MeanAveragePrecision, self).__init__(output_transform=output_transform, device=device)
 
     def reset(self) -> None:
@@ -62,7 +62,7 @@ class MeanAveragePrecision(Metric):
     def compute(self):
         results = []
         for _, cm in self._cm.items():
-            category_pr = torch.ones(len(self.iou_thresholds), len(self.rec_thresholds)) * -1
+            category_pr = torch.ones(len(self.iou_thresholds), len(self.rec_thresholds), device=self._device) * -1
             for idx, (_, cm_iou) in enumerate(cm.items()):
                 scores = torch.cat(cm_iou["score"], dim=0)
                 indx = torch.argsort(scores, descending=True)
@@ -77,7 +77,7 @@ class MeanAveragePrecision(Metric):
                         pr[i - 1] = pr[i]
 
                 inds = torch.searchsorted(rc, self.rec_thresholds)
-                pr_at_recthres = torch.zeros(len(self.rec_thresholds))
+                pr_at_recthres = torch.zeros(len(self.rec_thresholds), device=self._device)
                 try:
                     for ri, pi in enumerate(inds):
                         pr_at_recthres[ri] = pr[pi]
@@ -86,4 +86,4 @@ class MeanAveragePrecision(Metric):
                 category_pr[idx, :] = pr_at_recthres
             category_ap = category_pr[category_pr > -1].mean()
             results.append(category_ap)
-        return torch.stack(results).mean()
+        return torch.stack(results).mean().item()

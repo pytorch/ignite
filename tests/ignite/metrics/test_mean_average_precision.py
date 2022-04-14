@@ -10,8 +10,7 @@ torch.set_printoptions(linewidth=200)
 np.set_printoptions(linewidth=200)
 
 
-@pytest.fixture
-def gt_pred():
+def get_coco_val2017_3():
     gt = [
         torch.tensor(
             [
@@ -177,8 +176,8 @@ def create_coco_api(predictions, targets):
     return coco_gt, coco_dt
 
 
-def test_running(gt_pred):
-    targets, predictions = gt_pred
+def _test_coco_val2017_3(device):
+    targets, predictions = get_coco_val2017_3()
 
     coco_gt, coco_dt = create_coco_api(
         [torch.clone(pred) for pred in predictions], [torch.clone(target) for target in targets]
@@ -188,9 +187,13 @@ def test_running(gt_pred):
     eval.accumulate()
     eval.summarize()
 
-    metric_50 = MeanAveragePrecision(iou_thresholds=[0.5])
-    metric_75 = MeanAveragePrecision(iou_thresholds=[0.75])
-    metric_50_95 = MeanAveragePrecision()
+    metric_50 = MeanAveragePrecision(iou_thresholds=[0.5], device=device)
+    metric_75 = MeanAveragePrecision(iou_thresholds=[0.75], device=device)
+    metric_50_95 = MeanAveragePrecision(device=device)
+
+    targets = [t.to(device) for t in targets]
+    predictions = [p.to(device) for p in predictions]
+
     for target, prediction in zip(targets, predictions):
         metric_50.update((target, prediction))
         metric_75.update((target, prediction))
@@ -200,6 +203,12 @@ def test_running(gt_pred):
     res_75 = metric_75.compute()
     res_50_95 = metric_50_95.compute()
 
-    assert eval.stats[0] == pytest.approx(res_50_95, rel=1e-3, abs=3e-3)
-    assert eval.stats[1] == pytest.approx(res_50, rel=3e-3, abs=3e-3)
-    assert eval.stats[2] == pytest.approx(res_75, rel=3e-3, abs=3e-3)
+    assert eval.stats[0] == pytest.approx(res_50_95, abs=1e-2)
+    assert eval.stats[1] == pytest.approx(res_50, abs=1e-2)
+    assert eval.stats[2] == pytest.approx(res_75, abs=1e-2)
+
+
+def test_compute():
+    _test_coco_val2017_3(torch.device("cpu"))
+    if torch.cuda.is_available():
+        _test_coco_val2017_3(torch.device("cuda"))
