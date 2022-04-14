@@ -29,7 +29,7 @@ def test_data(request):
 
 
 @pytest.mark.parametrize("n_times", range(3))
-def test_compute(n_times, generate_tests):
+def test_compute(n_times, test_data):
 
     rmse = RootMeanSquaredError()
 
