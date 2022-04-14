@@ -33,7 +33,7 @@ def test_compute(n_times, generate_tests):
 
     rmse = RootMeanSquaredError()
 
-    (y_pred, y, batch_size) = generate_tests
+    y_pred, y, batch_size = test_data
     rmse.reset()
     if batch_size > 1:
         n_iters = y.shape[0] // batch_size + 1
