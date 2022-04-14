@@ -459,6 +459,9 @@ class WeightsHistHandler(BaseWeightsHistHandler):
                 event_name=Events.ITERATION_COMPLETED,
                 log_handler=WeightsHistHandler(model, whitelist=weight_selector)
             )
+
+    ..  versionchanged:: 0.5.0
+        optional argument `whitelist` added.
     """
 
     def __init__(
