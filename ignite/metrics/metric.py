@@ -210,17 +210,6 @@ class Metric(metaclass=ABCMeta):
     ):
         self._output_transform = output_transform
 
-        # Check device if distributed is initialized:
-        if idist.get_world_size() > 1:
-
-            # check if reset and update methods are decorated. Compute may not be decorated
-            if not (hasattr(self.reset, "_decorated") and hasattr(self.update, "_decorated")):
-                warnings.warn(
-                    f"{self.__class__.__name__} class does not support distributed setting. "
-                    "Computed result is not collected across all computing devices",
-                    RuntimeWarning,
-                )
-
         # Some metrics have a large performance regression when run on XLA devices, so for now, we disallow it.
         if torch.device(device).type == "xla":
             raise ValueError("Cannot create metric on an XLA device. Use device='cpu' instead.")
