@@ -7,8 +7,6 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Callable, DefaultDict, List, Mapping, Optional, Tuple, Type, Union
 
-import torch
-from torch.nn import Module
 from torch.optim import Optimizer
 
 import ignite.distributed as idist
@@ -16,7 +14,7 @@ from ignite.contrib.handlers.base_logger import (
     BaseLogger,
     BaseOptimizerParamsHandler,
     BaseOutputHandler,
-    BaseWeightsHistHandler,
+    BaseWeightsHandler,
     BaseWeightsScalarHandler,
 )
 from ignite.engine import Engine, Events
@@ -425,9 +423,6 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
             )
     """
 
-    def __init__(self, model: Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
-        super(WeightsScalarHandler, self).__init__(model, reduction, tag=tag)
-
     def __call__(self, engine: Engine, logger: ClearMLLogger, event_name: Union[str, Events]) -> None:
 
         if not isinstance(logger, ClearMLLogger):
@@ -435,9 +430,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = f"{self.tag}/" if self.tag else ""
-        for name, p in self.model.named_parameters():
-            if p.grad is None:
-                continue
+        for name, p in self.weights:
 
             title_name, _, series_name = name.partition(".")
             logger.clearml_logger.report_scalar(
@@ -448,7 +441,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
             )
 
 
-class WeightsHistHandler(BaseWeightsHistHandler):
+class WeightsHistHandler(BaseWeightsHandler):
     """Helper handler to log model's weights as histograms.
 
     Args:
@@ -475,18 +468,13 @@ class WeightsHistHandler(BaseWeightsHistHandler):
             )
     """
 
-    def __init__(self, model: Module, tag: Optional[str] = None):
-        super(WeightsHistHandler, self).__init__(model, tag=tag)
-
     def __call__(self, engine: Engine, logger: ClearMLLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, ClearMLLogger):
             raise RuntimeError("Handler 'WeightsHistHandler' works only with ClearMLLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = f"{self.tag}/" if self.tag else ""
-        for name, p in self.model.named_parameters():
-            if p.grad is None:
-                continue
+        for name, p in self.weights:
 
             title_name, _, series_name = name.partition(".")
 
@@ -528,18 +516,13 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
             )
     """
 
-    def __init__(self, model: Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
-        super(GradsScalarHandler, self).__init__(model, reduction, tag=tag)
-
     def __call__(self, engine: Engine, logger: ClearMLLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, ClearMLLogger):
             raise RuntimeError("Handler GradsScalarHandler works only with ClearMLLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = f"{self.tag}/" if self.tag else ""
-        for name, p in self.model.named_parameters():
-            if p.grad is None:
-                continue
+        for name, p in self.weights:
 
             title_name, _, series_name = name.partition(".")
             logger.clearml_logger.report_scalar(
@@ -550,7 +533,7 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
             )
 
 
-class GradsHistHandler(BaseWeightsHistHandler):
+class GradsHistHandler(BaseWeightsHandler):
     """Helper handler to log model's gradients as histograms.
 
     Args:
@@ -577,18 +560,13 @@ class GradsHistHandler(BaseWeightsHistHandler):
             )
     """
 
-    def __init__(self, model: Module, tag: Optional[str] = None):
-        super(GradsHistHandler, self).__init__(model, tag=tag)
-
     def __call__(self, engine: Engine, logger: ClearMLLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, ClearMLLogger):
             raise RuntimeError("Handler 'GradsHistHandler' works only with ClearMLLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = f"{self.tag}/" if self.tag else ""
-        for name, p in self.model.named_parameters():
-            if p.grad is None:
-                continue
+        for name, p in self.weights:
 
             title_name, _, series_name = name.partition(".")
 

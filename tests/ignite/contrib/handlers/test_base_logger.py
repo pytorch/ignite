@@ -1,9 +1,16 @@
+from typing import Any, Union
 from unittest.mock import call, MagicMock
 
 import pytest
 import torch
 
-from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler
+from ignite.contrib.handlers.base_logger import (
+    BaseLogger,
+    BaseOptimizerParamsHandler,
+    BaseOutputHandler,
+    BaseWeightsHandler,
+    BaseWeightsScalarHandler,
+)
 from ignite.engine import Engine, Events, EventsList, State
 from tests.ignite.contrib.handlers import MockFP16DeepSpeedZeroOptimizer
 
@@ -29,6 +36,16 @@ class DummyLogger(BaseLogger):
 
     def _create_opt_params_handler(self, *args, **kwargs):
         return DummyOptParamsHandler(*args, **kwargs)
+
+
+class DummyWeightsHandler(BaseWeightsHandler):
+    def __call__(self, engine: Engine, logger: Any, event_name: Union[str, Events]) -> None:
+        pass
+
+
+class DummyWeightsScalarHandler(BaseWeightsScalarHandler):
+    def __call__(self, engine: Engine, logger: Any, event_name: Union[str, Events]) -> None:
+        pass
 
 
 def test_base_output_handler_wrong_setup():
@@ -291,3 +308,19 @@ def test_as_context_manager():
     _test(Events.COMPLETED, 1)
 
     _test(Events.ITERATION_STARTED(every=10), len(data) // 10 * n_epochs)
+
+
+def test_base_weights_handler_wrong_setup():
+
+    with pytest.raises(TypeError, match="Argument model should be of type torch.nn.Module"):
+        DummyWeightsHandler(None)
+
+
+def test_base_weights_scalar_handler_wrong_setup():
+
+    model = MagicMock(spec=torch.nn.Module)
+    with pytest.raises(TypeError, match="Argument reduction should be callable"):
+        DummyWeightsScalarHandler(model, reduction=123)
+
+    with pytest.raises(TypeError, match="Output of the reduction function should be a scalar"):
+        DummyWeightsScalarHandler(model, reduction=lambda x: x)

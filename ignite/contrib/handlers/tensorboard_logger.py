@@ -1,15 +1,13 @@
 """TensorBoard logger and its helper handlers."""
 from typing import Any, Callable, List, Optional, Union
 
-import torch
-import torch.nn as nn
 from torch.optim import Optimizer
 
 from ignite.contrib.handlers.base_logger import (
     BaseLogger,
     BaseOptimizerParamsHandler,
     BaseOutputHandler,
-    BaseWeightsHistHandler,
+    BaseWeightsHandler,
     BaseWeightsScalarHandler,
 )
 from ignite.engine import Engine, EventEnum, Events
@@ -378,9 +376,6 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
             )
     """
 
-    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
-        super(WeightsScalarHandler, self).__init__(model, reduction, tag=tag)
-
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, Events]) -> None:
 
         if not isinstance(logger, TensorboardLogger):
@@ -388,9 +383,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = f"{self.tag}/" if self.tag else ""
-        for name, p in self.model.named_parameters():
-            if p.grad is None:
-                continue
+        for name, p in self.weights:
 
             name = name.replace(".", "/")
             logger.writer.add_scalar(
@@ -398,7 +391,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
             )
 
 
-class WeightsHistHandler(BaseWeightsHistHandler):
+class WeightsHistHandler(BaseWeightsHandler):
     """Helper handler to log model's weights as histograms.
 
     Args:
@@ -464,32 +457,6 @@ class WeightsHistHandler(BaseWeightsHistHandler):
         optional argument `whitelist` added.
     """
 
-    def __init__(
-        self,
-        model: nn.Module,
-        tag: Optional[str] = None,
-        whitelist: Optional[Union[List[str], Callable[[str, nn.Parameter], bool]]] = None,
-    ):
-        super(WeightsHistHandler, self).__init__(model, tag=tag)
-
-        weights = {}
-        if whitelist is None:
-
-            weights = dict(model.named_parameters())
-        elif callable(whitelist):
-
-            for n, p in model.named_parameters():
-                if whitelist(n, p):
-                    weights[n] = p
-        else:
-
-            for n, p in model.named_parameters():
-                for item in whitelist:
-                    if n.startswith(item):
-                        weights[n] = p
-
-        self.weights = weights.items()
-
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, TensorboardLogger):
             raise RuntimeError("Handler 'WeightsHistHandler' works only with TensorboardLogger")
@@ -530,18 +497,13 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
             )
     """
 
-    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
-        super(GradsScalarHandler, self).__init__(model, reduction, tag=tag)
-
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, TensorboardLogger):
             raise RuntimeError("Handler 'GradsScalarHandler' works only with TensorboardLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = f"{self.tag}/" if self.tag else ""
-        for name, p in self.model.named_parameters():
-            if p.grad is None:
-                continue
+        for name, p in self.weights:
 
             name = name.replace(".", "/")
             logger.writer.add_scalar(
@@ -549,7 +511,7 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
             )
 
 
-class GradsHistHandler(BaseWeightsHistHandler):
+class GradsHistHandler(BaseWeightsHandler):
     """Helper handler to log model's gradients as histograms.
 
     Args:
@@ -572,18 +534,13 @@ class GradsHistHandler(BaseWeightsHistHandler):
             )
     """
 
-    def __init__(self, model: nn.Module, tag: Optional[str] = None):
-        super(GradsHistHandler, self).__init__(model, tag=tag)
-
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, TensorboardLogger):
             raise RuntimeError("Handler 'GradsHistHandler' works only with TensorboardLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = f"{self.tag}/" if self.tag else ""
-        for name, p in self.model.named_parameters():
-            if p.grad is None:
-                continue
+        for name, p in self.weights:
 
             name = name.replace(".", "/")
             logger.writer.add_histogram(
