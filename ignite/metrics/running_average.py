@@ -44,8 +44,8 @@ class RunningAverage(Metric):
             def log_running_avg_metrics():
                 print(default_trainer.state.metrics['running_avg_accuracy'])
 
-            y_true = [torch.Tensor(y) for y in [[0], [1], [0], [1], [0], [1]]]
-            y_pred = [torch.Tensor(y) for y in [[0], [0], [0], [1], [1], [1]]]
+            y_true = [torch.tensor(y) for y in [[0], [1], [0], [1], [0], [1]]]
+            y_pred = [torch.tensor(y) for y in [[0], [0], [0], [1], [1], [1]]]
 
             state = default_trainer.run(zip(y_pred, y_true))
 
@@ -69,7 +69,7 @@ class RunningAverage(Metric):
             def log_running_avg_metrics():
                 print(default_trainer.state.metrics['running_avg_accuracy'])
 
-            y = [torch.Tensor(y) for y in [[0], [1], [0], [1], [0], [1]]]
+            y = [torch.tensor(y) for y in [[0], [1], [0], [1], [0], [1]]]
 
             state = default_trainer.run(y)
 

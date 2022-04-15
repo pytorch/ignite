@@ -1,5 +1,5 @@
 import warnings
-from typing import Callable, cast, List, Tuple, Union
+from typing import Any, Callable, cast, List, Tuple, Union
 
 import torch
 
@@ -54,7 +54,7 @@ class EpochMetric(Metric):
 
             metric = EpochMetric(mse_fn)
             metric.attach(default_evaluator, "mse")
-            y_true = torch.Tensor([0, 1, 2, 3, 4, 5])
+            y_true = torch.tensor([0, 1, 2, 3, 4, 5])
             y_pred = y_true * 0.75
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["mse"])
@@ -136,7 +136,7 @@ class EpochMetric(Metric):
             except Exception as e:
                 warnings.warn(f"Probably, there can be a problem with `compute_fn`:\n {e}.", EpochMetricWarning)
 
-    def compute(self) -> float:
+    def compute(self) -> Any:
         if len(self._predictions) < 1 or len(self._targets) < 1:
             raise NotComputableError("EpochMetric must have at least one example before it can be computed.")
 

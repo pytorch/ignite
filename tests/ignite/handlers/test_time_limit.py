@@ -15,25 +15,23 @@ def test_arg_validation():
         TimeLimit(limit_sec="abc")
 
 
-def test_terminate_on_time_limit():
-    def _train_func(engine, batch):
-        time.sleep(1)
+def _train_func(engine, batch):
+    time.sleep(1)
 
-    def _test(n_iters, limit):
-        started = time.time()
-        trainer = Engine(_train_func)
 
-        @trainer.on(Events.TERMINATE)
-        def _():
-            trainer.state.is_terminated = True
+@pytest.mark.parametrize("n_iters, limit", [(20, 10), (5, 10)])
+def test_terminate_on_time_limit(n_iters, limit):
+    started = time.time()
+    trainer = Engine(_train_func)
 
-        trainer.add_event_handler(Events.ITERATION_COMPLETED, TimeLimit(limit))
-        trainer.state.is_terminated = False
+    @trainer.on(Events.TERMINATE)
+    def _():
+        trainer.state.is_terminated = True
 
-        trainer.run(range(n_iters))
-        elapsed = round(time.time() - started)
-        assert elapsed <= limit + 1
-        assert trainer.state.is_terminated == (n_iters > limit)
+    trainer.add_event_handler(Events.ITERATION_COMPLETED, TimeLimit(limit))
+    trainer.state.is_terminated = False
 
-    _test(20, 10)
-    _test(5, 10)
+    trainer.run(range(n_iters))
+    elapsed = round(time.time() - started)
+    assert elapsed <= limit + 1
+    assert trainer.state.is_terminated == (n_iters > limit)

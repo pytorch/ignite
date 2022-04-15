@@ -78,34 +78,17 @@ def test_zero_div():
         loss.compute()
 
 
-def test_compute():
-    def _test(y_test_1, y_test_2):
-        loss = Loss(nll_loss)
+@pytest.mark.parametrize("criterion", [nll_loss, nn.NLLLoss()])
+def test_compute(criterion):
+    loss = Loss(criterion)
 
-        y_pred, y, expected_loss = y_test_1
-        loss.update((y_pred, y))
-        assert_almost_equal(loss.compute(), expected_loss)
+    y_pred, y, expected_loss = y_test_1()
+    loss.update((y_pred, y))
+    assert_almost_equal(loss.compute(), expected_loss)
 
-        y_pred, y, expected_loss = y_test_2
-        loss.update((y_pred, y))
-        assert_almost_equal(loss.compute(), expected_loss)  # average
-
-    _test(y_test_1(), y_test_2())
-
-
-def test_compute_on_criterion():
-    def _test(y_test_1, y_test_2):
-        loss = Loss(nn.NLLLoss())
-
-        y_pred, y, expected_loss = y_test_1
-        loss.update((y_pred, y))
-        assert_almost_equal(loss.compute(), expected_loss)
-
-        y_pred, y, expected_loss = y_test_2
-        loss.update((y_pred, y))
-        assert_almost_equal(loss.compute(), expected_loss)  # average
-
-    _test(y_test_1(), y_test_2())
+    y_pred, y, expected_loss = y_test_2()
+    loss.update((y_pred, y))
+    assert_almost_equal(loss.compute(), expected_loss)  # average
 
 
 def test_non_averaging_loss():

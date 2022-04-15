@@ -404,6 +404,12 @@ class WeightsHistHandler(BaseWeightsHistHandler):
     Args:
         model: model to log weights
         tag: common title for all produced plots. For example, "generator"
+        whitelist: specific weights to log. Should be list of model's submodules
+            or parameters names, or a callable which gets weight along with its name
+            and determines if it should be logged. Names should be fully-qualified.
+            For more information please refer to `PyTorch docs
+            <https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.get_submodule>`_.
+            If not given, all of model's weights are logged.
 
     Examples:
         .. code-block:: python
@@ -419,10 +425,70 @@ class WeightsHistHandler(BaseWeightsHistHandler):
                 event_name=Events.ITERATION_COMPLETED,
                 log_handler=WeightsHistHandler(model)
             )
+
+        .. code-block:: python
+
+            from ignite.contrib.handlers.tensorboard_logger import *
+
+            # Create a logger
+            tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
+
+            # Log weights of `fc` layer
+            weights = ['fc']
+
+            # Attach the logger to the trainer to log weights norm after each iteration
+            tb_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=WeightsHistHandler(model, whitelist=weights)
+            )
+
+        .. code-block:: python
+
+            from ignite.contrib.handlers.tensorboard_logger import *
+
+            # Create a logger
+            tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
+
+            # Log weights which name include 'conv'.
+            weight_selector = lambda name, p: 'conv' in name
+
+            # Attach the logger to the trainer to log weights norm after each iteration
+            tb_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=WeightsHistHandler(model, whitelist=weight_selector)
+            )
+
+    ..  versionchanged:: 0.5.0
+        optional argument `whitelist` added.
     """
 
-    def __init__(self, model: nn.Module, tag: Optional[str] = None):
+    def __init__(
+        self,
+        model: nn.Module,
+        tag: Optional[str] = None,
+        whitelist: Optional[Union[List[str], Callable[[str, nn.Parameter], bool]]] = None,
+    ):
         super(WeightsHistHandler, self).__init__(model, tag=tag)
+
+        weights = {}
+        if whitelist is None:
+
+            weights = dict(model.named_parameters())
+        elif callable(whitelist):
+
+            for n, p in model.named_parameters():
+                if whitelist(n, p):
+                    weights[n] = p
+        else:
+
+            for n, p in model.named_parameters():
+                for item in whitelist:
+                    if n.startswith(item):
+                        weights[n] = p
+
+        self.weights = weights.items()
 
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, TensorboardLogger):
@@ -430,9 +496,7 @@ class WeightsHistHandler(BaseWeightsHistHandler):
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = f"{self.tag}/" if self.tag else ""
-        for name, p in self.model.named_parameters():
-            if p.grad is None:
-                continue
+        for name, p in self.weights:
 
             name = name.replace(".", "/")
             logger.writer.add_histogram(
