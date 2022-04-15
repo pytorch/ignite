@@ -359,6 +359,12 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
         model: model to log weights
         reduction: function to reduce parameters into scalar
         tag: common title for all produced plots. For example, "generator"
+        whitelist: specific weights to log. Should be list of model's submodules
+            or parameters names, or a callable which gets weight along with its name
+            and determines if it should be logged. Names should be fully-qualified.
+            For more information please refer to `PyTorch docs
+            <https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.get_submodule>`_.
+            If not given, all of model's weights are logged.
 
     Examples:
         .. code-block:: python
@@ -374,6 +380,41 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
                 event_name=Events.ITERATION_COMPLETED,
                 log_handler=WeightsScalarHandler(model, reduction=torch.norm)
             )
+
+        .. code-block:: python
+
+            from ignite.contrib.handlers.tensorboard_logger import *
+
+            tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
+
+            # Log only `fc` weights
+            tb_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=WeightsScalarHandler(
+                    model,
+                    whitelist=['fc']
+                )
+            )
+
+        .. code-block:: python
+
+            from ignite.contrib.handlers.tensorboard_logger import *
+
+            tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
+
+            # Log weights which have `bias` in their names
+            def has_bias_in_name(n, p):
+                return 'bias' in n
+
+            tb_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=WeightsScalarHandler(model, whitelist=has_bias_in_name)
+            )
+
+    ..  versionchanged:: 0.5.0
+        optional argument `whitelist` added.
     """
 
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, Events]) -> None:
@@ -423,7 +464,6 @@ class WeightsHistHandler(BaseWeightsHandler):
 
             from ignite.contrib.handlers.tensorboard_logger import *
 
-            # Create a logger
             tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
 
             # Log weights of `fc` layer
@@ -440,7 +480,6 @@ class WeightsHistHandler(BaseWeightsHandler):
 
             from ignite.contrib.handlers.tensorboard_logger import *
 
-            # Create a logger
             tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
 
             # Log weights which name include 'conv'.
@@ -480,6 +519,12 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
         model: model to log weights
         reduction: function to reduce parameters into scalar
         tag: common title for all produced plots. For example, "generator"
+        whitelist: specific gradients to log. Should be list of model's submodules
+            or parameters names, or a callable which gets weight along with its name
+            and determines if its gradient should be logged. Names should be
+            fully-qualified. For more information please refer to `PyTorch docs
+            <https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.get_submodule>`_.
+            If not given, all of model's gradients are logged.
 
     Examples:
         .. code-block:: python
@@ -489,12 +534,48 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
             # Create a logger
             tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
 
-            # Attach the logger to the trainer to log model's weights norm after each iteration
+            # Attach the logger to the trainer to log model's gradients norm after each iteration
             tb_logger.attach(
                 trainer,
                 event_name=Events.ITERATION_COMPLETED,
                 log_handler=GradsScalarHandler(model, reduction=torch.norm)
             )
+
+        .. code-block:: python
+
+            from ignite.contrib.handlers.tensorboard_logger import *
+
+            tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
+
+            # Log gradient of `base`
+            tb_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=GradsScalarHandler(
+                    model,
+                    reduction=torch.norm,
+                    whitelist=['base']
+                )
+            )
+
+        .. code-block:: python
+
+            from ignite.contrib.handlers.tensorboard_logger import *
+
+            tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
+
+            # Log gradient of weights which belong to a `fc` layer
+            def is_in_fc_layer(n, p):
+                return 'fc' in n
+
+            tb_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=GradsScalarHandler(model, whitelist=is_in_fc_layer)
+            )
+
+    ..  versionchanged:: 0.5.0
+        optional argument `whitelist` added.
     """
 
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, Events]) -> None:
@@ -504,6 +585,8 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = f"{self.tag}/" if self.tag else ""
         for name, p in self.weights:
+            if p.grad is None:
+                continue
 
             name = name.replace(".", "/")
             logger.writer.add_scalar(
@@ -517,6 +600,12 @@ class GradsHistHandler(BaseWeightsHandler):
     Args:
         model: model to log weights
         tag: common title for all produced plots. For example, "generator"
+        whitelist: specific gradients to log. Should be list of model's submodules
+            or parameters names, or a callable which gets weight along with its name
+            and determines if its gradient should be logged. Names should be
+            fully-qualified. For more information please refer to `PyTorch docs
+            <https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.get_submodule>`_.
+            If not given, all of model's gradients are logged.
 
     Examples:
         .. code-block:: python
@@ -532,6 +621,38 @@ class GradsHistHandler(BaseWeightsHandler):
                 event_name=Events.ITERATION_COMPLETED,
                 log_handler=GradsHistHandler(model)
             )
+
+        .. code-block:: python
+
+            from ignite.contrib.handlers.tensorboard_logger import *
+
+            tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
+
+            # Log gradient of `fc.bias`
+            tb_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=GradsHistHandler(model, whitelist=['fc.bias'])
+            )
+
+        .. code-block:: python
+
+            from ignite.contrib.handlers.tensorboard_logger import *
+
+            tb_logger = TensorboardLogger(log_dir="experiments/tb_logs")
+
+            # Log gradient of weights which have shape (2, 1)
+            def has_shape_2_1(n, p):
+                return p.shape == (2,1)
+
+            tb_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=GradsHistHandler(model, whitelist=has_shape_2_1)
+            )
+
+    ..  versionchanged:: 0.5.0
+            optional argument `whitelist` added.
     """
 
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, Events]) -> None:
@@ -541,6 +662,8 @@ class GradsHistHandler(BaseWeightsHandler):
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = f"{self.tag}/" if self.tag else ""
         for name, p in self.weights:
+            if p.grad is None:
+                continue
 
             name = name.replace(".", "/")
             logger.writer.add_histogram(
