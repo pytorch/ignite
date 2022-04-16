@@ -3,7 +3,10 @@ __all__ = ["MeanAveragePrecision"]
 from typing import Callable, List, Optional, Sequence, Union
 
 import torch
-from torchvision.ops import box_iou
+try:
+    from torchvision.ops import box_iou
+except ImportError:
+    raise RuntimeError("This module requires torchvision to be installed.")
 
 from ignite.metrics.metric import Metric
 
@@ -18,7 +21,7 @@ class MeanAveragePrecision(Metric):
         if iou_thresholds is None:
             iou_thresholds = torch.range(0.5, 0.99, 0.05)
         self.iou_thresholds = torch.tensor(iou_thresholds, device=device)
-        self.rec_thresholds = torch.range(0, 1, 0.01, device=device)
+        self.rec_thresholds = torch.linspace(0, 1, 101, device=device)
         super(MeanAveragePrecision, self).__init__(output_transform=output_transform, device=device)
 
     def reset(self) -> None:
