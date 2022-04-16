@@ -1,8 +1,9 @@
 __all__ = ["MeanAveragePrecision"]
 
-from typing import Callable, List, Optional, Sequence, Union
+from typing import Callable, List, Optional, Tuple, Union
 
 import torch
+
 try:
     from torchvision.ops import box_iou
 except ImportError:
@@ -18,6 +19,19 @@ class MeanAveragePrecision(Metric):
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
+        r"""Calculate the mean average precision of overall categories.
+
+        Args:
+            iou_thresholds: list of IoU thresholds to be considered for computing Mean Average Precision.
+            output_transform: a callable that is used to transform the
+                :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
+                form expected by the metric. This can be useful if, for example, you have a multi-output model and
+                you want to compute the metric with respect to one of the outputs.
+                By default, metrics require the output as ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
+            device: specifies which device updates are accumulated on. Setting the
+                metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
+                non-blocking. By default, CPU.
+        """
         if iou_thresholds is None:
             iou_thresholds = torch.range(0.5, 0.99, 0.05)
         self.iou_thresholds = torch.tensor(iou_thresholds, device=device)
@@ -27,7 +41,14 @@ class MeanAveragePrecision(Metric):
     def reset(self) -> None:
         self._cm = {}
 
-    def update(self, output: Sequence[torch.Tensor]) -> None:
+    def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
+        """
+        Args:
+            output: a tuple of 2 tensors in which the first one is the truth and the second one is the prediction.
+                the shape of the output[0](truth) is (N, 5) where N stands for the number of ground truth boxes and 5 is
+                (x1, x2, y1, y2, class_number); the shape of the output[1](prediction) is (M, 6) where M stands for the
+                number of predicted boxes and 6 is (x1, x2, y1, y2, confidence, class_number).
+        """
         y, y_pred = output[0].detach(), output[1].detach()
         iou = box_iou(y_pred[:, :4], y[:, :4])
         for iou_thres in self.iou_thresholds:
