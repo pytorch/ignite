@@ -131,7 +131,6 @@ def _test_create_supervised_trainer_have_grad_after_iteration(
     amp_mode: str = None,
     scaler: Union[bool, "torch.cuda.amp.GradScaler"] = False,
 ):
-
     def _test(gradient_accumulation_steps):
         trainer, model = _default_create_supervised_trainer(
             gradient_accumulation_steps=gradient_accumulation_steps,
@@ -142,8 +141,8 @@ def _test_create_supervised_trainer_have_grad_after_iteration(
             scaler=scaler,
         )
 
-        x = torch.tensor([[1.], [1.], [1.], [1.], [1.]])
-        y = torch.tensor([[2.], [3.], [4.], [5.], [6.]])
+        x = torch.tensor([[1.0], [1.0], [1.0], [1.0], [1.0]])
+        y = torch.tensor([[2.0], [3.0], [4.0], [5.0], [6.0]])
         data = [(_x, _y) for _x, _y in zip(x, y)]
 
         @trainer.on(Events.ITERATION_COMPLETED)
@@ -154,7 +153,6 @@ def _test_create_supervised_trainer_have_grad_after_iteration(
 
     _test(1)
     _test(3)
-
 
 
 @pytest.mark.skipif(Version(torch.__version__) < Version("1.6.0"), reason="Skip if < 1.6.0")
@@ -469,7 +467,9 @@ def test_create_supervised_trainer_on_cuda_amp():
         gradient_accumulation_steps=3, model_device=model_device, trainer_device=trainer_device, amp_mode="amp"
     )
     _test_create_mocked_supervised_trainer(model_device=model_device, trainer_device=trainer_device, amp_mode="amp")
-    _test_create_supervised_trainer_have_grad_after_iteration(model_device=model_device, trainer_device=trainer_device, amp_mode="amp")
+    _test_create_supervised_trainer_have_grad_after_iteration(
+        model_device=model_device, trainer_device=trainer_device, amp_mode="amp"
+    )
 
 
 @pytest.mark.skipif(Version(torch.__version__) < Version("1.6.0"), reason="Skip if < 1.6.0")

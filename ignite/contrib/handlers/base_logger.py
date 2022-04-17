@@ -30,7 +30,7 @@ class BaseWeightsHandler(BaseHandler):
         self,
         model: nn.Module,
         tag: Optional[str] = None,
-        whitelist: Optional[Union[List[str], Callable[[str, nn.Parameter], bool]]] = None
+        whitelist: Optional[Union[List[str], Callable[[str, nn.Parameter], bool]]] = None,
     ):
 
         if not isinstance(model, torch.nn.Module):
@@ -183,7 +183,7 @@ class BaseWeightsScalarHandler(BaseWeightsHandler):
         model: nn.Module,
         reduction: Callable[[torch.Tensor], torch.Tensor] = torch.norm,
         tag: Optional[str] = None,
-        whitelist: Optional[Union[List[str], Callable[[str, nn.Parameter], bool]]] = None
+        whitelist: Optional[Union[List[str], Callable[[str, nn.Parameter], bool]]] = None,
     ):
 
         super(BaseWeightsScalarHandler, self).__init__(model, tag=tag, whitelist=whitelist)

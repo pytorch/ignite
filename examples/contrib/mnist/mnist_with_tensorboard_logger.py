@@ -135,38 +135,25 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_dir):
 
     tb_logger.attach(
         trainer,
-        log_handler=WeightsScalarHandler(
-            model,
-            whitelist=["fc1"]
-        ),
-        event_name=Events.ITERATION_COMPLETED(every=100)
-    )
-
-    def is_conv(n, _):
-            return "conv" in n
-
-    tb_logger.attach(
-        trainer,
-        log_handler=WeightsHistHandler(
-            model,
-            whitelist=is_conv
-        ),
+        log_handler=WeightsScalarHandler(model, whitelist=["fc1"]),
         event_name=Events.ITERATION_COMPLETED(every=100),
     )
 
-    tb_logger.attach(
-        trainer,
-        log_handler=GradsScalarHandler(model),
-        event_name=Events.ITERATION_COMPLETED(every=100)
-    )
+    def is_conv(n, _):
+        return "conv" in n
 
     tb_logger.attach(
         trainer,
-        log_handler=GradsHistHandler(
-            model,
-            whitelist=["fc2.weight"]
-        ),
-        event_name=Events.ITERATION_COMPLETED(every=100)
+        log_handler=WeightsHistHandler(model, whitelist=is_conv),
+        event_name=Events.ITERATION_COMPLETED(every=100),
+    )
+
+    tb_logger.attach(trainer, log_handler=GradsScalarHandler(model), event_name=Events.ITERATION_COMPLETED(every=100))
+
+    tb_logger.attach(
+        trainer,
+        log_handler=GradsHistHandler(model, whitelist=["fc2.weight"]),
+        event_name=Events.ITERATION_COMPLETED(every=100),
     )
 
     def score_function(engine):
