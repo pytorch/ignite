@@ -53,43 +53,41 @@ def test_multiclass_wrong_inputs():
         ConfusionMatrix.normalize(None, None)
 
 
-def test_multiclass_input():
-    def _test(y_pred, y, num_classes, cm, batch_size):
-        cm.reset()
-        if batch_size > 1:
-            n_iters = y.shape[0] // batch_size + 1
-            for i in range(n_iters):
-                idx = i * batch_size
-                cm.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-        else:
-            cm.update((y_pred, y))
+@pytest.fixture(params=[item for item in range(10)])
+def test_data(request):
+    return [
+        # Multiclass input data of shape (N, )
+        (torch.rand(10, 4), torch.randint(0, 4, size=(10,)).long(), 4, 1),
+        (torch.rand(4, 10), torch.randint(0, 10, size=(4,)).long(), 10, 1),
+        (torch.rand(4, 2), torch.randint(0, 2, size=(4,)).long(), 2, 1),
+        (torch.rand(100, 5), torch.randint(0, 5, size=(100,)).long(), 5, 16),
+        # Multiclass input data of shape (N, L)
+        (torch.rand(10, 4, 5), torch.randint(0, 4, size=(10, 5)).long(), 4, 1),
+        (torch.rand(4, 10, 5), torch.randint(0, 10, size=(4, 5)).long(), 10, 1),
+        (torch.rand(100, 9, 7), torch.randint(0, 9, size=(100, 7)).long(), 9, 16),
+        # Multiclass input data of shape (N, H, W, ...)
+        (torch.rand(4, 5, 12, 10), torch.randint(0, 5, size=(4, 12, 10)).long(), 5, 1),
+        (torch.rand(4, 5, 10, 12, 8), torch.randint(0, 5, size=(4, 10, 12, 8)).long(), 5, 1),
+        (torch.rand(100, 3, 8, 8), torch.randint(0, 3, size=(100, 8, 8)).long(), 3, 16),
+    ][request.param]
 
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        np_y = y.numpy().ravel()
-        assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
 
-    def get_test_cases():
-        return [
-            # Multiclass input data of shape (N, )
-            (torch.rand(10, 4), torch.randint(0, 4, size=(10,)).long(), 4, 1),
-            (torch.rand(4, 10), torch.randint(0, 10, size=(4,)).long(), 10, 1),
-            (torch.rand(4, 2), torch.randint(0, 2, size=(4,)).long(), 2, 1),
-            (torch.rand(100, 5), torch.randint(0, 5, size=(100,)).long(), 5, 16),
-            # Multiclass input data of shape (N, L)
-            (torch.rand(10, 4, 5), torch.randint(0, 4, size=(10, 5)).long(), 4, 1),
-            (torch.rand(4, 10, 5), torch.randint(0, 10, size=(4, 5)).long(), 10, 1),
-            (torch.rand(100, 9, 7), torch.randint(0, 9, size=(100, 7)).long(), 9, 16),
-            # Multiclass input data of shape (N, H, W, ...)
-            (torch.rand(4, 5, 12, 10), torch.randint(0, 5, size=(4, 12, 10)).long(), 5, 1),
-            (torch.rand(4, 5, 10, 12, 8), torch.randint(0, 5, size=(4, 10, 12, 8)).long(), 5, 1),
-            (torch.rand(100, 3, 8, 8), torch.randint(0, 3, size=(100, 8, 8)).long(), 3, 16),
-        ]
+@pytest.mark.parametrize("n_times", range(5))
+def test_multiclass_input(n_times, test_data):
+    y_pred, y, num_classes, batch_size = test_data
+    cm = ConfusionMatrix(num_classes=num_classes)
+    cm.reset()
+    if batch_size > 1:
+        n_iters = y.shape[0] // batch_size + 1
+        for i in range(n_iters):
+            idx = i * batch_size
+            cm.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+    else:
+        cm.update((y_pred, y))
 
-    # check multiple random inputs as random exact occurencies are rare
-    for _ in range(5):
-        for y_pred, y, num_classes, batch_size in get_test_cases():
-            cm = ConfusionMatrix(num_classes=num_classes)
-            _test(y_pred, y, num_classes, cm, batch_size)
+    np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
+    np_y = y.numpy().ravel()
+    assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
 
 
 def test_ignored_out_of_num_classes_indices():
