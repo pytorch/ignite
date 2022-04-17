@@ -289,7 +289,7 @@ def test_weights_scalar_handler(dummy_model_factory):
                 call(tag_prefix + "weights_norm/fc1/weight", 0.0, 5),
                 call(tag_prefix + "weights_norm/fc1/bias", 0.0, 5),
                 call(tag_prefix + "weights_norm/fc2/weight", 12.0, 5),
-                call(tag_prefix + "weights_norm/fc2/bias", math.sqrt(12.0), 5),
+                call(tag_prefix + "weights_norm/fc2/bias", pytest.approx(math.sqrt(12.0)), 5),
             ],
             any_order=True,
         )
@@ -336,7 +336,7 @@ def test_weights_scalar_handler_whitelist(dummy_model_factory):
     mock_logger.writer.add_scalar.assert_has_calls(
         [
             call("model/weights_norm/fc1/bias", 0.0, 5),
-            call("model/weights_norm/fc2/bias", math.sqrt(12.0), 5),
+            call("model/weights_norm/fc2/bias", pytest.approx(math.sqrt(12.0)), 5),
         ],
         any_order=True,
     )

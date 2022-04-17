@@ -415,13 +415,20 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
 
 class WeightsScalarHandler(BaseWeightsScalarHandler):
     """Helper handler to log model's weights as scalars.
-    Handler iterates over named parameters of the model, applies reduction function to each parameter
-    produce a scalar and then logs the scalar.
+    Handler, upon construction, iterates over named parameters of the model and keep
+    reference to ones permitted by `whitelist`. Then at every call, applies
+    reduction function to each parameter, produces a scalar and logs it.
 
     Args:
         model: model to log weights
         reduction: function to reduce parameters into scalar
         tag: common title for all produced plots. For example, "generator"
+        whitelist: specific weights to log. Should be list of model's submodules
+            or parameters names, or a callable which gets weight along with its name
+            and determines if it should be logged. Names should be fully-qualified.
+            For more information please refer to `PyTorch docs
+            <https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.get_submodule>`_.
+            If not given, all of model's weights are logged.
 
     Examples:
         .. code-block:: python
@@ -445,10 +452,54 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
                 event_name=Events.ITERATION_COMPLETED,
                 log_handler=WeightsScalarHandler(model, reduction=torch.norm)
             )
-    """
 
-    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
-        super(WeightsScalarHandler, self).__init__(model, reduction, tag=tag)
+        .. code-block:: python
+
+            from ignite.contrib.handlers.neptune_logger import *
+
+            npt_logger = NeptuneLogger(
+                api_token="ANONYMOUS",
+                project_name="shared/pytorch-ignite-integration",
+                experiment_name="cnn-mnist", # Optional,
+                params={"max_epochs": 10}, # Optional,
+                tags=["pytorch-ignite","minst"] # Optional
+            )
+
+            # Log only `fc` weights
+            npt_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=WeightsScalarHandler(
+                    model,
+                    whitelist=['fc']
+                )
+            )
+
+        .. code-block:: python
+
+            from ignite.contrib.handlers.neptune_logger import *
+
+            npt_logger = NeptuneLogger(
+                api_token="ANONYMOUS",
+                project_name="shared/pytorch-ignite-integration",
+                experiment_name="cnn-mnist", # Optional,
+                params={"max_epochs": 10}, # Optional,
+                tags=["pytorch-ignite","minst"] # Optional
+            )
+
+            # Log weights which have `bias` in their names
+            def has_bias_in_name(n, p):
+                return 'bias' in n
+
+            npt_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=WeightsScalarHandler(model, whitelist=has_bias_in_name)
+            )
+
+    ..  versionchanged:: 0.5.0
+        optional argument `whitelist` added.
+    """
 
     def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, Events]) -> None:
 
@@ -457,25 +508,34 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = f"{self.tag}/" if self.tag else ""
-        for name, p in self.model.named_parameters():
+        for name, p in self.weights:
             if p.grad is None:
                 continue
 
             name = name.replace(".", "/")
             logger.log_metric(
-                f"{tag_prefix}weights_{self.reduction.__name__}/{name}", x=global_step, y=self.reduction(p.data)
+                f"{tag_prefix}weights_{self.reduction.__name__}/{name}",
+                x=global_step,
+                y=self.reduction(p.data.detach()).cpu()
             )
 
 
 class GradsScalarHandler(BaseWeightsScalarHandler):
     """Helper handler to log model's gradients as scalars.
-    Handler iterates over the gradients of named parameters of the model, applies reduction function to each parameter
-    produce a scalar and then logs the scalar.
+    Handler, upon construction, iterates over named parameters of the model and keep
+    reference to ones permitted by the `whitelist`. Then at every call, applies
+    reduction function to each parameter's gradient, produces a scalar and logs it.
 
     Args:
         model: model to log weights
         reduction: function to reduce parameters into scalar
         tag: common title for all produced plots. For example, "generator"
+        whitelist: specific gradients to log. Should be list of model's submodules
+            or parameters names, or a callable which gets weight along with its name
+            and determines if its gradient should be logged. Names should be
+            fully-qualified. For more information please refer to `PyTorch docs
+            <https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.get_submodule>`_.
+            If not given, all of model's gradients are logged.
 
     Examples:
         .. code-block:: python
@@ -499,6 +559,54 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
                 event_name=Events.ITERATION_COMPLETED,
                 log_handler=GradsScalarHandler(model, reduction=torch.norm)
             )
+
+        .. code-block:: python
+
+            from ignite.contrib.handlers.neptune_logger import *
+
+            npt_logger = NeptuneLogger(
+                api_token="ANONYMOUS",
+                project_name="shared/pytorch-ignite-integration",
+                experiment_name="cnn-mnist", # Optional,
+                params={"max_epochs": 10}, # Optional,
+                tags=["pytorch-ignite","minst"] # Optional
+            )
+
+            # Log gradient of `base`
+            npt_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=GradsScalarHandler(
+                    model,
+                    reduction=torch.norm,
+                    whitelist=['base']
+                )
+            )
+
+        .. code-block:: python
+
+            from ignite.contrib.handlers.neptune_logger import *
+
+            npt_logger = NeptuneLogger(
+                api_token="ANONYMOUS",
+                project_name="shared/pytorch-ignite-integration",
+                experiment_name="cnn-mnist", # Optional,
+                params={"max_epochs": 10}, # Optional,
+                tags=["pytorch-ignite","minst"] # Optional
+            )
+
+            # Log gradient of weights which belong to a `fc` layer
+            def is_in_fc_layer(n, p):
+                return 'fc' in n
+
+            npt_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=GradsScalarHandler(model, whitelist=is_in_fc_layer)
+            )
+
+    ..  versionchanged:: 0.5.0
+        optional argument `whitelist` added.
     """
 
     def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
@@ -516,7 +624,9 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
 
             name = name.replace(".", "/")
             logger.log_metric(
-                f"{tag_prefix}grads_{self.reduction.__name__}/{name}", x=global_step, y=self.reduction(p.grad)
+                f"{tag_prefix}grads_{self.reduction.__name__}/{name}",
+                x=global_step,
+                y=self.reduction(p.grad).cpu()
             )
 
 

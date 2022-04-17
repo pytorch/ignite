@@ -7,8 +7,8 @@ import torch
 
 @pytest.fixture()
 def norm_mock():
-    def norm(x):
-        return np.linalg.norm(x)
+    def norm(x: torch.Tensor):
+        return x.norm()
 
     norm_mock = Mock(side_effect=norm, spec=norm)
     norm_mock.configure_mock(**{"__name__": "norm"})

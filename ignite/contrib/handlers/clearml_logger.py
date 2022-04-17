@@ -395,8 +395,9 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
 
 class WeightsScalarHandler(BaseWeightsScalarHandler):
     """Helper handler to log model's weights as scalars.
-    Handler iterates over named parameters of the model, applies reduction function to each parameter
-    produce a scalar and then logs the scalar.
+    Handler, upon construction, iterates over named parameters of the model and keep
+    reference to ones permitted by `whitelist`. Then at every call, applies
+    reduction function to each parameter, produces a scalar and logs it.
 
     Args:
         model: model to log weights
@@ -483,7 +484,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
             logger.clearml_logger.report_scalar(
                 title=f"{tag_prefix}weights_{self.reduction.__name__}/{title_name}",
                 series=series_name,
-                value=self.reduction(p.data),
+                value=self.reduction(p.data.detach()).cpu(),
                 iteration=global_step,
             )
 
@@ -576,14 +577,15 @@ class WeightsHistHandler(BaseWeightsHandler):
                 title=f"{tag_prefix}weights_{title_name}",
                 series=series_name,
                 step=global_step,
-                hist_data=p.grad.detach().cpu().numpy(),
+                hist_data=p.data.detach().cpu().numpy(),
             )
 
 
 class GradsScalarHandler(BaseWeightsScalarHandler):
     """Helper handler to log model's gradients as scalars.
-    Handler iterates over the gradients of named parameters of the model, applies reduction function to each parameter
-    produce a scalar and then logs the scalar.
+    Handler, upon construction, iterates over named parameters of the model and keep
+    reference to ones permitted by the `whitelist`. Then at every call, applies
+    reduction function to each parameter's gradient, produces a scalar and logs it.
 
     Args:
         model: model to log weights
@@ -672,7 +674,7 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
             logger.clearml_logger.report_scalar(
                 title=f"{tag_prefix}grads_{self.reduction.__name__}/{title_name}",
                 series=series_name,
-                value=self.reduction(p.data),
+                value=self.reduction(p.grad).cpu(),
                 iteration=global_step,
             )
 

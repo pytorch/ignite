@@ -352,8 +352,9 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
 
 class WeightsScalarHandler(BaseWeightsScalarHandler):
     """Helper handler to log model's weights as scalars.
-    Handler iterates over named parameters of the model, applies reduction function to each parameter
-    produce a scalar and then logs the scalar.
+    Handler, upon construction, iterates over named parameters of the model and keep
+    reference to ones permitted by `whitelist`. Then at every call, applies
+    reduction function to each parameter, produces a scalar and logs it.
 
     Args:
         model: model to log weights
@@ -428,7 +429,9 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
 
             name = name.replace(".", "/")
             logger.writer.add_scalar(
-                f"{tag_prefix}weights_{self.reduction.__name__}/{name}", self.reduction(p.data), global_step
+                f"{tag_prefix}weights_{self.reduction.__name__}/{name}",
+                self.reduction(p.data.detach()).item(),
+                global_step
             )
 
 
@@ -512,8 +515,9 @@ class WeightsHistHandler(BaseWeightsHandler):
 
 class GradsScalarHandler(BaseWeightsScalarHandler):
     """Helper handler to log model's gradients as scalars.
-    Handler iterates over the gradients of named parameters of the model, applies reduction function to each parameter
-    produce a scalar and then logs the scalar.
+    Handler, upon construction, iterates over named parameters of the model and keep
+    reference to ones permitted by the `whitelist`. Then at every call, applies
+    reduction function to each parameter's gradient, produces a scalar and logs it.
 
     Args:
         model: model to log weights
@@ -590,7 +594,9 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
 
             name = name.replace(".", "/")
             logger.writer.add_scalar(
-                f"{tag_prefix}grads_{self.reduction.__name__}/{name}", self.reduction(p.grad), global_step
+                f"{tag_prefix}grads_{self.reduction.__name__}/{name}",
+                self.reduction(p.grad).item(),
+                global_step
             )
 
 
@@ -667,5 +673,7 @@ class GradsHistHandler(BaseWeightsHandler):
 
             name = name.replace(".", "/")
             logger.writer.add_histogram(
-                tag=f"{tag_prefix}grads/{name}", values=p.grad.detach().cpu().numpy(), global_step=global_step
+                tag=f"{tag_prefix}grads/{name}",
+                values=p.grad.detach().cpu().numpy(),
+                global_step=global_step
             )
