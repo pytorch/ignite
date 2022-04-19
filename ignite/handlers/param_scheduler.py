@@ -831,6 +831,9 @@ class LRScheduler(ParamScheduler):
             0.001...
 
     .. versionadded:: 0.4.5
+
+    ..  versionchanged:: 0.5.0
+        added `use_legacy` argument
     """
 
     def __init__(
