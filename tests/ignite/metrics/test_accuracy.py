@@ -62,7 +62,7 @@ def test_binary_wrong_inputs():
         acc.update((torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10, 5, 6)).long()))
 
 
-@pytest.fixture(params=[item for item in range(12)])
+@pytest.fixture(params=range(12))
 def test_data_binary(request):
     return [
         # Binary accuracy on input of shape (N, 1) or (N, )
@@ -124,7 +124,7 @@ def test_multiclass_wrong_inputs():
         acc.update((torch.rand(10), torch.randint(0, 5, size=(10, 5, 6)).long()))
 
 
-@pytest.fixture(params=[item for item in range(11)])
+@pytest.fixture(params=range(11))
 def test_data_multiclass(request):
     return [
         # Multiclass input data of shape (N, ) and (N, C)
@@ -196,7 +196,7 @@ def test_multilabel_wrong_inputs():
         acc.update((torch.randint(0, 2, size=(10, 1)), torch.randint(0, 2, size=(10, 1)).long()))
 
 
-@pytest.fixture(params=[item for item in range(12)])
+@pytest.fixture(params=range(12))
 def test_data_multilabel(request):
     return [
         # Multilabel input data of shape (N, C) and (N, C)
