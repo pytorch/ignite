@@ -13,8 +13,8 @@ def precision_recall_curve_compute_fn(y_preds: torch.Tensor, y_targets: torch.Te
     except ImportError:
         raise RuntimeError("This contrib module requires sklearn to be installed.")
 
-    y_true = y_targets.numpy()
-    y_pred = y_preds.numpy()
+    y_true = y_targets.cpu().numpy()
+    y_pred = y_preds.cpu().numpy()
     return precision_recall_curve(y_true, y_pred)
 
 
@@ -86,7 +86,7 @@ class PrecisionRecallCurve(EpochMetric):
 
     def compute(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         if len(self._predictions) < 1 or len(self._targets) < 1:
-            raise NotComputableError("EpochMetric must have at least one example before it can be computed.")
+            raise NotComputableError("PrecisionRecallCurve must have at least one example before it can be computed.")
 
         _prediction_tensor = torch.cat(self._predictions, dim=0)
         _target_tensor = torch.cat(self._targets, dim=0)
@@ -101,11 +101,11 @@ class PrecisionRecallCurve(EpochMetric):
         if idist.get_rank() == 0:
             # Run compute_fn on zero rank only
             precision, recall, thresholds = self.compute_fn(_prediction_tensor, _target_tensor)
-            precision = torch.Tensor(precision)
-            recall = torch.Tensor(recall)
+            precision = torch.tensor(precision)
+            recall = torch.tensor(recall)
             # thresholds can have negative strides, not compatible with torch tensors
             # https://discuss.pytorch.org/t/negative-strides-in-tensor-error/134287/2
-            thresholds = torch.Tensor(thresholds.copy())
+            thresholds = torch.tensor(thresholds.copy())
         else:
             precision, recall, thresholds = None, None, None
 

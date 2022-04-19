@@ -854,8 +854,8 @@ class LRScheduler(ParamScheduler):
         )
         if use_legacy:
             warnings.warn(
-                "Please make sure to attach scheduler to Events.ITERATION_COMPLETED"
-                "instead of Events.ITERATION_STARTED to make sure to use"
+                "Please make sure to attach scheduler to Events.ITERATION_COMPLETED "
+                "instead of Events.ITERATION_STARTED to make sure to use "
                 "the first lr value from the optimizer, otherwise it is will be skipped"
             )
             self.lr_scheduler.last_epoch += 1  # type: ignore[attr-defined]
@@ -863,7 +863,6 @@ class LRScheduler(ParamScheduler):
         self._state_attrs += ["lr_scheduler"]
 
     def __call__(self, engine: Optional[Engine], name: Optional[str] = None) -> None:
-        print("- LRScheduler updates LR")
         super(LRScheduler, self).__call__(engine, name)
         self.lr_scheduler.last_epoch += 1  # type: ignore[attr-defined]
 
@@ -1017,38 +1016,27 @@ def create_lr_scheduler_with_warmup(
 
         milestones_values = [(0, warmup_start_value), (warmup_duration - 1, param_group_warmup_end_value)]
 
-        # if isinstance(lr_scheduler, _LRScheduler):
-        #     init_lr = param_group["lr"]
-        #     # lr_scheduler = LRScheduler(lr_scheduler, save_history=save_history, keep_first_lr=True)
-        #     lr_scheduler = LRScheduler(lr_scheduler, save_history=save_history)
-        # else:
-        #     init_lr = lr_scheduler.get_param()
-
-        # if init_lr == param_group_warmup_end_value:
-        #     if warmup_duration > 2:
-        #         d = (param_group_warmup_end_value - warmup_start_value) / (warmup_duration - 1)
-        #         milestones_values[-1] = (warmup_duration - 2, param_group_warmup_end_value - d)
-        #     else:
-        #         milestones_values.pop(-1)
-
         if isinstance(lr_scheduler, _LRScheduler):
             init_lr = param_group["lr"]
             if init_lr != param_group_warmup_end_value:
                 milestones_values.append((warmup_duration, init_lr))
 
+            # We need to advance torch lr_scheduler to avoid duplicated lr value
+            # given by PiecewiseLinear and LRScheduler.
+            # We suggest to attach output scheduler on ITERATION_STARTED but
+            # torch lr_scheduler works with ITERATION_COMPLETED
+            # See also https://github.com/pytorch/ignite/pull/2496#issuecomment-1065984440
+            lr_scheduler.last_epoch += 1
             lr_scheduler = LRScheduler(lr_scheduler, save_history=save_history)
-            # 
-            lr_scheduler.lr_scheduler.last_epoch += 1
+        else:
+            init_lr = lr_scheduler.get_param()
+            if init_lr == param_group_warmup_end_value:
+                if warmup_duration > 2:
+                    d = (param_group_warmup_end_value - warmup_start_value) / (warmup_duration - 1)
+                    milestones_values[-1] = (warmup_duration - 2, param_group_warmup_end_value - d)
+                else:
+                    milestones_values.pop(-1)
 
-        # init_lr = lr_scheduler.get_param()
-        # if init_lr == param_group_warmup_end_value:
-        #     if warmup_duration > 2:
-        #         d = (param_group_warmup_end_value - warmup_start_value) / (warmup_duration - 1)
-        #         milestones_values[-1] = (warmup_duration - 2, param_group_warmup_end_value - d)
-        #     else:
-        #         milestones_values.pop(-1)
-
-        print("milestones_values:", milestones_values, lr_scheduler.get_param(), lr_scheduler.get_param())
         warmup_schedulers.append(
             PiecewiseLinear(
                 lr_scheduler.optimizer,
@@ -1244,11 +1232,6 @@ class PiecewiseLinear(ParamScheduler):
     def get_param(self) -> float:
         start_index, end_index, start_value, end_value = self._get_start_end()
         return start_value + (end_value - start_value) * (self.event_index - start_index) / (end_index - start_index)
-
-
-    def __call__(self, engine: Optional[Engine], name: Optional[str] = None) -> None:
-        print("- PiecewiseLinear updates LR")
-        return super().__call__(engine, name)
 
 
 class ParamGroupScheduler:
