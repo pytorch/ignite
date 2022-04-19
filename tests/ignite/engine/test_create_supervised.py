@@ -130,31 +130,27 @@ def _test_create_supervised_trainer_have_grad_after_iteration(
     trace: bool = False,
     amp_mode: str = None,
     scaler: Union[bool, "torch.cuda.amp.GradScaler"] = False,
+    gradient_accumulation_steps: int = 1,
 ):
 
-    def _test(gradient_accumulation_steps):
-        trainer, model = _default_create_supervised_trainer(
-            gradient_accumulation_steps=gradient_accumulation_steps,
-            model_device=model_device,
-            trainer_device=trainer_device,
-            trace=trace,
-            amp_mode=amp_mode,
-            scaler=scaler,
-        )
+    trainer, model = _default_create_supervised_trainer(
+        gradient_accumulation_steps=gradient_accumulation_steps,
+        model_device=model_device,
+        trainer_device=trainer_device,
+        trace=trace,
+        amp_mode=amp_mode,
+        scaler=scaler,
+    )
 
-        x = torch.tensor([[1.], [1.], [1.], [1.], [1.]])
-        y = torch.tensor([[2.], [3.], [4.], [5.], [6.]])
-        data = [(_x, _y) for _x, _y in zip(x, y)]
+    x = torch.tensor([[1.0], [1.0], [1.0], [1.0], [1.0]])
+    y = torch.tensor([[2.0], [3.0], [4.0], [5.0], [6.0]])
+    data = [(_x, _y) for _x, _y in zip(x, y)]
 
-        @trainer.on(Events.ITERATION_COMPLETED)
-        def _():
-            assert model.weight.data.grad != 0
+    @trainer.on(Events.ITERATION_COMPLETED)
+    def _():
+        assert model.weight.data.grad != 0
 
-        trainer.run(data)
-
-    _test(1)
-    _test(3)
-
+    trainer.run(data)
 
 
 @pytest.mark.skipif(Version(torch.__version__) < Version("1.6.0"), reason="Skip if < 1.6.0")
@@ -373,28 +369,39 @@ def _test_create_evaluation_step(
     assert output_transform_mock.called
 
 
-def test_create_supervised_trainer():
+@pytest.mark.parametrize("gradient_accumulation_steps", [1, 3])
+def test_create_supervised_trainer(gradient_accumulation_steps):
     _test_create_supervised_trainer_wrong_accumulation()
-    _test_create_supervised_trainer(gradient_accumulation_steps=1)
-    _test_create_supervised_trainer(gradient_accumulation_steps=3)
+    _test_create_supervised_trainer(gradient_accumulation_steps=gradient_accumulation_steps)
+    _test_create_supervised_trainer(gradient_accumulation_steps=gradient_accumulation_steps)
     _test_create_mocked_supervised_trainer()
-    _test_create_supervised_trainer_have_grad_after_iteration()
+    _test_create_supervised_trainer_have_grad_after_iteration(gradient_accumulation_steps=gradient_accumulation_steps)
 
 
-def test_create_supervised_trainer_with_cpu():
+@pytest.mark.parametrize("gradient_accumulation_steps", [1, 3])
+def test_create_supervised_trainer_with_cpu(gradient_accumulation_steps):
     _test_create_supervised_trainer_wrong_accumulation(trainer_device="cpu")
-    _test_create_supervised_trainer(gradient_accumulation_steps=1, trainer_device="cpu")
-    _test_create_supervised_trainer(gradient_accumulation_steps=3, trainer_device="cpu")
+    _test_create_supervised_trainer(gradient_accumulation_steps=gradient_accumulation_steps, trainer_device="cpu")
+    _test_create_supervised_trainer(gradient_accumulation_steps=gradient_accumulation_steps, trainer_device="cpu")
     _test_create_mocked_supervised_trainer(trainer_device="cpu")
-    _test_create_supervised_trainer_have_grad_after_iteration(trainer_device="cpu")
+    _test_create_supervised_trainer_have_grad_after_iteration(
+        trainer_device="cpu", gradient_accumulation_steps=gradient_accumulation_steps
+    )
 
 
-def test_create_supervised_trainer_traced_with_cpu():
+@pytest.mark.parametrize("gradient_accumulation_steps", [1, 3])
+def test_create_supervised_trainer_traced_with_cpu(gradient_accumulation_steps):
     _test_create_supervised_trainer_wrong_accumulation(trainer_device="cpu")
-    _test_create_supervised_trainer(gradient_accumulation_steps=1, trainer_device="cpu", trace=True)
-    _test_create_supervised_trainer(gradient_accumulation_steps=3, trainer_device="cpu", trace=True)
+    _test_create_supervised_trainer(
+        gradient_accumulation_steps=gradient_accumulation_steps, trainer_device="cpu", trace=True
+    )
+    _test_create_supervised_trainer(
+        gradient_accumulation_steps=gradient_accumulation_steps, trainer_device="cpu", trace=True
+    )
     _test_create_mocked_supervised_trainer(trainer_device="cpu", trace=True)
-    _test_create_supervised_trainer_have_grad_after_iteration(trainer_device="cpu", trace=True)
+    _test_create_supervised_trainer_have_grad_after_iteration(
+        trainer_device="cpu", trace=True, gradient_accumulation_steps=gradient_accumulation_steps
+    )
 
 
 @pytest.mark.skipif(find_spec("apex"), reason="Skip if APEX")
@@ -441,53 +448,75 @@ def test_create_supervised_trainer_scaler_not_amp():
         _test_create_supervised_trainer(amp_mode="apex", scaler=scaler)
 
 
+@pytest.mark.parametrize("gradient_accumulation_steps", [1, 3])
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_create_supervised_trainer_on_cuda():
+def test_create_supervised_trainer_on_cuda(gradient_accumulation_steps):
     model_device = trainer_device = "cuda"
     _test_create_supervised_trainer_wrong_accumulation(model_device=model_device, trainer_device=trainer_device)
     _test_create_supervised_trainer(
-        gradient_accumulation_steps=1, model_device=model_device, trainer_device=trainer_device
+        gradient_accumulation_steps=gradient_accumulation_steps,
+        model_device=model_device,
+        trainer_device=trainer_device,
     )
     _test_create_supervised_trainer(
-        gradient_accumulation_steps=3, model_device=model_device, trainer_device=trainer_device
+        gradient_accumulation_steps=gradient_accumulation_steps,
+        model_device=model_device,
+        trainer_device=trainer_device,
     )
     _test_create_mocked_supervised_trainer(model_device=model_device, trainer_device=trainer_device)
-    _test_create_supervised_trainer_have_grad_after_iteration(model_device=model_device, trainer_device=trainer_device)
+    _test_create_supervised_trainer_have_grad_after_iteration(
+        model_device=model_device,
+        trainer_device=trainer_device,
+        gradient_accumulation_steps=gradient_accumulation_steps,
+    )
 
 
 @pytest.mark.skipif(Version(torch.__version__) < Version("1.6.0"), reason="Skip if < 1.6.0")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_create_supervised_trainer_on_cuda_amp():
+@pytest.mark.parametrize("gradient_accumulation_steps", [1, 3])
+def test_create_supervised_trainer_on_cuda_amp(gradient_accumulation_steps):
     model_device = trainer_device = "cuda"
     _test_create_supervised_trainer_wrong_accumulation(
         model_device=model_device, trainer_device=trainer_device, amp_mode="amp"
     )
     _test_create_supervised_trainer(
-        gradient_accumulation_steps=1, model_device=model_device, trainer_device=trainer_device, amp_mode="amp"
+        gradient_accumulation_steps=gradient_accumulation_steps,
+        model_device=model_device,
+        trainer_device=trainer_device,
+        amp_mode="amp",
     )
     _test_create_supervised_trainer(
-        gradient_accumulation_steps=3, model_device=model_device, trainer_device=trainer_device, amp_mode="amp"
+        gradient_accumulation_steps=gradient_accumulation_steps,
+        model_device=model_device,
+        trainer_device=trainer_device,
+        amp_mode="amp",
     )
     _test_create_mocked_supervised_trainer(model_device=model_device, trainer_device=trainer_device, amp_mode="amp")
-    _test_create_supervised_trainer_have_grad_after_iteration(model_device=model_device, trainer_device=trainer_device, amp_mode="amp")
+    _test_create_supervised_trainer_have_grad_after_iteration(
+        model_device=model_device,
+        trainer_device=trainer_device,
+        amp_mode="amp",
+        gradient_accumulation_steps=gradient_accumulation_steps,
+    )
 
 
 @pytest.mark.skipif(Version(torch.__version__) < Version("1.6.0"), reason="Skip if < 1.6.0")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_create_supervised_trainer_on_cuda_amp_scaler():
+@pytest.mark.parametrize("gradient_accumulation_steps", [1, 3])
+def test_create_supervised_trainer_on_cuda_amp_scaler(gradient_accumulation_steps):
     model_device = trainer_device = "cuda"
     _test_create_supervised_trainer_wrong_accumulation(
         model_device=model_device, trainer_device=trainer_device, amp_mode="amp"
     )
     _test_create_supervised_trainer(
-        gradient_accumulation_steps=1,
+        gradient_accumulation_steps=gradient_accumulation_steps,
         model_device=model_device,
         trainer_device=trainer_device,
         amp_mode="amp",
         scaler=True,
     )
     _test_create_supervised_trainer(
-        gradient_accumulation_steps=3,
+        gradient_accumulation_steps=gradient_accumulation_steps,
         model_device=model_device,
         trainer_device=trainer_device,
         amp_mode="amp",
@@ -498,14 +527,14 @@ def test_create_supervised_trainer_on_cuda_amp_scaler():
     )
     scaler = torch.cuda.amp.GradScaler(enabled=torch.cuda.is_available())
     _test_create_supervised_trainer(
-        gradient_accumulation_steps=1,
+        gradient_accumulation_steps=gradient_accumulation_steps,
         model_device=model_device,
         trainer_device=trainer_device,
         amp_mode="amp",
         scaler=scaler,
     )
     _test_create_supervised_trainer(
-        gradient_accumulation_steps=3,
+        gradient_accumulation_steps=gradient_accumulation_steps,
         model_device=model_device,
         trainer_device=trainer_device,
         amp_mode="amp",
@@ -515,27 +544,41 @@ def test_create_supervised_trainer_on_cuda_amp_scaler():
         model_device=model_device, trainer_device=trainer_device, amp_mode="amp", scaler=scaler
     )
     _test_create_supervised_trainer_have_grad_after_iteration(
-        model_device=model_device, trainer_device=trainer_device, amp_mode="amp", scaler=scaler
+        model_device=model_device,
+        trainer_device=trainer_device,
+        amp_mode="amp",
+        scaler=scaler,
+        gradient_accumulation_steps=gradient_accumulation_steps,
     )
 
 
 # @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 # @pytest.mark.skipif(not find_spec("apex"), reason="Skip if no APEX")
 @pytest.mark.skip(reason="Temporarily disabled, as it fails because of an issue from apex side")
-def test_create_supervised_trainer_on_cuda_apex():
+@pytest.mark.parametrize("gradient_accumulation_steps", [1, 3])
+def test_create_supervised_trainer_on_cuda_apex(gradient_accumulation_steps):
     model_device = trainer_device = "cuda"
     _test_create_supervised_trainer_wrong_accumulation(
         model_device=model_device, trainer_device=trainer_device, amp_mode="apex"
     )
     _test_create_supervised_trainer(
-        gradient_accumulation_steps=1, model_device=model_device, trainer_device=trainer_device, amp_mode="apex"
+        gradient_accumulation_steps=gradient_accumulation_steps,
+        model_device=model_device,
+        trainer_device=trainer_device,
+        amp_mode="apex",
     )
     _test_create_supervised_trainer(
-        gradient_accumulation_steps=3, model_device=model_device, trainer_device=trainer_device, amp_mode="apex"
+        gradient_accumulation_steps=gradient_accumulation_steps,
+        model_device=model_device,
+        trainer_device=trainer_device,
+        amp_mode="apex",
     )
     _test_create_mocked_supervised_trainer(model_device=model_device, trainer_device=trainer_device, amp_mode="apex")
     _test_create_supervised_trainer_have_grad_after_iteration(
-        model_device=model_device, trainer_device=trainer_device, amp_mode="apex"
+        model_device=model_device,
+        trainer_device=trainer_device,
+        amp_mode="apex",
+        gradient_accumulation_steps=gradient_accumulation_steps,
     )
 
 
@@ -556,17 +599,26 @@ def test_create_supervised_trainer_on_tpu_no_xla():
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_create_supervised_trainer_on_tpu():
+@pytest.mark.parametrize("gradient_accumulation_steps", [1, 3])
+def test_create_supervised_trainer_on_tpu(gradient_accumulation_steps):
     model_device = trainer_device = "xla"
     _test_create_supervised_trainer_wrong_accumulation(model_device=model_device, trainer_device=trainer_device)
     _test_create_supervised_trainer(
-        gradient_accumulation_steps=1, model_device=model_device, trainer_device=trainer_device
+        gradient_accumulation_steps=gradient_accumulation_steps,
+        model_device=model_device,
+        trainer_device=trainer_device,
     )
     _test_create_supervised_trainer(
-        gradient_accumulation_steps=3, model_device=model_device, trainer_device=trainer_device
+        gradient_accumulation_steps=gradient_accumulation_steps,
+        model_device=model_device,
+        trainer_device=trainer_device,
     )
     _test_create_mocked_supervised_trainer(model_device=model_device, trainer_device=trainer_device)
-    _test_create_supervised_trainer_have_grad_after_iteration(model_device=model_device, trainer_device=trainer_device)
+    _test_create_supervised_trainer_have_grad_after_iteration(
+        model_device=model_device,
+        trainer_device=trainer_device,
+        gradient_accumulation_steps=gradient_accumulation_steps,
+    )
 
 
 @pytest.mark.tpu
@@ -578,12 +630,15 @@ def test_create_supervised_trainer_on_tpu_amp():
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_create_supervised_trainer_on_cuda_with_model_on_cpu():
+@pytest.mark.parametrize("gradient_accumulation_steps", [1, 3])
+def test_create_supervised_trainer_on_cuda_with_model_on_cpu(gradient_accumulation_steps):
     _test_create_supervised_trainer_wrong_accumulation(trainer_device="cuda")
-    _test_create_supervised_trainer(gradient_accumulation_steps=1, trainer_device="cuda")
-    _test_create_supervised_trainer(gradient_accumulation_steps=3, trainer_device="cuda")
+    _test_create_supervised_trainer(gradient_accumulation_steps=gradient_accumulation_steps, trainer_device="cuda")
+    _test_create_supervised_trainer(gradient_accumulation_steps=gradient_accumulation_steps, trainer_device="cuda")
     _test_create_mocked_supervised_trainer(trainer_device="cuda")
-    _test_create_supervised_trainer_have_grad_after_iteration(trainer_device="cuda")
+    _test_create_supervised_trainer_have_grad_after_iteration(
+        trainer_device="cuda", gradient_accumulation_steps=gradient_accumulation_steps
+    )
 
 
 def test_create_supervised_evaluator():
