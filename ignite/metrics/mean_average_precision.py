@@ -1,15 +1,13 @@
 __all__ = ["MeanAveragePrecision"]
 
+from collections import defaultdict
 from typing import Callable, List, Optional, Tuple, Union
 
 import torch
 
-try:
-    from torchvision.ops import box_iou
-except ImportError:
-    raise RuntimeError("This module requires torchvision to be installed.")
-
 from ignite.metrics.metric import Metric
+
+box_iou = None
 
 
 class MeanAveragePrecision(Metric):
@@ -32,6 +30,12 @@ class MeanAveragePrecision(Metric):
                 metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
                 non-blocking. By default, CPU.
         """
+        global box_iou
+        try:
+            from torchvision.ops import box_iou
+        except ImportError:
+            raise RuntimeError("This module requires torchvision to be installed.")
+
         if iou_thresholds is None:
             iou_thresholds = torch.range(0.5, 0.99, 0.05)
         self.iou_thresholds = torch.tensor(iou_thresholds, device=device)
@@ -39,7 +43,7 @@ class MeanAveragePrecision(Metric):
         super(MeanAveragePrecision, self).__init__(output_transform=output_transform, device=device)
 
     def reset(self) -> None:
-        self._cm = {}
+        self._cm = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: [])))
 
     def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         """
@@ -50,49 +54,63 @@ class MeanAveragePrecision(Metric):
                 number of predicted boxes and 6 is (x1, x2, y1, y2, confidence, class_number).
         """
         y, y_pred = output[0].detach(), output[1].detach()
+
+        assert y.shape[1] == 5, f"Provided y with a wrong shape, expected (N, 5), got {y.shape}"
+        assert y_pred.shape[1] == 6, f"Provided y_hat with a wrong shape, expected (N, 6), got {y.shape}"
+
         iou = box_iou(y_pred[:, :4], y[:, :4])
         for iou_thres in self.iou_thresholds:
             iou_thres_item = iou_thres.item()
             valid_iou = torch.clone(iou)
             valid_iou[iou <= iou_thres] = 0
-            categories = y[:, 4].unique().tolist()
+            categories = torch.cat((y[:, 4], y_pred[:, 5])).unique().tolist()
 
             for category in categories:
-                if category not in self._cm:
-                    self._cm[category] = {}
-                if iou_thres_item not in self._cm[category]:
-                    self._cm[category][iou_thres_item] = {
-                        "tp": [],
-                        "fp": [],
-                        "gt": [],
-                        "score": [],
-                    }
                 class_index_gt = y[:, 4] == category
                 class_index_dt = y_pred[:, 5] == category
 
                 class_iou = valid_iou[:, class_index_gt][class_index_dt, :]
-                class_iou[~(class_iou == class_iou.max(dim=0)[0])] = 0
-                class_iou[~(class_iou.T == class_iou.max(dim=1)[0]).T] = 0
 
-                n_gt = class_index_gt.sum()
-                tp = (class_iou != 0).any(dim=1)
-                fp = (class_iou == 0).all(dim=1)
+                if class_iou.shape[1] == 0:
+                    # no ground truth of the category
+                    n_gt = 0
+                    tp = torch.tensor([False] * class_iou.shape[0], device=self._device)
+                    fp = torch.tensor([True] * class_iou.shape[0], device=self._device)
+                    score = y_pred[class_index_dt, 4]
+                elif class_iou.shape[0] == 0:
+                    # no predictions of the category
+                    n_gt = class_iou.shape[1]
+                    tp = torch.tensor([], device=self._device).bool()
+                    fp = torch.tensor([], device=self._device).bool()
+                    score = torch.tensor([], device=self._device)
+                else:
+                    class_iou[~(class_iou == class_iou.max(dim=0)[0])] = 0
+                    class_iou[~(class_iou.T == class_iou.max(dim=1)[0]).T] = 0
+
+                    n_gt = class_iou.shape[1]
+                    tp = (class_iou != 0).any(dim=1)
+                    fp = (class_iou == 0).all(dim=1)
+                    score = y_pred[class_index_dt, 4]
 
                 self._cm[category][iou_thres_item]["tp"].append(tp)
                 self._cm[category][iou_thres_item]["fp"].append(fp)
                 self._cm[category][iou_thres_item]["gt"].append(n_gt)
-                self._cm[category][iou_thres_item]["score"].append(y_pred[class_index_dt, 4])
+                self._cm[category][iou_thres_item]["score"].append(score)
 
     def compute(self):
         results = []
         for _, cm in self._cm.items():
             category_pr = torch.ones(len(self.iou_thresholds), len(self.rec_thresholds), device=self._device) * -1
+
             for idx, (_, cm_iou) in enumerate(cm.items()):
+                n_gt = sum(cm_iou["gt"])
+                if n_gt == 0:
+                    # no ground truth of the class
+                    continue
                 scores = torch.cat(cm_iou["score"], dim=0)
                 indx = torch.argsort(scores, descending=True)
                 tp = torch.cat(cm_iou["tp"], dim=0)[indx].cumsum(dim=0)
                 fp = torch.cat(cm_iou["fp"], dim=0)[indx].cumsum(dim=0)
-                n_gt = sum(cm_iou["gt"])
                 rc = tp / n_gt
                 pr = tp / (fp + tp)
 
@@ -108,6 +126,8 @@ class MeanAveragePrecision(Metric):
                 except:
                     pass
                 category_pr[idx, :] = pr_at_recthres
+            if torch.all(category_pr == -1):
+                continue
             category_ap = category_pr[category_pr > -1].mean()
             results.append(category_ap)
         return torch.stack(results).mean().item()
