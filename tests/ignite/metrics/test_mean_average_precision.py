@@ -10,7 +10,7 @@ torch.set_printoptions(linewidth=200)
 np.set_printoptions(linewidth=200)
 
 
-def get_coco_val2017_3():
+def get_coco_val2017_3samples():
     gt = [
         torch.tensor(
             [
@@ -69,6 +69,15 @@ def get_coco_val2017_3():
                 [76, 375, 97, 427, 0.99, 1],
                 [189, 307, 250, 368, 0.98, 1],
                 [113, 383, 128, 430, 0.98, 1],
+                [208, 21, 226, 43, 0.92, 18],
+                [208, 21, 226, 43, 0.92, 18],
+                [208, 21, 226, 43, 0.92, 16],
+                [208, 21, 226, 43, 0.92, 16],
+                [208, 21, 226, 43, 0.92, 16],
+                [208, 21, 226, 43, 0.92, 16],
+                [208, 21, 226, 43, 0.92, 16],
+                [208, 21, 226, 44, 0.92, 16],
+                [208, 21, 226, 43, 0.92, 16],
                 [208, 21, 226, 43, 0.92, 16],
                 [99, 397, 115, 429, 0.91, 1],
                 [176, 166, 201, 192, 0.88, 1],
@@ -77,7 +86,7 @@ def get_coco_val2017_3():
                 [397, 178, 411, 198, 0.79, 1],
                 [569, 339, 610, 403, 0.65, 3],
                 [61, 354, 94, 368, 0.56, 3],
-                [177, 177, 198, 192, 0.38, 1],
+                [177, 177, 198, 192, 0.38, 77],
             ]
         ),
         torch.tensor(
@@ -131,6 +140,37 @@ def get_coco_val2017_3():
     return gt, pred
 
 
+def get_gt_partially_empty_3samples():
+    gt, pred = get_coco_val2017_3samples()
+    gt[0] = torch.Tensor(0, 5)
+    return gt, pred
+
+
+def get_pred_partially_empty_3samples():
+    gt, pred = get_coco_val2017_3samples()
+    pred[1] = torch.Tensor(0, 6)
+    return gt, pred
+
+
+def get_both_partially_empty_3samples():
+    gt, pred = get_coco_val2017_3samples()
+    gt[0] = torch.Tensor(0, 5)
+    gt[2] = torch.Tensor(0, 5)
+    pred[1] = torch.Tensor(0, 6)
+    return gt, pred
+
+
+def get_both_partially_empty_3samples_2():
+    gt, pred = get_coco_val2017_3samples()
+    gt[1] = torch.Tensor(0, 5)
+    pred[1] = torch.Tensor(0, 6)
+    return gt, pred
+
+
+def get_all_empty_3samples():
+    return [torch.Tensor(0, 5), torch.Tensor(0, 6)]
+
+
 def create_coco_api(predictions, targets):
     """Create COCO object from predictions and targets
 
@@ -142,7 +182,6 @@ def create_coco_api(predictions, targets):
         Tuple[coco_api.COCO, coco_api.COCO]: coco object
     """
     ann_id = 1
-    categories = set()
     coco_gt = COCO()
     dataset = {"images": [], "categories": [], "annotations": []}
 
@@ -162,9 +201,8 @@ def create_coco_api(predictions, targets):
                 "id": ann_id,
             }
             dataset["annotations"].append(ann)
-            categories.add(target[i][4].item())
             ann_id += 1
-    dataset["categories"] = [{"id": i} for i in sorted(categories)]
+    dataset["categories"] = [{"id": i} for i in range(0, 100)]
     coco_gt.dataset = dataset
     coco_gt.createIndex()
 
@@ -176,9 +214,7 @@ def create_coco_api(predictions, targets):
     return coco_gt, coco_dt
 
 
-def _test_coco_val2017_3(device):
-    targets, predictions = get_coco_val2017_3()
-
+def _test_compute(predictions, targets, device, approx=1e-2):
     coco_gt, coco_dt = create_coco_api(
         [torch.clone(pred) for pred in predictions], [torch.clone(target) for target in targets]
     )
@@ -203,12 +239,41 @@ def _test_coco_val2017_3(device):
     res_75 = metric_75.compute()
     res_50_95 = metric_50_95.compute()
 
-    assert eval.stats[0] == pytest.approx(res_50_95, abs=1e-2)
-    assert eval.stats[1] == pytest.approx(res_50, abs=1e-2)
-    assert eval.stats[2] == pytest.approx(res_75, abs=1e-2)
+    assert eval.stats[0] == pytest.approx(res_50_95, abs=approx)
+    assert eval.stats[1] == pytest.approx(res_50, abs=approx)
+    assert eval.stats[2] == pytest.approx(res_75, abs=approx)
 
 
-def test_compute():
-    _test_coco_val2017_3(torch.device("cpu"))
+def test_gt_pred_all_exist():
+    targets, predictions = get_coco_val2017_3samples()
+    _test_compute(predictions, targets, torch.device("cpu"))
     if torch.cuda.is_available():
-        _test_coco_val2017_3(torch.device("cuda"))
+        _test_compute(predictions, targets, torch.device("cuda"), approx=2e-2)
+
+
+def test_gt_partially_empty():
+    targets, predictions = get_gt_partially_empty_3samples()
+    _test_compute(predictions, targets, torch.device("cpu"))
+    if torch.cuda.is_available():
+        _test_compute(predictions, targets, torch.device("cuda"), approx=2e-2)
+
+
+def test_pred_partially_empty():
+    targets, predictions = get_pred_partially_empty_3samples()
+    _test_compute(predictions, targets, torch.device("cpu"))
+    if torch.cuda.is_available():
+        _test_compute(predictions, targets, torch.device("cuda"), approx=2e-2)
+
+
+def test_both_partially_empty():
+    targets, predictions = get_both_partially_empty_3samples()
+    _test_compute(predictions, targets, torch.device("cpu"))
+    if torch.cuda.is_available():
+        _test_compute(predictions, targets, torch.device("cuda"), approx=2e-2)
+
+
+def test_both_partially_empty_2():
+    targets, predictions = get_both_partially_empty_3samples_2()
+    _test_compute(predictions, targets, torch.device("cpu"))
+    if torch.cuda.is_available():
+        _test_compute(predictions, targets, torch.device("cuda"), approx=2e-2)
