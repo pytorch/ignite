@@ -1,13 +1,11 @@
 __all__ = ["MeanAveragePrecision"]
 
 from collections import defaultdict
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 
 from ignite.metrics.metric import Metric
-
-box_iou = None
 
 
 class MeanAveragePrecision(Metric):
@@ -30,9 +28,9 @@ class MeanAveragePrecision(Metric):
                 metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
                 non-blocking. By default, CPU.
         """
-        global box_iou
         try:
             from torchvision.ops import box_iou
+            self.box_iou = box_iou
         except ImportError:
             raise RuntimeError("This module requires torchvision to be installed.")
 
@@ -43,7 +41,7 @@ class MeanAveragePrecision(Metric):
         super(MeanAveragePrecision, self).__init__(output_transform=output_transform, device=device)
 
     def reset(self) -> None:
-        self._cm = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: [])))
+        self._cm : Dict[float, Dict[float, Dict[str, list]]] = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
 
     def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         """
@@ -58,7 +56,7 @@ class MeanAveragePrecision(Metric):
         assert y.shape[1] == 5, f"Provided y with a wrong shape, expected (N, 5), got {y.shape}"
         assert y_pred.shape[1] == 6, f"Provided y_hat with a wrong shape, expected (N, 6), got {y.shape}"
 
-        iou = box_iou(y_pred[:, :4], y[:, :4])
+        iou = self.box_iou(y_pred[:, :4], y[:, :4])
         for iou_thres in self.iou_thresholds:
             iou_thres_item = iou_thres.item()
             valid_iou = torch.clone(iou)
@@ -97,7 +95,7 @@ class MeanAveragePrecision(Metric):
                 self._cm[category][iou_thres_item]["gt"].append(n_gt)
                 self._cm[category][iou_thres_item]["score"].append(score)
 
-    def compute(self):
+    def compute(self) -> float:
         results = []
         for _, cm in self._cm.items():
             category_pr = torch.ones(len(self.iou_thresholds), len(self.rec_thresholds), device=self._device) * -1
