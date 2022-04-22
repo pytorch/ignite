@@ -30,6 +30,7 @@ class MeanAveragePrecision(Metric):
         """
         try:
             from torchvision.ops import box_iou
+
             self.box_iou = box_iou
         except ImportError:
             raise RuntimeError("This module requires torchvision to be installed.")
@@ -41,7 +42,9 @@ class MeanAveragePrecision(Metric):
         super(MeanAveragePrecision, self).__init__(output_transform=output_transform, device=device)
 
     def reset(self) -> None:
-        self._cm : Dict[float, Dict[float, Dict[str, list]]] = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+        self._cm: Dict[float, Dict[float, Dict[str, list]]] = defaultdict(
+            lambda: defaultdict(lambda: defaultdict(list))
+        )
 
     def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         """
