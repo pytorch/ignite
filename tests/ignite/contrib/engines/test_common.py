@@ -128,8 +128,8 @@ def _test_setup_common_training_handlers(
 
     # Check LR scheduling
     assert optimizer.param_groups[0]["lr"] <= lr * gamma ** (
-        num_iters * num_epochs / step_size
-    ), f"{optimizer.param_groups[0]['lr']} vs {lr * gamma ** (num_iters * num_epochs / step_size)}"
+        (num_iters * num_epochs - 1) // step_size
+    ), f"{optimizer.param_groups[0]['lr']} vs {lr * gamma ** ((num_iters * num_epochs - 1) // step_size)}"
 
 
 def test_asserts_setup_common_training_handlers():

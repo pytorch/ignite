@@ -49,20 +49,20 @@ class MultiLabelConfusionMatrix(Metric):
 
             metric = MultiLabelConfusionMatrix(num_classes=3)
             metric.attach(default_evaluator, "mlcm")
-            y_true = torch.Tensor([
+            y_true = torch.tensor([
                 [0, 0, 1],
                 [0, 0, 0],
                 [0, 0, 0],
                 [1, 0, 0],
                 [0, 1, 1],
-            ]).long()
-            y_pred = torch.Tensor([
+            ])
+            y_pred = torch.tensor([
                 [1, 1, 0],
                 [1, 0, 1],
                 [1, 0, 0],
                 [1, 0, 1],
                 [1, 1, 0],
-            ]).long()
+            ])
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["mlcm"])
 
