@@ -376,60 +376,86 @@ def _test_create_evaluation_step(
         pytest.param("cpu", None, False, None, False, id="cpu"),
         pytest.param("cpu", None, True, None, False, id="traced_with_cpu"),
         pytest.param(
-            "cuda", "cuda", False, None, False,
+            "cuda",
+            "cuda",
+            False,
+            None,
+            False,
             marks=pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU"),
-            id="cuda"
+            id="cuda",
         ),
         pytest.param(
-            "cuda", "cuda", False, "amp", False,
+            "cuda",
+            "cuda",
+            False,
+            "amp",
+            False,
             marks=[
                 pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU"),
-                pytest.mark.skipif(Version(torch.__version__) < Version("1.6.0"), reason="Skip if < 1.6.0")
+                pytest.mark.skipif(Version(torch.__version__) < Version("1.6.0"), reason="Skip if < 1.6.0"),
             ],
-            id="cuda_amp"
+            id="cuda_amp",
         ),
         pytest.param(
-            "cuda", "cuda", False, "amp", True,
+            "cuda",
+            "cuda",
+            False,
+            "amp",
+            True,
             marks=[
                 pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU"),
-                pytest.mark.skipif(Version(torch.__version__) < Version("1.6.0"), reason="Skip if < 1.6.0")
+                pytest.mark.skipif(Version(torch.__version__) < Version("1.6.0"), reason="Skip if < 1.6.0"),
             ],
-            id="cuda_amp_scaler"
+            id="cuda_amp_scaler",
         ),
         pytest.param(
-            "cuda", "cuda", False, "amp", torch.cuda.amp.GradScaler(enabled=torch.cuda.is_available()),
+            "cuda",
+            "cuda",
+            False,
+            "amp",
+            torch.cuda.amp.GradScaler(enabled=torch.cuda.is_available()),
             marks=[
                 pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU"),
-                pytest.mark.skipif(Version(torch.__version__) < Version("1.6.0"), reason="Skip if < 1.6.0")
+                pytest.mark.skipif(Version(torch.__version__) < Version("1.6.0"), reason="Skip if < 1.6.0"),
             ],
-            id="cuda_amp_gradscaler"
+            id="cuda_amp_gradscaler",
         ),
         pytest.param(
-            "cuda", "cuda", False, "apex", False,
+            "cuda",
+            "cuda",
+            False,
+            "apex",
+            False,
             marks=[
                 pytest.mark.skip(reason="Temporarily disabled, as it fails because of an issue from apex side"),
                 # pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU"),
                 # pytest.mark.skipif(not find_spec("apex"), reason="Skip if no APEX")
             ],
-            id="cuda_apex"
+            id="cuda_apex",
         ),
         pytest.param(
-            "xla", "xla", False, None, False,
+            "xla",
+            "xla",
+            False,
+            None,
+            False,
             marks=[
                 pytest.mark.tpu,
                 pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars"),
-                pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+                pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package"),
             ],
-            id="tpu"
+            id="tpu",
         ),
         pytest.param(
-            "cuda", None, False, None, False,
-            marks=[
-                pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-            ],
-            id="cuda_with_model_on_cpu"
-        )
-    ]
+            "cuda",
+            None,
+            False,
+            None,
+            False,
+            marks=[pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")],
+            id="cuda_with_model_on_cpu",
+        ),
+    ],
 )
 def test_create_supervised_trainer(trainer_device, model_device, trace, amp_mode, scaler):
     _test_create_supervised_trainer_wrong_accumulation(model_device, trainer_device, amp_mode)
@@ -439,7 +465,7 @@ def test_create_supervised_trainer(trainer_device, model_device, trace, amp_mode
         trainer_device=trainer_device,
         trace=trace,
         amp_mode=amp_mode,
-        scaler=scaler
+        scaler=scaler,
     )
     _test_create_supervised_trainer(
         gradient_accumulation_steps=3,
@@ -447,15 +473,15 @@ def test_create_supervised_trainer(trainer_device, model_device, trace, amp_mode
         trainer_device=trainer_device,
         trace=trace,
         amp_mode=amp_mode,
-        scaler=scaler
+        scaler=scaler,
     )
     _test_create_mocked_supervised_trainer(model_device, trainer_device, trace, amp_mode, scaler)
     _test_create_supervised_trainer_have_grad_after_iteration(
         model_device, trainer_device, trace, amp_mode, scaler, gradient_accumulation_steps=1
-        )
+    )
     _test_create_supervised_trainer_have_grad_after_iteration(
         model_device, trainer_device, trace, amp_mode, scaler, gradient_accumulation_steps=3
-        )
+    )
 
 
 @pytest.mark.skipif(find_spec("apex"), reason="Skip if APEX")
