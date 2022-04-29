@@ -137,6 +137,23 @@ class EpochMetric(Metric):
                 self.compute_fn(self._predictions[0], self._targets[0])
             except Exception as e:
                 warnings.warn(f"Probably, there can be a problem with `compute_fn`:\n {e}.", EpochMetricWarning)
+    @staticmethod
+    def checker(x: Any) -> bool:
+
+        """Returns true if the passed value is a scalar, tensor or a collection of tensors. False otherwise.
+        Args:
+            x: object of any type
+        """
+
+        if isinstance(x, (int, float, torch.Tensor)):
+            return True
+        if isinstance(x, Sequence):
+            return all([isinstance(item, torch.Tensor) for item in x])
+        if isinstance(x, Mapping):
+            return all([isinstance(item, torch.Tensor) for item in x.values()])
+        if isinstance(x, tuple) and hasattr(x, "_fields"):
+            return all([isinstance(item, torch.Tensor) for item in getattr(x, "_field")])
+        return False
 
     def compute(self) -> Any:
         if len(self._predictions) < 1 or len(self._targets) < 1:
@@ -155,15 +172,13 @@ class EpochMetric(Metric):
 
         result = 0.0
         if idist.get_rank() == 0:
-            if not _is_scalar_or_collection_of_tensor(result):
-                raise TypeError("output not supported: compute_fn should return scalar, tensor, tuple/list/mapping of tensors"
-
-            # Run compute_fn on zero rank only
+            if not self.checker(result):
+                raise TypeError("output not supported: compute_fn should return scalar, tensor, tuple/list/mapping of tensors")
             result = self.compute_fn(_prediction_tensor, _target_tensor)
 
         if ws > 1:
             # broadcast result to all processes
-            if isinstance(result, (int, float, torch.Tensor):
+            if isinstance(result, (int, float, torch.Tensor)):
                 result = cast(float, idist.broadcast(result, src=0,safe_mode=True))
             if isinstance(result, Sequence):
                 for item in result:
@@ -173,20 +188,6 @@ class EpochMetric(Metric):
                     apply_to_type(item, (torch.Tensor, float, int), partial(idist.broadcast, src=0, safe_mode=True))
         return result
 
-    def _is_scalar_or_collection_of_tensor(x: Any) -> bool:
-    """Returns true if the passed value is a scalar, tensor or a collection of tensors. False otherwise.
-    Args:
-        x: object of any type
-    """
-    if isinstance(x, (int, float, torch.Tensor)):
-        return True
-    if isinstance(x, Sequence):
-        return all([isinstance(item, torch.Tensor) for item in x])
-    if isinstance(x, Mapping):
-        return all([isinstance(item, torch.Tensor) for item in x.values()])
-    if isinstance(x, tuple) and hasattr(x, "_fields"):
-        return all([isinstance(item, torch.Tensor) for item in getattr(x, "_field")])
-    return False
 
 class EpochMetricWarning(UserWarning):
     pass
