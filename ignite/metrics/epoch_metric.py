@@ -1,7 +1,7 @@
 import warnings
-from typing import Any, Callable, cast, List, Tuple, Union
 from collections.abc import Mapping, Sequence
 from functools import partial
+from typing import Any, Callable, cast, List, Tuple, Union
 
 import torch
 
@@ -137,6 +137,7 @@ class EpochMetric(Metric):
                 self.compute_fn(self._predictions[0], self._targets[0])
             except Exception as e:
                 warnings.warn(f"Probably, there can be a problem with `compute_fn`:\n {e}.", EpochMetricWarning)
+
     @staticmethod
     def checker(x: Any) -> bool:
 
@@ -173,17 +174,19 @@ class EpochMetric(Metric):
         result = 0.0
         if idist.get_rank() == 0:
             if not self.checker(result):
-                raise TypeError("output not supported: compute_fn should return scalar, tensor, tuple/list/mapping of tensors")
+                raise TypeError(
+                    "output not supported: compute_fn should return scalar, tensor, tuple/list/mapping of tensors"
+                )
             result = self.compute_fn(_prediction_tensor, _target_tensor)
 
         if ws > 1:
             # broadcast result to all processes
             if isinstance(result, (int, float, torch.Tensor)):
-                result = cast(float, idist.broadcast(result, src=0,safe_mode=True))
+                result = cast(float, idist.broadcast(result, src=0, safe_mode=True))
             if isinstance(result, Sequence):
                 for item in result:
                     apply_to_type(item, (torch.Tensor, float, int), partial(idist.broadcast, src=0, safe_mode=True))
-            if isinstance(result,Mapping):
+            if isinstance(result, Mapping):
                 for item in result.values():
                     apply_to_type(item, (torch.Tensor, float, int), partial(idist.broadcast, src=0, safe_mode=True))
         return result
