@@ -505,7 +505,7 @@ def mock_torch_cuda_amp_module():
         yield torch
 
 
-def test_create_supervised_trainer_amp_error():
+def test_create_supervised_trainer_amp_error(mock_torch_cuda_amp_module):
     with pytest.raises(ImportError, match="Please install torch>=1.6.0 to use amp_mode='amp'."):
         _test_create_supervised_trainer_wrong_accumulation(trainer_device="cpu", amp_mode="amp")
     with pytest.raises(ImportError, match="Please install torch>=1.6.0 to use amp_mode='amp'."):
