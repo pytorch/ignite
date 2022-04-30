@@ -9,6 +9,8 @@ import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric, reinit__is_reduced
 
+from ignite.utils import apply_to_type
+
 __all__ = ["EpochMetric"]
 
 
