@@ -95,8 +95,6 @@ def supervised_training_step(
         )
 
     def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
-        if (engine.state.iteration - 1) % gradient_accumulation_steps == 0:
-            optimizer.zero_grad()
         model.train()
         x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
         y_pred = model(x)
@@ -106,6 +104,7 @@ def supervised_training_step(
         loss.backward()
         if engine.state.iteration % gradient_accumulation_steps == 0:
             optimizer.step()
+            optimizer.zero_grad()
         return output_transform(x, y, y_pred, loss)
 
     return update
@@ -174,8 +173,6 @@ def supervised_training_step_amp(
         )
 
     def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
-        if (engine.state.iteration - 1) % gradient_accumulation_steps == 0:
-            optimizer.zero_grad()
         model.train()
         x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
         with autocast(enabled=True):
@@ -188,10 +185,12 @@ def supervised_training_step_amp(
             if engine.state.iteration % gradient_accumulation_steps == 0:
                 scaler.step(optimizer)
                 scaler.update()
+                optimizer.zero_grad()
         else:
             loss.backward()
             if engine.state.iteration % gradient_accumulation_steps == 0:
                 optimizer.step()
+                optimizer.zero_grad()
         return output_transform(x, y, y_pred, loss)
 
     return update
@@ -257,8 +256,6 @@ def supervised_training_step_apex(
         )
 
     def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
-        if (engine.state.iteration - 1) % gradient_accumulation_steps == 0:
-            optimizer.zero_grad()
         model.train()
         x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
         y_pred = model(x)
@@ -269,6 +266,7 @@ def supervised_training_step_apex(
             scaled_loss.backward()
         if engine.state.iteration % gradient_accumulation_steps == 0:
             optimizer.step()
+            optimizer.zero_grad()
         return output_transform(x, y, y_pred, loss)
 
     return update
@@ -333,8 +331,6 @@ def supervised_training_step_tpu(
         )
 
     def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
-        if (engine.state.iteration - 1) % gradient_accumulation_steps == 0:
-            optimizer.zero_grad()
         model.train()
         x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
         y_pred = model(x)
@@ -344,6 +340,7 @@ def supervised_training_step_tpu(
         loss.backward()
         if engine.state.iteration % gradient_accumulation_steps == 0:
             xm.optimizer_step(optimizer, barrier=True)
+            optimizer.zero_grad()
         return output_transform(x, y, y_pred, loss)
 
     return update
