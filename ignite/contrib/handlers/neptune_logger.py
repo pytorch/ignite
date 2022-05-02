@@ -3,7 +3,6 @@ import tempfile
 from typing import Any, Callable, List, Mapping, Optional, Union
 
 import torch
-import torch.nn as nn
 from torch.optim import Optimizer
 
 import ignite.distributed as idist

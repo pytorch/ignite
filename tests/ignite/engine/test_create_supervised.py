@@ -346,7 +346,6 @@ def test_create_supervised_trainer():
     _test_create_supervised_trainer(gradient_accumulation_steps=1)
     _test_create_supervised_trainer(gradient_accumulation_steps=3)
     _test_create_mocked_supervised_trainer()
-    _test_create_supervised_trainer_have_grad_after_iteration()
 
 
 def test_create_supervised_trainer_with_cpu():
@@ -354,7 +353,6 @@ def test_create_supervised_trainer_with_cpu():
     _test_create_supervised_trainer(gradient_accumulation_steps=1, trainer_device="cpu")
     _test_create_supervised_trainer(gradient_accumulation_steps=3, trainer_device="cpu")
     _test_create_mocked_supervised_trainer(trainer_device="cpu")
-    _test_create_supervised_trainer_have_grad_after_iteration(trainer_device="cpu")
 
 
 def test_create_supervised_trainer_traced_with_cpu():
@@ -362,7 +360,6 @@ def test_create_supervised_trainer_traced_with_cpu():
     _test_create_supervised_trainer(gradient_accumulation_steps=1, trainer_device="cpu", trace=True)
     _test_create_supervised_trainer(gradient_accumulation_steps=3, trainer_device="cpu", trace=True)
     _test_create_mocked_supervised_trainer(trainer_device="cpu", trace=True)
-    _test_create_supervised_trainer_have_grad_after_iteration(trainer_device="cpu", trace=True)
 
 
 @pytest.mark.skipif(find_spec("apex"), reason="Skip if APEX")
@@ -420,7 +417,6 @@ def test_create_supervised_trainer_on_cuda():
         gradient_accumulation_steps=3, model_device=model_device, trainer_device=trainer_device
     )
     _test_create_mocked_supervised_trainer(model_device=model_device, trainer_device=trainer_device)
-    _test_create_supervised_trainer_have_grad_after_iteration(model_device=model_device, trainer_device=trainer_device)
 
 
 @pytest.mark.skipif(Version(torch.__version__) < Version("1.6.0"), reason="Skip if < 1.6.0")
@@ -437,9 +433,6 @@ def test_create_supervised_trainer_on_cuda_amp():
         gradient_accumulation_steps=3, model_device=model_device, trainer_device=trainer_device, amp_mode="amp"
     )
     _test_create_mocked_supervised_trainer(model_device=model_device, trainer_device=trainer_device, amp_mode="amp")
-    _test_create_supervised_trainer_have_grad_after_iteration(
-        model_device=model_device, trainer_device=trainer_device, amp_mode="amp"
-    )
 
 
 @pytest.mark.skipif(Version(torch.__version__) < Version("1.6.0"), reason="Skip if < 1.6.0")
@@ -484,9 +477,6 @@ def test_create_supervised_trainer_on_cuda_amp_scaler():
     _test_create_mocked_supervised_trainer(
         model_device=model_device, trainer_device=trainer_device, amp_mode="amp", scaler=scaler
     )
-    _test_create_supervised_trainer_have_grad_after_iteration(
-        model_device=model_device, trainer_device=trainer_device, amp_mode="amp", scaler=scaler
-    )
 
 
 # @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
@@ -504,9 +494,6 @@ def test_create_supervised_trainer_on_cuda_apex():
         gradient_accumulation_steps=3, model_device=model_device, trainer_device=trainer_device, amp_mode="apex"
     )
     _test_create_mocked_supervised_trainer(model_device=model_device, trainer_device=trainer_device, amp_mode="apex")
-    _test_create_supervised_trainer_have_grad_after_iteration(
-        model_device=model_device, trainer_device=trainer_device, amp_mode="apex"
-    )
 
 
 @pytest.mark.skipif(idist.has_xla_support, reason="Skip if has PyTorch XLA package")
@@ -536,7 +523,6 @@ def test_create_supervised_trainer_on_tpu():
         gradient_accumulation_steps=3, model_device=model_device, trainer_device=trainer_device
     )
     _test_create_mocked_supervised_trainer(model_device=model_device, trainer_device=trainer_device)
-    _test_create_supervised_trainer_have_grad_after_iteration(model_device=model_device, trainer_device=trainer_device)
 
 
 @pytest.mark.tpu
@@ -553,7 +539,6 @@ def test_create_supervised_trainer_on_cuda_with_model_on_cpu():
     _test_create_supervised_trainer(gradient_accumulation_steps=1, trainer_device="cuda")
     _test_create_supervised_trainer(gradient_accumulation_steps=3, trainer_device="cuda")
     _test_create_mocked_supervised_trainer(trainer_device="cuda")
-    _test_create_supervised_trainer_have_grad_after_iteration(trainer_device="cuda")
 
 
 def test_create_supervised_evaluator():
