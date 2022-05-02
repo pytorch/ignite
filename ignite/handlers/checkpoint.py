@@ -920,11 +920,12 @@ class ModelCheckpoint(Checkpoint):
     .. versionchanged:: 0.4.2
         Accept ``kwargs`` for `torch.save` or `xm.save`
 
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.9
+        Accept ``filename_pattern`` and ``greater_or_equal`` for parity
+        with :class:`~ignite.handlers.checkpoint.Checkpoint`
 
-        - ``filename_pattern`` and ``greater_or_equal`` for parity
-            with :class:`~ignite.handlers.checkpoint.Checkpoint`
-        - `save_on_rank` saves objects on this rank in a distributed configuration.
+    .. versionchanged:: 0.5.0
+        Added `save_on_rank` arg to save objects on this rank in a distributed configuration
 
     Examples:
         .. testcode:: python
