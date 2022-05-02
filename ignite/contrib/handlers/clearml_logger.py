@@ -484,7 +484,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
             logger.clearml_logger.report_scalar(
                 title=f"{tag_prefix}weights_{self.reduction.__name__}/{title_name}",
                 series=series_name,
-                value=self.reduction(p.data.detach()).cpu(),
+                value=self.reduction(p.data).cpu(),
                 iteration=global_step,
             )
 
@@ -577,7 +577,7 @@ class WeightsHistHandler(BaseWeightsHandler):
                 title=f"{tag_prefix}weights_{title_name}",
                 series=series_name,
                 step=global_step,
-                hist_data=p.data.detach().cpu().numpy(),
+                hist_data=p.data.cpu().numpy(),
             )
 
 
@@ -765,7 +765,7 @@ class GradsHistHandler(BaseWeightsHandler):
                 title=f"{tag_prefix}grads_{title_name}",
                 series=series_name,
                 step=global_step,
-                hist_data=p.grad.detach().cpu().numpy(),
+                hist_data=p.grad.cpu().numpy(),
             )
 
 

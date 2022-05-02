@@ -430,7 +430,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
             name = name.replace(".", "/")
             logger.writer.add_scalar(
                 f"{tag_prefix}weights_{self.reduction.__name__}/{name}",
-                self.reduction(p.data.detach()).item(),
+                self.reduction(p.data).item(),
                 global_step,
             )
 
@@ -509,7 +509,7 @@ class WeightsHistHandler(BaseWeightsHandler):
 
             name = name.replace(".", "/")
             logger.writer.add_histogram(
-                tag=f"{tag_prefix}weights/{name}", values=p.data.detach().cpu().numpy(), global_step=global_step
+                tag=f"{tag_prefix}weights/{name}", values=p.data.cpu().numpy(), global_step=global_step
             )
 
 
@@ -671,5 +671,5 @@ class GradsHistHandler(BaseWeightsHandler):
 
             name = name.replace(".", "/")
             logger.writer.add_histogram(
-                tag=f"{tag_prefix}grads/{name}", values=p.grad.detach().cpu().numpy(), global_step=global_step
+                tag=f"{tag_prefix}grads/{name}", values=p.grad.cpu().numpy(), global_step=global_step
             )
