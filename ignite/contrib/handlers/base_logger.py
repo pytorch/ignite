@@ -181,7 +181,7 @@ class BaseWeightsScalarHandler(BaseWeightsHandler):
     def __init__(
         self,
         model: nn.Module,
-        reduction: Callable[[torch.Tensor], Union[numbers.Number, torch.Tensor]] = torch.norm,
+        reduction: Callable[[torch.Tensor], Union[float, torch.Tensor]] = torch.norm,
         tag: Optional[str] = None,
         whitelist: Optional[Union[List[str], Callable[[str, nn.Parameter], bool]]] = None,
     ):
@@ -191,7 +191,7 @@ class BaseWeightsScalarHandler(BaseWeightsHandler):
         if not callable(reduction):
             raise TypeError(f"Argument reduction should be callable, but given {type(reduction)}")
 
-        def _is_0D_tensor(t: torch.Tensor) -> bool:
+        def _is_0D_tensor(t: Any) -> bool:
             return isinstance(t, torch.Tensor) and t.ndimension() == 0
 
         # Test reduction function on a tensor
