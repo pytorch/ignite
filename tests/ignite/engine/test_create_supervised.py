@@ -93,6 +93,7 @@ def _test_create_supervised_trainer(
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def _():
+        assert model.weight.grad != 0
         _x, _y = trainer.state.batch
         _x, _y = _x.to(model_device), _y.to(model_device)
         accumulation[0] += 0.2 * _x.item() * (theta[0] * _x.item() - _y.item())
