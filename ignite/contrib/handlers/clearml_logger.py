@@ -484,7 +484,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
             logger.clearml_logger.report_scalar(
                 title=f"{tag_prefix}weights_{self.reduction.__name__}/{title_name}",
                 series=series_name,
-                value=self.reduction(p.data).cpu(),
+                value=self.reduction(p.data),
                 iteration=global_step,
             )
 
@@ -674,7 +674,7 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
             logger.clearml_logger.report_scalar(
                 title=f"{tag_prefix}grads_{self.reduction.__name__}/{title_name}",
                 series=series_name,
-                value=self.reduction(p.grad).cpu(),
+                value=self.reduction(p.grad),
                 iteration=global_step,
             )
 

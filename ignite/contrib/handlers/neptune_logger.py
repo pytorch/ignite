@@ -516,7 +516,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
             logger.log_metric(
                 f"{tag_prefix}weights_{self.reduction.__name__}/{name}",
                 x=global_step,
-                y=self.reduction(p.data).cpu(),
+                y=self.reduction(p.data),
             )
 
 
@@ -609,22 +609,19 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
         optional argument `whitelist` added.
     """
 
-    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
-        super(GradsScalarHandler, self).__init__(model, reduction, tag=tag)
-
     def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, NeptuneLogger):
             raise TypeError("Handler GradsScalarHandler works only with NeptuneLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = f"{self.tag}/" if self.tag else ""
-        for name, p in self.model.named_parameters():
+        for name, p in self.weights:
             if p.grad is None:
                 continue
 
             name = name.replace(".", "/")
             logger.log_metric(
-                f"{tag_prefix}grads_{self.reduction.__name__}/{name}", x=global_step, y=self.reduction(p.grad).cpu()
+                f"{tag_prefix}grads_{self.reduction.__name__}/{name}", x=global_step, y=self.reduction(p.grad)
             )
 
 

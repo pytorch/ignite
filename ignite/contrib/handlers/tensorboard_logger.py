@@ -430,7 +430,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
             name = name.replace(".", "/")
             logger.writer.add_scalar(
                 f"{tag_prefix}weights_{self.reduction.__name__}/{name}",
-                self.reduction(p.data).item(),
+                self.reduction(p.data),
                 global_step,
             )
 
@@ -594,7 +594,7 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
 
             name = name.replace(".", "/")
             logger.writer.add_scalar(
-                f"{tag_prefix}grads_{self.reduction.__name__}/{name}", self.reduction(p.grad).item(), global_step
+                f"{tag_prefix}grads_{self.reduction.__name__}/{name}", self.reduction(p.grad), global_step
             )
 
 
