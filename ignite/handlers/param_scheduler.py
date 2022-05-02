@@ -832,7 +832,7 @@ class LRScheduler(ParamScheduler):
 
     .. versionadded:: 0.4.5
 
-    ..  versionchanged:: 0.5.0
+    ..  versionchanged:: 0.4.9
         added `use_legacy` argument
     """
 
@@ -1502,7 +1502,7 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
 
             [[0.1], [0.1], [0.1], [0.1], [0.1], [0.1], [0.05], [0.05]]
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.9
     """
 
     def __init__(
