@@ -106,7 +106,7 @@ def _test_create_supervised_trainer(
         assert pytest.approx(trainer.state.output[-1], abs=1e-5) == loss[0]
         accumulation[0] = loss[0] = 0.0
 
-    if model_device == trainer_device or ((model_device == "cpu") ^ (trainer_device == "cpu")):
+    if model_device == trainer_device or ((model_device in ["cpu", None]) and (trainer_device in ["cpu", None])):
 
         state = trainer.run(data)
 
@@ -150,7 +150,12 @@ def _test_create_supervised_trainer_have_grad_after_iteration(
     def _():
         assert model.weight.grad != 0
 
-    trainer.run(data)
+    if model_device == trainer_device or ((model_device in ["cpu", None]) and (trainer_device in ["cpu", None])):
+        trainer.run(data)
+    else:
+        if Version(torch.__version__) >= Version("1.7.0"):
+            with pytest.raises(RuntimeError, match=r"Expected all tensors to be on the same device"):
+                trainer.run(data)
 
 
 @pytest.mark.skipif(Version(torch.__version__) < Version("1.6.0"), reason="Skip if < 1.6.0")
