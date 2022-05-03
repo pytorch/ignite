@@ -156,7 +156,7 @@ class ClearMLLogger(BaseLogger):
 
         self.clearml_logger = self._task.get_logger()
 
-        self.grad_helper = WeightsGradientHistHelper(logger=self.clearml_logger)
+        self.grad_helper = WeightsGradientHistHelper(logger=self.clearml_logger, report_freq=1)
 
     @classmethod
     def set_bypass_mode(cls, bypass: bool) -> None:
