@@ -176,7 +176,18 @@ class SSIM(Metric):
         b2 = sigma_pred_sq + sigma_target_sq + self.c2
 
         ssim_idx = (a1 * a2) / (b1 * b2)
-        self._sum_of_batchwise_ssim += torch.mean(ssim_idx, (1, 2, 3), dtype=torch.float64).to(self._device)
+        batchwise_ssim = torch.mean(ssim_idx, (1, 2, 3), dtype=torch.float64).to(self._device)
+
+        dst_bs = len(self._sum_of_batchwise_ssim) if isinstance(self._sum_of_batchwise_ssim, torch.Tensor) else 0
+        src_bs = len(batchwise_ssim)
+        if dst_bs < 1:
+            self._sum_of_batchwise_ssim += batchwise_ssim
+        else:
+            while src_bs > dst_bs:
+                self._sum_of_batchwise_ssim += batchwise_ssim[src_bs - dst_bs : src_bs]
+                src_bs -= dst_bs
+            if src_bs <= dst_bs:
+                self._sum_of_batchwise_ssim[:src_bs] += batchwise_ssim[:src_bs]
         self._num_examples += y.shape[0]
 
     @sync_all_reduce("_sum_of_batchwise_ssim", "_num_examples")
