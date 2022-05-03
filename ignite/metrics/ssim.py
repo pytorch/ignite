@@ -178,11 +178,11 @@ class SSIM(Metric):
         ssim_idx = (a1 * a2) / (b1 * b2)
         batchwise_ssim = torch.mean(ssim_idx, (1, 2, 3), dtype=torch.float64).to(self._device)
 
-        dst_bs = len(self._sum_of_batchwise_ssim) if isinstance(self._sum_of_batchwise_ssim, torch.Tensor) else 0
-        src_bs = len(batchwise_ssim)
-        if dst_bs < 1:
+        if isinstance(self._sum_of_batchwise_ssim, float):
             self._sum_of_batchwise_ssim += batchwise_ssim
         else:
+            dst_bs = len(self._sum_of_batchwise_ssim)
+            src_bs = len(batchwise_ssim)
             while src_bs > dst_bs:
                 self._sum_of_batchwise_ssim += batchwise_ssim[src_bs - dst_bs : src_bs]
                 src_bs -= dst_bs
