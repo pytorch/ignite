@@ -7,8 +7,6 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Callable, DefaultDict, List, Mapping, Optional, Tuple, Type, Union
 
-import torch
-from torch.nn import Module
 from torch.optim import Optimizer
 
 import ignite.distributed as idist
@@ -16,7 +14,7 @@ from ignite.contrib.handlers.base_logger import (
     BaseLogger,
     BaseOptimizerParamsHandler,
     BaseOutputHandler,
-    BaseWeightsHistHandler,
+    BaseWeightsHandler,
     BaseWeightsScalarHandler,
 )
 from ignite.engine import Engine, Events
@@ -158,7 +156,7 @@ class ClearMLLogger(BaseLogger):
 
         self.clearml_logger = self._task.get_logger()
 
-        self.grad_helper = WeightsGradientHistHelper(logger=self.clearml_logger)
+        self.grad_helper = WeightsGradientHistHelper(logger=self.clearml_logger, report_freq=1)
 
     @classmethod
     def set_bypass_mode(cls, bypass: bool) -> None:
@@ -397,13 +395,20 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
 
 class WeightsScalarHandler(BaseWeightsScalarHandler):
     """Helper handler to log model's weights as scalars.
-    Handler iterates over named parameters of the model, applies reduction function to each parameter
-    produce a scalar and then logs the scalar.
+    Handler, upon construction, iterates over named parameters of the model and keep
+    reference to ones permitted by `whitelist`. Then at every call, applies
+    reduction function to each parameter, produces a scalar and logs it.
 
     Args:
         model: model to log weights
         reduction: function to reduce parameters into scalar
         tag: common title for all produced plots. For example, "generator"
+        whitelist: specific weights to log. Should be list of model's submodules
+            or parameters names, or a callable which gets weight along with its name
+            and determines if it should be logged. Names should be fully-qualified.
+            For more information please refer to `PyTorch docs
+            <https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.get_submodule>`_.
+            If not given, all of model's weights are logged.
 
     Examples:
         .. code-block:: python
@@ -423,10 +428,48 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
                 event_name=Events.ITERATION_COMPLETED,
                 log_handler=WeightsScalarHandler(model, reduction=torch.norm)
             )
-    """
 
-    def __init__(self, model: Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
-        super(WeightsScalarHandler, self).__init__(model, reduction, tag=tag)
+        .. code-block:: python
+
+            from ignite.contrib.handlers.clearml_logger import *
+
+            clearml_logger = ClearMLLogger(
+                project_name="pytorch-ignite-integration",
+                task_name="cnn-mnist"
+            )
+
+            # Log only `fc` weights
+            clearml_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=WeightsScalarHandler(
+                    model,
+                    whitelist=['fc']
+                )
+            )
+
+        .. code-block:: python
+
+            from ignite.contrib.handlers.clearml_logger import *
+
+            clearml_logger = ClearMLLogger(
+                project_name="pytorch-ignite-integration",
+                task_name="cnn-mnist"
+            )
+
+            # Log weights which have `bias` in their names
+            def has_bias_in_name(n, p):
+                return 'bias' in n
+
+            clearml_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=WeightsScalarHandler(model, whitelist=has_bias_in_name)
+            )
+
+    ..  versionchanged:: 0.5.0
+        optional argument `whitelist` added.
+    """
 
     def __call__(self, engine: Engine, logger: ClearMLLogger, event_name: Union[str, Events]) -> None:
 
@@ -435,9 +478,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = f"{self.tag}/" if self.tag else ""
-        for name, p in self.model.named_parameters():
-            if p.grad is None:
-                continue
+        for name, p in self.weights:
 
             title_name, _, series_name = name.partition(".")
             logger.clearml_logger.report_scalar(
@@ -448,12 +489,18 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
             )
 
 
-class WeightsHistHandler(BaseWeightsHistHandler):
+class WeightsHistHandler(BaseWeightsHandler):
     """Helper handler to log model's weights as histograms.
 
     Args:
         model: model to log weights
         tag: common title for all produced plots. For example, 'generator'
+        whitelist: specific weights to log. Should be list of model's submodules
+            or parameters names, or a callable which gets weight along with its name
+            and determines if it should be logged. Names should be fully-qualified.
+            For more information please refer to `PyTorch docs
+            <https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.get_submodule>`_.
+            If not given, all of model's weights are logged.
 
     Examples:
         .. code-block:: python
@@ -473,10 +520,48 @@ class WeightsHistHandler(BaseWeightsHistHandler):
                 event_name=Events.ITERATION_COMPLETED,
                 log_handler=WeightsHistHandler(model)
             )
-    """
 
-    def __init__(self, model: Module, tag: Optional[str] = None):
-        super(WeightsHistHandler, self).__init__(model, tag=tag)
+        .. code-block:: python
+
+            from ignite.contrib.handlers.clearml_logger import *
+
+            clearml_logger = ClearMLLogger(
+                project_name="pytorch-ignite-integration",
+                task_name="cnn-mnist"
+            )
+
+            # Log weights of `fc` layer
+            weights = ['fc']
+
+            # Attach the logger to the trainer to log weights norm after each iteration
+            clearml_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=WeightsHistHandler(model, whitelist=weights)
+            )
+
+        .. code-block:: python
+
+            from ignite.contrib.handlers.clearml_logger import *
+
+            clearml_logger = ClearMLLogger(
+                project_name="pytorch-ignite-integration",
+                task_name="cnn-mnist"
+            )
+
+            # Log weights which name include 'conv'.
+            weight_selector = lambda name, p: 'conv' in name
+
+            # Attach the logger to the trainer to log weights norm after each iteration
+            clearml_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=WeightsHistHandler(model, whitelist=weight_selector)
+            )
+
+    ..  versionchanged:: 0.5.0
+        optional argument `whitelist` added.
+    """
 
     def __call__(self, engine: Engine, logger: ClearMLLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, ClearMLLogger):
@@ -484,9 +569,7 @@ class WeightsHistHandler(BaseWeightsHistHandler):
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = f"{self.tag}/" if self.tag else ""
-        for name, p in self.model.named_parameters():
-            if p.grad is None:
-                continue
+        for name, p in self.weights:
 
             title_name, _, series_name = name.partition(".")
 
@@ -494,19 +577,26 @@ class WeightsHistHandler(BaseWeightsHistHandler):
                 title=f"{tag_prefix}weights_{title_name}",
                 series=series_name,
                 step=global_step,
-                hist_data=p.grad.detach().cpu().numpy(),
+                hist_data=p.data.cpu().numpy(),
             )
 
 
 class GradsScalarHandler(BaseWeightsScalarHandler):
     """Helper handler to log model's gradients as scalars.
-    Handler iterates over the gradients of named parameters of the model, applies reduction function to each parameter
-    produce a scalar and then logs the scalar.
+    Handler, upon construction, iterates over named parameters of the model and keep
+    reference to ones permitted by the `whitelist`. Then at every call, applies
+    reduction function to each parameter's gradient, produces a scalar and logs it.
 
     Args:
         model: model to log weights
         reduction: function to reduce parameters into scalar
         tag: common title for all produced plots. For example, "generator"
+        whitelist: specific gradients to log. Should be list of model's submodules
+            or parameters names, or a callable which gets weight along with its name
+            and determines if its gradient should be logged. Names should be
+            fully-qualified. For more information please refer to `PyTorch docs
+            <https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.get_submodule>`_.
+            If not given, all of model's gradients are logged.
 
     Examples:
         .. code-block:: python
@@ -526,10 +616,49 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
                 event_name=Events.ITERATION_COMPLETED,
                 log_handler=GradsScalarHandler(model, reduction=torch.norm)
             )
-    """
 
-    def __init__(self, model: Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
-        super(GradsScalarHandler, self).__init__(model, reduction, tag=tag)
+        .. code-block:: python
+
+            from ignite.contrib.handlers.clearml_logger import *
+
+            clearml_logger = ClearMLLogger(
+                project_name="pytorch-ignite-integration",
+                task_name="cnn-mnist"
+            )
+
+            # Log gradient of `base`
+            clearml_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=GradsScalarHandler(
+                    model,
+                    reduction=torch.norm,
+                    whitelist=['base']
+                )
+            )
+
+        .. code-block:: python
+
+            from ignite.contrib.handlers.clearml_logger import *
+
+            clearml_logger = ClearMLLogger(
+                project_name="pytorch-ignite-integration",
+                task_name="cnn-mnist"
+            )
+
+            # Log gradient of weights which belong to a `fc` layer
+            def is_in_fc_layer(n, p):
+                return 'fc' in n
+
+            clearml_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=GradsScalarHandler(model, whitelist=is_in_fc_layer)
+            )
+
+    ..  versionchanged:: 0.5.0
+        optional argument `whitelist` added.
+    """
 
     def __call__(self, engine: Engine, logger: ClearMLLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, ClearMLLogger):
@@ -537,7 +666,7 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = f"{self.tag}/" if self.tag else ""
-        for name, p in self.model.named_parameters():
+        for name, p in self.weights:
             if p.grad is None:
                 continue
 
@@ -545,17 +674,23 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
             logger.clearml_logger.report_scalar(
                 title=f"{tag_prefix}grads_{self.reduction.__name__}/{title_name}",
                 series=series_name,
-                value=self.reduction(p.data),
+                value=self.reduction(p.grad),
                 iteration=global_step,
             )
 
 
-class GradsHistHandler(BaseWeightsHistHandler):
+class GradsHistHandler(BaseWeightsHandler):
     """Helper handler to log model's gradients as histograms.
 
     Args:
         model: model to log weights
         tag: common title for all produced plots. For example, 'generator'
+        whitelist: specific gradients to log. Should be list of model's submodules
+            or parameters names, or a callable which gets weight along with its name
+            and determines if its gradient should be logged. Names should be
+            fully-qualified. For more information please refer to `PyTorch docs
+            <https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.get_submodule>`_.
+            If not given, all of model's gradients are logged.
 
     Examples:
         .. code-block:: python
@@ -575,10 +710,45 @@ class GradsHistHandler(BaseWeightsHistHandler):
                 event_name=Events.ITERATION_COMPLETED,
                 log_handler=GradsHistHandler(model)
             )
-    """
 
-    def __init__(self, model: Module, tag: Optional[str] = None):
-        super(GradsHistHandler, self).__init__(model, tag=tag)
+        .. code-block:: python
+
+            from ignite.contrib.handlers.clearml_logger import *
+
+            clearml_logger = ClearMLLogger(
+                project_name="pytorch-ignite-integration",
+                task_name="cnn-mnist"
+            )
+
+            # Log gradient of `fc.bias`
+            clearml_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=GradsHistHandler(model, whitelist=['fc.bias'])
+            )
+
+        .. code-block:: python
+
+            from ignite.contrib.handlers.clearml_logger import *
+
+            clearml_logger = ClearMLLogger(
+                project_name="pytorch-ignite-integration",
+                task_name="cnn-mnist"
+            )
+
+            # Log gradient of weights which have shape (2, 1)
+            def has_shape_2_1(n, p):
+                return p.shape == (2,1)
+
+            clearml_logger.attach(
+                trainer,
+                event_name=Events.ITERATION_COMPLETED,
+                log_handler=GradsHistHandler(model, whitelist=has_shape_2_1)
+            )
+
+    ..  versionchanged:: 0.5.0
+            optional argument `whitelist` added.
+    """
 
     def __call__(self, engine: Engine, logger: ClearMLLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, ClearMLLogger):
@@ -586,17 +756,16 @@ class GradsHistHandler(BaseWeightsHistHandler):
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = f"{self.tag}/" if self.tag else ""
-        for name, p in self.model.named_parameters():
+        for name, p in self.weights:
             if p.grad is None:
                 continue
 
             title_name, _, series_name = name.partition(".")
-
             logger.grad_helper.add_histogram(
                 title=f"{tag_prefix}grads_{title_name}",
                 series=series_name,
                 step=global_step,
-                hist_data=p.grad.detach().cpu().numpy(),
+                hist_data=p.grad.cpu().numpy(),
             )
 
 
