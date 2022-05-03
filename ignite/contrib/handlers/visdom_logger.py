@@ -482,7 +482,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
         for name, p in self.model.named_parameters():
             name = name.replace(".", "/")
             k = f"{tag_prefix}weights_{self.reduction.__name__}/{name}"
-            v = float(self.reduction(p.data))
+            v = self.reduction(p.data)
             self.add_scalar(logger, k, v, event_name, global_step)
 
         logger._save()
@@ -530,7 +530,7 @@ class GradsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
         for name, p in self.model.named_parameters():
             name = name.replace(".", "/")
             k = f"{tag_prefix}grads_{self.reduction.__name__}/{name}"
-            v = float(self.reduction(p.grad))
+            v = self.reduction(p.grad)
             self.add_scalar(logger, k, v, event_name, global_step)
 
         logger._save()
