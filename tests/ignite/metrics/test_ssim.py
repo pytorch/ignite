@@ -96,10 +96,8 @@ def test_ssim(device, shape, kernel_size, gaussian, use_sample_covariance):
         use_sample_covariance=use_sample_covariance,
     )
 
-    assert isinstance(ignite_ssim, torch.Tensor)
-    assert ignite_ssim.dtype == torch.float64
-    assert ignite_ssim.device.type == torch.device(device).type
-    assert np.allclose(ignite_ssim.cpu().numpy(), skimg_ssim, atol=7e-5)
+    assert isinstance(ignite_ssim, float)
+    assert np.allclose(ignite_ssim, skimg_ssim, atol=7e-5)
 
 
 def test_ssim_variable_batchsize():
@@ -125,7 +123,7 @@ def test_ssim_variable_batchsize():
     ssim.reset()
     ssim.update((torch.cat(y_preds), torch.cat(y_true)))
     expected = ssim.compute()
-    assert torch.allclose(out, expected)
+    assert np.allclose(out, expected)
 
 
 def _test_distrib_integration(device, tol=1e-4):
