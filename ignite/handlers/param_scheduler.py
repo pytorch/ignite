@@ -1502,7 +1502,7 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
 
             [[0.1], [0.1], [0.1], [0.1], [0.1], [0.1], [0.05], [0.05]]
 
-    .. versionadded:: 0.4.8
+    .. versionadded:: 0.5.0
     """
 
     def __init__(
