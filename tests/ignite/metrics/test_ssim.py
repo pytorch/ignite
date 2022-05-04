@@ -206,7 +206,7 @@ def _test_distrib_accumulator_device(device):
         y = y_pred * 0.65
         ssim.update((y_pred, y))
 
-        dev = ssim._sum_of_batchwise_ssim.device
+        dev = ssim._sum_of_ssim.device
         assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
 
 
