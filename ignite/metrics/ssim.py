@@ -98,7 +98,7 @@ class SSIM(Metric):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._sum_of_ssim = torch.tensor(0.0, device=self._device)
+        self._sum_of_ssim = torch.tensor(0.0, dtype=torch.float64, device=self._device)
         self._num_examples = 0
         self._kernel = self._gaussian_or_uniform_kernel(kernel_size=self.kernel_size, sigma=self.sigma)
 
@@ -180,7 +180,7 @@ class SSIM(Metric):
         self._num_examples += y.shape[0]
 
     @sync_all_reduce("_sum_of_ssim", "_num_examples")
-    def compute(self) -> torch.Tensor:
+    def compute(self) -> float:
         if self._num_examples == 0:
             raise NotComputableError("SSIM must have at least one example before it can be computed.")
-        return self._sum_of_ssim / self._num_examples
+        return (self._sum_of_ssim / self._num_examples).item()
