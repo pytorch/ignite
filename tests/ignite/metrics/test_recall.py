@@ -108,9 +108,8 @@ def test_binary_input():
 
         assert re._type == "binary"
         assert re._updated is True
-        assert isinstance(re.compute(), float)
-        re_compute = re.compute()
-        assert recall_score(np_y, np_y_pred, average="binary") == pytest.approx(re_compute)
+        assert isinstance(re.compute(), torch.Tensor)
+        assert recall_score(np_y, np_y_pred, average="binary") == pytest.approx(re.compute())
 
     def get_test_cases():
 

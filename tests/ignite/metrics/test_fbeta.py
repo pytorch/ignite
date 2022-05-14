@@ -18,11 +18,11 @@ def test_wrong_inputs():
         Fbeta(0.0)
 
     with pytest.raises(ValueError, match=r"Input precision metric should have average=False"):
-        p = Precision(average=True)
+        p = Precision(average='micro')
         Fbeta(1.0, precision=p)
 
     with pytest.raises(ValueError, match=r"Input recall metric should have average=False"):
-        r = Recall(average=True)
+        r = Recall(average='samples')
         Fbeta(1.0, recall=r)
 
     with pytest.raises(ValueError, match=r"If precision argument is provided, output_transform should be None"):

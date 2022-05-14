@@ -103,10 +103,9 @@ def test_binary_input(average):
 
         assert pr._type == "binary"
         assert pr._updated is True
-        assert isinstance(pr.compute(), float)
-        pr_compute = pr.compute()
+        assert isinstance(pr.compute(), torch.Tensor if not average else float)
         sk_average_parameter = "binary" if not average else average
-        assert precision_score(np_y, np_y_pred, average=sk_average_parameter) == pytest.approx(pr_compute)
+        assert precision_score(np_y, np_y_pred, average=sk_average_parameter) == pytest.approx(pr.compute())
 
     def get_test_cases():
 

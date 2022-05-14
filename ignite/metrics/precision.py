@@ -79,7 +79,7 @@ class _BasePrecisionRecall(_BaseClassification):
         elif self._average == "micro":
             return result.item()  # type: ignore
         else:
-            return result if self._type != "binary" else result.item()  # type: ignore
+            return result
 
 
 class Precision(_BasePrecisionRecall):
