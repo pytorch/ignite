@@ -41,14 +41,14 @@ class _BasePrecisionRecall(_BaseClassification):
     @reinit__is_reduced
     def reset(self) -> None:
         if self._average == "samples":
-            self._sum_samples_metric = 0
-            self._samples_cnt = 0
+            self._sum_samples_metric = torch.tensor(0, device=self._device)  # type: torch.Tensor
+            self._samples_cnt = 0  # type: int
         else:
-            self._true_positives = 0
-            self._positives = 0
+            self._true_positives = torch.tensor(0, device=self._device)  # type: torch.Tensor
+            self._positives = torch.tensor(0, device=self._device)  # type: torch.Tensor
 
         if self._average == "weighted":
-            self._actual_positives = 0
+            self._actual_positives = torch.tensor(0, device=self._device)  # type: torch.Tensor
         self._updated = False
 
         super(_BasePrecisionRecall, self).reset()
@@ -60,14 +60,14 @@ class _BasePrecisionRecall(_BaseClassification):
             )
         if not self._is_reduced:
             if self._average == "samples":
-                self._sum_samples_metric = idist.all_reduce(self._sum_samples_metric)
-                self._samples_cnt = idist.all_reduce(self._samples_cnt)
+                self._sum_samples_metric = idist.all_reduce(self._sum_samples_metric)  # type: ignore[assignment]
+                self._samples_cnt = idist.all_reduce(self._samples_cnt)  # type: ignore[assignment]
             else:
-                self._true_positives = idist.all_reduce(self._true_positives)
-                self._positives = idist.all_reduce(self._positives)
+                self._true_positives = idist.all_reduce(self._true_positives)  # type: ignore[assignment]
+                self._positives = idist.all_reduce(self._positives)  # type: ignore[assignment]
             if self._average == "weighted":
-                self._actual_positives = idist.all_reduce(self._actual_positives)
-            self._is_reduced = True
+                self._actual_positives = idist.all_reduce(self._actual_positives)  # type: ignore[assignment]
+            self._is_reduced = True  # type: bool
 
         if self._average == "samples":
             return (self._sum_samples_metric / self._samples_cnt).item()
