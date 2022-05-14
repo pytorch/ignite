@@ -26,17 +26,17 @@ class Recall(_BasePrecisionRecall):
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
         average: available options are
-            `False`: default option. For multicalss and multilabel
-                    inputs, per class and per label metric is returned. By calling `mean()` on the
-                    metric instance, the `macro` setting (which is unweighted average across
-                    classes or labels) is returned.
-            `micro`: for multilabel input, every label of each sample is considered itself
-                    a sample then recall is computed. For binary and multiclass inputs, this is
-                    equivalent with `Accuracy`, so use that metric.
-            `samples`: for multilabel input, at first, recall is computed on a per sample
-                    basis and then average across samples is returned. Incompatible with
-                    binary and multiclass inputs.
-            `Recall` does not have `weighted` option as there is in :class:`~ignite.metrics.Precision`,
+            ``False``: default option. For multicalss and multilabel
+                inputs, per class and per label metric is returned. By calling `mean()` on the
+                metric instance, the `macro` setting (which is unweighted average across
+                classes or labels) is returned.
+            ``'micro'``: for multilabel input, every label of each sample is considered itself
+                a sample then recall is computed. For binary and multiclass inputs, this is
+                equivalent with `Accuracy`, so use that metric.
+            ``'samples'``: for multilabel input, at first, recall is computed on a per sample
+                basis and then average across samples is returned. Incompatible with
+                binary and multiclass inputs.
+            `Recall` does not have `weighted` option as there is in :class:`~ignite.metrics.precision.Precision`,
             because for binary and multiclass input, weighted recall, micro recall and `Accuracy`
             are equivalent and for multilabel input, weighted recall is equivalent with the micro one.
         is_multilabel: flag to use in multilabel case. By default, value is False.
