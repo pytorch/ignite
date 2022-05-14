@@ -168,11 +168,8 @@ class Recall(_BasePrecisionRecall):
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
 
-        if average not in [False, 'micro', 'samples']:
-            raise ValueError(
-                "Argument average should be one of values "
-                "False, 'micro' and 'samples'."
-            )
+        if average not in [False, "micro", "samples"]:
+            raise ValueError("Argument average should be one of values " "False, 'micro' and 'samples'.")
         super(Recall, self).__init__(
             output_transform=output_transform, average=average, is_multilabel=is_multilabel, device=device
         )
@@ -209,17 +206,17 @@ class Recall(_BasePrecisionRecall):
         y = y.to(dtype=torch.float64, device=self._device)
         correct = y * y_pred
 
-        if self._average == 'samples':
+        if self._average == "samples":
 
             actual_positives = y.sum(dim=1)
             true_positives = correct.sum(dim=1)
             self._sum_samples_metric += torch.sum(true_positives / (actual_positives + self.eps))
             self._samples_cnt += y.size(0)
-        elif self._average == 'micro':
+        elif self._average == "micro":
 
             self._positives += y.sum()
             self._true_positives += correct.sum()
-        else: # _average == False
+        else:  # _average == False
 
             self._positives += y.sum(dim=0)
             self._true_positives += correct.sum(dim=0)

@@ -29,25 +29,29 @@ def test_no_update():
 
 def test_wrong_average_parameter():
     with pytest.raises(ValueError, match="Argument average should be one of values False, 'micro' and 'samples'."):
-            Recall(average=True)
+        Recall(average=True)
     with pytest.raises(ValueError, match="Argument average should be one of values False, 'micro' and 'samples'."):
-            Recall(average='weighted')
-    
-    re = Recall(average='micro')
+        Recall(average="weighted")
+
+    re = Recall(average="micro")
     with pytest.raises(ValueError, match=r"`Precision` and `Recall` with average=='micro' and binary or multiclass"):
         re.update((torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long()))
     assert re._updated is False
-    re = Recall(average='micro')
+    re = Recall(average="micro")
     with pytest.raises(ValueError, match=r"`Precision` and `Recall` with average=='micro' and binary or multiclass"):
         re.update((torch.rand(10, 3), torch.randint(0, 3, size=(10,)).long()))
     assert re._updated is False
 
-    re = Recall(average='samples')
-    with pytest.raises(ValueError, match=r"Average == 'samples' is incompatible with binary and multiclass input data."):
+    re = Recall(average="samples")
+    with pytest.raises(
+        ValueError, match=r"Average == 'samples' is incompatible with binary and multiclass input data."
+    ):
         re.update((torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long()))
     assert re._updated is False
-    re = Recall(average='samples')
-    with pytest.raises(ValueError, match=r"Average == 'samples' is incompatible with binary and multiclass input data."):
+    re = Recall(average="samples")
+    with pytest.raises(
+        ValueError, match=r"Average == 'samples' is incompatible with binary and multiclass input data."
+    ):
         re.update((torch.rand(10, 3), torch.randint(0, 3, size=(10,)).long()))
     assert re._updated is False
 
@@ -106,7 +110,7 @@ def test_binary_input():
         assert re._updated is True
         assert isinstance(re.compute(), float)
         re_compute = re.compute()
-        assert recall_score(np_y, np_y_pred, average='binary') == pytest.approx(re_compute)
+        assert recall_score(np_y, np_y_pred, average="binary") == pytest.approx(re_compute)
 
     def get_test_cases():
 
@@ -292,7 +296,7 @@ def to_numpy_multilabel(y):
     return y
 
 
-@pytest.mark.parametrize("average", [False, 'micro', 'samples'])
+@pytest.mark.parametrize("average", [False, "micro", "samples"])
 def test_multilabel_input(average):
 
     re = Recall(average=average, is_multilabel=True)
@@ -320,7 +324,6 @@ def test_multilabel_input(average):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
             assert recall_score(np_y, np_y_pred, average=sk_average_parameter) == pytest.approx(re_compute)
-
 
     def get_test_cases():
 
@@ -428,9 +431,7 @@ def _test_distrib_integration_multiclass(device):
         # Fixes https://github.com/pytorch/ignite/issues/1635#issuecomment-863026919
         assert res.device.type == "cpu"
         res = res.cpu().numpy()
-        true_res = recall_score(
-            y_true.cpu().numpy(), torch.argmax(y_preds, dim=1).cpu().numpy(), average=None
-        )
+        true_res = recall_score(y_true.cpu().numpy(), torch.argmax(y_preds, dim=1).cpu().numpy(), average=None)
 
         assert pytest.approx(res) == true_res
 
@@ -500,10 +501,10 @@ def _test_distrib_integration_multilabel(device):
         for metric_device in metric_devices:
             _test(average=False, n_epochs=1, metric_device=metric_device)
             _test(average=False, n_epochs=2, metric_device=metric_device)
-            _test(average='micro', n_epochs=1, metric_device=metric_device)
-            _test(average='micro', n_epochs=2, metric_device=metric_device)
-            _test(average='samples', n_epochs=1, metric_device=metric_device)
-            _test(average='samples', n_epochs=2, metric_device=metric_device)
+            _test(average="micro", n_epochs=1, metric_device=metric_device)
+            _test(average="micro", n_epochs=2, metric_device=metric_device)
+            _test(average="samples", n_epochs=1, metric_device=metric_device)
+            _test(average="samples", n_epochs=2, metric_device=metric_device)
 
 
 def _test_distrib_accumulator_device(device):
@@ -549,7 +550,7 @@ def _test_distrib_multilabel_accumulator_device(device):
         re.update((y_reed, y))
 
         assert re._updated is True
-        if average == 'samples':
+        if average == "samples":
             assert (
                 re._sum_samples_metric.device == metric_device
             ), f"{type(re._sum_samples_metric.device)}:{re._sum_samples_metric.device} vs {type(metric_device)}:{metric_device}"
@@ -566,8 +567,8 @@ def _test_distrib_multilabel_accumulator_device(device):
         metric_devices.append(idist.device())
     for metric_device in metric_devices:
         _test(False, metric_device=metric_device)
-        _test('micro', metric_device=metric_device)
-        _test('samples', metric_device=metric_device)
+        _test("micro", metric_device=metric_device)
+        _test("samples", metric_device=metric_device)
 
 
 @pytest.mark.distributed
