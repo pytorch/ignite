@@ -553,7 +553,8 @@ def _test_distrib_multilabel_accumulator_device(device):
         if average == "samples":
             assert (
                 re._sum_samples_metric.device == metric_device
-            ), f"{type(re._sum_samples_metric.device)}:{re._sum_samples_metric.device} vs {type(metric_device)}:{metric_device}"
+            ), f"{type(re._sum_samples_metric.device)}:{re._sum_samples_metric.device} vs "
+            f"{type(metric_device)}:{metric_device}"
         else:
             assert (
                 re._true_positives.device == metric_device

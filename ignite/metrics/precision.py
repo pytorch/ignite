@@ -41,14 +41,14 @@ class _BasePrecisionRecall(_BaseClassification):
     @reinit__is_reduced
     def reset(self) -> None:
         if self._average == "samples":
-            self._sum_samples_metric = torch.tensor(0, device=self._device)  # type: torch.Tensor
+            self._sum_samples_metric = 0  # type: Union[int, torch.Tensor]
             self._samples_cnt = 0  # type: int
         else:
-            self._true_positives = torch.tensor(0, device=self._device)  # type: torch.Tensor
-            self._positives = torch.tensor(0, device=self._device)  # type: torch.Tensor
+            self._true_positives = 0  # type: Union[int, torch.Tensor]
+            self._positives = 0  # type: Union[int, torch.Tensor]
 
         if self._average == "weighted":
-            self._actual_positives = torch.tensor(0, device=self._device)  # type: torch.Tensor
+            self._actual_positives = 0  # type: Union[int, torch.Tensor]
         self._updated = False
 
         super(_BasePrecisionRecall, self).reset()
@@ -70,15 +70,16 @@ class _BasePrecisionRecall(_BaseClassification):
             self._is_reduced = True  # type: bool
 
         if self._average == "samples":
-            return (self._sum_samples_metric / self._samples_cnt).item()
+            return (self._sum_samples_metric / self._samples_cnt).item()  # type: ignore
 
         result = self._true_positives / (self._positives + self.eps)
         if self._average == "weighted":
-            return ((result @ self._actual_positives) / (self._actual_positives.sum() + self.eps)).item()
+            denominator = self._actual_positives.sum() + self.eps  # type: ignore
+            return ((result @ self._actual_positives) / denominator).item()  # type: ignore
         elif self._average == "micro":
-            return result.item()
+            return result.item()  # type: ignore
         else:
-            return result if self._type != "binary" else result.item()
+            return result if self._type != "binary" else result.item()  # type: ignore
 
 
 class Precision(_BasePrecisionRecall):
