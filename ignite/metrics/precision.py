@@ -19,7 +19,7 @@ class _BasePrecisionRecall(_BaseClassification):
         is_multilabel: bool = False,
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
-        
+
         self._average = average
         self.eps = 1e-20
         self._updated = False
@@ -30,24 +30,24 @@ class _BasePrecisionRecall(_BaseClassification):
     def _check_type(self, output: Sequence[torch.Tensor]) -> None:
         super()._check_type(output)
 
-        if self._average == 'micro' and self._type in ['binary', 'multiclass']:
+        if self._average == "micro" and self._type in ["binary", "multiclass"]:
             raise ValueError(
                 "`Precision` and `Recall` with average=='micro' and binary or multiclass "
                 "input data are equivalent with `Accuracy`, so use this metric."
             )
-        if self._type in ['binary', 'multiclass'] and self._average == 'samples':
+        if self._type in ["binary", "multiclass"] and self._average == "samples":
             raise ValueError("Average == 'samples' is incompatible with binary and multiclass input data.")
 
     @reinit__is_reduced
     def reset(self) -> None:
-        if self._average == 'samples':
+        if self._average == "samples":
             self._sum_samples_metric = 0
             self._samples_cnt = 0
         else:
             self._true_positives = 0
             self._positives = 0
 
-        if self._average == 'weighted':
+        if self._average == "weighted":
             self._actual_positives = 0
         self._updated = False
 
@@ -59,26 +59,26 @@ class _BasePrecisionRecall(_BaseClassification):
                 f"{self.__class__.__name__} must have at least one example before it can be computed."
             )
         if not self._is_reduced:
-            if self._average == 'samples':
+            if self._average == "samples":
                 self._sum_samples_metric = idist.all_reduce(self._sum_samples_metric)
                 self._samples_cnt = idist.all_reduce(self._samples_cnt)
             else:
                 self._true_positives = idist.all_reduce(self._true_positives)
                 self._positives = idist.all_reduce(self._positives)
-            if self._average == 'weighted':
+            if self._average == "weighted":
                 self._actual_positives = idist.all_reduce(self._actual_positives)
             self._is_reduced = True
 
-        if self._average == 'samples':
+        if self._average == "samples":
             return (self._sum_samples_metric / self._samples_cnt).item()
 
         result = self._true_positives / (self._positives + self.eps)
-        if self._average == 'weighted':
+        if self._average == "weighted":
             return ((result @ self._actual_positives) / (self._actual_positives.sum() + self.eps)).item()
-        elif self._average == 'micro':
+        elif self._average == "micro":
             return result.item()
         else:
-            return result if self._type != 'binary' else result.item()
+            return result if self._type != "binary" else result.item()
 
 
 class Precision(_BasePrecisionRecall):
@@ -254,11 +254,8 @@ class Precision(_BasePrecisionRecall):
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
 
-        if average not in [False, 'micro', 'weighted', 'samples']:
-            raise ValueError(
-                "Argument average should be one of values "
-                "False, 'micro', 'weighted' and 'samples'."
-            )
+        if average not in [False, "micro", "weighted", "samples"]:
+            raise ValueError("Argument average should be one of values " "False, 'micro', 'weighted' and 'samples'.")
         super(Precision, self).__init__(
             output_transform=output_transform, average=average, is_multilabel=is_multilabel, device=device
         )
@@ -274,7 +271,7 @@ class Precision(_BasePrecisionRecall):
             y_pred = y_pred.view(-1)
             y = y.view(-1)
 
-            if self._average == 'weighted':
+            if self._average == "weighted":
                 y = to_onehot(y, num_classes=2)
                 y_pred = to_onehot(y_pred.long(), num_classes=2)
         elif self._type == "multiclass":
@@ -299,22 +296,22 @@ class Precision(_BasePrecisionRecall):
         y = y.to(dtype=torch.float64, device=self._device)
         correct = y * y_pred
 
-        if self._average == 'samples':
+        if self._average == "samples":
 
             all_positives = y_pred.sum(dim=1)
             true_positives = correct.sum(dim=1)
             self._sum_samples_metric += torch.sum(true_positives / (all_positives + self.eps))
             self._samples_cnt += y.size(0)
-        elif self._average == 'micro':
+        elif self._average == "micro":
 
             self._positives += y_pred.sum()
             self._true_positives += correct.sum()
-        else: # _average in [False, 'weighted']
+        else:  # _average in [False, 'weighted']
 
             self._positives += y_pred.sum(dim=0)
             self._true_positives += correct.sum(dim=0)
 
-            if self._average == 'weighted':
+            if self._average == "weighted":
                 self._actual_positives += y.sum(dim=0)
 
         self._updated = True
