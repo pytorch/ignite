@@ -3,7 +3,6 @@ import warnings
 
 import pytest
 import torch
-from numpy import mat
 from sklearn.exceptions import UndefinedMetricWarning
 from sklearn.metrics import precision_score
 

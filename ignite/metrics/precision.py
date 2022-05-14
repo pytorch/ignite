@@ -1,4 +1,4 @@
-from typing import Callable, cast, Sequence, Union
+from typing import Callable, Sequence, Union
 
 import torch
 
