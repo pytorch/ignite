@@ -27,7 +27,7 @@ class Recall(_BasePrecisionRecall):
             you want to compute the metric with respect to one of the outputs.
         average: available options are
 
-            False 
+            False
               default option. For multicalss and multilabel
               inputs, per class and per label metric is returned. By calling ``mean()`` on the
               metric instance, the `macro` setting (which is unweighted average across
@@ -68,7 +68,7 @@ class Recall(_BasePrecisionRecall):
             y_true = torch.tensor([1, 0, 1, 1, 0, 1])
             y_pred = torch.tensor([1, 0, 1, 0, 1, 1])
             state = default_evaluator.run([[y_pred, y_true]])
-            print(f"Recall: {state.metrics["recall"]}")
+            print(f"Recall: {state.metrics['recall']}")
 
         .. testoutput:: 1
 
@@ -93,8 +93,8 @@ class Recall(_BasePrecisionRecall):
                 [0.8448, 0.7177, 0.7288]
             ])
             state = default_evaluator.run([[y_pred, y_true]])
-            print(f"Recall: {state.metrics["recall"]}")
-            print(f"Macro Recall: {state.metrics["macro recall"]}")
+            print(f"Recall: {state.metrics['recall']}")
+            print(f"Macro Recall: {state.metrics['macro recall']}")
 
         .. testoutput:: 2
 
@@ -130,10 +130,10 @@ class Recall(_BasePrecisionRecall):
                 [1, 1, 0],
             ])
             state = default_evaluator.run([[y_pred, y_true]])
-            print(f"Recall: {state.metrics["recall"]}")
-            print(f"Micro Recall: {state.metrics["micro recall"]}")
-            print(f"Macro Recall: {state.metrics["macro recall"]}")
-            print(f"Samples Recall: {state.metrics["samples recall"]}")
+            print(f"Recall: {state.metrics['recall']}")
+            print(f"Micro Recall: {state.metrics['micro recall']}")
+            print(f"Macro Recall: {state.metrics['macro recall']}")
+            print(f"Samples Recall: {state.metrics['samples recall']}")
 
         .. testoutput:: 3
 
@@ -156,7 +156,7 @@ class Recall(_BasePrecisionRecall):
             y_true = torch.tensor([1, 0, 1, 1, 0, 1])
             y_pred = torch.tensor([0.6, 0.2, 0.9, 0.4, 0.7, 0.65])
             state = default_evaluator.run([[y_pred, y_true]])
-            print(state.metrics["recall"])
+            print(state.metrics['recall'])
 
         .. testoutput:: 4
 

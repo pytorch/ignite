@@ -32,11 +32,11 @@ class _BasePrecisionRecall(_BaseClassification):
 
         if self._average == "micro" and self._type in ["binary", "multiclass"]:
             raise ValueError(
-                "`Precision` and `Recall` with average=='micro' and binary or multiclass "
-                "input data are equivalent with `Accuracy`, so use this metric."
+                "Precision and Recall with average='micro' and binary or multiclass "
+                "input data are equivalent with Accuracy, so use this metric."
             )
         if self._type in ["binary", "multiclass"] and self._average == "samples":
-            raise ValueError("Average == 'samples' is incompatible with binary and multiclass input data.")
+            raise ValueError("Argument average='samples' is incompatible with binary and multiclass input data.")
 
     @reinit__is_reduced
     def reset(self) -> None:
@@ -146,8 +146,8 @@ class Precision(_BasePrecisionRecall):
             y_true = torch.Tensor([1, 0, 1, 1, 0, 1])
             y_pred = torch.Tensor([1, 0, 1, 0, 1, 1])
             state = default_evaluator.run([[y_pred, y_true]])
-            print(f"Precision: {state.metrics["precision"]}")
-            print(f"Weighted Precision: {state.metrics["weighted precision"]}")
+            print(f"Precision: {state.metrics['precision']}")
+            print(f"Weighted Precision: {state.metrics['weighted precision']}")
 
         .. testoutput:: 1
 
@@ -175,9 +175,9 @@ class Precision(_BasePrecisionRecall):
                 [0.8448, 0.7177, 0.7288]
             ])
             state = default_evaluator.run([[y_pred, y_true]])
-            print(f"Precision: {state.metrics["precision"]}")
-            print(f"Macro Precision: {state.metrics["macro precision"]}")
-            print(f"Weighted Precision: {state.metrics["weighted precision"]}")
+            print(f"Precision: {state.metrics['precision']}")
+            print(f"Macro Precision: {state.metrics['macro precision']}")
+            print(f"Weighted Precision: {state.metrics['weighted precision']}")
 
         .. testoutput:: 2
 
@@ -217,10 +217,10 @@ class Precision(_BasePrecisionRecall):
             ])
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["precision"])
-            print(f"Micro Precision: {state.metrics["micro precision"]}")
-            print(f"Macro Precision: {state.metrics["macro precision"]}")
-            print(f"Weighted Precision: {state.metrics["weighted precision"]}")
-            print(f"Samples Precision: {state.metrics["samples precision"]}")
+            print(f"Micro Precision: {state.metrics['micro precision']}")
+            print(f"Macro Precision: {state.metrics['macro precision']}")
+            print(f"Weighted Precision: {state.metrics['weighted precision']}")
+            print(f"Samples Precision: {state.metrics['samples precision']}")
 
         .. testoutput:: 3
 
