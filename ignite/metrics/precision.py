@@ -181,7 +181,7 @@ class Precision(_BasePrecisionRecall):
 
         .. testoutput:: 2
 
-            Precision: tensor([0.5000, 1.0000, 0.3333], dtype=torch.float64)
+            Precision: tensor([0.5000, 0.0000, 0.3333], dtype=torch.float64)
             Macro Precision: 0.27777777777777773
             Weighted Precision: 0.3333333333333333
 
@@ -216,7 +216,7 @@ class Precision(_BasePrecisionRecall):
                 [1, 1, 0],
             ])
             state = default_evaluator.run([[y_pred, y_true]])
-            print(state.metrics["precision"])
+            print(f"Precision: {state.metrics['precision']}")
             print(f"Micro Precision: {state.metrics['micro precision']}")
             print(f"Macro Precision: {state.metrics['macro precision']}")
             print(f"Weighted Precision: {state.metrics['weighted precision']}")

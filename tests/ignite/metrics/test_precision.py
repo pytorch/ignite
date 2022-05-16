@@ -28,23 +28,23 @@ def test_wrong_average_parameter():
         Precision(average=True)
 
     pr = Precision(average="micro")
-    with pytest.raises(ValueError, match=r"`Precision` and `Recall` with average=='micro' and binary or multiclass"):
+    with pytest.raises(ValueError, match=r"Precision and Recall with average='micro' and binary or multiclass"):
         pr.update((torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long()))
     assert pr._updated is False
     pr = Precision(average="micro")
-    with pytest.raises(ValueError, match=r"`Precision` and `Recall` with average=='micro' and binary or multiclass"):
+    with pytest.raises(ValueError, match=r"Precision and Recall with average='micro' and binary or multiclass"):
         pr.update((torch.rand(10, 3), torch.randint(0, 3, size=(10,)).long()))
     assert pr._updated is False
 
     pr = Precision(average="samples")
     with pytest.raises(
-        ValueError, match=r"Average == 'samples' is incompatible with binary and multiclass input data."
+        ValueError, match=r"Argument average='samples' is incompatible with binary and multiclass input data."
     ):
         pr.update((torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long()))
     assert pr._updated is False
     pr = Precision(average="samples")
     with pytest.raises(
-        ValueError, match=r"Average == 'samples' is incompatible with binary and multiclass input data."
+        ValueError, match=r"Argument average='samples' is incompatible with binary and multiclass input data."
     ):
         pr.update((torch.rand(10, 3), torch.randint(0, 3, size=(10,)).long()))
     assert pr._updated is False
