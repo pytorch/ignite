@@ -4,7 +4,6 @@ from typing import Callable, Collection, Dict, List, Optional, Union
 import torch
 
 from ignite.metrics.fbeta import Fbeta
-from ignite.metrics.metric import Metric
 from ignite.metrics.metrics_lambda import MetricsLambda
 from ignite.metrics.precision import Precision
 from ignite.metrics.recall import Recall
@@ -85,14 +84,14 @@ def ClassificationReport(
                 [0, 0, 0],
                 [1, 0, 0],
                 [0, 1, 1],
-            ]).unsqueeze(0)
+            ])
             y_pred = torch.tensor([
                 [1, 1, 0],
                 [1, 0, 1],
                 [1, 0, 0],
                 [1, 0, 1],
                 [1, 1, 0],
-            ]).unsqueeze(0)
+            ])
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["cr"].keys())
             print(state.metrics["cr"]["0"])
@@ -119,25 +118,24 @@ def ClassificationReport(
     averaged_fbeta = fbeta.mean()
 
     def _wrapper(
-        recall_metric: Metric, precision_metric: Metric, f: Metric, a_recall: Metric, a_precision: Metric, a_f: Metric
+        re: torch.Tensor, pr: torch.Tensor, f: torch.Tensor, a_re: torch.Tensor, a_pr: torch.Tensor, a_f: torch.Tensor
     ) -> Union[Collection[str], Dict]:
-        p_tensor, r_tensor, f_tensor = precision_metric, recall_metric, f
-        if p_tensor.shape != r_tensor.shape:
+        if pr.shape != re.shape:
             raise ValueError(
                 "Internal error: Precision and Recall have mismatched shapes: "
-                f"{p_tensor.shape} vs {r_tensor.shape}. Please, open an issue "
+                f"{pr.shape} vs {re.shape}. Please, open an issue "
                 "with a reference on this error. Thank you!"
             )
         dict_obj = {}
-        for idx, p_label in enumerate(p_tensor):
+        for idx, p_label in enumerate(pr):
             dict_obj[_get_label_for_class(idx)] = {
                 "precision": p_label.item(),
-                "recall": r_tensor[idx].item(),
-                "f{0}-score".format(beta): f_tensor[idx].item(),
+                "recall": re[idx].item(),
+                "f{0}-score".format(beta): f[idx].item(),
             }
         dict_obj["macro avg"] = {
-            "precision": a_precision.item(),
-            "recall": a_recall.item(),
+            "precision": a_pr.item(),
+            "recall": a_re.item(),
             "f{0}-score".format(beta): a_f.item(),
         }
         return dict_obj if output_dict else json.dumps(dict_obj)

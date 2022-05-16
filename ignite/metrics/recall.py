@@ -98,7 +98,7 @@ class Recall(_BasePrecisionRecall):
 
         .. testoutput:: 2
 
-            Recall: tensor([0.5000, 0.0, 0.5000], dtype=torch.float64)
+            Recall: tensor([0.5000, 0.0000, 0.5000], dtype=torch.float64)
             Macro Recall: 0.3333333333333333
 
         Multilabel case, the shapes must be (batch_size, num_categories, ...)

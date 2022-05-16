@@ -143,7 +143,7 @@ class Precision(_BasePrecisionRecall):
             weighted_metric = Precision(average='weighted')
             metric.attach(default_evaluator, "precision")
             weighted_metric.attach(default_evaluator, "weighted precision")
-            y_true = torch.Tensor([1, 0, 1, 1, 0, 1])
+            y_true = torch.Tensor([1, 0, 1, 1, 0, 1]).long()
             y_pred = torch.Tensor([1, 0, 1, 0, 1, 1])
             state = default_evaluator.run([[y_pred, y_true]])
             print(f"Precision: {state.metrics['precision']}")
