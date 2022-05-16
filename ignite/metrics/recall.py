@@ -27,7 +27,7 @@ class Recall(_BasePrecisionRecall):
             you want to compute the metric with respect to one of the outputs.
         average: available options are
 
-            False 
+            False
               default option. For multicalss and multilabel
               inputs, per class and per label metric is returned. By calling ``mean()`` on the
               metric instance, the `macro` setting (which is unweighted average across
