@@ -98,7 +98,7 @@ class NoImprovementHandler(Serializable):
         else:
             self.pass_function(self.trainer)
 
-    def _update_state(self, score):
+    def _update_state(self, score: int) -> None:
 
         if self.best_score is None:
             self.best_score = score
@@ -177,12 +177,12 @@ class EarlyStopping(NoImprovementHandler):
 
         self.logger = setup_logger(__name__ + "." + self.__class__.__name__)
 
-    def __call__(self, engine):
+    def __call__(self, engine: Engine) -> None:
         super(EarlyStopping, self).__call__(engine)
 
-    def pass_function(self, trainer):
+    def pass_function(self, trainer: Engine) -> None:
         pass
 
-    def stop_function(self, trainer):
+    def stop_function(self, trainer: Engine) -> None:
         self.logger.info("EarlyStopping: Stop training")
         trainer.terminate()
