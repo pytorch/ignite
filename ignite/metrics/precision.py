@@ -79,7 +79,7 @@ class _BasePrecisionRecall(_BaseClassification):
         elif self._average is True:
             return result.mean().item()  # type: ignore
         else:
-            return result.item() if self._type == "binary" else result  # type: ignore
+            return result
 
 
 class Precision(_BasePrecisionRecall):
