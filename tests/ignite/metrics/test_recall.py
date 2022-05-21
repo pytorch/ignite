@@ -73,13 +73,13 @@ def test_binary_wrong_inputs():
     assert re._updated is False
 
 
-def ignite_average_to_scikit_average(average, data_type:str):
-    if average == 'micro' or average == 'samples' or average == 'weighted':
+def ignite_average_to_scikit_average(average, data_type: str):
+    if average == "micro" or average == "samples" or average == "weighted":
         return average
-    if average == False:
-        return None if data_type != 'binary' else 'binary'
-    if average == True:
-        return 'macro'
+    if average is False:
+        return None if data_type != "binary" else "binary"
+    if average is True:
+        return "macro"
 
 
 @pytest.mark.parametrize("average", [False, True, "micro", "weighted"])
@@ -106,7 +106,7 @@ def test_binary_input(average):
         assert re._type == "binary"
         assert re._updated is True
         assert isinstance(re.compute(), float)
-        sk_average_parameter = ignite_average_to_scikit_average(average, 'binary')
+        sk_average_parameter = ignite_average_to_scikit_average(average, "binary")
         assert recall_score(np_y, np_y_pred, average=sk_average_parameter) == pytest.approx(re.compute())
 
     def get_test_cases():
@@ -220,7 +220,7 @@ def test_multiclass_input(average):
         assert re._updated is True
         assert isinstance(re.compute(), torch.Tensor if not average else float)
         re_compute = re.compute().numpy() if not average else re.compute()
-        sk_average_parameter = ignite_average_to_scikit_average(average, 'multiclass')
+        sk_average_parameter = ignite_average_to_scikit_average(average, "multiclass")
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
             sk_compute = recall_score(np_y, np_y_pred, labels=range(0, num_classes), average=sk_average_parameter)
@@ -319,7 +319,7 @@ def test_multilabel_input(average):
         assert re._type == "multilabel"
         assert re._updated is True
         re_compute = re.compute().numpy() if not average else re.compute()
-        sk_average_parameter = ignite_average_to_scikit_average(average, 'multilabel')
+        sk_average_parameter = ignite_average_to_scikit_average(average, "multilabel")
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
             assert recall_score(np_y, np_y_pred, average=sk_average_parameter) == pytest.approx(re_compute)
@@ -434,11 +434,9 @@ def _test_distrib_integration_multiclass(device):
             assert res.device.type == "cpu"
             res = res.cpu().numpy()
 
-        sk_average_parameter = ignite_average_to_scikit_average(average, 'multiclass')
+        sk_average_parameter = ignite_average_to_scikit_average(average, "multiclass")
         true_res = recall_score(
-            y_true.cpu().numpy(),
-            torch.argmax(y_preds, dim=1).cpu().numpy(),
-            average=sk_average_parameter
+            y_true.cpu().numpy(), torch.argmax(y_preds, dim=1).cpu().numpy(), average=sk_average_parameter
         )
 
         assert pytest.approx(res) == true_res
@@ -503,7 +501,7 @@ def _test_distrib_integration_multilabel(device):
         np_y_preds = to_numpy_multilabel(y_preds)
         np_y_true = to_numpy_multilabel(y_true)
         assert re._type == "multilabel"
-        sk_average_parameter = ignite_average_to_scikit_average(average, 'multilabel')
+        sk_average_parameter = ignite_average_to_scikit_average(average, "multilabel")
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
             assert recall_score(np_y_true, np_y_preds, average=sk_average_parameter) == pytest.approx(res)

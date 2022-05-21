@@ -1,5 +1,4 @@
 from typing import Callable, Sequence, Union
-import warnings
 
 import torch
 
@@ -77,10 +76,10 @@ class _BasePrecisionRecall(_BaseClassification):
             return ((result @ self._actual_positives) / denominator).item()  # type: ignore
         elif self._average == "micro":
             return result.item()  # type: ignore
-        elif self._average == True:
-            return result.mean().item()
+        elif self._average is True:
+            return result.mean().item()  # type: ignore
         else:
-            return result.item() if self._type == 'binary' else result
+            return result.item() if self._type == "binary" else result  # type: ignore
 
 
 class Precision(_BasePrecisionRecall):

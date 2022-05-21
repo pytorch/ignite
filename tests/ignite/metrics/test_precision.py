@@ -22,9 +22,7 @@ def test_no_update():
 
 
 def test_wrong_average_parameter():
-    with pytest.raises(
-        ValueError, match="Argument average should be a boolean or one of values"
-    ):
+    with pytest.raises(ValueError, match="Argument average should be a boolean or one of values"):
         Precision(average=1)
 
     pr = Precision(average="samples")
@@ -71,13 +69,13 @@ def test_binary_wrong_inputs():
     assert pr._updated is False
 
 
-def ignite_average_to_scikit_average(average, data_type:str):
-    if average == 'micro' or average == 'samples' or average == 'weighted':
+def ignite_average_to_scikit_average(average, data_type: str):
+    if average == "micro" or average == "samples" or average == "weighted":
         return average
-    if average == False:
-        return None if data_type != 'binary' else 'binary'
-    elif average == True:
-        return 'macro'
+    if average is False:
+        return None if data_type != "binary" else "binary"
+    elif average is True:
+        return "macro"
     else:
         raise ValueError(f"Wrong average parameter `{average}`")
 
@@ -106,7 +104,7 @@ def test_binary_input(average):
         assert pr._type == "binary"
         assert pr._updated is True
         assert isinstance(pr.compute(), float)
-        sk_average_parameter = ignite_average_to_scikit_average(average, 'binary')
+        sk_average_parameter = ignite_average_to_scikit_average(average, "binary")
         assert precision_score(np_y, np_y_pred, average=sk_average_parameter) == pytest.approx(pr.compute())
 
     def get_test_cases():
@@ -220,7 +218,7 @@ def test_multiclass_input(average):
         assert pr._updated is True
         assert isinstance(pr.compute(), torch.Tensor if not average else float)
         pr_compute = pr.compute().numpy() if not average else pr.compute()
-        sk_average_parameter = ignite_average_to_scikit_average(average, 'multiclass')
+        sk_average_parameter = ignite_average_to_scikit_average(average, "multiclass")
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
             sk_compute = precision_score(np_y, np_y_pred, labels=range(0, num_classes), average=sk_average_parameter)
@@ -319,7 +317,7 @@ def test_multilabel_input(average):
         assert pr._type == "multilabel"
         assert pr._updated is True
         pr_compute = pr.compute().numpy() if not average else pr.compute()
-        sk_average_parameter = ignite_average_to_scikit_average(average, 'multilabel')
+        sk_average_parameter = ignite_average_to_scikit_average(average, "multilabel")
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
             assert precision_score(np_y, np_y_pred, average=sk_average_parameter) == pytest.approx(pr_compute)
@@ -433,7 +431,7 @@ def _test_distrib_integration_multiclass(device):
             assert res.device.type == "cpu"
             res = res.cpu().numpy()
 
-        sk_average_parameter = ignite_average_to_scikit_average(average, 'multiclass')
+        sk_average_parameter = ignite_average_to_scikit_average(average, "multiclass")
         true_res = precision_score(
             y_true.cpu().numpy(), torch.argmax(y_preds, dim=1).cpu().numpy(), average=sk_average_parameter
         )
@@ -500,7 +498,7 @@ def _test_distrib_integration_multilabel(device):
         np_y_preds = to_numpy_multilabel(y_preds)
         np_y_true = to_numpy_multilabel(y_true)
         assert pr._type == "multilabel"
-        sk_average_parameter = ignite_average_to_scikit_average(average, 'multilabel')
+        sk_average_parameter = ignite_average_to_scikit_average(average, "multilabel")
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
             assert precision_score(np_y_true, np_y_preds, average=sk_average_parameter) == pytest.approx(res)
