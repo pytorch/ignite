@@ -1,4 +1,5 @@
 from typing import Callable, Sequence, Union
+import warnings
 
 import torch
 
@@ -20,6 +21,9 @@ class _BasePrecisionRecall(_BaseClassification):
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
 
+        if type(average) != bool and average not in ["micro", "weighted", "samples"]:
+            raise ValueError("Argument average should be a boolean or one of values 'micro', 'weighted' and 'samples'.")
+
         self._average = average
         self.eps = 1e-20
         self._updated = False
@@ -30,11 +34,6 @@ class _BasePrecisionRecall(_BaseClassification):
     def _check_type(self, output: Sequence[torch.Tensor]) -> None:
         super()._check_type(output)
 
-        if self._average == "micro" and self._type in ["binary", "multiclass"]:
-            raise ValueError(
-                "Precision and Recall with average='micro' and binary or multiclass "
-                "input data are equivalent with Accuracy, so use this metric."
-            )
         if self._type in ["binary", "multiclass"] and self._average == "samples":
             raise ValueError("Argument average='samples' is incompatible with binary and multiclass input data.")
 
@@ -78,8 +77,10 @@ class _BasePrecisionRecall(_BaseClassification):
             return ((result @ self._actual_positives) / denominator).item()  # type: ignore
         elif self._average == "micro":
             return result.item()  # type: ignore
+        elif self._average == True:
+            return result.mean().item()
         else:
-            return result
+            return result.item() if self._type == 'binary' else result
 
 
 class Precision(_BasePrecisionRecall):
@@ -108,8 +109,8 @@ class Precision(_BasePrecisionRecall):
 
             'micro'
               for multilabel input, every label of each sample is considered itself
-              a sample then precision is computed. For binary and multiclass
-              inputs, this is equivalent with `Accuracy`, so use that metric.
+              a sample then precision is computed. For binary and multiclass inputs,
+              this is equivalent with accuracy, so use :class:`~ignite.metrics.accuracy.Accuracy`.
 
             'samples'
               for multilabel input, at first, precision is computed
@@ -122,6 +123,10 @@ class Precision(_BasePrecisionRecall):
               in each class). For multilabel input, it computes precision for each label then
               returns average of them weighted by support of labels (number of actual positive
               samples in each label).
+
+            True
+              computes macro precision which is unweighted average of metric computed across
+              classes or labels.
         is_multilabel: flag to use in multilabel case. By default, value is False.
         device: specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
@@ -143,7 +148,7 @@ class Precision(_BasePrecisionRecall):
             weighted_metric = Precision(average='weighted')
             metric.attach(default_evaluator, "precision")
             weighted_metric.attach(default_evaluator, "weighted precision")
-            y_true = torch.Tensor([1, 0, 1, 1, 0, 1])
+            y_true = torch.Tensor([1, 0, 1, 1, 0, 1]).long()
             y_pred = torch.Tensor([1, 0, 1, 0, 1, 1])
             state = default_evaluator.run([[y_pred, y_true]])
             print(f"Precision: {state.metrics['precision']}")
@@ -159,7 +164,7 @@ class Precision(_BasePrecisionRecall):
         .. testcode:: 2
 
             metric = Precision()
-            macro_metric = metric.mean()
+            macro_metric = Precision(average=True)
             weighted_metric = Precision(average='weighted')
 
             metric.attach(default_evaluator, "precision")
@@ -191,7 +196,7 @@ class Precision(_BasePrecisionRecall):
 
             metric = Precision(is_multilabel=True)
             micro_metric = Precision(is_multilabel=True, average='micro')
-            macro_metric = metric.mean()
+            macro_metric = Precision(is_multilabel=True, average=True)
             weighted_metric = Precision(is_multilabel=True, average='weighted')
             samples_metric = Precision(is_multilabel=True, average='samples')
 
@@ -252,22 +257,8 @@ class Precision(_BasePrecisionRecall):
 
 
     .. versionchanged:: 0.5.0
-            `average` parameter's semantic changed and three options were added to it.
+            `average` parameter's semantic changed and four options were added to it.
     """
-
-    def __init__(
-        self,
-        output_transform: Callable = lambda x: x,
-        average: Union[bool, str] = False,
-        is_multilabel: bool = False,
-        device: Union[str, torch.device] = torch.device("cpu"),
-    ):
-
-        if average not in [False, "micro", "weighted", "samples"]:
-            raise ValueError("Argument average should be one of values " "False, 'micro', 'weighted' and 'samples'.")
-        super(Precision, self).__init__(
-            output_transform=output_transform, average=average, is_multilabel=is_multilabel, device=device
-        )
 
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
@@ -280,7 +271,7 @@ class Precision(_BasePrecisionRecall):
             y_pred = y_pred.view(-1)
             y = y.view(-1)
 
-            if self._average == "weighted":
+            if self._average in [True, "micro", "weighted"]:
                 y = to_onehot(y, num_classes=2)
                 y_pred = to_onehot(y_pred.long(), num_classes=2)
         elif self._type == "multiclass":
@@ -315,7 +306,7 @@ class Precision(_BasePrecisionRecall):
 
             self._positives += y_pred.sum()
             self._true_positives += correct.sum()
-        else:  # _average in [False, 'weighted']
+        else:  # _average in [False, True, 'weighted']
 
             self._positives += y_pred.sum(dim=0)
             self._true_positives += correct.sum(dim=0)

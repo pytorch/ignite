@@ -29,23 +29,30 @@ class Recall(_BasePrecisionRecall):
 
             False
               default option. For multicalss and multilabel
-              inputs, per class and per label metric is returned. By calling ``mean()`` on the
-              metric instance, the `macro` setting (which is unweighted average across
-              classes or labels) is returned.
+              inputs, per class and per label metric is returned.
 
             'micro'
               for multilabel input, every label of each sample is considered itself
               a sample then recall is computed. For binary and multiclass inputs, this is
-              equivalent with `Accuracy`, so use that metric.
+              equivalent with accuracy, so use :class:`~ignite.metrics.accuracy.Accuracy`.
 
             'samples'
               for multilabel input, at first, recall is computed on a per sample
               basis and then average across samples is returned. Incompatible with
               binary and multiclass inputs.
 
-            Recall does not have ``'weighted'`` option as there is in :class:`~ignite.metrics.precision.Precision`,
-            because for binary and multiclass input, weighted recall, micro recall and accuracy
-            are equivalent and for multilabel input, weighted recall is equivalent with the micro one.
+            'weighted'
+              like macro recall but considers class/label imbalance. For binary and multiclass
+              input, it computes metric for each class then returns average of them weighted by
+              support of classes (number of actual samples in each class). For multilabel input,
+              it computes recall for each label then returns average of them weighted by support
+              of labels (number of actual positive samples in each label). Note that for binary
+              and multiclass data, weighted recall is equivalent with accuracy, so
+              use :class:`~ignite.metrics.accuracy.Accuracy`.
+
+            True
+              computes macro recall which is unweighted average of metric computed across
+              classes or labels.
         is_multilabel: flag to use in multilabel case. By default, value is False.
         device: specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
@@ -79,7 +86,7 @@ class Recall(_BasePrecisionRecall):
         .. testcode:: 2
 
             metric = Recall()
-            macro_metric = metric.mean()
+            macro_metric = Recall(average=True)
 
             metric.attach(default_evaluator, "recall")
             macro_metric.attach(default_evaluator, "macro recall")
@@ -98,7 +105,7 @@ class Recall(_BasePrecisionRecall):
 
         .. testoutput:: 2
 
-            Recall: tensor([0.5000, 0.0, 0.5000], dtype=torch.float64)
+            Recall: tensor([0.5000, 0.0000, 0.5000], dtype=torch.float64)
             Macro Recall: 0.3333333333333333
 
         Multilabel case, the shapes must be (batch_size, num_categories, ...)
@@ -107,7 +114,7 @@ class Recall(_BasePrecisionRecall):
 
             metric = Recall(is_multilabel=True)
             micro_metric = Recall(is_multilabel=True, average='micro')
-            macro_metric = metric.mean()
+            macro_metric = Recall(is_multilabel=True, average=True)
             samples_metric = Recall(is_multilabel=True, average='samples')
 
             metric.attach(default_evaluator, "recall")
@@ -164,22 +171,8 @@ class Recall(_BasePrecisionRecall):
 
 
     .. versionchanged:: 0.5.0
-            `average` parameter's semantic changed and two options were added to it.
+            `average` parameter's semantic changed and four options were added to it.
     """
-
-    def __init__(
-        self,
-        output_transform: Callable = lambda x: x,
-        average: bool = False,
-        is_multilabel: bool = False,
-        device: Union[str, torch.device] = torch.device("cpu"),
-    ):
-
-        if average not in [False, "micro", "samples"]:
-            raise ValueError("Argument average should be one of values " "False, 'micro' and 'samples'.")
-        super(Recall, self).__init__(
-            output_transform=output_transform, average=average, is_multilabel=is_multilabel, device=device
-        )
 
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
@@ -191,6 +184,10 @@ class Recall(_BasePrecisionRecall):
 
             y_pred = y_pred.view(-1)
             y = y.view(-1)
+
+            if self._average in [True, "micro", "weighted"]:
+                y = to_onehot(y, num_classes=2)
+                y_pred = to_onehot(y_pred.long(), num_classes=2)
         elif self._type == "multiclass":
 
             num_classes = y_pred.size(1)
@@ -223,9 +220,12 @@ class Recall(_BasePrecisionRecall):
 
             self._positives += y.sum()
             self._true_positives += correct.sum()
-        else:  # _average == False
+        else:  # _average in [False, True, 'weighted']
 
             self._positives += y.sum(dim=0)
             self._true_positives += correct.sum(dim=0)
+
+            if self._average == "weighted":
+                self._actual_positives += y.sum(dim=0)
 
         self._updated = True

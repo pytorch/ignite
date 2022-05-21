@@ -23,18 +23,9 @@ def test_no_update():
 
 def test_wrong_average_parameter():
     with pytest.raises(
-        ValueError, match="Argument average should be one of values False, 'micro', 'weighted' and 'samples'."
+        ValueError, match="Argument average should be a boolean or one of values"
     ):
-        Precision(average=True)
-
-    pr = Precision(average="micro")
-    with pytest.raises(ValueError, match=r"Precision and Recall with average='micro' and binary or multiclass"):
-        pr.update((torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long()))
-    assert pr._updated is False
-    pr = Precision(average="micro")
-    with pytest.raises(ValueError, match=r"Precision and Recall with average='micro' and binary or multiclass"):
-        pr.update((torch.rand(10, 3), torch.randint(0, 3, size=(10,)).long()))
-    assert pr._updated is False
+        Precision(average=1)
 
     pr = Precision(average="samples")
     with pytest.raises(
@@ -80,7 +71,18 @@ def test_binary_wrong_inputs():
     assert pr._updated is False
 
 
-@pytest.mark.parametrize("average", [False, "weighted"])
+def ignite_average_to_scikit_average(average, data_type:str):
+    if average == 'micro' or average == 'samples' or average == 'weighted':
+        return average
+    if average == False:
+        return None if data_type != 'binary' else 'binary'
+    elif average == True:
+        return 'macro'
+    else:
+        raise ValueError(f"Wrong average parameter `{average}`")
+
+
+@pytest.mark.parametrize("average", [False, True, "micro", "weighted"])
 def test_binary_input(average):
 
     pr = Precision(average=average)
@@ -103,8 +105,8 @@ def test_binary_input(average):
 
         assert pr._type == "binary"
         assert pr._updated is True
-        assert isinstance(pr.compute(), torch.Tensor if not average else float)
-        sk_average_parameter = "binary" if not average else average
+        assert isinstance(pr.compute(), float)
+        sk_average_parameter = ignite_average_to_scikit_average(average, 'binary')
         assert precision_score(np_y, np_y_pred, average=sk_average_parameter) == pytest.approx(pr.compute())
 
     def get_test_cases():
@@ -192,7 +194,7 @@ def test_multiclass_wrong_inputs():
     assert pr._updated is True
 
 
-@pytest.mark.parametrize("average", [False, "weighted"])
+@pytest.mark.parametrize("average", [False, True, "micro", "weighted"])
 def test_multiclass_input(average):
 
     pr = Precision(average=average)
@@ -218,7 +220,7 @@ def test_multiclass_input(average):
         assert pr._updated is True
         assert isinstance(pr.compute(), torch.Tensor if not average else float)
         pr_compute = pr.compute().numpy() if not average else pr.compute()
-        sk_average_parameter = None if not average else "weighted"
+        sk_average_parameter = ignite_average_to_scikit_average(average, 'multiclass')
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
             sk_compute = precision_score(np_y, np_y_pred, labels=range(0, num_classes), average=sk_average_parameter)
@@ -293,7 +295,7 @@ def to_numpy_multilabel(y):
     return y
 
 
-@pytest.mark.parametrize("average", [False, "micro", "weighted", "samples"])
+@pytest.mark.parametrize("average", [False, True, "micro", "weighted", "samples"])
 def test_multilabel_input(average):
 
     pr = Precision(average=average, is_multilabel=True)
@@ -317,7 +319,7 @@ def test_multilabel_input(average):
         assert pr._type == "multilabel"
         assert pr._updated is True
         pr_compute = pr.compute().numpy() if not average else pr.compute()
-        sk_average_parameter = None if not average else average
+        sk_average_parameter = ignite_average_to_scikit_average(average, 'multilabel')
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
             assert precision_score(np_y, np_y_pred, average=sk_average_parameter) == pytest.approx(pr_compute)
@@ -357,7 +359,7 @@ def test_multilabel_input(average):
             _test(y_pred, y, batch_size)
 
 
-@pytest.mark.parametrize("average", [False, "weighted"])
+@pytest.mark.parametrize("average", [False, True, "micro", "weighted"])
 def test_incorrect_type(average):
     # Tests changing of type during training
 
@@ -378,7 +380,7 @@ def test_incorrect_type(average):
     assert pr._updated is True
 
 
-@pytest.mark.parametrize("average", [False, "weighted"])
+@pytest.mark.parametrize("average", [False, True, "micro", "weighted"])
 def test_incorrect_y_classes(average):
     pr = Precision(average=average)
 
@@ -431,7 +433,7 @@ def _test_distrib_integration_multiclass(device):
             assert res.device.type == "cpu"
             res = res.cpu().numpy()
 
-        sk_average_parameter = None if not average else average
+        sk_average_parameter = ignite_average_to_scikit_average(average, 'multiclass')
         true_res = precision_score(
             y_true.cpu().numpy(), torch.argmax(y_preds, dim=1).cpu().numpy(), average=sk_average_parameter
         )
@@ -443,10 +445,14 @@ def _test_distrib_integration_multiclass(device):
         metric_devices.append(idist.device())
     for _ in range(2):
         for metric_device in metric_devices:
-            _test(average="weighted", n_epochs=1, metric_device=metric_device)
-            _test(average="weighted", n_epochs=2, metric_device=metric_device)
             _test(average=False, n_epochs=1, metric_device=metric_device)
             _test(average=False, n_epochs=2, metric_device=metric_device)
+            _test(average=True, n_epochs=1, metric_device=metric_device)
+            _test(average=True, n_epochs=2, metric_device=metric_device)
+            _test(average="weighted", n_epochs=1, metric_device=metric_device)
+            _test(average="weighted", n_epochs=2, metric_device=metric_device)
+            _test(average="micro", n_epochs=1, metric_device=metric_device)
+            _test(average="micro", n_epochs=2, metric_device=metric_device)
 
 
 def _test_distrib_integration_multilabel(device):
@@ -494,7 +500,7 @@ def _test_distrib_integration_multilabel(device):
         np_y_preds = to_numpy_multilabel(y_preds)
         np_y_true = to_numpy_multilabel(y_true)
         assert pr._type == "multilabel"
-        sk_average_parameter = None if not average else average
+        sk_average_parameter = ignite_average_to_scikit_average(average, 'multilabel')
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
             assert precision_score(np_y_true, np_y_preds, average=sk_average_parameter) == pytest.approx(res)
@@ -506,6 +512,8 @@ def _test_distrib_integration_multilabel(device):
         for metric_device in metric_devices:
             _test(average=False, n_epochs=1, metric_device=metric_device)
             _test(average=False, n_epochs=2, metric_device=metric_device)
+            _test(average=True, n_epochs=1, metric_device=metric_device)
+            _test(average=True, n_epochs=2, metric_device=metric_device)
             _test(average="micro", n_epochs=1, metric_device=metric_device)
             _test(average="micro", n_epochs=2, metric_device=metric_device)
             _test(average="weighted", n_epochs=1, metric_device=metric_device)
@@ -546,6 +554,8 @@ def _test_distrib_accumulator_device(device):
         metric_devices.append(idist.device())
     for metric_device in metric_devices:
         _test(False, metric_device=metric_device)
+        _test(True, metric_device=metric_device)
+        _test("micro", metric_device=metric_device)
         _test("weighted", metric_device=metric_device)
 
 
@@ -586,6 +596,7 @@ def _test_distrib_multilabel_accumulator_device(device):
         metric_devices.append(idist.device())
     for metric_device in metric_devices:
         _test(False, metric_device=metric_device)
+        _test(True, metric_device=metric_device)
         _test("micro", metric_device=metric_device)
         _test("weighted", metric_device=metric_device)
         _test("samples", metric_device=metric_device)
