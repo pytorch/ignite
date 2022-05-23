@@ -50,13 +50,18 @@ class NoImprovementHandler(Serializable):
             evaluator.add_event_handler(Events.COMPLETED, handler)
     """
 
+    _state_dict_all_req_keys = (
+        "counter",
+        "best_score",
+    )
+
     def __init__(
         self,
         patience: int,
         score_function: Callable,
-        pass_function: Callable,
         stop_function: Callable,
         trainer: Engine,
+        pass_function: Callable = lambda engine: 0,
         min_delta: float = 0.0,
         cumulative_delta: bool = False,
     ):
