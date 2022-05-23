@@ -93,6 +93,7 @@ class NoImprovementHandler(Serializable):
         self.best_score = None  # type: Optional[float]
         self.min_delta = min_delta
         self.cumulative_delta = cumulative_delta
+        self.logger = setup_logger(__name__ + "." + self.__class__.__name__)
 
     def __call__(self, engine: Engine) -> None:
         score = self.score_function(engine)
