@@ -32,27 +32,58 @@ class Recall(_BasePrecisionRecall):
               inputs, per class and per label metric is returned.
 
             'micro'
-              for multilabel input, every label of each sample is considered itself
-              a sample then recall is computed. For binary and multiclass inputs, this is
-              equivalent with accuracy, so use :class:`~ignite.metrics.accuracy.Accuracy`.
+              Metric is computed counting stats of classes/labels altogether.
+
+              .. math::
+                  \text{Micro Recall} = \frac{\sum_{k=1}^C TP_k}{\sum_{k=1}^C TP_k+FN_k}
+
+              where :math:`C` is the number of classes/labels (2 in binary case). :math:`k` in
+              :math:`TP_k` and :math:`FN_k`means that the measures are computed for class/label :math:`k` (in
+              a one-vs-rest sense in multiclass case).
+
+              For binary and multiclass inputs, this is equivalent with accuracy,
+              so use :class:`~ignite.metrics.accuracy.Accuracy`.
 
             'samples'
-              for multilabel input, at first, recall is computed on a per sample
-              basis and then average across samples is returned. Incompatible with
-              binary and multiclass inputs.
+              for multilabel input, at first, recall is computed on a
+              per sample basis and then average across samples is returned.
+              
+              .. math::
+                  \text{Sample-averaged Recall} = \frac{\sum_{n=1}^N \frac{TP_n}{TP_n+FN_n}}{N}
+
+              where :math:`N` is the number of samples. :math:`n` in :math:`TP_n` and :math:`FN_n`
+              means that the measures are computed for sample :math:`n`, across labels.
+              
+              Incompatible with binary and multiclass inputs.
 
             'weighted'
               like macro recall but considers class/label imbalance. For binary and multiclass
               input, it computes metric for each class then returns average of them weighted by
               support of classes (number of actual samples in each class). For multilabel input,
               it computes recall for each label then returns average of them weighted by support
-              of labels (number of actual positive samples in each label). Note that for binary
-              and multiclass data, weighted recall is equivalent with accuracy, so
-              use :class:`~ignite.metrics.accuracy.Accuracy`.
+              of labels (number of actual positive samples in each label).
+              
+              .. math::
+                  Recall_k = \frac{TP_k}{TP_k+FN_k}
+
+              .. math::
+                  \text{Weighted Recall} = \frac{\sum_{k=1}^C P_k * Recall_k}{N}
+
+              where :math:`C` is the number of classes (2 in binary case). :math:`P_k` is the number
+              of samples belonged to class :math:`k` in binary and multiclass case, and the number of
+              positive samples belonged to label :math:`k` in multilabel case.
+              
+              Note that for binary and multiclass data, weighted recall is equivalent
+              with accuracy, so use :class:`~ignite.metrics.accuracy.Accuracy`.
 
             True
               computes macro recall which is unweighted average of metric computed across
               classes or labels.
+
+              .. math::
+                  \text{Macro Recall} = \frac{\sum_{k=1}^C Recall_k}{C}
+
+              where :math:`C` is the number of classes (2 in binary case).
         is_multilabel: flag to use in multilabel case. By default, value is False.
         device: specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
