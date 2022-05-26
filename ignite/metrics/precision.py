@@ -120,7 +120,7 @@ class Precision(_BasePrecisionRecall):
             'samples'
               for multilabel input, at first, precision is computed on a
               per sample basis and then average across samples is returned.
-              
+
               .. math::
                   \text{Sample-averaged Precision} = \frac{\sum_{n=1}^N \frac{TP_n}{TP_n+FP_n}}{N}
 

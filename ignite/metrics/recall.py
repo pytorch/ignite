@@ -47,13 +47,13 @@ class Recall(_BasePrecisionRecall):
             'samples'
               for multilabel input, at first, recall is computed on a
               per sample basis and then average across samples is returned.
-              
+
               .. math::
                   \text{Sample-averaged Recall} = \frac{\sum_{n=1}^N \frac{TP_n}{TP_n+FN_n}}{N}
 
               where :math:`N` is the number of samples. :math:`n` in :math:`TP_n` and :math:`FN_n`
               means that the measures are computed for sample :math:`n`, across labels.
-              
+
               Incompatible with binary and multiclass inputs.
 
             'weighted'
@@ -62,7 +62,7 @@ class Recall(_BasePrecisionRecall):
               support of classes (number of actual samples in each class). For multilabel input,
               it computes recall for each label then returns average of them weighted by support
               of labels (number of actual positive samples in each label).
-              
+
               .. math::
                   Recall_k = \frac{TP_k}{TP_k+FN_k}
 
@@ -72,7 +72,7 @@ class Recall(_BasePrecisionRecall):
               where :math:`C` is the number of classes (2 in binary case). :math:`P_k` is the number
               of samples belonged to class :math:`k` in binary and multiclass case, and the number of
               positive samples belonged to label :math:`k` in multilabel case.
-              
+
               Note that for binary and multiclass data, weighted recall is equivalent
               with accuracy, so use :class:`~ignite.metrics.accuracy.Accuracy`.
 
