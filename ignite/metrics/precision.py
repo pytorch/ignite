@@ -20,7 +20,7 @@ class _BasePrecisionRecall(_BaseClassification):
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
 
-        if type(average) != bool and average not in ["micro", "weighted", "samples"]:
+        if not (isinstance(average, bool) or average in ["micro", "weighted", "samples"]):
             raise ValueError("Argument average should be a boolean or one of values 'micro', 'weighted' and 'samples'.")
 
         self._average = average
