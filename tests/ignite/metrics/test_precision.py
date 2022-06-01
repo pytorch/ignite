@@ -21,7 +21,7 @@ def test_no_update():
     assert precision._updated is False
 
 
-def test_wrong_average_parameter():
+def test_average_parameter():
     with pytest.raises(ValueError, match="Argument average should be a boolean or one of values"):
         Precision(average=1)
 
@@ -31,12 +31,16 @@ def test_wrong_average_parameter():
     ):
         pr.update((torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long()))
     assert pr._updated is False
+
     pr = Precision(average="samples")
     with pytest.raises(
         ValueError, match=r"Argument average='samples' is incompatible with binary and multiclass input data."
     ):
         pr.update((torch.rand(10, 3), torch.randint(0, 3, size=(10,)).long()))
     assert pr._updated is False
+
+    pr = Precision(average=True)
+    assert pr._average == "macro"
 
 
 def test_binary_wrong_inputs():
@@ -70,7 +74,7 @@ def test_binary_wrong_inputs():
 
 
 def ignite_average_to_scikit_average(average, data_type: str):
-    if average == "micro" or average == "samples" or average == "weighted":
+    if average in ["micro", "samples", "weighted", "macro"]:
         return average
     if average is False:
         return None if data_type != "binary" else "binary"
@@ -80,7 +84,7 @@ def ignite_average_to_scikit_average(average, data_type: str):
         raise ValueError(f"Wrong average parameter `{average}`")
 
 
-@pytest.mark.parametrize("average", [False, True, "micro", "weighted"])
+@pytest.mark.parametrize("average", [False, "macro", "micro", "weighted"])
 def test_binary_input(average):
 
     pr = Precision(average=average)
@@ -193,7 +197,7 @@ def test_multiclass_wrong_inputs():
     assert pr._updated is True
 
 
-@pytest.mark.parametrize("average", [False, True, "micro", "weighted"])
+@pytest.mark.parametrize("average", [False, "macro", "micro", "weighted"])
 def test_multiclass_input(average):
 
     pr = Precision(average=average)
@@ -294,7 +298,7 @@ def to_numpy_multilabel(y):
     return y
 
 
-@pytest.mark.parametrize("average", [False, True, "micro", "weighted", "samples"])
+@pytest.mark.parametrize("average", [False, "macro", "micro", "weighted", "samples"])
 def test_multilabel_input(average):
 
     pr = Precision(average=average, is_multilabel=True)
@@ -358,7 +362,7 @@ def test_multilabel_input(average):
             _test(y_pred, y, batch_size)
 
 
-@pytest.mark.parametrize("average", [False, True, "micro", "weighted"])
+@pytest.mark.parametrize("average", [False, "macro", "micro", "weighted"])
 def test_incorrect_type(average):
     # Tests changing of type during training
 
@@ -379,7 +383,7 @@ def test_incorrect_type(average):
     assert pr._updated is True
 
 
-@pytest.mark.parametrize("average", [False, True, "micro", "weighted"])
+@pytest.mark.parametrize("average", [False, "macro", "micro", "weighted"])
 def test_incorrect_y_classes(average):
     pr = Precision(average=average)
 
@@ -446,8 +450,8 @@ def _test_distrib_integration_multiclass(device):
         for metric_device in metric_devices:
             _test(average=False, n_epochs=1, metric_device=metric_device)
             _test(average=False, n_epochs=2, metric_device=metric_device)
-            _test(average=True, n_epochs=1, metric_device=metric_device)
-            _test(average=True, n_epochs=2, metric_device=metric_device)
+            _test(average="macro", n_epochs=1, metric_device=metric_device)
+            _test(average="macro", n_epochs=2, metric_device=metric_device)
             _test(average="weighted", n_epochs=1, metric_device=metric_device)
             _test(average="weighted", n_epochs=2, metric_device=metric_device)
             _test(average="micro", n_epochs=1, metric_device=metric_device)
@@ -511,8 +515,8 @@ def _test_distrib_integration_multilabel(device):
         for metric_device in metric_devices:
             _test(average=False, n_epochs=1, metric_device=metric_device)
             _test(average=False, n_epochs=2, metric_device=metric_device)
-            _test(average=True, n_epochs=1, metric_device=metric_device)
-            _test(average=True, n_epochs=2, metric_device=metric_device)
+            _test(average="macro", n_epochs=1, metric_device=metric_device)
+            _test(average="macro", n_epochs=2, metric_device=metric_device)
             _test(average="micro", n_epochs=1, metric_device=metric_device)
             _test(average="micro", n_epochs=2, metric_device=metric_device)
             _test(average="weighted", n_epochs=1, metric_device=metric_device)
@@ -553,7 +557,7 @@ def _test_distrib_accumulator_device(device):
         metric_devices.append(idist.device())
     for metric_device in metric_devices:
         _test(False, metric_device=metric_device)
-        _test(True, metric_device=metric_device)
+        _test("macro", metric_device=metric_device)
         _test("micro", metric_device=metric_device)
         _test("weighted", metric_device=metric_device)
 
@@ -595,7 +599,7 @@ def _test_distrib_multilabel_accumulator_device(device):
         metric_devices.append(idist.device())
     for metric_device in metric_devices:
         _test(False, metric_device=metric_device)
-        _test(True, metric_device=metric_device)
+        _test("macro", metric_device=metric_device)
         _test("micro", metric_device=metric_device)
         _test("weighted", metric_device=metric_device)
         _test("samples", metric_device=metric_device)

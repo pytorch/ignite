@@ -76,7 +76,7 @@ class Recall(_BasePrecisionRecall):
               Note that for binary and multiclass data, weighted recall is equivalent
               with accuracy, so use :class:`~ignite.metrics.accuracy.Accuracy`.
 
-            True
+            macro
               computes macro recall which is unweighted average of metric computed across
               classes or labels.
 
@@ -84,6 +84,9 @@ class Recall(_BasePrecisionRecall):
                   \text{Macro Recall} = \frac{\sum_{k=1}^C Recall_k}{C}
 
               where :math:`C` is the number of classes (2 in binary case).
+
+            True
+              like macro option. For backward compatibility.
         is_multilabel: flag to use in multilabel case. By default, value is False.
         device: specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
@@ -216,7 +219,7 @@ class Recall(_BasePrecisionRecall):
             y_pred = y_pred.view(-1)
             y = y.view(-1)
 
-            if self._average in [True, "micro", "weighted"]:
+            if self._average in ["macro", "micro", "weighted"]:
                 y = to_onehot(y, num_classes=2)
                 y_pred = to_onehot(y_pred.long(), num_classes=2)
         elif self._type == "multiclass":
@@ -251,7 +254,7 @@ class Recall(_BasePrecisionRecall):
 
             self._positives += y.sum()
             self._true_positives += correct.sum()
-        else:  # _average in [False, True, 'weighted']
+        else:  # _average in [False, 'macro', 'weighted']
 
             self._positives += y.sum(dim=0)
             self._true_positives += correct.sum(dim=0)

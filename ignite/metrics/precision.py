@@ -20,10 +20,15 @@ class _BasePrecisionRecall(_BaseClassification):
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
 
-        if type(average) != bool and average not in ["micro", "weighted", "samples"]:
-            raise ValueError("Argument average should be a boolean or one of values 'micro', 'weighted' and 'samples'.")
+        if type(average) != bool and average not in ["macro", "micro", "weighted", "samples"]:
+            raise ValueError(
+                "Argument average should be a boolean or one of values" " 'macro', 'micro', 'weighted' and 'samples'."
+            )
 
-        self._average = average
+        if average is True:
+            self._average = "macro"  # type: Union[bool, str]
+        else:
+            self._average = average
         self.eps = 1e-20
         self._updated = False
         super(_BasePrecisionRecall, self).__init__(
@@ -76,7 +81,7 @@ class _BasePrecisionRecall(_BaseClassification):
             return ((result @ self._actual_positives) / denominator).item()  # type: ignore
         elif self._average == "micro":
             return result.item()  # type: ignore
-        elif self._average is True:
+        elif self._average == "macro":
             return result.mean().item()  # type: ignore
         else:
             return result
@@ -146,7 +151,7 @@ class Precision(_BasePrecisionRecall):
               of samples belonged to class :math:`k` in binary and multiclass case, and the number of
               positive samples belonged to label :math:`k` in multilabel case.
 
-            True
+            macro
               computes macro precision which is unweighted average of metric computed across
               classes/labels.
 
@@ -154,6 +159,9 @@ class Precision(_BasePrecisionRecall):
                   \text{Macro Precision} = \frac{\sum_{k=1}^C Precision_k}{C}
 
               where :math:`C` is the number of classes (2 in binary case).
+
+            True
+              like macro option. For backward compatibility.
         is_multilabel: flag to use in multilabel case. By default, value is False.
         device: specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
@@ -298,7 +306,7 @@ class Precision(_BasePrecisionRecall):
             y_pred = y_pred.view(-1)
             y = y.view(-1)
 
-            if self._average in [True, "micro", "weighted"]:
+            if self._average in ["macro", "micro", "weighted"]:
                 y = to_onehot(y, num_classes=2)
                 y_pred = to_onehot(y_pred.long(), num_classes=2)
         elif self._type == "multiclass":
@@ -333,7 +341,7 @@ class Precision(_BasePrecisionRecall):
 
             self._positives += y_pred.sum()
             self._true_positives += correct.sum()
-        else:  # _average in [False, True, 'weighted']
+        else:  # _average in [False, 'macro', 'weighted']
 
             self._positives += y_pred.sum(dim=0)
             self._true_positives += correct.sum(dim=0)
