@@ -28,8 +28,10 @@ class Recall(_BasePrecisionRecall):
         average: available options are
 
             False
-              default option. For multicalss and multilabel
-              inputs, per class and per label metric is returned.
+              default option. Per class/label metric is returned.
+
+            None
+              like `False` option. For compatibility with Scikit-Learn api.
 
             'micro'
               Metric is computed counting stats of classes/labels altogether.
@@ -113,7 +115,7 @@ class Recall(_BasePrecisionRecall):
 
         .. testoutput:: 1
 
-            Recall: 0.75
+            Recall: [0.5, 0.75]
 
         Multiclass case
 
@@ -201,11 +203,11 @@ class Recall(_BasePrecisionRecall):
 
         .. testoutput:: 4
 
-            0.75
+            [0.5, 0.75]
 
 
     .. versionchanged:: 0.5.0
-            `average` parameter's semantic changed and four options were added to it.
+            Some new options were added to `average` parameter.
     """
 
     @reinit__is_reduced
@@ -216,12 +218,8 @@ class Recall(_BasePrecisionRecall):
 
         if self._type == "binary":
 
-            y_pred = y_pred.view(-1)
-            y = y.view(-1)
-
-            if self._average in ["macro", "micro", "weighted"]:
-                y = to_onehot(y, num_classes=2)
-                y_pred = to_onehot(y_pred.long(), num_classes=2)
+            y = to_onehot(y.view(-1), num_classes=2)
+            y_pred = to_onehot(y_pred.view(-1).long(), num_classes=2)
         elif self._type == "multiclass":
 
             num_classes = y_pred.size(1)

@@ -22,7 +22,7 @@ def test_no_update():
 
 
 def test_average_parameter():
-    with pytest.raises(ValueError, match="Argument average should be a boolean or one of values"):
+    with pytest.raises(ValueError, match="Argument average should be None or a boolean or one of values"):
         Precision(average=1)
 
     pr = Precision(average="samples")
@@ -41,6 +41,9 @@ def test_average_parameter():
 
     pr = Precision(average=True)
     assert pr._average == "macro"
+
+    pr = Precision(average=None)
+    assert pr._average is False
 
 
 def test_binary_wrong_inputs():
@@ -76,8 +79,8 @@ def test_binary_wrong_inputs():
 def ignite_average_to_scikit_average(average, data_type: str):
     if average in ["micro", "samples", "weighted", "macro"]:
         return average
-    if average is False:
-        return None if data_type != "binary" else "binary"
+    if average is False or average is None:
+        return None
     elif average is True:
         return "macro"
     else:
@@ -108,7 +111,7 @@ def test_binary_input(average):
         assert pr._type == "binary"
         assert pr._updated is True
         assert isinstance(pr.compute(), torch.Tensor if not average else float)
-        pr_compute = pr.compute().item() if not average else pr.compute()
+        pr_compute = pr.compute().numpy() if not average else pr.compute()
         sk_average_parameter = ignite_average_to_scikit_average(average, "binary")
         assert precision_score(np_y, np_y_pred, average=sk_average_parameter) == pytest.approx(pr_compute)
 

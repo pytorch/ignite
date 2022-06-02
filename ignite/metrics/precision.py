@@ -1,4 +1,4 @@
-from typing import Callable, Sequence, Union
+from typing import Callable, Optional, Sequence, Union
 
 import torch
 
@@ -15,18 +15,21 @@ class _BasePrecisionRecall(_BaseClassification):
     def __init__(
         self,
         output_transform: Callable = lambda x: x,
-        average: Union[bool, str] = False,
+        average: Optional[Union[bool, str]] = False,
         is_multilabel: bool = False,
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
 
-        if not (isinstance(average, bool) or average in ["macro", "micro", "weighted", "samples"]):
+        if not (average is None or isinstance(average, bool) or average in ["macro", "micro", "weighted", "samples"]):
             raise ValueError(
-                "Argument average should be a boolean or one of values 'macro', 'micro', 'weighted' and 'samples'."
+                "Argument average should be None or a boolean or one of values"
+                " 'macro', 'micro', 'weighted' and 'samples'."
             )
 
-        if average is True:
-            self._average = "macro"  # type: Union[bool, str]
+        if average is None:
+            self._average = False  # type: Union[bool, str]
+        elif average is True:
+            self._average = "macro"
         else:
             self._average = average
         self.eps = 1e-20
@@ -106,8 +109,10 @@ class Precision(_BasePrecisionRecall):
         average: available options are
 
             False
-              default option. For multicalss and multilabel
-              inputs, per class and per label metric is returned.
+              default option. Per class/label metric is returned.
+
+            None
+              like `False` option. For compatibility with Scikit-Learn api.
 
             'micro'
               Metric is computed counting stats of classes/labels altogether.
@@ -191,7 +196,7 @@ class Precision(_BasePrecisionRecall):
 
         .. testoutput:: 1
 
-            Precision: 0.75
+            Precision: [0.5, 0.75]
             Weighted Precision: 0.6666666666666666
 
         Multiclass case
@@ -288,11 +293,11 @@ class Precision(_BasePrecisionRecall):
 
         .. testoutput:: 4
 
-            0.75
+            [0.5, 0.75]
 
 
     .. versionchanged:: 0.5.0
-            `average` parameter's semantic changed and four options were added to it.
+            Some new options were added to `average` parameter.
     """
 
     @reinit__is_reduced
@@ -303,12 +308,8 @@ class Precision(_BasePrecisionRecall):
 
         if self._type == "binary":
 
-            y_pred = y_pred.view(-1)
-            y = y.view(-1)
-
-            if self._average in ["macro", "micro", "weighted"]:
-                y = to_onehot(y, num_classes=2)
-                y_pred = to_onehot(y_pred.long(), num_classes=2)
+            y = to_onehot(y.view(-1), num_classes=2)
+            y_pred = to_onehot(y_pred.view(-1).long(), num_classes=2)
         elif self._type == "multiclass":
 
             num_classes = y_pred.size(1)

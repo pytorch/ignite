@@ -46,6 +46,9 @@ def test_average_parameter():
     re = Recall(average=True)
     assert re._average == "macro"
 
+    re = Recall(average=None)
+    assert re._average is False
+
 
 def test_binary_wrong_inputs():
     re = Recall()
@@ -80,8 +83,8 @@ def test_binary_wrong_inputs():
 def ignite_average_to_scikit_average(average, data_type: str):
     if average in ["micro", "samples", "weighted", "macro"]:
         return average
-    if average is False:
-        return None if data_type != "binary" else "binary"
+    if average is False or average is None:
+        return None
     if average is True:
         return "macro"
 
@@ -110,7 +113,7 @@ def test_binary_input(average):
         assert re._type == "binary"
         assert re._updated is True
         assert isinstance(re.compute(), torch.Tensor if not average else float)
-        re_compute = re.compute().item() if not average else re.compute()
+        re_compute = re.compute().numpy() if not average else re.compute()
         sk_average_parameter = ignite_average_to_scikit_average(average, "binary")
         assert recall_score(np_y, np_y_pred, average=sk_average_parameter) == pytest.approx(re_compute)
 
