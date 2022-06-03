@@ -36,8 +36,8 @@ class MetricsLambda(Metric):
 
         .. testcode::
 
-            precision = Precision(average=False)
-            recall = Recall(average=False)
+            precision = Precision(average=False)[1] # `[1]` is to select the value for class 1 that is TP/(TP+FP)
+            recall = Recall(average=False)[1] # `[1]` is to select the value for class 1 that is TP/(TP+FN)
 
             def Fbeta(r, p, beta):
                 return torch.mean((1 + beta ** 2) * p * r / (beta ** 2 * p + r + 1e-20)).item()

@@ -196,7 +196,7 @@ class Precision(_BasePrecisionRecall):
 
         .. testoutput:: 1
 
-            Precision: [0.5, 0.75]
+            Precision: tensor([0.5000, 0.7500], dtype=torch.float64)
             Weighted Precision: 0.6666666666666666
 
         Multiclass case
@@ -286,7 +286,7 @@ class Precision(_BasePrecisionRecall):
 
             metric = Precision(output_transform=thresholded_output_transform)
             metric.attach(default_evaluator, "precision")
-            y_true = torch.Tensor([1, 0, 1, 1, 0, 1])
+            y_true = torch.Tensor([1, 0, 1, 1, 0, 1]).long()
             y_pred = torch.Tensor([0.6, 0.2, 0.9, 0.4, 0.7, 0.65])
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["precision"])

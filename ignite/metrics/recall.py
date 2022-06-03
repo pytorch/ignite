@@ -115,7 +115,7 @@ class Recall(_BasePrecisionRecall):
 
         .. testoutput:: 1
 
-            Recall: [0.5, 0.75]
+            Recall: tensor([0.5000, 0.7500], dtype=torch.float64)
 
         Multiclass case
 
@@ -203,7 +203,7 @@ class Recall(_BasePrecisionRecall):
 
         .. testoutput:: 4
 
-            [0.5, 0.75]
+            tensor([0.5000, 0.7500], dtype=torch.float64)
 
 
     .. versionchanged:: 0.5.0

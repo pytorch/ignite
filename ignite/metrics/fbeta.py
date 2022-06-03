@@ -56,8 +56,8 @@ def Fbeta(
 
         .. testcode:: 1
 
-            P = Precision(average=False)
-            R = Recall(average=False)
+            P = Precision(average=False)[1] # `[1]` is to select the value for class 1 that is TP/(TP+FP)
+            R = Recall(average=False)[1] # `[1]` is to select the value for class 1 that is TP/(TP+FN)
             metric = Fbeta(beta=1.0, precision=P, recall=R)
             metric.attach(default_evaluator, "f-beta")
             y_true = torch.tensor([1, 0, 1, 1, 0, 1])
@@ -127,8 +127,8 @@ def Fbeta(
                 y_pred = torch.round(y_pred)
                 return y_pred, y
 
-            P = Precision(average=False, output_transform=thresholded_output_transform)
-            R = Recall(average=False, output_transform=thresholded_output_transform)
+            P = Precision(average=False, output_transform=thresholded_output_transform)[1]
+            R = Recall(average=False, output_transform=thresholded_output_transform)[1]
             metric = Fbeta(beta=1.0, precision=P, recall=R)
             metric.attach(default_evaluator, "f-beta")
             y_true = torch.tensor([1, 0, 1, 1, 0, 1])
