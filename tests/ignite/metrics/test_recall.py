@@ -171,7 +171,7 @@ def test_multiclass_wrong_inputs():
         re.update((torch.rand(10), torch.randint(0, 5, size=(10, 5, 6)).long()))
     assert re._updated is False
 
-    re = Recall()
+    re = Recall(average=True)
     assert re._updated is False
 
     with pytest.raises(ValueError):
@@ -186,7 +186,7 @@ def test_multiclass_wrong_inputs():
         re.update((torch.rand(10, 6, 12, 14), torch.randint(0, 5, size=(10, 12, 14)).long()))
     assert re._updated is True
 
-    re = Recall()
+    re = Recall(average=False)
     assert re._updated is False
 
     with pytest.raises(ValueError):

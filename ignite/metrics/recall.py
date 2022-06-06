@@ -216,23 +216,19 @@ class Recall(_BasePrecisionRecall):
         self._check_type(output)
         y_pred, y = output[0].detach(), output[1].detach()
 
-        if self._type == "binary":
+        if self._type == "binary" or self._type == "multiclass":
 
-            y = to_onehot(y.view(-1), num_classes=2)
-            y_pred = to_onehot(y_pred.view(-1).long(), num_classes=2)
-        elif self._type == "multiclass":
-
-            num_classes = y_pred.size(1)
-            if y.max() + 1 > num_classes:
+            num_classes = 2 if self._type == "binary" else y_pred.size(1)
+            if self._type == "multiclass" and y.max() + 1 > num_classes:
                 raise ValueError(
                     f"y_pred contains less classes than y. Number of predicted classes is {num_classes}"
                     f" and element in y has invalid class = {y.max().item() + 1}."
                 )
             y = to_onehot(y.view(-1), num_classes=num_classes)
-            indices = torch.argmax(y_pred, dim=1).view(-1)
-            y_pred = to_onehot(indices, num_classes=num_classes)
+            indices = torch.argmax(y_pred, dim=1) if self._type == "multiclass" else y_pred.long()
+            y_pred = to_onehot(indices.view(-1), num_classes=num_classes)
         elif self._type == "multilabel":
-
+            # if y, y_pred shape is (N, C, ...) -> (N * ..., C)
             num_labels = y_pred.size(1)
             y_pred = torch.transpose(y_pred, 1, -1).reshape(-1, num_labels)
             y = torch.transpose(y, 1, -1).reshape(-1, num_labels)

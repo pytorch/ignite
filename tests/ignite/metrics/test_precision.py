@@ -169,7 +169,7 @@ def test_multiclass_wrong_inputs():
         pr.update((torch.rand(10), torch.randint(0, 5, size=(10, 5, 6)).long()))
     assert pr._updated is False
 
-    pr = Precision()
+    pr = Precision(average=True)
     assert pr._updated is False
 
     with pytest.raises(ValueError):
@@ -184,7 +184,7 @@ def test_multiclass_wrong_inputs():
         pr.update((torch.rand(10, 6, 12, 14), torch.randint(0, 5, size=(10, 12, 14)).long()))
     assert pr._updated is True
 
-    pr = Precision()
+    pr = Precision(average=False)
     assert pr._updated is False
 
     with pytest.raises(ValueError):
