@@ -146,16 +146,23 @@ def test_ema_get_const_momentum(get_dummy_model):
     engine.run(range(10))
 
 
-def test_ema_buffer():
-    """Test if the tensors in buffer are also synchronized"""
+@pytest.mark.parametrize("use_buffers", [True, False])
+def test_ema_buffer(use_buffers):
+    """Test if the tensors in buffer are also correctly updated"""
     model = nn.BatchNorm2d(2)
     model.running_mean.data.fill_(1.5)
     model.running_var.data.fill_(1.5)
-    ema_handler = EMAHandler(model)
+
+    # manually register a buffer to test if it will be correctly updated
+    model.register_buffer("dummy_buffer", tensor=torch.tensor(1.0, dtype=torch.float32))
+
+    ema_handler = EMAHandler(model, momentum=0.5, use_buffers=use_buffers)
 
     def _bn_step_fn(engine, batch):
         x = torch.rand(4, 2, 32, 32)
         _ = model(x)
+        # manually increment the dummy_buffer at every step
+        model.dummy_buffer += 1.0
         return 1
 
     engine = Engine(_bn_step_fn)
@@ -165,14 +172,33 @@ def test_ema_buffer():
 
     @engine.on(Events.ITERATION_COMPLETED)
     def check_buffers():
-        assert ema_model.running_mean.allclose(model.running_mean)
-        assert ema_model.running_var.allclose(model.running_var)
+        # the buffers with torch.int64 data type should be directly copied
+        assert ema_model.num_batches_tracked.allclose(model.num_batches_tracked)
+
+        if use_buffers:
+            # buffers with floating type will be updated rather than copied
+            assert not ema_model.dummy_buffer.allclose(model.dummy_buffer)
+            assert not ema_model.running_mean.allclose(model.running_mean)
+            assert not ema_model.running_var.allclose(model.running_var)
+        else:
+            assert ema_model.dummy_buffer.allclose(model.dummy_buffer)
+            assert ema_model.running_mean.allclose(model.running_mean)
+            assert ema_model.running_var.allclose(model.running_var)
 
     # engine will run 4 iterations
     engine.run([0, 1], max_epochs=2)
 
-    assert ema_model.running_mean.allclose(model.running_mean)
-    assert ema_model.running_var.allclose(model.running_var)
+    assert ema_model.num_batches_tracked.allclose(model.num_batches_tracked)
+    if use_buffers:
+        assert ema_model.dummy_buffer.allclose(torch.tensor(4.0625, dtype=torch.float32))
+
+        assert not ema_model.dummy_buffer.allclose(model.dummy_buffer)
+        assert not ema_model.running_mean.allclose(model.running_mean)
+        assert not ema_model.running_var.allclose(model.running_var)
+    else:
+        assert ema_model.dummy_buffer.allclose(model.dummy_buffer)
+        assert ema_model.running_mean.allclose(model.running_mean)
+        assert ema_model.running_var.allclose(model.running_var)
 
 
 def test_ema_two_handlers(get_dummy_model):

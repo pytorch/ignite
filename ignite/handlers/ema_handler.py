@@ -42,12 +42,14 @@ class EMAHandler:
           momentum: the update momentum after warmup phase, should be float in range :math:`\left(0, 1 \right)`.
           momentum_warmup: the initial update momentum during warmup phase.
           warmup_iters: iterations of warmup.
+          use_buffers: if True, compute the running averages for both the parameters and the buffers of the model.
 
     Attributes:
           ema_model: the exponential moving averaged model.
           model: the online model that is tracked by EMAHandler. It is ``model.module`` if ``model`` in
               the initialization method is an instance of ``DistributedDataParallel``.
           momentum: the update momentum.
+          use_buffers: if True, compute the running averages for both the parameters and the buffers of the model.
 
     Note:
           The EMA model is already in ``eval`` mode. If model in the arguments is an ``nn.Module`` or
@@ -149,6 +151,7 @@ class EMAHandler:
         momentum: float = 0.0002,
         momentum_warmup: Optional[float] = None,
         warmup_iters: Optional[int] = None,
+        use_buffers: bool = False,
     ) -> None:
         if not 0 < momentum < 1:
             raise ValueError(f"Invalid momentum: {momentum}")
@@ -173,14 +176,27 @@ class EMAHandler:
             param.detach_()
         self.ema_model.eval()
 
+        self.use_buffers = use_buffers
+
     def _update_ema_model(self, engine: Engine, name: str) -> None:
         """Update weights of ema model"""
         momentum = getattr(engine.state, name)
         for ema_p, model_p in zip(self.ema_model.parameters(), self.model.parameters()):
             ema_p.mul_(1.0 - momentum).add_(model_p.data, alpha=momentum)
-        # assign the buffers
-        for ema_b, model_b in zip(self.ema_model.buffers(), self.model.buffers()):
-            ema_b.data = model_b.data
+
+        if self.use_buffers:
+            for ema_b, model_b in zip(self.ema_model.buffers(), self.model.buffers()):
+                try:
+                    ema_b.mul_(1.0 - momentum).add_(model_b.data, alpha=momentum)
+                except RuntimeError:
+                    # Handle the case where ema_b is torch.int64, torch.int32 etc.,
+                    # where a runtime error will be thrown when performing the in-place operations with floats.
+                    # In this case, just copy the data
+                    ema_b.data = model_b.data
+        else:
+            # assign the buffers
+            for ema_b, model_b in zip(self.ema_model.buffers(), self.model.buffers()):
+                ema_b.data = model_b.data
 
     def attach(
         self,
