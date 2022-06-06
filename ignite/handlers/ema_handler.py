@@ -151,7 +151,7 @@ class EMAHandler:
         momentum: float = 0.0002,
         momentum_warmup: Optional[float] = None,
         warmup_iters: Optional[int] = None,
-        use_buffers: bool = False,
+        use_buffers: bool = True,
     ) -> None:
         if not 0 < momentum < 1:
             raise ValueError(f"Invalid momentum: {momentum}")
