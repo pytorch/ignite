@@ -242,18 +242,18 @@ class Recall(_BasePrecisionRecall):
 
             actual_positives = y.sum(dim=1)
             true_positives = correct.sum(dim=1)
-            self._sum_samples_metric += torch.sum(true_positives / (actual_positives + self.eps))
-            self._samples_cnt += y.size(0)
+            self._nominator += torch.sum(true_positives / (actual_positives + self.eps))
+            self._denominator += y.size(0)
         elif self._average == "micro":
 
-            self._positives += y.sum()
-            self._true_positives += correct.sum()
+            self._denominator += y.sum()
+            self._nominator += correct.sum()
         else:  # _average in [False, 'macro', 'weighted']
 
-            self._positives += y.sum(dim=0)
-            self._true_positives += correct.sum(dim=0)
+            self._denominator += y.sum(dim=0)
+            self._nominator += correct.sum(dim=0)
 
             if self._average == "weighted":
-                self._actual_positives += y.sum(dim=0)
+                self._weight += y.sum(dim=0)
 
         self._updated = True

@@ -543,16 +543,19 @@ def _test_distrib_accumulator_device(device):
         pr.update((y_pred, y))
 
         assert pr._updated is True
+
         assert (
-            pr._true_positives.device == metric_device
-        ), f"{type(pr._true_positives.device)}:{pr._true_positives.device} vs {type(metric_device)}:{metric_device}"
-        assert (
-            pr._positives.device == metric_device
-        ), f"{type(pr._positives.device)}:{pr._positives.device} vs {type(metric_device)}:{metric_device}"
-        if average == "weighted":
+            pr._nominator.device == metric_device
+        ), f"{type(pr._nominator.device)}:{pr._nominator.device} vs {type(metric_device)}:{metric_device}"
+
+        if average != "samples":
+            # For average='samples', `_denominator` is of type `int` so it has not `device` member.
             assert (
-                pr._actual_positives.device == metric_device
-            ), f"{type(pr._actual_positives.device)}:{pr._actual_positives.device} vs "
+                pr._denominator.device == metric_device
+            ), f"{type(pr._denominator.device)}:{pr._denominator.device} vs {type(metric_device)}:{metric_device}"
+
+        if average == "weighted":
+            assert pr._weight.device == metric_device, f"{type(pr._weight.device)}:{pr._weight.device} vs "
             f"{type(metric_device)}:{metric_device}"
 
     metric_devices = [torch.device("cpu")]
@@ -579,23 +582,20 @@ def _test_distrib_multilabel_accumulator_device(device):
         pr.update((y_pred, y))
 
         assert pr._updated is True
-        if average == "samples":
+
+        assert (
+            pr._nominator.device == metric_device
+        ), f"{type(pr._nominator.device)}:{pr._nominator.device} vs {type(metric_device)}:{metric_device}"
+
+        if average != "samples":
+            # For average='samples', `_denominator` is of type `int` so it has not `device` member.
             assert (
-                pr._sum_samples_metric.device == metric_device
-            ), f"{type(pr._sum_samples_metric.device)}:{pr._sum_samples_metric.device} vs "
+                pr._denominator.device == metric_device
+            ), f"{type(pr._denominator.device)}:{pr._denominator.device} vs {type(metric_device)}:{metric_device}"
+
+        if average == "weighted":
+            assert pr._weight.device == metric_device, f"{type(pr._weight.device)}:{pr._weight.device} vs "
             f"{type(metric_device)}:{metric_device}"
-        else:
-            assert (
-                pr._true_positives.device == metric_device
-            ), f"{type(pr._true_positives.device)}:{pr._true_positives.device} vs {type(metric_device)}:{metric_device}"
-            assert (
-                pr._positives.device == metric_device
-            ), f"{type(pr._positives.device)}:{pr._positives.device} vs {type(metric_device)}:{metric_device}"
-            if average == "weighted":
-                assert (
-                    pr._actual_positives.device == metric_device
-                ), f"{type(pr._actual_positives.device)}:{pr._actual_positives.device} vs "
-                f"{type(metric_device)}:{metric_device}"
 
     metric_devices = [torch.device("cpu")]
     if device.type != "xla":
