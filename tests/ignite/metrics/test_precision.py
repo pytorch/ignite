@@ -545,8 +545,8 @@ def _test_distrib_accumulator_device(device):
         assert pr._updated is True
 
         assert (
-            pr._nominator.device == metric_device
-        ), f"{type(pr._nominator.device)}:{pr._nominator.device} vs {type(metric_device)}:{metric_device}"
+            pr._numerator.device == metric_device
+        ), f"{type(pr._numerator.device)}:{pr._numerator.device} vs {type(metric_device)}:{metric_device}"
 
         if average != "samples":
             # For average='samples', `_denominator` is of type `int` so it has not `device` member.
@@ -584,8 +584,8 @@ def _test_distrib_multilabel_accumulator_device(device):
         assert pr._updated is True
 
         assert (
-            pr._nominator.device == metric_device
-        ), f"{type(pr._nominator.device)}:{pr._nominator.device} vs {type(metric_device)}:{metric_device}"
+            pr._numerator.device == metric_device
+        ), f"{type(pr._numerator.device)}:{pr._numerator.device} vs {type(metric_device)}:{metric_device}"
 
         if average != "samples":
             # For average='samples', `_denominator` is of type `int` so it has not `device` member.

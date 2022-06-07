@@ -195,7 +195,7 @@ def test_metrics_lambda_update():
     positives = all_positives1 + all_positives2
 
     assert precision._type == "binary"
-    assert precision._nominator[1] == true_positives
+    assert precision._numerator[1] == true_positives
     assert precision._denominator[1] == positives
 
     # Computing positivies for recall is different
@@ -204,7 +204,7 @@ def test_metrics_lambda_update():
     positives = positives1 + positives2
 
     assert recall._type == "binary"
-    assert recall._nominator[1] == true_positives
+    assert recall._numerator[1] == true_positives
     assert recall._denominator[1] == positives
 
     """

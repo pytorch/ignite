@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Sequence, Union
+from typing import Callable, cast, Optional, Sequence, Union
 
 import torch
 
@@ -46,74 +46,72 @@ class _BasePrecisionRecall(_BaseClassification):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        r"""
-        `nominator`, `denominator` and `weight` are three variables chosen to be abstract
-        representatives of the ones that are measured for cases with different `average` parameters.
-        `weight` is only used when `average='weighted'`. Actual value of these three variables is
-        as follows.
 
-        average='samples':
-          nominator (torch.Tensor): sum of metric value for samples
-          denominator (int): number of samples
+        # `numerator`, `denominator` and `weight` are three variables chosen to be abstract
+        # representatives of the ones that are measured for cases with different `average` parameters.
+        # `weight` is only used when `average='weighted'`. Actual value of these three variables is
+        # as follows.
+        #
+        # average='samples':
+        #   numerator (torch.Tensor): sum of metric value for samples
+        #   denominator (int): number of samples
+        #
+        # average='weighted':
+        #   numerator (torch.Tensor): number of true positives per class/label
+        #   denominator (torch.Tensor): number of predicted(for precision) or actual(for recall)
+        #     positives per class/label
+        #   weight (torch.Tensor): number of actual positives per class
+        #
+        # average='micro':
+        #   numerator (torch.Tensor): sum of number of true positives for classes/labels
+        #   denominator (torch.Tensor): sum of number of predicted(for precision) or actual(for recall) positives
+        #     for classes/labels
+        #
+        # average='macro' or boolean or None:
+        #   numerator (torch.Tensor): number of true positives per class/label
+        #   denominator (torch.Tensor): number of predicted(for precision) or actual(for recall)
+        #     positives per class/label
 
-        average='weighted':
-          nominator (torch.Tensor): number of true positives per class/label
-          denominator (torch.Tensor): number of predicted(for precision) or actual(for recall)
-            positives per class/label
-          weight (torch.Tensor): number of actual positives per class
-
-        average='micro':
-          nominator (torch.Tensor): sum of number of true positives for classes/labels
-          denominator (torch.Tensor): sum of number of predicted(for precision) or actual(for recall) positives
-            for classes/labels
-
-        average='macro' or boolean or None:
-          nominator (torch.Tensor): number of true positives per class/label
-          denominator (torch.Tensor): number of predicted(for precision) or actual(for recall)
-            positives per class/label
-        """
-        self._nominator = 0  # type: Union[int, torch.Tensor]
+        self._numerator = 0  # type: Union[int, torch.Tensor]
         self._denominator = 0  # type: Union[int, torch.Tensor]
-
-        if self._average == "weighted":
-            self._weight = 0  # type: Union[int, torch.Tensor]
+        self._weight = 0  # type: Union[int, torch.Tensor]
         self._updated = False
 
         super(_BasePrecisionRecall, self).reset()
 
     def compute(self) -> Union[torch.Tensor, float]:
-        r"""
-        Return value of the metric for `average` options `'weighted'` and `'macro'` is computed as follows.
 
-        .. math:: \text{Precision/Recall} = \frac{ nominator }{ denominator } \cdot weight
+        # Return value of the metric for `average` options `'weighted'` and `'macro'` is computed as follows.
+        #
+        # .. math:: \text{Precision/Recall} = \frac{ numerator }{ denominator } \cdot weight
+        #
+        # wherein `weight` is the internal variable `weight` for `'weighted'` option and :math:`1/C`
+        # for the `macro` one. :math:`C` is the number of classes/labels.
+        #
+        # Return value of the metric for `average` options `'micro'`, `'samples'` and `False` is as follows.
+        #
+        # .. math:: \text{Precision/Recall} = \frac{ numerator }{ denominator }
 
-        wherein `weight` is the internal variable `weight` for `'weighted'` option and :math:`1/C` for the `macro` one.
-        :math:`C` is the number of classes/labels.
-
-        Return value of the metric for `average` options `'micro'`, `'samples'` and `False` is as follows.
-
-        .. math:: \text{Precision/Recall} = \frac{ nominator }{ denominator }
-        """
         if not self._updated:
             raise NotComputableError(
                 f"{self.__class__.__name__} must have at least one example before it can be computed."
             )
         if not self._is_reduced:
-            self._nominator = idist.all_reduce(self._nominator)  # type: ignore[assignment]
+            self._numerator = idist.all_reduce(self._numerator)  # type: ignore[assignment]
             self._denominator = idist.all_reduce(self._denominator)  # type: ignore[assignment]
             if self._average == "weighted":
                 self._weight = idist.all_reduce(self._weight)  # type: ignore[assignment]
             self._is_reduced = True  # type: bool
 
-        fraction = self._nominator / (self._denominator + (self.eps if self._average != "samples" else 0))
+        fraction = self._numerator / (self._denominator + (self.eps if self._average != "samples" else 0))
 
         if self._average == "weighted":
-            sum_of_weights = self._weight.sum() + self.eps  # type: ignore
+            sum_of_weights = cast(torch.Tensor, self._weight).sum() + self.eps
             return ((fraction @ self._weight) / sum_of_weights).item()  # type: ignore
         elif self._average == "micro" or self._average == "samples":
-            return fraction.item()  # type: ignore
+            return cast(torch.Tensor, fraction).item()
         elif self._average == "macro":
-            return fraction.mean().item()  # type: ignore
+            return cast(torch.Tensor, fraction).mean().item()
         else:
             return fraction
 
@@ -360,16 +358,16 @@ class Precision(_BasePrecisionRecall):
 
             all_positives = y_pred.sum(dim=1)
             true_positives = correct.sum(dim=1)
-            self._nominator += torch.sum(true_positives / (all_positives + self.eps))
+            self._numerator += torch.sum(true_positives / (all_positives + self.eps))
             self._denominator += y.size(0)
         elif self._average == "micro":
 
             self._denominator += y_pred.sum()
-            self._nominator += correct.sum()
+            self._numerator += correct.sum()
         else:  # _average in [False, 'macro', 'weighted']
 
             self._denominator += y_pred.sum(dim=0)
-            self._nominator += correct.sum(dim=0)
+            self._numerator += correct.sum(dim=0)
 
             if self._average == "weighted":
                 self._weight += y.sum(dim=0)
