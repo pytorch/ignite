@@ -149,7 +149,7 @@ def test_metrics_lambda_update():
     recall = Recall(average=False)
 
     def Fbeta(r, p, beta):
-        return (1 + beta ** 2) * p * r / (beta ** 2 * p + r)
+        return torch.mean((1 + beta ** 2) * p * r / (beta ** 2 * p + r)).item()
 
     F1 = MetricsLambda(Fbeta, recall, precision, 1)
 
@@ -195,8 +195,8 @@ def test_metrics_lambda_update():
     positives = all_positives1 + all_positives2
 
     assert precision._type == "binary"
-    assert precision._numerator[1] == true_positives
-    assert precision._denominator[1] == positives
+    assert precision._numerator == true_positives
+    assert precision._denominator == positives
 
     # Computing positivies for recall is different
     positives1 = y1.sum(dim=0)
@@ -204,15 +204,15 @@ def test_metrics_lambda_update():
     positives = positives1 + positives2
 
     assert recall._type == "binary"
-    assert recall._numerator[1] == true_positives
-    assert recall._denominator[1] == positives
+    assert recall._numerator == true_positives
+    assert recall._denominator == positives
 
     """
     Test compute
     """
     F1.reset()
     F1.update((y_pred1, y1))
-    F1_metrics_lambda = F1.compute()[1]
+    F1_metrics_lambda = F1.compute()
     F1_sklearn = f1_score(y1.numpy(), y_pred1.numpy())
     assert pytest.approx(F1_metrics_lambda) == F1_sklearn
 
@@ -400,8 +400,8 @@ def test_recursive_attachment():
         np_y = y.numpy().ravel()
         assert state.metrics[metric_name] == approx(compute_true_value_fn(np_y_pred, np_y))
 
-    precision_1 = Precision()[1]
-    precision_2 = Precision()[1]
+    precision_1 = Precision()
+    precision_2 = Precision()
     summed_precision = precision_1 + precision_2
 
     def compute_true_summed_precision(y_pred, y):
@@ -411,8 +411,8 @@ def test_recursive_attachment():
 
     _test(summed_precision, "summed precision", compute_true_value_fn=compute_true_summed_precision)
 
-    precision_1 = Precision()[1]
-    precision_2 = Precision()[1]
+    precision_1 = Precision()
+    precision_2 = Precision()
     mean_precision = (precision_1 + precision_2) / 2
 
     def compute_true_mean_precision(y_pred, y):
@@ -422,8 +422,8 @@ def test_recursive_attachment():
 
     _test(mean_precision, "mean precision", compute_true_value_fn=compute_true_mean_precision)
 
-    precision_1 = Precision()[1]
-    precision_2 = Precision()[1]
+    precision_1 = Precision()
+    precision_2 = Precision()
     some_metric = 2.0 + 0.2 * (precision_1 * precision_2 + precision_1 - precision_2) ** 0.5
 
     def compute_true_somemetric(y_pred, y):

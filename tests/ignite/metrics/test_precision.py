@@ -42,9 +42,6 @@ def test_average_parameter():
     pr = Precision(average=True)
     assert pr._average == "macro"
 
-    pr = Precision(average=None)
-    assert pr._average is False
-
 
 def test_binary_wrong_inputs():
     pr = Precision()
@@ -75,19 +72,36 @@ def test_binary_wrong_inputs():
         pr.update((torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10, 5, 6)).long()))
     assert pr._updated is False
 
+    with pytest.warns(
+        RuntimeWarning,
+        match="`y` and `y_pred` should be of dtype long when entry type is binary and average!=False",
+    ):
+        pr = Precision(average=None)
+        pr.update((torch.randint(0, 2, size=(10,)).float(), torch.randint(0, 2, size=(10,))))
+
+    with pytest.warns(
+        RuntimeWarning,
+        match="`y` and `y_pred` should be of dtype long when entry type is binary and average!=False",
+    ):
+        pr = Precision(average=None)
+        pr.update((torch.randint(0, 2, size=(10,)), torch.randint(0, 2, size=(10,)).float()))
+
 
 def ignite_average_to_scikit_average(average, data_type: str):
-    if average in ["micro", "samples", "weighted", "macro"]:
+    if average in [None, "micro", "samples", "weighted", "macro"]:
         return average
-    if average is False or average is None:
-        return None
+    if average is False:
+        if data_type == "binary":
+            return "binary"
+        else:
+            return None
     elif average is True:
         return "macro"
     else:
         raise ValueError(f"Wrong average parameter `{average}`")
 
 
-@pytest.mark.parametrize("average", [False, "macro", "micro", "weighted"])
+@pytest.mark.parametrize("average", [None, False, "macro", "micro", "weighted"])
 def test_binary_input(average):
 
     pr = Precision(average=average)
@@ -199,8 +213,15 @@ def test_multiclass_wrong_inputs():
         pr.update((torch.rand(10, 6, 12, 14), torch.randint(0, 5, size=(10, 12, 14)).long()))
     assert pr._updated is True
 
+    with pytest.warns(
+        RuntimeWarning,
+        match="`y` should be of dtype long when entry type is multiclass",
+    ):
+        pr = Precision()
+        pr.update((torch.rand(10, 5), torch.randint(0, 5, size=(10,)).float()))
 
-@pytest.mark.parametrize("average", [False, "macro", "micro", "weighted"])
+
+@pytest.mark.parametrize("average", [None, False, "macro", "micro", "weighted"])
 def test_multiclass_input(average):
 
     pr = Precision(average=average)
@@ -301,7 +322,7 @@ def to_numpy_multilabel(y):
     return y
 
 
-@pytest.mark.parametrize("average", [False, "macro", "micro", "weighted", "samples"])
+@pytest.mark.parametrize("average", [None, False, "macro", "micro", "weighted", "samples"])
 def test_multilabel_input(average):
 
     pr = Precision(average=average, is_multilabel=True)
@@ -365,7 +386,7 @@ def test_multilabel_input(average):
             _test(y_pred, y, batch_size)
 
 
-@pytest.mark.parametrize("average", [False, "macro", "micro", "weighted"])
+@pytest.mark.parametrize("average", [None, False, "macro", "micro", "weighted"])
 def test_incorrect_type(average):
     # Tests changing of type during training
 
@@ -386,7 +407,7 @@ def test_incorrect_type(average):
     assert pr._updated is True
 
 
-@pytest.mark.parametrize("average", [False, "macro", "micro", "weighted"])
+@pytest.mark.parametrize("average", [None, False, "macro", "micro", "weighted"])
 def test_incorrect_y_classes(average):
     pr = Precision(average=average)
 

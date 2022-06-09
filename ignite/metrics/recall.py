@@ -4,7 +4,6 @@ import torch
 
 from ignite.metrics.metric import reinit__is_reduced
 from ignite.metrics.precision import _BasePrecisionRecall
-from ignite.utils import to_onehot
 
 __all__ = ["Recall"]
 
@@ -28,10 +27,12 @@ class Recall(_BasePrecisionRecall):
         average: available options are
 
             False
-              default option. Per class/label metric is returned.
+              default option. For multicalss and multilabel inputs, per class and per label
+              metric is returned respectively.
 
             None
-              like `False` option. For compatibility with Scikit-Learn api.
+              like `False` option except that per class metric is returned for binary data as well.
+              For compatibility with Scikit-Learn api.
 
             'micro'
               Metric is computed counting stats of classes/labels altogether.
@@ -107,15 +108,19 @@ class Recall(_BasePrecisionRecall):
         .. testcode:: 1
 
             metric = Recall()
+            two_class_metric = Recall(average=None) # Returns recall for both classes
             metric.attach(default_evaluator, "recall")
+            two_class_metric.attach(default_evaluator, "both classes recall")
             y_true = torch.tensor([1, 0, 1, 1, 0, 1])
             y_pred = torch.tensor([1, 0, 1, 0, 1, 1])
             state = default_evaluator.run([[y_pred, y_true]])
             print(f"Recall: {state.metrics['recall']}")
+            print(f"Recall for class 0 and class 1: {state.metrics['both classes recall']}")
 
         .. testoutput:: 1
 
-            Recall: tensor([0.5000, 0.7500], dtype=torch.float64)
+            Recall: 0.75
+            Recall for class 0 and class 1: tensor([0.5000, 0.7500], dtype=torch.float64)
 
         Multiclass case
 
@@ -214,29 +219,7 @@ class Recall(_BasePrecisionRecall):
     def update(self, output: Sequence[torch.Tensor]) -> None:
         self._check_shape(output)
         self._check_type(output)
-        y_pred, y = output[0].detach(), output[1].detach()
-
-        if self._type == "binary" or self._type == "multiclass":
-
-            num_classes = 2 if self._type == "binary" else y_pred.size(1)
-            if self._type == "multiclass" and y.max() + 1 > num_classes:
-                raise ValueError(
-                    f"y_pred contains less classes than y. Number of predicted classes is {num_classes}"
-                    f" and element in y has invalid class = {y.max().item() + 1}."
-                )
-            y = to_onehot(y.view(-1), num_classes=num_classes)
-            indices = torch.argmax(y_pred, dim=1) if self._type == "multiclass" else y_pred.long()
-            y_pred = to_onehot(indices.view(-1), num_classes=num_classes)
-        elif self._type == "multilabel":
-            # if y, y_pred shape is (N, C, ...) -> (N * ..., C)
-            num_labels = y_pred.size(1)
-            y_pred = torch.transpose(y_pred, 1, -1).reshape(-1, num_labels)
-            y = torch.transpose(y, 1, -1).reshape(-1, num_labels)
-
-        # Convert from int cuda/cpu to double on self._device
-        y_pred = y_pred.to(dtype=torch.float64, device=self._device)
-        y = y.to(dtype=torch.float64, device=self._device)
-        correct = y * y_pred
+        _, y, correct = self._prepare_output(output)
 
         if self._average == "samples":
 

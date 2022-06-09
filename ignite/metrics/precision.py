@@ -1,3 +1,4 @@
+import warnings
 from typing import Callable, cast, Optional, Sequence, Union
 
 import torch
@@ -26,9 +27,7 @@ class _BasePrecisionRecall(_BaseClassification):
                 " 'macro', 'micro', 'weighted' and 'samples'."
             )
 
-        if average is None:
-            self._average = False  # type: Union[bool, str]
-        elif average is True:
+        if average is True:
             self._average = "macro"
         else:
             self._average = average
@@ -43,6 +42,49 @@ class _BasePrecisionRecall(_BaseClassification):
 
         if self._type in ["binary", "multiclass"] and self._average == "samples":
             raise ValueError("Argument average='samples' is incompatible with binary and multiclass input data.")
+
+        y_pred, y = output
+        if self._type == "multiclass" and not isinstance(y, torch.LongTensor):
+            warnings.warn("`y` should be of dtype long when entry type is multiclass", RuntimeWarning)
+        if (
+            self._type == "binary"
+            and self._average is not False
+            and not (isinstance(y, torch.LongTensor) and isinstance(y_pred, torch.LongTensor))
+        ):
+            warnings.warn(
+                "`y` and `y_pred` should be of dtype long when entry type is binary and average!=False", RuntimeWarning
+            )
+
+    def _prepare_output(self, output: Sequence[torch.Tensor]) -> Sequence[torch.Tensor]:
+        y_pred, y = output[0].detach(), output[1].detach()
+
+        if self._type == "binary" or self._type == "multiclass":
+
+            num_classes = 2 if self._type == "binary" else y_pred.size(1)
+            if self._type == "multiclass" and y.max() + 1 > num_classes:
+                raise ValueError(
+                    f"y_pred contains less classes than y. Number of predicted classes is {num_classes}"
+                    f" and element in y has invalid class = {y.max().item() + 1}."
+                )
+            y = y.view(-1)
+            if self._type == "binary" and self._average is False:
+                y_pred = y_pred.view(-1)
+            else:
+                y = to_onehot(y.long(), num_classes=num_classes)
+                indices = torch.argmax(y_pred, dim=1) if self._type == "multiclass" else y_pred.long()
+                y_pred = to_onehot(indices.view(-1), num_classes=num_classes)
+        elif self._type == "multilabel":
+            # if y, y_pred shape is (N, C, ...) -> (N * ..., C)
+            num_labels = y_pred.size(1)
+            y_pred = torch.transpose(y_pred, 1, -1).reshape(-1, num_labels)
+            y = torch.transpose(y, 1, -1).reshape(-1, num_labels)
+
+        # Convert from int cuda/cpu to double on self._device
+        y_pred = y_pred.to(dtype=torch.float64, device=self._device)
+        y = y.to(dtype=torch.float64, device=self._device)
+        correct = y * y_pred
+
+        return y_pred, y, correct
 
     @reinit__is_reduced
     def reset(self) -> None:
@@ -88,7 +130,7 @@ class _BasePrecisionRecall(_BaseClassification):
         # wherein `weight` is the internal variable `weight` for `'weighted'` option and :math:`1/C`
         # for the `macro` one. :math:`C` is the number of classes/labels.
         #
-        # Return value of the metric for `average` options `'micro'`, `'samples'` and `False` is as follows.
+        # Return value of the metric for `average` options `'micro'`, `'samples'`, `False` and None is as follows.
         #
         # .. math:: \text{Precision/Recall} = \frac{ numerator }{ denominator }
 
@@ -135,10 +177,12 @@ class Precision(_BasePrecisionRecall):
         average: available options are
 
             False
-              default option. Per class/label metric is returned.
+              default option. For multicalss and multilabel inputs, per class and per label
+              metric is returned respectively.
 
             None
-              like `False` option. For compatibility with Scikit-Learn api.
+              like `False` option except that per class metric is returned for binary data as well.
+              For compatibility with Scikit-Learn api.
 
             'micro'
               Metric is computed counting stats of classes/labels altogether.
@@ -212,18 +256,22 @@ class Precision(_BasePrecisionRecall):
 
             metric = Precision()
             weighted_metric = Precision(average='weighted')
+            two_class_metric = Precision(average=None) # Returns precision for both classes
             metric.attach(default_evaluator, "precision")
             weighted_metric.attach(default_evaluator, "weighted precision")
+            two_class_metric.attach(default_evaluator, "both classes precision")
             y_true = torch.tensor([1, 0, 1, 1, 0, 1])
             y_pred = torch.Tensor([1, 0, 1, 0, 1, 1])
             state = default_evaluator.run([[y_pred, y_true]])
             print(f"Precision: {state.metrics['precision']}")
+            print(f"Precision for class 0 and class 1: {state.metrics['both classes precision']}")
             print(f"Weighted Precision: {state.metrics['weighted precision']}")
 
         .. testoutput:: 1
 
-            Precision: tensor([0.5000, 0.7500], dtype=torch.float64)
+            Precision: 0.75
             Weighted Precision: 0.6666666666666666
+            Precision for class 0 and class 1: tensor([0.5000, 0.7500], dtype=torch.float64)
 
         Multiclass case
 
@@ -330,29 +378,7 @@ class Precision(_BasePrecisionRecall):
     def update(self, output: Sequence[torch.Tensor]) -> None:
         self._check_shape(output)
         self._check_type(output)
-        y_pred, y = output[0].detach(), output[1].detach()
-
-        if self._type == "binary" or self._type == "multiclass":
-
-            num_classes = 2 if self._type == "binary" else y_pred.size(1)
-            if self._type == "multiclass" and y.max() + 1 > num_classes:
-                raise ValueError(
-                    f"y_pred contains less classes than y. Number of predicted classes is {num_classes}"
-                    f" and element in y has invalid class = {y.max().item() + 1}."
-                )
-            y = to_onehot(y.view(-1), num_classes=num_classes)
-            indices = torch.argmax(y_pred, dim=1) if self._type == "multiclass" else y_pred.long()
-            y_pred = to_onehot(indices.view(-1), num_classes=num_classes)
-        elif self._type == "multilabel":
-            # if y, y_pred shape is (N, C, ...) -> (N * ..., C)
-            num_labels = y_pred.size(1)
-            y_pred = torch.transpose(y_pred, 1, -1).reshape(-1, num_labels)
-            y = torch.transpose(y, 1, -1).reshape(-1, num_labels)
-
-        # Convert from int cuda/cpu to double on self._device
-        y_pred = y_pred.to(dtype=torch.float64, device=self._device)
-        y = y.to(dtype=torch.float64, device=self._device)
-        correct = y * y_pred
+        y_pred, y, correct = self._prepare_output(output)
 
         if self._average == "samples":
 
@@ -364,7 +390,7 @@ class Precision(_BasePrecisionRecall):
 
             self._denominator += y_pred.sum()
             self._numerator += correct.sum()
-        else:  # _average in [False, 'macro', 'weighted']
+        else:  # _average in [False, None, 'macro', 'weighted']
 
             self._denominator += y_pred.sum(dim=0)
             self._numerator += correct.sum(dim=0)
