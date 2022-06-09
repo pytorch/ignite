@@ -44,12 +44,12 @@ class _BasePrecisionRecall(_BaseClassification):
             raise ValueError("Argument average='samples' is incompatible with binary and multiclass input data.")
 
         y_pred, y = output
-        if self._type == "multiclass" and not isinstance(y, torch.LongTensor):
+        if self._type == "multiclass" and y.dtype != torch.long:
             warnings.warn("`y` should be of dtype long when entry type is multiclass", RuntimeWarning)
         if (
             self._type == "binary"
             and self._average is not False
-            and not (isinstance(y, torch.LongTensor) and isinstance(y_pred, torch.LongTensor))
+            and (y.dtype != torch.long or y_pred.dtype != torch.long)
         ):
             warnings.warn(
                 "`y` and `y_pred` should be of dtype long when entry type is binary and average!=False", RuntimeWarning
