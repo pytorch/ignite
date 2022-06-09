@@ -28,7 +28,7 @@ class _BasePrecisionRecall(_BaseClassification):
             )
 
         if average is True:
-            self._average = "macro"
+            self._average = "macro"  # type: Optional[Union[bool, str]]
         else:
             self._average = average
         self.eps = 1e-20
