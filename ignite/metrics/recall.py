@@ -208,7 +208,7 @@ class Recall(_BasePrecisionRecall):
 
         .. testoutput:: 4
 
-            tensor([0.5000, 0.7500], dtype=torch.float64)
+            0.75
 
 
     .. versionchanged:: 0.5.0

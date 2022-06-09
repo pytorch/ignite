@@ -261,11 +261,11 @@ class Precision(_BasePrecisionRecall):
             weighted_metric.attach(default_evaluator, "weighted precision")
             two_class_metric.attach(default_evaluator, "both classes precision")
             y_true = torch.tensor([1, 0, 1, 1, 0, 1])
-            y_pred = torch.Tensor([1, 0, 1, 0, 1, 1])
+            y_pred = torch.tensor([1, 0, 1, 0, 1, 1])
             state = default_evaluator.run([[y_pred, y_true]])
             print(f"Precision: {state.metrics['precision']}")
-            print(f"Precision for class 0 and class 1: {state.metrics['both classes precision']}")
             print(f"Weighted Precision: {state.metrics['weighted precision']}")
+            print(f"Precision for class 0 and class 1: {state.metrics['both classes precision']}")
 
         .. testoutput:: 1
 
@@ -367,7 +367,7 @@ class Precision(_BasePrecisionRecall):
 
         .. testoutput:: 4
 
-            tensor([0.5000, 0.7500], dtype=torch.float64)
+            0.75
 
 
     .. versionchanged:: 0.5.0
