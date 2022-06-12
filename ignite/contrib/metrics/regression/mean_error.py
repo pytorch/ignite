@@ -46,7 +46,7 @@ class MeanError(_BaseRegression):
 
             metric = MeanError()
             metric.attach(default_evaluator, 'me')
-            y_true = torch.tensor([0, 1, 2, 3, 4, 5])
+            y_true = torch.tensor([0., 1., 2., 3., 4., 5.])
             y_pred = y_true * 0.75
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics['me'])
