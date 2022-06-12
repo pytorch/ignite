@@ -46,7 +46,7 @@ class GeometricMeanAbsoluteError(_BaseRegression):
 
                 metric = GeometricMeanAbsoluteError()
                 metric.attach(default_evaluator, 'gmae')
-                y_pred = torch.Tensor([[3.8], [9.9], [-5.4], [2.1]])
+                y_pred = torch.tensor([[3.8], [9.9], [-5.4], [2.1]])
                 y_true = y_pred * 1.5
                 state = default_evaluator.run([[y_pred, y_true]])
                 print(state.metrics['gmae'])

@@ -46,7 +46,7 @@ class FractionalAbsoluteError(_BaseRegression):
 
                 metric = FractionalAbsoluteError()
                 metric.attach(default_evaluator, 'fractional_abs_error')
-                y_pred = torch.Tensor([[3.8], [9.9], [-5.4], [2.1]])
+                y_pred = torch.tensor([[3.8], [9.9], [-5.4], [2.1]])
                 y_true = y_pred * 0.8
                 state = default_evaluator.run([[y_pred, y_true]])
                 print(state.metrics['fractional_abs_error'])

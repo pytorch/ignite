@@ -46,7 +46,7 @@ class FractionalBias(_BaseRegression):
 
                 metric = FractionalBias()
                 metric.attach(default_evaluator, 'fractional_bias')
-                y_pred = torch.Tensor([[3.8], [9.9], [5.4], [2.1]])
+                y_pred = torch.tensor([[3.8], [9.9], [5.4], [2.1]])
                 y_true = y_pred * 1.5
                 state = default_evaluator.run([[y_pred, y_true]])
                 print(state.metrics['fractional_bias'])

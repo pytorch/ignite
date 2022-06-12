@@ -117,7 +117,7 @@ def _test_distrib_accumulator_device(device):
         for dev in [mpd._device, mpd._sum_of_distances.device]:
             assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
 
-        y_pred = torch.Tensor([[3.0, 4.0], [-3.0, -4.0]])
+        y_pred = torch.tensor([[3.0, 4.0], [-3.0, -4.0]])
         y = torch.zeros(2, 2)
         mpd.update((y_pred, y))
 

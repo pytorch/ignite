@@ -46,7 +46,7 @@ class MeanAbsoluteRelativeError(_BaseRegression):
 
             metric = MeanAbsoluteRelativeError()
             metric.attach(default_evaluator, 'mare')
-            y_true = torch.Tensor([1, 2, 3, 4, 5])
+            y_true = torch.tensor([1, 2, 3, 4, 5])
             y_pred = y_true * 0.75
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics['mare'])
