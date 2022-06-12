@@ -785,25 +785,12 @@ def test_grads_scalar_handler_wrong_setup():
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
-def test_grads_scalar_handler():
-    class DummyModel(torch.nn.Module):
-        def __init__(self):
-            super(DummyModel, self).__init__()
-            self.fc1 = torch.nn.Linear(10, 10)
-            self.fc2 = torch.nn.Linear(12, 12)
-            self.fc1.weight.data.zero_()
-            self.fc1.bias.data.zero_()
-            self.fc2.weight.data.fill_(1.0)
-            self.fc2.bias.data.fill_(1.0)
-
-    model = DummyModel()
-
-    def norm(x):
-        return 0.0
+def test_grads_scalar_handler(dummy_model_factory, norm_mock):
+    model = dummy_model_factory(with_grads=True, with_frozen_layer=False)
 
     # define test wrapper to test with and without optional tag
     def _test(tag=None):
-        wrapper = GradsScalarHandler(model, reduction=norm, tag=tag)
+        wrapper = GradsScalarHandler(model, reduction=norm_mock, tag=tag)
         mock_logger = MagicMock(spec=VisdomLogger)
         mock_logger.vis = MagicMock()
         mock_logger.executor = _DummyExecutor()
