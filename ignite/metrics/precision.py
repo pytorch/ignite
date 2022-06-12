@@ -286,7 +286,7 @@ class Precision(_BasePrecisionRecall):
             weighted_metric.attach(default_evaluator, "weighted precision")
 
             y_true = torch.tensor([2, 0, 2, 1, 0])
-            y_pred = torch.Tensor([
+            y_pred = torch.tensor([
                 [0.0266, 0.1719, 0.3055],
                 [0.6886, 0.3978, 0.8176],
                 [0.9230, 0.0197, 0.8395],
@@ -320,14 +320,14 @@ class Precision(_BasePrecisionRecall):
             weighted_metric.attach(default_evaluator, "weighted precision")
             samples_metric.attach(default_evaluator, "samples precision")
 
-            y_true = torch.Tensor([
+            y_true = torch.tensor([
                 [0, 0, 1],
                 [0, 0, 0],
                 [0, 0, 0],
                 [1, 0, 0],
                 [0, 1, 1],
             ])
-            y_pred = torch.Tensor([
+            y_pred = torch.tensor([
                 [1, 1, 0],
                 [1, 0, 1],
                 [1, 0, 0],
@@ -361,7 +361,7 @@ class Precision(_BasePrecisionRecall):
             metric = Precision(output_transform=thresholded_output_transform)
             metric.attach(default_evaluator, "precision")
             y_true = torch.tensor([1, 0, 1, 1, 0, 1])
-            y_pred = torch.Tensor([0.6, 0.2, 0.9, 0.4, 0.7, 0.65])
+            y_pred = torch.tensor([0.6, 0.2, 0.9, 0.4, 0.7, 0.65])
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["precision"])
 

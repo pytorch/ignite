@@ -49,7 +49,7 @@ class CanberraMetric(_BaseRegression):
 
                 metric = CanberraMetric()
                 metric.attach(default_evaluator, 'canberra')
-                y_pred = torch.Tensor([[3.8], [9.9], [-5.4], [2.1]])
+                y_pred = torch.tensor([[3.8], [9.9], [-5.4], [2.1]])
                 y_true = y_pred * 1.5
                 state = default_evaluator.run([[y_pred, y_true]])
                 print(state.metrics['canberra'])

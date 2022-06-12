@@ -48,7 +48,7 @@ class AveragePrecision(EpochMetric):
 
         .. testcode::
 
-            y_pred = torch.Tensor([[0.79, 0.21], [0.30, 0.70], [0.46, 0.54], [0.16, 0.84]])
+            y_pred = torch.tensor([[0.79, 0.21], [0.30, 0.70], [0.46, 0.54], [0.16, 0.84]])
             y_true = torch.tensor([[1, 1], [1, 1], [0, 1], [0, 1]])
 
             avg_precision = AveragePrecision()

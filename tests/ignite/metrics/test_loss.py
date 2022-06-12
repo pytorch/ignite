@@ -31,7 +31,7 @@ class DummyLoss1(Loss):
 
 
 def test_output_as_mapping_without_criterion_kwargs():
-    y_pred = torch.Tensor([[2.0], [-2.0]])
+    y_pred = torch.tensor([[2.0], [-2.0]])
     y = torch.zeros(2)
     criterion_kwargs = {}
 
@@ -42,7 +42,7 @@ def test_output_as_mapping_without_criterion_kwargs():
 
 
 def test_output_as_mapping_with_criterion_kwargs():
-    y_pred = torch.Tensor([[2.0], [-2.0]])
+    y_pred = torch.tensor([[2.0], [-2.0]])
     y = torch.zeros(2)
     criterion_kwargs = {"reduction": "sum"}
 
