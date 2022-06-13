@@ -30,7 +30,7 @@ class DummyMetric1(Metric):
 
 
 def test_no_transform():
-    y_pred = torch.Tensor([[2.0], [-2.0]])
+    y_pred = torch.tensor([[2.0], [-2.0]])
     y = torch.zeros(2)
 
     metric = DummyMetric1(true_output=(y_pred, y))
@@ -40,7 +40,7 @@ def test_no_transform():
 
 
 def test_transform():
-    y_pred = torch.Tensor([[2.0], [-2.0]])
+    y_pred = torch.tensor([[2.0], [-2.0]])
     y = torch.zeros(2)
 
     def transform(output):
@@ -87,7 +87,7 @@ def test_output_as_mapping_keys_is_none():
 
 
 def test_output_as_mapping():
-    y_pred = torch.Tensor([[2.0], [-2.0]])
+    y_pred = torch.tensor([[2.0], [-2.0]])
     y = torch.zeros(2)
 
     metric = DummyMetric1(true_output=(y_pred, y))

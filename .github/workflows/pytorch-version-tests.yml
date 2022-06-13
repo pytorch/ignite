@@ -5,6 +5,7 @@ on:
   schedule:
     # Run at 00:00 UTC Every Day
     - cron: "0 0 * * *"
+  workflow_dispatch:
 
 jobs:
   build:
@@ -86,7 +87,7 @@ jobs:
       - name: Run Tests
         shell: bash -l {0}
         run: |
-          pytest tests -vvv
+          bash tests/run_cpu_tests.sh
 
   create-issue:
     runs-on: ubuntu-latest
