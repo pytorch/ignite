@@ -5,9 +5,7 @@ codecov
 pytest-cov
 pytest-xdist
 dill==0.3.4
-# workaround for issue fixed in https://github.com/pytorch/pytorch/pull/69904
-# to be removed after next Pytroch release (1.11)
-setuptools==59.5.0
+setuptools
 # Test contrib dependencies
 scipy
 pytorch_fid==0.1.1
