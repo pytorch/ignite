@@ -8,7 +8,7 @@ else
     skip_distrib_opt=(-m "")
 fi
 
-MATCH_TESTS_EXPRESSION=${1:-"true"}
+MATCH_TESTS_EXPRESSION=${1:-""}
 
 CUDA_VISIBLE_DEVICES="" pytest --tx 4*popen//python=python --cov ignite --cov-report term-missing --cov-report xml -vvv tests "${skip_distrib_opt[@]}" -k "$MATCH_TESTS_EXPRESSION"
 
