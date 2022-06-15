@@ -146,33 +146,78 @@ def test_ema_get_const_momentum(get_dummy_model):
     engine.run(range(10))
 
 
-def test_ema_buffer():
-    """Test if the tensors in buffer are also synchronized"""
+@pytest.mark.parametrize("handle_buffers", ["copy", "update", "ema_train", "invalid"])
+def test_ema_buffer(handle_buffers):
+    """Test if the tensors in buffer are also correctly updated"""
     model = nn.BatchNorm2d(2)
     model.running_mean.data.fill_(1.5)
     model.running_var.data.fill_(1.5)
-    ema_handler = EMAHandler(model)
 
-    def _bn_step_fn(engine, batch):
-        x = torch.rand(4, 2, 32, 32)
-        _ = model(x)
-        return 1
+    # manually register a buffer to test if it will be correctly updated
+    model.register_buffer("dummy_buffer", tensor=torch.tensor(1.0, dtype=torch.float32))
 
-    engine = Engine(_bn_step_fn)
-    ema_handler.attach(engine)
+    if handle_buffers == "invalid":
+        with pytest.raises(ValueError, match="handle_buffers can only"):
+            _ = EMAHandler(model, momentum=0.5, handle_buffers=handle_buffers)
+    else:
+        ema_handler = EMAHandler(model, momentum=0.5, handle_buffers=handle_buffers)
 
-    ema_model = ema_handler.ema_model
+        def _bn_step_fn(engine, batch):
+            x = torch.rand(4, 2, 32, 32)
+            _ = model(x)
+            # manually increment the dummy_buffer at every step
+            model.dummy_buffer += 1.0
+            return 1
 
-    @engine.on(Events.ITERATION_COMPLETED)
-    def check_buffers():
-        assert ema_model.running_mean.allclose(model.running_mean)
-        assert ema_model.running_var.allclose(model.running_var)
+        engine = Engine(_bn_step_fn)
+        ema_handler.attach(engine)
 
-    # engine will run 4 iterations
-    engine.run([0, 1], max_epochs=2)
+        ema_model = ema_handler.ema_model
+        if handle_buffers == "ema_train":
+            assert ema_model.training
+        else:
+            assert not ema_model.training
 
-    assert ema_model.running_mean.allclose(model.running_mean)
-    assert ema_model.running_var.allclose(model.running_var)
+        @engine.on(Events.ITERATION_COMPLETED)
+        def check_buffers():
+            if handle_buffers == "update":
+                # the buffers with torch.int64 data type should be directly copied
+                assert ema_model.num_batches_tracked.allclose(model.num_batches_tracked)
+
+                # buffers with floating type will be updated rather than copied
+                assert not ema_model.dummy_buffer.allclose(model.dummy_buffer)
+                assert not ema_model.running_mean.allclose(model.running_mean)
+                assert not ema_model.running_var.allclose(model.running_var)
+            elif handle_buffers == "copy":
+                # the buffers with torch.int64 data type should be directly copied
+                assert ema_model.num_batches_tracked.allclose(model.num_batches_tracked)
+
+                assert ema_model.dummy_buffer.allclose(model.dummy_buffer)
+                assert ema_model.running_mean.allclose(model.running_mean)
+                assert ema_model.running_var.allclose(model.running_var)
+            else:
+                # buffers will not be copied or EMA updated
+                assert ema_model.num_batches_tracked.allclose(torch.tensor(0, dtype=torch.int64))
+                assert ema_model.dummy_buffer.allclose(torch.tensor(1.0, dtype=torch.float32))
+
+        # engine will run 4 iterations
+        engine.run([0, 1], max_epochs=2)
+
+        if handle_buffers == "update":
+            assert ema_model.num_batches_tracked.allclose(model.num_batches_tracked)
+            assert ema_model.dummy_buffer.allclose(torch.tensor(4.0625, dtype=torch.float32))
+            assert not ema_model.dummy_buffer.allclose(model.dummy_buffer)
+            assert not ema_model.running_mean.allclose(model.running_mean)
+            assert not ema_model.running_var.allclose(model.running_var)
+        elif handle_buffers == "copy":
+            assert ema_model.num_batches_tracked.allclose(model.num_batches_tracked)
+            assert ema_model.dummy_buffer.allclose(model.dummy_buffer)
+            assert ema_model.running_mean.allclose(model.running_mean)
+            assert ema_model.running_var.allclose(model.running_var)
+        else:
+            # buffers will not be copied or EMA updated
+            assert ema_model.num_batches_tracked.allclose(torch.tensor(0, dtype=torch.int64))
+            assert ema_model.dummy_buffer.allclose(torch.tensor(1.0, dtype=torch.float32))
 
 
 def test_ema_two_handlers(get_dummy_model):

@@ -42,17 +42,22 @@ class EMAHandler:
           momentum: the update momentum after warmup phase, should be float in range :math:`\left(0, 1 \right)`.
           momentum_warmup: the initial update momentum during warmup phase.
           warmup_iters: iterations of warmup.
+          handle_buffers: how to handle model buffers during training. There are three options: 1. "copy" means
+              copying the buffers of the online model; 2. "update" means applying EMA to the buffers of the online
+              model; 3. "ema_train" means set the EMA model to ``train`` mode and skip copying or updating the buffers.
 
     Attributes:
           ema_model: the exponential moving averaged model.
           model: the online model that is tracked by EMAHandler. It is ``model.module`` if ``model`` in
               the initialization method is an instance of ``DistributedDataParallel``.
           momentum: the update momentum.
+          handle_buffers: how to handle model buffers during training.
 
     Note:
-          The EMA model is already in ``eval`` mode. If model in the arguments is an ``nn.Module`` or
-          ``DistributedDataParallel``, the EMA model is an ``nn.Module`` and it is on the same device as the online
-          model. If the model is an ``nn.DataParallel``, then the EMA model is an ``nn.DataParallel``.
+          The EMA model is already in ``eval`` mode if ``handle_buffers`` is "copy" or "update". If model in the
+          arguments is an ``nn.Module`` or ``DistributedDataParallel``, the EMA model is an ``nn.Module`` and it is on
+          the same device as the online model. If the model is an ``nn.DataParallel``, then the EMA model is an
+          ``nn.DataParallel``.
 
 
     Note:
@@ -149,6 +154,7 @@ class EMAHandler:
         momentum: float = 0.0002,
         momentum_warmup: Optional[float] = None,
         warmup_iters: Optional[int] = None,
+        handle_buffers: str = "copy",
     ) -> None:
         if not 0 < momentum < 1:
             raise ValueError(f"Invalid momentum: {momentum}")
@@ -171,16 +177,39 @@ class EMAHandler:
         self.ema_model = deepcopy(self.model)
         for param in self.ema_model.parameters():
             param.detach_()
-        self.ema_model.eval()
+
+        if handle_buffers not in ("copy", "update", "ema_train"):
+            raise ValueError(
+                f"handle_buffers can only be one of 'copy', 'update', 'ema_train', " f"but got {handle_buffers}"
+            )
+
+        self.handle_buffers = handle_buffers
+        if self.handle_buffers == "ema_train":
+            self.ema_model.train()
+        else:
+            self.ema_model.eval()
 
     def _update_ema_model(self, engine: Engine, name: str) -> None:
         """Update weights of ema model"""
         momentum = getattr(engine.state, name)
         for ema_p, model_p in zip(self.ema_model.parameters(), self.model.parameters()):
             ema_p.mul_(1.0 - momentum).add_(model_p.data, alpha=momentum)
-        # assign the buffers
-        for ema_b, model_b in zip(self.ema_model.buffers(), self.model.buffers()):
-            ema_b.data = model_b.data
+
+        if self.handle_buffers == "update":
+            for ema_b, model_b in zip(self.ema_model.buffers(), self.model.buffers()):
+                try:
+                    ema_b.mul_(1.0 - momentum).add_(model_b.data, alpha=momentum)
+                except RuntimeError:
+                    # Handle the case where ema_b is torch.int64, torch.int32 etc.,
+                    # where a runtime error will be thrown when performing the in-place operations with floats.
+                    # In this case, just copy the data
+                    ema_b.data = model_b.data
+        elif self.handle_buffers == "copy":
+            # assign the buffers
+            for ema_b, model_b in zip(self.ema_model.buffers(), self.model.buffers()):
+                ema_b.data = model_b.data
+        else:
+            pass
 
     def attach(
         self,
