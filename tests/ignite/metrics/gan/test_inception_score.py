@@ -91,7 +91,7 @@ def _test_distrib_integration(device):
 
         assert "InceptionScore" in engine.state.metrics
 
-        assert pytest.approx(calculate_inception_score(y)) == m.compute()
+        assert pytest.approx(calculate_inception_score(y), rel=1e-5) == m.compute()
 
     metric_devices = [torch.device("cpu")]
     if device.type != "xla":
