@@ -107,7 +107,7 @@ def test_events_driven_basics():
     assert e._allowed_events_counts[ABCEvents.C_EVENT] == 1
 
 
-def test_events_driven_state():
+def test_events_driven_state_basics():
     state = EventsDrivenState()
     assert len(state._attr_to_events) == 0
 
@@ -132,6 +132,33 @@ def test_events_driven_state():
 
     state.update_attribute_mapping(attribute="epoch", events=["epoch_started", "epoch_completed"])
     assert state._attr_to_events["epoch"] == ["epoch_started", "epoch_completed"]
+
+
+def test_events_driven_state_kwargs():
+    state = EventsDrivenState(a=12, b=23)
+    assert state.a == 12
+    assert state.b == 23
+
+
+def test_events_driven_state_derrived():
+    class LikeEngineState(EventsDrivenState):
+        attr_to_events = {
+            "a": ["a_start", "a_end"],
+            "b": ["b_start", "b_end"],
+        }
+
+        def __init__(self) -> None:
+            super(LikeEngineState, self).__init__(attr_to_events=self.attr_to_events)
+
+    s = LikeEngineState()
+
+    assert s.attr_to_events == s._attr_to_events
+
+    s.attr_to_events["c"] = ["c_start"]
+    assert s.attr_to_events != s._attr_to_events
+
+    s.update_attribute_mapping("c", ["c_start"])
+    assert s.attr_to_events == s._attr_to_events
 
 
 def test_basic_events_driven_with_state():

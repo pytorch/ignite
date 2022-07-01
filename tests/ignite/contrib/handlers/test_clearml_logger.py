@@ -754,7 +754,8 @@ def test_clearml_disk_saver_integration():
     checkpoint = Checkpoint(to_save=to_save_serializable, save_handler=clearml_saver, n_saved=1)
 
     trainer = Engine(lambda e, b: None)
-    trainer.state = State(epoch=0, iteration=0)
+    # trainer.state = State(epoch=0, iteration=0)
+    trainer.state.epoch = trainer.state.iteration = 0
     checkpoint(trainer)
     trainer.state.iteration = 1
     checkpoint(trainer)
@@ -777,7 +778,8 @@ def test_clearml_disk_saver_integration_no_logger():
         checkpoint = Checkpoint(to_save=to_save_serializable, save_handler=clearml_saver, n_saved=1)
 
     trainer = Engine(lambda e, b: None)
-    trainer.state = State(epoch=0, iteration=0)
+    # trainer.state = State(epoch=0, iteration=0)
+    trainer.state.epoch = trainer.state.iteration = 0
     checkpoint(trainer)
     trainer.state.iteration = 1
     checkpoint(trainer)

@@ -234,14 +234,14 @@ class BaseLogger(metaclass=ABCMeta):
         if isinstance(event_name, EventsList):
             for name in event_name:
                 if name not in engine._allowed_events:
-                    raise RuntimeError(f"Unknown event name '{name}'")
+                    raise ValueError(f"Unknown event name '{name}'")
                 engine.add_event_handler(name, log_handler, self, name)
 
             return RemovableEventHandle(event_name, log_handler, engine)
 
         else:
             if event_name not in engine._allowed_events:
-                raise RuntimeError(f"Unknown event name '{event_name}'")
+                raise ValueError(f"Unknown event name '{event_name}'")
 
             return engine.add_event_handler(event_name, log_handler, self, event_name, *args, **kwargs)
 

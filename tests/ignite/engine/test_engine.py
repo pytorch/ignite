@@ -7,6 +7,7 @@ import pytest
 import torch
 
 import ignite.distributed as idist
+from ignite.base.events import EventEnum
 from ignite.engine import Engine, Events, State
 from ignite.engine.deterministic import keep_random_state
 from ignite.metrics import Average
@@ -401,11 +402,27 @@ def test_state_get_event_attrib_value():
     assert state.get_event_attrib_value(e) == state.epoch
 
 
-def test_resetting_state():
-    engine = Engine(lambda e, a: None)
+def test_resetting_state_deprecated_warning():
+    engine = Engine(lambda e, b: None)
 
     with pytest.warns(UserWarning, match=r"Resetting state is deprecated, and will be forbidden in the next release"):
         engine.state = State(iteration=4, epoch=50)
+
+
+def test_resetting_state_unseen_attrs():
+    engine = Engine(lambda e, b: None)
+
+    class NewState(State):
+        attr_to_events = {
+            "a": [Events.ITERATION_STARTED, Events.GET_BATCH_STARTED],
+            "b": [
+                Events.EPOCH_STARTED,
+            ],
+        }
+
+    with pytest.raises(ValueError, match=r"The new state must not contain any new unseen events"):
+        new_state = NewState()
+        engine.state = new_state
 
 
 def test__allowed_events_counts_values_after_setting_state():
@@ -453,8 +470,6 @@ def test__allowed_events_counts_values_after_setting_state():
     assert "max_epochs" in engine.state.__dict__
     assert "epoch_length" in engine.state.__dict__
 
-    from ignite.base.events import EventEnum
-
     class CustomEvents(EventEnum):
         A = "a"
 
@@ -483,35 +498,36 @@ def test__allowed_events_counts_values_after_setting_state():
     assert "b" not in engine.state.__dict__
 
 
-def test_time_stored_in_state():
-    def _test(data, max_epochs, epoch_length):
-        sleep_time = 0.01
-        extra_sleep_time = 0.1
-        engine = Engine(lambda e, b: time.sleep(sleep_time))
+@pytest.mark.parametrize(
+    "data, max_epochs, epoch_length",
+    [
+        (list(range(100)), 2, 50),
+        (list(range(200)), 2, 50),
+        (list(range(100)), 3, 50),
+    ],
+)
+def test_time_stored_in_state(data, max_epochs, epoch_length):
+    sleep_time = 0.01
+    extra_sleep_time = 0.1
+    engine = Engine(lambda e, b: time.sleep(sleep_time))
 
-        @engine.on(Events.EPOCH_COMPLETED)
-        def check_epoch_time():
-            assert engine.state.times[Events.EPOCH_COMPLETED.name] >= sleep_time * epoch_length
-            time.sleep(extra_sleep_time)
+    @engine.on(Events.EPOCH_COMPLETED)
+    def check_epoch_time():
+        assert engine.state.times[Events.EPOCH_COMPLETED.name] >= sleep_time * epoch_length
+        time.sleep(extra_sleep_time)
 
-        @engine.on(Events.COMPLETED)
-        def check_completed_time():
-            assert (
-                engine.state.times[Events.COMPLETED.name] >= (sleep_time * epoch_length + extra_sleep_time) * max_epochs
-            )
-            time.sleep(extra_sleep_time)
+    @engine.on(Events.COMPLETED)
+    def check_completed_time():
+        assert engine.state.times[Events.COMPLETED.name] >= (sleep_time * epoch_length + extra_sleep_time) * max_epochs
+        time.sleep(extra_sleep_time)
 
-        engine.run(data, max_epochs=max_epochs, epoch_length=epoch_length)
+    engine.run(data, max_epochs=max_epochs, epoch_length=epoch_length)
 
-        assert engine.state.times[Events.EPOCH_COMPLETED.name] >= sleep_time * epoch_length + extra_sleep_time
-        assert (
-            engine.state.times[Events.COMPLETED.name]
-            >= (sleep_time * epoch_length + extra_sleep_time) * max_epochs + extra_sleep_time
-        )
-
-    _test(list(range(100)), max_epochs=2, epoch_length=100)
-    _test(list(range(200)), max_epochs=2, epoch_length=100)
-    _test(list(range(200)), max_epochs=5, epoch_length=100)
+    assert engine.state.times[Events.EPOCH_COMPLETED.name] >= sleep_time * epoch_length + extra_sleep_time
+    assert (
+        engine.state.times[Events.COMPLETED.name]
+        >= (sleep_time * epoch_length + extra_sleep_time) * max_epochs + extra_sleep_time
+    )
 
 
 def _test_check_triggered_events(data, max_epochs, epoch_length, exp_iter_stops=None):

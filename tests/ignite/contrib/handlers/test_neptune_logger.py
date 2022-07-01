@@ -497,7 +497,8 @@ def _test_neptune_saver_integration(device):
     checkpoint = Checkpoint(to_save=to_save_serializable, save_handler=saver, n_saved=1)
 
     trainer = Engine(lambda e, b: None)
-    trainer.state = State(epoch=0, iteration=0)
+    # trainer.state = State(epoch=0, iteration=0)
+    trainer.state.epoch = trainer.state.iteration = 0
     checkpoint(trainer)
     trainer.state.iteration = 1
     checkpoint(trainer)

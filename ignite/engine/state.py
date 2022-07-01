@@ -1,5 +1,5 @@
 import numbers
-from typing import Any, Dict, Iterable, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Union
 
 from torch.utils.data import DataLoader
 
@@ -46,7 +46,7 @@ class State(EventsDrivenState):
             Events.GET_BATCH_COMPLETED,
         ],
         "epoch": [Events.EPOCH_STARTED, Events.EPOCH_COMPLETED, Events.STARTED, Events.COMPLETED],
-    }  # Optional[Dict[str, List[Events]]]
+    }  # type: Dict[str, List[Events]]
 
     # deprecated
     event_to_attr = {
@@ -58,10 +58,10 @@ class State(EventsDrivenState):
         Events.EPOCH_COMPLETED: "epoch",
         Events.STARTED: "epoch",
         Events.COMPLETED: "epoch",
-    }  # type: Dict[Union[str, "Events", "CallableEventWithFilter"], str]
+    }  # type: Dict[Union[str, Events, CallableEventWithFilter], str]
 
     def __init__(self, **kwargs: Any) -> None:
-        super(State, self).__init__(attr_to_events=State.attr_to_events, **kwargs)
+        super(State, self).__init__(attr_to_events=self.attr_to_events, **kwargs)  # type: ignore[arg-type]
 
         self.epoch_length = None  # type: Optional[int]
         self.max_epochs = None  # type: Optional[int]
@@ -95,6 +95,8 @@ class State(EventsDrivenState):
     def __repr__(self) -> str:
         s = "State:\n"
         for attr, value in self.__dict__.items():
+            if attr.startswith("_"):
+                continue
             if not isinstance(value, (numbers.Number, str)):
                 value = type(value)
             s += f"\t{attr}: {value}\n"

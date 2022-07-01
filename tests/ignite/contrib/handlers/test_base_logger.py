@@ -70,7 +70,7 @@ def test_base_output_handler_setup_output_metrics():
 
     engine = Engine(lambda engine, batch: None)
     true_metrics = {"a": 0, "b": 1}
-    engine.state = State(metrics=true_metrics)
+    engine.state.metrics = true_metrics
     engine.state.output = 12345
 
     # Only metric_names
@@ -108,7 +108,7 @@ def test_base_output_handler_setup_output_metrics():
 def test_base_output_handler_setup_output_state_attrs():
     engine = Engine(lambda engine, batch: None)
     true_metrics = {"a": 0, "b": 1}
-    engine.state = State(metrics=true_metrics)
+    engine.state.metrics = true_metrics
     engine.state.alpha = 3.899
     engine.state.beta = torch.tensor(5.499)
     engine.state.gamma = torch.tensor([2106.0, 6.0])

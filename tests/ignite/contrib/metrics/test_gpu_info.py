@@ -41,7 +41,8 @@ def _test_gpu_info(device="cpu"):
 
     # with Engine
     engine = Engine(lambda engine, batch: 0.0)
-    engine.state = State(metrics={})
+    # engine.state = State(metrics={})
+    engine.state.metrics = {}
 
     gpu_info.completed(engine, name="gpu")
 
@@ -130,7 +131,8 @@ def test_gpu_info_mock(mock_pynvml_module, mock_gpu_is_available):
 
         # with Engine
         engine = Engine(lambda engine, batch: 0.0)
-        engine.state = State(metrics={})
+        # engine.state = State(metrics={})
+        engine.state.metrics = {}
 
         with pytest.warns(UserWarning, match=warn_msg):
             gpu_info.completed(engine, name="gpu info")

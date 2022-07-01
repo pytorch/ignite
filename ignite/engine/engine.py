@@ -147,9 +147,13 @@ class Engine(Serializable, EventsDrivenWithState):
     @state.setter
     def state(self, new_state: State) -> None:
         if len(set(new_state._attr_to_events.keys()) - set(self._state._attr_to_events.keys())) > 0:
-            raise ValueError("The new state must not contain any new unseen events.")
+            raise ValueError(
+                "The new state must not contain any new unseen events: "
+                f"{set(new_state._attr_to_events.keys())} vs {set(self._state._attr_to_events.keys())}"
+            )
         old__attr_to_events = self._state._attr_to_events
 
+        # TODO: Why it is not good to set State ? In which case it can break things ?
         warnings.warn(
             "Resetting state is deprecated, and will be forbidden in the next release. "
             "Please set attributes once at a time instead of setting state all at once."

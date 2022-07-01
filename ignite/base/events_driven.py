@@ -7,9 +7,6 @@ from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, Union
 from ignite.base.events import CallableEventWithFilter, EventEnum, EventsList, RemovableEventHandle
 from ignite.engine.utils import _check_signature
 
-if TYPE_CHECKING:
-    from ignite.engine.events import Events
-
 
 class EventsDriven:
 
@@ -61,7 +58,7 @@ class EventsDriven:
         self._allowed_events = []  # type: List[EventEnum]
         self._allowed_events_counts = {}  # type: Dict[Union[str, EventEnum], int]
 
-        self.last_event_name = None  # type: Optional[Events]
+        self.last_event_name = None  # type: Optional[EventEnum]
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
 
     def register_events(self, *event_names: Union[List[str], List[EventEnum]]) -> None:
@@ -258,7 +255,7 @@ class EventsDrivenState:
         engine: ignite engine :class:`~ignite.base.events_driven.EventsDriven` that used to access
             the allowed events and their counters.
         attr_to_events: mapping consists of the attributes mapped to a list events from
-            :class:`~ignite.engine.events.Events` or any other custom events added
+            :class:`~ignite.base.events.EventEnum` or any other custom events added
             by :meth:`~ignite.base.events_driven.EventsDriven.register_events`.
             Getting attribute values is done based on the first element in the list of the events.
         **kwargs: optional keyword args.
@@ -268,13 +265,18 @@ class EventsDrivenState:
     def __init__(
         self,
         engine: Optional[EventsDriven] = None,
-        attr_to_events: Optional[Dict[str, List["Events"]]] = None,
+        attr_to_events: Optional[Dict[str, List[EventEnum]]] = None,
         **kwargs: Any,
     ):
+        # TODO: Why we need to copy attr_to_events <-> dict(attr_to_events) ?
+        # => Because when you register new events they alter State.attr_to_events
         self._attr_to_events = (
             dict(attr_to_events) if attr_to_events is not None else defaultdict(list)
-        )  # type: Dict[str, List[Events]]
+        )  # type: Dict[str, List[EventEnum]]
         self._engine = engine  # type: Optional[EventsDriven]
+
+        for k, v in kwargs.items():
+            setattr(self, k, v)
 
     @property
     def engine(self) -> Optional[EventsDriven]:
@@ -323,7 +325,7 @@ class EventsDrivenState:
 
         super().__setattr__(attr, value)
 
-    def update_attribute_mapping(self, attribute: str, events: List["Events"]) -> None:
+    def update_attribute_mapping(self, attribute: str, events: List[EventEnum]) -> None:
         """Maps a given attribute to a given events list. If the attribute already exists,
         then the corresponding events will be update to the new given events. If the attribute doesn't
         exist, it will be added. Also the list of events will be added in the same order, as the first
@@ -334,7 +336,7 @@ class EventsDrivenState:
                 to the given events. Also if the value of the attribute has been updated, all the counters
                 of the mapped events will be updated accordingly.
             events: list of events that will be mapped to the attribute, these events are from
-                :class:`~ignite.engine.events.Events` or any other custom events added by
+                :class:`~ignite.base.events.EventEnum` or any other custom events added by
                 :meth:`~ignite.base.events_driven.EventsDriven.register_events`.
                 The first event in this list will be used to get the attribute value.
         """
@@ -342,13 +344,13 @@ class EventsDrivenState:
             raise TypeError("'attribute' must be a string, and `events` must be a list of Events.")
         self._attr_to_events.update({attribute: events})
 
-    def get_event_attrib_value(self, event_name: Union[str, "Events", CallableEventWithFilter]) -> int:
+    def get_event_attrib_value(self, event_name: Union[str, EventEnum, CallableEventWithFilter]) -> int:
         """Get the value of Event attribute with given `event_name`."""
         for attribute, events in self._attr_to_events.items():
             if event_name in events:
                 return getattr(self, attribute)
 
-        raise RuntimeError(f"Unknown event name '{event_name}'")
+        raise ValueError(f"Unknown event name '{event_name}'")
 
 
 class EventsDrivenWithState(EventsDriven):

@@ -3,7 +3,6 @@ import gc
 from unittest.mock import call, create_autospec, MagicMock
 
 import pytest
-from pytest import raises
 
 from ignite.engine import Engine, Events, State
 from ignite.engine.events import EventsList
@@ -14,7 +13,6 @@ class DummyEngine(Engine):
         super(DummyEngine, self).__init__(lambda e, b: 1)
 
     def run(self, num_times):
-        self.state = State()
         for _ in range(num_times):
             self.fire_event(Events.STARTED)
             self.fire_event(Events.COMPLETED)
@@ -41,14 +39,14 @@ def test_add_event_handler_raises_with_invalid_signature():
         pass
 
     engine.add_event_handler(Events.STARTED, handler_with_args, 1)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Error adding .+ 'handler'\: takes parameters"):
         engine.add_event_handler(Events.STARTED, handler_with_args)
 
     def handler_with_kwargs(engine, b=42):
         pass
 
     engine.add_event_handler(Events.STARTED, handler_with_kwargs, b=2)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Error adding .+ 'handler'\: takes parameters"):
         engine.add_event_handler(Events.STARTED, handler_with_kwargs, c=3)
     engine.add_event_handler(Events.STARTED, handler_with_kwargs, 1, b=2)
 
@@ -57,7 +55,7 @@ def test_add_event_handler_raises_with_invalid_signature():
 
     engine.add_event_handler(Events.STARTED, handler_with_args_and_kwargs, 1, b=2)
     engine.add_event_handler(Events.STARTED, handler_with_args_and_kwargs, 1, 2, b=2)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Error adding .+ 'handler'\: takes parameters"):
         engine.add_event_handler(Events.STARTED, handler_with_args_and_kwargs, 1, b=2, c=3)
 
 
@@ -313,7 +311,7 @@ def test_events_list_removable_handle():
 
 def test_eventslist__append_raises():
     ev_list = EventsList()
-    with pytest.raises(TypeError, match=r"Argument event should be Events or CallableEventWithFilter"):
+    with pytest.raises(TypeError, match=r"Argument event should be EventEnum or CallableEventWithFilter"):
         ev_list._append("abc")
 
 
@@ -449,10 +447,10 @@ def test_state_attributes():
 
 
 def test_default_exception_handler():
-    update_function = MagicMock(side_effect=ValueError())
+    update_function = MagicMock(side_effect=ValueError("abc"))
     engine = Engine(update_function)
 
-    with raises(ValueError):
+    with pytest.raises(ValueError, match=r"abc"):
         engine.run([1])
 
 

@@ -551,25 +551,28 @@ def test_event_list():
     assert event_list[2] == e3
 
 
-def test_list_of_events():
-    def _test(event_list, true_iterations):
+@pytest.mark.parametrize(
+    "event_list, true_iterations",
+    [
+        (Events.ITERATION_STARTED(once=1) | Events.ITERATION_STARTED(once=1), [1, 1]),
+        (Events.ITERATION_STARTED(once=1) | Events.ITERATION_STARTED(once=10), [1, 10]),
+        (Events.ITERATION_STARTED(once=1) | Events.ITERATION_STARTED(every=3), [1, 3, 6, 9, 12, 15]),
+    ],
+)
+def test_list_of_events(event_list, true_iterations):
 
-        engine = Engine(lambda e, b: b)
+    engine = Engine(lambda e, b: b)
 
-        iterations = []
+    iterations = []
 
-        num_calls = [0]
+    num_calls = [0]
 
-        @engine.on(event_list)
-        def execute_some_handler(e):
-            iterations.append(e.state.iteration)
-            num_calls[0] += 1
+    @engine.on(event_list)
+    def execute_some_handler(e):
+        iterations.append(e.state.iteration)
+        num_calls[0] += 1
 
-        engine.run(range(3), max_epochs=5)
+    engine.run(range(3), max_epochs=5)
 
-        assert iterations == true_iterations
-        assert num_calls[0] == len(true_iterations)
-
-    _test(Events.ITERATION_STARTED(once=1) | Events.ITERATION_STARTED(once=1), [1, 1])
-    _test(Events.ITERATION_STARTED(once=1) | Events.ITERATION_STARTED(once=10), [1, 10])
-    _test(Events.ITERATION_STARTED(once=1) | Events.ITERATION_STARTED(every=3), [1, 3, 6, 9, 12, 15])
+    assert iterations == true_iterations
+    assert num_calls[0] == len(true_iterations)

@@ -2,7 +2,7 @@ import numbers
 import weakref
 from enum import Enum
 from types import DynamicClassAttribute
-from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, Iterator, List, Optional, TYPE_CHECKING, Union
 
 from ignite.engine.utils import _check_signature
 
@@ -198,27 +198,23 @@ class EventsList:
     """
 
     def __init__(self) -> None:
-        self._events = []  # type: List[Union[Events, CallableEventWithFilter]]
+        self._events = []  # type: List[Union[EventEnum, CallableEventWithFilter]]
 
-    def _append(self, event: Union["Events", CallableEventWithFilter]) -> None:
-        # TODO: Fix this! Below code looks strange.
-        # Why event can't be just CallableEventWithFilter or EventEnum ?
-        from ignite.engine.events import Events
-
-        if not isinstance(event, (Events, CallableEventWithFilter)):
-            raise TypeError(f"Argument event should be Events or CallableEventWithFilter, got: {type(event)}")
+    def _append(self, event: Union[EventEnum, CallableEventWithFilter]) -> None:
+        if not isinstance(event, (EventEnum, CallableEventWithFilter)):
+            raise TypeError(f"Argument event should be EventEnum or CallableEventWithFilter, got: {type(event)}")
         self._events.append(event)
 
-    def __getitem__(self, item: int) -> Union["Events", CallableEventWithFilter]:
+    def __getitem__(self, item: int) -> Union[EventEnum, CallableEventWithFilter]:
         return self._events[item]
 
-    def __iter__(self) -> Iterator[Union["Events", CallableEventWithFilter]]:
+    def __iter__(self) -> Iterator[Union[EventEnum, CallableEventWithFilter]]:
         return iter(self._events)
 
     def __len__(self) -> int:
         return len(self._events)
 
-    def __or__(self, other: Union["Events", CallableEventWithFilter]) -> "EventsList":
+    def __or__(self, other: Union[EventEnum, CallableEventWithFilter]) -> "EventsList":
         self._append(event=other)
         return self
 
