@@ -260,7 +260,7 @@ class EventsDrivenState:
         attr_to_events: mapping consists of the attributes mapped to a list events from
             :class:`~ignite.engine.events.Events` or any other custom events added
             by :meth:`~ignite.base.events_driven.EventsDriven.register_events`.
-            Getting attribute values is done based the on first element in the list of the events.
+            Getting attribute values is done based on the first element in the list of the events.
         **kwargs: optional keyword args.
 
     """
@@ -367,9 +367,11 @@ class EventsDrivenWithState(EventsDriven):
             from ignite.base.events import EventEnum
             from ignite.base.events_driven import EventsDrivenState, EventsDrivenWithState
 
+
             class AlphaEvents(EventEnum):
                 EventAlpha_Started = "EventAlpha_Started"
                 EventAlpha_Ended = "EventAlpha_Ended"
+
 
             class ToyState(EventsDrivenState):
                 attr_to_events = {
@@ -380,17 +382,19 @@ class EventsDrivenWithState(EventsDriven):
                     super(ToyState, self).__init__(engine=engine, attr_to_events=ToyState.attr_to_events, **kwargs)
                     self.beta = 0
 
+
             class ToyEngine(EventsDrivenWithState):
                 def __init__(self) -> None:
                     super(ToyEngine, self).__init__()
                     self._state = ToyState(engine=self)
-                    self.register_events(*alpha_events, attr_to_events=ToyState.attr_to_events)
+                    self.register_events(*AlphaEvents, attr_to_events=ToyState.attr_to_events)
 
                 def register_events(self, *event_names, attr_to_events=None) -> None:
                     super(ToyEngine, self).register_events(*event_names)
                     if attr_to_events is not None:
                         for attribute, events in attr_to_events.items():
                             self._state.update_attribute_mapping(attribute, events)
+
 
             toy_engine = ToyEngine()
             toy_engine.state.beta = 80
