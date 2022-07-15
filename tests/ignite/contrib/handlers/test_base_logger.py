@@ -170,7 +170,7 @@ def test_opt_params_handler_on_non_torch_optimizers():
 
 
 @pytest.mark.parametrize(
-    "event,n_calls,kwargs",
+    "event, n_calls, kwargs",
     [
         (Events.ITERATION_STARTED, 50 * 5, {"a": 0}),
         (Events.ITERATION_COMPLETED, 50 * 5, {}),
