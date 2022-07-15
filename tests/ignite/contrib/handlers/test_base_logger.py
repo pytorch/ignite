@@ -169,52 +169,52 @@ def test_opt_params_handler_on_non_torch_optimizers():
     assert "lr/group_0" in res and res["lr/group_0"] == 0.1234
 
 
-def test_attach():
+@pytest.mark.parametrize(
+    "event,n_calls,kwargs",
+    [
+        (Events.ITERATION_STARTED, 50 * 5, {"a": 0}),
+        (Events.ITERATION_COMPLETED, 50 * 5, {}),
+        (Events.EPOCH_STARTED, 5, {}),
+        (Events.EPOCH_COMPLETED, 5, {}),
+        (Events.STARTED, 1, {}),
+        (Events.COMPLETED, 1, {}),
+        (Events.ITERATION_STARTED(every=10), 50 // 10 * 5, {}),
+        (Events.STARTED | Events.COMPLETED, 2, {}),
+    ],
+)
+def test_attach(event, n_calls, kwargs):
 
     n_epochs = 5
     data = list(range(50))
 
-    def _test(event, n_calls, kwargs={}):
+    losses = torch.rand(n_epochs * len(data))
+    losses_iter = iter(losses)
 
-        losses = torch.rand(n_epochs * len(data))
-        losses_iter = iter(losses)
+    def update_fn(engine, batch):
+        return next(losses_iter)
 
-        def update_fn(engine, batch):
-            return next(losses_iter)
+    trainer = Engine(update_fn)
 
-        trainer = Engine(update_fn)
+    logger = DummyLogger()
 
-        logger = DummyLogger()
+    mock_log_handler = MagicMock()
 
-        mock_log_handler = MagicMock()
+    logger.attach(trainer, log_handler=mock_log_handler, event_name=event, **kwargs)
 
-        logger.attach(trainer, log_handler=mock_log_handler, event_name=event, **kwargs)
+    trainer.run(data, max_epochs=n_epochs)
 
-        trainer.run(data, max_epochs=n_epochs)
+    if isinstance(event, EventsList):
+        events = [e for e in event]
+    else:
+        events = [event]
 
-        if isinstance(event, EventsList):
-            events = [e for e in event]
-        else:
-            events = [event]
+    if len(kwargs) > 0:
+        calls = [call(trainer, logger, e, **kwargs) for e in events]
+    else:
+        calls = [call(trainer, logger, e) for e in events]
 
-        if len(kwargs) > 0:
-            calls = [call(trainer, logger, e, **kwargs) for e in events]
-        else:
-            calls = [call(trainer, logger, e) for e in events]
-
-        mock_log_handler.assert_has_calls(calls)
-        assert mock_log_handler.call_count == n_calls
-
-    _test(Events.ITERATION_STARTED, len(data) * n_epochs, kwargs={"a": 0})
-    _test(Events.ITERATION_COMPLETED, len(data) * n_epochs)
-    _test(Events.EPOCH_STARTED, n_epochs)
-    _test(Events.EPOCH_COMPLETED, n_epochs)
-    _test(Events.STARTED, 1)
-    _test(Events.COMPLETED, 1)
-
-    _test(Events.ITERATION_STARTED(every=10), len(data) // 10 * n_epochs)
-
-    _test(Events.STARTED | Events.COMPLETED, 2)
+    mock_log_handler.assert_has_calls(calls)
+    assert mock_log_handler.call_count == n_calls
 
 
 def test_attach_wrong_event_name():
