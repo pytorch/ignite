@@ -493,9 +493,9 @@ class _ExponentialLR(_LRScheduler):
         super(_ExponentialLR, self).__init__(optimizer, last_epoch)
 
         # override base_lrs
-        self.base_lrs = start_lr
+        self.base_lrs = start_lr  # type: ignore
 
     def get_lr(self) -> List[float]:  # type: ignore
-        curr_iter = self.last_epoch + 1  # type: ignore[attr-defined]
+        curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
-        return [base_lr * (self.end_lr / base_lr) ** r for base_lr in self.base_lrs]  # type: ignore[attr-defined]
+        return [base_lr * (self.end_lr / base_lr) ** r for base_lr in self.base_lrs]
