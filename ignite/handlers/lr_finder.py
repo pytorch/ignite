@@ -122,8 +122,8 @@ class FastaiLRFinder:
             start_lr = optimizer.param_groups[0]["lr"]
         # Initialize the proper learning rate policy
         if step_mode.lower() == "exp":
-            start_lr = [start_lr] * len(optimizer.param_groups)  # type: ignore
-            self._lr_schedule = LRScheduler(_ExponentialLR(optimizer, start_lr, end_lr, num_iter))
+            start_lr_list = [start_lr] * len(optimizer.param_groups)
+            self._lr_schedule = LRScheduler(_ExponentialLR(optimizer, start_lr_list, end_lr, num_iter))
         else:
             self._lr_schedule = PiecewiseLinear(
                 optimizer, param_name="lr", milestones_values=[(0, start_lr), (num_iter, end_lr)]
@@ -487,7 +487,7 @@ class _ExponentialLR(_LRScheduler):
 
     """
 
-    def __init__(self, optimizer: Optimizer, start_lr: float, end_lr: float, num_iter: int, last_epoch: int = -1):
+    def __init__(self, optimizer: Optimizer, start_lr: List[float], end_lr: float, num_iter: int, last_epoch: int = -1):
         self.end_lr = end_lr
         self.num_iter = num_iter
         super(_ExponentialLR, self).__init__(optimizer, last_epoch)

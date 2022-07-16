@@ -239,7 +239,9 @@ def IoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambd
 
     if ignore_index is not None:
         if not (isinstance(ignore_index, numbers.Integral) and 0 <= ignore_index < cm.num_classes):
-            raise ValueError(f"ignore_index should be non-negative integer, but given {ignore_index}")
+            raise ValueError(
+                f"ignore_index should be integer and in the range of [0, {cm.num_classes}), but given {ignore_index}"
+            )
 
     # Increase floating point precision and pass to CPU
     cm = cm.to(torch.double)
@@ -393,7 +395,9 @@ def DiceCoefficient(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> 
 
     if ignore_index is not None:
         if not (isinstance(ignore_index, numbers.Integral) and 0 <= ignore_index < cm.num_classes):
-            raise ValueError(f"ignore_index should be non-negative integer, but given {ignore_index}")
+            raise ValueError(
+                f"ignore_index should be integer and in the range of [0, {cm.num_classes}), but given {ignore_index}"
+            )
 
     # Increase floating point precision and pass to CPU
     cm = cm.to(torch.double)
