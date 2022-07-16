@@ -189,16 +189,16 @@ def test_iou_wrong_input():
         IoU(None)
 
     cm = ConfusionMatrix(num_classes=10)
-    with pytest.raises(ValueError, match="ignore_index should be non-negative integer"):
+    with pytest.raises(ValueError, match=r"ignore_index should be integer and in the range of \[0, 10\), but given -1"):
         IoU(cm, ignore_index=-1)
 
-    with pytest.raises(ValueError, match="ignore_index should be non-negative integer"):
+    with pytest.raises(ValueError, match=r"ignore_index should be integer and in the range of \[0, 10\), but given a"):
         IoU(cm, ignore_index="a")
 
-    with pytest.raises(ValueError, match="ignore_index should be non-negative integer"):
+    with pytest.raises(ValueError, match=r"ignore_index should be integer and in the range of \[0, 10\), but given 10"):
         IoU(cm, ignore_index=10)
 
-    with pytest.raises(ValueError, match="ignore_index should be non-negative integer"):
+    with pytest.raises(ValueError, match=r"ignore_index should be integer and in the range of \[0, 10\), but given 11"):
         IoU(cm, ignore_index=11)
 
 
@@ -403,16 +403,16 @@ def test_dice_coefficient_wrong_input():
         DiceCoefficient(None)
 
     cm = ConfusionMatrix(num_classes=10)
-    with pytest.raises(ValueError, match="ignore_index should be non-negative integer"):
+    with pytest.raises(ValueError, match=r"ignore_index should be integer and in the range of \[0, 10\), but given -1"):
         DiceCoefficient(cm, ignore_index=-1)
 
-    with pytest.raises(ValueError, match="ignore_index should be non-negative integer"):
+    with pytest.raises(ValueError, match=r"ignore_index should be integer and in the range of \[0, 10\), but given a"):
         DiceCoefficient(cm, ignore_index="a")
 
-    with pytest.raises(ValueError, match="ignore_index should be non-negative integer"):
+    with pytest.raises(ValueError, match=r"ignore_index should be integer and in the range of \[0, 10\), but given 10"):
         DiceCoefficient(cm, ignore_index=10)
 
-    with pytest.raises(ValueError, match="ignore_index should be non-negative integer"):
+    with pytest.raises(ValueError, match=r"ignore_index should be integer and in the range of \[0, 10\), but given 11"):
         DiceCoefficient(cm, ignore_index=11)
 
 
