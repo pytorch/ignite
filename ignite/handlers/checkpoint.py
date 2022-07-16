@@ -632,7 +632,7 @@ class Checkpoint(Serializable):
                 import torch
 
                 from ignite.engine import Engine, Events
-                from ignite.handlers import ModelCheckpoint, Checkpoint
+                from ignite.handlers import ModelCheckpoint
 
                 trainer = Engine(lambda engine, batch: None)
 
@@ -649,7 +649,7 @@ class Checkpoint(Serializable):
 
                     to_load = to_save
                     # load checkpoint myprefix_checkpoint_40.pt
-                    checkpoint.load_objects(to_load=to_load, global_step=40)
+                    checkpoint.reload_objects(to_load=to_load, global_step=40)
 
         Note:
             If ``to_load`` contains objects of type torch `DistributedDataParallel`_ or

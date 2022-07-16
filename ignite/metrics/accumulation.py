@@ -225,7 +225,7 @@ class GeometricAverage(VariableAccumulation):
             metric = GeometricAverage()
             metric.attach(default_evaluator, 'avg')
             # Case 1. input is er
-            data = torch.Tensor([1, 2, 3])
+            data = torch.tensor([1, 2, 3])
             state = default_evaluator.run(data)
             print(state.metrics['avg'])
 

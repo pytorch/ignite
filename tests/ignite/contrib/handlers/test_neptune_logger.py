@@ -34,7 +34,7 @@ def test_optimizer_params_handler_wrong_setup():
 
 
 def test_optimizer_params():
-    optimizer = torch.optim.SGD([torch.Tensor(0)], lr=0.01)
+    optimizer = torch.optim.SGD([torch.tensor(0.0)], lr=0.01)
     wrapper = OptimizerParamsHandler(optimizer=optimizer, param_name="lr")
     mock_logger = MagicMock(spec=NeptuneLogger)
     mock_logger.log_metric = MagicMock()
@@ -99,7 +99,7 @@ def test_output_handler_metric_names():
 
     mock_engine = MagicMock()
     mock_logger.log_metric = MagicMock()
-    mock_engine.state = State(metrics={"a": torch.Tensor([0.0, 1.0, 2.0, 3.0])})
+    mock_engine.state = State(metrics={"a": torch.tensor([0.0, 1.0, 2.0, 3.0])})
     mock_engine.state.iteration = 5
 
     mock_logger = MagicMock(spec=NeptuneLogger)

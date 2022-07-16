@@ -37,8 +37,8 @@ class CohenKappa(EpochMetric):
 
             metric = CohenKappa()
             metric.attach(default_evaluator, 'ck')
-            y_true = torch.Tensor([2, 0, 2, 2, 0, 1])
-            y_pred = torch.Tensor([0, 0, 2, 2, 0, 2])
+            y_true = torch.tensor([2, 0, 2, 2, 0, 1])
+            y_pred = torch.tensor([0, 0, 2, 2, 0, 2])
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics['ck'])
 

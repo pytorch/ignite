@@ -13,7 +13,6 @@ import ignite.distributed as idist
 from ignite.contrib.handlers import (
     ClearMLLogger,
     global_step_from_engine,
-    LRScheduler,
     MLflowLogger,
     NeptuneLogger,
     PolyaxonLogger,
@@ -165,8 +164,6 @@ def _setup_common_training_handlers(
             trainer.add_event_handler(
                 Events.ITERATION_COMPLETED, lambda engine: cast(_LRScheduler, lr_scheduler).step()
             )
-        elif isinstance(lr_scheduler, LRScheduler):
-            trainer.add_event_handler(Events.ITERATION_COMPLETED, lr_scheduler)
         else:
             trainer.add_event_handler(Events.ITERATION_STARTED, lr_scheduler)
 

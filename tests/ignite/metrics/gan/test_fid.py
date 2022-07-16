@@ -110,7 +110,7 @@ def test_wrong_inputs():
         FID(num_features=-1, feature_extractor=torch.nn.Identity())
 
     with pytest.raises(ValueError, match=r"feature_extractor output must be a tensor of dim 2, got: 1"):
-        FID(num_features=1, feature_extractor=torch.nn.Identity()).update(torch.Tensor([[], []]))
+        FID(num_features=1, feature_extractor=torch.nn.Identity()).update(torch.tensor([[], []]))
 
     with pytest.raises(ValueError, match=r"Batch size should be greater than one, got: 0"):
         FID(num_features=1, feature_extractor=torch.nn.Identity()).update(torch.rand(2, 0, 0))

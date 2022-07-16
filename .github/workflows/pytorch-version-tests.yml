@@ -5,6 +5,7 @@ on:
   schedule:
     # Run at 00:00 UTC Every Day
     - cron: "0 0 * * *"
+  workflow_dispatch:
 
 jobs:
   build:
@@ -14,7 +15,8 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [3.7, 3.8, 3.9]
-        pytorch-version: [1.9.1, 1.8.1, 1.7.1, 1.6.0, 1.5.1, 1.4.0, 1.3.1]
+        pytorch-version:
+          [1.11.0, 1.10.0, 1.9.1, 1.8.1, 1.7.1, 1.6.0, 1.5.1, 1.4.0, 1.3.1]
         exclude:
           - pytorch-version: 1.3.1
             python-version: 3.8
@@ -23,9 +25,9 @@ jobs:
           - pytorch-version: 1.4.0
             python-version: 3.9
           - pytorch-version: 1.5.1
-            python-version: 3.9 
+            python-version: 3.9
           - pytorch-version: 1.6.0
-            python-version: 3.9 
+            python-version: 3.9
           # disabling python 3.9 support with PyTorch 1.7.1 and 1.8.1, to stop repeated pytorch-version test fail.
           # https://github.com/pytorch/ignite/issues/2383
           - pytorch-version: 1.7.1
@@ -72,7 +74,7 @@ jobs:
           python setup.py install
 
       - name: Install appropriate Pillow for PyTorch 1.3.1
-        shell: bash -l {0}      
+        shell: bash -l {0}
         if: ${{ matrix.pytorch-version == '1.3.1' }}
         run: |
           pip install --upgrade 'Pillow<7'
@@ -86,7 +88,7 @@ jobs:
       - name: Run Tests
         shell: bash -l {0}
         run: |
-          pytest tests -vvv
+          bash tests/run_cpu_tests.sh "not test_time_profilers"
 
   create-issue:
     runs-on: ubuntu-latest

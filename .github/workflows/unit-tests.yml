@@ -96,7 +96,7 @@ jobs:
           bash ./tests/run_code_style.sh lint
 
       - name: Run Mypy
-        if: ${{ matrix.os == 'ubuntu-latest' }}
+        if: ${{ matrix.os == 'ubuntu-latest' && matrix.pytorch-channel == 'pytorch-nightly'}}
         run: |
           bash ./tests/run_code_style.sh mypy
 

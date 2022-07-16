@@ -29,17 +29,8 @@ class DummyMetric1(Metric):
         assert output == self.true_output
 
 
-@pytest.mark.distributed
-@pytest.mark.skipif("WORLD_SIZE" not in os.environ, reason="Skip if WORLD_SIZE not in env vars")
-@pytest.mark.skipif(torch.cuda.is_available(), reason="Skip if GPU")
-def test_metric_warning(distributed_context_single_node_gloo):
-    y = torch.tensor([1.0])
-    with pytest.warns(RuntimeWarning, match=r"DummyMetric1 class does not support distributed setting"):
-        DummyMetric1((y, y))
-
-
 def test_no_transform():
-    y_pred = torch.Tensor([[2.0], [-2.0]])
+    y_pred = torch.tensor([[2.0], [-2.0]])
     y = torch.zeros(2)
 
     metric = DummyMetric1(true_output=(y_pred, y))
@@ -49,7 +40,7 @@ def test_no_transform():
 
 
 def test_transform():
-    y_pred = torch.Tensor([[2.0], [-2.0]])
+    y_pred = torch.tensor([[2.0], [-2.0]])
     y = torch.zeros(2)
 
     def transform(output):
@@ -96,7 +87,7 @@ def test_output_as_mapping_keys_is_none():
 
 
 def test_output_as_mapping():
-    y_pred = torch.Tensor([[2.0], [-2.0]])
+    y_pred = torch.tensor([[2.0], [-2.0]])
     y = torch.zeros(2)
 
     metric = DummyMetric1(true_output=(y_pred, y))

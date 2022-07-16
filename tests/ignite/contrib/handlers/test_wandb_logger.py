@@ -26,7 +26,7 @@ def test_optimizer_params_handler_wrong_setup():
 
 
 def test_optimizer_params():
-    optimizer = torch.optim.SGD([torch.Tensor(0)], lr=0.01)
+    optimizer = torch.optim.SGD([torch.tensor(0.0)], lr=0.01)
     wrapper = OptimizerParamsHandler(optimizer=optimizer, param_name="lr")
     mock_logger = MagicMock(spec=WandBLogger)
     mock_logger.log = MagicMock()
@@ -272,7 +272,7 @@ def test_output_handler_state_attrs():
 
 
 def test_wandb_close():
-    optimizer = torch.optim.SGD([torch.Tensor(0)], lr=0.01)
+    optimizer = torch.optim.SGD([torch.tensor(0.0)], lr=0.01)
     wrapper = OptimizerParamsHandler(optimizer=optimizer, param_name="lr")
     mock_logger = MagicMock(spec=WandBLogger)
     mock_logger.log = MagicMock()
