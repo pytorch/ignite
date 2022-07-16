@@ -851,7 +851,7 @@ class LRScheduler(ParamScheduler):
 
         self.lr_scheduler = lr_scheduler
         super(LRScheduler, self).__init__(
-            optimizer=self.lr_scheduler.optimizer,  # type: ignore[attr-defined]
+            optimizer=self.lr_scheduler.optimizer,
             param_name="lr",
             save_history=save_history,
         )
@@ -861,13 +861,13 @@ class LRScheduler(ParamScheduler):
                 "instead of Events.ITERATION_STARTED to make sure to use "
                 "the first lr value from the optimizer, otherwise it is will be skipped"
             )
-            self.lr_scheduler.last_epoch += 1  # type: ignore[attr-defined]
+            self.lr_scheduler.last_epoch += 1
 
         self._state_attrs += ["lr_scheduler"]
 
     def __call__(self, engine: Optional[Engine], name: Optional[str] = None) -> None:
         super(LRScheduler, self).__call__(engine, name)
-        self.lr_scheduler.last_epoch += 1  # type: ignore[attr-defined]
+        self.lr_scheduler.last_epoch += 1
 
     def get_param(self) -> Union[float, List[float]]:
         """Method to get current optimizer's parameter value"""
@@ -908,7 +908,7 @@ class LRScheduler(ParamScheduler):
             cache_filepath = Path(tmpdirname) / "ignite_lr_scheduler_cache.pt"
             obj = {
                 "lr_scheduler": lr_scheduler.state_dict(),
-                "optimizer": lr_scheduler.optimizer.state_dict(),  # type: ignore[attr-defined]
+                "optimizer": lr_scheduler.optimizer.state_dict(),
             }
             torch.save(obj, cache_filepath.as_posix())
 
@@ -921,7 +921,7 @@ class LRScheduler(ParamScheduler):
 
             obj = torch.load(cache_filepath.as_posix())
             lr_scheduler.load_state_dict(obj["lr_scheduler"])
-            lr_scheduler.optimizer.load_state_dict(obj["optimizer"])  # type: ignore[attr-defined]
+            lr_scheduler.optimizer.load_state_dict(obj["optimizer"])
 
             return values
 
@@ -1403,7 +1403,7 @@ class ParamGroupScheduler:
             cache_filepath = Path(tmpdirname) / "ignite_lr_scheduler_cache.pt"
             objs = {f"lr_scheduler_{i}": s.state_dict() for i, s in enumerate(schedulers)}
             # all schedulers should be related to the same optimizer
-            objs["optimizer"] = schedulers[0].optimizer.state_dict()  # type: ignore[attr-defined]
+            objs["optimizer"] = schedulers[0].optimizer.state_dict()
 
             torch.save(objs, cache_filepath.as_posix())
 
@@ -1417,7 +1417,7 @@ class ParamGroupScheduler:
             objs = torch.load(cache_filepath.as_posix())
             for i, s in enumerate(schedulers):
                 s.load_state_dict(objs[f"lr_scheduler_{i}"])
-                s.optimizer.load_state_dict(objs["optimizer"])  # type: ignore[attr-defined]
+                s.optimizer.load_state_dict(objs["optimizer"])
 
             return values
 
@@ -1561,8 +1561,8 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
     def _reduce_lr(self, epoch: int) -> None:
         for i, param_group in enumerate(self.optimizer_param_groups):
             old_lr = float(param_group["lr"])
-            new_lr = max(old_lr * self.scheduler.factor, self.scheduler.min_lrs[i])  # type: ignore[attr-defined]
-            if old_lr - new_lr > self.scheduler.eps:  # type: ignore[attr-defined]
+            new_lr = max(old_lr * self.scheduler.factor, self.scheduler.min_lrs[i])
+            if old_lr - new_lr > self.scheduler.eps:
                 param_group["lr"] = new_lr
 
     @classmethod
