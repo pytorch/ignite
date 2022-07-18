@@ -1,0 +1,118 @@
+name: Run HVD-specific unit tests on GPUs
+on:
+  push:
+    paths:
+      - "ignite/**"
+      - "tests/ignite/**"
+      - "tests/run_gpu_tests.sh"
+      - "tests/run_code_style.sh"
+      - "examples/**.py"
+      - "requirements-dev.txt"
+      - ".github/workflows/gpu-hvd-tests.yml"
+
+concurrency:
+  # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>
+  group: gpu-hvd-tests-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  gpu-hvd-tests:
+    runs-on: [self-hosted, 2-gpus]
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      max-parallel: 1
+      fail-fast: true
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          miniconda-version: "latest"
+          python-version: 3.8
+
+      - name: Get year & week number
+        id: get-date
+        run: |
+          echo "::set-output name=date::$(/bin/date "+%Y-%U")"
+
+      - name: Get pip cache dir
+        shell: bash -l {0}
+        id: pip-cache
+        run: |
+          pip install -U pip || python -m pip install -U pip
+          echo "::set-output name=dir::$(pip cache dir)"
+
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ${{ steps.pip-cache.outputs.dir }}
+          key: ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-3.8-pytorch-${{ hashFiles('requirements-dev.txt') }}
+          restore-keys: |
+            ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}--3.8-pytorch-
+
+      - name: Install PyTorch
+        shell: bash -l {0}
+        # https://pytorch.org/get-started/locally/
+        run: |
+          pip install torch torchvision -f https://download.pytorch.org/whl/cu113/torch_stable.html
+          nvidia-smi
+          python -c "import torch; print('CUDA is available: ', torch.cuda.is_available())"
+
+      - name: Install Horovod with NCCL GPU ops
+        shell: bash -l {0}
+        run: |
+          apt-get update && apt-get install -y git
+          git clone --recursive https://github.com/horovod/horovod.git -b v0.25.0 /horovod && cd /horovod && python setup.py sdist
+          conda install -y cmake nccl=2.11 -c conda-forge
+          cd /horovod && HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_NCCL_LINK=SHARED HOROVOD_WITHOUT_MPI=1 HOROVOD_WITH_PYTORCH=1 pip install -v $(ls /horovod/dist/horovod-*.tar.gz) && ldconfig
+          horovodrun --check-build
+
+      - name: Install dependencies
+        shell: bash -l {0}
+        run: |
+          pip install -r requirements-dev.txt -qq
+          python setup.py install
+
+      - name: Run GPU/CPU Unit Tests
+        shell: bash -l {0}
+        run: |
+          bash tests/run_gpu_tests.sh 2 hvd
+
+          CUDA_VISIBLE_DEVICES="" pytest --cov ignite --cov-append --cov-report term-missing --cov-report xml -vvv tests/ -m distributed -k hvd
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          file: ./coverage.xml
+          flags: gpu-2
+          fail_ci_if_error: false
+
+      - name: Install additional example dependencies
+        shell: bash -l {0}
+        run: pip install fire
+
+      - name: Check CIFAR10 using horovodrun
+        shell: bash -l {0}
+        run: |
+          export example_path="examples/contrib/cifar10"
+          # initial run
+          export stop_cmd="--stop_iteration=500"
+          CI=1 horovodrun -np 2 python -u ${example_path}/main.py run --backend=horovod --checkpoint_every=200
+          # resume
+          export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-horovod-2_stop-on-500/training_checkpoint_400.pt"
+          CI=1 horovodrun -np 2 python ${example_path}/main.py run --checkpoint_every=200 --num_epochs=7 ${resume_opt}
+
+      - name: Check CIFAR10 using spawn
+        shell: bash -l {0}
+        run: |
+          export example_path="examples/contrib/cifar10"
+          # initial run
+          export stop_cmd="--stop_iteration=500"
+          CI=1 python -u ${example_path}/main.py run --backend=horovod --nproc_per_node=2 --checkpoint_every=200 ${stop_cmd}
+          # resume
+          export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-horovod-2_stop-on-500/training_checkpoint_400.pt"
+          CI=1 python -u ${example_path}/main.py run --backend=horovod --nproc_per_node=2 --checkpoint_every=200 --num_epochs=7 ${resume_opt}
