@@ -538,43 +538,40 @@ def _test_distrib_accumulator_device(device):
         ), f"{type(cm.confusion_matrix.device)}:{cm._num_correct.device} vs {type(metric_device)}:{metric_device}"
 
 
-def test_jaccard_index():
-    def _test(average=None):
+@pytest.mark.parametrize("average", [None, "samples"])
+def test_jaccard_index(average):
 
-        y_true, y_pred = get_y_true_y_pred()
-        th_y_true, th_y_logits = compute_th_y_true_y_logits(y_true, y_pred)
+    y_true, y_pred = get_y_true_y_pred()
+    th_y_true, th_y_logits = compute_th_y_true_y_logits(y_true, y_pred)
 
-        true_res = [0, 0, 0]
-        for index in range(3):
-            bin_y_true = y_true == index
-            bin_y_pred = y_pred == index
-            intersection = bin_y_true & bin_y_pred
-            union = bin_y_true | bin_y_pred
-            true_res[index] = intersection.sum() / union.sum()
+    true_res = [0, 0, 0]
+    for index in range(3):
+        bin_y_true = y_true == index
+        bin_y_pred = y_pred == index
+        intersection = bin_y_true & bin_y_pred
+        union = bin_y_true | bin_y_pred
+        true_res[index] = intersection.sum() / union.sum()
 
-        cm = ConfusionMatrix(num_classes=3, average=average)
-        jaccard_index = JaccardIndex(cm)
+    cm = ConfusionMatrix(num_classes=3, average=average)
+    jaccard_index = JaccardIndex(cm)
 
+    # Update metric
+    output = (th_y_logits, th_y_true)
+    cm.update(output)
+
+    res = jaccard_index.compute().numpy()
+
+    assert np.all(res == true_res)
+
+    for ignore_index in range(3):
+        cm = ConfusionMatrix(num_classes=3)
+        jaccard_index_metric = JaccardIndex(cm, ignore_index=ignore_index)
         # Update metric
         output = (th_y_logits, th_y_true)
         cm.update(output)
-
-        res = jaccard_index.compute().numpy()
-
-        assert np.all(res == true_res)
-
-        for ignore_index in range(3):
-            cm = ConfusionMatrix(num_classes=3)
-            jaccard_index_metric = JaccardIndex(cm, ignore_index=ignore_index)
-            # Update metric
-            output = (th_y_logits, th_y_true)
-            cm.update(output)
-            res = jaccard_index_metric.compute().numpy()
-            true_res_ = true_res[:ignore_index] + true_res[ignore_index + 1 :]
-            assert np.all(res == true_res_), f"{ignore_index}: {res} vs {true_res_}"
-
-    _test()
-    _test(average="samples")
+        res = jaccard_index_metric.compute().numpy()
+        true_res_ = true_res[:ignore_index] + true_res[ignore_index + 1 :]
+        assert np.all(res == true_res_), f"{ignore_index}: {res} vs {true_res_}"
 
     with pytest.raises(ValueError, match=r"ConfusionMatrix should have average attribute either"):
         cm = ConfusionMatrix(num_classes=3, average="precision")
