@@ -133,36 +133,36 @@ def test_geom_average():
     np.testing.assert_almost_equal(m.numpy(), _geom_mean(y_true.reshape(-1, 10)), decimal=5)
 
 
-@pytest.mark.parametrize("metric_cls, true_result_fn", [(Average, _mean), (GeometricAverage, _geom_mean)])
-def test_integration(metric_cls, true_result_fn):
+@pytest.mark.parametrize(
+    "metric_cls, true_result_fn, shape", [(Average, _mean, [100, 12]), (GeometricAverage, _geom_mean, [100])]
+)
+def test_integration(metric_cls, true_result_fn, shape):
 
-    size = 100
-    custom_variable = 10.0 + 5.0 * torch.rand(size, 12)
+    assert len(shape) > 0 and len(shape) < 3
+
+    custom_variable = 10.0 + 5.0 * torch.rand(shape)
 
     def update_fn(engine, batch):
-        return 0, custom_variable[engine.state.iteration - 1]
+        return (
+            0,
+            custom_variable[engine.state.iteration - 1]
+            if custom_variable[engine.state.iteration - 1].shape != torch.Size([])
+            else custom_variable[engine.state.iteration - 1].item(),
+        )
 
     engine = Engine(update_fn)
 
     custom_var_mean = metric_cls(output_transform=lambda output: output[1])
     custom_var_mean.attach(engine, "agg_custom_var")
 
-    state = engine.run([0] * size)
-    np.testing.assert_almost_equal(state.metrics["agg_custom_var"].numpy(), true_result_fn(custom_variable), decimal=5)
+    state = engine.run([0] * shape[0])
 
-    size = 100
-    custom_variable = 10.0 + 5.0 * torch.rand(size)
-
-    def update_fn(engine, batch):
-        return 0, custom_variable[engine.state.iteration - 1].item()
-
-    engine = Engine(update_fn)
-
-    custom_var_mean = metric_cls(output_transform=lambda output: output[1])
-    custom_var_mean.attach(engine, "agg_custom_var")
-
-    state = engine.run([0] * size)
-    assert state.metrics["agg_custom_var"] == pytest.approx(true_result_fn(custom_variable))
+    if len(shape) > 1:
+        np.testing.assert_almost_equal(
+            state.metrics["agg_custom_var"].numpy(), true_result_fn(custom_variable), decimal=5
+        )
+    else:
+        assert state.metrics["agg_custom_var"] == pytest.approx(true_result_fn(custom_variable))
 
 
 def test_compute_mean_std():
