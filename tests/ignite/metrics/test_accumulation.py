@@ -133,9 +133,8 @@ def test_geom_average():
     np.testing.assert_almost_equal(m.numpy(), _geom_mean(y_true.reshape(-1, 10)), decimal=5)
 
 
-@pytest.mark.parametrize(
-    "metric_cls, true_result_fn, shape", [(Average, _mean, [100, 12]), (GeometricAverage, _geom_mean, [100])]
-)
+@pytest.mark.parametrize("metric_cls, true_result_fn", [(Average, _mean), (GeometricAverage, _geom_mean)])
+@pytest.mark.parametrize("shape", [[100, 12], [100]])
 def test_integration(metric_cls, true_result_fn, shape):
 
     assert len(shape) > 0 and len(shape) < 3
