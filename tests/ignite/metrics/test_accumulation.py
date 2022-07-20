@@ -143,12 +143,10 @@ def test_integration(metric_cls, true_result_fn, shape):
     custom_variable = 10.0 + 5.0 * torch.rand(shape)
 
     def update_fn(engine, batch):
-        return (
-            0,
-            custom_variable[engine.state.iteration - 1]
-            if custom_variable[engine.state.iteration - 1].shape != torch.Size([])
-            else custom_variable[engine.state.iteration - 1].item(),
-        )
+
+        output = custom_variable[engine.state.iteration - 1]
+        output = output.item() if output.ndimension() < 1 else output
+        return 0, output
 
     engine = Engine(update_fn)
 
@@ -157,12 +155,9 @@ def test_integration(metric_cls, true_result_fn, shape):
 
     state = engine.run([0] * shape[0])
 
-    if len(shape) > 1:
-        np.testing.assert_almost_equal(
-            state.metrics["agg_custom_var"].numpy(), true_result_fn(custom_variable), decimal=5
-        )
-    else:
-        assert state.metrics["agg_custom_var"] == pytest.approx(true_result_fn(custom_variable))
+    np.testing.assert_almost_equal(
+        np.array(state.metrics["agg_custom_var"]), true_result_fn(custom_variable), decimal=5
+    )
 
 
 def test_compute_mean_std():
