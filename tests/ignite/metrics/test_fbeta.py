@@ -34,59 +34,58 @@ def test_wrong_inputs():
         Fbeta(1.0, recall=r, output_transform=lambda x: x)
 
 
-def test_integration():
-    def _test(p, r, average, output_transform):
-        np.random.seed(1)
+def _output_transform(output):
+    return output["y_pred"], output["y"]
 
-        n_iters = 10
-        batch_size = 10
-        n_classes = 10
 
-        y_true = np.arange(0, n_iters * batch_size, dtype="int64") % n_classes
-        y_pred = 0.2 * np.random.rand(n_iters * batch_size, n_classes)
-        for i in range(n_iters * batch_size):
-            if np.random.rand() > 0.4:
-                y_pred[i, y_true[i]] = 1.0
-            else:
-                j = np.random.randint(0, n_classes)
-                y_pred[i, j] = 0.7
+@pytest.mark.parametrize(
+    "p, r, average, output_transform",
+    [
+        (None, None, False, None),
+        (None, None, True, None),
+        (None, None, False, _output_transform),
+        (None, None, True, _output_transform),
+        (Precision(average=False), Recall(average=False), False, None),
+        (Precision(average=False), Recall(average=False), True, None),
+    ],
+)
+def test_integration(p, r, average, output_transform):
 
-        y_true_batch_values = iter(y_true.reshape(n_iters, batch_size))
-        y_pred_batch_values = iter(y_pred.reshape(n_iters, batch_size, n_classes))
+    np.random.seed(1)
 
-        def update_fn(engine, batch):
-            y_true_batch = next(y_true_batch_values)
-            y_pred_batch = next(y_pred_batch_values)
-            if output_transform is not None:
-                return {"y_pred": torch.from_numpy(y_pred_batch), "y": torch.from_numpy(y_true_batch)}
-            return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+    n_iters = 10
+    batch_size = 10
+    n_classes = 10
 
-        evaluator = Engine(update_fn)
-
-        f2 = Fbeta(beta=2.0, average=average, precision=p, recall=r, output_transform=output_transform)
-        f2.attach(evaluator, "f2")
-
-        data = list(range(n_iters))
-        state = evaluator.run(data, max_epochs=1)
-
-        f2_true = fbeta_score(y_true, np.argmax(y_pred, axis=-1), average="macro" if average else None, beta=2.0)
-        if isinstance(state.metrics["f2"], torch.Tensor):
-            np.testing.assert_allclose(f2_true, state.metrics["f2"].numpy())
+    y_true = np.arange(0, n_iters * batch_size, dtype="int64") % n_classes
+    y_pred = 0.2 * np.random.rand(n_iters * batch_size, n_classes)
+    for i in range(n_iters * batch_size):
+        if np.random.rand() > 0.4:
+            y_pred[i, y_true[i]] = 1.0
         else:
-            assert f2_true == pytest.approx(state.metrics["f2"]), f"{f2_true} vs {state.metrics['f2']}"
+            j = np.random.randint(0, n_classes)
+            y_pred[i, j] = 0.7
 
-    _test(None, None, False, output_transform=None)
-    _test(None, None, True, output_transform=None)
+    y_true_batch_values = iter(y_true.reshape(n_iters, batch_size))
+    y_pred_batch_values = iter(y_pred.reshape(n_iters, batch_size, n_classes))
 
-    def output_transform(output):
-        return output["y_pred"], output["y"]
+    def update_fn(engine, batch):
+        y_true_batch = next(y_true_batch_values)
+        y_pred_batch = next(y_pred_batch_values)
+        if output_transform is not None:
+            return {"y_pred": torch.from_numpy(y_pred_batch), "y": torch.from_numpy(y_true_batch)}
+        return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
 
-    _test(None, None, False, output_transform=output_transform)
-    _test(None, None, True, output_transform=output_transform)
-    precision = Precision(average=False)
-    recall = Recall(average=False)
-    _test(precision, recall, False, None)
-    _test(precision, recall, True, None)
+    evaluator = Engine(update_fn)
+
+    f2 = Fbeta(beta=2.0, average=average, precision=p, recall=r, output_transform=output_transform)
+    f2.attach(evaluator, "f2")
+
+    data = list(range(n_iters))
+    state = evaluator.run(data, max_epochs=1)
+
+    f2_true = fbeta_score(y_true, np.argmax(y_pred, axis=-1), average="macro" if average else None, beta=2.0)
+    np.testing.assert_allclose(np.array(f2_true), np.array(state.metrics["f2"]))
 
 
 def _test_distrib_integration(device):
