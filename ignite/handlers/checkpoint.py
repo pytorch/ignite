@@ -909,21 +909,24 @@ class ModelCheckpoint(Checkpoint):
         with :class:`~ignite.handlers.checkpoint.Checkpoint`
 
     Examples:
-        .. code-block:: python
+        .. testcode:: python
 
             import os
             from ignite.engine import Engine, Events
             from ignite.handlers import ModelCheckpoint
             from torch import nn
             trainer = Engine(lambda engine, batch: None)
-            handler = ModelCheckpoint('/tmp/models', 'myprefix', n_saved=2, create_dir=True)
+            handler = ModelCheckpoint('/tmp/models', 'myprefix', n_saved=2, create_dir=True, require_empty=False)
             model = nn.Linear(3, 3)
             trainer.add_event_handler(Events.EPOCH_COMPLETED(every=2), handler, {'mymodel': model})
             trainer.run([0, 1, 2, 3, 4], max_epochs=6)
-            os.listdir('/tmp/models')
-            # ['myprefix_mymodel_20.pt', 'myprefix_mymodel_30.pt']
-            handler.last_checkpoint
-            # ['/tmp/models/myprefix_mymodel_30.pt']
+            print(sorted(os.listdir('/tmp/models')))
+            print(handler.last_checkpoint)
+
+        .. testoutput:: python
+
+            ['myprefix_mymodel_20.pt', 'myprefix_mymodel_30.pt']
+            /tmp/models/myprefix_mymodel_30.pt
     """
 
     def __init__(
