@@ -879,7 +879,7 @@ class ModelCheckpoint(Checkpoint):
             :class:`~ignite.engine.engine.Engine` object, and return a score (`float`). Objects with highest scores
             will be retained.
         score_name: if ``score_function`` not None, it is possible to store its value using
-            `score_name`. See Notes for more details.
+            `score_name`. See Examples of :class:`~ignite.handlers.checkpoint.Checkpoint` for more details.
         n_saved: Number of objects that should be kept on disk. Older files will be removed. If set to
             `None`, all objects are kept.
         atomic: If True, objects are serialized to a temporary file, and then moved to final
