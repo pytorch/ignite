@@ -850,7 +850,7 @@ class DiskSaver(BaseSaveHandler):
 
 
 class ModelCheckpoint(Checkpoint):
-    """ModelCheckpoint handler is a :class:`~ignite.handlers.checkpoint.Checkpoint` handler that can be used
+    """ModelCheckpoint handler, inherits from :class:`~ignite.handlers.checkpoint.Checkpoint`, can be used
     to periodically save objects to disk only. If needed to store checkpoints to
     another storage type, please consider :class:`~ignite.handlers.checkpoint.Checkpoint`.
     It also provides `last_checkpoint` attribute to show the last saved checkpoint.
