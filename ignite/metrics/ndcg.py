@@ -78,4 +78,4 @@ class NDCG(Metric):
         if self.num_examples == 0:
             raise NotComputableError("NGCD must have at least one example before it can be computed.")
 
-        return self.ngcd / self.num_examples
+        return (self.ngcd / self.num_examples).item()
