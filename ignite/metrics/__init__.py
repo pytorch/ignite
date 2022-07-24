@@ -59,5 +59,4 @@ __all__ = [
     "Rouge",
     "RougeN",
     "RougeL",
-    "NDCG",
 ]
