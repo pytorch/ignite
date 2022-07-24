@@ -18,9 +18,7 @@ class NDCG(Metric):
     ):
 
         self.log_base = log_base
-
         self.k = k
-
         super(NDCG, self).__init__(output_transform=output_transform, device=device)
 
     def _dcg_sample_scores(
@@ -32,17 +30,12 @@ class NDCG(Metric):
             .pow(-1)
             .to(self._device)
         )
-
         if k is not None:
-            discount[k:] = 0
+            discount[k:] = 0.0
 
         ranking = torch.argsort(y_score, descending=True)
-
-        ranked = torch.zeros(y_score.shape, dtype=y_score.dtype, device=self._device)
-        ranked = ranked.scatter_(1, ranking, y_true)
-
+        ranked = y_true[torch.arange(ranking.shape[0]).reshape(-1, 1), ranking].to(self._device)
         discounted_gains = torch.mm(ranked, discount.reshape(-1, 1))
-
         return discounted_gains
 
     def _ndcg_sample_scores(
@@ -50,32 +43,25 @@ class NDCG(Metric):
     ) -> torch.Tensor:
 
         gain = self._dcg_sample_scores(y_true, y_score, k, log_base=log_base)
-
         normalizing_gain = self._dcg_sample_scores(y_true, y_true, k, log_base=log_base)
-
         all_relevant = normalizing_gain != 0
-
         normalized_gain = torch.div(gain[all_relevant], normalizing_gain[all_relevant])
-
         return normalized_gain
 
     def reset(self) -> None:
 
         self.num_examples = 0
-        self.ngcd = torch.tensor(0.0, device=self._device)
+        self.ndcg = torch.tensor(0.0, device=self._device)
 
     def update(self, output: Sequence[torch.Tensor]) -> None:
 
-        y_pred, y = output[0].detach(), output[1].detach()
-
+        y, y_pred = output[0].detach(), output[1].detach()
         gain = self._ndcg_sample_scores(y, y_pred, k=self.k, log_base=self.log_base)
-
-        self.ngcd += torch.sum(gain)
-
+        self.ndcg = torch.add(self.ndcg, torch.sum(gain))
         self.num_examples += y_pred.shape[0]
 
     def compute(self) -> float:
         if self.num_examples == 0:
             raise NotComputableError("NGCD must have at least one example before it can be computed.")
 
-        return (self.ngcd / self.num_examples).item()
+        return (self.ndcg / self.num_examples).item()

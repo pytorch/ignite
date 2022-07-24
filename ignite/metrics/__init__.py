@@ -19,6 +19,7 @@ from ignite.metrics.nlp.rouge import Rouge, RougeL, RougeN
 from ignite.metrics.precision import Precision
 from ignite.metrics.psnr import PSNR
 from ignite.metrics.recall import Recall
+from ignite.metrics.recsys.ndcg import NDCG
 from ignite.metrics.root_mean_squared_error import RootMeanSquaredError
 from ignite.metrics.running_average import RunningAverage
 from ignite.metrics.ssim import SSIM
@@ -58,4 +59,5 @@ __all__ = [
     "Rouge",
     "RougeN",
     "RougeL",
+    "NDCG",
 ]
