@@ -1,4 +1,4 @@
-from typing import Callable, Sequence, Union
+from typing import Callable, Optional, Sequence, Union
 
 import torch
 
@@ -13,18 +13,18 @@ class NDCG(Metric):
         self,
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
-        k: Union[int, None] = None,
+        k: Optional[int] = None,
         log_base: Union[int, float] = 2,
     ):
-        super(NDCG, self).__init__(output_transform=output_transform, device=device)
 
         self.log_base = log_base
+
         self.k = k
-        self.num_examples = 0
-        self.ngcd = torch.tensor(0, dtype=torch.float32, device=device)
+
+        super(NDCG, self).__init__(output_transform=output_transform, device=device)
 
     def _dcg_sample_scores(
-        self, y_true: torch.Tensor, y_score: torch.Tensor, k: Union[int, None] = None, log_base: Union[int, float] = 2
+        self, y_true: torch.Tensor, y_score: torch.Tensor, k: Optional[int] = None, log_base: Union[int, float] = 2
     ) -> torch.Tensor:
 
         discount = (
@@ -46,27 +46,27 @@ class NDCG(Metric):
         return discounted_gains
 
     def _ndcg_sample_scores(
-        self, y_true: torch.Tensor, y_score: torch.Tensor, k: Union[int, None] = None, log_base: Union[int, float] = 2
+        self, y_true: torch.Tensor, y_score: torch.Tensor, k: Optional[int] = None, log_base: Union[int, float] = 2
     ) -> torch.Tensor:
 
         gain = self._dcg_sample_scores(y_true, y_score, k, log_base=log_base)
 
         normalizing_gain = self._dcg_sample_scores(y_true, y_true, k, log_base=log_base)
 
-        all_irrelevant = normalizing_gain == 0
+        all_relevant = normalizing_gain != 0
 
-        normalized_gain = torch.div(gain[~all_irrelevant], normalizing_gain[~all_irrelevant])
+        normalized_gain = torch.div(gain[all_relevant], normalizing_gain[all_relevant])
 
         return normalized_gain
 
     def reset(self) -> None:
 
         self.num_examples = 0
-        self.ngcd = torch.tensor(0, device=self._device)
+        self.ngcd = torch.tensor(0.0, device=self._device)
 
     def update(self, output: Sequence[torch.Tensor]) -> None:
 
-        y_pred, y = output[0], output[1]
+        y_pred, y = output[0].detach(), output[1].detach()
 
         gain = self._ndcg_sample_scores(y, y_pred, k=self.k, log_base=self.log_base)
 
@@ -74,7 +74,7 @@ class NDCG(Metric):
 
         self.num_examples += y_pred.shape[0]
 
-    def compute(self) -> torch.float32:  # type: ignore
+    def compute(self) -> float:
         if self.num_examples == 0:
             raise NotComputableError("NGCD must have at least one example before it can be computed.")
 
