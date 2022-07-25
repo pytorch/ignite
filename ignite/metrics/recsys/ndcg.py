@@ -15,10 +15,12 @@ class NDCG(Metric):
         device: Union[str, torch.device] = torch.device("cpu"),
         k: Optional[int] = None,
         log_base: Union[int, float] = 2,
+        exponential: bool = False,
     ):
 
         self.log_base = log_base
         self.k = k
+        self.exponential = exponential
         super(NDCG, self).__init__(output_transform=output_transform, device=device)
 
     def _dcg_sample_scores(
@@ -35,6 +37,10 @@ class NDCG(Metric):
 
         ranking = torch.argsort(y_score, descending=True)
         ranked = y_true[torch.arange(ranking.shape[0]).reshape(-1, 1), ranking].to(self._device)
+
+        if self.exponential:
+            ranked = ranked.pow(2) - 1
+
         discounted_gains = torch.mm(ranked, discount.reshape(-1, 1))
         return discounted_gains
 
