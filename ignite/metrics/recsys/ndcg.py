@@ -61,7 +61,7 @@ class NDCG(Metric):
 
     def update(self, output: Sequence[torch.Tensor]) -> None:
 
-        y, y_pred = output[0].detach(), output[1].detach()
+        y_pred, y = output[0].detach(), output[1].detach()
         gain = self._ndcg_sample_scores(y, y_pred, k=self.k, log_base=self.log_base)
         self.ndcg = torch.add(self.ndcg, torch.sum(gain))
         self.num_examples += y_pred.shape[0]

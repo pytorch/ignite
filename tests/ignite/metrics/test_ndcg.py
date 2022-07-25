@@ -24,7 +24,7 @@ def test_output_cpu(true_score, pred_score, k):
     device = "cpu"
 
     ndcg = NDCG(k=k, device=device)
-    ndcg.update([true_score, pred_score])
+    ndcg.update([pred_score, true_score])
     result_ignite = ndcg.compute()
     result_sklearn = ndcg_score(true_score.numpy(), pred_score.numpy(), k=k)
 
@@ -48,7 +48,7 @@ def test_output_gpu(true_score, pred_score, k):
 
     device = "cuda"
     ndcg = NDCG(k=k, device=device)
-    ndcg.update([true_score, pred_score])
+    ndcg.update([pred_score, true_score])
     result_ignite = ndcg.compute()
     result_sklearn = ndcg_score(true_score.numpy(), pred_score.numpy(), k=k)
 
@@ -60,7 +60,7 @@ def test_reset():
     true_score = torch.tensor([[1.0, 2.0, 3.0, 4.0, 5.0]])
     pred_score = torch.tensor([[0.1, 0.2, 0.3, 0.4, 0.5]])
     ndcg = NDCG()
-    ndcg.update([true_score, pred_score])
+    ndcg.update([pred_score, true_score])
     ndcg.reset()
 
     with pytest.raises(NotComputableError, match=r"NGCD must have at least one example before it can be computed."):
