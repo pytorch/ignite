@@ -41,29 +41,16 @@ def test_output_cpu(y_pred, y_true, k):
 @pytest.mark.parametrize(
     "y_pred, y_true",
     [
+        (torch.tensor([[0.1, 0.2, 0.3, 0.4, 0.5]]), torch.tensor([[1.0, 2.0, 3.0, 4.0, 5.0]])),
+        (torch.tensor([[3.7, 4.8, 3.9, 4.3, 4.9]]), torch.tensor([[2.9, 5.6, 3.8, 7.9, 6.2]])),
         (
-            torch.tensor([[0.1, 0.2, 0.3, 0.4, 0.5]], device="cuda"),
-            torch.tensor([[1.0, 2.0, 3.0, 4.0, 5.0]], device="cuda"),
+            torch.tensor([[0.1, 0.2, 0.3, 0.4, 0.5], [3.7, 4.8, 3.9, 4.3, 4.9], [3.7, 4.8, 3.9, 4.3, 4.9]]),
+            torch.tensor([[1.0, 2.0, 3.0, 4.0, 5.0], [1.2, 4.5, 8.9, 5.6, 7.2], [2.9, 5.6, 3.8, 7.9, 6.2]]),
         ),
+        (torch.tensor([[3.7, 3.7, 3.7, 3.7, 3.7]]), torch.tensor([[1.0, 2.0, 3.0, 4.0, 5.0]])),
         (
-            torch.tensor([[3.7, 4.8, 3.9, 4.3, 4.9]], device="cuda"),
-            torch.tensor([[2.9, 5.6, 3.8, 7.9, 6.2]], device="cuda"),
-        ),
-        (
-            torch.tensor(
-                [[0.1, 0.2, 0.3, 0.4, 0.5], [3.7, 4.8, 3.9, 4.3, 4.9], [3.7, 4.8, 3.9, 4.3, 4.9]], device="cuda"
-            ),
-            torch.tensor(
-                [[1.0, 2.0, 3.0, 4.0, 5.0], [1.2, 4.5, 8.9, 5.6, 7.2], [2.9, 5.6, 3.8, 7.9, 6.2]], device="cuda"
-            ),
-        ),
-        (
-            torch.tensor([[3.7, 3.7, 3.7, 3.7, 3.7]], device="cuda"),
-            torch.tensor([[1.0, 2.0, 3.0, 4.0, 5.0]], device="cuda"),
-        ),
-        (
-            torch.tensor([[3.7, 3.7, 3.7, 3.7, 3.7], [3.7, 3.7, 3.7, 3.7, 3.9]], device="cuda"),
-            torch.tensor([[1.0, 2.0, 3.0, 4.0, 5.0], [1.0, 2.0, 3.0, 4.0, 5.0]], device="cuda"),
+            torch.tensor([[3.7, 3.7, 3.7, 3.7, 3.7], [3.7, 3.7, 3.7, 3.7, 3.9]]),
+            torch.tensor([[1.0, 2.0, 3.0, 4.0, 5.0], [1.0, 2.0, 3.0, 4.0, 5.0]]),
         ),
     ],
 )
@@ -71,6 +58,8 @@ def test_output_cpu(y_pred, y_true, k):
 def test_output_gpu(y_pred, y_true, k):
 
     device = "cuda"
+    y_pred = y_pred.to(device)
+    y_true = y_true.to(device)
     ndcg = NDCG(k=k, device=device)
     ndcg.update([y_pred, y_true])
     result_ignite = ndcg.compute()
@@ -148,21 +137,11 @@ def test_output_cpu_ignore_ties(y_pred, y_true, k):
 @pytest.mark.parametrize(
     "y_pred, y_true",
     [
+        (torch.tensor([[0.1, 0.2, 0.3, 0.4, 0.5]]), torch.tensor([[1.0, 2.0, 3.0, 4.0, 5.0]])),
+        (torch.tensor([[3.7, 4.8, 3.9, 4.3, 4.9]]), torch.tensor([[2.9, 5.6, 3.8, 7.9, 6.2]])),
         (
-            torch.tensor([[0.1, 0.2, 0.3, 0.4, 0.5]], device="cuda"),
-            torch.tensor([[1.0, 2.0, 3.0, 4.0, 5.0]], device="cuda"),
-        ),
-        (
-            torch.tensor([[3.7, 4.8, 3.9, 4.3, 4.9]], device="cuda"),
-            torch.tensor([[2.9, 5.6, 3.8, 7.9, 6.2]], device="cuda"),
-        ),
-        (
-            torch.tensor(
-                [[0.1, 0.2, 0.3, 0.4, 0.5], [3.7, 4.8, 3.9, 4.3, 4.9], [3.7, 4.8, 3.9, 4.3, 4.9]], device="cuda"
-            ),
-            torch.tensor(
-                [[1.0, 2.0, 3.0, 4.0, 5.0], [1.2, 4.5, 8.9, 5.6, 7.2], [2.9, 5.6, 3.8, 7.9, 6.2]], device="cuda"
-            ),
+            torch.tensor([[0.1, 0.2, 0.3, 0.4, 0.5], [3.7, 4.8, 3.9, 4.3, 4.9], [3.7, 4.8, 3.9, 4.3, 4.9]]),
+            torch.tensor([[1.0, 2.0, 3.0, 4.0, 5.0], [1.2, 4.5, 8.9, 5.6, 7.2], [2.9, 5.6, 3.8, 7.9, 6.2]]),
         ),
     ],
 )
@@ -170,6 +149,8 @@ def test_output_cpu_ignore_ties(y_pred, y_true, k):
 def test_output_gpu_ignore_ties(y_pred, y_true, k):
 
     device = "cuda"
+    y_pred = y_pred.to(device)
+    y_true = y_true.to(device)
     ndcg = NDCG(k=k, device=device, ignore_ties=True)
     ndcg.update([y_pred, y_true])
     result_ignite = ndcg.compute()
