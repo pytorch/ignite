@@ -37,6 +37,7 @@ def test_output_cpu(y_pred, y_true, k):
     np.testing.assert_allclose(np.array(result_ignite), result_sklearn, rtol=2e-7)
 
 
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 @pytest.mark.parametrize(
     "y_pred, y_true",
     [
@@ -67,7 +68,6 @@ def test_output_cpu(y_pred, y_true, k):
     ],
 )
 @pytest.mark.parametrize("k", [None, 2, 3])
-@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_output_gpu(y_pred, y_true, k):
 
     device = "cuda"
@@ -144,6 +144,7 @@ def test_output_cpu_ignore_ties(y_pred, y_true, k):
     np.testing.assert_allclose(np.array(result_ignite), result_sklearn, rtol=2e-7)
 
 
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 @pytest.mark.parametrize(
     "y_pred, y_true",
     [
@@ -166,7 +167,6 @@ def test_output_cpu_ignore_ties(y_pred, y_true, k):
     ],
 )
 @pytest.mark.parametrize("k", [None, 2, 3])
-@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_output_gpu_ignore_ties(y_pred, y_true, k):
 
     device = "cuda"
