@@ -57,6 +57,7 @@ def test_output_cpu(test_case, k, exponential):
 
 @pytest.mark.parametrize("k", [None, 2, 3])
 @pytest.mark.parametrize("exponential", [True, False])
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_output_gpu(test_case, k, exponential):
 
     device = "cuda"
