@@ -173,7 +173,7 @@ class Checkpoint(Serializable):
 
     .. warning::
 
-        When running on XLA devices or using :class:`~torch.distributed.ZeroRedundancyOptimizer`, it
+        When running on XLA devices or using :class:`~torch.distributed.optim.ZeroRedundancyOptimizer`, it
         should be run in all processes, otherwise application can get stuck on saving the checkpoint.
 
         .. code-block:: python
