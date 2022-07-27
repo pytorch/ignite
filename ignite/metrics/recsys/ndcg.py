@@ -62,9 +62,9 @@ def _ndcg_sample_scores(
     k: Optional[int] = None,
     log_base: Union[int, float] = 2,
     ignore_ties: bool = False,
-    device: Union[str, torch.device] = torch.device("cpu"),
 ) -> torch.Tensor:
 
+    device = y_true.device
     gain = _dcg_sample_scores(y_pred, y_true, k=k, log_base=log_base, ignore_ties=ignore_ties, device=device)
     if not ignore_ties:
         gain = gain.unsqueeze(dim=-1)
@@ -105,9 +105,7 @@ class NDCG(Metric):
         if self.exponential:
             y_true = 2 ** y_true - 1
 
-        gain = _ndcg_sample_scores(
-            y_pred, y_true, k=self.k, log_base=self.log_base, device=self._device, ignore_ties=self.ignore_ties
-        )
+        gain = _ndcg_sample_scores(y_pred, y_true, k=self.k, log_base=self.log_base, ignore_ties=self.ignore_ties)
         self.ndcg += torch.sum(gain)
         self.num_examples += y_pred.shape[0]
 
