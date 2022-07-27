@@ -10,6 +10,7 @@ import pytest
 import torch
 import torch.nn as nn
 from packaging.version import Version
+from torch.distributed.optim import ZeroRedundancyOptimizer
 
 import ignite.distributed as idist
 from ignite.engine import Engine, Events, State
@@ -1243,9 +1244,39 @@ def _test_checkpoint_load_objects_ddp(device):
     Checkpoint.load_objects(to_load, checkpoint)
 
 
+def _test_checkpoint_with_ZeRO(device, dirname, local_rank):
+    model = DummyModel().to(device)
+    opt = ZeroRedundancyOptimizer(model.parameters(), torch.optim.SGD, lr=0.01)
+    mocked_opt = MagicMock(ZeroRedundancyOptimizer, wraps=opt)
+
+    # A `step` should be called to optimizer state get populated.
+    out = model(torch.Tensor([1.0]))
+    out.backward()
+    mocked_opt.step()
+
+    to_save = {"model": model, "optim": mocked_opt}
+    checkpointer = Checkpoint(to_save, dirname, save_on_rank=1)
+
+    engine = Engine(lambda e, b: None)
+    checkpointer(engine)
+    idist.barrier()
+
+    opt.consolidate_state_dict(to=1)
+
+    idist.barrier()
+
+    mocked_opt.consolidate_state_dict.assert_called_once_with(to=1)
+
+    if local_rank == 1:
+
+        loaded_state_dict = torch.load(dirname / "checkpoint_0.pt", map_location=device)["optim"]
+        state_dict = opt.state_dict()
+        assert loaded_state_dict == state_dict
+
+
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo, get_rank_zero_dirname):
+def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo, dirname, get_rank_zero_dirname, local_rank):
 
     device = idist.device()
     rank_zero_dirname = get_rank_zero_dirname()
@@ -1253,6 +1284,7 @@ def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo, get_rank_
     _test_save_model_optimizer_lr_scheduler_with_state_dict(device, rank_zero_dirname / "2", just_on_zero_rank=True)
     _test_checkpoint_with_ddp(device)
     _test_checkpoint_load_objects_ddp(device)
+    _test_checkpoint_with_ZeRO(device, dirname, local_rank)
 
 
 @pytest.mark.distributed

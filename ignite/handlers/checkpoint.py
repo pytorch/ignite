@@ -11,6 +11,7 @@ from typing import Any, Callable, Dict, List, Mapping, NamedTuple, Optional, Tup
 
 import torch
 import torch.nn as nn
+from torch.distributed.optim import ZeroRedundancyOptimizer
 
 import ignite.distributed as idist
 from ignite.base import Serializable
@@ -166,13 +167,14 @@ class Checkpoint(Serializable):
             > checkpoint_12345.pt
 
     Note:
-        This class is distributed configuration-friendly: it is not required to instantiate the class in rank 0
-        process only.
+        This class is distributed configuration-friendly: it is not required to instantiate the class in rank 0 only
+        process. This class supports automatically distributed configuration and if used with
+        :class:`~ignite.handlers.DiskSaver`, checkpoint is stored by rank 0 process.
 
     .. warning::
 
-        When running on XLA devices, it should be run in all processes, otherwise application can get stuck on
-        saving the checkpoint.
+        When running on XLA devices or using :class:`~torch.distributed.ZeroRedundancyOptimizer`, it
+        should be run in all processes, otherwise application can get stuck on saving the checkpoint.
 
         .. code-block:: python
 
@@ -466,6 +468,8 @@ class Checkpoint(Serializable):
             for k, obj in self.to_save.items():
                 if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
                     obj = obj.module
+                elif isinstance(obj, ZeroRedundancyOptimizer):
+                    obj.consolidate_state_dict(to=self.save_on_rank)
                 checkpoint[k] = obj.state_dict()
         return checkpoint
 
