@@ -86,7 +86,7 @@ class NDCG(Metric):
     ):
 
         if log_base == 1 or log_base <= 0:
-            raise ValueError(f"Illegal value {log_base} for log_base")
+            raise ValueError(f"Argument log_base should positive and not equal one,but got {log_base}")
         self.log_base = log_base
         self.k = k
         self.exponential = exponential
