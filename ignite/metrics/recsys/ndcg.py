@@ -85,12 +85,13 @@ class NDCG(Metric):
         ignore_ties: bool = False,
     ):
 
-        assert log_base != 1 or log_base <= 0, f"Illegal value {log_base} for log_base"
+        if log_base == 1 or log_base <= 0:
+            raise ValueError(f"Illegal value {log_base} for log_base")
         self.log_base = log_base
         self.k = k
         self.exponential = exponential
-        super(NDCG, self).__init__(output_transform=output_transform, device=device)
         self.ignore_ties = ignore_ties
+        super(NDCG, self).__init__(output_transform=output_transform, device=device)
 
     def reset(self) -> None:
 
@@ -104,7 +105,9 @@ class NDCG(Metric):
         if self.exponential:
             y_true = 2 ** y_true - 1
 
-        gain = _ndcg_sample_scores(y_pred, y_true, k=self.k, log_base=self.log_base, device=self._device)
+        gain = _ndcg_sample_scores(
+            y_pred, y_true, k=self.k, log_base=self.log_base, device=self._device, ignore_ties=self.ignore_ties
+        )
         self.ndcg += torch.sum(gain)
         self.num_examples += y_pred.shape[0]
 
