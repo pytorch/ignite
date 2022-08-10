@@ -173,7 +173,7 @@ class Checkpoint(Serializable):
     .. warning::
 
         When running on XLA devices or using :class:`~torch.distributed.optim.ZeroRedundancyOptimizer`, it
-        should be run in all processes, otherwise application can get stuck on saving the checkpoint.
+        should be run in all processes, otherwise application can get stuck while saving the checkpoint.
 
         .. code-block:: python
 
@@ -469,6 +469,8 @@ class Checkpoint(Serializable):
                     obj = obj.module
                 elif isinstance(obj, ZeroRedundancyOptimizer):
                     obj.consolidate_state_dict(to=self.save_on_rank)
+                    if self.save_on_rank != idist.get_rank():
+                        continue
                 checkpoint[k] = obj.state_dict()
         return checkpoint
 
@@ -816,16 +818,15 @@ class DiskSaver(BaseSaveHandler):
                 )
 
     def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None) -> None:
-        if self.save_on_rank == idist.get_rank():
-            path = self.dirname / filename
+        path = self.dirname / filename
 
-            if idist.has_xla_support:
-                import orch_xla.core.xla_model as xm
+        if idist.has_xla_support:
+            import torch_xla.core.xla_model as xm
 
-                # all tpu procs should enter here as internally performs sync across device
-                self._save_func(checkpoint, path, xm.save)
-            else:
-                self._save_func(checkpoint, path, torch.save)
+            # all tpu procs should enter here as internally performs sync across device
+            self._save_func(checkpoint, path, xm.save)
+        elif self.save_on_rank == idist.get_rank():
+            self._save_func(checkpoint, path, torch.save)
 
     def _save_func(self, checkpoint: Mapping, path: Path, func: Callable) -> None:
         if not self._atomic:

@@ -1259,11 +1259,6 @@ def _test_checkpoint_with_ZeRO(device, dirname, local_rank):
 
     engine = Engine(lambda e, b: None)
     checkpointer(engine)
-    idist.barrier()
-
-    opt.consolidate_state_dict(to=1)
-
-    idist.barrier()
 
     mocked_opt.consolidate_state_dict.assert_called_once_with(to=1)
 
@@ -1822,16 +1817,14 @@ def test_load_single_object(obj_to_save, dirname):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.parametrize("atomic", [False, True])
 def test_disksaver_distrib(distributed_context_single_node_gloo, dirname, local_rank, atomic):
-    saver = DiskSaver.__new__(DiskSaver)
-    mocked_saver = MagicMock(DiskSaver, wraps=saver, side_effect=saver)
-    mocked_saver.__init__(saver, dirname, atomic, save_on_rank=1)
 
-    mocked_saver({}, "test_disksaver_distrib.pt")
+    saver = DiskSaver(dirname, atomic, save_on_rank=1)
+    mocked_saver = MagicMock(wraps=saver)
+
+    mocked_saver(checkpoint={}, filename="test_disksaver_distrib.pt")
 
     if local_rank == 1:
-        mocked_saver._check_and_setup.assert_called_once()
         assert (dirname / "test_disksaver_distrib.pt").exists()
 
     else:
-        mocked_saver._check_and_setup.assert_not_called()
         mocked_saver._save_func.assert_not_called()
