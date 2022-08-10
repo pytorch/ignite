@@ -1259,11 +1259,6 @@ def _test_checkpoint_with_ZeRO(device, dirname, local_rank):
 
     engine = Engine(lambda e, b: None)
     checkpointer(engine)
-    idist.barrier()
-
-    opt.consolidate_state_dict(to=1)
-
-    idist.barrier()
 
     mocked_opt.consolidate_state_dict.assert_called_once_with(to=1)
 
