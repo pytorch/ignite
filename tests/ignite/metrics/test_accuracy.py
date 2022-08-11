@@ -358,24 +358,22 @@ def _test_distrib_multilabel_input_NHW(device):
 def _test_distrib_integration_multiclass(device):
 
     rank = idist.get_rank()
-    torch.manual_seed(12)
 
     def _test(n_epochs, metric_device):
         metric_device = torch.device(metric_device)
         n_iters = 80
-        s = 16
+        batch_size = 16
         n_classes = 10
 
         torch.manual_seed(12 + rank)
 
-        offset = n_iters * s
-        y_true = torch.randint(0, n_classes, size=(offset,)).to(device)
-        y_preds = torch.rand(offset, n_classes).to(device)
+        y_true = torch.randint(0, n_classes, size=(n_iters * batch_size,)).to(device)
+        y_preds = torch.rand(n_iters * batch_size, n_classes).to(device)
 
         def update(engine, i):
             return (
-                y_preds[i * s : (i + 1) * s, :],
-                y_true[i * s : (i + 1) * s],
+                y_preds[i * batch_size : (i + 1) * batch_size, :],
+                y_true[i * batch_size : (i + 1) * batch_size],
             )
 
         engine = Engine(update)
