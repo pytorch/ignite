@@ -1014,3 +1014,66 @@ def test_engine_no_data():
     assert trainer.state.iteration == 20 * 10
     assert trainer.state.epoch == 20
     assert trainer.state.dataloader is None
+
+
+@pytest.mark.parametrize("data, epoch_length", [(None, 10), (range(10), None)])
+def test_engine_run_resume(data, epoch_length):
+    # https://github.com/pytorch/ignite/wiki/Roadmap#runresume-logic-improvements
+    engine = Engine(lambda e, b: None)
+    real_epoch_length = len(data) if data is not None else epoch_length
+
+    first_epoch_iter = [None, None]
+
+    @engine.on(Events.STARTED, first_epoch_iter)
+    def check_iter_epoch(first_epoch_iter):
+        assert engine.state.epoch == first_epoch_iter[0]
+        assert engine.state.iteration == first_epoch_iter[1]
+
+    # (re)start from 0 to 5
+    first_epoch_iter[0], first_epoch_iter[1] = 0, 0
+    # Engine run starting with max_epochs=5 => state.epoch=5
+    engine.run(data, max_epochs=5, epoch_length=epoch_length)
+    assert engine.state.epoch == 5
+    assert engine.state.iteration == 5 * real_epoch_length
+
+    # continue from 5 to 7
+    first_epoch_iter[0], first_epoch_iter[1] = 5, 5 * real_epoch_length
+    # Engine run resuming from iteration 50, epoch 5 until 7 epochs => state.epoch=7
+    engine.run(data, max_epochs=7, epoch_length=epoch_length)
+    assert engine.state.epoch == 7
+    assert engine.state.iteration == 7 * real_epoch_length
+
+    # error
+    with pytest.raises(ValueError, match="Argument max_epochs should be larger than the start epoch"):
+        engine.run(data, max_epochs=4, epoch_length=epoch_length)
+
+    # restart from 0 to 7 (As state.epoch == max_epochs(=7),
+    # this should be like that as we always do: evaluator.run(data) without any other instructions)
+    first_epoch_iter[0], first_epoch_iter[1] = 0, 0
+    # Engine run starting with max_epochs=7 => state.epoch=7
+    engine.run(data, max_epochs=7, epoch_length=epoch_length)
+    assert engine.state.epoch == 7
+    assert engine.state.iteration == 7 * real_epoch_length
+
+    # forced restart from 0 to 5
+    engine.state.max_epochs = None
+    first_epoch_iter[0], first_epoch_iter[1] = 0, 0
+    # Engine run starting with max_epochs=5 => state.epoch=5
+    engine.run(data, max_epochs=5, epoch_length=epoch_length)
+    assert engine.state.epoch == 5
+    assert engine.state.iteration == 5 * real_epoch_length
+
+    # forced restart from 0 to 9, instead of continue from state.epoch=5
+    engine.state.max_epochs = None
+    first_epoch_iter[0], first_epoch_iter[1] = 0, 0
+    # Engine run starting with max_epochs=9 => state.epoch=9
+    engine.run(data, max_epochs=9, epoch_length=epoch_length)
+    assert engine.state.epoch == 9
+    assert engine.state.iteration == 9 * real_epoch_length
+
+    # continue from 9 until 10
+    first_epoch_iter[0], first_epoch_iter[1] = 9, 9 * real_epoch_length
+    # Engine run resuming from iteration 90, epoch 9 until 10 epochs => state.epoch=10
+    engine.run(data, max_epochs=10, epoch_length=epoch_length)
+    assert engine.state.epoch == 10
+    assert engine.state.iteration == 10 * real_epoch_length
