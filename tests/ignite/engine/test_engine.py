@@ -103,11 +103,11 @@ def test_terminate_at_end_of_epoch_stops_run(data):
     assert engine.should_terminate
 
 
-@pytest.mark.parametrize("data", [None, [1, 2, 3]])
-def test_terminate_at_start_of_epoch_stops_run_after_completing_iteration(data):
+@pytest.mark.parametrize("data, epoch_length", [(None, 10), (range(10), None)])
+def test_terminate_at_start_of_epoch_stops_run_after_completing_iteration(data, epoch_length):
     max_epochs = 5
     epoch_to_terminate_on = 3
-    epoch_length = 3
+    real_epoch_length = epoch_length if data is None else len(data)
 
     engine = Engine(MagicMock(return_value=1))
 
@@ -124,14 +124,47 @@ def test_terminate_at_start_of_epoch_stops_run_after_completing_iteration(data):
     # epoch is not completed so counter is not incremented
     assert state.epoch == epoch_to_terminate_on
     assert engine.should_terminate
-    # completes first iteration
-    assert state.iteration == ((epoch_to_terminate_on - 1) * epoch_length) + 1
+    assert state.iteration == ((epoch_to_terminate_on - 1) * real_epoch_length)
+
+    # Engine continue from epoch_to_terminate_on until max_epochs
+    first_epoch_iter = [None, None]
+
+    @engine.on(Events.STARTED)
+    def check_iter_epoch():
+        assert engine.state.epoch == first_epoch_iter[0]
+        assert engine.state.iteration == first_epoch_iter[1]
+
+    if data is not None:
+        expected_data_iter = iter(data)
+        expected_iter = state.iteration
+
+        @engine.on(Events.ITERATION_STARTED)
+        def check_iter_and_data():
+            nonlocal expected_data_iter, expected_iter
+
+            expected_iter += 1
+            assert engine.state.iteration == expected_iter
+
+            try:
+                assert engine.state.batch == next(expected_data_iter)
+            except StopIteration:
+                expected_data_iter = iter(data)
+                assert engine.state.batch == next(expected_data_iter)
+
+    first_epoch_iter[0], first_epoch_iter[1] = state.epoch, state.iteration
+    state = engine.run(data, max_epochs=max_epochs, epoch_length=epoch_length)
+
+    assert state.epoch == max_epochs
+    assert not engine.should_terminate
+    # As terminated epoch is skipped -> iterations are not incremented
+    assert state.iteration == real_epoch_length * (max_epochs - 1)
 
 
-@pytest.mark.parametrize("data", [None, list(range(10))])
-def test_terminate_stops_run_mid_epoch(data):
-    num_iterations_per_epoch = len(data) if data is not None else 10
-    iteration_to_stop = num_iterations_per_epoch + 3
+@pytest.mark.parametrize("data, epoch_length", [(None, 10), (range(10), None)])
+def test_terminate_stops_run_mid_epoch(data, epoch_length):
+    max_epochs = 5
+    iteration_to_stop = 13
+    real_epoch_length = epoch_length if data is None else len(data)
 
     engine = Engine(MagicMock(return_value=1))
 
@@ -140,10 +173,42 @@ def test_terminate_stops_run_mid_epoch(data):
             engine.terminate()
 
     engine.add_event_handler(Events.ITERATION_STARTED, start_of_iteration_handler)
-    state = engine.run(data, max_epochs=3, epoch_length=num_iterations_per_epoch)
+    state = engine.run(data, max_epochs=max_epochs, epoch_length=epoch_length)
     # completes the iteration but doesn't increment counter (this happens just before a new iteration starts)
     assert state.iteration == iteration_to_stop
-    assert state.epoch == np.ceil(iteration_to_stop / num_iterations_per_epoch)  # it starts from 0
+    assert state.epoch == np.ceil(iteration_to_stop / real_epoch_length)  # it starts from 0
+
+    # Engine continue from epoch_to_terminate_on until max_epochs
+    first_epoch_iter = [None, None]
+
+    @engine.on(Events.STARTED, first_epoch_iter)
+    def check_iter_epoch(first_epoch_iter):
+        assert engine.state.epoch == first_epoch_iter[0]
+        assert engine.state.iteration == first_epoch_iter[1]
+
+    if data is not None:
+        expected_data_iter = iter(data)
+        expected_iter = state.iteration
+
+        @engine.on(Events.ITERATION_STARTED)
+        def check_iter_and_data():
+            nonlocal expected_data_iter, expected_iter
+
+            expected_iter += 1
+            assert engine.state.iteration == expected_iter
+
+            try:
+                assert engine.state.batch == next(expected_data_iter)
+            except StopIteration:
+                expected_data_iter = iter(data)
+                assert engine.state.batch == next(expected_data_iter)
+
+    first_epoch_iter[0], first_epoch_iter[1] = state.epoch, state.iteration
+    state = engine.run(data, max_epochs=max_epochs, epoch_length=epoch_length)
+
+    assert state.epoch == max_epochs
+    assert not engine.should_terminate
+    assert state.iteration == real_epoch_length * (max_epochs - 1)
 
 
 @pytest.mark.parametrize("data", [None, list(range(10))])

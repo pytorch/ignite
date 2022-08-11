@@ -757,31 +757,39 @@ class Engine(Serializable):
         try:
             start_time = time.time()
             self._fire_event(Events.STARTED)
+            if self.should_terminate:
+                self._fire_event(Events.TERMINATE)
+
             while not self._is_done(self.state) and not self.should_terminate:
                 self.state.epoch += 1
+                handlers_start_time = time.time()
                 self._fire_event(Events.EPOCH_STARTED)
+                epoch_time_taken = time.time() - handlers_start_time
 
-                if self._dataloader_iter is None:
-                    self._setup_engine()
+                if not self.should_terminate:
+                    if self._dataloader_iter is None:
+                        self._setup_engine()
 
-                time_taken = self._run_once_on_dataset()
-                # time is available for handlers but must be update after fire
-                self.state.times[Events.EPOCH_COMPLETED.name] = time_taken
+                    epoch_time_taken += self._run_once_on_dataset()
+
+                # time is available for handlers but must be updated after fire
+                self.state.times[Events.EPOCH_COMPLETED.name] = epoch_time_taken
+
                 handlers_start_time = time.time()
                 if self.should_terminate:
                     self._fire_event(Events.TERMINATE)
                 else:
                     self._fire_event(Events.EPOCH_COMPLETED)
-                time_taken += time.time() - handlers_start_time
+                epoch_time_taken += time.time() - handlers_start_time
                 # update time wrt handlers
-                self.state.times[Events.EPOCH_COMPLETED.name] = time_taken
-                hours, mins, secs = _to_hours_mins_secs(time_taken)
+                self.state.times[Events.EPOCH_COMPLETED.name] = epoch_time_taken
+                hours, mins, secs = _to_hours_mins_secs(epoch_time_taken)
                 self.logger.info(f"Epoch[{self.state.epoch}] Complete. Time taken: {hours:02d}:{mins:02d}:{secs:02d}")
                 if self.should_terminate:
                     break
 
             time_taken = time.time() - start_time
-            # time is available for handlers but must be update after fire
+            # time is available for handlers but must be updated after fire
             self.state.times[Events.COMPLETED.name] = time_taken
             handlers_start_time = time.time()
             self._fire_event(Events.COMPLETED)
@@ -856,8 +864,10 @@ class Engine(Serializable):
 
                 self.state.iteration += 1
                 self._fire_event(Events.ITERATION_STARTED)
-                self.state.output = self._process_function(self, self.state.batch)
-                self._fire_event(Events.ITERATION_COMPLETED)
+
+                if not (self.should_terminate or self.should_terminate_single_epoch):
+                    self.state.output = self._process_function(self, self.state.batch)
+                    self._fire_event(Events.ITERATION_COMPLETED)
 
                 if self.should_terminate or self.should_terminate_single_epoch:
                     self._fire_event(Events.TERMINATE_SINGLE_EPOCH, iter_counter=iter_counter)
