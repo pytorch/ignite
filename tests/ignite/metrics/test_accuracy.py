@@ -366,17 +366,22 @@ def _test_distrib_integration_multiclass(device):
         s = 16
         n_classes = 10
 
+        torch.manual_seed(12 + rank)
+
         offset = n_iters * s
-        y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(),)).to(device)
-        y_preds = torch.rand(offset * idist.get_world_size(), n_classes).to(device)
+        y_true = torch.randint(0, n_classes, size=(offset,)).to(device)
+        y_preds = torch.rand(offset, n_classes).to(device)
 
         def update(engine, i):
             return (
-                y_preds[i * s + rank * offset : (i + 1) * s + rank * offset, :],
-                y_true[i * s + rank * offset : (i + 1) * s + rank * offset],
+                y_preds[i * s : (i + 1) * s, :],
+                y_true[i * s : (i + 1) * s],
             )
 
         engine = Engine(update)
+
+        y_true = idist.all_reduce(y_true)
+        y_preds = idist.all_reduce(y_preds)
 
         acc = Accuracy(device=metric_device)
         acc.attach(engine, "acc")
