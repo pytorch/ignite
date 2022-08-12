@@ -9,7 +9,8 @@ __all__ = ["PSNR"]
 
 
 class PSNR(Metric):
-    r"""Computes average `Peak signal-to-noise ratio (PSNR) <https://en.wikipedia.org/wiki/Peak_signal-to-noise_ratio>`_.
+    r"""Computes average
+    `Peak signal-to-noise ratio (PSNR) <https://en.wikipedia.org/wiki/Peak_signal-to-noise_ratio>`_.
 
     .. math::
         \text{PSNR}(I, J) = 10 * \log_{10}\left(\frac{ MAX_{I}^2 }{ \text{ MSE } }\right)
@@ -34,7 +35,8 @@ class PSNR(Metric):
         The output of the engine's ``process_function`` needs to be in format of
         ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``.
 
-        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`,
+        visit :ref:`attach-engine`.
 
         .. include:: defaults.rst
             :start-after: :orphan:
