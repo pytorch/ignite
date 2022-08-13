@@ -11,7 +11,10 @@ from typing import Any, Callable, Dict, List, Mapping, NamedTuple, Optional, Tup
 
 import torch
 import torch.nn as nn
-from torch.distributed.optim import ZeroRedundancyOptimizer
+from packaging.version import Version
+
+if Version(torch.__version__) >= Version("1.9.0"):
+    from torch.distributed.optim import ZeroRedundancyOptimizer
 
 import ignite.distributed as idist
 from ignite.base import Serializable
@@ -468,7 +471,7 @@ class Checkpoint(Serializable):
             for k, obj in self.to_save.items():
                 if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
                     obj = obj.module
-                elif isinstance(obj, ZeroRedundancyOptimizer):
+                elif Version(torch.__version__) >= Version("1.9.0") and isinstance(obj, ZeroRedundancyOptimizer):
                     obj.consolidate_state_dict(to=self.save_on_rank)
                     if self.save_on_rank != idist.get_rank():
                         continue

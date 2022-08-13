@@ -10,7 +10,9 @@ import pytest
 import torch
 import torch.nn as nn
 from packaging.version import Version
-from torch.distributed.optim import ZeroRedundancyOptimizer
+
+if Version(torch.__version__) >= Version("1.9.0"):
+    from torch.distributed.optim import ZeroRedundancyOptimizer
 
 import ignite.distributed as idist
 from ignite.engine import Engine, Events, State
@@ -1279,7 +1281,9 @@ def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo, dirname, 
     _test_save_model_optimizer_lr_scheduler_with_state_dict(device, rank_zero_dirname / "2", just_on_zero_rank=True)
     _test_checkpoint_with_ddp(device)
     _test_checkpoint_load_objects_ddp(device)
-    _test_checkpoint_with_ZeRO(device, dirname, local_rank)
+
+    if Version(torch.__version__) >= Version("1.9.0"):
+        _test_checkpoint_with_ZeRO(device, dirname, local_rank)
 
 
 @pytest.mark.distributed
