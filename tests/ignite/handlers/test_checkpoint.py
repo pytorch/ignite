@@ -629,7 +629,7 @@ def test_disk_saver_atomic(dirname):
     to_save_serializable = {"model": model}
     to_save_non_serializable = {"model": lambda x: x}
 
-    def _test_existance(atomic, _to_save, expected):
+    def _test_existence(atomic, _to_save, expected):
 
         saver = DiskSaver(dirname, atomic=atomic, create_dir=False, require_empty=False)
         fname = "test.pt"
@@ -652,11 +652,11 @@ def test_disk_saver_atomic(dirname):
         if expected:
             saver.remove(fname)
 
-    _test_existance(atomic=False, _to_save=to_save_serializable, expected=True)
-    _test_existance(atomic=False, _to_save=to_save_non_serializable, expected=True)
+    _test_existence(atomic=False, _to_save=to_save_serializable, expected=True)
+    _test_existence(atomic=False, _to_save=to_save_non_serializable, expected=True)
 
-    _test_existance(atomic=True, _to_save=to_save_serializable, expected=True)
-    _test_existance(atomic=True, _to_save=to_save_non_serializable, expected=False)
+    _test_existence(atomic=True, _to_save=to_save_serializable, expected=True)
+    _test_existence(atomic=True, _to_save=to_save_non_serializable, expected=False)
 
 
 @pytest.mark.skipif(
@@ -856,7 +856,7 @@ def test_valid_state_dict_save(dirname):
         pytest.fail("Unexpected ValueError")
 
 
-def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname, on_zero_rank=False):
+def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname, just_on_zero_rank=False):
 
     torch.manual_seed(23)
 
@@ -885,7 +885,7 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname, on_
 
     engine = Engine(update_fn)
 
-    if (not on_zero_rank) or (on_zero_rank and idist.get_rank() == 0):
+    if (not just_on_zero_rank) or (just_on_zero_rank and idist.get_rank() == 0):
         handler = ModelCheckpoint(dirname, _PREFIX, create_dir=True, n_saved=1)
 
         engine.add_event_handler(
@@ -942,7 +942,7 @@ def test_save_model_optimizer_lr_scheduler_with_state_dict(dirname):
     _test_save_model_optimizer_lr_scheduler_with_state_dict("cpu", dirname)
 
 
-def _test_save_model_optimizer_lr_scheduler_with_validation(device, dirname, on_zero_rank=False):
+def _test_save_model_optimizer_lr_scheduler_with_validation(device, dirname, just_on_zero_rank=False):
     torch.manual_seed(23)
 
     def _build_objects(acc_list):
@@ -1248,9 +1248,9 @@ def _test_checkpoint_load_objects_ddp(device):
 def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo, get_rank_zero_dirname):
 
     device = idist.device()
-    dirname = get_rank_zero_dirname()
-    _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname / "1")
-    _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname / "2", on_zero_rank=True)
+    rank_zero_dirname = get_rank_zero_dirname()
+    _test_save_model_optimizer_lr_scheduler_with_state_dict(device, rank_zero_dirname / "1")
+    _test_save_model_optimizer_lr_scheduler_with_state_dict(device, rank_zero_dirname / "2", just_on_zero_rank=True)
     _test_checkpoint_with_ddp(device)
     _test_checkpoint_load_objects_ddp(device)
 
@@ -1263,7 +1263,7 @@ def test_distrib_nccl_gpu(distributed_context_single_node_nccl, get_rank_zero_di
     device = idist.device()
     dirname = get_rank_zero_dirname()
     _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname / "1")
-    _test_save_model_optimizer_lr_scheduler_with_state_dict("cpu", dirname / "2", on_zero_rank=True)
+    _test_save_model_optimizer_lr_scheduler_with_state_dict("cpu", dirname / "2", just_on_zero_rank=True)
     _test_checkpoint_with_ddp(device=device)
     _test_checkpoint_load_objects_ddp(device=device)
 
@@ -1784,3 +1784,20 @@ def test_load_single_object(obj_to_save, dirname):
 
     checkpoint_fp = dirname / c.last_checkpoint
     Checkpoint.load_objects(to_load=to_save, checkpoint=str(checkpoint_fp))
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.parametrize("atomic", [False, True])
+def test_disksaver_distrib(distributed_context_single_node_gloo, dirname, local_rank, atomic):
+
+    saver = DiskSaver(dirname, atomic, save_on_rank=1)
+    mocked_saver = MagicMock(wraps=saver)
+
+    mocked_saver(checkpoint={}, filename="test_disksaver_distrib.pt")
+
+    if local_rank == 1:
+        assert (dirname / "test_disksaver_distrib.pt").exists()
+
+    else:
+        mocked_saver._save_func.assert_not_called()
