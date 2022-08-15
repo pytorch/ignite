@@ -412,30 +412,33 @@ def _test_distrib_integration_multiclass(device):
 def _test_distrib_integration_multilabel(device):
 
     rank = idist.get_rank()
-    torch.manual_seed(12)
 
     def _test(n_epochs, metric_device):
         metric_device = torch.device(metric_device)
         n_iters = 80
-        s = 16
-        n_classes = 10
+        batch_size = 16
+        n_classes = 2
 
-        offset = n_iters * s
-        y_true = torch.randint(0, 2, size=(offset * idist.get_world_size(), n_classes, 8, 10)).to(device)
-        y_preds = torch.randint(0, 2, size=(offset * idist.get_world_size(), n_classes, 8, 10)).to(device)
+        torch.manual_seed(12 + rank)
+
+        y_true = torch.randint(0, 2, size=(n_iters * batch_size, n_classes, 8, 10)).to(device)
+        y_preds = torch.randint(0, 2, size=(n_iters * batch_size, n_classes, 8, 10)).to(device)
 
         def update(engine, i):
             return (
-                y_preds[i * s + rank * offset : (i + 1) * s + rank * offset, ...],
-                y_true[i * s + rank * offset : (i + 1) * s + rank * offset, ...],
+                y_preds[i * batch_size : (i + 1) * batch_size, ...],
+                y_true[i * batch_size : (i + 1) * batch_size, ...],
             )
 
         engine = Engine(update)
 
+        y_true = idist.all_gather(y_true)
+        y_preds = idist.all_gather(y_preds)
+
         acc = Accuracy(is_multilabel=True, device=metric_device)
         acc.attach(engine, "acc")
 
-        data = list(range(n_iters))
+        data = list(range(n_iters * idist.get_world_size()))
         engine.run(data=data, max_epochs=n_epochs)
 
         assert (
@@ -448,7 +451,6 @@ def _test_distrib_integration_multilabel(device):
             res = res.cpu().numpy()
 
         true_res = accuracy_score(to_numpy_multilabel(y_true), to_numpy_multilabel(y_preds))
-
         assert pytest.approx(res) == true_res
 
     metric_devices = ["cpu"]
@@ -485,25 +487,28 @@ def _test_distrib_accumulator_device(device):
 def _test_distrib_integration_list_of_tensors_or_numbers(device):
 
     rank = idist.get_rank()
-    torch.manual_seed(12)
 
     def _test(n_epochs, metric_device):
         metric_device = torch.device(metric_device)
         n_iters = 80
-        s = 16
+        batch_size = 16
         n_classes = 10
 
-        offset = n_iters * s
-        y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(),)).to(device)
-        y_preds = torch.rand(offset * idist.get_world_size(), n_classes).to(device)
+        torch.manual_seed(12 + rank)
+
+        y_true = torch.randint(0, n_classes, size=(n_iters * batch_size,)).to(device)
+        y_preds = torch.rand(n_iters * batch_size, n_classes).to(device)
 
         def update(_, i):
             return (
-                [v for v in y_preds[i * s + rank * offset : (i + 1) * s + rank * offset, :]],
-                [v.item() for v in y_true[i * s + rank * offset : (i + 1) * s + rank * offset]],
+                [v for v in y_preds[i * batch_size : (i + 1) * batch_size, ...]],
+                [v.item() for v in y_true[i * batch_size : (i + 1) * batch_size]],
             )
 
         engine = Engine(update)
+
+        y_true = idist.all_reduce(y_true)
+        y_preds = idist.all_reduce(y_preds)
 
         acc = Accuracy(device=metric_device)
         acc.attach(engine, "acc")
@@ -521,7 +526,6 @@ def _test_distrib_integration_list_of_tensors_or_numbers(device):
             res = res.cpu().numpy()
 
         true_res = accuracy_score(y_true.cpu().numpy(), torch.argmax(y_preds, dim=1).cpu().numpy())
-
         assert pytest.approx(res) == true_res
 
     metric_devices = ["cpu"]
