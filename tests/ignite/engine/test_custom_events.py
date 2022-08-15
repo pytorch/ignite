@@ -148,6 +148,9 @@ def test_callable_events_with_wrong_inputs():
     with pytest.raises(ValueError, match=r"but will be called with"):
         Events.ITERATION_STARTED(event_filter=lambda x: x)
 
+    with pytest.warns(UserWarning, match=r"default_event_filter is deprecated and will be removed"):
+        Events.default_event_filter(None, None)
+
 
 @pytest.mark.parametrize(
     "event",
@@ -185,6 +188,11 @@ def test_callable_events(event):
     assert isinstance(ret, CallableEventWithFilter)
     assert ret == event
     assert ret.filter is not None
+    assert event.name in f"{ret}"
+
+    ret = event
+    assert isinstance(ret, CallableEventWithFilter)
+    assert ret.filter is None
     assert event.name in f"{ret}"
 
 

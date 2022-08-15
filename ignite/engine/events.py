@@ -116,8 +116,8 @@ class CallableEventWithFilter:
 
     @staticmethod
     def default_event_filter(engine: "Engine", event: int) -> bool:
-        """Default event filter."""
-        warnings.warn("Events.default_event_filter is deprecated. Please, use None instead")
+        """Default event filter. This method is is deprecated and will be removed. Please, use None instead"""
+        warnings.warn("Events.default_event_filter is deprecated and will be removed. Please, use None instead")
         return True
 
     def __repr__(self) -> str:
