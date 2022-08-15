@@ -127,6 +127,7 @@ class Engine(Serializable):
         self.last_event_name = None  # type: Optional[Events]
         self.should_terminate = False
         self.should_terminate_single_epoch = False
+        self.should_interrupt = False
         self.state = State()
         self._state_dict_user_keys = []  # type: List[str]
         self._allowed_events = []  # type: List[EventEnum]
@@ -450,6 +451,14 @@ class Engine(Serializable):
         self._assert_allowed_event(event_name)
         return self._fire_event(event_name)
 
+    def interrupt(self) -> None:
+        """Sends interrupt signal to the engine, so that it interrupts the run after
+        the current iteration. The run can be resumed by calling
+        :meth:`~ignite.engine.engine.Engine.run`. Data iteration will continue from the interrupted state.
+        """
+        self.logger.info("interrupt signaled. Engine will interrupt the run after current iteration is finished.")
+        self.should_interrupt = True
+
     def terminate(self) -> None:
         """Sends terminate signal to the engine, so that it terminates completely the run after
         the current iteration."""
@@ -719,7 +728,8 @@ class Engine(Serializable):
             if self.state.epoch_length is None and data is None:
                 raise ValueError("epoch_length should be provided if data is None")
 
-        self.state.dataloader = data
+        if self._dataloader_iter is None:
+            self.state.dataloader = data
         return self._internal_run()
 
     @staticmethod
@@ -757,20 +767,20 @@ class Engine(Serializable):
         self._init_iter.append(iteration)
 
     def _internal_run(self) -> State:
-        self.should_terminate = self.should_terminate_single_epoch = False
+        self.should_terminate = self.should_terminate_single_epoch = self.should_interrupt = False
         self._init_timers(self.state)
         try:
             try:
                 start_time = time.time()
                 self._fire_event(Events.STARTED)
-                self._maybe_terminate()
+                self._maybe_terminate_or_interrupt()
 
                 while not self._is_done(self.state) and not self.should_terminate:
                     self.state.epoch += 1
                     handlers_start_time = time.time()
                     self._fire_event(Events.EPOCH_STARTED)
                     epoch_time_taken = time.time() - handlers_start_time
-                    self._maybe_terminate()
+                    self._maybe_terminate_or_interrupt()
 
                     if self._dataloader_iter is None:
                         self._setup_engine()
@@ -785,7 +795,7 @@ class Engine(Serializable):
                     epoch_time_taken += time.time() - handlers_start_time
                     # update time wrt handlers
                     self.state.times[Events.EPOCH_COMPLETED.name] = epoch_time_taken
-                    self._maybe_terminate()
+                    self._maybe_terminate_or_interrupt()
 
                     hours, mins, secs = _to_hours_mins_secs(epoch_time_taken)
                     self.logger.info(
@@ -794,6 +804,10 @@ class Engine(Serializable):
 
             except _EngineTerminateException:
                 self._fire_event(Events.TERMINATE)
+
+            except _EngineInterruptException:
+                self._fire_event(Events.INTERRUPT)
+                return self.state
 
             time_taken = time.time() - start_time
             # time is available for handlers but must be updated after fire
@@ -814,12 +828,15 @@ class Engine(Serializable):
         self._dataloader_iter = None
         return self.state
 
-    def _maybe_terminate(self) -> None:
+    def _maybe_terminate_or_interrupt(self) -> None:
         if self.should_terminate:
             raise _EngineTerminateException()
 
         if self.should_terminate_single_epoch:
             raise _EngineTerminateSingleEpochException()
+
+        if self.should_interrupt:
+            raise _EngineinterruptException()
 
     def _run_once_on_dataset(self) -> float:
         start_time = time.time()
@@ -840,11 +857,11 @@ class Engine(Serializable):
                     # Avoid Events.GET_BATCH_STARTED triggered twice when data iter is restarted
                     if self.last_event_name != Events.DATALOADER_STOP_ITERATION:
                         self._fire_event(Events.GET_BATCH_STARTED)
-                        self._maybe_terminate()
+                        self._maybe_terminate_or_interrupt()
 
                     self.state.batch = next(self._dataloader_iter)
                     self._fire_event(Events.GET_BATCH_COMPLETED)
-                    self._maybe_terminate()
+                    self._maybe_terminate_or_interrupt()
 
                     iter_counter += 1
                     should_exit = False
@@ -874,7 +891,7 @@ class Engine(Serializable):
                         break
 
                     self._fire_event(Events.DATALOADER_STOP_ITERATION)
-                    self._maybe_terminate()
+                    self._maybe_terminate_or_interrupt()
 
                     self._setup_dataloader_iter()
                     should_exit = True
@@ -883,11 +900,11 @@ class Engine(Serializable):
 
                 self.state.iteration += 1
                 self._fire_event(Events.ITERATION_STARTED)
-                self._maybe_terminate()
+                self._maybe_terminate_or_interrupt()
 
                 self.state.output = self._process_function(self, self.state.batch)
                 self._fire_event(Events.ITERATION_COMPLETED)
-                self._maybe_terminate()
+                self._maybe_terminate_or_interrupt()
 
                 if self.state.epoch_length is not None and iter_counter == self.state.epoch_length:
                     break
@@ -916,15 +933,23 @@ def _get_none_data_iter(size: int) -> Iterator:
 
 class _EngineTerminateSingleEpochException(Exception):
     """
-    Exception associated with Terminate Single Epoch event
+    Exception associated with Enigne's Terminate Single Epoch event
+    """
+
+
+    pass
+
+class _EngineTerminateException(Exception):
+    """
+    Exception associated with Enigne's Terminate event
     """
 
     pass
 
 
-class _EngineTerminateException(Exception):
+class _EngineInterruptException(Exception):
     """
-    Exception associated with Terminate event
+    Exception associated with Enigne's interrupt event
     """
 
     pass

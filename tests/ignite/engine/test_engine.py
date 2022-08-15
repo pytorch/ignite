@@ -101,6 +101,7 @@ def test_terminate_at_end_of_epoch_stops_run(data):
 
     assert state.epoch == last_epoch_to_run
     assert engine.should_terminate
+    assert engine._dataloader_iter is None
 
 
 @pytest.mark.parametrize("data, epoch_length", [(None, 10), (range(10), None)])
@@ -124,6 +125,7 @@ def test_terminate_at_start_of_epoch_stops_run_after_completing_iteration(data, 
     # epoch is not completed so counter is not incremented
     assert state.epoch == epoch_to_terminate_on
     assert engine.should_terminate
+    assert engine._dataloader_iter is None
     assert state.iteration == ((epoch_to_terminate_on - 1) * real_epoch_length)
 
     # Engine continue from epoch_to_terminate_on until max_epochs
@@ -156,6 +158,7 @@ def test_terminate_at_start_of_epoch_stops_run_after_completing_iteration(data, 
 
     assert state.epoch == max_epochs
     assert not engine.should_terminate
+    assert engine._dataloader_iter is None
     # As terminated epoch is skipped -> iterations are not incremented
     assert state.iteration == real_epoch_length * (max_epochs - 1)
 
@@ -251,6 +254,7 @@ def test_terminate_events_sequence(terminate_event, e, i):
     assert engine.called_events[-1] == (e, i, Events.COMPLETED)
     assert engine.called_events[-2] == (e, i, Events.TERMINATE)
     assert engine.called_events[-3] == (e, i, terminate_event)
+    assert engine._dataloader_iter is None
 
 
 @pytest.mark.parametrize("data, epoch_length", [(None, 10), (range(10), None)])
@@ -1223,3 +1227,59 @@ def test_engine_run_resume(data, epoch_length):
     engine.run(data, max_epochs=10, epoch_length=epoch_length)
     assert engine.state.epoch == 10
     assert engine.state.iteration == 10 * real_epoch_length
+
+
+@pytest.mark.parametrize(
+    "interrupt_event, e, i",
+    [
+        (Events.EPOCH_STARTED(once=2), 2, None),
+        (Events.EPOCH_COMPLETED(once=2), 2, None),
+        (Events.GET_BATCH_STARTED(once=12), None, 12),
+        (Events.GET_BATCH_COMPLETED(once=12), None, 12),
+        (Events.ITERATION_STARTED(once=14), None, 14),
+        (Events.ITERATION_COMPLETED(once=14), None, 14),
+    ],
+)
+def test_engine_run_interrupt_resume(interrupt_event, e, i):
+    data = range(10)
+    max_epochs = 5
+
+    def check_input_data(e, b):
+        i = (e.state.iteration - 1) % len(data)
+        assert b == data[i]
+
+    engine = RecordedEngine(check_input_data)
+
+    @engine.on(interrupt_event)
+    def call_interrupt():
+        engine.interrupt()
+
+    state = engine.run(data, max_epochs=max_epochs)
+
+    if i is None:
+        if interrupt_event == Events.EPOCH_STARTED:
+            i = len(data) * (e - 1)
+        else:
+            i = len(data) * e
+
+    if e is None:
+        e = i // len(data) + 1
+
+    # Check the last events
+    assert engine.called_events[-1] == (e, i, Events.INTERRUPT)
+    assert engine.called_events[-2] == (e, i, interrupt_event)
+    assert state.epoch == e
+    assert state.iteration == i
+    assert engine._dataloader_iter is not None
+
+    engine.called_events = []
+
+    @engine.on(Events.STARTED)
+    def raise_error():
+        raise RuntimeError("Shouldn't be here")
+
+    engine.run(data, max_epochs=max_epochs)
+
+    assert engine.called_events[0] != Events.STARTED
+    # Check the first and the last events
+    # ...
