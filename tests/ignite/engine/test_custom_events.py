@@ -149,45 +149,43 @@ def test_callable_events_with_wrong_inputs():
         Events.ITERATION_STARTED(event_filter=lambda x: x)
 
 
-def test_callable_events():
+@pytest.mark.parametrize(
+    "event",
+    [
+        Events.ITERATION_STARTED,
+        Events.ITERATION_COMPLETED,
+        Events.EPOCH_STARTED,
+        Events.EPOCH_COMPLETED,
+        Events.GET_BATCH_STARTED,
+        Events.GET_BATCH_COMPLETED,
+        Events.STARTED,
+        Events.COMPLETED,
+    ],
+)
+def test_callable_events(event):
 
-    assert isinstance(Events.ITERATION_STARTED.value, str)
+    assert isinstance(event.value, str)
 
-    def foo(engine, event):
+    def foo(engine, _):
         return True
 
-    ret = Events.ITERATION_STARTED(event_filter=foo)
+    ret = event(event_filter=foo)
     assert isinstance(ret, CallableEventWithFilter)
-    assert ret == Events.ITERATION_STARTED
+    assert ret == event
     assert ret.filter == foo
-    assert isinstance(Events.ITERATION_STARTED.value, str)
+    assert event.name in f"{ret}"
 
-    # assert ret in Events
-    assert Events.ITERATION_STARTED.name in f"{ret}"
-    # assert ret in State.event_to_attr
-
-    ret = Events.ITERATION_STARTED(every=10)
+    ret = event(every=10)
     assert isinstance(ret, CallableEventWithFilter)
-    assert ret == Events.ITERATION_STARTED
+    assert ret == event
     assert ret.filter is not None
+    assert event.name in f"{ret}"
 
-    # assert ret in Events
-    assert Events.ITERATION_STARTED.name in f"{ret}"
-    # assert ret in State.event_to_attr
-
-    ret = Events.ITERATION_STARTED(once=10)
+    ret = event(once=10)
     assert isinstance(ret, CallableEventWithFilter)
-    assert ret == Events.ITERATION_STARTED
+    assert ret == event
     assert ret.filter is not None
-
-    # assert ret in Events
-    assert Events.ITERATION_STARTED.name in f"{ret}"
-    # assert ret in State.event_to_attr
-
-    def _attach(e1, e2):
-        assert id(e1) != id(e2)
-
-    _attach(Events.ITERATION_STARTED(every=10), Events.ITERATION_COMPLETED(every=10))
+    assert event.name in f"{ret}"
 
 
 def test_callable_events_every_eq_one():

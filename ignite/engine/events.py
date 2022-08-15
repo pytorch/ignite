@@ -1,4 +1,5 @@
 import numbers
+import warnings
 import weakref
 from enum import Enum
 from types import DynamicClassAttribute
@@ -27,8 +28,6 @@ class CallableEventWithFilter:
     """
 
     def __init__(self, value: str, event_filter: Optional[Callable] = None, name: Optional[str] = None) -> None:
-        if event_filter is None:
-            event_filter = CallableEventWithFilter.default_event_filter
         self.filter = event_filter
 
         if not hasattr(self, "_value_"):
@@ -118,10 +117,14 @@ class CallableEventWithFilter:
     @staticmethod
     def default_event_filter(engine: "Engine", event: int) -> bool:
         """Default event filter."""
+        warnings.warn("Events.default_event_filter is deprecated. Please, use None instead")
         return True
 
-    def __str__(self) -> str:
-        return "<event=%s, filter=%r>" % (self.name, self.filter)
+    def __repr__(self) -> str:
+        out = f"Events.{self.name}"
+        if self.filter is not None:
+            out += f"(filter={self.filter})"
+        return out
 
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, CallableEventWithFilter):

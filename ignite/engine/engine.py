@@ -292,10 +292,7 @@ class Engine(Serializable):
             for e in event_name:
                 self.add_event_handler(e, handler, *args, **kwargs)
             return RemovableEventHandle(event_name, handler, self)
-        if (
-            isinstance(event_name, CallableEventWithFilter)
-            and event_name.filter != CallableEventWithFilter.default_event_filter
-        ):
+        if isinstance(event_name, CallableEventWithFilter) and event_name.filter is not None:
             event_filter = event_name.filter
             handler = self._handler_wrapper(handler, event_name, event_filter)
 
@@ -311,16 +308,6 @@ class Engine(Serializable):
         self.logger.debug(f"added handler for event {event_name}")
 
         return RemovableEventHandle(event_name, handler, self)
-
-    @staticmethod
-    def _assert_non_filtered_event(event_name: Any) -> None:
-        if (
-            isinstance(event_name, CallableEventWithFilter)
-            and event_name.filter != CallableEventWithFilter.default_event_filter
-        ):
-            raise TypeError(
-                "Argument event_name should not be a filtered event, " "please use event without any event filtering"
-            )
 
     def has_event_handler(self, handler: Callable, event_name: Optional[Any] = None) -> bool:
         """Check if the specified event has the specified handler.
