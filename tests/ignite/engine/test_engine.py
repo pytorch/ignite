@@ -187,21 +187,15 @@ def test_terminate_stops_run_mid_epoch(data, epoch_length):
         assert engine.state.iteration == first_epoch_iter[1]
 
     if data is not None:
-        expected_data_iter = iter(data)
         expected_iter = state.iteration
 
         @engine.on(Events.ITERATION_STARTED)
         def check_iter_and_data():
-            nonlocal expected_data_iter, expected_iter
+            nonlocal expected_iter
 
             expected_iter += 1
             assert engine.state.iteration == expected_iter
-
-            try:
-                assert engine.state.batch == next(expected_data_iter)
-            except StopIteration:
-                expected_data_iter = iter(data)
-                assert engine.state.batch == next(expected_data_iter)
+            assert engine.state.batch == data[(expected_iter - first_epoch_iter[1] - 1) % len(data)]
 
     first_epoch_iter[0], first_epoch_iter[1] = state.epoch, state.iteration
     state = engine.run(data, max_epochs=max_epochs, epoch_length=epoch_length)
@@ -211,10 +205,58 @@ def test_terminate_stops_run_mid_epoch(data, epoch_length):
     assert state.iteration == real_epoch_length * (max_epochs - 1)
 
 
-@pytest.mark.parametrize("data", [None, list(range(10))])
-def test_terminate_epoch_stops_mid_epoch(data):
-    num_iterations_per_epoch = len(data) if data is not None else 10
-    iteration_to_stop = num_iterations_per_epoch + 4
+class RecordedEngine(Engine):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.called_events = []
+
+    def _fire_event(self, event_name, *event_args, **event_kwargs):
+        self.called_events.append((self.state.epoch, self.state.iteration, event_name.name))
+        return super()._fire_event(event_name, *event_args, **event_kwargs)
+
+
+@pytest.mark.parametrize(
+    "terminate_event, e, i",
+    [
+        (Events.STARTED, 0, 0),
+        (Events.EPOCH_STARTED(once=2), 2, None),
+        (Events.EPOCH_COMPLETED(once=2), 2, None),
+        (Events.GET_BATCH_STARTED(once=12), None, 12),
+        (Events.GET_BATCH_COMPLETED(once=12), None, 12),
+        (Events.ITERATION_STARTED(once=14), None, 14),
+        (Events.ITERATION_COMPLETED(once=14), None, 14),
+    ],
+)
+def test_terminate_events_sequence(terminate_event, e, i):
+    engine = RecordedEngine(MagicMock(return_value=1))
+    data = range(10)
+    max_epochs = 5
+
+    @engine.on(terminate_event)
+    def call_terminate():
+        engine.terminate()
+
+    engine.run(data, max_epochs=max_epochs)
+
+    if i is None:
+        if terminate_event == Events.EPOCH_STARTED:
+            i = len(data) * (e - 1)
+        else:
+            i = len(data) * e
+
+    if e is None:
+        e = i // len(data) + 1
+
+    assert engine.called_events[0] == (0, 0, Events.STARTED)
+    assert engine.called_events[-1] == (e, i, Events.COMPLETED)
+    assert engine.called_events[-2] == (e, i, Events.TERMINATE)
+    assert engine.called_events[-3] == (e, i, terminate_event)
+
+
+@pytest.mark.parametrize("data, epoch_length", [(None, 10), (range(10), None)])
+def test_terminate_epoch_stops_mid_epoch(data, epoch_length):
+    real_epoch_length = epoch_length if data is None else len(data)
+    iteration_to_stop = real_epoch_length + 4
 
     engine = Engine(MagicMock(return_value=1))
 
@@ -224,10 +266,49 @@ def test_terminate_epoch_stops_mid_epoch(data):
 
     max_epochs = 3
     engine.add_event_handler(Events.ITERATION_STARTED, start_of_iteration_handler)
-    state = engine.run(data, max_epochs=max_epochs, epoch_length=num_iterations_per_epoch)
+    state = engine.run(data, max_epochs=max_epochs, epoch_length=epoch_length)
     # completes the iteration but doesn't increment counter (this happens just before a new iteration starts)
-    true_value = num_iterations_per_epoch * (max_epochs - 1) + iteration_to_stop % num_iterations_per_epoch
+    true_value = real_epoch_length * (max_epochs - 1) + iteration_to_stop % real_epoch_length
     assert state.iteration == true_value
+    assert state.epoch == max_epochs
+
+
+@pytest.mark.parametrize(
+    "terminate_epoch_event, i",
+    [
+        (Events.GET_BATCH_STARTED(once=12), 12),
+        (Events.GET_BATCH_COMPLETED(once=12), 12),
+        (Events.ITERATION_STARTED(once=14), 14),
+        (Events.ITERATION_COMPLETED(once=14), 14),
+    ],
+)
+def test_terminate_epoch_events_sequence(terminate_epoch_event, i):
+    engine = RecordedEngine(MagicMock(return_value=1))
+    data = range(10)
+    max_epochs = 5
+
+    # TODO: Bug: Events.GET_BATCH_STARTED(once=12) is called twice !
+    # prevent call_terminate_epoch to be called twice
+    call_count = 0
+
+    @engine.on(terminate_epoch_event)
+    def call_terminate_epoch():
+        nonlocal call_count
+        if call_count < 1:
+            engine.terminate_epoch()
+        call_count += 1
+
+    @engine.on(Events.TERMINATE_SINGLE_EPOCH)
+    def check_previous_events(iter_counter):
+        e = i // len(data) + 1
+
+        print("engine.called_events:", engine.called_events)
+
+        assert engine.called_events[0] == (0, 0, Events.STARTED)
+        assert engine.called_events[-1] == (e, i, Events.TERMINATE_SINGLE_EPOCH)
+        assert engine.called_events[-2] == (e, i, terminate_epoch_event)
+
+    engine.run(data, max_epochs=max_epochs)
 
 
 def _create_mock_data_loader(epochs, batches_per_epoch):
