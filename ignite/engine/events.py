@@ -299,7 +299,7 @@ class Events(EventEnum):
     """triggered when the run is about to end completely, after receiving terminate() call."""
     TERMINATE_SINGLE_EPOCH = "terminate_single_epoch"
     """triggered when the run is about to end the current epoch,
-    after receiving a terminate_epoch() or terminate() call."""
+    after receiving a terminate_epoch() call."""
 
     def __or__(self, other: Any) -> "EventsList":
         return EventsList() | self | other
