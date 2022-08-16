@@ -16,6 +16,10 @@ from packaging.version import Version
 if Version(torch.__version__) >= Version("1.9.0"):
     from torch.distributed.optim import ZeroRedundancyOptimizer
 
+    HAVE_ZERO = True
+else:
+    HAVE_ZERO = False
+
 import ignite.distributed as idist
 from ignite.base import Serializable
 from ignite.engine import Engine, Events
@@ -287,7 +291,7 @@ class Checkpoint(Serializable):
         filename_pattern: Optional[str] = None,
         include_self: bool = False,
         greater_or_equal: bool = False,
-        save_on_rank: Optional[int] = 0,
+        save_on_rank: int = 0,
     ):
 
         if not isinstance(to_save, collections.Mapping):
@@ -471,7 +475,7 @@ class Checkpoint(Serializable):
             for k, obj in self.to_save.items():
                 if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
                     obj = obj.module
-                elif Version(torch.__version__) >= Version("1.9.0") and isinstance(obj, ZeroRedundancyOptimizer):
+                elif HAVE_ZERO and isinstance(obj, ZeroRedundancyOptimizer):
                     obj.consolidate_state_dict(to=self.save_on_rank)
                     if self.save_on_rank != idist.get_rank():
                         continue
@@ -791,7 +795,7 @@ class DiskSaver(BaseSaveHandler):
         atomic: bool = True,
         create_dir: bool = True,
         require_empty: bool = True,
-        save_on_rank: Optional[int] = 0,
+        save_on_rank: int = 0,
         **kwargs: Any,
     ):
         self.dirname = Path(dirname).expanduser()
@@ -957,7 +961,7 @@ class ModelCheckpoint(Checkpoint):
         filename_pattern: Optional[str] = None,
         include_self: bool = False,
         greater_or_equal: bool = False,
-        save_on_rank: Optional[int] = 0,
+        save_on_rank: int = 0,
         **kwargs: Any,
     ):
 

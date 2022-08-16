@@ -11,9 +11,6 @@ import torch
 import torch.nn as nn
 from packaging.version import Version
 
-if Version(torch.__version__) >= Version("1.9.0"):
-    from torch.distributed.optim import ZeroRedundancyOptimizer
-
 import ignite.distributed as idist
 from ignite.engine import Engine, Events, State
 from ignite.handlers import Checkpoint, DiskSaver, EarlyStopping, global_step_from_engine, ModelCheckpoint
@@ -1247,6 +1244,9 @@ def _test_checkpoint_load_objects_ddp(device):
 
 
 def _test_checkpoint_with_ZeRO(device, dirname, local_rank):
+
+    from torch.distributed.optim import ZeroRedundancyOptimizer
+
     model = DummyModel().to(device)
     opt = ZeroRedundancyOptimizer(model.parameters(), torch.optim.SGD, lr=0.01)
     mocked_opt = MagicMock(ZeroRedundancyOptimizer, wraps=opt)
@@ -1282,7 +1282,9 @@ def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo, dirname, 
     _test_checkpoint_with_ddp(device)
     _test_checkpoint_load_objects_ddp(device)
 
-    if Version(torch.__version__) >= Version("1.9.0"):
+    from ignite.handlers.checkpoint import HAVE_ZERO
+
+    if HAVE_ZERO:
         _test_checkpoint_with_ZeRO(device, dirname, local_rank)
 
 
