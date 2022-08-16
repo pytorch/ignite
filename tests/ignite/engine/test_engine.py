@@ -1060,7 +1060,7 @@ def test_run_with_invalid_max_iters_and_max_epoch():
         engine.run([0] * 20, max_iters=max_iters, max_epochs=max_epochs)
 
 
-def test_epoch_events_fired():
+def test_epoch_events_fired_max_iters():
     max_iters = 32
     engine = Engine(lambda e, b: 1)
 

@@ -881,7 +881,7 @@ class Engine(Serializable):
 
                 if self.state.max_iters is not None and self.state.iteration == self.state.max_iters:
                     self.should_terminate = True
-                    break
+                    raise _EngineTerminateException()
 
         except _EngineTerminateSingleEpochException:
             self._fire_event(Events.TERMINATE_SINGLE_EPOCH, iter_counter=iter_counter)
