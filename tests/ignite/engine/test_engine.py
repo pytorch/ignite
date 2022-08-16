@@ -172,6 +172,10 @@ def test_terminate_stops_run_mid_epoch(data, epoch_length):
         if engine.state.iteration == iteration_to_stop:
             engine.terminate()
 
+    @engine.on(Events.EXCEPTION_RAISED)
+    def assert_no_exceptions(ee):
+        assert False, f"Engine should terminate without raising an exception, got '{type(ee)}'"
+
     engine.add_event_handler(Events.ITERATION_STARTED, start_of_iteration_handler)
     state = engine.run(data, max_epochs=max_epochs, epoch_length=epoch_length)
     # completes the iteration but doesn't increment counter (this happens just before a new iteration starts)
@@ -235,6 +239,10 @@ def test_terminate_events_sequence(terminate_event, e, i):
     @engine.on(terminate_event)
     def call_terminate():
         engine.terminate()
+
+    @engine.on(Events.EXCEPTION_RAISED)
+    def assert_no_exceptions(ee):
+        assert False, f"Engine should terminate without raising an exception, got '{type(ee)}'"
 
     engine.run(data, max_epochs=max_epochs)
 

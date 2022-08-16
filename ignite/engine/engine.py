@@ -888,6 +888,11 @@ class Engine(Serializable):
             self.should_terminate_single_epoch = False
             self._setup_dataloader_iter()
 
+        except _EngineTerminateException as e:
+            # we need to reraise this exception such that it is not handled
+            # as a general exception by the code below
+            raise e
+
         except Exception as e:
             self.logger.error(f"Current run is terminating due to exception: {e}")
             self._handle_exception(e)
