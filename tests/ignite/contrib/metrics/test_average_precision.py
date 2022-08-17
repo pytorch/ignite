@@ -220,7 +220,6 @@ def _test_distrib_integration_binary_input(device):
     n_classes = 2
 
     def _test(y_preds, y_true, n_epochs, metric_device, update_fn):
-        torch.manual_seed(12 + rank)
         metric_device = torch.device(metric_device)
 
         engine = Engine(update_fn)
@@ -242,6 +241,7 @@ def _test_distrib_integration_binary_input(device):
         assert pytest.approx(res) == true_res
 
     def get_tests(is_N):
+        torch.manual_seed(12 + rank)
         if is_N:
             y_true = torch.randint(0, n_classes, size=(n_iters * batch_size,)).to(device)
             y_preds = torch.rand(n_iters * batch_size).to(device)
