@@ -215,11 +215,9 @@ def _test_distrib_binary_and_multilabel_inputs(device):
 def _test_distrib_integration_binary_input(device):
 
     rank = idist.get_rank()
-    torch.manual_seed(12)
     n_iters = 80
     batch_size = 16
     n_classes = 2
-    offset = n_iters * batch_size
 
     def _test(y_preds, y_true, n_epochs, metric_device, update_fn):
         torch.manual_seed(12 + rank)
@@ -263,6 +261,7 @@ def _test_distrib_integration_binary_input(device):
                     y_preds[i * batch_size * n_iters : (i + 1) * batch_size * n_iters, :],
                     y_true[i * batch_size * n_iters : (i + 1) * batch_size * n_iters, :],
                 )
+
         return y_preds, y_true, update_fn
 
     metric_devices = ["cpu"]
