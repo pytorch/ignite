@@ -258,8 +258,8 @@ def _test_distrib_integration_binary_input(device):
 
             def update_fn(engine, i):
                 return (
-                    y_preds[i * batch_size * n_iters : (i + 1) * batch_size * n_iters, :],
-                    y_true[i * batch_size * n_iters : (i + 1) * batch_size * n_iters, :],
+                    y_preds[i * batch_size : (i + 1) * batch_size, :],
+                    y_true[i * batch_size : (i + 1) * batch_size, :],
                 )
 
         return y_preds, y_true, update_fn
