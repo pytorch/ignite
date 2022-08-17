@@ -217,11 +217,12 @@ def _test_distrib_integration_binary_input(device):
     rank = idist.get_rank()
     torch.manual_seed(12)
     n_iters = 80
-    s = 16
+    batch_size = 16
     n_classes = 2
-    offset = n_iters * s
+    offset = n_iters * batch_size
 
     def _test(y_preds, y_true, n_epochs, metric_device, update_fn):
+        torch.manual_seed(12 + rank)
         metric_device = torch.device(metric_device)
 
         engine = Engine(update_fn)
@@ -232,6 +233,9 @@ def _test_distrib_integration_binary_input(device):
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=n_epochs)
 
+        y_true = idist.all_gather(y_true)
+        y_preds = idist.all_gather(y_preds)
+
         assert "ap" in engine.state.metrics
 
         res = engine.state.metrics["ap"]
@@ -241,25 +245,24 @@ def _test_distrib_integration_binary_input(device):
 
     def get_tests(is_N):
         if is_N:
-            y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(),)).to(device)
-            y_preds = torch.rand(offset * idist.get_world_size()).to(device)
+            y_true = torch.randint(0, n_classes, size=(n_iters * batch_size,)).to(device)
+            y_preds = torch.rand(n_iters * batch_size).to(device)
 
             def update_fn(engine, i):
                 return (
-                    y_preds[i * s + rank * offset : (i + 1) * s + rank * offset],
-                    y_true[i * s + rank * offset : (i + 1) * s + rank * offset],
+                    y_preds[i * batch_size : (i + 1) * batch_size],
+                    y_true[i * batch_size : (i + 1) * batch_size],
                 )
 
         else:
-            y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(), 10)).to(device)
-            y_preds = torch.randint(0, n_classes, size=(offset * idist.get_world_size(), 10)).to(device)
+            y_true = torch.randint(0, n_classes, size=(n_iters * batch_size, 10)).to(device)
+            y_preds = torch.randint(0, n_classes, size=(n_iters * batch_size, 10)).to(device)
 
             def update_fn(engine, i):
                 return (
-                    y_preds[i * s + rank * offset : (i + 1) * s + rank * offset, :],
-                    y_true[i * s + rank * offset : (i + 1) * s + rank * offset, :],
+                    y_preds[i * batch_size * n_iters : (i + 1) * batch_size * n_iters, :],
+                    y_true[i * batch_size * n_iters : (i + 1) * batch_size * n_iters, :],
                 )
-
         return y_preds, y_true, update_fn
 
     metric_devices = ["cpu"]
