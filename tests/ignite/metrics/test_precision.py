@@ -127,7 +127,9 @@ def test_binary_input(average):
         assert isinstance(pr.compute(), torch.Tensor if not average else float)
         pr_compute = pr.compute().numpy() if not average else pr.compute()
         sk_average_parameter = ignite_average_to_scikit_average(average, "binary")
-        assert precision_score(np_y, np_y_pred, average=sk_average_parameter) == pytest.approx(pr_compute)
+        assert precision_score(np_y, np_y_pred, average=sk_average_parameter, zero_division=0) == pytest.approx(
+            pr_compute
+        )
 
     def get_test_cases():
 
@@ -151,8 +153,8 @@ def test_binary_input(average):
             (torch.randint(0, 2, size=(50, 12, 10)), torch.randint(0, 2, size=(50, 12, 10)), 16),
             (torch.randint(0, 2, size=(50, 1, 12, 10)), torch.randint(0, 2, size=(50, 1, 12, 10)), 16),
             # Corner case with all zeros predictions
-            (torch.zeros(size=(10,)), torch.randint(0, 2, size=(10,)), 1),
-            (torch.zeros(size=(10, 1)), torch.randint(0, 2, size=(10, 1)), 1),
+            (torch.zeros(size=(10,)).long(), torch.randint(0, 2, size=(10,)), 1),
+            (torch.zeros(size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)), 1),
         ]
 
         return test_cases
