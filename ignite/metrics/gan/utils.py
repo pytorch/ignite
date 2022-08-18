@@ -25,9 +25,10 @@ class InceptionModel(torch.nn.Module):
         super(InceptionModel, self).__init__()
         self._device = device
         if Version(torch.__version__) <= Version("1.7.0"):
-            self.model = models.inception_v3(pretrained=True).to(self._device)
+            model_kwargs = {"pretrained": True}
         else:
-            self.model = models.inception_v3(weights=models.Inception_V3_Weights.DEFAULT).to(self._device)
+            model_kwargs = {"weights": models.Inception_V3_Weights.DEFAULT}
+        self.model = models.inception_v3(model_kwargs).to(self._device)
         if return_features:
             self.model.fc = torch.nn.Identity()
         else:
