@@ -5,6 +5,7 @@ import torch
 from ignite.metrics.metric import Metric
 from packaging.version import Version
 
+
 class InceptionModel(torch.nn.Module):
     r"""Inception Model pre-trained on the ImageNet Dataset.
 
