@@ -180,7 +180,7 @@ def test_exponential_scheduler(max_epochs, initial_value, gamma):
         torch_testing_assert_close = torch.testing.assert_allclose
     else:
         torch_testing_assert_close = torch.testing.assert_close
-    torch_testing_assert_close(getattr(engine.state, "exp_scheduled_param"), initial_value * gamma**max_epochs)
+    torch_testing_assert_close(getattr(engine.state, "exp_scheduled_param"), initial_value * gamma ** max_epochs)
 
     state_dict = exp_state_parameter_scheduler.state_dict()
     exp_state_parameter_scheduler.load_state_dict(state_dict)
