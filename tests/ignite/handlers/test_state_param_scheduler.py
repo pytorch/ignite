@@ -352,7 +352,7 @@ def test_torch_save_load(dirname):
         torch.testing.assert_close(
             getattr(engine1.state, "custom_scheduled_param"), LambdaState(initial_value=10, gamma=0.99)(2)
         )
-        
+
     engine2 = Engine(lambda e, b: None)
     loaded_lambda_state_parameter_scheduler.attach(engine2, Events.EPOCH_COMPLETED)
     engine2.run([0] * 8, max_epochs=2)
