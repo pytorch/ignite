@@ -1,9 +1,9 @@
 from typing import Callable, Optional, Union
 
 import torch
+from packaging.version import Version
 
 from ignite.metrics.metric import Metric
-from packaging.version import Version
 
 
 class InceptionModel(torch.nn.Module):
