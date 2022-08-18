@@ -3,7 +3,7 @@ from typing import Callable, Optional, Union
 import torch
 
 from ignite.metrics.metric import Metric
-
+from packaging.version import Version
 
 class InceptionModel(torch.nn.Module):
     r"""Inception Model pre-trained on the ImageNet Dataset.
@@ -23,7 +23,10 @@ class InceptionModel(torch.nn.Module):
             raise RuntimeError("This module requires torchvision to be installed.")
         super(InceptionModel, self).__init__()
         self._device = device
-        self.model = models.inception_v3(weights=models.Inceaaaption_V3_Weights.DEFAULT).to(self._device)
+        if Version(torch.__version__) <= Version("1.7.0"):
+            self.model = models.inception_v3(pretrained=True).to(self._device)
+        else:
+            self.model = models.inception_v3(weights=models.Inception_V3_Weights.DEFAULT).to(self._device)
         if return_features:
             self.model.fc = torch.nn.Identity()
         else:
