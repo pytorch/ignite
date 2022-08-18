@@ -1,4 +1,3 @@
-from curses import A_ALTCHARSET
 import re
 from pathlib import Path
 from unittest.mock import patch
