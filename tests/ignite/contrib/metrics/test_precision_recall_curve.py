@@ -169,7 +169,6 @@ def _test_distrib_compute(device):
         assert precision_recall_curve(np_y, np_y_pred)[2] == pytest.approx(res[2].cpu().numpy())
 
     def get_test_cases():
-        torch.manual_seed(12 + rank)
         test_cases = [
             # Binary input data of shape (N,) or (N, 1)
             (torch.randint(0, 2, size=(10,)), torch.randint(0, 2, size=(10,)), 1),
@@ -180,7 +179,8 @@ def _test_distrib_compute(device):
         ]
         return test_cases
 
-    for _ in range(3):
+    for i in range(3):
+        torch.manual_seed(12 + rank + i)
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
             y_pred = y_pred.to(device)
@@ -188,7 +188,6 @@ def _test_distrib_compute(device):
             _test(y_pred, y, batch_size, "cpu")
             if device.type != "xla":
                 _test(y_pred, y, batch_size, idist.device())
-
 
 def _test_distrib_integration(device):
 
