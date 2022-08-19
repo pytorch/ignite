@@ -1252,7 +1252,7 @@ def _test_checkpoint_with_ZeRO(device, dirname, local_rank):
     mocked_opt = MagicMock(ZeroRedundancyOptimizer, wraps=opt)
 
     # A `step` should be called to optimizer state get populated.
-    out = model(torch.Tensor([1.0]))
+    out = model(torch.Tensor([1.0], device=device))
     out.backward()
     mocked_opt.step()
 
