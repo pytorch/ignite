@@ -227,13 +227,12 @@ def _test_distrib_integration_binary_input(device):
         metric_device = torch.device(metric_device)
         n_iters = 80
         batch_size = 16
-        n_classes = 2
 
         torch.manual_seed(12 + rank)
 
         # Binary input data of shape (N,) or (N, 1)
-        y_true = torch.randint(0, n_classes, size=(n_iters * batch_size,)).to(device)
-        y_preds = torch.randint(0, n_classes, size=(n_iters * batch_size,)).to(device)
+        y_true = torch.randint(0, 2, size=(n_iters * batch_size,)).to(device)
+        y_preds = torch.randint(0, 2, size=(n_iters * batch_size,)).to(device)
 
         def update(engine, i):
             return (
