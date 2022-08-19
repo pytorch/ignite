@@ -138,20 +138,18 @@ def test_check_compute_fn():
 
 
 def _test_distrib_compute(device):
-
     rank = idist.get_rank()
-    torch.manual_seed(12)
+    n_iters = 80
+    batch_size = 16
+    n_classes = 2
 
     def _test(y_pred, y, batch_size, metric_device):
 
         metric_device = torch.device(metric_device)
         prc = PrecisionRecallCurve(device=metric_device)
 
-        torch.manual_seed(10 + rank)
-
         prc.reset()
         if batch_size > 1:
-            n_iters = y.shape[0] // batch_size + 1
             for i in range(n_iters):
                 idx = i * batch_size
                 prc.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
@@ -173,13 +171,22 @@ def _test_distrib_compute(device):
         assert precision_recall_curve(np_y, np_y_pred)[2] == pytest.approx(res[2].cpu().numpy())
 
     def get_test_cases():
+        torch.manual_seed(12 + rank)
         test_cases = [
             # Binary input data of shape (N,) or (N, 1)
-            (torch.randint(0, 2, size=(10,)), torch.randint(0, 2, size=(10,)), 1),
-            (torch.randint(0, 2, size=(10, 1)), torch.randint(0, 2, size=(10, 1)), 1),
+            (torch.randint(0, n_classes, size=(10,)), torch.randint(0, n_classes, size=(10,)), 1),
+            (torch.randint(0, n_classes, size=(10, 1)), torch.randint(0, n_classes, size=(10, 1)), 1),
             # updated batches
-            (torch.randint(0, 2, size=(50,)), torch.randint(0, 2, size=(50,)), 16),
-            (torch.randint(0, 2, size=(50, 1)), torch.randint(0, 2, size=(50, 1)), 16),
+            (
+                torch.randint(0, n_classes, size=(n_iters * batch_size,)),
+                torch.randint(0, n_classes, size=(n_iters * batch_size,)),
+                batch_size,
+            ),
+            (
+                torch.randint(0, n_classes, size=(n_iters * batch_size, 1)),
+                torch.randint(0, n_classes, size=(n_iters * batch_size, 1)),
+                batch_size,
+            ),
         ]
         return test_cases
 
@@ -196,19 +203,20 @@ def _test_distrib_compute(device):
 def _test_distrib_integration(device):
 
     rank = idist.get_rank()
-    torch.manual_seed(12)
 
     def _test(n_epochs, metric_device):
         metric_device = torch.device(metric_device)
         n_iters = 80
-        size = 151
-        y_true = torch.randint(0, 2, (size,)).to(device)
-        y_preds = torch.randint(0, 2, (size,)).to(device)
+        batch_size = 151
+        torch.manual_seed(12 + rank)
+
+        y_true = torch.randint(0, 2, (n_iters * batch_size,)).to(device)
+        y_preds = torch.randint(0, 2, (n_iters * batch_size,)).to(device)
 
         def update(engine, i):
             return (
-                y_preds[i * size : (i + 1) * size],
-                y_true[i * size : (i + 1) * size],
+                y_preds[i * batch_size : (i + 1) * batch_size],
+                y_true[i * batch_size : (i + 1) * batch_size],
             )
 
         engine = Engine(update)
@@ -218,6 +226,9 @@ def _test_distrib_integration(device):
 
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=n_epochs)
+
+        y_true = idist.all_gather(y_true)
+        y_preds = idist.all_gather(y_preds)
 
         assert "prc" in engine.state.metrics
 
