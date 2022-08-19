@@ -173,9 +173,6 @@ def test_integration_binary_input(weights):
 def _test_distrib_binary_input(device):
 
     rank = idist.get_rank()
-    n_iters = 80
-    batch_size = 16
-    n_classes = 2
 
     def _test(y_pred, y, batch_size, metric_device):
 
@@ -184,6 +181,7 @@ def _test_distrib_binary_input(device):
 
         ck.reset()
         if batch_size > 1:
+            n_iters = y.shape[0] // batch_size + 1
             for i in range(n_iters):
                 idx = i * batch_size
                 ck.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
@@ -205,19 +203,11 @@ def _test_distrib_binary_input(device):
         torch.manual_seed(10 + rank)
         test_cases = [
             # Binary input data of shape (N,) or (N, 1)
-            (torch.randint(0, n_classes, size=(10,)).long(), torch.randint(0, n_classes, size=(10,)).long(), 1),
-            (torch.randint(0, n_classes, size=(10, 1)).long(), torch.randint(0, n_classes, size=(10, 1)).long(), 1),
+            (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 1),
+            (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 1),
             # updated batches
-            (
-                torch.randint(0, n_classes, size=(n_iters * batch_size,)).long(),
-                torch.randint(0, n_classes, size=(n_iters * batch_size,)).long(),
-                batch_size,
-            ),
-            (
-                torch.randint(0, n_classes, size=(n_iters * batch_size, 1)).long(),
-                torch.randint(0, n_classes, size=(n_iters * batch_size, 1)).long(),
-                batch_size,
-            ),
+            (torch.randint(0, 2, size=(50,)).long(), torch.randint(0, 2, size=(50,)).long(), 16),
+            (torch.randint(0, 2, size=(50, 1)).long(), torch.randint(0, 2, size=(50, 1)).long(), 16),
         ]
         return test_cases
 
