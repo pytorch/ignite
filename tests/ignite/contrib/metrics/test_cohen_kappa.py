@@ -173,18 +173,17 @@ def test_integration_binary_input(weights):
 def _test_distrib_binary_input(device):
 
     rank = idist.get_rank()
-    torch.manual_seed(12)
+    n_iters = 80
+    batch_size = 16
+    n_classes = 2
 
     def _test(y_pred, y, batch_size, metric_device):
 
         metric_device = torch.device(metric_device)
         ck = CohenKappa(device=metric_device)
 
-        torch.manual_seed(10 + rank)
-
         ck.reset()
         if batch_size > 1:
-            n_iters = y.shape[0] // batch_size + 1
             for i in range(n_iters):
                 idx = i * batch_size
                 ck.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
@@ -203,13 +202,22 @@ def _test_distrib_binary_input(device):
         assert cohen_kappa_score(np_y, np_y_pred) == pytest.approx(res)
 
     def get_test_cases():
+        torch.manual_seed(10 + rank)
         test_cases = [
             # Binary input data of shape (N,) or (N, 1)
-            (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 1),
-            (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 1),
+            (torch.randint(0, n_classes, size=(10,)).long(), torch.randint(0, n_classes, size=(10,)).long(), 1),
+            (torch.randint(0, n_classes, size=(10, 1)).long(), torch.randint(0, n_classes, size=(10, 1)).long(), 1),
             # updated batches
-            (torch.randint(0, 2, size=(50,)).long(), torch.randint(0, 2, size=(50,)).long(), 16),
-            (torch.randint(0, 2, size=(50, 1)).long(), torch.randint(0, 2, size=(50, 1)).long(), 16),
+            (
+                torch.randint(0, n_classes, size=(n_iters * batch_size,)).long(),
+                torch.randint(0, n_classes, size=(n_iters * batch_size,)).long(),
+                batch_size,
+            ),
+            (
+                torch.randint(0, n_classes, size=(n_iters * batch_size, 1)).long(),
+                torch.randint(0, n_classes, size=(n_iters * batch_size, 1)).long(),
+                batch_size,
+            ),
         ]
         return test_cases
 
@@ -224,23 +232,23 @@ def _test_distrib_binary_input(device):
 def _test_distrib_integration_binary_input(device):
 
     rank = idist.get_rank()
-    torch.manual_seed(12)
 
     def _test(n_epochs, metric_device):
         metric_device = torch.device(metric_device)
         n_iters = 80
-        s = 16
+        batch_size = 16
         n_classes = 2
-        offset = n_iters * s
+
+        torch.manual_seed(12 + rank)
 
         # Binary input data of shape (N,) or (N, 1)
-        y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(),)).to(device)
-        y_preds = torch.randint(0, n_classes, size=(offset * idist.get_world_size(),)).to(device)
+        y_true = torch.randint(0, n_classes, size=(n_iters * batch_size,)).to(device)
+        y_preds = torch.randint(0, n_classes, size=(n_iters * batch_size,)).to(device)
 
         def update(engine, i):
             return (
-                y_preds[i * s + rank * offset : (i + 1) * s + rank * offset],
-                y_true[i * s + rank * offset : (i + 1) * s + rank * offset],
+                y_preds[i * batch_size : (i + 1) * batch_size],
+                y_true[i * batch_size : (i + 1) * batch_size],
             )
 
         engine = Engine(update)
@@ -250,6 +258,9 @@ def _test_distrib_integration_binary_input(device):
 
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=n_epochs)
+
+        y_true = idist.all_gather(y_true)
+        y_preds = idist.all_gather(y_preds)
 
         assert "ck" in engine.state.metrics
 
