@@ -200,7 +200,6 @@ def _test_distrib_binary_input(device):
         assert cohen_kappa_score(np_y, np_y_pred) == pytest.approx(res)
 
     def get_test_cases():
-        torch.manual_seed(10 + rank)
         test_cases = [
             # Binary input data of shape (N,) or (N, 1)
             (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 1),
@@ -211,7 +210,8 @@ def _test_distrib_binary_input(device):
         ]
         return test_cases
 
-    for _ in range(3):
+    for i in range(3):
+        torch.manual_seed(10 + rank + i)
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
             _test(y_pred, y, batch_size, "cpu")
