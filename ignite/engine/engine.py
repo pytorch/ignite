@@ -763,7 +763,7 @@ class Engine(Serializable):
                 # update time wrt handlers
                 self.state.times[Events.EPOCH_COMPLETED.name] = time_taken
                 hours, mins, secs = _to_hours_mins_secs(time_taken)
-                self.logger.info(f"Epoch[{self.state.epoch}] Complete. Time taken: {hours:02d}:{mins:02d}:{secs:02d}")
+                self.logger.info(f"Epoch[{self.state.epoch}] Complete. Time taken: {hours:02d}:{mins:02d}:{secs:06.3f}")
                 if self.should_terminate:
                     break
 
@@ -776,7 +776,7 @@ class Engine(Serializable):
             # update time wrt handlers
             self.state.times[Events.COMPLETED.name] = time_taken
             hours, mins, secs = _to_hours_mins_secs(time_taken)
-            self.logger.info(f"Engine run complete. Time taken: {hours:02d}:{mins:02d}:{secs:02d}")
+            self.logger.info(f"Engine run complete. Time taken: {hours:02d}:{mins:02d}:{secs:06.3f}")
 
         except BaseException as e:
             self._dataloader_iter = None
