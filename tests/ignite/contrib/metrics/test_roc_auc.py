@@ -170,17 +170,16 @@ def test_integration_binary_and_multilabel_inputs():
 def _test_distrib_binary_and_multilabel_inputs(device):
 
     rank = idist.get_rank()
-    torch.manual_seed(12)
+    n_iters = 80
+    batch_size = 16
+    n_classes = 2
 
     def _test(y_pred, y, batch_size, metric_device):
         metric_device = torch.device(metric_device)
         roc_auc = ROC_AUC(device=metric_device)
 
-        torch.manual_seed(10 + rank)
-
         roc_auc.reset()
         if batch_size > 1:
-            n_iters = y.shape[0] // batch_size + 1
             for i in range(n_iters):
                 idx = i * batch_size
                 roc_auc.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
@@ -199,19 +198,36 @@ def _test_distrib_binary_and_multilabel_inputs(device):
         assert roc_auc_score(np_y, np_y_pred) == pytest.approx(res)
 
     def get_test_cases():
+        torch.manual_seed(10 + rank)
         test_cases = [
             # Binary input data of shape (N,) or (N, 1)
-            (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 1),
-            (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 1),
+            (torch.randint(0, n_classes, size=(10,)).long(), torch.randint(0, n_classes, size=(10,)).long(), 1),
+            (torch.randint(0, n_classes, size=(10, 1)).long(), torch.randint(0, n_classes, size=(10, 1)).long(), 1),
             # updated batches
-            (torch.randint(0, 2, size=(50,)).long(), torch.randint(0, 2, size=(50,)).long(), 16),
-            (torch.randint(0, 2, size=(50, 1)).long(), torch.randint(0, 2, size=(50, 1)).long(), 16),
+            (
+                torch.randint(0, n_classes, size=(n_iters * batch_size,)).long(),
+                torch.randint(0, n_classes, size=(n_iters * batch_size,)).long(),
+                batch_size,
+            ),
+            (
+                torch.randint(0, n_classes, size=(n_iters * batch_size, 1)).long(),
+                torch.randint(0, n_classes, size=(n_iters * batch_size, 1)).long(),
+                batch_size,
+            ),
             # Binary input data of shape (N, L)
-            (torch.randint(0, 2, size=(10, 4)).long(), torch.randint(0, 2, size=(10, 4)).long(), 1),
-            (torch.randint(0, 2, size=(10, 7)).long(), torch.randint(0, 2, size=(10, 7)).long(), 1),
+            (torch.randint(0, n_classes, size=(10, 4)).long(), torch.randint(0, n_classes, size=(10, 4)).long(), 1),
+            (torch.randint(0, n_classes, size=(10, 7)).long(), torch.randint(0, n_classes, size=(10, 7)).long(), 1),
             # updated batches
-            (torch.randint(0, 2, size=(50, 4)).long(), torch.randint(0, 2, size=(50, 4)).long(), 16),
-            (torch.randint(0, 2, size=(50, 7)).long(), torch.randint(0, 2, size=(50, 7)).long(), 16),
+            (
+                torch.randint(0, n_classes, size=(n_iters * batch_size, 4)).long(),
+                torch.randint(0, n_classes, size=(n_iters * batch_size, 4)).long(),
+                batch_size,
+            ),
+            (
+                torch.randint(0, n_classes, size=(n_iters * batch_size, 7)).long(),
+                torch.randint(0, n_classes, size=(n_iters * batch_size, 7)).long(),
+                batch_size,
+            ),
         ]
         return test_cases
 
@@ -226,11 +242,9 @@ def _test_distrib_binary_and_multilabel_inputs(device):
 def _test_distrib_integration_binary_input(device):
 
     rank = idist.get_rank()
-    torch.manual_seed(12)
     n_iters = 80
-    s = 16
+    batch_size = 16
     n_classes = 2
-    offset = n_iters * s
 
     def _test(y_preds, y_true, n_epochs, metric_device, update_fn):
         metric_device = torch.device(metric_device)
@@ -243,6 +257,9 @@ def _test_distrib_integration_binary_input(device):
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=n_epochs)
 
+        y_preds = idist.all_gather(y_preds)
+        y_true = idist.all_gather(y_true)
+
         assert "roc_auc" in engine.state.metrics
 
         res = engine.state.metrics["roc_auc"]
@@ -251,24 +268,25 @@ def _test_distrib_integration_binary_input(device):
         assert pytest.approx(res) == true_res
 
     def get_tests(is_N):
+        torch.manual_seed(12 + rank)
         if is_N:
-            y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(),)).to(device)
-            y_preds = torch.rand(offset * idist.get_world_size()).to(device)
+            y_true = torch.randint(0, n_classes, size=(n_iters * batch_size,)).to(device)
+            y_preds = torch.rand(n_iters * batch_size).to(device)
 
             def update_fn(engine, i):
                 return (
-                    y_preds[i * s + rank * offset : (i + 1) * s + rank * offset],
-                    y_true[i * s + rank * offset : (i + 1) * s + rank * offset],
+                    y_preds[i * batch_size : (i + 1) * batch_size],
+                    y_true[i * batch_size : (i + 1) * batch_size],
                 )
 
         else:
-            y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(), 10)).to(device)
-            y_preds = torch.rand(offset * idist.get_world_size(), 10).to(device)
+            y_true = torch.randint(0, n_classes, size=(n_iters * batch_size, 10)).to(device)
+            y_preds = torch.rand(n_iters * batch_size, 10).to(device)
 
             def update_fn(engine, i):
                 return (
-                    y_preds[i * s + rank * offset : (i + 1) * s + rank * offset, :],
-                    y_true[i * s + rank * offset : (i + 1) * s + rank * offset, :],
+                    y_preds[i * batch_size : (i + 1) * batch_size],
+                    y_true[i * batch_size : (i + 1) * batch_size],
                 )
 
         return y_preds, y_true, update_fn
