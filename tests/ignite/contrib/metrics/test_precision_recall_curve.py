@@ -189,6 +189,7 @@ def _test_distrib_compute(device):
             if device.type != "xla":
                 _test(y_pred, y, batch_size, idist.device())
 
+
 def _test_distrib_integration(device):
 
     rank = idist.get_rank()
