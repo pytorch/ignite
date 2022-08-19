@@ -11,6 +11,14 @@ from typing import Any, Callable, Dict, List, Mapping, NamedTuple, Optional, Tup
 
 import torch
 import torch.nn as nn
+from packaging.version import Version
+
+if Version(torch.__version__) >= Version("1.9.0"):
+    from torch.distributed.optim import ZeroRedundancyOptimizer
+
+    HAVE_ZERO = True
+else:
+    HAVE_ZERO = False
 
 import ignite.distributed as idist
 from ignite.base import Serializable
@@ -166,13 +174,14 @@ class Checkpoint(Serializable):
             > checkpoint_12345.pt
 
     Note:
-        This class is distributed configuration-friendly: it is not required to instantiate the class in rank 0
-        process only.
+        This class is distributed configuration-friendly: it is not required to instantiate the class in rank 0 only
+        process. This class supports automatically distributed configuration and if used with
+        :class:`~ignite.handlers.DiskSaver`, checkpoint is stored by rank 0 process.
 
     .. warning::
 
-        When running on XLA devices, it should be run in all processes, otherwise application can get stuck on
-        saving the checkpoint.
+        When running on XLA devices or using :class:`~torch.distributed.optim.ZeroRedundancyOptimizer`, it
+        should be run in all processes, otherwise application can get stuck while saving the checkpoint.
 
         .. code-block:: python
 
@@ -282,7 +291,7 @@ class Checkpoint(Serializable):
         filename_pattern: Optional[str] = None,
         include_self: bool = False,
         greater_or_equal: bool = False,
-        save_on_rank: Optional[int] = 0,
+        save_on_rank: int = 0,
     ):
 
         if not isinstance(to_save, collections.Mapping):
@@ -466,6 +475,10 @@ class Checkpoint(Serializable):
             for k, obj in self.to_save.items():
                 if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
                     obj = obj.module
+                elif HAVE_ZERO and isinstance(obj, ZeroRedundancyOptimizer):
+                    obj.consolidate_state_dict(to=self.save_on_rank)
+                    if self.save_on_rank != idist.get_rank():
+                        continue
                 checkpoint[k] = obj.state_dict()
         return checkpoint
 
@@ -782,7 +795,7 @@ class DiskSaver(BaseSaveHandler):
         atomic: bool = True,
         create_dir: bool = True,
         require_empty: bool = True,
-        save_on_rank: Optional[int] = 0,
+        save_on_rank: int = 0,
         **kwargs: Any,
     ):
         self.dirname = Path(dirname).expanduser()
@@ -948,7 +961,7 @@ class ModelCheckpoint(Checkpoint):
         filename_pattern: Optional[str] = None,
         include_self: bool = False,
         greater_or_equal: bool = False,
-        save_on_rank: Optional[int] = 0,
+        save_on_rank: int = 0,
         **kwargs: Any,
     ):
 
