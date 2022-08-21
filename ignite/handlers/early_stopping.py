@@ -86,7 +86,8 @@ class EarlyStopping(Serializable):
                 self.logger.info("EarlyStopping: Stop training")
                 self.trainer.terminate()
         else:
-            self.best_score = score
+            if score > self.best_score:
+                self.best_score = score
             self.counter = 0
 
     def state_dict(self) -> "OrderedDict[str, float]":
