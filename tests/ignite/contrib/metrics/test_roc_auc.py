@@ -213,7 +213,7 @@ def _test_distrib_binary_and_multilabel_inputs(device):
         return test_cases
 
     for i in range(5):
-        torch.manual_seed(10 + rank + i)
+        torch.manual_seed(12 + rank + i)
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
             _test(y_pred, y, batch_size, "cpu")
