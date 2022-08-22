@@ -438,14 +438,28 @@ class Engine(Serializable):
         return self._fire_event(event_name)
 
     def terminate(self) -> None:
-        """Sends terminate signal to the engine, so that it terminates completely the run after
-        the current iteration."""
+        """Sends terminate signal to the engine, so that it terminates completely the run. The run is
+        terminated after the event on which ``terminate`` method was called. The following events are triggered:
+
+        - ...
+        - Terminating event
+        - :attr:`~ignite.engine.events.Events.TERMINATE`
+        - :attr:`~ignite.engine.events.Events.COMPLETED`
+        """
         self.logger.info("Terminate signaled. Engine will stop after current iteration is finished.")
         self.should_terminate = True
 
     def terminate_epoch(self) -> None:
-        """Sends terminate signal to the engine, so that it terminates the current epoch
-        after the current iteration."""
+        """Sends terminate signal to the engine, so that it terminates the current epoch. The run
+        continues from the next epoch. The following events are triggered:
+
+        - ...
+        - Event on which ``terminate_epoch`` method is called
+        - :attr:`~ignite.engine.events.Events.TERMINATE_SINGLE_EPOCH`
+        - :attr:`~ignite.engine.events.Events.EPOCH_COMPLETED`
+        - :attr:`~ignite.engine.events.Events.EPOCH_STARTED`
+        - ...
+        """
         self.logger.info(
             "Terminate current epoch is signaled. "
             "Current epoch iteration will stop after current iteration is finished."
