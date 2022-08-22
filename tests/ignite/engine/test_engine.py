@@ -1249,6 +1249,10 @@ def test_engine_run_interrupt_resume(interrupt_event, e, i):
         assert b == data[i]
 
     engine = RecordedEngine(check_input_data)
+    engine.run(data, max_epochs=max_epochs)
+
+    expected_called_events = list(engine.called_events)
+    engine.called_events = []
 
     @engine.on(interrupt_event)
     def call_interrupt():
@@ -1272,6 +1276,10 @@ def test_engine_run_interrupt_resume(interrupt_event, e, i):
     assert state.iteration == i
     assert engine._dataloader_iter is not None
 
+    le = len(engine.called_events)
+    # We need to skip the last INTERRUPT event to compare
+    assert expected_called_events[:le - 1] == engine.called_events[:-1]
+
     engine.called_events = []
 
     @engine.on(Events.STARTED)
@@ -1280,6 +1288,4 @@ def test_engine_run_interrupt_resume(interrupt_event, e, i):
 
     engine.run(data, max_epochs=max_epochs)
 
-    assert engine.called_events[0] != Events.STARTED
-    # Check the first and the last events
-    # ...
+    assert expected_called_events[le:] == engine.called_events

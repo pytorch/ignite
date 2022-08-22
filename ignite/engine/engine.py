@@ -6,7 +6,7 @@ import warnings
 import weakref
 from collections import defaultdict, OrderedDict
 from collections.abc import Mapping
-from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Generator, Iterable, Iterator, List, Optional, Tuple, Union
 
 from torch.utils.data import DataLoader
 
@@ -141,6 +141,9 @@ class Engine(Serializable):
             raise ValueError("Engine must be given a processing function in order to run.")
 
         _check_signature(process_function, "process_function", self, None)
+
+        self._internal_run_generator = None  # generator provided by self._internal_run_as_gen
+        self._run_once_generator = None  # generator provided by self._run_once_on_dataset_as_gen
 
     def register_events(
         self, *event_names: Union[List[str], List[EventEnum]], event_to_attr: Optional[dict] = None
@@ -767,20 +770,29 @@ class Engine(Serializable):
         self._init_iter.append(iteration)
 
     def _internal_run(self) -> State:
+        if self._internal_run_generator is None:
+            self._internal_run_generator = self._internal_run_as_gen()
+        try:
+            return next(self._internal_run_generator)
+        except StopIteration as out:
+            self._internal_run_generator = None
+            return out.value
+
+    def _internal_run_as_gen(self) -> Generator:
         self.should_terminate = self.should_terminate_single_epoch = self.should_interrupt = False
         self._init_timers(self.state)
         try:
             try:
                 start_time = time.time()
                 self._fire_event(Events.STARTED)
-                self._maybe_terminate_or_interrupt()
+                yield from self._maybe_terminate_or_interrupt()
 
                 while not self._is_done(self.state) and not self.should_terminate:
                     self.state.epoch += 1
                     handlers_start_time = time.time()
                     self._fire_event(Events.EPOCH_STARTED)
                     epoch_time_taken = time.time() - handlers_start_time
-                    self._maybe_terminate_or_interrupt()
+                    yield from self._maybe_terminate_or_interrupt()
 
                     if self._dataloader_iter is None:
                         self._setup_engine()
@@ -795,7 +807,7 @@ class Engine(Serializable):
                     epoch_time_taken += time.time() - handlers_start_time
                     # update time wrt handlers
                     self.state.times[Events.EPOCH_COMPLETED.name] = epoch_time_taken
-                    self._maybe_terminate_or_interrupt()
+                    yield from self._maybe_terminate_or_interrupt()
 
                     hours, mins, secs = _to_hours_mins_secs(epoch_time_taken)
                     self.logger.info(
@@ -804,10 +816,6 @@ class Engine(Serializable):
 
             except _EngineTerminateException:
                 self._fire_event(Events.TERMINATE)
-
-            except _EngineInterruptException:
-                self._fire_event(Events.INTERRUPT)
-                return self.state
 
             time_taken = time.time() - start_time
             # time is available for handlers but must be updated after fire
@@ -836,9 +844,19 @@ class Engine(Serializable):
             raise _EngineTerminateSingleEpochException()
 
         if self.should_interrupt:
-            raise _EngineinterruptException()
+            self._fire_event(Events.INTERRUPT)
+            yield self.state
 
     def _run_once_on_dataset(self) -> float:
+        if self._run_once_generator is None:
+            self._run_once_generator = self._run_once_on_dataset_as_gen()
+        try:
+            return next(self._run_once_generator)
+        except StopIteration as out:
+            self._run_once_generator = None
+            return out.value
+
+    def _run_once_on_dataset_as_gen(self) -> Generator:
         start_time = time.time()
 
         # We need to setup iter_counter > 0 if we resume from an iteration
@@ -857,11 +875,11 @@ class Engine(Serializable):
                     # Avoid Events.GET_BATCH_STARTED triggered twice when data iter is restarted
                     if self.last_event_name != Events.DATALOADER_STOP_ITERATION:
                         self._fire_event(Events.GET_BATCH_STARTED)
-                        self._maybe_terminate_or_interrupt()
+                        yield from self._maybe_terminate_or_interrupt()
 
                     self.state.batch = next(self._dataloader_iter)
                     self._fire_event(Events.GET_BATCH_COMPLETED)
-                    self._maybe_terminate_or_interrupt()
+                    yield from self._maybe_terminate_or_interrupt()
 
                     iter_counter += 1
                     should_exit = False
@@ -891,7 +909,7 @@ class Engine(Serializable):
                         break
 
                     self._fire_event(Events.DATALOADER_STOP_ITERATION)
-                    self._maybe_terminate_or_interrupt()
+                    yield from self._maybe_terminate_or_interrupt()
 
                     self._setup_dataloader_iter()
                     should_exit = True
@@ -900,11 +918,11 @@ class Engine(Serializable):
 
                 self.state.iteration += 1
                 self._fire_event(Events.ITERATION_STARTED)
-                self._maybe_terminate_or_interrupt()
+                yield from self._maybe_terminate_or_interrupt()
 
                 self.state.output = self._process_function(self, self.state.batch)
                 self._fire_event(Events.ITERATION_COMPLETED)
-                self._maybe_terminate_or_interrupt()
+                yield from self._maybe_terminate_or_interrupt()
 
                 if self.state.epoch_length is not None and iter_counter == self.state.epoch_length:
                     break
@@ -942,14 +960,6 @@ class _EngineTerminateSingleEpochException(Exception):
 class _EngineTerminateException(Exception):
     """
     Exception associated with Enigne's Terminate event
-    """
-
-    pass
-
-
-class _EngineInterruptException(Exception):
-    """
-    Exception associated with Enigne's interrupt event
     """
 
     pass
