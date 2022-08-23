@@ -671,7 +671,7 @@ class Engine(Serializable):
             if max_epochs is not None:
                 if max_epochs < self.state.epoch:
                     raise ValueError(
-                        "Argument max_epochs should be greater than or equal to the start"
+                        "Argument max_epochs should be greater than or equal to the start "
                         f"epoch defined in the state: {max_epochs} vs {self.state.epoch}. "
                         "Please, set engine.state.max_epochs = None "
                         "before calling engine.run() in order to restart the training from the beginning."
