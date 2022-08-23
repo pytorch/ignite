@@ -1207,7 +1207,7 @@ def test_engine_run_resume(data, epoch_length):
     assert engine.state.iteration == 7 * real_epoch_length
 
     # error
-    with pytest.raises(ValueError, match="Argument max_epochs should be larger than the start epoch"):
+    with pytest.raises(ValueError, match="Argument max_epochs should be greater than or equal to the start epoch"):
         engine.run(data, max_epochs=4, epoch_length=epoch_length)
 
     # restart from 0 to 7 (As state.epoch == max_epochs(=7),
