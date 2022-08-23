@@ -26,7 +26,7 @@ class InceptionModel(torch.nn.Module):
         self._device = device
         if Version(torch.__version__) <= Version("1.7.0"):
             model_kwargs = {"pretrained": True}
-            self.model = models.inception_v3(model_kwargs).to(self._device)
+            self.model = models.inception_v3(**model_kwargs).to(self._device)
         else:
             self.model = models.inception_v3(weights=models.Inception_V3_Weights.DEFAULT).to(self._device)
 
