@@ -99,8 +99,9 @@ def test_integration():
         ]
         return test_cases
 
-    for _ in range(5):
+    for i in range(5):
         # check multiple random inputs as random exact occurencies are rare
+        torch.manual_seed(12 + i)
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
             _test(y_pred, y, batch_size)
