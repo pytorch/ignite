@@ -1,6 +1,7 @@
 from typing import Callable, Optional, Union
 
 import torch
+from packaging.version import Version
 
 from ignite.metrics.metric import Metric
 
@@ -23,7 +24,13 @@ class InceptionModel(torch.nn.Module):
             raise RuntimeError("This module requires torchvision to be installed.")
         super(InceptionModel, self).__init__()
         self._device = device
-        self.model = models.inception_v3(pretrained=True).to(self._device)
+        if Version(torch.__version__) <= Version("1.7.0"):
+            model_kwargs = {"pretrained": True}
+        else:
+            model_kwargs = {"weights": models.Inception_V3_Weights.DEFAULT}
+
+        self.model = models.inception_v3(**model_kwargs).to(self._device)
+
         if return_features:
             self.model.fc = torch.nn.Identity()
         else:

@@ -48,7 +48,7 @@ def _test_integration_multiclass(device, output_dict):
         from sklearn.metrics import classification_report as sklearn_classification_report
 
         sklearn_result = sklearn_classification_report(
-            y_true.cpu().numpy(), torch.argmax(y_preds, dim=1).cpu().numpy(), output_dict=True
+            y_true.cpu().numpy(), torch.argmax(y_preds, dim=1).cpu().numpy(), output_dict=True, zero_division=1
         )
 
         for i in range(n_classes):
@@ -118,7 +118,7 @@ def _test_integration_multilabel(device, output_dict):
 
         from sklearn.metrics import classification_report as sklearn_classification_report
 
-        sklearn_result = sklearn_classification_report(np_y_true, np_y_preds, output_dict=True)
+        sklearn_result = sklearn_classification_report(np_y_true, np_y_preds, output_dict=True, zero_division=1)
 
         for i in range(n_classes):
             label_i = labels[i] if labels else str(i)
