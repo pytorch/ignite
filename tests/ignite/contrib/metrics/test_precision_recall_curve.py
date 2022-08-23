@@ -138,16 +138,12 @@ def test_check_compute_fn():
 
 
 def _test_distrib_compute(device):
-
     rank = idist.get_rank()
-    torch.manual_seed(12)
 
     def _test(y_pred, y, batch_size, metric_device):
 
         metric_device = torch.device(metric_device)
         prc = PrecisionRecallCurve(device=metric_device)
-
-        torch.manual_seed(10 + rank)
 
         prc.reset()
         if batch_size > 1:
@@ -183,7 +179,8 @@ def _test_distrib_compute(device):
         ]
         return test_cases
 
-    for _ in range(3):
+    for i in range(3):
+        torch.manual_seed(12 + rank + i)
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
             y_pred = y_pred.to(device)
@@ -196,19 +193,20 @@ def _test_distrib_compute(device):
 def _test_distrib_integration(device):
 
     rank = idist.get_rank()
-    torch.manual_seed(12)
 
     def _test(n_epochs, metric_device):
         metric_device = torch.device(metric_device)
         n_iters = 80
-        size = 151
-        y_true = torch.randint(0, 2, (size,)).to(device)
-        y_preds = torch.randint(0, 2, (size,)).to(device)
+        batch_size = 151
+        torch.manual_seed(12 + rank)
+
+        y_true = torch.randint(0, 2, (n_iters * batch_size,)).to(device)
+        y_preds = torch.randint(0, 2, (n_iters * batch_size,)).to(device)
 
         def update(engine, i):
             return (
-                y_preds[i * size : (i + 1) * size],
-                y_true[i * size : (i + 1) * size],
+                y_preds[i * batch_size : (i + 1) * batch_size],
+                y_true[i * batch_size : (i + 1) * batch_size],
             )
 
         engine = Engine(update)
@@ -218,6 +216,9 @@ def _test_distrib_integration(device):
 
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=n_epochs)
+
+        y_true = idist.all_gather(y_true)
+        y_preds = idist.all_gather(y_preds)
 
         assert "prc" in engine.state.metrics
 
