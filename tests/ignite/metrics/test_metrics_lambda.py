@@ -445,7 +445,6 @@ def _test_distrib_integration(device):
     def _test(metric_device):
         y_true = torch.arange(0, n_iters * batch_size, dtype=torch.int64).to(device) % n_classes
         y_pred = 0.2 * torch.rand(n_iters * batch_size, n_classes).to(device)
-        print(y_true.shape, y_pred.shape)
         for i in range(n_iters * batch_size):
             if np.random.rand() > 0.4:
                 y_pred[i, y_true[i]] = 1.0
@@ -456,7 +455,6 @@ def _test_distrib_integration(device):
         def update_fn(engine, i):
             y_true_batch = y_true[i * batch_size : (i + 1) * batch_size, ...]
             y_pred_batch = y_pred[i * batch_size : (i + 1) * batch_size, ...]
-            print("update", rank, i, y_true.shape, y_true_batch.shape, y_pred.shape, y_pred_batch.shape)
             return y_pred_batch, y_true_batch
 
         evaluator = Engine(update_fn)
