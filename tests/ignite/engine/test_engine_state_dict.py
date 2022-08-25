@@ -144,7 +144,7 @@ def test_load_state_dict_with_params_overriding_integration():
     assert state.iteration == state_dict["epoch_length"] * new_max_epochs
     assert state.epoch == new_max_epochs
 
-    with pytest.raises(ValueError, match=r"Argument max_epochs should be larger than the start epoch"):
+    with pytest.raises(ValueError, match=r"Argument max_epochs should be greater than or equal to the start epoch"):
         engine.load_state_dict(state_dict)
         engine.run(data, max_epochs=3)
 
@@ -270,7 +270,7 @@ def test_restart_training():
     state = engine.run(data, max_epochs=5)
     with pytest.raises(
         ValueError,
-        match=r"Argument max_epochs should be larger than the start epoch defined in the state: 2 vs 5. "
+        match=r"Argument max_epochs should be greater than or equal to the start epoch defined in the state: 2 vs 5. "
         r"Please, .+ "
         r"before calling engine.run\(\) in order to restart the training from the beginning.",
     ):
