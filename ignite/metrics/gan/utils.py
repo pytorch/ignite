@@ -1,7 +1,6 @@
 from typing import Callable, Optional, Union
 
 import torch
-import torchvision
 from packaging.version import Version
 
 from ignite.metrics.metric import Metric
@@ -20,6 +19,7 @@ class InceptionModel(torch.nn.Module):
 
     def __init__(self, return_features: bool, device: Union[str, torch.device] = "cpu") -> None:
         try:
+            import torchvision
             from torchvision import models
         except ImportError:
             raise RuntimeError("This module requires torchvision to be installed.")
