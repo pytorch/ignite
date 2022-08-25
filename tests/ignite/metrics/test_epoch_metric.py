@@ -159,34 +159,36 @@ def _test_distrib_integration(device=None):
         device = idist.device() if idist.device().type != "xla" else "cpu"
 
     rank = idist.get_rank()
-    torch.manual_seed(12)
+    torch.manual_seed(12 + rank)
 
-    n_iters = 60
-    s = 16
+    n_iters = 3
+    batch_size = 2
     n_classes = 7
 
-    offset = n_iters * s
-    y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(),), device=device)
-    y_preds = torch.rand(offset * idist.get_world_size(), n_classes, device=device)
+    y_true = torch.randint(0, n_classes, size=(n_iters * batch_size,), device=device)
+    y_preds = torch.rand(n_iters * batch_size, n_classes, device=device)
 
     def update(engine, i):
         return (
-            y_preds[i * s + rank * offset : (i + 1) * s + rank * offset, :],
-            y_true[i * s + rank * offset : (i + 1) * s + rank * offset],
+            y_preds[i * batch_size : (i + 1) * batch_size, :],
+            y_true[i * batch_size : (i + 1) * batch_size],
         )
 
     engine = Engine(update)
 
     def assert_data_fn(all_preds, all_targets):
-        assert all_preds.equal(y_preds), f"{all_preds.shape} vs {y_preds.shape}"
-        assert all_targets.equal(y_true), f"{all_targets.shape} vs {y_true.shape}"
         return (all_preds.argmax(dim=1) == all_targets).sum().item()
 
     ep_metric = EpochMetric(assert_data_fn, check_compute_fn=False, device=device)
     ep_metric.attach(engine, "epm")
 
     data = list(range(n_iters))
+
     engine.run(data=data, max_epochs=3)
+
+    y_preds = idist.all_gather(y_preds)
+    y_true = idist.all_gather(y_true)
+
     assert engine.state.metrics["epm"] == (y_preds.argmax(dim=1) == y_true).sum().item()
 
 
