@@ -130,9 +130,9 @@ def _test_distrib_integration(device, tol=1e-4):
     from ignite.engine import Engine
 
     rank = idist.get_rank()
+    torch.manual_seed(12 + rank)
     n_iters = 100
     batch_size = 10
-    offset = n_iters * batch_size
 
     def _test(metric_device):
         y_pred = torch.rand(n_iters * batch_size, 3, 28, 28, dtype=torch.float, device=device)

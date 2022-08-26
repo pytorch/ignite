@@ -59,14 +59,12 @@ def _test_distrib_integration(device):
     from ignite.engine import Engine
 
     rank = idist.get_rank()
-    torch.manual_seed(12)
 
     def _test(n_epochs, metric_device):
         n_iters = 100
         batch_size = 16
         n_classes = 10
 
-        offset = n_iters * batch_size
         y_true = torch.randint(0, n_classes, size=(n_iters * batch_size,)).to(device)
         y_preds = torch.rand(n_iters * batch_size, n_classes).to(device)
 
@@ -100,7 +98,8 @@ def _test_distrib_integration(device):
     metric_devices = ["cpu"]
     if device.type != "xla":
         metric_devices.append(idist.device())
-    for _ in range(3):
+    for i in range(3):
+        torch.manual_seed(12 + rank + i)
         for metric_device in metric_devices:
             _test(n_epochs=1, metric_device=metric_device)
             _test(n_epochs=2, metric_device=metric_device)
