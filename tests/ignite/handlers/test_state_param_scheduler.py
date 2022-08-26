@@ -38,7 +38,7 @@ config5 = (
     },
 )
 
-if Version(torch.__version__) <= Version("1.7.0"):
+if Version(torch.__version__) < Version("1.9.0"):
     torch_testing_assert_close = torch.testing.assert_allclose
 else:
     torch_testing_assert_close = torch.testing.assert_close
