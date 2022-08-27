@@ -430,8 +430,6 @@ def _test_distrib_integration_multiclass(device):
 
     from ignite.engine import Engine
 
-    rank = idist.get_rank()
-
     def _test(average, n_epochs, metric_device):
         n_iters = 60
         batch_size = 16
@@ -477,6 +475,7 @@ def _test_distrib_integration_multiclass(device):
     if device.type != "xla":
         metric_devices.append(idist.device())
     for i in range(2):
+        rank = idist.get_rank()
         torch.manual_seed(12 + rank + i)
         for metric_device in metric_devices:
             _test(average=False, n_epochs=1, metric_device=metric_device)
@@ -493,7 +492,6 @@ def _test_distrib_integration_multilabel(device):
 
     from ignite.engine import Engine
 
-    rank = idist.get_rank()
     torch.manual_seed(12)
 
     def _test(average, n_epochs, metric_device):
@@ -545,6 +543,7 @@ def _test_distrib_integration_multilabel(device):
     if device.type != "xla":
         metric_devices.append(idist.device())
     for i in range(2):
+        rank = idist.get_rank()
         torch.manual_seed(12 + rank + i)
         for metric_device in metric_devices:
             _test(average=False, n_epochs=1, metric_device=metric_device)
