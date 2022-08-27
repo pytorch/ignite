@@ -12,6 +12,12 @@ __all__ = [
 ]
 
 
+if Version(torch.__version__) <= Version("1.7.0"):
+    torch_outer = torch.ger
+else:
+    torch_outer = torch.outer
+
+
 def fid_score(
     mu1: torch.Tensor, mu2: torch.Tensor, sigma1: torch.Tensor, sigma2: torch.Tensor, eps: float = 1e-6
 ) -> float:
@@ -193,22 +199,14 @@ class FID(_BaseInceptionMetric):
     def _online_update(features: torch.Tensor, total: torch.Tensor, sigma: torch.Tensor) -> None:
 
         total += features
-
-        if Version(torch.__version__) <= Version("1.7.0"):
-            sigma += torch.ger(features, features)
-        else:
-            sigma += torch.outer(features, features)
+        sigma += torch_outer(features, features)
 
     def _get_covariance(self, sigma: torch.Tensor, total: torch.Tensor) -> torch.Tensor:
         r"""
         Calculates covariance from mean and sum of products of variables
         """
 
-        if Version(torch.__version__) <= Version("1.7.0"):
-            sub_matrix = torch.ger(total, total)
-        else:
-            sub_matrix = torch.outer(total, total)
-
+        sub_matrix = torch_outer(total, total)
         sub_matrix = sub_matrix / self._num_examples
 
         return (sigma - sub_matrix) / (self._num_examples - 1)
