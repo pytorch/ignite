@@ -58,8 +58,6 @@ def top_k_accuracy(y_true, y_pred, k=5, normalize=True):
 def _test_distrib_integration(device):
     from ignite.engine import Engine
 
-    rank = idist.get_rank()
-
     def _test(n_epochs, metric_device):
         n_iters = 100
         batch_size = 16
@@ -99,6 +97,7 @@ def _test_distrib_integration(device):
     if device.type != "xla":
         metric_devices.append(idist.device())
     for i in range(3):
+        rank = idist.get_rank()
         torch.manual_seed(12 + rank + i)
         for metric_device in metric_devices:
             _test(n_epochs=1, metric_device=metric_device)
