@@ -103,11 +103,11 @@ def test_terminate_at_end_of_epoch_stops_run(data):
     assert engine.should_terminate
 
 
-@pytest.mark.parametrize("data", [None, [1, 2, 3]])
-def test_terminate_at_start_of_epoch_stops_run_after_completing_iteration(data):
+@pytest.mark.parametrize("data, epoch_length", [(None, 10), (range(10), None)])
+def test_terminate_at_start_of_epoch(data, epoch_length):
     max_epochs = 5
     epoch_to_terminate_on = 3
-    epoch_length = 3
+    real_epoch_length = epoch_length if data is None else len(data)
 
     engine = Engine(MagicMock(return_value=1))
 
@@ -124,14 +124,47 @@ def test_terminate_at_start_of_epoch_stops_run_after_completing_iteration(data):
     # epoch is not completed so counter is not incremented
     assert state.epoch == epoch_to_terminate_on
     assert engine.should_terminate
-    # completes first iteration
-    assert state.iteration == ((epoch_to_terminate_on - 1) * epoch_length) + 1
+    assert state.iteration == ((epoch_to_terminate_on - 1) * real_epoch_length)
+
+    # Engine continue from epoch_to_terminate_on until max_epochs
+    first_epoch_iter = [None, None]
+
+    @engine.on(Events.STARTED)
+    def check_iter_epoch():
+        assert engine.state.epoch == first_epoch_iter[0]
+        assert engine.state.iteration == first_epoch_iter[1]
+
+    if data is not None:
+        expected_data_iter = iter(data)
+        expected_iter = state.iteration
+
+        @engine.on(Events.ITERATION_STARTED)
+        def check_iter_and_data():
+            nonlocal expected_data_iter, expected_iter
+
+            expected_iter += 1
+            assert engine.state.iteration == expected_iter
+
+            try:
+                assert engine.state.batch == next(expected_data_iter)
+            except StopIteration:
+                expected_data_iter = iter(data)
+                assert engine.state.batch == next(expected_data_iter)
+
+    first_epoch_iter[0], first_epoch_iter[1] = state.epoch, state.iteration
+    state = engine.run(data, max_epochs=max_epochs, epoch_length=epoch_length)
+
+    assert state.epoch == max_epochs
+    assert not engine.should_terminate
+    # As terminated epoch is skipped -> iterations are not incremented
+    assert state.iteration == real_epoch_length * (max_epochs - 1)
 
 
-@pytest.mark.parametrize("data", [None, list(range(10))])
-def test_terminate_stops_run_mid_epoch(data):
-    num_iterations_per_epoch = len(data) if data is not None else 10
-    iteration_to_stop = num_iterations_per_epoch + 3
+@pytest.mark.parametrize("data, epoch_length", [(None, 10), (range(10), None)])
+def test_terminate_stops_run_mid_epoch(data, epoch_length):
+    max_epochs = 5
+    iteration_to_stop = 13
+    real_epoch_length = epoch_length if data is None else len(data)
 
     engine = Engine(MagicMock(return_value=1))
 
@@ -139,17 +172,99 @@ def test_terminate_stops_run_mid_epoch(data):
         if engine.state.iteration == iteration_to_stop:
             engine.terminate()
 
+    @engine.on(Events.EXCEPTION_RAISED)
+    def assert_no_exceptions(ee):
+        assert False, f"Engine should terminate without raising an exception, got '{type(ee)}'"
+
     engine.add_event_handler(Events.ITERATION_STARTED, start_of_iteration_handler)
-    state = engine.run(data, max_epochs=3, epoch_length=num_iterations_per_epoch)
+    state = engine.run(data, max_epochs=max_epochs, epoch_length=epoch_length)
     # completes the iteration but doesn't increment counter (this happens just before a new iteration starts)
     assert state.iteration == iteration_to_stop
-    assert state.epoch == np.ceil(iteration_to_stop / num_iterations_per_epoch)  # it starts from 0
+    assert state.epoch == np.ceil(iteration_to_stop / real_epoch_length)  # it starts from 0
+
+    # Engine continue from epoch_to_terminate_on until max_epochs
+    first_epoch_iter = [None, None]
+
+    @engine.on(Events.STARTED, first_epoch_iter)
+    def check_iter_epoch(first_epoch_iter):
+        assert engine.state.epoch == first_epoch_iter[0]
+        assert engine.state.iteration == first_epoch_iter[1]
+
+    if data is not None:
+        expected_iter = state.iteration
+
+        @engine.on(Events.ITERATION_STARTED)
+        def check_iter_and_data():
+            nonlocal expected_iter
+
+            expected_iter += 1
+            assert engine.state.iteration == expected_iter
+            assert engine.state.batch == data[(expected_iter - first_epoch_iter[1] - 1) % len(data)]
+
+    first_epoch_iter[0], first_epoch_iter[1] = state.epoch, state.iteration
+    state = engine.run(data, max_epochs=max_epochs, epoch_length=epoch_length)
+
+    assert state.epoch == max_epochs
+    assert not engine.should_terminate
+    assert state.iteration == real_epoch_length * (max_epochs - 1)
 
 
-@pytest.mark.parametrize("data", [None, list(range(10))])
-def test_terminate_epoch_stops_mid_epoch(data):
-    num_iterations_per_epoch = len(data) if data is not None else 10
-    iteration_to_stop = num_iterations_per_epoch + 4
+class RecordedEngine(Engine):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.called_events = []
+
+    def _fire_event(self, event_name, *event_args, **event_kwargs):
+        self.called_events.append((self.state.epoch, self.state.iteration, event_name.name))
+        return super()._fire_event(event_name, *event_args, **event_kwargs)
+
+
+@pytest.mark.parametrize(
+    "terminate_event, e, i",
+    [
+        (Events.STARTED, 0, 0),
+        (Events.EPOCH_STARTED(once=2), 2, None),
+        (Events.EPOCH_COMPLETED(once=2), 2, None),
+        (Events.GET_BATCH_STARTED(once=12), None, 12),
+        (Events.GET_BATCH_COMPLETED(once=12), None, 12),
+        (Events.ITERATION_STARTED(once=14), None, 14),
+        (Events.ITERATION_COMPLETED(once=14), None, 14),
+    ],
+)
+def test_terminate_events_sequence(terminate_event, e, i):
+    engine = RecordedEngine(MagicMock(return_value=1))
+    data = range(10)
+    max_epochs = 5
+
+    @engine.on(terminate_event)
+    def call_terminate():
+        engine.terminate()
+
+    @engine.on(Events.EXCEPTION_RAISED)
+    def assert_no_exceptions(ee):
+        assert False, f"Engine should terminate without raising an exception, got '{type(ee)}'"
+
+    engine.run(data, max_epochs=max_epochs)
+
+    if i is None:
+        if terminate_event == Events.EPOCH_STARTED:
+            i = len(data) * (e - 1)
+        else:
+            i = len(data) * e
+
+    if e is None:
+        e = i // len(data) + 1
+
+    assert engine.called_events[0] == (0, 0, Events.STARTED)
+    assert engine.called_events[-1] == (e, i, Events.COMPLETED)
+    assert engine.called_events[-2] == (e, i, Events.TERMINATE)
+    assert engine.called_events[-3] == (e, i, terminate_event)
+
+
+@pytest.mark.parametrize("data, epoch_length", [(None, 10), (range(10), None)])
+def test_terminate_epoch_stops_mid_epoch(data, epoch_length):
+    real_epoch_length = epoch_length if data is None else len(data)
+    iteration_to_stop = real_epoch_length + 4
 
     engine = Engine(MagicMock(return_value=1))
 
@@ -159,10 +274,58 @@ def test_terminate_epoch_stops_mid_epoch(data):
 
     max_epochs = 3
     engine.add_event_handler(Events.ITERATION_STARTED, start_of_iteration_handler)
-    state = engine.run(data, max_epochs=max_epochs, epoch_length=num_iterations_per_epoch)
+    state = engine.run(data, max_epochs=max_epochs, epoch_length=epoch_length)
     # completes the iteration but doesn't increment counter (this happens just before a new iteration starts)
-    true_value = num_iterations_per_epoch * (max_epochs - 1) + iteration_to_stop % num_iterations_per_epoch
+    true_value = real_epoch_length * (max_epochs - 1) + iteration_to_stop % real_epoch_length
     assert state.iteration == true_value
+    assert state.epoch == max_epochs
+
+
+@pytest.mark.parametrize(
+    "terminate_epoch_event, i",
+    [
+        (Events.GET_BATCH_STARTED(once=12), 12),
+        (Events.GET_BATCH_COMPLETED(once=12), 12),
+        (Events.ITERATION_STARTED(once=14), 14),
+        (Events.ITERATION_COMPLETED(once=14), 14),
+    ],
+)
+def test_terminate_epoch_events_sequence(terminate_epoch_event, i):
+    engine = RecordedEngine(MagicMock(return_value=1))
+    data = range(10)
+    max_epochs = 3
+
+    # TODO: Bug: Events.GET_BATCH_STARTED(once=12) is called twice !
+    # prevent call_terminate_epoch to be called twice
+    call_count = 0
+
+    @engine.on(terminate_epoch_event)
+    def call_terminate_epoch():
+        nonlocal call_count
+        if call_count < 1:
+            engine.terminate_epoch()
+        call_count += 1
+
+    @engine.on(Events.TERMINATE_SINGLE_EPOCH)
+    def check_previous_events(iter_counter):
+        e = i // len(data) + 1
+
+        assert engine.called_events[0] == (0, 0, Events.STARTED)
+        assert engine.called_events[-2] == (e, i, terminate_epoch_event)
+        assert engine.called_events[-1] == (e, i, Events.TERMINATE_SINGLE_EPOCH)
+
+    @engine.on(Events.EPOCH_COMPLETED)
+    def check_previous_events2():
+        e = i // len(data) + 1
+        if e == engine.state.epoch and i == engine.state.iteration:
+            assert engine.called_events[-3] == (e, i, terminate_epoch_event)
+            assert engine.called_events[-2] == (e, i, Events.TERMINATE_SINGLE_EPOCH)
+            assert engine.called_events[-1] == (e, i, Events.EPOCH_COMPLETED)
+
+    engine.run(data, max_epochs=max_epochs)
+
+    assert engine.state.epoch == max_epochs
+    assert (max_epochs - 1) * len(data) < engine.state.iteration < max_epochs * len(data)
 
 
 def _create_mock_data_loader(epochs, batches_per_epoch):
@@ -391,35 +554,31 @@ def test_state_get_event_attrib_value():
     assert state.get_event_attrib_value(e) == state.epoch
 
 
-def test_time_stored_in_state():
-    def _test(data, max_epochs, epoch_length):
-        sleep_time = 0.01
-        extra_sleep_time = 0.1
-        engine = Engine(lambda e, b: time.sleep(sleep_time))
+@pytest.mark.parametrize(
+    "data, max_epochs, epoch_length", [(range(100), 2, 100), (range(200), 2, 100), (range(200), 5, 100)]
+)
+def test_time_stored_in_state(data, max_epochs, epoch_length):
+    sleep_time = 0.01
+    extra_sleep_time = 0.1
+    engine = Engine(lambda e, b: time.sleep(sleep_time))
 
-        @engine.on(Events.EPOCH_COMPLETED)
-        def check_epoch_time():
-            assert engine.state.times[Events.EPOCH_COMPLETED.name] >= sleep_time * epoch_length
-            time.sleep(extra_sleep_time)
+    @engine.on(Events.EPOCH_COMPLETED)
+    def check_epoch_time():
+        assert engine.state.times[Events.EPOCH_COMPLETED.name] >= sleep_time * epoch_length
+        time.sleep(extra_sleep_time)
 
-        @engine.on(Events.COMPLETED)
-        def check_completed_time():
-            assert (
-                engine.state.times[Events.COMPLETED.name] >= (sleep_time * epoch_length + extra_sleep_time) * max_epochs
-            )
-            time.sleep(extra_sleep_time)
+    @engine.on(Events.COMPLETED)
+    def check_completed_time():
+        assert engine.state.times[Events.COMPLETED.name] >= (sleep_time * epoch_length + extra_sleep_time) * max_epochs
+        time.sleep(extra_sleep_time)
 
-        engine.run(data, max_epochs=max_epochs, epoch_length=epoch_length)
+    engine.run(data, max_epochs=max_epochs, epoch_length=epoch_length)
 
-        assert engine.state.times[Events.EPOCH_COMPLETED.name] >= sleep_time * epoch_length + extra_sleep_time
-        assert (
-            engine.state.times[Events.COMPLETED.name]
-            >= (sleep_time * epoch_length + extra_sleep_time) * max_epochs + extra_sleep_time
-        )
-
-    _test(list(range(100)), max_epochs=2, epoch_length=100)
-    _test(list(range(200)), max_epochs=2, epoch_length=100)
-    _test(list(range(200)), max_epochs=5, epoch_length=100)
+    assert engine.state.times[Events.EPOCH_COMPLETED.name] >= sleep_time * epoch_length + extra_sleep_time
+    assert (
+        engine.state.times[Events.COMPLETED.name]
+        >= (sleep_time * epoch_length + extra_sleep_time) * max_epochs + extra_sleep_time
+    )
 
 
 def _test_check_triggered_events(data, max_epochs, epoch_length, exp_iter_stops=None):
@@ -918,7 +1077,7 @@ def test_run_with_invalid_max_iters_and_max_epoch():
         engine.run([0] * 20, max_iters=max_iters, max_epochs=max_epochs)
 
 
-def test_epoch_events_fired():
+def test_epoch_events_fired_max_iters():
     max_iters = 32
     engine = Engine(lambda e, b: 1)
 
@@ -1018,3 +1177,66 @@ def test_engine_no_data():
     assert trainer.state.iteration == 20 * 10
     assert trainer.state.epoch == 20
     assert trainer.state.dataloader is None
+
+
+@pytest.mark.parametrize("data, epoch_length", [(None, 10), (range(10), None)])
+def test_engine_run_resume(data, epoch_length):
+    # https://github.com/pytorch/ignite/wiki/Roadmap#runresume-logic-improvements
+    engine = Engine(lambda e, b: None)
+    real_epoch_length = len(data) if data is not None else epoch_length
+
+    first_epoch_iter = [None, None]
+
+    @engine.on(Events.STARTED, first_epoch_iter)
+    def check_iter_epoch(first_epoch_iter):
+        assert engine.state.epoch == first_epoch_iter[0]
+        assert engine.state.iteration == first_epoch_iter[1]
+
+    # (re)start from 0 to 5
+    first_epoch_iter[0], first_epoch_iter[1] = 0, 0
+    # Engine run starting with max_epochs=5 => state.epoch=5
+    engine.run(data, max_epochs=5, epoch_length=epoch_length)
+    assert engine.state.epoch == 5
+    assert engine.state.iteration == 5 * real_epoch_length
+
+    # continue from 5 to 7
+    first_epoch_iter[0], first_epoch_iter[1] = 5, 5 * real_epoch_length
+    # Engine run resuming from iteration 50, epoch 5 until 7 epochs => state.epoch=7
+    engine.run(data, max_epochs=7, epoch_length=epoch_length)
+    assert engine.state.epoch == 7
+    assert engine.state.iteration == 7 * real_epoch_length
+
+    # error
+    with pytest.raises(ValueError, match="Argument max_epochs should be greater than or equal to the start epoch"):
+        engine.run(data, max_epochs=4, epoch_length=epoch_length)
+
+    # restart from 0 to 7 (As state.epoch == max_epochs(=7),
+    # this should be like that as we always do: evaluator.run(data) without any other instructions)
+    first_epoch_iter[0], first_epoch_iter[1] = 0, 0
+    # Engine run starting with max_epochs=7 => state.epoch=7
+    engine.run(data, max_epochs=7, epoch_length=epoch_length)
+    assert engine.state.epoch == 7
+    assert engine.state.iteration == 7 * real_epoch_length
+
+    # forced restart from 0 to 5
+    engine.state.max_epochs = None
+    first_epoch_iter[0], first_epoch_iter[1] = 0, 0
+    # Engine run starting with max_epochs=5 => state.epoch=5
+    engine.run(data, max_epochs=5, epoch_length=epoch_length)
+    assert engine.state.epoch == 5
+    assert engine.state.iteration == 5 * real_epoch_length
+
+    # forced restart from 0 to 9, instead of continue from state.epoch=5
+    engine.state.max_epochs = None
+    first_epoch_iter[0], first_epoch_iter[1] = 0, 0
+    # Engine run starting with max_epochs=9 => state.epoch=9
+    engine.run(data, max_epochs=9, epoch_length=epoch_length)
+    assert engine.state.epoch == 9
+    assert engine.state.iteration == 9 * real_epoch_length
+
+    # continue from 9 until 10
+    first_epoch_iter[0], first_epoch_iter[1] = 9, 9 * real_epoch_length
+    # Engine run resuming from iteration 90, epoch 9 until 10 epochs => state.epoch=10
+    engine.run(data, max_epochs=10, epoch_length=epoch_length)
+    assert engine.state.epoch == 10
+    assert engine.state.iteration == 10 * real_epoch_length

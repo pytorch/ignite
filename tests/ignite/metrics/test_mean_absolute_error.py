@@ -59,20 +59,22 @@ def _test_distrib_integration(device):
     from ignite.engine import Engine
 
     rank = idist.get_rank()
-    n_iters = 80
-    s = 50
-    offset = n_iters * s
-
-    y_true = torch.arange(0, offset * idist.get_world_size(), dtype=torch.float).to(device)
-    y_preds = torch.ones(offset * idist.get_world_size(), dtype=torch.float).to(device)
-
-    def update(engine, i):
-        return (
-            y_preds[i * s + offset * rank : (i + 1) * s + offset * rank],
-            y_true[i * s + offset * rank : (i + 1) * s + offset * rank],
-        )
 
     def _test(metric_device):
+
+        n_iters = 80
+        batch_size = 50
+        torch.manual_seed(12 + rank)
+
+        y_true = torch.arange(0, n_iters * batch_size, dtype=torch.float).to(device)
+        y_preds = torch.ones(n_iters * batch_size, dtype=torch.float).to(device)
+
+        def update(engine, i):
+            return (
+                y_preds[i * batch_size : (i + 1) * batch_size],
+                y_true[i * batch_size : (i + 1) * batch_size],
+            )
+
         engine = Engine(update)
 
         m = MeanAbsoluteError(device=metric_device)
@@ -80,6 +82,9 @@ def _test_distrib_integration(device):
 
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=1)
+
+        y_preds = idist.all_gather(y_preds)
+        y_true = idist.all_gather(y_true)
 
         assert "mae" in engine.state.metrics
         res = engine.state.metrics["mae"]

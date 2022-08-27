@@ -155,8 +155,8 @@ def test_binary_input(average):
             (torch.randint(0, 2, size=(50, 12, 10)), torch.randint(0, 2, size=(50, 12, 10)), 16),
             (torch.randint(0, 2, size=(50, 1, 12, 10)), torch.randint(0, 2, size=(50, 1, 12, 10)), 16),
             # Corner case with all zeros predictions
-            (torch.zeros(size=(10,)), torch.randint(0, 2, size=(10,)), 1),
-            (torch.zeros(size=(10, 1)), torch.randint(0, 2, size=(10, 1)), 1),
+            (torch.zeros(size=(10,), dtype=torch.long), torch.randint(0, 2, size=(10,)), 1),
+            (torch.zeros(size=(10, 1), dtype=torch.long), torch.randint(0, 2, size=(10, 1)), 1),
         ]
 
         return test_cases
