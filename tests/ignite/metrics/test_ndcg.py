@@ -51,7 +51,7 @@ def test_output_cpu(test_case, k, exponential, ignore_ties_flag, ignore_ties_inp
 @pytest.mark.parametrize("ignore_ties_flag", [True, False])
 @pytest.mark.parametrize("ignore_ties_input", [True, False])
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_output_gpu(test_case, k, exponential, ignore_ties_flag, ignore_ties_input):
+def test_output_cuda(test_case, k, exponential, ignore_ties_flag, ignore_ties_input):
 
     device = "cuda"
     y_pred_distribution, y_true = test_case
