@@ -477,9 +477,6 @@ def _test_distrib_integration(device):
         y_pred = idist.all_gather(y_pred)
         y_true = idist.all_gather(y_true)
 
-        y_true = y_true.reshape(n_iters * idist.get_world_size(), batch_size).cpu().numpy()
-        y_pred = y_pred.reshape(n_iters * idist.get_world_size(), batch_size, n_classes).cpu().numpy()
-
         assert "f1" in state.metrics
         assert "ff1" in state.metrics
         f1_true = f1_score(y_true.ravel(), np.argmax(y_pred.reshape(-1, n_classes), axis=-1), average="macro")
