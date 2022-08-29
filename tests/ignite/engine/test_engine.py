@@ -206,7 +206,7 @@ def test_terminate_stops_run_mid_epoch(data, epoch_length):
 
     assert state.epoch == max_epochs
     assert not engine.should_terminate
-    assert state.iteration == real_epoch_length * (max_epochs - 1)
+    assert state.iteration == real_epoch_length * (max_epochs - 1) + (iteration_to_stop % real_epoch_length)
 
 
 class RecordedEngine(Engine):
