@@ -474,8 +474,8 @@ def _test_distrib_integration_multiclass(device):
     metric_devices = [torch.device("cpu")]
     if device.type != "xla":
         metric_devices.append(idist.device())
+    rank = idist.get_rank()
     for i in range(2):
-        rank = idist.get_rank()
         torch.manual_seed(12 + rank + i)
         for metric_device in metric_devices:
             _test(average=False, n_epochs=1, metric_device=metric_device)
@@ -542,8 +542,8 @@ def _test_distrib_integration_multilabel(device):
     metric_devices = ["cpu"]
     if device.type != "xla":
         metric_devices.append(idist.device())
+    rank = idist.get_rank()
     for i in range(2):
-        rank = idist.get_rank()
         torch.manual_seed(12 + rank + i)
         for metric_device in metric_devices:
             _test(average=False, n_epochs=1, metric_device=metric_device)
