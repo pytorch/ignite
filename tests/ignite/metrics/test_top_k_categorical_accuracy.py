@@ -96,8 +96,8 @@ def _test_distrib_integration(device):
     metric_devices = ["cpu"]
     if device.type != "xla":
         metric_devices.append(idist.device())
+    rank = idist.get_rank()
     for i in range(3):
-        rank = idist.get_rank()
         torch.manual_seed(12 + rank + i)
         for metric_device in metric_devices:
             _test(n_epochs=1, metric_device=metric_device)
