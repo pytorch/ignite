@@ -310,7 +310,7 @@ class Engine(Serializable):
         except ValueError:
             _check_signature(handler, "handler", *(event_args + args), **kwargs)
             self._event_handlers[event_name].append((handler, args, kwargs))
-        self.logger.debug(f"added handler for event {event_name}")
+        self.logger.debug(f"Added handler for event {event_name}")
 
         return RemovableEventHandle(event_name, handler, self)
 
@@ -406,7 +406,7 @@ class Engine(Serializable):
             **event_kwargs: optional keyword args to be passed to all handlers.
 
         """
-        self.logger.debug(f"firing handlers for event {event_name}")
+        self.logger.debug(f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {event_name}")
         self.last_event_name = event_name
         for func, args, kwargs in self._event_handlers[event_name]:
             kwargs.update(event_kwargs)
@@ -720,6 +720,11 @@ class Engine(Serializable):
             if self.state.epoch_length is None and data is None:
                 raise ValueError("epoch_length should be provided if data is None")
 
+            if self.should_terminate:
+                # If engine was terminated and now is resuming from terminated state
+                # we need to initialize iter_counter as 0
+                self._init_iter.append(0)
+
         self.state.dataloader = data
         return self._internal_run()
 
@@ -750,12 +755,13 @@ class Engine(Serializable):
 
     def _setup_engine(self) -> None:
         self._setup_dataloader_iter()
-        iteration = self.state.iteration
 
-        # Below we define initial counter value for _run_once_on_dataset to measure a single epoch
-        if self.state.epoch_length is not None:
-            iteration %= self.state.epoch_length
-        self._init_iter.append(iteration)
+        if len(self._init_iter) == 0:
+            iteration = self.state.iteration
+            # Below we define initial counter value for _run_once_on_dataset to measure a single epoch
+            if self.state.epoch_length is not None:
+                iteration %= self.state.epoch_length
+            self._init_iter.append(iteration)
 
     def _internal_run(self) -> State:
         self.should_terminate = self.should_terminate_single_epoch = False
@@ -826,6 +832,11 @@ class Engine(Serializable):
         start_time = time.time()
 
         # We need to setup iter_counter > 0 if we resume from an iteration
+        if len(self._init_iter) > 1:
+            raise RuntimeError(
+                "Internal error, len(self._init_iter) should 0 or 1, "
+                f"but got: {len(self._init_iter)}, {self._init_iter}"
+            )
         iter_counter = self._init_iter.pop() if len(self._init_iter) > 0 else 0
         should_exit = False
         try:
