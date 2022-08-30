@@ -28,7 +28,10 @@ def test_output_cpu(test_case, k, exponential, ignore_ties, replacement):
     device = "cpu"
     y_pred_distribution, y_true = test_case
 
-    y_pred = torch.multinomial(y_pred_distribution, 5, replacement=not replacement)
+    y_pred = torch.multinomial(y_pred_distribution, 5, replacement=replacement)
+
+    if not replacement and ignore_ties:
+        return
 
     ndcg = NDCG(k=k, device=device, exponential=exponential, ignore_ties=ignore_ties)
     ndcg.update([y_pred, y_true])
@@ -51,7 +54,10 @@ def test_output_cuda(test_case, k, exponential, ignore_ties, replacement):
     device = "cuda"
     y_pred_distribution, y_true = test_case
 
-    y_pred = torch.multinomial(y_pred_distribution, 5, replacement=not replacement)
+    y_pred = torch.multinomial(y_pred_distribution, 5, replacement=replacement)
+
+    if not replacement and ignore_ties:
+        return
 
     y_pred = y_pred.to(device)
     y_true = y_true.to(device)
