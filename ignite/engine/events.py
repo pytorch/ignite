@@ -280,9 +280,9 @@ class Events(EventEnum):
     """Event attribute indicating epoch is ended."""
 
     STARTED = "started"
-    """triggered when engine’s run is started."""
+    """triggered when engine's run is started."""
     COMPLETED = "completed"
-    """"triggered when engine’s run is completed"""
+    """triggered when engine's run is completed"""
 
     ITERATION_STARTED = "iteration_started"
     """triggered when an iteration is started."""
@@ -297,7 +297,7 @@ class Events(EventEnum):
     """triggered after the batch is fetched."""
 
     DATALOADER_STOP_ITERATION = "dataloader_stop_iteration"
-    """"engine’s specific event triggered when dataloader has no more data to provide"""
+    """engine's specific event triggered when dataloader has no more data to provide"""
     TERMINATE = "terminate"
     """triggered when the run is about to end completely, after receiving terminate() call."""
     TERMINATE_SINGLE_EPOCH = "terminate_single_epoch"

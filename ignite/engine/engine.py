@@ -132,7 +132,7 @@ class Engine(Serializable):
         self._allowed_events = []  # type: List[EventEnum]
 
         self._dataloader_iter = None  # type: Optional[Iterator[Any]]
-        self._init_iter = []  # type: List[int]
+        self._init_iter = None  # type: Optional[int]
 
         self.register_events(*Events)
 
@@ -723,7 +723,7 @@ class Engine(Serializable):
             if self.should_terminate:
                 # If engine was terminated and now is resuming from terminated state
                 # we need to initialize iter_counter as 0
-                self._init_iter.append(0)
+                self._init_iter = 0
 
         self.state.dataloader = data
         return self._internal_run()
@@ -756,12 +756,12 @@ class Engine(Serializable):
     def _setup_engine(self) -> None:
         self._setup_dataloader_iter()
 
-        if len(self._init_iter) == 0:
+        if self._init_iter is None:
             iteration = self.state.iteration
             # Below we define initial counter value for _run_once_on_dataset to measure a single epoch
             if self.state.epoch_length is not None:
                 iteration %= self.state.epoch_length
-            self._init_iter.append(iteration)
+            self._init_iter = iteration
 
     def _internal_run(self) -> State:
         self.should_terminate = self.should_terminate_single_epoch = False
@@ -832,12 +832,8 @@ class Engine(Serializable):
         start_time = time.time()
 
         # We need to setup iter_counter > 0 if we resume from an iteration
-        if len(self._init_iter) > 1:
-            raise RuntimeError(
-                "Internal error, len(self._init_iter) should 0 or 1, "
-                f"but got: {len(self._init_iter)}, {self._init_iter}"
-            )
-        iter_counter = self._init_iter.pop() if len(self._init_iter) > 0 else 0
+        iter_counter = 0 if self._init_iter is None else self._init_iter
+        self._init_iter = None
         should_exit = False
         try:
             if self._dataloader_iter is None:
