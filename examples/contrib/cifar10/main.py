@@ -260,7 +260,7 @@ def initialize(config):
 
 def log_metrics(logger, epoch, elapsed, tag, metrics):
     metrics_output = "\n".join([f"\t{k}: {v}" for k, v in metrics.items()])
-    logger.info(f"\nEpoch {epoch} - Evaluation time (seconds): {elapsed:.2f} - {tag} metrics:\n {metrics_output}")
+    logger.info(f"Epoch[{epoch}] - Evaluation time (seconds): {elapsed:.3f}\n - {tag} metrics:\n {metrics_output}")
 
 
 def log_basic_info(logger, config):
@@ -379,9 +379,6 @@ def create_evaluator(model, metrics, config, tag="val"):
 
     for name, metric in metrics.items():
         metric.attach(evaluator, name)
-
-    if idist.get_rank() == 0 and (not config["with_clearml"]):
-        common.ProgressBar(desc=f"Evaluation ({tag})", persist=False).attach(evaluator)
 
     return evaluator
 

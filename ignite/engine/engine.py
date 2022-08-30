@@ -296,10 +296,7 @@ class Engine(Serializable):
             for e in event_name:
                 self.add_event_handler(e, handler, *args, **kwargs)
             return RemovableEventHandle(event_name, handler, self)
-        if (
-            isinstance(event_name, CallableEventWithFilter)
-            and event_name.filter != CallableEventWithFilter.default_event_filter
-        ):
+        if isinstance(event_name, CallableEventWithFilter) and event_name.filter is not None:
             event_filter = event_name.filter
             handler = self._handler_wrapper(handler, event_name, event_filter)
 
@@ -317,19 +314,9 @@ class Engine(Serializable):
         except ValueError:
             _check_signature(handler, "handler", *(event_args + args), **kwargs)
             self._event_handlers[event_name].append((handler, args, kwargs))
-        self.logger.debug(f"added handler for event {event_name}")
+        self.logger.debug(f"Added handler for event {event_name}")
 
         return RemovableEventHandle(event_name, handler, self)
-
-    @staticmethod
-    def _assert_non_filtered_event(event_name: Any) -> None:
-        if (
-            isinstance(event_name, CallableEventWithFilter)
-            and event_name.filter != CallableEventWithFilter.default_event_filter
-        ):
-            raise TypeError(
-                "Argument event_name should not be a filtered event, " "please use event without any event filtering"
-            )
 
     def has_event_handler(self, handler: Callable, event_name: Optional[Any] = None) -> bool:
         """Check if the specified event has the specified handler.
@@ -423,7 +410,7 @@ class Engine(Serializable):
             **event_kwargs: optional keyword args to be passed to all handlers.
 
         """
-        self.logger.debug(f"firing handlers for event {event_name}")
+        self.logger.debug(f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {event_name}")
         self.last_event_name = event_name
         for func, args, kwargs in self._event_handlers[event_name]:
             kwargs.update(event_kwargs)
@@ -463,14 +450,28 @@ class Engine(Serializable):
         self.should_interrupt = True
 
     def terminate(self) -> None:
-        """Sends terminate signal to the engine, so that it terminates completely the run after
-        the current iteration."""
+        """Sends terminate signal to the engine, so that it terminates completely the run. The run is
+        terminated after the event on which ``terminate`` method was called. The following events are triggered:
+
+        - ...
+        - Terminating event
+        - :attr:`~ignite.engine.events.Events.TERMINATE`
+        - :attr:`~ignite.engine.events.Events.COMPLETED`
+        """
         self.logger.info("Terminate signaled. Engine will stop after current iteration is finished.")
         self.should_terminate = True
 
     def terminate_epoch(self) -> None:
-        """Sends terminate signal to the engine, so that it terminates the current epoch
-        after the current iteration."""
+        """Sends terminate signal to the engine, so that it terminates the current epoch. The run
+        continues from the next epoch. The following events are triggered:
+
+        - ...
+        - Event on which ``terminate_epoch`` method is called
+        - :attr:`~ignite.engine.events.Events.TERMINATE_SINGLE_EPOCH`
+        - :attr:`~ignite.engine.events.Events.EPOCH_COMPLETED`
+        - :attr:`~ignite.engine.events.Events.EPOCH_STARTED`
+        - ...
+        """
         self.logger.info(
             "Terminate current epoch is signaled. "
             "Current epoch iteration will stop after current iteration is finished."
@@ -682,8 +683,8 @@ class Engine(Serializable):
             if max_epochs is not None:
                 if max_epochs < self.state.epoch:
                     raise ValueError(
-                        "Argument max_epochs should be larger than the start epoch "
-                        f"defined in the state: {max_epochs} vs {self.state.epoch}. "
+                        "Argument max_epochs should be greater than or equal to the start "
+                        f"epoch defined in the state: {max_epochs} vs {self.state.epoch}. "
                         "Please, set engine.state.max_epochs = None "
                         "before calling engine.run() in order to restart the training from the beginning."
                     )
@@ -731,6 +732,11 @@ class Engine(Serializable):
             if self.state.epoch_length is None and data is None:
                 raise ValueError("epoch_length should be provided if data is None")
 
+            if self.should_terminate:
+                # If engine was terminated and now is resuming from terminated state
+                # we need to initialize iter_counter as 0
+                self._init_iter.append(0)
+
         if self._dataloader_iter is None:
             self.state.dataloader = data
         return self._internal_run()
@@ -762,12 +768,13 @@ class Engine(Serializable):
 
     def _setup_engine(self) -> None:
         self._setup_dataloader_iter()
-        iteration = self.state.iteration
 
-        # Below we define initial counter value for _run_once_on_dataset to measure a single epoch
-        if self.state.epoch_length is not None:
-            iteration %= self.state.epoch_length
-        self._init_iter.append(iteration)
+        if len(self._init_iter) == 0:
+            iteration = self.state.iteration
+            # Below we define initial counter value for _run_once_on_dataset to measure a single epoch
+            if self.state.epoch_length is not None:
+                iteration %= self.state.epoch_length
+            self._init_iter.append(iteration)
 
     def _internal_run(self) -> State:
         if self._internal_run_generator is None:
@@ -811,7 +818,7 @@ class Engine(Serializable):
 
                     hours, mins, secs = _to_hours_mins_secs(epoch_time_taken)
                     self.logger.info(
-                        f"Epoch[{self.state.epoch}] Complete. Time taken: {hours:02d}:{mins:02d}:{secs:02d}"
+                        f"Epoch[{self.state.epoch}] Complete. Time taken: {hours:02d}:{mins:02d}:{secs:06.3f}"
                     )
 
             except _EngineTerminateException:
@@ -826,7 +833,7 @@ class Engine(Serializable):
             # update time wrt handlers
             self.state.times[Events.COMPLETED.name] = time_taken
             hours, mins, secs = _to_hours_mins_secs(time_taken)
-            self.logger.info(f"Engine run complete. Time taken: {hours:02d}:{mins:02d}:{secs:02d}")
+            self.logger.info(f"Engine run complete. Time taken: {hours:02d}:{mins:02d}:{secs:06.3f}")
 
         except BaseException as e:
             self._dataloader_iter = None
@@ -860,6 +867,11 @@ class Engine(Serializable):
         start_time = time.time()
 
         # We need to setup iter_counter > 0 if we resume from an iteration
+        if len(self._init_iter) > 1:
+            raise RuntimeError(
+                "Internal error, len(self._init_iter) should 0 or 1, "
+                f"but got: {len(self._init_iter)}, {self._init_iter}"
+            )
         iter_counter = self._init_iter.pop() if len(self._init_iter) > 0 else 0
         should_exit = False
         try:
@@ -929,7 +941,17 @@ class Engine(Serializable):
 
                 if self.state.max_iters is not None and self.state.iteration == self.state.max_iters:
                     self.should_terminate = True
-                    break
+                    raise _EngineTerminateException()
+
+        except _EngineTerminateSingleEpochException:
+            self._fire_event(Events.TERMINATE_SINGLE_EPOCH, iter_counter=iter_counter)
+            self.should_terminate_single_epoch = False
+            self._setup_dataloader_iter()
+
+        except _EngineTerminateException as e:
+            # we need to reraise this exception such that it is not handled
+            # as a general exception by the code below
+            raise e
 
         except _EngineTerminateSingleEpochException:
             self._fire_event(Events.TERMINATE_SINGLE_EPOCH, iter_counter=iter_counter)
@@ -951,15 +973,15 @@ def _get_none_data_iter(size: int) -> Iterator:
 
 class _EngineTerminateSingleEpochException(Exception):
     """
-    Exception associated with Enigne's Terminate Single Epoch event
+    Exception associated with Terminate Single Epoch event
     """
-
 
     pass
 
+
 class _EngineTerminateException(Exception):
     """
-    Exception associated with Enigne's Terminate event
+    Exception associated with Terminate event
     """
 
     pass

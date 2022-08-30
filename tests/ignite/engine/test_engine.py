@@ -105,7 +105,7 @@ def test_terminate_at_end_of_epoch_stops_run(data):
 
 
 @pytest.mark.parametrize("data, epoch_length", [(None, 10), (range(10), None)])
-def test_terminate_at_start_of_epoch_stops_run_after_completing_iteration(data, epoch_length):
+def test_terminate_at_start_of_epoch(data, epoch_length):
     max_epochs = 5
     epoch_to_terminate_on = 3
     real_epoch_length = epoch_length if data is None else len(data)
@@ -175,6 +175,10 @@ def test_terminate_stops_run_mid_epoch(data, epoch_length):
         if engine.state.iteration == iteration_to_stop:
             engine.terminate()
 
+    @engine.on(Events.EXCEPTION_RAISED)
+    def assert_no_exceptions(ee):
+        assert False, f"Engine should terminate without raising an exception, got '{type(ee)}'"
+
     engine.add_event_handler(Events.ITERATION_STARTED, start_of_iteration_handler)
     state = engine.run(data, max_epochs=max_epochs, epoch_length=epoch_length)
     # completes the iteration but doesn't increment counter (this happens just before a new iteration starts)
@@ -199,6 +203,65 @@ def test_terminate_stops_run_mid_epoch(data, epoch_length):
             expected_iter += 1
             assert engine.state.iteration == expected_iter
             assert engine.state.batch == data[(expected_iter - first_epoch_iter[1] - 1) % len(data)]
+
+    first_epoch_iter[0], first_epoch_iter[1] = state.epoch, state.iteration
+    state = engine.run(data, max_epochs=max_epochs, epoch_length=epoch_length)
+
+    assert state.epoch == max_epochs
+    assert not engine.should_terminate
+    assert state.iteration == real_epoch_length * (max_epochs - 1) + (iteration_to_stop % real_epoch_length)
+
+
+class RecordedEngine(Engine):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.called_events = []
+
+    def _fire_event(self, event_name, *event_args, **event_kwargs):
+        self.called_events.append((self.state.epoch, self.state.iteration, event_name.name))
+        return super()._fire_event(event_name, *event_args, **event_kwargs)
+
+
+@pytest.mark.parametrize(
+    "terminate_event, e, i",
+    [
+        (Events.STARTED, 0, 0),
+        (Events.EPOCH_STARTED(once=2), 2, None),
+        (Events.EPOCH_COMPLETED(once=2), 2, None),
+        (Events.GET_BATCH_STARTED(once=12), None, 12),
+        (Events.GET_BATCH_COMPLETED(once=12), None, 12),
+        (Events.ITERATION_STARTED(once=14), None, 14),
+        (Events.ITERATION_COMPLETED(once=14), None, 14),
+    ],
+)
+def test_terminate_events_sequence(terminate_event, e, i):
+    engine = RecordedEngine(MagicMock(return_value=1))
+    data = range(10)
+    max_epochs = 5
+
+    @engine.on(terminate_event)
+    def call_terminate():
+        engine.terminate()
+
+    @engine.on(Events.EXCEPTION_RAISED)
+    def assert_no_exceptions(ee):
+        assert False, f"Engine should terminate without raising an exception, got '{type(ee)}'"
+
+    engine.run(data, max_epochs=max_epochs)
+
+    if i is None:
+        if terminate_event == Events.EPOCH_STARTED:
+            i = len(data) * (e - 1)
+        else:
+            i = len(data) * e
+
+    if e is None:
+        e = i // len(data) + 1
+
+    assert engine.called_events[0] == (0, 0, Events.STARTED)
+    assert engine.called_events[-1] == (e, i, Events.COMPLETED)
+    assert engine.called_events[-2] == (e, i, Events.TERMINATE)
+    assert engine.called_events[-3] == (e, i, terminate_event)
 
     first_epoch_iter[0], first_epoch_iter[1] = state.epoch, state.iteration
     state = engine.run(data, max_epochs=max_epochs, epoch_length=epoch_length)
@@ -289,7 +352,7 @@ def test_terminate_epoch_stops_mid_epoch(data, epoch_length):
 def test_terminate_epoch_events_sequence(terminate_epoch_event, i):
     engine = RecordedEngine(MagicMock(return_value=1))
     data = range(10)
-    max_epochs = 5
+    max_epochs = 3
 
     # TODO: Bug: Events.GET_BATCH_STARTED(once=12) is called twice !
     # prevent call_terminate_epoch to be called twice
@@ -306,13 +369,22 @@ def test_terminate_epoch_events_sequence(terminate_epoch_event, i):
     def check_previous_events(iter_counter):
         e = i // len(data) + 1
 
-        print("engine.called_events:", engine.called_events)
-
         assert engine.called_events[0] == (0, 0, Events.STARTED)
-        assert engine.called_events[-1] == (e, i, Events.TERMINATE_SINGLE_EPOCH)
         assert engine.called_events[-2] == (e, i, terminate_epoch_event)
+        assert engine.called_events[-1] == (e, i, Events.TERMINATE_SINGLE_EPOCH)
+
+    @engine.on(Events.EPOCH_COMPLETED)
+    def check_previous_events2():
+        e = i // len(data) + 1
+        if e == engine.state.epoch and i == engine.state.iteration:
+            assert engine.called_events[-3] == (e, i, terminate_epoch_event)
+            assert engine.called_events[-2] == (e, i, Events.TERMINATE_SINGLE_EPOCH)
+            assert engine.called_events[-1] == (e, i, Events.EPOCH_COMPLETED)
 
     engine.run(data, max_epochs=max_epochs)
+
+    assert engine.state.epoch == max_epochs
+    assert (max_epochs - 1) * len(data) < engine.state.iteration < max_epochs * len(data)
 
 
 def _create_mock_data_loader(epochs, batches_per_epoch):
@@ -1064,7 +1136,7 @@ def test_run_with_invalid_max_iters_and_max_epoch():
         engine.run([0] * 20, max_iters=max_iters, max_epochs=max_epochs)
 
 
-def test_epoch_events_fired():
+def test_epoch_events_fired_max_iters():
     max_iters = 32
     engine = Engine(lambda e, b: 1)
 
@@ -1194,7 +1266,7 @@ def test_engine_run_resume(data, epoch_length):
     assert engine.state.iteration == 7 * real_epoch_length
 
     # error
-    with pytest.raises(ValueError, match="Argument max_epochs should be larger than the start epoch"):
+    with pytest.raises(ValueError, match="Argument max_epochs should be greater than or equal to the start epoch"):
         engine.run(data, max_epochs=4, epoch_length=epoch_length)
 
     # restart from 0 to 7 (As state.epoch == max_epochs(=7),
