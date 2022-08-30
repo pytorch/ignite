@@ -8,7 +8,7 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics.recsys.ndcg import NDCG
 
 
-@pytest.fixture(params=[item for item in range(6)])
+@pytest.fixture(params=[item for item in range(2)])
 def test_case(request):
 
     return [
@@ -17,7 +17,7 @@ def test_case(request):
             torch.tensor([[3.7, 3.7, 3.7, 3.7, 3.7], [3.7, 3.7, 3.7, 3.7, 3.9]]),
             torch.tensor([[1.0, 2.0, 3.0, 4.0, 5.0], [1.0, 2.0, 3.0, 4.0, 5.0]]),
         ),
-    ][request.param % 2]
+    ][request.param]
 
 
 @pytest.mark.parametrize("k", [None, 2, 3])
@@ -29,9 +29,6 @@ def test_output_cpu(test_case, k, exponential, ignore_ties, replacement):
     y_pred_distribution, y_true = test_case
 
     y_pred = torch.multinomial(y_pred_distribution, 5, replacement=replacement)
-
-    if not replacement and ignore_ties:
-        return
 
     ndcg = NDCG(k=k, device=device, exponential=exponential, ignore_ties=ignore_ties)
     ndcg.update([y_pred, y_true])
@@ -55,9 +52,6 @@ def test_output_cuda(test_case, k, exponential, ignore_ties, replacement):
     y_pred_distribution, y_true = test_case
 
     y_pred = torch.multinomial(y_pred_distribution, 5, replacement=replacement)
-
-    if not replacement and ignore_ties:
-        return
 
     y_pred = y_pred.to(device)
     y_true = y_true.to(device)
