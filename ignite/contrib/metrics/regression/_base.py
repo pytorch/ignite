@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Tuple
+from typing import List, Tuple
 
 import torch
 
@@ -28,6 +28,16 @@ def _check_output_types(output: Tuple[torch.Tensor, torch.Tensor]) -> None:
 
     if y.dtype not in (torch.float16, torch.float32, torch.float64):
         raise TypeError(f"Input y dtype should be float 16, 32 or 64, but given {y.dtype}")
+
+
+def _torch_median_kthval(output: List[torch.Tensor]) -> float:
+    output = output.view(-1)
+    len_ = len(output)
+
+    if len_ % 2 == 0:
+        return float((torch.kthvalue(output, len_ // 2)[0] + torch.kthvalue(output, len_ // 2 + 1)[0]) / 2)
+    else:
+        return float(torch.kthvalue(output, len_ // 2)[0])
 
 
 class _BaseRegression(Metric):

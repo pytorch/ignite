@@ -133,16 +133,8 @@ def _test_distrib_compute(device):
 
         e = np.abs(np_y - np_y_pred) / np.abs(np_y - np_y.mean())
 
-        # The results between numpy.median() and torch.median() are Inconsistant
-        # when the length of the array/tensor is even. So this is a hack to avoid that.
-        # issue: https://github.com/pytorch/pytorch/issues/1837
-        if np_y_pred.shape[0] % 2 == 0:
-            e_prepend = np.insert(e, 0, e[0], axis=0)
-            np_res_prepend = np.median(e_prepend)
-            assert pytest.approx(res) == np_res_prepend
-        else:
-            np_res = np.median(e)
-            assert pytest.approx(res) == np_res
+        np_res = np.median(e)
+        assert pytest.approx(res) == np_res
 
     for _ in range(3):
         _test("cpu")
@@ -151,10 +143,6 @@ def _test_distrib_compute(device):
 
 
 def _test_distrib_integration(device):
-
-    rank = idist.get_rank()
-    torch.manual_seed(12)
-
     def _test(n_epochs, metric_device):
         metric_device = torch.device(metric_device)
         n_iters = 80
@@ -176,6 +164,9 @@ def _test_distrib_integration(device):
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=n_epochs)
 
+        y_true = idist.all_gather(y_true)
+        y_preds = idist.all_gather(y_preds)
+
         assert "mare" in engine.state.metrics
 
         res = engine.state.metrics["mare"]
@@ -192,7 +183,9 @@ def _test_distrib_integration(device):
     if device.type != "xla":
         metric_devices.append(idist.device())
     for metric_device in metric_devices:
-        for _ in range(2):
+        for i in range(2):
+            rank = idist.get_rank()
+            torch.manual_seed(12 + rank + i)
             _test(n_epochs=1, metric_device=metric_device)
             _test(n_epochs=2, metric_device=metric_device)
 
