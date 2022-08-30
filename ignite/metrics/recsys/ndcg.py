@@ -102,8 +102,8 @@ class NDCG(Metric):
 
         y_pred, y_true = output[0].detach(), output[1].detach()
 
-        y_pred = y_pred.to(torch.float32)
-        y_true = y_true.to(torch.float32)
+        y_pred = y_pred.to(torch.float32).to(self._device)
+        y_true = y_true.to(torch.float32).to(self._device)
 
         if self.exponential:
             y_true = 2 ** y_true - 1
