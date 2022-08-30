@@ -22,56 +22,48 @@ def test_case(request):
 
 @pytest.mark.parametrize("k", [None, 2, 3])
 @pytest.mark.parametrize("exponential", [True, False])
-@pytest.mark.parametrize("ignore_ties_flag", [True, False])
-@pytest.mark.parametrize("ignore_ties_input", [True, False])
-def test_output_cpu(test_case, k, exponential, ignore_ties_flag, ignore_ties_input):
+@pytest.mark.parametrize("ignore_ties, replacement", [(True, False), (False, True), (False, False)])
+def test_output_cpu(test_case, k, exponential, ignore_ties, replacement):
 
     device = "cpu"
     y_pred_distribution, y_true = test_case
 
-    y_pred = torch.multinomial(y_pred_distribution, 5, replacement=not ignore_ties_input)
+    y_pred = torch.multinomial(y_pred_distribution, 5, replacement=not replacement)
 
-    if not ignore_ties_input and ignore_ties_flag:
-        return
-
-    ndcg = NDCG(k=k, device=device, exponential=exponential, ignore_ties=ignore_ties_flag)
+    ndcg = NDCG(k=k, device=device, exponential=exponential, ignore_ties=ignore_ties)
     ndcg.update([y_pred, y_true])
     result_ignite = ndcg.compute()
 
     if exponential:
         y_true = 2 ** y_true - 1
 
-    result_sklearn = ndcg_score(y_true.numpy(), y_pred.numpy(), k=k, ignore_ties=ignore_ties_flag)
+    result_sklearn = ndcg_score(y_true.numpy(), y_pred.numpy(), k=k, ignore_ties=ignore_ties)
 
     np.testing.assert_allclose(np.array(result_ignite), result_sklearn, rtol=2e-6)
 
 
 @pytest.mark.parametrize("k", [None, 2, 3])
 @pytest.mark.parametrize("exponential", [True, False])
-@pytest.mark.parametrize("ignore_ties_flag", [True, False])
-@pytest.mark.parametrize("ignore_ties_input", [True, False])
+@pytest.mark.parametrize("ignore_ties, replacement", [(True, False), (False, True), (False, False)])
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_output_cuda(test_case, k, exponential, ignore_ties_flag, ignore_ties_input):
+def test_output_cuda(test_case, k, exponential, ignore_ties, replacement):
 
     device = "cuda"
     y_pred_distribution, y_true = test_case
 
-    y_pred = torch.multinomial(y_pred_distribution, 5, replacement=not ignore_ties_input)
-
-    if not ignore_ties_input and ignore_ties_flag:
-        return
+    y_pred = torch.multinomial(y_pred_distribution, 5, replacement=not replacement)
 
     y_pred = y_pred.to(device)
     y_true = y_true.to(device)
 
-    ndcg = NDCG(k=k, device=device, exponential=exponential, ignore_ties=ignore_ties_flag)
+    ndcg = NDCG(k=k, device=device, exponential=exponential, ignore_ties=ignore_ties)
     ndcg.update([y_pred, y_true])
     result_ignite = ndcg.compute()
 
     if exponential:
         y_true = 2 ** y_true - 1
 
-    result_sklearn = ndcg_score(y_true.cpu().numpy(), y_pred.cpu().numpy(), k=k, ignore_ties=ignore_ties_flag)
+    result_sklearn = ndcg_score(y_true.cpu().numpy(), y_pred.cpu().numpy(), k=k, ignore_ties=ignore_ties)
 
     np.testing.assert_allclose(np.array(result_ignite), result_sklearn, rtol=2e-6)
 
