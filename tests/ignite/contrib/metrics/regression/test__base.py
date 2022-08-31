@@ -1,7 +1,11 @@
+import numpy as np
+
 import pytest
 import torch
 
-from ignite.contrib.metrics.regression._base import _BaseRegression
+import ignite.distributed as idist
+
+from ignite.contrib.metrics.regression._base import _BaseRegression, _torch_median
 
 
 def test_base_regression_shapes():
@@ -37,3 +41,27 @@ def test_base_regression_shapes():
     with pytest.raises(TypeError, match=r"Input y dtype should be float"):
         y = torch.tensor([1, 1])
         m.update((y.float(), y))
+
+
+def test_torch_median():
+    n_iters = 80
+    size = 105
+    y_true = torch.rand(size=(n_iters * size,))
+    y_pred = torch.rand(size=(n_iters * size,))
+    e = torch.abs(y_true.view_as(y_pred) - y_pred) / torch.abs(y_true.view_as(y_pred))
+    assert _torch_median(e) == np.median(e)
+
+    # Test consistency with torch.quantile and torch.median with odd size
+    n_iters = 81
+    size = 105
+    y_true = torch.rand(size=(n_iters * size,))
+    y_pred = torch.rand(size=(n_iters * size,))
+    e = torch.abs(y_true.view_as(y_pred) - y_pred) / torch.abs(y_true.view_as(y_pred))
+    assert _torch_median(e) == torch.quantile(e, 0.5, interpolation="midpoint")
+
+    n_iters = 81
+    size = 105
+    y_true = torch.rand(size=(n_iters * size,))
+    y_pred = torch.rand(size=(n_iters * size,))
+    e = torch.abs(y_true.view_as(y_pred) - y_pred) / torch.abs(y_true.view_as(y_pred))
+    assert _torch_median(e) == torch.median(e)
