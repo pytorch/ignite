@@ -3,8 +3,6 @@ import numpy as np
 import pytest
 import torch
 
-import ignite.distributed as idist
-
 from ignite.contrib.metrics.regression._base import _BaseRegression, _torch_median
 
 
