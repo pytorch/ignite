@@ -20,9 +20,10 @@ __all__ = ["Engine"]
 class Engine(Serializable):
     """
     Note:
-        This is a legacy ``Engine`` class kept in the package for backward compatibility with v0.4.9 and lower PyTorch-Ignite versions.
-        :class:`~ignite.engine.engine.Engine` does not break explicitly the backward compatibility, but its implementation may behave
-        differently on certain corner cases. In such case, please use this legacy ``Engine``.
+        This is a legacy ``Engine`` class kept in the package for backward compatibility with v0.4.9 and lower
+        PyTorch-Ignite versions. :class:`~ignite.engine.engine.Engine` does not break explicitly the backward
+        compatibility, but its implementation may behave differently on certain corner cases. In such case,
+        please use this legacy ``Engine``.
 
     Runs a given ``process_function`` over each batch of a dataset, emitting events as it goes.
 
