@@ -6,6 +6,7 @@ import torch
 from skimage.metrics import peak_signal_noise_ratio as ski_psnr
 
 import ignite.distributed as idist
+from ignite.engine import Engine
 from ignite.exceptions import NotComputableError
 from ignite.metrics import PSNR
 from ignite.utils import manual_seed
@@ -79,54 +80,52 @@ def test_psnr():
     _test_psnr(y_pred, y, data_range, device)
 
 
+def _test(
+    y_pred,
+    y,
+    data_range,
+    metric_device,
+    n_iters,
+    batch_size,
+    atol,
+    output_transform=lambda x: x,
+    compute_y_channel=False,
+):
+    def update(engine, i):
+        return (
+            y_pred[i * batch_size : (i + 1) * batch_size],
+            y[i * batch_size : (i + 1) * batch_size],
+        )
+
+    engine = Engine(update)
+    psnr = PSNR(data_range=data_range, output_transform=output_transform, device=metric_device)
+    psnr.attach(engine, "psnr")
+    data = list(range(n_iters))
+
+    engine.run(data=data, max_epochs=1)
+
+    y = idist.all_gather(y)
+    y_pred = idist.all_gather(y_pred)
+
+    result = engine.state.metrics["psnr"]
+    assert result > 0.0
+    assert "psnr" in engine.state.metrics
+
+    if compute_y_channel:
+        np_y_pred = y_pred[:, 0, ...].cpu().numpy()
+        np_y = y[:, 0, ...].cpu().numpy()
+    else:
+        np_y_pred = y_pred.cpu().numpy()
+        np_y = y.cpu().numpy()
+
+    np_psnr = 0
+    for np_y_pred_, np_y_ in zip(np_y_pred, np_y):
+        np_psnr += ski_psnr(np_y_, np_y_pred_, data_range=data_range)
+
+    assert np.allclose(result, np_psnr / np_y.shape[0], atol=atol)
+
+
 def _test_distrib_input_float(device, atol=1e-8):
-    def _test(
-        y_pred,
-        y,
-        data_range,
-        metric_device,
-        n_iters,
-        batch_size,
-        atol,
-        output_transform=lambda x: x,
-        compute_y_channel=False,
-    ):
-
-        from ignite.engine import Engine
-
-        def update(engine, i):
-            return (
-                y_pred[i * batch_size : (i + 1) * batch_size],
-                y[i * batch_size : (i + 1) * batch_size],
-            )
-
-        engine = Engine(update)
-        psnr = PSNR(data_range=data_range, output_transform=output_transform, device=metric_device)
-        psnr.attach(engine, "psnr")
-        data = list(range(n_iters))
-
-        engine.run(data=data, max_epochs=1)
-
-        y = idist.all_gather(y)
-        y_pred = idist.all_gather(y_pred)
-
-        result = engine.state.metrics["psnr"]
-        assert result > 0.0
-        assert "psnr" in engine.state.metrics
-
-        if compute_y_channel:
-            np_y_pred = y_pred[:, 0, ...].cpu().numpy()
-            np_y = y[:, 0, ...].cpu().numpy()
-        else:
-            np_y_pred = y_pred.cpu().numpy()
-            np_y = y.cpu().numpy()
-
-        np_psnr = 0
-        for np_y_pred_, np_y_ in zip(np_y_pred, np_y):
-            np_psnr += ski_psnr(np_y_, np_y_pred_, data_range=1)
-
-        assert np.allclose(result, np_psnr / np_y.shape[0], atol=atol)
-
     def get_test_cases():
 
         y_pred = torch.rand(n_iters * batch_size, 2, 2, device=device)
@@ -164,53 +163,6 @@ def _test_distrib_input_float(device, atol=1e-8):
 
 
 def _test_distrib_multilabel_input_YCbCr(device, atol=1e-8):
-    def _test(
-        y_pred,
-        y,
-        data_range,
-        metric_device,
-        n_iters,
-        batch_size,
-        atol,
-        output_transform=lambda x: (x[0][:, 0, ...], x[1][:, 0, ...]),
-        compute_y_channel=True,
-    ):
-
-        from ignite.engine import Engine
-
-        def update(engine, i):
-            return (
-                y_pred[i * batch_size : (i + 1) * batch_size],
-                y[i * batch_size : (i + 1) * batch_size],
-            )
-
-        engine = Engine(update)
-        psnr = PSNR(data_range=data_range, output_transform=output_transform, device=metric_device)
-        psnr.attach(engine, "psnr")
-        data = list(range(n_iters))
-
-        engine.run(data=data, max_epochs=1)
-
-        y = idist.all_gather(y)
-        y_pred = idist.all_gather(y_pred)
-
-        result = engine.state.metrics["psnr"]
-        assert result > 0.0
-        assert "psnr" in engine.state.metrics
-
-        if compute_y_channel:
-            np_y_pred = y_pred[:, 0, ...].cpu().numpy()
-            np_y = y[:, 0, ...].cpu().numpy()
-        else:
-            np_y_pred = y_pred.cpu().numpy()
-            np_y = y.cpu().numpy()
-
-        np_psnr = 0
-        for np_y_pred_, np_y_ in zip(np_y_pred, np_y):
-            np_psnr += ski_psnr(np_y_, np_y_pred_, data_range=220)
-
-        assert np.allclose(result, np_psnr / np_y.shape[0], atol=atol)
-
     def get_test_cases():
 
         y_pred = torch.randint(16, 236, (n_iters * batch_size, 1, 12, 12), dtype=torch.uint8, device=device)
@@ -238,6 +190,8 @@ def _test_distrib_multilabel_input_YCbCr(device, atol=1e-8):
             n_iters,
             batch_size,
             atol,
+            output_transform=lambda x: (x[0][:, 0, ...], x[1][:, 0, ...]),
+            compute_y_channel=True,
         )
         if device.type != "xla":
             _test(
@@ -248,57 +202,12 @@ def _test_distrib_multilabel_input_YCbCr(device, atol=1e-8):
                 n_iters,
                 batch_size,
                 atol,
+                output_transform=lambda x: (x[0][:, 0, ...], x[1][:, 0, ...]),
+                compute_y_channel=True,
             )
 
 
 def _test_distrib_multilabel_input_uint8(device, atol=1e-8):
-    def _test(
-        y_pred,
-        y,
-        data_range,
-        metric_device,
-        n_iters,
-        batch_size,
-        atol,
-        output_transform=lambda x: x,
-        compute_y_channel=False,
-    ):
-
-        from ignite.engine import Engine
-
-        def update(engine, i):
-            return (
-                y_pred[i * batch_size : (i + 1) * batch_size],
-                y[i * batch_size : (i + 1) * batch_size],
-            )
-
-        engine = Engine(update)
-        psnr = PSNR(data_range=data_range, output_transform=output_transform, device=metric_device)
-        psnr.attach(engine, "psnr")
-        data = list(range(n_iters))
-
-        engine.run(data=data, max_epochs=1)
-
-        y = idist.all_gather(y)
-        y_pred = idist.all_gather(y_pred)
-
-        result = engine.state.metrics["psnr"]
-        assert result > 0.0
-        assert "psnr" in engine.state.metrics
-
-        if compute_y_channel:
-            np_y_pred = y_pred[:, 0, ...].cpu().numpy()
-            np_y = y[:, 0, ...].cpu().numpy()
-        else:
-            np_y_pred = y_pred.cpu().numpy()
-            np_y = y.cpu().numpy()
-
-        np_psnr = 0
-        for np_y_pred_, np_y_ in zip(np_y_pred, np_y):
-            np_psnr += ski_psnr(np_y_, np_y_pred_, data_range=100)
-
-        assert np.allclose(result, np_psnr / np_y.shape[0], atol=atol)
-
     def get_test_cases():
 
         y_pred = torch.randint(0, 256, (n_iters * batch_size, 3, 16, 16), device=device, dtype=torch.uint8)
@@ -336,53 +245,6 @@ def _test_distrib_multilabel_input_uint8(device, atol=1e-8):
 
 
 def _test_distrib_multilabel_input_NHW(device, atol=1e-8):
-    def _test(
-        y_pred,
-        y,
-        data_range,
-        metric_device,
-        n_iters,
-        batch_size,
-        atol,
-        output_transform=lambda x: x,
-        compute_y_channel=False,
-    ):
-
-        from ignite.engine import Engine
-
-        def update(engine, i):
-            return (
-                y_pred[i * batch_size : (i + 1) * batch_size],
-                y[i * batch_size : (i + 1) * batch_size],
-            )
-
-        engine = Engine(update)
-        psnr = PSNR(data_range=data_range, output_transform=output_transform, device=metric_device)
-        psnr.attach(engine, "psnr")
-        data = list(range(n_iters))
-
-        engine.run(data=data, max_epochs=1)
-
-        y = idist.all_gather(y)
-        y_pred = idist.all_gather(y_pred)
-
-        result = engine.state.metrics["psnr"]
-        assert result > 0.0
-        assert "psnr" in engine.state.metrics
-
-        if compute_y_channel:
-            np_y_pred = y_pred[:, 0, ...].cpu().numpy()
-            np_y = y[:, 0, ...].cpu().numpy()
-        else:
-            np_y_pred = y_pred.cpu().numpy()
-            np_y = y.cpu().numpy()
-
-        np_psnr = 0
-        for np_y_pred_, np_y_ in zip(np_y_pred, np_y):
-            np_psnr += ski_psnr(np_y_, np_y_pred_, data_range=10)
-
-        assert np.allclose(result, np_psnr / np_y.shape[0], atol=atol)
-
     def get_test_cases():
 
         y_pred = torch.rand(n_iters * batch_size, 28, 28, device=device)
