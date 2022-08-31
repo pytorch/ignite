@@ -150,9 +150,9 @@ def _test_distrib_output(device):
 
         metric_device = torch.device(metric_device)
 
-        n_iters = 80
-        batch_size = 16
-        n_items = 10
+        n_iters = 5
+        batch_size = 8
+        n_items = 5
 
         torch.manual_seed(12 + rank)
 
@@ -256,3 +256,11 @@ def _test_distrib_xla_nprocs(index):
 
     device = idist.device()
     _test_distrib_output(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_xla_nprocs(xmp_executor):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+    xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)

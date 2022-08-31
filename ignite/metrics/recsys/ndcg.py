@@ -3,7 +3,7 @@ from typing import Callable, Optional, Sequence, Union
 import torch
 
 from ignite.exceptions import NotComputableError
-from ignite.metrics.metric import Metric
+from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
 __all__ = ["NDCG"]
 
@@ -93,11 +93,13 @@ class NDCG(Metric):
         self.ignore_ties = ignore_ties
         super(NDCG, self).__init__(output_transform=output_transform, device=device)
 
+    @reinit__is_reduced
     def reset(self) -> None:
 
         self.num_examples = 0
         self.ndcg = torch.tensor(0.0, device=self._device)
 
+    @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
 
         y_pred, y_true = output[0].detach(), output[1].detach()
@@ -112,6 +114,7 @@ class NDCG(Metric):
         self.ndcg += torch.sum(gain)
         self.num_examples += y_pred.shape[0]
 
+    @sync_all_reduce("ndcg", "num_examples")
     def compute(self) -> float:
         if self.num_examples == 0:
             raise NotComputableError("NGCD must have at least one example before it can be computed.")
