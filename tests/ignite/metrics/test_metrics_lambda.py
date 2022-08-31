@@ -484,7 +484,7 @@ def _test_distrib_integration(device):
         assert 1.0 + f1_true == approx(state.metrics["ff1"])
 
     for i in range(3):
-        torch.manual_seed(12 + rank + i)
+        torch.manual_seed(11 + rank + i)
         _test("cpu")
         if device.type != "xla":
             _test(idist.device())
