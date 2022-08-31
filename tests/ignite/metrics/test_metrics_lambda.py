@@ -506,15 +506,31 @@ def _test_distrib_metrics_on_diff_devices(device):
             y_true[i * batch_size : (i + 1) * batch_size],
         )
 
+    evaluator = Engine(update)
+
     precision = Precision(average=False, device="cpu")
     recall = Recall(average=False, device=device)
-    custom_metric = precision * recall
 
-    engine = Engine(update)
-    custom_metric.attach(engine, "custom_metric")
+    def Fbeta(r, p, beta):
+        return torch.mean((1 + beta ** 2) * p * r / (beta ** 2 * p + r)).item()
+
+    F1 = MetricsLambda(Fbeta, recall, precision, 1)
+    F1.attach(evaluator, "f1")
+
+    another_f1 = (1.0 + precision * recall * 2 / (precision + recall + 1e-20)).mean().item()
+    another_f1.attach(evaluator, "ff1")
 
     data = list(range(n_iters))
-    engine.run(data, max_epochs=2)
+    state = evaluator.run(data, max_epochs=1)
+
+    y_preds = idist.all_gather(y_preds)
+    y_true = idist.all_gather(y_true)
+
+    assert "f1" in state.metrics
+    assert "ff1" in state.metrics
+    f1_true = f1_score(y_true.ravel(), np.argmax(y_preds.reshape(-1, n_classes), axis=-1), average="macro")
+    assert f1_true == approx(state.metrics["f1"])
+    assert 1.0 + f1_true == approx(state.metrics["ff1"])
 
 
 @pytest.mark.distributed
