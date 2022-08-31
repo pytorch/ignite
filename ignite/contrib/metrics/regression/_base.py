@@ -30,7 +30,7 @@ def _check_output_types(output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         raise TypeError(f"Input y dtype should be float 16, 32 or 64, but given {y.dtype}")
 
 
-def _torch_median_kthval(output: List[torch.Tensor]) -> float:
+def _torch_median_kthval(output: List) -> float:
     output = output.view(-1)
     len_ = len(output)
 
