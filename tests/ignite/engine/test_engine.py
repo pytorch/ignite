@@ -243,6 +243,10 @@ def test_terminate_events_sequence(terminate_event, e, i):
     def call_terminate():
         engine.terminate()
 
+    @engine.on(Events.EXCEPTION_RAISED)
+    def assert_no_exceptions(ee):
+        assert False, f"Engine should terminate without raising an exception, got '{type(ee)}'"
+
     engine.run(data, max_epochs=max_epochs)
 
     if i is None:
