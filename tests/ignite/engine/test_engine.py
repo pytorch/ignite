@@ -53,7 +53,6 @@ def test_current_epoch_counter_increases_every_epoch(data):
     engine.add_event_handler(Events.EPOCH_STARTED, counter)
 
     state = engine.run(data, max_epochs=max_epochs, epoch_length=2)
-    return None
     assert state.epoch == max_epochs
     counter.current_epoch_count = 1
     state = engine.run(data, max_epochs=max_epochs, epoch_length=2)
@@ -1209,7 +1208,7 @@ def test_engine_run_resume(data, epoch_length):
     assert engine.state.iteration == 7 * real_epoch_length
 
     # error
-    with pytest.raises(ValueError, match="Argument max_epochs should be larger than the start epoch"):
+    with pytest.raises(ValueError, match="Argument max_epochs should be greater than or equal to the start"):
         engine.run(data, max_epochs=4, epoch_length=epoch_length)
 
     # restart from 0 to 7 (As state.epoch == max_epochs(=7),
@@ -1302,5 +1301,4 @@ def test_engine_run_interrupt_resume(interrupt_event, e, i):
         raise RuntimeError("Shouldn't be here")
 
     engine.run(data, max_epochs=max_epochs)
-
-    assert expected_called_events[le:] == engine.called_events
+    assert expected_called_events[le - 1 :] == engine.called_events

@@ -736,10 +736,12 @@ class Engine(Serializable):
             if self.state.epoch_length is None and data is None:
                 raise ValueError("epoch_length should be provided if data is None")
 
-            if self.should_terminate:
-                # If engine was terminated and now is resuming from terminated state
-                # we need to initialize iter_counter as 0
-                self._init_iter.append(0)
+        if self.should_terminate:
+            # If engine was terminated and now is resuming from terminated state
+            # we need to initialize iter_counter as 0
+            self._init_iter.append(0)
+            self._internal_run_generator = None
+            self._run_once_generator = None
 
         self.state.dataloader = data
         return self._internal_run()
@@ -788,7 +790,7 @@ class Engine(Serializable):
             self._internal_run_generator = None
             return out.value
 
-    def _internal_run_as_gen(self) -> Generator:
+    def _internal_run_as_gen(self) -> Generator[State, None, State]:
         self.should_terminate = self.should_terminate_single_epoch = self.should_interrupt = False
         self._init_timers(self.state)
         try:
@@ -815,10 +817,11 @@ class Engine(Serializable):
 
                     run_once_on_dataset_result = self._run_once_on_dataset()
 
-                    if isinstance(run_once_on_dataset_result, int):
+                    if isinstance(run_once_on_dataset_result, float):
                         epoch_time_taken += run_once_on_dataset_result
                     else:
                         self._interrupted_within_run_once_on_dataset = True
+                        yield self.state
 
                     if not self._interrupted_within_run_once_on_dataset:
 
@@ -869,6 +872,7 @@ class Engine(Serializable):
         if self.should_interrupt:
             self._fire_event(Events.INTERRUPT)
             yield self.state
+            self.should_interrupt = False
 
     def _run_once_on_dataset(self) -> Union[float, State]:
         if self._run_once_generator is None:
