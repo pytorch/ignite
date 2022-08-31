@@ -188,7 +188,7 @@ def _test_distrib_integration(device):
         metric_devices.append(idist.device())
     for metric_device in metric_devices:
         for i in range(2):
-            torch.manual_seed(12 + rank + i)
+            torch.manual_seed(11 + rank + i)
             _test(n_epochs=1, metric_device=metric_device)
             _test(n_epochs=2, metric_device=metric_device)
 
