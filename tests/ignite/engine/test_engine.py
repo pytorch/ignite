@@ -184,14 +184,18 @@ def test_terminate_stops_run_mid_epoch(data, epoch_length):
     # completes the iteration but doesn't increment counter (this happens just before a new iteration starts)
     assert state.iteration == iteration_to_stop
     assert state.epoch == np.ceil(iteration_to_stop / real_epoch_length)  # it starts from 0
+    assert engine._dataloader_iter is None
 
     # Engine continue from epoch_to_terminate_on until max_epochs
     first_epoch_iter = [None, None]
+    num_calls_check_iter_epoch = 0
 
     @engine.on(Events.STARTED, first_epoch_iter)
     def check_iter_epoch(first_epoch_iter):
+        nonlocal num_calls_check_iter_epoch
         assert engine.state.epoch == first_epoch_iter[0]
         assert engine.state.iteration == first_epoch_iter[1]
+        num_calls_check_iter_epoch += 1
 
     if data is not None:
         expected_iter = state.iteration
@@ -210,6 +214,7 @@ def test_terminate_stops_run_mid_epoch(data, epoch_length):
     assert state.epoch == max_epochs
     assert not engine.should_terminate
     assert state.iteration == real_epoch_length * (max_epochs - 1) + (iteration_to_stop % real_epoch_length)
+    assert num_calls_check_iter_epoch == 1
 
 
 class RecordedEngine(Engine):
@@ -1291,8 +1296,10 @@ def test_engine_run_interrupt_resume(interrupt_event, e, i):
     assert engine.called_events[-2] == (e, i, interrupt_event)
     assert state.epoch == e
     assert state.iteration == i
-    assert engine._dataloader_iter is not None
     assert not engine.should_interrupt
+    # implementation detail check:
+    assert engine._dataloader_iter is not None
+    assert engine._internal_run_generator is not None
 
     le = len(engine.called_events)
     # We need to skip the last INTERRUPT event to compare
@@ -1307,3 +1314,58 @@ def test_engine_run_interrupt_resume(interrupt_event, e, i):
     engine.run(data, max_epochs=max_epochs)
 
     assert expected_called_events[le - 1 :] == engine.called_events
+    # implementation detail check:
+    assert engine._dataloader_iter is None
+    assert engine._internal_run_generator is None
+
+
+def test_engine_run_multiple_interrupt_resume():
+    data = range(10)
+    max_epochs = 3
+
+    def check_input_data(e, b):
+        i = (e.state.iteration - 1) % len(data)
+        assert b == data[i]
+
+    engine = Engine(check_input_data)
+
+    can_interrupt = True
+
+    @engine.on(Events.ITERATION_COMPLETED(every=6))
+    def call_interrupt():
+        if can_interrupt:
+            engine.interrupt()
+
+    state = engine.run(data, max_epochs=max_epochs)
+    assert state.iteration == 6 * 1 and state.epoch == 1
+    state = engine.run(data, max_epochs=max_epochs)
+    assert state.iteration == 6 * 2 and state.epoch == 2
+    state = engine.run(data, max_epochs=max_epochs)
+    assert state.iteration == 6 * 3 and state.epoch == 2
+    state = engine.run(data, max_epochs=max_epochs)
+    assert state.iteration == 6 * 4 and state.epoch == 3
+    # We did an interruption on the last epoch
+    assert state.epoch == max_epochs
+
+    # Run remaining iterations without interruptions
+    can_interrupt = False
+
+    state = engine.run(data, max_epochs=max_epochs)
+    assert state.iteration == max_epochs * len(data) and state.epoch == max_epochs
+    # Check implementation details
+    assert engine._dataloader_iter is None
+    assert engine._internal_run_generator is None
+
+    # Rerun the engine from start to end without interruptions
+    num_calls_check_iter_epoch = 0
+
+    @engine.on(Events.STARTED)
+    def check_iter_epoch(first_epoch_iter):
+        nonlocal num_calls_check_iter_epoch
+        assert engine.state.epoch == 0
+        assert engine.state.iteration == 0
+        num_calls_check_iter_epoch += 1
+
+    state = engine.run(data, max_epochs=max_epochs)
+    assert state.iteration == max_epochs * len(data) and state.epoch == max_epochs
+    assert num_calls_check_iter_epoch == 1

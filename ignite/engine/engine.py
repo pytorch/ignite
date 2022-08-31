@@ -696,7 +696,7 @@ class Engine(Serializable):
                         f"but given {epoch_length} vs {self.state.epoch_length}"
                     )
 
-        if self.state.max_epochs is None or self._is_done(self.state):
+        if self.state.max_epochs is None or (self._is_done(self.state) and self._internal_run_generator is None):
             # Create new state
             if epoch_length is None:
                 if data is None:
