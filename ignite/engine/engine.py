@@ -128,6 +128,7 @@ class Engine(Serializable):
         self.should_terminate = False
         self.should_terminate_single_epoch = False
         self.should_interrupt = False
+        self._interrupted_within_run_once_on_dataset = False
         self.state = State()
         self._state_dict_user_keys = []  # type: List[str]
         self._allowed_events = []  # type: List[EventEnum]
@@ -142,8 +143,11 @@ class Engine(Serializable):
 
         _check_signature(process_function, "process_function", self, None)
 
-        self._internal_run_generator = None  # generator provided by self._internal_run_as_gen
-        self._run_once_generator = None  # generator provided by self._run_once_on_dataset_as_gen
+        # generator provided by self._internal_run_as_gen
+        self._internal_run_generator = None  # type: Union[None, Generator[State, None, State]]
+
+        # generator provided by self._run_once_on_dataset_as_gen
+        self._run_once_generator = None  # type: Union[None, Generator[State, None, float]]
 
     def register_events(
         self, *event_names: Union[List[str], List[EventEnum]], event_to_attr: Optional[dict] = None
@@ -793,32 +797,45 @@ class Engine(Serializable):
                 self._fire_event(Events.STARTED)
                 yield from self._maybe_terminate_or_interrupt()
 
-                while not self._is_done(self.state) and not self.should_terminate:
-                    self.state.epoch += 1
-                    handlers_start_time = time.time()
-                    self._fire_event(Events.EPOCH_STARTED)
-                    epoch_time_taken = time.time() - handlers_start_time
-                    yield from self._maybe_terminate_or_interrupt()
+                while (
+                    self._interrupted_within_run_once_on_dataset or not self._is_done(self.state)
+                ) and not self.should_terminate:
 
-                    if self._dataloader_iter is None:
-                        self._setup_engine()
+                    if not self._interrupted_within_run_once_on_dataset:
+                        self.state.epoch += 1
+                        handlers_start_time = time.time()
+                        self._fire_event(Events.EPOCH_STARTED)
+                        epoch_time_taken = time.time() - handlers_start_time
+                        yield from self._maybe_terminate_or_interrupt()
 
-                    epoch_time_taken += self._run_once_on_dataset()
+                        if self._dataloader_iter is None:
+                            self._setup_engine()
 
-                    # time is available for handlers but must be updated after fire
-                    self.state.times[Events.EPOCH_COMPLETED.name] = epoch_time_taken
+                    self._interrupted_within_run_once_on_dataset = False
 
-                    handlers_start_time = time.time()
-                    self._fire_event(Events.EPOCH_COMPLETED)
-                    epoch_time_taken += time.time() - handlers_start_time
-                    # update time wrt handlers
-                    self.state.times[Events.EPOCH_COMPLETED.name] = epoch_time_taken
-                    yield from self._maybe_terminate_or_interrupt()
+                    run_once_on_dataset_result = self._run_once_on_dataset()
 
-                    hours, mins, secs = _to_hours_mins_secs(epoch_time_taken)
-                    self.logger.info(
-                        f"Epoch[{self.state.epoch}] Complete. Time taken: {hours:02d}:{mins:02d}:{secs:02d}"
-                    )
+                    if isinstance(run_once_on_dataset_result, int):
+                        epoch_time_taken += run_once_on_dataset_result
+                    else:
+                        self._interrupted_within_run_once_on_dataset = True
+
+                    if not self._interrupted_within_run_once_on_dataset:
+
+                        # time is available for handlers but must be updated after fire
+                        self.state.times[Events.EPOCH_COMPLETED.name] = epoch_time_taken
+
+                        handlers_start_time = time.time()
+                        self._fire_event(Events.EPOCH_COMPLETED)
+                        epoch_time_taken += time.time() - handlers_start_time
+                        # update time wrt handlers
+                        self.state.times[Events.EPOCH_COMPLETED.name] = epoch_time_taken
+                        yield from self._maybe_terminate_or_interrupt()
+
+                        hours, mins, secs = _to_hours_mins_secs(epoch_time_taken)
+                        self.logger.info(
+                            f"Epoch[{self.state.epoch}] Complete. Time taken: {hours:02d}:{mins:02d}:{secs:06.3f}"
+                        )
 
             except _EngineTerminateException:
                 self._fire_event(Events.TERMINATE)
@@ -842,7 +859,7 @@ class Engine(Serializable):
         self._dataloader_iter = None
         return self.state
 
-    def _maybe_terminate_or_interrupt(self) -> None:
+    def _maybe_terminate_or_interrupt(self) -> Generator[State, None, None]:
         if self.should_terminate:
             raise _EngineTerminateException()
 
@@ -853,7 +870,7 @@ class Engine(Serializable):
             self._fire_event(Events.INTERRUPT)
             yield self.state
 
-    def _run_once_on_dataset(self) -> float:
+    def _run_once_on_dataset(self) -> Union[float, State]:
         if self._run_once_generator is None:
             self._run_once_generator = self._run_once_on_dataset_as_gen()
         try:
@@ -862,7 +879,7 @@ class Engine(Serializable):
             self._run_once_generator = None
             return out.value
 
-    def _run_once_on_dataset_as_gen(self) -> Generator:
+    def _run_once_on_dataset_as_gen(self) -> Generator[State, None, float]:
         start_time = time.time()
 
         # We need to setup iter_counter > 0 if we resume from an iteration
