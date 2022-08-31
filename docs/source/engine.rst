@@ -45,6 +45,18 @@ Helper methods for deterministic training
     keep_random_state
     update_dataloader
 
+ignite.engine.legacy_engine
+---------------------------
+Legacy Engine for v0.4.9 backward compatibility
+
+.. currentmodule:: ignite.engine.legacy_engine
+
+.. autosummary::
+    :nosignatures:
+    :toctree: generated
+
+    Engine
+
 helper methods to define supervised trainer and evaluator
 ---------------------------------------------------------
 

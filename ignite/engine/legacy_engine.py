@@ -6,7 +6,7 @@ import warnings
 import weakref
 from collections import defaultdict, OrderedDict
 from collections.abc import Mapping
-from typing import Any, Callable, Dict, Generator, Iterable, Iterator, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Tuple, Union
 
 from torch.utils.data import DataLoader
 
@@ -18,7 +18,13 @@ __all__ = ["Engine"]
 
 
 class Engine(Serializable):
-    """Runs a given ``process_function`` over each batch of a dataset, emitting events as it goes.
+    """
+    Note:
+        This is a legacy ``Engine`` class kept in the package for backward compatibility with v0.4.9 and lower PyTorch-Ignite versions.
+        :class:`~ignite.engine.engine.Engine` does not break explicitly the backward compatibility, but its implementation may behave
+        differently on certain corner cases. In such case, please use this legacy ``Engine``.
+
+    Runs a given ``process_function`` over each batch of a dataset, emitting events as it goes.
 
     Args:
         process_function: A function receiving a handle to the engine and the current batch
@@ -29,12 +35,6 @@ class Engine(Serializable):
             It is created with the engine and its attributes (e.g. ``state.iteration``, ``state.epoch`` etc) are reset
             on every :meth:`~ignite.engine.engine.Engine.run`.
         last_event_name: last event name triggered by the engine.
-
-    .. warning::
-
-        :class:`~ignite.engine.engine.Engine`'s implementation may behave differently on certain corner cases
-        compared to ``Engine`` from v0.4.9 and before. In such case, please use this
-        legacy :class:`~ignite.engine.legacy_engine.Engine`.
 
     Examples:
         Create a basic trainer
@@ -133,13 +133,12 @@ class Engine(Serializable):
         self.last_event_name = None  # type: Optional[Events]
         self.should_terminate = False
         self.should_terminate_single_epoch = False
-        self.should_interrupt = False
         self.state = State()
         self._state_dict_user_keys = []  # type: List[str]
         self._allowed_events = []  # type: List[EventEnum]
 
         self._dataloader_iter = None  # type: Optional[Iterator[Any]]
-        self._init_iter = []  # type: List[int]
+        self._init_iter = None  # type: Optional[int]
 
         self.register_events(*Events)
 
@@ -147,9 +146,6 @@ class Engine(Serializable):
             raise ValueError("Engine must be given a processing function in order to run.")
 
         _check_signature(process_function, "process_function", self, None)
-
-        # generator provided by self._internal_run_as_gen
-        self._internal_run_generator = None  # type: Optional[Generator]
 
     def register_events(
         self, *event_names: Union[List[str], List[EventEnum]], event_to_attr: Optional[dict] = None
@@ -447,14 +443,6 @@ class Engine(Serializable):
         self._assert_allowed_event(event_name)
         return self._fire_event(event_name)
 
-    def interrupt(self) -> None:
-        """Sends interrupt signal to the engine, so that it interrupts the run after
-        the current iteration. The run can be resumed by calling
-        :meth:`~ignite.engine.engine.Engine.run`. Data iteration will continue from the interrupted state.
-        """
-        self.logger.info("interrupt signaled. Engine will interrupt the run after current iteration is finished.")
-        self.should_interrupt = True
-
     def terminate(self) -> None:
         """Sends terminate signal to the engine, so that it terminates completely the run. The run is
         terminated after the event on which ``terminate`` method was called. The following events are triggered:
@@ -702,7 +690,7 @@ class Engine(Serializable):
                         f"but given {epoch_length} vs {self.state.epoch_length}"
                     )
 
-        if self.state.max_epochs is None or (self._is_done(self.state) and self._internal_run_generator is None):
+        if self.state.max_epochs is None or self._is_done(self.state):
             # Create new state
             if epoch_length is None:
                 if data is None:
@@ -741,10 +729,9 @@ class Engine(Serializable):
             if self.should_terminate:
                 # If engine was terminated and now is resuming from terminated state
                 # we need to initialize iter_counter as 0
-                self._init_iter.append(0)
+                self._init_iter = 0
 
-        if self._dataloader_iter is None:
-            self.state.dataloader = data
+        self.state.dataloader = data
         return self._internal_run()
 
     @staticmethod
@@ -775,42 +762,33 @@ class Engine(Serializable):
     def _setup_engine(self) -> None:
         self._setup_dataloader_iter()
 
-        if len(self._init_iter) == 0:
+        if self._init_iter is None:
             iteration = self.state.iteration
             # Below we define initial counter value for _run_once_on_dataset to measure a single epoch
             if self.state.epoch_length is not None:
                 iteration %= self.state.epoch_length
-            self._init_iter.append(iteration)
+            self._init_iter = iteration
 
     def _internal_run(self) -> State:
-        if self._internal_run_generator is None:
-            self._internal_run_generator = self._internal_run_as_gen()
-        try:
-            return next(self._internal_run_generator)
-        except StopIteration as out:
-            self._internal_run_generator = None
-            return out.value
-
-    def _internal_run_as_gen(self) -> Generator:
-        self.should_terminate = self.should_terminate_single_epoch = self.should_interrupt = False
+        self.should_terminate = self.should_terminate_single_epoch = False
         self._init_timers(self.state)
         try:
             try:
                 start_time = time.time()
                 self._fire_event(Events.STARTED)
-                yield from self._maybe_terminate_or_interrupt()
+                self._maybe_terminate()
 
                 while not self._is_done(self.state) and not self.should_terminate:
                     self.state.epoch += 1
                     handlers_start_time = time.time()
                     self._fire_event(Events.EPOCH_STARTED)
                     epoch_time_taken = time.time() - handlers_start_time
-                    yield from self._maybe_terminate_or_interrupt()
+                    self._maybe_terminate()
 
                     if self._dataloader_iter is None:
                         self._setup_engine()
 
-                    epoch_time_taken += yield from self._run_once_on_dataset_as_gen()
+                    epoch_time_taken += self._run_once_on_dataset()
 
                     # time is available for handlers but must be updated after fire
                     self.state.times[Events.EPOCH_COMPLETED.name] = epoch_time_taken
@@ -820,7 +798,7 @@ class Engine(Serializable):
                     epoch_time_taken += time.time() - handlers_start_time
                     # update time wrt handlers
                     self.state.times[Events.EPOCH_COMPLETED.name] = epoch_time_taken
-                    yield from self._maybe_terminate_or_interrupt()
+                    self._maybe_terminate()
 
                     hours, mins, secs = _to_hours_mins_secs(epoch_time_taken)
                     self.logger.info(
@@ -849,28 +827,19 @@ class Engine(Serializable):
         self._dataloader_iter = None
         return self.state
 
-    def _maybe_terminate_or_interrupt(self) -> Generator:
+    def _maybe_terminate(self) -> None:
         if self.should_terminate:
             raise _EngineTerminateException()
 
         if self.should_terminate_single_epoch:
             raise _EngineTerminateSingleEpochException()
 
-        if self.should_interrupt:
-            self._fire_event(Events.INTERRUPT)
-            self.should_interrupt = False
-            yield self.state
-
-    def _run_once_on_dataset_as_gen(self) -> Generator:
+    def _run_once_on_dataset(self) -> float:
         start_time = time.time()
 
         # We need to setup iter_counter > 0 if we resume from an iteration
-        if len(self._init_iter) > 1:
-            raise RuntimeError(
-                "Internal error, len(self._init_iter) should 0 or 1, "
-                f"but got: {len(self._init_iter)}, {self._init_iter}"
-            )
-        iter_counter = self._init_iter.pop() if len(self._init_iter) > 0 else 0
+        iter_counter = 0 if self._init_iter is None else self._init_iter
+        self._init_iter = None
         should_exit = False
         try:
             if self._dataloader_iter is None:
@@ -885,11 +854,11 @@ class Engine(Serializable):
                     # Avoid Events.GET_BATCH_STARTED triggered twice when data iter is restarted
                     if self.last_event_name != Events.DATALOADER_STOP_ITERATION:
                         self._fire_event(Events.GET_BATCH_STARTED)
-                        yield from self._maybe_terminate_or_interrupt()
+                        self._maybe_terminate()
 
                     self.state.batch = next(self._dataloader_iter)
                     self._fire_event(Events.GET_BATCH_COMPLETED)
-                    yield from self._maybe_terminate_or_interrupt()
+                    self._maybe_terminate()
 
                     iter_counter += 1
                     should_exit = False
@@ -919,7 +888,7 @@ class Engine(Serializable):
                         break
 
                     self._fire_event(Events.DATALOADER_STOP_ITERATION)
-                    yield from self._maybe_terminate_or_interrupt()
+                    self._maybe_terminate()
 
                     self._setup_dataloader_iter()
                     should_exit = True
@@ -928,11 +897,11 @@ class Engine(Serializable):
 
                 self.state.iteration += 1
                 self._fire_event(Events.ITERATION_STARTED)
-                yield from self._maybe_terminate_or_interrupt()
+                self._maybe_terminate()
 
                 self.state.output = self._process_function(self, self.state.batch)
                 self._fire_event(Events.ITERATION_COMPLETED)
-                yield from self._maybe_terminate_or_interrupt()
+                self._maybe_terminate()
 
                 if self.state.epoch_length is not None and iter_counter == self.state.epoch_length:
                     break
