@@ -37,7 +37,7 @@ def _torch_median_kthval(output: torch.Tensor) -> float:
     if len_ % 2 == 0:
         return float((torch.kthvalue(output, len_ // 2)[0] + torch.kthvalue(output, len_ // 2 + 1)[0]) / 2)
     else:
-        return float(torch.kthvalue(output, len_ // 2)[0])
+        return float(torch.kthvalue(output, len_ // 2 + 1)[0])
 
 
 class _BaseRegression(Metric):
