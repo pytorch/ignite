@@ -479,12 +479,14 @@ def _test_distrib_integration(device):
 
         assert "f1" in state.metrics
         assert "ff1" in state.metrics
-        f1_true = f1_score(y_true.ravel(), np.argmax(y_pred.reshape(-1, n_classes), axis=-1), average="macro")
+        f1_true = f1_score(
+            y_true.ravel(), np.argmax(y_pred.cpu().numpy().reshape(-1, n_classes), axis=-1), average="macro"
+        )
         assert f1_true == approx(state.metrics["f1"])
         assert 1.0 + f1_true == approx(state.metrics["ff1"])
 
     for i in range(3):
-        torch.manual_seed(11 + rank + i)
+        torch.manual_seed(12 + rank + i)
         _test("cpu")
         if device.type != "xla":
             _test(idist.device())
