@@ -516,7 +516,7 @@ def test__setup_engine():
     data = list(range(100))
     engine.state.dataloader = data
     engine._setup_engine()
-    assert len(engine._init_iter) == 1 and engine._init_iter[0] == 10
+    assert engine._init_iter == 10
 
 
 def test_run_asserts():
