@@ -243,65 +243,6 @@ def test_terminate_events_sequence(terminate_event, e, i):
     def call_terminate():
         engine.terminate()
 
-    @engine.on(Events.EXCEPTION_RAISED)
-    def assert_no_exceptions(ee):
-        assert False, f"Engine should terminate without raising an exception, got '{type(ee)}'"
-
-    engine.run(data, max_epochs=max_epochs)
-
-    if i is None:
-        if terminate_event == Events.EPOCH_STARTED:
-            i = len(data) * (e - 1)
-        else:
-            i = len(data) * e
-
-    if e is None:
-        e = i // len(data) + 1
-
-    assert engine.called_events[0] == (0, 0, Events.STARTED)
-    assert engine.called_events[-1] == (e, i, Events.COMPLETED)
-    assert engine.called_events[-2] == (e, i, Events.TERMINATE)
-    assert engine.called_events[-3] == (e, i, terminate_event)
-
-    first_epoch_iter[0], first_epoch_iter[1] = state.epoch, state.iteration
-    state = engine.run(data, max_epochs=max_epochs, epoch_length=epoch_length)
-
-    assert state.epoch == max_epochs
-    assert not engine.should_terminate
-    assert state.iteration == real_epoch_length * (max_epochs - 1)
-
-
-class RecordedEngine(Engine):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.called_events = []
-
-    def _fire_event(self, event_name, *event_args, **event_kwargs):
-        self.called_events.append((self.state.epoch, self.state.iteration, event_name.name))
-        return super()._fire_event(event_name, *event_args, **event_kwargs)
-
-
-@pytest.mark.parametrize(
-    "terminate_event, e, i",
-    [
-        (Events.STARTED, 0, 0),
-        (Events.EPOCH_STARTED(once=2), 2, None),
-        (Events.EPOCH_COMPLETED(once=2), 2, None),
-        (Events.GET_BATCH_STARTED(once=12), None, 12),
-        (Events.GET_BATCH_COMPLETED(once=12), None, 12),
-        (Events.ITERATION_STARTED(once=14), None, 14),
-        (Events.ITERATION_COMPLETED(once=14), None, 14),
-    ],
-)
-def test_terminate_events_sequence(terminate_event, e, i):
-    engine = RecordedEngine(MagicMock(return_value=1))
-    data = range(10)
-    max_epochs = 5
-
-    @engine.on(terminate_event)
-    def call_terminate():
-        engine.terminate()
-
     engine.run(data, max_epochs=max_epochs)
 
     if i is None:
@@ -1347,10 +1288,11 @@ def test_engine_run_interrupt_resume(interrupt_event, e, i):
     assert state.epoch == e
     assert state.iteration == i
     assert engine._dataloader_iter is not None
+    assert not engine.should_interrupt
 
     le = len(engine.called_events)
     # We need to skip the last INTERRUPT event to compare
-    assert expected_called_events[:le - 1] == engine.called_events[:-1]
+    assert expected_called_events[: le - 1] == engine.called_events[:-1]
 
     engine.called_events = []
 
@@ -1360,4 +1302,4 @@ def test_engine_run_interrupt_resume(interrupt_event, e, i):
 
     engine.run(data, max_epochs=max_epochs)
 
-    assert expected_called_events[le:] == engine.called_events
+    assert expected_called_events[le - 1 :] == engine.called_events

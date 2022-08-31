@@ -142,8 +142,8 @@ class Engine(Serializable):
 
         _check_signature(process_function, "process_function", self, None)
 
-        self._internal_run_generator = None  # generator provided by self._internal_run_as_gen
-        self._run_once_generator = None  # generator provided by self._run_once_on_dataset_as_gen
+        # generator provided by self._internal_run_as_gen
+        self._internal_run_generator = None  # type: Optional[Generator]
 
     def register_events(
         self, *event_names: Union[List[str], List[EventEnum]], event_to_attr: Optional[dict] = None
@@ -804,7 +804,7 @@ class Engine(Serializable):
                     if self._dataloader_iter is None:
                         self._setup_engine()
 
-                    epoch_time_taken += self._run_once_on_dataset()
+                    epoch_time_taken += yield from self._run_once_on_dataset_as_gen()
 
                     # time is available for handlers but must be updated after fire
                     self.state.times[Events.EPOCH_COMPLETED.name] = epoch_time_taken
@@ -843,7 +843,7 @@ class Engine(Serializable):
         self._dataloader_iter = None
         return self.state
 
-    def _maybe_terminate_or_interrupt(self) -> None:
+    def _maybe_terminate_or_interrupt(self) -> Generator:
         if self.should_terminate:
             raise _EngineTerminateException()
 
@@ -852,16 +852,8 @@ class Engine(Serializable):
 
         if self.should_interrupt:
             self._fire_event(Events.INTERRUPT)
+            self.should_interrupt = False
             yield self.state
-
-    def _run_once_on_dataset(self) -> float:
-        if self._run_once_generator is None:
-            self._run_once_generator = self._run_once_on_dataset_as_gen()
-        try:
-            return next(self._run_once_generator)
-        except StopIteration as out:
-            self._run_once_generator = None
-            return out.value
 
     def _run_once_on_dataset_as_gen(self) -> Generator:
         start_time = time.time()
@@ -952,11 +944,6 @@ class Engine(Serializable):
             # we need to reraise this exception such that it is not handled
             # as a general exception by the code below
             raise e
-
-        except _EngineTerminateSingleEpochException:
-            self._fire_event(Events.TERMINATE_SINGLE_EPOCH, iter_counter=iter_counter)
-            self.should_terminate_single_epoch = False
-            self._setup_dataloader_iter()
 
         except Exception as e:
             self.logger.error(f"Current run is terminating due to exception: {e}")
