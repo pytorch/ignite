@@ -530,7 +530,7 @@ def _test_distrib_metrics_on_diff_devices(device):
 
     assert "f1" in state.metrics
     assert "ff1" in state.metrics
-    f1_true = f1_score(y_true.ravel(), np.argmax(y_preds.reshape(-1, n_classes), axis=-1), average="macro")
+    f1_true = f1_score(y_true.ravel().cpu(), np.argmax(y_preds.reshape(-1, n_classes).cpu(), axis=-1), average="macro")
     assert f1_true == approx(state.metrics["f1"])
     assert 1.0 + f1_true == approx(state.metrics["ff1"])
 
