@@ -56,22 +56,22 @@ def _test_distrib_integration(device):
     from ignite.engine import Engine
 
     rank = idist.get_rank()
-    torch.manual_seed(12)
-
-    n_iters = 100
-    s = 50
-    offset = n_iters * s
-
-    y_true = torch.rand(offset * idist.get_world_size(), 10).to(device)
-    y_preds = torch.rand(offset * idist.get_world_size(), 10).to(device)
-
-    def update(engine, i):
-        return (
-            y_preds[i * s + offset * rank : (i + 1) * s + offset * rank, ...],
-            y_true[i * s + offset * rank : (i + 1) * s + offset * rank, ...],
-        )
+    torch.manual_seed(12 + rank)
 
     def _test(metric_device):
+
+        n_iters = 100
+        batch_size = 50
+
+        y_true = torch.rand(n_iters * batch_size, 10).to(device)
+        y_preds = torch.rand(n_iters * batch_size, 10).to(device)
+
+        def update(engine, i):
+            return (
+                y_preds[i * batch_size : (i + 1) * batch_size, ...],
+                y_true[i * batch_size : (i + 1) * batch_size, ...],
+            )
+
         engine = Engine(update)
 
         m = MeanPairwiseDistance(device=metric_device)
@@ -80,6 +80,9 @@ def _test_distrib_integration(device):
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=1)
 
+        y_preds = idist.all_gather(y_preds)
+        y_true = idist.all_gather(y_true)
+
         assert "mpwd" in engine.state.metrics
         res = engine.state.metrics["mpwd"]
 
@@ -87,7 +90,10 @@ def _test_distrib_integration(device):
         for i in range(n_iters * idist.get_world_size()):
             true_res.append(
                 torch.pairwise_distance(
-                    y_true[i * s : (i + 1) * s, ...], y_preds[i * s : (i + 1) * s, ...], p=m._p, eps=m._eps
+                    y_true[i * batch_size : (i + 1) * batch_size, ...],
+                    y_preds[i * batch_size : (i + 1) * batch_size, ...],
+                    p=m._p,
+                    eps=m._eps,
                 )
                 .cpu()
                 .numpy()
