@@ -40,6 +40,7 @@ class BasicTimeProfiler:
         Events.TERMINATE,
         Events.TERMINATE_SINGLE_EPOCH,
         Events.DATALOADER_STOP_ITERATION,
+        Events.INTERRUPT,
     ]
 
     def __init__(self) -> None:
