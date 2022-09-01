@@ -140,8 +140,8 @@ def _test_distrib_integration(device, tol=1e-4):
 
         def update(engine, i):
             return (
-                y_pred[i * batch_size : (i + 1) * batch_size],
-                y[i * batch_size : (i + 1) * batch_size],
+                y_pred[i * batch_size : (i + 1) * batch_size, ...],
+                y[i * batch_size : (i + 1) * batch_size, ...],
             )
 
         engine = Engine(update)
