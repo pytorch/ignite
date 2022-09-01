@@ -30,12 +30,6 @@ class Engine(Serializable):
             on every :meth:`~ignite.engine.engine.Engine.run`.
         last_event_name: last event name triggered by the engine.
 
-    .. warning::
-
-        :class:`~ignite.engine.engine.Engine`'s implementation may behave differently on certain corner cases
-        compared to ``Engine`` from v0.4.9 and before. In such case, please use this
-        legacy :class:`~ignite.engine.legacy_engine.Engine`.
-
     Examples:
         Create a basic trainer
 
