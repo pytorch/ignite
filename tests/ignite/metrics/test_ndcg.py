@@ -159,10 +159,10 @@ def _test_distrib_output(device):
         y_true = torch.rand((n_iters * batch_size, n_items)).to(device)
         y_preds = torch.rand((n_iters * batch_size, n_items)).to(device)
 
-        def update(_, i):
+        def update(engine, i):
             return (
-                [v for v in y_preds[i * batch_size : (i + 1) * batch_size, ...]],
-                [v for v in y_true[i * batch_size : (i + 1) * batch_size]],
+                y_preds[i * batch_size : (i + 1) * batch_size, ...],
+                y_true[i * batch_size : (i + 1) * batch_size, ...],
             )
 
         engine = Engine(update)
