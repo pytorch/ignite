@@ -108,7 +108,6 @@ def test_integration_median_relative_absolute_error_with_output_transform():
 
 
 def _test_distrib_compute(device):
-
     def _test(metric_device):
         metric_device = torch.device(metric_device)
         m = MedianRelativeAbsoluteError(device=metric_device)
