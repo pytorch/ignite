@@ -474,6 +474,14 @@ class RemovableEventHandle:
         if handler is None or engine is None:
             return
 
+        if hasattr(handler, "_parent"):
+            handler = handler._parent()  # type: ignore[attr-defined]
+            if handler is None:
+                raise RuntimeError(
+                    "Internal error! Please fill an issue on https://github.com/pytorch/ignite/issues "
+                    "if encounter this error. Thank you!"
+                )
+
         if isinstance(self.event_name, EventsList):
             for e in self.event_name:
                 if engine.has_event_handler(handler, e):
