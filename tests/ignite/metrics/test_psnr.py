@@ -136,9 +136,9 @@ def _test_distrib_input_float(device, atol=1e-8):
     n_iters = 100
     batch_size = 10
 
+    rank = idist.get_rank()
     for i in range(3):
         # check multiple random inputs as random exact occurencies are rare
-        rank = idist.get_rank()
         torch.manual_seed(42 + rank + i)
         y_pred, y = get_test_cases()
         _test(
@@ -177,9 +177,9 @@ def _test_distrib_multilabel_input_YCbCr(device, atol=1e-8):
     n_iters = 100
     batch_size = 10
 
+    rank = idist.get_rank()
     for i in range(3):
         # check multiple random inputs as random exact occurencies are rare
-        rank = idist.get_rank()
         torch.manual_seed(42 + rank + i)
         y_pred, y = get_test_cases()
         _test(
@@ -218,9 +218,9 @@ def _test_distrib_multilabel_input_uint8(device, atol=1e-8):
     n_iters = 100
     batch_size = 10
 
+    rank = idist.get_rank()
     for i in range(3):
         # check multiple random inputs as random exact occurencies are rare
-        rank = idist.get_rank()
         torch.manual_seed(42 + rank + i)
         y_pred, y = get_test_cases()
         _test(
@@ -255,9 +255,9 @@ def _test_distrib_multilabel_input_NHW(device, atol=1e-8):
     n_iters = 100
     batch_size = 10
 
+    rank = idist.get_rank()
     for i in range(3):
         # check multiple random inputs as random exact occurencies are rare
-        rank = idist.get_rank()
         torch.manual_seed(42 + rank + i)
         y_pred, y = get_test_cases()
         _test(
