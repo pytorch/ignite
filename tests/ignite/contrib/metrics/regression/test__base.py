@@ -54,7 +54,7 @@ def test_torch_median_numpy(size, device: Optional[str] = None):
 @pytest.mark.parametrize("size", [101, (31, 3)])
 def test_torch_median_quantile(size, device: Optional[str] = None):
     data = torch.rand(size).to(device)
-    assert _torch_median(data) == torch.quantile(data)
+    assert _torch_median(data) == torch.quantile(data, 0.5, interpolation="midpoint")
 
     size = 101
     data = torch.rand(size=(size,))
@@ -72,12 +72,12 @@ def test_on_even_size_xla(size):
 @pytest.mark.parametrize("size", [100, 101, (30, 3), (31, 3)])
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_on_even_size_gpu(size):
-    test_torch_median_numpy(device="cuda")
+    test_torch_median_numpy(size, device="cuda")
 
 
 @pytest.mark.parametrize("size", [100, 101, (30, 3), (31, 3)])
 def test_create_even_size_cpu(size):
-    test_torch_median_numpy(device="cpu")
+    test_torch_median_numpy(size, device="cpu")
 
 
 @pytest.mark.tpu
@@ -91,9 +91,9 @@ def test_on_odd_size_xla(size):
 @pytest.mark.parametrize("size", [101, (31, 3)])
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_on_odd_size_gpu(size):
-    test_torch_median_quantile(device="cuda")
+    test_torch_median_quantile(size, device="cuda")
 
 
 @pytest.mark.parametrize("size", [101, (31, 3)])
 def test_create_odd_size_cpu(size):
-    test_torch_median_quantile(device="cpu")
+    test_torch_median_quantile(size, device="cpu")
