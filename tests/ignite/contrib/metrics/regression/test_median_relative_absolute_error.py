@@ -108,7 +108,6 @@ def test_integration_median_relative_absolute_error_with_output_transform():
 
 
 def _test_distrib_compute(device):
-    rank = idist.get_rank()
 
     def _test(metric_device):
         metric_device = torch.device(metric_device)
@@ -136,6 +135,7 @@ def _test_distrib_compute(device):
         np_res = np.median(e)
         assert pytest.approx(res) == np_res
 
+    rank = idist.get_rank()
     for _ in range(3):
         _test("cpu")
         if device.type != "xla":
@@ -183,8 +183,8 @@ def _test_distrib_integration(device):
     if device.type != "xla":
         metric_devices.append(idist.device())
     for metric_device in metric_devices:
+        rank = idist.get_rank()
         for i in range(2):
-            rank = idist.get_rank()
             torch.manual_seed(12 + rank + i)
             _test(n_epochs=1, metric_device=metric_device)
             _test(n_epochs=2, metric_device=metric_device)
