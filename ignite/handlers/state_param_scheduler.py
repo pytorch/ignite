@@ -492,7 +492,7 @@ class MultiStepStateScheduler(StateParamScheduler):
             default_trainer = get_default_trainer()
 
             param_scheduler = MultiStepStateScheduler(
-                param_name="param", initial_value=1, gamma=0.9, milestones=[3, 6, 9, 12]
+                param_name="param", initial_value=1, gamma=0.9, milestones=[3, 6, 9, 12], create_new=True
             )
 
             # parameter is param, initial_value sets param to 1, gamma is set as 0.9

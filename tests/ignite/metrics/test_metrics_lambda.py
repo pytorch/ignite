@@ -437,29 +437,25 @@ def test_recursive_attachment():
 def _test_distrib_integration(device):
 
     rank = idist.get_rank()
-    np.random.seed(12)
 
     n_iters = 10
     batch_size = 10
     n_classes = 10
 
     def _test(metric_device):
-        y_true = np.arange(0, n_iters * batch_size * idist.get_world_size(), dtype="int64") % n_classes
-        y_pred = 0.2 * np.random.rand(n_iters * batch_size * idist.get_world_size(), n_classes)
-        for i in range(n_iters * batch_size * idist.get_world_size()):
+        y_true = torch.arange(0, n_iters * batch_size, dtype=torch.int64).to(device) % n_classes
+        y_pred = 0.2 * torch.rand(n_iters * batch_size, n_classes).to(device)
+        for i in range(n_iters * batch_size):
             if np.random.rand() > 0.4:
                 y_pred[i, y_true[i]] = 1.0
             else:
                 j = np.random.randint(0, n_classes)
                 y_pred[i, j] = 0.7
 
-        y_true = y_true.reshape(n_iters * idist.get_world_size(), batch_size)
-        y_pred = y_pred.reshape(n_iters * idist.get_world_size(), batch_size, n_classes)
-
         def update_fn(engine, i):
-            y_true_batch = y_true[i + rank * n_iters, ...]
-            y_pred_batch = y_pred[i + rank * n_iters, ...]
-            return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+            y_true_batch = y_true[i * batch_size : (i + 1) * batch_size, ...]
+            y_pred_batch = y_pred[i * batch_size : (i + 1) * batch_size, ...]
+            return y_pred_batch, y_true_batch
 
         evaluator = Engine(update_fn)
 
@@ -478,13 +474,19 @@ def _test_distrib_integration(device):
         data = list(range(n_iters))
         state = evaluator.run(data, max_epochs=1)
 
+        y_pred = idist.all_gather(y_pred)
+        y_true = idist.all_gather(y_true)
+
         assert "f1" in state.metrics
         assert "ff1" in state.metrics
-        f1_true = f1_score(y_true.ravel(), np.argmax(y_pred.reshape(-1, n_classes), axis=-1), average="macro")
+        f1_true = f1_score(
+            y_true.ravel().cpu(), np.argmax(y_pred.reshape(-1, n_classes).cpu(), axis=-1), average="macro"
+        )
         assert f1_true == approx(state.metrics["f1"])
         assert 1.0 + f1_true == approx(state.metrics["ff1"])
 
-    for _ in range(3):
+    for i in range(3):
+        torch.manual_seed(12 + rank + i)
         _test("cpu")
         if device.type != "xla":
             _test(idist.device())
@@ -493,28 +495,44 @@ def _test_distrib_integration(device):
 def _test_distrib_metrics_on_diff_devices(device):
     n_classes = 10
     n_iters = 12
-    s = 16
-    offset = n_iters * s
+    batch_size = 16
     rank = idist.get_rank()
+    torch.manual_seed(12 + rank)
 
-    y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(),)).to(device)
-    y_preds = torch.rand(offset * idist.get_world_size(), n_classes).to(device)
+    y_true = torch.randint(0, n_classes, size=(n_iters * batch_size,)).to(device)
+    y_preds = torch.rand(n_iters * batch_size, n_classes).to(device)
 
     def update(engine, i):
         return (
-            y_preds[i * s + rank * offset : (i + 1) * s + rank * offset],
-            y_true[i * s + rank * offset : (i + 1) * s + rank * offset],
+            y_preds[i * batch_size : (i + 1) * batch_size, :],
+            y_true[i * batch_size : (i + 1) * batch_size],
         )
+
+    evaluator = Engine(update)
 
     precision = Precision(average=False, device="cpu")
     recall = Recall(average=False, device=device)
-    custom_metric = precision * recall
 
-    engine = Engine(update)
-    custom_metric.attach(engine, "custom_metric")
+    def Fbeta(r, p, beta):
+        return torch.mean((1 + beta ** 2) * p * r / (beta ** 2 * p + r)).item()
+
+    F1 = MetricsLambda(Fbeta, recall, precision, 1)
+    F1.attach(evaluator, "f1")
+
+    another_f1 = (1.0 + precision * recall * 2 / (precision + recall + 1e-20)).mean().item()
+    another_f1.attach(evaluator, "ff1")
 
     data = list(range(n_iters))
-    engine.run(data, max_epochs=2)
+    state = evaluator.run(data, max_epochs=1)
+
+    y_preds = idist.all_gather(y_preds)
+    y_true = idist.all_gather(y_true)
+
+    assert "f1" in state.metrics
+    assert "ff1" in state.metrics
+    f1_true = f1_score(y_true.ravel(), np.argmax(y_preds.reshape(-1, n_classes), axis=-1), average="macro")
+    assert f1_true == approx(state.metrics["f1"])
+    assert 1.0 + f1_true == approx(state.metrics["ff1"])
 
 
 @pytest.mark.distributed
