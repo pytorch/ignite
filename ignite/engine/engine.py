@@ -454,6 +454,73 @@ class Engine(Serializable):
         the current iteration. The run can be resumed by calling
         :meth:`~ignite.engine.engine.Engine.run`. Data iteration will continue from the interrupted state.
 
+        Examples:
+            .. code-block:: python
+
+                from ignite.engine import Engine, Events
+
+                data = range(10)
+                max_epochs = 3
+
+                def check_input_data(e, b):
+                    print(f"Epoch {engine.state.epoch}, Iter {engine.state.iteration} | data={b}")
+                    i = (e.state.iteration - 1) % len(data)
+                    assert b == data[i]
+
+                engine = Engine(check_input_data)
+
+                @engine.on(Events.ITERATION_COMPLETED(every=11))
+                def call_interrupt():
+                    engine.interrupt()
+
+                print("Start engine run with interruptions:")
+                state = engine.run(data, max_epochs=max_epochs)
+                print("1 Engine run is interrupted at ", state.epoch, state.iteration)
+                state = engine.run(data, max_epochs=max_epochs)
+                print("2 Engine run is interrupted at ", state.epoch, state.iteration)
+                state = engine.run(data, max_epochs=max_epochs)
+                print("3 Engine ended the run at ", state.epoch, state.iteration)
+
+            .. dropdown:: Output
+
+                .. code-block:: text
+
+                    Start engine run with interruptions:
+                    Epoch 1, Iter 1 | data=0
+                    Epoch 1, Iter 2 | data=1
+                    Epoch 1, Iter 3 | data=2
+                    Epoch 1, Iter 4 | data=3
+                    Epoch 1, Iter 5 | data=4
+                    Epoch 1, Iter 6 | data=5
+                    Epoch 1, Iter 7 | data=6
+                    Epoch 1, Iter 8 | data=7
+                    Epoch 1, Iter 9 | data=8
+                    Epoch 1, Iter 10 | data=9
+                    Epoch 2, Iter 11 | data=0
+                    1 Engine run is interrupted at  2 11
+                    Epoch 2, Iter 12 | data=1
+                    Epoch 2, Iter 13 | data=2
+                    Epoch 2, Iter 14 | data=3
+                    Epoch 2, Iter 15 | data=4
+                    Epoch 2, Iter 16 | data=5
+                    Epoch 2, Iter 17 | data=6
+                    Epoch 2, Iter 18 | data=7
+                    Epoch 2, Iter 19 | data=8
+                    Epoch 2, Iter 20 | data=9
+                    Epoch 3, Iter 21 | data=0
+                    Epoch 3, Iter 22 | data=1
+                    2 Engine run is interrupted at  3 22
+                    Epoch 3, Iter 23 | data=2
+                    Epoch 3, Iter 24 | data=3
+                    Epoch 3, Iter 25 | data=4
+                    Epoch 3, Iter 26 | data=5
+                    Epoch 3, Iter 27 | data=6
+                    Epoch 3, Iter 28 | data=7
+                    Epoch 3, Iter 29 | data=8
+                    Epoch 3, Iter 30 | data=9
+                    3 Engine ended the run at  3 30
+
+
         .. versionadded:: 0.5.0
         """
         if not self.interrupt_resume_enabled:

@@ -61,6 +61,7 @@ extensions = [
     "sphinx.ext.autosectionlabel",
     "sphinx_copybutton",
     "sphinx_togglebutton",
+    "sphinx_design",
 ]
 
 # toggle button hint text
