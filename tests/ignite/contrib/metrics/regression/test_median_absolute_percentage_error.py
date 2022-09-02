@@ -108,7 +108,6 @@ def test_integration_median_absolute_percentage_error():
 
 
 def _test_distrib_compute(device):
-
     def _test(metric_device):
         metric_device = torch.device(metric_device)
         m = MedianAbsolutePercentageError(device=metric_device)
