@@ -455,7 +455,7 @@ class Engine(Serializable):
         :meth:`~ignite.engine.engine.Engine.run`. Data iteration will continue from the interrupted state.
 
         Examples:
-            .. code-block:: python
+            .. testcode::
 
                 from ignite.engine import Engine, Events
 
@@ -483,7 +483,7 @@ class Engine(Serializable):
 
             .. dropdown:: Output
 
-                .. code-block:: text
+                .. testoutput::
 
                     Start engine run with interruptions:
                     Epoch 1, Iter 1 | data=0
