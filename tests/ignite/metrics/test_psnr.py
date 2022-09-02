@@ -141,25 +141,9 @@ def _test_distrib_input_float(device, atol=1e-8):
         # check multiple random inputs as random exact occurencies are rare
         torch.manual_seed(42 + rank + i)
         y_pred, y = get_test_cases()
-        _test(
-            y_pred,
-            y,
-            1,
-            "cpu",
-            n_iters,
-            batch_size,
-            atol=atol,
-        )
+        _test(y_pred, y, 1, "cpu", n_iters, batch_size, atol=atol)
         if device.type != "xla":
-            _test(
-                y_pred,
-                y,
-                1,
-                idist.device(),
-                n_iters,
-                batch_size,
-                atol=atol,
-            )
+            _test(y_pred, y, 1, idist.device(), n_iters, batch_size, atol=atol)
 
 
 def _test_distrib_multilabel_input_YCbCr(device, atol=1e-8):
@@ -177,22 +161,15 @@ def _test_distrib_multilabel_input_YCbCr(device, atol=1e-8):
     n_iters = 100
     batch_size = 10
 
+    def out_fn(x):
+        return x[0][:, 0, ...], x[1][:, 0, ...]
+
     rank = idist.get_rank()
     for i in range(3):
         # check multiple random inputs as random exact occurencies are rare
         torch.manual_seed(42 + rank + i)
         y_pred, y = get_test_cases()
-        _test(
-            y_pred,
-            y,
-            220,
-            "cpu",
-            n_iters,
-            batch_size,
-            atol,
-            output_transform=lambda x: (x[0][:, 0, ...], x[1][:, 0, ...]),
-            compute_y_channel=True,
-        )
+        _test(y_pred, y, 220, "cpu", n_iters, batch_size, atol, output_transform=out_fn, compute_y_channel=True)
         if device.type != "xla":
             _test(
                 y_pred,
@@ -202,7 +179,7 @@ def _test_distrib_multilabel_input_YCbCr(device, atol=1e-8):
                 n_iters,
                 batch_size,
                 atol,
-                output_transform=lambda x: (x[0][:, 0, ...], x[1][:, 0, ...]),
+                output_transform=out_fn,
                 compute_y_channel=True,
             )
 
@@ -223,25 +200,9 @@ def _test_distrib_multilabel_input_uint8(device, atol=1e-8):
         # check multiple random inputs as random exact occurencies are rare
         torch.manual_seed(42 + rank + i)
         y_pred, y = get_test_cases()
-        _test(
-            y_pred,
-            y,
-            100,
-            "cpu",
-            n_iters,
-            batch_size,
-            atol,
-        )
+        _test(y_pred, y, 100, "cpu", n_iters, batch_size, atol)
         if device.type != "xla":
-            _test(
-                y_pred,
-                y,
-                100,
-                idist.device(),
-                n_iters,
-                batch_size,
-                atol,
-            )
+            _test(y_pred, y, 100, idist.device(), n_iters, batch_size, atol)
 
 
 def _test_distrib_multilabel_input_NHW(device, atol=1e-8):
@@ -260,25 +221,9 @@ def _test_distrib_multilabel_input_NHW(device, atol=1e-8):
         # check multiple random inputs as random exact occurencies are rare
         torch.manual_seed(42 + rank + i)
         y_pred, y = get_test_cases()
-        _test(
-            y_pred,
-            y,
-            10,
-            "cpu",
-            n_iters,
-            batch_size,
-            atol,
-        )
+        _test(y_pred, y, 10, "cpu", n_iters, batch_size, atol)
         if device.type != "xla":
-            _test(
-                y_pred,
-                y,
-                10,
-                idist.device(),
-                n_iters,
-                batch_size,
-                atol,
-            )
+            _test(y_pred, y, 10, idist.device(), n_iters, batch_size, atol)
 
 
 def _test_distrib_accumulator_device(device):
