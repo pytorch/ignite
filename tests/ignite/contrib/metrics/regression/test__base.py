@@ -1,11 +1,9 @@
 from typing import Optional
-from unittest import mock
 
 import numpy as np
 
 import pytest
 import torch
-from packaging.version import Version
 
 import ignite.distributed as idist
 
@@ -66,36 +64,36 @@ def test_torch_median_quantile(size, device: Optional[str] = None):
 @pytest.mark.tpu
 @pytest.mark.parametrize("size", [100, 101, (30, 3), (31, 3)])
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_on_xla(size):
+def test_on_even_size_xla(size):
     device = "xla"
     test_torch_median_numpy(size, device=device)
 
 
 @pytest.mark.parametrize("size", [100, 101, (30, 3), (31, 3)])
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_on_gpu(size):
+def test_on_even_size_gpu(size):
     test_torch_median_numpy(device="cuda")
 
 
 @pytest.mark.parametrize("size", [100, 101, (30, 3), (31, 3)])
-def test_create_supervised_evaluator_on_cpu(size):
+def test_create_even_size_cpu(size):
     test_torch_median_numpy(device="cpu")
 
 
 @pytest.mark.tpu
 @pytest.mark.parametrize("size", [101, (31, 3)])
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_on_xla(size):
+def test_on_odd_size_xla(size):
     device = "xla"
     test_torch_median_quantile(size, device=device)
 
 
 @pytest.mark.parametrize("size", [101, (31, 3)])
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
-def test_on_gpu(size):
+def test_on_odd_size_gpu(size):
     test_torch_median_quantile(device="cuda")
 
 
 @pytest.mark.parametrize("size", [101, (31, 3)])
-def test_create_supervised_evaluator_on_cpu(size):
+def test_create_odd_size_cpu(size):
     test_torch_median_quantile(device="cpu")
