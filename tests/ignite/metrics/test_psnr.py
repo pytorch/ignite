@@ -171,17 +171,8 @@ def _test_distrib_multilabel_input_YCbCr(device, atol=1e-8):
         y_pred, y = get_test_cases()
         _test(y_pred, y, 220, "cpu", n_iters, batch_size, atol, output_transform=out_fn, compute_y_channel=True)
         if device.type != "xla":
-            _test(
-                y_pred,
-                y,
-                220,
-                idist.device(),
-                n_iters,
-                batch_size,
-                atol,
-                output_transform=out_fn,
-                compute_y_channel=True,
-            )
+            dev = idist.device()
+            _test(y_pred, y, 220, dev, n_iters, batch_size, atol, output_transform=out_fn, compute_y_channel=True)
 
 
 def _test_distrib_multilabel_input_uint8(device, atol=1e-8):
