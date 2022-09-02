@@ -1,7 +1,13 @@
+from typing import Optional
+from unittest import mock
+
 import numpy as np
 
 import pytest
 import torch
+from packaging.version import Version
+
+import ignite.distributed as idist
 
 from ignite.contrib.metrics.regression._base import _BaseRegression, _torch_median
 
@@ -41,25 +47,33 @@ def test_base_regression_shapes():
         m.update((y.float(), y))
 
 
-def test_torch_median():
-    n_iters = 80
-    size = 105
-    y_true = torch.rand(size=(n_iters * size,))
-    y_pred = torch.rand(size=(n_iters * size,))
-    e = torch.abs(y_true.view_as(y_pred) - y_pred) / torch.abs(y_true.view_as(y_pred))
-    assert _torch_median(e) == np.median(e)
+@pytest.mark.parametrize("size", [100, 101, (30, 3), (31, 3)])
+def test_torch_median_numpy(size, device: Optional[str] = None):
+    data = torch.rand(size).to(device)
+    assert _torch_median(data) == np.median(data.cpu().numpy())
 
-    # Test consistency with torch.quantile and torch.median with odd size
-    n_iters = 81
-    size = 105
-    y_true = torch.rand(size=(n_iters * size,))
-    y_pred = torch.rand(size=(n_iters * size,))
-    e = torch.abs(y_true.view_as(y_pred) - y_pred) / torch.abs(y_true.view_as(y_pred))
-    assert _torch_median(e) == torch.quantile(e, 0.5, interpolation="midpoint")
 
-    n_iters = 81
-    size = 105
-    y_true = torch.rand(size=(n_iters * size,))
-    y_pred = torch.rand(size=(n_iters * size,))
-    e = torch.abs(y_true.view_as(y_pred) - y_pred) / torch.abs(y_true.view_as(y_pred))
-    assert _torch_median(e) == torch.median(e)
+@pytest.mark.parametrize("size", [101, (31, 3)])
+def test_torch_median_numpy(size, device: Optional[str] = None):
+    data = torch.rand(size).to(device)
+    assert _torch_median(data) == torch.quantile(data)
+
+    size = 101
+    test_tensor = torch.rand(size=(size,))
+    assert _torch_median(data) == torch.median(data)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_on_xla():
+    device = "xla"
+    test_torch_median_numpy(device=device)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
+def test_on_gpu():
+    test_torch_median_numpy(device="cuda")
+
+
+def test_create_supervised_evaluator_on_cpu():
+    test_torch_median_numpy(device="cpu")
