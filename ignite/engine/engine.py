@@ -373,7 +373,7 @@ class Engine(Serializable):
         self._event_handlers[event_name] = new_event_handlers
 
     def on(self, event_name: Any, *args: Any, **kwargs: Any) -> Callable:
-        """Decorator shortcut for add_event_handler.
+        """Decorator shortcut for :meth:`~ignite.engine.engine.Engine.add_event_handler`.
 
         Args:
             event_name: An event to attach the handler to. Valid events are from :class:`~ignite.engine.events.Events`
