@@ -150,13 +150,15 @@ def test_event_removable_handle(event1, event2):
 
     engine.run([1, 2])
     handler.assert_any_call(engine)
+    num_calls = handler.call_count
 
     removable_handle.remove()
     assert not engine.has_event_handler(handler, event1)
 
     # Second engine pass does not fire handle again.
     engine.run([1, 2])
-    handler.assert_any_call(engine)
+    # Assert that handler wasn't call
+    assert handler.call_count == num_calls
 
     # Removable handle can be used as a context manager
     handler = create_autospec(spec=lambda x: None)
@@ -167,9 +169,11 @@ def test_event_removable_handle(event1, event2):
 
     assert not engine.has_event_handler(handler, event1)
     handler.assert_any_call(engine)
+    num_calls = handler.call_count
 
     engine.run([1, 2])
-    handler.assert_any_call(engine)
+    # Assert that handler wasn't call
+    assert handler.call_count == num_calls
 
     # Removeable handle only effects a single event registration
     handler = MagicMock(spec_set=True)
