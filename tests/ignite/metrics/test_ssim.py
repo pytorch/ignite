@@ -130,18 +130,18 @@ def _test_distrib_integration(device, tol=1e-4):
     from ignite.engine import Engine
 
     rank = idist.get_rank()
+    torch.manual_seed(12 + rank)
     n_iters = 100
-    s = 10
-    offset = n_iters * s
+    batch_size = 10
 
     def _test(metric_device):
-        y_pred = torch.rand(offset * idist.get_world_size(), 3, 28, 28, dtype=torch.float, device=device)
+        y_pred = torch.rand(n_iters * batch_size, 3, 28, 28, dtype=torch.float, device=device)
         y = y_pred * 0.65
 
         def update(engine, i):
             return (
-                y_pred[i * s + offset * rank : (i + 1) * s + offset * rank],
-                y[i * s + offset * rank : (i + 1) * s + offset * rank],
+                y_pred[i * batch_size : (i + 1) * batch_size, ...],
+                y[i * batch_size : (i + 1) * batch_size, ...],
             )
 
         engine = Engine(update)
@@ -149,6 +149,9 @@ def _test_distrib_integration(device, tol=1e-4):
 
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=1)
+
+        y_pred = idist.all_gather(y_pred)
+        y = idist.all_gather(y)
 
         assert "ssim" in engine.state.metrics
         res = engine.state.metrics["ssim"]

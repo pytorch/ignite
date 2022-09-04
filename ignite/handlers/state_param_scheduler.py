@@ -21,7 +21,7 @@ class StateParamScheduler(BaseParamScheduler):
         More precisely, whatever the state of the engine (newly created or used by another scheduler) the scheduler
         sets defined absolute values.
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.7
 
     """
 
@@ -179,7 +179,7 @@ class LambdaStateScheduler(StateParamScheduler):
             1.0
             0.9
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.7
 
     """
 
@@ -256,7 +256,7 @@ class PiecewiseLinearStateScheduler(StateParamScheduler):
             0.64
             0.6
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.7
     """
 
     def __init__(
@@ -369,7 +369,7 @@ class ExpStateScheduler(StateParamScheduler):
             0.7290...
             0.6561
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.7
 
     """
 
@@ -441,7 +441,7 @@ class StepStateScheduler(StateParamScheduler):
             0.6561
             0.5904...
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.7
 
     """
 
@@ -492,7 +492,7 @@ class MultiStepStateScheduler(StateParamScheduler):
             default_trainer = get_default_trainer()
 
             param_scheduler = MultiStepStateScheduler(
-                param_name="param", initial_value=1, gamma=0.9, milestones=[3, 6, 9, 12]
+                param_name="param", initial_value=1, gamma=0.9, milestones=[3, 6, 9, 12], create_new=True
             )
 
             # parameter is param, initial_value sets param to 1, gamma is set as 0.9
@@ -528,7 +528,7 @@ class MultiStepStateScheduler(StateParamScheduler):
             0.7290...
             0.6561
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.7
 
     """
 

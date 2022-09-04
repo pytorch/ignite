@@ -269,7 +269,7 @@ class Checkpoint(Serializable):
         - Checkpoint can save model with same filename.
         - Added ``greater_or_equal`` argument.
 
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.7
 
         - `score_name` can be used to define `score_function` automatically without providing `score_function`.
         - `save_handler` automatically saves to disk if path to directory is provided.
@@ -920,11 +920,12 @@ class ModelCheckpoint(Checkpoint):
     .. versionchanged:: 0.4.2
         Accept ``kwargs`` for `torch.save` or `xm.save`
 
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.9
+        Accept ``filename_pattern`` and ``greater_or_equal`` for parity
+        with :class:`~ignite.handlers.checkpoint.Checkpoint`
 
-        - ``filename_pattern`` and ``greater_or_equal`` for parity
-            with :class:`~ignite.handlers.checkpoint.Checkpoint`
-        - `save_on_rank` saves objects on this rank in a distributed configuration.
+    .. versionchanged:: 0.5.0
+        Added `save_on_rank` arg to save objects on this rank in a distributed configuration
 
     Examples:
         .. testcode:: python
