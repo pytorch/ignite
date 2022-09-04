@@ -31,7 +31,7 @@ class Engine(Serializable):
         last_event_name: last event name triggered by the engine.
 
     Note:
-        :class:`~ignite.engine.engine.Engine` implementation has changed in v0.4.10 with "interrupt/resume" feature.
+        :class:`~ignite.engine.engine.Engine` implementation has changed in v0.5.0 with "interrupt/resume" feature.
         Engine may behave differently on certain corner cases compared to the one from v0.4.9 and before.
         In such case, you can set ``Engine.interrupt_resume_enabled = False`` to restore previous behaviour.
 
@@ -1013,7 +1013,7 @@ class Engine(Serializable):
             self.should_interrupt = False
             yield self.state
 
-    def _run_once_on_dataset_as_gen(self) -> Generator:
+    def _run_once_on_dataset_as_gen(self) -> Generator[State, None, float]:
         start_time = time.time()
 
         # We need to setup iter_counter > 0 if we resume from an iteration
