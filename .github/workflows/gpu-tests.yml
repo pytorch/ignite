@@ -9,6 +9,7 @@ on:
       - "examples/**.py"
       - "requirements-dev.txt"
       - ".github/workflows/gpu-tests.yml"
+  workflow_dispatch:
 
 concurrency:
   # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>

@@ -233,7 +233,7 @@ class DeterministicEngine(Engine):
         # Below we define initial counter value for _run_once_on_dataset to measure a single epoch
         if self.state.epoch_length is not None:
             iteration %= self.state.epoch_length
-        self._init_iter.append(iteration)
+        self._init_iter = iteration
 
         # restore rng state if in the middle
         in_the_middle = self.state.iteration % self._dataloader_len > 0 if self._dataloader_len is not None else False

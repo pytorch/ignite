@@ -374,8 +374,8 @@ class Rouge(Metric):
             {'Rouge-L-P': 0.6, 'Rouge-L-R': 0.5, 'Rouge-L-F': 0.5, 'Rouge-2-P': 0.5, 'Rouge-2-R': 0.4, 'Rouge-2-F': 0.4}
 
     .. versionadded:: 0.4.5
-    .. versionchanged:: 0.5.0
-        Changed input type to work on batch of inputs
+    .. versionchanged:: 0.4.7
+        ``update`` method has changed and now works on batch of inputs.
     """
 
     def __init__(

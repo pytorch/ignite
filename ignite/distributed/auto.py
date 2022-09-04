@@ -261,7 +261,7 @@ def auto_optim(optimizer: Optimizer, **kwargs: Any) -> Optimizer:
     .. versionchanged:: 0.4.2
         Added Horovod distributed optimizer.
 
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.7
         Added kwargs to ``idist.auto_optim``.
     """
     bnd = idist.backend()
