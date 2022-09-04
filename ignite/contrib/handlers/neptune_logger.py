@@ -320,7 +320,7 @@ class OutputHandler(BaseOutputHandler):
             def global_step_transform(engine, event_name):
                 return engine.state.get_event_attrib_value(event_name)
 
-    ..  versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.7
         accepts an optional list of `state_attributes`
     """
 
@@ -496,7 +496,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
                 log_handler=WeightsScalarHandler(model, whitelist=has_bias_in_name)
             )
 
-    ..  versionchanged:: 0.5.0
+    ..  versionchanged:: 0.4.9
         optional argument `whitelist` added.
     """
 
@@ -604,7 +604,7 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
                 log_handler=GradsScalarHandler(model, whitelist=is_in_fc_layer)
             )
 
-    ..  versionchanged:: 0.5.0
+    ..  versionchanged:: 0.4.9
         optional argument `whitelist` added.
     """
 
