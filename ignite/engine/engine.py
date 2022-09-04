@@ -454,6 +454,73 @@ class Engine(Serializable):
         the current iteration. The run can be resumed by calling
         :meth:`~ignite.engine.engine.Engine.run`. Data iteration will continue from the interrupted state.
 
+        Examples:
+            .. testcode::
+
+                from ignite.engine import Engine, Events
+
+                data = range(10)
+                max_epochs = 3
+
+                def check_input_data(e, b):
+                    print(f"Epoch {engine.state.epoch}, Iter {engine.state.iteration} | data={b}")
+                    i = (e.state.iteration - 1) % len(data)
+                    assert b == data[i]
+
+                engine = Engine(check_input_data)
+
+                @engine.on(Events.ITERATION_COMPLETED(every=11))
+                def call_interrupt():
+                    engine.interrupt()
+
+                print("Start engine run with interruptions:")
+                state = engine.run(data, max_epochs=max_epochs)
+                print("1 Engine run is interrupted at ", state.epoch, state.iteration)
+                state = engine.run(data, max_epochs=max_epochs)
+                print("2 Engine run is interrupted at ", state.epoch, state.iteration)
+                state = engine.run(data, max_epochs=max_epochs)
+                print("3 Engine ended the run at ", state.epoch, state.iteration)
+
+            .. dropdown:: Output
+
+                .. testoutput::
+
+                    Start engine run with interruptions:
+                    Epoch 1, Iter 1 | data=0
+                    Epoch 1, Iter 2 | data=1
+                    Epoch 1, Iter 3 | data=2
+                    Epoch 1, Iter 4 | data=3
+                    Epoch 1, Iter 5 | data=4
+                    Epoch 1, Iter 6 | data=5
+                    Epoch 1, Iter 7 | data=6
+                    Epoch 1, Iter 8 | data=7
+                    Epoch 1, Iter 9 | data=8
+                    Epoch 1, Iter 10 | data=9
+                    Epoch 2, Iter 11 | data=0
+                    1 Engine run is interrupted at  2 11
+                    Epoch 2, Iter 12 | data=1
+                    Epoch 2, Iter 13 | data=2
+                    Epoch 2, Iter 14 | data=3
+                    Epoch 2, Iter 15 | data=4
+                    Epoch 2, Iter 16 | data=5
+                    Epoch 2, Iter 17 | data=6
+                    Epoch 2, Iter 18 | data=7
+                    Epoch 2, Iter 19 | data=8
+                    Epoch 2, Iter 20 | data=9
+                    Epoch 3, Iter 21 | data=0
+                    Epoch 3, Iter 22 | data=1
+                    2 Engine run is interrupted at  3 22
+                    Epoch 3, Iter 23 | data=2
+                    Epoch 3, Iter 24 | data=3
+                    Epoch 3, Iter 25 | data=4
+                    Epoch 3, Iter 26 | data=5
+                    Epoch 3, Iter 27 | data=6
+                    Epoch 3, Iter 28 | data=7
+                    Epoch 3, Iter 29 | data=8
+                    Epoch 3, Iter 30 | data=9
+                    3 Engine ended the run at  3 30
+
+
         .. versionadded:: 0.5.0
         """
         if not self.interrupt_resume_enabled:
@@ -473,6 +540,77 @@ class Engine(Serializable):
         - Terminating event
         - :attr:`~ignite.engine.events.Events.TERMINATE`
         - :attr:`~ignite.engine.events.Events.COMPLETED`
+
+
+        Examples:
+            .. testcode::
+
+                from ignite.engine import Engine, Events
+
+                def func(engine, batch):
+                    print(engine.state.epoch, engine.state.iteration, " | ", batch)
+
+                max_epochs = 4
+                data = range(10)
+                engine = Engine(func)
+
+                @engine.on(Events.ITERATION_COMPLETED(once=14))
+                def terminate():
+                    print(f"-> terminate at iteration: {engine.state.iteration}")
+                    engine.terminate()
+
+                print("Start engine run:")
+                state = engine.run(data, max_epochs=max_epochs)
+                print("1 Engine run is terminated at ", state.epoch, state.iteration)
+                state = engine.run(data, max_epochs=max_epochs)
+                print("2 Engine ended the run at ", state.epoch, state.iteration)
+
+            .. dropdown:: Output
+
+                .. testoutput::
+
+                    Start engine run:
+                    1 1  |  0
+                    1 2  |  1
+                    1 3  |  2
+                    1 4  |  3
+                    1 5  |  4
+                    1 6  |  5
+                    1 7  |  6
+                    1 8  |  7
+                    1 9  |  8
+                    1 10  |  9
+                    2 11  |  0
+                    2 12  |  1
+                    2 13  |  2
+                    2 14  |  3
+                    -> terminate at iteration: 14
+                    1 Engine run is terminated at  2 14
+                    3 15  |  0
+                    3 16  |  1
+                    3 17  |  2
+                    3 18  |  3
+                    3 19  |  4
+                    3 20  |  5
+                    3 21  |  6
+                    3 22  |  7
+                    3 23  |  8
+                    3 24  |  9
+                    4 25  |  0
+                    4 26  |  1
+                    4 27  |  2
+                    4 28  |  3
+                    4 29  |  4
+                    4 30  |  5
+                    4 31  |  6
+                    4 32  |  7
+                    4 33  |  8
+                    4 34  |  9
+                    2 Engine ended the run at  4 34
+
+        .. versionchanged:: 0.5.0
+            Behaviour changed, for details see https://github.com/pytorch/ignite/issues/2669
+
         """
         self.logger.info("Terminate signaled. Engine will stop after current iteration is finished.")
         self.should_terminate = True
