@@ -59,7 +59,7 @@ class MedianAbsoluteError(EpochMetric):
 
         .. testoutput::
 
-            0.5...
+            0.625
     """
 
     def __init__(
