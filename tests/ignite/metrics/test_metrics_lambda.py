@@ -217,20 +217,21 @@ def test_metrics_lambda_update():
     assert pytest.approx(F1_metrics_lambda) == F1_sklearn
 
 
-def test_integration():
-    np.random.seed(1)
+@pytest.mark.parametrize("attach_pr_re", [True, False])
+def test_integration(attach_pr_re):
+    torch.manual_seed(1)
 
     n_iters = 10
     batch_size = 10
     n_classes = 10
 
-    y_true = np.arange(0, n_iters * batch_size, dtype="int64") % n_classes
-    y_pred = 0.2 * np.random.rand(n_iters * batch_size, n_classes)
+    y_true = torch.arange(0, n_iters * batch_size) % n_classes
+    y_pred = 0.2 * torch.rand(n_iters * batch_size, n_classes)
     for i in range(n_iters * batch_size):
-        if np.random.rand() > 0.4:
+        if torch.rand(1) > 0.4:
             y_pred[i, y_true[i]] = 1.0
         else:
-            j = np.random.randint(0, n_classes)
+            j = torch.randint(0, n_classes, size=(1,))
             y_pred[i, j] = 0.7
 
     y_true_batch_values = iter(y_true.reshape(n_iters, batch_size))
@@ -239,7 +240,7 @@ def test_integration():
     def update_fn(engine, batch):
         y_true_batch = next(y_true_batch_values)
         y_pred_batch = next(y_pred_batch_values)
-        return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+        return y_pred_batch, y_true_batch
 
     evaluator = Engine(update_fn)
 
@@ -251,64 +252,25 @@ def test_integration():
 
     F1 = MetricsLambda(Fbeta, recall, precision, 1)
 
-    precision.attach(evaluator, "precision")
-    recall.attach(evaluator, "recall")
+    if attach_pr_re:
+        precision.attach(evaluator, "precision")
+        recall.attach(evaluator, "recall")
     F1.attach(evaluator, "f1")
 
     data = list(range(n_iters))
     state = evaluator.run(data, max_epochs=1)
 
-    precision_true = precision_score(y_true, np.argmax(y_pred, axis=-1), average=None)
-    recall_true = recall_score(y_true, np.argmax(y_pred, axis=-1), average=None)
-    f1_true = f1_score(y_true, np.argmax(y_pred, axis=-1), average="macro")
+    precision_true = precision_score(y_true, y_pred.argmax(dim=-1), average=None)
+    recall_true = recall_score(y_true, y_pred.argmax(dim=-1), average=None)
+    f1_true = f1_score(y_true, y_pred.argmax(dim=-1), average="macro")
 
-    precision = state.metrics["precision"].numpy()
-    recall = state.metrics["recall"].numpy()
-
-    assert precision_true == approx(precision), f"{precision_true} vs {precision}"
-    assert recall_true == approx(recall), f"{recall_true} vs {recall}"
     assert f1_true == approx(state.metrics["f1"]), f"{f1_true} vs {state.metrics['f1']}"
+    if attach_pr_re:
+        precision = state.metrics["precision"].numpy()
+        recall = state.metrics["recall"].numpy()
 
-
-def test_integration_ingredients_not_attached():
-    np.random.seed(1)
-
-    n_iters = 10
-    batch_size = 10
-    n_classes = 10
-
-    y_true = np.arange(0, n_iters * batch_size, dtype="int64") % n_classes
-    y_pred = 0.2 * np.random.rand(n_iters * batch_size, n_classes)
-    for i in range(n_iters * batch_size):
-        if np.random.rand() > 0.4:
-            y_pred[i, y_true[i]] = 1.0
-        else:
-            j = np.random.randint(0, n_classes)
-            y_pred[i, j] = 0.7
-
-    y_true_batch_values = iter(y_true.reshape(n_iters, batch_size))
-    y_pred_batch_values = iter(y_pred.reshape(n_iters, batch_size, n_classes))
-
-    def update_fn(engine, batch):
-        y_true_batch = next(y_true_batch_values)
-        y_pred_batch = next(y_pred_batch_values)
-        return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
-
-    evaluator = Engine(update_fn)
-
-    precision = Precision(average=False)
-    recall = Recall(average=False)
-
-    def Fbeta(r, p, beta):
-        return torch.mean((1 + beta ** 2) * p * r / (beta ** 2 * p + r)).item()
-
-    F1 = MetricsLambda(Fbeta, recall, precision, 1)
-    F1.attach(evaluator, "f1")
-
-    data = list(range(n_iters))
-    state = evaluator.run(data, max_epochs=1)
-    f1_true = f1_score(y_true, np.argmax(y_pred, axis=-1), average="macro")
-    assert f1_true == approx(state.metrics["f1"]), f"{f1_true} vs {state.metrics['f1']}"
+        assert precision_true == approx(precision), f"{precision_true} vs {precision}"
+        assert recall_true == approx(recall), f"{recall_true} vs {recall}"
 
 
 def test_state_metrics():
@@ -479,9 +441,7 @@ def _test_distrib_integration(device):
 
         assert "f1" in state.metrics
         assert "ff1" in state.metrics
-        f1_true = f1_score(
-            y_true.ravel().cpu(), np.argmax(y_pred.reshape(-1, n_classes).cpu(), axis=-1), average="macro"
-        )
+        f1_true = f1_score(y_true.view(-1).cpu(), y_pred.view(-1, n_classes).argmax(dim=-1).cpu(), average="macro")
         assert f1_true == approx(state.metrics["f1"])
         assert 1.0 + f1_true == approx(state.metrics["ff1"])
 
@@ -530,7 +490,7 @@ def _test_distrib_metrics_on_diff_devices(device):
 
     assert "f1" in state.metrics
     assert "ff1" in state.metrics
-    f1_true = f1_score(y_true.ravel(), np.argmax(y_preds.reshape(-1, n_classes), axis=-1), average="macro")
+    f1_true = f1_score(y_true.view(-1).cpu(), y_preds.view(-1, n_classes).argmax(dim=-1).cpu(), average="macro")
     assert f1_true == approx(state.metrics["f1"])
     assert 1.0 + f1_true == approx(state.metrics["ff1"])
 
