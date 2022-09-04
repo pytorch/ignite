@@ -218,8 +218,7 @@ def test_has_handler_on_callable_events():
     engine.add_event_handler(Events.EPOCH_COMPLETED(every=3), bar)
     assert engine.has_event_handler(bar)
     assert engine.has_event_handler(bar, Events.EPOCH_COMPLETED)
-
-    engine.has_event_handler(bar, Events.EPOCH_COMPLETED(every=3))
+    assert engine.has_event_handler(bar, Events.EPOCH_COMPLETED(every=3))
 
 
 def test_remove_event_handler_on_callable_events():
@@ -258,15 +257,9 @@ def _test_every_event_filter_with_engine(device="cpu"):
 
         engine = Engine(lambda e, b: b)
 
-        counter = [
-            0,
-        ]
-        counter_every = [
-            0,
-        ]
-        num_calls = [
-            0,
-        ]
+        counter = [0]
+        counter_every = [0]
+        num_calls = [0]
 
         @engine.on(event_name(every=every))
         def assert_every(engine):
@@ -309,12 +302,8 @@ def test_once_event_filter_with_engine():
         engine = Engine(lambda e, b: b)
 
         once = 2
-        counter = [
-            0,
-        ]
-        num_calls = [
-            0,
-        ]
+        counter = [0]
+        num_calls = [0]
 
         @engine.on(event_name(once=once))
         def assert_once(engine):
@@ -350,9 +339,7 @@ def test_custom_event_filter_with_engine():
 
         engine = Engine(lambda e, b: b)
 
-        num_calls = [
-            0,
-        ]
+        num_calls = [0]
 
         @engine.on(event_name(event_filter=custom_event_filter))
         def assert_on_special_event(engine):
@@ -381,9 +368,7 @@ def test_callable_event_bad_behaviour():
 
     # Check bad behaviour
     engine = Engine(lambda e, b: b)
-    counter = [
-        0,
-    ]
+    counter = [0]
 
     # Modify events
     Events.ITERATION_STARTED(event_filter=custom_event_filter)
@@ -433,9 +418,7 @@ def test_custom_callable_events_with_engine():
         engine = Engine(update_fn)
         engine.register_events(*CustomEvents, event_to_attr=event_to_attr)
 
-        num_calls = [
-            0,
-        ]
+        num_calls = [0]
 
         @engine.on(event_name(event_filter=custom_event_filter))
         def assert_on_special_event(engine):
