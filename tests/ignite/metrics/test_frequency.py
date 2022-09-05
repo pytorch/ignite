@@ -27,7 +27,7 @@ def test_nondistributed_average():
     assert average_lower_bound < average < average_upper_bound
 
 
-def _test_frequency_with_engine(workers=None, lower_bound_factor=0.8, every=1):
+def _test_frequency_with_engine(workers=None, lower_bound_factor=0.8, upper_bound_factor=1.1, every=1):
 
     if workers is None:
         workers = idist.get_world_size()
@@ -55,16 +55,14 @@ def _test_frequency_with_engine(workers=None, lower_bound_factor=0.8, every=1):
         # otherwise, other values of wps are OK
         if idist.model_name() == "horovod-dist" and e.state.iteration in (2, 3, 4):
             return
-        assert (
-            estimated_wps * lower_bound_factor < wps <= estimated_wps
-        ), f"{e.state.iteration}: {estimated_wps * lower_bound_factor} < {wps} < {estimated_wps}"
+        low_wps = estimated_wps * lower_bound_factor
+        high_wps = estimated_wps * upper_bound_factor
+        assert low_wps < wps <= high_wps, f"{e.state.iteration}: {low_wps} < {wps} <= {high_wps}"
 
     data = [[i] * batch_size for i in range(0, total_tokens, batch_size)]
-    max_epochs = 1 if idist.model_name() != "horovod-dist" else 2
     engine.run(data, max_epochs=2)
 
 
-@pytest.mark.skipif(sys.platform.startswith("darwin"), reason="Skip on MacOS")
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_frequency_with_engine():
     _test_frequency_with_engine(workers=1)
