@@ -1322,7 +1322,7 @@ def test_engine_run_multiple_interrupt_resume():
     num_calls_check_iter_epoch = 0
 
     @engine.on(Events.STARTED)
-    def check_iter_epoch(first_epoch_iter):
+    def check_iter_epoch():
         nonlocal num_calls_check_iter_epoch
         assert engine.state.epoch == 0
         assert engine.state.iteration == 0
@@ -1342,3 +1342,49 @@ def test_engine_should_interrupt_error():
         engine.interrupt()
 
     Engine.interrupt_resume_enabled = True
+
+
+def test_engine_interrupt_restart():
+    assert Engine.interrupt_resume_enabled
+
+    data = range(10)
+    max_epochs = 3
+
+    def check_input_data(e, b):
+        i = (e.state.iteration - 1) % len(data)
+        assert b == data[i]
+
+    engine = Engine(check_input_data)
+    can_interrupt = True
+
+    @engine.on(Events.ITERATION_COMPLETED(every=11))
+    def call_interrupt():
+        if can_interrupt:
+            engine.interrupt()
+
+    # Run and interrupt
+    state = engine.run(data, max_epochs=max_epochs)
+    assert state.iteration == 11 and state.epoch == 2
+
+    num_calls_check_iter_epoch = 0
+
+    @engine.on(Events.STARTED)
+    def check_iter_epoch():
+        nonlocal num_calls_check_iter_epoch
+        assert engine.state.epoch == 0
+        assert engine.state.iteration == 0
+        num_calls_check_iter_epoch += 1
+
+    # Reset and run with interruption
+    state.max_epochs = None
+    state = engine.run(data, max_epochs=max_epochs)
+    assert state.iteration == 11 and state.epoch == 2
+    assert num_calls_check_iter_epoch == 1
+
+    can_interrupt = False
+    num_calls_check_iter_epoch = 0
+    # Reset and run without interruption
+    state.max_epochs = None
+    state = engine.run(data, max_epochs=max_epochs)
+    assert state.iteration == max_epochs * len(data) and state.epoch == max_epochs
+    assert num_calls_check_iter_epoch == 1

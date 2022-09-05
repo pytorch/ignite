@@ -877,6 +877,8 @@ class Engine(Serializable):
             self.state.max_epochs = max_epochs
             self.state.max_iters = max_iters
             self.state.epoch_length = epoch_length
+            # Reset generator if previously used
+            self._internal_run_generator = None
             self.logger.info(f"Engine run starting with max_epochs={max_epochs}.")
         else:
             self.logger.info(
