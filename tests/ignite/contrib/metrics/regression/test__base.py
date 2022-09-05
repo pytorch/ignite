@@ -4,7 +4,6 @@ import numpy as np
 
 import pytest
 import torch
-from packaging.version import Version
 
 import ignite.distributed as idist
 
