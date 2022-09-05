@@ -10,7 +10,7 @@ ARG HVD_VERSION
 # Renew nvidia signing key
 # https://developer.nvidia.com/blog/updating-the-cuda-linux-gpg-repository-key/
 RUN apt-key del 7fa2af80 && \
-    rm /etc/apt/sources.list.d/nvidia-ml.list && \
+    rm -rf /etc/apt/sources.list.d/nvidia-ml.list && \
     apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub
 
 # Build Horovod
