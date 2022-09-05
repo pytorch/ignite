@@ -54,11 +54,11 @@ def test_torch_median_numpy(size, device: Optional[str] = None):
 @pytest.mark.parametrize("size", [101, (31, 3)])
 def test_torch_median_quantile(size, device: Optional[str] = None):
     data = torch.rand(size).to(device)
-    assert _torch_median(data) == torch.quantile(data, 0.5, interpolation="midpoint")
+    assert _torch_median(data) == torch.quantile(data, 0.5, interpolation="midpoint").item()
 
     size = 101
     data = torch.rand(size=(size,))
-    assert _torch_median(data) == torch.median(data)
+    assert _torch_median(data) == torch.median(data).item()
 
 
 @pytest.mark.tpu
