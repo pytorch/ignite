@@ -118,13 +118,25 @@ class FastaiLRFinder:
             )
 
         self.logger.debug(f"Running LR finder for {num_iter} iterations")
-        if start_lr is None:
-            start_lr = optimizer.param_groups[0]["lr"]
         # Initialize the proper learning rate policy
-        if step_mode.lower() == "exp":
-            start_lr_list = [start_lr] * len(optimizer.param_groups)
-            self._lr_schedule = LRScheduler(_ExponentialLR(optimizer, start_lr_list, end_lr, num_iter))
+        if step_mode.lower() == "exp":       
+            if start_lr is None:
+                start_lr_list = [optimizer.param_groups[i]["lr"] for i in range(len(optimizer.param_groups))]
+            elif isinstance(start_lr, float):
+                start_lr_list = [start_lr] * len(optimizer.param_groups)
+            else:
+                assert len(start_lr) == len(optimizer.param_groups)
+                start_lr_list = start_lr
+            if isinstance(end_lr, float):
+                end_lr_list = [end_lr] * len(optimizer.param_groups)
+            else:
+                assert len(end_lr) == len(optimizer.param_groups)
+                end_lr_list = end_lr
+            
+            self._lr_schedule = LRScheduler(_ExponentialLR(optimizer, start_lr_list, end_lr_list, num_iter))
         else:
+            if isinstance(start_lr, list) or isinstance(end_lr, list):
+                assert False, "THIS WON'T WORK"
             self._lr_schedule = PiecewiseLinear(
                 optimizer, param_name="lr", milestones_values=[(0, start_lr), (num_iter, end_lr)]
             )
@@ -498,4 +510,4 @@ class _ExponentialLR(_LRScheduler):
     def get_lr(self) -> List[float]:  # type: ignore
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
-        return [base_lr * (self.end_lr / base_lr) ** r for base_lr in self.base_lrs]
+        return [base_lr * (end_lr / base_lr) ** r for end_lr, base_lr in zip(self.end_lr, self.base_lrs)]
