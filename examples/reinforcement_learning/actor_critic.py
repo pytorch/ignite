@@ -82,7 +82,7 @@ def main(env, args):
     def run_single_timestep(engine, timestep):
         observation = engine.state.observation
         action = select_action(model, observation)
-        engine.state.observation, reward, done, _ = env.step(action)
+        engine.state.observation, reward, done, _, _ = env.step(action)
         if args.render:
             env.render()
         model.rewards.append(reward)
@@ -99,7 +99,8 @@ def main(env, args):
 
     @trainer.on(EPISODE_STARTED)
     def reset_environment_state(engine):
-        engine.state.observation = env.reset()
+        torch.manual_seed(args.seed + trainer.state.epoch)
+        engine.state.observation, _ = env.reset(seed=args.seed + trainer.state.epoch)
 
     @trainer.on(EPISODE_COMPLETED)
     def update_model(engine):
@@ -147,7 +148,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     env = gym.make("CartPole-v1")
-    env.seed(args.seed)
-    torch.manual_seed(args.seed)
 
     main(env, args)
