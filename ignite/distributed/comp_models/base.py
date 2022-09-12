@@ -206,7 +206,9 @@ class ComputationModel(metaclass=ABCMeta):
             return self._decode_str(tensor)
         return tensor
 
-    def all_reduce(self, tensor: Union[torch.Tensor, float], op: str = "sum", **kwargs: Any) -> Union[torch.Tensor, float]:
+    def all_reduce(
+        self, tensor: Union[torch.Tensor, float], op: str = "sum", **kwargs: Any
+    ) -> Union[torch.Tensor, float]:
         if not isinstance(tensor, (torch.Tensor, Number)):
             raise TypeError(f"Unhandled input type {type(tensor)}")
 
@@ -333,7 +335,9 @@ class _SerialModel(ComputationModel):
     def spawn(*args: Any, **kwargs: Any) -> None:
         raise NotImplementedError("Serial computation model does not implement spawn method")
 
-    def all_reduce(self, tensor: Union[torch.Tensor, float], op: str = "SUM", **kwargs: Any) -> Union[torch.Tensor, float]:
+    def all_reduce(
+        self, tensor: Union[torch.Tensor, float], op: str = "SUM", **kwargs: Any
+    ) -> Union[torch.Tensor, float]:
         return tensor
 
     def all_gather(self, tensor: Union[torch.Tensor, float, str]) -> Union[torch.Tensor, float, List[float], List[str]]:
