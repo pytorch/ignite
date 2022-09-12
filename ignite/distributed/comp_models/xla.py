@@ -137,11 +137,15 @@ if has_xla_support:
             "OR": "or",
         }
 
-        def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:
+        def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM", **kwargs) -> torch.Tensor:
             if op not in self._reduce_op_map:
                 raise ValueError(f"Unsupported reduction operation: '{op}'")
             op = self._reduce_op_map[op]
-            xm.all_reduce(op, [tensor])
+
+            if kwargs.__len__() > 0:
+                xm.all_reduce(op, [tensor], groups=kwargs["group"])
+            else:
+                xm.all_reduce(op, [tensor])
             return tensor
 
         def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:

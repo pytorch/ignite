@@ -321,7 +321,7 @@ def spawn(
         )
 
 
-def all_reduce(tensor: Union[torch.Tensor, float], op: str = "SUM") -> Union[torch.Tensor, float]:
+def all_reduce(tensor: Union[torch.Tensor, float], op: str = "SUM", **kwargs) -> Union[torch.Tensor, float]:
     """Helper method to perform all reduce operation.
 
     Args:
@@ -336,7 +336,7 @@ def all_reduce(tensor: Union[torch.Tensor, float], op: str = "SUM") -> Union[tor
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
 
-    return _model.all_reduce(tensor, op)
+    return _model.all_reduce(tensor, op, **kwargs)
 
 
 def all_gather(tensor: Union[torch.Tensor, float, str]) -> Union[torch.Tensor, float, List[float], List[str]]:

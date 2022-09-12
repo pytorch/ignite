@@ -206,11 +206,11 @@ class ComputationModel(metaclass=ABCMeta):
             return self._decode_str(tensor)
         return tensor
 
-    def all_reduce(self, tensor: Union[torch.Tensor, float], op: str = "sum") -> Union[torch.Tensor, float]:
+    def all_reduce(self, tensor: Union[torch.Tensor, float], op: str = "sum", **kwargs) -> Union[torch.Tensor, float]:
         if not isinstance(tensor, (torch.Tensor, Number)):
             raise TypeError(f"Unhandled input type {type(tensor)}")
 
-        return cast(Union[torch.Tensor, float], self._collective_op(tensor, self._do_all_reduce, op))
+        return cast(Union[torch.Tensor, float], self._collective_op(tensor, self._do_all_reduce, op, **kwargs))
 
     def all_gather(self, tensor: Union[torch.Tensor, float, str]) -> Union[torch.Tensor, float, List[float], List[str]]:
         if not isinstance(tensor, (torch.Tensor, Number, str)):
@@ -264,7 +264,7 @@ class ComputationModel(metaclass=ABCMeta):
         return tensor
 
     @abstractmethod
-    def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:
+    def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM", **kwargs) -> torch.Tensor:
         pass
 
     @abstractmethod
