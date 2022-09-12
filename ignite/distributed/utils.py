@@ -3,6 +3,12 @@ from functools import wraps
 from typing import Any, Callable, List, Mapping, Optional, Tuple, Union
 
 import torch
+import torch.distributed as dist
+from horovod.common.process_sets import ProcessSet
+
+from torch._C._distributed_c10d import ProcessGroup
+
+import ignite.distributed as idist
 
 from ignite.distributed.comp_models import (
     _SerialModel,
@@ -321,7 +327,28 @@ def spawn(
         )
 
 
-def all_reduce(tensor: Union[torch.Tensor, float], op: str = "SUM", **kwargs: Any) -> Union[torch.Tensor, float]:
+def new_group(group: List[List[int]]):  # -> Union[ProcessGroup, List[List[int]], ProcessSet]:
+
+    if isinstance(group, list) and all(isinstance(item, int) for item in group):
+        group = [group]
+    elif all(isinstance(item, int) for list_ in group for item in list_):
+        group = group
+    elif group is None:
+        return None
+    else:
+        raise ValueError(f"group should be list or list of list")
+
+    if idist.backend() in ("nccl", "gloo", "mpi"):
+        return dist.new_group(ranks=group[0])
+    elif idist.backend() in ("xla-tpu"):
+        return group
+    elif idist.backend() == "horovod":
+        return ProcessSet(group)
+
+
+def all_reduce(
+    tensor: Union[torch.Tensor, float], op: str = "SUM", group: Optional[List[List[int]]] = None
+) -> Union[torch.Tensor, float]:
     """Helper method to perform all reduce operation.
 
     Args:
@@ -336,7 +363,9 @@ def all_reduce(tensor: Union[torch.Tensor, float], op: str = "SUM", **kwargs: An
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
 
-    return _model.all_reduce(tensor, op, **kwargs)
+    group = new_group(group)
+
+    return _model.all_reduce(tensor, op, group=group)
 
 
 def all_gather(tensor: Union[torch.Tensor, float, str]) -> Union[torch.Tensor, float, List[float], List[str]]:

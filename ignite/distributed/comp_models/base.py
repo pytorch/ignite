@@ -96,7 +96,7 @@ class ComputationModel(metaclass=ABCMeta):
 
     def _get_max_length(self, x: str, device: torch.device) -> int:
         size = torch.tensor([len(x)], device=device)
-        size = self._do_all_reduce(size, "MAX")
+        size = self._do_all_reduce(size, group=None, op="MAX")
         return cast(int, size.item())
 
     @staticmethod
@@ -139,7 +139,9 @@ class ComputationModel(metaclass=ABCMeta):
     ) -> Union[torch.Tensor, float, str]:
 
         encoded_msg_per_rank = self._encode_input_data(x, is_src)
-        encoded_msg_all_ranks = self._do_all_reduce(torch.tensor(encoded_msg_per_rank, device=device), "MAX")
+        encoded_msg_all_ranks = self._do_all_reduce(
+            torch.tensor(encoded_msg_per_rank, device=device), group=None, op="MAX"
+        )
 
         if is_src:
             if x is None:
@@ -156,7 +158,13 @@ class ComputationModel(metaclass=ABCMeta):
         return out
 
     def _apply_op(
-        self, tensor: torch.Tensor, device: torch.device, fn: Callable, *args: Any, **kwargs: Any
+        self,
+        tensor: torch.Tensor,
+        device: torch.device,
+        fn: Callable,
+        group: Optional[List[List[str]]] = None,
+        *args: Any,
+        **kwargs: Any,
     ) -> torch.Tensor:
         out_dtype = None
         tensor_device = None
@@ -172,7 +180,7 @@ class ComputationModel(metaclass=ABCMeta):
                 out_dtype = tensor.dtype
                 tensor = tensor.to(self._collective_op_dtype)
 
-        tensor = fn(tensor, *args, **kwargs)
+        tensor = fn(tensor, group, *args, **kwargs)
 
         if out_dtype is not None and tensor_device is not None:
             return tensor.to(dtype=out_dtype, device=tensor_device)
@@ -183,7 +191,12 @@ class ComputationModel(metaclass=ABCMeta):
         return tensor
 
     def _collective_op(
-        self, tensor: Union[torch.Tensor, float, str], fn: Callable, *args: Any, **kwargs: Any
+        self,
+        tensor: Union[torch.Tensor, float, str],
+        fn: Callable,
+        group: Optional[List[List[int]]] = None,
+        *args: Any,
+        **kwargs: Any,
     ) -> Union[torch.Tensor, float, List[float], List[str]]:
         tensor_to_number = tensor_to_str = False
         device = self.device()
@@ -195,7 +208,7 @@ class ComputationModel(metaclass=ABCMeta):
             max_length = self._get_max_length(tensor, device)
             tensor = self._encode_str(tensor, device, size=max_length)
 
-        tensor = self._apply_op(tensor, device, fn, *args, **kwargs)
+        tensor = self._apply_op(tensor, device, fn, group, *args, **kwargs)
 
         if tensor_to_number:
             if tensor.numel() == 1:
@@ -207,12 +220,12 @@ class ComputationModel(metaclass=ABCMeta):
         return tensor
 
     def all_reduce(
-        self, tensor: Union[torch.Tensor, float], op: str = "sum", **kwargs: Any
+        self, tensor: Union[torch.Tensor, float], op: str = "sum", group: Optional[List[List[int]]] = None
     ) -> Union[torch.Tensor, float]:
         if not isinstance(tensor, (torch.Tensor, Number)):
             raise TypeError(f"Unhandled input type {type(tensor)}")
 
-        return cast(Union[torch.Tensor, float], self._collective_op(tensor, self._do_all_reduce, op, **kwargs))
+        return cast(Union[torch.Tensor, float], self._collective_op(tensor, self._do_all_reduce, group, op))
 
     def all_gather(self, tensor: Union[torch.Tensor, float, str]) -> Union[torch.Tensor, float, List[float], List[str]]:
         if not isinstance(tensor, (torch.Tensor, Number, str)):
@@ -266,7 +279,9 @@ class ComputationModel(metaclass=ABCMeta):
         return tensor
 
     @abstractmethod
-    def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM", **kwargs: Any) -> torch.Tensor:
+    def _do_all_reduce(
+        self, tensor: torch.Tensor, group: Optional[List[List[int]]] = None, op: str = "SUM"
+    ) -> torch.Tensor:
         pass
 
     @abstractmethod
@@ -336,7 +351,7 @@ class _SerialModel(ComputationModel):
         raise NotImplementedError("Serial computation model does not implement spawn method")
 
     def all_reduce(
-        self, tensor: Union[torch.Tensor, float], op: str = "SUM", **kwargs: Any
+        self, tensor: Union[torch.Tensor, float], op: str = "SUM", group: Optional[List[List[int]]] = None
     ) -> Union[torch.Tensor, float]:
         return tensor
 
@@ -352,7 +367,9 @@ class _SerialModel(ComputationModel):
             raise ValueError("Argument tensor should not be None")
         return tensor
 
-    def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM", **kwargs: Any) -> torch.Tensor:
+    def _do_all_reduce(
+        self, tensor: torch.Tensor, group: Optional[List[List[int]]] = None, op: str = "SUM"
+    ) -> torch.Tensor:
         return tensor
 
     def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:

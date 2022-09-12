@@ -8,6 +8,7 @@ import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 from packaging.version import Version
+from torch._C._distributed_c10d import ProcessGroup
 
 from ignite.distributed.comp_models.base import ComputationModel
 
@@ -419,14 +420,13 @@ if has_native_dist_support:
             "OR": dist.ReduceOp.BOR,
         }
 
-        def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM", **kwargs: Any) -> torch.Tensor:
+        def _do_all_reduce(
+            self, tensor: torch.Tensor, group: Optional[ProcessGroup] = None, op: str = "SUM"
+        ) -> torch.Tensor:
             if op not in self._reduce_op_map:
                 raise ValueError(f"Unsupported reduction operation: '{op}'")
             reduce_op = self._reduce_op_map[op]
-            if kwargs.__len__() > 0:
-                dist.all_reduce(tensor, reduce_op, group=kwargs["group"])
-            else:
-                dist.all_reduce(tensor, reduce_op)
+            dist.all_reduce(tensor, reduce_op, group=group)
             return tensor
 
         def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
