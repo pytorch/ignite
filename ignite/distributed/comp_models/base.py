@@ -264,7 +264,7 @@ class ComputationModel(metaclass=ABCMeta):
         return tensor
 
     @abstractmethod
-    def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM", **kwargs) -> torch.Tensor:
+    def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM", **kwargs: Any) -> torch.Tensor:
         pass
 
     @abstractmethod

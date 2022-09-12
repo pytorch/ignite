@@ -321,7 +321,7 @@ def spawn(
         )
 
 
-def all_reduce(tensor: Union[torch.Tensor, float], op: str = "SUM", **kwargs) -> Union[torch.Tensor, float]:
+def all_reduce(tensor: Union[torch.Tensor, float], op: str = "SUM", **kwargs: Any) -> Union[torch.Tensor, float]:
     """Helper method to perform all reduce operation.
 
     Args:
