@@ -333,7 +333,7 @@ class _SerialModel(ComputationModel):
     def spawn(*args: Any, **kwargs: Any) -> None:
         raise NotImplementedError("Serial computation model does not implement spawn method")
 
-    def all_reduce(self, tensor: Union[torch.Tensor, float], op: str = "SUM", **kwargs: Any) -> Union[torch.Tensor, float]:
+    def all_reduce(self, tensor: Union[torch.Tensor, float], op: str = "SUM") -> Union[torch.Tensor, float]:
         return tensor
 
     def all_gather(self, tensor: Union[torch.Tensor, float, str]) -> Union[torch.Tensor, float, List[float], List[str]]:
@@ -348,7 +348,7 @@ class _SerialModel(ComputationModel):
             raise ValueError("Argument tensor should not be None")
         return tensor
 
-    def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:
+    def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM", **kwargs: Any) -> torch.Tensor:
         return tensor
 
     def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
