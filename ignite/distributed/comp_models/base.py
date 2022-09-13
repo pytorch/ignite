@@ -368,11 +368,11 @@ class _SerialModel(ComputationModel):
         return tensor
 
     def _do_all_reduce(
-        self, tensor: torch.Tensor, op: str = "SUM", group: Optional[List[List[int]]] = None
+        self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Union[Any, List[int]]] = None
     ) -> torch.Tensor:
         return tensor
 
-    def _do_all_gather(self, tensor: torch.Tensor, group: Optional[List[List[int]]] = None) -> torch.Tensor:
+    def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Union[Any, List[int]]] = None) -> torch.Tensor:
         return tensor
 
     def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
