@@ -335,9 +335,9 @@ def new_group(group: List[List[int]]) -> Any:
     else:
         raise ValueError("Group should be list or list of list")
 
-    if idist.backend() in ("nccl", "gloo", "mpi"):
+    if idist.backend() in ["nccl", "gloo", "mpi"]:
         return dist.new_group(ranks=group[0])
-    elif idist.backend() in ("xla-tpu"):
+    elif idist.backend() in ["xla-tpu"]:
         return group
     elif idist.backend() == "horovod":
         from horovod.common.process_sets import ProcessSet
