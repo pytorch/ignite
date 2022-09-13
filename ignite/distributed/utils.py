@@ -345,9 +345,7 @@ def new_group(group: List[List[int]]) -> Any:
         return ProcessSet(group)
 
 
-def all_reduce(
-    tensor: Union[torch.Tensor, float], op: str = "SUM", group: Any = None
-) -> Union[torch.Tensor, float]:
+def all_reduce(tensor: Union[torch.Tensor, float], op: str = "SUM", group: Any = None) -> Union[torch.Tensor, float]:
     """Helper method to perform all reduce operation.
 
     Args:
