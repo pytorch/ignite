@@ -173,7 +173,10 @@ if has_hvd_support:
             if op not in self._reduce_op_map:
                 raise ValueError(f"Unsupported reduction operation: '{op}'")
             op = self._reduce_op_map[op]
-            return hvd.allreduce(tensor, op=op, process_set=group)
+
+            if group is not None:
+                return hvd.allreduce(tensor, op=op, process_set=group)
+            return hvd.allreduce(tensor, op=op)
 
         def _do_manual_all_reduce(self, tensor: torch.Tensor, op: Any) -> torch.Tensor:
             # We have to unsqueeze otherwise tensors will be gathered into a single tensor
