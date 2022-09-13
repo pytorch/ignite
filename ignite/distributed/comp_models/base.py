@@ -160,7 +160,6 @@ class ComputationModel(metaclass=ABCMeta):
         tensor: torch.Tensor,
         device: torch.device,
         fn: Callable,
-        group: Optional[List[List[int]]] = None,
         *args: Any,
         **kwargs: Any,
     ) -> torch.Tensor:
@@ -178,7 +177,7 @@ class ComputationModel(metaclass=ABCMeta):
                 out_dtype = tensor.dtype
                 tensor = tensor.to(self._collective_op_dtype)
 
-        tensor = fn(tensor, group, *args, **kwargs)
+        tensor = fn(tensor, *args, **kwargs)
 
         if out_dtype is not None and tensor_device is not None:
             return tensor.to(dtype=out_dtype, device=tensor_device)
@@ -192,7 +191,6 @@ class ComputationModel(metaclass=ABCMeta):
         self,
         tensor: Union[torch.Tensor, float, str],
         fn: Callable,
-        group: Optional[List[List[int]]] = None,
         *args: Any,
         **kwargs: Any,
     ) -> Union[torch.Tensor, float, List[float], List[str]]:
@@ -206,7 +204,7 @@ class ComputationModel(metaclass=ABCMeta):
             max_length = self._get_max_length(tensor, device)
             tensor = self._encode_str(tensor, device, size=max_length)
 
-        tensor = self._apply_op(tensor, device, fn, group, *args, **kwargs)
+        tensor = self._apply_op(tensor, device, fn, *args, **kwargs)
 
         if tensor_to_number:
             if tensor.numel() == 1:
@@ -223,7 +221,7 @@ class ComputationModel(metaclass=ABCMeta):
         if not isinstance(tensor, (torch.Tensor, Number)):
             raise TypeError(f"Unhandled input type {type(tensor)}")
 
-        return cast(Union[torch.Tensor, float], self._collective_op(tensor, self._do_all_reduce, group, op))
+        return cast(Union[torch.Tensor, float], self._collective_op(tensor, self._do_all_reduce, op, group))
 
     def all_gather(
         self, tensor: Union[torch.Tensor, float, str], group: Optional[Union[Any, List[int]]] = None
