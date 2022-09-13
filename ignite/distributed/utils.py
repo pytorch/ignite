@@ -333,7 +333,7 @@ def new_group(group: List[List[int]]) -> Any:
     elif group is None:
         return None
     else:
-        raise ValueError(f"group should be list or list of list")
+        raise ValueError("Group should be list or list of list")
 
     if idist.backend() in ("nccl", "gloo", "mpi"):
         return dist.new_group(ranks=group[0])
