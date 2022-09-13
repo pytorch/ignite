@@ -160,7 +160,7 @@ class ComputationModel(metaclass=ABCMeta):
         tensor: torch.Tensor,
         device: torch.device,
         fn: Callable,
-        group: Optional[List[List[str]]] = None,
+        group: Optional[List[List[int]]] = None,
         *args: Any,
         **kwargs: Any,
     ) -> torch.Tensor:
@@ -218,7 +218,7 @@ class ComputationModel(metaclass=ABCMeta):
         return tensor
 
     def all_reduce(
-        self, tensor: Union[torch.Tensor, float], op: str = "sum", group: Optional[List[List[int]]] = None
+        self, tensor: Union[torch.Tensor, float], op: str = "sum", group: Optional[Union[Any, List[int]]] = None
     ) -> Union[torch.Tensor, float]:
         if not isinstance(tensor, (torch.Tensor, Number)):
             raise TypeError(f"Unhandled input type {type(tensor)}")
@@ -226,7 +226,7 @@ class ComputationModel(metaclass=ABCMeta):
         return cast(Union[torch.Tensor, float], self._collective_op(tensor, self._do_all_reduce, group, op))
 
     def all_gather(
-        self, tensor: Union[torch.Tensor, float, str], group: Optional[List[List[int]]] = None
+        self, tensor: Union[torch.Tensor, float, str], group: Optional[Union[Any, List[int]]] = None
     ) -> Union[torch.Tensor, float, List[float], List[str]]:
         if not isinstance(tensor, (torch.Tensor, Number, str)):
             raise TypeError(f"Unhandled input type {type(tensor)}")
@@ -279,11 +279,13 @@ class ComputationModel(metaclass=ABCMeta):
         return tensor
 
     @abstractmethod
-    def _do_all_reduce(self, tensor: torch.Tensor, group: Optional[Any] = None, op: str = "SUM") -> torch.Tensor:
+    def _do_all_reduce(
+        self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Union[Any, List[int]]] = None
+    ) -> torch.Tensor:
         pass
 
     @abstractmethod
-    def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None) -> torch.Tensor:
+    def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Union[Any, List[int]]] = None) -> torch.Tensor:
         pass
 
     @abstractmethod
@@ -368,7 +370,7 @@ class _SerialModel(ComputationModel):
         return tensor
 
     def _do_all_reduce(
-        self, tensor: torch.Tensor, group: Optional[List[List[int]]] = None, op: str = "SUM"
+        self, tensor: torch.Tensor, op: str = "SUM", group: Optional[List[List[int]]] = None
     ) -> torch.Tensor:
         return tensor
 

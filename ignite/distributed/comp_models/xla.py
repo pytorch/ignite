@@ -1,4 +1,4 @@
-from typing import Any, Callable, cast, List, Mapping, Optional, Tuple
+from typing import Any, Callable, cast, List, Mapping, Optional, Tuple, Union
 
 import torch
 
@@ -138,7 +138,7 @@ if has_xla_support:
         }
 
         def _do_all_reduce(
-            self, tensor: torch.Tensor, group: Optional[List[List[int]]] = None, op: str = "SUM"
+            self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Union[Any, List[int]]] = None
         ) -> torch.Tensor:
             if op not in self._reduce_op_map:
                 raise ValueError(f"Unsupported reduction operation: '{op}'")
@@ -146,7 +146,7 @@ if has_xla_support:
             xm.all_reduce(op, [tensor], groups=group)
             return tensor
 
-        def _do_all_gather(self, tensor: torch.Tensor, group: Optional[List[List[int]]] = None) -> torch.Tensor:
+        def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Union[Any, List[int]]] = None) -> torch.Tensor:
             # from https://github.com/jysohn23/xla/blob/model-parallel-colab/Gather_Scatter_Broadcast_PyTorch_XLA.ipynb
             group_size = self.get_world_size()
             output = torch.zeros((group_size,) + tensor.shape, dtype=tensor.dtype, device=tensor.device)

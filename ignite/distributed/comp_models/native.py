@@ -421,7 +421,7 @@ if has_native_dist_support:
         }
 
         def _do_all_reduce(
-            self, tensor: torch.Tensor, group: Optional[ProcessGroup] = None, op: str = "SUM"
+            self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Union[Any, List[int]]] = None
         ) -> torch.Tensor:
             if op not in self._reduce_op_map:
                 raise ValueError(f"Unsupported reduction operation: '{op}'")
@@ -429,7 +429,7 @@ if has_native_dist_support:
             dist.all_reduce(tensor, reduce_op, group=group)
             return tensor
 
-        def _do_all_gather(self, tensor: torch.Tensor, group: Optional[ProcessGroup] = None) -> torch.Tensor:
+        def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Union[Any, List[int]]] = None) -> torch.Tensor:
             if tensor.ndimension() == 0:
                 tensor = tensor.unsqueeze(0)
             output = [torch.zeros_like(tensor) for _ in range(self.get_world_size())]
