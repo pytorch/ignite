@@ -4,9 +4,6 @@ from typing import Any, Callable, List, Mapping, Optional, Tuple, Union
 
 import torch
 import torch.distributed as dist
-from horovod.common.process_sets import ProcessSet
-
-from torch._C._distributed_c10d import ProcessGroup
 
 import ignite.distributed as idist
 
@@ -327,7 +324,7 @@ def spawn(
         )
 
 
-def new_group(group: List[List[int]]):  # -> Union[ProcessGroup, List[List[int]], ProcessSet]:
+def new_group(group: List[List[int]]) -> Any:
 
     if isinstance(group, list) and all(isinstance(item, int) for item in group):
         group = [group]
@@ -343,6 +340,8 @@ def new_group(group: List[List[int]]):  # -> Union[ProcessGroup, List[List[int]]
     elif idist.backend() in ("xla-tpu"):
         return group
     elif idist.backend() == "horovod":
+        from horovod.common.process_sets import ProcessSet
+
         return ProcessSet(group)
 
 

@@ -96,7 +96,7 @@ class ComputationModel(metaclass=ABCMeta):
 
     def _get_max_length(self, x: str, device: torch.device) -> int:
         size = torch.tensor([len(x)], device=device)
-        size = self._do_all_reduce(size, group=None, op="MAX")
+        size = self._do_all_reduce(size, "MAX")
         return cast(int, size.item())
 
     @staticmethod
@@ -139,9 +139,7 @@ class ComputationModel(metaclass=ABCMeta):
     ) -> Union[torch.Tensor, float, str]:
 
         encoded_msg_per_rank = self._encode_input_data(x, is_src)
-        encoded_msg_all_ranks = self._do_all_reduce(
-            torch.tensor(encoded_msg_per_rank, device=device), group=None, op="MAX"
-        )
+        encoded_msg_all_ranks = self._do_all_reduce(torch.tensor(encoded_msg_per_rank, device=device), "MAX")
 
         if is_src:
             if x is None:
@@ -280,7 +278,7 @@ class ComputationModel(metaclass=ABCMeta):
 
     @abstractmethod
     def _do_all_reduce(
-        self, tensor: torch.Tensor, group: Optional[List[List[int]]] = None, op: str = "SUM"
+        self, tensor: torch.Tensor, op: str = "SUM", group: Optional[List[List[int]]] = None
     ) -> torch.Tensor:
         pass
 
@@ -368,7 +366,7 @@ class _SerialModel(ComputationModel):
         return tensor
 
     def _do_all_reduce(
-        self, tensor: torch.Tensor, group: Optional[List[List[int]]] = None, op: str = "SUM"
+        self, tensor: torch.Tensor, op: str = "SUM", group: Optional[List[List[int]]] = None
     ) -> torch.Tensor:
         return tensor
 
