@@ -324,7 +324,7 @@ def spawn(
         )
 
 
-def new_group(group: Union[Any, List[int]]) -> Any:
+def new_group(group: Any) -> Any:
 
     if group is None:
         return None
