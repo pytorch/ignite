@@ -138,7 +138,7 @@ if has_xla_support:
         }
 
         def _do_all_reduce(
-            self, tensor: torch.Tensor, op: str = "SUM", group: Optional[List[List[int]]] = None
+            self, tensor: torch.Tensor, group: Optional[List[List[int]]] = None, op: str = "SUM"
         ) -> torch.Tensor:
             if op not in self._reduce_op_map:
                 raise ValueError(f"Unsupported reduction operation: '{op}'")
