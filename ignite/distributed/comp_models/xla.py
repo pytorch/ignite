@@ -143,7 +143,7 @@ if has_xla_support:
             if op not in self._reduce_op_map:
                 raise ValueError(f"Unsupported reduction operation: '{op}'")
             op = self._reduce_op_map[op]
-            xm.all_reduce(op, [tensor], group=group)
+            xm.all_reduce(op, [tensor], groups=group)
             return tensor
 
         def _do_all_gather(self, tensor: torch.Tensor, group: Optional[List[List[int]]] = None) -> torch.Tensor:
