@@ -8,7 +8,6 @@ import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 from packaging.version import Version
-from torch._C._distributed_c10d import ProcessGroup
 
 from ignite.distributed.comp_models.base import ComputationModel
 
