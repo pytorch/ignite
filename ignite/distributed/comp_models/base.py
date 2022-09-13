@@ -349,12 +349,12 @@ class _SerialModel(ComputationModel):
         raise NotImplementedError("Serial computation model does not implement spawn method")
 
     def all_reduce(
-        self, tensor: Union[torch.Tensor, float], op: str = "SUM", group: Optional[List[List[int]]] = None
+        self, tensor: Union[torch.Tensor, float], op: str = "SUM", group: Optional[Union[Any, List[int]]] = None
     ) -> Union[torch.Tensor, float]:
         return tensor
 
     def all_gather(
-        self, tensor: Union[torch.Tensor, float, str], group: Optional[List[List[int]]] = None
+        self, tensor: Union[torch.Tensor, float, str], group: Optional[Union[Any, List[int]]] = None
     ) -> Union[torch.Tensor, float, List[float], List[str]]:
         if isinstance(tensor, torch.Tensor):
             return tensor
