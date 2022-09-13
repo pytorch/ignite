@@ -326,12 +326,12 @@ def spawn(
 
 def new_group(group: List[List[int]]) -> Any:
 
-    if isinstance(group, list) and all(isinstance(item, int) for item in group):
+    if group is None:
+        return None
+    elif isinstance(group, list) and all(isinstance(item, int) for item in group):
         group = [group]
     elif all(isinstance(item, int) for list_ in group for item in list_):
         group = group
-    elif group is None:
-        return None
     else:
         raise ValueError("Group should be list or list of list")
 
