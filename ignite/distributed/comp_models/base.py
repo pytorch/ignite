@@ -279,9 +279,7 @@ class ComputationModel(metaclass=ABCMeta):
         return tensor
 
     @abstractmethod
-    def _do_all_reduce(
-        self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Any] = None
-    ) -> torch.Tensor:
+    def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Any] = None) -> torch.Tensor:
         pass
 
     @abstractmethod
