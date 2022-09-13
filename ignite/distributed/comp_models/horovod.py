@@ -2,12 +2,12 @@ import warnings
 from typing import Any, Callable, cast, Mapping, Optional, Tuple
 
 import torch
-from horovod.common.process_sets import ProcessSet
 
 from ignite.distributed.comp_models.base import ComputationModel
 
 try:
     import horovod.torch as hvd
+    from horovod.common.process_sets import ProcessSet
 
     try:
         # old API
