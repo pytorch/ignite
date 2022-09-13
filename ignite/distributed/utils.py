@@ -346,7 +346,7 @@ def new_group(group: List[List[int]]) -> Any:
 
 
 def all_reduce(
-    tensor: Union[torch.Tensor, float], op: str = "SUM", group: Optional[List[List[int]]] = None
+    tensor: Union[torch.Tensor, float], op: str = "SUM", group: List[List[int]] = None
 ) -> Union[torch.Tensor, float]:
     """Helper method to perform all reduce operation.
 
