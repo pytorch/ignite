@@ -429,7 +429,7 @@ if has_native_dist_support:
             dist.all_reduce(tensor, reduce_op, group=group)
             return tensor
 
-        def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
+        def _do_all_gather(self, tensor: torch.Tensor, group: Optional[ProcessGroup] = None) -> torch.Tensor:
             if tensor.ndimension() == 0:
                 tensor = tensor.unsqueeze(0)
             output = [torch.zeros_like(tensor) for _ in range(self.get_world_size())]
