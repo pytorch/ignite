@@ -4,8 +4,6 @@ from typing import Any, Callable, cast, List, Optional, Union
 
 import torch
 
-import ignite.distributed as idist
-
 
 class ComputationModel(metaclass=ABCMeta):
     """Base class for distributed computation models and defines interface methods.
@@ -158,12 +156,7 @@ class ComputationModel(metaclass=ABCMeta):
         return out
 
     def _apply_op(
-        self,
-        tensor: torch.Tensor,
-        device: torch.device,
-        fn: Callable,
-        *args: Any,
-        **kwargs: Any,
+        self, tensor: torch.Tensor, device: torch.device, fn: Callable, *args: Any, **kwargs: Any
     ) -> torch.Tensor:
         out_dtype = None
         tensor_device = None
@@ -190,11 +183,7 @@ class ComputationModel(metaclass=ABCMeta):
         return tensor
 
     def _collective_op(
-        self,
-        tensor: Union[torch.Tensor, float, str],
-        fn: Callable,
-        *args: Any,
-        **kwargs: Any,
+        self, tensor: Union[torch.Tensor, float, str], fn: Callable, *args: Any, **kwargs: Any
     ) -> Union[torch.Tensor, float, List[float], List[str]]:
         tensor_to_number = tensor_to_str = False
         device = self.device()
@@ -223,7 +212,7 @@ class ComputationModel(metaclass=ABCMeta):
         if not isinstance(tensor, (torch.Tensor, Number)):
             raise TypeError(f"Unhandled input type {type(tensor)}")
 
-        return cast(Union[torch.Tensor, float], self._collective_op(tensor, self._do_all_reduce, op, group))
+        return cast(Union[torch.Tensor, float], self._collective_op(tensor, self._do_all_reduce, op, group=group))
 
     def all_gather(
         self, tensor: Union[torch.Tensor, float, str], group: Optional[Union[Any, List[int]]] = None
@@ -231,7 +220,7 @@ class ComputationModel(metaclass=ABCMeta):
         if not isinstance(tensor, (torch.Tensor, Number, str)):
             raise TypeError(f"Unhandled input type {type(tensor)}")
 
-        return self._collective_op(tensor, self._do_all_gather, group)
+        return self._collective_op(tensor, self._do_all_gather, group=group)
 
     def broadcast(
         self, tensor: Union[torch.Tensor, float, str, None], src: int = 0, safe_mode: bool = False
@@ -296,6 +285,7 @@ class ComputationModel(metaclass=ABCMeta):
     def barrier(self) -> None:
         pass
 
+    @abstractmethod
     def new_group(self, group: List[int]) -> Any:
         pass
 
@@ -386,5 +376,5 @@ class _SerialModel(ComputationModel):
     def barrier(self) -> None:
         pass
 
-    def new_group(self, group: List[int]) -> Any:
-        return group
+    def new_group(self, ranks: List[int]) -> Any:
+        return ranks

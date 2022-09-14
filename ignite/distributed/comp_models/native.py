@@ -9,6 +9,8 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 from packaging.version import Version
 
+from torch._C._distributed_c10d import ProcessGroup
+
 from ignite.distributed.comp_models.base import ComputationModel
 
 has_native_dist_support = dist.is_available()
@@ -424,15 +426,21 @@ if has_native_dist_support:
         ) -> torch.Tensor:
             if op not in self._reduce_op_map:
                 raise ValueError(f"Unsupported reduction operation: '{op}'")
+            if group and not isinstance(group, ProcessGroup):
+                raise ValueError("Group should be list of int or ProcessGroup")
             reduce_op = self._reduce_op_map[op]
             dist.all_reduce(tensor, reduce_op, group=group)
             return tensor
 
         def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Union[Any, List[int]]] = None) -> torch.Tensor:
+            if group and not isinstance(group, ProcessGroup):
+                raise ValueError("Group should be list of int or ProcessGroup")
+            if group and not isinstance(group, ProcessGroup):
+                raise ValueError("Group should be list of int or ProcessGroup")
             if tensor.ndimension() == 0:
                 tensor = tensor.unsqueeze(0)
             output = [torch.zeros_like(tensor) for _ in range(self.get_world_size())]
-            dist.all_gather(output, tensor)
+            dist.all_gather(output, tensor, group=group)
             return torch.cat(output, dim=0)
 
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
@@ -442,17 +450,11 @@ if has_native_dist_support:
         def barrier(self) -> None:
             dist.barrier()
 
-        def new_group(self, group: List[int]) -> Any:
-            if group is None:
-                return None
-            elif isinstance(group, list) and all(isinstance(item, int) for item in group):
-                group = [group]
-            elif all(isinstance(item, int) for list_ in group for item in list_):
-                group = group
+        def new_group(self, ranks: List[int]) -> Any:
+            if isinstance(ranks, list) and all(isinstance(item, int) for item in ranks):
+                return dist.new_group(ranks=ranks)
             else:
-                raise ValueError("Group should be list or list of list")
-
-            return dist.new_group(ranks=group[0])
+                raise ValueError("Group should be list of int")
 
     def _expand_hostlist(nodelist: str) -> List[str]:
         """Expand a compressed hostlist string and returns all hosts listed.

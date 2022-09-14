@@ -7,6 +7,7 @@ from ignite.distributed.comp_models.base import ComputationModel
 
 try:
     import horovod.torch as hvd
+    from horovod.common.process_sets import ProcessSet
 
     try:
         # old API
@@ -172,9 +173,10 @@ if has_hvd_support:
                 return self._do_manual_all_reduce(tensor, op_fn)
             if op not in self._reduce_op_map:
                 raise ValueError(f"Unsupported reduction operation: '{op}'")
+            if group and not isinstance(group, ProcessSet):
+                raise ValueError("group should be list of int or ProcessSet")
             op = self._reduce_op_map[op]
-
-            if group is not None:
+            if group:
                 return hvd.allreduce(tensor, op=op, process_set=group)
             return hvd.allreduce(tensor, op=op)
 
@@ -190,8 +192,12 @@ if has_hvd_support:
             return reduced_res[0]
 
         def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Union[Any, List[int]]] = None) -> torch.Tensor:
+            if group and not isinstance(group, ProcessSet):
+                raise ValueError("group should be list of int or ProcessSet")
             if tensor.ndimension() == 0:
                 tensor = tensor.unsqueeze(0)
+            if group:
+                return hvd.allgather(tensor, process_set=group)
             return hvd.allgather(tensor)
 
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
@@ -202,16 +208,8 @@ if has_hvd_support:
             # hvd.allreduce(torch.tensor(0, device=self.device()), name="barrier")
             hvd.allreduce(torch.tensor(0, device="cpu"), name="barrier")
 
-        def new_group(self, group: List[int]) -> Any:
-            if group is None:
-                return None
-            elif isinstance(group, list) and all(isinstance(item, int) for item in group):
-                group = group
-            elif all(isinstance(item, int) for list_ in group for item in list_):
-                group = group[0]
+        def new_group(self, ranks: List[int]) -> Any:
+            if isinstance(ranks, list) and all(isinstance(item, int) for item in ranks):
+                return ProcessSet(ranks)
             else:
-                raise ValueError("Group should be list or list of list")
-
-            from horovod.common.process_sets import ProcessSet
-
-            return ProcessSet(group)
+                raise ValueError("Group should be list of int")
