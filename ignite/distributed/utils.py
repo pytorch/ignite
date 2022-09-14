@@ -324,27 +324,6 @@ def spawn(
         )
 
 
-def new_group(group: Any) -> Any:
-
-    if group is None:
-        return None
-    elif isinstance(group, list) and all(isinstance(item, int) for item in group):
-        group = [group]
-    elif all(isinstance(item, int) for list_ in group for item in list_):
-        group = group
-    else:
-        raise ValueError("Group should be list or list of list")
-
-    if idist.backend() in ["nccl", "gloo", "mpi"]:
-        return dist.new_group(ranks=group[0])
-    elif idist.backend() in ["xla-tpu"]:
-        return group
-    elif idist.backend() == "horovod":
-        from horovod.common.process_sets import ProcessSet
-
-        return ProcessSet(group)
-
-
 def all_reduce(tensor: Union[torch.Tensor, float], op: str = "SUM", group: Any = None) -> Union[torch.Tensor, float]:
     """Helper method to perform all reduce operation.
 
@@ -360,7 +339,7 @@ def all_reduce(tensor: Union[torch.Tensor, float], op: str = "SUM", group: Any =
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
 
-    group = new_group(group)
+    group = _model.new_group(group)
 
     return _model.all_reduce(tensor, op, group=group)
 

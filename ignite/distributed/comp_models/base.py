@@ -4,6 +4,8 @@ from typing import Any, Callable, cast, List, Optional, Union
 
 import torch
 
+import ignite.distributed as idist
+
 
 class ComputationModel(metaclass=ABCMeta):
     """Base class for distributed computation models and defines interface methods.
@@ -294,6 +296,9 @@ class ComputationModel(metaclass=ABCMeta):
     def barrier(self) -> None:
         pass
 
+    def new_group(self, group: List[int]) -> Any:
+        pass
+
 
 class _SerialModel(ComputationModel):
     """Private class defines non-distributed computation model for code compatibility with other distributed models."""
@@ -380,3 +385,24 @@ class _SerialModel(ComputationModel):
 
     def barrier(self) -> None:
         pass
+
+    def new_group(self, group: List[int]) -> Any:
+        return group
+
+        if group is None:
+            return None
+        elif isinstance(group, list) and all(isinstance(item, int) for item in group):
+            group = [group]
+        elif all(isinstance(item, int) for list_ in group for item in list_):
+            group = group
+        else:
+            raise ValueError("Group should be list or list of list")
+
+        if idist.backend() in ["nccl", "gloo", "mpi"]:
+            return dist.new_group(ranks=group[0])
+        elif idist.backend() in ["xla-tpu"]:
+            return group
+        elif idist.backend() == "horovod":
+            from horovod.common.process_sets import ProcessSet
+
+            return ProcessSet(group)

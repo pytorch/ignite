@@ -442,6 +442,18 @@ if has_native_dist_support:
         def barrier(self) -> None:
             dist.barrier()
 
+        def new_group(self, group: List[int]) -> Any:
+            if group is None:
+                return None
+            elif isinstance(group, list) and all(isinstance(item, int) for item in group):
+                group = [group]
+            elif all(isinstance(item, int) for list_ in group for item in list_):
+                group = group
+            else:
+                raise ValueError("Group should be list or list of list")
+
+            return dist.new_group(ranks=group[0])
+
     def _expand_hostlist(nodelist: str) -> List[str]:
         """Expand a compressed hostlist string and returns all hosts listed.
 

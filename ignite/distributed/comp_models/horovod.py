@@ -201,3 +201,17 @@ if has_hvd_support:
             # https://github.com/horovod/horovod/issues/159#issuecomment-424834603
             # hvd.allreduce(torch.tensor(0, device=self.device()), name="barrier")
             hvd.allreduce(torch.tensor(0, device="cpu"), name="barrier")
+
+        def new_group(self, group: List[int]) -> Any:
+            if group is None:
+                return None
+            elif isinstance(group, list) and all(isinstance(item, int) for item in group):
+                group = [group]
+            elif all(isinstance(item, int) for list_ in group for item in list_):
+                group = group
+            else:
+                raise ValueError("Group should be list or list of list")
+
+            from horovod.common.process_sets import ProcessSet
+
+            return ProcessSet(group)
