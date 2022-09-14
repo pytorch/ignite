@@ -144,9 +144,9 @@ if has_xla_support:
                 raise ValueError(f"Unsupported reduction operation: '{op}'")
             if group and not isinstance(group, list):
                 raise ValueError("group should be list of int or list of list of int")
-            if not all(isinstance(item, list) for item in group):
+            if group is not None and not all(isinstance(item, list) for item in group):
                 raise ValueError("group should be list of int or list of list of int")
-            if not all(isinstance(item, int) for list_ in group for item in list_):
+            if group is not None and not all(isinstance(item, int) for list_ in group for item in list_):
                 raise ValueError("group should be list of int or list of list of int")
             op = self._reduce_op_map[op]
             xm.all_reduce(op, [tensor], groups=group)

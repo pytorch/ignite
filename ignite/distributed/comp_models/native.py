@@ -426,16 +426,14 @@ if has_native_dist_support:
         ) -> torch.Tensor:
             if op not in self._reduce_op_map:
                 raise ValueError(f"Unsupported reduction operation: '{op}'")
-            if group and not isinstance(group, ProcessGroup):
+            if group is not None and not isinstance(group, ProcessGroup):
                 raise ValueError("Group should be list of int or ProcessGroup")
             reduce_op = self._reduce_op_map[op]
             dist.all_reduce(tensor, reduce_op, group=group)
             return tensor
 
         def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Union[Any, List[int]]] = None) -> torch.Tensor:
-            if group and not isinstance(group, ProcessGroup):
-                raise ValueError("Group should be list of int or ProcessGroup")
-            if group and not isinstance(group, ProcessGroup):
+            if group is not None and not isinstance(group, ProcessGroup):
                 raise ValueError("Group should be list of int or ProcessGroup")
             if tensor.ndimension() == 0:
                 tensor = tensor.unsqueeze(0)
