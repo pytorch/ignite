@@ -142,7 +142,7 @@ if has_xla_support:
         ) -> torch.Tensor:
             if op not in self._reduce_op_map:
                 raise ValueError(f"Unsupported reduction operation: '{op}'")
-            if group and not isinstance(group, list):
+            if group is not None and not isinstance(group, list):
                 raise ValueError("group should be list of int or list of list of int")
             if group is not None and not all(isinstance(item, list) for item in group):
                 raise ValueError("group should be list of int or list of list of int")
@@ -154,13 +154,11 @@ if has_xla_support:
 
         def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Union[Any, List[int]]] = None) -> torch.Tensor:
             # from https://github.com/jysohn23/xla/blob/model-parallel-colab/Gather_Scatter_Broadcast_PyTorch_XLA.ipynb
-            if group and not isinstance(group, list):
+            if group is not None and not isinstance(group, list):
                 raise ValueError("group should be list of int or list of list of int")
-            if group and not isinstance(group, list):
+            if group is not None and not all(isinstance(item, list) for item in group):
                 raise ValueError("group should be list of int or list of list of int")
-            if not all(isinstance(item, list) for item in group):
-                raise ValueError("group should be list of int or list of list of int")
-            if not all(isinstance(item, int) for list_ in group for item in list_):
+            if group is not None and not all(isinstance(item, int) for list_ in group for item in list_):
                 raise ValueError("group should be list of int or list of list of int")
             group_size = self.get_world_size()
             output = torch.zeros((group_size,) + tensor.shape, dtype=tensor.dtype, device=tensor.device)
