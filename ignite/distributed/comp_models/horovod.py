@@ -206,9 +206,9 @@ if has_hvd_support:
             if group is None:
                 return None
             elif isinstance(group, list) and all(isinstance(item, int) for item in group):
-                group = [group]
-            elif all(isinstance(item, int) for list_ in group for item in list_):
                 group = group
+            elif all(isinstance(item, int) for list_ in group for item in list_):
+                group = group[0]
             else:
                 raise ValueError("Group should be list or list of list")
 
