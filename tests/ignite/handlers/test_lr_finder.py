@@ -275,7 +275,7 @@ def test_lr_policy(lr_finder, to_save, dummy_engine, dataloader):
     assert all([lr[i - 1] < lr[i] for i in range(1, len(lr))])
 
 def test_multi_group_optimizer(lr_finder, dummy_engine_mulitple_param_groups, to_save_mulitple_param_groups, dataloader):
-    with lr_finder.attach(dummy_engine_mulitple_param_groups, to_save_mulitple_param_groups, start_lr=[0.1, 0.1, 0.01], end_lr=[1.0, 10.0, 0.1]) as trainer_with_lr_finder:
+    with lr_finder.attach(dummy_engine_mulitple_param_groups, to_save_mulitple_param_groups, start_lr=[0.1, 0.1, 0.01], end_lr=[1.0, 1.0, 0.1]) as trainer_with_lr_finder:
         trainer_with_lr_finder.run(dataloader)
 
     lr = lr_finder.get_results()["lr"]
