@@ -1,45 +1,48 @@
 import os
 
 import pytest
+import torch
 
-import ignite.distributed as idist
-from ignite.distributed.utils import has_xla_support
-from tests.ignite.distributed.utils import (
-    _test_distrib_all_gather,
-    _test_distrib_all_gather_group,
-    _test_distrib_all_reduce,
-    _test_distrib_all_reduce_group,
-    _test_distrib_barrier,
-    _test_distrib_broadcast,
-    _test_distrib_config,
-    _test_distrib_new_group,
-    _test_distrib_one_rank_only,
-    _test_distrib_one_rank_only_with_engine,
-    _test_sync,
-)
+from ignite.distributed.comp_models import has_xla_support
+
+if not has_xla_support:
+    pytest.skip("Skip if no XLA support", allow_module_level=True)
+else:
+    from ignite.distributed.comp_models.xla import _XlaDistModel
 
 
-@pytest.mark.skipif(has_xla_support, reason="Skip if has PyTorch XLA package")
-def test_xla_distrib_spawn_no_xla_support():
+@pytest.mark.tpu
+@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
+def test__xla_model():
+    available_backends = _XlaDistModel.available_backends
+    assert "xla-tpu" in available_backends
+
     with pytest.raises(ValueError, match=r"Backend should be one of"):
-        idist.spawn("xla-tpu", _test_distrib_config, args=("xla-tpu", 1, "xla"), nproc_per_node=1)
+        _XlaDistModel.create_from_backend("abc")
+
+
+def _test_xla_spawn_fn(local_rank, world_size, device):
+    from ignite.distributed.utils import _model
+
+    assert isinstance(_model, _XlaDistModel), f"{type(_model)} vs _XlaDistModel"
+
+    assert _model.get_local_rank() == local_rank
+    assert _model.get_world_size() == world_size
+    d = _model.device()
+    assert isinstance(d, torch.device) and d.type == device
+
+    assert _model.get_rank() == local_rank
+    assert _model.get_nproc_per_node() == world_size
+    assert _model.get_node_rank() == 0
+    assert _model.get_nnodes() == 1
 
 
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_xla_distrib_single_node_no_spawn():
-    idist.initialize("xla-tpu")
-    _test_distrib_config(local_rank=0, backend="xla-tpu", ws=1, true_device="xla")
-    idist.finalize()
-
-
-@pytest.mark.tpu
-@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
-@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_xla_distrib_single_node_spawn_one_proc():
+def test__xla_dist_model_spawn_one_proc():
     try:
-        idist.spawn("xla-tpu", _test_distrib_config, args=("xla-tpu", 1, "xla"), nproc_per_node=1)
+        _XlaDistModel.spawn(_test_xla_spawn_fn, args=(1, "xla"), kwargs_dict={}, nproc_per_node=1)
     except SystemExit:
         pass
 
@@ -47,190 +50,158 @@ def test_xla_distrib_single_node_spawn_one_proc():
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_xla_distrib_single_node_spawn_n_procs():
+def test__xla_dist_model_spawn_n_procs():
     n = int(os.environ["NUM_TPU_WORKERS"])
     try:
-        idist.spawn("xla-tpu", _test_distrib_config, args=("xla-tpu", n, "xla"), nproc_per_node=n)
+        _XlaDistModel.spawn(_test_xla_spawn_fn, args=(n, "xla"), kwargs_dict={}, nproc_per_node=n)
     except SystemExit:
         pass
 
 
-@pytest.mark.tpu
-@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
-@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_sync_as_xla():
-    from ignite.distributed.comp_models.xla import _XlaDistModel
+def _assert_model(model, true_conf):
 
-    _test_sync(_XlaDistModel)
+    assert model.device() == true_conf["device"]
+    assert model.get_local_rank() == true_conf["local_rank"]
+    assert model.get_rank() == true_conf["rank"]
+    assert model.get_world_size() == true_conf["world_size"]
 
-
-def _test_sync_as_xla_in_child_proc(index):
-    from ignite.distributed.comp_models.xla import _XlaDistModel
-
-    _test_sync(_XlaDistModel)
-
-
-@pytest.mark.tpu
-@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
-@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_sync_as_xla_in_child_proc(xmp_executor):
-    n = int(os.environ["NUM_TPU_WORKERS"])
-    xmp_executor(_test_sync_as_xla_in_child_proc, args=(), nprocs=n)
+    assert model.get_node_rank() == true_conf["node_index"]
+    assert model.get_nnodes() == true_conf["nnodes"]
+    assert model.get_nproc_per_node() == true_conf["nproc_per_node"]
 
 
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_idist_methods_in_xla_context():
-    # We explicitly set _model as _SerialModel
-    # then call idist.* methods and check that they give correct values
-    from ignite.distributed.utils import _SerialModel, _set_model
-
-    _set_model(_SerialModel())
-
-    _test_distrib_config(local_rank=0, backend="xla-tpu", ws=1, true_device="xla", rank=0)
-
-
-def _test_idist_methods_in_xla_context_in_child_proc(index):
-    # We explicitly set _model as _SerialModel
-    # then call idist.* methods and check that they give correct values
-    from ignite.distributed.utils import _SerialModel, _set_model
-
-    _set_model(_SerialModel())
+def test__xla_dist_model_create_from_backend():
+    # without spawn
+    model = _XlaDistModel.create_from_backend("xla-tpu")
 
     import torch_xla.core.xla_model as xm
 
-    _test_distrib_config(
-        local_rank=index, backend="xla-tpu", ws=xm.xrt_world_size(), true_device="xla", rank=xm.get_ordinal()
+    _assert_model(
+        model,
+        {
+            "device": xm.xla_device(),
+            "local_rank": 0,
+            "rank": 0,
+            "world_size": 1,
+            "node_index": 0,
+            "nnodes": 1,
+            "nproc_per_node": 1,
+        },
+    )
+
+    model.finalize()
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
+def test__xla_dist_model_create_from_context():
+    # without spawn
+    model = _XlaDistModel.create_from_context()
+
+    assert model.backend() == "xla-tpu"
+
+    import torch_xla.core.xla_model as xm
+
+    _assert_model(
+        model,
+        {
+            "device": xm.xla_device(),
+            "local_rank": 0,
+            "rank": 0,
+            "world_size": 1,
+            "node_index": 0,
+            "nnodes": 1,
+            "nproc_per_node": 1,
+        },
+    )
+
+
+def _test__xla_dist_model_create_from_context_in_child_proc(index):
+    model = _XlaDistModel.create_from_context()
+
+    assert model.backend() == "xla-tpu"
+
+    import torch_xla.core.xla_model as xm
+
+    _assert_model(
+        model,
+        {
+            "device": xm.xla_device(),
+            "local_rank": index,
+            "rank": xm.get_ordinal(),
+            "world_size": xm.xrt_world_size(),
+            "node_index": 0,
+            "nnodes": 1,
+            "nproc_per_node": xm.xrt_world_size(),
+        },
     )
 
 
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_idist_methods_in_xla_context_in_child_proc(xmp_executor):
+def test__xla_dist_model_create_from_context_in_child_proc(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
-    xmp_executor(_test_idist_methods_in_xla_context_in_child_proc, args=(), nprocs=n)
+    xmp_executor(_test__xla_dist_model_create_from_context_in_child_proc, args=(), nprocs=n)
+
+
+def main_fold(fold):
+    import time
+
+    import torch.nn as nn
+    import torch.optim as optim
+    import torch_xla.core.xla_model as xm
+
+    from ignite.engine import Engine
+
+    device = xm.xla_device(fold)
+
+    comp_model = _XlaDistModel.create_from_context()
+    assert comp_model.device() == device
+
+    model = nn.Linear(100, 10)
+
+    model.to(device)  # Move model before creating optimizer
+    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
+
+    def training_step(engine, _):
+        data = torch.rand(4, 100, device=device)
+        model.train()
+        data = data.to(device)
+        optimizer.zero_grad()
+        output = model(data)
+        loss = output.sum()
+        loss.backward()
+        xm.optimizer_step(optimizer, barrier=True)
+        return loss.item()
+
+    trainer = Engine(training_step)
+
+    # THIS CAN BE A CAUSE OF CRASH if DEVICE is OTHER THAN device
+    tensor = torch.tensor([fold + 1.0], dtype=torch.float).to(comp_model.device())
+    xm.all_reduce("max", [tensor])
+
+    time.sleep(0.01 * fold)
+
+    trainer.run([0] * 100, max_epochs=2)
 
 
 @pytest.mark.tpu
-@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_idist_all_reduce_xla():
-    device = idist.device()
-    _test_distrib_all_reduce(device)
-    _test_distrib_all_reduce_group(device)
+def test__xla_dist_model_run_parallel_n_threads_without_sync():
+    # tests issue : https://github.com/pytorch/ignite/issues/1096
+    import torch_xla.core.xla_model as xm
+    from joblib import delayed, Parallel
 
-
-def _test_idist_all_reduce_xla_in_child_proc(index):
-    device = idist.device()
-    _test_distrib_all_reduce(device)
-    _test_distrib_all_reduce_group(device)
-
-
-@pytest.mark.tpu
-@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
-@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_idist_new_group_xla():
-    device = idist.device()
-    _test_distrib_new_group(device)
-
-
-@pytest.mark.tpu
-@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
-@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_idist_all_reduce_xla_in_child_proc(xmp_executor):
-    n = int(os.environ["NUM_TPU_WORKERS"])
-    xmp_executor(_test_idist_all_reduce_xla_in_child_proc, args=(), nprocs=n)
-
-
-@pytest.mark.tpu
-@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
-@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_idist_all_gather_xla():
-
-    device = idist.device()
-    _test_distrib_all_gather(device)
-    _test_distrib_all_gather_group(device)
-
-
-def _test_idist_all_gather_xla_in_child_proc(index):
-    device = idist.device()
-    _test_distrib_all_gather(device)
-    _test_distrib_all_gather_group(device)
-
-
-@pytest.mark.tpu
-@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
-@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_idist_all_gather_xla_in_child_proc(xmp_executor):
-    n = int(os.environ["NUM_TPU_WORKERS"])
-    xmp_executor(_test_idist_all_gather_xla_in_child_proc, args=(), nprocs=n)
-
-
-@pytest.mark.tpu
-@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
-@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_idist_broadcast_xla():
-
-    device = idist.device()
-    _test_distrib_broadcast(device)
-
-
-def _test_idist_broadcast_xla_in_child_proc(index):
-    device = idist.device()
-    _test_distrib_broadcast(device)
-
-
-@pytest.mark.tpu
-@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
-@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_idist_broadcast_xla_in_child_proc(xmp_executor):
-    n = int(os.environ["NUM_TPU_WORKERS"])
-    xmp_executor(_test_idist_broadcast_xla_in_child_proc, args=(), nprocs=n)
-
-
-@pytest.mark.tpu
-@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
-@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_idist_barrier_xla():
-
-    device = idist.device()
-    _test_distrib_barrier(device)
-
-
-def _test_idist_barrier_xla_in_child_proc(index):
-    device = idist.device()
-    _test_distrib_barrier(device)
-
-
-@pytest.mark.tpu
-@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
-@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_idist_barrier_xla_in_child_proc(xmp_executor):
-    n = int(os.environ["NUM_TPU_WORKERS"])
-    xmp_executor(_test_idist_barrier_xla_in_child_proc, args=(), nprocs=n)
-
-
-@pytest.mark.tpu
-@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
-@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_idist_one_rank_only_xla():
-
-    device = idist.device()
-    _test_distrib_one_rank_only(device=device)
-    _test_distrib_one_rank_only_with_engine(device=device)
-
-
-def _test_idist_one_rank_only_xla_nprocs(index):
-    device = idist.device()
-    _test_distrib_one_rank_only(device=device)
-    _test_distrib_one_rank_only_with_engine(device=device)
-
-
-@pytest.mark.tpu
-@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
-@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_idist_one_rank_only_xla_nprocs(xmp_executor):
-    n = int(os.environ["NUM_TPU_WORKERS"])
-    xmp_executor(_test_idist_one_rank_only_xla_nprocs, args=(), nprocs=n)
+    devices = xm.get_xla_supported_devices()
+    folds = 1
+    d = 0
+    if len(devices) > 5:
+        folds = 5
+        d = 1
+    Parallel(n_jobs=folds, backend="threading")(delayed(main_fold)(i + d) for i in range(folds))

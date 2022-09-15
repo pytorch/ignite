@@ -1,261 +1,236 @@
-import os
-
 import pytest
 import torch
 
-import ignite.distributed as idist
-from ignite.distributed.utils import has_hvd_support
-from tests.ignite.distributed.utils import (
-    _test_distrib__get_max_length,
-    _test_distrib_all_gather,
-    _test_distrib_all_gather_group,
-    _test_distrib_all_reduce,
-    _test_distrib_all_reduce_group,
-    _test_distrib_barrier,
-    _test_distrib_broadcast,
-    _test_distrib_config,
-    _test_distrib_new_group,
-    _test_distrib_one_rank_only,
-    _test_distrib_one_rank_only_with_engine,
-    _test_sync,
-)
+from ignite.distributed.comp_models import has_hvd_support
 
-
-@pytest.mark.skipif(has_hvd_support, reason="Skip if has Horovod package")
-def test_hvd_distrib_spawn_no_hvd_support():
-    with pytest.raises(ValueError, match=r"Backend should be one of"):
-        idist.spawn("horovod", _test_distrib_config, args=("horovod", 1, "cpu"), nproc_per_node=1)
-
-
-@pytest.mark.distributed
-@pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
-def test_hvd_distrib_single_node_single_device():
-    import horovod.torch as hvd
-
-    idist.initialize("horovod")
-
-    device = "cpu" if torch.cuda.device_count() < 1 else "cuda"
-    local_rank = hvd.local_rank()
-    world_size = hvd.size()
-    rank = hvd.rank()
-    _test_distrib_config(local_rank, "horovod", world_size, device, rank)
-    idist.finalize()
-
-
-@pytest.mark.distributed
-@pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
-@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-@pytest.mark.skipif(torch.cuda.device_count() > 0, reason="Skip if has GPU")
-def test_hvd_distrib_single_node_spawn():
-    world_size = 4
-
-    idist.spawn("horovod", _test_distrib_config, args=("horovod", world_size, "cpu"), nproc_per_node=world_size)
-
-
-@pytest.mark.distributed
-@pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
-@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-def test_hvd_distrib_multi_node_spawn_raise_error():
-    world_size = 4
-
-    with pytest.raises(RuntimeError, match=r"For multi-node configuration, please set 'hosts' argument instead"):
-        idist.spawn(
-            "horovod", _test_distrib_config, args=("horovod", world_size, "cpu"), nproc_per_node=world_size, nnodes=2
-        )
-
-
-@pytest.mark.distributed
-@pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
-@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_hvd_distrib_single_node_spawn_cuda():
-    world_size = torch.cuda.device_count()
-
-    idist.spawn("horovod", _test_distrib_config, args=("horovod", world_size, "cuda"), nproc_per_node=world_size)
-
-
-def _test_sync_as_hvd():
+if not has_hvd_support:
+    pytest.skip("Skip if no Horovod package", allow_module_level=True)
+else:
     import horovod.torch as hvd
 
     from ignite.distributed.comp_models.horovod import _HorovodDistModel
+
+
+@pytest.mark.distributed
+def test__hvd_dist_model():
+    with pytest.raises(ValueError, match=r"Backend should be one of"):
+        _HorovodDistModel.create_from_backend("abc")
+
+
+def _assert_model(model, true_conf):
+
+    if "cuda" in true_conf["device"]:
+        assert model.device() == torch.device(f"{true_conf['device']}:{true_conf['local_rank']}")
+    else:
+        assert model.device() == torch.device(true_conf["device"])
+    assert model.get_local_rank() == true_conf["local_rank"]
+    assert model.get_rank() == true_conf["rank"]
+    assert model.get_world_size() == true_conf["world_size"]
+
+    assert model.get_node_rank() == true_conf["node_index"]
+    assert model.get_nnodes() == true_conf["nnodes"]
+    assert model.get_nproc_per_node() == true_conf["nproc_per_node"]
+
+
+def _test__hvd_dist_model_create_from_backend_no_dist(backend, true_device):
+
+    model = _HorovodDistModel.create_from_backend(backend=backend)
+
+    assert hvd.rank() > -1
+    _assert_model(
+        model,
+        {
+            "device": true_device,
+            "local_rank": 0,
+            "rank": 0,
+            "world_size": 1,
+            "node_index": 0,
+            "nnodes": 1,
+            "nproc_per_node": 1,
+        },
+    )
+
+    model.finalize()
+
+
+def _test__hvd_dist_model_create_from_backend_dist(backend, true_device):
+
+    model = _HorovodDistModel.create_from_backend(backend=backend)
+
+    assert hvd.rank() > -1
+
+    with pytest.raises(RuntimeError, match=r"Can not re-initialize Horovod if it is already initialized"):
+        _HorovodDistModel.create_from_backend(backend=backend)
+
+    _assert_model(
+        model,
+        {
+            "device": true_device,
+            "local_rank": hvd.local_rank(),
+            "rank": hvd.rank(),
+            "world_size": hvd.size(),
+            "node_index": 0,
+            "nnodes": 1,
+            "nproc_per_node": hvd.local_size(),
+        },
+    )
+
+    model.finalize()
+
+
+def _test__hvd_dist_model_create_from_context_no_dist(true_backend, true_device):
+
+    with pytest.raises(ValueError, match=r"Horovod has not been initialized"):
+        hvd.rank()
+
+    assert _HorovodDistModel.create_from_context() is None
+
+    hvd.init()
+
+    true_conf = {
+        "device": true_device,
+        "local_rank": 0,
+        "rank": 0,
+        "world_size": 1,
+        "node_index": 0,
+        "nnodes": 1,
+        "nproc_per_node": 1,
+    }
+
+    model = _HorovodDistModel.create_from_context()
+    assert model.backend() == true_backend
+    _assert_model(model, true_conf)
+
+    hvd.shutdown()
+
+
+def _test__hvd_dist_model_create_from_context_dist(true_backend, true_device):
+
+    assert _HorovodDistModel.create_from_context() is None
 
     hvd.init()
     lrank = hvd.local_rank()
     if torch.cuda.is_available():
         torch.cuda.set_device(lrank)
 
-    _test_sync(_HorovodDistModel)
+    true_conf = {
+        "device": true_device,
+        "local_rank": lrank,
+        "rank": hvd.rank(),
+        "world_size": hvd.size(),
+        "node_index": 0,
+        "nnodes": 1,
+        "nproc_per_node": hvd.local_size(),
+    }
+
+    model = _HorovodDistModel.create_from_context()
+    assert model.backend() == true_backend
+    _assert_model(model, true_conf)
 
     hvd.shutdown()
 
 
 @pytest.mark.distributed
-@pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
-@pytest.mark.skipif(os.getenv("HOROVOD_RANK", -1) == -1, reason="Skip as controller is not Gloo")
-def test_sync_as_hvd():
-    _test_sync_as_hvd()
+@pytest.mark.skipif(torch.cuda.device_count() > 0, reason="Skip if has GPU")
+def test__hvd_dist_model_create_no_dist(gloo_hvd_executor):
+    gloo_hvd_executor(_test__hvd_dist_model_create_from_backend_no_dist, ("horovod", "cpu"), np=1)
+    gloo_hvd_executor(_test__hvd_dist_model_create_from_context_no_dist, ("horovod", "cpu"), np=1)
 
 
 @pytest.mark.distributed
-@pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
-@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-def test_sync_as_hvd_inside_gloo_executor(gloo_hvd_executor):
-    np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
-    gloo_hvd_executor(_test_sync_as_hvd, (), np=np)
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test__hvd_dist_model_create_no_dist_cuda(gloo_hvd_executor):
+    gloo_hvd_executor(_test__hvd_dist_model_create_from_backend_no_dist, ("horovod", "cuda"), np=1)
+    gloo_hvd_executor(_test__hvd_dist_model_create_from_context_no_dist, ("horovod", "cuda"), np=1)
 
 
-def _test_idist_methods_in_hvd_context(backend, device):
-    # We explicitly set _model as _SerialModel
-    # then call idist.* methods and check that they give correct values
-    import horovod.torch as hvd
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() > 0, reason="Skip if has GPU")
+def test__hvd_dist_model_create_dist_1(gloo_hvd_executor):
+    gloo_hvd_executor(_test__hvd_dist_model_create_from_backend_dist, ("horovod", "cpu"), np=4)
 
-    from ignite.distributed.utils import _SerialModel, _set_model
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() > 0, reason="Skip if has GPU")
+def test__hvd_dist_model_create_dist_2(gloo_hvd_executor):
+    gloo_hvd_executor(_test__hvd_dist_model_create_from_context_dist, ("horovod", "cpu"), np=4)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test__hvd_dist_model_create_dist_cuda_1(gloo_hvd_executor):
+    gloo_hvd_executor(_test__hvd_dist_model_create_from_backend_dist, ("horovod", "cuda"), np=torch.cuda.device_count())
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test__hvd_dist_model_create_dist_cuda_2(gloo_hvd_executor):
+    gloo_hvd_executor(_test__hvd_dist_model_create_from_context_dist, ("horovod", "cuda"), np=torch.cuda.device_count())
+
+
+def _test__hvd_dist_model_warning_index_less_localrank():
+
+    assert torch.cuda.is_available()
+    assert _HorovodDistModel.create_from_context() is None
 
     hvd.init()
+    # We deliberately incorrectly set cuda device to 0
+    torch.cuda.set_device(0)
 
-    _set_model(_SerialModel())
+    model = _HorovodDistModel.create_from_context()
+    assert isinstance(model, _HorovodDistModel), f"{type(model)} vs _HorovodDistModel"
 
-    ws = hvd.size()
-    rank = hvd.rank()
-    local_rank = hvd.local_rank()
-
-    if torch.cuda.is_available():
-        torch.cuda.set_device(local_rank)
-
-    _test_distrib_config(local_rank, backend=backend, ws=ws, true_device=device, rank=rank)
+    if hvd.local_rank() == 1:
+        with pytest.warns(UserWarning, match=r"Current device index is less than current local rank."):
+            model.device()
 
     hvd.shutdown()
 
 
 @pytest.mark.distributed
-@pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
-@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-def test_idist_methods_in_hvd_context(gloo_hvd_executor):
-
-    device = "cpu" if not torch.cuda.is_available() else "cuda"
-    np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
-    gloo_hvd_executor(_test_idist_methods_in_hvd_context, ("horovod", device), np=np)
+@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Skip if less than 2 GPUs")
+def test__hvd_dist_model_warning_index_less_localrank(gloo_hvd_executor):
+    gloo_hvd_executor(_test__hvd_dist_model_warning_index_less_localrank, (), np=torch.cuda.device_count())
 
 
-@pytest.mark.distributed
-@pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
-@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-def test_idist_all_reduce_hvd(gloo_hvd_executor):
+def _test_dist_spawn_fn(local_rank, backend, world_size, device):
+    from ignite.distributed.utils import _model
 
-    device = "cpu" if not torch.cuda.is_available() else "cuda"
-    np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
-    gloo_hvd_executor(_test_distrib_all_reduce, (device,), np=np, do_init=True)
-    gloo_hvd_executor(_test_distrib_all_reduce_group, (device,), np=np, do_init=True)
+    assert hvd.rank() > -1
 
+    assert isinstance(_model, _HorovodDistModel), f"{type(_model)} vs _HorovodDistModel"
 
-@pytest.mark.distributed
-@pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
-@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-def test_idist__model_methods_hvd(gloo_hvd_executor):
+    assert _model.get_local_rank() == local_rank
+    assert _model.get_world_size() == world_size
+    assert _model.backend() == backend
 
-    device = "cpu" if not torch.cuda.is_available() else "cuda"
-    np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
-    gloo_hvd_executor(_test_distrib__get_max_length, (device,), np=np, do_init=True)
+    if "cuda" in device:
+        assert _model.device() == torch.device(f"{device}:{local_rank}")
+    else:
+        assert _model.device() == torch.device(device)
 
 
 @pytest.mark.distributed
-@pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
-@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-def test_idist_all_gather_hvd(gloo_hvd_executor):
-
-    device = "cpu" if not torch.cuda.is_available() else "cuda"
-    np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
-    gloo_hvd_executor(_test_distrib_all_gather, (device,), np=np, do_init=True)
-    gloo_hvd_executor(_test_distrib_all_gather_group, (device,), np=np, do_init=True)
-
-
-@pytest.mark.distributed
-@pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
-@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-def test_idist_broadcast_hvd(gloo_hvd_executor):
-
-    device = "cpu" if not torch.cuda.is_available() else "cuda"
-    np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
-    gloo_hvd_executor(_test_distrib_broadcast, (device,), np=np, do_init=True)
+@pytest.mark.skipif(torch.cuda.device_count() > 0, reason="Skip if has GPU")
+def test__hvd_dist_model_spawn():
+    num_workers_per_machine = 4
+    _HorovodDistModel.spawn(
+        _test_dist_spawn_fn,
+        args=("horovod", num_workers_per_machine, "cpu"),
+        kwargs_dict={},
+        nproc_per_node=num_workers_per_machine,
+        use_gloo=True,
+    )
 
 
 @pytest.mark.distributed
-@pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
-@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-def test_idist_barrier_hvd(gloo_hvd_executor):
-
-    device = "cpu" if not torch.cuda.is_available() else "cuda"
-    np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
-    gloo_hvd_executor(_test_distrib_barrier, (device,), np=np, do_init=True)
-
-
-@pytest.mark.distributed
-@pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
-@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-def test_idist_new_group_hvd(gloo_hvd_executor):
-
-    device = "cpu" if not torch.cuda.is_available() else "cuda"
-    np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
-    gloo_hvd_executor(_test_distrib_new_group, (device,), np=np, do_init=True)
-
-
-def _test_idist_methods_overhead(ok_factor, sync_model):
-    import time
-
-    import horovod.torch as hvd
-
-    if sync_model:
-        idist.sync()
-        from ignite.distributed.comp_models.horovod import _HorovodDistModel
-        from ignite.distributed.utils import _model
-
-        assert isinstance(_model, _HorovodDistModel)
-
-    n = 100000
-    m = 5
-
-    t2 = 0.0
-    t1 = 0.0
-    for _ in range(m):
-        start = time.time()
-        for _ in range(n):
-            _ = hvd.size()
-            _ = hvd.rank()
-        elapsed = time.time() - start
-        t2 += elapsed / n / m
-
-        start = time.time()
-        for _ in range(n):
-            _ = idist.get_world_size()
-            _ = idist.get_rank()
-        elapsed = time.time() - start
-        t1 += elapsed / n / m
-
-    overhead_factor = t1 / t2
-    assert overhead_factor < ok_factor, f"{overhead_factor} vs {ok_factor} | {t2} vs {t1}"
-
-
-@pytest.mark.distributed
-@pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-def test_idist_methods_overhead_hvd(gloo_hvd_executor):
-    np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
-    ok_factor = 6.0
-    sync_model = False
-    gloo_hvd_executor(_test_idist_methods_overhead, (ok_factor, sync_model), np=np, do_init=True)
-
-    ok_factor = 2.5
-    sync_model = True
-    gloo_hvd_executor(_test_idist_methods_overhead, (ok_factor, sync_model), np=np, do_init=True)
-
-
-@pytest.mark.distributed
-@pytest.mark.skipif(not has_hvd_support, reason="Skip if no Horovod dist support")
-@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-def test_idist_one_rank_only(gloo_hvd_executor):
-    device = "cpu" if not torch.cuda.is_available() else "cuda"
-    np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
-
-    gloo_hvd_executor(_test_distrib_one_rank_only, (device,), np=np, do_init=True)
-    gloo_hvd_executor(_test_distrib_one_rank_only_with_engine, (device,), np=np, do_init=True)
+def test__hvd_dist_model_spawn_cuda():
+    num_workers_per_machine = torch.cuda.device_count()
+    _HorovodDistModel.spawn(
+        _test_dist_spawn_fn,
+        args=("horovod", num_workers_per_machine, "cuda"),
+        kwargs_dict={},
+        nproc_per_node=num_workers_per_machine,
+        use_gloo=True,
+    )
