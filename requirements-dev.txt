@@ -14,9 +14,6 @@ scikit-learn
 matplotlib
 tensorboardX
 visdom
-# temporary fix for
-# ImportError: cannot import name 'soft_unicode' from 'markupsafe'
-markupsafe==2.0.1
 polyaxon
 polyaxon-client
 wandb
