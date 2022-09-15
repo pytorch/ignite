@@ -419,18 +419,24 @@ if has_native_dist_support:
             "OR": dist.ReduceOp.BOR,
         }
 
-        def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:
+        def _do_all_reduce(
+            self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Union[Any, List[int]]] = None
+        ) -> torch.Tensor:
             if op not in self._reduce_op_map:
                 raise ValueError(f"Unsupported reduction operation: '{op}'")
+            if group is not None and not isinstance(group, dist.ProcessGroup):
+                raise ValueError("Group should be list of int or ProcessGroup")
             reduce_op = self._reduce_op_map[op]
-            dist.all_reduce(tensor, reduce_op)
+            dist.all_reduce(tensor, reduce_op, group=group)
             return tensor
 
-        def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
+        def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Union[Any, List[int]]] = None) -> torch.Tensor:
+            if group is not None and not isinstance(group, dist.ProcessGroup):
+                raise ValueError("Group should be list of int or ProcessGroup")
             if tensor.ndimension() == 0:
                 tensor = tensor.unsqueeze(0)
             output = [torch.zeros_like(tensor) for _ in range(self.get_world_size())]
-            dist.all_gather(output, tensor)
+            dist.all_gather(output, tensor, group=group)
             return torch.cat(output, dim=0)
 
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
@@ -439,6 +445,12 @@ if has_native_dist_support:
 
         def barrier(self) -> None:
             dist.barrier()
+
+        def new_group(self, ranks: List[int]) -> Any:
+            if isinstance(ranks, list) and all(isinstance(item, int) for item in ranks):
+                return dist.new_group(ranks=ranks)
+            else:
+                raise ValueError("Group should be list of int")
 
     def _expand_hostlist(nodelist: str) -> List[str]:
         """Expand a compressed hostlist string and returns all hosts listed.

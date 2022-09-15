@@ -1,5 +1,5 @@
 import warnings
-from typing import Any, Callable, cast, Mapping, Optional, Tuple
+from typing import Any, Callable, cast, List, Mapping, Optional, Tuple, Union
 
 import torch
 
@@ -7,6 +7,7 @@ from ignite.distributed.comp_models.base import ComputationModel
 
 try:
     import horovod.torch as hvd
+    from horovod.common.process_sets import ProcessSet
 
     try:
         # old API
@@ -164,13 +165,19 @@ if has_hvd_support:
 
         _manual_reduce_op_map = {"MIN": torch.min, "MAX": torch.max, "PRODUCT": torch.prod}
 
-        def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:
+        def _do_all_reduce(
+            self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Union[Any, List[int]]] = None
+        ) -> torch.Tensor:
             if op in self._manual_reduce_op_map:
                 op_fn = self._manual_reduce_op_map[op]
                 return self._do_manual_all_reduce(tensor, op_fn)
             if op not in self._reduce_op_map:
                 raise ValueError(f"Unsupported reduction operation: '{op}'")
+            if group and not isinstance(group, ProcessSet):
+                raise ValueError("group should be list of int or ProcessSet")
             op = self._reduce_op_map[op]
+            if group is not None:
+                return hvd.allreduce(tensor, op=op, process_set=group)
             return hvd.allreduce(tensor, op=op)
 
         def _do_manual_all_reduce(self, tensor: torch.Tensor, op: Any) -> torch.Tensor:
@@ -184,9 +191,13 @@ if has_hvd_support:
             # output can also torch min/max_return_type: (min/max_vals, indices)
             return reduced_res[0]
 
-        def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
+        def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Union[Any, List[int]]] = None) -> torch.Tensor:
+            if group and not isinstance(group, ProcessSet):
+                raise ValueError("group should be list of int or ProcessSet")
             if tensor.ndimension() == 0:
                 tensor = tensor.unsqueeze(0)
+            if group:
+                return hvd.allgather(tensor, process_set=group)
             return hvd.allgather(tensor)
 
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
@@ -196,3 +207,9 @@ if has_hvd_support:
             # https://github.com/horovod/horovod/issues/159#issuecomment-424834603
             # hvd.allreduce(torch.tensor(0, device=self.device()), name="barrier")
             hvd.allreduce(torch.tensor(0, device="cpu"), name="barrier")
+
+        def new_group(self, ranks: List[int]) -> Any:
+            if isinstance(ranks, list) and all(isinstance(item, int) for item in ranks):
+                return ProcessSet(ranks)
+            else:
+                raise ValueError("Group should be list of int")

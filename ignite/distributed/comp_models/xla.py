@@ -1,4 +1,4 @@
-from typing import Any, Callable, cast, Mapping, Optional, Tuple
+from typing import Any, Callable, cast, List, Mapping, Optional, Tuple, Union
 
 import torch
 
@@ -137,20 +137,36 @@ if has_xla_support:
             "OR": "or",
         }
 
-        def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:
-            if op not in self._reduce_op_map:
-                raise ValueError(f"Unsupported reduction operation: '{op}'")
+        def _do_all_reduce(
+            self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Union[Any, List[int]]] = None
+        ) -> torch.Tensor:
+            if not self._check_group_type(group):
+                raise ValueError("group should be list of int or list of list of int")
             op = self._reduce_op_map[op]
-            xm.all_reduce(op, [tensor])
+            xm.all_reduce(op, [tensor], groups=group)
             return tensor
 
-        def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
+        def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Union[Any, List[int]]] = None) -> torch.Tensor:
             # from https://github.com/jysohn23/xla/blob/model-parallel-colab/Gather_Scatter_Broadcast_PyTorch_XLA.ipynb
+
+            if not self._check_group_type(group):
+                raise ValueError("group should be list of int or list of list of int")
+
             group_size = self.get_world_size()
             output = torch.zeros((group_size,) + tensor.shape, dtype=tensor.dtype, device=tensor.device)
             output[self.get_rank() % group_size] = tensor
-            xm.all_reduce("sum", [output])
+            xm.all_reduce("sum", [output], groups=group)
             return output.reshape(-1, *output.shape[2:])
+
+        def _check_group_type(self, group: Optional[Union[Any, List[int]]]) -> bool:
+            if group is not None and not isinstance(group, list):
+                return False
+            elif group is not None and not all(isinstance(item, int) for item in group):
+                return False
+            elif group is not None and not all(isinstance(item, int) for list_ in group for item in list_):
+                return False
+
+            return True
 
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
             # from https://github.com/jysohn23/xla/blob/model-parallel-colab/Gather_Scatter_Broadcast_PyTorch_XLA.ipynb
@@ -161,3 +177,9 @@ if has_xla_support:
 
         def barrier(self) -> None:
             xm.rendezvous("barrier")
+
+        def new_group(self, ranks: List[int]) -> Any:
+            if isinstance(ranks, list) and all(isinstance(item, int) for item in ranks):
+                return [ranks]
+            else:
+                raise ValueError("Group should be list of int")

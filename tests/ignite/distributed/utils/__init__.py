@@ -119,6 +119,17 @@ def _test_distrib_all_reduce(device):
         assert res.device == t.device, f"{res.device} vs {t.device}"
 
 
+def _test_distrib_all_reduce_group(device):
+
+    if idist.get_world_size() > 1:
+        rank = idist.get_rank()
+        group = [0, 1]
+
+        t = torch.tensor([rank], device=idist.device())
+        res = idist.all_reduce(t, group=group)
+        assert res == torch.tensor([sum(group)])
+
+
 def _test_distrib_all_gather(device):
 
     res = torch.tensor(idist.all_gather(10), device=device)
@@ -159,6 +170,18 @@ def _test_distrib_all_gather(device):
     if idist.get_world_size() > 1:
         with pytest.raises(TypeError, match=r"Unhandled input type"):
             idist.all_reduce([0, 1, 2])
+
+
+def _test_distrib_all_gather_group(device):
+
+    if idist.get_world_size() > 1:
+        rank = idist.get_rank()
+        group = [0, 1]
+
+        t = torch.tensor([rank], device=idist.device())
+        res = idist.all_gather(t, group=group)
+        print("RES", res, group, torch.tensor(group))
+        assert torch.equal(res, torch.tensor(group))
 
 
 def _test_distrib_broadcast(device):
@@ -226,6 +249,31 @@ def _test_distrib_barrier(device):
 
     tt = idist.all_reduce(t)
     assert tt.item() == true_res + 10.0
+
+
+def _test_distrib_new_group(device):
+    from ignite.distributed.comp_models import _SerialModel
+
+    bnd = idist.backend()
+    if idist.get_world_size() > 1:
+        ranks = [0, 1]
+        if idist.has_native_dist_support and bnd in ("nccl", "gloo", "mpi"):
+            from ignite.distributed.comp_models.native import _NativeDistModel
+
+            _model = _NativeDistModel()
+            assert _model.new_group(ranks).rank == dist.new_group(ranks=ranks).rank
+        elif idist.has_xla_support and bnd in ("xla-tpu"):
+            from ignite.distributed.comp_models.xla import _XlaDistModel
+
+            _model = _XlaDistModel()
+            assert _model.new_group(ranks) == [ranks]
+        elif idist.has_hvd_support and bnd in ("horovod"):
+            from ignite.distributed.comp_models.horovod import _HorovodDistModel
+
+            _model = _HorovodDistModel()
+            from horovod.common.process_sets import ProcessSet
+
+            assert _model.new_group(ranks).rank == ProcessSet(ranks).rank
 
 
 def _test_distrib_one_rank_only(device):
