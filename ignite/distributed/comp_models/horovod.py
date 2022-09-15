@@ -196,3 +196,9 @@ if has_hvd_support:
             # https://github.com/horovod/horovod/issues/159#issuecomment-424834603
             # hvd.allreduce(torch.tensor(0, device=self.device()), name="barrier")
             hvd.allreduce(torch.tensor(0, device="cpu"), name="barrier")
+
+        def new_group(self, ranks: List[int]) -> Any:
+            if isinstance(ranks, list) and all(isinstance(item, int) for item in ranks):
+                return ProcessSet(ranks)
+            else:
+                raise ValueError("Group should be list of int")

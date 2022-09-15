@@ -161,3 +161,9 @@ if has_xla_support:
 
         def barrier(self) -> None:
             xm.rendezvous("barrier")
+
+        def new_group(self, ranks: List[int]) -> Any:
+            if isinstance(ranks, list) and all(isinstance(item, int) for item in ranks):
+                return [ranks]
+            else:
+                raise ValueError("Group should be list of int")

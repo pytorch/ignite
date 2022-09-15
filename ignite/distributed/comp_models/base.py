@@ -279,6 +279,10 @@ class ComputationModel(metaclass=ABCMeta):
     def barrier(self) -> None:
         pass
 
+    @abstractmethod
+    def new_group(self, group: List[int]) -> Any:
+        pass
+
 
 class _SerialModel(ComputationModel):
     """Private class defines non-distributed computation model for code compatibility with other distributed models."""
@@ -359,3 +363,6 @@ class _SerialModel(ComputationModel):
 
     def barrier(self) -> None:
         pass
+
+    def new_group(self, ranks: List[int]) -> Any:
+        return ranks
