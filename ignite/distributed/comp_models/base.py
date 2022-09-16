@@ -212,11 +212,13 @@ class ComputationModel(metaclass=ABCMeta):
 
         return cast(Union[torch.Tensor, float], self._collective_op(tensor, self._do_all_reduce, op))
 
-    def all_gather(self, tensor: Union[torch.Tensor, float, str]) -> Union[torch.Tensor, float, List[float], List[str]]:
+    def all_gather(
+        self, tensor: Union[torch.Tensor, float, str], group: Optional[Union[Any, List[int]]] = None
+    ) -> Union[torch.Tensor, float, List[float], List[str]]:
         if not isinstance(tensor, (torch.Tensor, Number, str)):
             raise TypeError(f"Unhandled input type {type(tensor)}")
 
-        return self._collective_op(tensor, self._do_all_gather)
+        return self._collective_op(tensor, self._do_all_gather, group=group)
 
     def broadcast(
         self, tensor: Union[torch.Tensor, float, str, None], src: int = 0, safe_mode: bool = False
@@ -268,7 +270,7 @@ class ComputationModel(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
+    def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Union[Any, List[int]]] = None) -> torch.Tensor:
         pass
 
     @abstractmethod
@@ -336,7 +338,9 @@ class _SerialModel(ComputationModel):
     def all_reduce(self, tensor: Union[torch.Tensor, float], op: str = "SUM") -> Union[torch.Tensor, float]:
         return tensor
 
-    def all_gather(self, tensor: Union[torch.Tensor, float, str]) -> Union[torch.Tensor, float, List[float], List[str]]:
+    def all_gather(
+        self, tensor: Union[torch.Tensor, float, str], group: Optional[Union[Any, List[int]]] = None
+    ) -> Union[torch.Tensor, float, List[float], List[str]]:
         if isinstance(tensor, torch.Tensor):
             return tensor
         return cast(Union[List[float], List[str]], [tensor])
@@ -351,7 +355,7 @@ class _SerialModel(ComputationModel):
     def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:
         return tensor
 
-    def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
+    def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Union[Any, List[int]]] = None) -> torch.Tensor:
         return tensor
 
     def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:

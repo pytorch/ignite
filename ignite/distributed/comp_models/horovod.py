@@ -1,5 +1,5 @@
 import warnings
-from typing import Any, Callable, cast, Mapping, Optional, Tuple
+from typing import Any, Callable, cast, List, Mapping, Optional, Tuple, Union
 
 import torch
 
@@ -7,6 +7,7 @@ from ignite.distributed.comp_models.base import ComputationModel
 
 try:
     import horovod.torch as hvd
+    from horovod.common.process_sets import ProcessSet
 
     try:
         # old API
@@ -184,9 +185,13 @@ if has_hvd_support:
             # output can also torch min/max_return_type: (min/max_vals, indices)
             return reduced_res[0]
 
-        def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
+        def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Union[Any, List[int]]] = None) -> torch.Tensor:
+            if group and not isinstance(group, ProcessSet):
+                raise ValueError("group should be list of int or ProcessSet")
             if tensor.ndimension() == 0:
                 tensor = tensor.unsqueeze(0)
+            if group is not None:
+                return hvd.allgather(tensor, process_set=group)
             return hvd.allgather(tensor)
 
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:

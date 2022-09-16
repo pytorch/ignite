@@ -8,6 +8,7 @@ from ignite.distributed.utils import has_hvd_support
 from tests.ignite.distributed.utils import (
     _test_distrib__get_max_length,
     _test_distrib_all_gather,
+    _test_distrib_all_gather_group,
     _test_distrib_all_reduce,
     _test_distrib_barrier,
     _test_distrib_broadcast,
@@ -162,6 +163,7 @@ def test_idist_all_gather_hvd(gloo_hvd_executor):
     device = "cpu" if not torch.cuda.is_available() else "cuda"
     np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
     gloo_hvd_executor(_test_distrib_all_gather, (device,), np=np, do_init=True)
+    gloo_hvd_executor(_test_distrib_all_gather_group, (device,), np=np, do_init=True)
 
 
 @pytest.mark.distributed

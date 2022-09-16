@@ -1,4 +1,4 @@
-from typing import Any, Callable, cast, Mapping, Optional, Tuple
+from typing import Any, Callable, cast, List, Mapping, Optional, Tuple, Union
 
 import torch
 
@@ -144,12 +144,16 @@ if has_xla_support:
             xm.all_reduce(op, [tensor])
             return tensor
 
-        def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
+        def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Union[Any, List[int]]] = None) -> torch.Tensor:
             # from https://github.com/jysohn23/xla/blob/model-parallel-colab/Gather_Scatter_Broadcast_PyTorch_XLA.ipynb
+
+            if not self._check_group_type(group):
+                raise ValueError("group should be list of int or list of list of int")
+
             group_size = self.get_world_size()
             output = torch.zeros((group_size,) + tensor.shape, dtype=tensor.dtype, device=tensor.device)
             output[self.get_rank() % group_size] = tensor
-            xm.all_reduce("sum", [output])
+            xm.all_reduce("sum", [output], groups=group)
             return output.reshape(-1, *output.shape[2:])
 
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:

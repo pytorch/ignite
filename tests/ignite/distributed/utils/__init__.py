@@ -161,6 +161,17 @@ def _test_distrib_all_gather(device):
             idist.all_reduce([0, 1, 2])
 
 
+def _test_distrib_all_gather_group(device):
+
+    if idist.get_world_size() > 1:
+        rank = idist.get_rank()
+        group = [0, 1]
+
+        t = torch.tensor([rank], device=idist.device())
+        res = idist.all_gather(t, group=group)
+        assert torch.equal(res, torch.tensor(group))
+
+
 def _test_distrib_broadcast(device):
 
     rank = idist.get_rank()
