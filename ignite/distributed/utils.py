@@ -440,6 +440,7 @@ def new_group(self, ranks: List[int]) -> Any:
     elif idist.backend() == "horovod":
         if isinstance(ranks, list) and all(isinstance(item, int) for item in ranks):
             from horovod.common.process_sets import ProcessSet
+
             return ProcessSet(ranks)
 
         else:
