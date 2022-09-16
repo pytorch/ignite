@@ -426,6 +426,25 @@ def barrier() -> None:
     _model.barrier()
 
 
+def new_group(self, ranks: List[int]) -> Any:
+    if idist.backend() in ["nccl", "gloo", "mpi"]:
+        if isinstance(ranks, list) and all(isinstance(item, int) for item in ranks):
+            return dist.new_group(ranks=ranks)
+        else:
+            raise ValueError("Group should be list of int")
+    elif idist.backend() in ["xla-tpu"]:
+        if isinstance(ranks, list) and all(isinstance(item, int) for item in ranks):
+            return [ranks]
+        else:
+            raise ValueError("Group should be list of int")
+    elif idist.backend() == "horovod":
+        if isinstance(ranks, list) and all(isinstance(item, int) for item in ranks):
+            from horovod.common.process_sets import ProcessSet
+            return ProcessSet(ranks)
+        else:
+            raise ValueError("Group should be list of int")
+
+
 def set_local_rank(index: int) -> None:
     """Method to hint the local rank in case if torch native distributed context is created by user
     without using :meth:`~ignite.distributed.utils.initialize` or :meth:`~ignite.distributed.utils.spawn`.

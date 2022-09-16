@@ -235,22 +235,23 @@ def _test_distrib_new_group(device):
     if idist.get_world_size() > 1:
         ranks = [0, 1]
         if idist.has_native_dist_support and bnd in ("nccl", "gloo", "mpi"):
-            from ignite.distributed.comp_models.native import _NativeDistModel
 
-            _model = _NativeDistModel()
-            assert _model.new_group(ranks).rank == dist.new_group(ranks=ranks).rank
+            assert idist.new_group(ranks).rank == dist.new_group(ranks=ranks).rank
         elif idist.has_xla_support and bnd in ("xla-tpu"):
-            from ignite.distributed.comp_models.xla import _XlaDistModel
 
-            _model = _XlaDistModel()
-            assert _model.new_group(ranks) == [ranks]
+            assert idist.new_group(ranks) == [ranks]
         elif idist.has_hvd_support and bnd in ("horovod"):
-            from ignite.distributed.comp_models.horovod import _HorovodDistModel
-
-            _model = _HorovodDistModel()
             from horovod.common.process_sets import ProcessSet
 
-            assert _model.new_group(ranks).rank == ProcessSet(ranks).rank
+            assert idist.new_group(ranks).rank == ProcessSet(ranks).rank
+
+    with pytest.raises(ValueError):
+        rank_list = ['a','b','c']
+        idist.new_group(ranks)
+
+    with pytest.raises(ValueError):
+        rank_list = 1
+        idist.new_group(ranks)
 
 
 def _test_distrib_one_rank_only(device):
