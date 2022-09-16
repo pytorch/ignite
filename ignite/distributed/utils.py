@@ -4,6 +4,9 @@ from typing import Any, Callable, List, Mapping, Optional, Tuple, Union
 
 import torch
 
+import torch.distributed as dist
+import ignite.distributed as idist
+
 from ignite.distributed.comp_models import (
     _SerialModel,
     has_hvd_support,
@@ -427,24 +430,11 @@ def barrier() -> None:
 
 
 def new_group(self, ranks: List[int]) -> Any:
-    if idist.backend() in ["nccl", "gloo", "mpi"]:
-        if isinstance(ranks, list) and all(isinstance(item, int) for item in ranks):
-            return dist.new_group(ranks=ranks)
-        else:
-            raise ValueError("Group should be list of int")
-    elif idist.backend() in ["xla-tpu"]:
-        if isinstance(ranks, list) and all(isinstance(item, int) for item in ranks):
-            return [ranks]
-        else:
-            raise ValueError("Group should be list of int")
-    elif idist.backend() == "horovod":
-        if isinstance(ranks, list) and all(isinstance(item, int) for item in ranks):
-            from horovod.common.process_sets import ProcessSet
+    """Helper method to make group for each backend from ranks."""
+    if _need_to_sync and isinstance(_model, _SerialModel):
+        sync(temporary=True)
 
-            return ProcessSet(ranks)
-
-        else:
-            raise ValueError("Group should be list of int")
+    _model.new_group(ranks)
 
 
 def set_local_rank(index: int) -> None:
