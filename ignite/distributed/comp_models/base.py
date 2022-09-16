@@ -7,7 +7,6 @@ import torch
 
 class ComputationModel(metaclass=ABCMeta):
     """Base class for distributed computation models and defines interface methods.
-
     This class is public and should be used for other custom derived distributed models.
     """
 
