@@ -119,6 +119,17 @@ def _test_distrib_all_reduce(device):
         assert res.device == t.device, f"{res.device} vs {t.device}"
 
 
+def _test_distrib_all_reduce_group(device):
+
+    if idist.get_world_size() > 1:
+        rank = idist.get_rank()
+        group = [0, 1]
+
+        t = torch.tensor([rank], device=idist.device())
+        res = idist.all_reduce(t, group=group)
+        assert res == torch.tensor([sum(group)])
+        
+
 def _test_distrib_all_gather(device):
 
     res = torch.tensor(idist.all_gather(10), device=device)

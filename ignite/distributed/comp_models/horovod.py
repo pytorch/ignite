@@ -1,5 +1,5 @@
 import warnings
-from typing import Any, Callable, cast, Mapping, Optional, Tuple
+from typing import Any, Callable, cast, List, Mapping, Optional, Tuple, Union
 
 import torch
 
@@ -7,6 +7,7 @@ from ignite.distributed.comp_models.base import ComputationModel
 
 try:
     import horovod.torch as hvd
+    from horovod.common.process_sets import ProcessSet
 
     try:
         # old API
@@ -164,13 +165,19 @@ if has_hvd_support:
 
         _manual_reduce_op_map = {"MIN": torch.min, "MAX": torch.max, "PRODUCT": torch.prod}
 
-        def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:
+        def _do_all_reduce(
+            self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Union[Any, List[int]]] = None
+        ) -> torch.Tensor:
             if op in self._manual_reduce_op_map:
                 op_fn = self._manual_reduce_op_map[op]
                 return self._do_manual_all_reduce(tensor, op_fn)
             if op not in self._reduce_op_map:
                 raise ValueError(f"Unsupported reduction operation: '{op}'")
+            if group and not isinstance(group, ProcessSet):
+                raise ValueError("group should be list of int or ProcessSet")
             op = self._reduce_op_map[op]
+            if group is not None:
+                return hvd.allreduce(tensor, op=op, process_set=group)
             return hvd.allreduce(tensor, op=op)
 
         def _do_manual_all_reduce(self, tensor: torch.Tensor, op: Any) -> torch.Tensor:
