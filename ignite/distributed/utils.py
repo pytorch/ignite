@@ -4,9 +4,6 @@ from typing import Any, Callable, List, Mapping, Optional, Tuple, Union
 
 import torch
 
-import torch.distributed as dist
-import ignite.distributed as idist
-
 from ignite.distributed.comp_models import (
     _SerialModel,
     has_hvd_support,

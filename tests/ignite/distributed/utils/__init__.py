@@ -245,11 +245,11 @@ def _test_distrib_new_group(device):
 
             assert idist.new_group(ranks).rank == ProcessSet(ranks).rank
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Group should be list of int"):
         ranks = ["a", "b", "c"]
         idist.new_group(ranks)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Group should be list of int"):
         ranks = 1
         idist.new_group(ranks)
 
