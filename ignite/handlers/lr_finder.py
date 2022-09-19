@@ -134,7 +134,6 @@ class FastaiLRFinder:
                 raise TypeError(f"start_lf should a float or list of floats, but given {type(start_lr)}")
             if isinstance(end_lr, float):
                 end_lr_list = [end_lr] * len(optimizer.param_groups)
-            # TODO
             elif isinstance(end_lr, list):
                 if not len(end_lr) == len(optimizer.param_groups):
                         raise ValueError(
