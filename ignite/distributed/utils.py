@@ -40,6 +40,7 @@ __all__ = [
     "sync",
     "registered_computation_models",
     "one_rank_only",
+    "new_group",
 ]
 
 _model = _SerialModel()
