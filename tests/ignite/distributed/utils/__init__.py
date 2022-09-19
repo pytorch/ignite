@@ -248,7 +248,6 @@ def _test_distrib_new_group(device):
         assert bnd == None
         assert idist.new_group(ranks) == ranks
 
-
     with pytest.raises(ValueError, match="Group should be list of int"):
         ranks = ["a", "b", "c"]
         idist.new_group(ranks)
