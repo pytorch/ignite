@@ -229,7 +229,6 @@ def _test_distrib_barrier(device):
 
 
 def _test_distrib_new_group(device):
-    from ignite.distributed.comp_models import _SerialModel
 
     bnd = idist.backend()
     if idist.get_world_size() > 1:
@@ -244,6 +243,11 @@ def _test_distrib_new_group(device):
             from horovod.common.process_sets import ProcessSet
 
             assert idist.new_group(ranks).rank == ProcessSet(ranks).rank
+
+    else:
+        assert bnd == None
+        assert idist.new_group(ranks) == ranks
+
 
     with pytest.raises(ValueError, match="Group should be list of int"):
         ranks = ["a", "b", "c"]
