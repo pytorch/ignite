@@ -138,7 +138,7 @@ def test_idist_all_reduce_xla_in_child_proc(xmp_executor):
 def test_idist_new_group_xla():
     device = idist.device()
     _test_distrib_new_group(device)
-    
+
 
 @pytest.mark.tpu
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")

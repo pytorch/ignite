@@ -134,7 +134,7 @@ def test_new_group_native_gloo(distributed_context_single_node_gloo):
 def test_new_group_native_nccl(distributed_context_single_node_nccl):
     device = idist.device()
     _test_distrib_new_group(device)
-    
+
 
 def _test_idist_methods_in_native_context(backend, device, local_rank):
     # We explicitly set _model as _SerialModel

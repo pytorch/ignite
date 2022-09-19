@@ -194,7 +194,7 @@ def test_idist_new_group_hvd(gloo_hvd_executor):
     np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
     gloo_hvd_executor(_test_distrib_new_group, (device,), np=np, do_init=True)
 
-    
+
 def _test_idist_methods_overhead(ok_factor, sync_model):
     import time
 
