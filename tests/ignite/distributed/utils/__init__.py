@@ -230,8 +230,8 @@ def _test_distrib_barrier(device):
 
 def _test_distrib_new_group(device):
 
-    bnd = idist.backend()
     if idist.get_world_size() > 1:
+        bnd = idist.backend()
         ranks = [0, 1]
         if idist.has_native_dist_support and bnd in ("nccl", "gloo", "mpi"):
 
@@ -245,6 +245,9 @@ def _test_distrib_new_group(device):
             assert idist.new_group(ranks).rank == ProcessSet(ranks).rank
 
     else:
+        from ignite.distributed.comp_models import _SerialModel, registered_computation_models
+        assert _SerialModel in registered_computation_models
+        bnd = idist.backend()
         assert bnd is None
         assert idist.new_group(ranks) == ranks
 
