@@ -3,7 +3,7 @@ import re
 import subprocess
 import warnings
 from datetime import timedelta
-from typing import Any, Callable, cast, Dict, List, Mapping, Optional, Tuple, TypedDict, Union
+from typing import Any, Callable, cast, Dict, List, Mapping, Optional, Tuple, Union
 
 import torch
 import torch.distributed as dist
