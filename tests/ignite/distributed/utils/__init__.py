@@ -246,6 +246,7 @@ def _test_distrib_new_group(device):
 
     else:
         from ignite.distributed.comp_models import _SerialModel, registered_computation_models
+
         assert _SerialModel in registered_computation_models
         bnd = idist.backend()
         assert bnd is None
