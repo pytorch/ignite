@@ -100,10 +100,10 @@ if has_native_dist_support:
         def _create_from_backend(
             self,
             backend: str,
-            timeout: Optional[int] = None,
-            init_method: Optional[str] = None,
-            world_size: Optional[int] = None,
-            rank: Optional[int] = None,
+            timeout: Optional[Union[Any, int]] = None,
+            init_method: Optional[Union[Any, str]] = None,
+            world_size: Optional[Union[Any, int]] = None,
+            rank: Optional[Union[Any, int]] = None,
             **kwargs: Any,
         ) -> None:
             if backend == dist.Backend.NCCL and not torch.cuda.is_available():
@@ -112,8 +112,10 @@ if has_native_dist_support:
             self.setup_env_vars(rank, world_size)
 
             init_pg_kwargs = {}
-            if timeout is not None:
-                init_pg_kwargs["timeout"] = timeout
+            if timeout is not None and isinstance(timeout, int):
+                timeout = timedelta(timeout)
+            elif timeout is not None:
+                timeout = timeout
 
             if init_method is None:
                 init_method = "env://"
@@ -124,11 +126,7 @@ if has_native_dist_support:
             self._init_method = init_method
 
             dist.init_process_group(
-                backend,
-                init_method=init_method,
-                timeout=timedelta(init_pg_kwargs["timeout"]),
-                store=None,
-                group_name="",
+                backend, init_method=init_method, timeout=timeout, store=None, group_name="", **init_pg_kwargs
             )
 
             if torch.cuda.is_available():
