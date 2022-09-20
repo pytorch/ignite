@@ -2,7 +2,8 @@ import os
 import re
 import subprocess
 import warnings
-from typing import Any, Callable, cast, Dict, List, Mapping, Optional, Tuple, Union
+from datetime import timedelta
+from typing import Any, Callable, cast, Dict, List, Mapping, Optional, Tuple, TypedDict, Union
 
 import torch
 import torch.distributed as dist
@@ -122,7 +123,13 @@ if has_native_dist_support:
                 init_pg_kwargs["rank"] = int(os.environ["RANK"])
             self._init_method = init_method
 
-            dist.init_process_group(backend, init_method=init_method, **init_pg_kwargs)
+            dist.init_process_group(
+                backend,
+                init_method=init_method,
+                timeout=timedelta(init_pg_kwargs["timeout"]),
+                store=None,
+                group_name="",
+            )
 
             if torch.cuda.is_available():
                 torch.cuda.set_device(self._local_rank)
