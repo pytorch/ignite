@@ -248,7 +248,7 @@ def _test_distrib_new_group(device):
         from ignite.distributed.comp_models import _SerialModel, registered_computation_models
 
         assert _SerialModel in registered_computation_models
-        assert idist.utils.backend() == None
+        assert idist.utils.backend() is None
         assert idist.new_group(ranks) == ranks
 
     with pytest.raises(ValueError, match="Group should be list of int"):
