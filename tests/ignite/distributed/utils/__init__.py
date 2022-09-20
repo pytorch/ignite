@@ -230,7 +230,7 @@ def _test_distrib_barrier(device):
 
 def _test_distrib_new_group(device):
 
-    if idist.get_world_size() > 1:
+    if idist.get_world_size() > 1 and idist.utils.backend() is not None:
         bnd = idist.backend()
         ranks = [0, 1]
         if idist.has_native_dist_support and bnd in ("nccl", "gloo", "mpi"):
@@ -248,8 +248,7 @@ def _test_distrib_new_group(device):
         from ignite.distributed.comp_models import _SerialModel, registered_computation_models
 
         assert _SerialModel in registered_computation_models
-        bnd = idist.backend()
-        assert bnd is not None
+        assert idist.utils.backend() == None
         assert idist.new_group(ranks) == ranks
 
     with pytest.raises(ValueError, match="Group should be list of int"):
