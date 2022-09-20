@@ -249,7 +249,7 @@ def _test_distrib_new_group(device):
 
         assert _SerialModel in registered_computation_models
         bnd = idist.backend()
-        assert bnd is None
+        assert bnd is not None
         assert idist.new_group(ranks) == ranks
 
     with pytest.raises(ValueError, match="Group should be list of int"):
