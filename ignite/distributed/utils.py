@@ -432,7 +432,7 @@ def new_group(ranks: List[int]) -> Any:
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
 
-    _model.new_group(ranks)
+    return _model.new_group(ranks)
 
 
 def set_local_rank(index: int) -> None:
