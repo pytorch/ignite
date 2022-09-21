@@ -432,9 +432,9 @@ def new_group(ranks: List[int], **kwargs: Any) -> Any:
 
     Args:
         ranks: subset of ranks to be grouped.
-        kwargs: acceptable kwargs according when backend is `nccl` or `gloo`:
+        kwargs: acceptable kwargs according to provided backend:
 
-            - | ``backend (=None)``, ``pg_options (=None)``.
+            - | "nccl" or "gloo" : ``backend (=None)``, ``pg_options (=None)``.
 
     Examples:
         Launch single node multi-GPU training with ``torchrun`` utility.
@@ -443,10 +443,8 @@ def new_group(ranks: List[int], **kwargs: Any) -> Any:
 
             import ignite.distributed as idist
 
-            kwargs = {}
-            kwargs['backend']='nccl'
-
-            idist.new_group(ranks, **kwargs)
+            ranks = [0, 1]
+            group = idist.new_group(ranks)
 
     .. versionadded:: 0.5.0
         ``backend`` now accepts `horovod` distributed framework.
