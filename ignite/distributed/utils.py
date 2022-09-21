@@ -40,6 +40,7 @@ __all__ = [
     "sync",
     "registered_computation_models",
     "one_rank_only",
+    "new_group",
 ]
 
 _model = _SerialModel()
@@ -424,6 +425,36 @@ def barrier() -> None:
         sync(temporary=True)
 
     _model.barrier()
+
+
+def new_group(ranks: List[int], **kwargs: Any) -> Any:
+    """Helper method to make group for each backend from ranks.
+
+    Args:
+        ranks: subset of ranks to be grouped.
+        kwargs: acceptable kwargs according to provided backend:
+
+            - | "nccl" or "gloo" : ``backend (=None)``, ``pg_options (=None)``.
+
+    Examples:
+        Launch single node multi-GPU training with ``torchrun`` utility.
+
+        .. code-block:: python
+
+            import ignite.distributed as idist
+
+            ranks = [0, 1]
+            group = idist.new_group(ranks)
+
+    .. versionadded:: 0.5.0
+        ``backend`` now accepts `horovod` distributed framework.
+
+    """
+
+    if _need_to_sync and isinstance(_model, _SerialModel):
+        sync(temporary=True)
+
+    return _model.new_group(ranks, **kwargs)
 
 
 def set_local_rank(index: int) -> None:
