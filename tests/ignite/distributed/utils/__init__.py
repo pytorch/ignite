@@ -252,7 +252,7 @@ def _test_distrib_new_group(device):
 
             rank = idist.get_rank()
             if rank in ranks:
-                assert g1.rank == g2.rank
+                assert g1.ranks == g2.ranks
 
     elif idist.backend() is None:
         ranks = [0, 1]
