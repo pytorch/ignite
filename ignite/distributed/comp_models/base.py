@@ -285,7 +285,7 @@ class ComputationModel(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def _do_new_group(self, ranks: List[int], **kwargs) -> Any:
+    def _do_new_group(self, ranks: List[int], **kwargs: Any) -> Any:
         pass
 
 
@@ -363,7 +363,7 @@ class _SerialModel(ComputationModel):
     def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
         return tensor
 
-    def _do_new_group(self, ranks: List[int], **kwargs) -> Any:
+    def _do_new_group(self, ranks: List[int], **kwargs: Any) -> Any:
         return ranks
 
     def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
@@ -372,7 +372,7 @@ class _SerialModel(ComputationModel):
     def barrier(self) -> None:
         pass
 
-    def new_group(self, ranks: List[int], **kwargs) -> Any:
+    def new_group(self, ranks: List[int], **kwargs: Any) -> Any:
         if isinstance(ranks, list) and all(isinstance(item, int) for item in ranks):
             return self._do_new_group(ranks, **kwargs)
         else:

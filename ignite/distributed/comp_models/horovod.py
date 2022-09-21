@@ -190,7 +190,7 @@ if has_hvd_support:
                 tensor = tensor.unsqueeze(0)
             return hvd.allgather(tensor)
 
-        def _do_new_group(self, ranks: List[int], **kwargs) -> Any:
+        def _do_new_group(self, ranks: List[int], **kwargs: Any) -> Any:
             return ProcessSet(ranks)
 
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
