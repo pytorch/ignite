@@ -151,7 +151,7 @@ if has_hvd_support:
             hvd_mp_spawn(
                 _HorovodDistModel._dist_worker_task_fn,
                 args=(HOROVOD, fn, args, kwargs_dict),
-                np=nproc_per_node,
+                num_proc=nproc_per_node,
                 hosts=hosts,
                 **kwargs,
             )
