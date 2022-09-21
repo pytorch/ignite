@@ -246,7 +246,7 @@ def _test_distrib_new_group(device):
 
     elif idist.utils.backend() is None:
         from ignite.distributed.comp_models import _SerialModel, registered_computation_models
-        
+
         assert _SerialModel in registered_computation_models
         assert idist.new_group(ranks) == ranks
 
