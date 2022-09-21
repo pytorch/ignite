@@ -217,9 +217,9 @@ class ComputationModel(metaclass=ABCMeta):
 
         return self._collective_op(tensor, self._do_all_gather)
 
-    def new_group(self, ranks: List[int]) -> Any:
+    def new_group(self, ranks: List[int], **kwargs) -> Any:
         if isinstance(ranks, list) and all(isinstance(item, int) for item in ranks):
-            return self._do_new_group(ranks)
+            return self._do_new_group(ranks, **kwargs)
         else:
             raise ValueError("Argument ranks should be list of int")
 
@@ -285,7 +285,7 @@ class ComputationModel(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def _do_new_group(self, ranks: List[int]) -> Any:
+    def _do_new_group(self, ranks: List[int], **kwargs) -> Any:
         pass
 
 
@@ -363,7 +363,7 @@ class _SerialModel(ComputationModel):
     def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
         return tensor
 
-    def _do_new_group(self, ranks: List[int]) -> Any:
+    def _do_new_group(self, ranks: List[int], **kwargs) -> Any:
         return ranks
 
     def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
@@ -372,8 +372,8 @@ class _SerialModel(ComputationModel):
     def barrier(self) -> None:
         pass
 
-    def new_group(self, ranks: List[int]) -> Any:
+    def new_group(self, ranks: List[int], **kwargs) -> Any:
         if isinstance(ranks, list) and all(isinstance(item, int) for item in ranks):
-            return self._do_new_group(ranks)
+            return self._do_new_group(ranks, **kwargs)
         else:
             raise ValueError("Argument ranks should be list of int")

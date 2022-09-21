@@ -235,14 +235,24 @@ def _test_distrib_new_group(device):
         ranks = [0, 1]
         if idist.has_native_dist_support and bnd in ("nccl", "gloo", "mpi"):
 
-            assert idist.new_group(ranks).rank() == dist.new_group(ranks=ranks).rank()
+            g1 = idist.new_group(ranks)
+            g2 = dist.new_group(ranks)
+
+            rank = idist.get_rank()
+            if rank in ranks:
+                assert g1.rank() == g2.rank()
         elif idist.has_xla_support and bnd in ("xla-tpu"):
 
             assert idist.new_group(ranks) == [ranks]
         elif idist.has_hvd_support and bnd in ("horovod"):
             from horovod.common.process_sets import ProcessSet
 
-            assert idist.new_group(ranks).rank == ProcessSet(ranks).rank
+            g1 = idist.new_group(ranks)
+            g2 = ProcessSet(ranks)
+
+            rank = idist.get_rank()
+            if rank in ranks:
+                assert g1.rank() == g2.rank()
 
     elif idist.backend() is None:
         ranks = [0, 1]
