@@ -217,7 +217,7 @@ class ComputationModel(metaclass=ABCMeta):
 
         return self._collective_op(tensor, self._do_all_gather)
 
-    def new_group(self, ranks: List[int], **kwargs) -> Any:
+    def new_group(self, ranks: List[int], **kwargs: Any) -> Any:
         if isinstance(ranks, list) and all(isinstance(item, int) for item in ranks):
             return self._do_new_group(ranks, **kwargs)
         else:
