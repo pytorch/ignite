@@ -428,7 +428,31 @@ def barrier() -> None:
 
 
 def new_group(ranks: List[int], **kwargs: Any) -> Any:
-    """Helper method to make group for each backend from ranks."""
+    """Helper method to make group for each backend from ranks.
+
+    Args:
+        ranks: subset of ranks to be grouped.
+        kwargs: acceptable kwargs according when backend is `nccl` or `gloo`:
+
+            - | ``backend (=None)``, ``pg_options (=None)``.
+
+    Examples:
+        Launch single node multi-GPU training with ``torchrun`` utility.
+
+        .. code-block:: python
+
+            import ignite.distributed as idist
+
+            kwargs = {}
+            kwargs['backend']='nccl'
+
+            idist.new_group(ranks, **kwargs)
+
+    .. versionadded:: 0.5.0
+        ``backend`` now accepts `horovod` distributed framework.
+
+    """
+
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
 
