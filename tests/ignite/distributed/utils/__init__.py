@@ -235,7 +235,7 @@ def _test_distrib_new_group(device):
         ranks = [0, 1]
         if idist.has_native_dist_support and bnd in ("nccl", "gloo", "mpi"):
 
-            assert idist.new_group(ranks).rank == dist.new_group(ranks=ranks).rank
+            assert idist.new_group(ranks).rank() == dist.new_group(ranks=ranks).rank()
         elif idist.has_xla_support and bnd in ("xla-tpu"):
 
             assert idist.new_group(ranks) == [ranks]
