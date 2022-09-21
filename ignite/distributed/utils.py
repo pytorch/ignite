@@ -427,7 +427,7 @@ def barrier() -> None:
     _model.barrier()
 
 
-def new_group(ranks: List[int], **kwargs) -> Any:
+def new_group(ranks: List[int], **kwargs: Any) -> Any:
     """Helper method to make group for each backend from ranks."""
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
