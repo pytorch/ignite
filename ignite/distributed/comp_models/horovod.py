@@ -190,6 +190,9 @@ if has_hvd_support:
                 tensor = tensor.unsqueeze(0)
             return hvd.allgather(tensor)
 
+        def _do_new_group(self, ranks: List[int]) -> Any:
+            return ProcessSet(ranks)
+
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
             return hvd.broadcast(tensor, root_rank=src)
 
@@ -197,9 +200,3 @@ if has_hvd_support:
             # https://github.com/horovod/horovod/issues/159#issuecomment-424834603
             # hvd.allreduce(torch.tensor(0, device=self.device()), name="barrier")
             hvd.allreduce(torch.tensor(0, device="cpu"), name="barrier")
-
-        def new_group(self, ranks: List[int]) -> Any:
-            if isinstance(ranks, list) and all(isinstance(item, int) for item in ranks):
-                return ProcessSet(ranks)
-            else:
-                raise ValueError("Group should be list of int")

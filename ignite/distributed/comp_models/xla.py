@@ -152,6 +152,9 @@ if has_xla_support:
             xm.all_reduce("sum", [output])
             return output.reshape(-1, *output.shape[2:])
 
+        def _do_new_group(self, ranks: List[int]) -> Any:
+            return [ranks]
+
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
             # from https://github.com/jysohn23/xla/blob/model-parallel-colab/Gather_Scatter_Broadcast_PyTorch_XLA.ipynb
             if src != self.get_rank():
@@ -161,9 +164,3 @@ if has_xla_support:
 
         def barrier(self) -> None:
             xm.rendezvous("barrier")
-
-        def new_group(self, ranks: List[int]) -> Any:
-            if isinstance(ranks, list) and all(isinstance(item, int) for item in ranks):
-                return [ranks]
-            else:
-                raise ValueError("Group should be list of int")

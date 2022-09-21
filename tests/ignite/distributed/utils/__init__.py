@@ -230,7 +230,7 @@ def _test_distrib_barrier(device):
 
 def _test_distrib_new_group(device):
 
-    if idist.get_world_size() > 1 and idist.utils.backend() is not None:
+    if idist.get_world_size() > 1 and idist.backend() is not None:
         bnd = idist.backend()
         ranks = [0, 1]
         if idist.has_native_dist_support and bnd in ("nccl", "gloo", "mpi"):
@@ -244,15 +244,15 @@ def _test_distrib_new_group(device):
 
             assert idist.new_group(ranks).rank == ProcessSet(ranks).rank
 
-    elif idist.utils.backend() is None:
-
+    elif idist.backend() is None:
+        ranks = [0, 1]
         assert idist.new_group(ranks) == ranks
 
-    with pytest.raises(ValueError, match="Group should be list of int"):
+    with pytest.raises(ValueError, match="Argument ranks should be list of int"):
         ranks = ["a", "b", "c"]
         idist.new_group(ranks)
 
-    with pytest.raises(ValueError, match="Group should be list of int"):
+    with pytest.raises(ValueError, match="Argument ranks should be list of int"):
         ranks = 1
         idist.new_group(ranks)
 

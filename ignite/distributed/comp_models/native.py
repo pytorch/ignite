@@ -433,18 +433,15 @@ if has_native_dist_support:
             dist.all_gather(output, tensor)
             return torch.cat(output, dim=0)
 
+        def _do_new_group(self, ranks: List[int]) -> Any:
+            return dist.new_group(ranks=ranks)
+
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
             dist.broadcast(tensor, src=src)
             return tensor
 
         def barrier(self) -> None:
             dist.barrier()
-
-        def new_group(self, ranks: List[int]) -> Any:
-            if isinstance(ranks, list) and all(isinstance(item, int) for item in ranks):
-                return dist.new_group(ranks=ranks)
-            else:
-                raise ValueError("Group should be list of int")
 
     def _expand_hostlist(nodelist: str) -> List[str]:
         """Expand a compressed hostlist string and returns all hosts listed.

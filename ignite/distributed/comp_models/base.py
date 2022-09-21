@@ -217,6 +217,12 @@ class ComputationModel(metaclass=ABCMeta):
 
         return self._collective_op(tensor, self._do_all_gather)
 
+    def new_group(self, ranks: List[int]) -> Any:
+        if isinstance(ranks, list) and all(isinstance(item, int) for item in ranks):
+            return self._do_new_group(ranks)
+        else:
+            raise ValueError("Argument ranks should be list of int")
+
     def broadcast(
         self, tensor: Union[torch.Tensor, float, str, None], src: int = 0, safe_mode: bool = False
     ) -> Union[torch.Tensor, float, str]:
@@ -279,7 +285,7 @@ class ComputationModel(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def new_group(self, group: List[int]) -> Any:
+    def _do_new_group(self, ranks: List[int]) -> Any:
         pass
 
 
@@ -357,6 +363,9 @@ class _SerialModel(ComputationModel):
     def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
         return tensor
 
+    def _do_new_group(self, ranks: List[int]) -> Any:
+        return ranks
+
     def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
         return tensor
 
@@ -364,4 +373,7 @@ class _SerialModel(ComputationModel):
         pass
 
     def new_group(self, ranks: List[int]) -> Any:
-        return ranks
+        if isinstance(ranks, list) and all(isinstance(item, int) for item in ranks):
+            return self._do_new_group(ranks)
+        else:
+            raise ValueError("Argument ranks should be list of int")
