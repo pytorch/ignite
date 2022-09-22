@@ -133,8 +133,8 @@ def _test__hvd_dist_model_create_from_context_dist(true_backend, true_device):
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() > 0, reason="Skip if has GPU")
 def test__hvd_dist_model_create_no_dist(gloo_hvd_executor):
-    gloo_hvd_executor(_test__hvd_dist_model_create_from_backend_no_dist, ("horovod", "cpu"), np=1)
-    gloo_hvd_executor(_test__hvd_dist_model_create_from_context_no_dist, ("horovod", "cpu"), np=1)
+    gloo_hvd_executor(_test__hvd_dist_model_create_from_backend_no_dist, ("horovod", "cpu"), num_proc=1)
+    gloo_hvd_executor(_test__hvd_dist_model_create_from_context_no_dist, ("horovod", "cpu"), num_proc=1)
 
 
 @pytest.mark.distributed
@@ -147,13 +147,13 @@ def test__hvd_dist_model_create_no_dist_cuda(gloo_hvd_executor):
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() > 0, reason="Skip if has GPU")
 def test__hvd_dist_model_create_dist_1(gloo_hvd_executor):
-    gloo_hvd_executor(_test__hvd_dist_model_create_from_backend_dist, ("horovod", "cpu"), np=4)
+    gloo_hvd_executor(_test__hvd_dist_model_create_from_backend_dist, ("horovod", "cpu"), num_proc=4)
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() > 0, reason="Skip if has GPU")
 def test__hvd_dist_model_create_dist_2(gloo_hvd_executor):
-    gloo_hvd_executor(_test__hvd_dist_model_create_from_context_dist, ("horovod", "cpu"), np=4)
+    gloo_hvd_executor(_test__hvd_dist_model_create_from_context_dist, ("horovod", "cpu"), num_proc=4)
 
 
 @pytest.mark.distributed
