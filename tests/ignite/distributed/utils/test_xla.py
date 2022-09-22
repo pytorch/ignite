@@ -10,6 +10,7 @@ from tests.ignite.distributed.utils import (
     _test_distrib_barrier,
     _test_distrib_broadcast,
     _test_distrib_config,
+    _test_distrib_new_group,
     _test_distrib_one_rank_only,
     _test_distrib_one_rank_only_with_engine,
     _test_sync,
@@ -129,6 +130,14 @@ def _test_idist_all_reduce_xla_in_child_proc(index):
 def test_idist_all_reduce_xla_in_child_proc(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
     xmp_executor(_test_idist_all_reduce_xla_in_child_proc, args=(), nprocs=n)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_idist_new_group_xla():
+    device = idist.device()
+    _test_distrib_new_group(device)
 
 
 @pytest.mark.tpu

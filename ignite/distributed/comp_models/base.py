@@ -7,7 +7,6 @@ import torch
 
 class ComputationModel(metaclass=ABCMeta):
     """Base class for distributed computation models and defines interface methods.
-
     This class is public and should be used for other custom derived distributed models.
     """
 
@@ -218,6 +217,12 @@ class ComputationModel(metaclass=ABCMeta):
 
         return self._collective_op(tensor, self._do_all_gather)
 
+    def new_group(self, ranks: List[int], **kwargs: Any) -> Any:
+        if isinstance(ranks, list) and all(isinstance(item, int) for item in ranks):
+            return self._do_new_group(ranks, **kwargs)
+        else:
+            raise ValueError("Argument ranks should be list of int")
+
     def broadcast(
         self, tensor: Union[torch.Tensor, float, str, None], src: int = 0, safe_mode: bool = False
     ) -> Union[torch.Tensor, float, str]:
@@ -277,6 +282,10 @@ class ComputationModel(metaclass=ABCMeta):
 
     @abstractmethod
     def barrier(self) -> None:
+        pass
+
+    @abstractmethod
+    def _do_new_group(self, ranks: List[int], **kwargs: Any) -> Any:
         pass
 
 
@@ -354,8 +363,17 @@ class _SerialModel(ComputationModel):
     def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
         return tensor
 
+    def _do_new_group(self, ranks: List[int], **kwargs: Any) -> Any:
+        return ranks
+
     def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
         return tensor
 
     def barrier(self) -> None:
         pass
+
+    def new_group(self, ranks: List[int], **kwargs: Any) -> Any:
+        if isinstance(ranks, list) and all(isinstance(item, int) for item in ranks):
+            return self._do_new_group(ranks, **kwargs)
+        else:
+            raise ValueError("Argument ranks should be list of int")

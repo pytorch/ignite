@@ -1,5 +1,5 @@
 import warnings
-from typing import Any, Callable, cast, Mapping, Optional, Tuple
+from typing import Any, Callable, cast, List, Mapping, Optional, Tuple
 
 import torch
 
@@ -7,6 +7,7 @@ from ignite.distributed.comp_models.base import ComputationModel
 
 try:
     import horovod.torch as hvd
+    from horovod.common.process_sets import ProcessSet
 
     try:
         # old API
@@ -188,6 +189,9 @@ if has_hvd_support:
             if tensor.ndimension() == 0:
                 tensor = tensor.unsqueeze(0)
             return hvd.allgather(tensor)
+
+        def _do_new_group(self, ranks: List[int], **kwargs: Any) -> Any:
+            return ProcessSet(ranks)
 
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
             return hvd.broadcast(tensor, root_rank=src)
