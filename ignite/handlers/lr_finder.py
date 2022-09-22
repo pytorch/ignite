@@ -87,8 +87,8 @@ class FastaiLRFinder:
         optimizer: Optimizer,
         output_transform: Callable,
         num_iter: int,
-        start_lr: Union[None, float, List[float]],
-        end_lr: Union[None, float, List[float]],
+        start_lr: Union[float, List[float]],
+        end_lr: Union[float, List[float]],
         step_mode: str,
         smooth_f: float,
         diverge_th: float,
@@ -119,31 +119,30 @@ class FastaiLRFinder:
 
         self.logger.debug(f"Running LR finder for {num_iter} iterations")
         # Initialize the proper learning rate policy
-        if step_mode.lower() == "exp":       
-            if start_lr is None:
-                start_lr_list = [optimizer.param_groups[i]["lr"] for i in range(len(optimizer.param_groups))]
-            elif isinstance(start_lr, float):
-                start_lr_list = [start_lr] * len(optimizer.param_groups)
-            elif isinstance(start_lr, list):
-                if not len(start_lr) == len(optimizer.param_groups):
+        if start_lr is None:
+            start_lr_list = [pg["lr"] for pg in optimizer.param_groups]
+        elif isinstance(start_lr, float):
+            start_lr_list = [start_lr] * len(optimizer.param_groups)
+        elif isinstance(start_lr, list):
+            if len(start_lr) != len(optimizer.param_groups):
+                raise ValueError(
+                    f"Number of values of start_lr should be equal to optimizer values. start_lr values:{len(start_lr)} optimizer values: {len(optimizer.param_groups)}"
+                )
+            start_lr_list = start_lr
+        else:
+            raise TypeError(f"start_lr should a float or list of floats, but given {type(start_lr)}")
+        if isinstance(end_lr, float):
+            end_lr_list = [end_lr] * len(optimizer.param_groups)
+        elif isinstance(end_lr, list):
+            if len(end_lr) != len(optimizer.param_groups):
                     raise ValueError(
-                        f"Values of start_lr should be equal to optimizer values. start_lr values:{len(start_lr)} optimizer values: {len(optimizer.param_groups)}"
+                        f"Values of end_lr should be equal to optimizer values. end_lr values:{len(end_lr)} optimizer values: {len(optimizer.param_groups)}"
                     )
-                start_lr_list = start_lr
-            else:
-                raise TypeError(f"start_lf should a float or list of floats, but given {type(start_lr)}")
-            if isinstance(end_lr, float):
-                end_lr_list = [end_lr] * len(optimizer.param_groups)
-            elif isinstance(end_lr, list):
-                if not len(end_lr) == len(optimizer.param_groups):
-                        raise ValueError(
-                            f"Values of end_lr should be equal to optimizer values. end_lr values:{len(end_lr)} optimizer values: {len(optimizer.param_groups)}"
-                        )
-                end_lr_list = end_lr
-
-            else:
-                raise TypeError(f"end_lr should a float or list of floats, but given {type(end_lr)}")
-            
+            end_lr_list = end_lr
+        else:
+            raise TypeError(f"end_lr should a float or list of floats, but given {type(end_lr)}")
+        
+        if step_mode.lower() == "exp":       
             self._lr_schedule = LRScheduler(_ExponentialLR(optimizer, start_lr_list, end_lr_list, num_iter))
         else:
             if isinstance(start_lr, list) or isinstance(end_lr, list):
