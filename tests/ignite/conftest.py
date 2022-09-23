@@ -322,7 +322,7 @@ def _gloo_hvd_execute(func, args, np=1, do_init=False):
         # new API: https://github.com/horovod/horovod/pull/2099
         from horovod import run
 
-    kwargs = dict(use_gloo=True, np=np)
+    kwargs = dict(use_gloo=True, num_proc=np)
 
     if do_init:
         return run(_hvd_task_with_init, args=(func, args), **kwargs)
