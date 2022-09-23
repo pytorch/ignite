@@ -138,7 +138,7 @@ if has_xla_support:
         }
 
         def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Any] = None) -> torch.Tensor:
-            if not self._check_group_type(group):
+            if group is not None and not self._check_group_type(group):
                 raise ValueError("group should be list of int")
             op = self._reduce_op_map[op]
             xm.all_reduce(op, [tensor], groups=group)
