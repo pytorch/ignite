@@ -1,5 +1,5 @@
 import warnings
-from typing import Any, Callable, cast, List, Mapping, Optional, Tuple, Union
+from typing import Any, Callable, cast, List, Mapping, Optional, Tuple
 
 import torch
 
