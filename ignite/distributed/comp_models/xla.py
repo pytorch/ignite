@@ -152,15 +152,8 @@ if has_xla_support:
             xm.all_reduce("sum", [output])
             return output.reshape(-1, *output.shape[2:])
 
-        def _check_group_type(self, group: Optional[Union[Any, List[int]]]) -> bool:
-            if group is not None and not isinstance(group, list):
-                return False
-            elif group is not None and not all(isinstance(item, int) for item in group):
-                return False
-            elif group is not None and not all(isinstance(item, int) for list_ in group for item in list_):
-                return False
-
-            return True
+        def _do_new_group(self, ranks: List[int], **kwargs: Any) -> Any:
+            return [ranks]
 
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
             # from https://github.com/jysohn23/xla/blob/model-parallel-colab/Gather_Scatter_Broadcast_PyTorch_XLA.ipynb
