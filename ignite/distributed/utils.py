@@ -356,7 +356,7 @@ def all_gather(
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
 
-    if isinstance(group, list) and all(isinstance(item, int) for item in group):
+    if isinstance(group, list):
         group = _model.new_group(group)
 
     return _model.all_gather(tensor, group=group)
