@@ -437,6 +437,9 @@ if has_native_dist_support:
             dist.all_gather(output, tensor)
             return torch.cat(output, dim=0)
 
+        def _do_new_group(self, ranks: List[int], **kwargs: Any) -> Any:
+            return dist.new_group(ranks=ranks, **kwargs)
+
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
             dist.broadcast(tensor, src=src)
             return tensor
