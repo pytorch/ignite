@@ -426,7 +426,7 @@ if has_native_dist_support:
             dist.all_reduce(tensor, reduce_op)
             return tensor
 
-        def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Union[Any, List[int]]] = None) -> torch.Tensor:
+        def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None) -> torch.Tensor:
             if group is not None and not isinstance(group, dist.ProcessGroup):
                 raise ValueError("Group should be list of int or ProcessGroup")
             if tensor.ndimension() == 0:

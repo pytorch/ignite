@@ -185,7 +185,7 @@ if has_hvd_support:
             # output can also torch min/max_return_type: (min/max_vals, indices)
             return reduced_res[0]
 
-        def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Union[Any, List[int]]] = None) -> torch.Tensor:
+        def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None) -> torch.Tensor:
             if group and not isinstance(group, ProcessSet):
                 raise ValueError("group should be list of int or ProcessSet")
             if tensor.ndimension() == 0:
