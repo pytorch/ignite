@@ -139,7 +139,7 @@ if has_xla_support:
 
         def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Any] = None) -> torch.Tensor:
             if not self._check_group_type(group):
-                raise ValueError("group should be list of int or list of list of int")
+                raise ValueError("group should be list of int")
             op = self._reduce_op_map[op]
             xm.all_reduce(op, [tensor], groups=group)
             return tensor
@@ -164,3 +164,8 @@ if has_xla_support:
 
         def barrier(self) -> None:
             xm.rendezvous("barrier")
+
+        def _check_group_type(self, group: Optional[Any]) -> bool:
+            if isinstance(group, list) and all(isinstance(item, int) for item in group):
+                return True
+            return False
