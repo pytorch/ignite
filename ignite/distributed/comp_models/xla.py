@@ -1,4 +1,4 @@
-from typing import Any, Callable, cast, List, Mapping, Optional, Tuple, Union
+from typing import Any, Callable, cast, List, Mapping, Optional, Tuple
 
 import torch
 
@@ -138,7 +138,7 @@ if has_xla_support:
         }
 
         def _do_all_reduce(
-            self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Union[Any, List[int]]] = None
+            self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Any] = None
         ) -> torch.Tensor:
             if not self._check_group_type(group):
                 raise ValueError("group should be list of int or list of list of int")

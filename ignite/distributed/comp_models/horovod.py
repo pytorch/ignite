@@ -1,5 +1,5 @@
 import warnings
-from typing import Any, Callable, cast, List, Mapping, Optional, Tuple, Union
+from typing import Any, Callable, cast, List, Mapping, Optional, Tuple
 
 import torch
 
@@ -166,7 +166,7 @@ if has_hvd_support:
         _manual_reduce_op_map = {"MIN": torch.min, "MAX": torch.max, "PRODUCT": torch.prod}
 
         def _do_all_reduce(
-            self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Union[Any, List[int]]] = None
+            self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Any] = None
         ) -> torch.Tensor:
             if op in self._manual_reduce_op_map:
                 op_fn = self._manual_reduce_op_map[op]
