@@ -110,7 +110,7 @@ if has_native_dist_support:
             self._backend = backend
             self.setup_env_vars(rank, world_size)
 
-            init_pg_kwargs = {}
+            init_pg_kwargs: Dict[str, Any] = {}
             if timeout is not None:
                 init_pg_kwargs["timeout"] = timeout
 
