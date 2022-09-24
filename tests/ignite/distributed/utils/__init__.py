@@ -121,13 +121,32 @@ def _test_distrib_all_reduce(device):
 
 def _test_distrib_all_reduce_group(device):
 
-    if idist.get_world_size() > 1:
+    if idist.get_world_size() > 1 and idist.backend() is not None:
+        bnd = idist.backend()
+        ranks = [0, 1]
         rank = idist.get_rank()
-        group = [0, 1]
-
         t = torch.tensor([rank], device=idist.device())
-        res = idist.all_reduce(t, group=group)
-        assert res == torch.tensor([sum(group)])
+
+        if idist.has_native_dist_support and bnd in ("nccl", "gloo", "mpi"):
+
+            group = idist.new_group(ranks)
+
+            res = idist.all_reduce(t, group=group)
+            assert res == torch.tensor([sum(group)])
+
+        elif idist.has_xla_support and bnd in ("xla-tpu"):
+
+            group = idist.new_group(ranks)
+
+            res = idist.all_reduce(t, group=group)
+            assert res == torch.tensor([sum(group)])
+
+        elif idist.has_hvd_support and bnd in ("horovod"):
+            from horovod.common.process_sets import ProcessSet
+
+            group = idist.new_group(ranks)
+            res = idist.all_reduce(t, group=group)
+            assert res == torch.tensor([sum(group)])
 
 
 def _test_distrib_all_gather(device):
