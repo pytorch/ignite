@@ -156,6 +156,9 @@ if has_xla_support:
             xm.all_reduce("sum", [output], groups=group)
             return output.reshape(-1, *output.shape[2:])
 
+        def _do_new_group(self, ranks: List[int], **kwargs: Any) -> Any:
+            return [ranks]
+
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
             # from https://github.com/jysohn23/xla/blob/model-parallel-colab/Gather_Scatter_Broadcast_PyTorch_XLA.ipynb
             if src != self.get_rank():

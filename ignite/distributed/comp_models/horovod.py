@@ -152,7 +152,7 @@ if has_hvd_support:
             hvd_mp_spawn(
                 _HorovodDistModel._dist_worker_task_fn,
                 args=(HOROVOD, fn, args, kwargs_dict),
-                np=nproc_per_node,
+                num_proc=nproc_per_node,
                 hosts=hosts,
                 **kwargs,
             )
@@ -193,6 +193,9 @@ if has_hvd_support:
             if group is not None:
                 return hvd.allgather(tensor, process_set=group)
             return hvd.allgather(tensor)
+
+        def _do_new_group(self, ranks: List[int], **kwargs: Any) -> Any:
+            return ProcessSet(ranks)
 
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
             return hvd.broadcast(tensor, root_rank=src)

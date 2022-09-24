@@ -239,6 +239,45 @@ def _test_distrib_barrier(device):
     assert tt.item() == true_res + 10.0
 
 
+def _test_distrib_new_group(device):
+
+    if idist.get_world_size() > 1 and idist.backend() is not None:
+        bnd = idist.backend()
+        ranks = [0, 1]
+        if idist.has_native_dist_support and bnd in ("nccl", "gloo", "mpi"):
+
+            g1 = idist.new_group(ranks)
+            g2 = dist.new_group(ranks)
+
+            rank = idist.get_rank()
+            if rank in ranks:
+                assert g1.rank() == g2.rank()
+        elif idist.has_xla_support and bnd in ("xla-tpu"):
+
+            assert idist.new_group(ranks) == [ranks]
+        elif idist.has_hvd_support and bnd in ("horovod"):
+            from horovod.common.process_sets import ProcessSet
+
+            g1 = idist.new_group(ranks)
+            g2 = ProcessSet(ranks)
+
+            rank = idist.get_rank()
+            if rank in ranks:
+                assert g1.ranks == g2.ranks
+
+    elif idist.backend() is None:
+        ranks = [0, 1]
+        assert idist.new_group(ranks) == ranks
+
+    with pytest.raises(ValueError, match="Argument ranks should be list of int"):
+        ranks = ["a", "b", "c"]
+        idist.new_group(ranks)
+
+    with pytest.raises(ValueError, match="Argument ranks should be list of int"):
+        ranks = 1
+        idist.new_group(ranks)
+
+
 def _test_distrib_one_rank_only(device):
     def _test(barrier):
         # last rank
