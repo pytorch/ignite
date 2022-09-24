@@ -125,7 +125,7 @@ def _test_distrib_all_reduce_group(device):
         bnd = idist.backend()
         ranks = [0, 1]
         rank = idist.get_rank()
-        t = torch.tensor([rank], device=idist.device())
+        t = torch.tensor([rank], device=device)
 
         if idist.has_native_dist_support and bnd in ("nccl", "gloo", "mpi"):
 

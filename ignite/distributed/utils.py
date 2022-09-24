@@ -331,6 +331,7 @@ def all_reduce(
         tensor: tensor or number to collect across participating processes.
         op: reduction operation, "SUM" by default. Possible values: "SUM", "PRODUCT", "MIN", "MAX", "AND", "OR".
             Horovod backend supports only "SUM", "AVERAGE", "ADASUM", "MIN", "MAX", "PRODUCT".
+        group: list of integer or the process group for each backend. If None, the default process group will be used.
 
     Returns:
         torch.Tensor or number
