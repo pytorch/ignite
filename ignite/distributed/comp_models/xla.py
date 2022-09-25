@@ -2,8 +2,10 @@ from typing import Any, Callable, cast, List, Mapping, Optional, Tuple
 
 import torch
 
-from ignite.distributed.comp_models.base import ComputationModel
 import ignite.distributed as idist
+
+from ignite.distributed.comp_models.base import ComputationModel
+
 try:
     import torch_xla
     import torch_xla.core.xla_model as xm
