@@ -7,7 +7,6 @@ from ignite.distributed.comp_models.base import ComputationModel
 
 try:
     import horovod.torch as hvd
-    from horovod.common.process_sets import ProcessSet
 
     try:
         # old API
@@ -171,7 +170,7 @@ if has_hvd_support:
                 return self._do_manual_all_reduce(tensor, op_fn)
             if op not in self._reduce_op_map:
                 raise ValueError(f"Unsupported reduction operation: '{op}'")
-            if group and not isinstance(group, ProcessSet):
+            if group and not isinstance(group, hvd.ProcessSet):
                 raise ValueError("group should be list of int or ProcessSet")
             op = self._reduce_op_map[op]
             if group is not None:
@@ -195,7 +194,7 @@ if has_hvd_support:
             return hvd.allgather(tensor)
 
         def _do_new_group(self, ranks: List[int], **kwargs: Any) -> Any:
-            return ProcessSet(ranks)
+            return hvd.ProcessSet(ranks)
 
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
             return hvd.broadcast(tensor, root_rank=src)
