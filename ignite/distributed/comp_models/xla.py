@@ -149,8 +149,8 @@ if has_xla_support:
         def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None) -> torch.Tensor:
             # from https://github.com/jysohn23/xla/blob/model-parallel-colab/Gather_Scatter_Broadcast_PyTorch_XLA.ipynb
 
-            if group and not idist.new_group(group):
-                raise ValueError("group should be list of int or list of list of int")
+            if not isinstance(group, list) or not all(isinstance(item, int) for item in group):
+                raise ValueError("group should be list of int")
 
             group_size = self.get_world_size()
             output = torch.zeros((group_size,) + tensor.shape, dtype=tensor.dtype, device=tensor.device)

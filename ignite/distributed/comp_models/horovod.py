@@ -190,6 +190,8 @@ if has_hvd_support:
                 raise ValueError("group should be list of int or ProcessSet")
             if tensor.ndimension() == 0:
                 tensor = tensor.unsqueeze(0)
+            if group is not None and not isinstance(group, ProcessSet):
+                raise ValueError("group should be list of int or ProcessSet")
             if group is not None:
                 return hvd.allgather(tensor, process_set=group)
             return hvd.allgather(tensor)
