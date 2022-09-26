@@ -176,9 +176,17 @@ def _test_distrib_all_gather_group(device):
         res = idist.all_gather(t, group=ranks)
         assert torch.equal(res, torch.tensor(ranks))
 
-        with pytest.raises(ValueError, match=r"Argument ranks should be list of int"):
-            group = idist.new_group(ranks)
-            res = idist.all_gather(t, group="abc")
+        ranks = "abc"
+        bnd = idist.backend()
+        if bnd in ("nccl", "gloo", "mpi"):
+            with pytest.raises(ValueError, match=r"Argument group should be list of int or ProcessGroup"):
+                res = idist.all_gather(t, group="abc")
+        elif bnd in ("xla-tpu"):
+            with pytest.raises(ValueError, match=r"Argument group should be list of int"):
+                res = idist.all_gather(t, group="abc")
+        elif bnd in ("horovod"):
+            with pytest.raises(ValueError, match=r"Argument group should be list of int or ProcessSet"):
+                res = idist.all_gather(t, group="abc")
 
 
 def _test_distrib_broadcast(device):

@@ -186,13 +186,11 @@ if has_hvd_support:
             return reduced_res[0]
 
         def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None) -> torch.Tensor:
-            if group and not isinstance(group, ProcessSet):
-                raise ValueError("group should be list of int or ProcessSet")
             if tensor.ndimension() == 0:
                 tensor = tensor.unsqueeze(0)
-            if group is not None and not isinstance(group, ProcessSet):
-                raise ValueError("group should be list of int or ProcessSet")
             if group is not None:
+                if not isinstance(group, ProcessSet):
+                    raise ValueError("Argument group should be list of int or ProcessSet")
                 return hvd.allgather(tensor, process_set=group)
             return hvd.allgather(tensor)
 

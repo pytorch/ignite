@@ -148,7 +148,7 @@ if has_xla_support:
             # from https://github.com/jysohn23/xla/blob/model-parallel-colab/Gather_Scatter_Broadcast_PyTorch_XLA.ipynb
 
             if group is not None and (not isinstance(group, list) or not all(isinstance(item, int) for item in group)):
-                raise ValueError("group should be list of int")
+                raise ValueError("Argument group should be list of int")
 
             group_size = self.get_world_size()
             output = torch.zeros((group_size,) + tensor.shape, dtype=tensor.dtype, device=tensor.device)
