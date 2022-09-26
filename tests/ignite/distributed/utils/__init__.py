@@ -119,7 +119,7 @@ def _test_distrib_all_reduce(device):
         assert res.device == t.device, f"{res.device} vs {t.device}"
 
 
-def _test_distrib_all_reduce_group(device):  ## have to check case of 1) 'abc', ranks, new_group
+def _test_distrib_all_reduce_group(device):
 
     if idist.get_world_size() > 1 and idist.backend() is not None:
         ranks = [0, 1]
