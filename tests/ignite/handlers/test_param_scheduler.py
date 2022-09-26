@@ -1170,105 +1170,106 @@ def test_param_group_scheduler_asserts():
         scheduler.load_state_dict({"schedulers": [("a", lr_scheduler1.state_dict()), ("bad_name", {})]})
 
 
-def test_param_group_scheduler():
-    def _test(lr_schedulers, save_lr):
-        num_iterations = 10
-        max_epochs = 20
-
-        scheduler = ParamGroupScheduler(lr_schedulers, names=[f"s_{i}" for i in range(len(lr_schedulers))])
-        state_dict = scheduler.state_dict()
-
-        trainer = Engine(lambda engine, batch: None)
-
-        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
-
-        data = [0] * num_iterations
-
-        for _ in range(2):
-            lrs = []
-            trainer.add_event_handler(Events.ITERATION_COMPLETED, save_lr, lrs)
-            trainer.run(data, max_epochs=max_epochs)
-            trainer.remove_event_handler(save_lr, Events.ITERATION_COMPLETED)
-            assert [lr[0] for lr in lrs] == pytest.approx([lr[1] for lr in lrs])
-            scheduler.load_state_dict(state_dict)
-
-            values = ParamGroupScheduler.simulate_values(max_epochs * num_iterations, lr_schedulers)
-            assert [lr[1] for lr in values] == pytest.approx([lr[2] for lr in values])
-            assert [lr[0] for lr in lrs] == pytest.approx([lr[1] for lr in values])
+@pytest.mark.parametrize("param_groups_setting", ["single_optim", "multi_optim"])
+def test_param_group_scheduler(param_groups_setting):
 
     t1 = torch.zeros([1], requires_grad=True)
     t2 = torch.zeros([1], requires_grad=True)
-    optimizer = torch.optim.SGD([{"params": t1, "lr": 0.1}, {"params": t2, "lr": 0.1}])
+    if param_groups_setting == "single_optim":
+        optimizer = torch.optim.SGD([{"params": t1, "lr": 0.1}, {"params": t2, "lr": 0.1}])
 
-    lr_scheduler1 = LinearCyclicalScheduler(
-        optimizer, "lr", param_group_index=0, start_value=1.0, end_value=0.0, cycle_size=10
-    )
-    lr_scheduler2 = LinearCyclicalScheduler(
-        optimizer, "lr", param_group_index=1, start_value=1.0, end_value=0.0, cycle_size=10
-    )
+        lr_scheduler1 = LinearCyclicalScheduler(
+            optimizer, "lr", param_group_index=0, start_value=1.0, end_value=0.0, cycle_size=10
+        )
+        lr_scheduler2 = LinearCyclicalScheduler(
+            optimizer, "lr", param_group_index=1, start_value=1.0, end_value=0.0, cycle_size=10
+        )
 
-    def save_lr_one_optimizer(engine, lrs):
-        lrs.append((optimizer.param_groups[0]["lr"], optimizer.param_groups[1]["lr"]))
-
-    _test([lr_scheduler1, lr_scheduler2], save_lr_one_optimizer)
-
-    t1 = torch.zeros([1], requires_grad=True)
-    optimizer_1 = torch.optim.SGD(params=[t1], lr=0.1)
-    t2 = torch.zeros([1], requires_grad=True)
-    optimizer_2 = torch.optim.SGD(params=[t2], lr=0.1)
-
-    lr_scheduler1 = LinearCyclicalScheduler(optimizer_1, "lr", start_value=1.0, end_value=0.0, cycle_size=10)
-    lr_scheduler2 = LinearCyclicalScheduler(optimizer_2, "lr", start_value=1.0, end_value=0.0, cycle_size=10)
-
-    def save_lr_mutliple_optimizers(engine, lrs):
-        lrs.append((optimizer_1.param_groups[0]["lr"], optimizer_2.param_groups[0]["lr"]))
-
-    _test([lr_scheduler1, lr_scheduler2], save_lr_mutliple_optimizers)
-
-
-def test_scheduler_with_param_groups():
-    def _test(lr_scheduler, optimizer):
-        num_iterations = 10
-        max_epochs = 20
-
-        state_dict = lr_scheduler.state_dict()
-
-        trainer = Engine(lambda engine, batch: None)
-
-        @trainer.on(Events.ITERATION_COMPLETED)
-        def save_lr():
+        def save_lr(_, lrs):
             lrs.append((optimizer.param_groups[0]["lr"], optimizer.param_groups[1]["lr"]))
 
-        trainer.add_event_handler(Events.ITERATION_STARTED, lr_scheduler)
+    else:
+        optimizer_1 = torch.optim.SGD(params=[t1], lr=0.1)
+        optimizer_2 = torch.optim.SGD(params=[t2], lr=0.1)
 
-        data = [0] * num_iterations
+        lr_scheduler1 = LinearCyclicalScheduler(optimizer_1, "lr", start_value=1.0, end_value=0.0, cycle_size=10)
+        lr_scheduler2 = LinearCyclicalScheduler(optimizer_2, "lr", start_value=1.0, end_value=0.0, cycle_size=10)
 
-        for _ in range(2):
-            lrs = []
-            trainer.run(data, max_epochs=max_epochs)
-            assert [lr[0] for lr in lrs] == pytest.approx([lr[1] for lr in lrs])
-            lr_scheduler.load_state_dict(state_dict)
+        def save_lr(_, lrs):
+            lrs.append((optimizer_1.param_groups[0]["lr"], optimizer_2.param_groups[0]["lr"]))
+
+    lr_schedulers = [lr_scheduler1, lr_scheduler2]
+    num_iterations = 10
+    max_epochs = 20
+
+    scheduler = ParamGroupScheduler(lr_schedulers, names=[f"s_{i}" for i in range(len(lr_schedulers))])
+    state_dict = scheduler.state_dict()
+
+    trainer = Engine(lambda engine, batch: None)
+
+    trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+
+    data = [0] * num_iterations
+
+    for _ in range(2):
+        lrs = []
+        trainer.add_event_handler(Events.ITERATION_COMPLETED, save_lr, lrs)
+        trainer.run(data, max_epochs=max_epochs)
+        trainer.remove_event_handler(save_lr, Events.ITERATION_COMPLETED)
+
+        assert scheduler.get_param() == list(lrs[-1])
+
+        assert [lr[0] for lr in lrs] == pytest.approx([lr[1] for lr in lrs])
+        scheduler.load_state_dict(state_dict)
+
+        values = ParamGroupScheduler.simulate_values(max_epochs * num_iterations, lr_schedulers)
+        assert [lr[1] for lr in values] == pytest.approx([lr[2] for lr in values])
+        assert [lr[0] for lr in lrs] == pytest.approx([lr[1] for lr in values])
+
+
+@pytest.mark.parametrize(
+    "scheduler_cls, kwargs",
+    [
+        (LinearCyclicalScheduler, {"param_name": "lr", "start_value": 1.0, "end_value": 0.0, "cycle_size": 10}),
+        (
+            PiecewiseLinear,
+            {"param_name": "lr", "milestones_values": [(5, 0.5), (15, 1.0), (25, 0.0), (35, 1.0), (40, 0.5)]},
+        ),
+        (CosineAnnealingScheduler, {"param_name": "lr", "start_value": 0.0, "end_value": 1.0, "cycle_size": 10}),
+        (ExponentialLR, {"gamma": 0.98}),
+        (StepLR, {"step_size": 50, "gamma": 0.5}),
+    ],
+)
+def test_scheduler_with_param_groups(scheduler_cls, kwargs):
 
     t1 = torch.zeros([1], requires_grad=True)
     t2 = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([{"params": t1, "lr": 0.1}, {"params": t2, "lr": 0.1}])
 
-    lr_scheduler = LinearCyclicalScheduler(optimizer, "lr", start_value=1.0, end_value=0.0, cycle_size=10)
-    _test(lr_scheduler, optimizer)
+    lr_scheduler = scheduler_cls(optimizer, **kwargs)
+    if not isinstance(lr_scheduler, ParamScheduler):
+        lr_scheduler = LRScheduler(lr_scheduler)
 
-    lr_scheduler = PiecewiseLinear(
-        optimizer, "lr", milestones_values=[(5, 0.5), (15, 1.0), (25, 0.0), (35, 1.0), (40, 0.5)]
-    )
-    _test(lr_scheduler, optimizer)
+    num_iterations = 10
+    max_epochs = 20
 
-    lr_scheduler = CosineAnnealingScheduler(optimizer, "lr", start_value=0.0, end_value=1.0, cycle_size=10)
-    _test(lr_scheduler, optimizer)
+    state_dict = lr_scheduler.state_dict()
 
-    torch_lr_scheduler = ExponentialLR(optimizer, gamma=0.98)
-    _test(LRScheduler(torch_lr_scheduler), optimizer)
+    trainer = Engine(lambda engine, batch: None)
 
-    torch_lr_scheduler = StepLR(optimizer, step_size=50, gamma=0.5)
-    _test(LRScheduler(torch_lr_scheduler), optimizer)
+    @trainer.on(Events.ITERATION_COMPLETED)
+    def save_lr():
+        lrs.append((optimizer.param_groups[0]["lr"], optimizer.param_groups[1]["lr"]))
+
+    trainer.add_event_handler(Events.ITERATION_STARTED, lr_scheduler)
+
+    data = [0] * num_iterations
+
+    for _ in range(2):
+        lrs = []
+        trainer.run(data, max_epochs=max_epochs)
+        assert [lr[0] for lr in lrs] == pytest.approx([lr[1] for lr in lrs])
+        lr_scheduler.load_state_dict(state_dict)
 
 
 def test_lr_scheduling_on_non_torch_optimizers():

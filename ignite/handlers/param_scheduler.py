@@ -1392,7 +1392,8 @@ class ParamGroupScheduler:
                 :class:`ignite.handlers.param_scheduler.ParamGroupScheduler`.
 
         Returns:
-            event_index, value
+            list of [event_index, scheduler_0_value, scheduler_1_value, ...], where `scheduler_i_value`
+            corresponds to the simulated param of scheduler `i` at `event_index`th event.
 
         """
 
@@ -1420,6 +1421,9 @@ class ParamGroupScheduler:
                 s.optimizer.load_state_dict(objs["optimizer"])
 
             return values
+
+    def get_param(self) -> List[Union[float, List[float]]]:
+        return [scheduler.get_param() for scheduler in self.schedulers]
 
 
 class ReduceLROnPlateauScheduler(ParamScheduler):
