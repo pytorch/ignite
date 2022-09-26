@@ -119,34 +119,24 @@ def _test_distrib_all_reduce(device):
         assert res.device == t.device, f"{res.device} vs {t.device}"
 
 
-def _test_distrib_all_reduce_group(device):
+def _test_distrib_all_reduce_group(device):  ## have to check case of 1) 'abc', ranks, new_group
 
     if idist.get_world_size() > 1 and idist.backend() is not None:
-        bnd = idist.backend()
         ranks = [0, 1]
         rank = idist.get_rank()
         t = torch.tensor([rank], device=device)
 
-        if idist.has_native_dist_support and bnd in ("nccl", "gloo", "mpi"):
+        group = idist.new_group(ranks)
+        res = idist.all_reduce(t, group=group)
+        assert res == torch.tensor([sum(ranks)])
 
+        ranks = 'abc'
+        with pytest.raises(TypeError, match=r"Argument ranks should be list of int"):
             group = idist.new_group(ranks)
+            res = idist.all_reduce(t, group=group)
 
-            res = idist.all_reduce(t, group=ranks)
-            assert res == torch.tensor([sum(ranks)])
-
-        elif idist.has_xla_support and bnd in ("xla-tpu"):
-
-            group = idist.new_group(ranks)
-
-            res = idist.all_reduce(t, group=ranks)
-            assert res == torch.tensor([sum(ranks)])
-
-        elif idist.has_hvd_support and bnd in ("horovod"):
-
-            group = idist.new_group(ranks)
-
-            res = idist.all_reduce(t, group=rank)
-            assert res == torch.tensor([sum(ranks)])
+        res = idist.all_reduce(t, group=ranks)
+        assert res == torch.tensor([sum(ranks)])
 
 
 def _test_distrib_all_gather(device):

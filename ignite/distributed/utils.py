@@ -336,6 +336,8 @@ def all_reduce(
     Returns:
         torch.Tensor or number
 
+    .. versionchanged:: 0.5.0
+        added ``group``
     """
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)

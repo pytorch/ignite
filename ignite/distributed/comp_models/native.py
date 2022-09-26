@@ -420,7 +420,7 @@ if has_native_dist_support:
         }
 
         def _do_all_reduce(
-            self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Union[Any, List[int]]] = None
+            self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Any] = None
         ) -> torch.Tensor:
             if op not in self._reduce_op_map:
                 raise ValueError(f"Unsupported reduction operation: '{op}'")
