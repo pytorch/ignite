@@ -2,8 +2,6 @@ from typing import Any, Callable, cast, List, Mapping, Optional, Tuple
 
 import torch
 
-import ignite.distributed as idist
-
 from ignite.distributed.comp_models.base import ComputationModel
 
 try:
