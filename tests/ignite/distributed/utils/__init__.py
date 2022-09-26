@@ -136,8 +136,7 @@ def _test_distrib_all_reduce_group(device):
 
         ranks = "abc"
         with pytest.raises(ValueError, match=r"Argument ranks should be list of int"):
-            group = idist.new_group(ranks)
-            res = idist.all_reduce(t, group=group)
+            res = idist.all_reduce(t, group="abc")
 
 
 def _test_distrib_all_gather(device):
