@@ -131,7 +131,7 @@ def _test_distrib_all_reduce_group(device):
         assert res == torch.tensor([sum(ranks)])
 
         ranks = "abc"
-        with pytest.raises(TypeError, match=r"Argument ranks should be list of int"):
+        with pytest.raises(ValueError, match=r"Argument ranks should be list of int"):
             group = idist.new_group(ranks)
             res = idist.all_reduce(t, group=group)
 
