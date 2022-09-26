@@ -272,7 +272,7 @@ class ComputationModel(metaclass=ABCMeta):
 
     @abstractmethod
     def _do_all_reduce(
-        self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Union[Any, List[int]]] = None
+        self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Any] = None
     ) -> torch.Tensor:
         pass
 
@@ -347,7 +347,7 @@ class _SerialModel(ComputationModel):
         raise NotImplementedError("Serial computation model does not implement spawn method")
 
     def all_reduce(
-        self, tensor: Union[torch.Tensor, float], op: str = "SUM", group: Optional[Union[Any, List[int]]] = None
+        self, tensor: Union[torch.Tensor, float], op: str = "SUM", group: Optional[Any] = None
     ) -> Union[torch.Tensor, float]:
         return tensor
 
@@ -364,7 +364,7 @@ class _SerialModel(ComputationModel):
         return tensor
 
     def _do_all_reduce(
-        self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Union[Any, List[int]]] = None
+        self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Any] = None
     ) -> torch.Tensor:
         return tensor
 
