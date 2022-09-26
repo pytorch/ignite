@@ -206,7 +206,7 @@ class ComputationModel(metaclass=ABCMeta):
         return tensor
 
     def all_reduce(
-        self, tensor: Union[torch.Tensor, float], op: str = "sum", group: Optional[Union[Any, List[int]]] = None
+        self, tensor: Union[torch.Tensor, float], op: str = "sum", group: Optional[Any] = None
     ) -> Union[torch.Tensor, float]:
         if not isinstance(tensor, (torch.Tensor, Number)):
             raise TypeError(f"Unhandled input type {type(tensor)}")
