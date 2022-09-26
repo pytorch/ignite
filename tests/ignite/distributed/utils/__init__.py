@@ -165,7 +165,7 @@ def _test_distrib_all_gather_group(device):
 
     if idist.get_world_size() > 1:
         ranks = [0, 1]
-        rank = idist.get_rank()        
+        rank = idist.get_rank()
 
         t = torch.tensor([rank], device=idist.device())
         group = idist.new_group(ranks)
