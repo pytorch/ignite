@@ -176,10 +176,9 @@ def _test_distrib_all_gather_group(device):
         res = idist.all_gather(t, group=ranks)
         assert torch.equal(res, torch.tensor(ranks))
 
-        ranks = "abc"
         with pytest.raises(ValueError, match=r"Argument ranks should be list of int"):
             group = idist.new_group(ranks)
-            res = idist.all_gather(t, group=group)
+            res = idist.all_gather(t, group="abc")
 
 
 def _test_distrib_broadcast(device):
