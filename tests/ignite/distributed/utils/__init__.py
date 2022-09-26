@@ -144,7 +144,7 @@ def _test_distrib_all_reduce_group(device):
         elif idist.has_hvd_support and bnd in ("horovod"):
 
             group = idist.new_group(ranks)
-            
+
             res = idist.all_reduce(t, group=group)
             assert res == torch.tensor([sum(ranks)])
 
