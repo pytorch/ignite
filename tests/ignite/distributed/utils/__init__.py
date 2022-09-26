@@ -131,21 +131,21 @@ def _test_distrib_all_reduce_group(device):
 
             group = idist.new_group(ranks)
 
-            res = idist.all_reduce(t, group=group)
+            res = idist.all_reduce(t, group=rank)
             assert res == torch.tensor([sum(ranks)])
 
         elif idist.has_xla_support and bnd in ("xla-tpu"):
 
             group = idist.new_group(ranks)
 
-            res = idist.all_reduce(t, group=group)
+            res = idist.all_reduce(t, group=rank)
             assert res == torch.tensor([sum(ranks)])
 
         elif idist.has_hvd_support and bnd in ("horovod"):
             from horovod.common.process_sets import ProcessSet
 
             group = idist.new_group(ranks)
-            res = idist.all_reduce(t, group=group)
+            res = idist.all_reduce(t, group=rank)
             assert res == torch.tensor([sum(ranks)])
 
 
