@@ -145,7 +145,7 @@ def _test_distrib_all_reduce_group(device):
 
             group = idist.new_group(ranks)
 
-            res = idist.all_reduce(t, group=group)
+            res = idist.all_reduce(t, group=rank)
             assert res == torch.tensor([sum(ranks)])
 
 
