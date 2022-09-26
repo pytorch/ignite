@@ -271,9 +271,7 @@ class ComputationModel(metaclass=ABCMeta):
         return tensor
 
     @abstractmethod
-    def _do_all_reduce(
-        self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Any] = None
-    ) -> torch.Tensor:
+    def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Any] = None) -> torch.Tensor:
         pass
 
     @abstractmethod
@@ -363,9 +361,7 @@ class _SerialModel(ComputationModel):
             raise ValueError("Argument tensor should not be None")
         return tensor
 
-    def _do_all_reduce(
-        self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Any] = None
-    ) -> torch.Tensor:
+    def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Any] = None) -> torch.Tensor:
         return tensor
 
     def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
