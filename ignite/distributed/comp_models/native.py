@@ -423,7 +423,7 @@ if has_native_dist_support:
             if op not in self._reduce_op_map:
                 raise ValueError(f"Unsupported reduction operation: '{op}'")
             if group is not None and not isinstance(group, dist.ProcessGroup):
-                raise ValueError("Group should be list of int or ProcessGroup")
+                raise ValueError("Argument group should be list of int or ProcessGroup")
             reduce_op = self._reduce_op_map[op]
             dist.all_reduce(tensor, reduce_op, group=group)
             return tensor

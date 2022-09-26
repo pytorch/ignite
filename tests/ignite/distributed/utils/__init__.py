@@ -135,8 +135,16 @@ def _test_distrib_all_reduce_group(device):
         assert res == torch.tensor([sum(ranks)])
 
         ranks = "abc"
-        with pytest.raises(ValueError, match=r"Argument ranks should be list of int"):
-            res = idist.all_reduce(t, group="abc")
+        bnd = idist.backend()
+        if bnd in ("nccl", "gloo", "mpi"):
+            with pytest.raises(ValueError, match=r"Argument group should be list of int or ProcessGroup"):
+                res = idist.all_reduce(t, group="abc")
+        elif bnd in ("xla-tpu"):
+            with pytest.raises(ValueError, match=r"Argument group should be list of int"):
+                res = idist.all_reduce(t, group="abc")
+        elif bnd in ("horovod"):
+            with pytest.raises(ValueError, match=r"Argument group should be list of int or ProcessSet"):
+                res = idist.all_reduce(t, group="abc")
 
 
 def _test_distrib_all_gather(device):
