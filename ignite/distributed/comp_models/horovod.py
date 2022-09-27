@@ -70,7 +70,8 @@ if has_hvd_support:
             self._backend = backend  # type: str
             # comm = kwargs.get("comm", None)
             # hvd.init(comm=comm)
-            hvd.init(process_sets="dynamic")
+            comm = kwargs.get("comm", None)
+            hvd.init(comm=comm, process_sets="dynamic")
             self._setup_attrs()
             if torch.cuda.is_available():
                 torch.cuda.set_device(self.get_local_rank())
