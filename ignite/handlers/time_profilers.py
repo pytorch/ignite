@@ -255,7 +255,7 @@ class BasicTimeProfiler:
                 for e in Events
                 if e not in self.events_to_ignore
             ]
-            + [("total_time", total_eh_time)]  # type: ignore[list-item]
+            + [("total_time", total_eh_time)]
         )
 
         return OrderedDict(
