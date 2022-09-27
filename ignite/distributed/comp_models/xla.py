@@ -107,7 +107,7 @@ if has_xla_support:
             finalize()
 
         @staticmethod
-        def spawn(  # type: ignore[override]
+        def spawn(
             fn: Callable,
             args: Tuple,
             kwargs_dict: Optional[Mapping] = None,
