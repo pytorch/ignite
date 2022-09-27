@@ -195,7 +195,7 @@ if has_hvd_support:
 
         def _do_new_group(self, ranks: List[int], **kwargs: Any) -> Any:
             process_set = hvd.ProcessSet(ranks)
-            hvd.init(process_sets = [process_set])
+            hvd.init(process_sets=[process_set])
             return process_set
 
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
