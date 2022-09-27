@@ -1185,18 +1185,12 @@ def test_param_group_scheduler(param_groups_setting):
             optimizer, "lr", param_group_index=1, start_value=1.0, end_value=0.0, cycle_size=10
         )
 
-        def save_lr(_, lrs):
-            lrs.append((optimizer.param_groups[0]["lr"], optimizer.param_groups[1]["lr"]))
-
     else:
         optimizer_1 = torch.optim.SGD(params=[t1], lr=0.1)
         optimizer_2 = torch.optim.SGD(params=[t2], lr=0.1)
 
         lr_scheduler1 = LinearCyclicalScheduler(optimizer_1, "lr", start_value=1.0, end_value=0.0, cycle_size=10)
         lr_scheduler2 = LinearCyclicalScheduler(optimizer_2, "lr", start_value=1.0, end_value=0.0, cycle_size=10)
-
-        def save_lr(_, lrs):
-            lrs.append((optimizer_1.param_groups[0]["lr"], optimizer_2.param_groups[0]["lr"]))
 
     lr_schedulers = [lr_scheduler1, lr_scheduler2]
     num_iterations = 10
@@ -1207,17 +1201,19 @@ def test_param_group_scheduler(param_groups_setting):
 
     trainer = Engine(lambda engine, batch: None)
 
+    lrs = []
+
+    @trainer.on(Events.ITERATION_STARTED, lrs)
+    def save_lr(_, lrs):
+        lrs.append(scheduler.get_param())
+
     trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
 
     data = [0] * num_iterations
 
     for _ in range(2):
-        lrs = []
-        trainer.add_event_handler(Events.ITERATION_COMPLETED, save_lr, lrs)
+        lrs.clear()
         trainer.run(data, max_epochs=max_epochs)
-        trainer.remove_event_handler(save_lr, Events.ITERATION_COMPLETED)
-
-        assert scheduler.get_param() == list(lrs[-1])
 
         assert [lr[0] for lr in lrs] == pytest.approx([lr[1] for lr in lrs])
         scheduler.load_state_dict(state_dict)
