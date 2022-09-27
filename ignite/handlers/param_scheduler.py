@@ -734,8 +734,8 @@ class ConcatScheduler(ParamScheduler):
                 By default, the first scheduler's parameter name is taken.
 
         Returns:
-            list of [event_index, value_0, value_1, ...], where values correspond to `param_names`.
-
+            list:
+                list of [event_index, value_0, value_1, ...], where values correspond to `param_names`.
         """
         if param_names is not None:
             if not isinstance(param_names, (list, tuple)):
@@ -892,7 +892,6 @@ class LRScheduler(ParamScheduler):
 
         Returns:
             event_index, value
-
         """
 
         if not isinstance(lr_scheduler, _LRScheduler):
@@ -1392,9 +1391,9 @@ class ParamGroupScheduler:
                 :class:`ignite.handlers.param_scheduler.ParamGroupScheduler`.
 
         Returns:
-            list of [event_index, scheduler_0_value, scheduler_1_value, ...], where `scheduler_i_value`
-            corresponds to the simulated param of scheduler `i` at `event_index`th event.
-
+            list:
+                list of [event_index, scheduler_0_value, scheduler_1_value, ...], where scheduler_i_value
+                corresponds to the simulated param of scheduler i at 'event_index'th event.
         """
 
         # This scheduler uses `torch.optim.lr_scheduler._LRScheduler` which
@@ -1423,6 +1422,7 @@ class ParamGroupScheduler:
             return values
 
     def get_param(self) -> List[Union[float, List[float]]]:
+        """Method to get current `schedulers`' parameter values"""
         return [scheduler.get_param() for scheduler in self.schedulers]
 
 
