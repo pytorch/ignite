@@ -174,8 +174,8 @@ if has_hvd_support:
             if group is not None:
                 if not isinstance(group, hvd.ProcessSet):
                     raise ValueError("Argument group should be list of int or ProcessSet")
-                hvd.init(process_sets=group)
-                return hvd.allreduce(tensor, op=op, process_set=hvd.ProcessSet(group))
+                hvd.init(process_sets=[group])
+                return hvd.allreduce(tensor, op=op, process_set=group)
             return hvd.allreduce(tensor, op=op)
 
         def _do_manual_all_reduce(self, tensor: torch.Tensor, op: Any) -> torch.Tensor:
