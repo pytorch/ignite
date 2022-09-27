@@ -1422,7 +1422,11 @@ class ParamGroupScheduler:
             return values
 
     def get_param(self) -> List[Union[float, List[float]]]:
-        """Method to get current `schedulers`' parameter values"""
+        """
+        Method to get current `schedulers`' parameter values
+        
+        .. versionadded:: 0.5.0
+        """
         return [scheduler.get_param() for scheduler in self.schedulers]
 
 
