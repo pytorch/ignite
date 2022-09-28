@@ -139,7 +139,7 @@ def _test_distrib_all_reduce_group(device):
             assert res == torch.tensor([sum(ranks)])
 
         ranks = "abc"
-        
+
         if bnd in ("nccl", "gloo", "mpi"):
             with pytest.raises(ValueError, match=r"Argument group should be list of int or ProcessGroup"):
                 res = idist.all_reduce(t, group="abc")
