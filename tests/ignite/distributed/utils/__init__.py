@@ -186,7 +186,7 @@ def _test_distrib_all_gather_group(device):
             assert torch.equal(res, torch.tensor(ranks))
 
         ranks = "abc"
-        
+
         if bnd in ("nccl", "gloo", "mpi"):
             with pytest.raises(ValueError, match=r"Argument group should be list of int or ProcessGroup"):
                 res = idist.all_gather(t, group="abc")
