@@ -347,12 +347,15 @@ def all_gather(
 
     Args:
         tensor: tensor or number or str to collect across participating processes.
+        group: list of integer or the process group for each backend. If None, the default process group will be used.
 
     Returns:
         torch.Tensor of shape ``(world_size * tensor.shape[0], tensor.shape[1], ...)`` if input is a tensor or
         torch.Tensor of shape ``(world_size, )`` if input is a number or
         List of strings if input is a string
 
+    .. versionchanged:: 0.5.0
+        added ``group`
     """
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
