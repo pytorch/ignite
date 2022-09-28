@@ -347,7 +347,7 @@ if has_native_dist_support:
             os.environ.update(copy_env_vars)
 
         @staticmethod
-        def spawn(  # type: ignore[override]
+        def spawn(
             fn: Callable,
             args: Tuple,
             kwargs_dict: Optional[Mapping] = None,
