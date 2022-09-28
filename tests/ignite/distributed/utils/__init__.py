@@ -128,7 +128,11 @@ def _test_distrib_all_reduce_group(device):
         bnd = idist.backend()
 
         group = idist.new_group(ranks)
-        res = idist.all_reduce(t, group=group)
+        if bnd in ("horovod"):
+            with pytest.raises(NotImplementedError, match=r"all_reduce with group for horovod is not implemented"):
+                res = idist.all_reduce(t, group=group)
+        else:
+            res = idist.all_reduce(t, group=group)
         assert res == torch.tensor([sum(ranks)])
 
         t = torch.tensor([rank], device=device)
