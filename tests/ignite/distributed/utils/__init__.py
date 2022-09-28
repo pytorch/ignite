@@ -133,7 +133,7 @@ def _test_distrib_all_reduce_group(device):
                 res = idist.all_reduce(t, group=group)
         else:
             res = idist.all_reduce(t, group=group)
-            assert res == torch.tensor([sum(ranks)])
+            assert res == torch.tensor([sum(ranks)], device=device)
 
         t = torch.tensor([rank], device=device)
         if bnd in ("horovod"):
@@ -141,7 +141,7 @@ def _test_distrib_all_reduce_group(device):
                 res = idist.all_reduce(t, group=ranks)
         else:
             res = idist.all_reduce(t, group=ranks)
-            assert res == torch.tensor([sum(ranks)])
+            assert res == torch.tensor([sum(ranks)], device=device)
 
         ranks = "abc"
 
