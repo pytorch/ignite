@@ -14,7 +14,8 @@ from torch.optim.lr_scheduler import _LRScheduler
 import ignite.distributed as idist
 from ignite.engine import Engine, Events
 from ignite.handlers import Checkpoint
-from ignite.handlers.param_scheduler import LRScheduler, PiecewiseLinear
+from ignite.handlers.param_scheduler import LRScheduler, PiecewiseLinear, ParamGroupScheduler
+
 
 
 class FastaiLRFinder:
@@ -87,7 +88,7 @@ class FastaiLRFinder:
         optimizer: Optimizer,
         output_transform: Callable,
         num_iter: int,
-        start_lr: Union[float, List[float]],
+        start_lr: Union[None, float, List[float]],
         end_lr: Union[float, List[float]],
         step_mode: str,
         smooth_f: float,
@@ -118,7 +119,6 @@ class FastaiLRFinder:
             )
 
         self.logger.debug(f"Running LR finder for {num_iter} iterations")
-        # Initialize the proper learning rate policy
         if start_lr is None:
             start_lr_list = [pg["lr"] for pg in optimizer.param_groups]
         elif isinstance(start_lr, float):
@@ -136,17 +136,25 @@ class FastaiLRFinder:
         elif isinstance(end_lr, list):
             if len(end_lr) != len(optimizer.param_groups):
                     raise ValueError(
-                        f"Values of end_lr should be equal to optimizer values. end_lr values:{len(end_lr)} optimizer values: {len(optimizer.param_groups)}"
+                        f"Number of values end_lr should be equal to optimizer values. end_lr values:{len(end_lr)} optimizer values: {len(optimizer.param_groups)}"
                     )
             end_lr_list = end_lr
         else:
             raise TypeError(f"end_lr should a float or list of floats, but given {type(end_lr)}")
         
+        # Initialize the proper learning rate policy
         if step_mode.lower() == "exp":       
             self._lr_schedule = LRScheduler(_ExponentialLR(optimizer, start_lr_list, end_lr_list, num_iter))
         else:
             if isinstance(start_lr, list) or isinstance(end_lr, list):
-                raise NotImplementedError()
+                self._lr_schedule = ParamGroupScheduler([
+                PiecewiseLinear(
+                    optimizer,
+                    param_name="lr",
+                    milestones_values=[(0, start_lr_list[i]), (num_iter, end_lr_list[i])],
+                    param_group_index=i
+                ) for i in range(len(optimizer.param_groups))]
+            )
             self._lr_schedule = PiecewiseLinear(
                 optimizer, param_name="lr", milestones_values=[(0, start_lr), (num_iter, end_lr)]
             )
@@ -390,7 +398,7 @@ class FastaiLRFinder:
         output_transform: Callable = lambda output: output,
         num_iter: Optional[int] = None,
         start_lr: Optional[Union[float, List[float]]] = None,
-        end_lr: Union[None, float, List[float]] = 10.0,
+        end_lr: Optional[Union[None, float, List[float]]] = 10.0,
         step_mode: str = "exp",
         smooth_f: float = 0.05,
         diverge_th: float = 5.0,
