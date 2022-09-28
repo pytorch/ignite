@@ -322,22 +322,30 @@ def spawn(
         )
 
 
-def all_reduce(tensor: Union[torch.Tensor, float], op: str = "SUM") -> Union[torch.Tensor, float]:
+def all_reduce(
+    tensor: Union[torch.Tensor, float], op: str = "SUM", group: Optional[Union[Any, List[int]]] = None
+) -> Union[torch.Tensor, float]:
     """Helper method to perform all reduce operation.
 
     Args:
         tensor: tensor or number to collect across participating processes.
         op: reduction operation, "SUM" by default. Possible values: "SUM", "PRODUCT", "MIN", "MAX", "AND", "OR".
             Horovod backend supports only "SUM", "AVERAGE", "ADASUM", "MIN", "MAX", "PRODUCT".
+        group: list of integer or the process group for each backend. If None, the default process group will be used.
 
     Returns:
         torch.Tensor or number
 
+    .. versionchanged:: 0.5.0
+        added ``group``
     """
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
 
-    return _model.all_reduce(tensor, op)
+    if isinstance(group, list) and all(isinstance(item, int) for item in group):
+        group = _model.new_group(group)
+
+    return _model.all_reduce(tensor, op, group=group)
 
 
 def all_gather(tensor: Union[torch.Tensor, float, str]) -> Union[torch.Tensor, float, List[float], List[str]]:

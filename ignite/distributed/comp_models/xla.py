@@ -137,11 +137,11 @@ if has_xla_support:
             "OR": "or",
         }
 
-        def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:
-            if op not in self._reduce_op_map:
-                raise ValueError(f"Unsupported reduction operation: '{op}'")
+        def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Any] = None) -> torch.Tensor:
+            if group is not None and not self._check_group_type(group):
+                raise ValueError("Argument group should be list of int")
             op = self._reduce_op_map[op]
-            xm.all_reduce(op, [tensor])
+            xm.all_reduce(op, [tensor], groups=group)
             return tensor
 
         def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
@@ -164,3 +164,8 @@ if has_xla_support:
 
         def barrier(self) -> None:
             xm.rendezvous("barrier")
+
+        def _check_group_type(self, group: Optional[Any]) -> bool:
+            if isinstance(group, list) and all(isinstance(item, int) for item in group):
+                return True
+            return False
