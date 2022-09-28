@@ -125,17 +125,21 @@ def _test_distrib_all_reduce_group(device):
         ranks = [0, 1]
         rank = idist.get_rank()
         t = torch.tensor([rank], device=device)
+        bnd = idist.backend()
 
         group = idist.new_group(ranks)
         res = idist.all_reduce(t, group=group)
         assert res == torch.tensor([sum(ranks)])
 
         t = torch.tensor([rank], device=device)
-        res = idist.all_reduce(t, group=ranks)
-        assert res == torch.tensor([sum(ranks)])
+        if bnd in ("horovod"):
+            with pytest.raises(NotImplementedError, match=r"all_reduce with group for horovod is not implemented"):
+                res = idist.all_reduce(t, group=ranks)
+        else:
+            assert res == torch.tensor([sum(ranks)])
 
         ranks = "abc"
-        bnd = idist.backend()
+        
         if bnd in ("nccl", "gloo", "mpi"):
             with pytest.raises(ValueError, match=r"Argument group should be list of int or ProcessGroup"):
                 res = idist.all_reduce(t, group="abc")
@@ -143,7 +147,7 @@ def _test_distrib_all_reduce_group(device):
             with pytest.raises(ValueError, match=r"Argument group should be list of int"):
                 res = idist.all_reduce(t, group="abc")
         elif bnd in ("horovod"):
-            with pytest.raises(ValueError, match=r"Argument group should be list of int or ProcessSet"):
+            with pytest.raises(NotImplementedError, match=r"all_reduce with group for horovod is not implemented"):
                 res = idist.all_reduce(t, group="abc")
 
 

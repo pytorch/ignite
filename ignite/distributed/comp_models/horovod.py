@@ -174,9 +174,7 @@ if has_hvd_support:
                 raise ValueError(f"Unsupported reduction operation: '{op}'")
             op = self._reduce_op_map[op]
             if group is not None:
-                if not isinstance(group, hvd.ProcessSet):
-                    raise ValueError("Argument group should be list of int or ProcessSet")
-                return hvd.allreduce(tensor, op=op, process_set=group)
+                raise NotImplementedError("all_reduce with group for horovod is not implemented")
             return hvd.allreduce(tensor, op=op)
 
         def _do_manual_all_reduce(self, tensor: torch.Tensor, op: Any) -> torch.Tensor:
@@ -196,7 +194,7 @@ if has_hvd_support:
             return hvd.allgather(tensor)
 
         def _do_new_group(self, ranks: List[int], **kwargs: Any) -> Any:
-            return hvd.ProcessSet(tuple(ranks))
+            return hvd.ProcessSet(ranks)
 
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
             return hvd.broadcast(tensor, root_rank=src)
