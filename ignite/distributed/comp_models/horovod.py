@@ -196,7 +196,7 @@ if has_hvd_support:
             return hvd.allgather(tensor)
 
         def _do_new_group(self, ranks: List[int], **kwargs: Any) -> Any:
-            return hvd.ProcessSet(ranks)
+            return hvd.ProcessSet(tuple(ranks))
 
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
             return hvd.broadcast(tensor, root_rank=src)
