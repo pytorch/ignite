@@ -425,7 +425,10 @@ if has_native_dist_support:
             if group is not None and not isinstance(group, dist.ProcessGroup):
                 raise ValueError("Argument group should be list of int or ProcessGroup")
             reduce_op = self._reduce_op_map[op]
-            dist.all_reduce(tensor, reduce_op, group=group)
+            if group is not None:
+                dist.all_reduce(tensor, reduce_op, group=group)
+            else:
+                dist.all_reduce(tensor, reduce_op)
             return tensor
 
         def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
