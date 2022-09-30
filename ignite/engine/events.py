@@ -48,7 +48,12 @@ class CallableEventWithFilter:
         return self._value_
 
     def __call__(
-        self, event_filter: Optional[Callable] = None, every: Optional[int] = None, once: Optional[int] = None
+        self,
+        event_filter: Optional[Callable] = None,
+        every: Optional[int] = None,
+        once: Optional[int] = None,
+        before: Optional[int] = None,
+        after: Optional[int] = None,
     ) -> "CallableEventWithFilter":
         """
         Makes the event class callable and accepts either an arbitrary callable as filter
@@ -59,12 +64,20 @@ class CallableEventWithFilter:
                 the event type was fired
             every: a value specifying how often the event should be fired
             once: a value specifying when the event should be fired (if only once)
+            before: a value specifying the step that event should be fired before
+            after: a value specifying the step that event should be fired after
 
         Returns:
             CallableEventWithFilter: A new event having the same value but a different filter function
         """
 
-        if not ((event_filter is not None) ^ (every is not None) ^ (once is not None)):
+        if not (
+            (event_filter is not None)
+            ^ (every is not None)
+            ^ (once is not None)
+            ^ (before is not None)
+            ^ (after is not None)
+        ):
             raise ValueError("Only one of the input arguments should be specified")
 
         if (event_filter is not None) and not callable(event_filter):
@@ -76,6 +89,12 @@ class CallableEventWithFilter:
         if (once is not None) and not (isinstance(once, numbers.Integral) and once > 0):
             raise ValueError("Argument once should be integer and positive")
 
+        if (before is not None) and not (isinstance(before, numbers.Integral) and before >= 0):
+            raise ValueError("Argument before should be integer and greater or equal to zero")
+
+        if (after is not None) and not (isinstance(after, numbers.Integral) and after >= 0):
+            raise ValueError("Argument after should be integer and greater or equal to zero")
+
         if every is not None:
             if every == 1:
                 # Just return the event itself
@@ -85,6 +104,12 @@ class CallableEventWithFilter:
 
         if once is not None:
             event_filter = self.once_event_filter(once)
+
+        if after is not None:
+            event_filter = self.after_event_filter(after)
+
+        if before is not None:
+            event_filter = self.before_event_filter(before)
 
         # check signature:
         if event_filter is not None:
@@ -109,6 +134,28 @@ class CallableEventWithFilter:
 
         def wrapper(engine: "Engine", event: int) -> bool:
             if event == once:
+                return True
+            return False
+
+        return wrapper
+
+    @staticmethod
+    def before_event_filter(before: int) -> Callable:
+        """A wrapper for before event filter."""
+
+        def wrapper(engine: "Engine", event: int) -> bool:
+            if event < before:
+                return True
+            return False
+
+        return wrapper
+
+    @staticmethod
+    def after_event_filter(after: int) -> Callable:
+        """A wrapper for after event filter."""
+
+        def wrapper(engine: "Engine", event: int) -> bool:
+            if event > after:
                 return True
             return False
 
