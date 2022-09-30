@@ -298,6 +298,16 @@ class Events(EventEnum):
         def call_once(engine):
             # do something on 50th iteration
 
+        # d) "before" event filter
+        @engine.on(Events.EPOCH_STARTED(before=10))
+        def call_before(engine):
+            # do something in 1 to 9 epoch
+
+        # e) "after" event filter
+        @engine.on(Events.ITERATION_STARTED(after=1000))
+        def call_after(engine):
+            # do something after the 1000th iteration
+
     Event filter function `event_filter` accepts as input `engine` and `event` and should return True/False.
     Argument `event` is the value of iteration or epoch, depending on which type of Events the function is passed.
 
