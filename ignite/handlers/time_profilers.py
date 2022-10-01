@@ -222,19 +222,21 @@ class BasicTimeProfiler:
             engine._event_handlers[Events.STARTED].insert(0, (self._as_first_started, (engine,), {}))
 
     @staticmethod
-    def _compute_basic_stats(data: torch.Tensor) -> Dict[str, Union[str, float, Tuple[Union[float], Union[float]]]]:
+    def _compute_basic_stats(data: torch.Tensor) -> Dict[str, Union[str, float, Tuple[float, float]]]:
         # compute on non-zero data:
         data = data[data > 0]
         out = [
             ("total", torch.sum(data).item() if len(data) > 0 else "not yet triggered")
-        ]  # type: List[Tuple[str, Union[str, float, Tuple[Union[float], Union[float]]]]]
+        ]  # type: List[Tuple[str, Union[str, float, Tuple[float, float]]]]
         if len(data) > 1:
-            out += [
-                ("min/index", (torch.min(data).item(), torch.argmin(data).item())),
-                ("max/index", (torch.max(data).item(), torch.argmax(data).item())),
-                ("mean", torch.mean(data).item()),
-                ("std", torch.std(data).item()),
-            ]
+            out.extend(
+                [
+                    ("min/index", (torch.min(data).item(), torch.argmin(data).item())),
+                    ("max/index", (torch.max(data).item(), torch.argmax(data).item())),
+                    ("mean", torch.mean(data).item()),
+                    ("std", torch.std(data).item()),
+                ]
+            )
         return OrderedDict(out)
 
     def get_results(self) -> Dict[str, Dict[str, Any]]:
@@ -255,7 +257,7 @@ class BasicTimeProfiler:
                 for e in Events
                 if e not in self.events_to_ignore
             ]
-            + [("total_time", total_eh_time)]  # type: ignore[list-item]
+            + [("total_time", total_eh_time)]
         )
 
         return OrderedDict(
