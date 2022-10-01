@@ -6,6 +6,7 @@ import ignite.distributed as idist
 from ignite.distributed.utils import has_xla_support
 from tests.ignite.distributed.utils import (
     _test_distrib_all_gather,
+    _test_distrib_all_gather_group,
     _test_distrib_all_reduce,
     _test_distrib_all_reduce_group,
     _test_distrib_barrier,
@@ -150,11 +151,13 @@ def test_idist_all_gather_xla():
 
     device = idist.device()
     _test_distrib_all_gather(device)
+    _test_distrib_all_gather_group(device)
 
 
 def _test_idist_all_gather_xla_in_child_proc(index):
     device = idist.device()
     _test_distrib_all_gather(device)
+    _test_distrib_all_gather_group(device)
 
 
 @pytest.mark.tpu

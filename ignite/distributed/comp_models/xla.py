@@ -144,12 +144,16 @@ if has_xla_support:
             xm.all_reduce(op, [tensor], groups=group)
             return tensor
 
-        def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
+        def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None) -> torch.Tensor:
             # from https://github.com/jysohn23/xla/blob/model-parallel-colab/Gather_Scatter_Broadcast_PyTorch_XLA.ipynb
+
+            if group is not None and (not isinstance(group, list) or not all(isinstance(item, int) for item in group)):
+                raise ValueError("Argument group should be list of int")
+
             group_size = self.get_world_size()
             output = torch.zeros((group_size,) + tensor.shape, dtype=tensor.dtype, device=tensor.device)
             output[self.get_rank() % group_size] = tensor
-            xm.all_reduce("sum", [output])
+            xm.all_reduce("sum", [output], groups=group)
             return output.reshape(-1, *output.shape[2:])
 
         def _do_new_group(self, ranks: List[int], **kwargs: Any) -> Any:

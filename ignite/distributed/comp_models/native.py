@@ -431,11 +431,13 @@ if has_native_dist_support:
                 dist.all_reduce(tensor, reduce_op)
             return tensor
 
-        def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
+        def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None) -> torch.Tensor:
+            if group is not None and not isinstance(group, dist.ProcessGroup):
+                raise ValueError("Argument group should be list of int or ProcessGroup")
             if tensor.ndimension() == 0:
                 tensor = tensor.unsqueeze(0)
             output = [torch.zeros_like(tensor) for _ in range(self.get_world_size())]
-            dist.all_gather(output, tensor)
+            dist.all_gather(output, tensor, group=group)
             return torch.cat(output, dim=0)
 
         def _do_new_group(self, ranks: List[int], **kwargs: Any) -> Any:

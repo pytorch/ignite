@@ -186,7 +186,9 @@ if has_hvd_support:
             # output can also torch min/max_return_type: (min/max_vals, indices)
             return reduced_res[0]
 
-        def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
+        def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None) -> torch.Tensor:
+            if group is not None:
+                raise NotImplementedError("all_gather with group for horovod is not implemented")
             if tensor.ndimension() == 0:
                 tensor = tensor.unsqueeze(0)
             return hvd.allgather(tensor)

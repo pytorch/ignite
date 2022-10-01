@@ -213,11 +213,13 @@ class ComputationModel(metaclass=ABCMeta):
 
         return cast(Union[torch.Tensor, float], self._collective_op(tensor, self._do_all_reduce, op, group=group))
 
-    def all_gather(self, tensor: Union[torch.Tensor, float, str]) -> Union[torch.Tensor, float, List[float], List[str]]:
+    def all_gather(
+        self, tensor: Union[torch.Tensor, float, str], group: Optional[Any] = None
+    ) -> Union[torch.Tensor, float, List[float], List[str]]:
         if not isinstance(tensor, (torch.Tensor, Number, str)):
             raise TypeError(f"Unhandled input type {type(tensor)}")
 
-        return self._collective_op(tensor, self._do_all_gather)
+        return self._collective_op(tensor, self._do_all_gather, group=group)
 
     def new_group(self, ranks: List[int], **kwargs: Any) -> Any:
         if isinstance(ranks, list) and all(isinstance(item, int) for item in ranks):
@@ -275,7 +277,7 @@ class ComputationModel(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
+    def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None) -> torch.Tensor:
         pass
 
     @abstractmethod
@@ -349,7 +351,9 @@ class _SerialModel(ComputationModel):
     ) -> Union[torch.Tensor, float]:
         return tensor
 
-    def all_gather(self, tensor: Union[torch.Tensor, float, str]) -> Union[torch.Tensor, float, List[float], List[str]]:
+    def all_gather(
+        self, tensor: Union[torch.Tensor, float, str], group: Optional[Any] = None
+    ) -> Union[torch.Tensor, float, List[float], List[str]]:
         if isinstance(tensor, torch.Tensor):
             return tensor
         return cast(Union[List[float], List[str]], [tensor])
@@ -364,7 +368,7 @@ class _SerialModel(ComputationModel):
     def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Any] = None) -> torch.Tensor:
         return tensor
 
-    def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
+    def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None) -> torch.Tensor:
         return tensor
 
     def _do_new_group(self, ranks: List[int], **kwargs: Any) -> Any:

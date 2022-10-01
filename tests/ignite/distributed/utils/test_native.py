@@ -9,6 +9,7 @@ from ignite.distributed.utils import has_native_dist_support
 from tests.ignite.distributed.utils import (
     _test_distrib__get_max_length,
     _test_distrib_all_gather,
+    _test_distrib_all_gather_group,
     _test_distrib_all_reduce,
     _test_distrib_all_reduce_group,
     _test_distrib_barrier,
@@ -247,6 +248,7 @@ def test_idist_all_gather_nccl(distributed_context_single_node_nccl):
 
     device = idist.device()
     _test_distrib_all_gather(device)
+    _test_distrib_all_gather_group(device)
 
 
 @pytest.mark.distributed
@@ -255,6 +257,7 @@ def test_idist_all_gather_gloo(distributed_context_single_node_gloo):
 
     device = idist.device()
     _test_distrib_all_gather(device)
+    _test_distrib_all_gather_group(device)
 
 
 @pytest.mark.distributed

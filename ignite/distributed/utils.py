@@ -348,22 +348,30 @@ def all_reduce(
     return _model.all_reduce(tensor, op, group=group)
 
 
-def all_gather(tensor: Union[torch.Tensor, float, str]) -> Union[torch.Tensor, float, List[float], List[str]]:
+def all_gather(
+    tensor: Union[torch.Tensor, float, str], group: Optional[Union[Any, List[int]]] = None
+) -> Union[torch.Tensor, float, List[float], List[str]]:
     """Helper method to perform all gather operation.
 
     Args:
         tensor: tensor or number or str to collect across participating processes.
+        group: list of integer or the process group for each backend. If None, the default process group will be used.
 
     Returns:
         torch.Tensor of shape ``(world_size * tensor.shape[0], tensor.shape[1], ...)`` if input is a tensor or
         torch.Tensor of shape ``(world_size, )`` if input is a number or
         List of strings if input is a string
 
+    .. versionchanged:: 0.5.0
+        added ``group``
     """
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
 
-    return _model.all_gather(tensor)
+    if isinstance(group, list) and all(isinstance(item, int) for item in group):
+        group = _model.new_group(group)
+
+    return _model.all_gather(tensor, group=group)
 
 
 def broadcast(
