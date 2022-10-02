@@ -437,7 +437,10 @@ if has_native_dist_support:
             if tensor.ndimension() == 0:
                 tensor = tensor.unsqueeze(0)
             output = [torch.zeros_like(tensor) for _ in range(self.get_world_size())]
-            dist.all_gather(output, tensor, group=group)
+            if group is not None:
+                dist.all_gather(output, tensor, group=group)
+            else:
+                dist.all_gather(output, tensor)
             return torch.cat(output, dim=0)
 
         def _do_new_group(self, ranks: List[int], **kwargs: Any) -> Any:
