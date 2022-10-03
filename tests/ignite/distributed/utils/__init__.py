@@ -212,7 +212,7 @@ def _test_distrib_all_gather_group(device):
                 res = idist.all_gather(t, group=group)
         else:
             res = idist.all_gather(t, group=group)
-            assert torch.equal(res, torch.tensor(ranks))
+            assert torch.equal(res, torch.tensor(ranks, device=device))
 
         t = torch.tensor([rank], device=device)
         if bnd in ("horovod"):
@@ -220,7 +220,7 @@ def _test_distrib_all_gather_group(device):
                 res = idist.all_gather(t, group=ranks)
         else:
             res = idist.all_gather(t, group=ranks)
-            assert torch.equal(res, torch.tensor(ranks))
+            assert torch.equal(res, torch.tensor(ranks, device=device))
 
         ranks = "abc"
 
