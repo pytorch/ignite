@@ -145,6 +145,12 @@ def test_callable_events_with_wrong_inputs():
     with pytest.raises(ValueError, match=r"Argument once should be integer and positive"):
         Events.ITERATION_STARTED(once=-1)
 
+    with pytest.raises(ValueError, match=r"Argument before should be integer and greater or equal to zero"):
+        Events.ITERATION_STARTED(before=-1)
+
+    with pytest.raises(ValueError, match=r"Argument after should be integer and greater or equal to zero"):
+        Events.ITERATION_STARTED(after=-1)
+
     with pytest.raises(ValueError, match=r"but will be called with"):
         Events.ITERATION_STARTED(event_filter=lambda x: x)
 
@@ -583,5 +589,6 @@ def test_list_of_events():
 
     _test(Events.ITERATION_STARTED(once=1) | Events.ITERATION_STARTED(once=1), [1, 1])
     _test(Events.ITERATION_STARTED(once=1) | Events.ITERATION_STARTED(once=10), [1, 10])
+    _test(Events.ITERATION_STARTED(once=1) | Events.ITERATION_STARTED(every=3), [1, 3, 6, 9, 12, 15])
     _test(Events.ITERATION_STARTED(once=8) | Events.ITERATION_STARTED(before=3), [1, 2, 8])
     _test(Events.ITERATION_STARTED(once=1) | Events.ITERATION_STARTED(after=12), [1, 13, 14, 15])

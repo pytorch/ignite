@@ -64,20 +64,20 @@ class CallableEventWithFilter:
                 the event type was fired
             every: a value specifying how often the event should be fired
             once: a value specifying when the event should be fired (if only once)
-            before: a value specifying the step that event should be fired before
-            after: a value specifying the step that event should be fired after
+            before: a value specifying the number of occurrence that event should be fired before
+            after: a value specifying the number of occurrence that event should be fired after
 
         Returns:
             CallableEventWithFilter: A new event having the same value but a different filter function
         """
 
-        if not (
-            (event_filter is not None)
-            ^ (every is not None)
-            ^ (once is not None)
-            ^ (before is not None)
-            ^ (after is not None)
-        ):
+        if sum((
+            event_filter is not None,
+            every is not None,
+            once is not None,
+            before is not None,
+            after is not None,
+        )) != 1:
             raise ValueError("Only one of the input arguments should be specified")
 
         if (event_filter is not None) and not callable(event_filter):
