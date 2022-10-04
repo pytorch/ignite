@@ -141,7 +141,7 @@ class CallableEventWithFilter:
         return wrapper
 
     @staticmethod
-    def before_and_after_event_filter(before: int = None, after: int = None) -> Callable:
+    def before_and_after_event_filter(before: Optional[int] = None, after: Optional[int] = None) -> Callable:
         """A wrapper for before and after event filter."""
         before = float("inf") if before is None else before
         after = 0 if after is None else after
