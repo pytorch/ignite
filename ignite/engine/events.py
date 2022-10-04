@@ -143,11 +143,11 @@ class CallableEventWithFilter:
     @staticmethod
     def before_and_after_event_filter(before: Optional[int] = None, after: Optional[int] = None) -> Callable:
         """A wrapper for before and after event filter."""
-        before = float("inf") if before is None else before
-        after = 0 if after is None else after
+        before_: Union[int, float] = float("inf") if before is None else before
+        after_: int = 0 if after is None else after
 
         def wrapper(engine: "Engine", event: int) -> bool:
-            if event > after and event < before:
+            if event > after_ and event < before_:
                 return True
             return False
 
