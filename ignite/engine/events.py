@@ -77,13 +77,12 @@ class CallableEventWithFilter:
                     event_filter is not None,
                     every is not None,
                     once is not None,
-                    before is not None,
-                    after is not None,
+                    (before is not None or after is not None),
                 )
             )
             != 1
         ):
-            raise ValueError("Only one of the input arguments should be specified")
+            raise ValueError("Only one of the input arguments should be specified except before and after")
 
         if (event_filter is not None) and not callable(event_filter):
             raise TypeError("Argument event_filter should be a callable")
@@ -110,11 +109,8 @@ class CallableEventWithFilter:
         if once is not None:
             event_filter = self.once_event_filter(once)
 
-        if after is not None:
-            event_filter = self.after_event_filter(after)
-
-        if before is not None:
-            event_filter = self.before_event_filter(before)
+        if before is not None or after is not None:
+            event_filter = self.before_and_after_event_filter(before, after)
 
         # check signature:
         if event_filter is not None:
@@ -145,22 +141,13 @@ class CallableEventWithFilter:
         return wrapper
 
     @staticmethod
-    def before_event_filter(before: int) -> Callable:
-        """A wrapper for before event filter."""
+    def before_and_after_event_filter(before: int = None, after: int = None) -> Callable:
+        """A wrapper for before and after event filter."""
+        before = float("inf") if before is None else before
+        after = 0 if after is None else after
 
         def wrapper(engine: "Engine", event: int) -> bool:
-            if event < before:
-                return True
-            return False
-
-        return wrapper
-
-    @staticmethod
-    def after_event_filter(after: int) -> Callable:
-        """A wrapper for after event filter."""
-
-        def wrapper(engine: "Engine", event: int) -> bool:
-            if event > after:
+            if event > after and event < before:
                 return True
             return False
 
@@ -303,15 +290,11 @@ class Events(EventEnum):
         def call_once(engine):
             # do something on 50th iteration
 
-        # d) "before" event filter
-        @engine.on(Events.EPOCH_STARTED(before=10))
+        # d) "before" and "after" event filter
+        @engine.on(Events.EPOCH_STARTED(before=30, after=10))
         def call_before(engine):
-            # do something in 1 to 9 epoch
+            # do something in 11 to 29 epoch
 
-        # e) "after" event filter
-        @engine.on(Events.ITERATION_STARTED(after=1000))
-        def call_after(engine):
-            # do something after the 1000th iteration
 
     Event filter function `event_filter` accepts as input `engine` and `event` and should return True/False.
     Argument `event` is the value of iteration or epoch, depending on which type of Events the function is passed.

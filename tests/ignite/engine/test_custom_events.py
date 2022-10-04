@@ -130,11 +130,22 @@ def test_custom_events_with_events_list():
 
 def test_callable_events_with_wrong_inputs():
 
-    with pytest.raises(ValueError, match=r"Only one of the input arguments should be specified"):
+    with pytest.raises(
+        ValueError, match=r"Only one of the input arguments should be specified except before and after"
+    ):
         Events.ITERATION_STARTED()
 
-    with pytest.raises(ValueError, match=r"Only one of the input arguments should be specified"):
+    with pytest.raises(
+        ValueError, match=r"Only one of the input arguments should be specified except before and after"
+    ):
         Events.ITERATION_STARTED(event_filter="123", every=12)
+
+    with pytest.raises(
+        ValueError, match=r"Only one of the input arguments should be specified except before and after"
+    ):
+        Events.ITERATION_STARTED(after=10, before=30, once=1)
+
+    assert Events.ITERATION_STARTED(after=10, before=30)
 
     with pytest.raises(TypeError, match=r"Argument event_filter should be a callable"):
         Events.ITERATION_STARTED(event_filter="123")
@@ -352,6 +363,27 @@ def test_after_event_filter_with_engine():
     _test(Events.EPOCH_STARTED, "epoch", 0, 5)
     _test(Events.EPOCH_COMPLETED, "epoch", 3, 2)
     _test(Events.EPOCH_COMPLETED, "epoch", 5, 0)
+
+
+def test_before_and_after_event_filter_with_engine():
+
+    data = range(100)
+
+    def _test(event_name, event_attr, before, after, expect_calls):
+        engine = Engine(lambda e, b: 1)
+        num_calls = 0
+
+        @engine.on(event_name(before=before, after=after))
+        def _before_and_after_event():
+            nonlocal num_calls
+            num_calls += 1
+            assert getattr(engine.state, event_attr) > after
+
+        engine.run(data, max_epochs=5)
+        assert num_calls == expect_calls
+
+    _test(Events.ITERATION_STARTED, "iteration", 300, 100, 199)
+    _test(Events.EPOCH_COMPLETED, "epoch", 4, 1, 2)
 
 
 def test_once_event_filter_with_engine():
