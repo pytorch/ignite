@@ -313,14 +313,17 @@ def test_every_event_filter_with_engine():
     _test_every_event_filter_with_engine()
 
 
-@pytest.mark.parametrize("event_name, event_attr, before, expect_calls", [
-    (Events.ITERATION_COMPLETED, "iteration", 0, 0),
-    (Events.ITERATION_COMPLETED, "iteration", 300, 299),
-    (Events.ITERATION_COMPLETED, "iteration", 501, 500),
-    (Events.EPOCH_COMPLETED, "epoch", 0, 0),
-    (Events.EPOCH_COMPLETED, "epoch", 3, 2),
-    (Events.EPOCH_COMPLETED, "epoch", 6, 5)
-])
+@pytest.mark.parametrize(
+    "event_name, event_attr, before, expect_calls",
+    [
+        (Events.ITERATION_COMPLETED, "iteration", 0, 0),
+        (Events.ITERATION_COMPLETED, "iteration", 300, 299),
+        (Events.ITERATION_COMPLETED, "iteration", 501, 500),
+        (Events.EPOCH_COMPLETED, "epoch", 0, 0),
+        (Events.EPOCH_COMPLETED, "epoch", 3, 2),
+        (Events.EPOCH_COMPLETED, "epoch", 6, 5),
+    ],
+)
 def test_before_event_filter_with_engine(event_name, event_attr, before, expect_calls):
 
     data = range(100)
@@ -338,14 +341,17 @@ def test_before_event_filter_with_engine(event_name, event_attr, before, expect_
     assert num_calls == expect_calls
 
 
-@pytest.mark.parametrize("event_name, event_attr, after, expect_calls", [
-    (Events.ITERATION_STARTED, "iteration", 0, 500),
-    (Events.ITERATION_COMPLETED, "iteration", 300, 200),
-    (Events.ITERATION_COMPLETED, "iteration", 500, 0),
-    (Events.EPOCH_STARTED, "epoch", 0, 5),
-    (Events.EPOCH_COMPLETED, "epoch", 3, 2),
-    (Events.EPOCH_COMPLETED, "epoch", 5, 0),
-])
+@pytest.mark.parametrize(
+    "event_name, event_attr, after, expect_calls",
+    [
+        (Events.ITERATION_STARTED, "iteration", 0, 500),
+        (Events.ITERATION_COMPLETED, "iteration", 300, 200),
+        (Events.ITERATION_COMPLETED, "iteration", 500, 0),
+        (Events.EPOCH_STARTED, "epoch", 0, 5),
+        (Events.EPOCH_COMPLETED, "epoch", 3, 2),
+        (Events.EPOCH_COMPLETED, "epoch", 5, 0),
+    ],
+)
 def test_after_event_filter_with_engine(event_name, event_attr, after, expect_calls):
 
     data = range(100)
@@ -363,10 +369,10 @@ def test_after_event_filter_with_engine(event_name, event_attr, after, expect_ca
     assert num_calls == expect_calls
 
 
-@pytest.mark.parametrize("event_name, event_attr, before, after, expect_calls", [
-    (Events.ITERATION_STARTED, "iteration", 300, 100, 199),
-    (Events.EPOCH_COMPLETED, "epoch", 4, 1, 2)
-])
+@pytest.mark.parametrize(
+    "event_name, event_attr, before, after, expect_calls",
+    [(Events.ITERATION_STARTED, "iteration", 300, 100, 199), (Events.EPOCH_COMPLETED, "epoch", 4, 1, 2)],
+)
 def test_before_and_after_event_filter_with_engine(event_name, event_attr, before, after, expect_calls):
 
     data = range(100)
