@@ -146,18 +146,17 @@ class FastaiLRFinder:
         if step_mode.lower() == "exp":       
             self._lr_schedule = LRScheduler(_ExponentialLR(optimizer, start_lr_list, end_lr_list, num_iter))
         else:
-            if isinstance(start_lr, list) or isinstance(end_lr, list):
-                self._lr_schedule = ParamGroupScheduler([
-                PiecewiseLinear(
-                    optimizer,
-                    param_name="lr",
-                    milestones_values=[(0, start_lr_list[i]), (num_iter, end_lr_list[i])],
-                    param_group_index=i
-                ) for i in range(len(optimizer.param_groups))]
-            )
-            self._lr_schedule = PiecewiseLinear(
-                optimizer, param_name="lr", milestones_values=[(0, start_lr), (num_iter, end_lr)]
-            )
+            self._lr_schedule = ParamGroupScheduler([
+            PiecewiseLinear(
+                optimizer,
+                param_name="lr",
+                milestones_values=[(0, start_lr_list[i]), (num_iter, end_lr_list[i])],
+                param_group_index=i
+            ) for i in range(len(optimizer.param_groups))]
+        )
+            # self._lr_schedule = PiecewiseLinear(
+            #     optimizer, param_name="lr", milestones_values=[(0, start_lr), (num_iter, end_lr)]
+            # )
         if not trainer.has_event_handler(self._lr_schedule):
             trainer.add_event_handler(Events.ITERATION_COMPLETED, self._lr_schedule, num_iter)
 
@@ -398,7 +397,7 @@ class FastaiLRFinder:
         output_transform: Callable = lambda output: output,
         num_iter: Optional[int] = None,
         start_lr: Optional[Union[float, List[float]]] = None,
-        end_lr: Optional[Union[None, float, List[float]]] = 10.0,
+        end_lr: Optional[Union[float, List[float]]] = 10.0,
         step_mode: str = "exp",
         smooth_f: float = 0.05,
         diverge_th: float = 5.0,
