@@ -48,7 +48,12 @@ class CallableEventWithFilter:
         return self._value_
 
     def __call__(
-        self, event_filter: Optional[Callable] = None, every: Optional[int] = None, once: Optional[int] = None
+        self,
+        event_filter: Optional[Callable] = None,
+        every: Optional[int] = None,
+        once: Optional[int] = None,
+        before: Optional[int] = None,
+        after: Optional[int] = None,
     ) -> "CallableEventWithFilter":
         """
         Makes the event class callable and accepts either an arbitrary callable as filter
@@ -59,13 +64,25 @@ class CallableEventWithFilter:
                 the event type was fired
             every: a value specifying how often the event should be fired
             once: a value specifying when the event should be fired (if only once)
+            before: a value specifying the number of occurrence that event should be fired before
+            after: a value specifying the number of occurrence that event should be fired after
 
         Returns:
             CallableEventWithFilter: A new event having the same value but a different filter function
         """
 
-        if not ((event_filter is not None) ^ (every is not None) ^ (once is not None)):
-            raise ValueError("Only one of the input arguments should be specified")
+        if (
+            sum(
+                (
+                    event_filter is not None,
+                    every is not None,
+                    once is not None,
+                    (before is not None or after is not None),
+                )
+            )
+            != 1
+        ):
+            raise ValueError("Only one of the input arguments should be specified except before and after")
 
         if (event_filter is not None) and not callable(event_filter):
             raise TypeError("Argument event_filter should be a callable")
@@ -76,6 +93,12 @@ class CallableEventWithFilter:
         if (once is not None) and not (isinstance(once, numbers.Integral) and once > 0):
             raise ValueError("Argument once should be integer and positive")
 
+        if (before is not None) and not (isinstance(before, numbers.Integral) and before >= 0):
+            raise ValueError("Argument before should be integer and greater or equal to zero")
+
+        if (after is not None) and not (isinstance(after, numbers.Integral) and after >= 0):
+            raise ValueError("Argument after should be integer and greater or equal to zero")
+
         if every is not None:
             if every == 1:
                 # Just return the event itself
@@ -85,6 +108,9 @@ class CallableEventWithFilter:
 
         if once is not None:
             event_filter = self.once_event_filter(once)
+
+        if before is not None or after is not None:
+            event_filter = self.before_and_after_event_filter(before, after)
 
         # check signature:
         if event_filter is not None:
@@ -109,6 +135,19 @@ class CallableEventWithFilter:
 
         def wrapper(engine: "Engine", event: int) -> bool:
             if event == once:
+                return True
+            return False
+
+        return wrapper
+
+    @staticmethod
+    def before_and_after_event_filter(before: Optional[int] = None, after: Optional[int] = None) -> Callable:
+        """A wrapper for before and after event filter."""
+        before_: Union[int, float] = float("inf") if before is None else before
+        after_: int = 0 if after is None else after
+
+        def wrapper(engine: "Engine", event: int) -> bool:
+            if event > after_ and event < before_:
                 return True
             return False
 
@@ -250,6 +289,12 @@ class Events(EventEnum):
         @engine.on(Events.ITERATION_STARTED(once=50))
         def call_once(engine):
             # do something on 50th iteration
+
+        # d) "before" and "after" event filter
+        @engine.on(Events.EPOCH_STARTED(before=30, after=10))
+        def call_before(engine):
+            # do something in 11 to 29 epoch
+
 
     Event filter function `event_filter` accepts as input `engine` and `event` and should return True/False.
     Argument `event` is the value of iteration or epoch, depending on which type of Events the function is passed.
