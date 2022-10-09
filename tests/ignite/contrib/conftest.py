@@ -1,4 +1,5 @@
 import random
+from pathlib import Path
 
 import pytest
 
@@ -28,6 +29,7 @@ def visdom_server():
         from visdom import Visdom
         from visdom.server import download_scripts
 
+        (Path.home() / ".visdom").mkdir(exist_ok=True)
         download_scripts()
 
         vd_hostname = "localhost"
