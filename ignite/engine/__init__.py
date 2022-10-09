@@ -106,7 +106,7 @@ def supervised_training_step(
         loss.backward()
         if engine.state.iteration % gradient_accumulation_steps == 0:
             optimizer.step()
-        return output_transform(x, y, y_pred, loss)
+        return output_transform(x, y, y_pred, loss * gradient_accumulation_steps)
 
     return update
 
@@ -192,7 +192,7 @@ def supervised_training_step_amp(
             loss.backward()
             if engine.state.iteration % gradient_accumulation_steps == 0:
                 optimizer.step()
-        return output_transform(x, y, y_pred, loss)
+        return output_transform(x, y, y_pred, loss * gradient_accumulation_steps)
 
     return update
 
@@ -269,7 +269,7 @@ def supervised_training_step_apex(
             scaled_loss.backward()
         if engine.state.iteration % gradient_accumulation_steps == 0:
             optimizer.step()
-        return output_transform(x, y, y_pred, loss)
+        return output_transform(x, y, y_pred, loss * gradient_accumulation_steps)
 
     return update
 
