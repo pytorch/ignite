@@ -344,7 +344,7 @@ def supervised_training_step_tpu(
         loss.backward()
         if engine.state.iteration % gradient_accumulation_steps == 0:
             xm.optimizer_step(optimizer, barrier=True)
-        return output_transform(x, y, y_pred, loss)
+        return output_transform(x, y, y_pred, loss * gradient_accumulation_steps)
 
     return update
 
