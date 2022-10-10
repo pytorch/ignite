@@ -1,5 +1,5 @@
 import warnings
-from typing import Any, Callable, cast, Mapping, Optional, Tuple
+from typing import Any, Callable, cast, List, Mapping, Optional, Tuple
 
 import torch
 
@@ -126,7 +126,7 @@ if has_hvd_support:
             finalize()
 
         @staticmethod
-        def spawn(  # type: ignore[override]
+        def spawn(
             fn: Callable,
             args: Tuple,
             kwargs_dict: Optional[Mapping] = None,
@@ -151,7 +151,7 @@ if has_hvd_support:
             hvd_mp_spawn(
                 _HorovodDistModel._dist_worker_task_fn,
                 args=(HOROVOD, fn, args, kwargs_dict),
-                np=nproc_per_node,
+                num_proc=nproc_per_node,
                 hosts=hosts,
                 **kwargs,
             )
@@ -164,7 +164,9 @@ if has_hvd_support:
 
         _manual_reduce_op_map = {"MIN": torch.min, "MAX": torch.max, "PRODUCT": torch.prod}
 
-        def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:
+        def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Any] = None) -> torch.Tensor:
+            if group is not None:
+                raise NotImplementedError("all_reduce with group for horovod is not implemented")
             if op in self._manual_reduce_op_map:
                 op_fn = self._manual_reduce_op_map[op]
                 return self._do_manual_all_reduce(tensor, op_fn)
@@ -184,10 +186,15 @@ if has_hvd_support:
             # output can also torch min/max_return_type: (min/max_vals, indices)
             return reduced_res[0]
 
-        def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
+        def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None) -> torch.Tensor:
+            if group is not None:
+                raise NotImplementedError("all_gather with group for horovod is not implemented")
             if tensor.ndimension() == 0:
                 tensor = tensor.unsqueeze(0)
             return hvd.allgather(tensor)
+
+        def _do_new_group(self, ranks: List[int], **kwargs: Any) -> Any:
+            return hvd.ProcessSet(ranks)
 
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
             return hvd.broadcast(tensor, root_rank=src)

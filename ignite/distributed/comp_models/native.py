@@ -110,7 +110,7 @@ if has_native_dist_support:
             self._backend = backend
             self.setup_env_vars(rank, world_size)
 
-            init_pg_kwargs = {}
+            init_pg_kwargs: Dict[str, Any] = {}
             if timeout is not None:
                 init_pg_kwargs["timeout"] = timeout
 
@@ -347,7 +347,7 @@ if has_native_dist_support:
             os.environ.update(copy_env_vars)
 
         @staticmethod
-        def spawn(  # type: ignore[override]
+        def spawn(
             fn: Callable,
             args: Tuple,
             kwargs_dict: Optional[Mapping] = None,
@@ -419,19 +419,32 @@ if has_native_dist_support:
             "OR": dist.ReduceOp.BOR,
         }
 
-        def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:
+        def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Any] = None) -> torch.Tensor:
             if op not in self._reduce_op_map:
                 raise ValueError(f"Unsupported reduction operation: '{op}'")
+            if group is not None and not isinstance(group, dist.ProcessGroup):
+                raise ValueError("Argument group should be list of int or ProcessGroup")
             reduce_op = self._reduce_op_map[op]
-            dist.all_reduce(tensor, reduce_op)
+            if group is not None:
+                dist.all_reduce(tensor, reduce_op, group=group)
+            else:
+                dist.all_reduce(tensor, reduce_op)
             return tensor
 
-        def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
+        def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None) -> torch.Tensor:
+            if group is not None and not isinstance(group, dist.ProcessGroup):
+                raise ValueError("Argument group should be list of int or ProcessGroup")
             if tensor.ndimension() == 0:
                 tensor = tensor.unsqueeze(0)
             output = [torch.zeros_like(tensor) for _ in range(self.get_world_size())]
-            dist.all_gather(output, tensor)
+            if group is not None:
+                dist.all_gather(output, tensor, group=group)
+            else:
+                dist.all_gather(output, tensor)
             return torch.cat(output, dim=0)
+
+        def _do_new_group(self, ranks: List[int], **kwargs: Any) -> Any:
+            return dist.new_group(ranks=ranks, **kwargs)
 
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
             dist.broadcast(tensor, src=src)
