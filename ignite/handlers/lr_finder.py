@@ -154,9 +154,6 @@ class FastaiLRFinder:
                 param_group_index=i
             ) for i in range(len(optimizer.param_groups))]
         )
-            # self._lr_schedule = PiecewiseLinear(
-            #     optimizer, param_name="lr", milestones_values=[(0, start_lr), (num_iter, end_lr)]
-            # )
         if not trainer.has_event_handler(self._lr_schedule):
             trainer.add_event_handler(Events.ITERATION_COMPLETED, self._lr_schedule, num_iter)
 
