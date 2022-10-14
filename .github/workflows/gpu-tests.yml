@@ -56,7 +56,7 @@ jobs:
       - name: Install PyTorch
         # https://pytorch.org/get-started/locally/
         run: |
-          pip install torch torchvision -f https://download.pytorch.org/whl/cu113/torch_stable.html
+          pip install torch torchvision -f https://download.pytorch.org/whl/cu116/torch_stable.html
           nvidia-smi
           python -c "import torch; print('CUDA is available: ', torch.cuda.is_available())"
 
