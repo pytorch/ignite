@@ -274,12 +274,18 @@ def test_lr_policy(lr_finder, to_save, dummy_engine, dataloader):
     lr = lr_finder.get_results()["lr"]
     assert all([lr[i - 1] < lr[i] for i in range(1, len(lr))])
 
+
 @pytest.mark.parametrize("step_mode", ["exp", "linear"])
-def test_multi_group_optimizer(lr_finder, dummy_engine_mulitple_param_groups, to_save_mulitple_param_groups, dataloader, step_mode):
-    with lr_finder.attach(dummy_engine_mulitple_param_groups, to_save_mulitple_param_groups, start_lr=[0.1, 0.1, 0.01], end_lr=[1.0, 1.0, 1.0], step_mode=step_mode) as trainer_with_lr_finder:
-        trainer_with_lr_finder.run(dataloader)
+def test_multi_opt(lr_finder, dummy_engine_mulitple_param_groups, to_save_mulitple_param_groups, dataloader, step_mode):
+    start_lr = [0.1, 0.1, 0.01]
+    end_lr = [1.0, 1.0, 1.0]
+    dummy_engine = dummy_engine_mulitple_param_groups
+    to_save = to_save_mulitple_param_groups
+    with lr_finder.attach(dummy_engine, to_save, start_lr=start_lr, end_lr=end_lr, step_mode=step_mode) as trainer:
+        trainer.run(dataloader)
     groups_lrs = lr_finder.get_results()["lr"]
-    assert all([all([group_lrs[i-1] < group_lrs[i] for i in range(1,len(group_lrs))]) for group_lrs in groups_lrs])
+    assert [all([group_lrs[i - 1] < group_lrs[i] for i in range(1, len(group_lrs))]) for group_lrs in groups_lrs]
+
 
 def assert_output_sizes(lr_finder, dummy_engine):
     iteration = dummy_engine.state.iteration

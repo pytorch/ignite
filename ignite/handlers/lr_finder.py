@@ -17,7 +17,6 @@ from ignite.handlers import Checkpoint
 from ignite.handlers.param_scheduler import LRScheduler, PiecewiseLinear, ParamGroupScheduler
 
 
-
 class FastaiLRFinder:
     """Learning rate finder handler for supervised trainers.
 
@@ -125,8 +124,10 @@ class FastaiLRFinder:
             start_lr_list = [start_lr] * len(optimizer.param_groups)
         elif isinstance(start_lr, list):
             if len(start_lr) != len(optimizer.param_groups):
+                start_error_message = "Number of values of start_lr should be equal to optimizer values."
+                value_message = f"start_lr values:{len(start_lr)} optimizer values: {len(optimizer.param_groups)}"
                 raise ValueError(
-                    f"Number of values of start_lr should be equal to optimizer values. start_lr values:{len(start_lr)} optimizer values: {len(optimizer.param_groups)}"
+                    f"{start_error_message} {value_message}"
                 )
             start_lr_list = start_lr
         else:
@@ -135,25 +136,26 @@ class FastaiLRFinder:
             end_lr_list = [end_lr] * len(optimizer.param_groups)
         elif isinstance(end_lr, list):
             if len(end_lr) != len(optimizer.param_groups):
-                    raise ValueError(
-                        f"Number of values end_lr should be equal to optimizer values. end_lr values:{len(end_lr)} optimizer values: {len(optimizer.param_groups)}"
-                    )
+                end_error_message = "Number of values end_lr should be equal to optimizer values."
+                value_message = f"end_lr values:{len(end_lr)} optimizer values: {len(optimizer.param_groups)}"
+                raise ValueError(
+                    f"{end_error_message} {value_message}"
+                )
             end_lr_list = end_lr
         else:
             raise TypeError(f"end_lr should a float or list of floats, but given {type(end_lr)}")
-        
         # Initialize the proper learning rate policy
-        if step_mode.lower() == "exp":       
+        if step_mode.lower() == "exp":
             self._lr_schedule = LRScheduler(_ExponentialLR(optimizer, start_lr_list, end_lr_list, num_iter))
         else:
             self._lr_schedule = ParamGroupScheduler([
-            PiecewiseLinear(
-                optimizer,
-                param_name="lr",
-                milestones_values=[(0, start_lr_list[i]), (num_iter, end_lr_list[i])],
-                param_group_index=i
-            ) for i in range(len(optimizer.param_groups))]
-        )
+                PiecewiseLinear(
+                    optimizer,
+                    param_name="lr",
+                    milestones_values=[(0, start_lr_list[i]), (num_iter, end_lr_list[i])],
+                    param_group_index=i
+                ) for i in range(len(optimizer.param_groups))]
+            )
         if not trainer.has_event_handler(self._lr_schedule):
             trainer.add_event_handler(Events.ITERATION_COMPLETED, self._lr_schedule, num_iter)
 
@@ -277,7 +279,6 @@ class FastaiLRFinder:
             )
         if not self._history:
             raise RuntimeError("learning rate finder didn't run yet so results can't be plotted")
-
         if skip_start < 0:
             raise ValueError("skip_start cannot be negative")
         if skip_end < 0:
