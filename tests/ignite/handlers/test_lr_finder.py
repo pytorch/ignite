@@ -555,7 +555,7 @@ def test_plot_multiple_param_groups(
 ):
 
     with lr_finder.attach(
-        dummy_engine_mulitple_param_groups, to_save_mulitple_param_groups, end_lr=20, smooth_f=0.04
+        dummy_engine_mulitple_param_groups, to_save_mulitple_param_groups, end_lr=20., smooth_f=0.04
     ) as trainer_with_finder:
         trainer_with_finder.run(dataloader_plot)
 
