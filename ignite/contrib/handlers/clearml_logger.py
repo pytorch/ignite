@@ -115,15 +115,10 @@ class ClearMLLogger(BaseLogger):
             from clearml import Task
             from clearml.binding.frameworks.tensorflow_bind import WeightsGradientHistHelper
         except ImportError:
-            try:
-                # Backwards-compatibility for legacy Trains SDK
-                from trains import Task
-                from trains.binding.frameworks.tensorflow_bind import WeightsGradientHistHelper
-            except ImportError:
-                raise RuntimeError(
-                    "This contrib module requires clearml to be installed. "
-                    "You may install clearml using: \n pip install clearml \n"
-                )
+            raise RuntimeError(
+                "This contrib module requires clearml to be installed. "
+                "You may install clearml using: \n pip install clearml \n"
+            )
 
         experiment_kwargs = {k: v for k, v in kwargs.items() if k not in ("project_name", "task_name", "task_type")}
 

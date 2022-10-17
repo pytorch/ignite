@@ -21,16 +21,9 @@ from ignite.contrib.handlers.clearml_logger import (
     WeightsHistHandler,
     WeightsScalarHandler,
 )
-from ignite.contrib.handlers.trains_logger import TrainsLogger
+
 from ignite.engine import Engine, Events, State
 from ignite.handlers import Checkpoint
-
-
-def test_trains_logger_alias(dirname):
-    with pytest.warns(UserWarning, match="ClearMLSaver: running in bypass mode"):
-        TrainsLogger.set_bypass_mode(True)
-        logger = TrainsLogger(output_uri=dirname)
-        assert isinstance(logger, ClearMLLogger)
 
 
 def test_optimizer_params_handler_wrong_setup():
