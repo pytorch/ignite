@@ -115,7 +115,6 @@ class ClearMLLogger(BaseLogger):
             from clearml import Task
             from clearml.binding.frameworks.tensorflow_bind import WeightsGradientHistHelper
         except ImportError:
-            git
             raise RuntimeError(
                 "This contrib module requires clearml to be installed. "
                 "You may install clearml using: \n pip install clearml \n"
