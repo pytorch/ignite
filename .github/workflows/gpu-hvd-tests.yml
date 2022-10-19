@@ -53,13 +53,23 @@ jobs:
       - name: Install PyTorch
         # https://pytorch.org/get-started/locally/
         run: |
-          pip install --upgrade torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
+# <<<<<<< HEAD
+#           pip install --upgrade torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
+# =======
+#           pip install torch torchvision -f https://download.pytorch.org/whl/cu116/torch_stable.html
+# >>>>>>> a670b8620 (Update gpu-hvd-tests.yml)
           nvidia-smi
           python -c "import torch; print(torch.__version__, ', CUDA is available: ', torch.cuda.is_available()); exit(not torch.cuda.is_available())"
 
       - name: Install Horovod with NCCL GPU ops
         run: |
-          HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]
+# <<<<<<< HEAD
+#           HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]
+# =======
+#           cd $GITHUB_WORKSPACE/horovod && python setup.py sdist
+#           conda install -y cmake nccl cuda-nvcc -c nvidia
+#           cd $GITHUB_WORKSPACE/horovod && HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_NCCL_LINK=SHARED HOROVOD_WITHOUT_MPI=1 HOROVOD_WITH_PYTORCH=1 pip install -v $(ls $GITHUB_WORKSPACE/horovod/dist/horovod-*.tar.gz) && ldconfig
+# >>>>>>> a670b8620 (Update gpu-hvd-tests.yml)
           horovodrun --check-build
 
       - name: Install dependencies
