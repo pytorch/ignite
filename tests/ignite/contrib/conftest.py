@@ -27,7 +27,7 @@ def visdom_server():
         import time
 
         from visdom import Visdom
-        from visdom.server import download_scripts
+        from visdom.server.build import download_scripts
 
         (Path.home() / ".visdom").mkdir(exist_ok=True)
         download_scripts()
