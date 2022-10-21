@@ -1,0 +1,64 @@
+name: Run HVD-specific unit tests on GPUs
+on:
+  push:
+    paths:
+      - "ignite/**"
+      - "tests/ignite/**"
+      - "tests/run_gpu_tests.sh"
+      - "tests/run_code_style.sh"
+      - "examples/**.py"
+      - "requirements-dev.txt"
+      - ".github/workflows/gpu-hvd-tests.yml"
+concurrency:
+  # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>
+  group: gpu-hvd-tests-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
+  cancel-in-progress: true
+jobs:
+  gpu-hvd-tests:
+    runs-on: [self-hosted, 2-gpus]
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      max-parallel: 1
+      fail-fast: true
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          miniconda-version: "latest"
+          python-version: 3.8
+      - name: Get year & week number
+        id: get-date
+        run: |
+          echo "::set-output name=date::$(/bin/date "+%Y-%U")"
+      - name: Get pip cache dir
+        shell: bash -l {0}
+        id: pip-cache
+        run: |
+          pip install -U pip || python -m pip install -U pip
+          echo "::set-output name=dir::$(pip cache dir)"
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ${{ steps.pip-cache.outputs.dir }}
+          key: ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-3.8-pytorch-${{ hashFiles('requirements-dev.txt') }}
+          restore-keys: |
+            ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}--3.8-pytorch-
+      - name: Install PyTorch
+        shell: bash -l {0}
+        # https://pytorch.org/get-started/locally/
+        run: |
+          pip install torch torchvision -f https://download.pytorch.org/whl/cu113/torch_stable.html
+          pip install torch torchvision -f https://download.pytorch.org/whl/cu116/torch_stable.html
+          nvidia-smi
+          python -c "import torch; print('CUDA is available: ', torch.cuda.is_available())"
+@@ -72,7 +72,7 @@ jobs:
+        shell: bash -l {0}
+        run: |
+          cd $GITHUB_WORKSPACE/horovod && python setup.py sdist
+          conda install -y cmake nccl=2.11 -c conda-forge
+          conda install -y cmake nccl cuda-nvcc -c nvidia
+          cd $GITHUB_WORKSPACE/horovod && HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_NCCL_LINK=SHARED HOROVOD_WITHOUT_MPI=1 HOROVOD_WITH_PYTORCH=1 pip install -v $(ls $GITHUB_WORKSPACE/horovod/dist/horovod-*.tar.gz) && ldconfig
+          horovodrun --check-build
