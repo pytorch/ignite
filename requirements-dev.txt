@@ -13,7 +13,7 @@ tqdm
 scikit-learn
 matplotlib
 tensorboardX
-visdom
+visdom==0.2.2.post1
 # temporary fix for
 # ImportError: cannot import name 'soft_unicode' from 'markupsafe'
 markupsafe==2.0.1
