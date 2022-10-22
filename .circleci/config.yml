@@ -161,7 +161,7 @@ jobs:
             docker exec -it pthd /bin/bash -c "$minst1_cmd"
 
             # 2) mnist_with_visdom.py
-            export visdom_script_cmd='python -c "from visdom.server import download_scripts; download_scripts()"'
+            export visdom_script_cmd='python -c "from visdom.server.build import download_scripts; download_scripts()"'
             export visdom_cmd='python -m visdom.server'
             docker exec -d pthd /bin/bash -c "$visdom_script_cmd && $visdom_cmd"
             export sleep_cmd='sleep 10'
