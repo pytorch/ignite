@@ -81,7 +81,7 @@ class ROC_AUC(EpochMetric):
         try:
             from sklearn.metrics import roc_auc_score  # noqa: F401
         except ImportError:
-            raise RuntimeError("This contrib module requires sklearn to be installed.")
+            raise ModuleNotFoundError("This contrib module requires scikit-learn to be installed.")
 
         super(ROC_AUC, self).__init__(
             roc_auc_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn, device=device
@@ -144,7 +144,7 @@ class RocCurve(EpochMetric):
         try:
             from sklearn.metrics import roc_curve  # noqa: F401
         except ImportError:
-            raise RuntimeError("This contrib module requires sklearn to be installed.")
+            raise ModuleNotFoundError("This contrib module requires scikit-learn to be installed.")
 
         super(RocCurve, self).__init__(
             roc_auc_curve_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn

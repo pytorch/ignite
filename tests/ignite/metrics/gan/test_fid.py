@@ -20,10 +20,10 @@ def mock_no_scipy():
 
 def test_no_scipy(mock_no_scipy):
 
-    with pytest.raises(RuntimeError, match=r"This module requires scipy to be installed."):
+    with pytest.raises(ModuleNotFoundError, match=r"This module requires scipy to be installed."):
         FID()
 
-    with pytest.raises(RuntimeError, match=r"fid_score requires scipy to be installed."):
+    with pytest.raises(ModuleNotFoundError, match=r"fid_score requires scipy to be installed."):
         fid_score(0, 0, 0, 0)
 
 
@@ -35,10 +35,10 @@ def mock_no_numpy():
 
 def test_no_numpy(mock_no_numpy):
 
-    with pytest.raises(RuntimeError, match=r"This module requires numpy to be installed."):
+    with pytest.raises(ModuleNotFoundError, match=r"This module requires numpy to be installed."):
         FID()
 
-    with pytest.raises(RuntimeError, match=r"fid_score requires numpy to be installed."):
+    with pytest.raises(ModuleNotFoundError, match=r"fid_score requires numpy to be installed."):
         fid_score(0, 0, 0, 0)
 
 

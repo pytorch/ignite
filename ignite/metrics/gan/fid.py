@@ -25,12 +25,12 @@ def fid_score(
     try:
         import numpy as np
     except ImportError:
-        raise RuntimeError("fid_score requires numpy to be installed.")
+        raise ModuleNotFoundError("fid_score requires numpy to be installed.")
 
     try:
         import scipy.linalg
     except ImportError:
-        raise RuntimeError("fid_score requires scipy to be installed.")
+        raise ModuleNotFoundError("fid_score requires scipy to be installed.")
 
     mu1, mu2 = mu1.cpu(), mu2.cpu()
     sigma1, sigma2 = sigma1.cpu(), sigma2.cpu()
@@ -175,12 +175,12 @@ class FID(_BaseInceptionMetric):
         try:
             import numpy as np  # noqa: F401
         except ImportError:
-            raise RuntimeError("This module requires numpy to be installed.")
+            raise ModuleNotFoundError("This module requires numpy to be installed.")
 
         try:
             import scipy  # noqa: F401
         except ImportError:
-            raise RuntimeError("This module requires scipy to be installed.")
+            raise ModuleNotFoundError("This module requires scipy to be installed.")
 
         if num_features is None and feature_extractor is None:
             num_features = 1000

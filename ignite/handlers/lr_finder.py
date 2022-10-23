@@ -259,7 +259,7 @@ class FastaiLRFinder:
         try:
             from matplotlib import pyplot as plt
         except ImportError:
-            raise RuntimeError(
+            raise ModuleNotFoundError(
                 "This method requires matplotlib to be installed. "
                 "Please install it with command: \n pip install matplotlib"
             )

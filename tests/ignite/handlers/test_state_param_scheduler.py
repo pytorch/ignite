@@ -322,7 +322,7 @@ def test_torch_save_load(dirname):
 
 def test_simulate_and_plot_values_no_matplotlib():
 
-    with pytest.raises(RuntimeError, match=r"This method requires matplotlib to be installed."):
+    with pytest.raises(ModuleNotFoundError, match=r"This method requires matplotlib to be installed."):
         with patch.dict("sys.modules", {"matplotlib.pyplot": None}):
             event = Events.EPOCH_COMPLETED
             max_epochs = 2

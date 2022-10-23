@@ -5,7 +5,9 @@ from PIL import Image
 try:
     from image_dataset_viz import render_datapoint
 except ImportError:
-    raise RuntimeError("Install it via pip install --upgrade git+https://github.com/vfdev-5/ImageDatasetViz.git")
+    raise ModuleNotFoundError(
+        "Please install image-dataset-viz via pip install --upgrade git+https://github.com/vfdev-5/ImageDatasetViz.git"
+    )
 
 
 def _getvocpallete(num_cls):

@@ -906,7 +906,7 @@ def test_simulate_and_plot_values():
         milestones_values=[(10, 0.5), (20, 0.45), (21, 0.3), (30, 0.1), (40, 0.1)],
     )
 
-    with pytest.raises(RuntimeError, match=r"This method requires matplotlib to be installed."):
+    with pytest.raises(ModuleNotFoundError, match=r"This method requires matplotlib to be installed."):
         with patch.dict("sys.modules", {"matplotlib.pyplot": None}):
             _test(
                 PiecewiseLinear,

@@ -31,7 +31,7 @@ def update_fn(engine, batch):
 
 
 def test_pbar_errors():
-    with pytest.raises(RuntimeError, match=r"This contrib module requires tqdm to be installed"):
+    with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires tqdm to be installed"):
         with patch.dict("sys.modules", {"tqdm.autonotebook": None}):
             ProgressBar()
 

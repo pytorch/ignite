@@ -126,7 +126,7 @@ class ProgressBar(BaseLogger):
         try:
             from tqdm.autonotebook import tqdm
         except ImportError:
-            raise RuntimeError(
+            raise ModuleNotFoundError(
                 "This contrib module requires tqdm to be installed. "
                 "Please install it with command: \n pip install tqdm"
             )

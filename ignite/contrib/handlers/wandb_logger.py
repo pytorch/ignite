@@ -127,7 +127,7 @@ class WandBLogger(BaseLogger):
 
             self._wandb = wandb
         except ImportError:
-            raise RuntimeError(
+            raise ModuleNotFoundError(
                 "This contrib module requires wandb to be installed. "
                 "You man install wandb with the command:\n pip install wandb\n"
             )

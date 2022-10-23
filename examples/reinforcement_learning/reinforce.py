@@ -12,7 +12,7 @@ from ignite.engine import Engine, Events
 try:
     import gym
 except ImportError:
-    raise RuntimeError("Please install opengym: pip install gym")
+    raise ModuleNotFoundError("Please install opengym: pip install gym")
 
 
 class Policy(nn.Module):

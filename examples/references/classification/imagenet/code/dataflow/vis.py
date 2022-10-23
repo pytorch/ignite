@@ -6,7 +6,9 @@ import torch
 try:
     from image_dataset_viz import render_datapoint
 except ImportError:
-    raise RuntimeError("Install it via pip install --upgrade git+https://github.com/vfdev-5/ImageDatasetViz.git")
+    raise ModuleNotFoundError(
+        "Please install image-dataset-viz via pip install --upgrade git+https://github.com/vfdev-5/ImageDatasetViz.git"
+    )
 
 
 def tensor_to_numpy(t: torch.Tensor) -> np.ndarray:

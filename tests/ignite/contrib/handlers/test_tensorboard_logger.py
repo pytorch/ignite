@@ -683,5 +683,5 @@ def test_no_torch_utils_tensorboard_package(dirname):
 
 def test_no_tensorboardX_nor_torch_utils_tensorboard():
     with patch.dict("sys.modules", {"tensorboardX": None, "torch.utils.tensorboard": None}):
-        with pytest.raises(RuntimeError, match=r"This contrib module requires either tensorboardX or torch"):
+        with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires either tensorboardX or torch"):
             TensorboardLogger(log_dir=None)

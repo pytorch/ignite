@@ -122,7 +122,7 @@ def test_profilers_wrong_inputs():
     with pytest.raises(TypeError, match=r"Argument engine should be ignite.engine.Engine"):
         profiler.attach(None)
 
-    with pytest.raises(RuntimeError, match=r"Need pandas to write results as files"):
+    with pytest.raises(ModuleNotFoundError, match=r"Need pandas to write results as files"):
         with patch.dict("sys.modules", {"pandas": None}):
             profiler.write_results("")
 
@@ -130,7 +130,7 @@ def test_profilers_wrong_inputs():
     with pytest.raises(TypeError, match=r"Argument engine should be ignite.engine.Engine"):
         profiler.attach(None)
 
-    with pytest.raises(RuntimeError, match=r"Need pandas to write results as files"):
+    with pytest.raises(ModuleNotFoundError, match=r"Need pandas to write results as files"):
         with patch.dict("sys.modules", {"pandas": None}):
             profiler.write_results("")
 

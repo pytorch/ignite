@@ -519,7 +519,7 @@ def test_apply_suggested_lr_multiple_param_groups(
 
 def test_no_matplotlib(no_site_packages, lr_finder):
 
-    with pytest.raises(RuntimeError, match=r"This method requires matplotlib to be installed"):
+    with pytest.raises(ModuleNotFoundError, match=r"This method requires matplotlib to be installed"):
         lr_finder.plot()
 
 
