@@ -992,19 +992,7 @@ def test_integration_with_executor_as_context_manager(visdom_server, visdom_serv
         assert all([y == y_true for y, y_true in zip(y_vals, losses)])
 
 
-@pytest.fixture
-def no_site_packages():
-    import visdom  # noqa: F401
-
-    visdom_module = sys.modules["visdom"]
-    del sys.modules["visdom"]
-    prev_path = list(sys.path)
-    sys.path = [p for p in sys.path if "site-packages" not in p]
-    yield "no_site_packages"
-    sys.path = prev_path
-    sys.modules["visdom"] = visdom_module
-
-
+@pytest.mark.parametrize("no_site_packages", ["visdom"], indirect=True)
 def test_no_visdom(no_site_packages):
 
     with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires visdom package"):

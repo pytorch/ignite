@@ -1,7 +1,7 @@
 import math
 import os
 from collections import defaultdict
-from unittest.mock import ANY, call, MagicMock, Mock
+from unittest.mock import ANY, call, MagicMock, Mock, patch
 
 import clearml
 import pytest
@@ -24,6 +24,23 @@ from ignite.contrib.handlers.clearml_logger import (
 
 from ignite.engine import Engine, Events, State
 from ignite.handlers import Checkpoint
+
+
+def test_no_clearml():
+    with patch.dict("sys.modules", {"clearml": None, "trains": None}):
+        with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires clearml to be installed."):
+            ClearMLSaver()
+
+        with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires clearml to be installed."):
+            ClearMLLogger()
+
+    with patch.dict("sys.modules", {"clearml.binding.frameworks.tensorflow_bind": None}):
+        with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires clearml to be installed."):
+            ClearMLLogger()
+
+    with patch.dict("sys.modules", {"clearml.binding.frameworks": None, "trains.binding.frameworks": None}):
+        with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires clearml to be installed."):
+            ClearMLSaver.__call__(None, {}, "")
 
 
 def test_optimizer_params_handler_wrong_setup():

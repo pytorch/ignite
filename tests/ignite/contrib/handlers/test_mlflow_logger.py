@@ -350,24 +350,7 @@ def test_mlflow_bad_metric_name_handling(dirname):
         assert t == s.value
 
 
-@pytest.fixture
-def no_site_packages():
-
-    mlflow_client_modules = {}
-    for k in sys.modules:
-        if "mlflow" in k:
-            mlflow_client_modules[k] = sys.modules[k]
-    for k in mlflow_client_modules:
-        del sys.modules[k]
-
-    prev_path = list(sys.path)
-    sys.path = [p for p in sys.path if "site-packages" not in p]
-    yield "no_site_packages"
-    sys.path = prev_path
-    for k in mlflow_client_modules:
-        sys.modules[k] = mlflow_client_modules[k]
-
-
+@pytest.mark.parametrize("no_site_packages", ["mlflow"], indirect=True)
 def test_no_mlflow_client(no_site_packages):
 
     with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires mlflow to be installed."):

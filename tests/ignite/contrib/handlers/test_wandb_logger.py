@@ -281,25 +281,7 @@ def test_wandb_close():
     mock_logger.close()
 
 
-@pytest.fixture
-def no_site_packages():
-    import sys
-
-    wandb_client_modules = {}
-    for k in sys.modules:
-        if "wandb" in k:
-            wandb_client_modules[k] = sys.modules[k]
-    for k in wandb_client_modules:
-        del sys.modules[k]
-
-    prev_path = list(sys.path)
-    sys.path = [p for p in sys.path if "site-packages" not in p]
-    yield "no_site_packages"
-    sys.path = prev_path
-    for k in wandb_client_modules:
-        sys.modules[k] = wandb_client_modules[k]
-
-
+@pytest.mark.parametrize("no_site_packages", ["wandb"], indirect=True)
 def test_no_wandb_client(no_site_packages):
 
     with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires wandb to be installed."):
