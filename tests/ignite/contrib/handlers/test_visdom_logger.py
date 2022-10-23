@@ -1007,11 +1007,11 @@ def no_site_packages():
 
 def test_no_visdom(no_site_packages):
 
-    with pytest.raises(RuntimeError, match=r"This contrib module requires visdom package"):
+    with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires visdom package"):
         VisdomLogger()
 
 
 def test_no_concurrent():
-    with pytest.raises(RuntimeError, match=r"This contrib module requires concurrent.futures"):
+    with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires concurrent.futures"):
         with patch.dict("sys.modules", {"concurrent.futures": None}):
             VisdomLogger(num_workers=1)

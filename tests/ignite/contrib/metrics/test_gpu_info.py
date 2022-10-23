@@ -9,7 +9,7 @@ from ignite.engine import Engine, State
 
 def test_no_pynvml_package():
     with patch.dict("sys.modules", {"pynvml.smi": None}):
-        with pytest.raises(RuntimeError, match="This contrib module requires pynvml to be installed."):
+        with pytest.raises(ModuleNotFoundError, match="This contrib module requires pynvml to be installed."):
             GpuInfo()
 
 

@@ -370,5 +370,5 @@ def no_site_packages():
 
 def test_no_mlflow_client(no_site_packages):
 
-    with pytest.raises(RuntimeError, match=r"This contrib module requires mlflow to be installed."):
+    with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires mlflow to be installed."):
         MLflowLogger()

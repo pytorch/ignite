@@ -340,7 +340,7 @@ def test_simulate_and_plot_values_no_matplotlib():
         # launch plot values
         scheduler_cls.plot_values(num_events=len(data) * max_epochs, **scheduler_kwargs)
 
-    with pytest.raises(RuntimeError, match=r"This method requires matplotlib to be installed."):
+    with pytest.raises(ModuleNotFoundError, match=r"This method requires matplotlib to be installed."):
         with patch.dict("sys.modules", {"matplotlib.pyplot": None}):
             _test(
                 MultiStepStateScheduler,
