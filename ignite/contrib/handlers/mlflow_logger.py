@@ -88,7 +88,7 @@ class MLflowLogger(BaseLogger):
         try:
             import mlflow
         except ImportError:
-            raise RuntimeError(
+            raise ModuleNotFoundError(
                 "This contrib module requires mlflow to be installed. "
                 "Please install it with command: \n pip install mlflow"
             )

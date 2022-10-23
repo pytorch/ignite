@@ -104,7 +104,7 @@ class PolyaxonLogger(BaseLogger):
 
                 self.experiment = Experiment(*args, **kwargs)
             except ImportError:
-                raise RuntimeError(
+                raise ModuleNotFoundError(
                     "This contrib module requires polyaxon to be installed.\n"
                     "For Polyaxon v1.x please install it with command: \n pip install polyaxon\n"
                     "For Polyaxon v0.x please install it with command: \n pip install polyaxon-client"

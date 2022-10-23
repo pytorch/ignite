@@ -180,7 +180,7 @@ class NeptuneLogger(BaseLogger):
         try:
             import neptune
         except ImportError:
-            raise RuntimeError(
+            raise ModuleNotFoundError(
                 "This contrib module requires neptune-client to be installed. "
                 "You may install neptune with command: \n pip install neptune-client \n"
             )

@@ -20,7 +20,7 @@ try:
     import torchvision.utils as vutils
 
 except ImportError:
-    raise ImportError(
+    raise ModuleNotFoundError(
         "Please install torchvision to run this example, for example "
         "via conda by running 'conda install -c pytorch torchvision'. "
     )

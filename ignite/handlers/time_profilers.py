@@ -295,7 +295,7 @@ class BasicTimeProfiler:
         try:
             import pandas as pd
         except ImportError:
-            raise RuntimeError("Need pandas to write results as files")
+            raise ModuleNotFoundError("Need pandas to write results as files")
 
         iters_per_epoch = self.total_num_iters // self.max_epochs
 
@@ -663,7 +663,7 @@ class HandlersTimeProfiler:
         try:
             import pandas as pd
         except ImportError:
-            raise RuntimeError("Need pandas to write results as files")
+            raise ModuleNotFoundError("Need pandas to write results as files")
 
         processing_stats = torch.tensor(self.processing_times, dtype=torch.float32)
         dataflow_stats = torch.tensor(self.dataflow_times, dtype=torch.float32)

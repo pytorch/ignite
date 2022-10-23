@@ -59,7 +59,7 @@ class CohenKappa(EpochMetric):
         try:
             from sklearn.metrics import cohen_kappa_score  # noqa: F401
         except ImportError:
-            raise RuntimeError("This contrib module requires sklearn to be installed.")
+            raise ModuleNotFoundError("This contrib module requires scikit-learn to be installed.")
         if weights not in (None, "linear", "quadratic"):
             raise ValueError("Kappa Weighting type must be None or linear or quadratic.")
 

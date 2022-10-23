@@ -22,7 +22,7 @@ except ImportError:
     try:
         from torch.utils.tensorboard import SummaryWriter
     except ImportError:
-        raise RuntimeError(
+        raise ModuleNotFoundError(
             "This module requires either tensorboardX or torch >= 1.2.0. "
             "You may install tensorboardX with command: \n pip install tensorboardX \n"
             "or upgrade PyTorch using your package manager of choice (pip or conda)."

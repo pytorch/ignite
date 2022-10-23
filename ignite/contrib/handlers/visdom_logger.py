@@ -150,7 +150,7 @@ class VisdomLogger(BaseLogger):
         try:
             import visdom
         except ImportError:
-            raise RuntimeError(
+            raise ModuleNotFoundError(
                 "This contrib module requires visdom package. "
                 "Please install it with command:\n"
                 "pip install git+https://github.com/fossasia/visdom.git"
@@ -163,7 +163,7 @@ class VisdomLogger(BaseLogger):
             try:
                 from concurrent.futures import ThreadPoolExecutor
             except ImportError:
-                raise RuntimeError(
+                raise ModuleNotFoundError(
                     "This contrib module requires concurrent.futures module"
                     "Please install it with command:\n"
                     "pip install futures"

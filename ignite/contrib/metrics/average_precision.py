@@ -72,7 +72,7 @@ class AveragePrecision(EpochMetric):
         try:
             from sklearn.metrics import average_precision_score  # noqa: F401
         except ImportError:
-            raise RuntimeError("This contrib module requires sklearn to be installed.")
+            raise ModuleNotFoundError("This contrib module requires scikit-learn to be installed.")
 
         super(AveragePrecision, self).__init__(
             average_precision_compute_fn,

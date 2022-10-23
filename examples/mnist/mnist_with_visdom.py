@@ -15,7 +15,7 @@ from ignite.metrics import Accuracy, Loss
 try:
     import visdom
 except ImportError:
-    raise RuntimeError("No visdom package is found. Please install it with command: \n pip install visdom")
+    raise ModuleNotFoundError("No visdom package is found. Please install it with command: \n pip install visdom")
 
 
 class Net(nn.Module):
