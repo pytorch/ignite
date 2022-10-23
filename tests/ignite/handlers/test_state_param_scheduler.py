@@ -262,40 +262,34 @@ def test_custom_scheduler_asserts():
         )
 
 
-@pytest.mark.parametrize("scheduler_cls,scheduler_kwargs", [config3, config4, config5, config6])
+@pytest.mark.parametrize("scheduler_cls, scheduler_kwargs", [config3, config4, config5, config6])
 def test_simulate_and_plot_values(scheduler_cls, scheduler_kwargs):
 
     import matplotlib
 
     matplotlib.use("Agg")
 
-    def _test(scheduler_cls, scheduler_kwargs):
-        event = Events.EPOCH_COMPLETED
-        max_epochs = 2
-        data = [0] * 10
+    event = Events.EPOCH_COMPLETED
+    max_epochs = 2
+    data = [0] * 10
 
-        scheduler = scheduler_cls(**scheduler_kwargs)
-        trainer = Engine(lambda engine, batch: None)
-        scheduler.attach(trainer, event)
-        trainer.run(data, max_epochs=max_epochs)
+    scheduler = scheduler_cls(**scheduler_kwargs)
+    trainer = Engine(lambda engine, batch: None)
+    scheduler.attach(trainer, event)
+    trainer.run(data, max_epochs=max_epochs)
 
-        # launch plot values
-        scheduler_cls.plot_values(num_events=len(data) * max_epochs, **scheduler_kwargs)
-
-    _test(scheduler_cls, scheduler_kwargs)
+    # launch plot values
+    scheduler_cls.plot_values(num_events=len(data) * max_epochs, **scheduler_kwargs)
 
 
-@pytest.mark.parametrize("scheduler_cls,scheduler_kwargs", [config3, config4, config5, config6])
-def test_simulate_values(scheduler_cls, scheduler_kwargs):
-    def _test(scheduler_cls, scheduler_kwargs):
-        max_epochs = 2
-        data = [0] * 10
-        scheduler_cls.simulate_values(num_events=len(data) * max_epochs, **scheduler_kwargs)
+@pytest.mark.parametrize("save_history", [False, True])
+@pytest.mark.parametrize("scheduler_cls, scheduler_kwargs", [config3, config4, config5, config6])
+def test_simulate_values(scheduler_cls, scheduler_kwargs, save_history):
 
-    assert "save_history" not in scheduler_kwargs
-    _test(scheduler_cls, scheduler_kwargs)
-    scheduler_kwargs["save_history"] = True
-    _test(scheduler_cls, scheduler_kwargs)
+    max_epochs = 2
+    data = [0] * 10
+    scheduler_kwargs["save_history"] = save_history
+    scheduler_cls.simulate_values(num_events=len(data) * max_epochs, **scheduler_kwargs)
 
 
 def test_torch_save_load(dirname):
@@ -327,29 +321,27 @@ def test_torch_save_load(dirname):
 
 
 def test_simulate_and_plot_values_no_matplotlib():
-    def _test(scheduler_cls, **scheduler_kwargs):
-        event = Events.EPOCH_COMPLETED
-        max_epochs = 2
-        data = [0] * 10
-
-        scheduler = scheduler_cls(**scheduler_kwargs)
-        trainer = Engine(lambda engine, batch: None)
-        scheduler.attach(trainer, event)
-        trainer.run(data, max_epochs=max_epochs)
-
-        # launch plot values
-        scheduler_cls.plot_values(num_events=len(data) * max_epochs, **scheduler_kwargs)
 
     with pytest.raises(RuntimeError, match=r"This method requires matplotlib to be installed."):
         with patch.dict("sys.modules", {"matplotlib.pyplot": None}):
-            _test(
-                MultiStepStateScheduler,
-                param_name="multistep_scheduled_param",
-                initial_value=10,
-                gamma=0.99,
-                milestones=[3, 6],
-                create_new=True,
-            )
+            event = Events.EPOCH_COMPLETED
+            max_epochs = 2
+            data = [0] * 10
+
+            kwargs = {
+                "param_name": "multistep_scheduled_param",
+                "initial_value": 10,
+                "gamma": 0.99,
+                "milestones": [3, 6],
+                "create_new": True,
+            }
+            scheduler = MultiStepStateScheduler(**kwargs)
+            trainer = Engine(lambda engine, batch: None)
+            scheduler.attach(trainer, event)
+            trainer.run(data, max_epochs=max_epochs)
+
+            # launch plot values
+            MultiStepStateScheduler.plot_values(num_events=len(data) * max_epochs, **kwargs)
 
 
 def test_multiple_scheduler_with_save_history():
