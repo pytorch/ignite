@@ -3,7 +3,7 @@ from typing import Any, Callable, Optional
 from ignite.engine import Engine
 from ignite.engine.events import Events
 from ignite.handlers.checkpoint import Checkpoint, DiskSaver, ModelCheckpoint
-from ignite.handlers.early_stopping import EarlyStopping
+from ignite.handlers.early_stopping import EarlyStopping, NoImprovementHandler
 from ignite.handlers.ema_handler import EMAHandler
 from ignite.handlers.lr_finder import FastaiLRFinder
 from ignite.handlers.param_scheduler import (
@@ -38,6 +38,7 @@ __all__ = [
     "Checkpoint",
     "DiskSaver",
     "Timer",
+    "NoImprovementHandler",
     "EarlyStopping",
     "TerminateOnNan",
     "global_step_from_engine",
