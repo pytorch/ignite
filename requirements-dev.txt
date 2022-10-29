@@ -21,7 +21,7 @@ polyaxon
 polyaxon-client
 wandb
 mlflow
-neptune-client
+neptune-client==0.16.9
 tensorboard
 torchvision
 pynvml

@@ -187,7 +187,10 @@ class NeptuneLogger(BaseLogger):
 
         if kwargs.get("offline_mode", False):
             self.mode = "offline"
-            neptune.init(project_qualified_name="dry-run/project", backend=neptune.OfflineBackend())
+            neptune.init(
+                project_qualified_name="dry-run/project",
+                backend=neptune.OfflineBackend(),
+            )
         else:
             self.mode = "online"
             neptune.init(api_token=kwargs.get("api_token"), project_qualified_name=kwargs.get("project_name"))
