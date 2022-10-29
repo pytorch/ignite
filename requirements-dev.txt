@@ -21,7 +21,7 @@ polyaxon
 polyaxon-client
 wandb
 mlflow
-neptune-client
+neptune-client==0.16.9
 tensorboard
 torchvision
 pynvml
@@ -31,7 +31,7 @@ py-rouge
 nltk
 # Examples dependencies
 pandas
-gym==0.26.2
+gym
 # pygame is now required by gym for cartpole env
 pygame
 mkl
