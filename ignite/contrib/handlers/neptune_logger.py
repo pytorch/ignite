@@ -189,7 +189,7 @@ class NeptuneLogger(BaseLogger):
             self.mode = "offline"
             neptune.init(
                 project_qualified_name="dry-run/project",
-                backend=neptune.legacy.internal.api_clients.offline_backend.OfflineBackend(),
+                backend=neptune.OfflineBackend(),
             )
         else:
             self.mode = "online"
