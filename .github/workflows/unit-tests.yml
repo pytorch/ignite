@@ -87,7 +87,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r requirements-dev.txt -qq
+          pip install -r requirements-dev.txt
           python setup.py install
 
       - name: Check code formatting
