@@ -194,11 +194,7 @@ class DeterministicEngine(Engine):
         self.state.seed = int(torch.randint(0, int(1e9), (1,)).item())
         if torch.cuda.is_available():
             if hasattr(torch, "use_deterministic_algorithms"):
-                # according to https://docs.nvidia.com/cuda/cublas/index.html#cublasApi_reproducibility
-                # CUBLAS_WORKSPACE_CONFIG must be set to let cuBLAS behave deterministic.
-                # **the behavior is expected to change in a future release of cuBLAS**.
-                os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
-                torch.use_deterministic_algorithms(True)
+                torch.use_deterministic_algorithms(True, warn_only=True)
             else:
                 torch.backends.cudnn.deterministic = True
             torch.backends.cudnn.benchmark = False
