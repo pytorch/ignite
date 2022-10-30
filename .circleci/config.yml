@@ -4,11 +4,11 @@ parameters:
   pytorch_stable_image:
     type: string
     # https://hub.docker.com/r/pytorch/pytorch/tags
-    default: "pytorch/pytorch:1.12.1-cuda11.3-cudnn8-runtime"
+    default: "pytorch/pytorch:1.13.0-cuda11.6-cudnn8-runtime"
   pytorch_stable_image_devel:
     type: string
     # https://hub.docker.com/r/pytorch/pytorch/tags
-    default: "pytorch/pytorch:1.12.1-cuda11.3-cudnn8-devel"
+    default: "pytorch/pytorch:1.13.0-cuda11.6-cudnn8-devel"
   workingdir:
     type: string
     default: "/tmp/ignite"
