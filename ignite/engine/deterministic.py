@@ -1,4 +1,3 @@
-import os
 import random
 import warnings
 from collections import OrderedDict
