@@ -192,7 +192,10 @@ class DeterministicEngine(Engine):
     def _init_run(self) -> None:
         self.state.seed = int(torch.randint(0, int(1e9), (1,)).item())
         if torch.cuda.is_available():
-            torch.backends.cudnn.deterministic = True
+            if hasattr(torch, "use_deterministic_algorithms"):
+                torch.use_deterministic_algorithms(True, warn_only=True)
+            else:
+                torch.backends.cudnn.deterministic = True
             torch.backends.cudnn.benchmark = False
 
     def _setup_engine(self) -> None:
