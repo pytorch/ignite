@@ -49,16 +49,16 @@ jobs:
             ${{ steps.pip-cache.outputs.dir }}
           key: ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-3.8-pytorch-${{ hashFiles('requirements-dev.txt') }}
           restore-keys: |
-            ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}--3.8-pytorch-
+            ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-3.8-pytorch-
 
       - run: pip install pip wheel setuptools -Uqq
 
       - name: Install PyTorch
         # https://pytorch.org/get-started/locally/
         run: |
-          pip install torch torchvision -f https://download.pytorch.org/whl/cu116/torch_stable.html
+          pip install --upgrade torch torchvision -f https://download.pytorch.org/whl/cu116/torch_stable.html
           nvidia-smi
-          python -c "import torch; print('CUDA is available: ', torch.cuda.is_available())"
+          python -c "import torch; print(torch.__version__, ', CUDA is available: ', torch.cuda.is_available())"
 
       - name: Install dependencies
         run: |
