@@ -1,3 +1,6 @@
+import sys
+from unittest.mock import patch
+
 import numpy as np
 import pytest
 import torch
@@ -230,10 +233,10 @@ def _test_compute(predictions, targets, device, approx=1e-2):
     targets = [t.to(device) for t in targets]
     predictions = [p.to(device) for p in predictions]
 
-    for target, prediction in zip(targets, predictions):
-        metric_50.update((target, prediction))
-        metric_75.update((target, prediction))
-        metric_50_95.update((target, prediction))
+    for prediction, target in zip(predictions, targets):
+        metric_50.update((prediction, target))
+        metric_75.update((prediction, target))
+        metric_50_95.update((prediction, target))
 
     res_50 = metric_50.compute()
     res_75 = metric_75.compute()
@@ -277,3 +280,9 @@ def test_both_partially_empty_2():
     _test_compute(predictions, targets, torch.device("cpu"))
     if torch.cuda.is_available():
         _test_compute(predictions, targets, torch.device("cuda"), approx=2e-2)
+
+
+def test_no_torchvision():
+    with patch.dict(sys.modules, {"torchvision.ops": None}):
+        with pytest.raises(ModuleNotFoundError, match=r"This module requires torchvision to be installed."):
+            MeanAveragePrecision()
