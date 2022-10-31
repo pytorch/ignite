@@ -33,11 +33,14 @@ class MeanAveragePrecision(Metric):
 
             self.box_iou = box_iou
         except ImportError:
-            raise RuntimeError("This module requires torchvision to be installed.")
+            raise ModuleNotFoundError("This module requires torchvision to be installed.")
 
         if iou_thresholds is None:
-            iou_thresholds = torch.range(0.5, 0.99, 0.05)
-        self.iou_thresholds = torch.tensor(iou_thresholds, device=device)
+            self.iou_thresholds = torch.arange(0.5, 0.99, 0.05)
+        elif isinstance(iou_thresholds, list):
+            self.iou_thresholds = torch.tensor(sorted(iou_thresholds), device=device)
+        else:
+            self.iou_thresholds = iou_thresholds.sort().values
         self.rec_thresholds = torch.linspace(0, 1, 101, device=device)
         super(MeanAveragePrecision, self).__init__(output_transform=output_transform, device=device)
 
@@ -49,28 +52,26 @@ class MeanAveragePrecision(Metric):
     def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         """
         Args:
-            output: a tuple of 2 tensors in which the first one is the truth and the second one is the prediction.
-                the shape of the output[0](truth) is (N, 5) where N stands for the number of ground truth boxes and 5 is
-                (x1, x2, y1, y2, class_number); the shape of the output[1](prediction) is (M, 6) where M stands for the
-                number of predicted boxes and 6 is (x1, x2, y1, y2, confidence, class_number).
+            output: a tuple of 2 tensors in which the first one is the prediction and the second is the ground truth.
+                The shape of the ground truth is (N, 5) where N stands for the number of ground truth boxes and 5 is
+                (x1, y1, x2, y2, class_number). The shape of the prediction is (M, 6) where M stands for the
+                number of predicted boxes and 6 is (x1, y1, x2, y2, confidence, class_number).
         """
-        y, y_pred = output[0].detach(), output[1].detach()
+        y_pred, y = output[0].detach(), output[1].detach()
 
         assert y.shape[1] == 5, f"Provided y with a wrong shape, expected (N, 5), got {y.shape}"
-        assert y_pred.shape[1] == 6, f"Provided y_hat with a wrong shape, expected (N, 6), got {y.shape}"
+        assert y_pred.shape[1] == 6, f"Provided y_pred with a wrong shape, expected (M, 6), got {y.shape}"
 
         iou = self.box_iou(y_pred[:, :4], y[:, :4])
         for iou_thres in self.iou_thresholds:
-            iou_thres_item = iou_thres.item()
-            valid_iou = torch.clone(iou)
-            valid_iou[iou <= iou_thres] = 0
+            iou[iou <= iou_thres] = 0
             categories = torch.cat((y[:, 4], y_pred[:, 5])).unique().tolist()
 
             for category in categories:
                 class_index_gt = y[:, 4] == category
                 class_index_dt = y_pred[:, 5] == category
 
-                class_iou = valid_iou[:, class_index_gt][class_index_dt, :]
+                class_iou = iou[:, class_index_gt][class_index_dt, :]
 
                 if class_iou.shape[1] == 0:
                     # no ground truth of the category
@@ -85,14 +86,15 @@ class MeanAveragePrecision(Metric):
                     fp = torch.tensor([], device=self._device).bool()
                     score = torch.tensor([], device=self._device)
                 else:
-                    class_iou[~(class_iou == class_iou.max(dim=0)[0])] = 0
-                    class_iou[~(class_iou.T == class_iou.max(dim=1)[0]).T] = 0
+                    class_iou[~(class_iou == class_iou.max(dim=0).values)] = 0
+                    class_iou[~(class_iou.T == class_iou.max(dim=1).values).T] = 0
 
                     n_gt = class_iou.shape[1]
                     tp = (class_iou != 0).any(dim=1)
                     fp = (class_iou == 0).all(dim=1)
                     score = y_pred[class_index_dt, 4]
 
+                iou_thres_item = iou_thres.item()
                 self._cm[category][iou_thres_item]["tp"].append(tp)
                 self._cm[category][iou_thres_item]["fp"].append(fp)
                 self._cm[category][iou_thres_item]["gt"].append(n_gt)
