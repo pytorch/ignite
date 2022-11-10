@@ -4,8 +4,11 @@ from collections import defaultdict
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import torch
+import torch.distributed as dist
+from torch.nn import functional as F
 
-from ignite.metrics.metric import Metric
+import ignite.distributed as idist
+from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
 
 class MeanAveragePrecision(Metric):
@@ -44,11 +47,18 @@ class MeanAveragePrecision(Metric):
         self.rec_thresholds = torch.linspace(0, 1, 101, device=device)
         super(MeanAveragePrecision, self).__init__(output_transform=output_transform, device=device)
 
+    @reinit__is_reduced
     def reset(self) -> None:
-        self._cm: Dict[float, Dict[float, Dict[str, list]]] = defaultdict(
-            lambda: defaultdict(lambda: defaultdict(list))
+        self._num_categories: int = 0
+        self._tp: Dict[int, torch.BoolTensor] = defaultdict(
+            lambda: torch.empty((len(self.iou_thresholds), 0), dtype=torch.bool, device=self._device)
+        )
+        self._num_gt: Dict[int, int] = defaultdict(lambda: 0)
+        self._scores: Dict[int, torch.Tensor] = defaultdict(
+            lambda: torch.tensor([], dtype=torch.float, device=self._device)
         )
 
+    @reinit__is_reduced
     def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         """
         Args:
@@ -62,75 +72,116 @@ class MeanAveragePrecision(Metric):
         assert y.shape[1] == 5, f"Provided y with a wrong shape, expected (N, 5), got {y.shape}"
         assert y_pred.shape[1] == 6, f"Provided y_pred with a wrong shape, expected (M, 6), got {y.shape}"
 
+        categories = torch.cat((y[:, 4], y_pred[:, 5])).unique().int().tolist()
+        self._num_categories = max(self._num_categories, max(categories, default=-1) + 1)
         iou = self.box_iou(y_pred[:, :4], y[:, :4])
-        for iou_thres in self.iou_thresholds:
-            iou[iou <= iou_thres] = 0
-            categories = torch.cat((y[:, 4], y_pred[:, 5])).unique().tolist()
 
-            for category in categories:
-                class_index_gt = y[:, 4] == category
-                class_index_dt = y_pred[:, 5] == category
+        for category in categories:
+            class_index_gt = y[:, 4] == category
+            self._num_gt[category] += class_index_gt.sum()
 
-                class_iou = iou[:, class_index_gt][class_index_dt, :]
-
-                if class_iou.shape[1] == 0:
-                    # no ground truth of the category
-                    n_gt = 0
-                    tp = torch.tensor([False] * class_iou.shape[0], device=self._device)
-                    fp = torch.tensor([True] * class_iou.shape[0], device=self._device)
-                    score = y_pred[class_index_dt, 4]
-                elif class_iou.shape[0] == 0:
-                    # no predictions of the category
-                    n_gt = class_iou.shape[1]
-                    tp = torch.tensor([], device=self._device).bool()
-                    fp = torch.tensor([], device=self._device).bool()
-                    score = torch.tensor([], device=self._device)
-                else:
-                    class_iou[~(class_iou == class_iou.max(dim=0).values)] = 0
-                    class_iou[~(class_iou.T == class_iou.max(dim=1).values).T] = 0
-
-                    n_gt = class_iou.shape[1]
-                    tp = (class_iou != 0).any(dim=1)
-                    fp = (class_iou == 0).all(dim=1)
-                    score = y_pred[class_index_dt, 4]
-
-                iou_thres_item = iou_thres.item()
-                self._cm[category][iou_thres_item]["tp"].append(tp)
-                self._cm[category][iou_thres_item]["fp"].append(fp)
-                self._cm[category][iou_thres_item]["gt"].append(n_gt)
-                self._cm[category][iou_thres_item]["score"].append(score)
-
-    def compute(self) -> float:
-        results = []
-        for _, cm in self._cm.items():
-            category_pr = torch.ones(len(self.iou_thresholds), len(self.rec_thresholds), device=self._device) * -1
-
-            for idx, (_, cm_iou) in enumerate(cm.items()):
-                n_gt = sum(cm_iou["gt"])
-                if n_gt == 0:
-                    # no ground truth of the class
-                    continue
-                scores = torch.cat(cm_iou["score"], dim=0)
-                indx = torch.argsort(scores, descending=True)
-                tp = torch.cat(cm_iou["tp"], dim=0)[indx].cumsum(dim=0)
-                fp = torch.cat(cm_iou["fp"], dim=0)[indx].cumsum(dim=0)
-                rc = tp / n_gt
-                pr = tp / (fp + tp)
-
-                for i in range(len(tp) - 1, 0, -1):
-                    if pr[i] > pr[i - 1]:
-                        pr[i - 1] = pr[i]
-
-                inds = torch.searchsorted(rc, self.rec_thresholds)
-                pr_at_recthres = torch.zeros(len(self.rec_thresholds), device=self._device)
-                try:
-                    for ri, pi in enumerate(inds):
-                        pr_at_recthres[ri] = pr[pi]
-                except:
-                    pass
-                category_pr[idx, :] = pr_at_recthres
-            if torch.all(category_pr == -1):
+            class_index_dt = y_pred[:, 5] == category
+            if not class_index_dt.any():
                 continue
-            category_ap = category_pr[category_pr > -1].mean()
-            results.append(category_ap)
-        return torch.stack(results).mean().item()
+
+            self._scores[category] = torch.concat((self._scores[category], y_pred[class_index_dt, 4]))
+
+            category_tp = torch.zeros(
+                (len(self.iou_thresholds), class_index_dt.sum()), dtype=torch.bool, device=self._device
+            )
+            if class_index_gt.any():
+                class_iou = iou[:, class_index_gt][class_index_dt, :]
+                category_maximum_iou = class_iou.max()
+                for thres_idx, iou_thres in enumerate(self.iou_thresholds):
+                    if iou_thres < category_maximum_iou:
+                        class_iou[class_iou <= iou_thres] = 0
+                        class_iou[~(class_iou == class_iou.amax(dim=0))] = 0
+                        class_iou[~(class_iou.T == class_iou.amax(dim=1)).T] = 0
+
+                        category_tp[thres_idx] = (class_iou != 0).any(dim=1)
+                    else:
+                        break
+
+            self._tp[category] = torch.cat((self._tp[category], category_tp), dim=1)
+
+    @sync_all_reduce("_num_categories:MAX")
+    def compute(self) -> float:
+        # `gloo` does not support `gather` on GPU. Do we need
+        #  to take an action regarding that?
+        num_gt = torch.tensor([self._num_gt[cat_id] for cat_id in range(self._num_categories)], device=self._device)
+        dist.reduce(num_gt)
+
+        num_predictions = torch.tensor(
+            [self._tp[cat_idx].shape[1] for cat_idx in range(self._num_categories)], device=self._device
+        )
+        if idist.get_local_rank() == 0:
+            ranks_num_predictions = [
+                torch.empty((self._num_categories,), device=self._device) for _ in range(idist.get_world_size())
+            ]
+        else:
+            ranks_num_predictions = None
+        dist.gather(num_predictions, ranks_num_predictions)
+        max_num_predictions = idist.all_reduce(num_predictions, op="MAX")
+        recall_thresh_repeated_iou_thresh_times = self.rec_thresholds.repeat((len(self.iou_thresholds), 1))
+        AP = []
+        for category_idx in range(self._num_categories):
+
+            if num_gt[category_idx] == 0:
+                continue
+
+            if idist.get_local_rank() == 0:
+                ranks_tp = [
+                    torch.empty((len(self.iou_thresholds), max_num_predictions[category_idx]), device=self._device)
+                    for _ in range(idist.get_world_size())
+                ]
+                ranks_scores = [
+                    torch.empty((max_num_predictions[category_idx],), device=self._device)
+                    for _ in range(idist.get_world_size())
+                ]
+            else:
+                ranks_tp = None
+                ranks_scores = None
+            dist.gather(
+                F.pad(self._tp[category_idx], (0, max_num_predictions[category_idx] - num_predictions[category_idx])),
+                ranks_tp,
+            )
+            dist.gather(
+                F.pad(
+                    self._scores[category_idx], (0, max_num_predictions[category_idx] - num_predictions[category_idx])
+                ),
+                ranks_scores,
+            )
+            if idist.get_local_rank() == 0:
+                ranks_tp = [
+                    ranks_tp[r][:, : ranks_num_predictions[r][category_idx]] for r in range(idist.get_world_size())
+                ]
+                tp = torch.cat(ranks_tp, dim=1)
+
+                ranks_scores = [
+                    ranks_scores[r][:, : ranks_num_predictions[r][category_idx]] for r in range(idist.get_world_size())
+                ]
+                scores = torch.cat(ranks_scores, dim=1)
+
+                tp = tp[:, torch.argsort(scores, descending=True)]
+
+                tp = tp.cumsum(dim=1)
+                fp = (~tp).cumsum(dim=1)
+                recall = tp / num_gt[category_idx]
+                precision = tp / (fp + tp)
+
+                interpolated_precision_at_recall_thresh = []
+                recall_thresh_indices = torch.searchsorted(recall, recall_thresh_repeated_iou_thresh_times)
+                for t in range(len(self.iou_thresholds)):
+                    for r_idx in recall_thresh_indices:
+                        if r_idx == recall.shape[1]:
+                            break
+                        interpolated_precision_at_recall_thresh.append(precision[t][r_idx:].max())
+                AP.append(
+                    sum(interpolated_precision_at_recall_thresh) / (len(self.rec_thresholds) * len(self.iou_thresholds))
+                )
+        if idist.get_local_rank() == 0:
+            mAP = torch.tensor(AP, device=self._device).mean()
+        else:
+            mAP = torch.tensor(0.0, device=self._device)
+        dist.broadcast(mAP, 0)
+        return mAP.item()
