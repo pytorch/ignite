@@ -1,3 +1,4 @@
+import functools
 import os
 import shutil
 import sys
@@ -8,6 +9,8 @@ from pathlib import Path
 import pytest
 import torch
 import torch.distributed as dist
+
+import ignite.distributed as idist
 
 
 @pytest.fixture()
@@ -50,7 +53,7 @@ def get_rank_zero_dirname(dirname):
     yield func
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def local_rank(worker_id):
     """use a different account in each xdist worker"""
 
@@ -68,7 +71,7 @@ def local_rank(worker_id):
     del os.environ["LOCAL_RANK"]
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def world_size():
 
     remove_env_var = False
@@ -333,3 +336,157 @@ def _gloo_hvd_execute(func, args, np=1, do_init=False):
 @pytest.fixture()
 def gloo_hvd_executor():
     yield _gloo_hvd_execute
+
+
+skip_if_has_not_native_dist_support = pytest.mark.skipif(
+    not idist.has_native_dist_support, reason="Skip if no native dist support"
+)
+skip_if_has_not_xla_support = pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+skip_if_has_not_horovod_support = pytest.mark.skipif(
+    not idist.has_hvd_support, reason="Skip if no Horovod dist support"
+)
+
+
+is_horovod_stash_key = pytest.StashKey[bool]()
+is_xla_single_device_stash_key = pytest.StashKey[bool]()
+
+
+@pytest.fixture(
+    scope="module",
+    params=[
+        pytest.param(
+            "nccl_gpu",
+            marks=[
+                pytest.mark.distributed,
+                skip_if_has_not_native_dist_support,
+                pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU"),
+            ],
+        ),
+        pytest.param("gloo_cpu_or_gpu", marks=[pytest.mark.distributed, skip_if_has_not_native_dist_support]),
+        pytest.param(
+            "horovod",
+            marks=[
+                pytest.mark.distributed,
+                skip_if_has_not_horovod_support,
+                pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc"),
+            ],
+        ),
+        pytest.param(
+            "multinode_gloo_cpu_or_gpu",
+            marks=[
+                pytest.mark.multinode_distributed,
+                skip_if_has_not_native_dist_support,
+                pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed"),
+            ],
+        ),
+        pytest.param(
+            "multinode_nccl_gpu",
+            marks=[
+                pytest.mark.multinode_distributed,
+                skip_if_has_not_native_dist_support,
+                pytest.mark.skipif(
+                    "GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed"
+                ),
+            ],
+        ),
+        pytest.param(
+            "single_device_xla",
+            marks=[
+                pytest.mark.tpu,
+                skip_if_has_not_xla_support,
+                pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars"),
+            ],
+        ),
+        pytest.param(
+            "xla_nprocs",
+            marks=[
+                pytest.mark.tpu,
+                skip_if_has_not_xla_support,
+                pytest.mark.skipif(
+                    "NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars"
+                ),
+            ],
+        ),
+    ],
+)
+def distributed(request, local_rank, world_size):
+    if request.param == "nccl_gpu" or request.param == "gloo_cpu_or_gpu":
+        if request.param == "gloo_cpu_or_gpu" and sys.platform.startswith("win"):
+            temp_file = tempfile.NamedTemporaryFile(delete=False)
+            # can't use backslashes in f-strings
+            backslash = "\\"
+            init_method = f'file:///{temp_file.name.replace(backslash, "/")}'
+        else:
+            temp_file = None
+            free_port = _setup_free_port(local_rank)
+            init_method = f"tcp://localhost:{free_port}"
+
+        dist_info = {
+            "world_size": world_size,
+            "rank": local_rank,
+            "init_method": init_method,
+        }
+
+        if request.param == "nccl_gpu":
+            dist_info["backend"] = "nccl"
+        else:
+            dist_info["backend"] = "gloo"
+            from datetime import timedelta
+
+            dist_info["timeout"] = timedelta(seconds=60)
+        yield _create_dist_context(dist_info, local_rank)
+        _destroy_dist_context()
+        if temp_file:
+            temp_file.close()
+
+    elif request.param == "horovod":
+        request.node.stash[is_horovod_stash_key] = True
+        yield None
+
+    elif request.param == "multinode_gloo_cpu_or_gpu" or request.param == "multinode_nccl_gpu":
+        assert "MASTER_ADDR" in os.environ
+        assert "MASTER_PORT" in os.environ
+
+        assert "node_id" in os.environ
+        assert "nnodes" in os.environ
+        assert "nproc_per_node" in os.environ
+
+        node_id = int(os.environ["node_id"])
+        nnodes = int(os.environ["nnodes"])
+        nproc_per_node = int(os.environ["nproc_per_node"])
+        multi_node_conf = {
+            "world_size": nnodes * nproc_per_node,
+            "rank": local_rank + node_id * nproc_per_node,
+            "local_rank": local_rank,
+        }
+
+        dist_info = {
+            "init_method": "env://",
+            "world_size": multi_node_conf["world_size"],
+            "rank": multi_node_conf["rank"],
+        }
+        if request.param == "multinode_nccl_gpu":
+            os.environ["MASTER_PORT"] = str(int(os.getenv("MASTER_PORT")) + 1)
+            dist_info["backend"] = "nccl"
+        else:
+            dist_info["backend"] = "gloo"
+
+        yield _create_mnodes_dist_context(dist_info, multi_node_conf)
+        _destroy_mnodes_dist_context()
+
+    elif request.param == "single_device_xla" or request.param == "xla_nprocs":
+        request.stash[is_xla_single_device_stash_key] = request.param == "single_device_xla"
+        yield None
+    else:
+        raise RuntimeError(f"Invalid parameter value for `distributed` fixture, given {request.param}")
+
+
+@pytest.hookimpl
+def pytest_pyfunc_call(pyfuncitem: pytest.Function) -> None:
+    if pyfuncitem.stash.get(is_horovod_stash_key, False):
+        nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
+        pyfuncitem.obj = functools.partial(_gloo_hvd_execute, pyfuncitem.obj, (), np=nproc)
+
+    elif pyfuncitem.get_closest_marker("tpu") is not None and not pyfuncitem.stash[is_xla_single_device_stash_key]:
+        n = int(os.environ["NUM_TPU_WORKERS"])
+        pyfuncitem.obj = functools.partial(_xla_execute, pyfuncitem.obj, (), n)
