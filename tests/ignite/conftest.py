@@ -348,6 +348,7 @@ skip_if_has_not_horovod_support = pytest.mark.skipif(
 
 
 is_horovod_stash_key = pytest.StashKey[bool]()
+is_xla_stash_key = pytest.StashKey[bool]()
 is_xla_single_device_stash_key = pytest.StashKey[bool]()
 
 
@@ -475,7 +476,8 @@ def distributed(request, local_rank, world_size):
         _destroy_mnodes_dist_context()
 
     elif request.param == "single_device_xla" or request.param == "xla_nprocs":
-        request.stash[is_xla_single_device_stash_key] = request.param == "single_device_xla"
+        request.node.stash[is_xla_stash_key] = True
+        request.node.stash[is_xla_single_device_stash_key] = request.param == "single_device_xla"
         yield None
     else:
         raise RuntimeError(f"Invalid parameter value for `distributed` fixture, given {request.param}")
@@ -487,6 +489,6 @@ def pytest_pyfunc_call(pyfuncitem: pytest.Function) -> None:
         nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
         pyfuncitem.obj = functools.partial(_gloo_hvd_execute, pyfuncitem.obj, (), np=nproc)
 
-    elif pyfuncitem.get_closest_marker("tpu") is not None and not pyfuncitem.stash[is_xla_single_device_stash_key]:
+    elif pyfuncitem.stash.get(is_xla_stash_key, False) and not pyfuncitem.stash[is_xla_single_device_stash_key]:
         n = int(os.environ["NUM_TPU_WORKERS"])
         pyfuncitem.obj = functools.partial(_xla_execute, pyfuncitem.obj, (), n)
