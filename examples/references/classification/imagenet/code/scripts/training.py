@@ -262,7 +262,7 @@ def run(config, **kwargs):
         # dump python files to reproduce the run
         exp_tracking.log_artifact(config.config_filepath.as_posix())
         exp_tracking.log_artifact(config.script_filepath.as_posix())
-        exp_tracking.log_inputs(get_params(config, TRAINVAL_CONFIG))
+        exp_tracking.log_params(get_params(config, TRAINVAL_CONFIG))
 
         try:
             parallel.run(training, config, logger=logger)
