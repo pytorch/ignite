@@ -12,7 +12,7 @@ from ignite.contrib.handlers.base_logger import (
     BaseOutputHandler,
     BaseWeightsScalarHandler,
 )
-from ignite.engine import Engine, EventEnum, Events
+from ignite.engine import Engine, Events
 from ignite.handlers import global_step_from_engine
 
 __all__ = [
@@ -354,7 +354,7 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
         tag: str,
         metric_names: Optional[str] = None,
         output_transform: Optional[Callable] = None,
-        global_step_transform: Optional[Callable[[Engine, Union[str, EventEnum]], int]] = None,
+        global_step_transform: Optional[Callable[[Engine, Union[str, Events]], int]] = None,
         show_legend: bool = False,
         state_attributes: Optional[List[str]] = None,
     ):

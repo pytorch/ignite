@@ -12,7 +12,7 @@ from ignite.contrib.handlers.base_logger import (
     BaseOutputHandler,
     BaseWeightsScalarHandler,
 )
-from ignite.engine import Engine, EventEnum, Events
+from ignite.engine import Engine, Events
 from ignite.handlers import global_step_from_engine
 from ignite.handlers.checkpoint import BaseSaveHandler
 
@@ -332,7 +332,7 @@ class OutputHandler(BaseOutputHandler):
         tag: str,
         metric_names: Optional[Union[str, List[str]]] = None,
         output_transform: Optional[Callable] = None,
-        global_step_transform: Optional[Callable[[Engine, Union[str, EventEnum]], int]] = None,
+        global_step_transform: Optional[Callable[[Engine, Union[str, Events]], int]] = None,
         state_attributes: Optional[List[str]] = None,
     ):
         super(OutputHandler, self).__init__(
