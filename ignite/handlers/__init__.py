@@ -1,7 +1,7 @@
 from typing import Any, Callable, Optional
 
 from ignite.engine import Engine
-from ignite.engine.events import Events
+from ignite.engine.events import EventEnum
 from ignite.handlers.checkpoint import Checkpoint, DiskSaver, ModelCheckpoint
 from ignite.handlers.early_stopping import EarlyStopping
 from ignite.handlers.ema_handler import EMAHandler
@@ -67,7 +67,7 @@ __all__ = [
 ]
 
 
-def global_step_from_engine(engine: Engine, custom_event_name: Optional[Events] = None) -> Callable:
+def global_step_from_engine(engine: Engine, custom_event_name: Optional[EventEnum] = None) -> Callable:
     """Helper method to setup `global_step_transform` function using another engine.
     This can be helpful for logging trainer epoch/iteration while output handler is attached to an evaluator.
 
@@ -79,7 +79,7 @@ def global_step_from_engine(engine: Engine, custom_event_name: Optional[Events] 
         global step based on provided engine
     """
 
-    def wrapper(_: Any, event_name: Events) -> int:
+    def wrapper(_: Any, event_name: EventEnum) -> int:
         if custom_event_name is not None:
             event_name = custom_event_name
         return engine.state.get_event_attrib_value(event_name)

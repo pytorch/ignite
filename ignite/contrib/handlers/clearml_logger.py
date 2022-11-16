@@ -17,7 +17,7 @@ from ignite.contrib.handlers.base_logger import (
     BaseWeightsHandler,
     BaseWeightsScalarHandler,
 )
-from ignite.engine import Engine, Events
+from ignite.engine import Engine, EventEnum, Events
 from ignite.handlers import global_step_from_engine
 from ignite.handlers.checkpoint import DiskSaver
 
@@ -303,7 +303,7 @@ class OutputHandler(BaseOutputHandler):
         tag: str,
         metric_names: Optional[List[str]] = None,
         output_transform: Optional[Callable] = None,
-        global_step_transform: Optional[Callable] = None,
+        global_step_transform: Optional[Callable[[Engine, Union[str, EventEnum]], int]] = None,
         state_attributes: Optional[List[str]] = None,
     ):
         super(OutputHandler, self).__init__(
@@ -317,7 +317,7 @@ class OutputHandler(BaseOutputHandler):
 
         metrics = self._setup_output_metrics_state_attrs(engine)
 
-        global_step = self.global_step_transform(engine, event_name)  # type: ignore[misc]
+        global_step = self.global_step_transform(engine, event_name)
 
         if not isinstance(global_step, int):
             raise TypeError(

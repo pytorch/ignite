@@ -4,7 +4,7 @@ from typing import Any, Callable, List, Optional, Union
 from torch.optim import Optimizer
 
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler
-from ignite.engine import Engine, Events
+from ignite.engine import Engine, EventEnum, Events
 from ignite.handlers import global_step_from_engine
 
 __all__ = ["WandBLogger", "OutputHandler", "OptimizerParamsHandler", "global_step_from_engine"]
@@ -135,7 +135,7 @@ class WandBLogger(BaseLogger):
             wandb.init(*args, **kwargs)
 
     def __getattr__(self, attr: Any) -> Any:
-        return getattr(self._wandb, attr)  # type: ignore[misc]
+        return getattr(self._wandb, attr)
 
     def close(self) -> None:
         self._wandb.finish()
@@ -270,7 +270,7 @@ class OutputHandler(BaseOutputHandler):
         tag: str,
         metric_names: Optional[List[str]] = None,
         output_transform: Optional[Callable] = None,
-        global_step_transform: Optional[Callable] = None,
+        global_step_transform: Optional[Callable[[Engine, Union[str, EventEnum]], int]] = None,
         sync: Optional[bool] = None,
         state_attributes: Optional[List[str]] = None,
     ):
@@ -282,7 +282,7 @@ class OutputHandler(BaseOutputHandler):
         if not isinstance(logger, WandBLogger):
             raise RuntimeError(f"Handler '{self.__class__.__name__}' works only with WandBLogger.")
 
-        global_step = self.global_step_transform(engine, event_name)  # type: ignore[misc]
+        global_step = self.global_step_transform(engine, event_name)
         if not isinstance(global_step, int):
             raise TypeError(
                 f"global_step must be int, got {type(global_step)}."

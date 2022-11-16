@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 from torch.optim import Optimizer
 
-from ignite.engine import Engine, Events, EventsList, State
+from ignite.engine import Engine, EventEnum, Events, EventsList, State
 from ignite.engine.events import CallableEventWithFilter, RemovableEventHandle
 
 
@@ -88,7 +88,7 @@ class BaseOutputHandler(BaseHandler):
         tag: str,
         metric_names: Optional[Union[str, List[str]]] = None,
         output_transform: Optional[Callable] = None,
-        global_step_transform: Optional[Callable] = None,
+        global_step_transform: Optional[Callable[[Engine, Union[str, EventEnum]], int]] = None,
         state_attributes: Optional[List[str]] = None,
     ):
 
@@ -109,7 +109,7 @@ class BaseOutputHandler(BaseHandler):
 
         if global_step_transform is None:
 
-            def global_step_transform(engine: Engine, event_name: Union[str, Events]) -> int:
+            def global_step_transform(engine: Engine, event_name: Union[str, EventEnum]) -> int:
                 return engine.state.get_event_attrib_value(event_name)
 
         self.tag = tag
