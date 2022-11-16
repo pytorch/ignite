@@ -22,6 +22,8 @@ class MeanAveragePrecision(Metric):
 
         Args:
             iou_thresholds: list of IoU thresholds to be considered for computing Mean Average Precision.
+                Values should be between 0 and 1. List is sorted internally. Default is that of the COCO
+                official evaluation metric.
             output_transform: a callable that is used to transform the
                 :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
                 form expected by the metric. This can be useful if, for example, you have a multi-output model and
@@ -39,11 +41,22 @@ class MeanAveragePrecision(Metric):
             raise ModuleNotFoundError("This module requires torchvision to be installed.")
 
         if iou_thresholds is None:
-            self.iou_thresholds = torch.arange(0.5, 0.99, 0.05)
+            self.iou_thresholds = torch.arange(0.5, 0.99, 0.05).tolist()
+        elif isinstance(iou_thresholds, torch.Tensor):
+            if iou_thresholds.ndim != 1:
+                raise ValueError(
+                    "`iou_thresholds` should be a one-dimensional tensor or a list of floats"
+                    f", given a {iou_thresholds.ndim}-dimensional tensor."
+                )
+            self.iou_thresholds = iou_thresholds.sort().values.tolist()
         elif isinstance(iou_thresholds, list):
-            self.iou_thresholds = torch.tensor(sorted(iou_thresholds), device=device)
+            self.iou_thresholds = iou_thresholds
         else:
-            self.iou_thresholds = iou_thresholds.sort().values
+            raise TypeError(f"`iou_thresholds` should be a list of floats or a tensor, given {type(iou_thresholds)}.")
+
+        if min(self.iou_thresholds) < 0 or max(self.iou_thresholds) > 1:
+            raise ValueError(f"`iou_thresholds` values should be between 0 and 1, given {iou_thresholds}")
+
         self.rec_thresholds = torch.linspace(0, 1, 101, device=device)
         super(MeanAveragePrecision, self).__init__(output_transform=output_transform, device=device)
 
@@ -84,10 +97,10 @@ class MeanAveragePrecision(Metric):
             if not class_index_dt.any():
                 continue
 
-            self._scores[category] = torch.concat((self._scores[category], y_pred[class_index_dt, 4]))
+            self._scores[category] = torch.concat((self._scores[category], y_pred[class_index_dt, 4].to(self._device)))
 
             category_tp = torch.zeros(
-                (len(self.iou_thresholds), class_index_dt.sum()), dtype=torch.bool, device=self._device
+                (len(self.iou_thresholds), class_index_dt.sum().item()), dtype=torch.bool, device=self._device
             )
             if class_index_gt.any():
                 class_iou = iou[:, class_index_gt][class_index_dt, :]
@@ -98,7 +111,7 @@ class MeanAveragePrecision(Metric):
                         class_iou[~(class_iou == class_iou.amax(dim=0))] = 0
                         class_iou[~(class_iou.T == class_iou.amax(dim=1)).T] = 0
 
-                        category_tp[thres_idx] = (class_iou != 0).any(dim=1)
+                        category_tp[thres_idx] = (class_iou != 0).any(dim=1).to(self._device)
                     else:
                         break
 
@@ -196,7 +209,7 @@ class MeanAveragePrecision(Metric):
                 AP.append(
                     sum(interpolated_precision_at_recall_thresh) / (len(self.rec_thresholds) * len(self.iou_thresholds))
                 )
-        if idist.get_local_rank() == 0:
+        if idist.get_rank() == 0:
             mAP = torch.tensor(AP, device=self._device).mean()
         else:
             mAP = torch.tensor(0.0, device=self._device)
