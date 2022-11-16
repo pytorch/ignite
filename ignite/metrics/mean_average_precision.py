@@ -109,18 +109,24 @@ class MeanAveragePrecision(Metric):
         # `gloo` does not support `gather` on GPU. Do we need
         #  to take an action regarding that?
         num_gt = torch.tensor([self._num_gt[cat_id] for cat_id in range(self._num_categories)], device=self._device)
-        dist.reduce(num_gt)
+        if idist.get_world_size() > 1:
+            dist.reduce(num_gt, 0)
 
         num_predictions = torch.tensor(
             [self._tp[cat_idx].shape[1] for cat_idx in range(self._num_categories)], device=self._device
         )
-        if idist.get_local_rank() == 0:
-            ranks_num_predictions = [
-                torch.empty((self._num_categories,), device=self._device) for _ in range(idist.get_world_size())
-            ]
+        if idist.get_world_size() > 1:
+            if idist.get_local_rank() == 0:
+                ranks_num_predictions = [
+                    torch.empty((self._num_categories,), device=self._device, dtype=torch.long)
+                    for _ in range(idist.get_world_size())
+                ]
+            else:
+                ranks_num_predictions = None
+            dist.gather(num_predictions, ranks_num_predictions)
         else:
-            ranks_num_predictions = None
-        dist.gather(num_predictions, ranks_num_predictions)
+            ranks_num_predictions = [num_predictions]
+
         max_num_predictions = idist.all_reduce(num_predictions, op="MAX")
         recall_thresh_repeated_iou_thresh_times = self.rec_thresholds.repeat((len(self.iou_thresholds), 1))
         AP = []
@@ -129,50 +135,61 @@ class MeanAveragePrecision(Metric):
             if num_gt[category_idx] == 0:
                 continue
 
-            if idist.get_local_rank() == 0:
-                ranks_tp = [
-                    torch.empty((len(self.iou_thresholds), max_num_predictions[category_idx]), device=self._device)
-                    for _ in range(idist.get_world_size())
-                ]
-                ranks_scores = [
-                    torch.empty((max_num_predictions[category_idx],), device=self._device)
-                    for _ in range(idist.get_world_size())
-                ]
-            else:
-                ranks_tp = None
-                ranks_scores = None
-            dist.gather(
-                F.pad(self._tp[category_idx], (0, max_num_predictions[category_idx] - num_predictions[category_idx])),
-                ranks_tp,
-            )
-            dist.gather(
-                F.pad(
-                    self._scores[category_idx], (0, max_num_predictions[category_idx] - num_predictions[category_idx])
-                ),
-                ranks_scores,
-            )
-            if idist.get_local_rank() == 0:
-                ranks_tp = [
-                    ranks_tp[r][:, : ranks_num_predictions[r][category_idx]] for r in range(idist.get_world_size())
-                ]
-                tp = torch.cat(ranks_tp, dim=1)
+            if idist.get_world_size() > 1:
+                if idist.get_local_rank() == 0:
+                    ranks_tp = [
+                        torch.empty((len(self.iou_thresholds), max_num_predictions[category_idx]), device=self._device)
+                        for _ in range(idist.get_world_size())
+                    ]
+                    ranks_scores = [
+                        torch.empty((max_num_predictions[category_idx],), device=self._device)
+                        for _ in range(idist.get_world_size())
+                    ]
+                else:
+                    ranks_tp = None
+                    ranks_scores = None
+                dist.gather(
+                    F.pad(
+                        self._tp[category_idx], (0, max_num_predictions[category_idx] - num_predictions[category_idx])
+                    ),
+                    ranks_tp,
+                )
+                dist.gather(
+                    F.pad(
+                        self._scores[category_idx],
+                        (0, max_num_predictions[category_idx] - num_predictions[category_idx]),
+                    ),
+                    ranks_scores,
+                )
+                if idist.get_local_rank() == 0:
+                    ranks_tp = [
+                        ranks_tp[r][:, : ranks_num_predictions[r][category_idx]] for r in range(idist.get_world_size())
+                    ]
+                    tp = torch.cat(ranks_tp, dim=1)
 
-                ranks_scores = [
-                    ranks_scores[r][:, : ranks_num_predictions[r][category_idx]] for r in range(idist.get_world_size())
-                ]
-                scores = torch.cat(ranks_scores, dim=1)
+                    ranks_scores = [
+                        ranks_scores[r][:, : ranks_num_predictions[r][category_idx]]
+                        for r in range(idist.get_world_size())
+                    ]
+                    scores = torch.cat(ranks_scores, dim=1)
+            else:
+                tp = self._tp[category_idx]
+                scores = self._scores[category_idx]
+            if idist.get_local_rank() == 0:
 
                 tp = tp[:, torch.argsort(scores, descending=True)]
 
-                tp = tp.cumsum(dim=1)
-                fp = (~tp).cumsum(dim=1)
-                recall = tp / num_gt[category_idx]
-                precision = tp / (fp + tp)
+                tp_summation = tp.cumsum(dim=1)
+                fp_summation = (~tp).cumsum(dim=1)
+                print(tp_summation)
+                print(fp_summation)
+                recall = tp_summation / num_gt[category_idx]
+                precision = tp_summation / (fp_summation + tp_summation)
 
                 interpolated_precision_at_recall_thresh = []
                 recall_thresh_indices = torch.searchsorted(recall, recall_thresh_repeated_iou_thresh_times)
                 for t in range(len(self.iou_thresholds)):
-                    for r_idx in recall_thresh_indices:
+                    for r_idx in recall_thresh_indices[t]:
                         if r_idx == recall.shape[1]:
                             break
                         interpolated_precision_at_recall_thresh.append(precision[t][r_idx:].max())
@@ -183,5 +200,6 @@ class MeanAveragePrecision(Metric):
             mAP = torch.tensor(AP, device=self._device).mean()
         else:
             mAP = torch.tensor(0.0, device=self._device)
-        dist.broadcast(mAP, 0)
+        if idist.get_world_size() > 1:
+            dist.broadcast(mAP, 0)
         return mAP.item()

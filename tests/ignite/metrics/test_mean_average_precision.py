@@ -510,22 +510,22 @@ def coco_val2017_sample():
 
 
 @pytest.fixture
-def three_samples_with_partially_empty_gt(coco_val2017_three_samples):
-    gt, pred = coco_val2017_three_samples
+def three_samples_with_partially_empty_gt(coco_val2017_sample):
+    gt, pred = coco_val2017_sample
     gt[0] = torch.Tensor(0, 5)
     return gt, pred
 
 
 @pytest.fixture
-def three_samples_with_partially_empty_pred(coco_val2017_three_samples):
-    gt, pred = coco_val2017_three_samples
+def three_samples_with_partially_empty_pred(coco_val2017_sample):
+    gt, pred = coco_val2017_sample
     pred[1] = torch.Tensor(0, 6)
     return gt, pred
 
 
 @pytest.fixture
-def three_partially_empty_samples(coco_val2017_three_samples):
-    gt, pred = coco_val2017_three_samples
+def three_partially_empty_samples(coco_val2017_sample):
+    gt, pred = coco_val2017_sample
     gt[0] = torch.Tensor(0, 5)
     gt[2] = torch.Tensor(0, 5)
     pred[1] = torch.Tensor(0, 6)
@@ -533,8 +533,8 @@ def three_partially_empty_samples(coco_val2017_three_samples):
 
 
 @pytest.fixture
-def three_other_partially_empty_samples(coco_val2017_three_samples):
-    gt, pred = coco_val2017_three_samples
+def three_other_partially_empty_samples(coco_val2017_sample):
+    gt, pred = coco_val2017_sample
     gt[1] = torch.Tensor(0, 5)
     pred[1] = torch.Tensor(0, 6)
     return gt, pred
@@ -613,8 +613,8 @@ def _test_compute(predictions, targets, device, approx=1e-2):
     assert eval.stats[2] == pytest.approx(res_75, abs=approx)
 
 
-def test_gt_pred_all_exist(coco_val2017_three_samples):
-    targets, predictions = coco_val2017_three_samples
+def test_gt_pred_all_exist(coco_val2017_sample):
+    targets, predictions = coco_val2017_sample
     _test_compute(predictions, targets, torch.device("cpu"))
     if torch.cuda.is_available():
         _test_compute(predictions, targets, torch.device("cuda"), approx=1e-6)
