@@ -5,7 +5,7 @@ from typing import Any, Callable, List, Optional, Union
 from torch.optim import Optimizer
 
 from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler
-from ignite.engine import Engine, Events
+from ignite.engine import Engine, EventEnum, Events
 from ignite.handlers import global_step_from_engine
 
 __all__ = ["MLflowLogger", "OutputHandler", "OptimizerParamsHandler", "global_step_from_engine"]

@@ -17,7 +17,7 @@ from ignite.contrib.handlers.base_logger import (
     BaseWeightsHandler,
     BaseWeightsScalarHandler,
 )
-from ignite.engine import Engine, Events
+from ignite.engine import Engine, EventEnum, Events
 from ignite.handlers import global_step_from_engine
 from ignite.handlers.checkpoint import DiskSaver
 
