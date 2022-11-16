@@ -286,3 +286,10 @@ def test_no_wandb_client(no_site_packages):
 
     with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires wandb to be installed."):
         WandBLogger()
+
+
+def test_wandb_getattr():
+    import wandb
+
+    logger = WandBLogger(init=False)
+    assert wandb.log == logger.log
