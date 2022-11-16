@@ -1,4 +1,6 @@
+import os
 import sys
+from typing import List, Optional, Tuple, Union
 from unittest.mock import patch
 
 import numpy as np
@@ -6,10 +8,13 @@ import pytest
 import torch
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
+from torch.distributions.geometric import Geometric
 
+import ignite.distributed as idist
 from ignite.metrics import MeanAveragePrecision
 
 torch.set_printoptions(linewidth=200)
+torch.manual_seed(12)
 np.set_printoptions(linewidth=200)
 
 
@@ -506,38 +511,38 @@ def coco_val2017_sample():
         ),
     ]
 
-    return gt, pred
+    return pred, gt
 
 
 @pytest.fixture
 def three_samples_with_partially_empty_gt(coco_val2017_sample):
-    gt, pred = coco_val2017_sample
+    pred, gt = coco_val2017_sample
     gt[0] = torch.Tensor(0, 5)
-    return gt, pred
+    return pred, gt
 
 
 @pytest.fixture
 def three_samples_with_partially_empty_pred(coco_val2017_sample):
-    gt, pred = coco_val2017_sample
+    pred, gt = coco_val2017_sample
     pred[1] = torch.Tensor(0, 6)
-    return gt, pred
+    return pred, gt
 
 
 @pytest.fixture
 def three_partially_empty_samples(coco_val2017_sample):
-    gt, pred = coco_val2017_sample
+    pred, gt = coco_val2017_sample
     gt[0] = torch.Tensor(0, 5)
     gt[2] = torch.Tensor(0, 5)
     pred[1] = torch.Tensor(0, 6)
-    return gt, pred
+    return pred, gt
 
 
 @pytest.fixture
 def three_other_partially_empty_samples(coco_val2017_sample):
-    gt, pred = coco_val2017_sample
+    pred, gt = coco_val2017_sample
     gt[1] = torch.Tensor(0, 5)
     pred[1] = torch.Tensor(0, 6)
-    return gt, pred
+    return pred, gt
 
 
 def create_coco_api(predictions, targets):
@@ -580,17 +585,24 @@ def create_coco_api(predictions, targets):
         predictions[idx] = torch.cat([torch.tensor(idx).repeat(prediction.shape[0], 1), prediction], dim=1)
     predictions = torch.cat(predictions, dim=0)
     coco_dt = coco_gt.loadRes(predictions.numpy())
-    return coco_gt, coco_dt
+    return coco_dt, coco_gt
 
 
-def _test_compute(predictions, targets, device, approx=1e-2):
-    coco_gt, coco_dt = create_coco_api(
+def pycoco_mAP(predictions, targets) -> Tuple[float, float, float]:
+    """
+    Returned values belong to IOU thresholds of [0.5, 0.55, ..., 0.95], [0.5] and [0.75] respectively.
+    """
+    coco_dt, coco_gt = create_coco_api(
         [torch.clone(pred) for pred in predictions], [torch.clone(target) for target in targets]
     )
     eval = COCOeval(coco_gt, coco_dt, iouType="bbox")
     eval.evaluate()
     eval.accumulate()
     eval.summarize()
+    return eval.stats[0], eval.stats[1], eval.stats[2]
+
+
+def _test_compute(predictions, targets, device, approx=1e-2):
 
     metric_50 = MeanAveragePrecision(iou_thresholds=[0.5], device=device)
     metric_75 = MeanAveragePrecision(iou_thresholds=[0.75], device=device)
@@ -608,41 +620,43 @@ def _test_compute(predictions, targets, device, approx=1e-2):
     res_75 = metric_75.compute()
     res_50_95 = metric_50_95.compute()
 
-    assert eval.stats[0] == pytest.approx(res_50_95, abs=approx)
-    assert eval.stats[1] == pytest.approx(res_50, abs=approx)
-    assert eval.stats[2] == pytest.approx(res_75, abs=approx)
+    pycoco_res_50_95, pycoco_res_50, pycoco_res_75 = pycoco_mAP(predictions, targets)
+
+    assert res_50_95 == pytest.approx(pycoco_res_50_95, abs=approx)
+    assert res_50 == pytest.approx(pycoco_res_50, abs=approx)
+    assert res_75 == pytest.approx(pycoco_res_75, abs=approx)
 
 
 def test_gt_pred_all_exist(coco_val2017_sample):
-    targets, predictions = coco_val2017_sample
+    predictions, targets = coco_val2017_sample
     _test_compute(predictions, targets, torch.device("cpu"))
     if torch.cuda.is_available():
         _test_compute(predictions, targets, torch.device("cuda"), approx=1e-6)
 
 
 def test_gt_partially_empty(three_samples_with_partially_empty_gt):
-    targets, predictions = three_samples_with_partially_empty_gt
+    predictions, targets = three_samples_with_partially_empty_gt
     _test_compute(predictions, targets, torch.device("cpu"))
     if torch.cuda.is_available():
         _test_compute(predictions, targets, torch.device("cuda"), approx=1e-6)
 
 
 def test_pred_partially_empty(three_samples_with_partially_empty_pred):
-    targets, predictions = three_samples_with_partially_empty_pred
+    predictions, targets = three_samples_with_partially_empty_pred
     _test_compute(predictions, targets, torch.device("cpu"))
     if torch.cuda.is_available():
         _test_compute(predictions, targets, torch.device("cuda"), approx=1e-6)
 
 
 def test_both_partially_empty(three_partially_empty_samples):
-    targets, predictions = three_partially_empty_samples
+    predictions, targets = three_partially_empty_samples
     _test_compute(predictions, targets, torch.device("cpu"))
     if torch.cuda.is_available():
         _test_compute(predictions, targets, torch.device("cuda"), approx=1e-6)
 
 
 def test_both_partially_empty_2(three_other_partially_empty_samples):
-    targets, predictions = three_other_partially_empty_samples
+    predictions, targets = three_other_partially_empty_samples
     _test_compute(predictions, targets, torch.device("cpu"))
     if torch.cuda.is_available():
         _test_compute(predictions, targets, torch.device("cuda"), approx=1e-6)
@@ -652,3 +666,135 @@ def test_no_torchvision():
     with patch.dict(sys.modules, {"torchvision.ops": None}):
         with pytest.raises(ModuleNotFoundError, match=r"This module requires torchvision to be installed."):
             MeanAveragePrecision()
+
+
+@pytest.fixture(scope="module")
+def random_sample() -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
+    torch.manual_seed(12)
+    golds = []
+    preds = []
+    for _ in range(120):
+        n_gt_box = np.random.randint(50)
+        x1 = torch.randint(641, (n_gt_box, 1))
+        y1 = torch.randint(641, (n_gt_box, 1))
+        w = 640 * torch.rand((n_gt_box, 1))
+        h = 640 * torch.rand((n_gt_box, 1))
+        x2 = (x1 + w).clip(max=640)
+        y2 = (y1 + h).clip(max=640)
+        category = torch.randint(100, (n_gt_box, 1))
+        golds.append(torch.cat((x1, y1, x2, y2, category), dim=1))
+
+        kept_boxes = torch.randint(2, (n_gt_box,), dtype=torch.bool)
+        n_predicted_box = kept_boxes.sum()
+        x1 = x1[kept_boxes]
+        y1 = y1[kept_boxes]
+        w = w[kept_boxes]
+        h = h[kept_boxes]
+        category = category[kept_boxes]
+
+        perturb_x1 = 640 * (torch.rand_like(x1, dtype=torch.float) - 0.5)
+        perturb_y1 = 640 * (torch.rand_like(y1, dtype=torch.float) - 0.5)
+        perturb_w = 640 * (torch.rand_like(w, dtype=torch.float) - 0.5)
+        perturb_h = 640 * (torch.rand_like(h, dtype=torch.float) - 0.5)
+        perturb_category = Geometric(0.7).sample((n_predicted_box, 1)) * (2 * torch.randint_like(category, 2) - 1)
+
+        x1 = (x1 + perturb_x1).clip(min=0, max=640)
+        y1 = (y1 + perturb_y1).clip(min=0, max=640)
+        w = (w + perturb_w).clip(min=0, max=640)
+        h = (h + perturb_h).clip(min=0, max=640)
+        x2 = (x1 + w).clip(max=640)
+        y2 = (y1 + h).clip(max=640)
+        category = (category + perturb_category) % 100
+        confidence = torch.rand_like(category, dtype=torch.float)
+        preds.append(torch.cat((x1, y1, x2, y2, confidence, category), dim=1))
+
+    return preds, golds
+
+
+def ignite_mAP(
+    preds: List[torch.Tensor],
+    golds: List[torch.Tensor],
+    iou_thresholds: Optional[Union[List[float], torch.Tensor]] = None,
+):
+
+    metric = MeanAveragePrecision(iou_thresholds=iou_thresholds, device=idist.device())
+    for pred, gold in zip(preds, golds):
+        metric.update((pred, gold))
+
+    return metric.compute()
+
+
+def _test_distrib_integration(preds: List[torch.Tensor], golds: List[torch.Tensor], approx: float = 1e-6):
+    rank_samples_cnt = len(golds) // idist.get_world_size()
+    rank = idist.get_rank()
+    rank_samples_range = slice(rank_samples_cnt * rank, rank_samples_cnt * (rank + 1))
+
+    pycoco_res_mAP = pycoco_mAP(preds, golds)
+    for iou_thresh, pycoco_res_mAP_for_iou_thresh in zip([None, [0.5], [0.75]], pycoco_res_mAP):
+        ignite_res_mAP = ignite_mAP(preds[rank_samples_range], golds[rank_samples_range], iou_thresh)
+        assert ignite_res_mAP == pytest.approx(pycoco_res_mAP_for_iou_thresh, abs=approx)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_distrib_nccl_gpu(distributed_context_single_node_nccl, random_sample, coco_val2017_sample):
+
+    _test_distrib_integration(*random_sample)
+    _test_distrib_integration(*coco_val2017_sample)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo, random_sample, coco_val2017_sample):
+
+    _test_distrib_integration(*random_sample)
+    _test_distrib_integration(*coco_val2017_sample)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
+def test_distrib_hvd(gloo_hvd_executor, random_sample, coco_val2017_sample):
+
+    device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
+    nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
+
+    gloo_hvd_executor(_test_distrib_integration, random_sample, np=nproc, do_init=True)
+    gloo_hvd_executor(_test_distrib_integration, coco_val2017_sample, np=nproc, do_init=True)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo, random_sample, coco_val2017_sample):
+
+    _test_distrib_integration(*random_sample)
+    _test_distrib_integration(*coco_val2017_sample)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl, random_sample, coco_val2017_sample):
+
+    _test_distrib_integration(*random_sample)
+    _test_distrib_integration(*coco_val2017_sample)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_single_device_xla(random_sample, coco_val2017_sample):
+
+    _test_distrib_integration(*random_sample)
+    _test_distrib_integration(*coco_val2017_sample)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_xla_nprocs(xmp_executor, random_sample, coco_val2017_sample):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+    xmp_executor(_test_distrib_integration, args=random_sample, nprocs=n)
+    xmp_executor(_test_distrib_integration, args=coco_val2017_sample, nprocs=n)
