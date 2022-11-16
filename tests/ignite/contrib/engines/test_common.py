@@ -148,8 +148,9 @@ def test_asserts_setup_common_training_handlers():
         train_sampler = MagicMock(spec=DistributedSampler)
         setup_common_training_handlers(trainer, train_sampler=train_sampler)
 
-    with pytest.raises(RuntimeError, match=r"This contrib module requires available GPU"):
-        setup_common_training_handlers(trainer, with_gpu_stats=True)
+    if not torch.cuda.is_available():
+        with pytest.raises(RuntimeError, match=r"This contrib module requires available GPU"):
+            setup_common_training_handlers(trainer, with_gpu_stats=True)
 
     with pytest.raises(TypeError, match=r"Unhandled type of update_function's output."):
         trainer = Engine(lambda e, b: None)
