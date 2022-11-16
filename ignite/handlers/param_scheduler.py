@@ -1390,7 +1390,9 @@ class ParamGroupScheduler:
             s.load_state_dict(sd)
 
     @classmethod
-    def simulate_values(cls, num_events: int, schedulers: List[PyTorchLRScheduler], **kwargs: Any) -> List[List[int]]:
+    def simulate_values(
+        cls, num_events: int, schedulers: List[ParamScheduler], **kwargs: Any
+    ) -> List[List[Union[List[float], float, int]]]:
         """Method to simulate scheduled values during num_events events.
 
         Args:
@@ -1417,9 +1419,9 @@ class ParamGroupScheduler:
             torch.save(objs, cache_filepath.as_posix())
 
             values = []
-            scheduler = cls(schedulers=schedulers, **kwargs)  # type: ignore[arg-type]
+            scheduler = cls(schedulers=schedulers, **kwargs)
             for i in range(num_events):
-                params = [scheduler.get_param() for scheduler in schedulers]  # type: ignore[attr-defined]
+                params = [scheduler.get_param() for scheduler in schedulers]
                 values.append([i] + params)
                 scheduler(engine=None)
 
