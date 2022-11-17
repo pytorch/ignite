@@ -18,7 +18,7 @@ torch.manual_seed(12)
 np.set_printoptions(linewidth=200)
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def coco_val2017_sample():
     gt = [
         torch.tensor(
@@ -514,37 +514,6 @@ def coco_val2017_sample():
     return pred, gt
 
 
-@pytest.fixture
-def three_samples_with_partially_empty_gt(coco_val2017_sample):
-    pred, gt = coco_val2017_sample
-    gt[0] = torch.Tensor(0, 5)
-    return pred, gt
-
-
-@pytest.fixture
-def three_samples_with_partially_empty_pred(coco_val2017_sample):
-    pred, gt = coco_val2017_sample
-    pred[1] = torch.Tensor(0, 6)
-    return pred, gt
-
-
-@pytest.fixture
-def three_partially_empty_samples(coco_val2017_sample):
-    pred, gt = coco_val2017_sample
-    gt[0] = torch.Tensor(0, 5)
-    gt[2] = torch.Tensor(0, 5)
-    pred[1] = torch.Tensor(0, 6)
-    return pred, gt
-
-
-@pytest.fixture
-def three_other_partially_empty_samples(coco_val2017_sample):
-    pred, gt = coco_val2017_sample
-    gt[1] = torch.Tensor(0, 5)
-    pred[1] = torch.Tensor(0, 6)
-    return pred, gt
-
-
 def create_coco_api(predictions, targets):
     """Create COCO object from predictions and targets
 
@@ -602,13 +571,13 @@ def pycoco_mAP(predictions, targets) -> Tuple[float, float, float]:
     return eval.stats[0], eval.stats[1], eval.stats[2]
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def random_sample() -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
     torch.manual_seed(12)
     golds = []
     preds = []
-    for _ in range(120):
-        n_gt_box = np.random.randint(50)
+    for _ in range(3):
+        n_gt_box = torch.randint(5, (1,)).item()
         x1 = torch.randint(641, (n_gt_box, 1))
         y1 = torch.randint(641, (n_gt_box, 1))
         w = 640 * torch.rand((n_gt_box, 1))
@@ -640,6 +609,7 @@ def random_sample() -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
         y2 = (y1 + h).clip(max=640)
         category = (category + perturb_category) % 100
         confidence = torch.rand_like(category, dtype=torch.float)
+        # TODO: random false positives
         preds.append(torch.cat((x1, y1, x2, y2, confidence, category), dim=1))
 
     return preds, golds
@@ -684,32 +654,30 @@ def test_with_random_sample(random_sample):
         _test_compute(predictions, targets, torch.device("cuda"), approx=1e-6)
 
 
-def test_gt_partially_empty(three_samples_with_partially_empty_gt):
-    predictions, targets = three_samples_with_partially_empty_gt
-    _test_compute(predictions, targets, torch.device("cpu"))
+def test_gt_partially_empty(coco_val2017_sample):
+    pred, gt = coco_val2017_sample
+    gt[0] = torch.Tensor(0, 5)
+    _test_compute(pred, gt, torch.device("cpu"))
     if torch.cuda.is_available():
-        _test_compute(predictions, targets, torch.device("cuda"), approx=1e-6)
+        _test_compute(pred, gt, torch.device("cuda"), approx=1e-6)
 
 
-def test_pred_partially_empty(three_samples_with_partially_empty_pred):
-    predictions, targets = three_samples_with_partially_empty_pred
-    _test_compute(predictions, targets, torch.device("cpu"))
+def test_pred_partially_empty(coco_val2017_sample):
+    pred, gt = coco_val2017_sample
+    pred[1] = torch.Tensor(0, 6)
+    _test_compute(pred, gt, torch.device("cpu"))
     if torch.cuda.is_available():
-        _test_compute(predictions, targets, torch.device("cuda"), approx=1e-6)
+        _test_compute(pred, gt, torch.device("cuda"), approx=1e-6)
 
 
-def test_both_partially_empty(three_partially_empty_samples):
-    predictions, targets = three_partially_empty_samples
-    _test_compute(predictions, targets, torch.device("cpu"))
+def test_both_partially_empty(coco_val2017_sample):
+    pred, gt = coco_val2017_sample
+    gt[0] = torch.Tensor(0, 5)
+    gt[2] = torch.Tensor(0, 5)
+    pred[1] = torch.Tensor(0, 6)
+    _test_compute(pred, gt, torch.device("cpu"))
     if torch.cuda.is_available():
-        _test_compute(predictions, targets, torch.device("cuda"), approx=1e-6)
-
-
-def test_both_partially_empty_2(three_other_partially_empty_samples):
-    predictions, targets = three_other_partially_empty_samples
-    _test_compute(predictions, targets, torch.device("cpu"))
-    if torch.cuda.is_available():
-        _test_compute(predictions, targets, torch.device("cuda"), approx=1e-6)
+        _test_compute(pred, gt, torch.device("cuda"), approx=1e-6)
 
 
 def test_no_torchvision():
@@ -731,7 +699,7 @@ def ignite_mAP(
     return metric.compute()
 
 
-def _test_distrib_integration(preds: List[torch.Tensor], golds: List[torch.Tensor], approx: float = 1e-6):
+def _test_distrib_integration(preds: List[torch.Tensor], golds: List[torch.Tensor], approx: float = 1e-3):
     rank_samples_cnt = len(golds) // idist.get_world_size()
     rank = idist.get_rank()
     if rank == (idist.get_world_size() - 1):
@@ -758,7 +726,7 @@ def test_distrib_nccl_gpu(distributed_context_single_node_nccl, random_sample, c
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo, random_sample, coco_val2017_sample):
 
-    # _test_distrib_integration(*random_sample)
+    _test_distrib_integration(*random_sample)
     _test_distrib_integration(*coco_val2017_sample)
 
 
