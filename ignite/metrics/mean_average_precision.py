@@ -122,14 +122,13 @@ class MeanAveragePrecision(Metric):
         # `gloo` does not support `gather` on GPU. Do we need
         #  to take an action regarding that?
         num_gt = torch.tensor([self._num_gt[cat_id] for cat_id in range(self._num_categories)], device=self._device)
-        if idist.get_world_size() > 1:
-            dist.reduce(num_gt, 0)
+        num_gt = idist.all_reduce(num_gt)
 
         num_predictions = torch.tensor(
             [self._tp[cat_idx].shape[1] for cat_idx in range(self._num_categories)], device=self._device
         )
         if idist.get_world_size() > 1:
-            if idist.get_local_rank() == 0:
+            if idist.get_rank() == 0:
                 ranks_num_predictions = [
                     torch.empty((self._num_categories,), device=self._device, dtype=torch.long)
                     for _ in range(idist.get_world_size())
@@ -140,7 +139,8 @@ class MeanAveragePrecision(Metric):
         else:
             ranks_num_predictions = [num_predictions]
 
-        max_num_predictions = idist.all_reduce(num_predictions, op="MAX")
+        max_num_predictions = num_predictions.clone()
+        max_num_predictions = idist.all_reduce(max_num_predictions, op="MAX")
         recall_thresh_repeated_iou_thresh_times = self.rec_thresholds.repeat((len(self.iou_thresholds), 1))
         AP = []
         for category_idx in range(self._num_categories):
@@ -149,9 +149,13 @@ class MeanAveragePrecision(Metric):
                 continue
 
             if idist.get_world_size() > 1:
-                if idist.get_local_rank() == 0:
+                if idist.get_rank() == 0:
                     ranks_tp = [
-                        torch.empty((len(self.iou_thresholds), max_num_predictions[category_idx]), device=self._device)
+                        torch.empty(
+                            (len(self.iou_thresholds), max_num_predictions[category_idx]),
+                            device=self._device,
+                            dtype=torch.uint8,
+                        )
                         for _ in range(idist.get_world_size())
                     ]
                     ranks_scores = [
@@ -164,7 +168,7 @@ class MeanAveragePrecision(Metric):
                 dist.gather(
                     F.pad(
                         self._tp[category_idx], (0, max_num_predictions[category_idx] - num_predictions[category_idx])
-                    ),
+                    ).to(torch.uint8),
                     ranks_tp,
                 )
                 dist.gather(
@@ -174,28 +178,26 @@ class MeanAveragePrecision(Metric):
                     ),
                     ranks_scores,
                 )
-                if idist.get_local_rank() == 0:
+                if idist.get_rank() == 0:
                     ranks_tp = [
-                        ranks_tp[r][:, : ranks_num_predictions[r][category_idx]] for r in range(idist.get_world_size())
+                        ranks_tp[r][:, : ranks_num_predictions[r][category_idx]].to(torch.bool)
+                        for r in range(idist.get_world_size())
                     ]
                     tp = torch.cat(ranks_tp, dim=1)
 
                     ranks_scores = [
-                        ranks_scores[r][:, : ranks_num_predictions[r][category_idx]]
-                        for r in range(idist.get_world_size())
+                        ranks_scores[r][: ranks_num_predictions[r][category_idx]] for r in range(idist.get_world_size())
                     ]
-                    scores = torch.cat(ranks_scores, dim=1)
+                    scores = torch.cat(ranks_scores, dim=0)
             else:
                 tp = self._tp[category_idx]
                 scores = self._scores[category_idx]
-            if idist.get_local_rank() == 0:
+            if idist.get_rank() == 0:
 
                 tp = tp[:, torch.argsort(scores, descending=True)]
 
                 tp_summation = tp.cumsum(dim=1)
                 fp_summation = (~tp).cumsum(dim=1)
-                print(tp_summation)
-                print(fp_summation)
                 recall = tp_summation / num_gt[category_idx]
                 precision = tp_summation / (fp_summation + tp_summation)
 
