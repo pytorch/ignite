@@ -621,14 +621,11 @@ def test_save_param_history():
 
 def test_lr_scheduler_asserts():
 
-    with pytest.raises(
-        TypeError, match=r"Argument lr_scheduler should be a subclass of torch.optim.lr_scheduler._LRScheduler"
-    ):
+    err_msg = r"Argument lr_scheduler should be a subclass of torch.optim.lr_scheduler.(_LRScheduler|LRScheduler)"
+    with pytest.raises(TypeError, match=err_msg):
         LRScheduler(123)
 
-    with pytest.raises(
-        TypeError, match=r"Argument lr_scheduler should be a subclass of torch.optim.lr_scheduler._LRScheduler"
-    ):
+    with pytest.raises(TypeError, match=err_msg):
         LRScheduler.simulate_values(1, None)
 
 

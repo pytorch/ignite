@@ -332,7 +332,7 @@ class OutputHandler(BaseOutputHandler):
         tag: str,
         metric_names: Optional[Union[str, List[str]]] = None,
         output_transform: Optional[Callable] = None,
-        global_step_transform: Optional[Callable] = None,
+        global_step_transform: Optional[Callable[[Engine, Union[str, Events]], int]] = None,
         state_attributes: Optional[List[str]] = None,
     ):
         super(OutputHandler, self).__init__(
@@ -346,7 +346,7 @@ class OutputHandler(BaseOutputHandler):
 
         metrics = self._setup_output_metrics_state_attrs(engine, key_tuple=False)
 
-        global_step = self.global_step_transform(engine, event_name)  # type: ignore[misc]
+        global_step = self.global_step_transform(engine, event_name)
 
         if not isinstance(global_step, int):
             raise TypeError(

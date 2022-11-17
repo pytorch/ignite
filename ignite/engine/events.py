@@ -520,7 +520,7 @@ class RemovableEventHandle:
             return
 
         if hasattr(handler, "_parent"):
-            handler = handler._parent()  # type: ignore[attr-defined]
+            handler = handler._parent()
             if handler is None:
                 raise RuntimeError(
                     "Internal error! Please fill an issue on https://github.com/pytorch/ignite/issues "

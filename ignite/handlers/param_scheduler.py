@@ -10,8 +10,14 @@ from pathlib import Path
 from typing import Any, cast, Dict, List, Mapping, Optional, Sequence, Tuple, Type, Union
 
 import torch
-from torch.optim.lr_scheduler import _LRScheduler, ReduceLROnPlateau
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.optim.optimizer import Optimizer
+
+# https://github.com/pytorch/ignite/issues/2773
+try:
+    from torch.optim.lr_scheduler import LRScheduler as PyTorchLRScheduler
+except ImportError:
+    from torch.optim.lr_scheduler import _LRScheduler as PyTorchLRScheduler
 
 from ignite.engine import Engine
 
@@ -207,7 +213,7 @@ class ParamScheduler(BaseParamScheduler):
             name = self.param_name
 
         if self.save_history and engine:
-            if not hasattr(engine.state, "param_history") or engine.state.param_history is None:  # type: ignore
+            if not hasattr(engine.state, "param_history") or engine.state.param_history is None:
                 setattr(engine.state, "param_history", {})
             engine.state.param_history.setdefault(name, [])  # type: ignore[attr-defined]
             values = [pg[self.param_name] for pg in self.optimizer_param_groups]
@@ -838,14 +844,15 @@ class LRScheduler(ParamScheduler):
 
     def __init__(
         self,
-        lr_scheduler: _LRScheduler,
+        lr_scheduler: PyTorchLRScheduler,
         save_history: bool = False,
         use_legacy: bool = False,
     ):
 
-        if not isinstance(lr_scheduler, _LRScheduler):
+        if not isinstance(lr_scheduler, PyTorchLRScheduler):
             raise TypeError(
-                "Argument lr_scheduler should be a subclass of torch.optim.lr_scheduler._LRScheduler, "
+                "Argument lr_scheduler should be a subclass of "
+                f"torch.optim.lr_scheduler.{PyTorchLRScheduler.__name__}, "
                 f"but given {type(lr_scheduler)}"
             )
 
@@ -882,7 +889,7 @@ class LRScheduler(ParamScheduler):
 
     @classmethod
     def simulate_values(  # type: ignore[override]
-        cls, num_events: int, lr_scheduler: _LRScheduler, **kwargs: Any
+        cls, num_events: int, lr_scheduler: PyTorchLRScheduler, **kwargs: Any
     ) -> List[List[int]]:
         """Method to simulate scheduled values during num_events events.
 
@@ -894,13 +901,14 @@ class LRScheduler(ParamScheduler):
             event_index, value
         """
 
-        if not isinstance(lr_scheduler, _LRScheduler):
+        if not isinstance(lr_scheduler, PyTorchLRScheduler):
             raise TypeError(
-                "Argument lr_scheduler should be a subclass of torch.optim.lr_scheduler._LRScheduler, "
+                "Argument lr_scheduler should be a subclass of "
+                f"torch.optim.lr_scheduler.{PyTorchLRScheduler.__name__}, "
                 f"but given {type(lr_scheduler)}"
             )
 
-        # This scheduler uses `torch.optim.lr_scheduler._LRScheduler` which
+        # This scheduler uses `torch.optim.lr_scheduler.LRScheduler` which
         # should be replicated in order to simulate LR values and
         # not perturb original scheduler.
         with tempfile.TemporaryDirectory() as tmpdirname:
@@ -926,7 +934,7 @@ class LRScheduler(ParamScheduler):
 
 
 def create_lr_scheduler_with_warmup(
-    lr_scheduler: Union[ParamScheduler, _LRScheduler],
+    lr_scheduler: Union[ParamScheduler, PyTorchLRScheduler],
     warmup_start_value: float,
     warmup_duration: int,
     warmup_end_value: Optional[float] = None,
@@ -995,10 +1003,11 @@ def create_lr_scheduler_with_warmup(
 
     .. versionadded:: 0.4.5
     """
-    if not isinstance(lr_scheduler, (ParamScheduler, _LRScheduler)):
+    if not isinstance(lr_scheduler, (ParamScheduler, PyTorchLRScheduler)):
         raise TypeError(
-            "Argument lr_scheduler should be a subclass of torch.optim.lr_scheduler._LRScheduler or "
-            f"ParamScheduler, but given {type(lr_scheduler)}"
+            "Argument lr_scheduler should be a subclass of "
+            f"torch.optim.lr_scheduler.{PyTorchLRScheduler.__name__} or ParamScheduler, "
+            f"but given {type(lr_scheduler)}"
         )
 
     if not isinstance(warmup_duration, numbers.Integral):
@@ -1018,7 +1027,7 @@ def create_lr_scheduler_with_warmup(
 
         milestones_values = [(0, warmup_start_value), (warmup_duration - 1, param_group_warmup_end_value)]
 
-        if isinstance(lr_scheduler, _LRScheduler):
+        if isinstance(lr_scheduler, PyTorchLRScheduler):
             init_lr = param_group["lr"]
             if init_lr != param_group_warmup_end_value:
                 milestones_values.append((warmup_duration, init_lr))
@@ -1054,7 +1063,7 @@ def create_lr_scheduler_with_warmup(
     schedulers = [
         warmup_scheduler,
         lr_scheduler,
-    ]  # type: List[Union[ParamScheduler, ParamGroupScheduler, _LRScheduler]]
+    ]  # type: List[Union[ParamScheduler, ParamGroupScheduler, PyTorchLRScheduler]]
     durations = [milestones_values[-1][0] + 1]
     combined_scheduler = ConcatScheduler(schedulers, durations=durations, save_history=save_history)
 
@@ -1381,7 +1390,9 @@ class ParamGroupScheduler:
             s.load_state_dict(sd)
 
     @classmethod
-    def simulate_values(cls, num_events: int, schedulers: List[_LRScheduler], **kwargs: Any) -> List[List[int]]:
+    def simulate_values(
+        cls, num_events: int, schedulers: List[ParamScheduler], **kwargs: Any
+    ) -> List[List[Union[List[float], float, int]]]:
         """Method to simulate scheduled values during num_events events.
 
         Args:
@@ -1396,7 +1407,7 @@ class ParamGroupScheduler:
                 corresponds to the simulated param of scheduler i at 'event_index'th event.
         """
 
-        # This scheduler uses `torch.optim.lr_scheduler._LRScheduler` which
+        # This scheduler uses `torch.optim.lr_scheduler.LRScheduler` which
         # should be replicated in order to simulate LR values and
         # not perturb original scheduler.
         with tempfile.TemporaryDirectory() as tmpdirname:
@@ -1408,9 +1419,9 @@ class ParamGroupScheduler:
             torch.save(objs, cache_filepath.as_posix())
 
             values = []
-            scheduler = cls(schedulers=schedulers, **kwargs)  # type: ignore[arg-type]
+            scheduler = cls(schedulers=schedulers, **kwargs)
             for i in range(num_events):
-                params = [scheduler.get_param() for scheduler in schedulers]  # type: ignore[attr-defined]
+                params = [scheduler.get_param() for scheduler in schedulers]
                 values.append([i] + params)
                 scheduler(engine=None)
 

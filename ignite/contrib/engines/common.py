@@ -5,9 +5,14 @@ from typing import Any, Callable, cast, Dict, Iterable, Mapping, Optional, Seque
 
 import torch
 import torch.nn as nn
-from torch.optim.lr_scheduler import _LRScheduler
 from torch.optim.optimizer import Optimizer
 from torch.utils.data.distributed import DistributedSampler
+
+# https://github.com/pytorch/ignite/issues/2773
+try:
+    from torch.optim.lr_scheduler import LRScheduler as PyTorchLRScheduler
+except ImportError:
+    from torch.optim.lr_scheduler import _LRScheduler as PyTorchLRScheduler
 
 import ignite.distributed as idist
 from ignite.contrib.handlers import (
@@ -37,7 +42,7 @@ def setup_common_training_handlers(
     to_save: Optional[Mapping] = None,
     save_every_iters: int = 1000,
     output_path: Optional[str] = None,
-    lr_scheduler: Optional[Union[ParamScheduler, _LRScheduler]] = None,
+    lr_scheduler: Optional[Union[ParamScheduler, PyTorchLRScheduler]] = None,
     with_gpu_stats: bool = False,
     output_names: Optional[Iterable[str]] = None,
     with_pbars: bool = True,
@@ -140,7 +145,7 @@ def _setup_common_training_handlers(
     to_save: Optional[Mapping] = None,
     save_every_iters: int = 1000,
     output_path: Optional[str] = None,
-    lr_scheduler: Optional[Union[ParamScheduler, _LRScheduler]] = None,
+    lr_scheduler: Optional[Union[ParamScheduler, PyTorchLRScheduler]] = None,
     with_gpu_stats: bool = False,
     output_names: Optional[Iterable[str]] = None,
     with_pbars: bool = True,
@@ -160,9 +165,9 @@ def _setup_common_training_handlers(
         trainer.add_event_handler(Events.ITERATION_COMPLETED, TerminateOnNan())
 
     if lr_scheduler is not None:
-        if isinstance(lr_scheduler, torch.optim.lr_scheduler._LRScheduler):
+        if isinstance(lr_scheduler, PyTorchLRScheduler):
             trainer.add_event_handler(
-                Events.ITERATION_COMPLETED, lambda engine: cast(_LRScheduler, lr_scheduler).step()
+                Events.ITERATION_COMPLETED, lambda engine: cast(PyTorchLRScheduler, lr_scheduler).step()
             )
         else:
             trainer.add_event_handler(Events.ITERATION_STARTED, lr_scheduler)
@@ -226,7 +231,7 @@ def _setup_common_distrib_training_handlers(
     to_save: Optional[Mapping] = None,
     save_every_iters: int = 1000,
     output_path: Optional[str] = None,
-    lr_scheduler: Optional[Union[ParamScheduler, _LRScheduler]] = None,
+    lr_scheduler: Optional[Union[ParamScheduler, PyTorchLRScheduler]] = None,
     with_gpu_stats: bool = False,
     output_names: Optional[Iterable[str]] = None,
     with_pbars: bool = True,
