@@ -615,7 +615,7 @@ def random_sample() -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
     return preds, golds
 
 
-def _test_compute(predictions, targets, device, approx=1e-2):
+def _test_compute(predictions, targets, device, approx=1e-6):
 
     metric_50 = MeanAveragePrecision(iou_thresholds=[0.5], device=device)
     metric_75 = MeanAveragePrecision(iou_thresholds=[0.75], device=device)
@@ -699,7 +699,7 @@ def ignite_mAP(
     return metric.compute()
 
 
-def _test_distrib_integration(preds: List[torch.Tensor], golds: List[torch.Tensor], approx: float = 1e-3):
+def _test_distrib_integration(preds: List[torch.Tensor], golds: List[torch.Tensor], approx: float = 1e-6):
     rank_samples_cnt = len(golds) // idist.get_world_size()
     rank = idist.get_rank()
     if rank == (idist.get_world_size() - 1):
