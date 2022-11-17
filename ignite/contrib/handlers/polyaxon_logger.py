@@ -40,7 +40,7 @@ class PolyaxonLogger(BaseLogger):
             plx_logger = PolyaxonLogger()
 
             # Log experiment parameters:
-            plx_logger.log_params(**{
+            plx_logger.log_inputs(**{
                 "seed": seed,
                 "batch_size": batch_size,
                 "model": model.__class__.__name__,

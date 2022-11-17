@@ -69,8 +69,8 @@ def _plx_log_params(params_dict):
     from polyaxon_client.tracking import Experiment
 
     plx_exp = Experiment()
-    plx_exp.log_params(**{"pytorch version": torch.__version__, "ignite version": ignite.__version__})
-    plx_exp.log_params(**params_dict)
+    plx_exp.log_inputs(**{"pytorch version": torch.__version__, "ignite version": ignite.__version__})
+    plx_exp.log_inputs(**params_dict)
 
 
 def _mlflow_get_output_path():
