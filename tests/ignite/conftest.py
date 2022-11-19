@@ -338,6 +338,7 @@ def gloo_hvd_executor():
     yield _gloo_hvd_execute
 
 
+skip_if_no_gpu = pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 skip_if_has_not_native_dist_support = pytest.mark.skipif(
     not idist.has_native_dist_support, reason="Skip if no native dist support"
 )
@@ -347,6 +348,12 @@ skip_if_has_not_horovod_support = pytest.mark.skipif(
 )
 
 
+# Unlike other backends, Horovod and multi-process XLA run user code by
+# providing a utility function which accepts user code as a callable argument.
+# To keep distributed tests backend-agnostic, we mark Horovod and multi-process XLA
+# tests during fixture preparation and replace their function with the proper one
+# just before running the test. PyTest stash is a safe way to share state between
+# different stages of tool runtime and we use it to mark the tests.
 is_horovod_stash_key = pytest.StashKey[bool]()
 is_xla_stash_key = pytest.StashKey[bool]()
 is_xla_single_device_stash_key = pytest.StashKey[bool]()
@@ -355,39 +362,15 @@ is_xla_single_device_stash_key = pytest.StashKey[bool]()
 @pytest.fixture(
     scope="module",
     params=[
-        pytest.param(
-            "nccl_gpu",
-            marks=[
-                pytest.mark.distributed,
-                skip_if_has_not_native_dist_support,
-                pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU"),
-            ],
-        ),
-        pytest.param("gloo_cpu_or_gpu", marks=[pytest.mark.distributed, skip_if_has_not_native_dist_support]),
+        pytest.param("nccl", marks=[pytest.mark.distributed, skip_if_has_not_native_dist_support, skip_if_no_gpu]),
+        pytest.param("gloo_cpu", marks=[pytest.mark.distributed, skip_if_has_not_native_dist_support]),
+        pytest.param("gloo_gpu", marks=[pytest.mark.distributed, skip_if_has_not_native_dist_support, skip_if_no_gpu]),
         pytest.param(
             "horovod",
             marks=[
                 pytest.mark.distributed,
                 skip_if_has_not_horovod_support,
                 pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc"),
-            ],
-        ),
-        pytest.param(
-            "multinode_gloo_cpu_or_gpu",
-            marks=[
-                pytest.mark.multinode_distributed,
-                skip_if_has_not_native_dist_support,
-                pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed"),
-            ],
-        ),
-        pytest.param(
-            "multinode_nccl_gpu",
-            marks=[
-                pytest.mark.multinode_distributed,
-                skip_if_has_not_native_dist_support,
-                pytest.mark.skipif(
-                    "GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed"
-                ),
             ],
         ),
         pytest.param(
@@ -411,8 +394,8 @@ is_xla_single_device_stash_key = pytest.StashKey[bool]()
     ],
 )
 def distributed(request, local_rank, world_size):
-    if request.param == "nccl_gpu" or request.param == "gloo_cpu_or_gpu":
-        if request.param == "gloo_cpu_or_gpu" and sys.platform.startswith("win"):
+    if request.param in ("nccl", "gloo_cpu", "gloo_gpu"):
+        if "gloo" in request.param and sys.platform.startswith("win"):
             temp_file = tempfile.NamedTemporaryFile(delete=False)
             # can't use backslashes in f-strings
             backslash = "\\"
@@ -428,7 +411,7 @@ def distributed(request, local_rank, world_size):
             "init_method": init_method,
         }
 
-        if request.param == "nccl_gpu":
+        if request.param == "nccl":
             dist_info["backend"] = "nccl"
         else:
             dist_info["backend"] = "gloo"
@@ -444,38 +427,7 @@ def distributed(request, local_rank, world_size):
         request.node.stash[is_horovod_stash_key] = True
         yield None
 
-    elif request.param == "multinode_gloo_cpu_or_gpu" or request.param == "multinode_nccl_gpu":
-        assert "MASTER_ADDR" in os.environ
-        assert "MASTER_PORT" in os.environ
-
-        assert "node_id" in os.environ
-        assert "nnodes" in os.environ
-        assert "nproc_per_node" in os.environ
-
-        node_id = int(os.environ["node_id"])
-        nnodes = int(os.environ["nnodes"])
-        nproc_per_node = int(os.environ["nproc_per_node"])
-        multi_node_conf = {
-            "world_size": nnodes * nproc_per_node,
-            "rank": local_rank + node_id * nproc_per_node,
-            "local_rank": local_rank,
-        }
-
-        dist_info = {
-            "init_method": "env://",
-            "world_size": multi_node_conf["world_size"],
-            "rank": multi_node_conf["rank"],
-        }
-        if request.param == "multinode_nccl_gpu":
-            os.environ["MASTER_PORT"] = str(int(os.getenv("MASTER_PORT")) + 1)
-            dist_info["backend"] = "nccl"
-        else:
-            dist_info["backend"] = "gloo"
-
-        yield _create_mnodes_dist_context(dist_info, multi_node_conf)
-        _destroy_mnodes_dist_context()
-
-    elif request.param == "single_device_xla" or request.param == "xla_nprocs":
+    elif request.param in ("single_device_xla", "xla_nprocs"):
         request.node.stash[is_xla_stash_key] = True
         request.node.stash[is_xla_single_device_stash_key] = request.param == "single_device_xla"
         yield None
