@@ -364,7 +364,7 @@ is_xla_single_device_stash_key = pytest.StashKey[bool]()
     params=[
         pytest.param("nccl", marks=[pytest.mark.distributed, skip_if_has_not_native_dist_support, skip_if_no_gpu]),
         pytest.param("gloo_cpu", marks=[pytest.mark.distributed, skip_if_has_not_native_dist_support]),
-        pytest.param("gloo_gpu", marks=[pytest.mark.distributed, skip_if_has_not_native_dist_support, skip_if_no_gpu]),
+        pytest.param("gloo", marks=[pytest.mark.distributed, skip_if_has_not_native_dist_support, skip_if_no_gpu]),
         pytest.param(
             "horovod",
             marks=[
@@ -394,7 +394,7 @@ is_xla_single_device_stash_key = pytest.StashKey[bool]()
     ],
 )
 def distributed(request, local_rank, world_size):
-    if request.param in ("nccl", "gloo_cpu", "gloo_gpu"):
+    if request.param in ("nccl", "gloo_cpu", "gloo"):
         if "gloo" in request.param and sys.platform.startswith("win"):
             temp_file = tempfile.NamedTemporaryFile(delete=False)
             # can't use backslashes in f-strings
