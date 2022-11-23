@@ -150,7 +150,7 @@ class VisdomLogger(BaseLogger):
         try:
             import visdom
         except ImportError:
-            raise RuntimeError(
+            raise ModuleNotFoundError(
                 "This contrib module requires visdom package. "
                 "Please install it with command:\n"
                 "pip install git+https://github.com/fossasia/visdom.git"
@@ -163,7 +163,7 @@ class VisdomLogger(BaseLogger):
             try:
                 from concurrent.futures import ThreadPoolExecutor
             except ImportError:
-                raise RuntimeError(
+                raise ModuleNotFoundError(
                     "This contrib module requires concurrent.futures module"
                     "Please install it with command:\n"
                     "pip install futures"
@@ -354,7 +354,7 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
         tag: str,
         metric_names: Optional[str] = None,
         output_transform: Optional[Callable] = None,
-        global_step_transform: Optional[Callable] = None,
+        global_step_transform: Optional[Callable[[Engine, Union[str, Events]], int]] = None,
         show_legend: bool = False,
         state_attributes: Optional[List[str]] = None,
     ):
@@ -370,7 +370,7 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
 
         metrics = self._setup_output_metrics_state_attrs(engine, key_tuple=False)
 
-        global_step = self.global_step_transform(engine, event_name)  # type: ignore[misc]
+        global_step = self.global_step_transform(engine, event_name)
 
         if not isinstance(global_step, int):
             raise TypeError(

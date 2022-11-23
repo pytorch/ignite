@@ -97,8 +97,8 @@ def _test_create_supervised_trainer(
         _x, _y = trainer.state.batch
         _x, _y = _x.to(model_device), _y.to(model_device)
         accumulation[0] += 0.2 * _x.item() * (theta[0] * _x.item() - _y.item())
-        # loss is not accumulated !
-        loss[0] = mse_loss(model(_x), _y).item() / gradient_accumulation_steps
+        # value of loss should not be accumulated
+        loss[0] = mse_loss(model(_x), _y).item()
 
     @trainer.on(Events.ITERATION_COMPLETED(every=gradient_accumulation_steps))
     def _():

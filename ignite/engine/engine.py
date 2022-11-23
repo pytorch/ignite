@@ -349,7 +349,7 @@ class Engine(Serializable):
     @staticmethod
     def _compare_handlers(user_handler: Callable, registered_handler: Callable) -> bool:
         if hasattr(registered_handler, "_parent"):
-            registered_handler = registered_handler._parent()  # type: ignore[attr-defined]
+            registered_handler = registered_handler._parent()
         return registered_handler == user_handler
 
     def remove_event_handler(self, handler: Callable, event_name: Any) -> None:

@@ -1,3 +1,4 @@
+import functools
 import os
 import shutil
 import sys
@@ -8,6 +9,8 @@ from pathlib import Path
 import pytest
 import torch
 import torch.distributed as dist
+
+import ignite.distributed as idist
 
 
 @pytest.fixture()
@@ -50,7 +53,7 @@ def get_rank_zero_dirname(dirname):
     yield func
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def local_rank(worker_id):
     """use a different account in each xdist worker"""
 
@@ -68,7 +71,7 @@ def local_rank(worker_id):
     del os.environ["LOCAL_RANK"]
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def world_size():
 
     remove_env_var = False
@@ -322,7 +325,7 @@ def _gloo_hvd_execute(func, args, np=1, do_init=False):
         # new API: https://github.com/horovod/horovod/pull/2099
         from horovod import run
 
-    kwargs = dict(use_gloo=True, np=np)
+    kwargs = dict(use_gloo=True, num_proc=np)
 
     if do_init:
         return run(_hvd_task_with_init, args=(func, args), **kwargs)
@@ -333,3 +336,111 @@ def _gloo_hvd_execute(func, args, np=1, do_init=False):
 @pytest.fixture()
 def gloo_hvd_executor():
     yield _gloo_hvd_execute
+
+
+skip_if_no_gpu = pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+skip_if_has_not_native_dist_support = pytest.mark.skipif(
+    not idist.has_native_dist_support, reason="Skip if no native dist support"
+)
+skip_if_has_not_xla_support = pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+skip_if_has_not_horovod_support = pytest.mark.skipif(
+    not idist.has_hvd_support, reason="Skip if no Horovod dist support"
+)
+
+
+# Unlike other backends, Horovod and multi-process XLA run user code by
+# providing a utility function which accepts user code as a callable argument.
+# To keep distributed tests backend-agnostic, we mark Horovod and multi-process XLA
+# tests during fixture preparation and replace their function with the proper one
+# just before running the test. PyTest stash is a safe way to share state between
+# different stages of tool runtime and we use it to mark the tests.
+is_horovod_stash_key = pytest.StashKey[bool]()
+is_xla_stash_key = pytest.StashKey[bool]()
+is_xla_single_device_stash_key = pytest.StashKey[bool]()
+
+
+@pytest.fixture(
+    scope="module",
+    params=[
+        pytest.param("nccl", marks=[pytest.mark.distributed, skip_if_has_not_native_dist_support, skip_if_no_gpu]),
+        pytest.param("gloo_cpu", marks=[pytest.mark.distributed, skip_if_has_not_native_dist_support]),
+        pytest.param("gloo", marks=[pytest.mark.distributed, skip_if_has_not_native_dist_support, skip_if_no_gpu]),
+        pytest.param(
+            "horovod",
+            marks=[
+                pytest.mark.distributed,
+                skip_if_has_not_horovod_support,
+                pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc"),
+            ],
+        ),
+        pytest.param(
+            "single_device_xla",
+            marks=[
+                pytest.mark.tpu,
+                skip_if_has_not_xla_support,
+                pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars"),
+            ],
+        ),
+        pytest.param(
+            "xla_nprocs",
+            marks=[
+                pytest.mark.tpu,
+                skip_if_has_not_xla_support,
+                pytest.mark.skipif(
+                    "NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars"
+                ),
+            ],
+        ),
+    ],
+)
+def distributed(request, local_rank, world_size):
+    if request.param in ("nccl", "gloo_cpu", "gloo"):
+        if "gloo" in request.param and sys.platform.startswith("win"):
+            temp_file = tempfile.NamedTemporaryFile(delete=False)
+            # can't use backslashes in f-strings
+            backslash = "\\"
+            init_method = f'file:///{temp_file.name.replace(backslash, "/")}'
+        else:
+            temp_file = None
+            free_port = _setup_free_port(local_rank)
+            init_method = f"tcp://localhost:{free_port}"
+
+        dist_info = {
+            "world_size": world_size,
+            "rank": local_rank,
+            "init_method": init_method,
+        }
+
+        if request.param == "nccl":
+            dist_info["backend"] = "nccl"
+        else:
+            dist_info["backend"] = "gloo"
+            from datetime import timedelta
+
+            dist_info["timeout"] = timedelta(seconds=60)
+        yield _create_dist_context(dist_info, local_rank)
+        _destroy_dist_context()
+        if temp_file:
+            temp_file.close()
+
+    elif request.param == "horovod":
+        request.node.stash[is_horovod_stash_key] = True
+        yield None
+
+    elif request.param in ("single_device_xla", "xla_nprocs"):
+        request.node.stash[is_xla_stash_key] = True
+        request.node.stash[is_xla_single_device_stash_key] = request.param == "single_device_xla"
+        yield None
+    else:
+        raise RuntimeError(f"Invalid parameter value for `distributed` fixture, given {request.param}")
+
+
+@pytest.hookimpl
+def pytest_pyfunc_call(pyfuncitem: pytest.Function) -> None:
+    if pyfuncitem.stash.get(is_horovod_stash_key, False):
+        nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
+        pyfuncitem.obj = functools.partial(_gloo_hvd_execute, pyfuncitem.obj, (), np=nproc)
+
+    elif pyfuncitem.stash.get(is_xla_stash_key, False) and not pyfuncitem.stash[is_xla_single_device_stash_key]:
+        n = int(os.environ["NUM_TPU_WORKERS"])
+        pyfuncitem.obj = functools.partial(_xla_execute, pyfuncitem.obj, (), n)

@@ -131,7 +131,7 @@ def test_binary_input(average):
         assert isinstance(re.compute(), torch.Tensor if not average else float)
         re_compute = re.compute().numpy() if not average else re.compute()
         sk_average_parameter = ignite_average_to_scikit_average(average, "binary")
-        assert recall_score(np_y, np_y_pred, average=sk_average_parameter) == pytest.approx(re_compute)
+        assert recall_score(np_y, np_y_pred, average=sk_average_parameter, labels=[0, 1]) == pytest.approx(re_compute)
 
     def get_test_cases():
 

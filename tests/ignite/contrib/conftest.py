@@ -1,6 +1,26 @@
 import random
+from pathlib import Path
 
 import pytest
+
+
+@pytest.fixture
+def no_site_packages(request):
+    import sys
+
+    modules = {}
+    for k in sys.modules:
+        if request.param in k:
+            modules[k] = sys.modules[k]
+    for k in modules:
+        del sys.modules[k]
+
+    prev_path = list(sys.path)
+    sys.path = [p for p in sys.path if "site-packages" not in p]
+    yield "no_site_packages"
+    sys.path = prev_path
+    for k in modules:
+        sys.modules[k] = modules[k]
 
 
 @pytest.fixture()
@@ -26,8 +46,9 @@ def visdom_server():
         import time
 
         from visdom import Visdom
-        from visdom.server import download_scripts
+        from visdom.server.build import download_scripts
 
+        (Path.home() / ".visdom").mkdir(exist_ok=True)
         download_scripts()
 
         vd_hostname = "localhost"

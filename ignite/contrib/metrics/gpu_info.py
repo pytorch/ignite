@@ -37,7 +37,7 @@ class GpuInfo(Metric):
         try:
             from pynvml.smi import nvidia_smi
         except ImportError:
-            raise RuntimeError(
+            raise ModuleNotFoundError(
                 "This contrib module requires pynvml to be installed. "
                 "Please install it with command: \n pip install pynvml"
             )

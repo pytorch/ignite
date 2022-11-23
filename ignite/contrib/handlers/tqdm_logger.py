@@ -126,7 +126,7 @@ class ProgressBar(BaseLogger):
         try:
             from tqdm.autonotebook import tqdm
         except ImportError:
-            raise RuntimeError(
+            raise ModuleNotFoundError(
                 "This contrib module requires tqdm to be installed. "
                 "Please install it with command: \n pip install tqdm"
             )
@@ -223,7 +223,7 @@ class ProgressBar(BaseLogger):
         super(ProgressBar, self).attach(engine, log_handler, event_name)
         engine.add_event_handler(closing_event_name, self._close)
 
-    def attach_opt_params_handler(
+    def attach_opt_params_handler(  # type: ignore[empty-body]
         self, engine: Engine, event_name: Union[str, Events], *args: Any, **kwargs: Any
     ) -> RemovableEventHandle:
         """Intentionally empty"""
@@ -232,7 +232,7 @@ class ProgressBar(BaseLogger):
     def _create_output_handler(self, *args: Any, **kwargs: Any) -> "_OutputHandler":
         return _OutputHandler(*args, **kwargs)
 
-    def _create_opt_params_handler(self, *args: Any, **kwargs: Any) -> Callable:
+    def _create_opt_params_handler(self, *args: Any, **kwargs: Any) -> Callable:  # type: ignore[empty-body]
         """Intentionally empty"""
         pass
 

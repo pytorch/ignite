@@ -18,7 +18,7 @@ def mock_no_sklearn():
 
 
 def test_no_sklearn(mock_no_sklearn):
-    with pytest.raises(RuntimeError, match=r"This contrib module requires sklearn to be installed"):
+    with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires scikit-learn to be installed"):
         RocCurve()
 
 

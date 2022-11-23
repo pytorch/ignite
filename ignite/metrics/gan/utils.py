@@ -22,7 +22,7 @@ class InceptionModel(torch.nn.Module):
             import torchvision
             from torchvision import models
         except ImportError:
-            raise RuntimeError("This module requires torchvision to be installed.")
+            raise ModuleNotFoundError("This module requires torchvision to be installed.")
         super(InceptionModel, self).__init__()
         self._device = device
         if Version(torchvision.__version__) < Version("0.13.0"):

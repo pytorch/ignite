@@ -88,7 +88,7 @@ class MLflowLogger(BaseLogger):
         try:
             import mlflow
         except ImportError:
-            raise RuntimeError(
+            raise ModuleNotFoundError(
                 "This contrib module requires mlflow to be installed. "
                 "Please install it with command: \n pip install mlflow"
             )
@@ -222,7 +222,7 @@ class OutputHandler(BaseOutputHandler):
         tag: str,
         metric_names: Optional[Union[str, List[str]]] = None,
         output_transform: Optional[Callable] = None,
-        global_step_transform: Optional[Callable] = None,
+        global_step_transform: Optional[Callable[[Engine, Union[str, Events]], int]] = None,
         state_attributes: Optional[List[str]] = None,
     ) -> None:
         super(OutputHandler, self).__init__(
@@ -236,7 +236,7 @@ class OutputHandler(BaseOutputHandler):
 
         rendered_metrics = self._setup_output_metrics_state_attrs(engine)
 
-        global_step = self.global_step_transform(engine, event_name)  # type: ignore[misc]
+        global_step = self.global_step_transform(engine, event_name)
 
         if not isinstance(global_step, int):
             raise TypeError(

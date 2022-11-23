@@ -87,7 +87,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r requirements-dev.txt -qq
+          pip install -r requirements-dev.txt
           python setup.py install
 
       - name: Check code formatting
@@ -96,6 +96,8 @@ jobs:
           bash ./tests/run_code_style.sh lint
 
       - name: Run Mypy
+        # https://github.com/pytorch/ignite/pull/2780
+        # 
         if: ${{ matrix.os == 'ubuntu-latest' && matrix.pytorch-channel == 'pytorch-nightly'}}
         run: |
           bash ./tests/run_code_style.sh mypy
@@ -133,7 +135,7 @@ jobs:
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
           # 2) mnist_with_visdom.py
-          python -c "from visdom.server import download_scripts; download_scripts()" # download scripts : https://github.com/facebookresearch/visdom/blob/master/py/server.py#L929
+          python -c "from visdom.server.build import download_scripts; download_scripts()" # download scripts : https://github.com/facebookresearch/visdom/blob/master/py/server.py#L929
           python -m visdom.server &
           sleep 10
           python examples/mnist/mnist_with_visdom.py --epochs=1
