@@ -41,7 +41,7 @@ class MeanAveragePrecision(Metric):
             raise ModuleNotFoundError("This module requires torchvision to be installed.")
 
         if iou_thresholds is None:
-            self.iou_thresholds = torch.arange(0.5, 0.99, 0.05).tolist()
+            self.iou_thresholds = torch.linspace(0.5, 0.95, 10).tolist()
         elif isinstance(iou_thresholds, torch.Tensor):
             if iou_thresholds.ndim != 1:
                 raise ValueError(
@@ -57,7 +57,7 @@ class MeanAveragePrecision(Metric):
         if min(self.iou_thresholds) < 0 or max(self.iou_thresholds) > 1:
             raise ValueError(f"`iou_thresholds` values should be between 0 and 1, given {iou_thresholds}")
 
-        self.rec_thresholds = torch.linspace(0, 1, 101, device=device)
+        self.rec_thresholds = torch.linspace(0, 1, 101, device=device, dtype=torch.double)
         super(MeanAveragePrecision, self).__init__(output_transform=output_transform, device=device)
 
     @reinit__is_reduced
@@ -91,13 +91,15 @@ class MeanAveragePrecision(Metric):
 
         for category in categories:
             class_index_gt = y[:, 4] == category
-            self._num_gt[category] += class_index_gt.sum()
+            num_category_gt = class_index_gt.sum()
+            self._num_gt[category] += num_category_gt
 
             class_index_dt = y_pred[:, 5] == category
             if not class_index_dt.any():
                 continue
 
-            self._scores[category] = torch.concat((self._scores[category], y_pred[class_index_dt, 4].to(self._device)))
+            category_scores = y_pred[class_index_dt, 4]
+            self._scores[category] = torch.concat((self._scores[category], category_scores.to(self._device)))
 
             category_tp = torch.zeros(
                 (len(self.iou_thresholds), class_index_dt.sum().item()), dtype=torch.bool, device=self._device
@@ -105,13 +107,23 @@ class MeanAveragePrecision(Metric):
             if class_index_gt.any():
                 class_iou = iou[:, class_index_gt][class_index_dt, :]
                 category_maximum_iou = class_iou.max()
+                category_pred_idx_sorted_by_decreasing_score = torch.argsort(
+                    category_scores, stable=True, descending=True
+                ).tolist()
                 for thres_idx, iou_thres in enumerate(self.iou_thresholds):
-                    if iou_thres < category_maximum_iou:
-                        class_iou[class_iou <= iou_thres] = 0
-                        class_iou[~(class_iou == class_iou.amax(dim=0))] = 0
-                        class_iou[~(class_iou.T == class_iou.amax(dim=1)).T] = 0
-
-                        category_tp[thres_idx] = (class_iou != 0).any(dim=1).to(self._device)
+                    if iou_thres <= category_maximum_iou:
+                        matched_gt_indices = set()
+                        for pred_idx in category_pred_idx_sorted_by_decreasing_score:
+                            match_iou, match_idx = -1.0, -1
+                            for gt_idx in range(num_category_gt):
+                                if (class_iou[pred_idx][gt_idx] < iou_thres) or (gt_idx in matched_gt_indices):
+                                    continue
+                                if class_iou[pred_idx][gt_idx] >= match_iou:
+                                    match_iou = class_iou[pred_idx][gt_idx]
+                                    match_idx = gt_idx
+                            if match_idx != -1:
+                                matched_gt_indices.add(match_idx)
+                                category_tp[thres_idx][pred_idx] = 1
                     else:
                         break
 
@@ -142,10 +154,14 @@ class MeanAveragePrecision(Metric):
         max_num_predictions = num_predictions.clone()
         max_num_predictions = idist.all_reduce(max_num_predictions, op="MAX")
         recall_thresh_repeated_iou_thresh_times = self.rec_thresholds.repeat((len(self.iou_thresholds), 1))
-        AP = []
+        average_precision = torch.tensor(0.0, device=self._device, dtype=torch.double)
+        num_present_categories = self._num_categories
         for category_idx in range(self._num_categories):
 
             if num_gt[category_idx] == 0:
+                num_present_categories -= 1
+                continue
+            if max_num_predictions[category_idx] == 0:
                 continue
 
             if idist.get_world_size() > 1:
@@ -194,27 +210,22 @@ class MeanAveragePrecision(Metric):
                 scores = self._scores[category_idx]
             if idist.get_rank() == 0:
 
-                tp = tp[:, torch.argsort(scores, descending=True)]
+                tp = tp[:, torch.argsort(scores, stable=True, descending=True)]
 
-                tp_summation = tp.cumsum(dim=1)
-                fp_summation = (~tp).cumsum(dim=1)
+                tp_summation = tp.cumsum(dim=1).double()
+                fp_summation = (~tp).cumsum(dim=1).double()
                 recall = tp_summation / num_gt[category_idx]
-                precision = tp_summation / (fp_summation + tp_summation)
+                precision = tp_summation / (fp_summation + tp_summation + torch.finfo(torch.double).eps)
 
-                interpolated_precision_at_recall_thresh = []
                 recall_thresh_indices = torch.searchsorted(recall, recall_thresh_repeated_iou_thresh_times)
                 for t in range(len(self.iou_thresholds)):
                     for r_idx in recall_thresh_indices[t]:
                         if r_idx == recall.shape[1]:
                             break
-                        interpolated_precision_at_recall_thresh.append(precision[t][r_idx:].max())
-                AP.append(
-                    sum(interpolated_precision_at_recall_thresh) / (len(self.rec_thresholds) * len(self.iou_thresholds))
-                )
-        if idist.get_rank() == 0:
-            mAP = torch.tensor(AP, device=self._device).mean()
-        else:
-            mAP = torch.tensor(0.0, device=self._device)
+                        # Interpolated precision. Please refer to PASCAL VOC paper section 4.2
+                        # for more information. MS COCO is like PASCAL in this regard.
+                        average_precision += precision[t][r_idx:].max()
+        mAP = average_precision / (num_present_categories * len(self.rec_thresholds) * len(self.iou_thresholds))
         if idist.get_world_size() > 1:
             dist.broadcast(mAP, 0)
         return mAP.item()

@@ -18,8 +18,39 @@ torch.manual_seed(12)
 np.set_printoptions(linewidth=200)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def coco_val2017_sample():
+    """
+    Predictions are done using torchvision's `fasterrcnn_resnet50_fpn_v2`
+    with the following snippet. Note that beforehand, COCO images and annotations
+    were downloaded and unzipped into "val2017" and "annotations" folders respectively.
+
+    .. code-block:: python
+
+        import torch
+        from torchvision.models import detection as dtv
+        from torchvision.datasets import CocoDetection
+
+        coco = CocoDetection(
+            "val2017",
+            "annotations/instances_val2017.json",
+            transform=dtv.FasterRCNN_ResNet50_FPN_V2_Weights.COCO_V1.transforms()
+        )
+        model = dtv.fasterrcnn_resnet50_fpn_v2(
+            weights=dtv.FasterRCNN_ResNet50_FPN_V2_Weights.COCO_V1
+        )
+        model.eval()
+
+        sample = torch.randint(len(coco), (10,)).tolist()
+        with torch.no_grad():
+            pred = model([coco[s][0] for s in sample])
+
+        pred = [torch.cat((
+            p['boxes'].int(),
+            p['scores'].reshape(-1, 1),
+            p['labels'].reshape(-1,1)
+        ), dim=1) for p in pred]
+    """
     gt = [
         torch.tensor(
             [
@@ -576,8 +607,9 @@ def random_sample() -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
     torch.manual_seed(12)
     golds = []
     preds = []
-    for _ in range(3):
-        n_gt_box = torch.randint(5, (1,)).item()
+    for _ in range(120):
+        # Generate some ground truth boxes
+        n_gt_box = torch.randint(50, (1,)).item()
         x1 = torch.randint(641, (n_gt_box, 1))
         y1 = torch.randint(641, (n_gt_box, 1))
         w = 640 * torch.rand((n_gt_box, 1))
@@ -587,6 +619,7 @@ def random_sample() -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
         category = torch.randint(100, (n_gt_box, 1))
         golds.append(torch.cat((x1, y1, x2, y2, category), dim=1))
 
+        # Remove some of gt boxes from corresponding predictions
         kept_boxes = torch.randint(2, (n_gt_box,), dtype=torch.bool)
         n_predicted_box = kept_boxes.sum()
         x1 = x1[kept_boxes]
@@ -595,6 +628,7 @@ def random_sample() -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
         h = h[kept_boxes]
         category = category[kept_boxes]
 
+        # Perturb gt boxes in the prediction
         perturb_x1 = 640 * (torch.rand_like(x1, dtype=torch.float) - 0.5)
         perturb_y1 = 640 * (torch.rand_like(y1, dtype=torch.float) - 0.5)
         perturb_w = 640 * (torch.rand_like(w, dtype=torch.float) - 0.5)
@@ -609,8 +643,21 @@ def random_sample() -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
         y2 = (y1 + h).clip(max=640)
         category = (category + perturb_category) % 100
         confidence = torch.rand_like(category, dtype=torch.float)
-        # TODO: random false positives
-        preds.append(torch.cat((x1, y1, x2, y2, confidence, category), dim=1))
+        perturbed_gt_boxes = torch.cat((x1, y1, x2, y2, confidence, category), dim=1)
+
+        # Generate some additional prediction boxes
+        n_additional_pred_boxes = torch.randint(50, (1,)).item()
+        x1 = torch.randint(641, (n_additional_pred_boxes, 1))
+        y1 = torch.randint(641, (n_additional_pred_boxes, 1))
+        w = 640 * torch.rand((n_additional_pred_boxes, 1))
+        h = 640 * torch.rand((n_additional_pred_boxes, 1))
+        x2 = (x1 + w).clip(max=640)
+        y2 = (y1 + h).clip(max=640)
+        category = torch.randint(100, (n_additional_pred_boxes, 1))
+        confidence = torch.rand_like(category, dtype=torch.float)
+        additional_pred_boxes = torch.cat((x1, y1, x2, y2, confidence, category), dim=1)
+
+        preds.append(torch.cat((perturbed_gt_boxes, additional_pred_boxes), dim=0))
 
     return preds, golds
 
@@ -674,6 +721,7 @@ def test_both_partially_empty(coco_val2017_sample):
     pred, gt = coco_val2017_sample
     gt[0] = torch.Tensor(0, 5)
     gt[2] = torch.Tensor(0, 5)
+    pred[0] = torch.Tensor(0, 6)
     pred[1] = torch.Tensor(0, 6)
     _test_compute(pred, gt, torch.device("cpu"))
     if torch.cuda.is_available():
