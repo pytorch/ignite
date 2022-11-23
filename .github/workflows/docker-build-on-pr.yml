@@ -83,7 +83,7 @@ jobs:
       - name: Remove cache
         run: |
           sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"      
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
@@ -121,7 +121,7 @@ jobs:
       - name: Remove cache
         run: |
           sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"      
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
@@ -156,7 +156,7 @@ jobs:
       - name: Remove cache
         run: |
           sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"      
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7
@@ -191,7 +191,7 @@ jobs:
       - name: Remove cache
         run: |
           sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"      
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - uses: actions/setup-python@v2
         with:
           python-version: 3.7

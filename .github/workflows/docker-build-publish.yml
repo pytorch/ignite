@@ -1,0 +1,226 @@
+name: Build And Publish Docker Images
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - docker/**
+      - ".github/workflows/docker-build-publish.yml"
+  workflow_dispatch:
+
+concurrency:
+  # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>
+  group: docker-images-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  setup:
+    name: Setup
+    runs-on: [self-hosted, docker]
+    outputs:
+      modified: ${{ steps.set-modified.outputs.modified }}
+      pth_version: ${{ steps.set-versions.outputs.pth_version }}
+      hvd_version: ${{ steps.set-versions.outputs.hvd_version }}
+      msdp_version: ${{ steps.set-versions.outputs.msdp_version }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Changed Files Exporter
+        id: files
+        uses: futuratrepadeira/changed-files@v3.3.0
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Get a list of modified files
+        run: echo "modified=${{ steps.files.outputs.files_created }} ${{ steps.files.outputs.files_updated }}" >> $GITHUB_ENV
+      - name: Set outputs
+        id: set-modified
+        run: echo "::set-output name=modified::${{ env.modified }}"
+      - name: Set versions
+        id: set-versions
+        working-directory: docker
+        run: |
+          echo "::set-output name=pth_version::$(python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_pytorch_version'))")"
+          echo "::set-output name=hvd_version::$(python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_hvd_version'))")"
+          echo "::set-output name=msdp_version::$(python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_msdp_version'))")"
+
+  # build-and-maybe-publish-hvd:
+  #   name: Build and maybe publish all Horovod flavoured PyTorch-Ignite images
+  #   needs: setup
+  #   if: contains(needs.setup.outputs.modified, 'hvd/') || contains(needs.setup.outputs.modified, 'docker.cfg')
+  #   runs-on: [self-hosted, docker]
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: actions/setup-python@v4
+  #       with:
+  #         python-version: 3.9
+  #     - name: Build hvd hvd-base
+  #       working-directory: docker
+  #       run: |
+  #         pip install docker
+  #         export PTH_VERSION=${{ needs.setup.outputs.pth_version }}
+  #         export HVD_VERSION=${{ needs.setup.outputs.hvd_version }}
+  #         bash build.sh hvd hvd-base
+  #     - name: Build hvd hvd-vision
+  #       working-directory: docker
+  #       run: |
+  #         export PTH_VERSION=${{ needs.setup.outputs.pth_version }}
+  #         export HVD_VERSION=${{ needs.setup.outputs.hvd_version }}
+  #         bash build.sh hvd hvd-vision
+  #     - name: Build hvd hvd-nlp
+  #       working-directory: docker
+  #       run: |
+  #         export PTH_VERSION=${{ needs.setup.outputs.pth_version }}
+  #         export HVD_VERSION=${{ needs.setup.outputs.hvd_version }}
+  #         bash build.sh hvd hvd-nlp
+  #     - name: List all
+  #       run: |
+  #         docker images | grep pytorchignite
+  #     - name: Publish
+  #       working-directory: docker
+  #       if: (github.ref == 'refs/heads/master' && github.event_name == 'push') || github.event_name == 'release'
+  #       env:
+  #         DOCKER_USER: ${{ secrets.DOCKER_USER }}
+  #         DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
+  #       run: |
+  #         bash push_all.sh
+      # - name: Clean-up
+      #   run: |
+      #     docker images | grep 'pytorchignite/hvd\|<none>' | awk '{print $3}' | xargs docker rmi -f
+
+
+  # build-and-maybe-publish-hvd-apex:
+  #   name: Build all Horovod + Apex flavoured PyTorch-Ignite images
+  #   needs: setup
+  #   if: contains(needs.setup.outputs.modified, 'hvd/') || contains(needs.setup.outputs.modified, 'docker.cfg')
+  #   runs-on: [self-hosted, docker]
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: actions/setup-python@v4
+  #       with:
+  #         python-version: 3.9
+  #     - name: Build hvd hvd-apex
+  #       working-directory: docker
+  #       run: |
+  #         pip install docker
+  #         export PTH_VERSION=${{ needs.setup.outputs.pth_version }}
+  #         export HVD_VERSION=${{ needs.setup.outputs.hvd_version }}
+  #         bash build.sh hvd hvd-apex
+  #     - name: Build hvd hvd-apex-vision
+  #       working-directory: docker
+  #       run: |
+  #         export PTH_VERSION=${{ needs.setup.outputs.pth_version }}
+  #         export HVD_VERSION=${{ needs.setup.outputs.hvd_version }}
+  #         bash build.sh hvd hvd-apex-vision
+  #     - name: Build hvd hvd-apex-nlp
+  #       working-directory: docker
+  #       run: |
+  #         export PTH_VERSION=${{ needs.setup.outputs.pth_version }}
+  #         export HVD_VERSION=${{ needs.setup.outputs.hvd_version }}
+  #         bash build.sh hvd hvd-apex-nlp
+  #     - name: List all
+  #       run: |
+  #         docker images | grep pytorchignite
+
+  build-and-maybe-publish-main:
+    name: Build all PyTorch-Ignite images
+    needs: setup
+    if: contains(needs.setup.outputs.modified, 'main/') || contains(needs.setup.outputs.modified, 'docker.cfg')
+    runs-on: [self-hosted, docker]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+      - name: Build main base
+        working-directory: docker
+        run: |
+          pip install docker
+          export PTH_VERSION=${{ needs.setup.outputs.pth_version }}
+          bash build.sh main base
+      - name: Build main vision
+        working-directory: docker
+        run: |
+          export PTH_VERSION=${{ needs.setup.outputs.pth_version }}
+          bash build.sh main vision
+      - name: Build main nlp
+        working-directory: docker
+        run: |
+          export PTH_VERSION=${{ needs.setup.outputs.pth_version }}
+          bash build.sh main nlp
+      - name: List all
+        run: |
+          docker images | grep pytorchignite
+      - name: Publish
+        working-directory: docker
+        if: (github.ref == 'refs/heads/master' && github.event_name == 'push') || github.event_name == 'release'
+        env:
+          DOCKER_USER: ${{ secrets.DOCKER_USER }}
+          DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
+        run: |
+          bash push_all.sh
+      - name: Clean-up
+        run: |
+          docker images | grep 'pytorchignite/base\|<none>' | awk '{print $3}' | xargs docker rmi -f
+
+  # build-and-maybe-publish-main-apex:
+  #   name: Build all PyTorch-Ignite images with Apex
+  #   needs: setup
+  #   if: contains(needs.setup.outputs.modified, 'main/') || contains(needs.setup.outputs.modified, 'docker.cfg')
+  #   runs-on: [self-hosted, docker]
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: actions/setup-python@v4
+  #       with:
+  #         python-version: 3.9
+  #     - name: Build main apex
+  #       working-directory: docker
+  #       run: |
+  #         pip install docker
+  #         export PTH_VERSION=${{ needs.setup.outputs.pth_version }}
+  #         bash build.sh main apex
+  #     - name: Build main apex-vision
+  #       working-directory: docker
+  #       run: |
+  #         export PTH_VERSION=${{ needs.setup.outputs.pth_version }}
+  #         bash build.sh main apex-vision
+  #     - name: Build main apex-nlp
+  #       working-directory: docker
+  #       run: |
+  #         export PTH_VERSION=${{ needs.setup.outputs.pth_version }}
+  #         bash build.sh main apex-nlp
+  #     - name: List all
+  #       run: |
+  #         docker images | grep pytorchignite
+
+  # build-and-maybe-publish-msdp-apex:
+  #   name: Build all MS DeepSpeed flavoured PyTorch-Ignite images
+  #   needs: setup
+  #   if: contains(needs.setup.outputs.modified, 'msdp/') || contains(needs.setup.outputs.modified, 'docker.cfg')
+  #   runs-on: [self-hosted, docker]
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: actions/setup-python@v4
+  #       with:
+  #         python-version: 3.9
+  #     - name: Build msdp msdp-apex
+  #       working-directory: docker
+  #       run: |
+  #         pip install docker
+  #         export PTH_VERSION=${{ needs.setup.outputs.pth_version }}
+  #         export MSDP_VERSION=${{ needs.setup.outputs.msdp_version }}
+  #         bash build.sh msdp msdp-apex
+  #     - name: Build msdp msdp-apex-vision
+  #       working-directory: docker
+  #       run: |
+  #         export PTH_VERSION=${{ needs.setup.outputs.pth_version }}
+  #         export MSDP_VERSION=${{ needs.setup.outputs.msdp_version }}
+  #         bash build.sh msdp msdp-apex-vision
+  #     - name: Build msdp msdp-apex-nlp
+  #       working-directory: docker
+  #       run: |
+  #         export PTH_VERSION=${{ needs.setup.outputs.pth_version }}
+  #         export MSDP_VERSION=${{ needs.setup.outputs.msdp_version }}
+  #         bash build.sh msdp msdp-apex-nlp
+  #     - name: List all
+  #       run: |
+  #         docker images | grep pytorchignite
