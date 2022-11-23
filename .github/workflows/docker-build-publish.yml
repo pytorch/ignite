@@ -7,6 +7,11 @@ on:
     paths:
       - docker/**
       - ".github/workflows/docker-build-publish.yml"
+  # TEMPORARY HACK TO TEST IN THE PR
+  pull_request:
+    paths:
+      - docker/**
+      - ".github/workflows/docker-build-publish.yml"
   workflow_dispatch:
 
 concurrency:
@@ -152,7 +157,8 @@ jobs:
           docker images | grep pytorchignite
       - name: Publish
         working-directory: docker
-        if: (github.ref == 'refs/heads/master' && github.event_name == 'push') || github.event_name == 'release'
+        # !!! To uncomment before merging
+        # if: (github.ref == 'refs/heads/master' && github.event_name == 'push') || github.event_name == 'release'
         env:
           DOCKER_USER: ${{ secrets.DOCKER_USER }}
           DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
