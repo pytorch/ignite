@@ -158,10 +158,7 @@ jobs:
           DOCKER_USER: ${{ secrets.DOCKER_USER }}
           DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
         run: |
-          bash push_all.sh | true
-      - name: Clean-up
-        run: |
-          docker images | grep 'pytorchignite/base\|<none>' | awk '{print $3}' | xargs docker rmi -f
+          bash push_all.sh
 
   # build-and-maybe-publish-main-apex:
   #   name: Build all PyTorch-Ignite images with Apex
