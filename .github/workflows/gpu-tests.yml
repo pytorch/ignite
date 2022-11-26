@@ -35,13 +35,13 @@ jobs:
       - name: Get year & week number
         id: get-date
         run: |
-          echo "::set-output name=date::$(/bin/date "+%Y-%U")"
+          echo "name=date::$(/bin/date "+%Y-%U")" >> $GITHUB_OUTPUT
 
       - name: Get pip cache dir
         id: pip-cache
         run: |
           pip install -U pip || python -m pip install -U pip
-          echo "::set-output name=dir::$(pip cache dir)"
+          echo "name=dir::$(pip cache dir)" >> $GITHUB_OUTPUT
 
       - uses: actions/cache@v2
         with:
