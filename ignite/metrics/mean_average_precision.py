@@ -1,7 +1,7 @@
 __all__ = ["MeanAveragePrecision"]
 
 from collections import defaultdict
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Callable, cast, Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.distributed as dist
@@ -41,7 +41,18 @@ class MeanAveragePrecision(Metric):
             raise ModuleNotFoundError("This module requires torchvision to be installed.")
 
         if iou_thresholds is None:
-            self.iou_thresholds = torch.linspace(0.5, 0.95, 10).tolist()
+            self.iou_thresholds = [
+                0.5,
+                0.55,
+                0.6,
+                0.65,
+                0.7,
+                0.75,
+                0.8,
+                0.85,
+                0.8999999999999999,
+                0.95,
+            ]  # torch.linspace(0.5, 0.95, 10).tolist()
         elif isinstance(iou_thresholds, torch.Tensor):
             if iou_thresholds.ndim != 1:
                 raise ValueError(
@@ -57,14 +68,122 @@ class MeanAveragePrecision(Metric):
         if min(self.iou_thresholds) < 0 or max(self.iou_thresholds) > 1:
             raise ValueError(f"`iou_thresholds` values should be between 0 and 1, given {iou_thresholds}")
 
-        self.rec_thresholds = torch.linspace(0, 1, 101, device=device, dtype=torch.double)
+        self.rec_thresholds = torch.tensor(
+            [
+                0.0,
+                0.01,
+                0.02,
+                0.03,
+                0.04,
+                0.05,
+                0.06,
+                0.07,
+                0.08,
+                0.09,
+                0.1,
+                0.11,
+                0.12,
+                0.13,
+                0.14,
+                0.15,
+                0.16,
+                0.17,
+                0.18,
+                0.19,
+                0.2,
+                0.21,
+                0.22,
+                0.23,
+                0.24,
+                0.25,
+                0.26,
+                0.27,
+                0.28,
+                0.29,
+                0.3,
+                0.31,
+                0.32,
+                0.33,
+                0.34,
+                0.35000000000000003,
+                0.36,
+                0.37,
+                0.38,
+                0.39,
+                0.4,
+                0.41000000000000003,
+                0.42,
+                0.43,
+                0.44,
+                0.45,
+                0.46,
+                0.47000000000000003,
+                0.48,
+                0.49,
+                0.5,
+                0.51,
+                0.52,
+                0.53,
+                0.54,
+                0.55,
+                0.56,
+                0.5700000000000001,
+                0.58,
+                0.59,
+                0.6,
+                0.61,
+                0.62,
+                0.63,
+                0.64,
+                0.65,
+                0.66,
+                0.67,
+                0.68,
+                0.6900000000000001,
+                0.7000000000000001,
+                0.71,
+                0.72,
+                0.73,
+                0.74,
+                0.75,
+                0.76,
+                0.77,
+                0.78,
+                0.79,
+                0.8,
+                0.81,
+                0.8200000000000001,
+                0.8300000000000001,
+                0.84,
+                0.85,
+                0.86,
+                0.87,
+                0.88,
+                0.89,
+                0.9,
+                0.91,
+                0.92,
+                0.93,
+                0.9400000000000001,
+                0.9500000000000001,
+                0.96,
+                0.97,
+                0.98,
+                0.99,
+                1.0,
+            ],
+            dtype=torch.double,
+            device=device,
+        )  # torch.linspace(0, 1, 101, device=device, dtype=torch.double)
         super(MeanAveragePrecision, self).__init__(output_transform=output_transform, device=device)
 
     @reinit__is_reduced
     def reset(self) -> None:
         self._num_categories: int = 0
         self._tp: Dict[int, torch.BoolTensor] = defaultdict(
-            lambda: torch.empty((len(self.iou_thresholds), 0), dtype=torch.bool, device=self._device)
+            lambda: cast(
+                torch.BoolTensor, torch.empty((len(self.iou_thresholds), 0), dtype=torch.bool, device=self._device)
+            )
         )
         self._num_gt: Dict[int, int] = defaultdict(lambda: 0)
         self._scores: Dict[int, torch.Tensor] = defaultdict(
@@ -123,36 +242,37 @@ class MeanAveragePrecision(Metric):
                                     match_idx = gt_idx
                             if match_idx != -1:
                                 matched_gt_indices.add(match_idx)
-                                category_tp[thres_idx][pred_idx] = 1
+                                category_tp[thres_idx][pred_idx] = True
                     else:
                         break
 
-            self._tp[category] = torch.cat((self._tp[category], category_tp), dim=1)
+            self._tp[category] = cast(torch.BoolTensor, torch.cat((self._tp[category], category_tp), dim=1))
 
     @sync_all_reduce("_num_categories:MAX")
     def compute(self) -> float:
         # `gloo` does not support `gather` on GPU. Do we need
         #  to take an action regarding that?
         num_gt = torch.tensor([self._num_gt[cat_id] for cat_id in range(self._num_categories)], device=self._device)
-        num_gt = idist.all_reduce(num_gt)
+        num_gt = cast(torch.Tensor, idist.all_reduce(num_gt))
 
         num_predictions = torch.tensor(
             [self._tp[cat_idx].shape[1] for cat_idx in range(self._num_categories)], device=self._device
         )
-        if idist.get_world_size() > 1:
+        world_size = idist.get_world_size()
+        if world_size > 1:
             if idist.get_rank() == 0:
-                ranks_num_predictions = [
+                ranks_num_preds = [
                     torch.empty((self._num_categories,), device=self._device, dtype=torch.long)
-                    for _ in range(idist.get_world_size())
+                    for _ in range(world_size)
                 ]
             else:
-                ranks_num_predictions = None
-            dist.gather(num_predictions, ranks_num_predictions)
+                ranks_num_preds = None
+            dist.gather(num_predictions, ranks_num_preds)
         else:
-            ranks_num_predictions = [num_predictions]
+            ranks_num_preds = [num_predictions]
 
         max_num_predictions = num_predictions.clone()
-        max_num_predictions = idist.all_reduce(max_num_predictions, op="MAX")
+        max_num_predictions = cast(torch.Tensor, idist.all_reduce(max_num_predictions, op="MAX"))
         recall_thresh_repeated_iou_thresh_times = self.rec_thresholds.repeat((len(self.iou_thresholds), 1))
         average_precision = torch.tensor(0.0, device=self._device, dtype=torch.double)
         num_present_categories = self._num_categories
@@ -161,48 +281,57 @@ class MeanAveragePrecision(Metric):
             if num_gt[category_idx] == 0:
                 num_present_categories -= 1
                 continue
+            # precision_at_recall[category_idx] = 0
             if max_num_predictions[category_idx] == 0:
                 continue
 
-            if idist.get_world_size() > 1:
+            if world_size > 1:
                 if idist.get_rank() == 0:
                     ranks_tp = [
                         torch.empty(
-                            (len(self.iou_thresholds), max_num_predictions[category_idx]),
+                            (len(self.iou_thresholds), max_num_predictions[category_idx]),  # type: ignore[arg-type]
                             device=self._device,
                             dtype=torch.uint8,
                         )
-                        for _ in range(idist.get_world_size())
+                        for _ in range(world_size)
                     ]
                     ranks_scores = [
-                        torch.empty((max_num_predictions[category_idx],), device=self._device)
-                        for _ in range(idist.get_world_size())
+                        torch.empty((max_num_predictions[category_idx],), device=self._device)  # type: ignore[arg-type]
+                        for _ in range(world_size)
                     ]
                 else:
                     ranks_tp = None
                     ranks_scores = None
                 dist.gather(
                     F.pad(
-                        self._tp[category_idx], (0, max_num_predictions[category_idx] - num_predictions[category_idx])
+                        self._tp[category_idx],
+                        (
+                            0,
+                            max_num_predictions[category_idx] - num_predictions[category_idx],
+                        ),  # type: ignore[arg-type]
                     ).to(torch.uint8),
                     ranks_tp,
                 )
                 dist.gather(
                     F.pad(
                         self._scores[category_idx],
-                        (0, max_num_predictions[category_idx] - num_predictions[category_idx]),
+                        (
+                            0,
+                            max_num_predictions[category_idx] - num_predictions[category_idx],
+                        ),  # type: ignore[arg-type]
                     ),
                     ranks_scores,
                 )
                 if idist.get_rank() == 0:
                     ranks_tp = [
-                        ranks_tp[r][:, : ranks_num_predictions[r][category_idx]].to(torch.bool)
-                        for r in range(idist.get_world_size())
+                        ranks_tp[r][:, : ranks_num_preds[r][category_idx]].to(torch.bool)  # type: ignore[index, misc]
+                        for r in range(world_size)
                     ]
                     tp = torch.cat(ranks_tp, dim=1)
 
                     ranks_scores = [
-                        ranks_scores[r][: ranks_num_predictions[r][category_idx]] for r in range(idist.get_world_size())
+                        ranks_scores[r][: ranks_num_preds[r][category_idx]]  # type: ignore[index, misc]
+                        for r in range(world_size)
                     ]
                     scores = torch.cat(ranks_scores, dim=0)
             else:
@@ -225,7 +354,10 @@ class MeanAveragePrecision(Metric):
                         # Interpolated precision. Please refer to PASCAL VOC paper section 4.2
                         # for more information. MS COCO is like PASCAL in this regard.
                         average_precision += precision[t][r_idx:].max()
-        mAP = average_precision / (num_present_categories * len(self.rec_thresholds) * len(self.iou_thresholds))
-        if idist.get_world_size() > 1:
+        if num_present_categories == 0:
+            mAP = torch.tensor(-1.0, device=self._device)
+        else:
+            mAP = average_precision / (num_present_categories * len(self.rec_thresholds) * len(self.iou_thresholds))
+        if world_size > 1:
             dist.broadcast(mAP, 0)
         return mAP.item()
