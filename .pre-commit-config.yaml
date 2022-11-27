@@ -22,8 +22,8 @@ repos:
           - black == 21.12b0
           - usort == 1.0.1
 
-  - repo: https://gitlab.com/pycqa/flake8
-    rev: 3.8.4
+  - repo: https://github.com/pycqa/flake8
+    rev: 6.0.0
     hooks:
       - id: flake8
         args: ["--config", "setup.cfg"]

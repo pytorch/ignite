@@ -105,14 +105,14 @@ class ProgressBar(BaseLogger):
 
     """
 
-    _events_order = [
+    _events_order: List[Union[Events, CallableEventWithFilter]] = [
         Events.STARTED,
         Events.EPOCH_STARTED,
         Events.ITERATION_STARTED,
         Events.ITERATION_COMPLETED,
         Events.EPOCH_COMPLETED,
         Events.COMPLETED,
-    ]  # type: List[Union[Events, CallableEventWithFilter]]
+    ]
 
     def __init__(
         self,

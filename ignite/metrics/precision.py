@@ -28,7 +28,7 @@ class _BasePrecisionRecall(_BaseClassification):
             )
 
         if average is True:
-            self._average = "macro"  # type: Optional[Union[bool, str]]
+            self._average: Optional[Union[bool, str]] = "macro"
         else:
             self._average = average
         self.eps = 1e-20
@@ -114,9 +114,9 @@ class _BasePrecisionRecall(_BaseClassification):
         #   denominator (torch.Tensor): number of predicted(for precision) or actual(for recall)
         #     positives per class/label
 
-        self._numerator = 0  # type: Union[int, torch.Tensor]
-        self._denominator = 0  # type: Union[int, torch.Tensor]
-        self._weight = 0  # type: Union[int, torch.Tensor]
+        self._numerator: Union[int, torch.Tensor] = 0
+        self._denominator: Union[int, torch.Tensor] = 0
+        self._weight: Union[int, torch.Tensor] = 0
         self._updated = False
 
         super(_BasePrecisionRecall, self).reset()
@@ -143,7 +143,7 @@ class _BasePrecisionRecall(_BaseClassification):
             self._denominator = idist.all_reduce(self._denominator)  # type: ignore[assignment]
             if self._average == "weighted":
                 self._weight = idist.all_reduce(self._weight)  # type: ignore[assignment]
-            self._is_reduced = True  # type: bool
+            self._is_reduced: bool = True
 
         fraction = self._numerator / (self._denominator + (self.eps if self._average != "samples" else 0))
 

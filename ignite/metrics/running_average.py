@@ -124,7 +124,7 @@ class RunningAverage(Metric):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._value = None  # type: Optional[Union[float, torch.Tensor]]
+        self._value: Optional[Union[float, torch.Tensor]] = None
 
     @reinit__is_reduced
     def update(self, output: Sequence) -> None:

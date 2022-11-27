@@ -86,7 +86,7 @@ class Loss(Metric):
     def update(self, output: Sequence[Union[torch.Tensor, Dict]]) -> None:
         if len(output) == 2:
             y_pred, y = cast(Tuple[torch.Tensor, torch.Tensor], output)
-            kwargs = {}  # type: Dict
+            kwargs: Dict = {}
         else:
             y_pred, y, kwargs = cast(Tuple[torch.Tensor, torch.Tensor, Dict], output)
         average_loss = self._loss_fn(y_pred, y, **kwargs).detach()

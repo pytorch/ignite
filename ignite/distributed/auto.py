@@ -313,7 +313,7 @@ class DistributedProxySampler(DistributedSampler):
         # deterministically shuffle based on epoch
         torch.manual_seed(self.epoch)
 
-        indices = []  # type: List
+        indices: List = []
         while len(indices) < self.total_size:
             indices += list(self.sampler)
 

@@ -60,7 +60,7 @@ class ReproducibleBatchSampler(BatchSampler):
         if not isinstance(batch_sampler, BatchSampler):
             raise TypeError("Argument batch_sampler should be torch.utils.data.sampler.BatchSampler")
 
-        self.batch_indices = []  # type: List
+        self.batch_indices: List = []
         self.batch_sampler = batch_sampler
         self.start_iteration = start_iteration
         self.sampler = self.batch_sampler.sampler

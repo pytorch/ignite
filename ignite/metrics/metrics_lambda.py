@@ -94,7 +94,7 @@ class MetricsLambda(Metric):
         self.function = f
         self.args = args
         self.kwargs = kwargs
-        self.engine = None  # type: Optional[Engine]
+        self.engine: Optional[Engine] = None
         self._updated = False
         super(MetricsLambda, self).__init__(device="cpu")
 
