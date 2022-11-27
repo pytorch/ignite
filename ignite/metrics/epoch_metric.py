@@ -86,8 +86,8 @@ class EpochMetric(Metric):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._predictions = []  # type: List[torch.Tensor]
-        self._targets = []  # type: List[torch.Tensor]
+        self._predictions: List[torch.Tensor] = []
+        self._targets: List[torch.Tensor] = []
 
     def _check_shape(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output

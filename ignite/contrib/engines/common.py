@@ -612,7 +612,7 @@ def gen_save_best_models_by_val_score(
         global_step_transform = global_step_from_engine(trainer)
 
     if isinstance(models, nn.Module):
-        to_save = {"model": models}  # type: Dict[str, nn.Module]
+        to_save: Dict[str, nn.Module] = {"model": models}
     else:
         to_save = models
 

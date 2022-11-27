@@ -277,8 +277,8 @@ class PiecewiseLinearStateScheduler(StateParamScheduler):
                 f"Argument milestones_values should be with at least one value, but given {milestones_values}"
             )
 
-        values = []  # type: List[float]
-        milestones = []  # type: List[int]
+        values: List[float] = []
+        milestones: List[int] = []
         for pair in milestones_values:
             if not isinstance(pair, tuple) or len(pair) != 2:
                 raise ValueError("Argument milestones_values should be a list of pairs (milestone, param_value)")

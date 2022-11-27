@@ -110,7 +110,7 @@ def backend() -> Optional[str]:
 
 def available_backends() -> Tuple[str, ...]:
     """Returns available backends."""
-    out = ()  # type: Tuple[str, ...]
+    out: Tuple[str, ...] = ()
     for m in registered_computation_models:
         out += m.available_backends
     return out

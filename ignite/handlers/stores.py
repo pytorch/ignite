@@ -41,7 +41,7 @@ class EpochOutputStore:
     """
 
     def __init__(self, output_transform: Callable = lambda x: x):
-        self.data = []  # type: List[Any]
+        self.data: List[Any] = []
         self.output_transform = output_transform
 
     def reset(self) -> None:
