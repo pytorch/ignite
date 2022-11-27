@@ -115,6 +115,9 @@ def _destroy_dist_context():
 
     dist.barrier()
 
+    if idist.get_rank() == 0:
+        Path("/tmp/free_port").unlink(True)
+
     dist.destroy_process_group()
 
     from ignite.distributed.utils import _SerialModel, _set_model
