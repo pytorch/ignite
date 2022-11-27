@@ -1,3 +1,4 @@
+import os
 import sys
 from collections import namedtuple
 from typing import List, Tuple
@@ -815,6 +816,72 @@ def test_matching():
 
 
 def test_distrib_integration(distributed, sample):
+    rank_samples_cnt = sample.length // idist.get_world_size()
+    rank = idist.get_rank()
+    if rank == (idist.get_world_size() - 1):
+        rank_samples_range = slice(rank_samples_cnt * rank, None)
+    else:
+        rank_samples_range = slice(rank_samples_cnt * rank, rank_samples_cnt * (rank + 1))
+
+    device = idist.device()
+    metric_50 = MeanAveragePrecision(iou_thresholds=[0.5], device=device)
+    metric_75 = MeanAveragePrecision(iou_thresholds=[0.75], device=device)
+    metric_50_95 = MeanAveragePrecision(device=device)
+
+    for prediction, target in zip(sample.data[0][rank_samples_range], sample.data[1][rank_samples_range]):
+        metric_50.update((prediction, target))
+        metric_75.update((prediction, target))
+        metric_50_95.update((prediction, target))
+
+    res_50 = metric_50.compute()
+    res_75 = metric_75.compute()
+    res_50_95 = metric_50_95.compute()
+
+    pycoco_res_50_95, pycoco_res_50, pycoco_res_75 = sample.mAP
+
+    assert res_50_95 == pytest.approx(pycoco_res_50_95, abs=1e-6)
+    assert res_50 == pytest.approx(pycoco_res_50, abs=1e-6)
+    assert res_75 == pytest.approx(pycoco_res_75, abs=1e-6)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo, sample):
+
+    rank_samples_cnt = sample.length // idist.get_world_size()
+    rank = idist.get_rank()
+    if rank == (idist.get_world_size() - 1):
+        rank_samples_range = slice(rank_samples_cnt * rank, None)
+    else:
+        rank_samples_range = slice(rank_samples_cnt * rank, rank_samples_cnt * (rank + 1))
+
+    device = idist.device()
+    metric_50 = MeanAveragePrecision(iou_thresholds=[0.5], device=device)
+    metric_75 = MeanAveragePrecision(iou_thresholds=[0.75], device=device)
+    metric_50_95 = MeanAveragePrecision(device=device)
+
+    for prediction, target in zip(sample.data[0][rank_samples_range], sample.data[1][rank_samples_range]):
+        metric_50.update((prediction, target))
+        metric_75.update((prediction, target))
+        metric_50_95.update((prediction, target))
+
+    res_50 = metric_50.compute()
+    res_75 = metric_75.compute()
+    res_50_95 = metric_50_95.compute()
+
+    pycoco_res_50_95, pycoco_res_50, pycoco_res_75 = sample.mAP
+
+    assert res_50_95 == pytest.approx(pycoco_res_50_95, abs=1e-6)
+    assert res_50 == pytest.approx(pycoco_res_50, abs=1e-6)
+    assert res_75 == pytest.approx(pycoco_res_75, abs=1e-6)
+
+
+@pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
+def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl, sample):
+
     rank_samples_cnt = sample.length // idist.get_world_size()
     rank = idist.get_rank()
     if rank == (idist.get_world_size() - 1):

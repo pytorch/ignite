@@ -68,6 +68,7 @@ class MeanAveragePrecision(Metric):
         if min(self.iou_thresholds) < 0 or max(self.iou_thresholds) > 1:
             raise ValueError(f"`iou_thresholds` values should be between 0 and 1, given {iou_thresholds}")
 
+        # Not to depend on Numpy and have the same result as the pycoco
         self.rec_thresholds = torch.tensor(
             [
                 0.0,
@@ -281,7 +282,6 @@ class MeanAveragePrecision(Metric):
             if num_gt[category_idx] == 0:
                 num_present_categories -= 1
                 continue
-            # precision_at_recall[category_idx] = 0
             if max_num_predictions[category_idx] == 0:
                 continue
 
