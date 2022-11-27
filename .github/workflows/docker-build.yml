@@ -16,7 +16,7 @@ jobs:
       hvd_version: ${{ steps.set-versions.outputs.hvd_version }}
       msdp_version: ${{ steps.set-versions.outputs.msdp_version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Changed Files Exporter
         id: files
         uses: futuratrepadeira/changed-files@v3.3.0
@@ -26,14 +26,14 @@ jobs:
         run: echo "modified=${{ steps.files.outputs.files_created }} ${{ steps.files.outputs.files_updated }}" >> $GITHUB_ENV
       - name: Set outputs
         id: set-modified
-        run: echo "name=modified::${{ env.modified }}" >> $GITHUB_OUTPUT
+        run: echo "modified=${{ env.modified }}" >> $GITHUB_OUTPUT
       - name: Set versions
         id: set-versions
         working-directory: docker
         run: |
-          echo "name=pth_version::$(python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_pytorch_version'))")" >> $GITHUB_OUTPUT
-          echo "name=hvd_version::$(python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_hvd_version'))")" >> $GITHUB_OUTPUT
-          echo "name=msdp_version::$(python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_msdp_version'))")" >> $GITHUB_OUTPUT
+          echo "pth_version=$(python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_pytorch_version'))")" >> $GITHUB_OUTPUT
+          echo "hvd_version=$(python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_hvd_version'))")" >> $GITHUB_OUTPUT
+          echo "msdp_version=$(python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_msdp_version'))")" >> $GITHUB_OUTPUT
 
   build-hvd:
     name: Build all Horovod flavoured PyTorch-Ignite images
@@ -41,7 +41,7 @@ jobs:
     if: contains(needs.setup.outputs.modified, 'hvd/') || contains(needs.setup.outputs.modified, 'docker.cfg')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Remove cache
         run: |
           sudo rm -rf "/usr/local/share/boost"
@@ -79,7 +79,7 @@ jobs:
     if: contains(needs.setup.outputs.modified, 'hvd/') || contains(needs.setup.outputs.modified, 'docker.cfg')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Remove cache
         run: |
           sudo rm -rf "/usr/local/share/boost"
@@ -117,7 +117,7 @@ jobs:
     if: contains(needs.setup.outputs.modified, 'main/') || contains(needs.setup.outputs.modified, 'docker.cfg')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Remove cache
         run: |
           sudo rm -rf "/usr/local/share/boost"
@@ -152,7 +152,7 @@ jobs:
     if: contains(needs.setup.outputs.modified, 'main/') || contains(needs.setup.outputs.modified, 'docker.cfg')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Remove cache
         run: |
           sudo rm -rf "/usr/local/share/boost"
@@ -187,7 +187,7 @@ jobs:
     if: contains(needs.setup.outputs.modified, 'msdp/') || contains(needs.setup.outputs.modified, 'docker.cfg')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Remove cache
         run: |
           sudo rm -rf "/usr/local/share/boost"

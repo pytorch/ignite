@@ -51,7 +51,7 @@ jobs:
             skip-distrib-tests: 1
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
@@ -59,18 +59,18 @@ jobs:
       - name: Get year & week number
         id: get-date
         run: |
-          echo "name=date::$(/bin/date "+%Y-%U")" >> $GITHUB_OUTPUT
+          echo "date=$(/bin/date "+%Y-%U")" >> $GITHUB_OUTPUT
 
       - name: Get pip cache dir
         id: pip-cache
         run: |
           pip install -U pip || python -m pip install -U pip
-          echo "name=dir::$(pip cache dir)" >> $GITHUB_OUTPUT
+          echo "pip_cache=$(pip cache dir)" >> $GITHUB_OUTPUT
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: |
-            ${{ steps.pip-cache.outputs.dir }}
+            ${{ steps.pip-cache.outputs.pip_cache }}
           key: ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-${{ hashFiles('requirements-dev.txt') }}
           restore-keys: |
             ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-
