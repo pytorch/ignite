@@ -67,7 +67,7 @@ if has_hvd_support:
                 self._init_from_context()
 
         def _create_from_backend(self, backend: str, **kwargs: Any) -> None:
-            self._backend = backend  # type: str
+            self._backend: str = backend
             comm = kwargs.get("comm", None)
             hvd.init(comm=comm)
             self._setup_attrs()

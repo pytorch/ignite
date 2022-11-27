@@ -1016,7 +1016,7 @@ def create_lr_scheduler_with_warmup(
     if not (warmup_duration > 1):
         raise ValueError(f"Argument warmup_duration should be at least 2 events, but given {warmup_duration}")
 
-    warmup_schedulers = []  # type: List[ParamScheduler]
+    warmup_schedulers: List[ParamScheduler] = []
 
     for param_group_index, param_group in enumerate(lr_scheduler.optimizer.param_groups):
 
@@ -1060,10 +1060,10 @@ def create_lr_scheduler_with_warmup(
 
     warmup_scheduler = ParamGroupScheduler(warmup_schedulers, save_history=save_history)
 
-    schedulers = [
+    schedulers: List[Union[ParamScheduler, ParamGroupScheduler, PyTorchLRScheduler]] = [
         warmup_scheduler,
         lr_scheduler,
-    ]  # type: List[Union[ParamScheduler, ParamGroupScheduler, PyTorchLRScheduler]]
+    ]
     durations = [milestones_values[-1][0] + 1]
     combined_scheduler = ConcatScheduler(schedulers, durations=durations, save_history=save_history)
 
@@ -1204,8 +1204,8 @@ class PiecewiseLinear(ParamScheduler):
                 f"Argument milestones_values should be with at least one value, but given {milestones_values}"
             )
 
-        values = []  # type: List[float]
-        milestones = []  # type: List[int]
+        values: List[float] = []
+        milestones: List[int] = []
         for pair in milestones_values:
             if not isinstance(pair, tuple) or len(pair) != 2:
                 raise ValueError("Argument milestones_values should be a list of pairs (milestone, param_value)")
@@ -1356,7 +1356,7 @@ class ParamGroupScheduler:
             dict:
                 a dictionary containing a whole state of ParamGroupScheduler
         """
-        state_dict = OrderedDict()  # type: Dict[str, List[Any]]
+        state_dict: Dict[str, List[Any]] = OrderedDict()
         state_dict["schedulers"] = []
         for n, s in zip(self.names, self.schedulers):
             state_dict["schedulers"].append((n, s.state_dict()))

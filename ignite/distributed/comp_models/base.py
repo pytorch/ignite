@@ -11,13 +11,13 @@ class ComputationModel(metaclass=ABCMeta):
     """
 
     # this is an additional local rank storage used when idist is setup from existing native torch dist context
-    _ext_local_rank = None  # type: Optional[int]
+    _ext_local_rank: Optional[int] = None
 
     def __init__(self) -> None:
-        self._backend = None  # type: Optional[str]
-        self._nproc_per_node = None  # type: Optional[int]
-        self._nnodes = None  # type: Optional[int]
-        self._node = None  # type: Optional[int]
+        self._backend: Optional[str] = None
+        self._nproc_per_node: Optional[int] = None
+        self._nnodes: Optional[int] = None
+        self._node: Optional[int] = None
 
     def _setup_attrs(self) -> None:
         if self._nproc_per_node is None:
@@ -82,7 +82,7 @@ class ComputationModel(metaclass=ABCMeta):
     def spawn(*args: Any, **kwargs: Any) -> None:
         pass
 
-    _collective_op_dtype = None  # type: Any
+    _collective_op_dtype: Any = None
 
     @staticmethod
     def _encode_str(x: str, device: torch.device, size: int) -> torch.Tensor:

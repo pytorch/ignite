@@ -829,7 +829,7 @@ class ClearMLSaver(DiskSaver):
         if "atomic" not in kwargs:
             kwargs["atomic"] = False
 
-        self._checkpoint_slots = defaultdict(list)  # type: DefaultDict[Union[str, Tuple[str, str]], List[Any]]
+        self._checkpoint_slots: DefaultDict[Union[str, Tuple[str, str]], List[Any]] = defaultdict(list)
 
         super(ClearMLSaver, self).__init__(dirname=dirname, *args, **kwargs)  # type: ignore[misc]
 

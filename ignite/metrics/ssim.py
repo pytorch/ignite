@@ -69,14 +69,14 @@ class SSIM(Metric):
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
         if isinstance(kernel_size, int):
-            self.kernel_size = [kernel_size, kernel_size]  # type: Sequence[int]
+            self.kernel_size: Sequence[int] = [kernel_size, kernel_size]
         elif isinstance(kernel_size, Sequence):
             self.kernel_size = kernel_size
         else:
             raise ValueError("Argument kernel_size should be either int or a sequence of int.")
 
         if isinstance(sigma, float):
-            self.sigma = [sigma, sigma]  # type: Sequence[float]
+            self.sigma: Sequence[float] = [sigma, sigma]
         elif isinstance(sigma, Sequence):
             self.sigma = sigma
         else:

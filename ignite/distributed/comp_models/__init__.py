@@ -14,9 +14,9 @@ if TYPE_CHECKING:
 def setup_available_computation_models() -> Tuple[
     Type[Union[_SerialModel, "_NativeDistModel", "_XlaDistModel", "_HorovodDistModel"]], ...
 ]:
-    models = [
+    models: List[Type[Union[_SerialModel, "_NativeDistModel", "_XlaDistModel", "_HorovodDistModel"]]] = [
         _SerialModel,
-    ]  # type: List[Type[Union[_SerialModel, "_NativeDistModel", "_XlaDistModel", "_HorovodDistModel"]]]
+    ]
     if has_native_dist_support:
         from ignite.distributed.comp_models.native import _NativeDistModel
 

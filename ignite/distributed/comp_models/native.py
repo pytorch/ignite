@@ -84,11 +84,11 @@ if has_native_dist_support:
         ) -> None:
             """This is a private method. Please, use `create_from_backend` or `create_from_context`"""
             super(_NativeDistModel, self).__init__()
-            self._env_backup = None  # type: Optional[Dict[str, str]]
-            self._local_rank = None  # type: Optional[int]
-            self._master_port = None  # type: Optional[int]
-            self._master_addr = None  # type: Optional[str]
-            self._init_method = None  # type: Optional[str]
+            self._env_backup: Optional[Dict[str, str]] = None
+            self._local_rank: Optional[int] = None
+            self._master_port: Optional[int] = None
+            self._master_addr: Optional[str] = None
+            self._init_method: Optional[str] = None
             if backend is not None:
                 self._create_from_backend(
                     backend, timeout=timeout, init_method=init_method, world_size=world_size, rank=rank, **kwargs
@@ -175,7 +175,7 @@ if has_native_dist_support:
         def _compute_node_and_local_ranks(rank: int, hostnames: List[Tuple[str, ...]]) -> Tuple[int, int]:
             from collections import Counter
 
-            c = Counter(hostnames)  # type: Counter
+            c: Counter = Counter(hostnames)
             sizes = torch.tensor([0] + list(c.values()))
             cumsum_sizes = torch.cumsum(sizes, dim=0)
             node_rank = (rank // cumsum_sizes[1:]).clamp(0, 1).sum().item()
@@ -328,8 +328,8 @@ if has_native_dist_support:
             os.environ["RANK"] = str(rank)
             os.environ["WORLD_SIZE"] = str(world_size)
 
-            arg_world_size = world_size  # type: Optional[int]
-            arg_rank = rank  # type: Optional[int]
+            arg_world_size: Optional[int] = world_size
+            arg_rank: Optional[int] = rank
             if init_method == "env://":
                 os.environ["MASTER_ADDR"] = str(master_addr)
                 os.environ["MASTER_PORT"] = str(master_port)
