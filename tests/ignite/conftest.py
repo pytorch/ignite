@@ -364,7 +364,6 @@ is_xla_single_device_stash_key = pytest.StashKey[bool]()
 
 
 @pytest.fixture(
-    scope="module",
     params=[
         pytest.param("nccl", marks=[pytest.mark.distributed, skip_if_has_not_native_dist_support, skip_if_no_gpu]),
         pytest.param("gloo_cpu", marks=[pytest.mark.distributed, skip_if_has_not_native_dist_support]),
