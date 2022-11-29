@@ -106,10 +106,14 @@ def _create_dist_context(dist_info, lrank):
 
 def _destroy_dist_context():
 
-    dist.barrier()
-
     if dist.get_rank() == 0:
-        Path("/tmp/free_port").unlink(True)
+        # To support Python 3.7; Otherwise we could do `.unlink(missing_ok=True)`
+        try:
+            Path("/tmp/free_port").unlink()
+        except FileNotFoundError:
+            pass
+
+    dist.barrier()
 
     dist.destroy_process_group()
 
