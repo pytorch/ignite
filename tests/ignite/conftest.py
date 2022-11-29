@@ -490,7 +490,7 @@ def pytest_pyfunc_call(pyfuncitem: pytest.Function) -> None:
             if "COLAB_TPU_ADDR" in os.environ:
                 spawn_kwargs["start_method"] = "fork"
             try:
-                xmp.spawn(xla_worker, args=(testfunc), **spawn_kwargs)
+                xmp.spawn(xla_worker, args=(testfunc,), **spawn_kwargs)
             except SystemExit as ex_:
                 assert ex_.code == 0, "Didn't successfully exit in XLA test"
 
