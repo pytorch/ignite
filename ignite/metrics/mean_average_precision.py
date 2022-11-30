@@ -306,9 +306,9 @@ class MeanAveragePrecision(Metric):
                     F.pad(
                         self._tp[category_idx],
                         (
-                            0,
+                            0,  # type: ignore[arg-type]
                             max_num_predictions[category_idx] - num_predictions[category_idx],
-                        ),  # type: ignore[arg-type]
+                        ),
                     ).to(torch.uint8),
                     ranks_tp,
                 )
@@ -316,9 +316,9 @@ class MeanAveragePrecision(Metric):
                     F.pad(
                         self._scores[category_idx],
                         (
-                            0,
+                            0,  # type: ignore[arg-type]
                             max_num_predictions[category_idx] - num_predictions[category_idx],
-                        ),  # type: ignore[arg-type]
+                        ),
                     ),
                     ranks_scores,
                 )
