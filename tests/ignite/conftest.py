@@ -457,7 +457,6 @@ def pytest_pyfunc_call(pyfuncitem: pytest.Function) -> None:
 
                 test_func(**kwargs)
 
-
                 hvd.shutdown()
 
             try:
