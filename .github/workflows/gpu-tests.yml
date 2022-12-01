@@ -28,7 +28,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v2.3.3
         with:
           python-version: 3.8
 
@@ -70,7 +70,7 @@ jobs:
           bash tests/run_gpu_tests.sh 2
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v3.1.1
         with:
           file: ./coverage.xml
           flags: gpu-2
