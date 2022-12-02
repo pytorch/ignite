@@ -35,4 +35,4 @@ gym
 # pygame is now required by gym for cartpole env
 pygame
 mkl
-pycocotools==2.0.4
+pycocotools==2.0.6
