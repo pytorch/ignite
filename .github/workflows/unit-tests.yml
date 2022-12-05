@@ -51,26 +51,26 @@ jobs:
             skip-distrib-tests: 1
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Get year & week number
         id: get-date
         run: |
-          echo "::set-output name=date::$(/bin/date "+%Y-%U")"
+          echo "date=$(/bin/date "+%Y-%U")" >> $GITHUB_OUTPUT
 
       - name: Get pip cache dir
         id: pip-cache
         run: |
           pip install -U pip || python -m pip install -U pip
-          echo "::set-output name=dir::$(pip cache dir)"
+          echo "pip_cache=$(pip cache dir)" >> $GITHUB_OUTPUT
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: |
-            ${{ steps.pip-cache.outputs.dir }}
+            ${{ steps.pip-cache.outputs.pip_cache }}
           key: ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-${{ hashFiles('requirements-dev.txt') }}
           restore-keys: |
             ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-
@@ -96,7 +96,9 @@ jobs:
           bash ./tests/run_code_style.sh lint
 
       - name: Run Mypy
-        if: ${{ matrix.os == 'ubuntu-latest'}}
+        # https://github.com/pytorch/ignite/pull/2780
+        # 
+        if: ${{ matrix.os == 'ubuntu-latest' && matrix.pytorch-channel == 'pytorch-nightly'}}
         run: |
           bash ./tests/run_code_style.sh mypy
 
@@ -117,7 +119,7 @@ jobs:
           SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} bash tests/run_cpu_tests.sh
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v3
         with:
           file: ./coverage.xml
           flags: cpu

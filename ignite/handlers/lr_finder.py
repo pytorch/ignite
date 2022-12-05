@@ -78,7 +78,7 @@ class FastaiLRFinder:
 
     def __init__(self) -> None:
         self._diverge_flag = False
-        self._history = {}  # type: Dict[str, List[Any]]
+        self._history: Dict[str, List[Any]] = {}
         self._best_loss = None
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
 

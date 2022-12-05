@@ -129,19 +129,19 @@ class Engine(Serializable):
     interrupt_resume_enabled = True
 
     def __init__(self, process_function: Callable[["Engine", Any], Any]):
-        self._event_handlers = defaultdict(list)  # type: Dict[Any, List]
+        self._event_handlers: Dict[Any, List] = defaultdict(list)
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self._process_function = process_function
-        self.last_event_name = None  # type: Optional[Events]
+        self.last_event_name: Optional[Events] = None
         self.should_terminate = False
         self.should_terminate_single_epoch = False
         self.should_interrupt = False
         self.state = State()
-        self._state_dict_user_keys = []  # type: List[str]
-        self._allowed_events = []  # type: List[EventEnum]
+        self._state_dict_user_keys: List[str] = []
+        self._allowed_events: List[EventEnum] = []
 
-        self._dataloader_iter = None  # type: Optional[Iterator[Any]]
-        self._init_iter = None  # type: Optional[int]
+        self._dataloader_iter: Optional[Iterator[Any]] = None
+        self._init_iter: Optional[int] = None
 
         self.register_events(*Events)
 
@@ -151,7 +151,7 @@ class Engine(Serializable):
         _check_signature(process_function, "process_function", self, None)
 
         # generator provided by self._internal_run_as_gen
-        self._internal_run_generator = None  # type: Optional[Generator]
+        self._internal_run_generator: Optional[Generator] = None
 
     def register_events(
         self, *event_names: Union[List[str], List[EventEnum]], event_to_attr: Optional[dict] = None
@@ -310,7 +310,7 @@ class Engine(Serializable):
 
         self._assert_allowed_event(event_name)
 
-        event_args = ()  # type: Tuple[Any, ...]
+        event_args: Tuple[Any, ...] = ()
         if event_name == Events.EXCEPTION_RAISED:
             event_args += (Exception(),)
         elif event_name == Events.TERMINATE_SINGLE_EPOCH:
@@ -337,7 +337,7 @@ class Engine(Serializable):
         if event_name is not None:
             if event_name not in self._event_handlers:
                 return False
-            events = [event_name]  # type: Union[List[Any], Dict[Any, List]]
+            events: Union[List[Any], Dict[Any, List]] = [event_name]
         else:
             events = self._event_handlers
         for e in events:
@@ -349,7 +349,7 @@ class Engine(Serializable):
     @staticmethod
     def _compare_handlers(user_handler: Callable, registered_handler: Callable) -> bool:
         if hasattr(registered_handler, "_parent"):
-            registered_handler = registered_handler._parent()  # type: ignore[attr-defined]
+            registered_handler = registered_handler._parent()
         return registered_handler == user_handler
 
     def remove_event_handler(self, handler: Callable, event_name: Any) -> None:
@@ -669,7 +669,7 @@ class Engine(Serializable):
                 a dictionary containing engine's state
 
         """
-        keys = self._state_dict_all_req_keys + (self._state_dict_one_of_opt_keys[0],)  # type: Tuple[str, ...]
+        keys: Tuple[str, ...] = self._state_dict_all_req_keys + (self._state_dict_one_of_opt_keys[0],)
         keys += tuple(self._state_dict_user_keys)
         return OrderedDict([(k, getattr(self.state, k)) for k in keys])
 

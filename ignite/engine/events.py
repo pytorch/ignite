@@ -380,7 +380,7 @@ class EventsList:
     """
 
     def __init__(self) -> None:
-        self._events = []  # type: List[Union[Events, CallableEventWithFilter]]
+        self._events: List[Union[Events, CallableEventWithFilter]] = []
 
     def _append(self, event: Union[Events, CallableEventWithFilter]) -> None:
         if not isinstance(event, (Events, CallableEventWithFilter)):
@@ -424,7 +424,7 @@ class State:
         kwargs: keyword arguments to be defined as State attributes.
     """
 
-    event_to_attr = {
+    event_to_attr: Dict[Union[str, "Events", "CallableEventWithFilter"], str] = {
         Events.GET_BATCH_STARTED: "iteration",
         Events.GET_BATCH_COMPLETED: "iteration",
         Events.ITERATION_STARTED: "iteration",
@@ -433,23 +433,23 @@ class State:
         Events.EPOCH_COMPLETED: "epoch",
         Events.STARTED: "epoch",
         Events.COMPLETED: "epoch",
-    }  # type: Dict[Union[str, "Events", "CallableEventWithFilter"], str]
+    }
 
     def __init__(self, **kwargs: Any) -> None:
         self.iteration = 0
         self.epoch = 0
-        self.epoch_length = None  # type: Optional[int]
-        self.max_epochs = None  # type: Optional[int]
-        self.max_iters = None  # type: Optional[int]
-        self.output = None  # type: Optional[int]
-        self.batch = None  # type: Optional[int]
-        self.metrics = {}  # type: Dict[str, Any]
-        self.dataloader = None  # type: Optional[Union[DataLoader, Iterable[Any]]]
-        self.seed = None  # type: Optional[int]
-        self.times = {
+        self.epoch_length: Optional[int] = None
+        self.max_epochs: Optional[int] = None
+        self.max_iters: Optional[int] = None
+        self.output: Optional[int] = None
+        self.batch: Optional[int] = None
+        self.metrics: Dict[str, Any] = {}
+        self.dataloader: Optional[Union[DataLoader, Iterable[Any]]] = None
+        self.seed: Optional[int] = None
+        self.times: Dict[str, Optional[float]] = {
             Events.EPOCH_COMPLETED.name: None,
             Events.COMPLETED.name: None,
-        }  # type: Dict[str, Optional[float]]
+        }
 
         for k, v in kwargs.items():
             setattr(self, k, v)
@@ -520,7 +520,7 @@ class RemovableEventHandle:
             return
 
         if hasattr(handler, "_parent"):
-            handler = handler._parent()  # type: ignore[attr-defined]
+            handler = handler._parent()
             if handler is None:
                 raise RuntimeError(
                     "Internal error! Please fill an issue on https://github.com/pytorch/ignite/issues "

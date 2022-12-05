@@ -88,7 +88,7 @@ class BaseOutputHandler(BaseHandler):
         tag: str,
         metric_names: Optional[Union[str, List[str]]] = None,
         output_transform: Optional[Callable] = None,
-        global_step_transform: Optional[Callable] = None,
+        global_step_transform: Optional[Callable[[Engine, Union[str, Events]], int]] = None,
         state_attributes: Optional[List[str]] = None,
     ):
 
@@ -147,7 +147,7 @@ class BaseOutputHandler(BaseHandler):
         if self.state_attributes is not None:
             metrics_state_attrs.update({name: getattr(engine.state, name, None) for name in self.state_attributes})
 
-        metrics_state_attrs_dict = OrderedDict()  # type: Dict[Any, Union[str, float, numbers.Number]]
+        metrics_state_attrs_dict: Dict[Any, Union[str, float, numbers.Number]] = OrderedDict()
 
         def key_tuple_tf(tag: str, name: str, *args: str) -> Tuple[str, ...]:
             return (tag, name) + args

@@ -72,8 +72,8 @@ class GeometricMeanRelativeAbsoluteError(_BaseRegression):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._predictions = []  # type: List[torch.Tensor]
-        self._targets = []  # type: List[torch.Tensor]
+        self._predictions: List[torch.Tensor] = []
+        self._targets: List[torch.Tensor] = []
 
     def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output[0].detach(), output[1].detach()

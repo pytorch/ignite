@@ -50,7 +50,7 @@ class BasicTimeProfiler:
 
         self.dataflow_times = torch.zeros(1)
         self.processing_times = torch.zeros(1)
-        self.event_handlers_times = {}  # type: Dict[EventEnum, torch.Tensor]
+        self.event_handlers_times: Dict[EventEnum, torch.Tensor] = {}
 
         self._events = [
             Events.EPOCH_STARTED,
@@ -225,9 +225,9 @@ class BasicTimeProfiler:
     def _compute_basic_stats(data: torch.Tensor) -> Dict[str, Union[str, float, Tuple[float, float]]]:
         # compute on non-zero data:
         data = data[data > 0]
-        out = [
+        out: List[Tuple[str, Union[str, float, Tuple[float, float]]]] = [
             ("total", torch.sum(data).item() if len(data) > 0 else "not yet triggered")
-        ]  # type: List[Tuple[str, Union[str, float, Tuple[float, float]]]]
+        ]
         if len(data) > 1:
             out.extend(
                 [
@@ -248,9 +248,9 @@ class BasicTimeProfiler:
             results = profiler.get_results()
 
         """
-        total_eh_time = sum(
+        total_eh_time: Union[int, torch.Tensor] = sum(
             [(self.event_handlers_times[e]).sum() for e in Events if e not in self.events_to_ignore]
-        )  # type: Union[int, torch.Tensor]
+        )
         event_handlers_stats = dict(
             [
                 (str(e.name).replace(".", "_"), self._compute_basic_stats(self.event_handlers_times[e]))
@@ -493,9 +493,9 @@ class HandlersTimeProfiler:
         self._processing_timer = Timer()
         self._event_handlers_timer = Timer()
 
-        self.dataflow_times = []  # type: List[float]
-        self.processing_times = []  # type: List[float]
-        self.event_handlers_times = {}  # type: Dict[EventEnum, Dict[str, List[float]]]
+        self.dataflow_times: List[float] = []
+        self.processing_times: List[float] = []
+        self.event_handlers_times: Dict[EventEnum, Dict[str, List[float]]] = {}
 
     @staticmethod
     def _get_callable_name(handler: Callable) -> str:
@@ -612,11 +612,11 @@ class HandlersTimeProfiler:
             data = torch.as_tensor(times, dtype=torch.float32)
             # compute on non-zero data:
             data = data[data > 0]
-            total = round(torch.sum(data).item(), 5) if len(data) > 0 else "not triggered"  # type: Union[str, float]
-            min_index = ("None", "None")  # type: Tuple[Union[str, float], Union[str, float]]
-            max_index = ("None", "None")  # type: Tuple[Union[str, float], Union[str, float]]
-            mean = "None"  # type: Union[str, float]
-            std = "None"  # type: Union[str, float]
+            total: Union[str, float] = round(torch.sum(data).item(), 5) if len(data) > 0 else "not triggered"
+            min_index: Tuple[Union[str, float], Union[str, float]] = ("None", "None")
+            max_index: Tuple[Union[str, float], Union[str, float]] = ("None", "None")
+            mean: Union[str, float] = "None"
+            std: Union[str, float] = "None"
             if len(data) > 0:
                 min_index = (round(torch.min(data).item(), 5), torch.argmin(data).item())
                 max_index = (round(torch.max(data).item(), 5), torch.argmax(data).item())

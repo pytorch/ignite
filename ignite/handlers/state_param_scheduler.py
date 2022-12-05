@@ -59,7 +59,7 @@ class StateParamScheduler(BaseParamScheduler):
             setattr(engine.state, self.param_name, None)
 
         if self.save_history:
-            if not hasattr(engine.state, "param_history") or engine.state.param_history is None:  # type: ignore
+            if not hasattr(engine.state, "param_history") or engine.state.param_history is None:
                 setattr(engine.state, "param_history", {})
             engine.state.param_history.setdefault(self.param_name, [])  # type: ignore[attr-defined]
 
@@ -277,8 +277,8 @@ class PiecewiseLinearStateScheduler(StateParamScheduler):
                 f"Argument milestones_values should be with at least one value, but given {milestones_values}"
             )
 
-        values = []  # type: List[float]
-        milestones = []  # type: List[int]
+        values: List[float] = []
+        milestones: List[int] = []
         for pair in milestones_values:
             if not isinstance(pair, tuple) or len(pair) != 2:
                 raise ValueError("Argument milestones_values should be a list of pairs (milestone, param_value)")
