@@ -54,12 +54,12 @@ jobs:
           restore-keys: |
             ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.xla-version }}-
 
-      # mkl version fixed due to https://github.com/pytorch/ignite/issues/2350
       - name: Install Torch XLA and others
         run: |
 
           ## Install openblas, mkl, gsutil
-          sudo apt-get install -y libopenblas-dev libomp5-10 libomp5
+          sudo apt-get update && sudo apt-get install -y libopenblas-dev libomp5
+          # mkl version fixed due to https://github.com/pytorch/ignite/issues/2350
           pip install mkl==2021.4.0 requests gsutil
 
           ## Install torch & xla
@@ -79,7 +79,7 @@ jobs:
 
       - name: Run Tests
         run: |
-          export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/hostedtoolcache/Python/3.7.10/x64/lib
+          export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${Python_ROOT_DIR}/lib
           export XRT_DEVICE_MAP="CPU:0;/job:localservice/replica:0/task:0/device:XLA_CPU:0"
           export XRT_WORKERS="localservice:0;grpc://localhost:40934"
 
