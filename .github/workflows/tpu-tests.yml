@@ -28,10 +28,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Python 3.7
+      - name: Set up Python 3.8
         uses: actions/setup-python@v4
         with:
-          python-version: "3.7"
+          python-version: "3.8"
           architecture: "x64"
 
       - name: Get year & week number
@@ -58,8 +58,9 @@ jobs:
         run: |
 
           ## Install openblas, mkl, gsutil
-          # sudo apt-get install -y libopenblas-dev libomp5
-          pip install mkl requests gsutil
+          sudo apt-get update && sudo apt-get install -y libopenblas-dev libomp5
+          # mkl version fixed due to https://github.com/pytorch/ignite/issues/2350
+          pip install mkl==2021.4.0 requests gsutil
 
           ## Install torch & xla
           curl https://raw.githubusercontent.com/pytorch/xla/master/contrib/scripts/env-setup.py -o pytorch-xla-env-setup.py
