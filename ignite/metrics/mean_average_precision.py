@@ -1,5 +1,3 @@
-__all__ = ["MeanAveragePrecision"]
-
 from collections import defaultdict
 from typing import Callable, cast, Dict, List, Optional, Tuple, Union
 
@@ -68,114 +66,7 @@ class MeanAveragePrecision(Metric):
         if min(self.iou_thresholds) < 0 or max(self.iou_thresholds) > 1:
             raise ValueError(f"`iou_thresholds` values should be between 0 and 1, given {iou_thresholds}")
 
-        # Not to depend on Numpy and have the same result as the pycoco
-        self.rec_thresholds = torch.tensor(
-            [
-                0.0,
-                0.01,
-                0.02,
-                0.03,
-                0.04,
-                0.05,
-                0.06,
-                0.07,
-                0.08,
-                0.09,
-                0.1,
-                0.11,
-                0.12,
-                0.13,
-                0.14,
-                0.15,
-                0.16,
-                0.17,
-                0.18,
-                0.19,
-                0.2,
-                0.21,
-                0.22,
-                0.23,
-                0.24,
-                0.25,
-                0.26,
-                0.27,
-                0.28,
-                0.29,
-                0.3,
-                0.31,
-                0.32,
-                0.33,
-                0.34,
-                0.35000000000000003,
-                0.36,
-                0.37,
-                0.38,
-                0.39,
-                0.4,
-                0.41000000000000003,
-                0.42,
-                0.43,
-                0.44,
-                0.45,
-                0.46,
-                0.47000000000000003,
-                0.48,
-                0.49,
-                0.5,
-                0.51,
-                0.52,
-                0.53,
-                0.54,
-                0.55,
-                0.56,
-                0.5700000000000001,
-                0.58,
-                0.59,
-                0.6,
-                0.61,
-                0.62,
-                0.63,
-                0.64,
-                0.65,
-                0.66,
-                0.67,
-                0.68,
-                0.6900000000000001,
-                0.7000000000000001,
-                0.71,
-                0.72,
-                0.73,
-                0.74,
-                0.75,
-                0.76,
-                0.77,
-                0.78,
-                0.79,
-                0.8,
-                0.81,
-                0.8200000000000001,
-                0.8300000000000001,
-                0.84,
-                0.85,
-                0.86,
-                0.87,
-                0.88,
-                0.89,
-                0.9,
-                0.91,
-                0.92,
-                0.93,
-                0.9400000000000001,
-                0.9500000000000001,
-                0.96,
-                0.97,
-                0.98,
-                0.99,
-                1.0,
-            ],
-            dtype=torch.double,
-            device=device,
-        )  # torch.linspace(0, 1, 101, device=device, dtype=torch.double)
+        self.rec_thresholds = torch.linspace(0, 1, 101, device=device, dtype=torch.double)
         super(MeanAveragePrecision, self).__init__(output_transform=output_transform, device=device)
 
     @reinit__is_reduced
@@ -202,9 +93,12 @@ class MeanAveragePrecision(Metric):
         """
         y_pred, y = output[0].detach(), output[1].detach()
 
-        assert y.shape[1] == 5, f"Provided y with a wrong shape, expected (N, 5), got {y.shape}"
-        assert y_pred.shape[1] == 6, f"Provided y_pred with a wrong shape, expected (M, 6), got {y.shape}"
-
+        if y.ndim != 2 or y.shape[1] != 5:
+            raise ValueError(f"Provided y with a wrong shape, expected (N, 5), got {y.shape}")
+        if y_pred.ndim != 2 or y_pred.shape[1] != 6:
+            raise ValueError(f"Provided y_pred with a wrong shape, expected (M, 6), got {y_pred.shape}")
+        # Does coco have class number 0? What is it?
+        # Find the number of categories dynamically or by user input?
         categories = torch.cat((y[:, 4], y_pred[:, 5])).unique().int().tolist()
         self._num_categories = max(self._num_categories, max(categories, default=-1) + 1)
         iou = self.box_iou(y_pred[:, :4], y[:, :4])
@@ -359,5 +253,5 @@ class MeanAveragePrecision(Metric):
         else:
             mAP = average_precision / (num_present_categories * len(self.rec_thresholds) * len(self.iou_thresholds))
         if world_size > 1:
-            dist.broadcast(mAP, 0)
+            idist.broadcast(mAP, 0)
         return mAP.item()

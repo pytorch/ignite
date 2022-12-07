@@ -1,6 +1,6 @@
-import os
 import sys
 from collections import namedtuple
+from math import ceil
 from typing import List, Tuple
 from unittest.mock import patch
 
@@ -658,10 +658,7 @@ def pycoco_mAP(predictions, targets) -> Tuple[float, float, float]:
     eval.evaluate()
     eval.accumulate()
     eval.summarize()
-    # for i in range(100):
-    #     if (eval.eval['precision'][:,:,i,0,2] > -1).any():
-    #         print(f"{i}:",eval.eval['precision'][:,:,i,0,2])
-    return eval.stats[0], eval.stats[1], eval.stats[2]  # , eval.eval['precision'][:,:,:,0,2]
+    return eval.stats[0], eval.stats[1], eval.stats[2]
 
 
 @pytest.fixture(
@@ -682,14 +679,14 @@ def sample(request) -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
 
     data = coco_val2017_sample() if request.param[0] == "coco2017" else random_sample()
     if request.param[1] == "with_an_empty_pred":
-        data[0][1] = torch.Tensor(0, 6)
+        data[0][1] = torch.zeros(0, 6)
     elif request.param[1] == "with_an_empty_gt":
-        data[1][0] = torch.Tensor(0, 5)
+        data[1][0] = torch.zeros(0, 5)
     elif request.param[1] == "with_an_empty_pred_and_gt":
-        data[1][0] = torch.Tensor(0, 5)
-        data[1][2] = torch.Tensor(0, 5)
-        data[0][0] = torch.Tensor(0, 6)
-        data[0][1] = torch.Tensor(0, 6)
+        data[1][0] = torch.zeros(0, 5)
+        data[1][2] = torch.zeros(0, 5)
+        data[0][0] = torch.zeros(0, 6)
+        data[0][1] = torch.zeros(0, 6)
     mAP = pycoco_mAP(*data)
 
     return Sample(data, mAP, len(data[0]))
@@ -713,16 +710,17 @@ def test_compute(sample):
 
     pycoco_res_50_95, pycoco_res_50, pycoco_res_75 = sample.mAP
 
-    # for c in reversed(list(range(res_50_95.shape[0]))):
-    #     for r in range(res_50_95.shape[2]):
-    #         print("--------")
-    #         print(f"r:{r},c:{c}")
-    #         print("pycoco:",res[:,r,c])
-    #         print("we:",res_50_95[c,:,r].numpy())
-    #         assert (res[:,r,c] == res_50_95[c,:,r].numpy()).all()
-    assert res_50_95 == pytest.approx(pycoco_res_50_95, abs=1e-6)
-    assert res_50 == pytest.approx(pycoco_res_50, abs=1e-6)
-    assert res_75 == pytest.approx(pycoco_res_75, abs=1e-6)
+    assert res_50_95 == pytest.approx(pycoco_res_50_95, abs=1e-3)
+    assert res_50 == pytest.approx(pycoco_res_50, abs=1e-3)
+    assert res_75 == pytest.approx(pycoco_res_75, abs=1e-3)
+
+    res_50_recompute = metric_50.compute()
+    res_75_recompute = metric_75.compute()
+    res_50_95_recompute = metric_50_95.compute()
+
+    assert res_50 == res_50_recompute
+    assert res_75 == res_75_recompute
+    assert res_50_95 == res_50_95_recompute
 
 
 def test_wrong_input():
@@ -812,16 +810,13 @@ def test_matching():
     metric.update((rule_2_and_3_pred, rule_2_and_3_gt))
     assert (metric._tp[1][:, 4:] == torch.tensor([[True, False]])).all()
 
-    # TODO: test latter part of the rule 3 ?
+    # TODO: test latter part of the rule 3 ? no-op
 
 
 def test_distrib_integration(distributed, sample):
-    rank_samples_cnt = sample.length // idist.get_world_size()
+    rank_samples_cnt = ceil(sample.length / idist.get_world_size())
     rank = idist.get_rank()
-    if rank == (idist.get_world_size() - 1):
-        rank_samples_range = slice(rank_samples_cnt * rank, None)
-    else:
-        rank_samples_range = slice(rank_samples_cnt * rank, rank_samples_cnt * (rank + 1))
+    rank_samples_range = slice(rank_samples_cnt * rank, rank_samples_cnt * (rank + 1))
 
     device = idist.device()
     metric_50 = MeanAveragePrecision(iou_thresholds=[0.5], device=device)
@@ -839,72 +834,14 @@ def test_distrib_integration(distributed, sample):
 
     pycoco_res_50_95, pycoco_res_50, pycoco_res_75 = sample.mAP
 
-    assert res_50_95 == pytest.approx(pycoco_res_50_95, abs=1e-6)
-    assert res_50 == pytest.approx(pycoco_res_50, abs=1e-6)
-    assert res_75 == pytest.approx(pycoco_res_75, abs=1e-6)
+    assert res_50_95 == pytest.approx(pycoco_res_50_95, abs=1e-3)
+    assert res_50 == pytest.approx(pycoco_res_50, abs=1e-3)
+    assert res_75 == pytest.approx(pycoco_res_75, abs=1e-3)
 
+    res_50_recompute = metric_50.compute()
+    res_75_recompute = metric_75.compute()
+    res_50_95_recompute = metric_50_95.compute()
 
-@pytest.mark.multinode_distributed
-@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo, sample):
-
-    rank_samples_cnt = sample.length // idist.get_world_size()
-    rank = idist.get_rank()
-    if rank == (idist.get_world_size() - 1):
-        rank_samples_range = slice(rank_samples_cnt * rank, None)
-    else:
-        rank_samples_range = slice(rank_samples_cnt * rank, rank_samples_cnt * (rank + 1))
-
-    device = idist.device()
-    metric_50 = MeanAveragePrecision(iou_thresholds=[0.5], device=device)
-    metric_75 = MeanAveragePrecision(iou_thresholds=[0.75], device=device)
-    metric_50_95 = MeanAveragePrecision(device=device)
-
-    for prediction, target in zip(sample.data[0][rank_samples_range], sample.data[1][rank_samples_range]):
-        metric_50.update((prediction, target))
-        metric_75.update((prediction, target))
-        metric_50_95.update((prediction, target))
-
-    res_50 = metric_50.compute()
-    res_75 = metric_75.compute()
-    res_50_95 = metric_50_95.compute()
-
-    pycoco_res_50_95, pycoco_res_50, pycoco_res_75 = sample.mAP
-
-    assert res_50_95 == pytest.approx(pycoco_res_50_95, abs=1e-6)
-    assert res_50 == pytest.approx(pycoco_res_50, abs=1e-6)
-    assert res_75 == pytest.approx(pycoco_res_75, abs=1e-6)
-
-
-@pytest.mark.multinode_distributed
-@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl, sample):
-
-    rank_samples_cnt = sample.length // idist.get_world_size()
-    rank = idist.get_rank()
-    if rank == (idist.get_world_size() - 1):
-        rank_samples_range = slice(rank_samples_cnt * rank, None)
-    else:
-        rank_samples_range = slice(rank_samples_cnt * rank, rank_samples_cnt * (rank + 1))
-
-    device = idist.device()
-    metric_50 = MeanAveragePrecision(iou_thresholds=[0.5], device=device)
-    metric_75 = MeanAveragePrecision(iou_thresholds=[0.75], device=device)
-    metric_50_95 = MeanAveragePrecision(device=device)
-
-    for prediction, target in zip(sample.data[0][rank_samples_range], sample.data[1][rank_samples_range]):
-        metric_50.update((prediction, target))
-        metric_75.update((prediction, target))
-        metric_50_95.update((prediction, target))
-
-    res_50 = metric_50.compute()
-    res_75 = metric_75.compute()
-    res_50_95 = metric_50_95.compute()
-
-    pycoco_res_50_95, pycoco_res_50, pycoco_res_75 = sample.mAP
-
-    assert res_50_95 == pytest.approx(pycoco_res_50_95, abs=1e-6)
-    assert res_50 == pytest.approx(pycoco_res_50, abs=1e-6)
-    assert res_75 == pytest.approx(pycoco_res_75, abs=1e-6)
+    assert res_50_recompute == res_50
+    assert res_75_recompute == res_75
+    assert res_50_95_recompute == res_50_95
