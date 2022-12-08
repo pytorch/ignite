@@ -11,6 +11,8 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics import PSNR
 from ignite.utils import manual_seed
 
+from tests.ignite import cpu_and_maybe_cuda
+
 
 def test_zero_div():
     psnr = PSNR(1.0)
@@ -44,12 +46,12 @@ def _test_psnr(y_pred, y, data_range, device):
     assert torch.gt(psnr_compute, 0.0)
     assert isinstance(psnr_compute, torch.Tensor)
     assert psnr_compute.dtype == torch.float64
-    assert psnr_compute.device == torch.device(device)
+    assert psnr_compute.device.type == torch.device(device).type
     assert np.allclose(psnr_compute.cpu().numpy(), np_psnr / np_y.shape[0])
 
 
-def test_psnr():
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+@pytest.mark.parametrize("device", cpu_and_maybe_cuda())
+def test_psnr(device):
 
     # test for float
     manual_seed(42)

@@ -9,6 +9,8 @@ import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics import SSIM
 
+from tests.ignite import cpu_and_maybe_cuda
+
 
 def test_zero_div():
     ssim = SSIM(data_range=1.0)
@@ -68,7 +70,7 @@ def test_invalid_ssim():
         ssim.compute()
 
 
-@pytest.mark.parametrize("device", ["cpu"] + ["cuda"] if torch.cuda.is_available() else [])
+@pytest.mark.parametrize("device", cpu_and_maybe_cuda())
 @pytest.mark.parametrize(
     "shape, kernel_size, gaussian, use_sample_covariance",
     [[(8, 3, 224, 224), 7, False, True], [(12, 3, 28, 28), 11, True, False]],
@@ -96,23 +98,24 @@ def test_ssim(device, shape, kernel_size, gaussian, use_sample_covariance):
         use_sample_covariance=use_sample_covariance,
     )
 
-    assert isinstance(ignite_ssim, float)
-    assert np.allclose(ignite_ssim, skimg_ssim, atol=7e-5)
+    assert isinstance(ignite_ssim, torch.Tensor)
+    assert np.allclose(ignite_ssim.item(), skimg_ssim, atol=7e-5)
 
 
-def test_ssim_variable_batchsize():
+@pytest.mark.parametrize("device", cpu_and_maybe_cuda())
+def test_ssim_variable_batchsize(device):
     # Checks https://github.com/pytorch/ignite/issues/2532
     sigma = 1.5
     data_range = 1.0
     ssim = SSIM(data_range=data_range, sigma=sigma)
 
     y_preds = [
-        torch.rand(12, 3, 28, 28),
-        torch.rand(12, 3, 28, 28),
-        torch.rand(8, 3, 28, 28),
-        torch.rand(16, 3, 28, 28),
-        torch.rand(1, 3, 28, 28),
-        torch.rand(30, 3, 28, 28),
+        torch.rand(12, 3, 28, 28, device=device),
+        torch.rand(12, 3, 28, 28, device=device),
+        torch.rand(8, 3, 28, 28, device=device),
+        torch.rand(16, 3, 28, 28, device=device),
+        torch.rand(1, 3, 28, 28, device=device),
+        torch.rand(30, 3, 28, 28, device=device),
     ]
     y_true = [v * 0.8 for v in y_preds]
 
@@ -123,7 +126,7 @@ def test_ssim_variable_batchsize():
     ssim.reset()
     ssim.update((torch.cat(y_preds), torch.cat(y_true)))
     expected = ssim.compute()
-    assert np.allclose(out, expected)
+    assert np.allclose(out.item(), expected.item())
 
 
 def _test_distrib_integration(device, tol=1e-4):
