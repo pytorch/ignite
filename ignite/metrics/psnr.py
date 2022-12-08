@@ -118,7 +118,7 @@ class PSNR(Metric):
         self._num_examples += y.shape[0]
 
     @sync_all_reduce("_sum_of_batchwise_psnr", "_num_examples")
-    def compute(self) -> torch.Tensor:
+    def compute(self) -> float:
         if self._num_examples == 0:
             raise NotComputableError("PSNR must have at least one example before it can be computed.")
-        return self._sum_of_batchwise_psnr / self._num_examples
+        return (self._sum_of_batchwise_psnr / self._num_examples).item()
