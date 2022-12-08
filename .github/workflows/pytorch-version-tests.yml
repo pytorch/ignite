@@ -114,7 +114,7 @@ jobs:
     needs: build
     if: always() && needs.build.result == 'failure'
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: JasonEtco/create-an-issue@v2
         name: Create issue if pytorch version tests failed
         with:
