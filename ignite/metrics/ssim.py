@@ -180,7 +180,7 @@ class SSIM(Metric):
         self._num_examples += y.shape[0]
 
     @sync_all_reduce("_sum_of_ssim", "_num_examples")
-    def compute(self) -> torch.Tensor:
+    def compute(self) -> float:
         if self._num_examples == 0:
             raise NotComputableError("SSIM must have at least one example before it can be computed.")
-        return self._sum_of_ssim / self._num_examples
+        return (self._sum_of_ssim / self._num_examples).item()
