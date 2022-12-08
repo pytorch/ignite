@@ -9,8 +9,6 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics import PSNR
 from ignite.utils import manual_seed
 
-from tests.ignite import cpu_and_maybe_cuda
-
 
 def test_zero_div():
     psnr = PSNR(1.0)
@@ -30,35 +28,31 @@ def test_invalid_psnr():
         psnr.update((y_pred, y.squeeze(dim=0)))
 
 
-@pytest.fixture
-def test_data(request):
+@pytest.fixture(params=["float", "YCbCr", "uint8", "NHW shape"])
+def test_data(request, available_device):
     manual_seed(42)
-    device = request.param.device
-    if request.param.sample_type == "float":
-        y_pred = torch.rand(8, 3, 28, 28, device=device)
+    if request.param == "float":
+        y_pred = torch.rand(8, 3, 28, 28, device=available_device)
         y = y_pred * 0.8
-    elif request.param.sample_type == "YCbCr":
-        y_pred = torch.randint(16, 236, (4, 1, 12, 12), dtype=torch.uint8, device=device)
-        y = torch.randint(16, 236, (4, 1, 12, 12), dtype=torch.uint8, device=device)
-    elif request.param.sample_type == "uint8":
-        y_pred = torch.randint(0, 256, (4, 3, 16, 16), dtype=torch.uint8, device=device)
+    elif request.param == "YCbCr":
+        y_pred = torch.randint(16, 236, (4, 1, 12, 12), dtype=torch.uint8, device=available_device)
+        y = torch.randint(16, 236, (4, 1, 12, 12), dtype=torch.uint8, device=available_device)
+    elif request.param == "uint8":
+        y_pred = torch.randint(0, 256, (4, 3, 16, 16), dtype=torch.uint8, device=available_device)
         y = (y_pred * 0.8).to(torch.uint8)
-    elif request.param.sample_type == "NHW shape":
-        y_pred = torch.rand(8, 28, 28, device=device)
+    elif request.param == "NHW shape":
+        y_pred = torch.rand(8, 28, 28, device=available_device)
         y = y_pred * 0.8
     else:
         raise ValueError(f"Wrong fixture parameter, given {request.param}")
     return (y_pred, y)
 
 
-@pytest.mark.parametrize("device", cpu_and_maybe_cuda(), indirect=True)
-@pytest.mark.parametrize("sample_type", ["float", "YCbCr", "uint8", "NHW shape"], indirect=True)
-def test_psnr(test_data):
+def test_psnr(test_data, available_device):
     y_pred, y = test_data
-    device = idist.device()
     data_range = (y.max() - y.min()).cpu().item()
 
-    psnr = PSNR(data_range=data_range, device=device)
+    psnr = PSNR(data_range=data_range, device=available_device)
     psnr.update(test_data)
     psnr_compute = psnr.compute()
 

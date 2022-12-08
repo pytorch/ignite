@@ -13,6 +13,16 @@ import torch.distributed as dist
 import ignite.distributed as idist
 
 
+@pytest.fixture(
+    params=[
+        "cpu",
+        pytest.param("cuda", marks=pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no CUDA support")),
+    ]
+)
+def available_device(request):
+    return request.param
+
+
 @pytest.fixture()
 def dirname():
     path = Path(tempfile.mkdtemp())
