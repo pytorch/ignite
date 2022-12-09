@@ -120,7 +120,7 @@ def test_ssim_variable_batchsize(available_device):
     ssim.reset()
     ssim.update((torch.cat(y_preds), torch.cat(y_true)))
     expected = ssim.compute()
-    assert np.allclose(out, expected.item())
+    assert np.allclose(out, expected)
 
 
 @pytest.mark.parametrize("metric_device", ["cpu", "process_device"])
