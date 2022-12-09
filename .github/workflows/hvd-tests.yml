@@ -72,6 +72,10 @@ jobs:
         with:
           target_dir: /tmp
 
+      - name: Check if Horovod actually exists
+        run: |
+          python -c "import ignite.distributed as idist, sys; sys.exit(not idist.has_hvd_support)"
+
       - name: Run Tests
         shell: bash -l {0}
         run: |
