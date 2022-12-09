@@ -69,10 +69,6 @@ jobs:
         with:
           target_dir: /tmp
 
-      - name: Check if Horovod actually exists
-        shell: bash -l {0}
-        run: python -c "import horovod.torch as hvd"
-
       - name: Run Tests
         shell: bash -l {0}
         run: |
