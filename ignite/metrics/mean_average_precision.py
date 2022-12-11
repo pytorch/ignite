@@ -2,7 +2,6 @@ from collections import defaultdict
 from typing import Callable, cast, Dict, List, Optional, Tuple, Union
 
 import torch
-import torch.distributed as dist
 from torch.nn import functional as F
 
 import ignite.distributed as idist
@@ -155,20 +154,15 @@ class MeanAveragePrecision(Metric):
         )
         world_size = idist.get_world_size()
         if world_size > 1:
-            if idist.get_rank() == 0:
-                ranks_num_preds = [
-                    torch.empty((self._num_categories,), device=self._device, dtype=torch.long)
-                    for _ in range(world_size)
-                ]
-            else:
-                ranks_num_preds = None
-            dist.gather(num_predictions, ranks_num_preds)
+            ranks_num_preds = torch.stack(
+                cast(torch.Tensor, idist.all_gather(num_predictions)).split(split_size=self._num_categories)
+            )
+            max_num_predictions = ranks_num_preds.amax(dim=0)
         else:
-            ranks_num_preds = [num_predictions]
+            max_num_predictions = num_predictions
 
-        max_num_predictions = num_predictions.clone()
-        max_num_predictions = cast(torch.Tensor, idist.all_reduce(max_num_predictions, op="MAX"))
-        recall_thresh_repeated_iou_thresh_times = self.rec_thresholds.repeat((len(self.iou_thresholds), 1))
+        num_thresholds = len(self.iou_thresholds)
+        recall_thresh_repeated_iou_thresh_times = self.rec_thresholds.repeat((num_thresholds, 1))
         average_precision = torch.tensor(0.0, device=self._device, dtype=torch.double)
         num_present_categories = self._num_categories
         for category_idx in range(self._num_categories):
@@ -176,82 +170,75 @@ class MeanAveragePrecision(Metric):
             if num_gt[category_idx] == 0:
                 num_present_categories -= 1
                 continue
-            if max_num_predictions[category_idx] == 0:
+            max_num_preds_in_cat = max_num_predictions[category_idx]
+            if max_num_preds_in_cat == 0:
                 continue
 
             if world_size > 1:
-                if idist.get_rank() == 0:
-                    ranks_tp = [
-                        torch.empty(
-                            (len(self.iou_thresholds), max_num_predictions[category_idx]),  # type: ignore[arg-type]
-                            device=self._device,
-                            dtype=torch.uint8,
-                        )
-                        for _ in range(world_size)
-                    ]
-                    ranks_scores = [
-                        torch.empty((max_num_predictions[category_idx],), device=self._device)  # type: ignore[arg-type]
-                        for _ in range(world_size)
-                    ]
-                else:
-                    ranks_tp = None
-                    ranks_scores = None
-                dist.gather(
-                    F.pad(
-                        self._tp[category_idx],
-                        (
-                            0,  # type: ignore[arg-type]
-                            max_num_predictions[category_idx] - num_predictions[category_idx],
-                        ),
-                    ).to(torch.uint8),
-                    ranks_tp,
-                )
-                dist.gather(
-                    F.pad(
-                        self._scores[category_idx],
-                        (
-                            0,  # type: ignore[arg-type]
-                            max_num_predictions[category_idx] - num_predictions[category_idx],
-                        ),
+                ranks_tp = cast(
+                    torch.Tensor,
+                    idist.all_gather(
+                        F.pad(
+                            self._tp[category_idx],
+                            (
+                                0,  # type: ignore[arg-type]
+                                max_num_preds_in_cat - num_predictions[category_idx],
+                            ),
+                        ).to(torch.uint8),
                     ),
-                    ranks_scores,
                 )
-                if idist.get_rank() == 0:
-                    ranks_tp = [
-                        ranks_tp[r][:, : ranks_num_preds[r][category_idx]].to(torch.bool)  # type: ignore[index, misc]
-                        for r in range(world_size)
-                    ]
-                    tp = torch.cat(ranks_tp, dim=1)
+                ranks_scores = cast(
+                    torch.Tensor,
+                    idist.all_gather(
+                        F.pad(
+                            self._scores[category_idx],
+                            (
+                                0,  # type: ignore[arg-type]
+                                max_num_preds_in_cat - num_predictions[category_idx],
+                            ),
+                        )
+                    ),
+                )
 
-                    ranks_scores = [
-                        ranks_scores[r][: ranks_num_preds[r][category_idx]]  # type: ignore[index, misc]
-                        for r in range(world_size)
+                ranks_tp_unpadded = [
+                    ranks_tp[
+                        r * num_thresholds : (r + 1) * num_thresholds,
+                        : ranks_num_preds[r, category_idx],  # type: ignore[misc]
+                    ].to(torch.bool)
+                    for r in range(world_size)
+                ]
+                tp = torch.cat(ranks_tp_unpadded, dim=1)
+
+                ranks_scores_unpadded = [
+                    ranks_scores[
+                        r * max_num_preds_in_cat : r * max_num_preds_in_cat  # type: ignore[misc]
+                        + ranks_num_preds[r, category_idx]
                     ]
-                    scores = torch.cat(ranks_scores, dim=0)
+                    for r in range(world_size)
+                ]
+                scores = torch.cat(ranks_scores_unpadded, dim=0)
             else:
                 tp = self._tp[category_idx]
                 scores = self._scores[category_idx]
-            if idist.get_rank() == 0:
 
-                tp = tp[:, torch.argsort(scores, stable=True, descending=True)]
+            tp = tp[:, torch.argsort(scores, stable=True, descending=True)]
 
-                tp_summation = tp.cumsum(dim=1).double()
-                fp_summation = (~tp).cumsum(dim=1).double()
-                recall = tp_summation / num_gt[category_idx]
-                precision = tp_summation / (fp_summation + tp_summation + torch.finfo(torch.double).eps)
+            tp_summation = tp.cumsum(dim=1).double()
+            fp_summation = (~tp).cumsum(dim=1).double()
+            recall = tp_summation / num_gt[category_idx]
+            precision = tp_summation / (fp_summation + tp_summation + torch.finfo(torch.double).eps)
 
-                recall_thresh_indices = torch.searchsorted(recall, recall_thresh_repeated_iou_thresh_times)
-                for t in range(len(self.iou_thresholds)):
-                    for r_idx in recall_thresh_indices[t]:
-                        if r_idx == recall.shape[1]:
-                            break
-                        # Interpolated precision. Please refer to PASCAL VOC paper section 4.2
-                        # for more information. MS COCO is like PASCAL in this regard.
-                        average_precision += precision[t][r_idx:].max()
+            recall_thresh_indices = torch.searchsorted(recall, recall_thresh_repeated_iou_thresh_times)
+            for t in range(num_thresholds):
+                for r_idx in recall_thresh_indices[t]:
+                    if r_idx == recall.shape[1]:
+                        break
+                    # Interpolated precision. Please refer to PASCAL VOC paper section 4.2
+                    # for more information. MS COCO is like PASCAL in this regard.
+                    average_precision += precision[t][r_idx:].max()
         if num_present_categories == 0:
             mAP = torch.tensor(-1.0, device=self._device)
         else:
-            mAP = average_precision / (num_present_categories * len(self.rec_thresholds) * len(self.iou_thresholds))
-        if world_size > 1:
-            idist.broadcast(mAP, 0)
+            mAP = average_precision / (num_present_categories * len(self.rec_thresholds) * num_thresholds)
+
         return mAP.item()
