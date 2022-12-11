@@ -748,7 +748,7 @@ def test_empty_data():
 
     metric = MeanAveragePrecision()
     metric.update((torch.zeros((0, 6)), torch.tensor([[0.0, 0.0, 100.0, 100.0, 1]])))
-    assert metric._tp[1].shape[1] == 0
+    assert len(metric._tp[1]) == 0
     assert metric._num_gt[1] == 1
     assert metric._num_categories == 2
     assert metric.compute() == 0
@@ -756,7 +756,7 @@ def test_empty_data():
     metric = MeanAveragePrecision()
     data_with_empty_gt = (torch.tensor([[0.0, 0.0, 100.0, 100.0, 0.9, 5]]), torch.zeros((0, 5)))
     metric.update(data_with_empty_gt)
-    assert metric._tp[5].shape[1] == 1
+    assert metric._tp[5][0].shape[1] == 1
     assert metric._num_gt[1] == 0
     assert metric._num_categories == 6
     assert metric.compute() == pycoco_mAP([data_with_empty_gt[0]], [data_with_empty_gt[1]])[-1]
@@ -774,12 +774,12 @@ def test_iou_thresholding():
     pred = torch.tensor([[0.0, 0.0, 100.0, 100.0, 0.8, 1]])
     gt = torch.tensor([[0.0, 0.0, 50.0, 100.0, 1]])
     metric.update((pred, gt))
-    assert (metric._tp[1] == torch.tensor([[True], [True], [True], [False]])).all()
+    assert (metric._tp[1][0] == torch.tensor([[True], [True], [True], [False]])).all()
 
     pred = torch.tensor([[0.0, 0.0, 100.0, 100.0, 0.8, 1]])
     gt = torch.tensor([[100.0, 0.0, 200.0, 100.0, 1]])
     metric.update((pred, gt))
-    assert (metric._tp[1][:, 1] == torch.tensor([True, False, False, False])).all()
+    assert (metric._tp[1][1] == torch.tensor([[True], [False], [False], [False]])).all()
 
 
 def test_matching():
@@ -798,17 +798,17 @@ def test_matching():
     rule_1_pred = torch.tensor([[0.0, 0.0, 100.0, 100.0, 0.8, 1], [0.0, 0.0, 100.0, 100.0, 0.9, 1]])
     rule_1_gt = torch.tensor([[0.0, 0.0, 100.0, 100.0, 1]])
     metric.update((rule_1_pred, rule_1_gt))
-    assert (metric._tp[1] == torch.tensor([[False, True]])).all()
+    assert (metric._tp[1][0] == torch.tensor([[False, True]])).all()
 
     rule_1_and_2_pred = torch.tensor([[0.0, 0.0, 100.0, 100.0, 0.9, 1], [0.0, 0.0, 100.0, 100.0, 0.9, 1]])
     rule_1_and_2_gt = torch.tensor([[0.0, 0.0, 100.0, 100.0, 1]])
     metric.update((rule_1_and_2_pred, rule_1_and_2_gt))
-    assert (metric._tp[1][:, 2:] == torch.tensor([[True, False]])).all()
+    assert (metric._tp[1][1] == torch.tensor([[True, False]])).all()
 
     rule_2_and_3_pred = torch.tensor([[0.0, 0.0, 100.0, 100.0, 0.9, 1], [100.0, 0.0, 200.0, 100.0, 0.9, 1]])
     rule_2_and_3_gt = torch.tensor([[0.0, 0.0, 25.0, 50.0, 1], [50.0, 0.0, 150.0, 100.0, 1]])
     metric.update((rule_2_and_3_pred, rule_2_and_3_gt))
-    assert (metric._tp[1][:, 4:] == torch.tensor([[True, False]])).all()
+    assert (metric._tp[1][2] == torch.tensor([[True, False]])).all()
 
     # TODO: test latter part of the rule 3 ? no-op
 

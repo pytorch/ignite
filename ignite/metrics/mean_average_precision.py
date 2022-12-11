@@ -71,15 +71,9 @@ class MeanAveragePrecision(Metric):
     @reinit__is_reduced
     def reset(self) -> None:
         self._num_categories: int = 0
-        self._tp: Dict[int, torch.BoolTensor] = defaultdict(
-            lambda: cast(
-                torch.BoolTensor, torch.empty((len(self.iou_thresholds), 0), dtype=torch.bool, device=self._device)
-            )
-        )
+        self._tp: Dict[int, List[torch.BoolTensor]] = defaultdict(lambda: [])
         self._num_gt: Dict[int, int] = defaultdict(lambda: 0)
-        self._scores: Dict[int, torch.Tensor] = defaultdict(
-            lambda: torch.tensor([], dtype=torch.float, device=self._device)
-        )
+        self._scores: Dict[int, List[torch.Tensor]] = defaultdict(lambda: [])
 
     @reinit__is_reduced
     def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
@@ -112,7 +106,7 @@ class MeanAveragePrecision(Metric):
                 continue
 
             category_scores = y_pred[class_index_dt, 4]
-            self._scores[category] = torch.concat((self._scores[category], category_scores.to(self._device)))
+            self._scores[category].append(category_scores.to(self._device))
 
             category_tp = torch.zeros(
                 (len(self.iou_thresholds), class_index_dt.sum().item()), dtype=torch.bool, device=self._device
@@ -140,7 +134,7 @@ class MeanAveragePrecision(Metric):
                     else:
                         break
 
-            self._tp[category] = cast(torch.BoolTensor, torch.cat((self._tp[category], category_tp), dim=1))
+            self._tp[category].append(cast(torch.BoolTensor, category_tp))
 
     @sync_all_reduce("_num_categories:MAX")
     def compute(self) -> float:
@@ -149,8 +143,23 @@ class MeanAveragePrecision(Metric):
         num_gt = torch.tensor([self._num_gt[cat_id] for cat_id in range(self._num_categories)], device=self._device)
         num_gt = cast(torch.Tensor, idist.all_reduce(num_gt))
 
+        num_thresholds = len(self.iou_thresholds)
+        _tp = {
+            cat_id: torch.cat(cast(List[torch.Tensor], self._tp[cat_id]), dim=1)
+            if len(self._tp[cat_id]) != 0
+            else torch.empty((num_thresholds, 0), dtype=torch.bool, device=self._device)
+            for cat_id in range(self._num_categories)
+        }
+        _scores = {
+            cat_id: torch.cat(self._scores[cat_id], dim=0)
+            if len(self._scores[cat_id]) != 0
+            else torch.tensor([], dtype=torch.float, device=self._device)
+            for cat_id in range(self._num_categories)
+        }
+
         num_predictions = torch.tensor(
-            [self._tp[cat_idx].shape[1] for cat_idx in range(self._num_categories)], device=self._device
+            [_tp[cat_idx].shape[1] if cat_idx in _tp else 0 for cat_idx in range(self._num_categories)],
+            device=self._device,
         )
         world_size = idist.get_world_size()
         if world_size > 1:
@@ -161,7 +170,6 @@ class MeanAveragePrecision(Metric):
         else:
             max_num_predictions = num_predictions
 
-        num_thresholds = len(self.iou_thresholds)
         recall_thresh_repeated_iou_thresh_times = self.rec_thresholds.repeat((num_thresholds, 1))
         average_precision = torch.tensor(0.0, device=self._device, dtype=torch.double)
         num_present_categories = self._num_categories
@@ -179,7 +187,7 @@ class MeanAveragePrecision(Metric):
                     torch.Tensor,
                     idist.all_gather(
                         F.pad(
-                            self._tp[category_idx],
+                            _tp[category_idx],
                             (
                                 0,  # type: ignore[arg-type]
                                 max_num_preds_in_cat - num_predictions[category_idx],
@@ -191,7 +199,7 @@ class MeanAveragePrecision(Metric):
                     torch.Tensor,
                     idist.all_gather(
                         F.pad(
-                            self._scores[category_idx],
+                            _scores[category_idx],
                             (
                                 0,  # type: ignore[arg-type]
                                 max_num_preds_in_cat - num_predictions[category_idx],
@@ -218,8 +226,8 @@ class MeanAveragePrecision(Metric):
                 ]
                 scores = torch.cat(ranks_scores_unpadded, dim=0)
             else:
-                tp = self._tp[category_idx]
-                scores = self._scores[category_idx]
+                tp = _tp[category_idx]
+                scores = _scores[category_idx]
 
             tp = tp[:, torch.argsort(scores, stable=True, descending=True)]
 
