@@ -819,9 +819,10 @@ def test_distrib_integration(distributed, sample):
     rank_samples_range = slice(rank_samples_cnt * rank, rank_samples_cnt * (rank + 1))
 
     device = idist.device()
-    metric_50 = MeanAveragePrecision(iou_thresholds=[0.5], device=device)
-    metric_75 = MeanAveragePrecision(iou_thresholds=[0.75], device=device)
-    metric_50_95 = MeanAveragePrecision(device=device)
+    metric_device = "cpu" if device.type == "xla" else device
+    metric_50 = MeanAveragePrecision(iou_thresholds=[0.5], device=metric_device)
+    metric_75 = MeanAveragePrecision(iou_thresholds=[0.75], device=metric_device)
+    metric_50_95 = MeanAveragePrecision(device=metric_device)
 
     for prediction, target in zip(sample.data[0][rank_samples_range], sample.data[1][rank_samples_range]):
         metric_50.update((prediction, target))
