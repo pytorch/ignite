@@ -159,7 +159,7 @@ def _test_distrib_integration(device=None):
         device = idist.device() if idist.device().type != "xla" else "cpu"
 
     rank = idist.get_rank()
-    torch.manual_seed(12 + rank)
+    torch.manual_seed(40 + rank)
 
     n_iters = 3
     batch_size = 2
@@ -188,8 +188,10 @@ def _test_distrib_integration(device=None):
 
     y_preds = idist.all_gather(y_preds)
     y_true = idist.all_gather(y_true)
+    ep_metric_true = (y_preds.argmax(dim=1) == y_true).sum().item()
 
-    assert engine.state.metrics["epm"] == (y_preds.argmax(dim=1) == y_true).sum().item()
+    assert engine.state.metrics["epm"] == ep_metric_true
+    assert ep_metric.compute() == ep_metric_true
 
 
 @pytest.mark.distributed
