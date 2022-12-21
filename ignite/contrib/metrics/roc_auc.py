@@ -103,6 +103,8 @@ class RocCurve(EpochMetric):
             <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_curve.html#
             sklearn.metrics.roc_curve>`_ is run on the first batch of data to ensure there are
             no issues. User will be warned in case there are any issues computing the function.
+        device: optional device specification for internal storage.
+
     Note:
         RocCurve expects y to be comprised of 0's and 1's. y_pred must either be probability estimates or confidence
         values. To apply an activation to y_pred, use output_transform as shown below:
@@ -137,9 +139,17 @@ class RocCurve(EpochMetric):
             FPR [0.0, 0.333, 0.333, 1.0]
             TPR [0.0, 0.0, 1.0, 1.0]
             Thresholds [2.0, 1.0, 0.711, 0.047]
+
+    ..  versionchanged:: 0.4.11
+        added `device` argument
     """
 
-    def __init__(self, output_transform: Callable = lambda x: x, check_compute_fn: bool = False) -> None:
+    def __init__(
+        self,
+        output_transform: Callable = lambda x: x,
+        check_compute_fn: bool = False,
+        device: Union[str, torch.device] = torch.device("cpu"),
+    ) -> None:
 
         try:
             from sklearn.metrics import roc_curve  # noqa: F401
@@ -147,5 +157,8 @@ class RocCurve(EpochMetric):
             raise ModuleNotFoundError("This contrib module requires scikit-learn to be installed.")
 
         super(RocCurve, self).__init__(
-            roc_auc_curve_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
+            roc_auc_curve_compute_fn,
+            output_transform=output_transform,
+            check_compute_fn=check_compute_fn,
+            device=device,
         )

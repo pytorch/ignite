@@ -6,6 +6,8 @@ import sklearn
 import torch
 from sklearn.metrics import roc_curve
 
+from ignite import distributed as idist
+
 from ignite.contrib.metrics.roc_auc import RocCurve
 from ignite.engine import Engine
 from ignite.metrics.epoch_metric import EpochMetricWarning
@@ -121,3 +123,26 @@ def test_check_compute_fn():
 
     em = RocCurve(check_compute_fn=False)
     em.update(output)
+
+
+def test_distrib_integration(distributed):
+    rank = idist.get_rank()
+    torch.manual_seed(41 + rank)
+    n_batches, batch_size = 5, 10
+    y = torch.randint(0, 2, size=(n_batches * batch_size,))
+    y_pred = torch.rand((n_batches * batch_size,))
+
+    device = "cpu" if idist.device().type == "xla" else idist.device()
+    metric = RocCurve(device=device)
+    for i in range(n_batches):
+        metric.update((y_pred[i * batch_size : (i + 1) * batch_size], y[i * batch_size : (i + 1) * batch_size]))
+
+    fpr, tpr, thresholds = metric.compute()
+
+    y = idist.all_gather(y)
+    y_pred = idist.all_gather(y_pred)
+    sk_fpr, sk_tpr, sk_thresholds = roc_curve(y, y_pred)
+
+    assert np.array_equal(fpr, sk_fpr)
+    assert np.array_equal(tpr, sk_tpr)
+    np.testing.assert_array_almost_equal(thresholds, sk_thresholds)
