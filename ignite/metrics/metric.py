@@ -556,6 +556,7 @@ def sync_all_reduce(*attrs: Any) -> Callable:
                     "Decorator sync_all_reduce should be used on ignite.metric.Metric class methods only"
                 )
             ws = idist.get_world_size()
+            unreduced_attrs = {}
             if len(attrs) > 0 and not self._is_reduced:
                 if ws > 1:
                     for attr in attrs:
@@ -568,13 +569,18 @@ def sync_all_reduce(*attrs: Any) -> Callable:
                             op_kwargs["op"] = op
                         t = getattr(self, attr, None)
                         if t is not None:
-                            t = idist.all_reduce(t, **op_kwargs)
+                            unreduced_attrs[attr] = t
+                            t_reduced = idist.all_reduce(t, **op_kwargs)
                             self._is_reduced = True
-                            setattr(self, attr, t)
+                            setattr(self, attr, t_reduced)
                 else:
                     self._is_reduced = True
 
-            return func(self, *args, **kwargs)
+            result = func(self, *args, **kwargs)
+
+            for attr, value in unreduced_attrs.items():
+                setattr(self, attr, value)
+            return result
 
         return another_wrapper
 
