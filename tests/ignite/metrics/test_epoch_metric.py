@@ -1,5 +1,3 @@
-import os
-
 import pytest
 import torch
 
@@ -153,11 +151,9 @@ def test_check_compute_fn():
     em.update(output1)
 
 
-def _test_distrib_integration(device=None):
+def test_distrib_integration(distributed):
 
-    if device is None:
-        device = idist.device() if idist.device().type != "xla" else "cpu"
-
+    device = idist.device() if idist.device().type != "xla" else "cpu"
     rank = idist.get_rank()
     torch.manual_seed(40 + rank)
 
@@ -192,49 +188,3 @@ def _test_distrib_integration(device=None):
 
     assert engine.state.metrics["epm"] == ep_metric_true
     assert ep_metric.compute() == ep_metric_true
-
-
-@pytest.mark.distributed
-@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
-
-    device = idist.device()
-    _test_distrib_integration(device)
-
-
-@pytest.mark.distributed
-@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
-
-    device = idist.device()
-    _test_distrib_integration(device)
-
-
-@pytest.mark.tpu
-@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
-@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_distrib_single_device_xla():
-    _test_distrib_integration()
-
-
-def _test_distrib_xla_nprocs(index):
-    _test_distrib_integration()
-
-
-@pytest.mark.tpu
-@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
-@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
-def test_distrib_xla_nprocs(xmp_executor):
-    n = int(os.environ["NUM_TPU_WORKERS"])
-    xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)
-
-
-@pytest.mark.distributed
-@pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
-@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-def test_distrib_hvd(gloo_hvd_executor):
-
-    nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
-
-    gloo_hvd_executor(_test_distrib_integration, (None,), np=nproc, do_init=True)
