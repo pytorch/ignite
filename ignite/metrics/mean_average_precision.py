@@ -38,18 +38,7 @@ class MeanAveragePrecision(Metric):
             raise ModuleNotFoundError("This module requires torchvision to be installed.")
 
         if iou_thresholds is None:
-            self.iou_thresholds = [
-                0.5,
-                0.55,
-                0.6,
-                0.65,
-                0.7,
-                0.75,
-                0.8,
-                0.85,
-                0.8999999999999999,
-                0.95,
-            ]  # torch.linspace(0.5, 0.95, 10).tolist()
+            self.iou_thresholds = torch.linspace(0.5, 0.95, 10).tolist()
         elif isinstance(iou_thresholds, torch.Tensor):
             if iou_thresholds.ndim != 1:
                 raise ValueError(

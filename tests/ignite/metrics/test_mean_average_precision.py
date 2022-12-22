@@ -710,9 +710,9 @@ def test_compute(sample):
 
     pycoco_res_50_95, pycoco_res_50, pycoco_res_75 = sample.mAP
 
-    assert res_50_95 == pytest.approx(pycoco_res_50_95, abs=1e-3)
-    assert res_50 == pytest.approx(pycoco_res_50, abs=1e-3)
-    assert res_75 == pytest.approx(pycoco_res_75, abs=1e-3)
+    assert res_50_95 == pytest.approx(pycoco_res_50_95, abs=1e-4)
+    assert res_50 == pytest.approx(pycoco_res_50, abs=1e-4)
+    assert res_75 == pytest.approx(pycoco_res_75, abs=1e-4)
 
     res_50_recompute = metric_50.compute()
     res_75_recompute = metric_75.compute()
@@ -835,9 +835,9 @@ def test_distrib_integration(distributed, sample):
 
     pycoco_res_50_95, pycoco_res_50, pycoco_res_75 = sample.mAP
 
-    assert res_50_95 == pytest.approx(pycoco_res_50_95, abs=1e-3)
-    assert res_50 == pytest.approx(pycoco_res_50, abs=1e-3)
-    assert res_75 == pytest.approx(pycoco_res_75, abs=1e-3)
+    assert res_50_95 == pytest.approx(pycoco_res_50_95, abs=1e-4)
+    assert res_50 == pytest.approx(pycoco_res_50, abs=1e-4)
+    assert res_75 == pytest.approx(pycoco_res_75, abs=1e-4)
 
     res_50_recompute = metric_50.compute()
     res_75_recompute = metric_75.compute()
