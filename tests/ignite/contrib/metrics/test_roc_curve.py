@@ -7,10 +7,19 @@ import torch
 from sklearn.metrics import roc_curve
 
 from ignite import distributed as idist
-
 from ignite.contrib.metrics.roc_auc import RocCurve
 from ignite.engine import Engine
+from ignite.exceptions import NotComputableError
 from ignite.metrics.epoch_metric import EpochMetricWarning
+
+
+def test_wrong_setup():
+    def compute_fn(y_preds, y_targets):
+        return 0.0
+
+    with pytest.raises(NotComputableError, match="RocCurve must have at least one example before it can be computed"):
+        metric = RocCurve(compute_fn)
+        metric.compute()
 
 
 @pytest.fixture()
