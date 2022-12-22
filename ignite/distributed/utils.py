@@ -386,8 +386,8 @@ def broadcast(
         src: source rank. Default, 0.
         safe_mode: if True, non source input data can be ``None`` or anything (will be discarded), otherwise data
             type of the input ``tensor`` should be respected for all processes. Please, keep in mind, this mode is
-            working only for dense tensors as source input if a tensor is provided. There are additional collective
-            ops are performed before doing the broadcast and, thus, can be slower than without using this mode.
+            working only for dense tensors as source input if a tensor is provided. With ``safe_mode=False``, some
+            additional collective ops are performed before doing the broadcast so it can be faster to enable this mode.
             Default, False.
 
     Returns:
