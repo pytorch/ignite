@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 import torch
+from packaging.version import Version
 
 import ignite.distributed as idist
 from ignite.distributed.utils import has_hvd_support, has_native_dist_support, has_xla_support
@@ -65,12 +66,23 @@ def test_check_idist_parallel_no_dist(exec_filepath):
 def _test_check_idist_parallel_torch_launch(init_method, fp, backend, nprocs):
     # torchrun --nproc_per_node=nprocs tests/ignite/distributed/check_idist_parallel.py --backend=backend
 
-    cmd = [
-        "torchrun",
+    cmd = []
+    if Version(torch.__version__) >= Version("1.10.0"):
+        cmd += ["torchrun"]
+    else:
+        cmd += [
+            sys.executable,
+            "-m",
+            "torch.distributed.launch",
+            "--use_env",
+        ]
+
+    cmd += [
         f"--nproc_per_node={nprocs}",
         fp,
         f"--backend={backend}",
     ]
+
     if init_method is not None:
         cmd.append(f"--init_method={init_method}")
 

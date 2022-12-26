@@ -9,6 +9,12 @@ FROM pytorch/pytorch:${PTH_VERSION}-devel AS apex-msdp-builder
 ARG ARG_TORCH_CUDA_ARCH_LIST="3.5 5.2 6.0 6.1 7.0+PTX 8.0"
 ENV TORCH_CUDA_ARCH_LIST=$ARG_TORCH_CUDA_ARCH_LIST
 
+# Renew nvidia signing key
+# https://developer.nvidia.com/blog/updating-the-cuda-linux-gpg-repository-key/
+RUN apt-key del 7fa2af80 && \
+    rm /etc/apt/sources.list.d/nvidia-ml.list && \
+    apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub
+
 # Install git
 RUN apt-get update && apt-get install -y --no-install-recommends git && \
      rm -rf /var/lib/apt/lists/*
@@ -49,6 +55,12 @@ COPY --from=apex-msdp-builder /tmp/DeepSpeed/dist/deepspeed-*.whl /msdp/
 RUN cd /msdp && export CUDA_HOME=/usr/local/cuda && \
     pip install --no-cache-dir deepspeed-*.whl && \
     rm -fr /msdp
+
+# Renew nvidia signing key
+# https://developer.nvidia.com/blog/updating-the-cuda-linux-gpg-repository-key/
+RUN apt-key del 7fa2af80 && \
+    rm /etc/apt/sources.list.d/nvidia-ml.list && \
+    apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub
 
 # Install tzdata / git
 RUN apt-get update && \

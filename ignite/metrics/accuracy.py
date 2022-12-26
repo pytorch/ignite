@@ -16,8 +16,8 @@ class _BaseClassification(Metric):
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
         self._is_multilabel = is_multilabel
-        self._type = None  # type: Optional[str]
-        self._num_classes = None  # type: Optional[int]
+        self._type: Optional[str] = None
+        self._num_classes: Optional[int] = None
         super(_BaseClassification, self).__init__(output_transform=output_transform, device=device)
 
     def reset(self) -> None:
@@ -35,7 +35,7 @@ class _BaseClassification(Metric):
             )
 
         y_shape = y.shape
-        y_pred_shape = y_pred.shape  # type: Tuple[int, ...]
+        y_pred_shape: Tuple[int, ...] = y_pred.shape
 
         if y.ndimension() + 1 == y_pred.ndimension():
             y_pred_shape = (y_pred_shape[0],) + y_pred_shape[2:]
@@ -117,14 +117,19 @@ class Accuracy(_BaseClassification):
 
     Examples:
 
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         Binary case
 
         .. testcode:: 1
 
             metric = Accuracy()
             metric.attach(default_evaluator, "accuracy")
-            y_true = torch.Tensor([1, 0, 1, 1, 0, 1])
-            y_pred = torch.Tensor([1, 0, 1, 0, 1, 1])
+            y_true = torch.tensor([1, 0, 1, 1, 0, 1])
+            y_pred = torch.tensor([1, 0, 1, 0, 1, 1])
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["accuracy"])
 
@@ -138,8 +143,8 @@ class Accuracy(_BaseClassification):
 
             metric = Accuracy()
             metric.attach(default_evaluator, "accuracy")
-            y_true = torch.Tensor([2, 0, 2, 1, 0, 1]).long()
-            y_pred = torch.Tensor([
+            y_true = torch.tensor([2, 0, 2, 1, 0, 1])
+            y_pred = torch.tensor([
                 [0.0266, 0.1719, 0.3055],
                 [0.6886, 0.3978, 0.8176],
                 [0.9230, 0.0197, 0.8395],
@@ -160,14 +165,14 @@ class Accuracy(_BaseClassification):
 
             metric = Accuracy(is_multilabel=True)
             metric.attach(default_evaluator, "accuracy")
-            y_true = torch.Tensor([
+            y_true = torch.tensor([
                 [0, 0, 1, 0, 1],
                 [1, 0, 1, 0, 0],
                 [0, 0, 0, 0, 1],
                 [1, 0, 0, 0, 1],
                 [0, 1, 1, 0, 1],
             ])
-            y_pred = torch.Tensor([
+            y_pred = torch.tensor([
                 [1, 1, 0, 0, 0],
                 [1, 0, 1, 0, 0],
                 [1, 0, 0, 0, 0],
@@ -193,8 +198,8 @@ class Accuracy(_BaseClassification):
 
             metric = Accuracy(output_transform=thresholded_output_transform)
             metric.attach(default_evaluator, "accuracy")
-            y_true = torch.Tensor([1, 0, 1, 1, 0, 1])
-            y_pred = torch.Tensor([0.6, 0.2, 0.9, 0.4, 0.7, 0.65])
+            y_true = torch.tensor([1, 0, 1, 1, 0, 1])
+            y_pred = torch.tensor([0.6, 0.2, 0.9, 0.4, 0.7, 0.65])
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["accuracy"])
 

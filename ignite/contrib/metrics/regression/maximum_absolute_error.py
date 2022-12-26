@@ -39,11 +39,14 @@ class MaximumAbsoluteError(_BaseRegression):
         The output of the engine's ``process_function`` needs to be in format of
         ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``.
 
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         .. testcode::
 
             metric = MaximumAbsoluteError()
             metric.attach(default_evaluator, 'mae')
-            y_true = torch.Tensor([0, 1, 2, 3, 4, 5])
+            y_true = torch.tensor([0., 1., 2., 3., 4., 5.])
             y_pred = y_true * 0.75
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics['mae'])
@@ -58,7 +61,7 @@ class MaximumAbsoluteError(_BaseRegression):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._max_of_absolute_errors = -1  # type: float
+        self._max_of_absolute_errors: float = -1
 
     def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output[0].detach(), output[1].detach()

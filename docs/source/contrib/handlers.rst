@@ -42,7 +42,7 @@ Loggers
     polyaxon_logger
     tensorboard_logger
     tqdm_logger
-    trains_logger
+   
     visdom_logger
     wandb_logger
 

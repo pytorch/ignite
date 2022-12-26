@@ -1,4 +1,4 @@
-from typing import List, Tuple, cast
+from typing import cast, List, Tuple
 
 import torch
 
@@ -53,11 +53,14 @@ class GeometricMeanRelativeAbsoluteError(_BaseRegression):
         The output of the engine's ``process_function`` needs to be in format of
         ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``.
 
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         .. testcode::
 
             metric = GeometricMeanRelativeAbsoluteError()
             metric.attach(default_evaluator, 'gmare')
-            y_true = torch.Tensor([0, 1, 2, 3, 4, 5])
+            y_true = torch.tensor([0., 1., 2., 3., 4., 5.])
             y_pred = y_true * 0.75
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics['gmare'])
@@ -69,8 +72,8 @@ class GeometricMeanRelativeAbsoluteError(_BaseRegression):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._predictions = []  # type: List[torch.Tensor]
-        self._targets = []  # type: List[torch.Tensor]
+        self._predictions: List[torch.Tensor] = []
+        self._targets: List[torch.Tensor] = []
 
     def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output[0].detach(), output[1].detach()

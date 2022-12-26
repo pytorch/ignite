@@ -29,6 +29,11 @@ class MetricsLambda(Metric):
 
     Examples:
 
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         .. testcode::
 
             precision = Precision(average=False)
@@ -47,8 +52,8 @@ class MetricsLambda(Metric):
             F3.attach(default_evaluator, "F3")
             F4.attach(default_evaluator, "F4")
 
-            y_true = torch.Tensor([1, 0, 1, 0, 0, 1])
-            y_pred = torch.Tensor([1, 0, 1, 0, 1, 1])
+            y_true = torch.tensor([1, 0, 1, 0, 0, 1])
+            y_pred = torch.tensor([1, 0, 1, 0, 1, 1])
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["F1"])
             print(state.metrics["F2"])
@@ -89,7 +94,7 @@ class MetricsLambda(Metric):
         self.function = f
         self.args = args
         self.kwargs = kwargs
-        self.engine = None  # type: Optional[Engine]
+        self.engine: Optional[Engine] = None
         self._updated = False
         super(MetricsLambda, self).__init__(device="cpu")
 

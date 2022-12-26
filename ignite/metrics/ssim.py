@@ -36,6 +36,11 @@ class SSIM(Metric):
         ``y_pred`` and ``y`` can be un-normalized or normalized image tensors. Depending on that, the user might need
         to adjust ``data_range``. ``y_pred`` and ``y`` should have the same shape.
 
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         .. testcode::
 
             metric = SSIM(data_range=1.0)
@@ -64,14 +69,14 @@ class SSIM(Metric):
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
         if isinstance(kernel_size, int):
-            self.kernel_size = [kernel_size, kernel_size]  # type: Sequence[int]
+            self.kernel_size: Sequence[int] = [kernel_size, kernel_size]
         elif isinstance(kernel_size, Sequence):
             self.kernel_size = kernel_size
         else:
             raise ValueError("Argument kernel_size should be either int or a sequence of int.")
 
         if isinstance(sigma, float):
-            self.sigma = [sigma, sigma]  # type: Sequence[float]
+            self.sigma: Sequence[float] = [sigma, sigma]
         elif isinstance(sigma, Sequence):
             self.sigma = sigma
         else:
@@ -93,8 +98,7 @@ class SSIM(Metric):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        # Not a tensor because batch size is not known in advance.
-        self._sum_of_batchwise_ssim = 0.0  # type: Union[float, torch.Tensor]
+        self._sum_of_ssim = torch.tensor(0.0, dtype=torch.float64, device=self._device)
         self._num_examples = 0
         self._kernel = self._gaussian_or_uniform_kernel(kernel_size=self.kernel_size, sigma=self.sigma)
 
@@ -171,11 +175,12 @@ class SSIM(Metric):
         b2 = sigma_pred_sq + sigma_target_sq + self.c2
 
         ssim_idx = (a1 * a2) / (b1 * b2)
-        self._sum_of_batchwise_ssim += torch.mean(ssim_idx, (1, 2, 3), dtype=torch.float64).to(self._device)
+        self._sum_of_ssim += torch.mean(ssim_idx, (1, 2, 3), dtype=torch.float64).sum().to(self._device)
+
         self._num_examples += y.shape[0]
 
-    @sync_all_reduce("_sum_of_batchwise_ssim", "_num_examples")
-    def compute(self) -> torch.Tensor:
+    @sync_all_reduce("_sum_of_ssim", "_num_examples")
+    def compute(self) -> float:
         if self._num_examples == 0:
             raise NotComputableError("SSIM must have at least one example before it can be computed.")
-        return torch.sum(self._sum_of_batchwise_ssim / self._num_examples)  # type: ignore[arg-type]
+        return (self._sum_of_ssim / self._num_examples).item()

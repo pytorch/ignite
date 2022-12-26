@@ -6,13 +6,13 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import utils
-from torch.cuda.amp import GradScaler, autocast
+from torch.cuda.amp import autocast, GradScaler
 
 import ignite
 import ignite.distributed as idist
 from ignite.contrib.engines import common
 from ignite.contrib.handlers import PiecewiseLinear
-from ignite.engine import Engine, Events, create_supervised_evaluator
+from ignite.engine import create_supervised_evaluator, Engine, Events
 from ignite.handlers import Checkpoint, DiskSaver, global_step_from_engine
 from ignite.metrics import Accuracy, Loss
 from ignite.utils import manual_seed, setup_logger

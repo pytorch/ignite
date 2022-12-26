@@ -1,17 +1,17 @@
 import sys
-from unittest.mock import ANY, MagicMock, call, patch
+from unittest.mock import ANY, call, MagicMock, patch
 
 import pytest
 import torch
 
 from ignite.contrib.handlers.visdom_logger import (
+    _DummyExecutor,
+    global_step_from_engine,
     GradsScalarHandler,
     OptimizerParamsHandler,
     OutputHandler,
     VisdomLogger,
     WeightsScalarHandler,
-    _DummyExecutor,
-    global_step_from_engine,
 )
 from ignite.engine import Engine, Events, State
 
@@ -32,7 +32,7 @@ def test_optimizer_params_handler_wrong_setup():
 
 def test_optimizer_params():
 
-    optimizer = torch.optim.SGD([torch.Tensor(0)], lr=0.01)
+    optimizer = torch.optim.SGD([torch.tensor(0.0)], lr=0.01)
     wrapper = OptimizerParamsHandler(optimizer=optimizer, param_name="lr")
     mock_logger = MagicMock(spec=VisdomLogger)
     mock_logger.vis = MagicMock()
@@ -181,7 +181,7 @@ def test_output_handler_metric_names(dirname):
     wrapper = OutputHandler("tag", metric_names=["a"])
 
     mock_engine = MagicMock()
-    mock_engine.state = State(metrics={"a": torch.Tensor([0.0, 1.0, 2.0, 3.0])})
+    mock_engine.state = State(metrics={"a": torch.tensor([0.0, 1.0, 2.0, 3.0])})
     mock_engine.state.iteration = 5
 
     mock_logger = MagicMock(spec=VisdomLogger)
@@ -785,25 +785,12 @@ def test_grads_scalar_handler_wrong_setup():
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
-def test_grads_scalar_handler():
-    class DummyModel(torch.nn.Module):
-        def __init__(self):
-            super(DummyModel, self).__init__()
-            self.fc1 = torch.nn.Linear(10, 10)
-            self.fc2 = torch.nn.Linear(12, 12)
-            self.fc1.weight.data.zero_()
-            self.fc1.bias.data.zero_()
-            self.fc2.weight.data.fill_(1.0)
-            self.fc2.bias.data.fill_(1.0)
-
-    model = DummyModel()
-
-    def norm(x):
-        return 0.0
+def test_grads_scalar_handler(dummy_model_factory, norm_mock):
+    model = dummy_model_factory(with_grads=True, with_frozen_layer=False)
 
     # define test wrapper to test with and without optional tag
     def _test(tag=None):
-        wrapper = GradsScalarHandler(model, reduction=norm, tag=tag)
+        wrapper = GradsScalarHandler(model, reduction=norm_mock, tag=tag)
         mock_logger = MagicMock(spec=VisdomLogger)
         mock_logger.vis = MagicMock()
         mock_logger.executor = _DummyExecutor()
@@ -1005,26 +992,14 @@ def test_integration_with_executor_as_context_manager(visdom_server, visdom_serv
         assert all([y == y_true for y, y_true in zip(y_vals, losses)])
 
 
-@pytest.fixture
-def no_site_packages():
-    import visdom  # noqa: F401
-
-    visdom_module = sys.modules["visdom"]
-    del sys.modules["visdom"]
-    prev_path = list(sys.path)
-    sys.path = [p for p in sys.path if "site-packages" not in p]
-    yield "no_site_packages"
-    sys.path = prev_path
-    sys.modules["visdom"] = visdom_module
-
-
+@pytest.mark.parametrize("no_site_packages", ["visdom"], indirect=True)
 def test_no_visdom(no_site_packages):
 
-    with pytest.raises(RuntimeError, match=r"This contrib module requires visdom package"):
+    with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires visdom package"):
         VisdomLogger()
 
 
 def test_no_concurrent():
-    with pytest.raises(RuntimeError, match=r"This contrib module requires concurrent.futures"):
+    with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires concurrent.futures"):
         with patch.dict("sys.modules", {"concurrent.futures": None}):
             VisdomLogger(num_workers=1)

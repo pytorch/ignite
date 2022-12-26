@@ -1,6 +1,6 @@
 import os
 import sys
-from unittest.mock import MagicMock, call
+from unittest.mock import call, MagicMock
 
 import pytest
 import torch
@@ -128,8 +128,8 @@ def _test_setup_common_training_handlers(
 
     # Check LR scheduling
     assert optimizer.param_groups[0]["lr"] <= lr * gamma ** (
-        num_iters * num_epochs / step_size
-    ), f"{optimizer.param_groups[0]['lr']} vs {lr * gamma ** (num_iters * num_epochs / step_size)}"
+        (num_iters * num_epochs - 1) // step_size
+    ), f"{optimizer.param_groups[0]['lr']} vs {lr * gamma ** ((num_iters * num_epochs - 1) // step_size)}"
 
 
 def test_asserts_setup_common_training_handlers():
@@ -148,8 +148,9 @@ def test_asserts_setup_common_training_handlers():
         train_sampler = MagicMock(spec=DistributedSampler)
         setup_common_training_handlers(trainer, train_sampler=train_sampler)
 
-    with pytest.raises(RuntimeError, match=r"This contrib module requires available GPU"):
-        setup_common_training_handlers(trainer, with_gpu_stats=True)
+    if not torch.cuda.is_available():
+        with pytest.raises(RuntimeError, match=r"This contrib module requires available GPU"):
+            setup_common_training_handlers(trainer, with_gpu_stats=True)
 
     with pytest.raises(TypeError, match=r"Unhandled type of update_function's output."):
         trainer = Engine(lambda e, b: None)
@@ -408,7 +409,7 @@ def test_setup_tb_logging(dirname):
 
     tb_logger = _test_setup_logging(
         setup_logging_fn=setup_tb_logging,
-        kwargs_dict={"output_path": os.path.join(dirname, "t1")},
+        kwargs_dict={"output_path": dirname / "t1"},
         output_handler_cls=handlers.tensorboard_logger.OutputHandler,
         opt_params_handler_cls=handlers.tensorboard_logger.OptimizerParamsHandler,
         with_eval=False,
@@ -417,7 +418,7 @@ def test_setup_tb_logging(dirname):
     tb_logger.close()
     tb_logger = _test_setup_logging(
         setup_logging_fn=setup_tb_logging,
-        kwargs_dict={"output_path": os.path.join(dirname, "t2")},
+        kwargs_dict={"output_path": dirname / "t2"},
         output_handler_cls=handlers.tensorboard_logger.OutputHandler,
         opt_params_handler_cls=handlers.tensorboard_logger.OptimizerParamsHandler,
         with_eval=True,
@@ -426,7 +427,7 @@ def test_setup_tb_logging(dirname):
     tb_logger.close()
     tb_logger = _test_setup_logging(
         setup_logging_fn=setup_tb_logging,
-        kwargs_dict={"output_path": os.path.join(dirname, "t3")},
+        kwargs_dict={"output_path": dirname / "t3"},
         output_handler_cls=handlers.tensorboard_logger.OutputHandler,
         opt_params_handler_cls=handlers.tensorboard_logger.OptimizerParamsHandler,
         with_eval=True,
@@ -486,7 +487,7 @@ def test_setup_plx_logging():
 def test_setup_mlflow_logging(dirname):
     mlf_logger = _test_setup_logging(
         setup_logging_fn=setup_mlflow_logging,
-        kwargs_dict={"tracking_uri": os.path.join(dirname, "p1")},
+        kwargs_dict={"tracking_uri": str(dirname / "p1")},
         output_handler_cls=handlers.mlflow_logger.OutputHandler,
         opt_params_handler_cls=handlers.mlflow_logger.OptimizerParamsHandler,
         with_eval=False,
@@ -495,7 +496,7 @@ def test_setup_mlflow_logging(dirname):
     mlf_logger.close()
     mlf_logger = _test_setup_logging(
         setup_logging_fn=setup_mlflow_logging,
-        kwargs_dict={"tracking_uri": os.path.join(dirname, "p2")},
+        kwargs_dict={"tracking_uri": str(dirname / "p2")},
         output_handler_cls=handlers.mlflow_logger.OutputHandler,
         opt_params_handler_cls=handlers.mlflow_logger.OptimizerParamsHandler,
         with_eval=True,

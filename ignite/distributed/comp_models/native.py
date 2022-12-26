@@ -2,12 +2,12 @@ import os
 import re
 import subprocess
 import warnings
-from distutils.version import LooseVersion
-from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union, cast
+from typing import Any, Callable, cast, Dict, List, Mapping, Optional, Tuple, Union
 
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
+from packaging.version import Version
 
 from ignite.distributed.comp_models.base import ComputationModel
 
@@ -84,11 +84,11 @@ if has_native_dist_support:
         ) -> None:
             """This is a private method. Please, use `create_from_backend` or `create_from_context`"""
             super(_NativeDistModel, self).__init__()
-            self._env_backup = None  # type: Optional[Dict[str, str]]
-            self._local_rank = None  # type: Optional[int]
-            self._master_port = None  # type: Optional[int]
-            self._master_addr = None  # type: Optional[str]
-            self._init_method = None  # type: Optional[str]
+            self._env_backup: Optional[Dict[str, str]] = None
+            self._local_rank: Optional[int] = None
+            self._master_port: Optional[int] = None
+            self._master_addr: Optional[str] = None
+            self._init_method: Optional[str] = None
             if backend is not None:
                 self._create_from_backend(
                     backend, timeout=timeout, init_method=init_method, world_size=world_size, rank=rank, **kwargs
@@ -110,7 +110,7 @@ if has_native_dist_support:
             self._backend = backend
             self.setup_env_vars(rank, world_size)
 
-            init_pg_kwargs = {}
+            init_pg_kwargs: Dict[str, Any] = {}
             if timeout is not None:
                 init_pg_kwargs["timeout"] = timeout
 
@@ -133,7 +133,7 @@ if has_native_dist_support:
             # [W ProcessGroupNCCL.cpp:1569] Rank 0 using best-guess GPU 0 to perform barrier as devices used by
             # this process are currently unknown. This can potentially cause a hang if this rank to GPU mapping
             # is incorrect.Specify device_ids in barrier() to force use of a particular device.
-            if backend == dist.Backend.NCCL and LooseVersion(torch.__version__) >= LooseVersion("1.8.0"):
+            if backend == dist.Backend.NCCL and Version(torch.__version__) >= Version("1.8.0"):
                 device_ids = [torch.cuda.current_device()]
                 dist.barrier(device_ids=device_ids)
             else:
@@ -175,7 +175,7 @@ if has_native_dist_support:
         def _compute_node_and_local_ranks(rank: int, hostnames: List[Tuple[str, ...]]) -> Tuple[int, int]:
             from collections import Counter
 
-            c = Counter(hostnames)  # type: Counter
+            c: Counter = Counter(hostnames)
             sizes = torch.tensor([0] + list(c.values()))
             cumsum_sizes = torch.cumsum(sizes, dim=0)
             node_rank = (rank // cumsum_sizes[1:]).clamp(0, 1).sum().item()
@@ -328,8 +328,8 @@ if has_native_dist_support:
             os.environ["RANK"] = str(rank)
             os.environ["WORLD_SIZE"] = str(world_size)
 
-            arg_world_size = world_size  # type: Optional[int]
-            arg_rank = rank  # type: Optional[int]
+            arg_world_size: Optional[int] = world_size
+            arg_rank: Optional[int] = rank
             if init_method == "env://":
                 os.environ["MASTER_ADDR"] = str(master_addr)
                 os.environ["MASTER_PORT"] = str(master_port)
@@ -347,7 +347,7 @@ if has_native_dist_support:
             os.environ.update(copy_env_vars)
 
         @staticmethod
-        def spawn(  # type: ignore[override]
+        def spawn(
             fn: Callable,
             args: Tuple,
             kwargs_dict: Optional[Mapping] = None,
@@ -369,7 +369,7 @@ if has_native_dist_support:
 
             start_processes = mp.spawn
             # start_method and start_processes in pytorch >= 1.5
-            if LooseVersion(torch.__version__) >= LooseVersion("1.5.0"):
+            if Version(torch.__version__) >= Version("1.5.0"):
                 import builtins
 
                 if "__IPYTHON__" in builtins.__dict__:
@@ -419,19 +419,32 @@ if has_native_dist_support:
             "OR": dist.ReduceOp.BOR,
         }
 
-        def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM") -> torch.Tensor:
+        def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Any] = None) -> torch.Tensor:
             if op not in self._reduce_op_map:
                 raise ValueError(f"Unsupported reduction operation: '{op}'")
+            if group is not None and not isinstance(group, dist.ProcessGroup):
+                raise ValueError("Argument group should be list of int or ProcessGroup")
             reduce_op = self._reduce_op_map[op]
-            dist.all_reduce(tensor, reduce_op)
+            if group is not None:
+                dist.all_reduce(tensor, reduce_op, group=group)
+            else:
+                dist.all_reduce(tensor, reduce_op)
             return tensor
 
-        def _do_all_gather(self, tensor: torch.Tensor) -> torch.Tensor:
+        def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None) -> torch.Tensor:
+            if group is not None and not isinstance(group, dist.ProcessGroup):
+                raise ValueError("Argument group should be list of int or ProcessGroup")
             if tensor.ndimension() == 0:
                 tensor = tensor.unsqueeze(0)
             output = [torch.zeros_like(tensor) for _ in range(self.get_world_size())]
-            dist.all_gather(output, tensor)
+            if group is not None:
+                dist.all_gather(output, tensor, group=group)
+            else:
+                dist.all_gather(output, tensor)
             return torch.cat(output, dim=0)
+
+        def _do_new_group(self, ranks: List[int], **kwargs: Any) -> Any:
+            return dist.new_group(ranks=ranks, **kwargs)
 
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
             dist.broadcast(tensor, src=src)

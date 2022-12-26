@@ -31,7 +31,7 @@ class DummyLoss1(Loss):
 
 
 def test_output_as_mapping_without_criterion_kwargs():
-    y_pred = torch.Tensor([[2.0], [-2.0]])
+    y_pred = torch.tensor([[2.0], [-2.0]])
     y = torch.zeros(2)
     criterion_kwargs = {}
 
@@ -42,7 +42,7 @@ def test_output_as_mapping_without_criterion_kwargs():
 
 
 def test_output_as_mapping_with_criterion_kwargs():
-    y_pred = torch.Tensor([[2.0], [-2.0]])
+    y_pred = torch.tensor([[2.0], [-2.0]])
     y = torch.zeros(2)
     criterion_kwargs = {"reduction": "sum"}
 
@@ -78,34 +78,17 @@ def test_zero_div():
         loss.compute()
 
 
-def test_compute():
-    def _test(y_test_1, y_test_2):
-        loss = Loss(nll_loss)
+@pytest.mark.parametrize("criterion", [nll_loss, nn.NLLLoss()])
+def test_compute(criterion):
+    loss = Loss(criterion)
 
-        y_pred, y, expected_loss = y_test_1
-        loss.update((y_pred, y))
-        assert_almost_equal(loss.compute(), expected_loss)
+    y_pred, y, expected_loss = y_test_1()
+    loss.update((y_pred, y))
+    assert_almost_equal(loss.compute(), expected_loss)
 
-        y_pred, y, expected_loss = y_test_2
-        loss.update((y_pred, y))
-        assert_almost_equal(loss.compute(), expected_loss)  # average
-
-    _test(y_test_1(), y_test_2())
-
-
-def test_compute_on_criterion():
-    def _test(y_test_1, y_test_2):
-        loss = Loss(nn.NLLLoss())
-
-        y_pred, y, expected_loss = y_test_1
-        loss.update((y_pred, y))
-        assert_almost_equal(loss.compute(), expected_loss)
-
-        y_pred, y, expected_loss = y_test_2
-        loss.update((y_pred, y))
-        assert_almost_equal(loss.compute(), expected_loss)  # average
-
-    _test(y_test_1(), y_test_2())
+    y_pred, y, expected_loss = y_test_2()
+    loss.update((y_pred, y))
+    assert_almost_equal(loss.compute(), expected_loss)  # average
 
 
 def test_non_averaging_loss():

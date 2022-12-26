@@ -20,11 +20,31 @@ def test_no_update():
         recall.compute()
     assert recall._updated is False
 
-    recall = Recall(is_multilabel=True, average=True)
+    recall = Recall(is_multilabel=True)
     assert recall._updated is False
     with pytest.raises(NotComputableError, match=r"Recall must have at least one example before it can be computed"):
         recall.compute()
     assert recall._updated is False
+
+
+def test_average_parameter():
+
+    re = Recall(average="samples")
+    with pytest.raises(
+        ValueError, match=r"Argument average='samples' is incompatible with binary and multiclass input data."
+    ):
+        re.update((torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long()))
+    assert re._updated is False
+
+    re = Recall(average="samples")
+    with pytest.raises(
+        ValueError, match=r"Argument average='samples' is incompatible with binary and multiclass input data."
+    ):
+        re.update((torch.rand(10, 3), torch.randint(0, 3, size=(10,)).long()))
+    assert re._updated is False
+
+    re = Recall(average=True)
+    assert re._average == "macro"
 
 
 def test_binary_wrong_inputs():
@@ -56,8 +76,36 @@ def test_binary_wrong_inputs():
         re.update((torch.randint(0, 2, size=(10,)), torch.randint(0, 2, size=(10, 5, 6)).long()))
     assert re._updated is False
 
+    with pytest.warns(
+        RuntimeWarning,
+        match="`y` and `y_pred` should be of dtype long when entry type is binary and average!=False",
+    ):
+        re = Recall(average=None)
+        re.update((torch.randint(0, 2, size=(10,)).float(), torch.randint(0, 2, size=(10,))))
 
-@pytest.mark.parametrize("average", [False, True])
+    with pytest.warns(
+        RuntimeWarning,
+        match="`y` and `y_pred` should be of dtype long when entry type is binary and average!=False",
+    ):
+        re = Recall(average=None)
+        re.update((torch.randint(0, 2, size=(10,)), torch.randint(0, 2, size=(10,)).float()))
+
+
+def ignite_average_to_scikit_average(average, data_type: str):
+    if average in [None, "micro", "samples", "weighted", "macro"]:
+        return average
+    if average is False:
+        if data_type == "binary":
+            return "binary"
+        else:
+            return None
+    elif average is True:
+        return "macro"
+    else:
+        raise ValueError(f"Wrong average parameter `{average}`")
+
+
+@pytest.mark.parametrize("average", [None, False, "macro", "micro", "weighted"])
 def test_binary_input(average):
 
     re = Recall(average=average)
@@ -80,9 +128,10 @@ def test_binary_input(average):
 
         assert re._type == "binary"
         assert re._updated is True
-        assert isinstance(re.compute(), float if average else torch.Tensor)
-        re_compute = re.compute() if average else re.compute().numpy()
-        assert recall_score(np_y, np_y_pred, average="binary") == pytest.approx(re_compute)
+        assert isinstance(re.compute(), torch.Tensor if not average else float)
+        re_compute = re.compute().numpy() if not average else re.compute()
+        sk_average_parameter = ignite_average_to_scikit_average(average, "binary")
+        assert recall_score(np_y, np_y_pred, average=sk_average_parameter, labels=[0, 1]) == pytest.approx(re_compute)
 
     def get_test_cases():
 
@@ -106,8 +155,8 @@ def test_binary_input(average):
             (torch.randint(0, 2, size=(50, 12, 10)), torch.randint(0, 2, size=(50, 12, 10)), 16),
             (torch.randint(0, 2, size=(50, 1, 12, 10)), torch.randint(0, 2, size=(50, 1, 12, 10)), 16),
             # Corner case with all zeros predictions
-            (torch.zeros(size=(10,)), torch.randint(0, 2, size=(10,)), 1),
-            (torch.zeros(size=(10, 1)), torch.randint(0, 2, size=(10, 1)), 1),
+            (torch.zeros(size=(10,), dtype=torch.long), torch.randint(0, 2, size=(10,)), 1),
+            (torch.zeros(size=(10, 1), dtype=torch.long), torch.randint(0, 2, size=(10, 1)), 1),
         ]
 
         return test_cases
@@ -168,8 +217,15 @@ def test_multiclass_wrong_inputs():
         re.update((torch.rand(10, 6, 12, 14), torch.randint(0, 5, size=(10, 12, 14)).long()))
     assert re._updated is True
 
+    with pytest.warns(
+        RuntimeWarning,
+        match="`y` should be of dtype long when entry type is multiclass",
+    ):
+        re = Recall()
+        re.update((torch.rand(10, 5), torch.randint(0, 5, size=(10,)).float()))
 
-@pytest.mark.parametrize("average", [False, True])
+
+@pytest.mark.parametrize("average", [None, False, "macro", "micro", "weighted"])
 def test_multiclass_input(average):
 
     re = Recall(average=average)
@@ -193,9 +249,9 @@ def test_multiclass_input(average):
 
         assert re._type == "multiclass"
         assert re._updated is True
-        assert isinstance(re.compute(), float if average else torch.Tensor)
-        re_compute = re.compute() if average else re.compute().numpy()
-        sk_average_parameter = "macro" if average else None
+        assert isinstance(re.compute(), torch.Tensor if not average else float)
+        re_compute = re.compute().numpy() if not average else re.compute()
+        sk_average_parameter = ignite_average_to_scikit_average(average, "multiclass")
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
             sk_compute = recall_score(np_y, np_y_pred, labels=range(0, num_classes), average=sk_average_parameter)
@@ -237,7 +293,7 @@ def test_multiclass_input(average):
 
 
 def test_multilabel_wrong_inputs():
-    re = Recall(average=True, is_multilabel=True)
+    re = Recall(is_multilabel=True)
     assert re._updated is False
 
     with pytest.raises(ValueError):
@@ -270,7 +326,7 @@ def to_numpy_multilabel(y):
     return y
 
 
-@pytest.mark.parametrize("average", [False, True])
+@pytest.mark.parametrize("average", [None, False, "macro", "micro", "samples"])
 def test_multilabel_input(average):
 
     re = Recall(average=average, is_multilabel=True)
@@ -293,22 +349,11 @@ def test_multilabel_input(average):
 
         assert re._type == "multilabel"
         assert re._updated is True
-        re_compute = re.compute() if average else re.compute().mean().item()
+        re_compute = re.compute().numpy() if not average else re.compute()
+        sk_average_parameter = ignite_average_to_scikit_average(average, "multilabel")
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            assert recall_score(np_y, np_y_pred, average="samples") == pytest.approx(re_compute)
-
-        re1 = Recall(is_multilabel=True, average=True)
-        re2 = Recall(is_multilabel=True, average=False)
-        assert re1._updated is False
-        assert re2._updated is False
-        re1.update((y_pred, y))
-        re2.update((y_pred, y))
-        assert re1._updated is True
-        assert re2._updated is True
-        assert re1.compute() == pytest.approx(re2.compute().mean().item())
-        assert re1._updated is True
-        assert re2._updated is True
+            assert recall_score(np_y, np_y_pred, average=sk_average_parameter) == pytest.approx(re_compute)
 
     def get_test_cases():
 
@@ -345,80 +390,58 @@ def test_multilabel_input(average):
             _test(y_pred, y, batch_size)
 
 
-def test_incorrect_type():
+@pytest.mark.parametrize("average", [None, False, "macro", "micro", "weighted"])
+def test_incorrect_type(average):
     # Tests changing of type during training
 
-    def _test(average):
-        re = Recall(average=average)
-        assert re._updated is False
+    re = Recall(average=average)
+    assert re._updated is False
 
-        y_pred = torch.softmax(torch.rand(4, 4), dim=1)
-        y = torch.ones(4).long()
+    y_pred = torch.softmax(torch.rand(4, 4), dim=1)
+    y = torch.ones(4).long()
+    re.update((y_pred, y))
+    assert re._updated is True
+
+    y_pred = torch.zeros(4)
+    y = torch.ones(4).long()
+
+    with pytest.raises(RuntimeError):
         re.update((y_pred, y))
-        assert re._updated is True
 
-        y_pred = torch.zeros(4)
-        y = torch.ones(4).long()
-
-        with pytest.raises(RuntimeError):
-            re.update((y_pred, y))
-
-        assert re._updated is True
-
-    _test(average=True)
-    _test(average=False)
-
-    re1 = Recall(is_multilabel=True, average=True)
-    re2 = Recall(is_multilabel=True, average=False)
-    assert re1._updated is False
-    assert re2._updated is False
-    y_pred = torch.randint(0, 2, size=(10, 4, 20, 23))
-    y = torch.randint(0, 2, size=(10, 4, 20, 23)).long()
-    re1.update((y_pred, y))
-    re2.update((y_pred, y))
-    assert re1._updated is True
-    assert re2._updated is True
-    assert re1.compute() == pytest.approx(re2.compute().mean().item())
+    assert re._updated is True
 
 
-def test_incorrect_y_classes():
-    def _test(average):
-        re = Recall(average=average)
+@pytest.mark.parametrize("average", [None, False, "macro", "micro", "weighted"])
+def test_incorrect_y_classes(average):
+    re = Recall(average=average)
 
-        assert re._updated is False
+    assert re._updated is False
 
-        y_pred = torch.randint(0, 2, size=(10, 4)).float()
-        y = torch.randint(4, 5, size=(10,)).long()
+    y_pred = torch.randint(0, 2, size=(10, 4)).float()
+    y = torch.randint(4, 5, size=(10,)).long()
 
-        with pytest.raises(ValueError):
-            re.update((y_pred, y))
+    with pytest.raises(ValueError):
+        re.update((y_pred, y))
 
-        assert re._updated is False
-
-    _test(average=True)
-    _test(average=False)
+    assert re._updated is False
 
 
 def _test_distrib_integration_multiclass(device):
 
     from ignite.engine import Engine
 
-    rank = idist.get_rank()
-    torch.manual_seed(12)
-
     def _test(average, n_epochs, metric_device):
         n_iters = 60
-        s = 16
+        batch_size = 16
         n_classes = 7
 
-        offset = n_iters * s
-        y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(),)).to(device)
-        y_preds = torch.rand(offset * idist.get_world_size(), n_classes).to(device)
+        y_true = torch.randint(0, n_classes, size=(n_iters * batch_size,)).to(device)
+        y_preds = torch.rand(n_iters * batch_size, n_classes).to(device)
 
         def update(engine, i):
             return (
-                y_preds[i * s + rank * offset : (i + 1) * s + rank * offset, :],
-                y_true[i * s + rank * offset : (i + 1) * s + rank * offset],
+                y_preds[i * batch_size : (i + 1) * batch_size, :],
+                y_true[i * batch_size : (i + 1) * batch_size],
             )
 
         engine = Engine(update)
@@ -430,6 +453,9 @@ def _test_distrib_integration_multiclass(device):
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=n_epochs)
 
+        y_preds = idist.all_gather(y_preds)
+        y_true = idist.all_gather(y_true)
+
         assert "re" in engine.state.metrics
         assert re._updated is True
         res = engine.state.metrics["re"]
@@ -438,8 +464,9 @@ def _test_distrib_integration_multiclass(device):
             assert res.device.type == "cpu"
             res = res.cpu().numpy()
 
+        sk_average_parameter = ignite_average_to_scikit_average(average, "multiclass")
         true_res = recall_score(
-            y_true.cpu().numpy(), torch.argmax(y_preds, dim=1).cpu().numpy(), average="macro" if average else None
+            y_true.cpu().numpy(), torch.argmax(y_preds, dim=1).cpu().numpy(), average=sk_average_parameter
         )
 
         assert pytest.approx(res) == true_res
@@ -447,34 +474,38 @@ def _test_distrib_integration_multiclass(device):
     metric_devices = [torch.device("cpu")]
     if device.type != "xla":
         metric_devices.append(idist.device())
-    for _ in range(2):
+    rank = idist.get_rank()
+    for i in range(2):
+        torch.manual_seed(12 + rank + i)
         for metric_device in metric_devices:
-            _test(average=True, n_epochs=1, metric_device=metric_device)
-            _test(average=True, n_epochs=2, metric_device=metric_device)
             _test(average=False, n_epochs=1, metric_device=metric_device)
             _test(average=False, n_epochs=2, metric_device=metric_device)
+            _test(average="macro", n_epochs=1, metric_device=metric_device)
+            _test(average="macro", n_epochs=2, metric_device=metric_device)
+            _test(average="weighted", n_epochs=1, metric_device=metric_device)
+            _test(average="weighted", n_epochs=2, metric_device=metric_device)
+            _test(average="micro", n_epochs=1, metric_device=metric_device)
+            _test(average="micro", n_epochs=2, metric_device=metric_device)
 
 
 def _test_distrib_integration_multilabel(device):
 
     from ignite.engine import Engine
 
-    rank = idist.get_rank()
     torch.manual_seed(12)
 
     def _test(average, n_epochs, metric_device):
         n_iters = 60
-        s = 16
+        batch_size = 16
         n_classes = 7
 
-        offset = n_iters * s
-        y_true = torch.randint(0, 2, size=(offset * idist.get_world_size(), n_classes, 6, 8)).to(device)
-        y_preds = torch.randint(0, 2, size=(offset * idist.get_world_size(), n_classes, 6, 8)).to(device)
+        y_true = torch.randint(0, 2, size=(n_iters * batch_size, n_classes, 6, 8)).to(device)
+        y_preds = torch.randint(0, 2, size=(n_iters * batch_size, n_classes, 6, 8)).to(device)
 
         def update(engine, i):
             return (
-                y_preds[i * s + rank * offset : (i + 1) * s + rank * offset, ...],
-                y_true[i * s + rank * offset : (i + 1) * s + rank * offset, ...],
+                y_preds[i * batch_size : (i + 1) * batch_size, ...],
+                y_true[i * batch_size : (i + 1) * batch_size, ...],
             )
 
         engine = Engine(update)
@@ -485,6 +516,9 @@ def _test_distrib_integration_multilabel(device):
 
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=n_epochs)
+
+        y_preds = idist.all_gather(y_preds)
+        y_true = idist.all_gather(y_true)
 
         assert "re" in engine.state.metrics
         assert re._updated is True
@@ -500,32 +534,28 @@ def _test_distrib_integration_multilabel(device):
         np_y_preds = to_numpy_multilabel(y_preds)
         np_y_true = to_numpy_multilabel(y_true)
         assert re._type == "multilabel"
-        res = res if average else res.mean().item()
+        sk_average_parameter = ignite_average_to_scikit_average(average, "multilabel")
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            assert recall_score(np_y_true, np_y_preds, average="samples") == pytest.approx(res)
+            assert recall_score(np_y_true, np_y_preds, average=sk_average_parameter) == pytest.approx(res)
 
     metric_devices = ["cpu"]
     if device.type != "xla":
         metric_devices.append(idist.device())
-    for _ in range(2):
+    rank = idist.get_rank()
+    for i in range(2):
+        torch.manual_seed(12 + rank + i)
         for metric_device in metric_devices:
-            _test(average=True, n_epochs=1, metric_device=metric_device)
-            _test(average=True, n_epochs=2, metric_device=metric_device)
             _test(average=False, n_epochs=1, metric_device=metric_device)
             _test(average=False, n_epochs=2, metric_device=metric_device)
-
-    re1 = Recall(is_multilabel=True, average=True)
-    re2 = Recall(is_multilabel=True, average=False)
-    assert re1._updated is False
-    assert re2._updated is False
-    y_pred = torch.randint(0, 2, size=(10, 4, 20, 23))
-    y = torch.randint(0, 2, size=(10, 4, 20, 23)).long()
-    re1.update((y_pred, y))
-    re2.update((y_pred, y))
-    assert re1._updated is True
-    assert re2._updated is True
-    assert re1.compute() == pytest.approx(re2.compute().mean().item())
+            _test(average="macro", n_epochs=1, metric_device=metric_device)
+            _test(average="macro", n_epochs=2, metric_device=metric_device)
+            _test(average="micro", n_epochs=1, metric_device=metric_device)
+            _test(average="micro", n_epochs=2, metric_device=metric_device)
+            _test(average="weighted", n_epochs=1, metric_device=metric_device)
+            _test(average="weighted", n_epochs=2, metric_device=metric_device)
+            _test(average="samples", n_epochs=1, metric_device=metric_device)
+            _test(average="samples", n_epochs=2, metric_device=metric_device)
 
 
 def _test_distrib_accumulator_device(device):
@@ -543,19 +573,29 @@ def _test_distrib_accumulator_device(device):
         re.update((y_reed, y))
 
         assert re._updated is True
+
         assert (
-            re._true_positives.device == metric_device
-        ), f"{type(re._true_positives.device)}:{re._true_positives.device} vs {type(metric_device)}:{metric_device}"
-        assert (
-            re._positives.device == metric_device
-        ), f"{type(re._positives.device)}:{re._positives.device} vs {type(metric_device)}:{metric_device}"
+            re._numerator.device == metric_device
+        ), f"{type(re._numerator.device)}:{re._numerator.device} vs {type(metric_device)}:{metric_device}"
+
+        if average != "samples":
+            # For average='samples', `_denominator` is of type `int` so it has not `device` member.
+            assert (
+                re._denominator.device == metric_device
+            ), f"{type(re._denominator.device)}:{re._denominator.device} vs {type(metric_device)}:{metric_device}"
+
+        if average == "weighted":
+            assert re._weight.device == metric_device, f"{type(re._weight.device)}:{re._weight.device} vs "
+            f"{type(metric_device)}:{metric_device}"
 
     metric_devices = [torch.device("cpu")]
     if device.type != "xla":
         metric_devices.append(idist.device())
     for metric_device in metric_devices:
-        _test(True, metric_device=metric_device)
         _test(False, metric_device=metric_device)
+        _test("macro", metric_device=metric_device)
+        _test("micro", metric_device=metric_device)
+        _test("weighted", metric_device=metric_device)
 
 
 def _test_distrib_multilabel_accumulator_device(device):
@@ -566,31 +606,36 @@ def _test_distrib_multilabel_accumulator_device(device):
 
         assert re._updated is False
         assert re._device == metric_device
-        assert (
-            re._true_positives.device == metric_device
-        ), f"{type(re._true_positives.device)}:{re._true_positives.device} vs {type(metric_device)}:{metric_device}"
-        assert (
-            re._positives.device == metric_device
-        ), f"{type(re._positives.device)}:{re._positives.device} vs {type(metric_device)}:{metric_device}"
 
         y_reed = torch.randint(0, 2, size=(10, 4, 20, 23))
         y = torch.randint(0, 2, size=(10, 4, 20, 23)).long()
         re.update((y_reed, y))
 
         assert re._updated is True
+
         assert (
-            re._true_positives.device == metric_device
-        ), f"{type(re._true_positives.device)}:{re._true_positives.device} vs {type(metric_device)}:{metric_device}"
-        assert (
-            re._positives.device == metric_device
-        ), f"{type(re._positives.device)}:{re._positives.device} vs {type(metric_device)}:{metric_device}"
+            re._numerator.device == metric_device
+        ), f"{type(re._numerator.device)}:{re._numerator.device} vs {type(metric_device)}:{metric_device}"
+
+        if average != "samples":
+            # For average='samples', `_denominator` is of type `int` so it has not `device` member.
+            assert (
+                re._denominator.device == metric_device
+            ), f"{type(re._denominator.device)}:{re._denominator.device} vs {type(metric_device)}:{metric_device}"
+
+        if average == "weighted":
+            assert re._weight.device == metric_device, f"{type(re._weight.device)}:{re._weight.device} vs "
+            f"{type(metric_device)}:{metric_device}"
 
     metric_devices = [torch.device("cpu")]
     if device.type != "xla":
         metric_devices.append(idist.device())
     for metric_device in metric_devices:
-        _test(True, metric_device=metric_device)
         _test(False, metric_device=metric_device)
+        _test("macro", metric_device=metric_device)
+        _test("micro", metric_device=metric_device)
+        _test("weighted", metric_device=metric_device)
+        _test("samples", metric_device=metric_device)
 
 
 @pytest.mark.distributed

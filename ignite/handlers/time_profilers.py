@@ -1,6 +1,6 @@
 import functools
 from collections import OrderedDict
-from typing import Any, Callable, Dict, List, Mapping, Sequence, Tuple, Union, cast
+from typing import Any, Callable, cast, Dict, List, Mapping, Sequence, Tuple, Union
 
 import torch
 
@@ -40,6 +40,7 @@ class BasicTimeProfiler:
         Events.TERMINATE,
         Events.TERMINATE_SINGLE_EPOCH,
         Events.DATALOADER_STOP_ITERATION,
+        Events.INTERRUPT,
     ]
 
     def __init__(self) -> None:
@@ -49,7 +50,7 @@ class BasicTimeProfiler:
 
         self.dataflow_times = torch.zeros(1)
         self.processing_times = torch.zeros(1)
-        self.event_handlers_times = {}  # type: Dict[EventEnum, torch.Tensor]
+        self.event_handlers_times: Dict[EventEnum, torch.Tensor] = {}
 
         self._events = [
             Events.EPOCH_STARTED,
@@ -221,19 +222,21 @@ class BasicTimeProfiler:
             engine._event_handlers[Events.STARTED].insert(0, (self._as_first_started, (engine,), {}))
 
     @staticmethod
-    def _compute_basic_stats(data: torch.Tensor) -> Dict[str, Union[str, float, Tuple[Union[float], Union[float]]]]:
+    def _compute_basic_stats(data: torch.Tensor) -> Dict[str, Union[str, float, Tuple[float, float]]]:
         # compute on non-zero data:
         data = data[data > 0]
-        out = [
+        out: List[Tuple[str, Union[str, float, Tuple[float, float]]]] = [
             ("total", torch.sum(data).item() if len(data) > 0 else "not yet triggered")
-        ]  # type: List[Tuple[str, Union[str, float, Tuple[Union[float], Union[float]]]]]
+        ]
         if len(data) > 1:
-            out += [
-                ("min/index", (torch.min(data).item(), torch.argmin(data).item())),
-                ("max/index", (torch.max(data).item(), torch.argmax(data).item())),
-                ("mean", torch.mean(data).item()),
-                ("std", torch.std(data).item()),
-            ]
+            out.extend(
+                [
+                    ("min/index", (torch.min(data).item(), torch.argmin(data).item())),
+                    ("max/index", (torch.max(data).item(), torch.argmax(data).item())),
+                    ("mean", torch.mean(data).item()),
+                    ("std", torch.std(data).item()),
+                ]
+            )
         return OrderedDict(out)
 
     def get_results(self) -> Dict[str, Dict[str, Any]]:
@@ -245,16 +248,16 @@ class BasicTimeProfiler:
             results = profiler.get_results()
 
         """
-        total_eh_time = sum(
+        total_eh_time: Union[int, torch.Tensor] = sum(
             [(self.event_handlers_times[e]).sum() for e in Events if e not in self.events_to_ignore]
-        )  # type: Union[int, torch.Tensor]
+        )
         event_handlers_stats = dict(
             [
                 (str(e.name).replace(".", "_"), self._compute_basic_stats(self.event_handlers_times[e]))
                 for e in Events
                 if e not in self.events_to_ignore
             ]
-            + [("total_time", total_eh_time)]  # type: ignore[list-item]
+            + [("total_time", total_eh_time)]
         )
 
         return OrderedDict(
@@ -292,7 +295,7 @@ class BasicTimeProfiler:
         try:
             import pandas as pd
         except ImportError:
-            raise RuntimeError("Need pandas to write results as files")
+            raise ModuleNotFoundError("Need pandas to write results as files")
 
         iters_per_epoch = self.total_num_iters // self.max_epochs
 
@@ -490,9 +493,9 @@ class HandlersTimeProfiler:
         self._processing_timer = Timer()
         self._event_handlers_timer = Timer()
 
-        self.dataflow_times = []  # type: List[float]
-        self.processing_times = []  # type: List[float]
-        self.event_handlers_times = {}  # type: Dict[EventEnum, Dict[str, List[float]]]
+        self.dataflow_times: List[float] = []
+        self.processing_times: List[float] = []
+        self.event_handlers_times: Dict[EventEnum, Dict[str, List[float]]] = {}
 
     @staticmethod
     def _get_callable_name(handler: Callable) -> str:
@@ -585,7 +588,7 @@ class HandlersTimeProfiler:
         if not engine.has_event_handler(self._as_first_started):
             engine._event_handlers[Events.STARTED].insert(0, (self._as_first_started, (engine,), {}))
 
-    def get_results(self) -> List[List[Union[str, float]]]:
+    def get_results(self) -> List[List[Union[str, float, Tuple[Union[str, float], Union[str, float]]]]]:
         """
         Method to fetch the aggregated profiler results after the engine is run
 
@@ -609,11 +612,11 @@ class HandlersTimeProfiler:
             data = torch.as_tensor(times, dtype=torch.float32)
             # compute on non-zero data:
             data = data[data > 0]
-            total = round(torch.sum(data).item(), 5) if len(data) > 0 else "not triggered"  # type: Union[str, float]
-            min_index = ("None", "None")  # type: Tuple[Union[str, float], Union[str, float]]
-            max_index = ("None", "None")  # type: Tuple[Union[str, float], Union[str, float]]
-            mean = "None"  # type: Union[str, float]
-            std = "None"  # type: Union[str, float]
+            total: Union[str, float] = round(torch.sum(data).item(), 5) if len(data) > 0 else "not triggered"
+            min_index: Tuple[Union[str, float], Union[str, float]] = ("None", "None")
+            max_index: Tuple[Union[str, float], Union[str, float]] = ("None", "None")
+            mean: Union[str, float] = "None"
+            std: Union[str, float] = "None"
             if len(data) > 0:
                 min_index = (round(torch.min(data).item(), 5), torch.argmin(data).item())
                 max_index = (round(torch.max(data).item(), 5), torch.argmax(data).item())
@@ -660,7 +663,7 @@ class HandlersTimeProfiler:
         try:
             import pandas as pd
         except ImportError:
-            raise RuntimeError("Need pandas to write results as files")
+            raise ModuleNotFoundError("Need pandas to write results as files")
 
         processing_stats = torch.tensor(self.processing_times, dtype=torch.float32)
         dataflow_stats = torch.tensor(self.dataflow_times, dtype=torch.float32)

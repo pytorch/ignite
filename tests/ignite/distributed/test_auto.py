@@ -11,7 +11,7 @@ from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import BatchSampler, RandomSampler, Sampler, SequentialSampler, WeightedRandomSampler
 
 import ignite.distributed as idist
-from ignite.distributed.auto import DistributedProxySampler, auto_dataloader, auto_model, auto_optim
+from ignite.distributed.auto import auto_dataloader, auto_model, auto_optim, DistributedProxySampler
 
 
 class DummyDS(Dataset):
@@ -206,7 +206,9 @@ def test_auto_methods_gloo(distributed_context_single_node_gloo):
         # Pytorch <= 1.9.0 => AssertionError
         # Pytorch >  1.9   => ValueError
         # https://github.com/pytorch/pytorch/blob/master/torch/nn/parallel/distributed.py#L1498
-        with pytest.raises((AssertionError, ValueError), match=r"SyncBatchNorm layers only work with GPU modules"):
+        with pytest.raises(
+            (AssertionError, ValueError), match=r"SyncBatchNorm layers only work with (GPU|CUDA) modules"
+        ):
             model = nn.Sequential(nn.Linear(20, 100), nn.BatchNorm1d(100))
             auto_model(model, sync_bn=True)
 

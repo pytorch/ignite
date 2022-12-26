@@ -4,11 +4,11 @@ parameters:
   pytorch_stable_image:
     type: string
     # https://hub.docker.com/r/pytorch/pytorch/tags
-    default: "pytorch/pytorch:1.10.0-cuda11.3-cudnn8-runtime"
+    default: "pytorch/pytorch:1.13.0-cuda11.6-cudnn8-runtime"
   pytorch_stable_image_devel:
     type: string
     # https://hub.docker.com/r/pytorch/pytorch/tags
-    default: "pytorch/pytorch:1.10.0-cuda11.3-cudnn8-devel"
+    default: "pytorch/pytorch:1.13.0-cuda11.6-cudnn8-devel"
   workingdir:
     type: string
     default: "/tmp/ignite"
@@ -29,7 +29,7 @@ one_gpu: &one_gpu
     image: ubuntu-2004-cuda-11.4:202110-01 # CUDA v11.4.2, Docker v20.10.7, nvidia-container-toolkit v1.5.1-1
     docker_layer_caching: true
   # https://circleci.com/product/features/resource-classes/#linux-vm
-  resource_class: gpu.small
+  resource_class: gpu.nvidia.small
 
 one_gpu_windows: &one_gpu_windows
   machine:
@@ -43,7 +43,7 @@ two_gpus: &two_gpus
     image: ubuntu-2004-cuda-11.4:202110-01 # CUDA v11.4.2, Docker v20.10.7, nvidia-container-toolkit v1.5.1-1
     docker_layer_caching: true
   # https://circleci.com/product/features/resource-classes/#linux-vm
-  resource_class: gpu.medium
+  resource_class: gpu.nvidia.medium
 
 # -------------------------------------------------------------------------------------
 # Re-usable commands
@@ -161,7 +161,7 @@ jobs:
             docker exec -it pthd /bin/bash -c "$minst1_cmd"
 
             # 2) mnist_with_visdom.py
-            export visdom_script_cmd='python -c "from visdom.server import download_scripts; download_scripts()"'
+            export visdom_script_cmd='python -c "from visdom.server.build import download_scripts; download_scripts()"'
             export visdom_cmd='python -m visdom.server'
             docker exec -d pthd /bin/bash -c "$visdom_script_cmd && $visdom_cmd"
             export sleep_cmd='sleep 10'
@@ -294,12 +294,12 @@ jobs:
             docker exec -it pthd /bin/bash -c "${test_cmd} --num_epochs=7 ${resume_opt}"
 
       - run:
-          name: "Run with NCCL backend using torch dist launch"
+          name: "Run with NCCL backend using torchrun"
           command: |
             export example_path="examples/contrib/cifar10"
             # initial run
             export stop_cmd="--stop_iteration=500"
-            export test_cmd="CI=1 python -u -m torch.distributed.launch --nproc_per_node=2 --use_env ${example_path}/main.py run --backend=nccl --checkpoint_every=200"
+            export test_cmd="CI=1 torchrun --nproc_per_node=2 ${example_path}/main.py run --backend=nccl --checkpoint_every=200"
             docker exec -it pthd /bin/bash -c "${test_cmd} ${stop_cmd}"
             # resume
             export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt"
@@ -463,9 +463,11 @@ workflows:
       # > c:\tools\miniconda3\lib\site-packages\torch\cuda\__init__.py:52: UserWarning: CUDA initialization: The NVIDIA driver on your system is too old (found version 10010). Please update your GPU driver by downloading and installing a new version from the URL: http://www.nvidia.com/Download/index.aspx Alternatively, go to: https://pytorch.org to install a PyTorch version that has been compiled with your version of the CUDA driver. (Triggered internally at  ..\c10\cuda\CUDAFunctions.cpp:115.)
       # > return torch._C._cuda_getDeviceCount() > 0
       # - one_gpu_windows_tests
-      - two_gpus_tests
-      - two_gpus_check_dist_cifar10_example
-      - two_gpus_hvd_tests
+      # Can not run tests on 2 GPUs on Circle-CI
+      # Now, they are running on GHA self-hosted
+      # - two_gpus_tests
+      # - two_gpus_check_dist_cifar10_example
+      # - two_gpus_hvd_tests
   docker_images:
     when: << pipeline.parameters.should_build_docker_images >>
     jobs:

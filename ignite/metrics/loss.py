@@ -1,4 +1,4 @@
-from typing import Callable, Dict, Sequence, Tuple, Union, cast
+from typing import Callable, cast, Dict, Sequence, Tuple, Union
 
 import torch
 
@@ -42,9 +42,10 @@ class Loss(Metric):
         and the Loss metric using an ``evaluator`` created with
         :meth:`~ignite.engine.create_supervised_evaluator` method.
 
-        .. testsetup:: *
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
 
-            default_trainer = get_default_trainer()
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 
@@ -85,7 +86,7 @@ class Loss(Metric):
     def update(self, output: Sequence[Union[torch.Tensor, Dict]]) -> None:
         if len(output) == 2:
             y_pred, y = cast(Tuple[torch.Tensor, torch.Tensor], output)
-            kwargs = {}  # type: Dict
+            kwargs: Dict = {}
         else:
             y_pred, y, kwargs = cast(Tuple[torch.Tensor, torch.Tensor, Dict], output)
         average_loss = self._loss_fn(y_pred, y, **kwargs).detach()

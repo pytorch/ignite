@@ -9,9 +9,7 @@ from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import Sampler
 
 from ignite.distributed import utils as idist
-from ignite.distributed.comp_models import horovod as idist_hvd
-from ignite.distributed.comp_models import native as idist_native
-from ignite.distributed.comp_models import xla as idist_xla
+from ignite.distributed.comp_models import horovod as idist_hvd, native as idist_native, xla as idist_xla
 from ignite.utils import setup_logger
 
 __all__ = ["auto_dataloader", "auto_model", "auto_optim", "DistributedProxySampler"]
@@ -263,7 +261,7 @@ def auto_optim(optimizer: Optimizer, **kwargs: Any) -> Optimizer:
     .. versionchanged:: 0.4.2
         Added Horovod distributed optimizer.
 
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.7
         Added kwargs to ``idist.auto_optim``.
     """
     bnd = idist.backend()
@@ -315,7 +313,7 @@ class DistributedProxySampler(DistributedSampler):
         # deterministically shuffle based on epoch
         torch.manual_seed(self.epoch)
 
-        indices = []  # type: List
+        indices: List = []
         while len(indices) < self.total_size:
             indices += list(self.sampler)
 

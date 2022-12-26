@@ -31,6 +31,11 @@ class TopKCategoricalAccuracy(Metric):
         ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``. If not, ``output_tranform`` can be added
         to the metric to transform the output into the form expected by the metric.
 
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         .. testcode::
 
             def process_function(engine, batch):
@@ -47,13 +52,13 @@ class TopKCategoricalAccuracy(Metric):
                 k=2, output_transform=one_hot_to_binary_output_transform)
             metric.attach(engine, 'top_k_accuracy')
 
-            preds = torch.Tensor([
+            preds = torch.tensor([
                 [0.7, 0.2, 0.05, 0.05],     # 1 is in the top 2
                 [0.2, 0.3, 0.4, 0.1],       # 0 is not in the top 2
                 [0.4, 0.4, 0.1, 0.1],       # 0 is in the top 2
                 [0.7, 0.05, 0.2, 0.05]      # 2 is in the top 2
             ])
-            target = torch.Tensor([         # targets as one-hot vectors
+            target = torch.tensor([         # targets as one-hot vectors
                 [0, 1, 0, 0],
                 [1, 0, 0, 0],
                 [1, 0, 0, 0],

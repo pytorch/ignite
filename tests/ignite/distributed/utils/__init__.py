@@ -119,6 +119,43 @@ def _test_distrib_all_reduce(device):
         assert res.device == t.device, f"{res.device} vs {t.device}"
 
 
+def _test_distrib_all_reduce_group(device):
+
+    if idist.get_world_size() > 1 and idist.backend() is not None:
+        ranks = [0, 1]
+        rank = idist.get_rank()
+        t = torch.tensor([rank], device=device)
+        bnd = idist.backend()
+
+        group = idist.new_group(ranks)
+        if bnd in ("horovod"):
+            with pytest.raises(NotImplementedError, match=r"all_reduce with group for horovod is not implemented"):
+                res = idist.all_reduce(t, group=group)
+        else:
+            res = idist.all_reduce(t, group=group)
+            assert res == torch.tensor([sum(ranks)], device=device)
+
+        t = torch.tensor([rank], device=device)
+        if bnd in ("horovod"):
+            with pytest.raises(NotImplementedError, match=r"all_reduce with group for horovod is not implemented"):
+                res = idist.all_reduce(t, group=ranks)
+        else:
+            res = idist.all_reduce(t, group=ranks)
+            assert res == torch.tensor([sum(ranks)], device=device)
+
+        ranks = "abc"
+
+        if bnd in ("nccl", "gloo", "mpi"):
+            with pytest.raises(ValueError, match=r"Argument group should be list of int or ProcessGroup"):
+                res = idist.all_reduce(t, group="abc")
+        elif bnd in ("xla-tpu"):
+            with pytest.raises(ValueError, match=r"Argument group should be list of int"):
+                res = idist.all_reduce(t, group="abc")
+        elif bnd in ("horovod"):
+            with pytest.raises(NotImplementedError, match=r"all_reduce with group for horovod is not implemented"):
+                res = idist.all_reduce(t, group="abc")
+
+
 def _test_distrib_all_gather(device):
 
     res = torch.tensor(idist.all_gather(10), device=device)
@@ -159,6 +196,43 @@ def _test_distrib_all_gather(device):
     if idist.get_world_size() > 1:
         with pytest.raises(TypeError, match=r"Unhandled input type"):
             idist.all_reduce([0, 1, 2])
+
+
+def _test_distrib_all_gather_group(device):
+
+    if idist.get_world_size() > 1:
+        ranks = [0, 1]
+        rank = idist.get_rank()
+        bnd = idist.backend()
+
+        t = torch.tensor([rank], device=device)
+        group = idist.new_group(ranks)
+        if bnd in ("horovod"):
+            with pytest.raises(NotImplementedError, match=r"all_gather with group for horovod is not implemented"):
+                res = idist.all_gather(t, group=group)
+        else:
+            res = idist.all_gather(t, group=group)
+            assert torch.equal(res, torch.tensor(ranks, device=device))
+
+        t = torch.tensor([rank], device=device)
+        if bnd in ("horovod"):
+            with pytest.raises(NotImplementedError, match=r"all_gather with group for horovod is not implemented"):
+                res = idist.all_gather(t, group=ranks)
+        else:
+            res = idist.all_gather(t, group=ranks)
+            assert torch.equal(res, torch.tensor(ranks, device=device))
+
+        ranks = "abc"
+
+        if bnd in ("nccl", "gloo", "mpi"):
+            with pytest.raises(ValueError, match=r"Argument group should be list of int or ProcessGroup"):
+                res = idist.all_gather(t, group="abc")
+        elif bnd in ("xla-tpu"):
+            with pytest.raises(ValueError, match=r"Argument group should be list of int"):
+                res = idist.all_gather(t, group="abc")
+        elif bnd in ("horovod"):
+            with pytest.raises(NotImplementedError, match=r"all_gather with group for horovod is not implemented"):
+                res = idist.all_gather(t, group="abc")
 
 
 def _test_distrib_broadcast(device):
@@ -226,6 +300,45 @@ def _test_distrib_barrier(device):
 
     tt = idist.all_reduce(t)
     assert tt.item() == true_res + 10.0
+
+
+def _test_distrib_new_group(device):
+
+    if idist.get_world_size() > 1 and idist.backend() is not None:
+        bnd = idist.backend()
+        ranks = [0, 1]
+        if idist.has_native_dist_support and bnd in ("nccl", "gloo", "mpi"):
+
+            g1 = idist.new_group(ranks)
+            g2 = dist.new_group(ranks)
+
+            rank = idist.get_rank()
+            if rank in ranks:
+                assert g1.rank() == g2.rank()
+        elif idist.has_xla_support and bnd in ("xla-tpu"):
+
+            assert idist.new_group(ranks) == [ranks]
+        elif idist.has_hvd_support and bnd in ("horovod"):
+            from horovod.common.process_sets import ProcessSet
+
+            g1 = idist.new_group(ranks)
+            g2 = ProcessSet(ranks)
+
+            rank = idist.get_rank()
+            if rank in ranks:
+                assert g1.ranks == g2.ranks
+
+    elif idist.backend() is None:
+        ranks = [0, 1]
+        assert idist.new_group(ranks) == ranks
+
+    with pytest.raises(ValueError, match="Argument ranks should be list of int"):
+        ranks = ["a", "b", "c"]
+        idist.new_group(ranks)
+
+    with pytest.raises(ValueError, match="Argument ranks should be list of int"):
+        ranks = 1
+        idist.new_group(ranks)
 
 
 def _test_distrib_one_rank_only(device):

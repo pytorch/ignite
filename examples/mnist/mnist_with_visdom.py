@@ -9,13 +9,13 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, Normalize, ToTensor
 
-from ignite.engine import Events, create_supervised_evaluator, create_supervised_trainer
+from ignite.engine import create_supervised_evaluator, create_supervised_trainer, Events
 from ignite.metrics import Accuracy, Loss
 
 try:
     import visdom
 except ImportError:
-    raise RuntimeError("No visdom package is found. Please install it with command: \n pip install visdom")
+    raise ModuleNotFoundError("No visdom package is found. Please install it with command: \n pip install visdom")
 
 
 class Net(nn.Module):

@@ -1,13 +1,13 @@
-from unittest.mock import MagicMock, call
+from unittest.mock import call, MagicMock
 
 import pytest
 import torch
 
 from ignite.contrib.handlers.wandb_logger import (
+    global_step_from_engine,
     OptimizerParamsHandler,
     OutputHandler,
     WandBLogger,
-    global_step_from_engine,
 )
 from ignite.engine import Events, State
 
@@ -26,7 +26,7 @@ def test_optimizer_params_handler_wrong_setup():
 
 
 def test_optimizer_params():
-    optimizer = torch.optim.SGD([torch.Tensor(0)], lr=0.01)
+    optimizer = torch.optim.SGD([torch.tensor(0.0)], lr=0.01)
     wrapper = OptimizerParamsHandler(optimizer=optimizer, param_name="lr")
     mock_logger = MagicMock(spec=WandBLogger)
     mock_logger.log = MagicMock()
@@ -272,7 +272,7 @@ def test_output_handler_state_attrs():
 
 
 def test_wandb_close():
-    optimizer = torch.optim.SGD([torch.Tensor(0)], lr=0.01)
+    optimizer = torch.optim.SGD([torch.tensor(0.0)], lr=0.01)
     wrapper = OptimizerParamsHandler(optimizer=optimizer, param_name="lr")
     mock_logger = MagicMock(spec=WandBLogger)
     mock_logger.log = MagicMock()
@@ -281,26 +281,15 @@ def test_wandb_close():
     mock_logger.close()
 
 
-@pytest.fixture
-def no_site_packages():
-    import sys
-
-    wandb_client_modules = {}
-    for k in sys.modules:
-        if "wandb" in k:
-            wandb_client_modules[k] = sys.modules[k]
-    for k in wandb_client_modules:
-        del sys.modules[k]
-
-    prev_path = list(sys.path)
-    sys.path = [p for p in sys.path if "site-packages" not in p]
-    yield "no_site_packages"
-    sys.path = prev_path
-    for k in wandb_client_modules:
-        sys.modules[k] = wandb_client_modules[k]
-
-
+@pytest.mark.parametrize("no_site_packages", ["wandb"], indirect=True)
 def test_no_wandb_client(no_site_packages):
 
-    with pytest.raises(RuntimeError, match=r"This contrib module requires wandb to be installed."):
+    with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires wandb to be installed."):
         WandBLogger()
+
+
+def test_wandb_getattr():
+    import wandb
+
+    logger = WandBLogger(init=False)
+    assert wandb.log == logger.log

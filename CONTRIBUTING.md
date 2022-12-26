@@ -80,11 +80,28 @@ conda activate pytorch-ignite-dev
 
 ### Installation
 
-To get the development installation with the necessary dependencies, run the following:
+1) Make a fork of the repository on the GitHub (see [here](https://github.com/firstcontributions/first-contributions#fork-this-repository) for details). 
+As a result, for example your username is `happy-ignite-developer`, then you should be able to see your fork on the GitHub, e.g https://github.com/happy-ignite-developer/ignite.git
+
+2) Clone your fork locally and setup `upstream`. Assuming your username is `happy-ignite-developer`:
 
 ```bash
-git clone https://github.com/pytorch/ignite.git
+git clone https://github.com/happy-ignite-developer/ignite.git
 cd ignite
+git remote add upstream https://github.com/pytorch/ignite.git
+git remote -v
+```
+You might see the following output:
+```
+origin  https://github.com/happy-ignite-developer/ignite.git (fetch)
+origin  https://github.com/happy-ignite-developer/ignite.git (push)
+upstream        https://github.com/pytorch/ignite (fetch)
+upstream        https://github.com/pytorch/ignite (push)
+```
+3) Sync and install all necessary dependencies:
+
+```bash
+git pull upstream master
 python setup.py develop
 pip install -r requirements-dev.txt
 bash ./tests/run_code_style.sh install
@@ -110,33 +127,34 @@ If you modify the code, you will most probably also need to code some tests to e
 - naming convention for files `test_*.py`, e.g. `test_precision.py`
 - naming of testing functions `def test_*`, e.g. `def test_precision_on_random_data()`
   - if test function should run on GPU, please **make sure to add `cuda`** in the test name, e.g. `def test_something_on_cuda()`.
-  Additionally, we may want to decorate it with `@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")`.
-  For more examples, please see https://github.com/pytorch/ignite/blob/master/tests/ignite/engine/test_create_supervised.py
+    Additionally, we may want to decorate it with `@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")`.
+    For more examples, please see https://github.com/pytorch/ignite/blob/master/tests/ignite/engine/test_create_supervised.py
   - if test function checks distributed configuration, we have to mark the test as `@pytest.mark.distributed` and additional
-  conditions depending on the intended checks. For example, please see
-  https://github.com/pytorch/ignite/blob/master/tests/ignite/metrics/test_accuracy.py
-
+    conditions depending on the intended checks. For example, please see
+    https://github.com/pytorch/ignite/blob/master/tests/ignite/metrics/test_accuracy.py
 
 New code should be compatible with Python 3.X versions. Once you finish implementing a feature or bugfix and tests,
 please run lint checking and tests:
 
 #### Formatting Code
 
-To ensure the codebase complies with a style guide, we use [flake8](https://flake8.pycqa.org/en/latest/),
-[black](https://black.readthedocs.io/en/stable/) and [isort](https://pycqa.github.io/isort/) tools to
-format and check codebase for compliance with PEP8.
+To ensure the codebase complies with a style guide, we use [flake8](https://flake8.pycqa.org/en/latest/)
+and [ufmt](https://ufmt.omnilib.dev/) ([black](https://black.readthedocs.io/en/stable/) and
+[usort](https://usort.readthedocs.io/en/stable/)) to format and check codebase for compliance with PEP8.
 
 ##### Formatting without pre-commit
 
 If you choose not to use pre-commit, you can take advantage of IDE extensions configured to black format or invoke
 black manually to format files and commit them.
 
-To install `flake8`, `black==21.12b0`, `isort==5.7.0` and `mypy`, please run
+To install `flake8`, `ufmt` and `mypy`, please run
+
 ```bash
 bash ./tests/run_code_style.sh install
 ```
 
 To format files and commit changes:
+
 ```bash
 # This should autoformat the files
 bash ./tests/run_code_style.sh fmt
@@ -147,10 +165,10 @@ git commit -m "Added awesome feature"
 
 ##### Formatting with pre-commit
 
-To automate the process, we have configured the repo with [pre-commit hooks](https://pre-commit.com/) to use black to autoformat the staged files to ensure every commit complies with a style guide. This requires some setup, which is described below:
+To automate the process, we have configured the repo with [pre-commit hooks](https://pre-commit.com/) to use µfmt to autoformat the staged files to ensure every commit complies with a style guide. This requires some setup, which is described below:
 
 1. Install pre-commit in your python environment.
-2. Run pre-commit install that configures a virtual environment to invoke black, isort and flake8 on commits.
+2. Run pre-commit install that configures a virtual environment to invoke ufmt and flake8 on commits.
 
 ```bash
 pip install pre-commit
@@ -158,16 +176,16 @@ pre-commit install
 ```
 
 3. When files are committed:
-   - If the stages files are not compliant with black, black will autoformat the staged files. If this were to happen, files should be staged and committed again. See example code below.
+   - If the stages files are not compliant with black or µsort, µfmt will autoformat the staged files. If this were to happen, files should be staged and committed again. See example code below.
    - If the staged files are not compliant with flake8, errors will be raised. These errors should be fixed and the files should be committed again. See example code below.
 
 ```bash
 git add .
 git commit -m "Added awesome feature"
 # DONT'T WORRY IF ERRORS ARE RAISED.
-# YOUR CODE IS NOT COMPLIANT WITH flake8, isort or black
+# YOUR CODE IS NOT COMPLIANT WITH flake8, µsort or black
 # Fix any flake8 errors by following their suggestions
-# isort and black will automatically format the files so they might look different, but you'll need to stage the files
+# µfmt will automatically format the files so they might look different, but you'll need to stage the files
 # again for committing
 # After fixing any flake8 errors
 git add .
@@ -215,10 +233,11 @@ To change any config for specif folder, please see the file mypy.ini
 
 #### Send a PR
 
-If everything is OK, please send a Pull Request to https://github.com/pytorch/ignite
+If everything is OK, please send a Pull Request to https://github.com/pytorch/ignite from your fork.
 
 If you are not familiar with creating a Pull Request, here are some guides:
 
+- https://github.com/firstcontributions/first-contributions
 - http://stackoverflow.com/questions/14680711/how-to-do-a-github-pull-request
 - https://help.github.com/articles/creating-a-pull-request/
 
@@ -293,6 +312,7 @@ pip install -r requirements.txt
 
 [Katex](https://katex.org/) is also needed to build the documentation.
 To install katex, you need to have [nodejs](https://nodejs.org/en/) installed.
+Optionaly, we can install `nodejs/npm` using conda: `conda install nodejs`.
 Then you can install katex with [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/) (if installed).
 
 ```bash

@@ -35,11 +35,16 @@ class MeanAbsoluteError(Metric):
 
         ``y_pred`` and ``y`` should have the same shape.
 
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         .. testcode::
 
             metric = MeanAbsoluteError()
             metric.attach(default_evaluator, 'mae')
-            preds = torch.Tensor([
+            preds = torch.tensor([
                 [1, 2, 4, 1],
                 [2, 3, 1, 5],
                 [1, 3, 5, 1],

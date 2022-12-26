@@ -1,6 +1,7 @@
 from typing import Callable, Optional, Union
 
 import torch
+from packaging.version import Version
 
 from ignite.metrics.metric import Metric
 
@@ -18,12 +19,19 @@ class InceptionModel(torch.nn.Module):
 
     def __init__(self, return_features: bool, device: Union[str, torch.device] = "cpu") -> None:
         try:
+            import torchvision
             from torchvision import models
         except ImportError:
-            raise RuntimeError("This module requires torchvision to be installed.")
+            raise ModuleNotFoundError("This module requires torchvision to be installed.")
         super(InceptionModel, self).__init__()
         self._device = device
-        self.model = models.inception_v3(pretrained=True).to(self._device)
+        if Version(torchvision.__version__) < Version("0.13.0"):
+            model_kwargs = {"pretrained": True}
+        else:
+            model_kwargs = {"weights": models.Inception_V3_Weights.DEFAULT}
+
+        self.model = models.inception_v3(**model_kwargs).to(self._device)
+
         if return_features:
             self.model.fc = torch.nn.Identity()
         else:

@@ -47,6 +47,11 @@ def Fbeta(
 
     Examples:
 
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         Binary case
 
         .. testcode:: 1
@@ -55,8 +60,8 @@ def Fbeta(
             R = Recall(average=False)
             metric = Fbeta(beta=1.0, precision=P, recall=R)
             metric.attach(default_evaluator, "f-beta")
-            y_true = torch.Tensor([1, 0, 1, 1, 0, 1])
-            y_pred = torch.Tensor([1, 0, 1, 0, 1, 1])
+            y_true = torch.tensor([1, 0, 1, 1, 0, 1])
+            y_pred = torch.tensor([1, 0, 1, 0, 1, 1])
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["f-beta"])
 
@@ -72,8 +77,8 @@ def Fbeta(
             R = Recall(average=False)
             metric = Fbeta(beta=1.0, precision=P, recall=R)
             metric.attach(default_evaluator, "f-beta")
-            y_true = torch.Tensor([2, 0, 2, 1, 0, 1]).long()
-            y_pred = torch.Tensor([
+            y_true = torch.tensor([2, 0, 2, 1, 0, 1])
+            y_pred = torch.tensor([
                 [0.0266, 0.1719, 0.3055],
                 [0.6886, 0.3978, 0.8176],
                 [0.9230, 0.0197, 0.8395],
@@ -96,8 +101,8 @@ def Fbeta(
             R = Recall(average=False)
             metric = Fbeta(beta=1.0, average=False, precision=P, recall=R)
             metric.attach(default_evaluator, "f-beta")
-            y_true = torch.Tensor([2, 0, 2, 1, 0, 1]).long()
-            y_pred = torch.Tensor([
+            y_true = torch.tensor([2, 0, 2, 1, 0, 1])
+            y_pred = torch.tensor([
                 [0.0266, 0.1719, 0.3055],
                 [0.6886, 0.3978, 0.8176],
                 [0.9230, 0.0197, 0.8395],
@@ -126,8 +131,8 @@ def Fbeta(
             R = Recall(average=False, output_transform=thresholded_output_transform)
             metric = Fbeta(beta=1.0, precision=P, recall=R)
             metric.attach(default_evaluator, "f-beta")
-            y_true = torch.Tensor([1, 0, 1, 1, 0, 1])
-            y_pred = torch.Tensor([0.6, 0.2, 0.9, 0.4, 0.7, 0.65])
+            y_true = torch.tensor([1, 0, 1, 1, 0, 1])
+            y_pred = torch.tensor([0.6, 0.2, 0.9, 0.4, 0.7, 0.65])
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["f-beta"])
 

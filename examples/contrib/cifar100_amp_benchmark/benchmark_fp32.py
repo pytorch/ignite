@@ -6,7 +6,7 @@ from torchvision.models import wide_resnet50_2
 from utils import get_train_eval_loaders
 
 from ignite.contrib.handlers import ProgressBar
-from ignite.engine import Engine, Events, convert_tensor, create_supervised_evaluator
+from ignite.engine import convert_tensor, create_supervised_evaluator, Engine, Events
 from ignite.handlers import Timer
 from ignite.metrics import Accuracy, Loss
 

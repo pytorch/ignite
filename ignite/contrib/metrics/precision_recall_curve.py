@@ -1,7 +1,9 @@
-from typing import Any, Callable, Tuple
+from typing import Any, Callable, cast, Tuple, Union
 
 import torch
 
+import ignite.distributed as idist
+from ignite.exceptions import NotComputableError
 from ignite.metrics import EpochMetric
 
 
@@ -9,10 +11,10 @@ def precision_recall_curve_compute_fn(y_preds: torch.Tensor, y_targets: torch.Te
     try:
         from sklearn.metrics import precision_recall_curve
     except ImportError:
-        raise RuntimeError("This contrib module requires sklearn to be installed.")
+        raise ModuleNotFoundError("This contrib module requires scikit-learn to be installed.")
 
-    y_true = y_targets.numpy()
-    y_pred = y_preds.numpy()
+    y_true = y_targets.cpu().numpy()
+    y_pred = y_preds.cpu().numpy()
     return precision_recall_curve(y_true, y_pred)
 
 
@@ -45,6 +47,10 @@ class PrecisionRecallCurve(EpochMetric):
             avg_precision = PrecisionRecallCurve(sigmoid_output_transform)
 
     Examples:
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         .. testcode::
 
             y_pred = torch.tensor([0.0474, 0.5987, 0.7109, 0.9997])
@@ -65,7 +71,48 @@ class PrecisionRecallCurve(EpochMetric):
 
     """
 
-    def __init__(self, output_transform: Callable = lambda x: x, check_compute_fn: bool = False) -> None:
+    def __init__(
+        self,
+        output_transform: Callable = lambda x: x,
+        check_compute_fn: bool = False,
+        device: Union[str, torch.device] = torch.device("cpu"),
+    ) -> None:
         super(PrecisionRecallCurve, self).__init__(
-            precision_recall_curve_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
+            precision_recall_curve_compute_fn,
+            output_transform=output_transform,
+            check_compute_fn=check_compute_fn,
+            device=device,
         )
+
+    def compute(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        if len(self._predictions) < 1 or len(self._targets) < 1:
+            raise NotComputableError("PrecisionRecallCurve must have at least one example before it can be computed.")
+
+        _prediction_tensor = torch.cat(self._predictions, dim=0)
+        _target_tensor = torch.cat(self._targets, dim=0)
+
+        ws = idist.get_world_size()
+        if ws > 1 and not self._is_reduced:
+            # All gather across all processes
+            _prediction_tensor = cast(torch.Tensor, idist.all_gather(_prediction_tensor))
+            _target_tensor = cast(torch.Tensor, idist.all_gather(_target_tensor))
+        self._is_reduced = True
+
+        if idist.get_rank() == 0:
+            # Run compute_fn on zero rank only
+            precision, recall, thresholds = self.compute_fn(_prediction_tensor, _target_tensor)
+            precision = torch.tensor(precision)
+            recall = torch.tensor(recall)
+            # thresholds can have negative strides, not compatible with torch tensors
+            # https://discuss.pytorch.org/t/negative-strides-in-tensor-error/134287/2
+            thresholds = torch.tensor(thresholds.copy())
+        else:
+            precision, recall, thresholds = None, None, None
+
+        if ws > 1:
+            # broadcast result to all processes
+            precision = idist.broadcast(precision, src=0, safe_mode=True)
+            recall = idist.broadcast(recall, src=0, safe_mode=True)
+            thresholds = idist.broadcast(thresholds, src=0, safe_mode=True)
+
+        return precision, recall, thresholds

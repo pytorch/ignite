@@ -12,7 +12,7 @@ from torch.optim import SGD
 
 import ignite.distributed as idist
 from ignite.contrib.handlers import FastaiLRFinder
-from ignite.engine import Engine, Events, create_supervised_trainer
+from ignite.engine import create_supervised_trainer, Engine, Events
 
 matplotlib.use("agg")
 
@@ -161,32 +161,32 @@ def mnist_dataloader():
 def test_attach_incorrect_input_args(lr_finder, dummy_engine, model, optimizer, dataloader):
 
     with pytest.raises(TypeError, match=r"Argument to_save should be a mapping"):
-        with lr_finder.attach(dummy_engine, to_save=123) as f:
+        with lr_finder.attach(dummy_engine, to_save=123):
             pass
 
     with pytest.raises(TypeError, match=r"Object <class 'int'> should have `state_dict` method"):
-        with lr_finder.attach(dummy_engine, to_save={1: 2}) as f:
+        with lr_finder.attach(dummy_engine, to_save={1: 2}):
             pass
 
     with pytest.raises(ValueError, match=r"Mapping to_save should contain 'optimizer' key"):
-        with lr_finder.attach(dummy_engine, to_save={"model": model}) as f:
+        with lr_finder.attach(dummy_engine, to_save={"model": model}):
             pass
 
     to_save = {"model": model, "optimizer": optimizer}
     with pytest.raises(ValueError, match=r"smooth_f is outside the range \[0, 1\]"):
-        with lr_finder.attach(dummy_engine, to_save=to_save, smooth_f=234) as f:
+        with lr_finder.attach(dummy_engine, to_save=to_save, smooth_f=234):
             pass
 
     with pytest.raises(ValueError, match=r"diverge_th should be larger than 1"):
-        with lr_finder.attach(dummy_engine, to_save=to_save, diverge_th=0.0) as f:
+        with lr_finder.attach(dummy_engine, to_save=to_save, diverge_th=0.0):
             pass
 
     with pytest.raises(TypeError, match=r"if provided, num_iter should be an integer"):
-        with lr_finder.attach(dummy_engine, to_save=to_save, num_iter=0.0) as f:
+        with lr_finder.attach(dummy_engine, to_save=to_save, num_iter=0.0):
             pass
 
     with pytest.raises(ValueError, match=r"if provided, num_iter should be positive"):
-        with lr_finder.attach(dummy_engine, to_save=to_save, num_iter=0) as f:
+        with lr_finder.attach(dummy_engine, to_save=to_save, num_iter=0):
             pass
 
     with pytest.raises(TypeError, match=r"Object to_save\['optimizer'] should be torch optimizer"):
@@ -194,7 +194,7 @@ def test_attach_incorrect_input_args(lr_finder, dummy_engine, model, optimizer, 
             pass
 
     with pytest.raises(ValueError, match=r"step_mode should be 'exp' or 'linear'"):
-        with lr_finder.attach(dummy_engine, to_save=to_save, step_mode="abc") as f:
+        with lr_finder.attach(dummy_engine, to_save=to_save, step_mode="abc"):
             pass
 
     with lr_finder.attach(dummy_engine, to_save) as trainer_with_finder:
@@ -204,6 +204,20 @@ def test_attach_incorrect_input_args(lr_finder, dummy_engine, model, optimizer, 
         lr_finder.plot(skip_start=-1)
     with pytest.raises(ValueError, match=r"skip_end cannot be negative"):
         lr_finder.plot(skip_end=-1)
+
+    with pytest.raises(ValueError, match=r"Number of values of start_lr should be equal to optimizer values."):
+        with lr_finder.attach(dummy_engine, to_save, start_lr=[0.1, 0.1]):
+            pass
+    with pytest.raises(ValueError, match=r"Number of values of end_lr should be equal to optimizer values."):
+        with lr_finder.attach(dummy_engine, to_save, end_lr=[0.1, 0.1]):
+            pass
+
+    with pytest.raises(TypeError, match=r"start_lr should be a float or list of floats"):
+        with lr_finder.attach(dummy_engine, to_save, start_lr=1):
+            pass
+    with pytest.raises(TypeError, match=r"end_lr should be a float or list of floats"):
+        with lr_finder.attach(dummy_engine, to_save, end_lr=1):
+            pass
 
 
 def test_attach_without_with(lr_finder, dummy_engine, to_save):
@@ -232,15 +246,22 @@ def test_with_attach(lr_finder, to_save, dummy_engine, dataloader):
         assert len(dummy_engine._event_handlers[event]) == 0
 
 
-def test_wrong_values_start_lr_and_end_lr(lr_finder, to_save, dummy_engine, dataloader):
+def test_wrong_values_start_lr_and_end_lr(
+    lr_finder, dummy_engine, to_save, dummy_engine_mulitple_param_groups, to_save_mulitple_param_groups
+):
 
     with pytest.raises(ValueError, match=r"start_lr must be less than end_lr"):
-        with lr_finder.attach(dummy_engine, to_save=to_save, start_lr=10, end_lr=1) as trainer_with_finder:
-            trainer_with_finder.run(dataloader)
+        with lr_finder.attach(dummy_engine, to_save=to_save, start_lr=10.0, end_lr=1.0):
+            pass
 
     with pytest.raises(ValueError, match=r"start_lr must be less than end_lr"):
-        with lr_finder.attach(dummy_engine, to_save=to_save, start_lr=10, end_lr=10) as trainer_with_finder:
-            trainer_with_finder.run(dataloader)
+        with lr_finder.attach(
+            dummy_engine_mulitple_param_groups,
+            to_save=to_save_mulitple_param_groups,
+            start_lr=[1.0, 10.0, 5.0],
+            end_lr=[10.0, 10.0, 10.0],
+        ):
+            pass
 
 
 def test_model_optimizer_reset(lr_finder, to_save, dummy_engine, dataloader):
@@ -273,6 +294,24 @@ def test_lr_policy(lr_finder, to_save, dummy_engine, dataloader):
 
     lr = lr_finder.get_results()["lr"]
     assert all([lr[i - 1] < lr[i] for i in range(1, len(lr))])
+
+
+@pytest.mark.parametrize("step_mode", ["exp", "linear"])
+def test_multiple_optimizers(
+    lr_finder, dummy_engine_mulitple_param_groups, to_save_mulitple_param_groups, dataloader, step_mode
+):
+    start_lr = [0.1, 0.1, 0.01]
+    end_lr = [1.0, 1.0, 1.0]
+    with lr_finder.attach(
+        dummy_engine_mulitple_param_groups,
+        to_save_mulitple_param_groups,
+        start_lr=start_lr,
+        end_lr=end_lr,
+        step_mode=step_mode,
+    ) as trainer:
+        trainer.run(dataloader)
+    groups_lrs = lr_finder.get_results()["lr"]
+    assert [all([group_lrs[i - 1] < group_lrs[i] for i in range(1, len(group_lrs))]) for group_lrs in groups_lrs]
 
 
 def assert_output_sizes(lr_finder, dummy_engine):
@@ -313,7 +352,7 @@ def test_num_iter_is_not_enough(lr_finder, to_save, dummy_engine, dataloader):
 
 
 def test_detach_terminates(lr_finder, to_save, dummy_engine, dataloader):
-    with lr_finder.attach(dummy_engine, to_save, end_lr=100, diverge_th=2) as trainer_with_finder:
+    with lr_finder.attach(dummy_engine, to_save, end_lr=100.0, diverge_th=2) as trainer_with_finder:
         trainer_with_finder.run(dataloader)
 
     dummy_engine.run(dataloader, max_epochs=3)
@@ -335,7 +374,7 @@ def test_different_num_iters(lr_finder, to_save, dummy_engine, dataloader):
 @pytest.mark.parametrize("step_mode", ["exp", "linear"])
 def test_start_lr(lr_finder, to_save, dummy_engine, dataloader, step_mode):
     with lr_finder.attach(
-        dummy_engine, to_save, start_lr=0.01, end_lr=10, num_iter=5, step_mode=step_mode, diverge_th=1
+        dummy_engine, to_save, start_lr=0.01, end_lr=10.0, num_iter=5, step_mode=step_mode, diverge_th=1
     ) as trainer_with_finder:
         trainer_with_finder.run(dataloader)
     history = lr_finder.get_results()
@@ -480,13 +519,13 @@ def test_apply_suggested_lr_multiple_param_groups(
 
 def test_no_matplotlib(no_site_packages, lr_finder):
 
-    with pytest.raises(RuntimeError, match=r"This method requires matplotlib to be installed"):
+    with pytest.raises(ModuleNotFoundError, match=r"This method requires matplotlib to be installed"):
         lr_finder.plot()
 
 
 def test_plot_single_param_group(dirname, lr_finder, mnist_to_save, dummy_engine_mnist, mnist_dataloader):
 
-    with lr_finder.attach(dummy_engine_mnist, mnist_to_save, end_lr=20, smooth_f=0.04) as trainer_with_finder:
+    with lr_finder.attach(dummy_engine_mnist, mnist_to_save, end_lr=20.0, smooth_f=0.04) as trainer_with_finder:
         trainer_with_finder.run(mnist_dataloader)
 
     def _test(ax):
@@ -516,7 +555,7 @@ def test_plot_multiple_param_groups(
 ):
 
     with lr_finder.attach(
-        dummy_engine_mulitple_param_groups, to_save_mulitple_param_groups, end_lr=20, smooth_f=0.04
+        dummy_engine_mulitple_param_groups, to_save_mulitple_param_groups, end_lr=20.0, smooth_f=0.04
     ) as trainer_with_finder:
         trainer_with_finder.run(dataloader_plot)
 

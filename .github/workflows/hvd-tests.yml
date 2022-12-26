@@ -27,40 +27,37 @@ jobs:
         pytorch-channel: [pytorch]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Get year & week number
         id: get-date
-        run: echo "::set-output name=date::$(/bin/date "+%Y-%U")"
+        run: echo "date=$(/bin/date "+%Y-%U")" >> $GITHUB_OUTPUT
         shell: bash -l {0}
 
       - name: Get pip cache dir
         id: pip-cache
         run: |
           python3 -m pip install -U pip
-          echo "::set-output name=dir::$(python3 -m pip cache dir)"
+          echo "pip_cache=$(python3 -m pip cache dir)" >> $GITHUB_OUTPUT
         shell: bash -l {0}
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: |
             ~/conda_pkgs_dir
-            ${{ steps.pip-cache.outputs.dir }}
+            ${{ steps.pip-cache.outputs.pip_cache }}
           key: ${{ steps.get-date.outputs.date }}-horovod-${{ hashFiles('requirements-dev.txt') }}
 
-      - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v2
+      - uses: actions/setup-python@v4
         with:
-          miniconda-version: "latest"
           python-version: ${{ matrix.python-version }}
-          use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
 
       - name: Install dependencies
         shell: bash -l {0}
         run: |
 
           #install other dependencies
-          conda install pytorch torchvision cpuonly -c ${{ matrix.pytorch-channel }}
+          pip install torch torchvision -f https://download.pytorch.org/whl/cpu/torch_stable.html
           pip install -r requirements-dev.txt
           pip install horovod
           python setup.py install
@@ -78,7 +75,7 @@ jobs:
           bash tests/run_cpu_tests.sh
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v3
         with:
           file: ./coverage.xml
           flags: hvd-cpu

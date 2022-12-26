@@ -11,7 +11,7 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, Normalize, ToTensor
 from tqdm import tqdm
 
-from ignite.engine import Events, create_supervised_evaluator, create_supervised_trainer
+from ignite.engine import create_supervised_evaluator, create_supervised_trainer, Events
 from ignite.handlers import Checkpoint, DiskSaver
 from ignite.metrics import Accuracy, Loss
 from ignite.utils import manual_seed
@@ -22,7 +22,7 @@ except ImportError:
     try:
         from torch.utils.tensorboard import SummaryWriter
     except ImportError:
-        raise RuntimeError(
+        raise ModuleNotFoundError(
             "This module requires either tensorboardX or torch >= 1.2.0. "
             "You may install tensorboardX with command: \n pip install tensorboardX \n"
             "or upgrade PyTorch using your package manager of choice (pip or conda)."

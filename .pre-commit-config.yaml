@@ -14,21 +14,16 @@ repos:
       - id: prettier
         exclude_types: ["python", "jupyter", "shell", "gitignore"]
 
-  - repo: https://github.com/python/black
-    rev: 21.12b0
+  - repo: https://github.com/omnilib/ufmt
+    rev: v1.3.1
     hooks:
-      - id: black
-        language_version: python3.8
-        args: ["--config", "pyproject.toml"]
+      - id: ufmt
+        additional_dependencies:
+          - black == 21.12b0
+          - usort == 1.0.1
 
-  - repo: https://github.com/timothycrosley/isort
-    rev: 5.7.0
-    hooks:
-      - id: isort
-        args: ["--settings", "setup.cfg"]
-
-  - repo: https://gitlab.com/pycqa/flake8
-    rev: 3.8.4
+  - repo: https://github.com/pycqa/flake8
+    rev: 6.0.0
     hooks:
       - id: flake8
         args: ["--config", "setup.cfg"]

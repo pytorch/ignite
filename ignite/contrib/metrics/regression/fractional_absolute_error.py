@@ -39,11 +39,14 @@ class FractionalAbsoluteError(_BaseRegression):
         The output of the engine's ``process_function`` needs to be in format of
         ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``.
 
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         .. testcode::
 
                 metric = FractionalAbsoluteError()
                 metric.attach(default_evaluator, 'fractional_abs_error')
-                y_pred = torch.Tensor([[3.8], [9.9], [-5.4], [2.1]])
+                y_pred = torch.tensor([[3.8], [9.9], [-5.4], [2.1]])
                 y_true = y_pred * 0.8
                 state = default_evaluator.run([[y_pred, y_true]])
                 print(state.metrics['fractional_abs_error'])

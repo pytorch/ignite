@@ -37,7 +37,7 @@ class GpuInfo(Metric):
         try:
             from pynvml.smi import nvidia_smi
         except ImportError:
-            raise RuntimeError(
+            raise ModuleNotFoundError(
                 "This contrib module requires pynvml to be installed. "
                 "Please install it with command: \n pip install pynvml"
             )
@@ -56,9 +56,7 @@ class GpuInfo(Metric):
         pass
 
     def compute(self) -> List[Dict[str, Any]]:
-        data = self.nvsmi.DeviceQuery(
-            "memory.used, memory.total, utilization.gpu"
-        )  # type: Dict[str, List[Dict[str, Any]]]
+        data: Dict[str, List[Dict[str, Any]]] = self.nvsmi.DeviceQuery("memory.used, memory.total, utilization.gpu")
         if len(data) == 0 or ("gpu" not in data):
             warnings.warn("No GPU information available")
             return []

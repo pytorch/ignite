@@ -17,42 +17,38 @@ def test_zero_sample():
         mpd.compute()
 
 
-def test_compute():
+@pytest.fixture(params=[item for item in range(4)])
+def test_case(request):
+
+    return [
+        (torch.randint(0, 10, size=(100, 1)), torch.randint(0, 10, size=(100, 1)), 1),
+        (torch.randint(-20, 20, size=(100, 5)), torch.randint(-20, 20, size=(100, 5)), 1),
+        # updated batches
+        (torch.randint(0, 10, size=(100, 1)), torch.randint(0, 10, size=(100, 1)), 16),
+        (torch.randint(-20, 20, size=(100, 5)), torch.randint(-20, 20, size=(100, 5)), 16),
+    ][request.param]
+
+
+@pytest.mark.parametrize("n_times", range(5))
+def test_compute(n_times, test_case):
 
     mpd = MeanPairwiseDistance()
 
-    def _test(y_pred, y, batch_size):
-        mpd.reset()
-        if batch_size > 1:
-            n_iters = y.shape[0] // batch_size + 1
-            for i in range(n_iters):
-                idx = i * batch_size
-                mpd.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-        else:
-            mpd.update((y_pred, y))
+    y_pred, y, batch_size = test_case
 
-        np_res = np.mean(torch.pairwise_distance(y_pred, y, p=mpd._p, eps=mpd._eps).numpy())
+    mpd.reset()
+    if batch_size > 1:
+        n_iters = y.shape[0] // batch_size + 1
+        for i in range(n_iters):
+            idx = i * batch_size
+            mpd.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+    else:
+        mpd.update((y_pred, y))
 
-        assert isinstance(mpd.compute(), float)
-        assert pytest.approx(mpd.compute()) == np_res
+    np_res = np.mean(torch.pairwise_distance(y_pred, y, p=mpd._p, eps=mpd._eps).numpy())
 
-    def get_test_cases():
-
-        test_cases = [
-            (torch.randint(0, 10, size=(100, 1)), torch.randint(0, 10, size=(100, 1)), 1),
-            (torch.randint(-20, 20, size=(100, 5)), torch.randint(-20, 20, size=(100, 5)), 1),
-            # updated batches
-            (torch.randint(0, 10, size=(100, 1)), torch.randint(0, 10, size=(100, 1)), 16),
-            (torch.randint(-20, 20, size=(100, 5)), torch.randint(-20, 20, size=(100, 5)), 16),
-        ]
-
-        return test_cases
-
-    for _ in range(5):
-        # check multiple random inputs as random exact occurencies are rare
-        test_cases = get_test_cases()
-        for y_pred, y, batch_size in test_cases:
-            _test(y_pred, y, batch_size)
+    assert isinstance(mpd.compute(), float)
+    assert pytest.approx(mpd.compute()) == np_res
 
 
 def _test_distrib_integration(device):
@@ -60,22 +56,22 @@ def _test_distrib_integration(device):
     from ignite.engine import Engine
 
     rank = idist.get_rank()
-    torch.manual_seed(12)
-
-    n_iters = 100
-    s = 50
-    offset = n_iters * s
-
-    y_true = torch.rand(offset * idist.get_world_size(), 10).to(device)
-    y_preds = torch.rand(offset * idist.get_world_size(), 10).to(device)
-
-    def update(engine, i):
-        return (
-            y_preds[i * s + offset * rank : (i + 1) * s + offset * rank, ...],
-            y_true[i * s + offset * rank : (i + 1) * s + offset * rank, ...],
-        )
+    torch.manual_seed(12 + rank)
 
     def _test(metric_device):
+
+        n_iters = 100
+        batch_size = 50
+
+        y_true = torch.rand(n_iters * batch_size, 10).to(device)
+        y_preds = torch.rand(n_iters * batch_size, 10).to(device)
+
+        def update(engine, i):
+            return (
+                y_preds[i * batch_size : (i + 1) * batch_size, ...],
+                y_true[i * batch_size : (i + 1) * batch_size, ...],
+            )
+
         engine = Engine(update)
 
         m = MeanPairwiseDistance(device=metric_device)
@@ -84,6 +80,9 @@ def _test_distrib_integration(device):
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=1)
 
+        y_preds = idist.all_gather(y_preds)
+        y_true = idist.all_gather(y_true)
+
         assert "mpwd" in engine.state.metrics
         res = engine.state.metrics["mpwd"]
 
@@ -91,7 +90,10 @@ def _test_distrib_integration(device):
         for i in range(n_iters * idist.get_world_size()):
             true_res.append(
                 torch.pairwise_distance(
-                    y_true[i * s : (i + 1) * s, ...], y_preds[i * s : (i + 1) * s, ...], p=m._p, eps=m._eps
+                    y_true[i * batch_size : (i + 1) * batch_size, ...],
+                    y_preds[i * batch_size : (i + 1) * batch_size, ...],
+                    p=m._p,
+                    eps=m._eps,
                 )
                 .cpu()
                 .numpy()
@@ -117,7 +119,7 @@ def _test_distrib_accumulator_device(device):
         for dev in [mpd._device, mpd._sum_of_distances.device]:
             assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
 
-        y_pred = torch.Tensor([[3.0, 4.0], [-3.0, -4.0]])
+        y_pred = torch.tensor([[3.0, 4.0], [-3.0, -4.0]])
         y = torch.zeros(2, 2)
         mpd.update((y_pred, y))
 

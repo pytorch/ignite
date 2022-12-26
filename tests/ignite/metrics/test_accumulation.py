@@ -97,6 +97,10 @@ def _geom_mean(t):
     return np.exp(np.mean(np.log(np_t), axis=0))
 
 
+def _mean(y_true):
+    return y_true.mean(dim=0).numpy()
+
+
 def test_geom_average():
 
     with pytest.raises(NotComputableError):
@@ -129,44 +133,30 @@ def test_geom_average():
     np.testing.assert_almost_equal(m.numpy(), _geom_mean(y_true.reshape(-1, 10)), decimal=5)
 
 
-def test_integration():
-    def _test(metric_cls, true_result_fn):
+@pytest.mark.parametrize("metric_cls, true_result_fn", [(Average, _mean), (GeometricAverage, _geom_mean)])
+@pytest.mark.parametrize("shape", [[100, 12], [100]])
+def test_integration(metric_cls, true_result_fn, shape):
 
-        size = 100
-        custom_variable = 10.0 + 5.0 * torch.rand(size, 12)
+    assert len(shape) > 0 and len(shape) < 3
 
-        def update_fn(engine, batch):
-            return 0, custom_variable[engine.state.iteration - 1]
+    custom_variable = 10.0 + 5.0 * torch.rand(shape)
 
-        engine = Engine(update_fn)
+    def update_fn(engine, batch):
 
-        custom_var_mean = metric_cls(output_transform=lambda output: output[1])
-        custom_var_mean.attach(engine, "agg_custom_var")
+        output = custom_variable[engine.state.iteration - 1]
+        output = output.item() if output.ndimension() < 1 else output
+        return 0, output
 
-        state = engine.run([0] * size)
-        np.testing.assert_almost_equal(
-            state.metrics["agg_custom_var"].numpy(), true_result_fn(custom_variable), decimal=5
-        )
+    engine = Engine(update_fn)
 
-        size = 100
-        custom_variable = 10.0 + 5.0 * torch.rand(size)
+    custom_var_mean = metric_cls(output_transform=lambda output: output[1])
+    custom_var_mean.attach(engine, "agg_custom_var")
 
-        def update_fn(engine, batch):
-            return 0, custom_variable[engine.state.iteration - 1].item()
+    state = engine.run([0] * shape[0])
 
-        engine = Engine(update_fn)
-
-        custom_var_mean = metric_cls(output_transform=lambda output: output[1])
-        custom_var_mean.attach(engine, "agg_custom_var")
-
-        state = engine.run([0] * size)
-        assert state.metrics["agg_custom_var"] == pytest.approx(true_result_fn(custom_variable))
-
-    def _mean(y_true):
-        return y_true.mean(dim=0).numpy()
-
-    _test(Average, _mean)
-    _test(GeometricAverage, _geom_mean)
+    np.testing.assert_almost_equal(
+        np.array(state.metrics["agg_custom_var"]), true_result_fn(custom_variable), decimal=5
+    )
 
 
 def test_compute_mean_std():

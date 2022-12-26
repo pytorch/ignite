@@ -113,7 +113,6 @@ def _test_distrib_compute(device, tol=1e-5):
     def _test(metric_device):
         metric_device = torch.device(metric_device)
         m = FractionalBias(device=metric_device)
-        torch.manual_seed(10 + rank)
 
         y_pred = torch.randint(0, 10, size=(10,), device=device).float()
         y = torch.randint(0, 10, size=(10,), device=device).float()
@@ -135,7 +134,8 @@ def _test_distrib_compute(device, tol=1e-5):
 
         assert np_ans == pytest.approx(res, rel=tol)
 
-    for _ in range(3):
+    for i in range(3):
+        torch.manual_seed(10 + rank + i)
         _test("cpu")
         if device.type != "xla":
             _test(idist.device())
@@ -144,22 +144,19 @@ def _test_distrib_compute(device, tol=1e-5):
 def _test_distrib_integration(device, tol=1e-5):
 
     rank = idist.get_rank()
-    torch.manual_seed(12)
 
     def _test(n_epochs, metric_device):
         metric_device = torch.device(metric_device)
         n_iters = 80
-        s = 16
-        n_classes = 2
+        batch_size = 16
 
-        offset = n_iters * s
-        y_true = torch.rand(size=(offset * idist.get_world_size(),), dtype=torch.double).to(device)
-        y_preds = torch.rand(size=(offset * idist.get_world_size(),), dtype=torch.double).to(device)
+        y_true = torch.rand(size=(n_iters * batch_size,), dtype=torch.double).to(device)
+        y_preds = torch.rand(size=(n_iters * batch_size,), dtype=torch.double).to(device)
 
         def update(engine, i):
             return (
-                y_preds[i * s + rank * offset : (i + 1) * s + rank * offset],
-                y_true[i * s + rank * offset : (i + 1) * s + rank * offset],
+                y_preds[i * batch_size : (i + 1) * batch_size],
+                y_true[i * batch_size : (i + 1) * batch_size],
             )
 
         engine = Engine(update)
@@ -169,6 +166,9 @@ def _test_distrib_integration(device, tol=1e-5):
 
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=n_epochs)
+
+        y_preds = idist.all_gather(y_preds)
+        y_true = idist.all_gather(y_true)
 
         assert "fb" in engine.state.metrics
 
@@ -189,7 +189,8 @@ def _test_distrib_integration(device, tol=1e-5):
     if device.type != "xla":
         metric_devices.append(idist.device())
     for metric_device in metric_devices:
-        for _ in range(2):
+        for i in range(2):
+            torch.manual_seed(12 + rank + i)
             _test(n_epochs=1, metric_device=metric_device)
             _test(n_epochs=2, metric_device=metric_device)
 

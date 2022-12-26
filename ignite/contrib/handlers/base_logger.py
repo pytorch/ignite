@@ -21,6 +21,43 @@ class BaseHandler(metaclass=ABCMeta):
         pass
 
 
+class BaseWeightsHandler(BaseHandler):
+    """
+    Base handler for logging weights or their gradients.
+    """
+
+    def __init__(
+        self,
+        model: nn.Module,
+        tag: Optional[str] = None,
+        whitelist: Optional[Union[List[str], Callable[[str, nn.Parameter], bool]]] = None,
+    ):
+
+        if not isinstance(model, torch.nn.Module):
+            raise TypeError(f"Argument model should be of type torch.nn.Module, but given {type(model)}")
+
+        self.model = model
+        self.tag = tag
+
+        weights = {}
+        if whitelist is None:
+
+            weights = dict(model.named_parameters())
+        elif callable(whitelist):
+
+            for n, p in model.named_parameters():
+                if whitelist(n, p):
+                    weights[n] = p
+        else:
+
+            for n, p in model.named_parameters():
+                for item in whitelist:
+                    if n.startswith(item):
+                        weights[n] = p
+
+        self.weights = weights.items()
+
+
 class BaseOptimizerParamsHandler(BaseHandler):
     """
     Base handler for logging optimizer parameters
@@ -51,7 +88,7 @@ class BaseOutputHandler(BaseHandler):
         tag: str,
         metric_names: Optional[Union[str, List[str]]] = None,
         output_transform: Optional[Callable] = None,
-        global_step_transform: Optional[Callable] = None,
+        global_step_transform: Optional[Callable[[Engine, Union[str, Events]], int]] = None,
         state_attributes: Optional[List[str]] = None,
     ):
 
@@ -105,12 +142,12 @@ class BaseOutputHandler(BaseHandler):
             if not isinstance(output_dict, dict):
                 output_dict = {"output": output_dict}
 
-            metrics_state_attrs.update({name: value for name, value in output_dict.items()})
+            metrics_state_attrs.update(output_dict)
 
         if self.state_attributes is not None:
             metrics_state_attrs.update({name: getattr(engine.state, name, None) for name in self.state_attributes})
 
-        metrics_state_attrs_dict = OrderedDict()  # type: Dict[Any, Union[str, float, numbers.Number]]
+        metrics_state_attrs_dict: Dict[Any, Union[str, float, numbers.Number]] = OrderedDict()
 
         def key_tuple_tf(tag: str, name: str, *args: str) -> Tuple[str, ...]:
             return (tag, name) + args
@@ -136,19 +173,25 @@ class BaseOutputHandler(BaseHandler):
         return metrics_state_attrs_dict
 
 
-class BaseWeightsScalarHandler(BaseHandler):
+class BaseWeightsScalarHandler(BaseWeightsHandler):
     """
-    Helper handler to log model's weights as scalars.
+    Helper handler to log model's weights or gradients as scalars.
     """
 
-    def __init__(self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None):
-        if not isinstance(model, torch.nn.Module):
-            raise TypeError(f"Argument model should be of type torch.nn.Module, but given {type(model)}")
+    def __init__(
+        self,
+        model: nn.Module,
+        reduction: Callable[[torch.Tensor], Union[float, torch.Tensor]] = torch.norm,
+        tag: Optional[str] = None,
+        whitelist: Optional[Union[List[str], Callable[[str, nn.Parameter], bool]]] = None,
+    ):
+
+        super(BaseWeightsScalarHandler, self).__init__(model, tag=tag, whitelist=whitelist)
 
         if not callable(reduction):
             raise TypeError(f"Argument reduction should be callable, but given {type(reduction)}")
 
-        def _is_0D_tensor(t: torch.Tensor) -> bool:
+        def _is_0D_tensor(t: Any) -> bool:
             return isinstance(t, torch.Tensor) and t.ndimension() == 0
 
         # Test reduction function on a tensor
@@ -156,22 +199,7 @@ class BaseWeightsScalarHandler(BaseHandler):
         if not (isinstance(o, numbers.Number) or _is_0D_tensor(o)):
             raise TypeError(f"Output of the reduction function should be a scalar, but got {type(o)}")
 
-        self.model = model
         self.reduction = reduction
-        self.tag = tag
-
-
-class BaseWeightsHistHandler(BaseHandler):
-    """
-    Helper handler to log model's weights as histograms.
-    """
-
-    def __init__(self, model: nn.Module, tag: Optional[str] = None):
-        if not isinstance(model, torch.nn.Module):
-            raise TypeError(f"Argument model should be of type torch.nn.Module, but given {type(model)}")
-
-        self.model = model
-        self.tag = tag
 
 
 class BaseLogger(metaclass=ABCMeta):

@@ -21,7 +21,7 @@ def mock_no_sklearn():
 
 
 def test_no_sklearn(mock_no_sklearn):
-    with pytest.raises(RuntimeError, match=r"This contrib module requires sklearn to be installed."):
+    with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires scikit-learn to be installed."):
         CohenKappa()
 
 
@@ -173,14 +173,11 @@ def test_integration_binary_input(weights):
 def _test_distrib_binary_input(device):
 
     rank = idist.get_rank()
-    torch.manual_seed(12)
 
     def _test(y_pred, y, batch_size, metric_device):
 
         metric_device = torch.device(metric_device)
         ck = CohenKappa(device=metric_device)
-
-        torch.manual_seed(10 + rank)
 
         ck.reset()
         if batch_size > 1:
@@ -213,7 +210,8 @@ def _test_distrib_binary_input(device):
         ]
         return test_cases
 
-    for _ in range(3):
+    for i in range(3):
+        torch.manual_seed(10 + rank + i)
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
             _test(y_pred, y, batch_size, "cpu")
@@ -224,23 +222,22 @@ def _test_distrib_binary_input(device):
 def _test_distrib_integration_binary_input(device):
 
     rank = idist.get_rank()
-    torch.manual_seed(12)
 
     def _test(n_epochs, metric_device):
         metric_device = torch.device(metric_device)
         n_iters = 80
-        s = 16
-        n_classes = 2
-        offset = n_iters * s
+        batch_size = 16
+
+        torch.manual_seed(12 + rank)
 
         # Binary input data of shape (N,) or (N, 1)
-        y_true = torch.randint(0, n_classes, size=(offset * idist.get_world_size(),)).to(device)
-        y_preds = torch.randint(0, n_classes, size=(offset * idist.get_world_size(),)).to(device)
+        y_true = torch.randint(0, 2, size=(n_iters * batch_size,)).to(device)
+        y_preds = torch.randint(0, 2, size=(n_iters * batch_size,)).to(device)
 
         def update(engine, i):
             return (
-                y_preds[i * s + rank * offset : (i + 1) * s + rank * offset],
-                y_true[i * s + rank * offset : (i + 1) * s + rank * offset],
+                y_preds[i * batch_size : (i + 1) * batch_size],
+                y_true[i * batch_size : (i + 1) * batch_size],
             )
 
         engine = Engine(update)
@@ -250,6 +247,9 @@ def _test_distrib_integration_binary_input(device):
 
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=n_epochs)
+
+        y_true = idist.all_gather(y_true)
+        y_preds = idist.all_gather(y_preds)
 
         assert "ck" in engine.state.metrics
 

@@ -1,16 +1,15 @@
-from typing import Callable, Sequence, Union
+from typing import Sequence
 
 import torch
 
 from ignite.metrics.metric import reinit__is_reduced
 from ignite.metrics.precision import _BasePrecisionRecall
-from ignite.utils import to_onehot
 
 __all__ = ["Recall"]
 
 
 class Recall(_BasePrecisionRecall):
-    r"""Calculates recall for binary and multiclass data.
+    r"""Calculates recall for binary, multiclass and multilabel data.
 
     .. math:: \text{Recall} = \frac{ TP }{ TP + FN }
 
@@ -25,196 +24,219 @@ class Recall(_BasePrecisionRecall):
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        average: if True, precision is computed as the unweighted average (across all classes
-            in multiclass case), otherwise, returns a tensor with the precision (for each class in multiclass case).
-        is_multilabel: flag to use in multilabel case. By default, value is False. If True, average
-            parameter should be True and the average is computed across samples, instead of classes.
+        average: available options are
+
+            False
+              default option. For multicalss and multilabel inputs, per class and per label
+              metric is returned respectively.
+
+            None
+              like `False` option except that per class metric is returned for binary data as well.
+              For compatibility with Scikit-Learn api.
+
+            'micro'
+              Metric is computed counting stats of classes/labels altogether.
+
+              .. math::
+                  \text{Micro Recall} = \frac{\sum_{k=1}^C TP_k}{\sum_{k=1}^C TP_k+FN_k}
+
+              where :math:`C` is the number of classes/labels (2 in binary case). :math:`k` in
+              :math:`TP_k` and :math:`FN_k`means that the measures are computed for class/label :math:`k` (in
+              a one-vs-rest sense in multiclass case).
+
+              For binary and multiclass inputs, this is equivalent with accuracy,
+              so use :class:`~ignite.metrics.accuracy.Accuracy`.
+
+            'samples'
+              for multilabel input, at first, recall is computed on a
+              per sample basis and then average across samples is returned.
+
+              .. math::
+                  \text{Sample-averaged Recall} = \frac{\sum_{n=1}^N \frac{TP_n}{TP_n+FN_n}}{N}
+
+              where :math:`N` is the number of samples. :math:`n` in :math:`TP_n` and :math:`FN_n`
+              means that the measures are computed for sample :math:`n`, across labels.
+
+              Incompatible with binary and multiclass inputs.
+
+            'weighted'
+              like macro recall but considers class/label imbalance. For binary and multiclass
+              input, it computes metric for each class then returns average of them weighted by
+              support of classes (number of actual samples in each class). For multilabel input,
+              it computes recall for each label then returns average of them weighted by support
+              of labels (number of actual positive samples in each label).
+
+              .. math::
+                  Recall_k = \frac{TP_k}{TP_k+FN_k}
+
+              .. math::
+                  \text{Weighted Recall} = \frac{\sum_{k=1}^C P_k * Recall_k}{N}
+
+              where :math:`C` is the number of classes (2 in binary case). :math:`P_k` is the number
+              of samples belonged to class :math:`k` in binary and multiclass case, and the number of
+              positive samples belonged to label :math:`k` in multilabel case.
+
+              Note that for binary and multiclass data, weighted recall is equivalent
+              with accuracy, so use :class:`~ignite.metrics.accuracy.Accuracy`.
+
+            macro
+              computes macro recall which is unweighted average of metric computed across
+              classes or labels.
+
+              .. math::
+                  \text{Macro Recall} = \frac{\sum_{k=1}^C Recall_k}{C}
+
+              where :math:`C` is the number of classes (2 in binary case).
+
+            True
+              like macro option. For backward compatibility.
+        is_multilabel: flag to use in multilabel case. By default, value is False.
         device: specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
 
     Examples:
 
-        Binary case
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
+        Binary case. In binary and multilabel cases, the elements of
+        `y` and `y_pred` should have 0 or 1 values.
 
         .. testcode:: 1
 
-            metric = Recall(average=False)
+            metric = Recall()
+            two_class_metric = Recall(average=None) # Returns recall for both classes
             metric.attach(default_evaluator, "recall")
-            y_true = torch.Tensor([1, 0, 1, 1, 0, 1])
-            y_pred = torch.Tensor([1, 0, 1, 0, 1, 1])
+            two_class_metric.attach(default_evaluator, "both classes recall")
+            y_true = torch.tensor([1, 0, 1, 1, 0, 1])
+            y_pred = torch.tensor([1, 0, 1, 0, 1, 1])
             state = default_evaluator.run([[y_pred, y_true]])
-            print(state.metrics["recall"])
+            print(f"Recall: {state.metrics['recall']}")
+            print(f"Recall for class 0 and class 1: {state.metrics['both classes recall']}")
 
         .. testoutput:: 1
 
-            0.75
+            Recall: 0.75
+            Recall for class 0 and class 1: tensor([0.5000, 0.7500], dtype=torch.float64)
 
         Multiclass case
 
         .. testcode:: 2
 
-            metric = Recall(average=False)
+            metric = Recall()
+            macro_metric = Recall(average=True)
+
             metric.attach(default_evaluator, "recall")
-            y_true = torch.Tensor([2, 0, 2, 1, 0, 1]).long()
-            y_pred = torch.Tensor([
+            macro_metric.attach(default_evaluator, "macro recall")
+
+            y_true = torch.tensor([2, 0, 2, 1, 0])
+            y_pred = torch.tensor([
                 [0.0266, 0.1719, 0.3055],
                 [0.6886, 0.3978, 0.8176],
                 [0.9230, 0.0197, 0.8395],
                 [0.1785, 0.2670, 0.6084],
-                [0.8448, 0.7177, 0.7288],
-                [0.7748, 0.9542, 0.8573],
+                [0.8448, 0.7177, 0.7288]
             ])
             state = default_evaluator.run([[y_pred, y_true]])
-            print(state.metrics["recall"])
+            print(f"Recall: {state.metrics['recall']}")
+            print(f"Macro Recall: {state.metrics['macro recall']}")
 
         .. testoutput:: 2
 
-            tensor([0.5000, 0.5000, 0.5000], dtype=torch.float64)
-
-        Precision can be computed as the unweighted average across all classes:
-
-        .. testcode:: 3
-
-            metric = Recall(average=True)
-            metric.attach(default_evaluator, "recall")
-            y_true = torch.Tensor([2, 0, 2, 1, 0, 1]).long()
-            y_pred = torch.Tensor([
-                [0.0266, 0.1719, 0.3055],
-                [0.6886, 0.3978, 0.8176],
-                [0.9230, 0.0197, 0.8395],
-                [0.1785, 0.2670, 0.6084],
-                [0.8448, 0.7177, 0.7288],
-                [0.7748, 0.9542, 0.8573],
-            ])
-            state = default_evaluator.run([[y_pred, y_true]])
-            print(state.metrics["recall"])
-
-        .. testoutput:: 3
-
-            0.5
+            Recall: tensor([0.5000, 0.0000, 0.5000], dtype=torch.float64)
+            Macro Recall: 0.3333333333333333
 
         Multilabel case, the shapes must be (batch_size, num_categories, ...)
 
-        .. testcode:: 4
+        .. testcode:: 3
 
             metric = Recall(is_multilabel=True)
+            micro_metric = Recall(is_multilabel=True, average='micro')
+            macro_metric = Recall(is_multilabel=True, average=True)
+            samples_metric = Recall(is_multilabel=True, average='samples')
+
             metric.attach(default_evaluator, "recall")
-            y_true = torch.Tensor([
+            micro_metric.attach(default_evaluator, "micro recall")
+            macro_metric.attach(default_evaluator, "macro recall")
+            samples_metric.attach(default_evaluator, "samples recall")
+
+            y_true = torch.tensor([
                 [0, 0, 1],
                 [0, 0, 0],
                 [0, 0, 0],
                 [1, 0, 0],
                 [0, 1, 1],
-            ]).unsqueeze(0)
-            y_pred = torch.Tensor([
+            ])
+            y_pred = torch.tensor([
                 [1, 1, 0],
                 [1, 0, 1],
                 [1, 0, 0],
                 [1, 0, 1],
                 [1, 1, 0],
-            ]).unsqueeze(0)
+            ])
             state = default_evaluator.run([[y_pred, y_true]])
-            print(state.metrics["recall"])
+            print(f"Recall: {state.metrics['recall']}")
+            print(f"Micro Recall: {state.metrics['micro recall']}")
+            print(f"Macro Recall: {state.metrics['macro recall']}")
+            print(f"Samples Recall: {state.metrics['samples recall']}")
 
-        .. testoutput:: 4
+        .. testoutput:: 3
 
-            tensor([1., 1., 0.], dtype=torch.float64)
+            Recall: tensor([1., 1., 0.], dtype=torch.float64)
+            Micro Recall: 0.5
+            Macro Recall: 0.6666666666666666
+            Samples Recall: 0.3
 
-        In binary and multilabel cases, the elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of
-        predictions can be done as below:
+        Thresholding of predictions can be done as below:
 
-        .. testcode:: 5
+        .. testcode:: 4
 
             def thresholded_output_transform(output):
                 y_pred, y = output
                 y_pred = torch.round(y_pred)
                 return y_pred, y
 
-            metric = Recall(average=False, output_transform=thresholded_output_transform)
+            metric = Recall(output_transform=thresholded_output_transform)
             metric.attach(default_evaluator, "recall")
-            y_true = torch.Tensor([1, 0, 1, 1, 0, 1])
-            y_pred = torch.Tensor([0.6, 0.2, 0.9, 0.4, 0.7, 0.65])
+            y_true = torch.tensor([1, 0, 1, 1, 0, 1])
+            y_pred = torch.tensor([0.6, 0.2, 0.9, 0.4, 0.7, 0.65])
             state = default_evaluator.run([[y_pred, y_true]])
-            print(state.metrics["recall"])
+            print(state.metrics['recall'])
 
-        .. testoutput:: 5
+        .. testoutput:: 4
 
             0.75
 
-        In multilabel cases, average parameter should be True. However, if user would like to compute F1 metric, for
-        example, average parameter should be False. This can be done as shown below:
 
-        .. code-block:: python
-
-            precision = Precision(average=False)
-            recall = Recall(average=False)
-            F1 = precision * recall * 2 / (precision + recall + 1e-20)
-            F1 = MetricsLambda(lambda t: torch.mean(t).item(), F1)
-
-    .. warning::
-
-        In multilabel cases, if average is False, current implementation stores all input data (output and target) in
-        as tensors before computing a metric. This can potentially lead to a memory error if the input data is larger
-        than available RAM.
+    .. versionchanged:: 0.5.0
+            Some new options were added to `average` parameter.
     """
-
-    def __init__(
-        self,
-        output_transform: Callable = lambda x: x,
-        average: bool = False,
-        is_multilabel: bool = False,
-        device: Union[str, torch.device] = torch.device("cpu"),
-    ):
-        super(Recall, self).__init__(
-            output_transform=output_transform, average=average, is_multilabel=is_multilabel, device=device
-        )
 
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
         self._check_shape(output)
         self._check_type(output)
-        y_pred, y = output[0].detach(), output[1].detach()
+        _, y, correct = self._prepare_output(output)
 
-        if self._type == "binary":
-            y_pred = y_pred.view(-1)
-            y = y.view(-1)
-        elif self._type == "multiclass":
-            num_classes = y_pred.size(1)
-            if y.max() + 1 > num_classes:
-                raise ValueError(
-                    f"y_pred contains less classes than y. Number of predicted classes is {num_classes}"
-                    f" and element in y has invalid class = {y.max().item() + 1}."
-                )
-            y = to_onehot(y.view(-1), num_classes=num_classes)
-            indices = torch.argmax(y_pred, dim=1).view(-1)
-            y_pred = to_onehot(indices, num_classes=num_classes)
-        elif self._type == "multilabel":
-            # if y, y_pred shape is (N, C, ...) -> (C, N x ...)
-            num_classes = y_pred.size(1)
-            y_pred = torch.transpose(y_pred, 1, 0).reshape(num_classes, -1)
-            y = torch.transpose(y, 1, 0).reshape(num_classes, -1)
+        if self._average == "samples":
 
-        # Convert from int cuda/cpu to double on self._device
-        y_pred = y_pred.to(dtype=torch.float64, device=self._device)
-        y = y.to(dtype=torch.float64, device=self._device)
-        correct = y * y_pred
-        actual_positives = y.sum(dim=0)
+            actual_positives = y.sum(dim=1)
+            true_positives = correct.sum(dim=1)
+            self._numerator += torch.sum(true_positives / (actual_positives + self.eps))
+            self._denominator += y.size(0)
+        elif self._average == "micro":
 
-        if correct.sum() == 0:
-            true_positives = torch.zeros_like(actual_positives)
-        else:
-            true_positives = correct.sum(dim=0)
+            self._denominator += y.sum()
+            self._numerator += correct.sum()
+        else:  # _average in [False, 'macro', 'weighted']
 
-        if self._type == "multilabel":
-            if not self._average:
-                self._true_positives = torch.cat([self._true_positives, true_positives], dim=0)  # type: torch.Tensor
-                self._positives = torch.cat([self._positives, actual_positives], dim=0)  # type: torch.Tensor
-            else:
-                self._true_positives += torch.sum(true_positives / (actual_positives + self.eps))
-                self._positives += len(actual_positives)
-        else:
-            self._true_positives += true_positives
-            self._positives += actual_positives
+            self._denominator += y.sum(dim=0)
+            self._numerator += correct.sum(dim=0)
+
+            if self._average == "weighted":
+                self._weight += y.sum(dim=0)
 
         self._updated = True

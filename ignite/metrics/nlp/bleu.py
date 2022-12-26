@@ -104,6 +104,8 @@ class Bleu(Metric):
 
     Examples:
 
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
         .. testcode::
 
             from ignite.metrics.nlp import Bleu
@@ -122,8 +124,10 @@ class Bleu(Metric):
             tensor(0.0393, dtype=torch.float64)
 
     .. versionadded:: 0.4.5
-    .. versionchanged:: 0.5.0
-        added ``average`` option to handle micro and macro averaging modes.
+    .. versionchanged:: 0.4.7
+
+        - ``update`` method has changed and now works on batch of inputs.
+        - added ``average`` option to handle micro and macro averaging modes.
     """
 
     def __init__(

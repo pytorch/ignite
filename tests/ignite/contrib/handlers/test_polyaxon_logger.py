@@ -1,14 +1,14 @@
 import os
-from unittest.mock import MagicMock, call
+from unittest.mock import call, MagicMock
 
 import pytest
 import torch
 
 from ignite.contrib.handlers.polyaxon_logger import (
+    global_step_from_engine,
     OptimizerParamsHandler,
     OutputHandler,
     PolyaxonLogger,
-    global_step_from_engine,
 )
 from ignite.engine import Engine, Events, State
 
@@ -66,7 +66,7 @@ def test_output_handler_metric_names():
     wrapper = OutputHandler("tag", metric_names=["a"])
 
     mock_engine = MagicMock()
-    mock_engine.state = State(metrics={"a": torch.Tensor([0.0, 1.0, 2.0, 3.0])})
+    mock_engine.state = State(metrics={"a": torch.tensor([0.0, 1.0, 2.0, 3.0])})
     mock_engine.state.iteration = 5
 
     mock_logger = MagicMock(spec=PolyaxonLogger)
@@ -232,7 +232,7 @@ def test_optimizer_params_handler_wrong_setup():
 
 def test_optimizer_params():
 
-    optimizer = torch.optim.SGD([torch.Tensor(0)], lr=0.01)
+    optimizer = torch.optim.SGD([torch.tensor(0.0)], lr=0.01)
     wrapper = OptimizerParamsHandler(optimizer=optimizer, param_name="lr")
     mock_logger = MagicMock(spec=PolyaxonLogger)
     mock_logger.log_metrics = MagicMock()
@@ -300,26 +300,8 @@ def test_integration_as_context_manager():
         trainer.run(data, max_epochs=n_epochs)
 
 
-@pytest.fixture
-def no_site_packages():
-    import sys
-
-    polyaxon_client_modules = {}
-    for k in sys.modules:
-        if "polyaxon" in k:
-            polyaxon_client_modules[k] = sys.modules[k]
-    for k in polyaxon_client_modules:
-        del sys.modules[k]
-
-    prev_path = list(sys.path)
-    sys.path = [p for p in sys.path if "site-packages" not in p]
-    yield "no_site_packages"
-    sys.path = prev_path
-    for k in polyaxon_client_modules:
-        sys.modules[k] = polyaxon_client_modules[k]
-
-
+@pytest.mark.parametrize("no_site_packages", ["polyaxon"], indirect=True)
 def test_no_polyaxon_client(no_site_packages):
 
-    with pytest.raises(RuntimeError, match=r"This contrib module requires polyaxon"):
+    with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires polyaxon"):
         PolyaxonLogger()

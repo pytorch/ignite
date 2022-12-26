@@ -1,15 +1,14 @@
-import os
 import sys
-from unittest.mock import MagicMock, call
+from unittest.mock import call, MagicMock
 
 import pytest
 import torch
 
 from ignite.contrib.handlers.mlflow_logger import (
+    global_step_from_engine,
     MLflowLogger,
     OptimizerParamsHandler,
     OutputHandler,
-    global_step_from_engine,
 )
 from ignite.engine import Engine, Events, State
 
@@ -65,7 +64,7 @@ def test_output_handler_metric_names():
     wrapper = OutputHandler("tag", metric_names=["a"])
 
     mock_engine = MagicMock()
-    mock_engine.state = State(metrics={"a": torch.Tensor([0.0, 1.0, 2.0, 3.0])})
+    mock_engine.state = State(metrics={"a": torch.tensor([0.0, 1.0, 2.0, 3.0])})
     mock_engine.state.iteration = 5
 
     mock_logger = MagicMock(spec=MLflowLogger)
@@ -217,7 +216,7 @@ def test_optimizer_params_handler_wrong_setup():
 
 def test_optimizer_params():
 
-    optimizer = torch.optim.SGD([torch.Tensor(0)], lr=0.01)
+    optimizer = torch.optim.SGD([torch.tensor(0.0)], lr=0.01)
     wrapper = OptimizerParamsHandler(optimizer=optimizer, param_name="lr")
     mock_logger = MagicMock(spec=MLflowLogger)
     mock_logger.log_metrics = MagicMock()
@@ -250,7 +249,7 @@ def test_integration(dirname):
 
     trainer = Engine(update_fn)
 
-    mlflow_logger = MLflowLogger(tracking_uri=os.path.join(dirname, "mlruns"))
+    mlflow_logger = MLflowLogger(tracking_uri=str(dirname / "mlruns"))
 
     true_values = []
 
@@ -271,7 +270,7 @@ def test_integration(dirname):
 
     from mlflow.tracking import MlflowClient
 
-    client = MlflowClient(tracking_uri=os.path.join(dirname, "mlruns"))
+    client = MlflowClient(tracking_uri=str(dirname / "mlruns"))
     stored_values = client.get_metric_history(active_run.info.run_id, "test_value")
 
     for t, s in zip(true_values, stored_values):
@@ -292,7 +291,7 @@ def test_integration_as_context_manager(dirname):
 
     true_values = []
 
-    with MLflowLogger(os.path.join(dirname, "mlruns")) as mlflow_logger:
+    with MLflowLogger(str(dirname / "mlruns")) as mlflow_logger:
 
         trainer = Engine(update_fn)
 
@@ -312,7 +311,7 @@ def test_integration_as_context_manager(dirname):
 
     from mlflow.tracking import MlflowClient
 
-    client = MlflowClient(tracking_uri=os.path.join(dirname, "mlruns"))
+    client = MlflowClient(tracking_uri=str(dirname / "mlruns"))
     stored_values = client.get_metric_history(active_run.info.run_id, "test_value")
 
     for t, s in zip(true_values, stored_values):
@@ -324,7 +323,7 @@ def test_mlflow_bad_metric_name_handling(dirname):
     import mlflow
 
     true_values = [123.0, 23.4, 333.4]
-    with MLflowLogger(os.path.join(dirname, "mlruns")) as mlflow_logger:
+    with MLflowLogger(str(dirname / "mlruns")) as mlflow_logger:
 
         active_run = mlflow.active_run()
 
@@ -344,32 +343,15 @@ def test_mlflow_bad_metric_name_handling(dirname):
 
     from mlflow.tracking import MlflowClient
 
-    client = MlflowClient(tracking_uri=os.path.join(dirname, "mlruns"))
+    client = MlflowClient(tracking_uri=str(dirname / "mlruns"))
     stored_values = client.get_metric_history(active_run.info.run_id, "training metric 0")
 
     for t, s in zip([1000.0] + true_values, stored_values):
         assert t == s.value
 
 
-@pytest.fixture
-def no_site_packages():
-
-    mlflow_client_modules = {}
-    for k in sys.modules:
-        if "mlflow" in k:
-            mlflow_client_modules[k] = sys.modules[k]
-    for k in mlflow_client_modules:
-        del sys.modules[k]
-
-    prev_path = list(sys.path)
-    sys.path = [p for p in sys.path if "site-packages" not in p]
-    yield "no_site_packages"
-    sys.path = prev_path
-    for k in mlflow_client_modules:
-        sys.modules[k] = mlflow_client_modules[k]
-
-
+@pytest.mark.parametrize("no_site_packages", ["mlflow"], indirect=True)
 def test_no_mlflow_client(no_site_packages):
 
-    with pytest.raises(RuntimeError, match=r"This contrib module requires mlflow to be installed."):
+    with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires mlflow to be installed."):
         MLflowLogger()

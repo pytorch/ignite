@@ -1,7 +1,13 @@
+from typing import Optional
+
+import numpy as np
+
 import pytest
 import torch
 
-from ignite.contrib.metrics.regression._base import _BaseRegression
+import ignite.distributed as idist
+
+from ignite.contrib.metrics.regression._base import _BaseRegression, _torch_median
 
 
 def test_base_regression_shapes():
@@ -37,3 +43,28 @@ def test_base_regression_shapes():
     with pytest.raises(TypeError, match=r"Input y dtype should be float"):
         y = torch.tensor([1, 1])
         m.update((y.float(), y))
+
+
+@pytest.mark.parametrize("size", [100, 101, (30, 3), (31, 3)])
+def test_torch_median_numpy(size, device: Optional[str] = None):
+    data = torch.rand(size).to(device)
+    assert _torch_median(data) == np.median(data.cpu().numpy())
+
+
+@pytest.mark.tpu
+@pytest.mark.parametrize("size", [100, 101, (30, 3), (31, 3)])
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_on_even_size_xla(size):
+    device = "xla"
+    test_torch_median_numpy(size, device=device)
+
+
+@pytest.mark.parametrize("size", [100, 101, (30, 3), (31, 3)])
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
+def test_on_even_size_gpu(size):
+    test_torch_median_numpy(size, device="cuda")
+
+
+@pytest.mark.parametrize("size", [100, 101, (30, 3), (31, 3)])
+def test_create_even_size_cpu(size):
+    test_torch_median_numpy(size, device="cpu")

@@ -30,6 +30,16 @@ def _check_output_types(output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         raise TypeError(f"Input y dtype should be float 16, 32 or 64, but given {y.dtype}")
 
 
+def _torch_median(output: torch.Tensor) -> float:
+    output = output.view(-1)
+    len_ = len(output)
+
+    if len_ % 2 == 0:
+        return float((torch.kthvalue(output, len_ // 2)[0] + torch.kthvalue(output, len_ // 2 + 1)[0]) / 2)
+    else:
+        return float(torch.kthvalue(output, len_ // 2 + 1)[0])
+
+
 class _BaseRegression(Metric):
     # Base class for all regression metrics
     # `update` method check the shapes and call internal overloaded

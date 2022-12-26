@@ -42,11 +42,14 @@ class CanberraMetric(_BaseRegression):
         The output of the engine's ``process_function`` needs to be in format of
         ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``.
 
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         .. testcode::
 
                 metric = CanberraMetric()
                 metric.attach(default_evaluator, 'canberra')
-                y_pred = torch.Tensor([[3.8], [9.9], [-5.4], [2.1]])
+                y_pred = torch.tensor([[3.8], [9.9], [-5.4], [2.1]])
                 y_true = y_pred * 1.5
                 state = default_evaluator.run([[y_pred, y_true]])
                 print(state.metrics['canberra'])

@@ -60,7 +60,7 @@ class ReproducibleBatchSampler(BatchSampler):
         if not isinstance(batch_sampler, BatchSampler):
             raise TypeError("Argument batch_sampler should be torch.utils.data.sampler.BatchSampler")
 
-        self.batch_indices = []  # type: List
+        self.batch_indices: List = []
         self.batch_sampler = batch_sampler
         self.start_iteration = start_iteration
         self.sampler = self.batch_sampler.sampler
@@ -192,7 +192,10 @@ class DeterministicEngine(Engine):
     def _init_run(self) -> None:
         self.state.seed = int(torch.randint(0, int(1e9), (1,)).item())
         if torch.cuda.is_available():
-            torch.backends.cudnn.deterministic = True
+            if hasattr(torch, "use_deterministic_algorithms"):
+                torch.use_deterministic_algorithms(True, warn_only=True)
+            else:
+                torch.backends.cudnn.deterministic = True
             torch.backends.cudnn.benchmark = False
 
     def _setup_engine(self) -> None:
@@ -233,7 +236,7 @@ class DeterministicEngine(Engine):
         # Below we define initial counter value for _run_once_on_dataset to measure a single epoch
         if self.state.epoch_length is not None:
             iteration %= self.state.epoch_length
-        self._init_iter.append(iteration)
+        self._init_iter = iteration
 
         # restore rng state if in the middle
         in_the_middle = self.state.iteration % self._dataloader_len > 0 if self._dataloader_len is not None else False
@@ -251,12 +254,12 @@ class DeterministicEngine(Engine):
         if isinstance(data, DataLoader):
             try:
                 # following is unsafe for IterableDatasets
-                iteration %= len(data.batch_sampler)  # type: ignore[attr-defined, arg-type]
+                iteration %= len(data.batch_sampler)  # type: ignore[arg-type]
                 # Synchronize dataflow according to state.iteration
                 self._setup_seed()
                 if iteration > 0:
                     # batch sampler is ReproducibleBatchSampler
-                    data.batch_sampler.start_iteration = iteration  # type: ignore[attr-defined, union-attr]
+                    data.batch_sampler.start_iteration = iteration  # type: ignore[union-attr]
                 return iter(data)
             except TypeError as e:
                 # Probably we can do nothing with DataLoader built upon IterableDatasets

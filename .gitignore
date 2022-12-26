@@ -22,6 +22,7 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+**/.DS_Store
 
 # Unit test / coverage reports
 htmlcov/
@@ -39,3 +40,7 @@ coverage.xml
 /docs/src/
 /docs/build/
 /docs/source/generated/
+
+# Virtualenv
+.venv/
+.python-version

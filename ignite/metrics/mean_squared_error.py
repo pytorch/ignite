@@ -11,7 +11,7 @@ __all__ = ["MeanSquaredError"]
 class MeanSquaredError(Metric):
     r"""Calculates the `mean squared error <https://en.wikipedia.org/wiki/Mean_squared_error>`_.
 
-    .. math:: \text{MSE} = \frac{1}{N} \sum_{i=1}^N \left(y_{i} - x_{i} \right)^2
+    .. math:: \text{MSE} = \frac{1}{N} \sum_{i=1}^N \|y_{i} - x_{i}\|^2
 
     where :math:`y_{i}` is the prediction tensor and :math:`x_{i}` is ground true tensor.
 
@@ -35,11 +35,16 @@ class MeanSquaredError(Metric):
 
         ``y_pred`` and ``y`` should have the same shape.
 
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         .. testcode::
 
             metric = MeanSquaredError()
             metric.attach(default_evaluator, 'mse')
-            preds = torch.Tensor([
+            preds = torch.tensor([
                 [1, 2, 4, 1],
                 [2, 3, 1, 5],
                 [1, 3, 5, 1],

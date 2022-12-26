@@ -1,15 +1,21 @@
 import warnings
-from distutils.version import LooseVersion
 from typing import Callable, Optional, Sequence, Union
 
 import torch
+from packaging.version import Version
 
-from ignite.metrics.gan.utils import InceptionModel, _BaseInceptionMetric
+from ignite.metrics.gan.utils import _BaseInceptionMetric, InceptionModel
 from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
 __all__ = [
     "FID",
 ]
+
+
+if Version(torch.__version__) <= Version("1.7.0"):
+    torch_outer = torch.ger
+else:
+    torch_outer = torch.outer
 
 
 def fid_score(
@@ -19,12 +25,12 @@ def fid_score(
     try:
         import numpy as np
     except ImportError:
-        raise RuntimeError("fid_score requires numpy to be installed.")
+        raise ModuleNotFoundError("fid_score requires numpy to be installed.")
 
     try:
         import scipy.linalg
     except ImportError:
-        raise RuntimeError("fid_score requires scipy to be installed.")
+        raise ModuleNotFoundError("fid_score requires scipy to be installed.")
 
     mu1, mu2 = mu1.cpu(), mu2.cpu()
     sigma1, sigma2 = sigma1.cpu(), sigma2.cpu()
@@ -67,7 +73,7 @@ class FID(_BaseInceptionMetric):
 
     Remark:
 
-        This implementation is inspired by pytorch_fid package which can be found `here`__
+        This implementation is inspired by `pytorch_fid` package which can be found `here`__
 
         __ https://github.com/mseitzer/pytorch-fid
 
@@ -96,14 +102,10 @@ class FID(_BaseInceptionMetric):
 
     Examples:
 
-        .. code-block:: python
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
 
-            metric = FID()
-            metric.attach(default_evaluator, "fid")
-            y_true = torch.rand(10, 3, 299, 299)
-            y_pred = torch.rand(10, 3, 299, 299)
-            state = default_evaluator.run([[y_pred, y_true]])
-            print(state.metrics["fid"])
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 
@@ -117,6 +119,47 @@ class FID(_BaseInceptionMetric):
         .. testoutput::
 
             0.0
+
+    .. note::
+
+        The default `torchvision` model used is InceptionV3 pretrained on ImageNet.
+        This can lead to differences in results with `pytorch_fid`. To find comparable results,
+        the following model wrapper should be used:
+
+        .. code::
+
+            import torch.nn as nn
+
+            # wrapper class as feature_extractor
+            class WrapperInceptionV3(nn.Module):
+
+                def __init__(self, fid_incv3):
+                    super().__init__()
+                    self.fid_incv3 = fid_incv3
+
+                @torch.no_grad()
+                def forward(self, x):
+                    y = self.fid_incv3(x)
+                    y = y[0]
+                    y = y[:, :, 0, 0]
+                    return y
+
+            # use cpu rather than cuda to get comparable results
+            device = "cpu"
+
+            # pytorch_fid model
+            dims = 2048
+            block_idx = InceptionV3.BLOCK_INDEX_BY_DIM[dims]
+            model = InceptionV3([block_idx]).to(device)
+
+            # wrapper model to pytorch_fid model
+            wrapper_model = WrapperInceptionV3(model)
+            wrapper_model.eval();
+
+            # comparable metric
+            pytorch_fid_metric = FID(num_features=dims, feature_extractor=wrapper_model)
+
+        Important, `pytorch_fid` results depend on the batch size if the device is `cuda`.
 
     .. versionadded:: 0.4.6
     """
@@ -132,12 +175,12 @@ class FID(_BaseInceptionMetric):
         try:
             import numpy as np  # noqa: F401
         except ImportError:
-            raise RuntimeError("This module requires numpy to be installed.")
+            raise ModuleNotFoundError("This module requires numpy to be installed.")
 
         try:
             import scipy  # noqa: F401
         except ImportError:
-            raise RuntimeError("This module requires scipy to be installed.")
+            raise ModuleNotFoundError("This module requires scipy to be installed.")
 
         if num_features is None and feature_extractor is None:
             num_features = 1000
@@ -156,22 +199,14 @@ class FID(_BaseInceptionMetric):
     def _online_update(features: torch.Tensor, total: torch.Tensor, sigma: torch.Tensor) -> None:
 
         total += features
-
-        if LooseVersion(torch.__version__) <= LooseVersion("1.7.0"):
-            sigma += torch.ger(features, features)
-        else:
-            sigma += torch.outer(features, features)
+        sigma += torch_outer(features, features)
 
     def _get_covariance(self, sigma: torch.Tensor, total: torch.Tensor) -> torch.Tensor:
         r"""
         Calculates covariance from mean and sum of products of variables
         """
 
-        if LooseVersion(torch.__version__) <= LooseVersion("1.7.0"):
-            sub_matrix = torch.ger(total, total)
-        else:
-            sub_matrix = torch.outer(total, total)
-
+        sub_matrix = torch_outer(total, total)
         sub_matrix = sub_matrix / self._num_examples
 
         return (sigma - sub_matrix) / (self._num_examples - 1)

@@ -108,12 +108,9 @@ def test_integration_median_absolute_error():
 
 
 def _test_distrib_compute(device):
-    rank = idist.get_rank()
-
     def _test(metric_device):
         metric_device = torch.device(metric_device)
         m = MedianAbsoluteError(device=metric_device)
-        torch.manual_seed(10 + rank)
 
         size = 105
 
@@ -132,39 +129,29 @@ def _test_distrib_compute(device):
 
         e = np.abs(np_y - np_y_pred)
 
-        # The results between numpy.median() and torch.median() are Inconsistant
-        # when the length of the array/tensor is even. So this is a hack to avoid that.
-        # issue: https://github.com/pytorch/pytorch/issues/1837
-        if np_y_pred.shape[0] % 2 == 0:
-            e_prepend = np.insert(e, 0, e[0], axis=0)
-            np_res_prepend = np.median(e_prepend)
-            assert pytest.approx(res) == np_res_prepend
-        else:
-            np_res = np.median(e)
-            assert pytest.approx(res) == np_res
+        np_res = np.median(e)
+        assert pytest.approx(res) == np_res
 
-    for _ in range(3):
+    rank = idist.get_rank()
+    for i in range(3):
+        torch.manual_seed(10 + rank + i)
         _test("cpu")
         if device.type != "xla":
             _test(idist.device())
 
 
 def _test_distrib_integration(device):
-
-    rank = idist.get_rank()
-    torch.manual_seed(12)
-
     def _test(n_epochs, metric_device):
         metric_device = torch.device(metric_device)
         n_iters = 80
-        size = 105
-        y_true = torch.rand(size=(size,)).to(device)
-        y_preds = torch.rand(size=(size,)).to(device)
+        batch_size = 105
+        y_true = torch.rand(size=(n_iters * batch_size,)).to(device)
+        y_preds = torch.rand(size=(n_iters * batch_size,)).to(device)
 
         def update(engine, i):
             return (
-                y_preds[i * size : (i + 1) * size],
-                y_true[i * size : (i + 1) * size],
+                y_preds[i * batch_size : (i + 1) * batch_size],
+                y_true[i * batch_size : (i + 1) * batch_size],
             )
 
         engine = Engine(update)
@@ -174,6 +161,9 @@ def _test_distrib_integration(device):
 
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=n_epochs)
+
+        y_preds = idist.all_gather(y_preds)
+        y_true = idist.all_gather(y_true)
 
         assert "mae" in engine.state.metrics
 
@@ -191,7 +181,9 @@ def _test_distrib_integration(device):
     if device.type != "xla":
         metric_devices.append(idist.device())
     for metric_device in metric_devices:
-        for _ in range(2):
+        rank = idist.get_rank()
+        for i in range(2):
+            torch.manual_seed(10 + rank + i)
             _test(n_epochs=1, metric_device=metric_device)
             _test(n_epochs=2, metric_device=metric_device)
 

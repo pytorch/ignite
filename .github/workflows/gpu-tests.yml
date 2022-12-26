@@ -1,0 +1,111 @@
+name: Run unit tests on GPUs
+on:
+  push:
+    paths:
+      - "ignite/**"
+      - "tests/ignite/**"
+      - "tests/run_gpu_tests.sh"
+      - "tests/run_code_style.sh"
+      - "examples/**.py"
+      - "requirements-dev.txt"
+      - ".github/workflows/gpu-tests.yml"
+  workflow_dispatch:
+
+concurrency:
+  # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>
+  group: gpu-tests-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  gpu-tests:
+    runs-on: [self-hosted, 2-gpus]
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      max-parallel: 1
+      fail-fast: true
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.8
+
+      - name: Get year & week number
+        id: get-date
+        run: |
+          echo "date=$(/bin/date "+%Y-%U")" >> $GITHUB_OUTPUT
+
+      - name: Get pip cache dir
+        id: pip-cache
+        run: |
+          pip install -U pip || python -m pip install -U pip
+          echo "pip_cache=$(pip cache dir)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ${{ steps.pip-cache.outputs.pip_cache }}
+          key: ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-3.8-pytorch-${{ hashFiles('requirements-dev.txt') }}
+          restore-keys: |
+            ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-3.8-pytorch-
+
+      - run: pip install pip wheel setuptools -Uqq
+
+      - name: Install PyTorch
+        # https://pytorch.org/get-started/locally/
+        run: |
+          pip install --upgrade torch torchvision -f https://download.pytorch.org/whl/cu116/torch_stable.html
+          nvidia-smi
+          python -c "import torch; print(torch.__version__, ', CUDA is available: ', torch.cuda.is_available())"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements-dev.txt
+          python setup.py install
+
+      - name: Run 1 Node 2 GPUs Unit Tests
+        run: |
+          bash tests/run_gpu_tests.sh 2
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: gpu-2
+          fail_ci_if_error: false
+
+      - name: Install additional example dependencies
+        run: pip install fire
+
+      - name: Check training on cifar10, run without backend
+        run: |
+          export example_path="examples/contrib/cifar10"
+          # initial run
+          export stop_cmd="--stop_iteration=500"
+          CI=1 python ${example_path}/main.py run --checkpoint_every=200 ${stop_cmd}
+          # resume
+          export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-None-1_stop-on-500/training_checkpoint_400.pt"
+          CI=1 python ${example_path}/main.py run --checkpoint_every=200 --num_epochs=7 ${resume_opt}
+
+      - name: Check training on cifar10, run with NCCL backend using torchrun
+        run: |
+          export example_path="examples/contrib/cifar10"
+          # initial run
+          export stop_cmd="--stop_iteration=500"
+          CI=1 torchrun --nproc_per_node=2 ${example_path}/main.py run --backend=nccl --checkpoint_every=200 ${stop_cmd}
+          # resume
+          export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt"
+          CI=1 torchrun --nproc_per_node=2 ${example_path}/main.py run --backend=nccl --checkpoint_every=200 --num_epochs=7 ${resume_opt}
+
+      - name: Check training on cifar10, run with NCCL backend using spawn
+        run: |
+          export example_path="examples/contrib/cifar10"
+          # initial run
+          export stop_cmd="--stop_iteration=500"
+          CI=1 python -u ${example_path}/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200 ${stop_cmd}
+          # resume
+          export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt"
+          CI=1 python -u ${example_path}/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200 --num_epochs=7 ${resume_opt}
+

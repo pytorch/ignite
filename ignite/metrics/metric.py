@@ -1,9 +1,8 @@
-import warnings
 from abc import ABCMeta, abstractmethod
 from collections.abc import Mapping
 from functools import wraps
 from numbers import Number
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple, TYPE_CHECKING, Union
 
 import torch
 
@@ -150,6 +149,8 @@ class Metric(metaclass=ABCMeta):
         In the example below we show how to setup standard metric like Accuracy and the custom metric using by an
         ``evaluator`` created with :meth:`~ignite.engine.create_supervised_evaluator` method.
 
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
         .. code-block:: python
 
             # https://discuss.pytorch.org/t/how-access-inputs-in-custom-ignite-metric/91221/5
@@ -207,17 +208,6 @@ class Metric(metaclass=ABCMeta):
         self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu")
     ):
         self._output_transform = output_transform
-
-        # Check device if distributed is initialized:
-        if idist.get_world_size() > 1:
-
-            # check if reset and update methods are decorated. Compute may not be decorated
-            if not (hasattr(self.reset, "_decorated") and hasattr(self.update, "_decorated")):
-                warnings.warn(
-                    f"{self.__class__.__name__} class does not support distributed setting. "
-                    "Computed result is not collected across all computing devices",
-                    RuntimeWarning,
-                )
 
         # Some metrics have a large performance regression when run on XLA devices, so for now, we disallow it.
         if torch.device(device).type == "xla":
@@ -378,6 +368,7 @@ class Metric(metaclass=ABCMeta):
                 :attr:`ignite.metrics.metric.BatchWise.usage_name`.
 
         Examples:
+
             .. code-block:: python
 
                 metric = ...

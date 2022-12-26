@@ -13,6 +13,7 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import os
+import shutil
 import sys
 
 sys.path.insert(0, os.path.abspath("../.."))
@@ -59,7 +60,21 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.autosectionlabel",
     "sphinx_copybutton",
+    "sphinx_togglebutton",
+    "sphinx_design",
 ]
+
+# toggle button hint text
+togglebutton_hint = "Show default setup"
+togglebutton_hint_hide = "Hide default setup"
+
+# Copy defaults.rst to source/generated to be discoverable in docstrings
+# Skip this step for previous versions of ignite
+if os.path.exists("defaults.rst"):
+    src_folder = os.path.dirname(__file__)
+    gen_folder = os.path.join(src_folder, "generated")
+    os.makedirs(gen_folder, exist_ok=True)
+    shutil.copy(os.path.join(src_folder, "defaults.rst"), gen_folder)
 
 # katex options
 katex_prerender = True
@@ -327,55 +342,9 @@ nitpick_ignore = [
     ("py:class", "torch.utils.data.sampler.BatchSampler"),
     ("py:class", "torch.cuda.amp.grad_scaler.GradScaler"),
     ("py:class", "torch.optim.lr_scheduler._LRScheduler"),
+    ("py:class", "torch.optim.lr_scheduler.LRScheduler"),
     ("py:class", "torch.utils.data.dataloader.DataLoader"),
 ]
-
-# doctest config
-doctest_global_setup = """
-from collections import OrderedDict
-
-import torch
-from torch import nn, optim
-
-from ignite.engine import *
-from ignite.handlers import *
-from ignite.metrics import *
-from ignite.utils import *
-from ignite.contrib.metrics.regression import *
-from ignite.contrib.metrics import *
-
-# create default evaluator for doctests
-
-def eval_step(engine, batch):
-    return batch
-
-default_evaluator = Engine(eval_step)
-
-# create default optimizer for doctests
-
-param_tensor = torch.zeros([1], requires_grad=True)
-default_optimizer = torch.optim.SGD([param_tensor], lr=0.1)
-
-# create default trainer for doctests
-# as handlers could be attached to the trainer,
-# each test must defined his own trainer using `.. testsetup:`
-
-def get_default_trainer():
-
-    def train_step(engine, batch):
-        return 0.0
-
-    return Engine(train_step)
-
-# create default model for doctests
-
-default_model = nn.Sequential(OrderedDict([
-    ('base', nn.Linear(4, 2)),
-    ('fc', nn.Linear(2, 1))
-]))
-
-manual_seed(666)
-"""
 
 
 def setup(app):

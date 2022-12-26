@@ -1,4 +1,3 @@
-import os
 from collections.abc import Mapping
 
 import pytest
@@ -145,7 +144,7 @@ def test_load_state_dict_with_params_overriding_integration():
     assert state.iteration == state_dict["epoch_length"] * new_max_epochs
     assert state.epoch == new_max_epochs
 
-    with pytest.raises(ValueError, match=r"Argument max_epochs should be larger than the start epoch"):
+    with pytest.raises(ValueError, match=r"Argument max_epochs should be greater than or equal to the start epoch"):
         engine.load_state_dict(state_dict)
         engine.run(data, max_epochs=3)
 
@@ -189,7 +188,7 @@ def test_state_dict_with_user_keys_integration(dirname):
     def init_user_values(_):
         engine.state.alpha = 0.1
 
-    fp = os.path.join(dirname, "engine.pt")
+    fp = dirname / "engine.pt"
 
     @engine.on(Events.COMPLETED)
     def save_engine(_):
@@ -199,7 +198,7 @@ def test_state_dict_with_user_keys_integration(dirname):
 
     engine.run([0, 1])
 
-    assert os.path.exists(fp)
+    assert fp.exists()
     state_dict = torch.load(fp)
     assert "alpha" in state_dict and state_dict["alpha"] == 0.1
 
@@ -271,7 +270,7 @@ def test_restart_training():
     state = engine.run(data, max_epochs=5)
     with pytest.raises(
         ValueError,
-        match=r"Argument max_epochs should be larger than the start epoch defined in the state: 2 vs 5. "
+        match=r"Argument max_epochs should be greater than or equal to the start epoch defined in the state: 2 vs 5. "
         r"Please, .+ "
         r"before calling engine.run\(\) in order to restart the training from the beginning.",
     ):

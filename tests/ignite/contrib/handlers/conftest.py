@@ -1,14 +1,13 @@
 from unittest.mock import Mock
 
-import numpy as np
 import pytest
 import torch
 
 
 @pytest.fixture()
 def norm_mock():
-    def norm(x):
-        return np.linalg.norm(x)
+    def norm(x: torch.Tensor):
+        return x.norm()
 
     norm_mock = Mock(side_effect=norm, spec=norm)
     norm_mock.configure_mock(**{"__name__": "norm"})
@@ -28,7 +27,7 @@ def dummy_model_factory():
             self.fc2.weight.data.fill_(1.0)
             self.fc2.bias.data.fill_(1.0)
 
-    def get_dummy_model(with_grads=True, with_frozen_layer=False):
+    def get_dummy_model(with_grads=True, with_frozen_layer=False, with_buffer=False):
         model = DummyModel()
         if with_grads:
             model.fc2.weight.grad = torch.zeros_like(model.fc2.weight)
@@ -41,6 +40,9 @@ def dummy_model_factory():
         if with_frozen_layer:
             for param in model.fc1.parameters():
                 param.requires_grad = False
+
+        if with_buffer:
+            model.register_buffer("buffer1", torch.ones(1))
         return model
 
     return get_dummy_model

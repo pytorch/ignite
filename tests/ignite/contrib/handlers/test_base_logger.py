@@ -1,9 +1,16 @@
-from unittest.mock import MagicMock, call
+from typing import Any, Union
+from unittest.mock import call, MagicMock
 
 import pytest
 import torch
 
-from ignite.contrib.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler
+from ignite.contrib.handlers.base_logger import (
+    BaseLogger,
+    BaseOptimizerParamsHandler,
+    BaseOutputHandler,
+    BaseWeightsHandler,
+    BaseWeightsScalarHandler,
+)
 from ignite.engine import Engine, Events, EventsList, State
 from tests.ignite.contrib.handlers import MockFP16DeepSpeedZeroOptimizer
 
@@ -29,6 +36,16 @@ class DummyLogger(BaseLogger):
 
     def _create_opt_params_handler(self, *args, **kwargs):
         return DummyOptParamsHandler(*args, **kwargs)
+
+
+class DummyWeightsHandler(BaseWeightsHandler):
+    def __call__(self, engine: Engine, logger: Any, event_name: Union[str, Events]) -> None:
+        pass
+
+
+class DummyWeightsScalarHandler(BaseWeightsScalarHandler):
+    def __call__(self, engine: Engine, logger: Any, event_name: Union[str, Events]) -> None:
+        pass
 
 
 def test_base_output_handler_wrong_setup():
@@ -152,52 +169,52 @@ def test_opt_params_handler_on_non_torch_optimizers():
     assert "lr/group_0" in res and res["lr/group_0"] == 0.1234
 
 
-def test_attach():
+@pytest.mark.parametrize(
+    "event, n_calls, kwargs",
+    [
+        (Events.ITERATION_STARTED, 50 * 5, {"a": 0}),
+        (Events.ITERATION_COMPLETED, 50 * 5, {}),
+        (Events.EPOCH_STARTED, 5, {}),
+        (Events.EPOCH_COMPLETED, 5, {}),
+        (Events.STARTED, 1, {}),
+        (Events.COMPLETED, 1, {}),
+        (Events.ITERATION_STARTED(every=10), 50 // 10 * 5, {}),
+        (Events.STARTED | Events.COMPLETED, 2, {}),
+    ],
+)
+def test_attach(event, n_calls, kwargs):
 
     n_epochs = 5
     data = list(range(50))
 
-    def _test(event, n_calls, kwargs={}):
+    losses = torch.rand(n_epochs * len(data))
+    losses_iter = iter(losses)
 
-        losses = torch.rand(n_epochs * len(data))
-        losses_iter = iter(losses)
+    def update_fn(engine, batch):
+        return next(losses_iter)
 
-        def update_fn(engine, batch):
-            return next(losses_iter)
+    trainer = Engine(update_fn)
 
-        trainer = Engine(update_fn)
+    logger = DummyLogger()
 
-        logger = DummyLogger()
+    mock_log_handler = MagicMock()
 
-        mock_log_handler = MagicMock()
+    logger.attach(trainer, log_handler=mock_log_handler, event_name=event, **kwargs)
 
-        logger.attach(trainer, log_handler=mock_log_handler, event_name=event, **kwargs)
+    trainer.run(data, max_epochs=n_epochs)
 
-        trainer.run(data, max_epochs=n_epochs)
+    if isinstance(event, EventsList):
+        events = [e for e in event]
+    else:
+        events = [event]
 
-        if isinstance(event, EventsList):
-            events = [e for e in event]
-        else:
-            events = [event]
+    if len(kwargs) > 0:
+        calls = [call(trainer, logger, e, **kwargs) for e in events]
+    else:
+        calls = [call(trainer, logger, e) for e in events]
 
-        if len(kwargs) > 0:
-            calls = [call(trainer, logger, e, **kwargs) for e in events]
-        else:
-            calls = [call(trainer, logger, e) for e in events]
-
-        mock_log_handler.assert_has_calls(calls)
-        assert mock_log_handler.call_count == n_calls
-
-    _test(Events.ITERATION_STARTED, len(data) * n_epochs, kwargs={"a": 0})
-    _test(Events.ITERATION_COMPLETED, len(data) * n_epochs)
-    _test(Events.EPOCH_STARTED, n_epochs)
-    _test(Events.EPOCH_COMPLETED, n_epochs)
-    _test(Events.STARTED, 1)
-    _test(Events.COMPLETED, 1)
-
-    _test(Events.ITERATION_STARTED(every=10), len(data) // 10 * n_epochs)
-
-    _test(Events.STARTED | Events.COMPLETED, 2)
+    mock_log_handler.assert_has_calls(calls)
+    assert mock_log_handler.call_count == n_calls
 
 
 def test_attach_wrong_event_name():
@@ -243,7 +260,19 @@ def test_attach_on_custom_event():
         assert mock_log_handler.call_count == n_calls
 
 
-def test_as_context_manager():
+@pytest.mark.parametrize(
+    "event, n_calls",
+    [
+        (Events.ITERATION_STARTED, 50 * 5),
+        (Events.ITERATION_COMPLETED, 50 * 5),
+        (Events.EPOCH_STARTED, 5),
+        (Events.EPOCH_COMPLETED, 5),
+        (Events.STARTED, 1),
+        (Events.COMPLETED, 1),
+        (Events.ITERATION_STARTED(every=10), 50 // 10 * 5),
+    ],
+)
+def test_as_context_manager(event, n_calls):
 
     n_epochs = 5
     data = list(range(50))
@@ -255,39 +284,45 @@ def test_as_context_manager():
         def close(self):
             self.writer.close()
 
-    def _test(event, n_calls):
-        global close_counter
-        close_counter = 0
+    global close_counter
+    close_counter = 0
 
-        losses = torch.rand(n_epochs * len(data))
-        losses_iter = iter(losses)
+    losses = torch.rand(n_epochs * len(data))
+    losses_iter = iter(losses)
 
-        def update_fn(engine, batch):
-            return next(losses_iter)
+    def update_fn(engine, batch):
+        return next(losses_iter)
 
-        writer = MagicMock()
-        writer.close = MagicMock()
+    writer = MagicMock()
+    writer.close = MagicMock()
 
-        with _DummyLogger(writer) as logger:
-            assert isinstance(logger, _DummyLogger)
+    with _DummyLogger(writer) as logger:
+        assert isinstance(logger, _DummyLogger)
 
-            trainer = Engine(update_fn)
-            mock_log_handler = MagicMock()
+        trainer = Engine(update_fn)
+        mock_log_handler = MagicMock()
 
-            logger.attach(trainer, log_handler=mock_log_handler, event_name=event)
+        logger.attach(trainer, log_handler=mock_log_handler, event_name=event)
 
-            trainer.run(data, max_epochs=n_epochs)
+        trainer.run(data, max_epochs=n_epochs)
 
-            mock_log_handler.assert_called_with(trainer, logger, event)
-            assert mock_log_handler.call_count == n_calls
+        mock_log_handler.assert_called_with(trainer, logger, event)
+        assert mock_log_handler.call_count == n_calls
 
-        writer.close.assert_called_once_with()
+    writer.close.assert_called_once_with()
 
-    _test(Events.ITERATION_STARTED, len(data) * n_epochs)
-    _test(Events.ITERATION_COMPLETED, len(data) * n_epochs)
-    _test(Events.EPOCH_STARTED, n_epochs)
-    _test(Events.EPOCH_COMPLETED, n_epochs)
-    _test(Events.STARTED, 1)
-    _test(Events.COMPLETED, 1)
 
-    _test(Events.ITERATION_STARTED(every=10), len(data) // 10 * n_epochs)
+def test_base_weights_handler_wrong_setup():
+
+    with pytest.raises(TypeError, match="Argument model should be of type torch.nn.Module"):
+        DummyWeightsHandler(None)
+
+
+def test_base_weights_scalar_handler_wrong_setup():
+
+    model = MagicMock(spec=torch.nn.Module)
+    with pytest.raises(TypeError, match="Argument reduction should be callable"):
+        DummyWeightsScalarHandler(model, reduction=123)
+
+    with pytest.raises(TypeError, match="Output of the reduction function should be a scalar"):
+        DummyWeightsScalarHandler(model, reduction=lambda x: x)

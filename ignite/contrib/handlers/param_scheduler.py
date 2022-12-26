@@ -15,13 +15,13 @@ warnings.warn(deprecation_warning, DeprecationWarning, stacklevel=2)
 from ignite.handlers.param_scheduler import (
     ConcatScheduler,
     CosineAnnealingScheduler,
+    create_lr_scheduler_with_warmup,
     CyclicalScheduler,
     LinearCyclicalScheduler,
     LRScheduler,
     ParamGroupScheduler,
     ParamScheduler,
     PiecewiseLinear,
-    create_lr_scheduler_with_warmup,
 )
 
 __all__ = [

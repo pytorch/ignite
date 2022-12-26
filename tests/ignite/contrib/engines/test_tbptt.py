@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-from ignite.contrib.engines import Tbptt_Events, create_supervised_tbptt_trainer
+from ignite.contrib.engines import create_supervised_tbptt_trainer, Tbptt_Events
 from ignite.contrib.engines.tbptt import _detach_hidden
 
 

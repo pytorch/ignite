@@ -1,6 +1,6 @@
 """Visdom logger and its helper handlers."""
 import os
-from typing import Any, Callable, Dict, List, Optional, Union, cast
+from typing import Any, Callable, cast, Dict, List, Optional, Union
 
 import torch
 import torch.nn as nn
@@ -135,7 +135,7 @@ class VisdomLogger(BaseLogger):
                     output_transform=lambda loss: {"loss": loss}
                 )
 
-    ..  versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.7
         accepts an optional list of `state_attributes`
     """
 
@@ -150,7 +150,7 @@ class VisdomLogger(BaseLogger):
         try:
             import visdom
         except ImportError:
-            raise RuntimeError(
+            raise ModuleNotFoundError(
                 "This contrib module requires visdom package. "
                 "Please install it with command:\n"
                 "pip install git+https://github.com/fossasia/visdom.git"
@@ -163,7 +163,7 @@ class VisdomLogger(BaseLogger):
             try:
                 from concurrent.futures import ThreadPoolExecutor
             except ImportError:
-                raise RuntimeError(
+                raise ModuleNotFoundError(
                     "This contrib module requires concurrent.futures module"
                     "Please install it with command:\n"
                     "pip install futures"
@@ -188,7 +188,7 @@ class VisdomLogger(BaseLogger):
         if not self.vis.offline and not self.vis.check_connection():  # type: ignore[attr-defined]
             raise RuntimeError(f"Failed to connect to Visdom server at {server}. Did you run python -m visdom.server ?")
 
-        self.executor = _DummyExecutor()  # type: Union[_DummyExecutor, "ThreadPoolExecutor"]
+        self.executor: Union[_DummyExecutor, "ThreadPoolExecutor"] = _DummyExecutor()
         if num_workers > 0:
             self.executor = ThreadPoolExecutor(max_workers=num_workers)
 
@@ -208,7 +208,7 @@ class VisdomLogger(BaseLogger):
 
 class _BaseVisDrawer:
     def __init__(self, show_legend: bool = False):
-        self.windows = {}  # type: Dict[str, Any]
+        self.windows: Dict[str, Any] = {}
         self.show_legend = show_legend
 
     def add_scalar(
@@ -354,7 +354,7 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
         tag: str,
         metric_names: Optional[str] = None,
         output_transform: Optional[Callable] = None,
-        global_step_transform: Optional[Callable] = None,
+        global_step_transform: Optional[Callable[[Engine, Union[str, Events]], int]] = None,
         show_legend: bool = False,
         state_attributes: Optional[List[str]] = None,
     ):
@@ -370,7 +370,7 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
 
         metrics = self._setup_output_metrics_state_attrs(engine, key_tuple=False)
 
-        global_step = self.global_step_transform(engine, event_name)  # type: ignore[misc]
+        global_step = self.global_step_transform(engine, event_name)
 
         if not isinstance(global_step, int):
             raise TypeError(
@@ -482,7 +482,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
         for name, p in self.model.named_parameters():
             name = name.replace(".", "/")
             k = f"{tag_prefix}weights_{self.reduction.__name__}/{name}"
-            v = float(self.reduction(p.data))
+            v = self.reduction(p.data)
             self.add_scalar(logger, k, v, event_name, global_step)
 
         logger._save()
@@ -528,9 +528,12 @@ class GradsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = f"{self.tag}/" if self.tag else ""
         for name, p in self.model.named_parameters():
+            if p.grad is None:
+                continue
+
             name = name.replace(".", "/")
             k = f"{tag_prefix}grads_{self.reduction.__name__}/{name}"
-            v = float(self.reduction(p.grad))
+            v = self.reduction(p.grad)
             self.add_scalar(logger, k, v, event_name, global_step)
 
         logger._save()

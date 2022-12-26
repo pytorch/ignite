@@ -5,6 +5,7 @@ from unittest.mock import patch
 import pytest
 import torch
 import torch.nn as nn
+from packaging.version import Version
 
 from ignite.engine import Engine, Events
 from ignite.handlers.state_param_scheduler import (
@@ -36,6 +37,11 @@ config5 = (
         "create_new": True,
     },
 )
+
+if Version(torch.__version__) < Version("1.9.0"):
+    torch_testing_assert_close = torch.testing.assert_allclose
+else:
+    torch_testing_assert_close = torch.testing.assert_close
 
 
 class LambdaState:
@@ -95,7 +101,7 @@ def test_pwlinear_scheduler_step_constant(max_epochs, milestones_values):
     )
     linear_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
     engine.run([0] * 8, max_epochs=max_epochs)
-    torch.testing.assert_allclose(getattr(engine.state, "pwlinear_scheduled_param"), milestones_values[0][1])
+    torch_testing_assert_close(getattr(engine.state, "pwlinear_scheduled_param"), float(milestones_values[0][1]))
 
     state_dict = linear_state_parameter_scheduler.state_dict()
     linear_state_parameter_scheduler.load_state_dict(state_dict)
@@ -113,7 +119,7 @@ def test_pwlinear_scheduler_linear_increase(max_epochs, milestones_values, expec
     )
     linear_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
     engine.run([0] * 8, max_epochs=max_epochs)
-    torch.testing.assert_allclose(getattr(engine.state, "pwlinear_scheduled_param"), expected_val, atol=0.001, rtol=0.0)
+    torch_testing_assert_close(getattr(engine.state, "pwlinear_scheduled_param"), expected_val, atol=0.001, rtol=0.0)
 
     state_dict = linear_state_parameter_scheduler.state_dict()
     linear_state_parameter_scheduler.load_state_dict(state_dict)
@@ -128,7 +134,7 @@ def test_pwlinear_scheduler_max_value(max_epochs, milestones_values):
     )
     linear_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
     engine.run([0] * 8, max_epochs=max_epochs)
-    torch.testing.assert_allclose(getattr(engine.state, "linear_scheduled_param"), milestones_values[-1][1])
+    torch_testing_assert_close(getattr(engine.state, "linear_scheduled_param"), float(milestones_values[-1][1]))
 
     state_dict = linear_state_parameter_scheduler.state_dict()
     linear_state_parameter_scheduler.load_state_dict(state_dict)
@@ -163,7 +169,7 @@ def test_exponential_scheduler(max_epochs, initial_value, gamma):
     )
     exp_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
     engine.run([0] * 8, max_epochs=max_epochs)
-    torch.testing.assert_allclose(getattr(engine.state, "exp_scheduled_param"), initial_value * gamma ** max_epochs)
+    torch_testing_assert_close(getattr(engine.state, "exp_scheduled_param"), initial_value * gamma ** max_epochs)
 
     state_dict = exp_state_parameter_scheduler.state_dict()
     exp_state_parameter_scheduler.load_state_dict(state_dict)
@@ -181,7 +187,7 @@ def test_step_scheduler(max_epochs, initial_value, gamma, step_size):
     )
     step_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
     engine.run([0] * 8, max_epochs=max_epochs)
-    torch.testing.assert_allclose(
+    torch_testing_assert_close(
         getattr(engine.state, "step_scheduled_param"), initial_value * gamma ** (max_epochs // step_size)
     )
 
@@ -206,7 +212,7 @@ def test_multistep_scheduler(max_epochs, initial_value, gamma, milestones):
     )
     multi_step_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
     engine.run([0] * 8, max_epochs=max_epochs)
-    torch.testing.assert_allclose(
+    torch_testing_assert_close(
         getattr(engine.state, "multistep_scheduled_param"),
         initial_value * gamma ** bisect_right(milestones, max_epochs),
     )
@@ -232,11 +238,11 @@ def test_custom_scheduler():
     )
     lambda_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
     engine.run([0] * 8, max_epochs=2)
-    torch.testing.assert_allclose(
+    torch_testing_assert_close(
         getattr(engine.state, "custom_scheduled_param"), LambdaState(initial_value=10, gamma=0.99)(2)
     )
     engine.run([0] * 8, max_epochs=20)
-    torch.testing.assert_allclose(
+    torch_testing_assert_close(
         getattr(engine.state, "custom_scheduled_param"), LambdaState(initial_value=10, gamma=0.99)(20)
     )
 
@@ -256,40 +262,34 @@ def test_custom_scheduler_asserts():
         )
 
 
-@pytest.mark.parametrize("scheduler_cls,scheduler_kwargs", [config3, config4, config5, config6])
+@pytest.mark.parametrize("scheduler_cls, scheduler_kwargs", [config3, config4, config5, config6])
 def test_simulate_and_plot_values(scheduler_cls, scheduler_kwargs):
 
     import matplotlib
 
     matplotlib.use("Agg")
 
-    def _test(scheduler_cls, scheduler_kwargs):
-        event = Events.EPOCH_COMPLETED
-        max_epochs = 2
-        data = [0] * 10
+    event = Events.EPOCH_COMPLETED
+    max_epochs = 2
+    data = [0] * 10
 
-        scheduler = scheduler_cls(**scheduler_kwargs)
-        trainer = Engine(lambda engine, batch: None)
-        scheduler.attach(trainer, event)
-        trainer.run(data, max_epochs=max_epochs)
+    scheduler = scheduler_cls(**scheduler_kwargs)
+    trainer = Engine(lambda engine, batch: None)
+    scheduler.attach(trainer, event)
+    trainer.run(data, max_epochs=max_epochs)
 
-        # launch plot values
-        scheduler_cls.plot_values(num_events=len(data) * max_epochs, **scheduler_kwargs)
-
-    _test(scheduler_cls, scheduler_kwargs)
+    # launch plot values
+    scheduler_cls.plot_values(num_events=len(data) * max_epochs, **scheduler_kwargs)
 
 
-@pytest.mark.parametrize("scheduler_cls,scheduler_kwargs", [config3, config4, config5, config6])
-def test_simulate_values(scheduler_cls, scheduler_kwargs):
-    def _test(scheduler_cls, scheduler_kwargs):
-        max_epochs = 2
-        data = [0] * 10
-        scheduler_cls.simulate_values(num_events=len(data) * max_epochs, **scheduler_kwargs)
+@pytest.mark.parametrize("save_history", [False, True])
+@pytest.mark.parametrize("scheduler_cls, scheduler_kwargs", [config3, config4, config5, config6])
+def test_simulate_values(scheduler_cls, scheduler_kwargs, save_history):
 
-    assert "save_history" not in scheduler_kwargs
-    _test(scheduler_cls, scheduler_kwargs)
-    scheduler_kwargs["save_history"] = True
-    _test(scheduler_cls, scheduler_kwargs)
+    max_epochs = 2
+    data = [0] * 10
+    scheduler_kwargs["save_history"] = save_history
+    scheduler_cls.simulate_values(num_events=len(data) * max_epochs, **scheduler_kwargs)
 
 
 def test_torch_save_load(dirname):
@@ -305,46 +305,43 @@ def test_torch_save_load(dirname):
     engine1 = Engine(lambda e, b: None)
     lambda_state_parameter_scheduler.attach(engine1, Events.EPOCH_COMPLETED)
     engine1.run([0] * 8, max_epochs=2)
-    torch.testing.assert_allclose(
+    torch_testing_assert_close(
         getattr(engine1.state, "custom_scheduled_param"), LambdaState(initial_value=10, gamma=0.99)(2)
     )
 
     engine2 = Engine(lambda e, b: None)
     loaded_lambda_state_parameter_scheduler.attach(engine2, Events.EPOCH_COMPLETED)
     engine2.run([0] * 8, max_epochs=2)
-    torch.testing.assert_allclose(
+    torch_testing_assert_close(
         getattr(engine2.state, "custom_scheduled_param"), LambdaState(initial_value=10, gamma=0.99)(2)
     )
-
-    torch.testing.assert_allclose(
+    torch_testing_assert_close(
         getattr(engine1.state, "custom_scheduled_param"), getattr(engine2.state, "custom_scheduled_param")
     )
 
 
 def test_simulate_and_plot_values_no_matplotlib():
-    def _test(scheduler_cls, **scheduler_kwargs):
-        event = Events.EPOCH_COMPLETED
-        max_epochs = 2
-        data = [0] * 10
 
-        scheduler = scheduler_cls(**scheduler_kwargs)
-        trainer = Engine(lambda engine, batch: None)
-        scheduler.attach(trainer, event)
-        trainer.run(data, max_epochs=max_epochs)
-
-        # launch plot values
-        scheduler_cls.plot_values(num_events=len(data) * max_epochs, **scheduler_kwargs)
-
-    with pytest.raises(RuntimeError, match=r"This method requires matplotlib to be installed."):
+    with pytest.raises(ModuleNotFoundError, match=r"This method requires matplotlib to be installed."):
         with patch.dict("sys.modules", {"matplotlib.pyplot": None}):
-            _test(
-                MultiStepStateScheduler,
-                param_name="multistep_scheduled_param",
-                initial_value=10,
-                gamma=0.99,
-                milestones=[3, 6],
-                create_new=True,
-            )
+            event = Events.EPOCH_COMPLETED
+            max_epochs = 2
+            data = [0] * 10
+
+            kwargs = {
+                "param_name": "multistep_scheduled_param",
+                "initial_value": 10,
+                "gamma": 0.99,
+                "milestones": [3, 6],
+                "create_new": True,
+            }
+            scheduler = MultiStepStateScheduler(**kwargs)
+            trainer = Engine(lambda engine, batch: None)
+            scheduler.attach(trainer, event)
+            trainer.run(data, max_epochs=max_epochs)
+
+            # launch plot values
+            MultiStepStateScheduler.plot_values(num_events=len(data) * max_epochs, **kwargs)
 
 
 def test_multiple_scheduler_with_save_history():
@@ -363,7 +360,7 @@ def test_multiple_scheduler_with_save_history():
         _scheduler = scheduler(**config, save_history=True)
         _scheduler.attach(engine)
         engine.run([0] * 8, max_epochs=2)
-        torch.testing.assert_allclose(
+        torch_testing_assert_close(
             engine_multiple_schedulers.state.param_history[config["param_name"]],
             engine.state.param_history[config["param_name"]],
         )

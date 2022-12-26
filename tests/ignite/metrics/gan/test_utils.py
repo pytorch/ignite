@@ -5,7 +5,7 @@ import pytest
 import torch
 import torchvision
 
-from ignite.metrics.gan.utils import InceptionModel, _BaseInceptionMetric
+from ignite.metrics.gan.utils import _BaseInceptionMetric, InceptionModel
 
 
 class DummyInceptionMetric(_BaseInceptionMetric):
@@ -80,7 +80,7 @@ def mock_no_torchvision():
 
 
 def test_no_torchvision(mock_no_torchvision):
-    with pytest.raises(RuntimeError, match=r"This module requires torchvision to be installed."):
+    with pytest.raises(ModuleNotFoundError, match=r"This module requires torchvision to be installed."):
         InceptionModel(return_features=True)
 
 

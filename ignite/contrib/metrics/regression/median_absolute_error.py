@@ -2,12 +2,14 @@ from typing import Callable, Union
 
 import torch
 
+from ignite.contrib.metrics.regression._base import _torch_median
+
 from ignite.metrics import EpochMetric
 
 
 def median_absolute_error_compute_fn(y_pred: torch.Tensor, y: torch.Tensor) -> float:
     e = torch.abs(y.view_as(y_pred) - y_pred)
-    return torch.median(e).item()
+    return _torch_median(e)
 
 
 class MedianAbsoluteError(EpochMetric):
@@ -45,18 +47,21 @@ class MedianAbsoluteError(EpochMetric):
         The output of the engine's ``process_function`` needs to be in format of
         ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``.
 
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         .. testcode::
 
             metric = MedianAbsoluteError()
             metric.attach(default_evaluator, 'mae')
-            y_true = torch.Tensor([0, 1, 2, 3, 4, 5])
+            y_true = torch.tensor([0, 1, 2, 3, 4, 5])
             y_pred = y_true * 0.75
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics['mae'])
 
         .. testoutput::
 
-            0.5...
+            0.625
     """
 
     def __init__(

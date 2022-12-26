@@ -17,45 +17,40 @@ def test_zero_sample():
         mse.compute()
 
 
-def test_compute():
+@pytest.fixture(params=[item for item in range(4)])
+def test_case(request):
+    return [
+        (torch.randint(0, 10, size=(100, 1)), torch.randint(0, 10, size=(100, 1)), 1),
+        (torch.randint(-20, 20, size=(100, 5)), torch.randint(-20, 20, size=(100, 5)), 1),
+        # updated batches
+        (torch.randint(0, 10, size=(100, 1)), torch.randint(0, 10, size=(100, 1)), 16),
+        (torch.randint(-20, 20, size=(100, 5)), torch.randint(-20, 20, size=(100, 5)), 16),
+    ][request.param]
+
+
+@pytest.mark.parametrize("n_times", range(5))
+def test_compute(n_times, test_case):
 
     mse = MeanSquaredError()
 
-    def _test(y_pred, y, batch_size):
-        mse.reset()
-        if batch_size > 1:
-            n_iters = y.shape[0] // batch_size + 1
-            for i in range(n_iters):
-                idx = i * batch_size
-                mse.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-        else:
-            mse.update((y_pred, y))
+    y_pred, y, batch_size = test_case
 
-        np_y = y.numpy()
-        np_y_pred = y_pred.numpy()
+    mse.reset()
+    if batch_size > 1:
+        n_iters = y.shape[0] // batch_size + 1
+        for i in range(n_iters):
+            idx = i * batch_size
+            mse.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+    else:
+        mse.update((y_pred, y))
 
-        np_res = np.power((np_y - np_y_pred), 2.0).sum() / np_y.shape[0]
+    np_y = y.numpy()
+    np_y_pred = y_pred.numpy()
 
-        assert isinstance(mse.compute(), float)
-        assert mse.compute() == np_res
+    np_res = np.power((np_y - np_y_pred), 2.0).sum() / np_y.shape[0]
 
-    def get_test_cases():
-
-        test_cases = [
-            (torch.randint(0, 10, size=(100, 1)), torch.randint(0, 10, size=(100, 1)), 1),
-            (torch.randint(-20, 20, size=(100, 5)), torch.randint(-20, 20, size=(100, 5)), 1),
-            # updated batches
-            (torch.randint(0, 10, size=(100, 1)), torch.randint(0, 10, size=(100, 1)), 16),
-            (torch.randint(-20, 20, size=(100, 5)), torch.randint(-20, 20, size=(100, 5)), 16),
-        ]
-
-        return test_cases
-
-    for _ in range(5):
-        # check multiple random inputs as random exact occurencies are rare
-        test_cases = get_test_cases()
-        for y_pred, y, batch_size in test_cases:
-            _test(y_pred, y, batch_size)
+    assert isinstance(mse.compute(), float)
+    assert mse.compute() == np_res
 
 
 def _test_distrib_integration(device, tol=1e-6):
@@ -63,20 +58,21 @@ def _test_distrib_integration(device, tol=1e-6):
     from ignite.engine import Engine
 
     rank = idist.get_rank()
-    n_iters = 100
-    s = 10
-    offset = n_iters * s
-
-    y_true = torch.arange(0, offset * idist.get_world_size(), dtype=torch.float).to(device)
-    y_preds = torch.ones(offset * idist.get_world_size(), dtype=torch.float).to(device)
-
-    def update(engine, i):
-        return (
-            y_preds[i * s + offset * rank : (i + 1) * s + offset * rank],
-            y_true[i * s + offset * rank : (i + 1) * s + offset * rank],
-        )
+    torch.manual_seed(12 + rank)
 
     def _test(metric_device):
+        n_iters = 100
+        batch_size = 10
+
+        y_true = torch.arange(0, n_iters * batch_size, dtype=torch.float).to(device)
+        y_preds = torch.ones(n_iters * batch_size, dtype=torch.float).to(device)
+
+        def update(engine, i):
+            return (
+                y_preds[i * batch_size : (i + 1) * batch_size],
+                y_true[i * batch_size : (i + 1) * batch_size],
+            )
+
         engine = Engine(update)
 
         m = MeanSquaredError(device=metric_device)
@@ -84,6 +80,9 @@ def _test_distrib_integration(device, tol=1e-6):
 
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=1)
+
+        y_preds = idist.all_gather(y_preds)
+        y_true = idist.all_gather(y_true)
 
         assert "mse" in engine.state.metrics
         res = engine.state.metrics["mse"]

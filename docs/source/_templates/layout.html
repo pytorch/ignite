@@ -516,7 +516,7 @@
       });
     })
   </script>
-  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@docsearch/js@1.0.0-alpha.28/dist/umd/index.min.js"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@docsearch/js@3.3.0/dist/umd/index.min.js"></script>
   <script type="text/javascript">
   let VERSION
   if ('{{ version }}'.startsWith('v')) {
@@ -526,6 +526,7 @@
   }
   docsearch({
     container: '#docsearch',
+    appId: 'BH4D9OD16A',
     apiKey: '19a7a7a75d87608d6f42c722ed1e293f',
     indexName: 'ignite',
     placeholder: 'Search PyTorch-Ignite docs',

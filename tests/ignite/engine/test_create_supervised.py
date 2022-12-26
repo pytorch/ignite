@@ -1,5 +1,4 @@
 import os
-from distutils.version import LooseVersion
 from importlib.util import find_spec
 from typing import Optional, Union
 from unittest import mock
@@ -7,6 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import torch
+from packaging.version import Version
 from pytest import approx
 from torch.nn import Linear
 from torch.nn.functional import mse_loss
@@ -14,11 +14,11 @@ from torch.optim import SGD
 
 import ignite.distributed as idist
 from ignite.engine import (
-    Engine,
-    Events,
     _check_arg,
     create_supervised_evaluator,
     create_supervised_trainer,
+    Engine,
+    Events,
     supervised_evaluation_step,
     supervised_evaluation_step_amp,
     supervised_training_step_tpu,
@@ -93,11 +93,12 @@ def _test_create_supervised_trainer(
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def _():
+        assert model.weight.grad != 0
         _x, _y = trainer.state.batch
         _x, _y = _x.to(model_device), _y.to(model_device)
         accumulation[0] += 0.2 * _x.item() * (theta[0] * _x.item() - _y.item())
-        # loss is not accumulated !
-        loss[0] = mse_loss(model(_x), _y).item() / gradient_accumulation_steps
+        # value of loss should not be accumulated
+        loss[0] = mse_loss(model(_x), _y).item()
 
     @trainer.on(Events.ITERATION_COMPLETED(every=gradient_accumulation_steps))
     def _():
@@ -118,13 +119,13 @@ def _test_create_supervised_trainer(
                 assert not hasattr(state, "scaler")
 
     else:
-        if LooseVersion(torch.__version__) >= LooseVersion("1.7.0"):
+        if Version(torch.__version__) >= Version("1.7.0"):
             # This is broken in 1.6.0 but will be probably fixed with 1.7.0
             with pytest.raises(RuntimeError, match=r"Expected all tensors to be on the same device"):
                 trainer.run(data)
 
 
-@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0")
+@pytest.mark.skipif(Version(torch.__version__) < Version("1.6.0"), reason="Skip if < 1.6.0")
 def test_create_supervised_training_scalar_assignment():
 
     with mock.patch("ignite.engine._check_arg") as check_arg_mock:
@@ -234,7 +235,7 @@ def _test_create_supervised_evaluator(
         assert model.bias.item() == approx(0.0)
 
     else:
-        if LooseVersion(torch.__version__) >= LooseVersion("1.7.0"):
+        if Version(torch.__version__) >= Version("1.7.0"):
             # This is broken in 1.6.0 but will be probably fixed with 1.7.0
             with pytest.raises(RuntimeError, match=r"Expected all tensors to be on the same device"):
                 evaluator.run(data)
@@ -391,7 +392,7 @@ def test_create_supervised_trainer_amp_error(mock_torch_cuda_amp_module):
         _test_create_supervised_trainer(amp_mode="amp", scaler=True)
 
 
-@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.5.0"), reason="Skip if < 1.5.0")
+@pytest.mark.skipif(Version(torch.__version__) < Version("1.5.0"), reason="Skip if < 1.5.0")
 def test_create_supervised_trainer_scaler_not_amp():
     scaler = torch.cuda.amp.GradScaler(enabled=torch.cuda.is_available())
 
@@ -418,7 +419,7 @@ def test_create_supervised_trainer_on_cuda():
     _test_create_mocked_supervised_trainer(model_device=model_device, trainer_device=trainer_device)
 
 
-@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0")
+@pytest.mark.skipif(Version(torch.__version__) < Version("1.6.0"), reason="Skip if < 1.6.0")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_create_supervised_trainer_on_cuda_amp():
     model_device = trainer_device = "cuda"
@@ -434,7 +435,7 @@ def test_create_supervised_trainer_on_cuda_amp():
     _test_create_mocked_supervised_trainer(model_device=model_device, trainer_device=trainer_device, amp_mode="amp")
 
 
-@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0")
+@pytest.mark.skipif(Version(torch.__version__) < Version("1.6.0"), reason="Skip if < 1.6.0")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_create_supervised_trainer_on_cuda_amp_scaler():
     model_device = trainer_device = "cuda"
@@ -545,7 +546,7 @@ def test_create_supervised_evaluator():
     _test_mocked_supervised_evaluator()
 
     # older versions didn't have the autocast method so we skip the test for older builds
-    if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+    if Version(torch.__version__) >= Version("1.6.0"):
         with mock.patch("torch.cuda.amp.autocast") as mock_torch_cuda_amp_module:
             _test_create_evaluation_step_amp(mock_torch_cuda_amp_module)
 
@@ -555,7 +556,7 @@ def test_create_supervised_evaluator_on_cpu():
     _test_mocked_supervised_evaluator(evaluator_device="cpu")
 
     # older versions didn't have the autocast method so we skip the test for older builds
-    if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+    if Version(torch.__version__) >= Version("1.6.0"):
         with mock.patch("torch.cuda.amp.autocast") as mock_torch_cuda_amp_module:
             _test_create_evaluation_step(mock_torch_cuda_amp_module, evaluator_device="cpu")
             _test_create_evaluation_step_amp(mock_torch_cuda_amp_module, evaluator_device="cpu")
@@ -566,7 +567,7 @@ def test_create_supervised_evaluator_traced_on_cpu():
     _test_mocked_supervised_evaluator(evaluator_device="cpu", trace=True)
 
     # older versions didn't have the autocast method so we skip the test for older builds
-    if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+    if Version(torch.__version__) >= Version("1.6.0"):
         with mock.patch("torch.cuda.amp.autocast") as mock_torch_cuda_amp_module:
             _test_create_evaluation_step(mock_torch_cuda_amp_module, evaluator_device="cpu", trace=True)
 
@@ -584,7 +585,7 @@ def test_create_supervised_evaluator_on_cuda_with_model_on_cpu():
     _test_mocked_supervised_evaluator(evaluator_device="cuda")
 
 
-@pytest.mark.skipif(LooseVersion(torch.__version__) < LooseVersion("1.6.0"), reason="Skip if < 1.6.0")
+@pytest.mark.skipif(Version(torch.__version__) < Version("1.6.0"), reason="Skip if < 1.6.0")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_create_supervised_evaluator_on_cuda_amp():
     model_device = evaluator_device = "cuda"

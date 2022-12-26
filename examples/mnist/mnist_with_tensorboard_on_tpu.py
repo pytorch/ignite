@@ -25,13 +25,13 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, Normalize, ToTensor
 
-from ignite.engine import Events, create_supervised_evaluator, create_supervised_trainer
+from ignite.engine import create_supervised_evaluator, create_supervised_trainer, Events
 from ignite.metrics import Accuracy, Loss, RunningAverage
 
 try:
     import torch_xla.core.xla_model as xm
 except ImportError:
-    raise RuntimeError(
+    raise ModuleNotFoundError(
         "In order to run PyTorch on TPU we need to install PyTorch XLA:"
         "\n\t- curl https://raw.githubusercontent.com/pytorch/xla/master/contrib/scripts/env-setup.py -o xla-setup.py"
         "\n\t- python xla-setup.py --version 1.5"

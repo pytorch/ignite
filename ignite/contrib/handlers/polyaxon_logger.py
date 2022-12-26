@@ -40,7 +40,7 @@ class PolyaxonLogger(BaseLogger):
             plx_logger = PolyaxonLogger()
 
             # Log experiment parameters:
-            plx_logger.log_params(**{
+            plx_logger.log_inputs(**{
                 "seed": seed,
                 "batch_size": batch_size,
                 "model": model.__class__.__name__,
@@ -104,7 +104,7 @@ class PolyaxonLogger(BaseLogger):
 
                 self.experiment = Experiment(*args, **kwargs)
             except ImportError:
-                raise RuntimeError(
+                raise ModuleNotFoundError(
                     "This contrib module requires polyaxon to be installed.\n"
                     "For Polyaxon v1.x please install it with command: \n pip install polyaxon\n"
                     "For Polyaxon v0.x please install it with command: \n pip install polyaxon-client"
@@ -221,7 +221,7 @@ class OutputHandler(BaseOutputHandler):
             def global_step_transform(engine, event_name):
                 return engine.state.get_event_attrib_value(event_name)
 
-    ..  versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.7
         accepts an optional list of `state_attributes`
     """
 
@@ -230,7 +230,7 @@ class OutputHandler(BaseOutputHandler):
         tag: str,
         metric_names: Optional[List[str]] = None,
         output_transform: Optional[Callable] = None,
-        global_step_transform: Optional[Callable] = None,
+        global_step_transform: Optional[Callable[[Engine, Union[str, Events]], int]] = None,
         state_attributes: Optional[List[str]] = None,
     ):
         super(OutputHandler, self).__init__(
@@ -244,7 +244,7 @@ class OutputHandler(BaseOutputHandler):
 
         metrics = self._setup_output_metrics_state_attrs(engine, key_tuple=False)
 
-        global_step = self.global_step_transform(engine, event_name)  # type: ignore[misc]
+        global_step = self.global_step_transform(engine, event_name)
 
         if not isinstance(global_step, int):
             raise TypeError(

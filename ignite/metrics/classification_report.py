@@ -4,7 +4,6 @@ from typing import Callable, Collection, Dict, List, Optional, Union
 import torch
 
 from ignite.metrics.fbeta import Fbeta
-from ignite.metrics.metric import Metric
 from ignite.metrics.metrics_lambda import MetricsLambda
 from ignite.metrics.precision import Precision
 from ignite.metrics.recall import Recall
@@ -38,14 +37,19 @@ def ClassificationReport(
 
     Examples:
 
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         Multiclass case
 
         .. testcode:: 1
 
             metric = ClassificationReport(output_dict=True)
             metric.attach(default_evaluator, "cr")
-            y_true = torch.Tensor([2, 0, 2, 1, 0, 1]).long()
-            y_pred = torch.Tensor([
+            y_true = torch.tensor([2, 0, 2, 1, 0, 1])
+            y_pred = torch.tensor([
                 [0.0266, 0.1719, 0.3055],
                 [0.6886, 0.3978, 0.8176],
                 [0.9230, 0.0197, 0.8395],
@@ -74,20 +78,20 @@ def ClassificationReport(
 
             metric = ClassificationReport(output_dict=True, is_multilabel=True)
             metric.attach(default_evaluator, "cr")
-            y_true = torch.Tensor([
+            y_true = torch.tensor([
                 [0, 0, 1],
                 [0, 0, 0],
                 [0, 0, 0],
                 [1, 0, 0],
                 [0, 1, 1],
-            ]).unsqueeze(0)
-            y_pred = torch.Tensor([
+            ])
+            y_pred = torch.tensor([
                 [1, 1, 0],
                 [1, 0, 1],
                 [1, 0, 0],
                 [1, 0, 1],
                 [1, 1, 0],
-            ]).unsqueeze(0)
+            ])
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics["cr"].keys())
             print(state.metrics["cr"]["0"])
@@ -114,25 +118,24 @@ def ClassificationReport(
     averaged_fbeta = fbeta.mean()
 
     def _wrapper(
-        recall_metric: Metric, precision_metric: Metric, f: Metric, a_recall: Metric, a_precision: Metric, a_f: Metric
+        re: torch.Tensor, pr: torch.Tensor, f: torch.Tensor, a_re: torch.Tensor, a_pr: torch.Tensor, a_f: torch.Tensor
     ) -> Union[Collection[str], Dict]:
-        p_tensor, r_tensor, f_tensor = precision_metric, recall_metric, f
-        if p_tensor.shape != r_tensor.shape:
+        if pr.shape != re.shape:
             raise ValueError(
                 "Internal error: Precision and Recall have mismatched shapes: "
-                f"{p_tensor.shape} vs {r_tensor.shape}. Please, open an issue "
+                f"{pr.shape} vs {re.shape}. Please, open an issue "
                 "with a reference on this error. Thank you!"
             )
         dict_obj = {}
-        for idx, p_label in enumerate(p_tensor):
+        for idx, p_label in enumerate(pr):
             dict_obj[_get_label_for_class(idx)] = {
                 "precision": p_label.item(),
-                "recall": r_tensor[idx].item(),
-                "f{0}-score".format(beta): f_tensor[idx].item(),
+                "recall": re[idx].item(),
+                "f{0}-score".format(beta): f[idx].item(),
             }
         dict_obj["macro avg"] = {
-            "precision": a_precision.item(),
-            "recall": a_recall.item(),
+            "precision": a_pr.item(),
+            "recall": a_re.item(),
             "f{0}-score".format(beta): a_f.item(),
         }
         return dict_obj if output_dict else json.dumps(dict_obj)

@@ -1,21 +1,19 @@
 import math
-import os
-import sys
 import warnings
-from unittest.mock import ANY, MagicMock, call
+from unittest.mock import ANY, call, MagicMock
 
 import pytest
 import torch
 
 import ignite.distributed as idist
 from ignite.contrib.handlers.neptune_logger import (
+    global_step_from_engine,
     GradsScalarHandler,
     NeptuneLogger,
     NeptuneSaver,
     OptimizerParamsHandler,
     OutputHandler,
     WeightsScalarHandler,
-    global_step_from_engine,
 )
 from ignite.engine import Engine, Events, State
 from ignite.handlers.checkpoint import Checkpoint
@@ -35,7 +33,7 @@ def test_optimizer_params_handler_wrong_setup():
 
 
 def test_optimizer_params():
-    optimizer = torch.optim.SGD([torch.Tensor(0)], lr=0.01)
+    optimizer = torch.optim.SGD([torch.tensor(0.0)], lr=0.01)
     wrapper = OptimizerParamsHandler(optimizer=optimizer, param_name="lr")
     mock_logger = MagicMock(spec=NeptuneLogger)
     mock_logger.log_metric = MagicMock()
@@ -100,7 +98,7 @@ def test_output_handler_metric_names():
 
     mock_engine = MagicMock()
     mock_logger.log_metric = MagicMock()
-    mock_engine.state = State(metrics={"a": torch.Tensor([0.0, 1.0, 2.0, 3.0])})
+    mock_engine.state = State(metrics={"a": torch.tensor([0.0, 1.0, 2.0, 3.0])})
     mock_engine.state.iteration = 5
 
     mock_logger = MagicMock(spec=NeptuneLogger)
@@ -476,7 +474,7 @@ def test_neptune_saver_serializable(dirname):
     to_save_serializable = {"model": model}
 
     saver = NeptuneSaver(mock_logger)
-    fname = os.path.join(dirname, "test.pt")
+    fname = dirname / "test.pt"
     saver(to_save_serializable, fname)
 
     assert mock_logger.log_artifact.call_count == 1
@@ -532,27 +530,10 @@ def test_neptune_saver_non_serializable():
     assert mock_logger.log_artifact.call_count == 0
 
 
-@pytest.fixture
-def no_site_packages():
-
-    neptune_client_modules = {}
-    for k in sys.modules:
-        if "neptune" in k:
-            neptune_client_modules[k] = sys.modules[k]
-    for k in neptune_client_modules:
-        del sys.modules[k]
-
-    prev_path = list(sys.path)
-    sys.path = [p for p in sys.path if "site-packages" not in p]
-    yield "no_site_packages"
-    sys.path = prev_path
-    for k in neptune_client_modules:
-        sys.modules[k] = neptune_client_modules[k]
-
-
+@pytest.mark.parametrize("no_site_packages", ["neptune"], indirect=True)
 def test_no_neptune_client(no_site_packages):
 
-    with pytest.raises(RuntimeError, match=r"This contrib module requires neptune-client to be installed."):
+    with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires neptune-client to be installed."):
         NeptuneLogger()
 
 

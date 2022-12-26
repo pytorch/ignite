@@ -3,3 +3,5 @@ sphinx==4.2.0
 sphinxcontrib-katex
 sphinx-copybutton==0.4.0
 docutils<0.18
+sphinx_togglebutton
+sphinx_design

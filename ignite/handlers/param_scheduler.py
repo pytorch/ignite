@@ -2,15 +2,22 @@ import itertools
 import math
 import numbers
 import tempfile
+import warnings
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from copy import copy
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Type, Union, cast
+from typing import Any, cast, Dict, List, Mapping, Optional, Sequence, Tuple, Type, Union
 
 import torch
-from torch.optim.lr_scheduler import _LRScheduler
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.optim.optimizer import Optimizer
+
+# https://github.com/pytorch/ignite/issues/2773
+try:
+    from torch.optim.lr_scheduler import LRScheduler as PyTorchLRScheduler
+except ImportError:
+    from torch.optim.lr_scheduler import _LRScheduler as PyTorchLRScheduler
 
 from ignite.engine import Engine
 
@@ -24,7 +31,7 @@ class BaseParamScheduler(metaclass=ABCMeta):
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.7
 
     """
 
@@ -131,7 +138,7 @@ class BaseParamScheduler(metaclass=ABCMeta):
         try:
             import matplotlib.pyplot as plt
         except ImportError:
-            raise RuntimeError(
+            raise ModuleNotFoundError(
                 "This method requires matplotlib to be installed. "
                 "Please install it with command: \n pip install matplotlib"
             )
@@ -206,7 +213,7 @@ class ParamScheduler(BaseParamScheduler):
             name = self.param_name
 
         if self.save_history and engine:
-            if not hasattr(engine.state, "param_history") or engine.state.param_history is None:  # type: ignore
+            if not hasattr(engine.state, "param_history") or engine.state.param_history is None:
                 setattr(engine.state, "param_history", {})
             engine.state.param_history.setdefault(name, [])  # type: ignore[attr-defined]
             values = [pg[self.param_name] for pg in self.optimizer_param_groups]
@@ -359,11 +366,12 @@ class LinearCyclicalScheduler(CyclicalScheduler):
 
     Examples:
 
-        .. testsetup:: *
-
-            default_trainer = get_default_trainer()
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode:: 1
+
+            default_trainer = get_default_trainer()
 
             # Linearly increases the learning rate from 0.0 to 1.0 and back to 0.0
             # over a cycle of 4 iterations
@@ -386,6 +394,8 @@ class LinearCyclicalScheduler(CyclicalScheduler):
             ...
 
         .. testcode:: 2
+
+            default_trainer = get_default_trainer()
 
             optimizer = torch.optim.SGD(
                 [
@@ -457,11 +467,12 @@ class CosineAnnealingScheduler(CyclicalScheduler):
 
     Examples:
 
-        .. testsetup:: *
-
-            default_trainer = get_default_trainer()
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode:: 1
+
+            default_trainer = get_default_trainer()
 
             # CosineAnnealing increases the learning rate from 0.0 to 1.0
             # over a cycle of 4 iterations
@@ -484,6 +495,8 @@ class CosineAnnealingScheduler(CyclicalScheduler):
             ...
 
         .. testcode:: 2
+
+            default_trainer = get_default_trainer()
 
             optimizer = torch.optim.SGD(
                 [
@@ -544,11 +557,12 @@ class ConcatScheduler(ParamScheduler):
 
     Examples:
 
-        .. testsetup::
-
-            default_trainer = get_default_trainer()
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
+
+            default_trainer = get_default_trainer()
 
             scheduler_1 = LinearCyclicalScheduler(default_optimizer, "lr", 0.0, 1.0, 8)
             scheduler_2 = CosineAnnealingScheduler(default_optimizer, "lr", 1.0, 0.2, 4)
@@ -726,8 +740,8 @@ class ConcatScheduler(ParamScheduler):
                 By default, the first scheduler's parameter name is taken.
 
         Returns:
-            list of [event_index, value_0, value_1, ...], where values correspond to `param_names`.
-
+            list:
+                list of [event_index, value_0, value_1, ...], where values correspond to `param_names`.
         """
         if param_names is not None:
             if not isinstance(param_names, (list, tuple)):
@@ -787,26 +801,22 @@ class LRScheduler(ParamScheduler):
         lr_scheduler: lr_scheduler object to wrap.
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
+        use_legacy: if True, scheduler should be attached to ``Events.ITERATION_COMPLETED``, (default=False).
 
     Examples:
 
-        .. testsetup::
-
-            default_trainer = get_default_trainer()
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
+
+            default_trainer = get_default_trainer()
 
             from torch.optim.lr_scheduler import StepLR
 
             torch_lr_scheduler = StepLR(default_optimizer, step_size=3, gamma=0.1)
-
             scheduler = LRScheduler(torch_lr_scheduler)
 
-            # In this example, we assume to have installed PyTorch>=1.1.0
-            # (with new `torch.optim.lr_scheduler` behaviour) and
-            # we attach scheduler to Events.ITERATION_COMPLETED
-            # instead of Events.ITERATION_STARTED to make sure to use
-            # the first lr value from the optimizer, otherwise it is will be skipped:
             default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
 
             @default_trainer.on(Events.ITERATION_COMPLETED)
@@ -819,35 +829,52 @@ class LRScheduler(ParamScheduler):
 
             0.1
             0.1
+            0.1
             0.010...
             0.010...
             0.010...
-            0.001...
             0.001...
             0.001...
 
     .. versionadded:: 0.4.5
+
+    ..  versionchanged:: 0.4.9
+        added `use_legacy` argument
     """
 
-    def __init__(self, lr_scheduler: _LRScheduler, save_history: bool = False):
+    def __init__(
+        self,
+        lr_scheduler: PyTorchLRScheduler,
+        save_history: bool = False,
+        use_legacy: bool = False,
+    ):
 
-        if not isinstance(lr_scheduler, _LRScheduler):
+        if not isinstance(lr_scheduler, PyTorchLRScheduler):
             raise TypeError(
-                "Argument lr_scheduler should be a subclass of torch.optim.lr_scheduler._LRScheduler, "
+                "Argument lr_scheduler should be a subclass of "
+                f"torch.optim.lr_scheduler.{PyTorchLRScheduler.__name__}, "
                 f"but given {type(lr_scheduler)}"
             )
 
         self.lr_scheduler = lr_scheduler
         super(LRScheduler, self).__init__(
-            optimizer=self.lr_scheduler.optimizer,  # type: ignore[attr-defined]
+            optimizer=self.lr_scheduler.optimizer,
             param_name="lr",
             save_history=save_history,
         )
+        if use_legacy:
+            warnings.warn(
+                "Please make sure to attach scheduler to Events.ITERATION_COMPLETED "
+                "instead of Events.ITERATION_STARTED to make sure to use "
+                "the first lr value from the optimizer, otherwise it is will be skipped"
+            )
+            self.lr_scheduler.last_epoch += 1
+
         self._state_attrs += ["lr_scheduler"]
 
     def __call__(self, engine: Optional[Engine], name: Optional[str] = None) -> None:
-        self.lr_scheduler.last_epoch += 1  # type: ignore[attr-defined]
         super(LRScheduler, self).__call__(engine, name)
+        self.lr_scheduler.last_epoch += 1
 
     def get_param(self) -> Union[float, List[float]]:
         """Method to get current optimizer's parameter value"""
@@ -862,7 +889,7 @@ class LRScheduler(ParamScheduler):
 
     @classmethod
     def simulate_values(  # type: ignore[override]
-        cls, num_events: int, lr_scheduler: _LRScheduler, **kwargs: Any
+        cls, num_events: int, lr_scheduler: PyTorchLRScheduler, **kwargs: Any
     ) -> List[List[int]]:
         """Method to simulate scheduled values during num_events events.
 
@@ -872,42 +899,42 @@ class LRScheduler(ParamScheduler):
 
         Returns:
             event_index, value
-
         """
 
-        if not isinstance(lr_scheduler, _LRScheduler):
+        if not isinstance(lr_scheduler, PyTorchLRScheduler):
             raise TypeError(
-                "Argument lr_scheduler should be a subclass of torch.optim.lr_scheduler._LRScheduler, "
+                "Argument lr_scheduler should be a subclass of "
+                f"torch.optim.lr_scheduler.{PyTorchLRScheduler.__name__}, "
                 f"but given {type(lr_scheduler)}"
             )
 
-        # This scheduler uses `torch.optim.lr_scheduler._LRScheduler` which
+        # This scheduler uses `torch.optim.lr_scheduler.LRScheduler` which
         # should be replicated in order to simulate LR values and
         # not perturb original scheduler.
         with tempfile.TemporaryDirectory() as tmpdirname:
             cache_filepath = Path(tmpdirname) / "ignite_lr_scheduler_cache.pt"
             obj = {
                 "lr_scheduler": lr_scheduler.state_dict(),
-                "optimizer": lr_scheduler.optimizer.state_dict(),  # type: ignore[attr-defined]
+                "optimizer": lr_scheduler.optimizer.state_dict(),
             }
             torch.save(obj, cache_filepath.as_posix())
 
             values = []
-            scheduler = cls(save_history=False, lr_scheduler=lr_scheduler, **kwargs)  # type: ignore[call-arg]
+            scheduler = cls(save_history=False, lr_scheduler=lr_scheduler, **kwargs)
             for i in range(num_events):
+                scheduler(engine=None)
                 params = [p[scheduler.param_name] for p in scheduler.optimizer_param_groups]
                 values.append([i] + params)
-                scheduler(engine=None)
 
             obj = torch.load(cache_filepath.as_posix())
             lr_scheduler.load_state_dict(obj["lr_scheduler"])
-            lr_scheduler.optimizer.load_state_dict(obj["optimizer"])  # type: ignore[attr-defined]
+            lr_scheduler.optimizer.load_state_dict(obj["optimizer"])
 
             return values
 
 
 def create_lr_scheduler_with_warmup(
-    lr_scheduler: Union[ParamScheduler, _LRScheduler],
+    lr_scheduler: Union[ParamScheduler, PyTorchLRScheduler],
     warmup_start_value: float,
     warmup_duration: int,
     warmup_end_value: Optional[float] = None,
@@ -918,8 +945,7 @@ def create_lr_scheduler_with_warmup(
     Helper method to create a learning rate scheduler with a linear warm-up.
 
     Args:
-        lr_scheduler: learning rate scheduler
-            after the warm-up.
+        lr_scheduler: learning rate scheduler after the warm-up.
         warmup_start_value: learning rate start value of the warm-up phase.
         warmup_duration: warm-up phase duration, number of events.
         warmup_end_value: learning rate end value of the warm-up phase, (default=None). If None,
@@ -940,9 +966,8 @@ def create_lr_scheduler_with_warmup(
 
     Examples:
 
-        .. testsetup::
-
-            default_trainer = get_default_trainer()
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 
@@ -950,12 +975,14 @@ def create_lr_scheduler_with_warmup(
 
             torch_lr_scheduler = ExponentialLR(optimizer=default_optimizer, gamma=0.98)
 
+            default_trainer = get_default_trainer()
+
             scheduler = create_lr_scheduler_with_warmup(torch_lr_scheduler,
                                                         warmup_start_value=0.0,
                                                         warmup_end_value=0.1,
                                                         warmup_duration=3)
 
-            default_trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
+            default_trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
 
             @default_trainer.on(Events.ITERATION_COMPLETED)
             def print_lr():
@@ -976,10 +1003,11 @@ def create_lr_scheduler_with_warmup(
 
     .. versionadded:: 0.4.5
     """
-    if not isinstance(lr_scheduler, (ParamScheduler, _LRScheduler)):
+    if not isinstance(lr_scheduler, (ParamScheduler, PyTorchLRScheduler)):
         raise TypeError(
-            "Argument lr_scheduler should be a subclass of torch.optim.lr_scheduler._LRScheduler or "
-            f"ParamScheduler, but given {type(lr_scheduler)}"
+            "Argument lr_scheduler should be a subclass of "
+            f"torch.optim.lr_scheduler.{PyTorchLRScheduler.__name__} or ParamScheduler, "
+            f"but given {type(lr_scheduler)}"
         )
 
     if not isinstance(warmup_duration, numbers.Integral):
@@ -988,7 +1016,7 @@ def create_lr_scheduler_with_warmup(
     if not (warmup_duration > 1):
         raise ValueError(f"Argument warmup_duration should be at least 2 events, but given {warmup_duration}")
 
-    warmup_schedulers = []  # type: List[ParamScheduler]
+    warmup_schedulers: List[ParamScheduler] = []
 
     for param_group_index, param_group in enumerate(lr_scheduler.optimizer.param_groups):
 
@@ -999,12 +1027,17 @@ def create_lr_scheduler_with_warmup(
 
         milestones_values = [(0, warmup_start_value), (warmup_duration - 1, param_group_warmup_end_value)]
 
-        if isinstance(lr_scheduler, _LRScheduler):
+        if isinstance(lr_scheduler, PyTorchLRScheduler):
             init_lr = param_group["lr"]
-
             if init_lr != param_group_warmup_end_value:
                 milestones_values.append((warmup_duration, init_lr))
 
+            # We need to advance torch lr_scheduler to avoid duplicated lr value
+            # given by PiecewiseLinear and LRScheduler.
+            # We suggest to attach output scheduler on ITERATION_STARTED but
+            # torch lr_scheduler works with ITERATION_COMPLETED
+            # See also https://github.com/pytorch/ignite/pull/2496#issuecomment-1065984440
+            lr_scheduler.last_epoch += 1
             lr_scheduler = LRScheduler(lr_scheduler, save_history=save_history)
         else:
             init_lr = lr_scheduler.get_param()
@@ -1027,10 +1060,10 @@ def create_lr_scheduler_with_warmup(
 
     warmup_scheduler = ParamGroupScheduler(warmup_schedulers, save_history=save_history)
 
-    schedulers = [
+    schedulers: List[Union[ParamScheduler, ParamGroupScheduler, PyTorchLRScheduler]] = [
         warmup_scheduler,
         lr_scheduler,
-    ]  # type: List[Union[ParamScheduler, ParamGroupScheduler, _LRScheduler]]
+    ]
     durations = [milestones_values[-1][0] + 1]
     combined_scheduler = ConcatScheduler(schedulers, durations=durations, save_history=save_history)
 
@@ -1074,11 +1107,12 @@ class PiecewiseLinear(ParamScheduler):
 
     Examples:
 
-        .. testsetup:: *
-
-            default_trainer = get_default_trainer()
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode:: 1
+
+            default_trainer = get_default_trainer()
 
             milestones_values = [(1, 1.0), (3, 0.8), (5, 0.2)]
             scheduler = PiecewiseLinear(
@@ -1105,6 +1139,8 @@ class PiecewiseLinear(ParamScheduler):
             0.2
 
         .. testcode:: 2
+
+            default_trainer = get_default_trainer()
 
             optimizer = torch.optim.SGD(
                 [
@@ -1168,8 +1204,8 @@ class PiecewiseLinear(ParamScheduler):
                 f"Argument milestones_values should be with at least one value, but given {milestones_values}"
             )
 
-        values = []  # type: List[float]
-        milestones = []  # type: List[int]
+        values: List[float] = []
+        milestones: List[int] = []
         for pair in milestones_values:
             if not isinstance(pair, tuple) or len(pair) != 2:
                 raise ValueError("Argument milestones_values should be a list of pairs (milestone, param_value)")
@@ -1220,11 +1256,12 @@ class ParamGroupScheduler:
 
     Examples:
 
-        .. testsetup::
-
-            default_trainer = get_default_trainer()
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
+
+            default_trainer = get_default_trainer()
 
             optimizer = torch.optim.SGD(
                 [
@@ -1319,7 +1356,7 @@ class ParamGroupScheduler:
             dict:
                 a dictionary containing a whole state of ParamGroupScheduler
         """
-        state_dict = OrderedDict()  # type: Dict[str, List[Any]]
+        state_dict: Dict[str, List[Any]] = OrderedDict()
         state_dict["schedulers"] = []
         for n, s in zip(self.names, self.schedulers):
             state_dict["schedulers"].append((n, s.state_dict()))
@@ -1353,7 +1390,9 @@ class ParamGroupScheduler:
             s.load_state_dict(sd)
 
     @classmethod
-    def simulate_values(cls, num_events: int, schedulers: List[_LRScheduler], **kwargs: Any) -> List[List[int]]:
+    def simulate_values(
+        cls, num_events: int, schedulers: List[ParamScheduler], **kwargs: Any
+    ) -> List[List[Union[List[float], float, int]]]:
         """Method to simulate scheduled values during num_events events.
 
         Args:
@@ -1363,34 +1402,228 @@ class ParamGroupScheduler:
                 :class:`ignite.handlers.param_scheduler.ParamGroupScheduler`.
 
         Returns:
-            event_index, value
-
+            list:
+                list of [event_index, scheduler_0_value, scheduler_1_value, ...], where scheduler_i_value
+                corresponds to the simulated param of scheduler i at 'event_index'th event.
         """
 
-        # This scheduler uses `torch.optim.lr_scheduler._LRScheduler` which
+        # This scheduler uses `torch.optim.lr_scheduler.LRScheduler` which
         # should be replicated in order to simulate LR values and
         # not perturb original scheduler.
         with tempfile.TemporaryDirectory() as tmpdirname:
             cache_filepath = Path(tmpdirname) / "ignite_lr_scheduler_cache.pt"
             objs = {f"lr_scheduler_{i}": s.state_dict() for i, s in enumerate(schedulers)}
             # all schedulers should be related to the same optimizer
-            objs["optimizer"] = schedulers[0].optimizer.state_dict()  # type: ignore[attr-defined]
+            objs["optimizer"] = schedulers[0].optimizer.state_dict()
 
             torch.save(objs, cache_filepath.as_posix())
 
             values = []
-            scheduler = cls(schedulers=schedulers, **kwargs)  # type: ignore[arg-type]
+            scheduler = cls(schedulers=schedulers, **kwargs)
             for i in range(num_events):
-                params = [scheduler.get_param() for scheduler in schedulers]  # type: ignore[attr-defined]
+                params = [scheduler.get_param() for scheduler in schedulers]
                 values.append([i] + params)
                 scheduler(engine=None)
 
             objs = torch.load(cache_filepath.as_posix())
             for i, s in enumerate(schedulers):
                 s.load_state_dict(objs[f"lr_scheduler_{i}"])
-                s.optimizer.load_state_dict(objs["optimizer"])  # type: ignore[attr-defined]
+                s.optimizer.load_state_dict(objs["optimizer"])
 
             return values
+
+    def get_param(self) -> List[Union[float, List[float]]]:
+        """
+        Method to get current `schedulers`' parameter values
+
+        .. versionadded:: 0.5.0
+        """
+        return [scheduler.get_param() for scheduler in self.schedulers]
+
+
+class ReduceLROnPlateauScheduler(ParamScheduler):
+    """Reduce LR when a metric stops improving.
+    Wrapper of `torch.optim.lr_scheduler.ReduceLROnPlateau
+    <https://pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.ReduceLROnPlateau.html>`_.
+
+    Args:
+        optimizer: Wrapped optimizer.
+        metric_name: metric whose improvement is monitored.
+            Must be attached to the same engine.
+        trainer: Trainer engine to log LR history in its
+            `state.output.param_history`. Is used if `save_history`
+            is true. Default: None.
+        save_history: Whether to save history or not. If true,
+            history will be logged in `trainer`'s `state.output.param_history`.
+            Default: False.
+        param_group_index: `optimizer`'s parameters group
+            to use.  Default: None. Use all `optimizer`'s paramater groups.
+        **scheduler_kwargs: Keyword arguments to be passed to the wrapped
+            `ReduceLROnPlateau`.
+
+    Examples:
+
+        .. code-block python
+
+            # Metric 'metric-name' should surpass its best value by
+            # more than 1 unit after at most 2 epochs, otherwise LR
+            # would get multiplied by 0.5 .
+
+            scheduler = ReduceLROnPlateauScheduler(
+                default_optimizer,
+                metric_name="metric-name", mode="max",
+                factor=0.5, patience=1, threshold_mode='abs',
+                threshold=1, trainer=trainer
+            )
+
+            metric = Accuracy()
+            default_evaluator.attach(metric, "accuracy")
+
+            default_evaluator.add_event_handler(Events.COMPLETED, scheduler)
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
+        .. testcode::
+
+            default_trainer = get_default_trainer()
+
+            # Metric `loss` should decrease more than
+            # a tenth of best loss after at most
+            # three iterations. Then best loss would get
+            # updated, otherwise lr is multiplied by 2
+
+            scheduler = ReduceLROnPlateauScheduler(
+                default_optimizer, "loss",
+                save_history=True, mode="min",
+                factor=0.5, patience=3, threshold_mode='rel',
+                threshold=0.1, trainer=default_trainer
+            )
+
+            metric_values = iter([10, 5, 3, 4, 4, 4, 5, 1])
+            default_evaluator.state.metrics = {"loss": None}
+
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def set_metric_val():
+                default_evaluator.state.metrics["loss"] = next(metric_values)
+
+            default_evaluator.add_event_handler(Events.COMPLETED, scheduler)
+
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def trigger_eval():
+                default_evaluator.run([0.])
+
+            default_trainer.run([0.] * 8)
+
+            print(default_trainer.state.param_history["lr"])
+
+        .. testoutput::
+
+            [[0.1], [0.1], [0.1], [0.1], [0.1], [0.1], [0.05], [0.05]]
+
+    .. versionadded:: 0.4.9
+    """
+
+    def __init__(
+        self,
+        optimizer: Optimizer,
+        metric_name: str,
+        trainer: Optional[Engine] = None,
+        save_history: bool = False,
+        param_group_index: Optional[int] = None,
+        **scheduler_kwargs: Any,
+    ):
+        super(ReduceLROnPlateauScheduler, self).__init__(
+            optimizer, "lr", save_history=save_history, param_group_index=param_group_index
+        )
+        self.metric_name = metric_name
+        self.trainer = trainer
+        self.optimizer = optimizer
+
+        if "min_lr" in scheduler_kwargs and param_group_index is not None:
+            min_lr = scheduler_kwargs["min_lr"]
+            if not isinstance(min_lr, float):
+                raise TypeError(f"When param_group_index is given, min_lr should be a float, but given {type(min_lr)}")
+            _min_lr = min_lr
+            min_lr = [0] * len(optimizer.param_groups)
+            min_lr[param_group_index] = _min_lr
+        else:
+            min_lr = 0
+        _scheduler_kwargs = scheduler_kwargs.copy()
+        _scheduler_kwargs["min_lr"] = min_lr
+
+        if "verbose" in _scheduler_kwargs:
+            warnings.warn(
+                "Found verbose=True in provided scheduler_kwargs. "
+                "It would be set to False. Please use save_history instead."
+            )
+            _scheduler_kwargs["verbose"] = False
+
+        self.scheduler = ReduceLROnPlateau(optimizer, **_scheduler_kwargs)
+        self.scheduler._reduce_lr = self._reduce_lr  # type: ignore[attr-defined]
+
+        self._state_attrs += ["metric_name", "scheduler"]
+
+    def __call__(self, engine: Engine, name: Optional[str] = None) -> None:  # type: ignore[override]
+        if not hasattr(engine.state, "metrics") or self.metric_name not in engine.state.metrics:
+            raise ValueError(
+                "Argument engine should have in its 'state', attribute 'metrics' "
+                f"which itself has the metric {self.metric_name}."
+            )
+        self.scheduler.step(engine.state.metrics[self.metric_name])
+        super().__call__(self.trainer, name)
+
+    def get_param(self) -> Union[float, List[float]]:
+        lrs = [pg["lr"] for pg in self.optimizer_param_groups]
+        return lrs[0] if len(lrs) == 1 else lrs
+
+    def _reduce_lr(self, epoch: int) -> None:
+        for i, param_group in enumerate(self.optimizer_param_groups):
+            old_lr = float(param_group["lr"])
+            new_lr = max(old_lr * self.scheduler.factor, self.scheduler.min_lrs[i])
+            if old_lr - new_lr > self.scheduler.eps:
+                param_group["lr"] = new_lr
+
+    @classmethod
+    def simulate_values(  # type: ignore[override]
+        cls, num_events: int, metric_values: List[float], init_lr: float, **scheduler_kwargs: Any
+    ) -> List[List[int]]:
+        """Method to simulate scheduled values during num_events events.
+
+        Args:
+            num_events: number of events during the simulation.
+            metric_values: values to change LR based on.
+            init_lr: initial LR to start with.
+            scheduler_kwargs: kwargs passed to construct an instance of
+                :class:`ignite.handlers.param_scheduler.ReduceLROnPlateauScheduler`.
+
+        Returns:
+            event_index, value
+
+        """
+        if len(metric_values) != num_events:
+            raise ValueError(
+                "Length of argument metric_values should be equal to num_events. "
+                f"{len(metric_values)} != {num_events}"
+            )
+
+        keys_to_remove = ["optimizer", "metric_name", "save_history"]
+        for key in keys_to_remove:
+            if key in scheduler_kwargs:
+                del scheduler_kwargs[key]
+        values = []
+        scheduler = cls(
+            optimizer=_get_fake_optimizer(torch.optim.SGD, lr=init_lr),
+            metric_name="metric",
+            save_history=False,
+            **scheduler_kwargs,
+        )
+        engine = Engine(lambda _, __: None)
+        for i in range(num_events):
+            engine.state.metrics["metric"] = metric_values[i]
+            scheduler(engine=engine)
+            values.append([i, scheduler.optimizer_param_groups[0][scheduler.param_name]])
+        return values
 
 
 def _get_fake_optimizer(

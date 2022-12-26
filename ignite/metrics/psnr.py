@@ -9,7 +9,8 @@ __all__ = ["PSNR"]
 
 
 class PSNR(Metric):
-    r"""Computes average `Peak signal-to-noise ratio (PSNR) <https://en.wikipedia.org/wiki/Peak_signal-to-noise_ratio>`_.
+    r"""Computes average
+    `Peak signal-to-noise ratio (PSNR) <https://en.wikipedia.org/wiki/Peak_signal-to-noise_ratio>`_.
 
     .. math::
         \text{PSNR}(I, J) = 10 * \log_{10}\left(\frac{ MAX_{I}^2 }{ \text{ MSE } }\right)
@@ -33,6 +34,12 @@ class PSNR(Metric):
         To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
         The output of the engine's ``process_function`` needs to be in format of
         ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``.
+
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`,
+        visit :ref:`attach-engine`.
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
         .. testcode::
 
@@ -111,7 +118,7 @@ class PSNR(Metric):
         self._num_examples += y.shape[0]
 
     @sync_all_reduce("_sum_of_batchwise_psnr", "_num_examples")
-    def compute(self) -> torch.Tensor:
+    def compute(self) -> float:
         if self._num_examples == 0:
             raise NotComputableError("PSNR must have at least one example before it can be computed.")
-        return self._sum_of_batchwise_psnr / self._num_examples
+        return (self._sum_of_batchwise_psnr / self._num_examples).item()

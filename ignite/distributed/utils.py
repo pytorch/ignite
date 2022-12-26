@@ -40,6 +40,7 @@ __all__ = [
     "sync",
     "registered_computation_models",
     "one_rank_only",
+    "new_group",
 ]
 
 _model = _SerialModel()
@@ -109,7 +110,7 @@ def backend() -> Optional[str]:
 
 def available_backends() -> Tuple[str, ...]:
     """Returns available backends."""
-    out = ()  # type: Tuple[str, ...]
+    out: Tuple[str, ...] = ()
     for m in registered_computation_models:
         out += m.available_backends
     return out
@@ -321,40 +322,56 @@ def spawn(
         )
 
 
-def all_reduce(tensor: Union[torch.Tensor, float], op: str = "SUM") -> Union[torch.Tensor, float]:
+def all_reduce(
+    tensor: Union[torch.Tensor, float], op: str = "SUM", group: Optional[Union[Any, List[int]]] = None
+) -> Union[torch.Tensor, float]:
     """Helper method to perform all reduce operation.
 
     Args:
         tensor: tensor or number to collect across participating processes.
         op: reduction operation, "SUM" by default. Possible values: "SUM", "PRODUCT", "MIN", "MAX", "AND", "OR".
             Horovod backend supports only "SUM", "AVERAGE", "ADASUM", "MIN", "MAX", "PRODUCT".
+        group: list of integer or the process group for each backend. If None, the default process group will be used.
 
     Returns:
         torch.Tensor or number
 
+    .. versionchanged:: 0.5.0
+        added ``group``
     """
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
 
-    return _model.all_reduce(tensor, op)
+    if isinstance(group, list) and all(isinstance(item, int) for item in group):
+        group = _model.new_group(group)
+
+    return _model.all_reduce(tensor, op, group=group)
 
 
-def all_gather(tensor: Union[torch.Tensor, float, str]) -> Union[torch.Tensor, float, List[float], List[str]]:
+def all_gather(
+    tensor: Union[torch.Tensor, float, str], group: Optional[Union[Any, List[int]]] = None
+) -> Union[torch.Tensor, float, List[float], List[str]]:
     """Helper method to perform all gather operation.
 
     Args:
         tensor: tensor or number or str to collect across participating processes.
+        group: list of integer or the process group for each backend. If None, the default process group will be used.
 
     Returns:
         torch.Tensor of shape ``(world_size * tensor.shape[0], tensor.shape[1], ...)`` if input is a tensor or
         torch.Tensor of shape ``(world_size, )`` if input is a number or
         List of strings if input is a string
 
+    .. versionchanged:: 0.5.0
+        added ``group``
     """
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
 
-    return _model.all_gather(tensor)
+    if isinstance(group, list) and all(isinstance(item, int) for item in group):
+        group = _model.new_group(group)
+
+    return _model.all_gather(tensor, group=group)
 
 
 def broadcast(
@@ -424,6 +441,36 @@ def barrier() -> None:
         sync(temporary=True)
 
     _model.barrier()
+
+
+def new_group(ranks: List[int], **kwargs: Any) -> Any:
+    """Helper method to make group for each backend from ranks.
+
+    Args:
+        ranks: subset of ranks to be grouped.
+        kwargs: acceptable kwargs according to provided backend:
+
+            - | "nccl" or "gloo" : ``backend (=None)``, ``pg_options (=None)``.
+
+    Examples:
+        Launch single node multi-GPU training with ``torchrun`` utility.
+
+        .. code-block:: python
+
+            import ignite.distributed as idist
+
+            ranks = [0, 1]
+            group = idist.new_group(ranks)
+
+    .. versionadded:: 0.5.0
+        ``backend`` now accepts `horovod` distributed framework.
+
+    """
+
+    if _need_to_sync and isinstance(_model, _SerialModel):
+        sync(temporary=True)
+
+    return _model.new_group(ranks, **kwargs)
 
 
 def set_local_rank(index: int) -> None:

@@ -30,12 +30,15 @@ class CohenKappa(EpochMetric):
         ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``. If not, ``output_tranform`` can be added
         to the metric to transform the output into the form expected by the metric.
 
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         .. testcode::
 
             metric = CohenKappa()
             metric.attach(default_evaluator, 'ck')
-            y_true = torch.Tensor([2, 0, 2, 2, 0, 1])
-            y_pred = torch.Tensor([0, 0, 2, 2, 0, 2])
+            y_true = torch.tensor([2, 0, 2, 2, 0, 1])
+            y_pred = torch.tensor([0, 0, 2, 2, 0, 2])
             state = default_evaluator.run([[y_pred, y_true]])
             print(state.metrics['ck'])
 
@@ -56,7 +59,7 @@ class CohenKappa(EpochMetric):
         try:
             from sklearn.metrics import cohen_kappa_score  # noqa: F401
         except ImportError:
-            raise RuntimeError("This contrib module requires sklearn to be installed.")
+            raise ModuleNotFoundError("This contrib module requires scikit-learn to be installed.")
         if weights not in (None, "linear", "quadratic"):
             raise ValueError("Kappa Weighting type must be None or linear or quadratic.")
 

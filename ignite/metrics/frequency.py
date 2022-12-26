@@ -12,6 +12,8 @@ class Frequency(Metric):
     """Provides metrics for the number of examples processed per second.
 
     Examples:
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
         .. code-block:: python
 
             # Compute number of tokens processed
