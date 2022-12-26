@@ -63,7 +63,6 @@ helper methods to define supervised trainer and evaluator
     supervised_evaluation_step
     supervised_evaluation_step_amp
 
-
 Resuming the training
 ---------------------
 

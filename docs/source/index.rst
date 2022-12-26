@@ -1,22 +1,12 @@
 Ignite Your Networks!
 =====================
 
-:mod:`ignite` is a high-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.
+PyTorch-Ignite is a high-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.
 
+.. image:: https://raw.githubusercontent.com/pytorch/ignite/master/assets/logo/ignite_logo_mixed.png
+   :target: https://pytorch-ignite.ai
 
-
-Library structure
-=================
-
--   :mod:`ignite`: Core of the library, contains an engine for training and
-    evaluating, most of the classic machine learning metrics and a
-    variety of handlers to ease the pain of training and validation of
-    neural networks.
-
--   :mod:`ignite.contrib`: The contrib directory contains additional
-    modules that can require extra dependencies. Modules vary from TBPTT engine,
-    various optimisation parameter schedulers, experiment tracking system handlers and a
-    metrics module containing many regression metrics.
+All our documentation moved to `pytorch-ignite.ai <https://pytorch-ignite.ai/tutorials/beginner/01-getting-started/>`_
 
 
 .. automodule:: ignite
@@ -42,10 +32,3 @@ Library structure
    contrib/engines
    contrib/metrics
    contrib/handlers
-
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Team
-
-   governance
