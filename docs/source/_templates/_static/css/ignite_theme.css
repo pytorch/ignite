@@ -204,7 +204,7 @@ so make sure not to go above that value */
   padding-bottom: 0 !important;
   color: inherit !important;
   font-size: 1rem !important;
-  font-family: inherit !important;
+  font-family: initial !important;
 }
 
 @media (max-width: 750px) {
