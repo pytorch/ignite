@@ -535,6 +535,28 @@ class DummyMetric2(Metric):
         pass
 
 
+def _test_compute_with_sync_all_reduce_doesnt_change_attributes(device):
+    class DummyMetric3(Metric):
+        @reinit__is_reduced
+        def reset(self):
+            self.a = torch.tensor(0.0, device=self._device)
+            self.b = 0.0
+
+        def update(self, output):
+            self.a += torch.tensor(1.0)
+            self.b += 1.0
+
+        @sync_all_reduce("a", "b")
+        def compute(self):
+            return self.a.item(), self.b
+
+    metric = DummyMetric3(device=device)
+    metric.update(None)
+    assert metric.a.item() == metric.b == 1.0
+    metric.compute()
+    assert metric.a.item() == metric.b == 1.0
+
+
 def _test_invalid_sync_all_reduce(device):
     class InvalidMetric(Metric):
         @reinit__is_reduced
@@ -543,6 +565,7 @@ def _test_invalid_sync_all_reduce(device):
             self.c = 0.0
             self.n = 0
             self.m = -1
+            self.d = "a string"
 
         def compute(self):
             pass
@@ -566,6 +589,14 @@ def _test_invalid_sync_all_reduce(device):
         def invalid_reduction_op_4(self):
             pass
 
+        @sync_all_reduce("missingattr")
+        def invalid_reduction_op_5(self):
+            pass
+
+        @sync_all_reduce("d")
+        def invalid_reduction_op_6(self):
+            pass
+
     metric_device = device if torch.device(device).type != "xla" else "cpu"
     m = InvalidMetric(device=metric_device)
     m.reset()
@@ -582,6 +613,14 @@ def _test_invalid_sync_all_reduce(device):
 
         with pytest.raises(ValueError, match=r"Reduction operation is not valid"):
             m.invalid_reduction_op_4()
+
+        with pytest.raises(ValueError, match=r"has no attribute named `missingattr`."):
+            m.invalid_reduction_op_5()
+
+        with pytest.raises(
+            TypeError, match=r"Attribute provided to sync_all_reduce should be a number or tensor but `d`"
+        ):
+            m.invalid_reduction_op_6()
 
 
 def _test_distrib_sync_all_reduce_decorator(device):
@@ -647,7 +686,7 @@ def _test_distrib_sync_all_reduce_decorator(device):
     m = DummyMetric(device=metric_device)
     m.update(None)
     m.compute()
-    # check if can call compute multiple times without all reduce invocation
+    # check if attributes are restored to their original values after previous `compute`
     m.compute()
 
 
@@ -664,6 +703,7 @@ def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
     device = idist.device()
     _test_distrib_sync_all_reduce_decorator(device)
     _test_invalid_sync_all_reduce(device)
+    _test_compute_with_sync_all_reduce_doesnt_change_attributes(device)
 
 
 @pytest.mark.distributed
@@ -673,6 +713,7 @@ def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
     device = idist.device()
     _test_distrib_sync_all_reduce_decorator(device)
     _test_invalid_sync_all_reduce(device)
+    _test_compute_with_sync_all_reduce_doesnt_change_attributes(device)
 
 
 @pytest.mark.distributed
@@ -685,6 +726,7 @@ def test_distrib_hvd(gloo_hvd_executor):
 
     gloo_hvd_executor(_test_distrib_sync_all_reduce_decorator, (device,), np=nproc, do_init=True)
     gloo_hvd_executor(_test_invalid_sync_all_reduce, (device,), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_compute_with_sync_all_reduce_doesnt_change_attributes, (device,), np=nproc, do_init=True)
 
 
 @pytest.mark.multinode_distributed
@@ -695,6 +737,7 @@ def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
     device = idist.device()
     _test_distrib_sync_all_reduce_decorator(device)
     _test_invalid_sync_all_reduce(device)
+    _test_compute_with_sync_all_reduce_doesnt_change_attributes(device)
 
 
 @pytest.mark.multinode_distributed
@@ -705,6 +748,7 @@ def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
     device = idist.device()
     _test_distrib_sync_all_reduce_decorator(device)
     _test_invalid_sync_all_reduce(device)
+    _test_compute_with_sync_all_reduce_doesnt_change_attributes(device)
 
 
 @pytest.mark.tpu
@@ -715,6 +759,7 @@ def test_distrib_single_device_xla():
     _test_distrib_sync_all_reduce_decorator(device)
     _test_creating_on_xla_fails(device)
     _test_invalid_sync_all_reduce(device)
+    _test_compute_with_sync_all_reduce_doesnt_change_attributes(device)
 
 
 def _test_distrib_xla_nprocs(index):
@@ -722,6 +767,7 @@ def _test_distrib_xla_nprocs(index):
     _test_distrib_sync_all_reduce_decorator(device)
     _test_creating_on_xla_fails(device)
     _test_invalid_sync_all_reduce(device)
+    _test_compute_with_sync_all_reduce_doesnt_change_attributes(device)
 
 
 @pytest.mark.tpu
