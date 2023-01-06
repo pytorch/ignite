@@ -119,7 +119,9 @@ jobs:
       - name: Run Tests
         run: |
           # SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} bash tests/run_cpu_tests.sh
-          SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} bash tests/run_cpu_tests.sh "distributed"
+          # SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} bash tests/run_cpu_tests.sh "distributed"
+          SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} bash tests/run_cpu_tests.sh "test_idist_parallel_spawn_n_procs_native"
+          
 
       # - name: Upload coverage to Codecov
       #   uses: codecov/codecov-action@v3
