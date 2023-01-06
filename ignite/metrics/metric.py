@@ -571,7 +571,7 @@ def sync_all_reduce(*attrs: Any) -> Callable:
                     t = getattr(self, attr)
                     if not isinstance(t, (Number, torch.Tensor)):
                         raise TypeError(
-                            "Attribute provided to sync_all_reduce should be a"
+                            "Attribute provided to sync_all_reduce should be a "
                             f"number or tensor but `{attr}` has type {type(t)}"
                         )
                     unreduced_attrs[attr] = t
