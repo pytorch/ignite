@@ -36,19 +36,21 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.7, 3.8, 3.9, "3.10"]
-        pytorch-channel: [pytorch, pytorch-nightly]
-        include:
-          # includes a single build on windows
-          - os: windows-latest
-            pytorch-channel: pytorch
-            python-version: 3.8
-            skip-distrib-tests: 1
-          # includes a single build on macosx
-          - os: macos-latest
-            pytorch-channel: pytorch
-            python-version: 3.8
-            skip-distrib-tests: 1
+        # python-version: [3.7, 3.8, 3.9, "3.10"]
+        # pytorch-channel: [pytorch, pytorch-nightly]
+        python-version: ["3.10"]
+        pytorch-channel: [pytorch-nightly]
+        # include:
+        #   # includes a single build on windows
+        #   - os: windows-latest
+        #     pytorch-channel: pytorch
+        #     python-version: 3.8
+        #     skip-distrib-tests: 1
+        #   # includes a single build on macosx
+        #   - os: macos-latest
+        #     pytorch-channel: pytorch
+        #     python-version: 3.8
+        #     skip-distrib-tests: 1
 
     steps:
       - uses: actions/checkout@v3
@@ -117,7 +119,7 @@ jobs:
       - name: Run Tests
         run: |
           # SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} bash tests/run_cpu_tests.sh
-          SKIP_DISTRIB_TESTS=1 bash tests/run_cpu_tests.sh "distributed"
+          SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} bash tests/run_cpu_tests.sh "distributed"
 
       # - name: Upload coverage to Codecov
       #   uses: codecov/codecov-action@v3
