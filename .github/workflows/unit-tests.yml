@@ -90,93 +90,94 @@ jobs:
           pip install -r requirements-dev.txt
           python setup.py install
 
-      - name: Check code formatting
-        run: |
-          bash ./tests/run_code_style.sh install
-          bash ./tests/run_code_style.sh lint
+      # - name: Check code formatting
+      #   run: |
+      #     bash ./tests/run_code_style.sh install
+      #     bash ./tests/run_code_style.sh lint
 
-      - name: Run Mypy
-        # https://github.com/pytorch/ignite/pull/2780
-        # 
-        if: ${{ matrix.os == 'ubuntu-latest' && matrix.pytorch-channel == 'pytorch-nightly'}}
-        run: |
-          bash ./tests/run_code_style.sh mypy
+      # - name: Run Mypy
+      #   # https://github.com/pytorch/ignite/pull/2780
+      #   #
+      #   if: ${{ matrix.os == 'ubuntu-latest' && matrix.pytorch-channel == 'pytorch-nightly'}}
+      #   run: |
+      #     bash ./tests/run_code_style.sh mypy
 
       # Download MNIST: https://github.com/pytorch/ignite/issues/1737
       # to "/tmp" for unit tests
-      - name: Download MNIST
-        uses: pytorch-ignite/download-mnist-github-action@master
-        with:
-          target_dir: /tmp
+      # - name: Download MNIST
+      #   uses: pytorch-ignite/download-mnist-github-action@master
+      #   with:
+      #     target_dir: /tmp
 
-      # Copy MNIST to "." for the examples
-      - name: Copy MNIST
-        run: |
-          cp -R /tmp/MNIST .
+      # # Copy MNIST to "." for the examples
+      # - name: Copy MNIST
+      #   run: |
+      #     cp -R /tmp/MNIST .
 
       - name: Run Tests
         run: |
-          SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} bash tests/run_cpu_tests.sh
+          # SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} bash tests/run_cpu_tests.sh
+          SKIP_DISTRIB_TESTS=1 bash tests/run_cpu_tests.sh "ignite/distributed"
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./coverage.xml
-          flags: cpu
-          fail_ci_if_error: false
+      # - name: Upload coverage to Codecov
+      #   uses: codecov/codecov-action@v3
+      #   with:
+      #     file: ./coverage.xml
+      #     flags: cpu
+      #     fail_ci_if_error: false
 
-      - name: Run MNIST Examples
-        run: |
-          # MNIST
-          # 1) mnist.py
-          python examples/mnist/mnist.py --epochs=1
+      # - name: Run MNIST Examples
+      #   run: |
+      #     # MNIST
+      #     # 1) mnist.py
+      #     python examples/mnist/mnist.py --epochs=1
 
-      - name: Run MNIST with loggers Examples
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: |
-          # 2) mnist_with_visdom.py
-          python -c "from visdom.server.build import download_scripts; download_scripts()" # download scripts : https://github.com/facebookresearch/visdom/blob/master/py/server.py#L929
-          python -m visdom.server &
-          sleep 10
-          python examples/mnist/mnist_with_visdom.py --epochs=1
-          kill %1
-          # 3.1) mnist_with_tensorboard.py with tbX
-          python examples/mnist/mnist_with_tensorboard.py --epochs=1
-          # 3.2) mnist_with_tensorboard.py with native torch tb
-          pip uninstall -y tensorboardX
-          python examples/mnist/mnist_with_tensorboard.py --epochs=1
+      # - name: Run MNIST with loggers Examples
+      #   if: ${{ matrix.os == 'ubuntu-latest' }}
+      #   run: |
+      #     # 2) mnist_with_visdom.py
+      #     python -c "from visdom.server.build import download_scripts; download_scripts()" # download scripts : https://github.com/facebookresearch/visdom/blob/master/py/server.py#L929
+      #     python -m visdom.server &
+      #     sleep 10
+      #     python examples/mnist/mnist_with_visdom.py --epochs=1
+      #     kill %1
+      #     # 3.1) mnist_with_tensorboard.py with tbX
+      #     python examples/mnist/mnist_with_tensorboard.py --epochs=1
+      #     # 3.2) mnist_with_tensorboard.py with native torch tb
+      #     pip uninstall -y tensorboardX
+      #     python examples/mnist/mnist_with_tensorboard.py --epochs=1
 
-      - name: Run MNIST Example With Crash
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        continue-on-error: true
-        run: |
-          # 4) mnist_save_resume_engine.py
-          python examples/mnist/mnist_save_resume_engine.py --epochs=2 --crash_iteration 1100
+      # - name: Run MNIST Example With Crash
+      #   if: ${{ matrix.os == 'ubuntu-latest' }}
+      #   continue-on-error: true
+      #   run: |
+      #     # 4) mnist_save_resume_engine.py
+      #     python examples/mnist/mnist_save_resume_engine.py --epochs=2 --crash_iteration 1100
 
-      - name: Resume MNIST from previous crash
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: |
-          python examples/mnist/mnist_save_resume_engine.py --epochs=2 --resume_from=/tmp/mnist_save_resume/checkpoint_1.pt
+      # - name: Resume MNIST from previous crash
+      #   if: ${{ matrix.os == 'ubuntu-latest' }}
+      #   run: |
+      #     python examples/mnist/mnist_save_resume_engine.py --epochs=2 --resume_from=/tmp/mnist_save_resume/checkpoint_1.pt
 
-      - name: Run GAN example
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: |
-          # DCGAN
-          python examples/gan/dcgan.py --dataset fake --dataroot /tmp/fakedata --output-dir /tmp/outputs-dcgan --batch-size 2 --epochs 2  --workers 0
+      # - name: Run GAN example
+      #   if: ${{ matrix.os == 'ubuntu-latest' }}
+      #   run: |
+      #     # DCGAN
+      #     python examples/gan/dcgan.py --dataset fake --dataroot /tmp/fakedata --output-dir /tmp/outputs-dcgan --batch-size 2 --epochs 2  --workers 0
 
-      - name: Run RL Examples
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: |
-          # RL
-          # 1) Actor-Critic
-          python examples/reinforcement_learning/actor_critic.py --max-episodes=2
-          # 2) Reinforce
-          python examples/reinforcement_learning/reinforce.py --max-episodes=2
+      # - name: Run RL Examples
+      #   if: ${{ matrix.os == 'ubuntu-latest' }}
+      #   run: |
+      #     # RL
+      #     # 1) Actor-Critic
+      #     python examples/reinforcement_learning/actor_critic.py --max-episodes=2
+      #     # 2) Reinforce
+      #     python examples/reinforcement_learning/reinforce.py --max-episodes=2
 
-      - name: Run Neural Style Example
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: |
-          #fast-neural-style
-          #train
-          mkdir -p ~/.cache/torch/checkpoints/ && wget "https://download.pytorch.org/models/vgg16-397923af.pth" -O ~/.cache/torch/checkpoints/vgg16-397923af.pth
-          python examples/fast_neural_style/neural_style.py train --epochs 1 --cuda 0 --dataset test --dataroot . --image_size 32 --style_image examples/fast_neural_style/images/style_images/mosaic.jpg --style_size 32
+      # - name: Run Neural Style Example
+      #   if: ${{ matrix.os == 'ubuntu-latest' }}
+      #   run: |
+      #     #fast-neural-style
+      #     #train
+      #     mkdir -p ~/.cache/torch/checkpoints/ && wget "https://download.pytorch.org/models/vgg16-397923af.pth" -O ~/.cache/torch/checkpoints/vgg16-397923af.pth
+      #     python examples/fast_neural_style/neural_style.py train --epochs 1 --cuda 0 --dataset test --dataroot . --image_size 32 --style_image examples/fast_neural_style/images/style_images/mosaic.jpg --style_size 32

@@ -165,14 +165,13 @@ def test_check_idist_parallel_spawn_n_procs_gloo(exec_filepath):
     _test_check_idist_parallel_spawn(exec_filepath, "gloo", np)
 
 
-@pytest.mark.skipif(True, reason="FAILING ON PTH-NIGHTLY")
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test_smoke_test_check_idist_parallel_spawn_multinode_n_procs_gloo(exec_filepath):
     # Just a smoke test from check_idist_parallel.py for an emulated multi-node configuration
     cmd1 = "export CUDA_VISIBLE_DEVICES= && "
-    cmd1 += 'bash -c "python tests/ignite/distributed/check_idist_parallel.py --backend=gloo --nproc_per_node=2 '
+    cmd1 += f'bash -c "{sys.executable} {exec_filepath} --backend=gloo --nproc_per_node=2 '
     cmd1 += '--nnodes=2 --node_rank=0 --master_addr=localhost --master_port=3344 &"'
     os.system(cmd1)
 
