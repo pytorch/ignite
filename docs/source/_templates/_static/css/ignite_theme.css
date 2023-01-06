@@ -186,7 +186,7 @@ so make sure not to go above that value */
 }
 
 .DocSearch-Button {
-  border-radius: 0 !important;
+  border-radius: 8px !important;
   width: 100% !important;
   height: 2.75rem !important;
   margin: 0 !important;
@@ -198,12 +198,17 @@ so make sure not to go above that value */
 }
 
 .DocSearch-Button-Key {
+  background: none !important;
   box-shadow: none !important;
+  top: 0 !important;
+  padding-bottom: 0 !important;
+  color: inherit !important;
+  font-size: 1rem !important;
+  font-family: Arial !important;
 }
 
 @media (max-width: 750px) {
   .DocSearch-Button-Key,
-  .DocSearch-Button-KeySeparator,
   .DocSearch-Button-Placeholder {
     display: block !important;
   }
