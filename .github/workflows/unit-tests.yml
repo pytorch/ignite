@@ -57,14 +57,7 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-      
-      # -- REMOVE THIS
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-        with:
-          limit-access-to-actor: true
-      # -- REMOVE THIS
-      
+
       - name: Get year & week number
         id: get-date
         run: |
@@ -123,13 +116,20 @@ jobs:
       #   run: |
       #     cp -R /tmp/MNIST .
 
+      # -- REMOVE THIS
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true
+          timeout-minutes: 15
+      # -- REMOVE THIS
+
       - name: Run Tests
         run: |
           # SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} bash tests/run_cpu_tests.sh
           # SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} bash tests/run_cpu_tests.sh "distributed"
           # SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} bash tests/run_cpu_tests.sh "test_idist_parallel_spawn_n_procs_native"
           CUDA_VISIBLE_DEVICES= pytest -vvv tests -s -k test_idist_parallel_spawn_n_procs_native
-          
 
       # - name: Upload coverage to Codecov
       #   uses: codecov/codecov-action@v3
