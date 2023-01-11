@@ -96,26 +96,16 @@ def _test_check_idist_parallel_torch_launch(init_method, fp, backend, nprocs):
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip because test uses torch launch")
 @pytest.mark.parametrize("init_method", [None, "tcp://0.0.0.0:29500", "FILE"])
-def test_check_idist_parallel_torch_launch_n_procs_gloo(init_method, dirname, exec_filepath):
+@pytest.mark.parametrize(
+    "backend",
+    ["gloo", pytest.param("nccl", marks=pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU"))],
+)
+def test_check_idist_parallel_torch_launch_n_procs_native(init_method, dirname, exec_filepath, backend):
     if init_method == "FILE":
         init_method = f"file://{dirname}/shared"
 
     np = torch.cuda.device_count() if torch.cuda.is_available() else 4
-    # temporarily disable this while running on torch nightly
-    if "dev" not in torch.__version__:
-        _test_check_idist_parallel_torch_launch(init_method, exec_filepath, "gloo", np)
-
-
-@pytest.mark.distributed
-@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip because test uses torch launch")
-@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-@pytest.mark.parametrize("init_method", [None, "tcp://0.0.0.0:29500", "FILE"])
-def test_check_idist_parallel_torch_launch_n_procs_nccl(init_method, dirname, exec_filepath):
-    if init_method == "FILE":
-        init_method = f"file://{dirname}/shared"
-
-    _test_check_idist_parallel_torch_launch(init_method, exec_filepath, "nccl", torch.cuda.device_count())
+    _test_check_idist_parallel_torch_launch(init_method, exec_filepath, backend, np)
 
 
 def _test_check_idist_parallel_hvdrun(fp, backend, nprocs):
@@ -160,9 +150,13 @@ def _test_check_idist_parallel_spawn(fp, backend, nprocs):
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-def test_check_idist_parallel_spawn_n_procs_gloo(exec_filepath):
+@pytest.mark.parametrize(
+    "backend",
+    ["gloo", pytest.param("nccl", marks=pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU"))],
+)
+def test_check_idist_parallel_spawn_n_procs_native(exec_filepath, backend):
     np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
-    _test_check_idist_parallel_spawn(exec_filepath, "gloo", np)
+    _test_check_idist_parallel_spawn(exec_filepath, backend, np)
 
 
 @pytest.mark.distributed
@@ -171,7 +165,7 @@ def test_check_idist_parallel_spawn_n_procs_gloo(exec_filepath):
 def test_smoke_test_check_idist_parallel_spawn_multinode_n_procs_gloo(exec_filepath):
     # Just a smoke test from check_idist_parallel.py for an emulated multi-node configuration
     cmd1 = "export CUDA_VISIBLE_DEVICES= && "
-    cmd1 += 'bash -c "python tests/ignite/distributed/check_idist_parallel.py --backend=gloo --nproc_per_node=2 '
+    cmd1 += f'bash -c "{sys.executable} {exec_filepath} --backend=gloo --nproc_per_node=2 '
     cmd1 += '--nnodes=2 --node_rank=0 --master_addr=localhost --master_port=3344 &"'
     os.system(cmd1)
 
@@ -195,14 +189,6 @@ def test_smoke_test_check_idist_parallel_spawn_multinode_n_procs_gloo(exec_filep
     assert "master_addr: localhost" in out
     assert "master_port: 3344" in out
     assert "End of run" in out
-
-
-@pytest.mark.distributed
-@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
-@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_check_idist_parallel_spawn_n_procs_nccl(exec_filepath):
-    _test_check_idist_parallel_spawn(exec_filepath, "nccl", torch.cuda.device_count())
 
 
 @pytest.mark.tpu
