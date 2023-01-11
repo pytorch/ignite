@@ -384,11 +384,10 @@ def broadcast(
             Make sure to respect data type of torch tensor input for all processes, otherwise execution will crash.
             Can use None for non-source data with ``safe_mode=True``.
         src: source rank. Default, 0.
-        safe_mode: if True, non source input data can be ``None`` or anything (will be discarded), otherwise data
-            type of the input ``tensor`` should be respected for all processes. Please, keep in mind, this mode is
-            working only for dense tensors as source input if a tensor is provided. There are additional collective
-            ops are performed before doing the broadcast and, thus, can be slower than without using this mode.
-            Default, False.
+        safe_mode: if True, non source input data can be ``None`` or anything (will be discarded), otherwise data type
+            of the input ``tensor`` should be respected for all processes. Please, keep in mind, this mode is working
+            only for dense tensors as source input if a tensor is provided. It also leads to some additional
+            collectives before the broadcast, making it slower than without using this mode. Default, False.
 
     Returns:
         torch.Tensor or string or number
