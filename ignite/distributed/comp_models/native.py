@@ -154,6 +154,7 @@ if has_native_dist_support:
             gloo_group = dist.new_group(backend="gloo")
             tensor = torch.tensor([local_rank + 1]).to("cpu")
             dist.all_reduce(tensor, op=dist.ReduceOp.MAX, group=gloo_group)
+            dist.destroy_process_group(gloo_group)
             return int(tensor.item())
 
         def _get_all_hostnames(self) -> List[Tuple[str, ...]]:
@@ -379,7 +380,7 @@ if has_native_dist_support:
                     default_start_method = "spawn"
                 spawn_kwargs["start_method"] = kwargs.get("start_method", default_start_method)
                 start_processes = mp.start_processes
-
+            # TODO: `spawn` wrongfully does not adopt address and port from environment if `init_method` is "env://"
             if init_method in [None, "env://"]:
                 init_method = "env://"
                 if master_port is None:
