@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import Mapping
 from functools import wraps
 from numbers import Number
-from typing import Any, Callable, Dict, Optional, Sequence, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, cast, Dict, Optional, Sequence, Tuple, TYPE_CHECKING, Union
 
 import torch
 
@@ -577,7 +577,7 @@ def sync_all_reduce(*attrs: Any) -> Callable:
                     unreduced_attrs[attr] = t
                     # Here `clone` is necessary since `idist.all_reduce` modifies `t` inplace in the case
                     # `t` is a tensor and its `device` is same as that of the process.
-                    t_reduced = idist.all_reduce(t if isinstance(t, Number) else t.clone(), **op_kwargs)
+                    t_reduced = idist.all_reduce(cast(float, t) if isinstance(t, Number) else t.clone(), **op_kwargs)
                     setattr(self, attr, t_reduced)
 
             result = func(self, *args, **kwargs)
