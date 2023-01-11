@@ -24,7 +24,7 @@ readme = read("README.md").replace(
 
 VERSION = find_version("ignite", "__init__.py")
 
-requirements = ["torch>=1.3,<2", "packaging"]
+requirements = ["torch>=1.3,<3", "packaging"]
 
 setup(
     # Metadata
