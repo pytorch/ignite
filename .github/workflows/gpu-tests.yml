@@ -25,6 +25,8 @@ jobs:
     strategy:
       max-parallel: 1
       fail-fast: true
+      matrix:
+        pytorch-channel: [pytorch, pytorch-nightly]
 
     steps:
       - uses: actions/checkout@v3
@@ -43,22 +45,32 @@ jobs:
           pip install -U pip || python -m pip install -U pip
           echo "pip_cache=$(pip cache dir)" >> $GITHUB_OUTPUT
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: |
             ${{ steps.pip-cache.outputs.pip_cache }}
-          key: ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-3.8-pytorch-${{ hashFiles('requirements-dev.txt') }}
+          key: ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-3.8-${{ matrix.pytorch-channel }}-${{ hashFiles('requirements-dev.txt') }}
           restore-keys: |
-            ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-3.8-pytorch-
+            ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-3.8-${{ matrix.pytorch-channel }}-
 
       - run: pip install pip wheel setuptools -Uqq
 
       - name: Install PyTorch
         # https://pytorch.org/get-started/locally/
+        if: ${{ matrix.pytorch-channel == 'pytorch' }}
         run: |
-          pip install --upgrade torch torchvision -f https://download.pytorch.org/whl/cu116/torch_stable.html
+          pip install --upgrade torch torchvision --extra-index-url https://download.pytorch.org/whl/cu116
           nvidia-smi
-          python -c "import torch; print(torch.__version__, ', CUDA is available: ', torch.cuda.is_available())"
+          python -c "import torch; print(torch.__version__, ', CUDA is available: ', torch.cuda.is_available()); exit(not torch.cuda.is_available())"
+
+      - name: Install PyTorch (nightly)
+        # https://pytorch.org/get-started/locally/
+        if: ${{ matrix.pytorch-channel == 'pytorch-nightly' }}
+        run: |
+          pip install --upgrade --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cu116
+          nvidia-smi
+          python -c "import torch; print(torch.__version__, ', CUDA is available: ', torch.cuda.is_available()); exit(not torch.cuda.is_available())"
+          python -c "import torch; exit(not ('.dev' in torch.__version__))"
 
       - name: Install dependencies
         run: |
@@ -108,4 +120,3 @@ jobs:
           # resume
           export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt"
           CI=1 python -u ${example_path}/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200 --num_epochs=7 ${resume_opt}
-
