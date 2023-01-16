@@ -159,6 +159,9 @@ class TensorboardLogger(BaseLogger):
                 )
 
         self.writer = SummaryWriter(*args, **kwargs)
+    
+    def __getattr__(self, attr: Any) -> Any:
+        return getattr(self._wandb, attr)
 
     def close(self) -> None:
         self.writer.close()
