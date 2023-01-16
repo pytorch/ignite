@@ -37,20 +37,20 @@ def test_optimizer_params():
     optimizer = torch.optim.SGD([torch.tensor(0.0)], lr=0.01)
     wrapper = OptimizerParamsHandler(optimizer=optimizer, param_name="lr")
     mock_logger = MagicMock(spec=TensorboardLogger)
-    mock_logger.writer = MagicMock()
+    mock_logger = MagicMock()
     mock_engine = MagicMock()
     mock_engine.state = State()
     mock_engine.state.iteration = 123
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
-    mock_logger.writer.add_scalar.assert_called_once_with("lr/group_0", 0.01, 123)
+    mock_logger.add_scalar.assert_called_once_with("lr/group_0", 0.01, 123)
 
     wrapper = OptimizerParamsHandler(optimizer, param_name="lr", tag="generator")
     mock_logger = MagicMock(spec=TensorboardLogger)
-    mock_logger.writer = MagicMock()
+    mock_logger = MagicMock()
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
-    mock_logger.writer.add_scalar.assert_called_once_with("generator/lr/group_0", 0.01, 123)
+    mock_logger.add_scalar.assert_called_once_with("generator/lr/group_0", 0.01, 123)
 
 
 def test_output_handler_with_wrong_logger_type():
@@ -67,7 +67,7 @@ def test_output_handler_output_transform():
 
     wrapper = OutputHandler("tag", output_transform=lambda x: x)
     mock_logger = MagicMock(spec=TensorboardLogger)
-    mock_logger.writer = MagicMock()
+    mock_logger = MagicMock()
 
     mock_engine = MagicMock()
     mock_engine.state = State()
@@ -76,21 +76,21 @@ def test_output_handler_output_transform():
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
-    mock_logger.writer.add_scalar.assert_called_once_with("tag/output", 12345, 123)
+    mock_logger.add_scalar.assert_called_once_with("tag/output", 12345, 123)
 
     wrapper = OutputHandler("another_tag", output_transform=lambda x: {"loss": x})
     mock_logger = MagicMock(spec=TensorboardLogger)
-    mock_logger.writer = MagicMock()
+    mock_logger = MagicMock()
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
-    mock_logger.writer.add_scalar.assert_called_once_with("another_tag/loss", 12345, 123)
+    mock_logger.add_scalar.assert_called_once_with("another_tag/loss", 12345, 123)
 
 
 def test_output_handler_metric_names():
 
     wrapper = OutputHandler("tag", metric_names=["a", "b"])
     mock_logger = MagicMock(spec=TensorboardLogger)
-    mock_logger.writer = MagicMock()
+    mock_logger = MagicMock()
 
     mock_engine = MagicMock()
     mock_engine.state = State(metrics={"a": 12.23, "b": 23.45})
@@ -98,8 +98,8 @@ def test_output_handler_metric_names():
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
-    assert mock_logger.writer.add_scalar.call_count == 2
-    mock_logger.writer.add_scalar.assert_has_calls([call("tag/a", 12.23, 5), call("tag/b", 23.45, 5)], any_order=True)
+    assert mock_logger.add_scalar.call_count == 2
+    mock_logger.add_scalar.assert_has_calls([call("tag/a", 12.23, 5), call("tag/b", 23.45, 5)], any_order=True)
 
     wrapper = OutputHandler("tag", metric_names=["a"])
 
@@ -108,12 +108,12 @@ def test_output_handler_metric_names():
     mock_engine.state.iteration = 5
 
     mock_logger = MagicMock(spec=TensorboardLogger)
-    mock_logger.writer = MagicMock()
+    mock_logger = MagicMock()
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
-    assert mock_logger.writer.add_scalar.call_count == 4
-    mock_logger.writer.add_scalar.assert_has_calls(
+    assert mock_logger.add_scalar.call_count == 4
+    mock_logger.add_scalar.assert_has_calls(
         [call("tag/a/0", 0.0, 5), call("tag/a/1", 1.0, 5), call("tag/a/2", 2.0, 5), call("tag/a/3", 3.0, 5)],
         any_order=True,
     )
@@ -125,18 +125,18 @@ def test_output_handler_metric_names():
     mock_engine.state.iteration = 7
 
     mock_logger = MagicMock(spec=TensorboardLogger)
-    mock_logger.writer = MagicMock()
+    mock_logger = MagicMock()
 
     with pytest.warns(UserWarning):
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
-    assert mock_logger.writer.add_scalar.call_count == 1
-    mock_logger.writer.add_scalar.assert_has_calls([call("tag/a", 55.56, 7)], any_order=True)
+    assert mock_logger.add_scalar.call_count == 1
+    mock_logger.add_scalar.assert_has_calls([call("tag/a", 55.56, 7)], any_order=True)
 
     # all metrics
     wrapper = OutputHandler("tag", metric_names="all")
     mock_logger = MagicMock(spec=TensorboardLogger)
-    mock_logger.writer = MagicMock()
+    mock_logger = MagicMock()
 
     mock_engine = MagicMock()
     mock_engine.state = State(metrics={"a": 12.23, "b": 23.45})
@@ -144,13 +144,13 @@ def test_output_handler_metric_names():
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
-    assert mock_logger.writer.add_scalar.call_count == 2
-    mock_logger.writer.add_scalar.assert_has_calls([call("tag/a", 12.23, 5), call("tag/b", 23.45, 5)], any_order=True)
+    assert mock_logger.add_scalar.call_count == 2
+    mock_logger.add_scalar.assert_has_calls([call("tag/a", 12.23, 5), call("tag/b", 23.45, 5)], any_order=True)
 
     # log a torch tensor (ndimension = 0)
     wrapper = OutputHandler("tag", metric_names="all")
     mock_logger = MagicMock(spec=TensorboardLogger)
-    mock_logger.writer = MagicMock()
+    mock_logger = MagicMock()
 
     mock_engine = MagicMock()
     mock_engine.state = State(metrics={"a": torch.tensor(12.23), "b": torch.tensor(23.45)})
@@ -158,8 +158,8 @@ def test_output_handler_metric_names():
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
-    assert mock_logger.writer.add_scalar.call_count == 2
-    mock_logger.writer.add_scalar.assert_has_calls(
+    assert mock_logger.add_scalar.call_count == 2
+    mock_logger.add_scalar.assert_has_calls(
         [call("tag/a", torch.tensor(12.23).item(), 5), call("tag/b", torch.tensor(23.45).item(), 5)], any_order=True
     )
 
@@ -168,7 +168,7 @@ def test_output_handler_both():
 
     wrapper = OutputHandler("tag", metric_names=["a", "b"], output_transform=lambda x: {"loss": x})
     mock_logger = MagicMock(spec=TensorboardLogger)
-    mock_logger.writer = MagicMock()
+    mock_logger = MagicMock()
 
     mock_engine = MagicMock()
     mock_engine.state = State(metrics={"a": 12.23, "b": 23.45})
@@ -177,8 +177,8 @@ def test_output_handler_both():
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    assert mock_logger.writer.add_scalar.call_count == 3
-    mock_logger.writer.add_scalar.assert_has_calls(
+    assert mock_logger.add_scalar.call_count == 3
+    mock_logger.add_scalar.assert_has_calls(
         [call("tag/a", 12.23, 5), call("tag/b", 23.45, 5), call("tag/loss", 12345, 5)], any_order=True
     )
 
@@ -189,7 +189,7 @@ def test_output_handler_with_wrong_global_step_transform_output():
 
     wrapper = OutputHandler("tag", output_transform=lambda x: {"loss": x}, global_step_transform=global_step_transform)
     mock_logger = MagicMock(spec=TensorboardLogger)
-    mock_logger.writer = MagicMock()
+    mock_logger = MagicMock()
 
     mock_engine = MagicMock()
     mock_engine.state = State()
@@ -214,7 +214,7 @@ def test_output_handler_with_global_step_from_engine():
     )
 
     mock_logger = MagicMock(spec=TensorboardLogger)
-    mock_logger.writer = MagicMock()
+    mock_logger = MagicMock()
 
     mock_engine = MagicMock()
     mock_engine.state = State()
@@ -222,8 +222,8 @@ def test_output_handler_with_global_step_from_engine():
     mock_engine.state.output = 0.123
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
-    assert mock_logger.writer.add_scalar.call_count == 1
-    mock_logger.writer.add_scalar.assert_has_calls(
+    assert mock_logger.add_scalar.call_count == 1
+    mock_logger.add_scalar.assert_has_calls(
         [call("tag/loss", mock_engine.state.output, mock_another_engine.state.epoch)]
     )
 
@@ -231,8 +231,8 @@ def test_output_handler_with_global_step_from_engine():
     mock_engine.state.output = 1.123
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
-    assert mock_logger.writer.add_scalar.call_count == 2
-    mock_logger.writer.add_scalar.assert_has_calls(
+    assert mock_logger.add_scalar.call_count == 2
+    mock_logger.add_scalar.assert_has_calls(
         [call("tag/loss", mock_engine.state.output, mock_another_engine.state.epoch)]
     )
 
@@ -243,7 +243,7 @@ def test_output_handler_with_global_step_transform():
 
     wrapper = OutputHandler("tag", output_transform=lambda x: {"loss": x}, global_step_transform=global_step_transform)
     mock_logger = MagicMock(spec=TensorboardLogger)
-    mock_logger.writer = MagicMock()
+    mock_logger = MagicMock()
 
     mock_engine = MagicMock()
     mock_engine.state = State()
@@ -251,8 +251,8 @@ def test_output_handler_with_global_step_transform():
     mock_engine.state.output = 12345
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
-    assert mock_logger.writer.add_scalar.call_count == 1
-    mock_logger.writer.add_scalar.assert_has_calls([call("tag/loss", 12345, 10)])
+    assert mock_logger.add_scalar.call_count == 1
+    mock_logger.add_scalar.assert_has_calls([call("tag/loss", 12345, 10)])
 
 
 def test_weights_scalar_handler_wrong_setup():
@@ -273,7 +273,7 @@ def test_weights_scalar_handler(dummy_model_factory):
     def _test(tag=None):
         wrapper = WeightsScalarHandler(model, tag=tag)
         mock_logger = MagicMock(spec=TensorboardLogger)
-        mock_logger.writer = MagicMock()
+        mock_logger = MagicMock()
 
         mock_engine = MagicMock()
         mock_engine.state = State()
@@ -283,8 +283,8 @@ def test_weights_scalar_handler(dummy_model_factory):
 
         tag_prefix = f"{tag}/" if tag else ""
 
-        assert mock_logger.writer.add_scalar.call_count == 4
-        mock_logger.writer.add_scalar.assert_has_calls(
+        assert mock_logger.add_scalar.call_count == 4
+        mock_logger.add_scalar.assert_has_calls(
             [
                 call(tag_prefix + "weights_norm/fc1/weight", 0.0, 5),
                 call(tag_prefix + "weights_norm/fc1/bias", 0.0, 5),
@@ -304,28 +304,28 @@ def test_weights_scalar_handler_whitelist(dummy_model_factory):
 
     wrapper = WeightsScalarHandler(model, whitelist=["fc2.weight"])
     mock_logger = MagicMock(spec=TensorboardLogger)
-    mock_logger.writer = MagicMock()
+    mock_logger = MagicMock()
 
     mock_engine = MagicMock()
     mock_engine.state = State()
     mock_engine.state.epoch = 5
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
-    mock_logger.writer.add_scalar.assert_called_once_with("weights_norm/fc2/weight", 12.0, 5)
-    mock_logger.writer.reset_mock()
+    mock_logger.add_scalar.assert_called_once_with("weights_norm/fc2/weight", 12.0, 5)
+    mock_logger.reset_mock()
 
     wrapper = WeightsScalarHandler(model, tag="model", whitelist=["fc1"])
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    mock_logger.writer.add_scalar.assert_has_calls(
+    mock_logger.add_scalar.assert_has_calls(
         [
             call("model/weights_norm/fc1/weight", 0.0, 5),
             call("model/weights_norm/fc1/bias", 0.0, 5),
         ],
         any_order=True,
     )
-    assert mock_logger.writer.add_scalar.call_count == 2
-    mock_logger.writer.reset_mock()
+    assert mock_logger.add_scalar.call_count == 2
+    mock_logger.reset_mock()
 
     def weight_selector(n, _):
         return "bias" in n
@@ -333,14 +333,14 @@ def test_weights_scalar_handler_whitelist(dummy_model_factory):
     wrapper = WeightsScalarHandler(model, tag="model", whitelist=weight_selector)
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    mock_logger.writer.add_scalar.assert_has_calls(
+    mock_logger.add_scalar.assert_has_calls(
         [
             call("model/weights_norm/fc1/bias", 0.0, 5),
             call("model/weights_norm/fc2/bias", pytest.approx(math.sqrt(12.0)), 5),
         ],
         any_order=True,
     )
-    assert mock_logger.writer.add_scalar.call_count == 2
+    assert mock_logger.add_scalar.call_count == 2
 
 
 def test_weights_hist_handler_wrong_setup():
@@ -361,7 +361,7 @@ def test_weights_hist_handler(dummy_model_factory):
     def _test(tag=None):
         wrapper = WeightsHistHandler(model, tag=tag)
         mock_logger = MagicMock(spec=TensorboardLogger)
-        mock_logger.writer = MagicMock()
+        mock_logger = MagicMock()
 
         mock_engine = MagicMock()
         mock_engine.state = State()
@@ -371,8 +371,8 @@ def test_weights_hist_handler(dummy_model_factory):
 
         tag_prefix = f"{tag}/" if tag else ""
 
-        assert mock_logger.writer.add_histogram.call_count == 4
-        mock_logger.writer.add_histogram.assert_has_calls(
+        assert mock_logger.add_histogram.call_count == 4
+        mock_logger.add_histogram.assert_has_calls(
             [
                 call(tag=tag_prefix + "weights/fc1/weight", values=ANY, global_step=5),
                 call(tag=tag_prefix + "weights/fc1/bias", values=ANY, global_step=5),
@@ -391,28 +391,28 @@ def test_weights_hist_handler_whitelist(dummy_model_factory):
 
     wrapper = WeightsHistHandler(model, whitelist=["fc2.weight"])
     mock_logger = MagicMock(spec=TensorboardLogger)
-    mock_logger.writer = MagicMock()
+    mock_logger = MagicMock()
 
     mock_engine = MagicMock()
     mock_engine.state = State()
     mock_engine.state.epoch = 5
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
-    mock_logger.writer.add_histogram.assert_called_once_with(tag="weights/fc2/weight", values=ANY, global_step=5)
-    mock_logger.writer.reset_mock()
+    mock_logger.add_histogram.assert_called_once_with(tag="weights/fc2/weight", values=ANY, global_step=5)
+    mock_logger.reset_mock()
 
     wrapper = WeightsHistHandler(model, tag="model", whitelist=["fc1"])
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    mock_logger.writer.add_histogram.assert_has_calls(
+    mock_logger.add_histogram.assert_has_calls(
         [
             call(tag="model/weights/fc1/weight", values=ANY, global_step=5),
             call(tag="model/weights/fc1/bias", values=ANY, global_step=5),
         ],
         any_order=True,
     )
-    assert mock_logger.writer.add_histogram.call_count == 2
-    mock_logger.writer.reset_mock()
+    assert mock_logger.add_histogram.call_count == 2
+    mock_logger.reset_mock()
 
     def weight_selector(n, _):
         return "bias" in n
@@ -420,14 +420,14 @@ def test_weights_hist_handler_whitelist(dummy_model_factory):
     wrapper = WeightsHistHandler(model, tag="model", whitelist=weight_selector)
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    mock_logger.writer.add_histogram.assert_has_calls(
+    mock_logger.add_histogram.assert_has_calls(
         [
             call(tag="model/weights/fc1/bias", values=ANY, global_step=5),
             call(tag="model/weights/fc2/bias", values=ANY, global_step=5),
         ],
         any_order=True,
     )
-    assert mock_logger.writer.add_histogram.call_count == 2
+    assert mock_logger.add_histogram.call_count == 2
 
 
 def test_grads_scalar_handler_wrong_setup():
@@ -447,7 +447,7 @@ def test_grads_scalar_handler(dummy_model_factory, norm_mock):
     def _test(tag=None):
         wrapper = GradsScalarHandler(model, reduction=norm_mock, tag=tag)
         mock_logger = MagicMock(spec=TensorboardLogger)
-        mock_logger.writer = MagicMock()
+        mock_logger = MagicMock()
 
         mock_engine = MagicMock()
         mock_engine.state = State()
@@ -458,7 +458,7 @@ def test_grads_scalar_handler(dummy_model_factory, norm_mock):
 
         tag_prefix = f"{tag}/" if tag else ""
 
-        mock_logger.writer.add_scalar.assert_has_calls(
+        mock_logger.add_scalar.assert_has_calls(
             [
                 call(tag_prefix + "grads_norm/fc1/weight", ANY, 5),
                 call(tag_prefix + "grads_norm/fc1/bias", ANY, 5),
@@ -467,7 +467,7 @@ def test_grads_scalar_handler(dummy_model_factory, norm_mock):
             ],
             any_order=True,
         )
-        assert mock_logger.writer.add_scalar.call_count == 4
+        assert mock_logger.add_scalar.call_count == 4
         assert norm_mock.call_count == 4
 
     _test()
@@ -479,28 +479,28 @@ def test_grads_scalar_handler_whitelist(dummy_model_factory, norm_mock):
 
     wrapper = GradsScalarHandler(model, reduction=norm_mock, whitelist=["fc2.weight"])
     mock_logger = MagicMock(spec=TensorboardLogger)
-    mock_logger.writer = MagicMock()
+    mock_logger = MagicMock()
 
     mock_engine = MagicMock()
     mock_engine.state = State()
     mock_engine.state.epoch = 5
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
-    mock_logger.writer.add_scalar.assert_called_once_with("grads_norm/fc2/weight", ANY, 5)
-    mock_logger.writer.reset_mock()
+    mock_logger.add_scalar.assert_called_once_with("grads_norm/fc2/weight", ANY, 5)
+    mock_logger.reset_mock()
 
     wrapper = GradsScalarHandler(model, tag="model", whitelist=["fc1"])
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    mock_logger.writer.add_scalar.assert_has_calls(
+    mock_logger.add_scalar.assert_has_calls(
         [
             call("model/grads_norm/fc1/weight", ANY, 5),
             call("model/grads_norm/fc1/bias", ANY, 5),
         ],
         any_order=True,
     )
-    assert mock_logger.writer.add_scalar.call_count == 2
-    mock_logger.writer.reset_mock()
+    assert mock_logger.add_scalar.call_count == 2
+    mock_logger.reset_mock()
 
     def weight_selector(n, _):
         return "bias" in n
@@ -508,14 +508,14 @@ def test_grads_scalar_handler_whitelist(dummy_model_factory, norm_mock):
     wrapper = GradsScalarHandler(model, tag="model", whitelist=weight_selector)
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    mock_logger.writer.add_scalar.assert_has_calls(
+    mock_logger.add_scalar.assert_has_calls(
         [
             call("model/grads_norm/fc1/bias", ANY, 5),
             call("model/grads_norm/fc2/bias", ANY, 5),
         ],
         any_order=True,
     )
-    assert mock_logger.writer.add_scalar.call_count == 2
+    assert mock_logger.add_scalar.call_count == 2
 
 
 def test_grads_hist_handler_wrong_setup():
@@ -535,7 +535,7 @@ def test_grads_hist_handler(dummy_model_factory):
     def _test(tag=None):
         wrapper = GradsHistHandler(model, tag=tag)
         mock_logger = MagicMock(spec=TensorboardLogger)
-        mock_logger.writer = MagicMock()
+        mock_logger = MagicMock()
 
         mock_engine = MagicMock()
         mock_engine.state = State()
@@ -545,8 +545,8 @@ def test_grads_hist_handler(dummy_model_factory):
 
         tag_prefix = f"{tag}/" if tag else ""
 
-        assert mock_logger.writer.add_histogram.call_count == 4
-        mock_logger.writer.add_histogram.assert_has_calls(
+        assert mock_logger.add_histogram.call_count == 4
+        mock_logger.add_histogram.assert_has_calls(
             [
                 call(tag=tag_prefix + "grads/fc1/weight", values=ANY, global_step=5),
                 call(tag=tag_prefix + "grads/fc1/bias", values=ANY, global_step=5),
@@ -565,28 +565,28 @@ def test_grads_hist_handler_whitelist(dummy_model_factory):
 
     wrapper = GradsHistHandler(model, whitelist=["fc2.weight"])
     mock_logger = MagicMock(spec=TensorboardLogger)
-    mock_logger.writer = MagicMock()
+    mock_logger = MagicMock()
 
     mock_engine = MagicMock()
     mock_engine.state = State()
     mock_engine.state.epoch = 5
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
-    mock_logger.writer.add_histogram.assert_called_once_with(tag="grads/fc2/weight", values=ANY, global_step=5)
-    mock_logger.writer.reset_mock()
+    mock_logger.add_histogram.assert_called_once_with(tag="grads/fc2/weight", values=ANY, global_step=5)
+    mock_logger.reset_mock()
 
     wrapper = GradsHistHandler(model, tag="model", whitelist=["fc1"])
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    mock_logger.writer.add_histogram.assert_has_calls(
+    mock_logger.add_histogram.assert_has_calls(
         [
             call(tag="model/grads/fc1/weight", values=ANY, global_step=5),
             call(tag="model/grads/fc1/bias", values=ANY, global_step=5),
         ],
         any_order=True,
     )
-    assert mock_logger.writer.add_histogram.call_count == 2
-    mock_logger.writer.reset_mock()
+    assert mock_logger.add_histogram.call_count == 2
+    mock_logger.reset_mock()
 
     def weight_selector(n, _):
         return "bias" in n
@@ -594,14 +594,14 @@ def test_grads_hist_handler_whitelist(dummy_model_factory):
     wrapper = GradsHistHandler(model, tag="model", whitelist=weight_selector)
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    mock_logger.writer.add_histogram.assert_has_calls(
+    mock_logger.add_histogram.assert_has_calls(
         [
             call(tag="model/grads/fc1/bias", values=ANY, global_step=5),
             call(tag="model/grads/fc2/bias", values=ANY, global_step=5),
         ],
         any_order=True,
     )
-    assert mock_logger.writer.add_histogram.call_count == 2
+    assert mock_logger.add_histogram.call_count == 2
 
 
 def test_integration(dirname):
@@ -621,7 +621,7 @@ def test_integration(dirname):
 
     def dummy_handler(engine, logger, event_name):
         global_step = engine.state.get_event_attrib_value(event_name)
-        logger.writer.add_scalar("test_value", global_step, global_step)
+        logger.add_scalar("test_value", global_step, global_step)
 
     tb_logger.attach(trainer, log_handler=dummy_handler, event_name=Events.EPOCH_COMPLETED)
 
@@ -651,7 +651,7 @@ def test_integration_as_context_manager(dirname):
 
         def dummy_handler(engine, logger, event_name):
             global_step = engine.state.get_event_attrib_value(event_name)
-            logger.writer.add_scalar("test_value", global_step, global_step)
+            logger.add_scalar("test_value", global_step, global_step)
 
         tb_logger.attach(trainer, log_handler=dummy_handler, event_name=Events.EPOCH_COMPLETED)
 
@@ -668,7 +668,7 @@ def test_no_tensorboardX_package(dirname):
 
     with patch.dict("sys.modules", {"tensorboardX": None}):
         tb_logger = TensorboardLogger(log_dir=dirname)
-        assert isinstance(tb_logger.writer, SummaryWriter), type(tb_logger.writer)
+        assert isinstance(tb_logger, SummaryWriter), type(tb_logger)
         tb_logger.close()
 
 
@@ -677,7 +677,7 @@ def test_no_torch_utils_tensorboard_package(dirname):
 
     with patch.dict("sys.modules", {"torch.utils.tensorboard": None}):
         tb_logger = TensorboardLogger(log_dir=dirname)
-        assert isinstance(tb_logger.writer, SummaryWriter), type(tb_logger.writer)
+        assert isinstance(tb_logger, SummaryWriter), type(tb_logger)
         tb_logger.close()
 
 
