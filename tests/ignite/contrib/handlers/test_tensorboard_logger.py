@@ -43,7 +43,7 @@ def test_optimizer_params():
     mock_engine.state.iteration = 123
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
-    mock_logger.writer.add_scalar.assert_called_once_with("lr/group_0", 0.01, 123)
+    mock_logger.add_scalar.assert_called_once_with("lr/group_0", 0.01, 123)
 
     wrapper = OptimizerParamsHandler(optimizer, param_name="lr", tag="generator")
     mock_logger = MagicMock(spec=TensorboardLogger)
@@ -312,7 +312,7 @@ def test_weights_scalar_handler_whitelist(dummy_model_factory):
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
     mock_logger.writer.add_scalar.assert_called_once_with("weights_norm/fc2/weight", 12.0, 5)
-    mock_logger.reset_mock()
+    mock_logger.writer.reset_mock()
 
     wrapper = WeightsScalarHandler(model, tag="model", whitelist=["fc1"])
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
