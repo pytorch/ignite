@@ -164,7 +164,7 @@ class TensorboardLogger(BaseLogger):
         return getattr(self.writer, attr)
 
     def close(self) -> None:
-        self.close()
+        self.writer.close()
 
     def _create_output_handler(self, *args: Any, **kwargs: Any) -> "OutputHandler":
         return OutputHandler(*args, **kwargs)
