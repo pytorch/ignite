@@ -1,6 +1,5 @@
 import math
 import os
-import unittest
 from unittest.mock import ANY, call, MagicMock, patch
 
 import pytest
