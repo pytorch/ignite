@@ -31,6 +31,7 @@ def test_optimizer_params_handler_wrong_setup():
     with pytest.raises(RuntimeError, match="Handler OptimizerParamsHandler works only with TensorboardLogger"):
         handler(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
+
 def test_getattr_method():
     # Create a mock SummaryWriter object
     mock_writer = MagicMock()
@@ -38,8 +39,8 @@ def test_getattr_method():
     logger = TensorboardLogger()
     logger.writer = mock_writer
     # Test that a method passed through the __getattr__ method calls thecorresponding method on the mock object
-    logger.add_scalar('loss', 0.5)
-    mock_writer.add_scalar.assert_called_once_with('loss', 0.5)
+    logger.add_scalar("loss", 0.5)
+    mock_writer.add_scalar.assert_called_once_with("loss", 0.5)
 
 
 def test_optimizer_params():
