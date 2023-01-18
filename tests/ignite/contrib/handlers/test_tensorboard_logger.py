@@ -1,7 +1,8 @@
 import math
 import os
-from unittest.mock import ANY, call, MagicMock, patch
 import unittest
+from unittest.mock import ANY, call, MagicMock, patch
+
 import pytest
 import torch
 
@@ -31,13 +32,15 @@ def test_optimizer_params_handler_wrong_setup():
     with pytest.raises(RuntimeError, match="Handler OptimizerParamsHandler works only with TensorboardLogger"):
         handler(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
+
 class TestTensorboardLogger(unittest.TestCase):
     @patch("ignite.contrib.handlers.TensorboardLogger")
     def test_add_scalar(self, mock_writer):
         # Create a TensorboardLogger instance
         logger = TensorboardLogger()
         # Call the add_scalar method
-        logger.add_scalar('loss', 0.5)
+        logger.add_scalar("loss", 0.5)
+
 
 def test_optimizer_params():
 
