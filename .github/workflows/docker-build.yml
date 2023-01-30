@@ -48,7 +48,7 @@ jobs:
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.7
+          python-version: 3.8
       - name: Build hvd hvd-base
         working-directory: docker
         run: |
@@ -83,10 +83,10 @@ jobs:
       - name: Remove cache
         run: |
           sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"      
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.7
+          python-version: 3.8
       - name: Build hvd hvd-apex
         working-directory: docker
         run: |
@@ -121,10 +121,10 @@ jobs:
       - name: Remove cache
         run: |
           sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"      
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.7
+          python-version: 3.8
       - name: Build main base
         working-directory: docker
         run: |
@@ -156,10 +156,10 @@ jobs:
       - name: Remove cache
         run: |
           sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"      
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.7
+          python-version: 3.8
       - name: Build main apex
         working-directory: docker
         run: |
@@ -191,10 +191,10 @@ jobs:
       - name: Remove cache
         run: |
           sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"      
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.7
+          python-version: 3.8
       - name: Build msdp msdp-apex
         working-directory: docker
         run: |
