@@ -63,7 +63,7 @@ jobs:
           pip install mkl==2021.4.0 requests gsutil
 
           ## Install torch & xla
-          curl https://raw.githubusercontent.com/pytorch/xla/master/contrib/scripts/env-setup.py -o pytorch-xla-env-setup.py
+          curl https://raw.githubusercontent.com/abhi-glitchhg/ignite_tpu_script/main/env_setup.py -o pytorch-xla-env-setup.py
           python pytorch-xla-env-setup.py --version "nightly"
 
           ## Install test deps and Ignite
