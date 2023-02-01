@@ -62,9 +62,10 @@ jobs:
           # mkl version fixed due to https://github.com/pytorch/ignite/issues/2350
           pip install mkl==2021.4.0 requests gsutil
 
-          ## Install torch & xla
-          curl https://raw.githubusercontent.com/abhi-glitchhg/ignite_tpu_script/main/env_setup.py -o pytorch-xla-env-setup.py
-          python pytorch-xla-env-setup.py --version "nightly"
+          ## Install torch & xla and torchvision
+          pip install --pre  https://storage.googleapis.com/tpu-pytorch/wheels/colab/torch-nightly-cp38-cp38-linux_x86_64.whl
+          pip install --pre  https://storage.googleapis.com/tpu-pytorch/wheels/colab/torch_xla-nightly-cp38-cp38-linux_x86_64.whl
+          pip install --pre  https://storage.googleapis.com/tpu-pytorch/wheels/colab/torchvision-nightly-cp38-cp38-linux_x86_64.whl
 
           ## Install test deps and Ignite
           pip install -r requirements-dev.txt
