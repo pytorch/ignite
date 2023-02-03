@@ -329,6 +329,7 @@ Complete list of metrics
     Frequency
     Loss
     MeanAbsoluteError
+    MeanReciprocalRank
     MeanPairwiseDistance
     MeanSquaredError
     metric.Metric

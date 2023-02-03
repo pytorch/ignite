@@ -9,6 +9,7 @@ from ignite.metrics.gan.fid import FID
 from ignite.metrics.gan.inception_score import InceptionScore
 from ignite.metrics.loss import Loss
 from ignite.metrics.mean_absolute_error import MeanAbsoluteError
+from ignite.metrics.mean_reciprocal_rank import MeanReciprocalRank
 from ignite.metrics.mean_pairwise_distance import MeanPairwiseDistance
 from ignite.metrics.mean_squared_error import MeanSquaredError
 from ignite.metrics.metric import BatchFiltered, BatchWise, EpochWise, Metric, MetricUsage
