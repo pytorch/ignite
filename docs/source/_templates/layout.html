@@ -41,7 +41,7 @@
   <meta property="og:description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
 
   <link rel="preconnect" href="https://BH4D9OD16A-dsn.algolia.net" crossorigin />
-
+  
   {% block htmltitle %}
   <title>{{ title|striptags|e }}{{ titlesuffix }}</title>
   {% endblock %}
@@ -516,7 +516,7 @@
       });
     })
   </script>
-  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@docsearch/js@3.3.0/dist/umd/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@docsearch/js@3"></script>
   <script type="text/javascript">
   let VERSION
   if ('{{ version }}'.startsWith('v')) {
@@ -524,6 +524,10 @@
   } else {
     VERSION = 'master'
   }
+
+  import docsearch from '@docsearch/js';
+  import '@docsearch/css';  
+
   docsearch({
     container: '#docsearch',
     appId: 'BH4D9OD16A',
