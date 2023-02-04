@@ -65,7 +65,7 @@ def supervised_training_step(
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        model_transform: function that receives the y_pred from the model and convert it into the form as required 
+        model_transform: function that receives the y_pred from the model and convert it into the form as required
             by the loss function
         output_transform: function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
@@ -140,7 +140,7 @@ def supervised_training_step_amp(
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        model_transform: function that receives the y_pred from the model and convert it into the form as required 
+        model_transform: function that receives the y_pred from the model and convert it into the form as required
             by the loss function
         output_transform: function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
@@ -229,7 +229,7 @@ def supervised_training_step_apex(
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        model_transform: function that receives the y_pred from the model and convert it into the form as required 
+        model_transform: function that receives the y_pred from the model and convert it into the form as required
             by the loss function
         output_transform: function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
@@ -310,7 +310,7 @@ def supervised_training_step_tpu(
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        model_transform: function that receives the y_pred from the model and convert it into the form as required 
+        model_transform: function that receives the y_pred from the model and convert it into the form as required
             by the loss function
         output_transform: function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
@@ -420,7 +420,7 @@ def create_supervised_trainer(
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        model_transform: function that receives the y_pred from the model and convert it into the form as required 
+        model_transform: function that receives the y_pred from the model and convert it into the form as required
             by the loss function
         output_transform: function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
@@ -597,7 +597,7 @@ def supervised_evaluation_step(
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        model_transform: function that receives the y_pred from the model and convert it into the form as required 
+        model_transform: function that receives the y_pred from the model and convert it into the form as required
             by the loss function
         output_transform: function that receives 'x', 'y', 'y_pred' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `(y_pred, y,)` which fits
@@ -649,7 +649,7 @@ def supervised_evaluation_step_amp(
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        model_transform: function that receives the y_pred from the model and convert it into the form as required 
+        model_transform: function that receives the y_pred from the model and convert it into the form as required
             by the loss function
         output_transform: function that receives 'x', 'y', 'y_pred' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `(y_pred, y,)` which fits
@@ -709,7 +709,7 @@ def create_supervised_evaluator(
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        model_transform: function that receives the y_pred from the model and convert it into the form as required 
+        model_transform: function that receives the y_pred from the model and convert it into the form as required
             by the loss function
         output_transform: function that receives 'x', 'y', 'y_pred' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `(y_pred, y,)` which fits
@@ -745,9 +745,13 @@ def create_supervised_evaluator(
 
     metrics = metrics or {}
     if mode == "amp":
-        evaluate_step = supervised_evaluation_step_amp(model, device, non_blocking, prepare_batch,model_transform, output_transform)
+        evaluate_step = supervised_evaluation_step_amp(
+            model, device, non_blocking, prepare_batch, model_transform, output_transform
+        )
     else:
-        evaluate_step = supervised_evaluation_step(model, device, non_blocking, prepare_batch,model_transform, output_transform)
+        evaluate_step = supervised_evaluation_step(
+            model, device, non_blocking, prepare_batch, model_transform, output_transform
+        )
 
     evaluator = Engine(evaluate_step)
 
