@@ -48,6 +48,7 @@ def supervised_training_step(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
+    model_transform:Callable[torch.Tensor, torch.Tensor] = lambda output : output,
     output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
     gradient_accumulation_steps: int = 1,
 ) -> Callable:
@@ -64,6 +65,8 @@ def supervised_training_step(
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
+        model_transform: function that receives the y_pred from the model and convert it into the form as required 
+            by the loss function
         output_transform: function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
         gradient_accumulation_steps: Number of steps the gradients should be accumulated across.
@@ -100,6 +103,7 @@ def supervised_training_step(
         model.train()
         x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
         y_pred = model(x)
+        y_pred = model_transform(y_pred)
         loss = loss_fn(y_pred, y)
         if gradient_accumulation_steps > 1:
             loss = loss / gradient_accumulation_steps
@@ -118,6 +122,7 @@ def supervised_training_step_amp(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
+    model_transform:Callable[torch.Tensor, torch.Tensor] = lambda output : output,
     output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
     scaler: Optional["torch.cuda.amp.GradScaler"] = None,
     gradient_accumulation_steps: int = 1,
@@ -135,6 +140,8 @@ def supervised_training_step_amp(
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
+        model_transform: function that receives the y_pred from the model and convert it into the form as required 
+            by the loss function
         output_transform: function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
         scaler: GradScaler instance for gradient scaling. (default: None)
@@ -180,6 +187,7 @@ def supervised_training_step_amp(
         x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
         with autocast(enabled=True):
             y_pred = model(x)
+            y_pred = model_transform(y_pred)
             loss = loss_fn(y_pred, y)
             if gradient_accumulation_steps > 1:
                 loss = loss / gradient_accumulation_steps
@@ -204,6 +212,7 @@ def supervised_training_step_apex(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
+    model_transform:Callable[torch.Tensor, torch.Tensor] = lambda output : output,
     output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
     gradient_accumulation_steps: int = 1,
 ) -> Callable:
@@ -220,6 +229,8 @@ def supervised_training_step_apex(
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
+        model_transform: function that receives the y_pred from the model and convert it into the form as required 
+            by the loss function
         output_transform: function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
         gradient_accumulation_steps: Number of steps the gradients should be accumulated across.
@@ -262,6 +273,7 @@ def supervised_training_step_apex(
         model.train()
         x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
         y_pred = model(x)
+        y_pred = model_transform(y_pred)
         loss = loss_fn(y_pred, y)
         if gradient_accumulation_steps > 1:
             loss = loss / gradient_accumulation_steps
@@ -281,6 +293,7 @@ def supervised_training_step_tpu(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
+    model_transform:Callable[torch.Tensor, torch.Tensor] = lambda output : output,
     output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
     gradient_accumulation_steps: int = 1,
 ) -> Callable:
@@ -297,6 +310,8 @@ def supervised_training_step_tpu(
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
+        model_transform: function that receives the y_pred from the model and convert it into the form as required 
+            by the loss function
         output_transform: function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
         gradient_accumulation_steps: Number of steps the gradients should be accumulated across.
@@ -338,6 +353,7 @@ def supervised_training_step_tpu(
         model.train()
         x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
         y_pred = model(x)
+        y_pred = model_transform(y_pred)
         loss = loss_fn(y_pred, y)
         if gradient_accumulation_steps > 1:
             loss = loss / gradient_accumulation_steps
@@ -384,6 +400,7 @@ def create_supervised_trainer(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
+    model_transform:Callable[torch.Tensor, torch.Tensor] = lambda output : output,
     output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
     deterministic: bool = False,
     amp_mode: Optional[str] = None,
@@ -403,6 +420,8 @@ def create_supervised_trainer(
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
+        model_transform: function that receives the y_pred from the model and convert it into the form as required 
+            by the loss function
         output_transform: function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
         deterministic: if True, returns deterministic engine of type
@@ -510,6 +529,7 @@ def create_supervised_trainer(
             device,
             non_blocking,
             prepare_batch,
+            model_transform,
             output_transform,
             _scaler,
             gradient_accumulation_steps,
@@ -522,6 +542,7 @@ def create_supervised_trainer(
             device,
             non_blocking,
             prepare_batch,
+            model_transform,
             output_transform,
             gradient_accumulation_steps,
         )
@@ -533,6 +554,7 @@ def create_supervised_trainer(
             device,
             non_blocking,
             prepare_batch,
+            model_transform,
             output_transform,
             gradient_accumulation_steps,
         )
@@ -544,6 +566,7 @@ def create_supervised_trainer(
             device,
             non_blocking,
             prepare_batch,
+            model_transform,
             output_transform,
             gradient_accumulation_steps,
         )
@@ -560,6 +583,7 @@ def supervised_evaluation_step(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
+    model_transform:Callable[torch.Tensor, torch.Tensor] = lambda output : output,
     output_transform: Callable[[Any, Any, Any], Any] = lambda x, y, y_pred: (y_pred, y),
 ) -> Callable:
     """
@@ -573,6 +597,8 @@ def supervised_evaluation_step(
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
+        model_transform: function that receives the y_pred from the model and convert it into the form as required 
+            by the loss function
         output_transform: function that receives 'x', 'y', 'y_pred' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `(y_pred, y,)` which fits
             output expected by metrics. If you change it you should use `output_transform` in metrics.
@@ -598,6 +624,7 @@ def supervised_evaluation_step(
         with torch.no_grad():
             x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
             y_pred = model(x)
+            y_pred = model_transform(y_pred)
             return output_transform(x, y, y_pred)
 
     return evaluate_step
@@ -608,6 +635,7 @@ def supervised_evaluation_step_amp(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
+    model_transform:Callable[torch.Tensor, torch.Tensor] = lambda output : output,
     output_transform: Callable[[Any, Any, Any], Any] = lambda x, y, y_pred: (y_pred, y),
 ) -> Callable:
     """
@@ -621,6 +649,8 @@ def supervised_evaluation_step_amp(
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
+        model_transform: function that receives the y_pred from the model and convert it into the form as required 
+            by the loss function
         output_transform: function that receives 'x', 'y', 'y_pred' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `(y_pred, y,)` which fits
             output expected by metrics. If you change it you should use `output_transform` in metrics.
@@ -651,6 +681,7 @@ def supervised_evaluation_step_amp(
             x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
             with autocast(enabled=True):
                 y_pred = model(x)
+                y_pred = model_transform(y_pred)
             return output_transform(x, y, y_pred)
 
     return evaluate_step
@@ -662,6 +693,7 @@ def create_supervised_evaluator(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
+    model_transform:Callable[torch.Tensor, torch.Tensor] = lambda output : output,
     output_transform: Callable[[Any, Any, Any], Any] = lambda x, y, y_pred: (y_pred, y),
     amp_mode: Optional[str] = None,
 ) -> Engine:
@@ -677,6 +709,8 @@ def create_supervised_evaluator(
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
+        model_transform: function that receives the y_pred from the model and convert it into the form as required 
+            by the loss function
         output_transform: function that receives 'x', 'y', 'y_pred' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `(y_pred, y,)` which fits
             output expected by metrics. If you change it you should use `output_transform` in metrics.
@@ -711,9 +745,9 @@ def create_supervised_evaluator(
 
     metrics = metrics or {}
     if mode == "amp":
-        evaluate_step = supervised_evaluation_step_amp(model, device, non_blocking, prepare_batch, output_transform)
+        evaluate_step = supervised_evaluation_step_amp(model, device, non_blocking, prepare_batch,model_transform, output_transform)
     else:
-        evaluate_step = supervised_evaluation_step(model, device, non_blocking, prepare_batch, output_transform)
+        evaluate_step = supervised_evaluation_step(model, device, non_blocking, prepare_batch,model_transform, output_transform)
 
     evaluator = Engine(evaluate_step)
 
