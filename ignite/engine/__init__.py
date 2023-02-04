@@ -48,7 +48,7 @@ def supervised_training_step(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
-    model_transform:Callable[torch.Tensor, torch.Tensor] = lambda output : output,
+    model_transform: Callable[torch.Tensor, torch.Tensor] = lambda output: output,
     output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
     gradient_accumulation_steps: int = 1,
 ) -> Callable:
@@ -65,7 +65,7 @@ def supervised_training_step(
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        model_transform: function that receives the y_pred from the model and convert it into the form as required 
+        model_transform: function that receives the y_pred from the model and convert it into the form as required
             by the loss function
         output_transform: function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
@@ -122,7 +122,7 @@ def supervised_training_step_amp(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
-    model_transform:Callable[torch.Tensor, torch.Tensor] = lambda output : output,
+    model_transform: Callable[torch.Tensor, torch.Tensor] = lambda output: output,
     output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
     scaler: Optional["torch.cuda.amp.GradScaler"] = None,
     gradient_accumulation_steps: int = 1,
@@ -140,7 +140,7 @@ def supervised_training_step_amp(
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        model_transform: function that receives the y_pred from the model and convert it into the form as required 
+        model_transform: function that receives the y_pred from the model and convert it into the form as required
             by the loss function
         output_transform: function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
@@ -212,7 +212,7 @@ def supervised_training_step_apex(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
-    model_transform:Callable[torch.Tensor, torch.Tensor] = lambda output : output,
+    model_transform: Callable[torch.Tensor, torch.Tensor] = lambda output: output,
     output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
     gradient_accumulation_steps: int = 1,
 ) -> Callable:
@@ -229,7 +229,7 @@ def supervised_training_step_apex(
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        model_transform: function that receives the y_pred from the model and convert it into the form as required 
+        model_transform: function that receives the y_pred from the model and convert it into the form as required
             by the loss function
         output_transform: function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
@@ -293,7 +293,7 @@ def supervised_training_step_tpu(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
-    model_transform:Callable[torch.Tensor, torch.Tensor] = lambda output : output,
+    model_transform: Callable[torch.Tensor, torch.Tensor] = lambda output: output,
     output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
     gradient_accumulation_steps: int = 1,
 ) -> Callable:
@@ -310,7 +310,7 @@ def supervised_training_step_tpu(
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        model_transform: function that receives the y_pred from the model and convert it into the form as required 
+        model_transform: function that receives the y_pred from the model and convert it into the form as required
             by the loss function
         output_transform: function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
@@ -400,7 +400,7 @@ def create_supervised_trainer(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
-    model_transform:Callable[torch.Tensor, torch.Tensor] = lambda output : output,
+    model_transform: Callable[torch.Tensor, torch.Tensor] = lambda output: output,
     output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
     deterministic: bool = False,
     amp_mode: Optional[str] = None,
@@ -420,7 +420,7 @@ def create_supervised_trainer(
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        model_transform: function that receives the y_pred from the model and convert it into the form as required 
+        model_transform: function that receives the y_pred from the model and convert it into the form as required
             by the loss function
         output_transform: function that receives 'x', 'y', 'y_pred', 'loss' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `loss.item()`.
@@ -583,7 +583,7 @@ def supervised_evaluation_step(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
-    model_transform:Callable[torch.Tensor, torch.Tensor] = lambda output : output,
+    model_transform: Callable[torch.Tensor, torch.Tensor] = lambda output: output,
     output_transform: Callable[[Any, Any, Any], Any] = lambda x, y, y_pred: (y_pred, y),
 ) -> Callable:
     """
@@ -597,7 +597,7 @@ def supervised_evaluation_step(
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        model_transform: function that receives the y_pred from the model and convert it into the form as required 
+        model_transform: function that receives the y_pred from the model and convert it into the form as required
             by the loss function
         output_transform: function that receives 'x', 'y', 'y_pred' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `(y_pred, y,)` which fits
@@ -635,7 +635,7 @@ def supervised_evaluation_step_amp(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
-    model_transform:Callable[torch.Tensor, torch.Tensor] = lambda output : output,
+    model_transform: Callable[torch.Tensor, torch.Tensor] = lambda output: output,
     output_transform: Callable[[Any, Any, Any], Any] = lambda x, y, y_pred: (y_pred, y),
 ) -> Callable:
     """
@@ -649,7 +649,7 @@ def supervised_evaluation_step_amp(
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        model_transform: function that receives the y_pred from the model and convert it into the form as required 
+        model_transform: function that receives the y_pred from the model and convert it into the form as required
             by the loss function
         output_transform: function that receives 'x', 'y', 'y_pred' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `(y_pred, y,)` which fits
@@ -693,7 +693,7 @@ def create_supervised_evaluator(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
-    model_transform:Callable[torch.Tensor, torch.Tensor] = lambda output : output,
+    model_transform: Callable[torch.Tensor, torch.Tensor] = lambda output: output,
     output_transform: Callable[[Any, Any, Any], Any] = lambda x, y, y_pred: (y_pred, y),
     amp_mode: Optional[str] = None,
 ) -> Engine:
@@ -709,7 +709,7 @@ def create_supervised_evaluator(
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        model_transform: function that receives the y_pred from the model and convert it into the form as required 
+        model_transform: function that receives the y_pred from the model and convert it into the form as required
             by the loss function
         output_transform: function that receives 'x', 'y', 'y_pred' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `(y_pred, y,)` which fits
@@ -745,9 +745,13 @@ def create_supervised_evaluator(
 
     metrics = metrics or {}
     if mode == "amp":
-        evaluate_step = supervised_evaluation_step_amp(model, device, non_blocking, prepare_batch,model_transform, output_transform)
+        evaluate_step = supervised_evaluation_step_amp(
+            model, device, non_blocking, prepare_batch, model_transform, output_transform
+        )
     else:
-        evaluate_step = supervised_evaluation_step(model, device, non_blocking, prepare_batch,model_transform, output_transform)
+        evaluate_step = supervised_evaluation_step(
+            model, device, non_blocking, prepare_batch, model_transform, output_transform
+        )
 
     evaluator = Engine(evaluate_step)
 
