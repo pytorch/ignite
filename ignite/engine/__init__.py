@@ -48,7 +48,7 @@ def supervised_training_step(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
-    model_transform:Callable[torch.Tensor, torch.Tensor] = lambda output : output,
+    model_transform:Callable[[torch.Tensor], torch.Tensor] = lambda output : output,
     output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
     gradient_accumulation_steps: int = 1,
 ) -> Callable:
@@ -122,7 +122,7 @@ def supervised_training_step_amp(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
-    model_transform:Callable[torch.Tensor, torch.Tensor] = lambda output : output,
+    model_transform:Callable[[torch.Tensor], torch.Tensor] = lambda output : output,
     output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
     scaler: Optional["torch.cuda.amp.GradScaler"] = None,
     gradient_accumulation_steps: int = 1,
@@ -212,7 +212,7 @@ def supervised_training_step_apex(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
-    model_transform:Callable[torch.Tensor, torch.Tensor] = lambda output : output,
+    model_transform:Callable[[torch.Tensor], torch.Tensor] = lambda output : output,
     output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
     gradient_accumulation_steps: int = 1,
 ) -> Callable:
@@ -293,7 +293,7 @@ def supervised_training_step_tpu(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
-    model_transform:Callable[torch.Tensor, torch.Tensor] = lambda output : output,
+    model_transform:Callable[[torch.Tensor], torch.Tensor] = lambda output : output,
     output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
     gradient_accumulation_steps: int = 1,
 ) -> Callable:
@@ -400,7 +400,7 @@ def create_supervised_trainer(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
-    model_transform:Callable[torch.Tensor, torch.Tensor] = lambda output : output,
+    model_transform:Callable[[torch.Tensor], torch.Tensor] = lambda output : output,
     output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
     deterministic: bool = False,
     amp_mode: Optional[str] = None,
@@ -583,7 +583,7 @@ def supervised_evaluation_step(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
-    model_transform:Callable[torch.Tensor, torch.Tensor] = lambda output : output,
+    model_transform:Callable[[torch.Tensor], torch.Tensor] = lambda output : output,
     output_transform: Callable[[Any, Any, Any], Any] = lambda x, y, y_pred: (y_pred, y),
 ) -> Callable:
     """
@@ -635,7 +635,7 @@ def supervised_evaluation_step_amp(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
-    model_transform:Callable[torch.Tensor, torch.Tensor] = lambda output : output,
+    model_transform:Callable[[torch.Tensor], torch.Tensor] = lambda output : output,
     output_transform: Callable[[Any, Any, Any], Any] = lambda x, y, y_pred: (y_pred, y),
 ) -> Callable:
     """
@@ -693,7 +693,7 @@ def create_supervised_evaluator(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
-    model_transform:Callable[torch.Tensor, torch.Tensor] = lambda output : output,
+    model_transform:Callable[[torch.Tensor], torch.Tensor] = lambda output : output,
     output_transform: Callable[[Any, Any, Any], Any] = lambda x, y, y_pred: (y_pred, y),
     amp_mode: Optional[str] = None,
 ) -> Engine:
