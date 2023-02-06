@@ -125,6 +125,10 @@ class Engine(Serializable):
     _state_dict_all_req_keys = ("epoch_length", "max_epochs")
     _state_dict_one_of_opt_keys = ("iteration", "epoch")
 
+    DEBUG_EVENTS = 1
+    DEBUG_OUTPUT = 2
+    DEBUG_GRADS = 3
+
     # Flag to disable engine._internal_run as generator feature for BC
     interrupt_resume_enabled = True
 
@@ -424,6 +428,16 @@ class Engine(Serializable):
             kwargs.update(event_kwargs)
             first, others = ((args[0],), args[1:]) if (args and args[0] == self) else ((), args)
             func(*first, *(event_args + others), **kwargs)
+
+        
+    def debug(self, level: int = 0, **kwargs):
+        if level > 2 :
+            self.logger.debug(f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {kwargs['event_name']}, Loss : {self.state.output}, LR : {kwargs['optimizer'].param_groups[0]['lr']}, Gradients : {kwargs['loss'].grad}")
+        elif level > 1 :
+            self.logger.debug(f"{self.state.epoch} | {self.state.iteration} Firing handlers for event {kwargs['event_name']}, Loss : {self.state.output}, LR : {kwargs['optimizer'].param_groups[0]['lr']}")
+        elif level > 0 :
+            self.logger.debug(f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {kwargs['event_name']}")
+
 
     def fire_event(self, event_name: Any) -> None:
         """Execute all the handlers associated with given event.
