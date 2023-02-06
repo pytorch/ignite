@@ -23,7 +23,6 @@ wheels/
 *.egg
 MANIFEST
 **/.DS_Store
-runs/
 
 # Unit test / coverage reports
 htmlcov/
