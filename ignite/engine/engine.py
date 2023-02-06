@@ -434,9 +434,13 @@ class Engine(Serializable):
         if level > 2 :
             self.logger.debug(f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {kwargs['event_name']}, Loss : {self.state.output}, LR : {kwargs['optimizer'].param_groups[0]['lr']}, Gradients : {kwargs['loss'].grad}")
         elif level > 1 :
-            self.logger.debug(f"{self.state.epoch} | {self.state.iteration} Firing handlers for event {kwargs['event_name']}, Loss : {self.state.output}, LR : {kwargs['optimizer'].param_groups[0]['lr']}")
+            self.logger.debug(
+                f"{self.state.epoch} | {self.state.iteration} Firing handlers for event {kwargs['event_name']}, Loss : {self.state.output}, LR : {kwargs['optimizer'].param_groups[0]['lr']}"
+            )
         elif level > 0 :
-            self.logger.debug(f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {kwargs['event_name']}")
+            self.logger.debug(
+                f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {kwargs['event_name']}"
+            )
 
 
     def fire_event(self, event_name: Any) -> None:
