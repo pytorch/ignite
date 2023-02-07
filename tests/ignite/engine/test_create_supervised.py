@@ -124,6 +124,7 @@ def _test_create_supervised_trainer(
             with pytest.raises(RuntimeError, match=r"Expected all tensors to be on the same device"):
                 trainer.run(data)
 
+
 def _default_create_supervised_trainer_with_output_function(
     gradient_accumulation_steps: int = 1,
     model_device: Optional[str] = None,
@@ -169,6 +170,7 @@ def _default_create_supervised_trainer_with_output_function(
     assert model.weight.data[0, 0].item() == approx(0.0)
 
     return trainer, model
+
 
 def _test_create_supervised_trainer_with_output_function(
     gradient_accumulation_steps: int = 1,
@@ -227,6 +229,7 @@ def _test_create_supervised_trainer_with_output_function(
             # This is broken in 1.6.0 but will be probably fixed with 1.7.0
             with pytest.raises(RuntimeError, match=r"Expected all tensors to be on the same device"):
                 trainer.run(data)
+
 
 @pytest.mark.skipif(Version(torch.__version__) < Version("1.6.0"), reason="Skip if < 1.6.0")
 def test_create_supervised_training_scalar_assignment():
