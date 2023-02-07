@@ -48,7 +48,7 @@ def supervised_training_step(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
-    model_transform: Callable[[Any], Any] = lambda output : output,
+    model_transform: Callable[[Any], Any] = lambda output: output,
     output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
     gradient_accumulation_steps: int = 1,
 ) -> Callable:

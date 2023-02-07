@@ -140,6 +140,7 @@ def _default_create_supervised_trainer_with_output_function(
 
         def forward(self, x):
             return [self.fc(x), self.fc(x)]
+
     model = Model()
     if model_device:
         model.to(model_device)
