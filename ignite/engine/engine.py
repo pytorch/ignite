@@ -147,6 +147,8 @@ class Engine(Serializable):
         self._dataloader_iter: Optional[Iterator[Any]] = None
         self._init_iter: Optional[int] = None
 
+        self.debug_level = 0
+
         self.register_events(*Events)
 
         if self._process_function is None:
@@ -430,17 +432,29 @@ class Engine(Serializable):
             func(*first, *(event_args + others), **kwargs)
 
     def debug(self, level: int = 0, **kwargs):
-        if level > 2:
-            self.logger.debug(
-                f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {kwargs['event_name']}, Loss : {self.state.output}, LR : {kwargs['optimizer'].param_groups[0]['lr']}, Gradients : {kwargs['loss'].grad}"
+        self.level = level
+        if self.level > 2:
+            print(
+                f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name}, Loss : {self.state.output}, \
+                    LR : {self.state.output}, Gradients : {self.state.output}"
             )
-        elif level > 1:
             self.logger.debug(
-                f"{self.state.epoch} | {self.state.iteration} Firing handlers for event {kwargs['event_name']}, Loss : {self.state.output}, LR : {kwargs['optimizer'].param_groups[0]['lr']}"
+                f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name}, Loss : {self.state.output}, \
+                    LR : {self.state.output}, Gradients : {self.state.output}"
             )
-        elif level > 0:
+        elif self.level > 1:
+            print(
+                f"{self.state.epoch} | {self.state.iteration} Firing handlers for event {self.last_event_name}, Loss : {self.state.output}, \
+                    LR : {self.state.output}"
+            )
             self.logger.debug(
-                f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {kwargs['event_name']}"
+                f"{self.state.epoch} | {self.state.iteration} Firing handlers for event {self.last_event_name}, Loss : {self.state.output}, \
+                    LR : {self.state.output}"
+            )
+        elif self.level > 0:
+            print(f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name}")
+            self.logger.debug(
+                f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name}"
             )
 
     def fire_event(self, event_name: Any) -> None:
