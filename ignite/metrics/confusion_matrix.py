@@ -13,7 +13,7 @@ __all__ = ["ConfusionMatrix", "mIoU", "IoU", "DiceCoefficient", "cmAccuracy", "c
 class ConfusionMatrix(Metric):
     """Calculates confusion matrix for multi-class data.
 
-    - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
+    - ``update`` must receive output of the form ``(y_pred, y)``.
     - `y_pred` must contain logits and has the following shape (batch_size, num_classes, ...).
       If you are doing binary classification, see Note for an example on how to get this.
     - `y` should have the following shape (batch_size, ...) and contains ground-truth class indices

@@ -15,7 +15,7 @@ class RootMeanSquaredError(MeanSquaredError):
 
     where :math:`y_{i}` is the prediction tensor and :math:`x_{i}` is ground true tensor.
 
-    - ``update`` must receive output of the form (y_pred, y) or `{'y_pred': y_pred, 'y': y}`.
+    - ``update`` must receive output of the form ``(y_pred, y)``.
 
     Args:
         output_transform: a callable that is used to transform the
