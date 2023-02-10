@@ -156,6 +156,12 @@ def test_callable_events_with_wrong_inputs():
     with pytest.raises(ValueError, match=r"Argument once should be integer and positive"):
         Events.ITERATION_STARTED(once=-1)
 
+    with pytest.raises(ValueError, match=r"Argument once should a list of positive integers"):
+        Events.ITERATION_STARTED(once=[1, 10.0, 'pytorch'])
+    
+    with pytest.raises(ValueError, match=r"Argument once should not be empty"):
+        Events.ITERATION_STARTED(once=[])
+
     with pytest.raises(ValueError, match=r"Argument before should be integer and greater or equal to zero"):
         Events.ITERATION_STARTED(before=-1)
 
@@ -202,6 +208,12 @@ def test_callable_events(event):
     assert event.name in f"{ret}"
 
     ret = event(once=10)
+    assert isinstance(ret, CallableEventWithFilter)
+    assert ret == event
+    assert ret.filter is not None
+    assert event.name in f"{ret}"
+
+    ret = event(once=[1, 10])
     assert isinstance(ret, CallableEventWithFilter)
     assert ret == event
     assert ret.filter is not None

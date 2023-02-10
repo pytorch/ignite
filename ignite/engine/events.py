@@ -90,7 +90,7 @@ class CallableEventWithFilter:
         if (every is not None) and not (isinstance(every, numbers.Integral) and every > 0):
             raise ValueError("Argument every should be integer and greater than zero")
 
-        if (once is not None) and not (isinstance(once, numbers.Integral) and once > 0) and not (all(isinstance(ele, int) for ele in once)):
+        if (once is not None) and not (isinstance(once, numbers.Integral) and once > 0) and not (isinstance(once, list) and len(once) > 0 and all(isinstance(ele, int) for ele in once)):
             raise ValueError("Argument once should either be a positive integer or a list of positive integers")
 
         if (before is not None) and not (isinstance(before, numbers.Integral) and before >= 0):
@@ -107,7 +107,8 @@ class CallableEventWithFilter:
                 event_filter = self.every_event_filter(every)
 
         if once is not None:
-            event_filter = self.once_event_filter(once)
+            once_list = self.convert_to_list(once)
+            event_filter = self.once_event_filter(once_list)
 
         if before is not None or after is not None:
             event_filter = self.before_and_after_event_filter(before, after)
@@ -130,16 +131,16 @@ class CallableEventWithFilter:
         return wrapper
 
     @staticmethod
+    def convert_to_list(once: Union[int, list]) -> list:
+        return [once] if isinstance(once, int) else once
+
+    @staticmethod
     def once_event_filter(once: Union[int, list]) -> Callable:
         """A wrapper for once event filter."""
 
         def wrapper(engine: "Engine", event: int) -> bool:
-            if isinstance(once, int):
-                if event == once:
-                    return True
-            if isinstance(once, list):
-                if event in once:
-                    return True
+            if event in once:
+                return True
             return False
 
         return wrapper
