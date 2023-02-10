@@ -134,20 +134,24 @@ class CallableEventWithFilter:
         """A wrapper for once event filter."""
 
         def wrapper(engine: "Engine", event: int) -> bool:
-            if event == once:
-                return True
-            return False
+            if type(once) == int:
+                return event == once
+            else:
+                return event in once
 
         return wrapper
 
     @staticmethod
-    def before_and_after_event_filter(before: Optional[int] = None, after: Optional[int] = None) -> Callable:
+    def before_and_after_event_filter(before: Optional[int] = None, after: Optional[int] = None, every: Optional[int] = None) -> Callable:
         """A wrapper for before and after event filter."""
         before_: Union[int, float] = float("inf") if before is None else before
         after_: int = 0 if after is None else after
+        every_: int = 1 if every is None else every
 
         def wrapper(engine: "Engine", event: int) -> bool:
-            if event > after_ and event < before_:
+            n = (event - (after_ + 1)) # by aithmatic formula n should be integer
+            # return (n%every_ == 0 and after_ < event < before_)
+            if n%every_ == 0 and after_ < event < before_:
                 return True
             return False
 

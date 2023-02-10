@@ -370,17 +370,18 @@ def test_after_event_filter_with_engine(event_name, event_attr, after, expect_ca
 
 
 @pytest.mark.parametrize(
-    "event_name, event_attr, before, after, expect_calls",
-    [(Events.ITERATION_STARTED, "iteration", 300, 100, 199), (Events.EPOCH_COMPLETED, "epoch", 4, 1, 2)],
+    "event_name, event_attr, before, after, every, expect_calls",
+    [(Events.ITERATION_STARTED, "iteration", 300, 99, 5, 40), (Events.EPOCH_COMPLETED, "epoch", 10, 1, 2, 4)],
 )
-def test_before_and_after_event_filter_with_engine(event_name, event_attr, before, after, expect_calls):
-
+def test_before_and_after_event_filter_with_engine(event_name, event_attr, before, after, every,expect_calls):
+    """added every with before and after 
+     [after + 1, after + 1 + every , after + 1 + 2*every .......] """
     data = range(100)
 
     engine = Engine(lambda e, b: 1)
     num_calls = 0
 
-    @engine.on(event_name(before=before, after=after))
+    @engine.on(event_name(before=before, after=after, every=every))
     def _before_and_after_event():
         nonlocal num_calls
         num_calls += 1
