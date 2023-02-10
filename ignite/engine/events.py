@@ -135,7 +135,7 @@ class CallableEventWithFilter:
         return [once] if isinstance(once, int) else once
 
     @staticmethod
-    def once_event_filter(once: Union[int, list]) -> Callable:
+    def once_event_filter(once: list) -> Callable:
         """A wrapper for once event filter."""
 
         def wrapper(engine: "Engine", event: int) -> bool:
