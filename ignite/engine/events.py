@@ -51,7 +51,7 @@ class CallableEventWithFilter:
         self,
         event_filter: Optional[Callable] = None,
         every: Optional[int] = None,
-        once: Optional[int] = None,
+        once: Optional[Union[int, list]] = None,
         before: Optional[int] = None,
         after: Optional[int] = None,
     ) -> "CallableEventWithFilter":
@@ -63,7 +63,7 @@ class CallableEventWithFilter:
             event_filter: a filter function to check if the event should be executed when
                 the event type was fired
             every: a value specifying how often the event should be fired
-            once: a value specifying when the event should be fired (if only once)
+            once: a value or list of values specifying when the event should be fired (if only once)
             before: a value specifying the number of occurrence that event should be fired before
             after: a value specifying the number of occurrence that event should be fired after
 
@@ -90,8 +90,8 @@ class CallableEventWithFilter:
         if (every is not None) and not (isinstance(every, numbers.Integral) and every > 0):
             raise ValueError("Argument every should be integer and greater than zero")
 
-        if (once is not None) and not (isinstance(once, numbers.Integral) and once > 0):
-            raise ValueError("Argument once should be integer and positive")
+        if (once is not None) and not (isinstance(once, numbers.Integral) and once > 0) and not (all(isinstance(ele, int) for ele in once)):
+            raise ValueError("Argument once should either be a positive integer or a list of positive integers")
 
         if (before is not None) and not (isinstance(before, numbers.Integral) and before >= 0):
             raise ValueError("Argument before should be integer and greater or equal to zero")
@@ -130,12 +130,16 @@ class CallableEventWithFilter:
         return wrapper
 
     @staticmethod
-    def once_event_filter(once: int) -> Callable:
+    def once_event_filter(once: Union[int, list]) -> Callable:
         """A wrapper for once event filter."""
 
         def wrapper(engine: "Engine", event: int) -> bool:
-            if event == once:
-                return True
+            if isinstance(once, int):
+                if event == once:
+                    return True
+            if isinstance(once, list):
+                if event in once:
+                    return True
             return False
 
         return wrapper
