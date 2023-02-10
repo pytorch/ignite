@@ -130,7 +130,7 @@ class CallableEventWithFilter:
         return wrapper
 
     @staticmethod
-    def once_event_filter(once: int) -> Callable:
+    def once_event_filter(once: int | List[int]) -> Callable:
         """A wrapper for once event filter."""
 
         def wrapper(engine: "Engine", event: int) -> bool:
