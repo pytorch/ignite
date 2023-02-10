@@ -165,7 +165,7 @@ class CallableEventWithFilter:
         after_: int = 0 if after is None else after
 
         def wrapper(engine: "Engine", event: int) -> bool:
-            if after_ < event < before_ and (event - after - 1) % every == 0:
+            if after_ < event < before_ and (event - after_ - 1) % every == 0:
                 return True
             return False
 
