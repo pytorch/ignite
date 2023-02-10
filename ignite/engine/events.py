@@ -110,7 +110,10 @@ class CallableEventWithFilter:
             event_filter = self.once_event_filter(once)
 
         if before is not None or after is not None:
-            event_filter = self.before_and_after_event_filter(before, after)
+            if every is not None:
+                event_filter = self.before_and_after_every_event_filter(every, before, after)
+            else:
+                event_filter = self.before_and_after_event_filter(before, after)
 
         # check signature:
         if event_filter is not None:
@@ -148,6 +151,21 @@ class CallableEventWithFilter:
 
         def wrapper(engine: "Engine", event: int) -> bool:
             if event > after_ and event < before_:
+                return True
+            return False
+
+        return wrapper
+
+    @staticmethod
+    def before_and_after_every_event_filter(
+        every: int, before: Optional[int] = None, after: Optional[int] = None
+    ) -> Callable:
+        """A wrapper which triggers for every `every` iterations after `after` and before `before`."""
+        before_: Union[int, float] = float("inf") if before is None else before
+        after_: int = 0 if after is None else after
+
+        def wrapper(engine: "Engine", event: int) -> bool:
+            if after_ < event < before_ and (event - after - 1) % every == 0:
                 return True
             return False
 
