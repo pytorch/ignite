@@ -134,8 +134,10 @@ class CallableEventWithFilter:
         """A wrapper for once event filter."""
 
         def wrapper(engine: "Engine", event: int) -> bool:
-            if event == once:
+            once_set = {once} if type(once) == int else set(once)
+            if event in once_set:
                 return True
+
             return False
 
         return wrapper
@@ -147,7 +149,8 @@ class CallableEventWithFilter:
         after_: int = 0 if after is None else after
 
         def wrapper(engine: "Engine", event: int) -> bool:
-            if event > after_ and event < before_:
+            n = (event - (after_ + 1))/every # by aithmatic formula n should be integer
+            if n == int(n) and after_ < event < before_:
                 return True
             return False
 
