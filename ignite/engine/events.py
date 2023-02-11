@@ -71,18 +71,14 @@ class CallableEventWithFilter:
             CallableEventWithFilter: A new event having the same value but a different filter function
         """
 
-        if (
-            sum(
-                (
-                    event_filter is not None,
-                    every is not None,
-                    once is not None,
-                    (before is not None or after is not None),
-                )
-            )
-            != 1
+        if (event_filter is not None) and (
+            once is not None or every is not None or before is not None or after is not None
         ):
-            raise ValueError("Only one of the input arguments should be specified except before and after")
+            raise ValueError("Only One of the Input Arguments should be Specified, except Before, after and Every")
+        if not (event_filter is not None) and not (
+            once is not None or every is not None or before is not None or after is not None
+        ):
+            raise ValueError("All of the Arguments cannot be undefined")
 
         if (event_filter is not None) and not callable(event_filter):
             raise TypeError("Argument event_filter should be a callable")
