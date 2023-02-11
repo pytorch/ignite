@@ -4,6 +4,7 @@ import weakref
 from enum import Enum
 from types import DynamicClassAttribute
 from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, TYPE_CHECKING, Union
+from collections import Sequence
 
 from torch.utils.data import DataLoader
 
@@ -51,7 +52,7 @@ class CallableEventWithFilter:
         self,
         event_filter: Optional[Callable] = None,
         every: Optional[int] = None,
-        once: Optional[Union[int, list]] = None,
+        once: Optional[Union[int, List]] = None,
         before: Optional[int] = None,
         after: Optional[int] = None,
     ) -> "CallableEventWithFilter":
@@ -90,8 +91,11 @@ class CallableEventWithFilter:
         if (every is not None) and not (isinstance(every, numbers.Integral) and every > 0):
             raise ValueError("Argument every should be integer and greater than zero")
 
-        if (once is not None) and not (isinstance(once, numbers.Integral) and once > 0) and not (isinstance(once, list) and len(once) > 0 and all(isinstance(ele, int) for ele in once)):
-            raise ValueError("Argument once should either be a positive integer or a list of positive integers")
+        if (once is not None):
+            c1 = isinstance(once, numbers.Integral) and once > 0
+            c2 = isinstance(once, Sequence) and len(once) > 0 and all(isinstance(e, int) and e > 0 for e in once)
+            if not (c1 or c2):
+                raise ValueError(f"Argument once should either be a positive integer or a list of positive integers, got {once}")
 
         if (before is not None) and not (isinstance(before, numbers.Integral) and before >= 0):
             raise ValueError("Argument before should be integer and greater or equal to zero")
@@ -107,8 +111,7 @@ class CallableEventWithFilter:
                 event_filter = self.every_event_filter(every)
 
         if once is not None:
-            once_list = self.convert_to_list(once)
-            event_filter = self.once_event_filter(once_list)
+            event_filter = self.once_event_filter([once] if isinstance(once, int) else once)
 
         if before is not None or after is not None:
             event_filter = self.before_and_after_event_filter(before, after)
@@ -131,11 +134,7 @@ class CallableEventWithFilter:
         return wrapper
 
     @staticmethod
-    def convert_to_list(once: Union[int, list]) -> list:
-        return [once] if isinstance(once, int) else once
-
-    @staticmethod
-    def once_event_filter(once: list) -> Callable:
+    def once_event_filter(once: List) -> Callable:
         """A wrapper for once event filter."""
 
         def wrapper(engine: "Engine", event: int) -> bool:

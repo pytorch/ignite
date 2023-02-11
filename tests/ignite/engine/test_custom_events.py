@@ -153,13 +153,13 @@ def test_callable_events_with_wrong_inputs():
     with pytest.raises(ValueError, match=r"Argument every should be integer and greater than zero"):
         Events.ITERATION_STARTED(every=-1)
 
-    with pytest.raises(ValueError, match=r"Argument once should be integer and positive"):
+    with pytest.raises(ValueError, match=r"Argument once should either be a positive integer or a list of positive integers, got .+"):
         Events.ITERATION_STARTED(once=-1)
 
-    with pytest.raises(ValueError, match=r"Argument once should a list of positive integers"):
+    with pytest.raises(ValueError, match=r"Argument once should either be a positive integer or a list of positive integers, got .+"):
         Events.ITERATION_STARTED(once=[1, 10.0, 'pytorch'])
     
-    with pytest.raises(ValueError, match=r"Argument once should not be empty"):
+    with pytest.raises(ValueError, match=r"Argument once should either be a positive integer or a list of positive integers, got .+"):
         Events.ITERATION_STARTED(once=[])
 
     with pytest.raises(ValueError, match=r"Argument before should be integer and greater or equal to zero"):
@@ -425,6 +425,26 @@ def test_once_event_filter_with_engine():
         engine.run(d, max_epochs=5)
 
         assert num_calls[0] == 1
+
+        once = [1, 5]
+        counter = [0]
+        num_calls = [0]
+
+        @engine.on(event_name(once=once))
+        def assert_once(engine):
+            assert getattr(engine.state, event_attr) in once
+            num_calls[0] += 1
+        
+        @engine.on(event_name)
+        def assert_(engine):
+            counter[0] += 1
+            assert getattr(engine.state, event_attr) == counter[0]
+
+        d = list(range(100))
+        engine.run(d, max_epochs=10)
+
+        assert num_calls[0] == 2
+
 
     _test(Events.ITERATION_STARTED, "iteration")
     _test(Events.ITERATION_COMPLETED, "iteration")
