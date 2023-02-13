@@ -1,6 +1,7 @@
 import numbers
 import warnings
 import weakref
+from collections.abc import Sequence
 from enum import Enum
 from types import DynamicClassAttribute
 from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, TYPE_CHECKING, Union
@@ -51,7 +52,7 @@ class CallableEventWithFilter:
         self,
         event_filter: Optional[Callable] = None,
         every: Optional[int] = None,
-        once: Optional[int] = None,
+        once: Optional[Union[int, List]] = None,
         before: Optional[int] = None,
         after: Optional[int] = None,
     ) -> "CallableEventWithFilter":
@@ -63,7 +64,7 @@ class CallableEventWithFilter:
             event_filter: a filter function to check if the event should be executed when
                 the event type was fired
             every: a value specifying how often the event should be fired
-            once: a value specifying when the event should be fired (if only once)
+            once: a value or list of values specifying when the event should be fired (if only once)
             before: a value specifying the number of occurrence that event should be fired before
             after: a value specifying the number of occurrence that event should be fired after
 
@@ -90,8 +91,13 @@ class CallableEventWithFilter:
         if (every is not None) and not (isinstance(every, numbers.Integral) and every > 0):
             raise ValueError("Argument every should be integer and greater than zero")
 
-        if (once is not None) and not (isinstance(once, numbers.Integral) and once > 0):
-            raise ValueError("Argument once should be integer and positive")
+        if once is not None:
+            c1 = isinstance(once, numbers.Integral) and once > 0
+            c2 = isinstance(once, Sequence) and len(once) > 0 and all(isinstance(e, int) and e > 0 for e in once)
+            if not (c1 or c2):
+                raise ValueError(
+                    f"Argument once should either be a positive integer or a list of positive integers, got {once}"
+                )
 
         if (before is not None) and not (isinstance(before, numbers.Integral) and before >= 0):
             raise ValueError("Argument before should be integer and greater or equal to zero")
@@ -107,7 +113,7 @@ class CallableEventWithFilter:
                 event_filter = self.every_event_filter(every)
 
         if once is not None:
-            event_filter = self.once_event_filter(once)
+            event_filter = self.once_event_filter([once] if isinstance(once, int) else once)
 
         if before is not None or after is not None:
             event_filter = self.before_and_after_event_filter(before, after)
@@ -130,11 +136,11 @@ class CallableEventWithFilter:
         return wrapper
 
     @staticmethod
-    def once_event_filter(once: int) -> Callable:
+    def once_event_filter(once: List) -> Callable:
         """A wrapper for once event filter."""
 
         def wrapper(engine: "Engine", event: int) -> bool:
-            if event == once:
+            if event in once:
                 return True
             return False
 
