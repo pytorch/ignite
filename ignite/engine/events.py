@@ -71,14 +71,17 @@ class CallableEventWithFilter:
             CallableEventWithFilter: A new event having the same value but a different filter function
         """
 
-        if (event_filter is not None) and (
-            once is not None or every is not None or before is not None or after is not None
+        if (
+            sum(
+                (
+                    event_filter is not None,
+                    once is not None,
+                    (every is not None or before is not None or after is not None),
+                )
+            )
+            != 1
         ):
-            raise ValueError("Only One of the Input Arguments should be Specified, except Before, after and Every")
-        if not (event_filter is not None) and not (
-            once is not None or every is not None or before is not None or after is not None
-        ):
-            raise ValueError("All of the Arguments cannot be undefined")
+            raise ValueError("Only one of the Input Arguments should be Sepcified, except before, after and every")
 
         if (event_filter is not None) and not callable(event_filter):
             raise TypeError("Argument event_filter should be a callable")
@@ -107,7 +110,7 @@ class CallableEventWithFilter:
 
         if before is not None or after is not None:
             if every is not None:
-                event_filter = self.before_and_after_every_event_filter(every, before, after)
+                event_filter = self.every_before_and_after_event_filter(every, before, after)
             else:
                 event_filter = self.before_and_after_event_filter(before, after)
 
@@ -153,7 +156,7 @@ class CallableEventWithFilter:
         return wrapper
 
     @staticmethod
-    def before_and_after_every_event_filter(
+    def every_before_and_after_event_filter(
         every: int, before: Optional[int] = None, after: Optional[int] = None
     ) -> Callable:
         """A wrapper which triggers for every `every` iterations after `after` and before `before`."""
