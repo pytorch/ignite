@@ -95,8 +95,10 @@ class CallableEventWithFilter:
             c1 = isinstance(once, numbers.Integral) and once > 0
             c2 = isinstance(once, Sequence) and len(once) > 0 and all(isinstance(e, int) and e > 0 for e in once)
             if not (c1 or c2):
-                raise ValueError(f"Argument once should either be a positive integer or a list of positive integers, got {once}")
-
+                raise ValueError(
+                    f"Argument once should either be a positive integer or a list of positive integers, got {once}"
+                )
+                
         if (before is not None) and not (isinstance(before, numbers.Integral) and before >= 0):
             raise ValueError("Argument before should be integer and greater or equal to zero")
 
