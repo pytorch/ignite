@@ -81,7 +81,7 @@ class CallableEventWithFilter:
             )
             != 1
         ):
-            raise ValueError("Only one of the Input Arguments should be Sepcified, except before, after and every")
+            raise ValueError("Only one of the input arguments should be specified, " "except before, after and every")
 
         if (event_filter is not None) and not callable(event_filter):
             raise TypeError("Argument event_filter should be a callable")

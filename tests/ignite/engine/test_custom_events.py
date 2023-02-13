@@ -129,8 +129,9 @@ def test_custom_events_with_events_list():
 
 
 def test_callable_events_with_wrong_inputs():
+    def ef(e, i):
+        return 1
 
-    ef = lambda e, i: 1
     for event_filter in [None, ef]:
         for every in [None, 2]:
             for once in [None, 2]:
@@ -142,7 +143,8 @@ def test_callable_events_with_wrong_inputs():
                     except ValueError:
                         with pytest.raises(
                             ValueError,
-                            match=r"Only one of the Input Arguments should be Sepcified, except before, after and every",
+                            match=r"Only one of the input arguments should be specified, "
+                            "except before, after and every",
                         ):
                             Events.ITERATION_STARTED(
                                 event_filter=event_filter, once=once, every=every, before=before, after=after
