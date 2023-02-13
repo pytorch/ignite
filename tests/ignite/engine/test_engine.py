@@ -1388,3 +1388,49 @@ def test_engine_interrupt_restart():
     state = engine.run(data, max_epochs=max_epochs)
     assert state.iteration == max_epochs * len(data) and state.epoch == max_epochs
     assert num_calls_check_iter_epoch == 1
+
+
+def test_engine_debug():
+
+    from torch import nn
+    from torch.utils.data import DataLoader
+    from torchvision.models import resnet18
+
+    class Net(nn.Module):
+        def __init__(self):
+            super(Net, self).__init__()
+
+            self.model = resnet18(num_classes=10)
+
+            self.model.conv1 = nn.Conv2d(1, 64, kernel_size=3, padding=1, bias=False)
+
+        def forward(self, x):
+            return self.model(x)
+
+    def _test(sampler_type=None):
+        model = Net()
+
+        from torchvision.datasets import MNIST
+
+        train_loader = DataLoader(MNIST(download=True, root=".", train=True), batch_size=128, shuffle=True)
+
+        optimizer = torch.optim.RMSprop(model.parameters(), lr=0.005)
+        criterion = nn.CrossEntropyLoss()
+
+        def train_step(engine, batch):
+            model.train()
+            optimizer.zero_grad()
+            x, y = batch[0], batch[1]
+            y_pred = model(x)
+            loss = criterion(y_pred, y)
+            loss.backward()
+            optimizer.step()
+            return loss.item()
+
+        trainer = Engine(train_step)
+
+        @trainer.on(Events.ITERATION_COMPLETED(every=100))
+        def trigger_custom_event():
+            trainer.debug(level=Engine.DEBUG_OUTPUT)
+
+    _test()
