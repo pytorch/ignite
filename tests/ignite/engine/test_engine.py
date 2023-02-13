@@ -1407,7 +1407,7 @@ def test_engine_debug():
         def forward(self, x):
             return self.model(x)
 
-    def _test(sampler_type=None):
+    def _test(level=Engine.DEBUG_EVENTS):
         model = Net()
 
         from torchvision.datasets import MNIST
@@ -1431,6 +1431,8 @@ def test_engine_debug():
 
         @trainer.on(Events.ITERATION_COMPLETED(every=100))
         def trigger_custom_event():
-            trainer.debug(level=Engine.DEBUG_OUTPUT)
+            trainer.debug(level=level)
 
-    _test()
+    _test(Engine.DEBUG_EVENTS)
+    _test(Engine.DEBUG_OUTPUT)
+    _test(Engine.DEBUG_GRADS)

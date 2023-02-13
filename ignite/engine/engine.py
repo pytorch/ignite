@@ -435,21 +435,21 @@ class Engine(Serializable):
         self.level = level
         if self.level > 2:
             print(
-                f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name}, Loss : {self.state.output}, \
-                    LR : {self.state.output}, Gradients : {self.state.output}"
+                f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name}, \
+                    Loss : {self.state.output}, LR : {self.state.output}, Gradients : {self.state.output}"
             )
             self.logger.debug(
-                f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name}, Loss : {self.state.output}, \
-                    LR : {self.state.output}, Gradients : {self.state.output}"
+                f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name}, \
+                    Loss : {self.state.output}, LR : {self.state.output}, Gradients : {self.state.output}"
             )
         elif self.level > 1:
             print(
-                f"{self.state.epoch} | {self.state.iteration} Firing handlers for event {self.last_event_name}, Loss : {self.state.output}, \
-                    LR : {self.state.output}"
+                f"{self.state.epoch} | {self.state.iteration} Firing handlers for event {self.last_event_name}, \
+                    Loss : {self.state.output}, LR : {self.state.output}"
             )
             self.logger.debug(
-                f"{self.state.epoch} | {self.state.iteration} Firing handlers for event {self.last_event_name}, Loss : {self.state.output}, \
-                    LR : {self.state.output}"
+                f"{self.state.epoch} | {self.state.iteration} Firing handlers for event {self.last_event_name}, \
+                    Loss : {self.state.output}, LR : {self.state.output}"
             )
         elif self.level > 0:
             print(f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name}")
