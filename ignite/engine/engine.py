@@ -431,7 +431,7 @@ class Engine(Serializable):
             first, others = ((args[0],), args[1:]) if (args and args[0] == self) else ((), args)
             func(*first, *(event_args + others), **kwargs)
 
-    def debug(self, level: int = 0, **kwargs):
+    def debug(self, level: int = 0, **kwargs) -> None:
         self.level = level
         if self.level > 2:
             print(
