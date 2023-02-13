@@ -98,7 +98,7 @@ class CallableEventWithFilter:
                 raise ValueError(
                     f"Argument once should either be a positive integer or a list of positive integers, got {once}"
                 )
-                
+
         if (before is not None) and not (isinstance(before, numbers.Integral) and before >= 0):
             raise ValueError("Argument before should be integer and greater or equal to zero")
 
