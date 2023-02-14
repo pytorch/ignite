@@ -132,15 +132,47 @@ def test_callable_events_with_wrong_inputs():
     def ef(e, i):
         return 1
 
+    expected_raise = {
+        # event_filter, every, once, before, after
+        (None, None, None, None, None): True,  # raises ValueError
+        (ef, None, None, None, None): False,
+        (None, 2, None, None, None): False,
+        (ef, 2, None, None, None): True,
+        (None, None, 2, None, None): False,
+        (ef, None, 2, None, None): True,
+        (None, 2, 2, None, None): True,
+        (ef, 2, 2, None, None): True,
+        (None, None, None, 30, None): False,
+        (ef, None, None, 30, None): True,
+        (None, 2, None, 30, None): False,
+        (ef, 2, None, 30, None): True,
+        (None, None, 2, 30, None): True,
+        (ef, None, 2, 30, None): True,
+        (None, 2, 2, 30, None): True,
+        (ef, 2, 2, 30, None): True,
+        # event_filter, every, once, before, after
+        (None, None, None, None, 10): False,
+        (ef, None, None, None, 10): True,
+        (None, 2, None, None, 10): False,
+        (ef, 2, None, None, 10): True,
+        (None, None, 2, None, 10): True,
+        (ef, None, 2, None, 10): True,
+        (None, 2, 2, None, 10): True,
+        (ef, 2, 2, None, 10): True,
+        (None, None, None, 25, 8): False,
+        (ef, None, None, 25, 8): True,
+        (None, 2, None, 25, 8): False,
+        (ef, 2, None, 25, 8): True,
+        (None, None, 2, 25, 8): True,
+        (ef, None, 2, 25, 8): True,
+        (None, 2, 2, 25, 8): True,
+        (ef, 2, 2, 25, 8): True,
+    }
     for event_filter in [None, ef]:
         for every in [None, 2]:
             for once in [None, 2]:
                 for before, after in [(None, None), (None, 10), (30, None), (25, 8)]:
-                    try:
-                        assert Events.ITERATION_STARTED(
-                            event_filter=event_filter, once=once, every=every, before=before, after=after
-                        )
-                    except ValueError:
+                    if expected_raise[(event_filter, every, once, before, after)]:
                         with pytest.raises(
                             ValueError,
                             match=r"Only one of the input arguments should be specified, "
@@ -149,6 +181,10 @@ def test_callable_events_with_wrong_inputs():
                             Events.ITERATION_STARTED(
                                 event_filter=event_filter, once=once, every=every, before=before, after=after
                             )
+                    else:
+                        Events.ITERATION_STARTED(
+                            event_filter=event_filter, once=once, every=every, before=before, after=after
+                        )
 
     with pytest.raises(TypeError, match=r"Argument event_filter should be a callable"):
         Events.ITERATION_STARTED(event_filter="123")
