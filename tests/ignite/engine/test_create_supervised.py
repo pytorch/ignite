@@ -1,6 +1,6 @@
 import os
 from importlib.util import find_spec
-from typing import Optional, Union
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 from unittest import mock
 from unittest.mock import MagicMock, patch
 from typing import Any, Callable
@@ -85,7 +85,7 @@ def _test_create_supervised_trainer(
         trace=trace,
         amp_mode=amp_mode,
         scaler=scaler,
-        model_transform= lambda output: output,
+        model_transform=lambda output: output,
     )
 
     x = torch.tensor([[0.01], [0.02], [0.03], [0.04], [0.05]])
