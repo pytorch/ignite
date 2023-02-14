@@ -583,7 +583,6 @@ def supervised_evaluation_step(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
-    model_transform: Callable[[Any], Any] = lambda output: output,
     output_transform: Callable[[Any, Any, Any], Any] = lambda x, y, y_pred: (y_pred, y),
 ) -> Callable:
     """
@@ -597,8 +596,6 @@ def supervised_evaluation_step(
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        model_transform: function that receives the output from the model and convert it into the form as required
-            by the loss function
         output_transform: function that receives 'x', 'y', 'y_pred' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `(y_pred, y,)` which fits
             output expected by metrics. If you change it you should use `output_transform` in metrics.
@@ -623,8 +620,7 @@ def supervised_evaluation_step(
         model.eval()
         with torch.no_grad():
             x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
-            output = model(x)
-            y_pred = model_transform(output)
+            y_pred = model(x)
             return output_transform(x, y, y_pred)
 
     return evaluate_step
@@ -635,7 +631,6 @@ def supervised_evaluation_step_amp(
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
-    model_transform: Callable[[Any], Any] = lambda output: output,
     output_transform: Callable[[Any, Any, Any], Any] = lambda x, y, y_pred: (y_pred, y),
 ) -> Callable:
     """
@@ -649,8 +644,6 @@ def supervised_evaluation_step_amp(
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        model_transform: function that receives the output from the model and convert it into the form as required
-            by the loss function
         output_transform: function that receives 'x', 'y', 'y_pred' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `(y_pred, y,)` which fits
             output expected by metrics. If you change it you should use `output_transform` in metrics.
@@ -680,8 +673,7 @@ def supervised_evaluation_step_amp(
         with torch.no_grad():
             x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
             with autocast(enabled=True):
-                output = model(x)
-                y_pred = model_transform(output)
+                y_pred = model(x)
             return output_transform(x, y, y_pred)
 
     return evaluate_step
@@ -709,8 +701,6 @@ def create_supervised_evaluator(
             with respect to the host. For other cases, this argument has no effect.
         prepare_batch: function that receives `batch`, `device`, `non_blocking` and outputs
             tuple of tensors `(batch_x, batch_y)`.
-        model_transform: function that receives the output from the model and convert it into the form as required
-            by the loss function
         output_transform: function that receives 'x', 'y', 'y_pred' and returns value
             to be assigned to engine's state.output after each iteration. Default is returning `(y_pred, y,)` which fits
             output expected by metrics. If you change it you should use `output_transform` in metrics.
@@ -746,11 +736,11 @@ def create_supervised_evaluator(
     metrics = metrics or {}
     if mode == "amp":
         evaluate_step = supervised_evaluation_step_amp(
-            model, device, non_blocking, prepare_batch, model_transform, output_transform
+            model, device, non_blocking, prepare_batch, output_transform
         )
     else:
         evaluate_step = supervised_evaluation_step(
-            model, device, non_blocking, prepare_batch, model_transform, output_transform
+            model, device, non_blocking, prepare_batch, output_transform
         )
 
     evaluator = Engine(evaluate_step)
