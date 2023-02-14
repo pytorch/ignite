@@ -129,23 +129,62 @@ def test_custom_events_with_events_list():
 
 
 def test_callable_events_with_wrong_inputs():
+    def ef(e, i):
+        return 1
 
-    with pytest.raises(
-        ValueError, match=r"Only one of the input arguments should be specified except before and after"
-    ):
-        Events.ITERATION_STARTED()
-
-    with pytest.raises(
-        ValueError, match=r"Only one of the input arguments should be specified except before and after"
-    ):
-        Events.ITERATION_STARTED(event_filter="123", every=12)
-
-    with pytest.raises(
-        ValueError, match=r"Only one of the input arguments should be specified except before and after"
-    ):
-        Events.ITERATION_STARTED(after=10, before=30, once=1)
-
-    assert Events.ITERATION_STARTED(after=10, before=30)
+    expected_raise = {
+        # event_filter, every, once, before, after
+        (None, None, None, None, None): True,  # raises ValueError
+        (ef, None, None, None, None): False,
+        (None, 2, None, None, None): False,
+        (ef, 2, None, None, None): True,
+        (None, None, 2, None, None): False,
+        (ef, None, 2, None, None): True,
+        (None, 2, 2, None, None): True,
+        (ef, 2, 2, None, None): True,
+        (None, None, None, 30, None): False,
+        (ef, None, None, 30, None): True,
+        (None, 2, None, 30, None): False,
+        (ef, 2, None, 30, None): True,
+        (None, None, 2, 30, None): True,
+        (ef, None, 2, 30, None): True,
+        (None, 2, 2, 30, None): True,
+        (ef, 2, 2, 30, None): True,
+        # event_filter, every, once, before, after
+        (None, None, None, None, 10): False,
+        (ef, None, None, None, 10): True,
+        (None, 2, None, None, 10): False,
+        (ef, 2, None, None, 10): True,
+        (None, None, 2, None, 10): True,
+        (ef, None, 2, None, 10): True,
+        (None, 2, 2, None, 10): True,
+        (ef, 2, 2, None, 10): True,
+        (None, None, None, 25, 8): False,
+        (ef, None, None, 25, 8): True,
+        (None, 2, None, 25, 8): False,
+        (ef, 2, None, 25, 8): True,
+        (None, None, 2, 25, 8): True,
+        (ef, None, 2, 25, 8): True,
+        (None, 2, 2, 25, 8): True,
+        (ef, 2, 2, 25, 8): True,
+    }
+    for event_filter in [None, ef]:
+        for every in [None, 2]:
+            for once in [None, 2]:
+                for before, after in [(None, None), (None, 10), (30, None), (25, 8)]:
+                    if expected_raise[(event_filter, every, once, before, after)]:
+                        with pytest.raises(
+                            ValueError,
+                            match=r"Only one of the input arguments should be specified, "
+                            "except before, after and every",
+                        ):
+                            Events.ITERATION_STARTED(
+                                event_filter=event_filter, once=once, every=every, before=before, after=after
+                            )
+                    else:
+                        Events.ITERATION_STARTED(
+                            event_filter=event_filter, once=once, every=every, before=before, after=after
+                        )
 
     with pytest.raises(TypeError, match=r"Argument event_filter should be a callable"):
         Events.ITERATION_STARTED(event_filter="123")
@@ -403,6 +442,29 @@ def test_before_and_after_event_filter_with_engine(event_name, event_attr, befor
         nonlocal num_calls
         num_calls += 1
         assert getattr(engine.state, event_attr) > after
+
+    engine.run(data, max_epochs=5)
+    assert num_calls == expect_calls
+
+
+@pytest.mark.parametrize(
+    "event_name, event_attr, every, before, after, expect_calls",
+    [(Events.ITERATION_STARTED, "iteration", 5, 25, 8, 4), (Events.EPOCH_COMPLETED, "epoch", 2, 5, 1, 2)],
+)
+def test_every_before_and_after_event_filter_with_engine(event_name, event_attr, every, before, after, expect_calls):
+
+    data = range(100)
+
+    engine = Engine(lambda e, b: 1)
+    num_calls = 0
+
+    @engine.on(event_name(every=every, before=before, after=after))
+    def _every_before_and_after_event():
+        assert getattr(engine.state, event_attr) > after
+        assert getattr(engine.state, event_attr) < before
+        assert ((getattr(engine.state, event_attr) - after - 1) % every) == 0
+        nonlocal num_calls
+        num_calls += 1
 
     engine.run(data, max_epochs=5)
     assert num_calls == expect_calls
