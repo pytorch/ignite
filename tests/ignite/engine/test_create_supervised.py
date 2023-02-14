@@ -1,9 +1,8 @@
 import os
 from importlib.util import find_spec
-from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 from unittest import mock
 from unittest.mock import MagicMock, patch
-from typing import Any, Callable
+from typing import Any, Callable, Optional, Union
 
 import pytest
 import torch
