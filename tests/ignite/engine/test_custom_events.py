@@ -156,8 +156,20 @@ def test_callable_events_with_wrong_inputs():
     with pytest.raises(ValueError, match=r"Argument every should be integer and greater than zero"):
         Events.ITERATION_STARTED(every=-1)
 
-    with pytest.raises(ValueError, match=r"Argument once should be integer and positive"):
+    with pytest.raises(
+        ValueError, match=r"Argument once should either be a positive integer or a list of positive integers, got .+"
+    ):
         Events.ITERATION_STARTED(once=-1)
+
+    with pytest.raises(
+        ValueError, match=r"Argument once should either be a positive integer or a list of positive integers, got .+"
+    ):
+        Events.ITERATION_STARTED(once=[1, 10.0, "pytorch"])
+
+    with pytest.raises(
+        ValueError, match=r"Argument once should either be a positive integer or a list of positive integers, got .+"
+    ):
+        Events.ITERATION_STARTED(once=[])
 
     with pytest.raises(ValueError, match=r"Argument before should be integer and greater or equal to zero"):
         Events.ITERATION_STARTED(before=-1)
@@ -205,6 +217,12 @@ def test_callable_events(event):
     assert event.name in f"{ret}"
 
     ret = event(once=10)
+    assert isinstance(ret, CallableEventWithFilter)
+    assert ret == event
+    assert ret.filter is not None
+    assert event.name in f"{ret}"
+
+    ret = event(once=[1, 10])
     assert isinstance(ret, CallableEventWithFilter)
     assert ret == event
     assert ret.filter is not None
@@ -416,34 +434,41 @@ def test_every_before_and_after_event_filter_with_engine(event_name, event_attr,
     assert num_calls == expect_calls
 
 
-def test_once_event_filter_with_engine():
-    def _test(event_name, event_attr):
+@pytest.mark.parametrize(
+    "event_name, event_attr, once, expect_calls",
+    [
+        (Events.ITERATION_STARTED, "iteration", 2, 1),
+        (Events.ITERATION_COMPLETED, "iteration", 2, 1),
+        (Events.EPOCH_STARTED, "epoch", 2, 1),
+        (Events.EPOCH_COMPLETED, "epoch", 2, 1),
+        (Events.ITERATION_STARTED, "iteration", [1, 5], 2),
+        (Events.ITERATION_COMPLETED, "iteration", [1, 5], 2),
+        (Events.EPOCH_STARTED, "epoch", [1, 5], 2),
+        (Events.EPOCH_COMPLETED, "epoch", [1, 5], 2),
+    ],
+)
+def test_once_event_filter(event_name, event_attr, once, expect_calls):
 
-        engine = Engine(lambda e, b: b)
+    data = list(range(100))
 
-        once = 2
-        counter = [0]
-        num_calls = [0]
+    engine = Engine(lambda e, b: b)
+    num_calls = [0]
+    counter = [0]
 
-        @engine.on(event_name(once=once))
-        def assert_once(engine):
-            assert getattr(engine.state, event_attr) == once
-            num_calls[0] += 1
+    test_once = [once] if isinstance(once, int) else once
 
-        @engine.on(event_name)
-        def assert_(engine):
-            counter[0] += 1
-            assert getattr(engine.state, event_attr) == counter[0]
+    @engine.on(event_name(once=once))
+    def assert_once(engine):
+        assert getattr(engine.state, event_attr) in test_once
+        num_calls[0] += 1
 
-        d = list(range(100))
-        engine.run(d, max_epochs=5)
+    @engine.on(event_name)
+    def assert_(engine):
+        counter[0] += 1
+        assert getattr(engine.state, event_attr) == counter[0]
 
-        assert num_calls[0] == 1
-
-    _test(Events.ITERATION_STARTED, "iteration")
-    _test(Events.ITERATION_COMPLETED, "iteration")
-    _test(Events.EPOCH_STARTED, "epoch")
-    _test(Events.EPOCH_COMPLETED, "epoch")
+    engine.run(data, max_epochs=10)
+    assert num_calls[0] == expect_calls
 
 
 def test_custom_event_filter_with_engine():
