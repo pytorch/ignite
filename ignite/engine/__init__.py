@@ -735,13 +735,9 @@ def create_supervised_evaluator(
 
     metrics = metrics or {}
     if mode == "amp":
-        evaluate_step = supervised_evaluation_step_amp(
-            model, device, non_blocking, prepare_batch, output_transform
-        )
+        evaluate_step = supervised_evaluation_step_amp(model, device, non_blocking, prepare_batch, output_transform)
     else:
-        evaluate_step = supervised_evaluation_step(
-            model, device, non_blocking, prepare_batch, output_transform
-        )
+        evaluate_step = supervised_evaluation_step(model, device, non_blocking, prepare_batch, output_transform)
 
     evaluator = Engine(evaluate_step)
 

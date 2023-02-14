@@ -1,9 +1,8 @@
 import os
 from importlib.util import find_spec
-from typing import Optional, Union
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 from unittest import mock
 from unittest.mock import MagicMock, patch
-from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 
 import pytest
 import torch
@@ -35,7 +34,6 @@ def _default_create_supervised_trainer(
     amp_mode: str = None,
     scaler: Union[bool, "torch.cuda.amp.GradScaler"] = False,
     model_transform: Callable[[Any], Any] = lambda output: output,
-
 ):
     model = Linear(1, 1, bias=False)
 
@@ -78,7 +76,6 @@ def _test_create_supervised_trainer(
     amp_mode: str = None,
     scaler: Union[bool, "torch.cuda.amp.GradScaler"] = False,
     model_transform: Callable[[Any], Any] = lambda output: output,
-
 ):
     trainer, model = _default_create_supervised_trainer(
         gradient_accumulation_steps=gradient_accumulation_steps,
@@ -87,7 +84,7 @@ def _test_create_supervised_trainer(
         trace=trace,
         amp_mode=amp_mode,
         scaler=scaler,
-        model_transform= lambda output: output,
+        model_transform=lambda output: output,
     )
 
     x = torch.tensor([[0.01], [0.02], [0.03], [0.04], [0.05]])
