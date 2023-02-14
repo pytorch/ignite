@@ -20,10 +20,12 @@ SavedAction = namedtuple("SavedAction", ["log_prob", "value"])
 
 eps = np.finfo(np.float32).eps.item()
 
+
 class Policy(nn.Module):
     """
     implements both actor and critic in one model
     """
+
     def __init__(self):
         super(Policy, self).__init__()
         self.affine1 = nn.Linear(4, 128)
@@ -79,9 +81,9 @@ def finish_episode(policy, optimizer, gamma):
     """
     R = 0
     saved_actions = policy.saved_actions
-    policy_losses = [] # list to save actor (policy) loss
-    value_losses = [] # list to save critic (value) loss
-    returns = deque() # list to save the true values
+    policy_losses = []  # list to save actor (policy) loss
+    value_losses = []  # list to save critic (value) loss
+    returns = deque()  # list to save the true values
 
     # calculate the true value using rewards returned from the environment
     for r in policy.rewards[::-1]:
