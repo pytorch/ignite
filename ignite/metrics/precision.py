@@ -369,8 +369,7 @@ class Precision(_BasePrecisionRecall):
 
             0.75
 
-
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.10
             Some new options were added to `average` parameter.
     """
 
