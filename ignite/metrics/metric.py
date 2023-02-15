@@ -141,7 +141,7 @@ class Metric(metaclass=ABCMeta):
 
     Attributes:
         required_output_keys: dictionary defines required keys to be found in ``engine.state.output`` if the
-            latter is a dictionary. Default, ``("y_pred", "y")``. This is useful with custom metrics that can require
+            latter is a dictionary. By default, ``("y_pred", "y")``. This is useful with custom metrics that can require
             other arguments than predictions ``y_pred`` and targets ``y``. See an example below.
 
     Examples:
