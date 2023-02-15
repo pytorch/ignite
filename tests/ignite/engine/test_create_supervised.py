@@ -154,7 +154,7 @@ def _test_create_supervised_trainer_with_output_function(
         amp_mode=amp_mode,
         scaler=scaler,
         model_transform=model_transform,
-        model=test_Model()
+        model=test_Model(),
     )
 
     x = torch.tensor([[0.01], [0.02], [0.03], [0.04], [0.05]])
