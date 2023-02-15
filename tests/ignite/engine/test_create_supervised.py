@@ -34,8 +34,8 @@ def _default_create_supervised_trainer(
     amp_mode: str = None,
     scaler: Union[bool, "torch.cuda.amp.GradScaler"] = False,
     model_transform: Callable[[Any], Any] = lambda output: output,
+    model: torch.nn.Module = Linear(1, 1, bias=False)
 ):
-    model = Linear(1, 1, bias=False)
 
     if model_device:
         model.to(model_device)
@@ -85,6 +85,76 @@ def _test_create_supervised_trainer(
         amp_mode=amp_mode,
         scaler=scaler,
         model_transform=lambda output: output,
+    )
+
+    x = torch.tensor([[0.01], [0.02], [0.03], [0.04], [0.05]])
+    y = torch.tensor([[0.015], [0.025], [0.035], [0.045], [0.055]])
+    data = [(_x, _y) for _x, _y in zip(x, y)]
+
+    theta = [0.0]
+    accumulation = [0.0]
+    loss = [0.0]
+
+    @trainer.on(Events.ITERATION_COMPLETED)
+    def _():
+        assert model.weight.grad != 0
+        _x, _y = trainer.state.batch
+        _x, _y = _x.to(model_device), _y.to(model_device)
+        accumulation[0] += 0.2 * _x.item() * (theta[0] * _x.item() - _y.item())
+        # value of loss should not be accumulated
+        loss[0] = mse_loss(model(_x), _y).item()
+
+    @trainer.on(Events.ITERATION_COMPLETED(every=gradient_accumulation_steps))
+    def _():
+        theta[0] -= accumulation[0] / gradient_accumulation_steps
+        assert pytest.approx(model.weight.data[0, 0].item(), abs=1.0e-5) == theta[0]
+        assert pytest.approx(trainer.state.output[-1], abs=1e-5) == loss[0]
+        accumulation[0] = loss[0] = 0.0
+
+    if model_device == trainer_device or ((model_device == "cpu") ^ (trainer_device == "cpu")):
+
+        state = trainer.run(data)
+
+        if amp_mode == "amp":
+            assert state.output[0].dtype is torch.half
+            if scaler and isinstance(scaler, bool):
+                assert hasattr(state, "scaler")
+            else:
+                assert not hasattr(state, "scaler")
+
+    else:
+        if Version(torch.__version__) >= Version("1.7.0"):
+            # This is broken in 1.6.0 but will be probably fixed with 1.7.0
+            with pytest.raises(RuntimeError, match=r"Expected all tensors to be on the same device"):
+                trainer.run(data)
+
+
+def _test_create_supervised_trainer_with_output_function(
+    gradient_accumulation_steps: int = 1,
+    model_device: Optional[str] = None,
+    trainer_device: Optional[str] = None,
+    trace: bool = False,
+    amp_mode: str = None,
+    scaler: Union[bool, "torch.cuda.amp.GradScaler"] = False,
+    model_transform: Callable[[Any], Any] = lambda output: output[0],
+):
+    class test_Model(torch.nn.Module):
+        def __init__(self):
+            super(test_Model, self).__init__()
+            self.fc = torch.nn.Linear(1, 1, bias=False)
+
+        def forward(self, x):
+            return [self.fc(x), self.fc(x)]
+
+    trainer, model = _default_create_supervised_trainer(
+        gradient_accumulation_steps=gradient_accumulation_steps,
+        model_device=model_device,
+        trainer_device=trainer_device,
+        trace=trace,
+        amp_mode=amp_mode,
+        scaler=scaler,
+        model_transform=model_transform,
+        model=test_Model()
     )
 
     x = torch.tensor([[0.01], [0.02], [0.03], [0.04], [0.05]])
