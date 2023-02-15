@@ -34,7 +34,7 @@ def _default_create_supervised_trainer(
     amp_mode: str = None,
     scaler: Union[bool, "torch.cuda.amp.GradScaler"] = False,
     model_transform: Callable[[Any], Any] = lambda output: output,
-    model: torch.nn.Module = Linear(1, 1, bias=False)
+    model: torch.nn.Module = Linear(1, 1, bias=False),
 ):
 
     if model_device:
