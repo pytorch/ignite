@@ -25,7 +25,7 @@ class EpochMetric(Metric):
         Compute method executes ``compute_fn`` on zero rank process only and final result is broadcasted to
         all processes.
 
-    - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
+    - ``update`` must receive output of the form ``(y_pred, y)``.
 
     Args:
         compute_fn: a callable with the signature (`torch.tensor`, `torch.tensor`) takes as the input

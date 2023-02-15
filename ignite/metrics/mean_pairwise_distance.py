@@ -13,7 +13,7 @@ class MeanPairwiseDistance(Metric):
     """Calculates the mean :class:`~torch.nn.PairwiseDistance`.
     Average of pairwise distances computed on provided batches.
 
-    - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
+    - ``update`` must receive output of the form ``(y_pred, y)``.
 
     Args:
         p: the norm degree. Default: 2

@@ -206,7 +206,7 @@ def get_inference_dataloader(
     )
 
 
-def ignore_mask_boundaries(force_apply, **kwargs):
+def ignore_mask_boundaries(**kwargs):
     assert "mask" in kwargs, "Input should contain 'mask'"
     mask = kwargs["mask"]
     mask[mask == 255] = 0

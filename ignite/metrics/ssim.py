@@ -13,6 +13,8 @@ class SSIM(Metric):
     """
     Computes Structual Similarity Index Measure
 
+    - ``update`` must receive output of the form ``(y_pred, y)``.
+
     Args:
         data_range: Range of the image. Typically, ``1.0`` or ``255``.
         kernel_size: Size of the kernel. Default: (11, 11)
@@ -31,7 +33,8 @@ class SSIM(Metric):
     Examples:
         To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
         The output of the engine's ``process_function`` needs to be in the format of
-        ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``.
+        ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``. If not, ``output_tranform`` can be added
+        to the metric to transform the output into the form expected by the metric.
 
         ``y_pred`` and ``y`` can be un-normalized or normalized image tensors. Depending on that, the user might need
         to adjust ``data_range``. ``y_pred`` and ``y`` should have the same shape.

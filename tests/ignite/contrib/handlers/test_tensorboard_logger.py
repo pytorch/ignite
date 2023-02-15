@@ -32,6 +32,17 @@ def test_optimizer_params_handler_wrong_setup():
         handler(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
+def test_getattr_method():
+    # Create a mock SummaryWriter object
+    mock_writer = MagicMock()
+    # Assign the mock object to the writer attribute of a TensorboardLoggerinstance
+    logger = TensorboardLogger()
+    logger.writer = mock_writer
+    # Test that a method passed through the __getattr__ method calls thecorresponding method on the mock object
+    logger.add_scalar("loss", 0.5)
+    mock_writer.add_scalar.assert_called_once_with("loss", 0.5)
+
+
 def test_optimizer_params():
 
     optimizer = torch.optim.SGD([torch.tensor(0.0)], lr=0.01)

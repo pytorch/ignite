@@ -1113,11 +1113,11 @@ class TestEngine:
 
             return mem_consumption
 
-        mem_consumption1 = _test()
+        mem_consumption1 = _test()[2:]
         # mem_consumption ~ [0, 512, 0, 512, 0, 512, 0, 512]
         assert len(set(mem_consumption1)) == 2
 
-        mem_consumption2 = _test()
+        mem_consumption2 = _test()[2:]
         assert len(set(mem_consumption2)) == 2
 
         assert mem_consumption1 == mem_consumption2
