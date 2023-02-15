@@ -65,9 +65,9 @@ class PrecisionRecallCurve(EpochMetric):
 
         .. testoutput::
 
-            Precision [1.0, 1.0, 1.0]
-            Recall [1.0, 0.5, 0.0]
-            Thresholds [0.7109, 0.9997]
+            Precision [0.5, 0.6667, 1.0, 1.0, 1.0]
+            Recall [1.0, 1.0, 1.0, 0.5, 0.0]
+            Thresholds [0.0474, 0.5987, 0.7109, 0.9997]
 
     """
 

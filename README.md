@@ -568,7 +568,7 @@ If you use PyTorch-Ignite in a scientific publication, we would appreciate citat
 # About the team & Disclaimer
 
 PyTorch-Ignite is a [NumFOCUS Affiliated Project](https://www.numfocus.org/), operated and maintained by volunteers in the PyTorch community in their capacities as individuals
-(and not as representatives of their employers). See the ["About us"](https://pytorch.org/ignite/master/about.html)
+(and not as representatives of their employers). See the ["About us"](https://pytorch-ignite.ai/about/community/#about-us)
 page for a list of core contributors. For usage questions and issues, please see the various channels
 [here](#communication). For all other questions and inquiries, please send an email
 to contact@pytorch-ignite.ai.
