@@ -286,6 +286,7 @@ def _test_distrib_multilabel_input_NHW(device):
         np_y = to_numpy_multilabel(y.cpu())  # (N, C, H, W, ...) -> (N * H * W ..., C)
         assert acc._type == "multilabel"
         res = acc.compute()
+        assert n == acc._num_examples
         assert isinstance(res, float)
         assert accuracy_score(np_y, np_y_pred) == pytest.approx(res)
 
@@ -311,8 +312,13 @@ def _test_distrib_multilabel_input_NHW(device):
 
         assert acc._type == "multilabel"
         res = acc.compute()
+        assert n == acc._num_examples
         assert isinstance(res, float)
         assert accuracy_score(np_y, np_y_pred) == pytest.approx(res)
+        # check that result is not changed
+        res = acc.compute()
+        assert n == acc._num_examples
+        assert isinstance(res, float)
 
         # Batched Updates
         acc.reset()
@@ -343,6 +349,7 @@ def _test_distrib_multilabel_input_NHW(device):
 
         assert acc._type == "multilabel"
         res = acc.compute()
+        assert n == acc._num_examples
         assert isinstance(res, float)
         assert accuracy_score(np_y, np_y_pred) == pytest.approx(res)
 
