@@ -165,7 +165,7 @@ class RocCurve(EpochMetric):
             device=device,
         )
 
-    def compute(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def compute(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:  # type: ignore[override]
         if len(self._predictions) < 1 or len(self._targets) < 1:
             raise NotComputableError("RocCurve must have at least one example before it can be computed.")
 
@@ -180,7 +180,7 @@ class RocCurve(EpochMetric):
 
         if idist.get_rank() == 0:
             # Run compute_fn on zero rank only
-            fpr, tpr, thresholds = self.compute_fn(_prediction_tensor, _target_tensor)
+            fpr, tpr, thresholds = cast(Tuple, self.compute_fn(_prediction_tensor, _target_tensor))
             fpr = torch.tensor(fpr)
             tpr = torch.tensor(tpr)
             thresholds = torch.tensor(thresholds)
