@@ -141,12 +141,23 @@ def test_distrib_integration(distributed):
     y = torch.randint(0, 2, size=(n_batches * batch_size,))
     y_pred = torch.rand((n_batches * batch_size,))
 
+    def update(engine, i):
+        return (
+            y_pred[i * batch_size : (i + 1) * batch_size],
+            y[i * batch_size : (i + 1) * batch_size],
+        )
+
+    engine = Engine(update)
+
     device = "cpu" if idist.device().type == "xla" else idist.device()
     metric = RocCurve(device=device)
-    for i in range(n_batches):
-        metric.update((y_pred[i * batch_size : (i + 1) * batch_size], y[i * batch_size : (i + 1) * batch_size]))
+    metric.attach(engine, "roc_curve")
 
-    fpr, tpr, thresholds = metric.compute()
+    data = list(range(n_batches))
+
+    engine.run(data=data, max_epochs=1)
+
+    fpr, tpr, thresholds = engine.state.metrics["roc_curve"]
 
     y = idist.all_gather(y)
     y_pred = idist.all_gather(y_pred)
