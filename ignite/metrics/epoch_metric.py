@@ -145,11 +145,10 @@ class EpochMetric(Metric):
 
         ws = idist.get_world_size()
 
-        if ws > 1 and not self._is_reduced:
+        if ws > 1:
             # All gather across all processes
             _prediction_tensor = cast(torch.Tensor, idist.all_gather(_prediction_tensor))
             _target_tensor = cast(torch.Tensor, idist.all_gather(_target_tensor))
-        self._is_reduced = True
 
         result = 0.0
         if idist.get_rank() == 0:
