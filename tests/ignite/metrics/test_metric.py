@@ -550,7 +550,8 @@ def _test_compute_with_sync_all_reduce_doesnt_change_attributes(device):
         def compute(self):
             return self.a.item(), self.b
 
-    metric = DummyMetric3(device=device)
+    metric_device = device if torch.device(device).type != "xla" else "cpu"
+    metric = DummyMetric3(device=metric_device)
     metric.update(None)
     assert metric.a.item() == metric.b == 1.0
     metric.compute()
