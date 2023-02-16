@@ -2,12 +2,15 @@ name: Build docs
 
 on:
   push:
+    branches:
+      - master
   pull_request:
     paths-ignore:
       - "tests/**"
       - "docker/**"
   release:
     types: [published]
+  workflow_dispatch:
 
 jobs:
   build-deploy:
