@@ -673,7 +673,7 @@ class NeptuneSaver(BaseSaveHandler):
 
             evaluator.add_event_handler(Events.COMPLETED, handler)
 
-        # We need to close the logger when we are done
+            # We need to close the logger when we are done
             npt_logger.close()
 
     For example, you can access model checkpoints and download them from here:
