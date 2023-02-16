@@ -1,7 +1,9 @@
-from typing import Any, Callable, Tuple, Union
+from typing import Any, Callable, cast, Tuple, Union
 
 import torch
 
+from ignite import distributed as idist
+from ignite.exceptions import NotComputableError
 from ignite.metrics import EpochMetric
 
 
@@ -103,6 +105,8 @@ class RocCurve(EpochMetric):
             <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_curve.html#
             sklearn.metrics.roc_curve>`_ is run on the first batch of data to ensure there are
             no issues. User will be warned in case there are any issues computing the function.
+        device: optional device specification for internal storage.
+
     Note:
         RocCurve expects y to be comprised of 0's and 1's. y_pred must either be probability estimates or confidence
         values. To apply an activation to y_pred, use output_transform as shown below:
@@ -137,9 +141,17 @@ class RocCurve(EpochMetric):
             FPR [0.0, 0.333, 0.333, 1.0]
             TPR [0.0, 0.0, 1.0, 1.0]
             Thresholds [2.0, 1.0, 0.711, 0.047]
+
+    ..  versionchanged:: 0.4.11
+        added `device` argument
     """
 
-    def __init__(self, output_transform: Callable = lambda x: x, check_compute_fn: bool = False) -> None:
+    def __init__(
+        self,
+        output_transform: Callable = lambda x: x,
+        check_compute_fn: bool = False,
+        device: Union[str, torch.device] = torch.device("cpu"),
+    ) -> None:
 
         try:
             from sklearn.metrics import roc_curve  # noqa: F401
@@ -150,4 +162,35 @@ class RocCurve(EpochMetric):
             roc_auc_curve_compute_fn,  # type: ignore[arg-type]
             output_transform=output_transform,
             check_compute_fn=check_compute_fn,
+            device=device,
         )
+
+    def compute(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        if len(self._predictions) < 1 or len(self._targets) < 1:
+            raise NotComputableError("RocCurve must have at least one example before it can be computed.")
+
+        _prediction_tensor = torch.cat(self._predictions, dim=0)
+        _target_tensor = torch.cat(self._targets, dim=0)
+
+        ws = idist.get_world_size()
+        if ws > 1:
+            # All gather across all processes
+            _prediction_tensor = cast(torch.Tensor, idist.all_gather(_prediction_tensor))
+            _target_tensor = cast(torch.Tensor, idist.all_gather(_target_tensor))
+
+        if idist.get_rank() == 0:
+            # Run compute_fn on zero rank only
+            fpr, tpr, thresholds = self.compute_fn(_prediction_tensor, _target_tensor)
+            fpr = torch.tensor(fpr)
+            tpr = torch.tensor(tpr)
+            thresholds = torch.tensor(thresholds)
+        else:
+            fpr, tpr, thresholds = None, None, None
+
+        if ws > 1:
+            # broadcast result to all processes
+            fpr = idist.broadcast(fpr, src=0, safe_mode=True)
+            tpr = idist.broadcast(tpr, src=0, safe_mode=True)
+            thresholds = idist.broadcast(thresholds, src=0, safe_mode=True)
+
+        return fpr, tpr, thresholds
