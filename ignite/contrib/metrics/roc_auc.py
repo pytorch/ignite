@@ -18,8 +18,8 @@ def roc_auc_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor) -> float:
 def roc_auc_curve_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor) -> Tuple[Any, Any, Any]:
     from sklearn.metrics import roc_curve
 
-    y_true = y_targets.numpy()
-    y_pred = y_preds.numpy()
+    y_true = y_targets.cpu().numpy()
+    y_pred = y_preds.cpu().numpy()
     return roc_curve(y_true, y_pred)
 
 
