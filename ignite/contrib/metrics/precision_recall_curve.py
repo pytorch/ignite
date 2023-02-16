@@ -78,41 +78,44 @@ class PrecisionRecallCurve(EpochMetric):
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
         super(PrecisionRecallCurve, self).__init__(
-            precision_recall_curve_compute_fn,
+            precision_recall_curve_compute_fn,  # type: ignore[arg-type]
             output_transform=output_transform,
             check_compute_fn=check_compute_fn,
             device=device,
         )
 
-    def compute(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def compute(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:  # type: ignore[override]
         if len(self._predictions) < 1 or len(self._targets) < 1:
             raise NotComputableError("PrecisionRecallCurve must have at least one example before it can be computed.")
 
-        _prediction_tensor = torch.cat(self._predictions, dim=0)
-        _target_tensor = torch.cat(self._targets, dim=0)
+        if self._result is None:
+            _prediction_tensor = torch.cat(self._predictions, dim=0)
+            _target_tensor = torch.cat(self._targets, dim=0)
 
-        ws = idist.get_world_size()
-        if ws > 1 and not self._is_reduced:
-            # All gather across all processes
-            _prediction_tensor = cast(torch.Tensor, idist.all_gather(_prediction_tensor))
-            _target_tensor = cast(torch.Tensor, idist.all_gather(_target_tensor))
-        self._is_reduced = True
+            ws = idist.get_world_size()
+            if ws > 1:
+                # All gather across all processes
+                _prediction_tensor = cast(torch.Tensor, idist.all_gather(_prediction_tensor))
+                _target_tensor = cast(torch.Tensor, idist.all_gather(_target_tensor))
 
-        if idist.get_rank() == 0:
-            # Run compute_fn on zero rank only
-            precision, recall, thresholds = self.compute_fn(_prediction_tensor, _target_tensor)
-            precision = torch.tensor(precision)
-            recall = torch.tensor(recall)
-            # thresholds can have negative strides, not compatible with torch tensors
-            # https://discuss.pytorch.org/t/negative-strides-in-tensor-error/134287/2
-            thresholds = torch.tensor(thresholds.copy())
-        else:
-            precision, recall, thresholds = None, None, None
+            if idist.get_rank() == 0:
+                # Run compute_fn on zero rank only
+                precision, recall, thresholds = cast(Tuple, self.compute_fn(_prediction_tensor, _target_tensor))
+                precision = torch.tensor(precision)
+                recall = torch.tensor(recall)
+                # thresholds can have negative strides, not compatible with torch tensors
+                # https://discuss.pytorch.org/t/negative-strides-in-tensor-error/134287/2
+                thresholds = torch.tensor(thresholds.copy())
+            else:
+                precision, recall, thresholds = None, None, None
 
-        if ws > 1:
-            # broadcast result to all processes
-            precision = idist.broadcast(precision, src=0, safe_mode=True)
-            recall = idist.broadcast(recall, src=0, safe_mode=True)
-            thresholds = idist.broadcast(thresholds, src=0, safe_mode=True)
+            if ws > 1:
+                # broadcast result to all processes
+                precision = idist.broadcast(precision, src=0, safe_mode=True)
+                recall = idist.broadcast(recall, src=0, safe_mode=True)
+                thresholds = idist.broadcast(thresholds, src=0, safe_mode=True)
 
-        return precision, recall, thresholds
+            self._result = (precision, recall, thresholds)  # type: ignore[assignment]
+            self._is_reduced = True
+
+        return cast(Tuple[torch.Tensor, torch.Tensor, torch.Tensor], self._result)

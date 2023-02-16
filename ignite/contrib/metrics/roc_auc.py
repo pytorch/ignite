@@ -147,5 +147,7 @@ class RocCurve(EpochMetric):
             raise ModuleNotFoundError("This contrib module requires scikit-learn to be installed.")
 
         super(RocCurve, self).__init__(
-            roc_auc_curve_compute_fn, output_transform=output_transform, check_compute_fn=check_compute_fn
+            roc_auc_curve_compute_fn,  # type: ignore[arg-type]
+            output_transform=output_transform,
+            check_compute_fn=check_compute_fn,
         )

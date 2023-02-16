@@ -1,5 +1,5 @@
 import warnings
-from typing import Callable, cast, List, Tuple, Union
+from typing import Callable, cast, List, Optional, Tuple, Union
 
 import torch
 
@@ -87,6 +87,7 @@ class EpochMetric(Metric):
     def reset(self) -> None:
         self._predictions: List[torch.Tensor] = []
         self._targets: List[torch.Tensor] = []
+        self._result: Optional[float] = None
 
     def _check_shape(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output
@@ -139,7 +140,7 @@ class EpochMetric(Metric):
         if len(self._predictions) < 1 or len(self._targets) < 1:
             raise NotComputableError("EpochMetric must have at least one example before it can be computed.")
 
-        if not self._is_reduced:
+        if self._result is None:
             _prediction_tensor = torch.cat(self._predictions, dim=0)
             _target_tensor = torch.cat(self._targets, dim=0)
 
