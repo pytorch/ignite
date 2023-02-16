@@ -1,12 +1,14 @@
 from typing import Callable, Optional
-import numpy as np
 
+import numpy as np
 import torch
 
 try:
     from image_dataset_viz import render_datapoint
 except ImportError:
-    raise RuntimeError("Install it via pip install --upgrade git+https://github.com/vfdev-5/ImageDatasetViz.git")
+    raise ModuleNotFoundError(
+        "Please install image-dataset-viz via pip install --upgrade git+https://github.com/vfdev-5/ImageDatasetViz.git"
+    )
 
 
 def tensor_to_numpy(t: torch.Tensor) -> np.ndarray:
@@ -33,13 +35,13 @@ def make_grid(
         batch_gt (torch.Tensor, optional): batch of ground truth masks.
     """
     assert isinstance(batch_img, torch.Tensor) and isinstance(batch_preds, torch.Tensor)
-    assert len(batch_img) == len(batch_preds), "{} vs {}".format(len(batch_img), len(batch_preds))
-    assert batch_preds.ndim == 1, "{}".format(batch_preds.ndim)
+    assert len(batch_img) == len(batch_preds), f"{len(batch_img)} vs {len(batch_preds)}"
+    assert batch_preds.ndim == 1, f"{batch_preds.ndim}"
 
     if batch_gt is not None:
         assert isinstance(batch_gt, torch.Tensor)
         assert len(batch_preds) == len(batch_gt)
-        assert batch_gt.ndim == 1, "{}".format(batch_gt.ndim)
+        assert batch_gt.ndim == 1, f"{batch_gt.ndim}"
 
     b = batch_img.shape[0]
     h, w = batch_img.shape[2:]
@@ -55,12 +57,12 @@ def make_grid(
         img = tensor_to_numpy(img)
         pred_label = y_preds.cpu().item()
 
-        target = "p={}".format(pred_label)
+        target = f"p={pred_label}"
 
         if batch_gt is not None:
             gt_label = batch_gt[i]
             gt_label = gt_label.cpu().item()
-            target += " | gt={}".format(gt_label)
+            target += f" | gt={gt_label}"
 
         out_image[0:h, i * w : (i + 1) * w, :] = render_datapoint(img, target, text_size=12)
 

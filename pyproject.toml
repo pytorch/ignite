@@ -1,6 +1,6 @@
 [tool.black]
 line-length = 120
-target-version = ['py35', 'py36', 'py37', 'py38']
+target-version = ['py38', 'py39']
 include = '\.pyi?$'
 exclude = '''
 
@@ -16,8 +16,33 @@ exclude = '''
     | buck-out
     | build
     | dist
+    | assets
   )/
   | foo.py           # also separately exclude a file named foo.py in
                      # the root of the project
 )
 '''
+
+[tool.usort.known]
+first_party = [
+    "ignite",
+]
+third_party = [
+    "clearml",
+    "dill",
+    "matplotlib",
+    "numpy",
+    "pkg_resources",
+    "pytest",
+    "requests",
+    "setuptools",
+    "skimage",
+    "sklearn",
+    "torch",
+    "torchvision",
+]
+
+[tool.ufmt]
+excludes = [
+    "assets/",
+]

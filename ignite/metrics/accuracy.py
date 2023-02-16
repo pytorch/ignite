@@ -1,10 +1,9 @@
-from typing import Callable, Union, Optional, Sequence
-
-from ignite.metrics import Metric
-from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
-from ignite.exceptions import NotComputableError
+from typing import Callable, Optional, Sequence, Tuple, Union
 
 import torch
+
+from ignite.exceptions import NotComputableError
+from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
 __all__ = ["Accuracy"]
 
@@ -14,11 +13,11 @@ class _BaseClassification(Metric):
         self,
         output_transform: Callable = lambda x: x,
         is_multilabel: bool = False,
-        device: Optional[Union[str, torch.device]] = None,
+        device: Union[str, torch.device] = torch.device("cpu"),
     ):
         self._is_multilabel = is_multilabel
-        self._type = None
-        self._num_classes = None
+        self._type: Optional[str] = None
+        self._num_classes: Optional[int] = None
         super(_BaseClassification, self).__init__(output_transform=output_transform, device=device)
 
     def reset(self) -> None:
@@ -32,11 +31,11 @@ class _BaseClassification(Metric):
             raise ValueError(
                 "y must have shape of (batch_size, ...) and y_pred must have "
                 "shape of (batch_size, num_categories, ...) or (batch_size, ...), "
-                "but given {} vs {}.".format(y.shape, y_pred.shape)
+                f"but given {y.shape} vs {y_pred.shape}."
             )
 
         y_shape = y.shape
-        y_pred_shape = y_pred.shape
+        y_pred_shape: Tuple[int, ...] = y_pred.shape
 
         if y.ndimension() + 1 == y_pred.ndimension():
             y_pred_shape = (y_pred_shape[0],) + y_pred_shape[2:]
@@ -44,8 +43,10 @@ class _BaseClassification(Metric):
         if not (y_shape == y_pred_shape):
             raise ValueError("y and y_pred must have compatible shapes.")
 
-        if self._is_multilabel and not (y.shape == y_pred.shape and y.ndimension() > 1 and y.shape[1] != 1):
-            raise ValueError("y and y_pred must have same shape of (batch_size, num_categories, ...).")
+        if self._is_multilabel and not (y.shape == y_pred.shape and y.ndimension() > 1 and y.shape[1] > 1):
+            raise ValueError(
+                "y and y_pred must have same shape of (batch_size, num_categories, ...) and num_categories > 1."
+            )
 
     def _check_binary_multilabel_cases(self, output: Sequence[torch.Tensor]) -> None:
         y_pred, y = output
@@ -77,77 +78,155 @@ class _BaseClassification(Metric):
                 num_classes = 1
         else:
             raise RuntimeError(
-                "Invalid shapes of y (shape={}) and y_pred (shape={}), check documentation."
-                " for expected shapes of y and y_pred.".format(y.shape, y_pred.shape)
+                f"Invalid shapes of y (shape={y.shape}) and y_pred (shape={y_pred.shape}), check documentation."
+                " for expected shapes of y and y_pred."
             )
         if self._type is None:
             self._type = update_type
             self._num_classes = num_classes
         else:
             if self._type != update_type:
-                raise RuntimeError("Input data type has changed from {} to {}.".format(self._type, update_type))
+                raise RuntimeError(f"Input data type has changed from {self._type} to {update_type}.")
             if self._num_classes != num_classes:
-                raise ValueError(
-                    "Input data number of classes has changed from {} to {}".format(self._num_classes, num_classes)
-                )
+                raise ValueError(f"Input data number of classes has changed from {self._num_classes} to {num_classes}")
 
 
 class Accuracy(_BaseClassification):
-    """
-    Calculates the accuracy for binary, multiclass and multilabel data.
+    r"""Calculates the accuracy for binary, multiclass and multilabel data.
 
-    - `update` must receive output of the form `(y_pred, y)` or `{'y_pred': y_pred, 'y': y}`.
+    .. math:: \text{Accuracy} = \frac{ TP + TN }{ TP + TN + FP + FN }
+
+    where :math:`\text{TP}` is true positives, :math:`\text{TN}` is true negatives,
+    :math:`\text{FP}` is false positives and :math:`\text{FN}` is false negatives.
+
+    - ``update`` must receive output of the form ``(y_pred, y)``.
     - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...).
     - `y` must be in the following shape (batch_size, ...).
-    - `y` and `y_pred` must be in the following shape of (batch_size, num_categories, ...) for multilabel cases.
-
-    In binary and multilabel cases, the elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of
-    predictions can be done as below:
-
-    .. code-block:: python
-
-        def thresholded_output_transform(output):
-            y_pred, y = output
-            y_pred = torch.round(y_pred)
-            return y_pred, y
-
-        binary_accuracy = Accuracy(thresholded_output_transform)
-
+    - `y` and `y_pred` must be in the following shape of (batch_size, num_categories, ...) and
+      num_categories must be greater than 1 for multilabel cases.
 
     Args:
-        output_transform (callable, optional): a callable that is used to transform the
-            :class:`~ignite.engine.Engine`'s `process_function`'s output into the
+        output_transform: a callable that is used to transform the
+            :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
-        is_multilabel (bool, optional): flag to use in multilabel case. By default, False.
-        device (str of torch.device, optional): device specification in case of distributed computation usage.
-            In most of the cases, it can be defined as "cuda:local_rank" or "cuda"
-            if already set `torch.cuda.set_device(local_rank)`. By default, if a distributed process group is
-            initialized and available, device is set to `cuda`.
+        is_multilabel: flag to use in multilabel case. By default, False.
+        device: specifies which device updates are accumulated on. Setting the metric's
+            device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
+            default, CPU.
 
+    Examples:
+
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
+        Binary case
+
+        .. testcode:: 1
+
+            metric = Accuracy()
+            metric.attach(default_evaluator, "accuracy")
+            y_true = torch.tensor([1, 0, 1, 1, 0, 1])
+            y_pred = torch.tensor([1, 0, 1, 0, 1, 1])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["accuracy"])
+
+        .. testoutput:: 1
+
+            0.6666...
+
+        Multiclass case
+
+        .. testcode:: 2
+
+            metric = Accuracy()
+            metric.attach(default_evaluator, "accuracy")
+            y_true = torch.tensor([2, 0, 2, 1, 0, 1])
+            y_pred = torch.tensor([
+                [0.0266, 0.1719, 0.3055],
+                [0.6886, 0.3978, 0.8176],
+                [0.9230, 0.0197, 0.8395],
+                [0.1785, 0.2670, 0.6084],
+                [0.8448, 0.7177, 0.7288],
+                [0.7748, 0.9542, 0.8573],
+            ])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["accuracy"])
+
+        .. testoutput:: 2
+
+            0.5
+
+        Multilabel case
+
+        .. testcode:: 3
+
+            metric = Accuracy(is_multilabel=True)
+            metric.attach(default_evaluator, "accuracy")
+            y_true = torch.tensor([
+                [0, 0, 1, 0, 1],
+                [1, 0, 1, 0, 0],
+                [0, 0, 0, 0, 1],
+                [1, 0, 0, 0, 1],
+                [0, 1, 1, 0, 1],
+            ])
+            y_pred = torch.tensor([
+                [1, 1, 0, 0, 0],
+                [1, 0, 1, 0, 0],
+                [1, 0, 0, 0, 0],
+                [1, 0, 1, 1, 1],
+                [1, 1, 0, 0, 1],
+            ])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["accuracy"])
+
+        .. testoutput:: 3
+
+            0.2
+
+        In binary and multilabel cases, the elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of
+        predictions can be done as below:
+
+        .. testcode:: 4
+
+            def thresholded_output_transform(output):
+                y_pred, y = output
+                y_pred = torch.round(y_pred)
+                return y_pred, y
+
+            metric = Accuracy(output_transform=thresholded_output_transform)
+            metric.attach(default_evaluator, "accuracy")
+            y_true = torch.tensor([1, 0, 1, 1, 0, 1])
+            y_pred = torch.tensor([0.6, 0.2, 0.9, 0.4, 0.7, 0.65])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["accuracy"])
+
+        .. testoutput:: 4
+
+            0.6666...
     """
 
     def __init__(
         self,
         output_transform: Callable = lambda x: x,
         is_multilabel: bool = False,
-        device: Optional[Union[str, torch.device]] = None,
+        device: Union[str, torch.device] = torch.device("cpu"),
     ):
-        self._num_correct = None
-        self._num_examples = None
         super(Accuracy, self).__init__(output_transform=output_transform, is_multilabel=is_multilabel, device=device)
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._num_correct = 0
+        self._num_correct = torch.tensor(0, device=self._device)
         self._num_examples = 0
         super(Accuracy, self).reset()
 
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
-        y_pred, y = output
-        self._check_shape((y_pred, y))
-        self._check_type((y_pred, y))
+        self._check_shape(output)
+        self._check_type(output)
+        y_pred, y = output[0].detach(), output[1].detach()
 
         if self._type == "binary":
             correct = torch.eq(y_pred.view(-1).to(y), y.view(-1))
@@ -162,11 +241,11 @@ class Accuracy(_BaseClassification):
             y = torch.transpose(y, 1, last_dim - 1).reshape(-1, num_classes)
             correct = torch.all(y == y_pred.type_as(y), dim=-1)
 
-        self._num_correct += torch.sum(correct).item()
+        self._num_correct += torch.sum(correct).to(self._device)
         self._num_examples += correct.shape[0]
 
     @sync_all_reduce("_num_examples", "_num_correct")
-    def compute(self) -> torch.Tensor:
+    def compute(self) -> float:
         if self._num_examples == 0:
             raise NotComputableError("Accuracy must have at least one example before it can be computed.")
-        return self._num_correct / self._num_examples
+        return self._num_correct.item() / self._num_examples

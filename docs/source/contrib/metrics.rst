@@ -1,17 +1,29 @@
 ignite.contrib.metrics
 ======================
 
-Contribution module of metrics
+Contrib module metrics
+----------------------
 
 .. currentmodule:: ignite.contrib.metrics
 
-.. automodule:: ignite.contrib.metrics
-   :members:
-   :imported-members:
+.. autosummary::
+    :nosignatures:
+    :toctree: ../generated
 
+    AveragePrecision
+    CohenKappa
+    GpuInfo
+    PrecisionRecallCurve
+    ROC_AUC
+    RocCurve
 
 Regression metrics
 ------------------
+
+.. currentmodule:: ignite.contrib.metrics.regression
+
+.. automodule:: ignite.contrib.metrics.regression
+
 
 Module :mod:`ignite.contrib.metrics.regression` provides implementations of
 metrics useful for regression tasks. Definitions of metrics are based on `Botchkarev 2018`_, page 30 "Appendix 2. Metrics mathematical definitions".
@@ -21,51 +33,24 @@ metrics useful for regression tasks. Definitions of metrics are based on `Botchk
 
 Complete list of metrics:
 
-    - :class:`~ignite.contrib.metrics.regression.CanberraMetric`
-    - :class:`~ignite.contrib.metrics.regression.FractionalAbsoluteError`
-    - :class:`~ignite.contrib.metrics.regression.FractionalBias`
-    - :class:`~ignite.contrib.metrics.regression.GeometricMeanAbsoluteError`
-    - :class:`~ignite.contrib.metrics.regression.GeometricMeanRelativeAbsoluteError`
-    - :class:`~ignite.contrib.metrics.regression.ManhattanDistance`
-    - :class:`~ignite.contrib.metrics.regression.MaximumAbsoluteError`
-    - :class:`~ignite.contrib.metrics.regression.MeanAbsoluteRelativeError`
-    - :class:`~ignite.contrib.metrics.regression.MeanError`
-    - :class:`~ignite.contrib.metrics.regression.MeanNormalizedBias`
-    - :class:`~ignite.contrib.metrics.regression.MedianAbsoluteError`
-    - :class:`~ignite.contrib.metrics.regression.MedianAbsolutePercentageError`
-    - :class:`~ignite.contrib.metrics.regression.MedianRelativeAbsoluteError`
-    - :class:`~ignite.contrib.metrics.regression.R2Score`
-    - :class:`~ignite.contrib.metrics.regression.WaveHedgesDistance`
-
-
 .. currentmodule:: ignite.contrib.metrics.regression
 
-.. autoclass:: CanberraMetric
+.. autosummary::
+    :nosignatures:
+    :toctree: ../generated
 
-.. autoclass:: FractionalAbsoluteError
-
-.. autoclass:: FractionalBias
-
-.. autoclass:: GeometricMeanAbsoluteError
-
-.. autoclass:: GeometricMeanRelativeAbsoluteError
-
-.. autoclass:: ManhattanDistance
-
-.. autoclass:: MaximumAbsoluteError
-
-.. autoclass:: MeanAbsoluteRelativeError
-
-.. autoclass:: MeanError
-
-.. autoclass:: MeanNormalizedBias
-
-.. autoclass:: MedianAbsoluteError
-
-.. autoclass:: MedianAbsolutePercentageError
-
-.. autoclass:: MedianRelativeAbsoluteError
-
-.. autoclass:: R2Score
-
-.. autoclass:: WaveHedgesDistance
+    CanberraMetric
+    FractionalAbsoluteError
+    FractionalBias
+    GeometricMeanAbsoluteError
+    GeometricMeanRelativeAbsoluteError
+    ManhattanDistance
+    MaximumAbsoluteError
+    MeanAbsoluteRelativeError
+    MeanError
+    MeanNormalizedBias
+    MedianAbsoluteError
+    MedianAbsolutePercentageError
+    MedianRelativeAbsoluteError
+    R2Score
+    WaveHedgesDistance

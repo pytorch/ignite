@@ -1,136 +1,158 @@
 # CIFAR10 Example with Ignite
 
-In this example, we show how to use *Ignite* to train a neural network on 1 or more GPUs, save the best model weights, 
-log learning rate, training/validation metrics.
+In this example, we show how to use _Ignite_ to train a neural network:
+
+- on 1 or more GPUs or TPUs
+- compute training/validation metrics
+- log learning rate, metrics etc
+- save the best model weights
 
 Configurations:
 
-* [x] single GPU
-* [x] multi GPUs on a single node
-* [x] multi GPUs on multiple nodes
+- [x] single GPU
+- [x] multi GPUs on a single node
+- [x] multi GPUs on multiple nodes
+- [x] TPUs on Colab
 
 ## Requirements:
 
+- pytorch-ignite: `pip install pytorch-ignite`
 - [torchvision](https://github.com/pytorch/vision/): `pip install torchvision`
 - [tqdm](https://github.com/tqdm/tqdm/): `pip install tqdm`
 - [tensorboardx](https://github.com/lanpa/tensorboard-pytorch): `pip install tensorboardX`
+- [python-fire](https://github.com/google/python-fire): `pip install fire`
+- Optional: [clearml](https://github.com/allegroai/clearml): `pip install clearml`
+
+Alternatively, install the all requirements using `pip install -r requirements.txt`.
 
 ## Usage:
 
-Run the example on a single GPU (script will not run without a GPU):
+Run the example on a single GPU:
+
 ```bash
-python main.py
+python main.py run
+```
+
+For details on accepted arguments:
+
+```bash
+python main.py run -- --help
 ```
 
 If user would like to provide already downloaded dataset, the path can be setup in parameters as
-```bash
---params="data_path=/path/to/cifar10/"
-```
 
+```bash
+--data_path="/path/to/cifar10/"
+```
 
 ### Distributed training
 
 #### Single node, multiple GPUs
 
 Let's start training on a single node with 2 gpus:
+
 ```bash
-python -u -m torch.distributed.launch --nproc_per_node=2 main.py --params="batch_size=512;dist_backend='nccl';output_path=/tmp/output"
+# using torchrun
+torchrun --nproc_per_node=2 main.py run --backend="nccl"
 ```
 
-If user would like to provide already downloaded dataset, the path can be setup in parameters as
+or
+
 ```bash
---params="data_path=/path/to/cifar10/;batch_size=512"
+# using function spawn inside the code
+python -u main.py run --backend="nccl" --nproc_per_node=2
 ```
 
-![tb](assets/tb_logger.png)
+##### Using [Horovod](https://horovod.readthedocs.io/en/latest/index.html) as distributed backend
 
+Please, make sure to have Horovod installed before running.
+
+Let's start training on a single node with 2 gpus:
+
+```bash
+# horovodrun
+horovodrun -np=2 python -u main.py run --backend="horovod"
+```
+
+or
+
+```bash
+# using function spawn inside the code
+python -u main.py run --backend="horovod" --nproc_per_node=2
+```
+
+#### Colab, on 8 TPUs
+
+Same code can be run on TPUs: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1E9zJrptnLJ_PKhmaP5Vhb6DTVRvyrKHx)
 
 #### Multiple nodes, multiple GPUs
 
 Let's start training on two nodes with 2 gpus each. We assuming that master node can be connected as `master`, e.g. `ping master`.
 
-1) Execute on master node
+1. Execute on master node
+
 ```bash
-python -u -m torch.distributed.launch \
+torchrun \
     --nnodes=2 \
     --nproc_per_node=2 \
     --node_rank=0 \
     --master_addr=master --master_port=2222 \
-    main.py --params="batch_size=512;dist_backend='nccl';output_path=/tmp/output"
+    main.py run --backend="nccl"
 ```
 
-2) Execute on worker node
+2. Execute on worker node
+
 ```bash
-python -u -m torch.distributed.launch \
+torchrun \
     --nnodes=2 \
     --nproc_per_node=2 \
     --node_rank=1 \
     --master_addr=master --master_port=2222 \
-    main.py --params="batch_size=512;dist_backend='nccl';output_path=/tmp/output"
+    main.py run --backend="nccl"
 ```
 
-![tb2](assets/tb_logger_gcp.png)
+### Check resume training
 
-## Reproduce trainings
+#### Single GPU
 
-- To reproduce trainings with [Polyaxon](https://polyaxon.com/), please see [plx_configs/README.md](plx_configs/README.md)
-- To reproduce trainings on [GCP AI platform](https://cloud.google.com/ml-engine/docs/), please see [gcp_ai_platform](gcp_ai_platform/README.md).
+Initial training with a stop on 1000 iteration (~11 epochs)
 
-## Acknowledgements
-
-In this repository we are using the code from 
-- [cifar10-fast repository](https://github.com/davidcpage/cifar10-fast)
-
-Thanks to the authors for sharing their code!
-
-
-## Check resume training
-
-### Single GPU
-
-Initial training with a crash at 1000 iteration (~10 epochs)
 ```bash
-python main.py --params="data_path=/path/to/cifar10;crash_iteration=1000"
+python main.py run --stop_iteration=1000
 ```
 
 Resume from the latest checkpoint
+
 ```bash
-python main.py --params="data_path=/path/to/cifar10;resume_from=/tmp/cifar10-output/XYZ-single-gpu/training_checkpoint_800.pth"
+python main.py run --resume-from=/tmp/output-cifar10/resnet18_backend-None-1_stop-on-1000/training_checkpoint_1000.pt
 ```
 
-Training without crashing
-```bash
-python main.py --params="data_path=/path/to/cifar10"
-```
+### Distributed training
 
-### Single Node, multiple GPUs
+#### Single node, multiple GPUs
 
-Initial training with a crash at 1000 iteration (~10 epochs)
+Initial training on a single node with 2 gpus with a stop on 1000 iteration (~11 epochs):
+
 ```bash
-python -u -m torch.distributed.launch --nproc_per_node=2 main.py --params="batch_size=512;dist_backend='nccl';output_path=/tmp/cifar10-output;crash_iteration=1000"
+# using torchrun
+torchrun --nproc_per_node=2 main.py run --backend="nccl" --stop_iteration=1000
 ```
 
 Resume from the latest checkpoint
+
 ```bash
-python -u -m torch.distributed.launch --nproc_per_node=2 main.py --params="batch_size=512;dist_backend='nccl';output_path=/tmp/cifar10-output;resume_from=/tmp/cifar10-output/XYZ--distributed-1nodes-2gpus/training_checkpoint_800.pth"
+torchrun --nproc_per_node=2 main.py run --backend="nccl" \
+    --resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-1000/training_checkpoint_1000.pt
 ```
 
-Training without crashing
-```bash
-python -u -m torch.distributed.launch --nproc_per_node=2 main.py --params="batch_size=512;dist_backend='nccl';output_path=/tmp/cifar10-output"
-```
+Similar commands can be adapted for other cases.
 
-![tb-resume](assets/tb_logger_resume1.png)
+## ClearML fileserver
 
-- Orange curves represent the training with a crash at the iteration 1000
-- Blue curves show resumed training from the last checkpoint (iteration 800)
-- Red curves display complete training without crashing  
+If `ClearML` server is used (i.e. `--with_clearml` argument), the configuration to upload artifact must be done by
+modifying the `ClearML` configuration file `~/clearml.conf` generated by `clearml-init`. According to the
+[documentation](https://allegro.ai/clearml/docs/docs/examples/reporting/artifacts.html), the `output_uri` argument can be
+configured in `sdk.development.default_output_uri` to fileserver uri. If server is self-hosted, `ClearML` fileserver uri is
+`http://localhost:8081`.
 
-**Note 1:** We can observe a gap on `train/batch_loss` curve between intial training and resumed training. This metric is 
-computed as a running average and while resuming the training, the cumulative part is not restored.
-
-**Note 2:** As we are resuming the training from an iteration between epochs, even if Ignite's engine handles the dataflow by
-correctly providing data samples for the resumed iteration, random data augmentations are not synchronized. This causes a gap  
-in validation curves (`train/loss`, `train/accuracy` etc.) at the begining of training resuming. 
-  
-![tb-resume](assets/tb_logger_resume2.png)
+For more details, see https://allegro.ai/clearml/docs/docs/examples/reporting/artifacts.html

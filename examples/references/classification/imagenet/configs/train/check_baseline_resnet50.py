@@ -2,18 +2,16 @@
 import os
 from functools import partial
 
+import albumentations as A
 import torch.nn as nn
 import torch.optim as optim
 import torch.optim.lr_scheduler as lrs
-import torch.distributed as dist
-
-from torchvision.models.resnet import resnet50
-
-import albumentations as A
 from albumentations.pytorch import ToTensorV2 as ToTensor
-
 from dataflow.dataloaders import get_train_val_loaders
 from dataflow.transforms import denormalize
+from torchvision.models.resnet import resnet50
+
+import ignite.distributed as idist
 
 # ##############################
 # Global configs
@@ -29,12 +27,13 @@ benchmark_dataflow_num_iters = 100
 
 fp16_opt_level = "O2"
 val_interval = 2
+start_by_validation = True
 
 train_crop_size = 224
 val_crop_size = 320
 
-batch_size = 64  # batch size per local rank
-num_workers = 10  # num_workers per local rank
+batch_size = 64 * idist.get_world_size()  # total batch size
+num_workers = 10
 
 
 # ##############################
@@ -75,9 +74,6 @@ train_loader, val_loader, train_eval_loader = get_train_val_loaders(
     batch_size=batch_size,
     num_workers=num_workers,
     val_batch_size=batch_size,
-    pin_memory=True,
-    train_sampler="distributed",
-    val_sampler="distributed",
 )
 
 # Image denormalization function to plot predictions with images
@@ -100,6 +96,6 @@ criterion = nn.CrossEntropyLoss()
 
 le = len(train_loader)
 
-base_lr = 0.1 * (batch_size * dist.get_world_size() / 256.0)
+base_lr = 0.1 * (batch_size / 256.0)
 optimizer = optim.SGD(model.parameters(), lr=base_lr, momentum=0.9, weight_decay=1e-4)
 lr_scheduler = lrs.MultiStepLR(optimizer, milestones=[30 * le, 60 * le, 90 * le, 100 * le], gamma=0.1)

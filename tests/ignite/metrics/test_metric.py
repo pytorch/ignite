@@ -1,18 +1,17 @@
+import numbers
 import os
-import sys
-
-import torch
-
-from ignite.metrics import Metric, Precision, Recall, ConfusionMatrix
-from ignite.metrics.metric import reinit__is_reduced
-from ignite.engine import Engine, State
-
 from unittest.mock import MagicMock
-import pytest
-from pytest import approx, raises
 
 import numpy as np
-from sklearn.metrics import precision_score, recall_score, f1_score, confusion_matrix
+import pytest
+import torch
+from pytest import approx, raises
+from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score
+
+import ignite.distributed as idist
+from ignite.engine import Engine, Events, State
+from ignite.metrics import ConfusionMatrix, Precision, Recall
+from ignite.metrics.metric import BatchFiltered, BatchWise, EpochWise, Metric, reinit__is_reduced, sync_all_reduce
 
 
 class DummyMetric1(Metric):
@@ -31,7 +30,7 @@ class DummyMetric1(Metric):
 
 
 def test_no_transform():
-    y_pred = torch.Tensor([[2.0], [-2.0]])
+    y_pred = torch.tensor([[2.0], [-2.0]])
     y = torch.zeros(2)
 
     metric = DummyMetric1(true_output=(y_pred, y))
@@ -41,7 +40,7 @@ def test_no_transform():
 
 
 def test_transform():
-    y_pred = torch.Tensor([[2.0], [-2.0]])
+    y_pred = torch.tensor([[2.0], [-2.0]])
     y = torch.zeros(2)
 
     def transform(output):
@@ -67,7 +66,7 @@ def test_output_as_mapping_wrong_keys():
 
 def test_output_as_mapping_keys_is_none():
     class DummyMetric(Metric):
-        _required_output_keys = None
+        required_output_keys = None
 
         def reset(self):
             pass
@@ -79,7 +78,7 @@ def test_output_as_mapping_keys_is_none():
             pass
 
     metric = DummyMetric()
-    assert metric._required_output_keys is None
+    assert metric.required_output_keys is None
     state = State(output=({"y1": 0, "y2": 1}))
     engine = MagicMock(state=state)
 
@@ -88,7 +87,7 @@ def test_output_as_mapping_keys_is_none():
 
 
 def test_output_as_mapping():
-    y_pred = torch.Tensor([[2.0], [-2.0]])
+    y_pred = torch.tensor([[2.0], [-2.0]])
     y = torch.zeros(2)
 
     metric = DummyMetric1(true_output=(y_pred, y))
@@ -220,25 +219,23 @@ def test_arithmetics():
     m2.update([1, 10, 100])
     assert m2_mod_2.compute() == 0
 
-    # __div__, only applicable to python2
-    if sys.version_info[0] < 3:
-        m0_div_m1 = m0.__div__(m1)
-        m0.update([1, 10, 100])
-        m1.update([1, 10, 100])
-        assert m0_div_m1.compute() == 0
-        m0.update([2, 20, 200])
-        m1.update([2, 20, 200])
-        assert m0_div_m1.compute() == 0
-
-        m2_div_2 = m2.__div__(2)
-        m2.update([1, 10, 100])
-        assert m2_div_2.compute() == 50
-
-        m2_div_2 = 200 / m2
-        m2.update([1, 10, 100])
-        assert m2_div_2.compute() == 2
-
     # __truediv__
+    m0_truediv_m1 = m0 / m1
+    m0.update([1, 10, 100])
+    m1.update([1, 10, 100])
+    assert m0_truediv_m1.compute() == approx(0.1)
+    m0.update([2, 20, 200])
+    m1.update([2, 20, 200])
+    assert m0_truediv_m1.compute() == approx(0.1)
+
+    m2_truediv_2 = m2 / 2
+    m2.update([1, 10, 100])
+    assert m2_truediv_2.compute() == approx(50.0)
+
+    m2_truediv_2 = 200 / m2
+    m2.update([1, 10, 100])
+    assert m2_truediv_2.compute() == approx(2.0)
+
     m0_truediv_m1 = m0.__truediv__(m1)
     m0.update([1, 10, 100])
     m1.update([1, 10, 100])
@@ -318,7 +315,7 @@ def test_attach():
 
 def test_detach():
     class DummyMetric(Metric):
-        _required_output_keys = None
+        required_output_keys = None
 
         def reset(self):
             pass
@@ -357,7 +354,7 @@ def test_integration():
     batch_size = 10
     n_classes = 10
 
-    y_true = np.arange(0, n_iters * batch_size) % n_classes
+    y_true = np.arange(0, n_iters * batch_size, dtype="int64") % n_classes
     y_pred = 0.2 * np.random.rand(n_iters * batch_size, n_classes)
     for i in range(n_iters * batch_size):
         if np.random.rand() > 0.4:
@@ -395,9 +392,9 @@ def test_integration():
     recall = state.metrics["recall"].numpy()
     f1 = state.metrics["f1"].numpy()
 
-    assert precision_true == approx(precision), "{} vs {}".format(precision_true, precision)
-    assert recall_true == approx(recall), "{} vs {}".format(recall_true, recall)
-    assert f1_true == approx(f1), "{} vs {}".format(f1_true, f1)
+    assert precision_true == approx(precision), f"{precision_true} vs {precision}"
+    assert recall_true == approx(recall), f"{recall_true} vs {recall}"
+    assert f1_true == approx(f1), f"{f1_true} vs {f1}"
 
 
 def test_abstract_class():
@@ -431,7 +428,7 @@ def test_pytorch_operators():
         d = data(y_pred, y)
         state = validator.run(d, max_epochs=1, epoch_length=y_pred.shape[0])
 
-        assert set(state.metrics.keys()) == set([metric_name,])
+        assert set(state.metrics.keys()) == set([metric_name])
         np_y_pred = np.argmax(y_pred.numpy(), axis=-1).ravel()
         np_y = y.numpy().ravel()
         assert state.metrics[metric_name] == approx(compute_true_value_fn(np_y_pred, np_y))
@@ -538,39 +535,60 @@ class DummyMetric2(Metric):
         pass
 
 
-def test__sync_all_reduce():
-    m = DummyMetric2()
-    res = m._sync_all_reduce(10)
-    assert res == 10
+def _test_invalid_sync_all_reduce(device):
+    class InvalidMetric(Metric):
+        @reinit__is_reduced
+        def reset(self):
+            self.a = torch.tensor([0.0, 1.0, 2.0, 3.0], requires_grad=False)
+            self.c = 0.0
+            self.n = 0
+            self.m = -1
 
+        def compute(self):
+            pass
 
-def _test_distrib__sync_all_reduce(device):
-    import torch.distributed as dist
+        def update(self):
+            pass
 
-    assert dist.is_available() and dist.is_initialized()
+        @sync_all_reduce("a:sum")
+        def invalid_reduction_op_1(self):
+            pass
 
-    m = DummyMetric2(device=device)
-    res = m._sync_all_reduce(10)
-    assert res == 10 * dist.get_world_size()
+        @sync_all_reduce("c:MaX")
+        def invalid_reduction_op_2(self):
+            pass
 
-    m = DummyMetric2(device=device)
-    t = torch.tensor(10, device=device)
-    res = m._sync_all_reduce(t)
-    assert res.item() == 10 * dist.get_world_size()
+        @sync_all_reduce("n:MINN")
+        def invalid_reduction_op_3(self):
+            pass
 
-    m = DummyMetric2(device=device)
-    with pytest.raises(TypeError, match=r"Unhandled input type"):
-        m._sync_all_reduce("abc")
+        @sync_all_reduce("m:PROduCT")
+        def invalid_reduction_op_4(self):
+            pass
+
+    metric_device = device if torch.device(device).type != "xla" else "cpu"
+    m = InvalidMetric(device=metric_device)
+    m.reset()
+
+    if idist.get_world_size() > 1:
+        with pytest.raises(ValueError, match=r"Reduction operation is not valid"):
+            m.invalid_reduction_op_1()
+
+        with pytest.raises(ValueError, match=r"Reduction operation is not valid"):
+            m.invalid_reduction_op_2()
+
+        with pytest.raises(ValueError, match=r"Reduction operation is not valid"):
+            m.invalid_reduction_op_3()
+
+        with pytest.raises(ValueError, match=r"Reduction operation is not valid"):
+            m.invalid_reduction_op_4()
 
 
 def _test_distrib_sync_all_reduce_decorator(device):
-
-    import torch.distributed as dist
-    from ignite.metrics.metric import sync_all_reduce, reinit__is_reduced
-
     class DummyMetric(Metric):
         @reinit__is_reduced
         def reset(self):
+            # SUM op
             self.a = torch.tensor([0.0, 1.0, 2.0, 3.0], device=self._device, requires_grad=False)
             self.a_nocomp = self.a.clone().to("cpu")
             self.b = torch.tensor(1.0, dtype=torch.float64, device=self._device, requires_grad=False)
@@ -580,55 +598,427 @@ def _test_distrib_sync_all_reduce_decorator(device):
             self.n = 0
             self.n_nocomp = self.n
 
-        @sync_all_reduce("a", "b", "c", "n")
+            # MAX op
+            self.m = -1
+
+            # MIN op
+            self.k = 10000
+
+            # initialize number of updates to test (MAX, MIN) ops
+            self.num_updates = 0
+
+            # PRODUCT op
+            self.prod = torch.tensor([2.0, 3.0], device=self._device, requires_grad=False)
+            self.prod_nocomp = self.prod.clone().to("cpu")
+
+        @sync_all_reduce("a", "b", "c", "n:SUM", "m:MAX", "k:MIN", "prod:PRODUCT")
         def compute(self):
-            assert (self.a.cpu() == (self.a_nocomp + 10) * dist.get_world_size()).all()
-            assert (self.b.cpu() == (self.b_nocomp - 5) * dist.get_world_size()).all()
-            assert self.c == pytest.approx((self.c_nocomp + 1.23456) * dist.get_world_size())
-            assert self.n == (self.n_nocomp + 1) * dist.get_world_size()
+            assert (self.a.cpu() == (self.a_nocomp + 10) * idist.get_world_size()).all()
+            assert (self.b.cpu() == (self.b_nocomp - 5) * idist.get_world_size()).all()
+            assert self.c == pytest.approx((self.c_nocomp + 1.23456) * idist.get_world_size())
+            assert self.n == (self.n_nocomp + 1) * idist.get_world_size()
+            assert self.m == self.num_updates * (idist.get_world_size() - 1) - 1
+            assert self.k == 10000 - self.num_updates * (idist.get_world_size() - 1)
+            temp_prod_nocomp = 5 * self.prod_nocomp  # new variable for the recomputing
+            temp_prod_nocomp = temp_prod_nocomp.pow(idist.get_world_size())
+            assert (self.prod.cpu() == temp_prod_nocomp).all()
 
         @reinit__is_reduced
         def update(self, output):
+            # SUM op
             self.n += 1
             self.c += 1.23456
             self.a += 10.0
             self.b -= 5.0
 
-    m = DummyMetric(device=device)
+            # MAX op
+            self.m += idist.get_rank()
+
+            # MIN op
+            self.k -= idist.get_rank()
+
+            # numper of updates for (MAX, MIN) ops
+            self.num_updates += 1
+
+            # PRODUCT op
+            self.prod *= 5
+
+    metric_device = device if torch.device(device).type != "xla" else "cpu"
+    m = DummyMetric(device=metric_device)
     m.update(None)
     m.compute()
     # check if can call compute multiple times without all reduce invocation
     m.compute()
 
 
+def _test_creating_on_xla_fails(device):
+    with pytest.raises(ValueError, match=r"Cannot create metric on an XLA device. Use device='cpu' instead."):
+        DummyMetric2(device=device)
+
+
 @pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
+def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
 
-    device = "cuda:{}".format(local_rank)
-    _test_distrib__sync_all_reduce(device)
+    device = idist.device()
     _test_distrib_sync_all_reduce_decorator(device)
+    _test_invalid_sync_all_reduce(device)
 
 
 @pytest.mark.distributed
-def test_distrib_cpu(distributed_context_single_node_gloo):
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
 
-    device = "cpu"
-    _test_distrib__sync_all_reduce(device)
+    device = idist.device()
     _test_distrib_sync_all_reduce_decorator(device)
+    _test_invalid_sync_all_reduce(device)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
+def test_distrib_hvd(gloo_hvd_executor):
+
+    device = "cpu" if not torch.cuda.is_available() else "cuda"
+    nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
+
+    gloo_hvd_executor(_test_distrib_sync_all_reduce_decorator, (device,), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_invalid_sync_all_reduce, (device,), np=nproc, do_init=True)
 
 
 @pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
-    device = "cpu"
-    _test_distrib__sync_all_reduce(device)
+def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
+
+    device = idist.device()
     _test_distrib_sync_all_reduce_decorator(device)
+    _test_invalid_sync_all_reduce(device)
 
 
 @pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
-    _test_distrib__sync_all_reduce(device)
+def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
+
+    device = idist.device()
     _test_distrib_sync_all_reduce_decorator(device)
+    _test_invalid_sync_all_reduce(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_single_device_xla():
+    device = idist.device()
+    _test_distrib_sync_all_reduce_decorator(device)
+    _test_creating_on_xla_fails(device)
+    _test_invalid_sync_all_reduce(device)
+
+
+def _test_distrib_xla_nprocs(index):
+    device = idist.device()
+    _test_distrib_sync_all_reduce_decorator(device)
+    _test_creating_on_xla_fails(device)
+    _test_invalid_sync_all_reduce(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_xla_nprocs(xmp_executor):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+    xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)
+
+
+def test_completed():
+    class DummyMetric(Metric):
+        def reset(self):
+            pass
+
+        def compute(self):
+            pass
+
+        def update(self, output):
+            pass
+
+    m = DummyMetric()
+
+    # tensor
+    engine = MagicMock(state=State(metrics={}))
+    m.compute = MagicMock(return_value=torch.tensor(1.0))
+    m.completed(engine, "metric")
+    assert engine.state.metrics == {"metric": 1.0}
+    assert isinstance(engine.state.metrics["metric"], numbers.Number)
+
+    # mapping
+    engine = MagicMock(state=State(metrics={}))
+    metrics = {"foo": 1, "bar": torch.tensor(2.0), "baz": {"qux": "quux"}}
+    m.compute = MagicMock(return_value=metrics)
+    with pytest.raises(ValueError, match=r"Argument name 'foo' is conflicting with mapping keys"):
+        m.completed(engine, "foo")
+    m.completed(engine, "metric")
+    metrics["metric"] = metrics
+    assert engine.state.metrics == metrics
+
+    # other
+    engine = MagicMock(state=State(metrics={}))
+    m.compute = MagicMock(return_value="foo")
+    m.completed(engine, "metric")
+    assert engine.state.metrics == {"metric": "foo"}
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
+def test_completed_on_cuda():
+
+    # Checks https://github.com/pytorch/ignite/issues/1635#issuecomment-863026919
+
+    class DummyMetric(Metric):
+        def reset(self):
+            pass
+
+        def compute(self):
+            return torch.tensor([1.0, 2.0, 3.0], device="cuda")
+
+        def update(self, output):
+            pass
+
+    m = DummyMetric()
+
+    # tensor
+    engine = MagicMock(state=State(metrics={}))
+    m.completed(engine, "metric")
+    assert "metric" in engine.state.metrics
+    assert isinstance(engine.state.metrics["metric"], torch.Tensor)
+    assert engine.state.metrics["metric"].device.type == "cpu"
+
+
+def test_usage_exception():
+    engine = Engine(lambda e, b: b)
+    m = DummyMetric2()
+    with pytest.raises(TypeError, match=r"Unhandled usage type"):
+        m.attach(engine, "dummy", usage=1)
+    with pytest.raises(ValueError, match=r"usage should be 'EpochWise.usage_name' or 'BatchWise.usage_name'"):
+        m.attach(engine, "dummy", usage="fake")
+
+
+def test_epochwise_usage():
+    class MyMetric(Metric):
+        def __init__(self):
+            super(MyMetric, self).__init__()
+            self.value = []
+
+        def reset(self):
+            self.value = []
+
+        def compute(self):
+            return self.value
+
+        def update(self, output):
+            self.value.append(output)
+
+    def test(usage):
+        engine = Engine(lambda e, b: b)
+
+        m = MyMetric()
+
+        m.attach(engine, "ewm", usage=usage)
+
+        @engine.on(Events.EPOCH_COMPLETED)
+        def _():
+            ewm = engine.state.metrics["ewm"]
+            assert len(ewm) == 3
+            assert ewm == [0, 1, 2]
+
+        engine.run([0, 1, 2], max_epochs=10)
+        m.detach(engine, usage=usage)
+
+    test("epoch_wise")
+    test(EpochWise.usage_name)
+    test(EpochWise())
+
+
+def test_batchwise_usage():
+    class MyMetric(Metric):
+        def __init__(self):
+            super(MyMetric, self).__init__()
+            self.value = []
+
+        def reset(self):
+            self.value = []
+
+        def compute(self):
+            return self.value
+
+        def update(self, output):
+            self.value.append(output)
+
+    def test(usage):
+        engine = Engine(lambda e, b: b)
+
+        m = MyMetric()
+
+        m.attach(engine, "bwm", usage=usage)
+
+        @engine.on(Events.ITERATION_COMPLETED)
+        def _():
+            bwm = engine.state.metrics["bwm"]
+            assert len(bwm) == 1
+            assert bwm[0] == (engine.state.iteration - 1) % 3
+
+        engine.run([0, 1, 2], max_epochs=10)
+        m.detach(engine, usage=usage)
+
+    test("batch_wise")
+    test(BatchWise.usage_name)
+    test(BatchWise())
+
+
+def test_batchfiltered_usage():
+    class MyMetric(Metric):
+        def __init__(self):
+            super(MyMetric, self).__init__()
+            self.value = []
+
+        def reset(self):
+            self.value = []
+
+        def compute(self):
+            return self.value
+
+        def update(self, output):
+            self.value.append(output)
+
+    engine = Engine(lambda e, b: b)
+
+    m = MyMetric()
+
+    usage = BatchFiltered(every=2)
+
+    m.attach(engine, "bfm", usage=usage)
+
+    @engine.on(Events.EPOCH_COMPLETED)
+    def _():
+        bfm = engine.state.metrics["bfm"]
+        assert len(bfm) == 2
+        assert bfm[0] == 1
+
+    engine.run([0, 1, 2, 3], max_epochs=10)
+
+
+def test_override_required_output_keys():
+    # https://discuss.pytorch.org/t/how-access-inputs-in-custom-ignite-metric/91221/5
+    import torch.nn as nn
+
+    from ignite.engine import create_supervised_evaluator
+
+    counter = [0]
+
+    class CustomMetric(Metric):
+        required_output_keys = ("y_pred", "y", "x")
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+
+        def update(self, output):
+            y_pred, y, x = output
+            assert y_pred.shape == (4, 3)
+            assert y.shape == (4,)
+            assert x.shape == (4, 10)
+            assert x.equal(data[counter[0]][0])
+            assert y.equal(data[counter[0]][1])
+            counter[0] += 1
+
+        def reset(self):
+            pass
+
+        def compute(self):
+            pass
+
+    model = nn.Linear(10, 3)
+
+    metrics = {"Precision": Precision(), "CustomMetric": CustomMetric()}
+
+    evaluator = create_supervised_evaluator(
+        model, metrics=metrics, output_transform=lambda x, y, y_pred: {"x": x, "y": y, "y_pred": y_pred}
+    )
+
+    data = [
+        (torch.rand(4, 10), torch.randint(0, 3, size=(4,))),
+        (torch.rand(4, 10), torch.randint(0, 3, size=(4,))),
+        (torch.rand(4, 10), torch.randint(0, 3, size=(4,))),
+    ]
+    evaluator.run(data)
+
+
+@pytest.mark.parametrize("shapes", [[(10,), ()], [(5, 32, 32), (5, 32, 32)]])
+def test_list_of_tensors_and_numbers(shapes):
+    def check_fn(output):
+        assert len(output) == 2
+        assert isinstance(output[0], torch.Tensor)
+        assert isinstance(output[1], torch.Tensor)
+        assert output[0].shape == (1,) + shapes[0]
+        assert output[1].shape == (1,) + shapes[1]
+
+    def get_data(gt_as_scalar=False):
+        return [
+            (
+                [torch.rand(shapes[0]) for _ in range(3 + i)],  # predictions
+                [
+                    torch.rand(shapes[1]).item() if gt_as_scalar else torch.rand(shapes[1]) for _ in range(3 + i)
+                ],  # ground truth
+            )
+            for i in range(5)
+        ]
+
+    class MyMetric(Metric):
+        def __init__(self, check_fn):
+            super(MyMetric, self).__init__()
+            self.check_fn = check_fn
+
+        def reset(self):
+            pass
+
+        def compute(self):
+            pass
+
+        def update(self, output):
+            self.check_fn(output)
+
+    engine = Engine(lambda e, b: b)
+    m = MyMetric(check_fn)
+    m.attach(engine, "m")
+
+    data = get_data()
+    engine.run(data)
+
+    if len(shapes[1]) == 0:
+        data = get_data(gt_as_scalar=True)
+        engine.run(data)
+
+
+def test_list_of_tensors_and_numbers_unsupported_output():
+    class MyMetric(Metric):
+        def reset(self):
+            pass
+
+        def compute(self):
+            pass
+
+        def update(self, output):
+            pass
+
+    engine = Engine(lambda e, b: ([0, 1, 2], [0, 1, 2], [0, 1, 2]))
+    m = MyMetric()
+    m.attach(engine, "m")
+
+    with pytest.raises(ValueError, match=r"Output should have 2 items of the same length"):
+        engine.run([0] * 10)
+
+    engine = Engine(lambda e, b: ([0, 1, 2], [0, 1, 2, 4]))
+    m = MyMetric()
+    m.attach(engine, "m")
+
+    with pytest.raises(ValueError, match=r"Output should have 2 items of the same length"):
+        engine.run([0] * 10)

@@ -1,9 +1,13 @@
 # coding: utf-8
+import collections.abc as collections
+from typing import Callable, Mapping, Optional, Sequence, Union
 
 import torch
+import torch.nn as nn
+from torch.optim.optimizer import Optimizer
 
+from ignite.engine import _prepare_batch, Engine, EventEnum
 from ignite.utils import apply_to_tensor
-from ignite.engine import Engine, _prepare_batch, EventEnum
 
 
 class Tbptt_Events(EventEnum):
@@ -17,7 +21,9 @@ class Tbptt_Events(EventEnum):
     TIME_ITERATION_COMPLETED = "time_iteration_completed"
 
 
-def _detach_hidden(hidden):
+def _detach_hidden(
+    hidden: Union[torch.Tensor, Sequence, Mapping, str, bytes]
+) -> Union[torch.Tensor, collections.Sequence, collections.Mapping, str, bytes]:
     """Cut backpropagation graph.
 
     Auxillary function to cut the backpropagation graph by detaching the hidden
@@ -27,8 +33,15 @@ def _detach_hidden(hidden):
 
 
 def create_supervised_tbptt_trainer(
-    model, optimizer, loss_fn, tbtt_step, dim=0, device=None, non_blocking=False, prepare_batch=_prepare_batch
-):
+    model: nn.Module,
+    optimizer: Optimizer,
+    loss_fn: nn.Module,
+    tbtt_step: int,
+    dim: int = 0,
+    device: Optional[str] = None,
+    non_blocking: bool = False,
+    prepare_batch: Callable = _prepare_batch,
+) -> Engine:
     """Create a trainer for truncated backprop through time supervised models.
 
     Training recurrent model on long sequences is computationally intensive as
@@ -44,18 +57,21 @@ def create_supervised_tbptt_trainer(
     `tbtt_step` time steps.
 
     Args:
-        model (`torch.nn.Module`): the model to train.
-        optimizer (`torch.optim.Optimizer`): the optimizer to use.
-        loss_fn (torch.nn loss function): the loss function to use.
-        tbtt_step (int): the length of time chunks (last one may be smaller).
-        dim (int): axis representing the time dimension.
-        device (str, optional): device type specification (default: None).
+        model: the model to train.
+        optimizer: the optimizer to use.
+        loss_fn: the loss function to use.
+        tbtt_step: the length of time chunks (last one may be smaller).
+        dim: axis representing the time dimension.
+        device: device type specification (default: None).
             Applies to batches.
-        non_blocking (bool, optional): if True and this copy is between CPU and GPU,
+        non_blocking: if True and this copy is between CPU and GPU,
             the copy may occur asynchronously with respect to the host. For other cases,
             this argument has no effect.
-        prepare_batch (callable, optional): function that receives `batch`, `device`,
+        prepare_batch: function that receives `batch`, `device`,
             `non_blocking` and outputs tuple of tensors `(batch_x, batch_y)`.
+
+    Returns:
+        a trainer engine with supervised update function.
 
     .. warning::
 
@@ -67,13 +83,9 @@ def create_supervised_tbptt_trainer(
 
         * `PyTorch Documentation <https://pytorch.org/docs/stable/optim.html#constructing-it>`_
         * `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
-
-    Returns:
-        Engine: a trainer engine with supervised update function.
-
     """
 
-    def _update(engine, batch):
+    def _update(engine: Engine, batch: Sequence[torch.Tensor]) -> float:
         loss_list = []
         hidden = None
 

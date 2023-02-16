@@ -1,5 +1,4 @@
 import torch
-
 from dataflow.vis import make_grid
 
 
@@ -28,7 +27,7 @@ def predictions_gt_images_handler(img_denormalize_fn, n_images=None, another_eng
 
         tag = "predictions_with_gt"
         if prefix_tag is not None:
-            tag = "{}: {}".format(prefix_tag, tag)
+            tag = f"{prefix_tag}: {tag}"
         logger.writer.add_image(tag=tag, img_tensor=grid_pred_gt, global_step=global_step, dataformats="HWC")
 
     return wrapper

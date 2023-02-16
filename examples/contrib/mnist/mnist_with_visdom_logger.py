@@ -9,7 +9,7 @@
 
     Start visdom server:
     ```bash
-    visdom
+    visdom -logging_level 30
     ```
 
     Run the example:
@@ -18,19 +18,25 @@
     ```
 """
 from argparse import ArgumentParser
-import logging
 
 import torch
-from torch.utils.data import DataLoader
-from torch import nn
 import torch.nn.functional as F
+from torch import nn
 from torch.optim import SGD
+from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
-from torchvision.transforms import Compose, ToTensor, Normalize
+from torchvision.transforms import Compose, Normalize, ToTensor
 
-from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
+from ignite.contrib.handlers.visdom_logger import (
+    global_step_from_engine,
+    GradsScalarHandler,
+    VisdomLogger,
+    WeightsScalarHandler,
+)
+from ignite.engine import create_supervised_evaluator, create_supervised_trainer, Events
+from ignite.handlers import ModelCheckpoint
 from ignite.metrics import Accuracy, Loss
-from ignite.contrib.handlers.visdom_logger import *
+from ignite.utils import setup_logger
 
 
 class Net(nn.Module):
@@ -77,11 +83,14 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_dir):
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
     criterion = nn.CrossEntropyLoss()
     trainer = create_supervised_trainer(model, optimizer, criterion, device=device)
+    trainer.logger = setup_logger("Trainer")
 
     metrics = {"accuracy": Accuracy(), "loss": Loss(criterion)}
 
     train_evaluator = create_supervised_evaluator(model, metrics=metrics, device=device)
+    train_evaluator.logger = setup_logger("Train Evaluator")
     validation_evaluator = create_supervised_evaluator(model, metrics=metrics, device=device)
+    validation_evaluator.logger = setup_logger("Val Evaluator")
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def compute_metrics(engine):
@@ -90,34 +99,45 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_dir):
 
     vd_logger = VisdomLogger(env="mnist_training")
 
-    vd_logger.attach(
+    vd_logger.attach_output_handler(
         trainer,
-        log_handler=OutputHandler(tag="training", output_transform=lambda loss: {"batchloss": loss}),
         event_name=Events.ITERATION_COMPLETED(every=100),
+        tag="training",
+        output_transform=lambda loss: {"batchloss": loss},
     )
 
-    vd_logger.attach(
-        train_evaluator,
-        log_handler=OutputHandler(tag="training", metric_names=["loss", "accuracy"], another_engine=trainer),
-        event_name=Events.EPOCH_COMPLETED,
-    )
+    for tag, evaluator in [("training", train_evaluator), ("validation", validation_evaluator)]:
+        vd_logger.attach_output_handler(
+            evaluator,
+            event_name=Events.EPOCH_COMPLETED,
+            tag=tag,
+            metric_names=["loss", "accuracy"],
+            global_step_transform=global_step_from_engine(trainer),
+        )
 
-    vd_logger.attach(
-        validation_evaluator,
-        log_handler=OutputHandler(tag="validation", metric_names=["loss", "accuracy"], another_engine=trainer),
-        event_name=Events.EPOCH_COMPLETED,
-    )
-
-    vd_logger.attach(
-        trainer, log_handler=OptimizerParamsHandler(optimizer), event_name=Events.ITERATION_COMPLETED(every=100)
-    )
+    vd_logger.attach_opt_params_handler(trainer, event_name=Events.ITERATION_COMPLETED(every=100), optimizer=optimizer)
 
     vd_logger.attach(trainer, log_handler=WeightsScalarHandler(model), event_name=Events.ITERATION_COMPLETED(every=100))
 
     vd_logger.attach(trainer, log_handler=GradsScalarHandler(model), event_name=Events.ITERATION_COMPLETED(every=100))
 
+    def score_function(engine):
+        return engine.state.metrics["accuracy"]
+
+    model_checkpoint = ModelCheckpoint(
+        log_dir,
+        n_saved=2,
+        filename_prefix="best",
+        score_function=score_function,
+        score_name="validation_accuracy",
+        global_step_transform=global_step_from_engine(trainer),
+    )
+    validation_evaluator.add_event_handler(Events.COMPLETED, model_checkpoint, {"model": model})
+
     # kick everything off
     trainer.run(train_loader, max_epochs=epochs)
+
+    vd_logger.close()
 
 
 if __name__ == "__main__":
@@ -129,16 +149,8 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=10, help="number of epochs to train (default: 10)")
     parser.add_argument("--lr", type=float, default=0.01, help="learning rate (default: 0.01)")
     parser.add_argument("--momentum", type=float, default=0.5, help="SGD momentum (default: 0.5)")
-    parser.add_argument("--log_dir", type=str, default="visdom_logs", help="log directory for Tensorboard log output")
+    parser.add_argument("--log_dir", type=str, default="mnist_visdom_logs", help="log directory for training output")
 
     args = parser.parse_args()
-
-    # Setup engine logger
-    logger = logging.getLogger("ignite.engine.engine.Engine")
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter("%(asctime)s %(name)-12s %(levelname)-8s %(message)s")
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    logger.setLevel(logging.INFO)
 
     run(args.batch_size, args.val_batch_size, args.epochs, args.lr, args.momentum, args.log_dir)

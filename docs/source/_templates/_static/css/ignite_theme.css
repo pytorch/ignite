@@ -1,14 +1,13 @@
-article.pytorch-article table tr th:first-of-type, article.pytorch-article table tr td:first-of-type
-{
+article.pytorch-article table tr th:first-of-type,
+article.pytorch-article table tr td:first-of-type {
   width: 17px;
 }
 
-div.header-container a.header-logo
-{
-  height: 42px;
-  width: 135px;
-  background-image: url("../img/ignite-logo-dark.svg");
-  background-size: 135px 42px;
+div.container a.header-logo {
+  height: 80px;
+  width: 160px;
+  background-image: url("../img/ignite_logo.svg");
+  background-size: 160px;
 }
 
 /* versions block */
@@ -68,7 +67,8 @@ div.header-container a.header-logo
   text-decoration: none;
 }
 
-.rst-versions .rst-current-version:after, .rst-versions .rst-current-version:before {
+.rst-versions .rst-current-version:after,
+.rst-versions .rst-current-version:before {
   display: table;
   content: "";
 }
@@ -79,7 +79,8 @@ div.header-container a.header-logo
   display: block;
 }
 
-.rst-versions .rst-current-version .fa-book, .rst-versions .rst-current-version .icon-book {
+.rst-versions .rst-current-version .fa-book,
+.rst-versions .rst-current-version .icon-book {
   float: left;
 }
 
@@ -87,7 +88,8 @@ div.header-container a.header-logo
   color: #454545;
 }
 
-.rst-versions .rst-current-version .fa-book, .rst-versions .rst-current-version .icon-book {
+.rst-versions .rst-current-version .fa-book,
+.rst-versions .rst-current-version .icon-book {
   float: left;
 }
 
@@ -114,7 +116,9 @@ div.header-container a.header-logo
   color: #ee4c2c;
 }
 
-.fa:before, a .fa, li .fa {
+.fa:before,
+a .fa,
+li .fa {
   text-decoration: inherit;
 }
 
@@ -125,3 +129,116 @@ div.header-container a.header-logo
   line-height: 1;
 }
 
+/* automatically generated toctree tables */
+
+article.pytorch-article table.longtable.docutils.align-default colgroup {
+  display: none;
+}
+
+article.pytorch-article
+  table.longtable.docutils.align-default
+  tbody
+  td:first-child {
+  width: 40%;
+}
+
+article.pytorch-article table.longtable.docutils.align-default tbody td {
+  padding: 0.25rem;
+}
+
+article.pytorch-article table.longtable.docutils.align-default tbody td p {
+  margin-block-start: 0.1em;
+  margin-block-end: 0.1em;
+}
+
+article.pytorch-article div.highlight pre {
+  white-space: pre;
+}
+
+/* versionadded, versionchanged, deprecated directive */
+
+.versionmodified {
+  font-style: italic;
+  font-weight: bold;
+}
+
+/* Footer */
+
+footer table {
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+/* remove gray footer */
+.pytorch-body .docs-tutorials-resources {
+  padding: 0 !important;
+}
+
+/* dim out pytorch header
+algolia searchbox has z-index of 200
+so make sure not to go above that value */
+.header-holder {
+  z-index: 100 !important;
+}
+
+:root {
+  --docsearch-primary-color: #ee4c2c !important;
+}
+
+.DocSearch-Button {
+  border-radius: 8px !important;
+  width: 100% !important;
+  height: 2.75rem !important;
+  margin: 0 !important;
+  background: var(--docsearch-searchbox-focus-background) !important;
+}
+
+.DocSearch-Button .DocSearch-Search-Icon {
+  color: var(--docsearch-primary-color) !important;
+}
+
+.DocSearch-Button-Key {
+  background: none !important;
+  box-shadow: none !important;
+  top: 0 !important;
+  padding-bottom: 0 !important;
+  color: inherit !important;
+  font-size: 1rem !important;
+  font-family: Arial !important;
+}
+
+@media (max-width: 750px) {
+  .DocSearch-Button-Key,
+  .DocSearch-Button-Placeholder {
+    display: block !important;
+  }
+}
+/* docsearch end */
+
+article.pytorch-article p.rubric {
+  font-weight: bold;
+  font-size: 1.25rem;
+  margin: 15px 0 10px 0;
+}
+
+.highlight pre {
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  line-height: 1.375rem;
+}
+
+/* Sphinx >=3.5: Fix class/method/fn names, because of spans */
+article.pytorch-article .class dt > span span.pre,
+article.pytorch-article .function dt > span span.pre {
+  color: inherit;
+  font-size: 87.5%;
+  font-family: IBMPlexMono, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+}
+
+/* Sphinx >=3.5: Fix annotations */
+article.pytorch-article .class dt span.pre,
+article.pytorch-article .function dt span.pre {
+  color: inherit;
+  padding: 2px 0.2px;
+}

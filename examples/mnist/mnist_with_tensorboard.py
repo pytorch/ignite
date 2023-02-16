@@ -16,13 +16,17 @@
 """
 
 from argparse import ArgumentParser
+
 import torch
-from torch.utils.data import DataLoader
-from torch import nn
 import torch.nn.functional as F
+from torch import nn
 from torch.optim import SGD
+from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
-from torchvision.transforms import Compose, ToTensor, Normalize
+from torchvision.transforms import Compose, Normalize, ToTensor
+
+from ignite.engine import create_supervised_evaluator, create_supervised_trainer, Events
+from ignite.metrics import Accuracy, Loss
 
 try:
     from tensorboardX import SummaryWriter
@@ -30,14 +34,11 @@ except ImportError:
     try:
         from torch.utils.tensorboard import SummaryWriter
     except ImportError:
-        raise RuntimeError(
+        raise ModuleNotFoundError(
             "This module requires either tensorboardX or torch >= 1.2.0. "
             "You may install tensorboardX with command: \n pip install tensorboardX \n"
             "or upgrade PyTorch using your package manager of choice (pip or conda)."
         )
-
-from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
-from ignite.metrics import Accuracy, Loss
 
 
 class Net(nn.Module):
@@ -72,21 +73,10 @@ def get_data_loaders(train_batch_size, val_batch_size):
     return train_loader, val_loader
 
 
-def create_summary_writer(model, data_loader, log_dir):
-    writer = SummaryWriter(log_dir=log_dir)
-    data_loader_iter = iter(data_loader)
-    x, y = next(data_loader_iter)
-    try:
-        writer.add_graph(model, x)
-    except Exception as e:
-        print("Failed to save model graph: {}".format(e))
-    return writer
-
-
 def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, log_dir):
     train_loader, val_loader = get_data_loaders(train_batch_size, val_batch_size)
     model = Net()
-    writer = create_summary_writer(model, train_loader, log_dir)
+    writer = SummaryWriter(log_dir=log_dir)
     device = "cpu"
 
     if torch.cuda.is_available():
@@ -94,16 +84,17 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
 
     model.to(device)  # Move model before creating optimizer
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
-    trainer = create_supervised_trainer(model, optimizer, F.nll_loss, device=device)
-    evaluator = create_supervised_evaluator(
-        model, metrics={"accuracy": Accuracy(), "nll": Loss(F.nll_loss)}, device=device
-    )
+    criterion = nn.NLLLoss()
+    trainer = create_supervised_trainer(model, optimizer, criterion, device=device)
+
+    val_metrics = {"accuracy": Accuracy(), "nll": Loss(criterion)}
+    evaluator = create_supervised_evaluator(model, metrics=val_metrics, device=device)
 
     @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
     def log_training_loss(engine):
         print(
-            "Epoch[{}] Iteration[{}/{}] Loss: {:.2f}"
-            "".format(engine.state.epoch, engine.state.iteration, len(train_loader), engine.state.output)
+            f"Epoch[{engine.state.epoch}] Iteration[{engine.state.iteration}/{len(train_loader)}] "
+            f"Loss: {engine.state.output:.2f}"
         )
         writer.add_scalar("training/loss", engine.state.output, engine.state.iteration)
 
@@ -114,9 +105,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
         avg_accuracy = metrics["accuracy"]
         avg_nll = metrics["nll"]
         print(
-            "Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}".format(
-                engine.state.epoch, avg_accuracy, avg_nll
-            )
+            f"Training Results - Epoch: {engine.state.epoch} Avg accuracy: {avg_accuracy:.2f} Avg loss: {avg_nll:.2f}"
         )
         writer.add_scalar("training/avg_loss", avg_nll, engine.state.epoch)
         writer.add_scalar("training/avg_accuracy", avg_accuracy, engine.state.epoch)
@@ -128,9 +117,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval, lo
         avg_accuracy = metrics["accuracy"]
         avg_nll = metrics["nll"]
         print(
-            "Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}".format(
-                engine.state.epoch, avg_accuracy, avg_nll
-            )
+            f"Validation Results - Epoch: {engine.state.epoch} Avg accuracy: {avg_accuracy:.2f} Avg loss: {avg_nll:.2f}"
         )
         writer.add_scalar("valdation/avg_loss", avg_nll, engine.state.epoch)
         writer.add_scalar("valdation/avg_accuracy", avg_accuracy, engine.state.epoch)

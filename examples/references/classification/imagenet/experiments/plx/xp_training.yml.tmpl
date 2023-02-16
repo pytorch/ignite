@@ -2,6 +2,8 @@
 version: 1
 kind: experiment
 
+tags: ["training", "resnet50"]
+
 # Setup running node:
 environment:
   node_selector:
@@ -13,11 +15,13 @@ environment:
 
 # Setup running environment:
 build:
-  image: pytorch/pytorch:1.3-cuda10.1-cudnn7-devel
+  image: pytorch/pytorch:1.5-cuda10.1-cudnn7-devel
   build_steps:
+
   # For opencv
   - apt-get update &&
-    apt-get -y install --no-install-recommends libglib2.0 libsm6 libxext6 libxrender-dev
+    TZ=America/New_York DEBIAN_FRONTEND="noninteractive" apt-get -y install tzdata &&
+    apt-get -y install --no-install-recommends libglib2.0 libsm6 libxext6 libxrender-dev git
 
   # Install Nvidia/APEX
   - git clone https://github.com/NVIDIA/apex /tmp/apex && cd /tmp/apex &&
@@ -32,7 +36,7 @@ build:
 
 declarations:
   config_file: "baseline_resnet50.py"
-  script_file: "plx_training.py"
+  script_file: "training.py"
   num_gpus: 2
 
 run:
@@ -48,5 +52,6 @@ run:
 
   # Copy configuration file to the output
   - cp $config_file $POLYAXON_RUN_OUTPUTS_PATH
+  - cp $script_file $POLYAXON_RUN_OUTPUTS_PATH
 
-  - python -m torch.distributed.launch --nproc_per_node={{num_gpus}} -m py_config_runner $script_file $config_file --manual_config_load
+  - python -m torch.distributed.launch --nproc_per_node={{num_gpus}} -m py_config_runner $script_file $config_file

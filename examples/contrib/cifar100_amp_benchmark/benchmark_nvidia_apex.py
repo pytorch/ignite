@@ -1,19 +1,15 @@
 import fire
-
 import torch
+from apex import amp
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
-
 from torchvision.models import wide_resnet50_2
-
-from apex import amp
-
-from ignite.engine import Events, Engine, create_supervised_evaluator, convert_tensor
-from ignite.metrics import Accuracy, Loss
-from ignite.handlers import Timer
-from ignite.contrib.handlers import ProgressBar
-
 from utils import get_train_eval_loaders
+
+from ignite.contrib.handlers import ProgressBar
+from ignite.engine import convert_tensor, create_supervised_evaluator, Engine, Events
+from ignite.handlers import Timer
+from ignite.metrics import Accuracy, Loss
 
 
 def main(dataset_path, batch_size=256, max_epochs=10, opt="O1"):
@@ -40,7 +36,6 @@ def main(dataset_path, batch_size=256, max_epochs=10, opt="O1"):
         y_pred = model(x)
         loss = criterion(y_pred, y)
 
-        # Runs the forward pass with autocasting.
         with amp.scale_loss(loss, optimizer) as scaled_loss:
             scaled_loss.backward()
 
@@ -59,11 +54,11 @@ def main(dataset_path, batch_size=256, max_epochs=10, opt="O1"):
 
     def log_metrics(engine, title):
         for name in metrics:
-            print("\t{} {}: {:.2f}".format(title, name, engine.state.metrics[name]))
+            print(f"\t{title} {name}: {engine.state.metrics[name]:.2f}")
 
     @trainer.on(Events.COMPLETED)
     def run_validation(_):
-        print("- Mean elapsed time for 1 epoch: {}".format(timer.value()))
+        print(f"- Mean elapsed time for 1 epoch: {timer.value()}")
         print("- Metrics:")
         with evaluator.add_event_handler(Events.COMPLETED, log_metrics, "Train"):
             evaluator.run(eval_train_loader)

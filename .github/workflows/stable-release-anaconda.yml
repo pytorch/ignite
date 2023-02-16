@@ -1,0 +1,32 @@
+name: Anaconda Stable Releases
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  conda-build-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          miniconda-version: "latest"
+          python-version: 3.8
+
+      - name: Install dependencies
+        shell: bash -l {0}
+        run: |
+          conda install -y pytorch torchvision cpuonly -c pytorch
+          python setup.py install
+
+      - name: Build and Publish Conda binaries
+        shell: bash -l {0}
+        env:
+          ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+          UPLOAD_USER: "pytorch"
+        run: |
+          chmod +x ./conda.recipe/build_and_upload.sh
+          ./conda.recipe/build_and_upload.sh

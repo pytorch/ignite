@@ -17,25 +17,27 @@ Note:
     You can see an example experiment here:
     https://ui.neptune.ai/o/shared/org/pytorch-ignite-integration/e/PYTOR-26/charts
 """
-import sys
 from argparse import ArgumentParser
-import logging
 
 import torch
-from torch.utils.data import DataLoader
-from torch import nn
 import torch.nn.functional as F
+from torch import nn
 from torch.optim import SGD
+from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
-from torchvision.transforms import Compose, ToTensor, Normalize
+from torchvision.transforms import Compose, Normalize, ToTensor
 
-from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
-from ignite.metrics import Accuracy, Loss
+from ignite.contrib.handlers.neptune_logger import (
+    global_step_from_engine,
+    GradsScalarHandler,
+    NeptuneLogger,
+    NeptuneSaver,
+    WeightsScalarHandler,
+)
+from ignite.engine import create_supervised_evaluator, create_supervised_trainer, Events
 from ignite.handlers import Checkpoint
-
-from ignite.contrib.handlers.neptune_logger import *
-
-LOG_INTERVAL = 10
+from ignite.metrics import Accuracy, Loss
+from ignite.utils import setup_logger
 
 
 class Net(nn.Module):
@@ -82,23 +84,14 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum):
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
     criterion = nn.CrossEntropyLoss()
     trainer = create_supervised_trainer(model, optimizer, criterion, device=device)
-
-    if sys.version_info > (3,):
-        from ignite.contrib.metrics.gpu_info import GpuInfo
-
-        try:
-            GpuInfo().attach(trainer)
-        except RuntimeError:
-            print(
-                "INFO: By default, in this example it is possible to log GPU information (used memory, utilization). "
-                "As there is no pynvml python package installed, GPU information won't be logged. Otherwise, please "
-                "install it : `pip install pynvml`"
-            )
+    trainer.logger = setup_logger("Trainer")
 
     metrics = {"accuracy": Accuracy(), "loss": Loss(criterion)}
 
     train_evaluator = create_supervised_evaluator(model, metrics=metrics, device=device)
+    train_evaluator.logger = setup_logger("Train Evaluator")
     validation_evaluator = create_supervised_evaluator(model, metrics=metrics, device=device)
+    validation_evaluator.logger = setup_logger("Val Evaluator")
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def compute_metrics(engine):
@@ -118,29 +111,23 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum):
         },
     )
 
-    npt_logger.attach(
+    npt_logger.attach_output_handler(
         trainer,
-        log_handler=OutputHandler(
-            tag="training", output_transform=lambda loss: {"batchloss": loss}, metric_names="all"
-        ),
         event_name=Events.ITERATION_COMPLETED(every=100),
+        tag="training",
+        output_transform=lambda loss: {"batchloss": loss},
     )
 
-    npt_logger.attach(
-        train_evaluator,
-        log_handler=OutputHandler(tag="training", metric_names=["loss", "accuracy"], another_engine=trainer),
-        event_name=Events.EPOCH_COMPLETED,
-    )
+    for tag, evaluator in [("training", train_evaluator), ("validation", validation_evaluator)]:
+        npt_logger.attach_output_handler(
+            evaluator,
+            event_name=Events.EPOCH_COMPLETED,
+            tag=tag,
+            metric_names=["loss", "accuracy"],
+            global_step_transform=global_step_from_engine(trainer),
+        )
 
-    npt_logger.attach(
-        validation_evaluator,
-        log_handler=OutputHandler(tag="validation", metric_names=["loss", "accuracy"], another_engine=trainer),
-        event_name=Events.EPOCH_COMPLETED,
-    )
-
-    npt_logger.attach(
-        trainer, log_handler=OptimizerParamsHandler(optimizer), event_name=Events.ITERATION_COMPLETED(every=100)
-    )
+    npt_logger.attach_opt_params_handler(trainer, event_name=Events.ITERATION_COMPLETED(every=100), optimizer=optimizer)
 
     npt_logger.attach(
         trainer, log_handler=WeightsScalarHandler(model), event_name=Events.ITERATION_COMPLETED(every=100)
@@ -151,9 +138,8 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum):
     def score_function(engine):
         return engine.state.metrics["accuracy"]
 
-    to_save = {"model": model}
     handler = Checkpoint(
-        to_save,
+        {"model": model},
         NeptuneSaver(npt_logger),
         n_saved=2,
         filename_prefix="best",
@@ -165,6 +151,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum):
 
     # kick everything off
     trainer.run(train_loader, max_epochs=epochs)
+
     npt_logger.close()
 
 
@@ -179,13 +166,5 @@ if __name__ == "__main__":
     parser.add_argument("--momentum", type=float, default=0.5, help="SGD momentum (default: 0.5)")
 
     args = parser.parse_args()
-
-    # Setup engine logger
-    logger = logging.getLogger("ignite.engine.engine.Engine")
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter("%(asctime)s %(name)-12s %(levelname)-8s %(message)s")
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    logger.setLevel(logging.INFO)
 
     run(args.batch_size, args.val_batch_size, args.epochs, args.lr, args.momentum)

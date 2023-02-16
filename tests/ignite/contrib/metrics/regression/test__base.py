@@ -1,7 +1,13 @@
-import torch
+from typing import Optional
+
 import numpy as np
+
 import pytest
-from ignite.contrib.metrics.regression._base import _BaseRegression, _BaseRegressionEpoch
+import torch
+
+import ignite.distributed as idist
+
+from ignite.contrib.metrics.regression._base import _BaseRegression, _torch_median
 
 
 def test_base_regression_shapes():
@@ -19,67 +25,46 @@ def test_base_regression_shapes():
 
     m = L1()
 
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4, 1, 2), torch.rand(4, 1)))
+    with pytest.raises(ValueError, match=r"Input y_pred should have shape \(N,\) or \(N, 1\)"):
+        y = torch.rand([1, 1, 1])
+        m.update((y, y))
 
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4, 1), torch.rand(4, 1, 2)))
+    with pytest.raises(ValueError, match=r"Input y should have shape \(N,\) or \(N, 1\)"):
+        y = torch.rand([1, 1, 1])
+        m.update((torch.rand(1, 1), y))
 
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4, 1, 2), torch.rand(4,)))
+    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
+        m.update((torch.rand(2), torch.rand(2, 1)))
 
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4,), torch.rand(4, 1, 2)))
+    with pytest.raises(TypeError, match=r"Input y_pred dtype should be float"):
+        y = torch.tensor([1, 1])
+        m.update((y, y))
 
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4, 3), torch.rand(4, 1)))
-
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4, 1), torch.rand(4, 3)))
-
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4, 7), torch.rand(4,)))
-
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4,), torch.rand(4, 7)))
+    with pytest.raises(TypeError, match=r"Input y dtype should be float"):
+        y = torch.tensor([1, 1])
+        m.update((y.float(), y))
 
 
-def test_base_regression_epoch_shapes():
-    def compute_fn(y_pred, y):
-        return 0.0
-
-    class ZeroEpoch(_BaseRegressionEpoch):
-        def __init__(self, output_transform=lambda x: x):
-            super(ZeroEpoch, self).__init__(compute_fn, output_transform)
-
-    m = ZeroEpoch()
-
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4, 1, 2), torch.rand(4, 1)))
-
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4, 1), torch.rand(4, 1, 2)))
-
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4, 1, 2), torch.rand(4,)))
-
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4,), torch.rand(4, 1, 2)))
-
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4, 3), torch.rand(4, 1)))
-
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4, 1), torch.rand(4, 3)))
-
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4, 7), torch.rand(4,)))
-
-    with pytest.raises(ValueError):
-        m.update((torch.rand(4,), torch.rand(4, 7)))
+@pytest.mark.parametrize("size", [100, 101, (30, 3), (31, 3)])
+def test_torch_median_numpy(size, device: Optional[str] = None):
+    data = torch.rand(size).to(device)
+    assert _torch_median(data) == np.median(data.cpu().numpy())
 
 
-def test_base_regression_compute_fn():
-    # Wrong compute function
-    with pytest.raises(TypeError):
-        _BaseRegressionEpoch(12345)
+@pytest.mark.tpu
+@pytest.mark.parametrize("size", [100, 101, (30, 3), (31, 3)])
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_on_even_size_xla(size):
+    device = "xla"
+    test_torch_median_numpy(size, device=device)
+
+
+@pytest.mark.parametrize("size", [100, 101, (30, 3), (31, 3)])
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
+def test_on_even_size_gpu(size):
+    test_torch_median_numpy(size, device="cuda")
+
+
+@pytest.mark.parametrize("size", [100, 101, (30, 3), (31, 3)])
+def test_create_even_size_cpu(size):
+    test_torch_median_numpy(size, device="cpu")

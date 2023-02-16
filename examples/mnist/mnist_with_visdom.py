@@ -1,21 +1,21 @@
 from argparse import ArgumentParser
 
-import torch
-from torch.utils.data import DataLoader
-from torch import nn
-import torch.nn.functional as F
-from torch.optim import SGD
-from torchvision.datasets import MNIST
-from torchvision.transforms import Compose, ToTensor, Normalize
 import numpy as np
+import torch
+import torch.nn.functional as F
+from torch import nn
+from torch.optim import SGD
+from torch.utils.data import DataLoader
+from torchvision.datasets import MNIST
+from torchvision.transforms import Compose, Normalize, ToTensor
+
+from ignite.engine import create_supervised_evaluator, create_supervised_trainer, Events
+from ignite.metrics import Accuracy, Loss
 
 try:
     import visdom
 except ImportError:
-    raise RuntimeError("No visdom package is found. Please install it with command: \n pip install visdom")
-
-from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
-from ignite.metrics import Accuracy, Loss
+    raise ModuleNotFoundError("No visdom package is found. Please install it with command: \n pip install visdom")
 
 
 class Net(nn.Module):
@@ -83,8 +83,8 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
     @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
     def log_training_loss(engine):
         print(
-            "Epoch[{}] Iteration[{}/{}] Loss: {:.2f}"
-            "".format(engine.state.epoch, engine.state.iteration, len(train_loader), engine.state.output)
+            f"Epoch[{engine.state.epoch}] Iteration[{engine.state.iteration}/{len(train_loader)}] "
+            f"Loss: {engine.state.output:.2f}"
         )
         vis.line(
             X=np.array([engine.state.iteration]),
@@ -100,9 +100,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
         avg_accuracy = metrics["accuracy"]
         avg_nll = metrics["nll"]
         print(
-            "Training Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}".format(
-                engine.state.epoch, avg_accuracy, avg_nll
-            )
+            f"Training Results - Epoch: {engine.state.epoch} Avg accuracy: {avg_accuracy:.2f} Avg loss: {avg_nll:.2f}"
         )
         vis.line(
             X=np.array([engine.state.epoch]), Y=np.array([avg_accuracy]), win=train_avg_accuracy_window, update="append"
@@ -116,9 +114,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_interval):
         avg_accuracy = metrics["accuracy"]
         avg_nll = metrics["nll"]
         print(
-            "Validation Results - Epoch: {}  Avg accuracy: {:.2f} Avg loss: {:.2f}".format(
-                engine.state.epoch, avg_accuracy, avg_nll
-            )
+            f"Validation Results - Epoch: {engine.state.epoch} Avg accuracy: {avg_accuracy:.2f} Avg loss: {avg_nll:.2f}"
         )
         vis.line(
             X=np.array([engine.state.epoch]), Y=np.array([avg_accuracy]), win=val_avg_accuracy_window, update="append"

@@ -2,6 +2,7 @@ import argparse
 import os
 import random
 import warnings
+from pathlib import Path
 
 import torch
 import torch.nn as nn
@@ -19,7 +20,7 @@ try:
     import torchvision.utils as vutils
 
 except ImportError:
-    raise ImportError(
+    raise ModuleNotFoundError(
         "Please install torchvision to run this example, for example "
         "via conda by running 'conda install -c pytorch torchvision'. "
     )
@@ -35,7 +36,7 @@ CKPT_PREFIX = "networks"
 
 
 class Net(nn.Module):
-    """ A base class for both generator and the discriminator.
+    """A base class for both generator and the discriminator.
     Provides a common weight initialization scheme.
 
     """
@@ -56,7 +57,7 @@ class Net(nn.Module):
 
 
 class Generator(Net):
-    """ Generator network.
+    """Generator network.
 
     Args:
         nf (int): Number of filters in the second-to-last deconv layer
@@ -95,7 +96,7 @@ class Generator(Net):
 
 
 class Discriminator(Net):
-    """ Discriminator network.
+    """Discriminator network.
 
     Args:
         nf (int): Number of filters in the first conv layer.
@@ -133,15 +134,13 @@ class Discriminator(Net):
 
 
 def check_manual_seed(seed):
-    """ If manual seed is not specified, choose a random one and communicate it to the user.
-
-    """
+    """If manual seed is not specified, choose a random one and communicate it to the user."""
 
     seed = seed or random.randint(1, 10000)
     random.seed(seed)
     torch.manual_seed(seed)
 
-    print("Using manual seed: {seed}".format(seed=seed))
+    print(f"Using manual seed: {seed}")
 
 
 def check_dataset(dataset, dataroot):
@@ -185,7 +184,7 @@ def check_dataset(dataset, dataroot):
         nc = 3
 
     else:
-        raise RuntimeError("Invalid dataset name: {}".format(dataset))
+        raise RuntimeError(f"Invalid dataset name: {dataset}")
 
     return dataset, nc
 
@@ -310,20 +309,17 @@ def main(
 
     @trainer.on(Events.ITERATION_COMPLETED(every=PRINT_FREQ))
     def print_logs(engine):
-        fname = os.path.join(output_dir, LOGS_FNAME)
-        columns = ["iteration",] + list(engine.state.metrics.keys())
-        values = [str(engine.state.iteration),] + [str(round(value, 5)) for value in engine.state.metrics.values()]
+        fname = output_dir / LOGS_FNAME
+        columns = ["iteration"] + list(engine.state.metrics.keys())
+        values = [str(engine.state.iteration)] + [str(round(value, 5)) for value in engine.state.metrics.values()]
 
         with open(fname, "a") as f:
             if f.tell() == 0:
                 print("\t".join(columns), file=f)
             print("\t".join(values), file=f)
-
-        message = "[{epoch}/{max_epoch}][{i}/{max_i}]".format(
-            epoch=engine.state.epoch, max_epoch=epochs, i=(engine.state.iteration % len(loader)), max_i=len(loader)
-        )
+        message = f"[{engine.state.epoch}/{epochs}][{engine.state.iteration % len(loader)}/{len(loader)}]"
         for name, value in zip(columns, values):
-            message += " | {name}: {value}".format(name=name, value=value)
+            message += f" | {name}: {value}"
 
         pbar.log_message(message)
 
@@ -331,14 +327,14 @@ def main(
     @trainer.on(Events.EPOCH_COMPLETED)
     def save_fake_example(engine):
         fake = netG(fixed_noise)
-        path = os.path.join(output_dir, FAKE_IMG_FNAME.format(engine.state.epoch))
+        path = output_dir / FAKE_IMG_FNAME.format(engine.state.epoch)
         vutils.save_image(fake.detach(), path, normalize=True)
 
     # adding handlers using `trainer.on` decorator API
     @trainer.on(Events.EPOCH_COMPLETED)
     def save_real_example(engine):
         img, y = engine.state.batch
-        path = os.path.join(output_dir, REAL_IMG_FNAME.format(engine.state.epoch))
+        path = output_dir / REAL_IMG_FNAME.format(engine.state.epoch)
         vutils.save_image(img, path, normalize=True)
 
     # adding handlers using `trainer.add_event_handler` method API
@@ -358,7 +354,7 @@ def main(
     # adding handlers using `trainer.on` decorator API
     @trainer.on(Events.EPOCH_COMPLETED)
     def print_times(engine):
-        pbar.log_message("Epoch {} done. Time per batch: {:.3f}[s]".format(engine.state.epoch, timer.value()))
+        pbar.log_message(f"Epoch {engine.state.epoch} done. Time per batch: {timer.value():.3f}[s]")
         timer.reset()
 
     # adding handlers using `trainer.on` decorator API
@@ -369,19 +365,18 @@ def main(
 
             mpl.use("agg")
 
-            import numpy as np
-            import pandas as pd
             import matplotlib.pyplot as plt
+            import pandas as pd
 
         except ImportError:
             warnings.warn("Loss plots will not be generated -- pandas or matplotlib not found")
 
         else:
-            df = pd.read_csv(os.path.join(output_dir, LOGS_FNAME), delimiter="\t", index_col="iteration")
+            df = pd.read_csv(output_dir / LOGS_FNAME, delimiter="\t", index_col="iteration")
             _ = df.plot(subplots=True, figsize=(20, 20))
             _ = plt.xlabel("Iteration number")
             fig = plt.gcf()
-            path = os.path.join(output_dir, PLOT_FNAME)
+            path = output_dir / PLOT_FNAME
 
             fig.savefig(path)
 
@@ -447,10 +442,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
     dev = "cpu" if (not torch.cuda.is_available() or args.no_cuda) else "cuda:0"
 
+    args.output_dir = Path(args.output_dir)
     try:
-        os.makedirs(args.output_dir)
+        args.output_dir.mkdir(parents=True)
     except FileExistsError:
-        if (not os.path.isdir(args.output_dir)) or (len(os.listdir(args.output_dir)) > 0):
+        if (not args.output_dir.is_dir()) or (len(os.listdir(args.output_dir)) > 0):
             raise FileExistsError("Please provide a path to a non-existing or empty directory.")
 
     main(

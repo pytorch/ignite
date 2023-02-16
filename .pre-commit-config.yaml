@@ -1,12 +1,29 @@
+exclude: "^conda.recipe"
 repos:
-  - repo: https://github.com/python/black
-    rev: 19.10b0
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v3.4.0
     hooks:
-        - id: black
-          language_version: python3.7
+      - id: check-toml
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
 
-  - repo: https://gitlab.com/pycqa/flake8
-    rev: 3.7.7
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v2.2.1
     hooks:
-        - id: flake8
-          args: [--append-config=tox.ini]
+      - id: prettier
+        exclude_types: ["python", "jupyter", "shell", "gitignore"]
+
+  - repo: https://github.com/omnilib/ufmt
+    rev: v1.3.1
+    hooks:
+      - id: ufmt
+        additional_dependencies:
+          - black == 21.12b0
+          - usort == 1.0.1
+
+  - repo: https://github.com/pycqa/flake8
+    rev: 6.0.0
+    hooks:
+      - id: flake8
+        args: ["--config", "setup.cfg"]

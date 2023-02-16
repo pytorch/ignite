@@ -2,7 +2,7 @@
 #
 
 # You can set these variables from the command line.
-SPHINXOPTS    =
+SPHINXOPTS    = -j auto -WT --keep-going --color
 SPHINXBUILD   = sphinx-build
 SPHINXPROJ    = ignite
 SOURCEDIR     = source
@@ -18,6 +18,9 @@ docset: html
 	# Manually fix because Zeal doesn't deal well with `icon.png`-only at 2x resolution.
 	cp $(SPHINXPROJ).docset/icon.png $(SPHINXPROJ).docset/icon@2x.png
 	convert $(SPHINXPROJ).docset/icon@2x.png -resize 16x16 $(SPHINXPROJ).docset/icon.png
+
+rebuild:
+	rm -rf source/generated && make clean && make html
 
 .PHONY: help Makefile docset
 

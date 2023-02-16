@@ -9,18 +9,19 @@ source:
 
 build:
   number: 0
+  noarch: python
   script: python setup.py install --single-version-externally-managed --record=record.txt
 
 # https://conda.io/docs/user-guide/tasks/build-packages/define-metadata.html#export-runtime-requirements
 requirements:
   build:
-    - python
+    - python>=3.6
     - setuptools
-    - pytorch
+    - pytorch>=1.3
 
   run:
-    - python
-    - pytorch
+    - python>=3.6
+    - pytorch>=1.3
 
 test:
   imports:

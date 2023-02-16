@@ -1,16 +1,18 @@
 import os
-import torch
-
-from ignite.metrics import EpochMetric
-from ignite.metrics.epoch_metric import EpochMetricWarning
 
 import pytest
+import torch
+
+import ignite.distributed as idist
+from ignite.engine import Engine
+from ignite.metrics import EpochMetric
+from ignite.metrics.epoch_metric import EpochMetricWarning, NotComputableError
 
 
-def test_epoch_metric():
+def test_epoch_metric_wrong_setup_or_input():
 
     # Wrong compute function
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=r"Argument compute_fn should be callable."):
         EpochMetric(12345)
 
     def compute_fn(y_preds, y_targets):
@@ -19,24 +21,44 @@ def test_epoch_metric():
     em = EpochMetric(compute_fn)
 
     # Wrong input dims
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Predictions should be of shape"):
         output = (torch.tensor(0), torch.tensor(0))
         em.update(output)
 
     # Wrong input dims
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Targets should be of shape"):
         output = (torch.rand(4, 3), torch.rand(4, 3, 1))
         em.update(output)
 
     # Wrong input dims
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"Predictions should be of shape"):
         output = (torch.rand(4, 3, 1), torch.rand(4, 3))
         em.update(output)
 
-    # Target is not binary
-    with pytest.raises(ValueError):
-        output = (torch.rand(4, 3), torch.randint(0, 5, size=(4, 3)))
-        em.update(output)
+    em.reset()
+    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    em.update(output1)
+
+    with pytest.raises(ValueError, match=r"Incoherent types between input y_pred and stored predictions"):
+        output2 = (torch.randint(0, 5, size=(4, 3)), torch.randint(0, 2, size=(4, 3)))
+        em.update(output2)
+
+    with pytest.raises(ValueError, match=r"Incoherent types between input y and stored targets"):
+        output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3)).to(torch.int32))
+        em.update(output2)
+
+    with pytest.raises(
+        NotComputableError, match="EpochMetric must have at least one example before it can be computed"
+    ):
+        em = EpochMetric(compute_fn)
+        em.compute()
+
+
+def test_epoch_metric():
+    def compute_fn(y_preds, y_targets):
+        return 0.0
+
+    em = EpochMetric(compute_fn)
 
     em.reset()
     output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
@@ -44,11 +66,11 @@ def test_epoch_metric():
     output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
     em.update(output2)
 
-    assert em._predictions.device.type == "cpu" and em._targets.device.type == "cpu"
-    assert torch.equal(em._predictions[:4, :], output1[0])
-    assert torch.equal(em._predictions[4:, :], output2[0])
-    assert torch.equal(em._targets[:4, :], output1[1])
-    assert torch.equal(em._targets[4:, :], output2[1])
+    assert all([t.device.type == "cpu" for t in em._predictions + em._targets])
+    assert torch.equal(em._predictions[0], output1[0])
+    assert torch.equal(em._predictions[1], output2[0])
+    assert torch.equal(em._targets[0], output1[1])
+    assert torch.equal(em._targets[1], output2[1])
     assert em.compute() == 0.0
 
     # test when y and y_pred are (batch_size, 1) that are squeezed to (batch_size, )
@@ -58,11 +80,11 @@ def test_epoch_metric():
     output2 = (torch.rand(4, 1), torch.randint(0, 2, size=(4, 1), dtype=torch.long))
     em.update(output2)
 
-    assert em._predictions.device.type == "cpu" and em._targets.device.type == "cpu"
-    assert torch.equal(em._predictions[:4], output1[0][:, 0])
-    assert torch.equal(em._predictions[4:], output2[0][:, 0])
-    assert torch.equal(em._targets[:4], output1[1][:, 0])
-    assert torch.equal(em._targets[4:], output2[1][:, 0])
+    assert all([t.device.type == "cpu" for t in em._predictions + em._targets])
+    assert torch.equal(em._predictions[0], output1[0][:, 0])
+    assert torch.equal(em._predictions[1], output2[0][:, 0])
+    assert torch.equal(em._targets[0], output1[1][:, 0])
+    assert torch.equal(em._targets[1], output2[1][:, 0])
     assert em.compute() == 0.0
 
 
@@ -116,65 +138,101 @@ def test_bad_compute_fn():
         em.update(output1)
 
 
-def _test_warning():
+def test_check_compute_fn():
     def compute_fn(y_preds, y_targets):
-        return 0.0
+        raise Exception
 
-    with pytest.warns(RuntimeWarning, match="EpochMetric class does not support distributed setting"):
-        EpochMetric(compute_fn)
+    em = EpochMetric(compute_fn, check_compute_fn=True)
+
+    em.reset()
+    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    with pytest.warns(EpochMetricWarning, match=r"Probably, there can be a problem with `compute_fn`"):
+        em.update(output1)
+
+    em = EpochMetric(compute_fn, check_compute_fn=False)
+    em.update(output1)
+
+
+def _test_distrib_integration(device=None):
+
+    if device is None:
+        device = idist.device() if idist.device().type != "xla" else "cpu"
+
+    rank = idist.get_rank()
+    torch.manual_seed(12 + rank)
+
+    n_iters = 3
+    batch_size = 2
+    n_classes = 7
+
+    y_true = torch.randint(0, n_classes, size=(n_iters * batch_size,), device=device)
+    y_preds = torch.rand(n_iters * batch_size, n_classes, device=device)
+
+    def update(engine, i):
+        return (
+            y_preds[i * batch_size : (i + 1) * batch_size, :],
+            y_true[i * batch_size : (i + 1) * batch_size],
+        )
+
+    engine = Engine(update)
+
+    def assert_data_fn(all_preds, all_targets):
+        return (all_preds.argmax(dim=1) == all_targets).sum().item()
+
+    ep_metric = EpochMetric(assert_data_fn, check_compute_fn=False, device=device)
+    ep_metric.attach(engine, "epm")
+
+    data = list(range(n_iters))
+
+    engine.run(data=data, max_epochs=3)
+
+    y_preds = idist.all_gather(y_preds)
+    y_true = idist.all_gather(y_true)
+
+    assert engine.state.metrics["epm"] == (y_preds.argmax(dim=1) == y_true).sum().item()
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
+def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
 
-    _test_warning()
-
-    # Perform some ops otherwise, next tests fail
-    import torch.distributed as dist
-
-    device = "cuda:{}".format(local_rank)
-
-    def _gather(y):
-        output = [torch.zeros_like(y) for i in range(dist.get_world_size())]
-        dist.all_gather(output, y)
-        y = torch.cat(output, dim=0)
-        return y
-
-    y = torch.rand(10, 12, device=device)
-    y = _gather(y)
-    assert isinstance(y, torch.Tensor)
+    device = idist.device()
+    _test_distrib_integration(device)
 
 
 @pytest.mark.distributed
-def test_distrib_cpu(local_rank, distributed_context_single_node_gloo):
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
 
-    _test_warning()
-
-    # Perform some ops otherwise, next tests fail
-    import torch.distributed as dist
-
-    device = "cpu"
-
-    def _gather(y):
-        output = [torch.zeros_like(y) for i in range(dist.get_world_size())]
-        dist.all_gather(output, y)
-        y = torch.cat(output, dim=0)
-        return y
-
-    y = torch.rand(10, 12, device=device)
-    y = _gather(y)
-    assert isinstance(y, torch.Tensor)
+    device = idist.device()
+    _test_distrib_integration(device)
 
 
-@pytest.mark.multinode_distributed
-@pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_single_device_xla():
+    _test_distrib_integration()
 
-    _test_warning()
+
+def _test_distrib_xla_nprocs(index):
+    _test_distrib_integration()
 
 
-@pytest.mark.multinode_distributed
-@pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    _test_warning()
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_xla_nprocs(xmp_executor):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+    xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
+def test_distrib_hvd(gloo_hvd_executor):
+
+    nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
+
+    gloo_hvd_executor(_test_distrib_integration, (None,), np=nproc, do_init=True)

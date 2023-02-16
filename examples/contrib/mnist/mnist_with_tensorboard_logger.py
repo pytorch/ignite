@@ -19,22 +19,27 @@
 """
 import sys
 from argparse import ArgumentParser
-import logging
 
 import torch
-from torch.utils.data import DataLoader
-from torch import nn
 import torch.nn.functional as F
+from torch import nn
 from torch.optim import SGD
+from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
-from torchvision.transforms import Compose, ToTensor, Normalize
+from torchvision.transforms import Compose, Normalize, ToTensor
 
-from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
+from ignite.contrib.handlers.tensorboard_logger import (
+    global_step_from_engine,
+    GradsHistHandler,
+    GradsScalarHandler,
+    TensorboardLogger,
+    WeightsHistHandler,
+    WeightsScalarHandler,
+)
+from ignite.engine import create_supervised_evaluator, create_supervised_trainer, Events
+from ignite.handlers import ModelCheckpoint
 from ignite.metrics import Accuracy, Loss
-from ignite.contrib.handlers.tensorboard_logger import *
-
-
-LOG_INTERVAL = 10
+from ignite.utils import setup_logger
 
 
 class Net(nn.Module):
@@ -81,6 +86,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_dir):
     optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
     criterion = nn.CrossEntropyLoss()
     trainer = create_supervised_trainer(model, optimizer, criterion, device=device)
+    trainer.logger = setup_logger("Trainer")
 
     if sys.version_info > (3,):
         from ignite.contrib.metrics.gpu_info import GpuInfo
@@ -97,7 +103,9 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_dir):
     metrics = {"accuracy": Accuracy(), "loss": Loss(criterion)}
 
     train_evaluator = create_supervised_evaluator(model, metrics=metrics, device=device)
+    train_evaluator.logger = setup_logger("Train Evaluator")
     validation_evaluator = create_supervised_evaluator(model, metrics=metrics, device=device)
+    validation_evaluator.logger = setup_logger("Val Evaluator")
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def compute_metrics(engine):
@@ -106,40 +114,64 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_dir):
 
     tb_logger = TensorboardLogger(log_dir=log_dir)
 
+    tb_logger.attach_output_handler(
+        trainer,
+        event_name=Events.ITERATION_COMPLETED(every=100),
+        tag="training",
+        output_transform=lambda loss: {"batchloss": loss},
+        metric_names="all",
+    )
+
+    for tag, evaluator in [("training", train_evaluator), ("validation", validation_evaluator)]:
+        tb_logger.attach_output_handler(
+            evaluator,
+            event_name=Events.EPOCH_COMPLETED,
+            tag=tag,
+            metric_names=["loss", "accuracy"],
+            global_step_transform=global_step_from_engine(trainer),
+        )
+
+    tb_logger.attach_opt_params_handler(trainer, event_name=Events.ITERATION_COMPLETED(every=100), optimizer=optimizer)
+
     tb_logger.attach(
         trainer,
-        log_handler=OutputHandler(
-            tag="training", output_transform=lambda loss: {"batchloss": loss}, metric_names="all"
-        ),
+        log_handler=WeightsScalarHandler(model, whitelist=["fc1"]),
         event_name=Events.ITERATION_COMPLETED(every=100),
     )
 
-    tb_logger.attach(
-        train_evaluator,
-        log_handler=OutputHandler(tag="training", metric_names=["loss", "accuracy"], another_engine=trainer),
-        event_name=Events.EPOCH_COMPLETED,
-    )
+    def is_conv(n, _):
+        return "conv" in n
 
     tb_logger.attach(
-        validation_evaluator,
-        log_handler=OutputHandler(tag="validation", metric_names=["loss", "accuracy"], another_engine=trainer),
-        event_name=Events.EPOCH_COMPLETED,
+        trainer,
+        log_handler=WeightsHistHandler(model, whitelist=is_conv),
+        event_name=Events.ITERATION_COMPLETED(every=100),
     )
-
-    tb_logger.attach(
-        trainer, log_handler=OptimizerParamsHandler(optimizer), event_name=Events.ITERATION_COMPLETED(every=100)
-    )
-
-    tb_logger.attach(trainer, log_handler=WeightsScalarHandler(model), event_name=Events.ITERATION_COMPLETED(every=100))
-
-    tb_logger.attach(trainer, log_handler=WeightsHistHandler(model), event_name=Events.EPOCH_COMPLETED(every=100))
 
     tb_logger.attach(trainer, log_handler=GradsScalarHandler(model), event_name=Events.ITERATION_COMPLETED(every=100))
 
-    tb_logger.attach(trainer, log_handler=GradsHistHandler(model), event_name=Events.EPOCH_COMPLETED(every=100))
+    tb_logger.attach(
+        trainer,
+        log_handler=GradsHistHandler(model, whitelist=["fc2.weight"]),
+        event_name=Events.ITERATION_COMPLETED(every=100),
+    )
+
+    def score_function(engine):
+        return engine.state.metrics["accuracy"]
+
+    model_checkpoint = ModelCheckpoint(
+        log_dir,
+        n_saved=2,
+        filename_prefix="best",
+        score_function=score_function,
+        score_name="validation_accuracy",
+        global_step_transform=global_step_from_engine(trainer),
+    )
+    validation_evaluator.add_event_handler(Events.COMPLETED, model_checkpoint, {"model": model})
 
     # kick everything off
     trainer.run(train_loader, max_epochs=epochs)
+
     tb_logger.close()
 
 
@@ -157,13 +189,5 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-
-    # Setup engine logger
-    logger = logging.getLogger("ignite.engine.engine.Engine")
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter("%(asctime)s %(name)-12s %(levelname)-8s %(message)s")
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    logger.setLevel(logging.INFO)
 
     run(args.batch_size, args.val_batch_size, args.epochs, args.lr, args.momentum, args.log_dir)

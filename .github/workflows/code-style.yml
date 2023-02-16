@@ -1,0 +1,45 @@
+name: Format python code
+
+on:
+  push:
+    paths:
+      - "**.py"
+      - "setup.cfg"
+      - "requirements-dev.txt"
+      - "pyproject.toml"
+      - "tests/run_code_style.sh"
+      - ".github/workflows/code-style.yml"
+      - "!assets/**"
+      - "!.circleci/**"
+      - "!docker/**"
+      - "!docs/**"
+      - "!conda.recipe"
+
+  # pull_request:
+  #     paths:
+
+
+jobs:
+  code-style:
+    runs-on: ubuntu-latest
+    steps:
+      - if: github.event_name == 'push'
+        uses: actions/checkout@v3
+      #       - if: github.event_name == 'pull_request'
+      #         uses: actions/checkout@v2
+      #         with:
+      #           ref: ${{ github.head_ref }}
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+      - run: |
+          bash ./tests/run_code_style.sh install
+          bash ./tests/run_code_style.sh fmt
+
+      - name: Commit and push changes
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: "autopep8 fix"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

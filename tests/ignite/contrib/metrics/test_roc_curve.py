@@ -1,16 +1,31 @@
-import numpy as np
-from sklearn.metrics import roc_curve
+from unittest.mock import patch
 
+import numpy as np
+import pytest
+import sklearn
 import torch
+from sklearn.metrics import roc_curve
 
 from ignite.contrib.metrics.roc_auc import RocCurve
 from ignite.engine import Engine
+from ignite.metrics.epoch_metric import EpochMetricWarning
+
+
+@pytest.fixture()
+def mock_no_sklearn():
+    with patch.dict("sys.modules", {"sklearn.metrics": None}):
+        yield sklearn
+
+
+def test_no_sklearn(mock_no_sklearn):
+    with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires scikit-learn to be installed"):
+        RocCurve()
 
 
 def test_roc_curve():
     size = 100
     np_y_pred = np.random.rand(size, 1)
-    np_y = np.zeros((size,), dtype=np.long)
+    np_y = np.zeros((size,))
     np_y[size // 2 :] = 1
     sk_fpr, sk_tpr, sk_thresholds = roc_curve(np_y, np_y_pred)
 
@@ -31,7 +46,7 @@ def test_integration_roc_curve_with_output_transform():
     np.random.seed(1)
     size = 100
     np_y_pred = np.random.rand(size, 1)
-    np_y = np.zeros((size,), dtype=np.long)
+    np_y = np.zeros((size,))
     np_y[size // 2 :] = 1
     np.random.shuffle(np_y)
 
@@ -64,7 +79,7 @@ def test_integration_roc_curve_with_activated_output_transform():
     size = 100
     np_y_pred = np.random.rand(size, 1)
     np_y_pred_sigmoid = torch.sigmoid(torch.from_numpy(np_y_pred)).numpy()
-    np_y = np.zeros((size,), dtype=np.long)
+    np_y = np.zeros((size,))
     np_y[size // 2 :] = 1
     np.random.shuffle(np_y)
 
@@ -90,3 +105,19 @@ def test_integration_roc_curve_with_activated_output_transform():
     assert np.array_equal(tpr, sk_tpr)
     # assert thresholds almost equal, due to numpy->torch->numpy conversion
     np.testing.assert_array_almost_equal(thresholds, sk_thresholds)
+
+
+def test_check_compute_fn():
+    y_pred = torch.zeros((8, 13))
+    y_pred[:, 1] = 1
+    y_true = torch.zeros_like(y_pred)
+    output = (y_pred, y_true)
+
+    em = RocCurve(check_compute_fn=True)
+
+    em.reset()
+    with pytest.warns(EpochMetricWarning, match=r"Probably, there can be a problem with `compute_fn`"):
+        em.update(output)
+
+    em = RocCurve(check_compute_fn=False)
+    em.update(output)

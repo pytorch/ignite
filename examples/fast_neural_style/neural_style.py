@@ -1,31 +1,27 @@
 # coding: utf-8
 import argparse
-import os
-import sys
+import random
+from collections import OrderedDict
+from pathlib import Path
 
 import numpy as np
-import random
 import torch
+import utils
+from handlers import Progbar
 from torch.optim import Adam
 from torch.utils.data import DataLoader
-from torchvision import datasets
-from torchvision import transforms
+from torchvision import datasets, transforms
+from transformer_net import TransformerNet
+from vgg import Vgg16
 
 from ignite.engine import Engine, Events
 from ignite.handlers import ModelCheckpoint
 
-import utils
-from transformer_net import TransformerNet
-from vgg import Vgg16
-from handlers import Progbar
-
-from collections import OrderedDict
-
 
 def check_paths(args):
     try:
-        if args.checkpoint_model_dir is not None and not (os.path.exists(args.checkpoint_model_dir)):
-            os.makedirs(args.checkpoint_model_dir)
+        if args.checkpoint_model_dir is not None and not (Path(args.checkpoint_model_dir).exists()):
+            Path(args.checkpoint_model_dir).mkdir(parents=True)
     except OSError as e:
         raise OSError(e)
 
@@ -54,7 +50,7 @@ def check_dataset(args):
             size=args.batch_size, image_size=(3, 32, 32), num_classes=1, transform=transform
         )
     else:
-        raise RuntimeError("Invalid dataset name: {}".format(args.dataset))
+        raise RuntimeError(f"Invalid dataset name: {args.dataset}")
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=0)
 

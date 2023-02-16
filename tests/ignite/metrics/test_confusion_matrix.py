@@ -1,35 +1,45 @@
 import os
-import torch
 
 import numpy as np
-from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score
-
-from ignite.exceptions import NotComputableError
-from ignite.metrics import ConfusionMatrix, IoU, mIoU
-from ignite.metrics.confusion_matrix import cmAccuracy, cmPrecision, cmRecall, DiceCoefficient
 import pytest
+import torch
+from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score
 
+import ignite.distributed as idist
+from ignite.exceptions import NotComputableError
+from ignite.metrics import ConfusionMatrix, IoU, JaccardIndex, mIoU
+from ignite.metrics.confusion_matrix import cmAccuracy, cmPrecision, cmRecall, DiceCoefficient
 
 torch.manual_seed(12)
 
 
 def test_no_update():
     cm = ConfusionMatrix(10)
-    with pytest.raises(NotComputableError):
+    with pytest.raises(NotComputableError, match=r"Confusion matrix must have at least one example before it "):
         cm.compute()
+
+
+def test_num_classes_wrong_input():
+    with pytest.raises(ValueError, match="Argument num_classes needs to be > 1"):
+        ConfusionMatrix(num_classes=1)
 
 
 def test_multiclass_wrong_inputs():
     cm = ConfusionMatrix(10)
 
-    with pytest.raises(ValueError, match=r"y_pred must have shape \(batch_size, num_categories, ...\)"):
+    with pytest.raises(
+        ValueError, match=r"y_pred must have shape \(batch_size, num_classes " r"\(currently set to 10\), ...\)"
+    ):
         cm.update((torch.rand(10), torch.randint(0, 2, size=(10,)).long()))
 
-    with pytest.raises(ValueError, match=r"y_pred does not have correct number of categories:"):
+    with pytest.raises(ValueError, match=r"y_pred does not have correct number of classes:"):
         cm.update((torch.rand(10, 5, 4), torch.randint(0, 2, size=(10,)).long()))
 
     with pytest.raises(
-        ValueError, match=r"y_pred must have shape \(batch_size, num_categories, ...\) " r"and y must have "
+        ValueError,
+        match=r"y_pred must have shape \(batch_size, num_classes "
+        r"\(currently set to 10\), ...\) "
+        r"and y must have ",
     ):
         cm.update((torch.rand(4, 10, 12, 12), torch.randint(0, 10, size=(10,)).long()))
 
@@ -39,148 +49,45 @@ def test_multiclass_wrong_inputs():
     with pytest.raises(ValueError, match=r"Argument average can None or one of"):
         ConfusionMatrix(num_classes=10, average="abc")
 
+    with pytest.raises(ValueError, match=r"Argument average should be one of 'samples', 'recall', 'precision'"):
+        ConfusionMatrix.normalize(None, None)
 
-def test_multiclass_input_N():
-    # Multiclass input data of shape (N, )
-    def _test_N():
-        num_classes = 4
-        cm = ConfusionMatrix(num_classes=num_classes)
-        y_pred = torch.rand(10, num_classes)
-        y = torch.randint(0, num_classes, size=(10,)).long()
-        cm.update((y_pred, y))
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        np_y = y.numpy().ravel()
-        assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
 
-        num_classes = 10
-        cm = ConfusionMatrix(num_classes=num_classes)
-        y_pred = torch.rand(4, num_classes)
-        y = torch.randint(0, num_classes, size=(4,)).long()
-        cm.update((y_pred, y))
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        np_y = y.numpy().ravel()
-        assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
+@pytest.fixture(params=[item for item in range(10)])
+def test_data(request):
+    return [
+        # Multiclass input data of shape (N, )
+        (torch.rand(10, 4), torch.randint(0, 4, size=(10,)).long(), 4, 1),
+        (torch.rand(4, 10), torch.randint(0, 10, size=(4,)).long(), 10, 1),
+        (torch.rand(4, 2), torch.randint(0, 2, size=(4,)).long(), 2, 1),
+        (torch.rand(100, 5), torch.randint(0, 5, size=(100,)).long(), 5, 16),
+        # Multiclass input data of shape (N, L)
+        (torch.rand(10, 4, 5), torch.randint(0, 4, size=(10, 5)).long(), 4, 1),
+        (torch.rand(4, 10, 5), torch.randint(0, 10, size=(4, 5)).long(), 10, 1),
+        (torch.rand(100, 9, 7), torch.randint(0, 9, size=(100, 7)).long(), 9, 16),
+        # Multiclass input data of shape (N, H, W, ...)
+        (torch.rand(4, 5, 12, 10), torch.randint(0, 5, size=(4, 12, 10)).long(), 5, 1),
+        (torch.rand(4, 5, 10, 12, 8), torch.randint(0, 5, size=(4, 10, 12, 8)).long(), 5, 1),
+        (torch.rand(100, 3, 8, 8), torch.randint(0, 3, size=(100, 8, 8)).long(), 3, 16),
+    ][request.param]
 
-        # 2-classes
-        num_classes = 2
-        cm = ConfusionMatrix(num_classes=num_classes)
-        y_pred = torch.rand(4, num_classes)
-        y = torch.randint(0, num_classes, size=(4,)).long()
-        cm.update((y_pred, y))
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        np_y = y.numpy().ravel()
-        assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
 
-        # Batched Updates
-        num_classes = 5
-        cm = ConfusionMatrix(num_classes=num_classes)
-
-        y_pred = torch.rand(100, num_classes)
-        y = torch.randint(0, num_classes, size=(100,)).long()
-
-        batch_size = 16
+@pytest.mark.parametrize("n_times", range(5))
+def test_multiclass_input(n_times, test_data):
+    y_pred, y, num_classes, batch_size = test_data
+    cm = ConfusionMatrix(num_classes=num_classes)
+    cm.reset()
+    if batch_size > 1:
         n_iters = y.shape[0] // batch_size + 1
-
         for i in range(n_iters):
             idx = i * batch_size
             cm.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
-
-    # check multiple random inputs as random exact occurencies are rare
-    for _ in range(10):
-        _test_N()
-
-
-def test_multiclass_input_NL():
-    # Multiclass input data of shape (N, L)
-    def _test_NL():
-        num_classes = 4
-        cm = ConfusionMatrix(num_classes=num_classes)
-
-        y_pred = torch.rand(10, num_classes, 5)
-        y = torch.randint(0, num_classes, size=(10, 5)).long()
+    else:
         cm.update((y_pred, y))
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        np_y = y.numpy().ravel()
-        assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
 
-        num_classes = 10
-        cm = ConfusionMatrix(num_classes=num_classes)
-        y_pred = torch.rand(4, num_classes, 5)
-        y = torch.randint(0, num_classes, size=(4, 5)).long()
-        cm.update((y_pred, y))
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        np_y = y.numpy().ravel()
-        assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
-
-        # Batched Updates
-        num_classes = 9
-        cm = ConfusionMatrix(num_classes=num_classes)
-
-        y_pred = torch.rand(100, num_classes, 7)
-        y = torch.randint(0, num_classes, size=(100, 7)).long()
-
-        batch_size = 16
-        n_iters = y.shape[0] // batch_size + 1
-
-        for i in range(n_iters):
-            idx = i * batch_size
-            cm.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
-
-    # check multiple random inputs as random exact occurencies are rare
-    for _ in range(10):
-        _test_NL()
-
-
-def test_multiclass_input_NHW():
-    # Multiclass input data of shape (N, H, W, ...)
-    def _test_NHW():
-        num_classes = 5
-        cm = ConfusionMatrix(num_classes=num_classes)
-
-        y_pred = torch.rand(4, num_classes, 12, 10)
-        y = torch.randint(0, num_classes, size=(4, 12, 10)).long()
-        cm.update((y_pred, y))
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        np_y = y.numpy().ravel()
-        assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
-
-        num_classes = 5
-        cm = ConfusionMatrix(num_classes=num_classes)
-        y_pred = torch.rand(4, num_classes, 10, 12, 8)
-        y = torch.randint(0, num_classes, size=(4, 10, 12, 8)).long()
-        cm.update((y_pred, y))
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        np_y = y.numpy().ravel()
-        assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
-
-        # Batched Updates
-        num_classes = 3
-        cm = ConfusionMatrix(num_classes=num_classes)
-        y_pred = torch.rand(100, num_classes, 8, 8)
-        y = torch.randint(0, num_classes, size=(100, 8, 8)).long()
-
-        batch_size = 16
-        n_iters = y.shape[0] // batch_size + 1
-
-        for i in range(n_iters):
-            idx = i * batch_size
-            cm.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
-        assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
-
-    # check multiple random inputs as random exact occurencies are rare
-    for _ in range(10):
-        _test_NHW()
+    np_y_pred = y_pred.numpy().argmax(axis=1).ravel()
+    np_y = y.numpy().ravel()
+    assert np.all(confusion_matrix(np_y, np_y_pred, labels=list(range(num_classes))) == cm.compute().numpy())
 
 
 def test_ignored_out_of_num_classes_indices():
@@ -198,11 +105,11 @@ def test_ignored_out_of_num_classes_indices():
 def get_y_true_y_pred():
     # Generate an image with labels 0 (background), 1, 2
     # 3 classes:
-    y_true = np.zeros((30, 30), dtype=np.int)
+    y_true = np.zeros((30, 30), dtype=np.int32)
     y_true[1:11, 1:11] = 1
     y_true[15:25, 15:25] = 2
 
-    y_pred = np.zeros((30, 30), dtype=np.int)
+    y_pred = np.zeros((30, 30), dtype=np.int32)
     y_pred[5:15, 1:11] = 1
     y_pred[20:30, 20:30] = 2
     return y_true, y_pred
@@ -280,20 +187,21 @@ def test_iou_wrong_input():
         IoU(None)
 
     cm = ConfusionMatrix(num_classes=10)
-    with pytest.raises(ValueError, match="ignore_index should be non-negative integer"):
+    with pytest.raises(ValueError, match=r"ignore_index should be integer and in the range of \[0, 10\), but given -1"):
         IoU(cm, ignore_index=-1)
 
-    with pytest.raises(ValueError, match="ignore_index should be non-negative integer"):
+    with pytest.raises(ValueError, match=r"ignore_index should be integer and in the range of \[0, 10\), but given a"):
         IoU(cm, ignore_index="a")
 
-    with pytest.raises(ValueError, match="ignore_index should be non-negative integer"):
+    with pytest.raises(ValueError, match=r"ignore_index should be integer and in the range of \[0, 10\), but given 10"):
         IoU(cm, ignore_index=10)
 
-    with pytest.raises(ValueError, match="ignore_index should be non-negative integer"):
+    with pytest.raises(ValueError, match=r"ignore_index should be integer and in the range of \[0, 10\), but given 11"):
         IoU(cm, ignore_index=11)
 
 
-def test_iou():
+@pytest.mark.parametrize("average", [None, "samples"])
+def test_iou(average):
 
     y_true, y_pred = get_y_true_y_pred()
     th_y_true, th_y_logits = compute_th_y_true_y_logits(y_true, y_pred)
@@ -306,7 +214,7 @@ def test_iou():
         union = bin_y_true | bin_y_pred
         true_res[index] = intersection.sum() / union.sum()
 
-    cm = ConfusionMatrix(num_classes=3)
+    cm = ConfusionMatrix(num_classes=3, average=average)
     iou_metric = IoU(cm)
 
     # Update metric
@@ -325,7 +233,11 @@ def test_iou():
         cm.update(output)
         res = iou_metric.compute().numpy()
         true_res_ = true_res[:ignore_index] + true_res[ignore_index + 1 :]
-        assert np.all(res == true_res_), "{}: {} vs {}".format(ignore_index, res, true_res_)
+        assert np.all(res == true_res_), f"{ignore_index}: {res} vs {true_res_}"
+
+    with pytest.raises(ValueError, match=r"ConfusionMatrix should have average attribute either"):
+        cm = ConfusionMatrix(num_classes=3, average="precision")
+        IoU(cm)
 
 
 def test_miou():
@@ -362,7 +274,7 @@ def test_miou():
         cm.update(output)
         res = iou_metric.compute().numpy()
         true_res_ = np.mean(true_res[:ignore_index] + true_res[ignore_index + 1 :])
-        assert res == true_res_, "{}: {} vs {}".format(ignore_index, res, true_res_)
+        assert res == true_res_, f"{ignore_index}: {res} vs {true_res_}"
 
 
 def test_cm_accuracy():
@@ -486,16 +398,16 @@ def test_dice_coefficient_wrong_input():
         DiceCoefficient(None)
 
     cm = ConfusionMatrix(num_classes=10)
-    with pytest.raises(ValueError, match="ignore_index should be non-negative integer"):
+    with pytest.raises(ValueError, match=r"ignore_index should be integer and in the range of \[0, 10\), but given -1"):
         DiceCoefficient(cm, ignore_index=-1)
 
-    with pytest.raises(ValueError, match="ignore_index should be non-negative integer"):
+    with pytest.raises(ValueError, match=r"ignore_index should be integer and in the range of \[0, 10\), but given a"):
         DiceCoefficient(cm, ignore_index="a")
 
-    with pytest.raises(ValueError, match="ignore_index should be non-negative integer"):
+    with pytest.raises(ValueError, match=r"ignore_index should be integer and in the range of \[0, 10\), but given 10"):
         DiceCoefficient(cm, ignore_index=10)
 
-    with pytest.raises(ValueError, match="ignore_index should be non-negative integer"):
+    with pytest.raises(ValueError, match=r"ignore_index should be integer and in the range of \[0, 10\), but given 11"):
         DiceCoefficient(cm, ignore_index=11)
 
 
@@ -532,106 +444,209 @@ def test_dice_coefficient():
         cm.update(output)
         res = dice_metric.compute().numpy()
         true_res_ = true_res[:ignore_index] + true_res[ignore_index + 1 :]
-        assert np.all(res == true_res_), "{}: {} vs {}".format(ignore_index, res, true_res_)
+        assert np.all(res == true_res_), f"{ignore_index}: {res} vs {true_res_}"
 
 
 def _test_distrib_multiclass_images(device):
+    def _test(metric_device):
+        num_classes = 3
+        cm = ConfusionMatrix(num_classes=num_classes, device=metric_device)
 
-    import torch.distributed as dist
+        y_true, y_pred = get_y_true_y_pred()
 
-    def _gather(y):
-        output = [torch.zeros_like(y) for i in range(dist.get_world_size())]
-        dist.all_gather(output, y)
-        y = torch.cat(output, dim=0)
-        return y
+        # Compute confusion matrix with sklearn
+        true_res = confusion_matrix(y_true.reshape(-1), y_pred.reshape(-1))
 
-    num_classes = 3
-    cm = ConfusionMatrix(num_classes=num_classes, device=device)
+        th_y_true, th_y_logits = compute_th_y_true_y_logits(y_true, y_pred)
+        th_y_true = th_y_true.to(device)
+        th_y_logits = th_y_logits.to(device)
+
+        # Update metric
+        output = (th_y_logits, th_y_true)
+        cm.update(output)
+
+        res = cm.compute().cpu().numpy() / idist.get_world_size()
+
+        assert np.all(true_res == res)
+
+        # Another test on batch of 2 images
+        num_classes = 3
+        cm = ConfusionMatrix(num_classes=num_classes, device=metric_device)
+
+        # Create a batch of two images:
+        th_y_true1 = torch.from_numpy(y_true).reshape(1, 30, 30)
+        th_y_true2 = torch.from_numpy(y_true.transpose()).reshape(1, 30, 30)
+        th_y_true = torch.cat([th_y_true1, th_y_true2], dim=0)
+        th_y_true = th_y_true.to(device)
+
+        # Create a batch of 2 logits tensors
+        y_probas = np.ones((3, 30, 30)) * -10
+        y_probas[0, (y_pred == 0)] = 720
+        y_probas[1, (y_pred == 1)] = 720
+        y_probas[2, (y_pred == 2)] = 768
+        th_y_logits1 = torch.from_numpy(y_probas).reshape(1, 3, 30, 30)
+
+        y_probas = np.ones((3, 30, 30)) * -10
+        y_probas[0, (y_pred.transpose() == 0)] = 720
+        y_probas[1, (y_pred.transpose() == 2)] = 720
+        y_probas[2, (y_pred.transpose() == 1)] = 768
+        th_y_logits2 = torch.from_numpy(y_probas).reshape(1, 3, 30, 30)
+
+        th_y_logits = torch.cat([th_y_logits1, th_y_logits2], dim=0)
+        # check update if input is on another device
+        th_y_logits = th_y_logits.to(device)
+
+        # Update metric & compute
+        output = (th_y_logits, th_y_true)
+        cm.update(output)
+        res = cm.compute().cpu().numpy()
+
+        # Compute confusion matrix with sklearn
+        th_y_true = idist.all_gather(th_y_true)
+        th_y_logits = idist.all_gather(th_y_logits)
+
+        np_y_true = th_y_true.cpu().numpy().reshape(-1)
+        np_y_pred = np.argmax(th_y_logits.cpu().numpy(), axis=1).reshape(-1)
+        true_res = confusion_matrix(np_y_true, np_y_pred)
+
+        assert np.all(true_res == res)
+
+    _test("cpu")
+    if device.type != "xla":
+        _test(idist.device())
+
+
+def _test_distrib_accumulator_device(device):
+
+    metric_devices = [torch.device("cpu")]
+    if device.type != "xla":
+        metric_devices.append(idist.device())
+    for metric_device in metric_devices:
+
+        cm = ConfusionMatrix(num_classes=3, device=metric_device)
+        assert cm._device == metric_device
+        assert (
+            cm.confusion_matrix.device == metric_device
+        ), f"{type(cm.confusion_matrix.device)}:{cm._num_correct.device} vs {type(metric_device)}:{metric_device}"
+
+        y_true, y_pred = get_y_true_y_pred()
+        th_y_true, th_y_logits = compute_th_y_true_y_logits(y_true, y_pred)
+        cm.update((th_y_logits, th_y_true))
+
+        assert (
+            cm.confusion_matrix.device == metric_device
+        ), f"{type(cm.confusion_matrix.device)}:{cm._num_correct.device} vs {type(metric_device)}:{metric_device}"
+
+
+@pytest.mark.parametrize("average", [None, "samples"])
+def test_jaccard_index(average):
 
     y_true, y_pred = get_y_true_y_pred()
-
-    # Compute confusion matrix with sklearn
-    true_res = confusion_matrix(y_true.reshape(-1), y_pred.reshape(-1))
-
     th_y_true, th_y_logits = compute_th_y_true_y_logits(y_true, y_pred)
-    th_y_true = th_y_true.to(device)
-    th_y_logits = th_y_logits.to(device)
+
+    true_res = [0, 0, 0]
+    for index in range(3):
+        bin_y_true = y_true == index
+        bin_y_pred = y_pred == index
+        intersection = bin_y_true & bin_y_pred
+        union = bin_y_true | bin_y_pred
+        true_res[index] = intersection.sum() / union.sum()
+
+    cm = ConfusionMatrix(num_classes=3, average=average)
+    jaccard_index = JaccardIndex(cm)
 
     # Update metric
     output = (th_y_logits, th_y_true)
     cm.update(output)
 
-    res = cm.compute().cpu().numpy() / dist.get_world_size()
+    res = jaccard_index.compute().numpy()
 
-    assert np.all(true_res == res)
+    assert np.all(res == true_res)
 
-    # Another test on batch of 2 images
-    num_classes = 3
-    cm = ConfusionMatrix(num_classes=num_classes, device=device)
+    for ignore_index in range(3):
+        cm = ConfusionMatrix(num_classes=3)
+        jaccard_index_metric = JaccardIndex(cm, ignore_index=ignore_index)
+        # Update metric
+        output = (th_y_logits, th_y_true)
+        cm.update(output)
+        res = jaccard_index_metric.compute().numpy()
+        true_res_ = true_res[:ignore_index] + true_res[ignore_index + 1 :]
+        assert np.all(res == true_res_), f"{ignore_index}: {res} vs {true_res_}"
 
-    # Create a batch of two images:
-    th_y_true1 = torch.from_numpy(y_true).reshape(1, 30, 30)
-    th_y_true2 = torch.from_numpy(y_true.transpose()).reshape(1, 30, 30)
-    th_y_true = torch.cat([th_y_true1, th_y_true2], dim=0)
-    th_y_true = th_y_true.to(device)
-
-    # Create a batch of 2 logits tensors
-    y_probas = np.ones((3, 30, 30)) * -10
-    y_probas[0, (y_pred == 0)] = 720
-    y_probas[1, (y_pred == 1)] = 720
-    y_probas[2, (y_pred == 2)] = 768
-    th_y_logits1 = torch.from_numpy(y_probas).reshape(1, 3, 30, 30)
-
-    y_probas = np.ones((3, 30, 30)) * -10
-    y_probas[0, (y_pred.transpose() == 0)] = 720
-    y_probas[1, (y_pred.transpose() == 2)] = 720
-    y_probas[2, (y_pred.transpose() == 1)] = 768
-    th_y_logits2 = torch.from_numpy(y_probas).reshape(1, 3, 30, 30)
-
-    th_y_logits = torch.cat([th_y_logits1, th_y_logits2], dim=0)
-    # check update if input is on another device
-    th_y_logits = th_y_logits.to(device)
-
-    # Update metric & compute
-    output = (th_y_logits, th_y_true)
-    cm.update(output)
-    res = cm.compute().cpu().numpy()
-
-    # Compute confusion matrix with sklearn
-    th_y_true = _gather(th_y_true)
-    th_y_logits = _gather(th_y_logits)
-
-    np_y_true = th_y_true.cpu().numpy().reshape(-1)
-    np_y_pred = np.argmax(th_y_logits.cpu().numpy(), axis=1).reshape(-1)
-    true_res = confusion_matrix(np_y_true, np_y_pred)
-
-    assert np.all(true_res == res)
+    with pytest.raises(ValueError, match=r"ConfusionMatrix should have average attribute either"):
+        cm = ConfusionMatrix(num_classes=3, average="precision")
+        JaccardIndex(cm)
 
 
 @pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_gpu(local_rank, distributed_context_single_node_nccl):
+def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
 
-    device = "cuda:{}".format(local_rank)
+    device = idist.device()
     _test_distrib_multiclass_images(device)
+    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.distributed
-def test_distrib_cpu(distributed_context_single_node_gloo):
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
 
-    device = "cpu"
+    device = idist.device()
     _test_distrib_multiclass_images(device)
+    _test_distrib_accumulator_device(device)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
+@pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
+def test_distrib_hvd(gloo_hvd_executor):
+
+    device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
+    nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
+
+    gloo_hvd_executor(_test_distrib_multiclass_images, (device,), np=nproc, do_init=True)
+    gloo_hvd_executor(_test_distrib_accumulator_device, (device,), np=nproc, do_init=True)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_single_device_xla():
+    device = idist.device()
+    _test_distrib_multiclass_images(device)
+    _test_distrib_accumulator_device(device)
+
+
+def _test_distrib_xla_nprocs(index):
+    device = idist.device()
+    _test_distrib_multiclass_images(device)
+    _test_distrib_accumulator_device(device)
+
+
+@pytest.mark.tpu
+@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
+@pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
+def test_distrib_xla_nprocs(xmp_executor):
+    n = int(os.environ["NUM_TPU_WORKERS"])
+    xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)
 
 
 @pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_cpu(distributed_context_multi_node_gloo):
-    device = "cpu"
+def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
+
+    device = idist.device()
     _test_distrib_multiclass_images(device)
+    _test_distrib_accumulator_device(device)
 
 
 @pytest.mark.multinode_distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
-def test_multinode_distrib_gpu(distributed_context_multi_node_nccl):
-    device = "cuda:{}".format(distributed_context_multi_node_nccl["local_rank"])
+def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
+
+    device = idist.device()
     _test_distrib_multiclass_images(device)
+    _test_distrib_accumulator_device(device)

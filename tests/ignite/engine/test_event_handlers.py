@@ -1,6 +1,6 @@
+import functools
 import gc
-
-from unittest.mock import call, MagicMock, create_autospec
+from unittest.mock import call, create_autospec, MagicMock
 
 import pytest
 from pytest import raises
@@ -129,73 +129,90 @@ def test_adding_multiple_event_handlers():
         handler.assert_called_once_with(engine)
 
 
-def test_event_removable_handle():
+@pytest.mark.parametrize(
+    "event1, event2",
+    [
+        (Events.STARTED, Events.COMPLETED),
+        (Events.EPOCH_STARTED, Events.EPOCH_COMPLETED),
+        (Events.ITERATION_STARTED, Events.ITERATION_COMPLETED),
+        (Events.ITERATION_STARTED(every=2), Events.ITERATION_COMPLETED(every=2)),
+    ],
+)
+def test_event_removable_handle(event1, event2):
 
     # Removable handle removes event from engine.
-    engine = DummyEngine()
+    engine = Engine(lambda e, b: None)
     handler = create_autospec(spec=lambda x: None)
     assert not hasattr(handler, "_parent")
 
-    removable_handle = engine.add_event_handler(Events.STARTED, handler)
-    assert engine.has_event_handler(handler, Events.STARTED)
+    removable_handle = engine.add_event_handler(event1, handler)
+    assert engine.has_event_handler(handler, event1)
 
-    engine.run(1)
-    handler.assert_called_once_with(engine)
+    engine.run([1, 2])
+    handler.assert_any_call(engine)
+    num_calls = handler.call_count
 
     removable_handle.remove()
-    assert not engine.has_event_handler(handler, Events.STARTED)
+    assert not engine.has_event_handler(handler, event1)
 
     # Second engine pass does not fire handle again.
-    engine.run(1)
-    handler.assert_called_once_with(engine)
+    engine.run([1, 2])
+    # Assert that handler wasn't call
+    assert handler.call_count == num_calls
 
     # Removable handle can be used as a context manager
     handler = create_autospec(spec=lambda x: None)
 
-    with engine.add_event_handler(Events.STARTED, handler):
-        assert engine.has_event_handler(handler, Events.STARTED)
-        engine.run(1)
+    with engine.add_event_handler(event1, handler):
+        assert engine.has_event_handler(handler, event1)
+        engine.run([1, 2])
 
-    assert not engine.has_event_handler(handler, Events.STARTED)
-    handler.assert_called_once_with(engine)
+    assert not engine.has_event_handler(handler, event1)
+    handler.assert_any_call(engine)
+    num_calls = handler.call_count
 
-    engine.run(1)
-    handler.assert_called_once_with(engine)
+    engine.run([1, 2])
+    # Assert that handler wasn't call
+    assert handler.call_count == num_calls
 
     # Removeable handle only effects a single event registration
     handler = MagicMock(spec_set=True)
 
-    with engine.add_event_handler(Events.STARTED, handler):
-        with engine.add_event_handler(Events.COMPLETED, handler):
-            assert engine.has_event_handler(handler, Events.STARTED)
-            assert engine.has_event_handler(handler, Events.COMPLETED)
-        assert engine.has_event_handler(handler, Events.STARTED)
-        assert not engine.has_event_handler(handler, Events.COMPLETED)
-    assert not engine.has_event_handler(handler, Events.STARTED)
-    assert not engine.has_event_handler(handler, Events.COMPLETED)
+    with engine.add_event_handler(event1, handler):
+        with engine.add_event_handler(event2, handler):
+            assert engine.has_event_handler(handler, event1)
+            assert engine.has_event_handler(handler, event2)
+        assert engine.has_event_handler(handler, event1)
+        assert not engine.has_event_handler(handler, event2)
+    assert not engine.has_event_handler(handler, event1)
+    assert not engine.has_event_handler(handler, event2)
 
     # Removeable handle is re-enter and re-exitable
 
     handler = MagicMock(spec_set=True)
 
-    remove = engine.add_event_handler(Events.STARTED, handler)
+    remove = engine.add_event_handler(event1, handler)
 
     with remove:
         with remove:
-            assert engine.has_event_handler(handler, Events.STARTED)
-        assert not engine.has_event_handler(handler, Events.STARTED)
-    assert not engine.has_event_handler(handler, Events.STARTED)
+            assert engine.has_event_handler(handler, event1)
+        assert not engine.has_event_handler(handler, event1)
+    assert not engine.has_event_handler(handler, event1)
 
     # Removeable handle is a weakref, does not keep engine or event alive
     def _add_in_closure():
-        _engine = DummyEngine()
+        _engine = Engine(lambda e, b: None)
 
         def _handler(_):
             pass
 
-        _handle = _engine.add_event_handler(Events.STARTED, _handler)
+        _handle = _engine.add_event_handler(event1, _handler)
         assert _handle.engine() is _engine
-        assert _handle.handler() is _handler
+
+        if event1.filter is None:
+            assert _handle.handler() is _handler
+        else:
+            assert _handle.handler()._parent() is _handler
 
         return _handle
 
@@ -313,7 +330,7 @@ def test_events_list_removable_handle():
 
 def test_eventslist__append_raises():
     ev_list = EventsList()
-    with pytest.raises(ValueError, match=r"Argument event should be Events or CallableEventWithFilter"):
+    with pytest.raises(TypeError, match=r"Argument event should be Events or CallableEventWithFilter"):
         ev_list._append("abc")
 
 
@@ -426,7 +443,7 @@ def test_on_decorator():
 
 def test_returns_state():
     engine = Engine(MagicMock(return_value=1))
-    state = engine.run([0,])
+    state = engine.run([0])
 
     assert isinstance(state, State)
 
@@ -443,6 +460,9 @@ def test_state_attributes():
     assert state.epoch == 3
     assert state.max_epochs == 3
     assert state.metrics == {}
+
+    with pytest.raises(RuntimeError, match=r"Unknown event name"):
+        state.get_event_attrib_value("abc")
 
 
 def test_default_exception_handler():
@@ -472,3 +492,78 @@ def test_custom_exception_handler():
 
     # only one call from _run_once_over_data, since the exception is swallowed
     assert len(counter.exceptions) == 1 and counter.exceptions[0] == value_error
+
+
+def test_event_handlers_with_decoration():
+
+    engine = Engine(lambda e, b: b)
+
+    def decorated(fun):
+        @functools.wraps(fun)
+        def wrapper(*args, **kwargs):
+            return fun(*args, **kwargs)
+
+        return wrapper
+
+    values = []
+
+    def foo():
+        values.append("foo")
+
+    @decorated
+    def decorated_foo():
+        values.append("decorated_foo")
+
+    engine.add_event_handler(Events.EPOCH_STARTED, foo)
+    engine.add_event_handler(Events.EPOCH_STARTED(every=2), foo)
+    engine.add_event_handler(Events.EPOCH_STARTED, decorated_foo)
+    engine.add_event_handler(Events.EPOCH_STARTED(every=2), decorated_foo)
+
+    def foo_args(e):
+        values.append("foo_args")
+        values.append(e.state.iteration)
+
+    @decorated
+    def decorated_foo_args(e):
+        values.append("decorated_foo_args")
+        values.append(e.state.iteration)
+
+    engine.add_event_handler(Events.EPOCH_STARTED, foo_args)
+    engine.add_event_handler(Events.EPOCH_STARTED(every=2), foo_args)
+    engine.add_event_handler(Events.EPOCH_STARTED, decorated_foo_args)
+    engine.add_event_handler(Events.EPOCH_STARTED(every=2), decorated_foo_args)
+
+    class Foo:
+        def __init__(self):
+            self.values = []
+
+        def foo(self):
+            self.values.append("foo")
+
+        @decorated
+        def decorated_foo(self):
+            self.values.append("decorated_foo")
+
+        def foo_args(self, e):
+            self.values.append("foo_args")
+            self.values.append(e.state.iteration)
+
+        @decorated
+        def decorated_foo_args(self, e):
+            self.values.append("decorated_foo_args")
+            self.values.append(e.state.iteration)
+
+    foo = Foo()
+
+    engine.add_event_handler(Events.EPOCH_STARTED, foo.foo)
+    engine.add_event_handler(Events.EPOCH_STARTED(every=2), foo.foo)
+    engine.add_event_handler(Events.EPOCH_STARTED, foo.decorated_foo)
+    engine.add_event_handler(Events.EPOCH_STARTED(every=2), foo.decorated_foo)
+    engine.add_event_handler(Events.EPOCH_STARTED, foo.foo_args)
+    engine.add_event_handler(Events.EPOCH_STARTED(every=2), foo.foo_args)
+    engine.add_event_handler(Events.EPOCH_STARTED, foo.decorated_foo_args)
+    engine.add_event_handler(Events.EPOCH_STARTED(every=2), foo.decorated_foo_args)
+
+    engine.run([0], max_epochs=2)
+
+    assert values == foo.values

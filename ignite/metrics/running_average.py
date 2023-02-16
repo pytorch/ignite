@@ -1,10 +1,10 @@
-from typing import Optional, Union, Callable, Sequence
+from typing import Callable, cast, Optional, Sequence, Union
 
 import torch
 
-from ignite.engine import Events, Engine
-from ignite.metrics import Metric
-from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
+import ignite.distributed as idist
+from ignite.engine import Engine, Events
+from ignite.metrics.metric import EpochWise, Metric, MetricUsage, reinit__is_reduced, sync_all_reduce
 
 __all__ = ["RunningAverage"]
 
@@ -13,38 +13,77 @@ class RunningAverage(Metric):
     """Compute running average of a metric or the output of process function.
 
     Args:
-        src (Metric or None): input source: an instance of :class:`~ignite.metrics.Metric` or None. The latter
+        src: input source: an instance of :class:`~ignite.metrics.metric.Metric` or None. The latter
             corresponds to `engine.state.output` which holds the output of process function.
-        alpha (float, optional): running average decay factor, default 0.98
-        output_transform (callable, optional): a function to use to transform the output if `src` is None and
+        alpha: running average decay factor, default 0.98
+        output_transform: a function to use to transform the output if `src` is None and
             corresponds the output of process function. Otherwise it should be None.
-        epoch_bound (boolean, optional): whether the running average should be reset after each epoch (defaults
+        epoch_bound: whether the running average should be reset after each epoch (defaults
             to True).
-        device (str of torch.device, optional): device specification in case of distributed computation usage.
-            This is necessary when running average is computed on the output of process function.
-            In most of the cases, it can be defined as "cuda:local_rank" or "cuda"
-            if already set `torch.cuda.set_device(local_rank)`. By default, if a distributed process group is
-            initialized and available, device is set to `cuda`.
+        device: specifies which device updates are accumulated on. Should be
+            None when ``src`` is an instance of :class:`~ignite.metrics.metric.Metric`, as the running average will
+            use the ``src``'s device. Otherwise, defaults to CPU. Only applicable when the computed value
+            from the metric is a tensor.
 
     Examples:
 
-    .. code-block:: python
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
 
-        alpha = 0.98
-        acc_metric = RunningAverage(Accuracy(output_transform=lambda x: [x[1], x[2]]), alpha=alpha)
-        acc_metric.attach(trainer, 'running_avg_accuracy')
+        .. include:: defaults.rst
+            :start-after: :orphan:
 
-        avg_output = RunningAverage(output_transform=lambda x: x[0], alpha=alpha)
-        avg_output.attach(trainer, 'running_avg_loss')
+        .. testcode:: 1
 
-        @trainer.on(Events.ITERATION_COMPLETED)
-        def log_running_avg_metrics(engine):
-            print("running avg accuracy:", engine.state.metrics['running_avg_accuracy'])
-            print("running avg loss:", engine.state.metrics['running_avg_loss'])
+            default_trainer = get_default_trainer()
 
+            accuracy = Accuracy()
+            metric = RunningAverage(accuracy)
+            metric.attach(default_trainer, 'running_avg_accuracy')
+
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def log_running_avg_metrics():
+                print(default_trainer.state.metrics['running_avg_accuracy'])
+
+            y_true = [torch.tensor(y) for y in [[0], [1], [0], [1], [0], [1]]]
+            y_pred = [torch.tensor(y) for y in [[0], [0], [0], [1], [1], [1]]]
+
+            state = default_trainer.run(zip(y_pred, y_true))
+
+        .. testoutput:: 1
+
+            1.0
+            0.98
+            0.98039...
+            0.98079...
+            0.96117...
+            0.96195...
+
+        .. testcode:: 2
+
+            default_trainer = get_default_trainer()
+
+            metric = RunningAverage(output_transform=lambda x: x.item())
+            metric.attach(default_trainer, 'running_avg_accuracy')
+
+            @default_trainer.on(Events.ITERATION_COMPLETED)
+            def log_running_avg_metrics():
+                print(default_trainer.state.metrics['running_avg_accuracy'])
+
+            y = [torch.tensor(y) for y in [[0], [1], [0], [1], [0], [1]]]
+
+            state = default_trainer.run(y)
+
+        .. testoutput:: 2
+
+            0.0
+            0.020000...
+            0.019600...
+            0.039208...
+            0.038423...
+            0.057655...
     """
 
-    _required_output_keys = None
+    required_output_keys = None
 
     def __init__(
         self,
@@ -66,7 +105,8 @@ class RunningAverage(Metric):
                 raise ValueError("Argument device should be None if src is a Metric.")
             self.src = src
             self._get_src_value = self._get_metric_value
-            self.iteration_completed = self._metric_iteration_completed
+            setattr(self, "iteration_completed", self._metric_iteration_completed)
+            device = src._device
         else:
             if output_transform is None:
                 raise ValueError(
@@ -74,15 +114,17 @@ class RunningAverage(Metric):
                     "to the output of process function."
                 )
             self._get_src_value = self._get_output_value
-            self.update = self._output_update
+            setattr(self, "update", self._output_update)
+            if device is None:
+                device = torch.device("cpu")
 
         self.alpha = alpha
         self.epoch_bound = epoch_bound
-        super(RunningAverage, self).__init__(output_transform=output_transform, device=device)
+        super(RunningAverage, self).__init__(output_transform=output_transform, device=device)  # type: ignore[arg-type]
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._value = None
+        self._value: Optional[Union[float, torch.Tensor]] = None
 
     @reinit__is_reduced
     def update(self, output: Sequence) -> None:
@@ -97,7 +139,7 @@ class RunningAverage(Metric):
 
         return self._value
 
-    def attach(self, engine: Engine, name: str):
+    def attach(self, engine: Engine, name: str, _usage: Union[str, MetricUsage] = EpochWise()) -> None:
         if self.epoch_bound:
             # restart average every epoch
             engine.add_event_handler(Events.EPOCH_STARTED, self.started)
@@ -111,7 +153,9 @@ class RunningAverage(Metric):
 
     @sync_all_reduce("src")
     def _get_output_value(self) -> Union[torch.Tensor, float]:
-        return self.src
+        # we need to compute average instead of sum produced by @sync_all_reduce("src")
+        output = cast(Union[torch.Tensor, float], self.src) / idist.get_world_size()
+        return output
 
     def _metric_iteration_completed(self, engine: Engine) -> None:
         self.src.started(engine)
@@ -120,5 +164,5 @@ class RunningAverage(Metric):
     @reinit__is_reduced
     def _output_update(self, output: Union[torch.Tensor, float]) -> None:
         if isinstance(output, torch.Tensor):
-            output = output.detach().clone()
-        self.src = output
+            output = output.detach().to(self._device, copy=True)
+        self.src = output  # type: ignore[assignment]

@@ -1,76 +1,124 @@
-# Reproducible PASCAL VOC2012 training with Ignite
+# Reproducible PASCAL VOC2012 training with PyTorch-Ignite
 
 In this example, we provide script and tools to perform reproducible experiments on training neural networks on PASCAL VOC2012
 dataset.
 
 Features:
-- Distributed training with mixed precision by [nvidia/apex](https://github.com/NVIDIA/apex/)
-- Experiments tracking with [MLflow](https://mlflow.org/) or [Polyaxon](https://polyaxon.com/)
 
-![tb_dashboard](assets/tb_dashboard.png)
-![mlflow_dashboard](assets/mlflow_dashboard.png)
+- Distributed training with native automatic mixed precision
+- Experiments tracking with [ClearML](https://github.com/allegroai/clearml)
 
-There are two possible options: 1) Experiments tracking with MLflow or 2) Experiments tracking with Polyaxon. 
-Experiments tracking with MLflow is more suitable for a local machine with GPUs. For experiments tracking with Polyaxon
-user needs to have Polyaxon installed on a machine/cluster/cloud and can schedule experiments with `polyaxon-cli`.
-User can choose one option and skip the descriptions of another option.
+ClearML Server: TODO: ADD THE LINK
 
-- Notes for [experiments tracking with MLflow](NOTES_MLflow.md)
-- Notes for [experiments tracking with Polyaxon](NOTES_Polyaxon.md)
+## Setup
 
-## Implementation details
-
-Files tree description:
 ```
-code
-  |___ dataflow : module privides data loaders and various transformers
-  |___ scripts : executable training scripts
-  |___ utils : other helper modules
-
-configs
-  |___ train : training python configuration files  
-  
-experiments 
-  |___ mlflow : MLflow related files
-  |___ plx : Polyaxon related files
- 
-notebooks : jupyter notebooks to check specific parts from code modules 
+pip install -r requirements.txt
 ```
 
-## Code and configs
+### Docker
 
-### [py_config_runner](https://github.com/vfdev-5/py_config_runner)
+For docker users, you can use the following images to run the example:
+```bash
+docker pull pytorchignite/vision:latest
+```
+or 
+```bash
+docker pull pytorchignite/hvd-vision:latest
+```
 
-We use [py_config_runner](https://github.com/vfdev-5/py_config_runner) package to execute python scripts with python configuration files.
+and install other requirements as suggested above
 
-### Training scripts
+### Using Horovod as distributed framework
 
-Training scripts are located [code/scripts](code/scripts/) and contains  
+We do not add `horovod` as a requirement into `requirements.txt`. Please, install it manually following the official guides or 
+use `pytorchignite/hvd-vision:latest` docker image.
 
-- `mlflow_training.py`, training script with MLflow experiments tracking
-- `plx_training.py`, training script with Polyaxon experiments tracking
-- `common_training.py`, common training code used by above files
- 
-Training scripts contain `run` method required by [py_config_runner](https://github.com/vfdev-5/py_config_runner) to 
-run a script with a configuration. Training logic is setup inside `training` method and configures a distributed trainer, 
-2 evaluators and various logging handlers to tensorboard, mlflow/polyaxon logger and tqdm.
+### (Optional) Download Pascal VOC2012 and SDB datasets
+
+Download and extract the datasets:
+
+```bash
+python main.py download /path/to/datasets
+```
+
+This script will download and extract the following datasets into `/path/to/datasets`
+
+- The [Pascal VOC2012](http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar) dataset
+- Optionally, the [SBD](http://www.eecs.berkeley.edu/Research/Projects/CS/vision/grouping/semantic_contours/benchmark.tgz) evaluation dataset
 
 
-### Configurations
+## Usage
 
-- [baseline_resnet101.py](configs/train/baseline_resnet101.py) : trains DeeplabV3-ResNet101 on Pascal VOC2012 dataset only
-- [baseline_resnet101_sbd.py](configs/train/baseline_resnet101_sbd.py) : trains DeeplabV3-ResNet101 on Pascal VOC2012 dataset with SBD
+Please, export the `DATASET_PATH` environment variable for the Pascal VOC2012 dataset.
 
+```bash
+export DATASET_PATH=/path/to/pascal_voc2012
+# e.g. export DATASET_PATH=/data/ where VOCdevkit is located
+```
 
-### Results
+Optionally, if using SBD dataset, export the `SBD_DATASET_PATH` environment variable:
 
-Model | with SBD | Training mIoU+BG | Test mIoU+BG
----|---|---|---
-DeepLabV3 ResNet-101 | X | 86% | 68%
+```bash
+export SBD_DATASET_PATH=/path/to/SBD/
+# e.g. export SBD_DATASET_PATH=/data/SBD/  where "cls  img  inst  train.txt  train_noval.txt  val.txt" are located
+```
+
+### Training
+
+#### Single GPU
+
+- Adjust batch size for your GPU type in the configuration file: `configs/baseline_dplv3_resnet101_sbd.py` or `configs/baseline_dplv3_resnet101.py`
+
+Run the following command:
+```bash
+CUDA_VISIBLE_DEVICES=0 python -u main.py training configs/baseline_dplv3_resnet101_sbd.py
+# or without SBD 
+# CUDA_VISIBLE_DEVICES=0 python -u main.py training configs/baseline_dplv3_resnet101.py
+```
+
+#### Multiple GPUs
+
+- Adjust total batch size for your GPUs in the configuration file: `configs/baseline_dplv3_resnet101_sbd.py` or `configs/baseline_dplv3_resnet101.py`
+
+```bash
+python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py training configs/baseline_dplv3_resnet101_sbd.py
+# or without SBD 
+# python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py training configs/baseline_dplv3_resnet101.py
+```
+
+#### Using Horovod as distributed framework
+
+- Adjust total batch size for your GPUs in the configuration file: `configs/baseline_dplv3_resnet101_sbd.py` or `configs/baseline_dplv3_resnet101.py`
+
+```bash
+horovodrun -np=2 python -u main.py training configs/baseline_dplv3_resnet101_sbd.py --backend="horovod"
+# or without SBD
+# horovodrun -np=2 python -u main.py training configs/baseline_dplv3_resnet101.py --backend="horovod"
+```
+
+### Evaluation
+
+#### Single GPU
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python -u main.py eval configs/eval_baseline_dplv3_resnet101_sbd.py
+```
+
+#### Multiple GPUs
+
+```bash
+python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py eval configs/eval_baseline_dplv3_resnet101_sbd.py
+```
+
+#### Using Horovod as distributed framework
+
+```bash
+horovodrun -np=2 python -u main.py eval configs/eval_baseline_dplv3_resnet101_sbd.py --backend="horovod"
+```
 
 
 ## Acknowledgements
 
-Part of trainings was done within [Tesla GPU Test Drive](https://www.nvidia.com/en-us/data-center/tesla/gpu-test-drive/) 
-on 2 Nvidia V100 GPUs.
-
+Trainings were done using credits provided by AWS for open-source development via NumFOCUS 
+and using [trainml.ai](trainml.ai) platform.

@@ -13,30 +13,30 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import os
+import shutil
 import sys
 
 sys.path.insert(0, os.path.abspath("../.."))
-import ignite
+from datetime import datetime
+
 import pytorch_sphinx_theme
+
+import ignite
 
 # -- Project information -----------------------------------------------------
 
-project = "ignite"
-copyright = "2019, Torch Contributors"
-author = "Torch Contributors"
+project = "PyTorch-Ignite"
+author = "PyTorch-Ignite Contributors"
+copyright = f"{datetime.now().year}, {author}"
 
 # The short X.Y version
 try:
     version = os.environ["code_version"]
-    if "master" in version:
-        version = "master (" + ignite.__version__ + ")"
-    else:
-        version = version.replace("v", "")
 except KeyError:
     version = ignite.__version__
 
 # The full version, including alpha/beta/rc tags
-release = "master"
+release = version
 
 
 # -- General configuration ---------------------------------------------------
@@ -49,15 +49,35 @@ release = "master"
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.doctest",
     "sphinx.ext.intersphinx",
     "sphinx.ext.todo",
     "sphinx.ext.coverage",
-    "sphinx.ext.mathjax",
+    "sphinxcontrib.katex",
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
+    "sphinx.ext.autosectionlabel",
+    "sphinx_copybutton",
+    "sphinx_togglebutton",
+    "sphinx_design",
 ]
+
+# toggle button hint text
+togglebutton_hint = "Show default setup"
+togglebutton_hint_hide = "Hide default setup"
+
+# Copy defaults.rst to source/generated to be discoverable in docstrings
+# Skip this step for previous versions of ignite
+if os.path.exists("defaults.rst"):
+    src_folder = os.path.dirname(__file__)
+    gen_folder = os.path.join(src_folder, "generated")
+    os.makedirs(gen_folder, exist_ok=True)
+    shutil.copy(os.path.join(src_folder, "defaults.rst"), gen_folder)
+
+# katex options
+katex_prerender = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -76,7 +96,7 @@ master_doc = "index"
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -91,18 +111,22 @@ pygments_style = "sphinx"
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-#
+
+html_title = f"{project} {version} Documentation"
 html_theme = "pytorch_sphinx_theme"
 html_theme_path = [pytorch_sphinx_theme.get_html_theme_path()]
 
 html_theme_options = {
-    "canonical_url": "https://pytorch.org/ignite/index.html",
+    "canonical_url": "https://pytorch.org/ignite/",
     "collapse_navigation": False,
     "display_version": True,
     "logo_only": True,
+    "navigation_with_keys": True,
 }
 
-html_logo = "_static/img/ignite-logo-dark.svg"
+html_logo = "_templates/_static/img/ignite_logo.svg"
+
+html_favicon = "_templates/_static/img/ignite_logomark.svg"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -116,13 +140,17 @@ html_logo = "_static/img/ignite-logo-dark.svg"
 html_static_path = ["_static", "_templates/_static"]
 
 html_context = {
-    "css_files": [
+    "extra_css_files": [
         # 'https://fonts.googleapis.com/css?family=Lato',
         # '_static/css/pytorch_theme.css'
-        "_static/css/ignite_theme.css"
+        "_static/css/ignite_theme.css",
+        "https://cdn.jsdelivr.net/npm/@docsearch/css@3.3.0/dist/style.min.css",
     ],
 }
 
+html_last_updated_fmt = "%m/%d/%Y, %X"
+html_permalinks = True
+html_permalinks_icon = "#"
 
 # -- Options for HTMLHelp output ---------------------------------------------
 
@@ -185,9 +213,139 @@ texinfo_documents = [
 # -- Options for intersphinx extension ---------------------------------------
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {"https://docs.python.org/": None}
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+    "torch": ("https://pytorch.org/docs/stable/", None),
+}
 
 # -- Options for todo extension ----------------------------------------------
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
+
+# -- Type hints configs ------------------------------------------------------
+
+autodoc_inherit_docstrings = True
+autoclass_content = "both"
+autodoc_typehints = "description"
+napoleon_attr_annotations = True
+
+# -- Autosummary patch to get list of a classes, funcs automatically ----------
+
+from importlib import import_module
+from inspect import getmembers, isclass, isfunction
+
+from docutils.parsers.rst import directives
+from docutils.statemachine import StringList
+from sphinx.ext.autosummary import Autosummary
+
+
+class AutolistAutosummary(Autosummary):
+    """Autosummary with autolisting for modules.
+
+    By default it tries to import all public names (__all__),
+    otherwise import all classes and/or functions in a module.
+
+    Options:
+    - :autolist: option to get list of classes and functions from currentmodule.
+    - :autolist-classes: option to get list of classes from currentmodule.
+    - :autolist-functions: option to get list of functions from currentmodule.
+
+    Example Usage:
+
+    .. currentmodule:: ignite.metrics
+
+    .. autosummary::
+        :nosignatures:
+        :autolist:
+    """
+
+    # Add new option
+    _option_spec = Autosummary.option_spec.copy()
+    _option_spec.update(
+        {
+            "autolist": directives.unchanged,
+            "autolist-classes": directives.unchanged,
+            "autolist-functions": directives.unchanged,
+        }
+    )
+    option_spec = _option_spec
+
+    def run(self):
+        for auto in ("autolist", "autolist-classes", "autolist-functions"):
+            if auto in self.options:
+                # Get current module name
+                module_name = self.env.ref_context.get("py:module")
+                # Import module
+                module = import_module(module_name)
+
+                # Get public names (if possible)
+                try:
+                    names = getattr(module, "__all__")
+                except AttributeError:
+                    # Get classes defined in the module
+                    cls_names = [
+                        name[0]
+                        for name in getmembers(module, isclass)
+                        if name[-1].__module__ == module_name and not (name[0].startswith("_"))
+                    ]
+                    # Get functions defined in the module
+                    fn_names = [
+                        name[0]
+                        for name in getmembers(module, isfunction)
+                        if (name[-1].__module__ == module_name) and not (name[0].startswith("_"))
+                    ]
+                    names = cls_names + fn_names
+                    # It may happen that module doesn't have any defined class or func
+                    if not names:
+                        names = [name[0] for name in getmembers(module)]
+
+                # Filter out members w/o doc strings
+                names = [name for name in names if getattr(module, name).__doc__ is not None]
+
+                if auto == "autolist":
+                    # Get list of all classes and functions inside module
+                    names = [
+                        name for name in names if (isclass(getattr(module, name)) or isfunction(getattr(module, name)))
+                    ]
+                else:
+                    if auto == "autolist-classes":
+                        # Get only classes
+                        check = isclass
+                    elif auto == "autolist-functions":
+                        # Get only functions
+                        check = isfunction
+                    else:
+                        raise NotImplementedError
+
+                    names = [name for name in names if check(getattr(module, name))]
+
+                # Update content
+                self.content = StringList(names)
+        return super().run()
+
+
+# --- autosummary config -----------------------------------------------------
+autosummary_generate = True
+
+# --- nitpicky config : check internal links are correct or not --------------
+nitpicky = True
+# ignore links which can't be referenced
+nitpick_ignore = [
+    ("py:class", ".."),
+    ("py:class", "TextIO"),
+    ("py:class", "torch.device"),
+    ("py:class", "_MpDeviceLoader"),
+    ("py:class", "torch.nn.modules.module.Module"),
+    ("py:class", "torch.optim.optimizer.Optimizer"),
+    ("py:class", "torch.utils.data.dataset.Dataset"),
+    ("py:class", "torch.utils.data.sampler.BatchSampler"),
+    ("py:class", "torch.cuda.amp.grad_scaler.GradScaler"),
+    ("py:class", "torch.optim.lr_scheduler._LRScheduler"),
+    ("py:class", "torch.optim.lr_scheduler.LRScheduler"),
+    ("py:class", "torch.utils.data.dataloader.DataLoader"),
+]
+
+
+def setup(app):
+    app.add_directive("autosummary", AutolistAutosummary, override=True)

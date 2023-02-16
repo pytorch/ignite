@@ -1,12 +1,22 @@
 import math
 import warnings
+from unittest.mock import ANY, call, MagicMock
 
-from unittest.mock import call, ANY, MagicMock
 import pytest
 import torch
 
+import ignite.distributed as idist
+from ignite.contrib.handlers.neptune_logger import (
+    global_step_from_engine,
+    GradsScalarHandler,
+    NeptuneLogger,
+    NeptuneSaver,
+    OptimizerParamsHandler,
+    OutputHandler,
+    WeightsScalarHandler,
+)
 from ignite.engine import Engine, Events, State
-from ignite.contrib.handlers.neptune_logger import *
+from ignite.handlers.checkpoint import Checkpoint
 
 
 def test_optimizer_params_handler_wrong_setup():
@@ -18,12 +28,12 @@ def test_optimizer_params_handler_wrong_setup():
 
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler OptimizerParamsHandler works only with NeptuneLogger"):
+    with pytest.raises(TypeError, match="Handler OptimizerParamsHandler works only with NeptuneLogger"):
         handler(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
 def test_optimizer_params():
-    optimizer = torch.optim.SGD([torch.Tensor(0)], lr=0.01)
+    optimizer = torch.optim.SGD([torch.tensor(0.0)], lr=0.01)
     wrapper = OptimizerParamsHandler(optimizer=optimizer, param_name="lr")
     mock_logger = MagicMock(spec=NeptuneLogger)
     mock_logger.log_metric = MagicMock()
@@ -47,7 +57,7 @@ def test_output_handler_with_wrong_logger_type():
 
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler OutputHandler works only with NeptuneLogger"):
+    with pytest.raises(TypeError, match="Handler OutputHandler works only with NeptuneLogger"):
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
@@ -82,13 +92,13 @@ def test_output_handler_metric_names():
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
     assert mock_logger.log_metric.call_count == 2
-    mock_logger.log_metric.assert_has_calls([call("tag/a", y=12.23, x=5), call("tag/b", y=23.45, x=5),], any_order=True)
+    mock_logger.log_metric.assert_has_calls([call("tag/a", y=12.23, x=5), call("tag/b", y=23.45, x=5)], any_order=True)
 
-    wrapper = OutputHandler("tag", metric_names=["a",])
+    wrapper = OutputHandler("tag", metric_names=["a"])
 
     mock_engine = MagicMock()
     mock_logger.log_metric = MagicMock()
-    mock_engine.state = State(metrics={"a": torch.Tensor([0.0, 1.0, 2.0, 3.0])})
+    mock_engine.state = State(metrics={"a": torch.tensor([0.0, 1.0, 2.0, 3.0])})
     mock_engine.state.iteration = 5
 
     mock_logger = MagicMock(spec=NeptuneLogger)
@@ -120,7 +130,7 @@ def test_output_handler_metric_names():
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
     assert mock_logger.log_metric.call_count == 1
-    mock_logger.log_metric.assert_has_calls([call("tag/a", y=55.56, x=7),], any_order=True)
+    mock_logger.log_metric.assert_has_calls([call("tag/a", y=55.56, x=7)], any_order=True)
 
     # all metrics
     wrapper = OutputHandler("tag", metric_names="all")
@@ -133,7 +143,23 @@ def test_output_handler_metric_names():
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
     assert mock_logger.log_metric.call_count == 2
-    mock_logger.log_metric.assert_has_calls([call("tag/a", y=12.23, x=5), call("tag/b", y=23.45, x=5),], any_order=True)
+    mock_logger.log_metric.assert_has_calls([call("tag/a", y=12.23, x=5), call("tag/b", y=23.45, x=5)], any_order=True)
+
+    # log a torch tensor (ndimension = 0)
+    wrapper = OutputHandler("tag", metric_names="all")
+    mock_logger = MagicMock(spec=NeptuneLogger)
+    mock_logger.log_metric = MagicMock()
+    mock_engine = MagicMock()
+    mock_engine.state = State(metrics={"a": torch.tensor(12.23), "b": torch.tensor(23.45)})
+    mock_engine.state.iteration = 5
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+    assert mock_logger.log_metric.call_count == 2
+    mock_logger.log_metric.assert_has_calls(
+        [call("tag/a", y=torch.tensor(12.23).item(), x=5), call("tag/b", y=torch.tensor(23.45).item(), x=5)],
+        any_order=True,
+    )
 
 
 def test_output_handler_both():
@@ -220,6 +246,32 @@ def test_output_handler_with_global_step_transform():
     mock_logger.log_metric.assert_has_calls([call("tag/loss", y=12345, x=10)])
 
 
+def test_output_handler_state_attrs():
+    wrapper = OutputHandler("tag", state_attributes=["alpha", "beta", "gamma"])
+    mock_logger = MagicMock(spec=NeptuneLogger)
+    mock_logger.log_metric = MagicMock()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.iteration = 5
+    mock_engine.state.alpha = 3.899
+    mock_engine.state.beta = torch.tensor(12.23)
+    mock_engine.state.gamma = torch.tensor([21.0, 6.0])
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+    assert mock_logger.log_metric.call_count == 4
+    mock_logger.log_metric.assert_has_calls(
+        [
+            call("tag/alpha", y=3.899, x=5),
+            call("tag/beta", y=torch.tensor(12.23).item(), x=5),
+            call("tag/gamma/0", y=21.0, x=5),
+            call("tag/gamma/1", y=6.0, x=5),
+        ],
+        any_order=True,
+    )
+
+
 def test_weights_scalar_handler_wrong_setup():
     with pytest.raises(TypeError, match="Argument model should be of type torch.nn.Module"):
         WeightsScalarHandler(None)
@@ -228,13 +280,13 @@ def test_weights_scalar_handler_wrong_setup():
     with pytest.raises(TypeError, match="Argument reduction should be callable"):
         WeightsScalarHandler(model, reduction=123)
 
-    with pytest.raises(ValueError, match="Output of the reduction function should be a scalar"):
+    with pytest.raises(TypeError, match="Output of the reduction function should be a scalar"):
         WeightsScalarHandler(model, reduction=lambda x: x)
 
     wrapper = WeightsScalarHandler(model)
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler WeightsScalarHandler works only with NeptuneLogger"):
+    with pytest.raises(TypeError, match="Handler WeightsScalarHandler works only with NeptuneLogger"):
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
@@ -252,7 +304,7 @@ def test_weights_scalar_handler(dummy_model_factory):
 
         wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-        tag_prefix = "{}/".format(tag) if tag else ""
+        tag_prefix = f"{tag}/" if tag else ""
 
         assert mock_logger.log_metric.call_count == 4
         mock_logger.log_metric.assert_has_calls(
@@ -282,13 +334,13 @@ def test_weights_scalar_handler_frozen_layers(dummy_model_factory):
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
     mock_logger.log_metric.assert_has_calls(
-        [call("weights_norm/fc2/weight", y=12.0, x=5), call("weights_norm/fc2/bias", y=math.sqrt(12.0), x=5),],
+        [call("weights_norm/fc2/weight", y=12.0, x=5), call("weights_norm/fc2/bias", y=math.sqrt(12.0), x=5)],
         any_order=True,
     )
 
     with pytest.raises(AssertionError):
         mock_logger.log_metric.assert_has_calls(
-            [call("weights_norm/fc1/weight", y=12.0, x=5), call("weights_norm/fc1/bias", y=math.sqrt(12.0), x=5),],
+            [call("weights_norm/fc1/weight", y=12.0, x=5), call("weights_norm/fc1/bias", y=math.sqrt(12.0), x=5)],
             any_order=True,
         )
 
@@ -306,7 +358,7 @@ def test_grads_scalar_handler_wrong_setup():
     wrapper = GradsScalarHandler(model)
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler GradsScalarHandler works only with NeptuneLogger"):
+    with pytest.raises(TypeError, match="Handler GradsScalarHandler works only with NeptuneLogger"):
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
@@ -325,7 +377,7 @@ def test_grads_scalar_handler(dummy_model_factory, norm_mock):
 
         wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-        tag_prefix = "{}/".format(tag) if tag else ""
+        tag_prefix = f"{tag}/" if tag else ""
 
         mock_logger.log_metric.assert_has_calls(
             [
@@ -357,12 +409,12 @@ def test_grads_scalar_handler_frozen_layers(dummy_model_factory, norm_mock):
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
     mock_logger.log_metric.assert_has_calls(
-        [call("grads_norm/fc2/weight", y=ANY, x=5), call("grads_norm/fc2/bias", y=ANY, x=5),], any_order=True
+        [call("grads_norm/fc2/weight", y=ANY, x=5), call("grads_norm/fc2/bias", y=ANY, x=5)], any_order=True
     )
 
     with pytest.raises(AssertionError):
         mock_logger.log_metric.assert_has_calls(
-            [call("grads_norm/fc1/weight", y=ANY, x=5), call("grads_norm/fc1/bias", y=ANY, x=5),], any_order=True
+            [call("grads_norm/fc1/weight", y=ANY, x=5), call("grads_norm/fc1/bias", y=ANY, x=5)], any_order=True
         )
     assert mock_logger.log_metric.call_count == 2
     assert norm_mock.call_count == 2
@@ -414,7 +466,7 @@ def test_integration_as_context_manager():
         trainer.run(data, max_epochs=n_epochs)
 
 
-def test_neptune_saver_serializable(dummy_model_factory, dirname):
+def test_neptune_saver_serializable(dirname):
 
     mock_logger = MagicMock(spec=NeptuneLogger)
     mock_logger.log_artifact = MagicMock()
@@ -422,13 +474,42 @@ def test_neptune_saver_serializable(dummy_model_factory, dirname):
     to_save_serializable = {"model": model}
 
     saver = NeptuneSaver(mock_logger)
-    fname = "test.pt"
+    fname = dirname / "test.pt"
     saver(to_save_serializable, fname)
 
     assert mock_logger.log_artifact.call_count == 1
 
 
-def test_neptune_saver_non_serializable(dirname):
+def _test_neptune_saver_integration(device):
+
+    model = torch.nn.Module().to(device)
+    to_save_serializable = {"model": model}
+
+    mock_logger = None
+    if idist.get_rank() == 0:
+        mock_logger = MagicMock(spec=NeptuneLogger)
+        mock_logger.log_artifact = MagicMock()
+        mock_logger.delete_artifacts = MagicMock()
+
+    saver = NeptuneSaver(mock_logger)
+
+    checkpoint = Checkpoint(to_save=to_save_serializable, save_handler=saver, n_saved=1)
+
+    trainer = Engine(lambda e, b: None)
+    trainer.state = State(epoch=0, iteration=0)
+    checkpoint(trainer)
+    trainer.state.iteration = 1
+    checkpoint(trainer)
+    if idist.get_rank() == 0:
+        assert mock_logger.log_artifact.call_count == 2
+        assert mock_logger.delete_artifacts.call_count == 1
+
+
+def test_neptune_saver_integration():
+    _test_neptune_saver_integration("cpu")
+
+
+def test_neptune_saver_non_serializable():
 
     mock_logger = MagicMock(spec=NeptuneLogger)
     mock_logger.log_artifact = MagicMock()
@@ -449,26 +530,25 @@ def test_neptune_saver_non_serializable(dirname):
     assert mock_logger.log_artifact.call_count == 0
 
 
-@pytest.fixture
-def no_site_packages():
-    import sys
-
-    neptune_client_modules = {}
-    for k in sys.modules:
-        if "neptune" in k:
-            neptune_client_modules[k] = sys.modules[k]
-    for k in neptune_client_modules:
-        del sys.modules[k]
-
-    prev_path = list(sys.path)
-    sys.path = [p for p in sys.path if "site-packages" not in p]
-    yield "no_site_packages"
-    sys.path = prev_path
-    for k in neptune_client_modules:
-        sys.modules[k] = neptune_client_modules[k]
-
-
+@pytest.mark.parametrize("no_site_packages", ["neptune"], indirect=True)
 def test_no_neptune_client(no_site_packages):
 
-    with pytest.raises(RuntimeError, match=r"This contrib module requires neptune-client to be installed."):
+    with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires neptune-client to be installed."):
         NeptuneLogger()
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
+
+    device = idist.device()
+    _test_neptune_saver_integration(device)
+
+
+@pytest.mark.distributed
+@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
+
+    device = idist.device()
+    _test_neptune_saver_integration(device)

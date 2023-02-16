@@ -1,73 +1,120 @@
 import argparse
-from collections import namedtuple
+from collections import deque, namedtuple
 
 import numpy as np
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.distributions import Categorical
 
-try:
-    import gym
-except ImportError:
-    raise RuntimeError("Please install opengym: pip install gym")
-
-
 from ignite.engine import Engine, Events
+
+try:
+    import gymnasium as gym
+except ImportError:
+    raise ModuleNotFoundError("Please install opengym: pip install gymnasium")
 
 
 SavedAction = namedtuple("SavedAction", ["log_prob", "value"])
 
+eps = np.finfo(np.float32).eps.item()
+
 
 class Policy(nn.Module):
+    """
+    implements both actor and critic in one model
+    """
+
     def __init__(self):
         super(Policy, self).__init__()
         self.affine1 = nn.Linear(4, 128)
+
+        # actor's layer
         self.action_head = nn.Linear(128, 2)
+
+        # critic's layer
         self.value_head = nn.Linear(128, 1)
 
+        # action & reward buffer
         self.saved_actions = []
         self.rewards = []
 
     def forward(self, x):
+        """
+        forward of both actor and critic
+        """
         x = F.relu(self.affine1(x))
-        action_scores = self.action_head(x)
+
+        # actor: choses action to take from state s_t
+        # by returning probability of each action
+        action_prob = F.softmax(self.action_head(x), dim=-1)
+
+        # critic: evaluates being in the state s_t
         state_values = self.value_head(x)
-        return F.softmax(action_scores, dim=-1), state_values
+
+        # return values for both actor and critic as a tuple of 2 values:
+        # 1. a list with the probability of each action over the action space
+        # 2. the value from state s_t
+        return action_prob, state_values
 
 
-def select_action(model, observation):
+def select_action(policy, observation):
     observation = torch.from_numpy(observation).float()
-    probs, observation_value = model(observation)
+    probs, observation_value = policy(observation)
+    # create a categorical distribution over the list of probabilities of actions
     m = Categorical(probs)
+
+    # and sample an action using the distribution
     action = m.sample()
-    model.saved_actions.append(SavedAction(m.log_prob(action), observation_value))
+
+    # save to action buffer
+    policy.saved_actions.append(SavedAction(m.log_prob(action), observation_value))
+
+    # the action to take (left or right)
     return action.item()
 
 
-def finish_episode(model, optimizer, gamma, eps):
+def finish_episode(policy, optimizer, gamma):
+    """
+    Training code. Calculates actor and critic loss and performs backprop.
+    """
     R = 0
-    saved_actions = model.saved_actions
-    policy_losses = []
-    value_losses = []
-    rewards = []
-    for r in model.rewards[::-1]:
+    saved_actions = policy.saved_actions
+    policy_losses = []  # list to save actor (policy) loss
+    value_losses = []  # list to save critic (value) loss
+    returns = deque()  # list to save the true values
+
+    # calculate the true value using rewards returned from the environment
+    for r in policy.rewards[::-1]:
+        # calculate the discounted value
         R = r + gamma * R
-        rewards.insert(0, R)
-    rewards = torch.tensor(rewards)
-    rewards = (rewards - rewards.mean()) / (rewards.std() + eps)
-    for (log_prob, value), r in zip(saved_actions, rewards):
-        reward = r - value.item()
-        policy_losses.append(-log_prob * reward)
-        value_losses.append(F.smooth_l1_loss(value, torch.tensor([r])))
+        returns.appendleft(R)
+
+    returns = torch.tensor(returns)
+    returns = (returns - returns.mean()) / (returns.std() + eps)
+
+    for (log_prob, value), R in zip(saved_actions, returns):
+        advantage = R - value.item()
+
+        # calculate actor (policy) loss
+        policy_losses.append(-log_prob * advantage)
+
+        # calculate critic (value) loss using L1 smooth loss
+        value_losses.append(F.smooth_l1_loss(value, torch.tensor([R])))
+
+    # reset gradients
     optimizer.zero_grad()
+
+    # sum up all the values of policy_losses and value_losses
     loss = torch.stack(policy_losses).sum() + torch.stack(value_losses).sum()
+
+    # perform backprop
     loss.backward()
     optimizer.step()
-    del model.rewards[:]
-    del model.saved_actions[:]
+    # reset rewards and action buffer
+    del policy.rewards[:]
+    del policy.saved_actions[:]
 
 
 EPISODE_STARTED = Events.EPOCH_STARTED
@@ -76,57 +123,63 @@ EPISODE_COMPLETED = Events.EPOCH_COMPLETED
 
 def main(env, args):
 
-    model = Policy()
-    optimizer = optim.Adam(model.parameters(), lr=3e-2)
-    eps = np.finfo(np.float32).eps.item()
-    timesteps = list(range(10000))
+    policy = Policy()
+    optimizer = optim.Adam(policy.parameters(), lr=3e-2)
+    timesteps = range(10000)
 
     def run_single_timestep(engine, timestep):
         observation = engine.state.observation
-        action = select_action(model, observation)
-        engine.state.observation, reward, done, _ = env.step(action)
+        # select action from policy
+        action = select_action(policy, observation)
+
+        # take the action
+        engine.state.observation, reward, done, _, _ = env.step(action)
+
         if args.render:
             env.render()
-        model.rewards.append(reward)
 
+        policy.rewards.append(reward)
+        engine.state.ep_reward += reward
         if done:
             engine.terminate_epoch()
             engine.state.timestep = timestep
 
     trainer = Engine(run_single_timestep)
-
-    @trainer.on(Events.STARTED)
-    def initialize(engine):
-        engine.state.running_reward = 10
+    trainer.state.running_reward = 10
 
     @trainer.on(EPISODE_STARTED)
-    def reset_environment_state(engine):
-        engine.state.observation = env.reset()
+    def reset_environment_state():
+        # reset environment and episode reward
+        torch.manual_seed(args.seed + trainer.state.epoch)
+        trainer.state.observation, _ = env.reset(seed=args.seed + trainer.state.epoch)
+        trainer.state.ep_reward = 0
 
     @trainer.on(EPISODE_COMPLETED)
-    def update_model(engine):
-        t = engine.state.timestep
-        engine.state.running_reward = engine.state.running_reward * 0.99 + t * 0.01
-        finish_episode(model, optimizer, args.gamma, eps)
+    def update_model():
+        # update cumulative reward
+        t = trainer.state.timestep
+        trainer.state.running_reward = 0.05 * trainer.state.ep_reward + (1 - 0.05) * trainer.state.running_reward
+        # perform backprop
+        finish_episode(policy, optimizer, args.gamma)
 
     @trainer.on(EPISODE_COMPLETED(every=args.log_interval))
-    def log_episode(engine):
-        i_episode = engine.state.epoch
+    def log_episode():
+        i_episode = trainer.state.epoch
         print(
-            "Episode {}\tLast length: {:5d}\tAverage length: {:.2f}".format(
-                i_episode, engine.state.timestep, engine.state.running_reward
-            )
+            f"Episode {i_episode}\tLast reward: {trainer.state.ep_reward:.2f}"
+            f"\tAverage reward: {trainer.state.running_reward:.2f}"
         )
 
     @trainer.on(EPISODE_COMPLETED)
-    def should_finish_training(engine):
-        running_reward = engine.state.running_reward
+    def should_finish_training():
+        # check if we have "solved" the cart pole problem
+        running_reward = trainer.state.running_reward
         if running_reward > env.spec.reward_threshold:
             print(
-                "Solved! Running reward is now {} and "
-                "the last episode runs to {} time steps!".format(running_reward, engine.state.timestep)
+                f"Solved! Running reward is now {running_reward} and "
+                f"the last episode runs to {trainer.state.timestep} time steps!"
             )
-            engine.should_terminate = True
+            trainer.should_terminate = True
 
     trainer.run(timesteps, max_epochs=args.max_episodes)
 
@@ -149,8 +202,6 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    env = gym.make("CartPole-v0")
-    env.seed(args.seed)
-    torch.manual_seed(args.seed)
+    env = gym.make("CartPole-v1")
 
     main(env, args)

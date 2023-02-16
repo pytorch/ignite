@@ -1,0 +1,38 @@
+# Dockerfile.base
+ARG PTH_VERSION
+
+FROM pytorch/pytorch:${PTH_VERSION}-runtime
+
+# Install tzdata / git
+RUN apt-get update && \
+    ln -fs /usr/share/zoneinfo/Europe/Paris /etc/localtime && \
+    apt-get -y install --no-install-recommends tzdata git && \
+    dpkg-reconfigure --frontend noninteractive tzdata && \
+    apt-get autoremove -y && \
+    apt-get clean -y && \
+    rm -rf /var/lib/apt/lists/*
+
+# Ignite main dependencies
+RUN pip install --upgrade --no-cache-dir pytorch-ignite \
+                                         tensorboard \
+                                         tqdm \
+                                         fire
+
+# Replace pillow with pillow-simd
+RUN apt-get update && apt-get -y install --no-install-recommends g++ && \
+    pip uninstall -y pillow && \
+    CC="cc -mavx2" pip install --upgrade --no-cache-dir --force-reinstall pillow-simd && \
+    apt-get remove -y g++ && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/*
+
+# Checkout Ignite examples only
+RUN mkdir -p pytorch-ignite-examples && \
+    cd pytorch-ignite-examples && \
+    git init && \
+    git config core.sparsecheckout true && \
+    echo examples >> .git/info/sparse-checkout && \
+    git remote add -f origin https://github.com/pytorch/ignite.git && \
+    git pull origin master && \
+    # rm very large .git folder
+    rm -rf .git

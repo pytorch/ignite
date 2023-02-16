@@ -1,10 +1,12 @@
-from typing import Optional, Union, Callable
-
-__all__ = ["Fbeta"]
+from typing import Callable, Optional, Union
 
 import torch
 
-from ignite.metrics import Precision, Recall, MetricsLambda
+from ignite.metrics.metrics_lambda import MetricsLambda
+from ignite.metrics.precision import Precision
+from ignite.metrics.recall import Recall
+
+__all__ = ["Fbeta"]
 
 
 def Fbeta(
@@ -13,29 +15,133 @@ def Fbeta(
     precision: Optional[Precision] = None,
     recall: Optional[Recall] = None,
     output_transform: Optional[Callable] = None,
-    device: Optional[Union[str, torch.device]] = None,
+    device: Union[str, torch.device] = torch.device("cpu"),
 ) -> MetricsLambda:
-    """Calculates F-beta score
+    r"""Calculates F-beta score.
+
+    .. math::
+        F_\beta = \left( 1 + \beta^2 \right) * \frac{ \text{precision} * \text{recall} }
+        { \left( \beta^2 * \text{precision} \right) + \text{recall} }
+
+    where :math:`\beta` is a positive real factor.
+
+    - ``update`` must receive output of the form ``(y_pred, y)``.
+    - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...).
+    - `y` must be in the following shape (batch_size, ...).
 
     Args:
-        beta (float): weight of precision in harmonic mean
-        average (bool, optional): if True, F-beta score is computed as the unweighted average (across all classes
+        beta: weight of precision in harmonic mean
+        average: if True, F-beta score is computed as the unweighted average (across all classes
             in multiclass case), otherwise, returns a tensor with F-beta score for each class in multiclass case.
-        precision (Precision, optional): precision object metric with `average=False` to compute F-beta score
-        recall (Precision, optional): recall object metric with `average=False` to compute F-beta score
-        output_transform (callable, optional): a callable that is used to transform the
-            :class:`~ignite.engine.Engine`'s `process_function`'s output into the
+        precision: precision object metric with `average=False` to compute F-beta score
+        recall: recall object metric with `average=False` to compute F-beta score
+        output_transform: a callable that is used to transform the
+            :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. It is used only if precision or recall are not provided.
-        device (str of torch.device, optional): device specification in case of distributed computation usage.
-            In most of the cases, it can be defined as "cuda:local_rank" or "cuda"
-            if already set `torch.cuda.set_device(local_rank)`. By default, if a distributed process group is
-            initialized and available, device is set to `cuda`.
+        device: specifies which device updates are accumulated on. Setting the metric's
+            device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
+            default, CPU.
 
     Returns:
         MetricsLambda, F-beta metric
+
+    Examples:
+
+        For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
+
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
+        Binary case
+
+        .. testcode:: 1
+
+            P = Precision(average=False)
+            R = Recall(average=False)
+            metric = Fbeta(beta=1.0, precision=P, recall=R)
+            metric.attach(default_evaluator, "f-beta")
+            y_true = torch.tensor([1, 0, 1, 1, 0, 1])
+            y_pred = torch.tensor([1, 0, 1, 0, 1, 1])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["f-beta"])
+
+        .. testoutput:: 1
+
+            0.7499...
+
+        Multiclass case
+
+        .. testcode:: 2
+
+            P = Precision(average=False)
+            R = Recall(average=False)
+            metric = Fbeta(beta=1.0, precision=P, recall=R)
+            metric.attach(default_evaluator, "f-beta")
+            y_true = torch.tensor([2, 0, 2, 1, 0, 1])
+            y_pred = torch.tensor([
+                [0.0266, 0.1719, 0.3055],
+                [0.6886, 0.3978, 0.8176],
+                [0.9230, 0.0197, 0.8395],
+                [0.1785, 0.2670, 0.6084],
+                [0.8448, 0.7177, 0.7288],
+                [0.7748, 0.9542, 0.8573],
+            ])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["f-beta"])
+
+        .. testoutput:: 2
+
+            0.5222...
+
+        F-beta can be computed for each class as done below:
+
+        .. testcode:: 3
+
+            P = Precision(average=False)
+            R = Recall(average=False)
+            metric = Fbeta(beta=1.0, average=False, precision=P, recall=R)
+            metric.attach(default_evaluator, "f-beta")
+            y_true = torch.tensor([2, 0, 2, 1, 0, 1])
+            y_pred = torch.tensor([
+                [0.0266, 0.1719, 0.3055],
+                [0.6886, 0.3978, 0.8176],
+                [0.9230, 0.0197, 0.8395],
+                [0.1785, 0.2670, 0.6084],
+                [0.8448, 0.7177, 0.7288],
+                [0.7748, 0.9542, 0.8573],
+            ])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["f-beta"])
+
+        .. testoutput:: 3
+
+            tensor([0.5000, 0.6667, 0.4000], dtype=torch.float64)
+
+        The elements of `y` and `y_pred` should have 0 or 1 values. Thresholding of predictions can
+        be done as below:
+
+        .. testcode:: 4
+
+            def thresholded_output_transform(output):
+                y_pred, y = output
+                y_pred = torch.round(y_pred)
+                return y_pred, y
+
+            P = Precision(average=False, output_transform=thresholded_output_transform)
+            R = Recall(average=False, output_transform=thresholded_output_transform)
+            metric = Fbeta(beta=1.0, precision=P, recall=R)
+            metric.attach(default_evaluator, "f-beta")
+            y_true = torch.tensor([1, 0, 1, 1, 0, 1])
+            y_pred = torch.tensor([0.6, 0.2, 0.9, 0.4, 0.7, 0.65])
+            state = default_evaluator.run([[y_pred, y_true]])
+            print(state.metrics["f-beta"])
+
+        .. testoutput:: 4
+
+            0.7499...
     """
     if not (beta > 0):
-        raise ValueError("Beta should be a positive integer, but given {}".format(beta))
+        raise ValueError(f"Beta should be a positive integer, but given {beta}")
 
     if precision is not None and output_transform is not None:
         raise ValueError("If precision argument is provided, output_transform should be None")
@@ -45,7 +151,7 @@ def Fbeta(
 
     if precision is None:
         precision = Precision(
-            output_transform=(lambda x: x) if output_transform is None else output_transform,
+            output_transform=(lambda x: x) if output_transform is None else output_transform,  # type: ignore[arg-type]
             average=False,
             device=device,
         )
@@ -54,7 +160,7 @@ def Fbeta(
 
     if recall is None:
         recall = Recall(
-            output_transform=(lambda x: x) if output_transform is None else output_transform,
+            output_transform=(lambda x: x) if output_transform is None else output_transform,  # type: ignore[arg-type]
             average=False,
             device=device,
         )

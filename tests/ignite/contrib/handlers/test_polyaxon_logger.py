@@ -1,12 +1,16 @@
 import os
+from unittest.mock import call, MagicMock
+
 import pytest
-
-from unittest.mock import MagicMock, call
-
 import torch
 
+from ignite.contrib.handlers.polyaxon_logger import (
+    global_step_from_engine,
+    OptimizerParamsHandler,
+    OutputHandler,
+    PolyaxonLogger,
+)
 from ignite.engine import Engine, Events, State
-from ignite.contrib.handlers.polyaxon_logger import *
 
 os.environ["POLYAXON_NO_OP"] = "1"
 
@@ -59,10 +63,10 @@ def test_output_handler_metric_names():
     assert mock_logger.log_metrics.call_count == 1
     mock_logger.log_metrics.assert_called_once_with(step=5, **{"tag/a": 12.23, "tag/b": 23.45, "tag/c": 10.0})
 
-    wrapper = OutputHandler("tag", metric_names=["a",])
+    wrapper = OutputHandler("tag", metric_names=["a"])
 
     mock_engine = MagicMock()
-    mock_engine.state = State(metrics={"a": torch.Tensor([0.0, 1.0, 2.0, 3.0])})
+    mock_engine.state = State(metrics={"a": torch.tensor([0.0, 1.0, 2.0, 3.0])})
     mock_engine.state.iteration = 5
 
     mock_logger = MagicMock(spec=PolyaxonLogger)
@@ -72,7 +76,7 @@ def test_output_handler_metric_names():
 
     assert mock_logger.log_metrics.call_count == 1
     mock_logger.log_metrics.assert_has_calls(
-        [call(step=5, **{"tag/a/0": 0.0, "tag/a/1": 1.0, "tag/a/2": 2.0, "tag/a/3": 3.0}),], any_order=True
+        [call(step=5, **{"tag/a/0": 0.0, "tag/a/1": 1.0, "tag/a/2": 2.0, "tag/a/3": 3.0})], any_order=True
     )
 
     wrapper = OutputHandler("tag", metric_names=["a", "c"])
@@ -193,6 +197,25 @@ def test_output_handler_with_global_step_from_engine():
     )
 
 
+def test_output_handler_state_attrs():
+    wrapper = OutputHandler("tag", state_attributes=["alpha", "beta", "gamma"])
+    mock_logger = MagicMock(spec=PolyaxonLogger)
+    mock_logger.log_metrics = MagicMock()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.iteration = 5
+    mock_engine.state.alpha = 3.899
+    mock_engine.state.beta = torch.tensor(12.21)
+    mock_engine.state.gamma = torch.tensor([21.0, 6.0])
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+    mock_logger.log_metrics.assert_called_once_with(
+        **{"tag/alpha": 3.899, "tag/beta": torch.tensor(12.21).item(), "tag/gamma/0": 21.0, "tag/gamma/1": 6.0}, step=5
+    )
+
+
 def test_optimizer_params_handler_wrong_setup():
 
     with pytest.raises(TypeError):
@@ -203,13 +226,13 @@ def test_optimizer_params_handler_wrong_setup():
 
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler 'OptimizerParamsHandler' works only with PolyaxonLogger"):
+    with pytest.raises(RuntimeError, match="Handler OptimizerParamsHandler works only with PolyaxonLogger"):
         handler(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
 def test_optimizer_params():
 
-    optimizer = torch.optim.SGD([torch.Tensor(0)], lr=0.01)
+    optimizer = torch.optim.SGD([torch.tensor(0.0)], lr=0.01)
     wrapper = OptimizerParamsHandler(optimizer=optimizer, param_name="lr")
     mock_logger = MagicMock(spec=PolyaxonLogger)
     mock_logger.log_metrics = MagicMock()
@@ -245,11 +268,12 @@ def test_integration():
 
     def dummy_handler(engine, logger, event_name):
         global_step = engine.state.get_event_attrib_value(event_name)
-        logger.log_metrics(step=global_step, **{"{}".format("test_value"): global_step})
+        logger.log_metrics(step=global_step, **{"test_value": global_step})
 
     plx_logger.attach(trainer, log_handler=dummy_handler, event_name=Events.EPOCH_COMPLETED)
 
     trainer.run(data, max_epochs=n_epochs)
+    plx_logger.close()
 
 
 def test_integration_as_context_manager():
@@ -269,33 +293,15 @@ def test_integration_as_context_manager():
 
         def dummy_handler(engine, logger, event_name):
             global_step = engine.state.get_event_attrib_value(event_name)
-            logger.log_metrics(step=global_step, **{"{}".format("test_value"): global_step})
+            logger.log_metrics(step=global_step, **{"test_value": global_step})
 
         plx_logger.attach(trainer, log_handler=dummy_handler, event_name=Events.EPOCH_COMPLETED)
 
         trainer.run(data, max_epochs=n_epochs)
 
 
-@pytest.fixture
-def no_site_packages():
-    import sys
-
-    polyaxon_client_modules = {}
-    for k in sys.modules:
-        if "polyaxon" in k:
-            polyaxon_client_modules[k] = sys.modules[k]
-    for k in polyaxon_client_modules:
-        del sys.modules[k]
-
-    prev_path = list(sys.path)
-    sys.path = [p for p in sys.path if "site-packages" not in p]
-    yield "no_site_packages"
-    sys.path = prev_path
-    for k in polyaxon_client_modules:
-        sys.modules[k] = polyaxon_client_modules[k]
-
-
+@pytest.mark.parametrize("no_site_packages", ["polyaxon"], indirect=True)
 def test_no_polyaxon_client(no_site_packages):
 
-    with pytest.raises(RuntimeError, match=r"This contrib module requires polyaxon-client to be installed"):
+    with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires polyaxon"):
         PolyaxonLogger()

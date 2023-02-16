@@ -4,18 +4,32 @@ pytest
 codecov
 pytest-cov
 pytest-xdist
-dill
+dill==0.3.4
+setuptools
 # Test contrib dependencies
+scipy
+pytorch_fid==0.1.1
 tqdm
 scikit-learn
 matplotlib
 tensorboardX
-visdom
+visdom==0.2.3
+# temporary fix for
+# ImportError: cannot import name 'soft_unicode' from 'markupsafe'
+markupsafe==2.0.1
+polyaxon
 polyaxon-client
+wandb
 mlflow
-neptune-client
+neptune-client==0.16.9
 tensorboard
-pynvml; python_version > '3.5'
+torchvision
+pynvml
+clearml
+scikit-image
+py-rouge
+nltk
 # Examples dependencies
 pandas
-gym
+gymnasium
+mkl

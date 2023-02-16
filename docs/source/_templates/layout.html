@@ -8,21 +8,47 @@
 {%- endif %}
 {%- set lang_attr = 'en' if language == None else (language | replace('_', '-')) %}
 {% import 'theme_variables.jinja' as theme_variables %}
+{% set show_netlify_badge = True %}
 
 <!DOCTYPE html>
 <!--[if IE 8]><html class="no-js lt-ie9" lang="{{ lang_attr }}" > <![endif]-->
 <!--[if gt IE 8]><!--> <html class="no-js" lang="{{ lang_attr }}" > <!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  {{ metatags }}
+  <meta name="author" content="PyTorch-Ignite Contributors">
+  <meta name="creator" content="PyTorch-Ignite Contributors">
+  <meta name="publisher" content="PyTorch-Ignite Contributors">
+  <meta name="generator" content="Sphinx {{ sphinx_version }}">
+  <meta name="description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+  <meta name="keywords" content="pytorch, pytorch ignite, ignite, engine, events, handlers, metrics">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#ee4c2c">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@pytorch_ignite">
+  <meta name="twitter:creator" content="@pytorch_ignite">
+  <meta name="twitter:description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+  <meta name="twitter:title" content="{{ title|striptags|e }}{{ titlesuffix }}">
+  <meta name="twitter:image" content="https://raw.githubusercontent.com/pytorch/ignite/master/assets/logo/ignite_logo.png">
+  <meta name="twitter:image:alt" content="PyTorch-Ignite logo">
+
+  <meta property="og:title" content="{{ title|striptags|e }}{{ titlesuffix }}">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://pytorch.org/ignite/">
+  <meta property="og:site_name" content="PyTorch-Ignite">
+  <meta property="og:image" content="https://raw.githubusercontent.com/pytorch/ignite/master/assets/logo/ignite_logo.png">
+  <meta property="og:image:alt" content="PyTorch-Ignite logo">
+  <meta property="og:description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+
+  <link rel="preconnect" href="https://BH4D9OD16A-dsn.algolia.net" crossorigin />
+
   {% block htmltitle %}
   <title>{{ title|striptags|e }}{{ titlesuffix }}</title>
   {% endblock %}
 
   {# FAVICON #}
   {% if favicon %}
-    <link rel="shortcut icon" href="{{ pathto('_static/' + favicon, 1) }}"/>
+    <link rel="shortcut icon" type="image/svg+xml" href="{{ pathto('_static/' + favicon, 1) }}"/>
   {% endif %}
   {# CANONICAL URL #}
   {% if theme_canonical_url %}
@@ -41,16 +67,20 @@
 
   {% endif %}
 
+  <link rel="preload" href="{{ pathto('_static/' + style, 1) }}" as="style" />
   <link rel="stylesheet" href="{{ pathto('_static/' + style, 1) }}" type="text/css" />
   <!-- <link rel="stylesheet" href="{{ pathto('_static/pygments.css', 1) }}" type="text/css" /> -->
   {%- for css in css_files %}
     {%- if css|attr("rel") %}
+  <link rel="preload" href="{{ pathto(css.filename, 1) }}" as="style" />
   <link rel="{{ css.rel }}" href="{{ pathto(css.filename, 1) }}" type="text/css"{% if css.title is not none %} title="{{ css.title }}"{% endif %} />
     {%- else %}
+  <link rel="preload" href="{{ pathto(css, 1) }}" as="style" />
   <link rel="stylesheet" href="{{ pathto(css, 1) }}" type="text/css" />
     {%- endif %}
   {%- endfor %}
   {%- for cssfile in extra_css_files %}
+    <link rel="preload" href="{{ pathto(cssfile, 1) }}" as="style" />
     <link rel="stylesheet" href="{{ pathto(cssfile, 1) }}" type="text/css" />
   {%- endfor %}
 
@@ -76,47 +106,61 @@
   {%- endblock %}
   {%- block extrahead %} {% endblock %}
 
-  {# Keep modernizr in head - http://modernizr.com/docs/#installing #}
-  <script src="{{ pathto('_static/js/modernizr.min.js', 1) }}"></script>
-
   {% include "fonts.html" %}
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-5FELLLFHCP"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-5FELLLFHCP');
+  </script>
 </head>
 
 <div class="container-fluid header-holder tutorials-header" id="header-holder">
   <div class="container">
+
+    <a class="header-logo" href="/ignite" aria-label="PyTorch-Ignite"></a>
+
     <div class="header-container">
-      <a class="header-logo" href="{{ theme_variables.external_urls['home'] }}" aria-label="PyTorch"></a>
 
       <div class="main-menu">
         <ul>
           <li>
-            <a href="{{ pathto('concepts') }}">Concepts</a>
+            <a href="{{ theme_variables.external_urls['home'] }}/{{ theme_variables.external_urls['quickstart'] }}">Quickstart</a>
           </li>
 
           <li>
-            <a href="{{ pathto('quickstart') }}">Quickstart</a>
+            <a href="{{ theme_variables.external_urls['home'] }}/{{ theme_variables.external_urls['concepts'] }}">Concepts</a>
+          </li>
+
+          <!-- <li>
+            <a href="{{ theme_variables.external_urls['home'] }}/{{ theme_variables.external_urls['examples'] }}">Examples</a>
+          </li> -->
+
+          <li>
+            <a href="{{ theme_variables.external_urls['home'] }}/{{ theme_variables.external_urls['faq'] }}">FAQ</a>
           </li>
 
           <li>
-            <a href="{{ pathto('examples') }}">Examples</a>
+            <a href="{{ theme_variables.external_urls['github'] }}" target="_blank" rel="noopener noreferrer">GitHub</a>
           </li>
 
           <li>
-            <a href="{{ pathto('faq') }}">FAQ</a>
+            <a href="{{ theme_variables.external_urls['home'] }}/{{ theme_variables.external_urls['about_us'] }}">About us</a>
           </li>
 
           <li>
-            <a href="{{ theme_variables.external_urls['github'] }}">Github</a>
+            <a href="{{ theme_variables.external_urls['home'] }}">⊳ pytorch-ignite.ai</a>
           </li>
 
-          <li>
-            <a href="{{ theme_variables.external_urls['home'] }}/master/about.html">About us</a>
-          </li>
 
         </ul>
       </div>
 
-      <a class="main-menu-open-button" href="#" data-behavior="open-mobile-menu"></a>
+      <!-- <a class="main-menu-open-button" href="#" data-behavior="open-mobile-menu"></a> -->
     </div>
 
   </div>
@@ -131,7 +175,7 @@
 
     <div class="table-of-contents-link-wrapper">
       <span>Table of Contents</span>
-      <a href="#" class="toggle-table-of-contents" data-behavior="toggle-table-of-contents"></a>
+      <div class="toggle-table-of-contents" data-behavior="toggle-table-of-contents"></div>
     </div>
 
     <nav data-toggle="wy-nav-shift" class="pytorch-left-menu" id="pytorch-left-menu">
@@ -152,7 +196,7 @@
               {% endif %}
             {% endif %}
 
-            {% include "searchbox.html" %}
+            <div id="docsearch"></div>
 
             {% endblock %}
           </div>
@@ -294,33 +338,32 @@
   <!-- Begin Footer -->
 
   <!-- commented out for Ignite -->
-  <!--
 
   <div class="container-fluid docs-tutorials-resources" id="docs-tutorials-resources">
-    <div class="container">
+    <!-- <div class="container">
       <div class="row">
-        <div class="col-md-4 text-center">
+        <div class="text-center col-md-4">
           <h2>Docs</h2>
           <p>Access comprehensive developer documentation for PyTorch</p>
           <a class="with-right-arrow" href="{{ theme_variables.external_urls['docs'] }}">View Docs</a>
         </div>
 
-        <div class="col-md-4 text-center">
+        <div class="text-center col-md-4">
           <h2>Tutorials</h2>
           <p>Get in-depth tutorials for beginners and advanced developers</p>
           <a class="with-right-arrow" href="{{ theme_variables.external_urls['tutorials'] }}">View Tutorials</a>
         </div>
 
-        <div class="col-md-4 text-center">
+        <div class="text-center col-md-4">
           <h2>Resources</h2>
           <p>Find development resources and get your questions answered</p>
           <a class="with-right-arrow" href="{{ theme_variables.external_urls['resources'] }}">View Resources</a>
         </div>
       </div>
-    </div>
+    </div> -->
   </div>
 
-  <footer class="site-footer">
+  <!-- <footer class="site-footer">
     <div class="container footer-container">
       <div class="footer-logo-wrapper">
         <a href="{{ theme_variables.external_urls['home'] }}" class="footer-logo"></a>
@@ -393,12 +436,12 @@
         </div>
       </div>
     </div>
-  </footer>
+  </footer> -->
 
-  -->
+
   <!-- end of commented out for Ignite -->
 
-  {% include "cookie_banner.html" %}
+  <!-- {% include "cookie_banner.html" %} -->
 
   <!-- End Footer -->
 
@@ -458,6 +501,7 @@
   <script type="text/javascript" src="{{ pathto('_static/js/vendor/anchor.min.js', 1) }}"></script>
 
   <script type="text/javascript">
+    var collapsedSections = []
     $(document).ready(function() {
       mobileMenu.bind();
       mobileTOC.bind();
@@ -471,6 +515,25 @@
         $(this).closest("a").addClass("has-code");
       });
     })
+  </script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@docsearch/js@3.3.0/dist/umd/index.min.js"></script>
+  <script type="text/javascript">
+  let VERSION
+  if ('{{ version }}'.startsWith('v')) {
+    VERSION = '{{ version }}'
+  } else {
+    VERSION = 'master'
+  }
+  docsearch({
+    container: '#docsearch',
+    appId: 'BH4D9OD16A',
+    apiKey: '19a7a7a75d87608d6f42c722ed1e293f',
+    indexName: 'ignite',
+    placeholder: 'Search PyTorch-Ignite docs',
+    searchParameters: {
+      facetFilters: [[`version:${VERSION}`, 'tags:ignite-web']],
+    }
+  });
   </script>
 </body>
 </html>

@@ -1,0 +1,95 @@
+name: Run TPU tests
+on:
+  push:
+    paths:
+      - "ignite/**"
+      - "tests/ignite/**"
+      - "tests/run_tpu_tests.sh"
+      - ".github/workflows/tpu-tests.yml"
+  pull_request:
+    paths:
+      - "ignite/**"
+      - "tests/ignite/**"
+      - "tests/run_tpu_tests.sh"
+      - ".github/workflows/tpu-tests.yml"
+
+concurrency:
+  # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>
+  group: tpu-tests-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  tpu-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        xla-version: [nightly]
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+          architecture: "x64"
+
+      - name: Get year & week number
+        id: get-date
+        run: echo "date=$(/bin/date "+%Y-%U")" >> $GITHUB_OUTPUT
+        shell: bash -l {0}
+
+      - name: Get pip cache dir
+        id: pip-cache
+        run: |
+          pip3 install -U pip
+          echo "pip_cache=$(pip cache dir)" >> $GITHUB_OUTPUT
+        shell: bash -l {0}
+
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ${{ steps.pip-cache.outputs.pip_cache }}
+          key: ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.xla-version }}-${{ hashFiles('requirements-dev.txt') }}
+          restore-keys: |
+            ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.xla-version }}-
+
+      - name: Install Torch XLA and others
+        run: |
+
+          ## Install openblas, mkl, gsutil
+          sudo apt-get update && sudo apt-get install -y libopenblas-dev libomp5
+          # mkl version fixed due to https://github.com/pytorch/ignite/issues/2350
+          pip install mkl==2021.4.0 requests gsutil
+
+          ## Install torch & xla and torchvision
+          pip install --pre  https://storage.googleapis.com/tpu-pytorch/wheels/colab/torch-nightly-cp38-cp38-linux_x86_64.whl
+          pip install --pre  https://storage.googleapis.com/tpu-pytorch/wheels/colab/torch_xla-nightly-cp38-cp38-linux_x86_64.whl
+          pip install --pre  https://storage.googleapis.com/tpu-pytorch/wheels/colab/torchvision-nightly-cp38-cp38-linux_x86_64.whl
+
+          ## Install test deps and Ignite
+          pip install -r requirements-dev.txt
+          python setup.py install
+
+      # Download MNIST: https://github.com/pytorch/ignite/issues/1737
+      # to "/tmp" for tpu tests
+      - name: Download MNIST
+        uses: pytorch-ignite/download-mnist-github-action@master
+        with:
+          target_dir: /tmp
+
+      - name: Run Tests
+        run: |
+          export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${Python_ROOT_DIR}/lib
+          export XRT_DEVICE_MAP="CPU:0;/job:localservice/replica:0/task:0/device:XLA_CPU:0"
+          export XRT_WORKERS="localservice:0;grpc://localhost:40934"
+
+          python -c "import torch_xla; print('torch xla version:', torch_xla.__version__)"
+          bash tests/run_tpu_tests.sh
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: tpu
+          fail_ci_if_error: false

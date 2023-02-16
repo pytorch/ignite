@@ -1,7 +1,8 @@
-import os
 import io
+import os
 import re
-from setuptools import setup, find_packages
+
+from setuptools import find_packages, setup
 
 
 def read(*names, **kwargs):
@@ -17,13 +18,13 @@ def find_version(*file_paths):
     raise RuntimeError("Unable to find version string.")
 
 
-readme = read("README.md")
+readme = read("README.md").replace(
+    'src="assets/', 'src="https://raw.githubusercontent.com/pytorch/ignite/master/assets/'
+)
 
 VERSION = find_version("ignite", "__init__.py")
 
-requirements = [
-    "torch",
-]
+requirements = ["torch>=1.3,<3", "packaging"]
 
 setup(
     # Metadata
@@ -37,7 +38,8 @@ setup(
     long_description=readme,
     license="BSD",
     # Package info
-    packages=find_packages(exclude=("tests", "tests.*",)),
-    zip_safe=True,
+    packages=find_packages(exclude=("tests", "tests.*")),
+    package_data={"ignite": ["py.typed"]},
+    zip_safe=False,
     install_requires=requirements,
 )

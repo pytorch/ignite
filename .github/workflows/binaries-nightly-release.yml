@@ -1,0 +1,58 @@
+name: Nightly Releases
+
+on:
+  # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions#onschedule
+  schedule:
+    # Run at 00:00 UTC Every Day
+    - cron: "0 0 * * *"
+
+jobs:
+  build-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          miniconda-version: "latest"
+          python-version: 3.8
+
+      - name: Setup nightly version
+        run: |
+          sed -i "s/__version__ = \"\(.*\)\"/__version__ = \"\1.dev$(date -u +%Y%m%d)\"/g" ignite/__init__.py
+          cat ignite/__init__.py
+
+      - name: Install dependencies
+        shell: bash -l {0}
+        run: |
+          conda install -y pytorch torchvision cpuonly -c pytorch-nightly
+          pip install -r requirements-dev.txt
+
+      - name: Build and Publish Conda binaries
+        shell: bash -l {0}
+        env:
+          ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+          UPLOAD_USER: "pytorch-nightly"
+        run: |
+          chmod +x ./conda.recipe/build_and_upload.sh
+          ./conda.recipe/build_and_upload.sh
+
+      - name: Build and Publish PyPi binaries
+        shell: bash -l {0}
+        run: |
+          # workaround to fix https://github.com/pytorch/ignite/issues/2373
+          pip uninstall -y twine pkginfo
+          pip install --upgrade --no-cache-dir twine 'pkginfo>=1.8.2'
+          python setup.py sdist bdist_wheel
+          twine --version
+          twine check dist/*
+          TWINE_USERNAME="${{ secrets.PYPI_USER }}" TWINE_PASSWORD="${{ secrets.PYPI_TOKEN }}" twine upload --verbose dist/*
+
+      - uses: JasonEtco/create-an-issue@v2
+        name: Create issue if nightly releases failed
+        if: failure()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          filename: .github/failed_schedule_issue_template.md

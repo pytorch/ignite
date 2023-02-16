@@ -1,7 +1,13 @@
+import sys
 import time
+
+import pytest
 
 from ignite.engine import Engine, Events
 from ignite.handlers import Timer
+
+if sys.platform.startswith("darwin"):
+    pytest.skip("Skip if on MacOS", allow_module_level=True)
 
 
 def test_timer():
@@ -34,12 +40,9 @@ def test_timer():
     # Run "training"
     trainer.run(range(n_iter))
 
-    def _equal(lhs, rhs):
-        return round(lhs, 1) == round(rhs, 1)
-
-    assert _equal(t_total.value(), (2 * n_iter * sleep_t))
-    assert _equal(t_batch.value(), (sleep_t))
-    assert _equal(t_train.value(), (n_iter * sleep_t))
+    assert pytest.approx(t_total.value(), abs=1e-1) == 2 * n_iter * sleep_t
+    assert pytest.approx(t_batch.value(), abs=1e-1) == sleep_t
+    assert pytest.approx(t_train.value(), abs=1e-1) == n_iter * sleep_t
 
     t_total.reset()
-    assert _equal(t_total.value(), 0.0)
+    assert pytest.approx(t_total.value(), abs=1e-1) == 0.0

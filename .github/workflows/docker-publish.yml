@@ -1,0 +1,30 @@
+name: Trigger Build And Publish Docker Images
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - docker/**
+      - ".github/workflows/docker-publish.yml"
+
+jobs:
+  build-publish:
+    name: Trigger Build and Push Docker images to Docker Hub
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.8
+      - name: Trigger Circle-CI pipeline
+        env:
+          CIRCLE_TOKEN: ${{ secrets.CIRCLE_TOKEN }}
+        run: |
+          pip install requests
+
+          if [ $GITHUB_EVENT_NAME == 'pull_request' ]; then should_publish_docker_images=false; else should_publish_docker_images=true; fi
+          branch=$GITHUB_REF
+
+          python -u .github/workflows/trigger_circle_ci.py $should_publish_docker_images $branch

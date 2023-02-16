@@ -1,0 +1,82 @@
+name: Run Horovod tests
+on:
+  push:
+    paths:
+      - "ignite/**"
+      - "tests/ignite/**"
+      - "tests/run_cpu_tests.sh"
+      - ".github/workflows/hvd-tests.yml"
+  pull_request:
+    paths:
+      - "ignite/**"
+      - "tests/ignite/**"
+      - "tests/run_cpu_tests.sh"
+      - ".github/workflows/hvd-tests.yml"
+
+concurrency:
+  # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>
+  group: hvd-tests-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  horovod-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8]
+        pytorch-channel: [pytorch]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Get year & week number
+        id: get-date
+        run: echo "date=$(/bin/date "+%Y-%U")" >> $GITHUB_OUTPUT
+        shell: bash -l {0}
+
+      - name: Get pip cache dir
+        id: pip-cache
+        run: |
+          python3 -m pip install -U pip
+          echo "pip_cache=$(python3 -m pip cache dir)" >> $GITHUB_OUTPUT
+        shell: bash -l {0}
+
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/conda_pkgs_dir
+            ${{ steps.pip-cache.outputs.pip_cache }}
+          key: ${{ steps.get-date.outputs.date }}-horovod-${{ hashFiles('requirements-dev.txt') }}
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        shell: bash -l {0}
+        run: |
+
+          #install other dependencies
+          pip install torch torchvision -f https://download.pytorch.org/whl/cpu/torch_stable.html
+          pip install -r requirements-dev.txt
+          pip install horovod
+          python setup.py install
+
+      # Download MNIST: https://github.com/pytorch/ignite/issues/1737
+      # to "/tmp" for cpu tests
+      - name: Download MNIST
+        uses: pytorch-ignite/download-mnist-github-action@master
+        with:
+          target_dir: /tmp
+
+      - name: Run Tests
+        shell: bash -l {0}
+        run: |
+          bash tests/run_cpu_tests.sh
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: hvd-cpu
+          fail_ci_if_error: false

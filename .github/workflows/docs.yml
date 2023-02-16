@@ -1,0 +1,88 @@
+name: Build docs
+
+on:
+  push:
+  pull_request:
+    paths-ignore:
+      - "tests/**"
+      - "docker/**"
+  release:
+    types: [published]
+
+jobs:
+  build-deploy:
+    if: (github.ref == 'refs/heads/master' && github.event_name == 'push') || github.event_name == 'release'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.8
+
+      - run: sudo npm install katex -g
+      - uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ hashFiles('requirements-dev.txt') }}-${{ hashFiles('docs/requirements.txt') }}
+
+      - name: Install docs deps
+        run: bash .github/workflows/install_docs_deps.sh
+
+      - name: Build docs
+        run: bash .github/workflows/build_docs.sh
+
+      - name: Deploy docs
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: docs/build/html
+          publish_branch: gh-pages
+          commit_message: Deploy pytorch/ignite docs
+          force_orphan: true
+
+  linkcheck:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.8
+
+      - uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ hashFiles('requirements-dev.txt') }}-${{ hashFiles('docs/requirements.txt') }}
+
+      - name: Install docs deps
+        run: bash .github/workflows/install_docs_deps.sh
+
+      - name: make linkcheck
+        working-directory: ./docs/
+        run: make linkcheck
+
+  doctest:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.8
+
+      - run: sudo npm install katex -g
+      - uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ hashFiles('requirements-dev.txt') }}-${{ hashFiles('docs/requirements.txt') }}
+
+      - name: Install docs deps
+        run: bash .github/workflows/install_docs_deps.sh
+
+      - name: make doctest
+        working-directory: ./docs/
+        run: |
+          make html
+          make doctest
+          make coverage

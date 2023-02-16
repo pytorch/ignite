@@ -1,0 +1,11 @@
+albumentations
+image-dataset-viz
+numpy
+opencv-python
+py_config_runner
+pytorch-ignite
+pillow
+tensorboard
+torch
+torchvision
+tqdm

@@ -1,0 +1,44 @@
+# Add 'docker' to any changes within 'docker' folder or any subfolders
+docker:
+  - docker/**/*
+
+# Add 'docs' to any changes within 'docs' folder
+docs:
+  - docs/**/*
+
+# Add 'ci' to any changes within 'circleci' and '.github' folder
+ci:
+  - .circleci/**/*
+  - .github/**/*
+
+# Add 'examples' to any changes within 'examples' folder
+examples:
+  - examples/**/*
+
+# Add 'base' to any changes within 'base' folder
+"module: base":
+  - ignite/base/**/*
+
+# Add 'contrib' to any changes within 'contrib' folder
+"module: contrib":
+  - ignite/contrib/**/*
+
+# Add 'distributed' to any changes within 'distributed' folder
+"module: distributed":
+  - ignite/distributed/**/*
+
+# Add 'engine' to any changes within 'engine' folder
+"module: engine":
+  - ignite/engine/**/*
+
+# Add 'handlers' to any changes within 'handlers' folder
+"module: handlers":
+  - ignite/handlers/**/*
+
+# Add 'metrics' to any changes within 'metrics' folder
+"module: metrics":
+  - ignite/metrics/**/*
+
+# Add 'utils' to any changes within 'utils' module
+"module: utils":
+  - ignite/utils.py

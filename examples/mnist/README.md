@@ -10,13 +10,14 @@ ported from [pytorch-examples](https://github.com/pytorch/examples/tree/master/m
 #### Usage:
 
 Run the example:
+
 ```
 python mnist.py
 ```
 
 ### Logging with Tensorboard
 
-MNIST example with training and validation monitoring using Tensorboard. Notice 
+MNIST example with training and validation monitoring using Tensorboard. Notice
 that if PyTorch version is less than 1.2, the module TensorboardX is required.
 
 #### Requirements:
@@ -28,11 +29,13 @@ that if PyTorch version is less than 1.2, the module TensorboardX is required.
 #### Usage:
 
 Run the example:
+
 ```bash
 python mnist_with_tensorboard.py --log_dir=/tmp/tensorboard_logs
 ```
 
 Start tensorboard:
+
 ```bash
 tensorboard --logdir=/tmp/tensorboard_logs/
 ```
@@ -49,21 +52,27 @@ MNIST example with training and validation monitoring using Visdom
 #### Usage:
 
 Start visdom:
+
 ```bash
 python -m visdom.server
 ```
 
 Run the example:
+
 ```bash
 python mnist_with_visdom.py
 ```
 
-
 ### Training save & resume
 
-Example shows how to save a checkpoint of the trainer, model, optimizer, lr scheduler. Training crash is emulated 
-and user can resume the training from the latest checkpoint.
- 
+Example shows how to save a checkpoint of the trainer, model, optimizer, lr scheduler.
+User can resume the training from stored latest checkpoint. In addition, training crash can be emulated.
+
+We provided an option `--deterministic` which setups a deterministic trainer as
+[`DeterministicEngine`](https://pytorch.org/ignite/engine.html#ignite.engine.deterministic.DeterministicEngine).
+Trainer performs dataflow synchronization on epoch in order to ensure the same dataflow when training is resumed.
+Please, see the documentation for more details.
+
 #### Requirements:
 
 - [torchvision](https://github.com/pytorch/vision/): `pip install torchvision`
@@ -73,25 +82,60 @@ and user can resume the training from the latest checkpoint.
 
 #### Usage:
 
-Initial training with a crash
+Training
+
 ```bash
-python mnist_save_resume_engine.py
+python mnist_save_resume_engine.py --log_dir=logs/run_1 --epochs=10
+# or same in deterministic mode
+python mnist_save_resume_engine.py --log_dir=logs-det/run_1 --deterministic --epochs=10
 ```
 
-Resume from the latest checkpoint
-```bash
-python mnist_save_resume_engine.py --resume_from /tmp/mnist_save_resume/checkpoint_<N>.pth
-```
+Resume the training
 
-Training without crashing
 ```bash
-python mnist_save_resume_engine.py --crash_iteration 100000
+python mnist_save_resume_engine.py --log_dir=logs/run_2 --resume_from=logs/run_1/checkpoint_5628.pt --epochs=10
+# or same in deterministic mode
+python mnist_save_resume_engine.py --log_dir=logs-det/run_2 --resume_from=logs-det/run_1/checkpoint_5628.pt --deterministic --epochs=10
 ```
 
 Start tensorboard:
+
 ```bash
-tensorboard --logdir=/tmp/mnist_save_resume/
+tensorboard --logdir=.
 ```
 
-![tb1](assets/save_resume_p1.png)
-![tb2](assets/save_resume_p2.png)
+The script logs batch stats (mean/std of images, median of targets), model weights' norms and computed gradients norms in
+`run.log` and `resume_run.log` to compare training behaviour in both cases.
+If set `--deterministic` option, we can observe the same values after resuming the training.
+
+| Non-deterministic                 | Deterministic                         |
+| --------------------------------- | ------------------------------------- |
+| ![img11](assets/logs_run_1_2.png) | ![img12](assets/logs-det_run_1_2.png) |
+
+Deterministic `run.log` vs `resume_run.log`
+![img13](assets/run_vs_resume_run_logs_1_2.png)
+
+#### Usage with simulated crash
+
+Initial training with a crash
+
+```bash
+python mnist_save_resume_engine.py --crash_iteration 5700 --log_dir=logs/run_3_crash --epochs 10
+# or same in deterministic mode
+python mnist_save_resume_engine.py --crash_iteration 5700 --log_dir=logs-det/run_3_crash --epochs 10 --deterministic
+```
+
+Resume from the latest checkpoint
+
+```bash
+python mnist_save_resume_engine.py --resume_from logs/run_3_crash/checkpoint_6.pt --log_dir=logs/run_4 --epochs 10
+# or same in deterministic mode
+python mnist_save_resume_engine.py --resume_from logs-det/run_3_crash/checkpoint_6.pt --log_dir=logs-det/run_4 --epochs 10 --deterministic
+```
+
+| Non-deterministic                 | Deterministic                         |
+| --------------------------------- | ------------------------------------- |
+| ![img21](assets/logs_run_3_4.png) | ![img22](assets/logs-det_run_3_4.png) |
+
+Deterministic `run.log` vs `resume_run.log`
+![img23](assets/run_vs_resume_run_logs_3_4.png)

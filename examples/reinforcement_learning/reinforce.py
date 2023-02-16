@@ -1,63 +1,68 @@
 import argparse
+from collections import deque
 
 import numpy as np
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.distributions import Categorical
 
-try:
-    import gym
-except ImportError:
-    raise RuntimeError("Please install opengym: pip install gym")
-
-
 from ignite.engine import Engine, Events
+
+try:
+    import gymnasium as gym
+except ImportError:
+    raise ModuleNotFoundError("Please install opengym: pip install gymnasium")
+
+
+eps = np.finfo(np.float32).eps.item()
 
 
 class Policy(nn.Module):
     def __init__(self):
         super(Policy, self).__init__()
         self.affine1 = nn.Linear(4, 128)
+        self.dropout = nn.Dropout(p=0.6)
         self.affine2 = nn.Linear(128, 2)
 
         self.saved_log_probs = []
         self.rewards = []
 
     def forward(self, x):
-        x = F.relu(self.affine1(x))
+        x = self.affine1(x)
+        x = self.dropout(x)
+        x = F.relu(x)
         action_scores = self.affine2(x)
         return F.softmax(action_scores, dim=1)
 
 
-def select_action(model, observation):
+def select_action(policy, observation):
     state = torch.from_numpy(observation).float().unsqueeze(0)
-    probs = model(state)
+    probs = policy(state)
     m = Categorical(probs)
     action = m.sample()
-    model.saved_log_probs.append(m.log_prob(action))
+    policy.saved_log_probs.append(m.log_prob(action))
     return action.item()
 
 
-def finish_episode(model, optimizer, gamma, eps):
+def finish_episode(policy, optimizer, gamma):
     R = 0
     policy_loss = []
-    rewards = []
-    for r in model.rewards[::-1]:
+    returns = deque()
+    for r in policy.rewards[::-1]:
         R = r + gamma * R
-        rewards.insert(0, R)
-    rewards = torch.tensor(rewards)
-    rewards = (rewards - rewards.mean()) / (rewards.std() + eps)
-    for log_prob, reward in zip(model.saved_log_probs, rewards):
-        policy_loss.append(-log_prob * reward)
+        returns.appendleft(R)
+    returns = torch.tensor(returns)
+    returns = (returns - returns.mean()) / (returns.std() + eps)
+    for log_prob, R in zip(policy.saved_log_probs, returns):
+        policy_loss.append(-log_prob * R)
     optimizer.zero_grad()
     policy_loss = torch.cat(policy_loss).sum()
     policy_loss.backward()
     optimizer.step()
-    del model.rewards[:]
-    del model.saved_log_probs[:]
+    del policy.rewards[:]
+    del policy.saved_log_probs[:]
 
 
 EPISODE_STARTED = Events.EPOCH_STARTED
@@ -66,57 +71,53 @@ EPISODE_COMPLETED = Events.EPOCH_COMPLETED
 
 def main(env, args):
 
-    model = Policy()
-    optimizer = optim.Adam(model.parameters(), lr=1e-2)
-    eps = np.finfo(np.float32).eps.item()
-    timesteps = list(range(10000))
+    policy = Policy()
+    optimizer = optim.Adam(policy.parameters(), lr=1e-2)
+    timesteps = range(10000)
 
     def run_single_timestep(engine, timestep):
         observation = engine.state.observation
-        action = select_action(model, observation)
-        engine.state.observation, reward, done, _ = env.step(action)
+        action = select_action(policy, observation)
+        engine.state.observation, reward, done, _, _ = env.step(action)
         if args.render:
             env.render()
-        model.rewards.append(reward)
-
+        policy.rewards.append(reward)
+        engine.state.ep_reward += reward
         if done:
             engine.terminate_epoch()
             engine.state.timestep = timestep
 
     trainer = Engine(run_single_timestep)
-
-    @trainer.on(Events.STARTED)
-    def initialize(engine):
-        engine.state.running_reward = 10
+    trainer.state.running_reward = 10
 
     @trainer.on(EPISODE_STARTED)
-    def reset_environment_state(engine):
-        engine.state.observation = env.reset()
+    def reset_environment_state():
+        torch.manual_seed(args.seed + trainer.state.epoch)
+        trainer.state.observation, _ = env.reset(seed=args.seed + trainer.state.epoch)
+        trainer.state.ep_reward = 0
 
     @trainer.on(EPISODE_COMPLETED)
-    def update_model(engine):
-        t = engine.state.timestep
-        engine.state.running_reward = engine.state.running_reward * 0.99 + t * 0.01
-        finish_episode(model, optimizer, args.gamma, eps)
+    def update_model():
+        trainer.state.running_reward = 0.05 * trainer.state.ep_reward + (1 - 0.05) * trainer.state.running_reward
+        finish_episode(policy, optimizer, args.gamma)
 
     @trainer.on(EPISODE_COMPLETED(every=args.log_interval))
-    def log_episode(engine):
-        i_episode = engine.state.epoch
+    def log_episode():
+        i_episode = trainer.state.epoch
         print(
-            "Episode {}\tLast length: {:5d}\tAverage length: {:.2f}".format(
-                i_episode, engine.state.timestep, engine.state.running_reward
-            )
+            f"Episode {i_episode}\tLast reward: {trainer.state.ep_reward:.2f}"
+            f"\tAverage length: {trainer.state.running_reward:.2f}"
         )
 
     @trainer.on(EPISODE_COMPLETED)
-    def should_finish_training(engine):
-        running_reward = engine.state.running_reward
+    def should_finish_training():
+        running_reward = trainer.state.running_reward
         if running_reward > env.spec.reward_threshold:
             print(
-                "Solved! Running reward is now {} and "
-                "the last episode runs to {} time steps!".format(running_reward, engine.state.timestep)
+                f"Solved! Running reward is now {running_reward} and "
+                f"the last episode runs to {trainer.state.timestep} time steps!"
             )
-            engine.should_terminate = True
+            trainer.should_terminate = True
 
     trainer.run(timesteps, max_epochs=args.max_episodes)
 
@@ -139,8 +140,6 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    env = gym.make("CartPole-v0")
-    env.seed(args.seed)
-    torch.manual_seed(args.seed)
+    env = gym.make("CartPole-v1")
 
     main(env, args)

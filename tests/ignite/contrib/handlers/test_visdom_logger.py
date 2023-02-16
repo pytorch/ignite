@@ -1,29 +1,19 @@
-import torch
+import sys
+from unittest.mock import ANY, call, MagicMock, patch
+
 import pytest
+import torch
 
-from unittest.mock import MagicMock, call, ANY
-
+from ignite.contrib.handlers.visdom_logger import (
+    _DummyExecutor,
+    global_step_from_engine,
+    GradsScalarHandler,
+    OptimizerParamsHandler,
+    OutputHandler,
+    VisdomLogger,
+    WeightsScalarHandler,
+)
 from ignite.engine import Engine, Events, State
-from ignite.contrib.handlers.visdom_logger import *
-from ignite.contrib.handlers.visdom_logger import _DummyExecutor
-
-
-@pytest.fixture
-def visdom_server():
-
-    import time
-    import subprocess
-
-    from visdom.server import download_scripts
-
-    download_scripts()
-
-    hostname = "localhost"
-    port = 8098
-    p = subprocess.Popen("visdom --hostname {} -port {}".format(hostname, port), shell=True)
-    time.sleep(5)
-    yield (hostname, port)
-    p.terminate()
 
 
 def test_optimizer_params_handler_wrong_setup():
@@ -36,13 +26,13 @@ def test_optimizer_params_handler_wrong_setup():
 
     mock_logger = MagicMock()
     mock_engine = MagicMock()
-    with pytest.raises(RuntimeError, match="Handler 'OptimizerParamsHandler' works only with VisdomLogger"):
+    with pytest.raises(RuntimeError, match="Handler OptimizerParamsHandler works only with VisdomLogger"):
         handler(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
 def test_optimizer_params():
 
-    optimizer = torch.optim.SGD([torch.Tensor(0)], lr=0.01)
+    optimizer = torch.optim.SGD([torch.tensor(0.0)], lr=0.01)
     wrapper = OptimizerParamsHandler(optimizer=optimizer, param_name="lr")
     mock_logger = MagicMock(spec=VisdomLogger)
     mock_logger.vis = MagicMock()
@@ -58,8 +48,8 @@ def test_optimizer_params():
     assert wrapper.windows["lr/group_0"]["win"] is not None
 
     mock_logger.vis.line.assert_called_once_with(
-        X=[123,],
-        Y=[0.01,],
+        X=[123],
+        Y=[0.01],
         env=mock_logger.vis.env,
         win=None,
         update=None,
@@ -78,8 +68,8 @@ def test_optimizer_params():
     assert wrapper.windows["generator/lr/group_0"]["win"] is not None
 
     mock_logger.vis.line.assert_called_once_with(
-        X=[123,],
-        Y=[0.01,],
+        X=[123],
+        Y=[0.01],
         env=mock_logger.vis.env,
         win=None,
         update=None,
@@ -116,8 +106,8 @@ def test_output_handler_output_transform(dirname):
     assert wrapper.windows["tag/output"]["win"] is not None
 
     mock_logger.vis.line.assert_called_once_with(
-        X=[123,],
-        Y=[12345,],
+        X=[123],
+        Y=[12345],
         env=mock_logger.vis.env,
         win=None,
         update=None,
@@ -136,8 +126,8 @@ def test_output_handler_output_transform(dirname):
     assert wrapper.windows["another_tag/loss"]["win"] is not None
 
     mock_logger.vis.line.assert_called_once_with(
-        X=[123,],
-        Y=[12345,],
+        X=[123],
+        Y=[12345],
         env=mock_logger.vis.env,
         win=None,
         update=None,
@@ -167,8 +157,8 @@ def test_output_handler_metric_names(dirname):
     mock_logger.vis.line.assert_has_calls(
         [
             call(
-                X=[5,],
-                Y=[12.23,],
+                X=[5],
+                Y=[12.23],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -176,8 +166,8 @@ def test_output_handler_metric_names(dirname):
                 name="tag/a",
             ),
             call(
-                X=[5,],
-                Y=[23.45,],
+                X=[5],
+                Y=[23.45],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -188,10 +178,10 @@ def test_output_handler_metric_names(dirname):
         any_order=True,
     )
 
-    wrapper = OutputHandler("tag", metric_names=["a",])
+    wrapper = OutputHandler("tag", metric_names=["a"])
 
     mock_engine = MagicMock()
-    mock_engine.state = State(metrics={"a": torch.Tensor([0.0, 1.0, 2.0, 3.0])})
+    mock_engine.state = State(metrics={"a": torch.tensor([0.0, 1.0, 2.0, 3.0])})
     mock_engine.state.iteration = 5
 
     mock_logger = MagicMock(spec=VisdomLogger)
@@ -200,7 +190,7 @@ def test_output_handler_metric_names(dirname):
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
-    assert len(wrapper.windows) == 4 and all(["tag/a/{}".format(i) in wrapper.windows for i in range(4)])
+    assert len(wrapper.windows) == 4 and all([f"tag/a/{i}" in wrapper.windows for i in range(4)])
     assert wrapper.windows["tag/a/0"]["win"] is not None
     assert wrapper.windows["tag/a/1"]["win"] is not None
     assert wrapper.windows["tag/a/2"]["win"] is not None
@@ -210,8 +200,8 @@ def test_output_handler_metric_names(dirname):
     mock_logger.vis.line.assert_has_calls(
         [
             call(
-                X=[5,],
-                Y=[0.0,],
+                X=[5],
+                Y=[0.0],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -219,8 +209,8 @@ def test_output_handler_metric_names(dirname):
                 name="tag/a/0",
             ),
             call(
-                X=[5,],
-                Y=[1.0,],
+                X=[5],
+                Y=[1.0],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -228,8 +218,8 @@ def test_output_handler_metric_names(dirname):
                 name="tag/a/1",
             ),
             call(
-                X=[5,],
-                Y=[2.0,],
+                X=[5],
+                Y=[2.0],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -237,8 +227,8 @@ def test_output_handler_metric_names(dirname):
                 name="tag/a/2",
             ),
             call(
-                X=[5,],
-                Y=[3.0,],
+                X=[5],
+                Y=[3.0],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -269,8 +259,8 @@ def test_output_handler_metric_names(dirname):
     mock_logger.vis.line.assert_has_calls(
         [
             call(
-                X=[7,],
-                Y=[55.56,],
+                X=[7],
+                Y=[55.56],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -301,8 +291,8 @@ def test_output_handler_metric_names(dirname):
     mock_logger.vis.line.assert_has_calls(
         [
             call(
-                X=[5,],
-                Y=[12.23,],
+                X=[5],
+                Y=[12.23],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -310,8 +300,8 @@ def test_output_handler_metric_names(dirname):
                 name="tag/a",
             ),
             call(
-                X=[5,],
-                Y=[23.45,],
+                X=[5],
+                Y=[23.45],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -351,8 +341,8 @@ def test_output_handler_both(dirname):
     mock_logger.vis.line.assert_has_calls(
         [
             call(
-                X=[5,],
-                Y=[12.23,],
+                X=[5],
+                Y=[12.23],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -360,8 +350,8 @@ def test_output_handler_both(dirname):
                 name="tag/a",
             ),
             call(
-                X=[5,],
-                Y=[23.45,],
+                X=[5],
+                Y=[23.45],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -369,8 +359,8 @@ def test_output_handler_both(dirname):
                 name="tag/b",
             ),
             call(
-                X=[5,],
-                Y=[12345,],
+                X=[5],
+                Y=[12345],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -398,8 +388,8 @@ def test_output_handler_both(dirname):
     mock_logger.vis.line.assert_has_calls(
         [
             call(
-                X=[6,],
-                Y=[12.23,],
+                X=[6],
+                Y=[12.23],
                 env=mock_logger.vis.env,
                 win=wrapper.windows["tag/a"]["win"],
                 update="append",
@@ -407,8 +397,8 @@ def test_output_handler_both(dirname):
                 name="tag/a",
             ),
             call(
-                X=[6,],
-                Y=[23.45,],
+                X=[6],
+                Y=[23.45],
                 env=mock_logger.vis.env,
                 win=wrapper.windows["tag/b"]["win"],
                 update="append",
@@ -416,13 +406,84 @@ def test_output_handler_both(dirname):
                 name="tag/b",
             ),
             call(
-                X=[6,],
-                Y=[12345,],
+                X=[6],
+                Y=[12345],
                 env=mock_logger.vis.env,
                 win=wrapper.windows["tag/loss"]["win"],
                 update="append",
                 opts=wrapper.windows["tag/loss"]["opts"],
                 name="tag/loss",
+            ),
+        ],
+        any_order=True,
+    )
+
+
+def test_output_handler_state_attrs():
+    wrapper = OutputHandler("tag", state_attributes=["alpha", "beta", "gamma"])
+    mock_logger = MagicMock(spec=VisdomLogger)
+    mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State()
+    mock_engine.state.iteration = 5
+    mock_engine.state.alpha = 3.899
+    mock_engine.state.beta = torch.tensor(12.0)
+    mock_engine.state.gamma = torch.tensor([21.0, 6.0])
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+    assert mock_logger.vis.line.call_count == 4
+    assert (
+        len(wrapper.windows) == 4
+        and "tag/alpha" in wrapper.windows
+        and "tag/beta" in wrapper.windows
+        and "tag/gamma/0" in wrapper.windows
+        and "tag/gamma/1" in wrapper.windows
+    )
+    assert wrapper.windows["tag/alpha"]["win"] is not None
+    assert wrapper.windows["tag/beta"]["win"] is not None
+    assert wrapper.windows["tag/gamma/0"]["win"] is not None
+    assert wrapper.windows["tag/gamma/1"]["win"] is not None
+
+    mock_logger.vis.line.assert_has_calls(
+        [
+            call(
+                X=[5],
+                Y=[3.899],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows["tag/alpha"]["opts"],
+                name="tag/alpha",
+            ),
+            call(
+                X=[5],
+                Y=[12.0],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows["tag/beta"]["opts"],
+                name="tag/beta",
+            ),
+            call(
+                X=[5],
+                Y=[21.0],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows["tag/gamma/0"]["opts"],
+                name="tag/gamma/0",
+            ),
+            call(
+                X=[5],
+                Y=[6.0],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows["tag/gamma/1"]["opts"],
+                name="tag/gamma/1",
             ),
         ],
         any_order=True,
@@ -469,8 +530,8 @@ def test_output_handler_with_global_step_transform():
     mock_logger.vis.line.assert_has_calls(
         [
             call(
-                X=[10,],
-                Y=[12345,],
+                X=[10],
+                Y=[12345],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -510,8 +571,8 @@ def test_output_handler_with_global_step_from_engine():
     mock_logger.vis.line.assert_has_calls(
         [
             call(
-                X=[mock_another_engine.state.epoch,],
-                Y=[mock_engine.state.output,],
+                X=[mock_another_engine.state.epoch],
+                Y=[mock_engine.state.output],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -531,8 +592,8 @@ def test_output_handler_with_global_step_from_engine():
     mock_logger.vis.line.assert_has_calls(
         [
             call(
-                X=[mock_another_engine.state.epoch,],
-                Y=[mock_engine.state.output,],
+                X=[mock_another_engine.state.epoch],
+                Y=[mock_engine.state.output],
                 env=mock_logger.vis.env,
                 win=wrapper.windows["tag/loss"]["win"],
                 update="append",
@@ -552,7 +613,7 @@ def test_weights_scalar_handler_wrong_setup():
     with pytest.raises(TypeError, match="Argument reduction should be callable"):
         WeightsScalarHandler(model, reduction=123)
 
-    with pytest.raises(ValueError, match="Output of the reduction function should be a scalar"):
+    with pytest.raises(TypeError, match="Output of the reduction function should be a scalar"):
         WeightsScalarHandler(model, reduction=lambda x: x)
 
     wrapper = WeightsScalarHandler(model)
@@ -588,14 +649,14 @@ def test_weights_scalar_handler():
 
         wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-        tag_prefix = "{}/".format(tag) if tag else ""
+        tag_prefix = f"{tag}/" if tag else ""
 
         assert mock_logger.vis.line.call_count == 4
         mock_logger.vis.line.assert_has_calls(
             [
                 call(
-                    X=[5,],
-                    Y=[0.0,],
+                    X=[5],
+                    Y=[0.0],
                     env=mock_logger.vis.env,
                     win=None,
                     update=None,
@@ -603,8 +664,8 @@ def test_weights_scalar_handler():
                     name=tag_prefix + "weights_norm/fc1/weight",
                 ),
                 call(
-                    X=[5,],
-                    Y=[0.0,],
+                    X=[5],
+                    Y=[0.0],
                     env=mock_logger.vis.env,
                     win=None,
                     update=None,
@@ -612,8 +673,8 @@ def test_weights_scalar_handler():
                     name=tag_prefix + "weights_norm/fc1/bias",
                 ),
                 call(
-                    X=[5,],
-                    Y=[12.0,],
+                    X=[5],
+                    Y=[12.0],
                     env=mock_logger.vis.env,
                     win=None,
                     update=None,
@@ -621,7 +682,7 @@ def test_weights_scalar_handler():
                     name=tag_prefix + "weights_norm/fc2/weight",
                 ),
                 call(
-                    X=[5,],
+                    X=[5],
                     Y=ANY,
                     env=mock_logger.vis.env,
                     win=None,
@@ -668,8 +729,8 @@ def test_weights_scalar_handler_custom_reduction():
     mock_logger.vis.line.assert_has_calls(
         [
             call(
-                X=[5,],
-                Y=[12.34,],
+                X=[5],
+                Y=[12.34],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -677,8 +738,8 @@ def test_weights_scalar_handler_custom_reduction():
                 name="weights_norm/fc1/weight",
             ),
             call(
-                X=[5,],
-                Y=[12.34,],
+                X=[5],
+                Y=[12.34],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -686,8 +747,8 @@ def test_weights_scalar_handler_custom_reduction():
                 name="weights_norm/fc1/bias",
             ),
             call(
-                X=[5,],
-                Y=[12.34,],
+                X=[5],
+                Y=[12.34],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -695,8 +756,8 @@ def test_weights_scalar_handler_custom_reduction():
                 name="weights_norm/fc2/weight",
             ),
             call(
-                X=[5,],
-                Y=[12.34,],
+                X=[5],
+                Y=[12.34],
                 env=mock_logger.vis.env,
                 win=None,
                 update=None,
@@ -724,25 +785,12 @@ def test_grads_scalar_handler_wrong_setup():
         wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
 
-def test_grads_scalar_handler():
-    class DummyModel(torch.nn.Module):
-        def __init__(self):
-            super(DummyModel, self).__init__()
-            self.fc1 = torch.nn.Linear(10, 10)
-            self.fc2 = torch.nn.Linear(12, 12)
-            self.fc1.weight.data.zero_()
-            self.fc1.bias.data.zero_()
-            self.fc2.weight.data.fill_(1.0)
-            self.fc2.bias.data.fill_(1.0)
-
-    model = DummyModel()
-
-    def norm(x):
-        return 0.0
+def test_grads_scalar_handler(dummy_model_factory, norm_mock):
+    model = dummy_model_factory(with_grads=True, with_frozen_layer=False)
 
     # define test wrapper to test with and without optional tag
     def _test(tag=None):
-        wrapper = GradsScalarHandler(model, reduction=norm, tag=tag)
+        wrapper = GradsScalarHandler(model, reduction=norm_mock, tag=tag)
         mock_logger = MagicMock(spec=VisdomLogger)
         mock_logger.vis = MagicMock()
         mock_logger.executor = _DummyExecutor()
@@ -753,13 +801,13 @@ def test_grads_scalar_handler():
 
         wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-        tag_prefix = "{}/".format(tag) if tag else ""
+        tag_prefix = f"{tag}/" if tag else ""
 
         assert mock_logger.vis.line.call_count == 4
         mock_logger.vis.line.assert_has_calls(
             [
                 call(
-                    X=[5,],
+                    X=[5],
                     Y=ANY,
                     env=mock_logger.vis.env,
                     win=None,
@@ -768,7 +816,7 @@ def test_grads_scalar_handler():
                     name=tag_prefix + "grads_norm/fc1/weight",
                 ),
                 call(
-                    X=[5,],
+                    X=[5],
                     Y=ANY,
                     env=mock_logger.vis.env,
                     win=None,
@@ -777,7 +825,7 @@ def test_grads_scalar_handler():
                     name=tag_prefix + "grads_norm/fc1/bias",
                 ),
                 call(
-                    X=[5,],
+                    X=[5],
                     Y=ANY,
                     env=mock_logger.vis.env,
                     win=None,
@@ -786,7 +834,7 @@ def test_grads_scalar_handler():
                     name=tag_prefix + "grads_norm/fc2/weight",
                 ),
                 call(
-                    X=[5,],
+                    X=[5],
                     Y=ANY,
                     env=mock_logger.vis.env,
                     win=None,
@@ -802,18 +850,22 @@ def test_grads_scalar_handler():
     _test(tag="tag")
 
 
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_integration_no_server():
 
-    with pytest.raises(RuntimeError, match="Failed to connect to Visdom server"):
+    with pytest.raises(ConnectionError, match="Error connecting to Visdom server"):
         VisdomLogger()
 
 
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_logger_init_hostname_port(visdom_server):
     # Explicit hostname, port
     vd_logger = VisdomLogger(server=visdom_server[0], port=visdom_server[1], num_workers=0)
     assert "main" in vd_logger.vis.get_env_list()
+    vd_logger.close()
 
 
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_logger_init_env_vars(visdom_server):
     # As env vars
     import os
@@ -822,6 +874,7 @@ def test_logger_init_env_vars(visdom_server):
     os.environ["VISDOM_PORT"] = str(visdom_server[1])
     vd_logger = VisdomLogger(server=visdom_server[0], port=visdom_server[1], num_workers=0)
     assert "main" in vd_logger.vis.get_env_list()
+    vd_logger.close()
 
 
 def _parse_content(content):
@@ -830,6 +883,7 @@ def _parse_content(content):
     return json.loads(content)
 
 
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_integration_no_executor(visdom_server):
     vd_logger = VisdomLogger(server=visdom_server[0], port=visdom_server[1], num_workers=0)
 
@@ -862,8 +916,10 @@ def test_integration_no_executor(visdom_server):
     x_vals, y_vals = data["x"], data["y"]
     assert all([int(x) == x_true for x, x_true in zip(x_vals, list(range(1, n_epochs * len(data) + 1)))])
     assert all([y == y_true for y, y_true in zip(y_vals, losses)])
+    vd_logger.close()
 
 
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_integration_with_executor(visdom_server):
     vd_logger = VisdomLogger(server=visdom_server[0], port=visdom_server[1], num_workers=1)
 
@@ -900,7 +956,8 @@ def test_integration_with_executor(visdom_server):
     vd_logger.close()
 
 
-def test_integration_with_executor_as_context_manager(visdom_server):
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
+def test_integration_with_executor_as_context_manager(visdom_server, visdom_server_stop):
 
     n_epochs = 5
     data = list(range(50))
@@ -935,20 +992,14 @@ def test_integration_with_executor_as_context_manager(visdom_server):
         assert all([y == y_true for y, y_true in zip(y_vals, losses)])
 
 
-@pytest.fixture
-def no_site_packages():
-    import sys
-
-    plx_module = sys.modules["visdom"]
-    del sys.modules["visdom"]
-    prev_path = list(sys.path)
-    sys.path = [p for p in sys.path if "site-packages" not in p]
-    yield "no_site_packages"
-    sys.path = prev_path
-    sys.modules["visdom"] = plx_module
-
-
+@pytest.mark.parametrize("no_site_packages", ["visdom"], indirect=True)
 def test_no_visdom(no_site_packages):
 
-    with pytest.raises(RuntimeError, match=r"This contrib module requires visdom package"):
+    with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires visdom package"):
         VisdomLogger()
+
+
+def test_no_concurrent():
+    with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires concurrent.futures"):
+        with patch.dict("sys.modules", {"concurrent.futures": None}):
+            VisdomLogger(num_workers=1)
