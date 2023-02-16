@@ -433,29 +433,25 @@ class Engine(Serializable):
 
     def debug(self, level: int = 0, **kwargs: Any) -> None:
         self.level = level
+
         if self.level > 2:
-            print(
-                f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name}, \
-                    Loss : {self.state.output}, LR : {self.state.output}, Gradients : {self.state.output}"
-            )
+            self.lr = kwargs["optimizer"].param_groups[0]["lr"]
+            self.layer = kwargs["layer"]
             self.logger.debug(
                 f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name}, \
-                    Loss : {self.state.output}, LR : {self.state.output}, Gradients : {self.state.output}"
+                    Loss : {self.state.output}, LR : {self.lr}, Gradients : {self.layer.weight.grad}"
             )
         elif self.level > 1:
-            print(
-                f"{self.state.epoch} | {self.state.iteration} Firing handlers for event {self.last_event_name}, \
-                    Loss : {self.state.output}, LR : {self.state.output}"
-            )
+            self.lr = kwargs["optimizer"].param_groups[0]["lr"]
             self.logger.debug(
                 f"{self.state.epoch} | {self.state.iteration} Firing handlers for event {self.last_event_name}, \
-                    Loss : {self.state.output}, LR : {self.state.output}"
+                    Loss : {self.state.output}, LR : {self.lr}"
             )
         elif self.level > 0:
-            print(f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name}")
             self.logger.debug(
                 f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name}"
             )
+
 
     def fire_event(self, event_name: Any) -> None:
         """Execute all the handlers associated with given event.

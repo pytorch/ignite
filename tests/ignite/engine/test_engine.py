@@ -1391,48 +1391,58 @@ def test_engine_interrupt_restart():
 
 
 def test_engine_debug():
-
     from torch import nn
     from torch.utils.data import DataLoader
-    from torchvision.models import resnet18
 
     class Net(nn.Module):
         def __init__(self):
             super(Net, self).__init__()
-
-            self.model = resnet18(num_classes=10)
-
-            self.model.conv1 = nn.Conv2d(1, 64, kernel_size=3, padding=1, bias=False)
+            self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
+            self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
+            self.conv2_drop = nn.Dropout2d()
+            self.fc1 = nn.Linear(320, 50)
+            self.fc2 = nn.Linear(50, 10)
 
         def forward(self, x):
-            return self.model(x)
+            x = F.relu(F.max_pool2d(self.conv1(x), 2))
+            x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
+            x = x.view(-1, 320)
+            x = F.relu(self.fc1(x))
+            x = F.dropout(x, training=self.training)
+            x = self.fc2(x)
+            return F.log_softmax(x, dim=-1)
 
-    def _test(level=Engine.DEBUG_EVENTS):
+    def _test():
+        train_loader = DataLoader(
+            MNIST(download=True, root=".", transform=Compose([ToTensor()]), train=True),
+            batch_size=train_batch_size,
+            shuffle=True,
+        )
+
         model = Net()
+        device = "cpu"
 
-        from torchvision.datasets import MNIST
+        if torch.cuda.is_available():
+            device = "cuda"
 
-        train_loader = DataLoader(MNIST(download=True, root=".", train=True), batch_size=128, shuffle=True)
+        model.to(device)  # Move model before creating optimizer
+        optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
+        criterion = nn.NLLLoss()
+        trainer = create_supervised_trainer(model, optimizer, criterion, device=device)
+        trainer.logger = setup_logger("trainer")
 
-        optimizer = torch.optim.RMSprop(model.parameters(), lr=0.005)
-        criterion = nn.CrossEntropyLoss()
+        @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
+        def log_training_debug_events(engine):
+            trainer.debug(level=DEBUG_EVENTS)
 
-        def train_step(engine, batch):
-            model.train()
-            optimizer.zero_grad()
-            x, y = batch[0], batch[1]
-            y_pred = model(x)
-            loss = criterion(y_pred, y)
-            loss.backward()
-            optimizer.step()
-            return loss.item()
+        @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
+        def log_training_debug_outputs(engine):
+            trainer.debug(level=DEBUG_OUTPUT, optimizer=optimizer)
 
-        trainer = Engine(train_step)
+        @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
+        def log_training_debug_grads(engine):
+            trainer.debug(level=DEBUG_GRADS, optimizer=optimizer, layer=model.fc2)
 
-        @trainer.on(Events.ITERATION_COMPLETED(every=100))
-        def trigger_custom_event():
-            trainer.debug(level=level)
+        trainer.run(train_loader, max_epochs=epochs)
 
-    _test(Engine.DEBUG_EVENTS)
-    _test(Engine.DEBUG_OUTPUT)
-    _test(Engine.DEBUG_GRADS)
+    _test()
