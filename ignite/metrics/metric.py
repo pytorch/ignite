@@ -574,7 +574,7 @@ def sync_all_reduce(*attrs: Any) -> Callable:
                             f"number or tensor but `{attr}` has type {type(t)}"
                         )
                     unreduced_attrs[attr] = t
-                    # Here `clone` is necessary since `idist.all_reduce` modifies `t` inp-lace in the case
+                    # Here `clone` is necessary since `idist.all_reduce` modifies `t` inplace in the case
                     # `t` is a tensor and its `device` is same as that of the process.
                     # TODO: Remove this dual behavior of `all_reduce` to always either return a new tensor or
                     #       modify it in-place.
