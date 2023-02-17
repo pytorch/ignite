@@ -12,7 +12,7 @@ class TopKCategoricalAccuracy(Metric):
     """
     Calculates the top-k categorical accuracy.
 
-    - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
+    - ``update`` must receive output of the form ``(y_pred, y)``.
 
     Args:
         k: the k in “top-k”.

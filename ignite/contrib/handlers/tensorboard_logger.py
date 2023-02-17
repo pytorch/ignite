@@ -150,7 +150,7 @@ class TensorboardLogger(BaseLogger):
             from tensorboardX import SummaryWriter
         except ImportError:
             try:
-                from torch.utils.tensorboard import SummaryWriter  # type: ignore[no-redef]
+                from torch.utils.tensorboard import SummaryWriter
             except ImportError:
                 raise ModuleNotFoundError(
                     "This contrib module requires either tensorboardX or torch >= 1.2.0. "

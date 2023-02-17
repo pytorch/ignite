@@ -99,7 +99,7 @@ class Accuracy(_BaseClassification):
     where :math:`\text{TP}` is true positives, :math:`\text{TN}` is true negatives,
     :math:`\text{FP}` is false positives and :math:`\text{FN}` is false negatives.
 
-    - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
+    - ``update`` must receive output of the form ``(y_pred, y)``.
     - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...).
     - `y` must be in the following shape (batch_size, ...).
     - `y` and `y_pred` must be in the following shape of (batch_size, num_categories, ...) and

@@ -31,7 +31,7 @@ class Engine(Serializable):
         last_event_name: last event name triggered by the engine.
 
     Note:
-        :class:`~ignite.engine.engine.Engine` implementation has changed in v0.5.0 with "interrupt/resume" feature.
+        :class:`~ignite.engine.engine.Engine` implementation has changed in v0.4.10 with "interrupt/resume" feature.
         Engine may behave differently on certain corner cases compared to the one from v0.4.9 and before.
         In such case, you can set ``Engine.interrupt_resume_enabled = False`` to restore previous behaviour.
 
@@ -521,7 +521,7 @@ class Engine(Serializable):
                     3 Engine ended the run at  3 30
 
 
-        .. versionadded:: 0.5.0
+        .. versionadded:: 0.4.10
         """
         if not self.interrupt_resume_enabled:
             raise RuntimeError(
@@ -608,7 +608,7 @@ class Engine(Serializable):
                     4 34  |  9
                     2 Engine ended the run at  4 34
 
-        .. versionchanged:: 0.5.0
+        .. versionchanged:: 0.4.10
             Behaviour changed, for details see https://github.com/pytorch/ignite/issues/2669
 
         """

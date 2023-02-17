@@ -19,6 +19,7 @@ concurrency:
 jobs:
   gpu-tests:
     runs-on: [self-hosted, 2-gpus]
+    timeout-minutes: 45
     defaults:
       run:
         shell: bash
