@@ -18,8 +18,8 @@ def roc_auc_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor) -> float:
 def roc_auc_curve_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor) -> Tuple[Any, Any, Any]:
     from sklearn.metrics import roc_curve
 
-    y_true = y_targets.numpy()
-    y_pred = y_preds.numpy()
+    y_true = y_targets.cpu().numpy()
+    y_pred = y_preds.cpu().numpy()
     return roc_curve(y_true, y_pred)
 
 
@@ -181,9 +181,9 @@ class RocCurve(EpochMetric):
         if idist.get_rank() == 0:
             # Run compute_fn on zero rank only
             fpr, tpr, thresholds = cast(Tuple, self.compute_fn(_prediction_tensor, _target_tensor))
-            fpr = torch.tensor(fpr)
-            tpr = torch.tensor(tpr)
-            thresholds = torch.tensor(thresholds)
+            fpr = torch.tensor(fpr, device=_prediction_tensor.device)
+            tpr = torch.tensor(tpr, device=_prediction_tensor.device)
+            thresholds = torch.tensor(thresholds, device=_prediction_tensor.device)
         else:
             fpr, tpr, thresholds = None, None, None
 
