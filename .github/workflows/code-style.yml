@@ -15,9 +15,6 @@ on:
       - "!docs/**"
       - "!conda.recipe"
 
-  # pull_request:
-  #     paths:
-
 
 jobs:
   code-style:
@@ -25,11 +22,6 @@ jobs:
     steps:
       - if: github.event_name == 'push'
         uses: actions/checkout@v3
-      #       - if: github.event_name == 'pull_request'
-      #         uses: actions/checkout@v2
-      #         with:
-      #           ref: ${{ github.head_ref }}
-
       - uses: actions/setup-python@v4
         with:
           python-version: "3.8"

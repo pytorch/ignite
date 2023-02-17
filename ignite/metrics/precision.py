@@ -165,7 +165,7 @@ class Precision(_BasePrecisionRecall):
 
     where :math:`\text{TP}` is true positives and :math:`\text{FP}` is false positives.
 
-    - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
+    - ``update`` must receive output of the form ``(y_pred, y)``.
     - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...).
     - `y` must be in the following shape (batch_size, ...).
 
@@ -369,8 +369,7 @@ class Precision(_BasePrecisionRecall):
 
             0.75
 
-
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.10
             Some new options were added to `average` parameter.
     """
 
