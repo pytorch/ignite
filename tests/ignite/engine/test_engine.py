@@ -1391,8 +1391,19 @@ def test_engine_interrupt_restart():
 
 
 def test_engine_debug():
+    import torch.nn.functional as F
     from torch import nn
+    from torch.optim import SGD
     from torch.utils.data import DataLoader
+    from torchvision.datasets import MNIST
+    from torchvision.transforms import Compose, ToTensor
+
+    from ignite.engine import create_supervised_trainer
+    from ignite.utils import setup_logger
+
+    DEBUG_EVENTS = 1
+    DEBUG_OUTPUT = 2
+    DEBUG_GRADS = 3
 
     class Net(nn.Module):
         def __init__(self):
@@ -1415,18 +1426,20 @@ def test_engine_debug():
     def _test():
         train_loader = DataLoader(
             MNIST(download=True, root=".", transform=Compose([ToTensor()]), train=True),
-            batch_size=train_batch_size,
+            batch_size=64,
             shuffle=True,
         )
 
         model = Net()
         device = "cpu"
+        log_interval = 10
+        epochs = 10
 
         if torch.cuda.is_available():
             device = "cuda"
 
         model.to(device)  # Move model before creating optimizer
-        optimizer = SGD(model.parameters(), lr=lr, momentum=momentum)
+        optimizer = SGD(model.parameters(), lr=0.01, momentum=0.5)
         criterion = nn.NLLLoss()
         trainer = create_supervised_trainer(model, optimizer, criterion, device=device)
         trainer.logger = setup_logger("trainer")
