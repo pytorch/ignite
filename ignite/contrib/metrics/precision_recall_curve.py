@@ -101,11 +101,11 @@ class PrecisionRecallCurve(EpochMetric):
             if idist.get_rank() == 0:
                 # Run compute_fn on zero rank only
                 precision, recall, thresholds = cast(Tuple, self.compute_fn(_prediction_tensor, _target_tensor))
-                precision = torch.tensor(precision)
-                recall = torch.tensor(recall)
+                precision = torch.tensor(precision, device=_prediction_tensor.device)
+                recall = torch.tensor(recall, device=_prediction_tensor.device)
                 # thresholds can have negative strides, not compatible with torch tensors
                 # https://discuss.pytorch.org/t/negative-strides-in-tensor-error/134287/2
-                thresholds = torch.tensor(thresholds.copy())
+                thresholds = torch.tensor(thresholds.copy(), device=_prediction_tensor.device)
             else:
                 precision, recall, thresholds = None, None, None
 
@@ -116,6 +116,5 @@ class PrecisionRecallCurve(EpochMetric):
                 thresholds = idist.broadcast(thresholds, src=0, safe_mode=True)
 
             self._result = (precision, recall, thresholds)  # type: ignore[assignment]
-            self._is_reduced = True
 
         return cast(Tuple[torch.Tensor, torch.Tensor, torch.Tensor], self._result)

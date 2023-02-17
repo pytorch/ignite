@@ -159,8 +159,6 @@ class EpochMetric(Metric):
                 # broadcast result to all processes
                 self._result = cast(float, idist.broadcast(self._result, src=0))
 
-            self._is_reduced = True
-
         return self._result
 
 
