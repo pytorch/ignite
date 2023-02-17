@@ -89,6 +89,8 @@ def supervised_training_step(
     .. versionadded:: 0.4.5
     .. versionchanged:: 0.4.7
         Added Gradient Accumulation.
+    .. versionchanged:: 0.4.7
+        Added `model_transform` to transform model's output
     """
 
     if gradient_accumulation_steps <= 0:
@@ -167,6 +169,8 @@ def supervised_training_step_amp(
     .. versionadded:: 0.4.5
     .. versionchanged:: 0.4.7
         Added Gradient Accumulation.
+    .. versionchanged:: 0.4.7
+        Added `model_transform` to transform model's output
     """
 
     try:
@@ -254,6 +258,8 @@ def supervised_training_step_apex(
     .. versionadded:: 0.4.5
     .. versionchanged:: 0.4.7
         Added Gradient Accumulation.
+    .. versionchanged:: 0.4.7
+        Added `model_transform` to transform model's output
     """
 
     try:
@@ -335,6 +341,8 @@ def supervised_training_step_tpu(
     .. versionadded:: 0.4.5
     .. versionchanged:: 0.4.7
        Added Gradient Accumulation argument for all supervised training methods.
+    .. versionchanged:: 0.4.7
+        Added `model_transform` to transform model's output
     """
     try:
         import torch_xla.core.xla_model as xm
@@ -515,6 +523,8 @@ def create_supervised_trainer(
 
     .. versionchanged:: 0.4.7
         Added Gradient Accumulation argument for all supervised training methods.
+    .. versionchanged:: 0.4.7
+        Added `model_transform` to transform model's output
     """
 
     device_type = device.type if isinstance(device, torch.device) else device

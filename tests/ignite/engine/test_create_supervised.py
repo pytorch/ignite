@@ -227,7 +227,7 @@ def _default_create_supervised_evaluator(
         model.to(model_device)
 
     model.fc.weight.data.zero_()
-    # model.fc.bias.data.zero_()
+    model.fc.bias.data.zero_()
 
     if trace:
         example_input = torch.randn(1, 1)
@@ -236,7 +236,7 @@ def _default_create_supervised_evaluator(
     evaluator = create_supervised_evaluator(model, device=evaluator_device, amp_mode=amp_mode)
 
     assert model.fc.weight.data[0, 0].item() == approx(0.0)
-    # assert model.fc.bias.item() == approx(0.0)
+    assert model.fc.bias.item() == approx(0.0)
 
     return model, evaluator
 
@@ -316,7 +316,7 @@ def _test_create_evaluation_step_amp(
         model.to(model_device)
 
     model.fc.weight.data.zero_()
-    # model.fc.bias.data.zero_()
+    model.fc.bias.data.zero_()
 
     if trace:
         example_input = torch.randn(1, 1)
@@ -352,7 +352,7 @@ def _test_create_evaluation_step(
         model.to(model_device)
 
     model.fc.weight.data.zero_()
-    # model.fc.bias.data.zero_()
+    model.fc.bias.data.zero_()
 
     if trace:
         example_input = torch.randn(1, 1)
@@ -623,7 +623,7 @@ def test_create_supervised_evaluator_amp_error(mock_torch_cuda_amp_module):
 def test_create_supervised_evaluator_with_metrics():
     model = DummyModel()
     model.fc.weight.data.zero_()
-    # model.fc.bias.data.zero_()
+    model.fc.bias.data.zero_()
 
     evaluator = create_supervised_evaluator(model, metrics={"mse": MeanSquaredError()})
 
