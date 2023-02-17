@@ -159,13 +159,13 @@ class RocCurve(EpochMetric):
             raise ModuleNotFoundError("This contrib module requires scikit-learn to be installed.")
 
         super(RocCurve, self).__init__(
-            roc_auc_curve_compute_fn,
+            roc_auc_curve_compute_fn,  # type: ignore[arg-type]
             output_transform=output_transform,
             check_compute_fn=check_compute_fn,
             device=device,
         )
 
-    def compute(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def compute(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:  # type: ignore[override]
         if len(self._predictions) < 1 or len(self._targets) < 1:
             raise NotComputableError("RocCurve must have at least one example before it can be computed.")
 
@@ -180,7 +180,7 @@ class RocCurve(EpochMetric):
 
         if idist.get_rank() == 0:
             # Run compute_fn on zero rank only
-            fpr, tpr, thresholds = self.compute_fn(_prediction_tensor, _target_tensor)
+            fpr, tpr, thresholds = cast(Tuple, self.compute_fn(_prediction_tensor, _target_tensor))
             fpr = torch.tensor(fpr, device=_prediction_tensor.device)
             tpr = torch.tensor(tpr, device=_prediction_tensor.device)
             thresholds = torch.tensor(thresholds, device=_prediction_tensor.device)

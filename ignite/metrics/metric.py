@@ -595,6 +595,8 @@ def reinit__is_reduced(func: Callable) -> Callable:
     def wrapper(self: Metric, *args: Any, **kwargs: Any) -> None:
         func(self, *args, **kwargs)
         self._is_reduced = False
+        if "_result" in self.__dict__:
+            self._result = None  # type: ignore[attr-defined]
 
     setattr(wrapper, "_decorated", True)
     return wrapper
