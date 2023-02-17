@@ -1399,7 +1399,6 @@ def test_engine_debug():
     from torchvision.transforms import Compose, ToTensor
 
     from ignite.engine import create_supervised_trainer
-    from ignite.utils import setup_logger
 
     DEBUG_EVENTS = 1
     DEBUG_OUTPUT = 2
@@ -1442,7 +1441,6 @@ def test_engine_debug():
         optimizer = SGD(model.parameters(), lr=0.01, momentum=0.5)
         criterion = nn.NLLLoss()
         trainer = create_supervised_trainer(model, optimizer, criterion, device=device)
-        trainer.logger = setup_logger("trainer")
 
         @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
         def log_training_debug_events(engine):
