@@ -149,7 +149,7 @@ def test_distrib_integration(distributed):
 
     engine = Engine(update)
 
-    device = "cpu" if idist.device().type == "xla" else idist.device()
+    device = torch.device("cpu") if idist.device().type == "xla" else idist.device()
     metric = RocCurve(device=device)
     metric.attach(engine, "roc_curve")
 
@@ -159,10 +159,14 @@ def test_distrib_integration(distributed):
 
     fpr, tpr, thresholds = engine.state.metrics["roc_curve"]
 
+    assert isinstance(fpr, torch.Tensor) and fpr.device == device
+    assert isinstance(tpr, torch.Tensor) and tpr.device == device
+    assert isinstance(thresholds, torch.Tensor) and thresholds.device == device
+
     y = idist.all_gather(y)
     y_pred = idist.all_gather(y_pred)
-    sk_fpr, sk_tpr, sk_thresholds = roc_curve(y, y_pred)
+    sk_fpr, sk_tpr, sk_thresholds = roc_curve(y.cpu().numpy(), y_pred.cpu().numpy())
 
-    assert np.array_equal(fpr, sk_fpr)
-    assert np.array_equal(tpr, sk_tpr)
-    np.testing.assert_array_almost_equal(thresholds, sk_thresholds)
+    np.testing.assert_array_almost_equal(fpr.cpu().numpy(), sk_fpr)
+    np.testing.assert_array_almost_equal(tpr.cpu().numpy(), sk_tpr)
+    np.testing.assert_array_almost_equal(thresholds.cpu().numpy(), sk_thresholds)
