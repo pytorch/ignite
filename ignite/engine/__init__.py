@@ -89,7 +89,7 @@ def supervised_training_step(
     .. versionadded:: 0.4.5
     .. versionchanged:: 0.4.7
         Added Gradient Accumulation.
-    .. versionchanged:: 0.4.7
+    .. versionchanged:: 0.4.11
         Added `model_transform` to transform model's output
     """
 
@@ -169,7 +169,7 @@ def supervised_training_step_amp(
     .. versionadded:: 0.4.5
     .. versionchanged:: 0.4.7
         Added Gradient Accumulation.
-    .. versionchanged:: 0.4.7
+    .. versionchanged:: 0.4.11
         Added `model_transform` to transform model's output
     """
 
@@ -258,7 +258,7 @@ def supervised_training_step_apex(
     .. versionadded:: 0.4.5
     .. versionchanged:: 0.4.7
         Added Gradient Accumulation.
-    .. versionchanged:: 0.4.7
+    .. versionchanged:: 0.4.11
         Added `model_transform` to transform model's output
     """
 
@@ -341,7 +341,7 @@ def supervised_training_step_tpu(
     .. versionadded:: 0.4.5
     .. versionchanged:: 0.4.7
        Added Gradient Accumulation argument for all supervised training methods.
-    .. versionchanged:: 0.4.7
+    .. versionchanged:: 0.4.11
         Added `model_transform` to transform model's output
     """
     try:
@@ -523,7 +523,7 @@ def create_supervised_trainer(
 
     .. versionchanged:: 0.4.7
         Added Gradient Accumulation argument for all supervised training methods.
-    .. versionchanged:: 0.4.7
+    .. versionchanged:: 0.4.11
         Added `model_transform` to transform model's output
     """
 
