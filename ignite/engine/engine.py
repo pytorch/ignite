@@ -452,7 +452,6 @@ class Engine(Serializable):
                 f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name}"
             )
 
-
     def fire_event(self, event_name: Any) -> None:
         """Execute all the handlers associated with given event.
 
