@@ -3,6 +3,7 @@ from typing import Any, Callable, Iterator, List, Optional, Union
 
 import torch
 import torch.nn as nn
+from packaging.version import Version
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset, IterableDataset
 from torch.utils.data.distributed import DistributedSampler
@@ -113,6 +114,9 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> Union[DataLoader, "_MpDe
         kwargs["pin_memory"] = False
     else:
         kwargs["pin_memory"] = kwargs.get("pin_memory", "cuda" in idist.device().type)
+
+    if Version(torch.__version__) >= Version("1.7.0"):
+        kwargs["persistent_workers"] = True
 
     logger.info(f"Use data loader kwargs for dataset '{repr(dataset)[:20].strip()}': \n\t{kwargs}")
     dataloader = DataLoader(dataset, **kwargs)
