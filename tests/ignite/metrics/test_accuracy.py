@@ -317,9 +317,9 @@ def _test_distrib_multilabel_input_NHW(device):
         assert accuracy_score(np_y, np_y_pred) == pytest.approx(res)
         # check that result is not changed
         res = acc.compute()
-        assert accuracy_score(np_y, np_y_pred) == pytest.approx(res)
         assert n == acc._num_examples
         assert isinstance(res, float)
+        assert accuracy_score(np_y, np_y_pred) == pytest.approx(res)
 
         # Batched Updates
         acc.reset()
