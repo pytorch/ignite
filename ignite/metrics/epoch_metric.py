@@ -1,5 +1,5 @@
 import warnings
-from typing import Any, Callable, cast, List, Tuple, Union
+from typing import Callable, cast, List, Optional, Tuple, Union
 
 import torch
 
@@ -28,9 +28,8 @@ class EpochMetric(Metric):
     - ``update`` must receive output of the form ``(y_pred, y)``.
 
     Args:
-        compute_fn: a callable with the signature (`torch.tensor`, `torch.tensor`) takes as the input
-            `predictions` and `targets` and returns a scalar. Input tensors will be on specified ``device``
-            (see arg below).
+        compute_fn: a callable which receives two tensors as the `predictions` and `targets`
+            and returns a scalar. Input tensors will be on specified ``device`` (see arg below).
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
@@ -70,7 +69,7 @@ class EpochMetric(Metric):
 
     def __init__(
         self,
-        compute_fn: Callable,
+        compute_fn: Callable[[torch.Tensor, torch.Tensor], float],
         output_transform: Callable = lambda x: x,
         check_compute_fn: bool = True,
         device: Union[str, torch.device] = torch.device("cpu"),
@@ -88,6 +87,7 @@ class EpochMetric(Metric):
     def reset(self) -> None:
         self._predictions: List[torch.Tensor] = []
         self._targets: List[torch.Tensor] = []
+        self._result: Optional[float] = None
 
     def _check_shape(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output
@@ -136,30 +136,30 @@ class EpochMetric(Metric):
             except Exception as e:
                 warnings.warn(f"Probably, there can be a problem with `compute_fn`:\n {e}.", EpochMetricWarning)
 
-    def compute(self) -> Any:
+    def compute(self) -> float:
         if len(self._predictions) < 1 or len(self._targets) < 1:
             raise NotComputableError("EpochMetric must have at least one example before it can be computed.")
 
-        _prediction_tensor = torch.cat(self._predictions, dim=0)
-        _target_tensor = torch.cat(self._targets, dim=0)
+        if self._result is None:
+            _prediction_tensor = torch.cat(self._predictions, dim=0)
+            _target_tensor = torch.cat(self._targets, dim=0)
 
-        ws = idist.get_world_size()
+            ws = idist.get_world_size()
+            if ws > 1:
+                # All gather across all processes
+                _prediction_tensor = cast(torch.Tensor, idist.all_gather(_prediction_tensor))
+                _target_tensor = cast(torch.Tensor, idist.all_gather(_target_tensor))
 
-        if ws > 1:
-            # All gather across all processes
-            _prediction_tensor = cast(torch.Tensor, idist.all_gather(_prediction_tensor))
-            _target_tensor = cast(torch.Tensor, idist.all_gather(_target_tensor))
+            self._result = 0.0
+            if idist.get_rank() == 0:
+                # Run compute_fn on zero rank only
+                self._result = self.compute_fn(_prediction_tensor, _target_tensor)
 
-        result = 0.0
-        if idist.get_rank() == 0:
-            # Run compute_fn on zero rank only
-            result = self.compute_fn(_prediction_tensor, _target_tensor)
+            if ws > 1:
+                # broadcast result to all processes
+                self._result = cast(float, idist.broadcast(self._result, src=0))
 
-        if ws > 1:
-            # broadcast result to all processes
-            result = cast(float, idist.broadcast(result, src=0))
-
-        return result
+        return self._result
 
 
 class EpochMetricWarning(UserWarning):
