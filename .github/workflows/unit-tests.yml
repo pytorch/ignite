@@ -19,6 +19,7 @@ concurrency:
 jobs:
   cpu-tests:
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
     defaults:
       run:
         shell: bash
