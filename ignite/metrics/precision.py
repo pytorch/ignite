@@ -6,7 +6,7 @@ import torch
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics.accuracy import _BaseClassification
-from ignite.metrics.metric import reinit__is_reduced
+from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 from ignite.utils import to_onehot
 
 __all__ = ["Precision"]
@@ -28,7 +28,7 @@ class _BasePrecisionRecall(_BaseClassification):
             )
 
         if average is True:
-            self._average = "macro"  # type: Optional[Union[bool, str]]
+            self._average: Optional[Union[bool, str]] = "macro"
         else:
             self._average = average
         self.eps = 1e-20
@@ -114,13 +114,14 @@ class _BasePrecisionRecall(_BaseClassification):
         #   denominator (torch.Tensor): number of predicted(for precision) or actual(for recall)
         #     positives per class/label
 
-        self._numerator = 0  # type: Union[int, torch.Tensor]
-        self._denominator = 0  # type: Union[int, torch.Tensor]
-        self._weight = 0  # type: Union[int, torch.Tensor]
+        self._numerator: Union[int, torch.Tensor] = 0
+        self._denominator: Union[int, torch.Tensor] = 0
+        self._weight: Union[int, torch.Tensor] = 0
         self._updated = False
 
         super(_BasePrecisionRecall, self).reset()
 
+    @sync_all_reduce("_numerator", "_denominator")
     def compute(self) -> Union[torch.Tensor, float]:
 
         # Return value of the metric for `average` options `'weighted'` and `'macro'` is computed as follows.
@@ -138,18 +139,13 @@ class _BasePrecisionRecall(_BaseClassification):
             raise NotComputableError(
                 f"{self.__class__.__name__} must have at least one example before it can be computed."
             )
-        if not self._is_reduced:
-            self._numerator = idist.all_reduce(self._numerator)  # type: ignore[assignment]
-            self._denominator = idist.all_reduce(self._denominator)  # type: ignore[assignment]
-            if self._average == "weighted":
-                self._weight = idist.all_reduce(self._weight)  # type: ignore[assignment]
-            self._is_reduced = True  # type: bool
 
         fraction = self._numerator / (self._denominator + (self.eps if self._average != "samples" else 0))
 
         if self._average == "weighted":
-            sum_of_weights = cast(torch.Tensor, self._weight).sum() + self.eps
-            return ((fraction @ self._weight) / sum_of_weights).item()  # type: ignore
+            _weight = idist.all_reduce(self._weight.clone())  # type: ignore[union-attr]
+            sum_of_weights = cast(torch.Tensor, _weight).sum() + self.eps
+            return ((fraction @ _weight) / sum_of_weights).item()  # type: ignore
         elif self._average == "micro" or self._average == "samples":
             return cast(torch.Tensor, fraction).item()
         elif self._average == "macro":
@@ -165,7 +161,7 @@ class Precision(_BasePrecisionRecall):
 
     where :math:`\text{TP}` is true positives and :math:`\text{FP}` is false positives.
 
-    - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
+    - ``update`` must receive output of the form ``(y_pred, y)``.
     - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...).
     - `y` must be in the following shape (batch_size, ...).
 
@@ -369,8 +365,7 @@ class Precision(_BasePrecisionRecall):
 
             0.75
 
-
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.10
             Some new options were added to `average` parameter.
     """
 

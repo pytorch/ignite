@@ -303,7 +303,7 @@ class OutputHandler(BaseOutputHandler):
         tag: str,
         metric_names: Optional[List[str]] = None,
         output_transform: Optional[Callable] = None,
-        global_step_transform: Optional[Callable] = None,
+        global_step_transform: Optional[Callable[[Engine, Union[str, Events]], int]] = None,
         state_attributes: Optional[List[str]] = None,
     ):
         super(OutputHandler, self).__init__(
@@ -317,7 +317,7 @@ class OutputHandler(BaseOutputHandler):
 
         metrics = self._setup_output_metrics_state_attrs(engine)
 
-        global_step = self.global_step_transform(engine, event_name)  # type: ignore[misc]
+        global_step = self.global_step_transform(engine, event_name)
 
         if not isinstance(global_step, int):
             raise TypeError(
@@ -829,7 +829,7 @@ class ClearMLSaver(DiskSaver):
         if "atomic" not in kwargs:
             kwargs["atomic"] = False
 
-        self._checkpoint_slots = defaultdict(list)  # type: DefaultDict[Union[str, Tuple[str, str]], List[Any]]
+        self._checkpoint_slots: DefaultDict[Union[str, Tuple[str, str]], List[Any]] = defaultdict(list)
 
         super(ClearMLSaver, self).__init__(dirname=dirname, *args, **kwargs)  # type: ignore[misc]
 

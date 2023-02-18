@@ -275,6 +275,9 @@ def _test_distrib_multilabel_input_NHW(device):
             acc._num_correct.device == metric_device
         ), f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
 
+        n = acc._num_examples
+        assert n == y.numel() / y.size(dim=1)
+
         # gather y_pred, y
         y_pred = idist.all_gather(y_pred)
         y = idist.all_gather(y)
@@ -282,9 +285,8 @@ def _test_distrib_multilabel_input_NHW(device):
         np_y_pred = to_numpy_multilabel(y_pred.cpu())  # (N, C, H, W, ...) -> (N * H * W ..., C)
         np_y = to_numpy_multilabel(y.cpu())  # (N, C, H, W, ...) -> (N * H * W ..., C)
         assert acc._type == "multilabel"
-        n = acc._num_examples
         res = acc.compute()
-        assert n * idist.get_world_size() == acc._num_examples
+        assert n == acc._num_examples
         assert isinstance(res, float)
         assert accuracy_score(np_y, np_y_pred) == pytest.approx(res)
 
@@ -298,6 +300,9 @@ def _test_distrib_multilabel_input_NHW(device):
             acc._num_correct.device == metric_device
         ), f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
 
+        n = acc._num_examples
+        assert n == y.numel() / y.size(dim=1)
+
         # gather y_pred, y
         y_pred = idist.all_gather(y_pred)
         y = idist.all_gather(y)
@@ -306,14 +311,13 @@ def _test_distrib_multilabel_input_NHW(device):
         np_y = to_numpy_multilabel(y.cpu())  # (N, C, H, W, ...) -> (N * H * W ..., C)
 
         assert acc._type == "multilabel"
-        n = acc._num_examples
         res = acc.compute()
-        assert n * idist.get_world_size() == acc._num_examples
+        assert n == acc._num_examples
         assert isinstance(res, float)
         assert accuracy_score(np_y, np_y_pred) == pytest.approx(res)
         # check that result is not changed
         res = acc.compute()
-        assert n * idist.get_world_size() == acc._num_examples
+        assert n == acc._num_examples
         assert isinstance(res, float)
         assert accuracy_score(np_y, np_y_pred) == pytest.approx(res)
 
@@ -334,6 +338,9 @@ def _test_distrib_multilabel_input_NHW(device):
             acc._num_correct.device == metric_device
         ), f"{type(acc._num_correct.device)}:{acc._num_correct.device} vs {type(metric_device)}:{metric_device}"
 
+        n = acc._num_examples
+        assert n == y.numel() / y.size(dim=1)
+
         # gather y_pred, y
         y_pred = idist.all_gather(y_pred)
         y = idist.all_gather(y)
@@ -342,9 +349,8 @@ def _test_distrib_multilabel_input_NHW(device):
         np_y = to_numpy_multilabel(y.cpu())  # (N, C, L, ...) -> (N * L ..., C)
 
         assert acc._type == "multilabel"
-        n = acc._num_examples
         res = acc.compute()
-        assert n * idist.get_world_size() == acc._num_examples
+        assert n == acc._num_examples
         assert isinstance(res, float)
         assert accuracy_score(np_y, np_y_pred) == pytest.approx(res)
 

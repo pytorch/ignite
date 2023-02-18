@@ -144,7 +144,7 @@ html_context = {
         # 'https://fonts.googleapis.com/css?family=Lato',
         # '_static/css/pytorch_theme.css'
         "_static/css/ignite_theme.css",
-        "https://cdn.jsdelivr.net/npm/@docsearch/css@1.0.0-alpha.28/dist/style.min.css",
+        "https://cdn.jsdelivr.net/npm/@docsearch/css@3.3.0/dist/style.min.css",
     ],
 }
 
@@ -342,6 +342,7 @@ nitpick_ignore = [
     ("py:class", "torch.utils.data.sampler.BatchSampler"),
     ("py:class", "torch.cuda.amp.grad_scaler.GradScaler"),
     ("py:class", "torch.optim.lr_scheduler._LRScheduler"),
+    ("py:class", "torch.optim.lr_scheduler.LRScheduler"),
     ("py:class", "torch.utils.data.dataloader.DataLoader"),
 ]
 

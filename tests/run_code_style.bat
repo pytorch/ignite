@@ -20,7 +20,7 @@ mypy --config-file mypy.ini
 goto end
 
 :install
-pip install flake8 "black==21.12b0" "usort==1.0.1" "ufmt==1.3.1.post1" "mypy"
+pip install --upgrade flake8 "black==21.12b0" "usort==1.0.5" "ufmt==2.0.1" "mypy"
 goto end
 
 :end

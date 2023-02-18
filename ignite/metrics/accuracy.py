@@ -16,8 +16,8 @@ class _BaseClassification(Metric):
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
         self._is_multilabel = is_multilabel
-        self._type = None  # type: Optional[str]
-        self._num_classes = None  # type: Optional[int]
+        self._type: Optional[str] = None
+        self._num_classes: Optional[int] = None
         super(_BaseClassification, self).__init__(output_transform=output_transform, device=device)
 
     def reset(self) -> None:
@@ -35,7 +35,7 @@ class _BaseClassification(Metric):
             )
 
         y_shape = y.shape
-        y_pred_shape = y_pred.shape  # type: Tuple[int, ...]
+        y_pred_shape: Tuple[int, ...] = y_pred.shape
 
         if y.ndimension() + 1 == y_pred.ndimension():
             y_pred_shape = (y_pred_shape[0],) + y_pred_shape[2:]
@@ -99,7 +99,7 @@ class Accuracy(_BaseClassification):
     where :math:`\text{TP}` is true positives, :math:`\text{TN}` is true negatives,
     :math:`\text{FP}` is false positives and :math:`\text{FN}` is false negatives.
 
-    - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
+    - ``update`` must receive output of the form ``(y_pred, y)``.
     - `y_pred` must be in the following shape (batch_size, num_categories, ...) or (batch_size, ...).
     - `y` must be in the following shape (batch_size, ...).
     - `y` and `y_pred` must be in the following shape of (batch_size, num_categories, ...) and

@@ -335,7 +335,7 @@ class Checkpoint(Serializable):
         self.ext = "pt"
         self.global_step_transform = global_step_transform
         self.filename_pattern = filename_pattern
-        self._saved = []  # type: List["Checkpoint.Item"]
+        self._saved: List["Checkpoint.Item"] = []
         self.include_self = include_self
         self.greater_or_equal = greater_or_equal
         self.save_on_rank = save_on_rank
@@ -785,7 +785,7 @@ class DiskSaver(BaseSaveHandler):
     .. versionchanged:: 0.4.2
         Accept ``kwargs`` for `torch.save` or `xm.save`.
 
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.10
         Argument ``save_on_rank`` was added to specify the rank on which checkpoint should be saved.
     """
 
@@ -924,7 +924,7 @@ class ModelCheckpoint(Checkpoint):
         Accept ``filename_pattern`` and ``greater_or_equal`` for parity
         with :class:`~ignite.handlers.checkpoint.Checkpoint`
 
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.10
         Added `save_on_rank` arg to save objects on this rank in a distributed configuration
 
     Examples:

@@ -129,23 +129,62 @@ def test_custom_events_with_events_list():
 
 
 def test_callable_events_with_wrong_inputs():
+    def ef(e, i):
+        return 1
 
-    with pytest.raises(
-        ValueError, match=r"Only one of the input arguments should be specified except before and after"
-    ):
-        Events.ITERATION_STARTED()
-
-    with pytest.raises(
-        ValueError, match=r"Only one of the input arguments should be specified except before and after"
-    ):
-        Events.ITERATION_STARTED(event_filter="123", every=12)
-
-    with pytest.raises(
-        ValueError, match=r"Only one of the input arguments should be specified except before and after"
-    ):
-        Events.ITERATION_STARTED(after=10, before=30, once=1)
-
-    assert Events.ITERATION_STARTED(after=10, before=30)
+    expected_raise = {
+        # event_filter, every, once, before, after
+        (None, None, None, None, None): True,  # raises ValueError
+        (ef, None, None, None, None): False,
+        (None, 2, None, None, None): False,
+        (ef, 2, None, None, None): True,
+        (None, None, 2, None, None): False,
+        (ef, None, 2, None, None): True,
+        (None, 2, 2, None, None): True,
+        (ef, 2, 2, None, None): True,
+        (None, None, None, 30, None): False,
+        (ef, None, None, 30, None): True,
+        (None, 2, None, 30, None): False,
+        (ef, 2, None, 30, None): True,
+        (None, None, 2, 30, None): True,
+        (ef, None, 2, 30, None): True,
+        (None, 2, 2, 30, None): True,
+        (ef, 2, 2, 30, None): True,
+        # event_filter, every, once, before, after
+        (None, None, None, None, 10): False,
+        (ef, None, None, None, 10): True,
+        (None, 2, None, None, 10): False,
+        (ef, 2, None, None, 10): True,
+        (None, None, 2, None, 10): True,
+        (ef, None, 2, None, 10): True,
+        (None, 2, 2, None, 10): True,
+        (ef, 2, 2, None, 10): True,
+        (None, None, None, 25, 8): False,
+        (ef, None, None, 25, 8): True,
+        (None, 2, None, 25, 8): False,
+        (ef, 2, None, 25, 8): True,
+        (None, None, 2, 25, 8): True,
+        (ef, None, 2, 25, 8): True,
+        (None, 2, 2, 25, 8): True,
+        (ef, 2, 2, 25, 8): True,
+    }
+    for event_filter in [None, ef]:
+        for every in [None, 2]:
+            for once in [None, 2]:
+                for before, after in [(None, None), (None, 10), (30, None), (25, 8)]:
+                    if expected_raise[(event_filter, every, once, before, after)]:
+                        with pytest.raises(
+                            ValueError,
+                            match=r"Only one of the input arguments should be specified, "
+                            "except before, after and every",
+                        ):
+                            Events.ITERATION_STARTED(
+                                event_filter=event_filter, once=once, every=every, before=before, after=after
+                            )
+                    else:
+                        Events.ITERATION_STARTED(
+                            event_filter=event_filter, once=once, every=every, before=before, after=after
+                        )
 
     with pytest.raises(TypeError, match=r"Argument event_filter should be a callable"):
         Events.ITERATION_STARTED(event_filter="123")
@@ -153,8 +192,20 @@ def test_callable_events_with_wrong_inputs():
     with pytest.raises(ValueError, match=r"Argument every should be integer and greater than zero"):
         Events.ITERATION_STARTED(every=-1)
 
-    with pytest.raises(ValueError, match=r"Argument once should be integer and positive"):
+    with pytest.raises(
+        ValueError, match=r"Argument once should either be a positive integer or a list of positive integers, got .+"
+    ):
         Events.ITERATION_STARTED(once=-1)
+
+    with pytest.raises(
+        ValueError, match=r"Argument once should either be a positive integer or a list of positive integers, got .+"
+    ):
+        Events.ITERATION_STARTED(once=[1, 10.0, "pytorch"])
+
+    with pytest.raises(
+        ValueError, match=r"Argument once should either be a positive integer or a list of positive integers, got .+"
+    ):
+        Events.ITERATION_STARTED(once=[])
 
     with pytest.raises(ValueError, match=r"Argument before should be integer and greater or equal to zero"):
         Events.ITERATION_STARTED(before=-1)
@@ -202,6 +253,12 @@ def test_callable_events(event):
     assert event.name in f"{ret}"
 
     ret = event(once=10)
+    assert isinstance(ret, CallableEventWithFilter)
+    assert ret == event
+    assert ret.filter is not None
+    assert event.name in f"{ret}"
+
+    ret = event(once=[1, 10])
     assert isinstance(ret, CallableEventWithFilter)
     assert ret == event
     assert ret.filter is not None
@@ -390,34 +447,64 @@ def test_before_and_after_event_filter_with_engine(event_name, event_attr, befor
     assert num_calls == expect_calls
 
 
-def test_once_event_filter_with_engine():
-    def _test(event_name, event_attr):
+@pytest.mark.parametrize(
+    "event_name, event_attr, every, before, after, expect_calls",
+    [(Events.ITERATION_STARTED, "iteration", 5, 25, 8, 4), (Events.EPOCH_COMPLETED, "epoch", 2, 5, 1, 2)],
+)
+def test_every_before_and_after_event_filter_with_engine(event_name, event_attr, every, before, after, expect_calls):
 
-        engine = Engine(lambda e, b: b)
+    data = range(100)
 
-        once = 2
-        counter = [0]
-        num_calls = [0]
+    engine = Engine(lambda e, b: 1)
+    num_calls = 0
 
-        @engine.on(event_name(once=once))
-        def assert_once(engine):
-            assert getattr(engine.state, event_attr) == once
-            num_calls[0] += 1
+    @engine.on(event_name(every=every, before=before, after=after))
+    def _every_before_and_after_event():
+        assert getattr(engine.state, event_attr) > after
+        assert getattr(engine.state, event_attr) < before
+        assert ((getattr(engine.state, event_attr) - after - 1) % every) == 0
+        nonlocal num_calls
+        num_calls += 1
 
-        @engine.on(event_name)
-        def assert_(engine):
-            counter[0] += 1
-            assert getattr(engine.state, event_attr) == counter[0]
+    engine.run(data, max_epochs=5)
+    assert num_calls == expect_calls
 
-        d = list(range(100))
-        engine.run(d, max_epochs=5)
 
-        assert num_calls[0] == 1
+@pytest.mark.parametrize(
+    "event_name, event_attr, once, expect_calls",
+    [
+        (Events.ITERATION_STARTED, "iteration", 2, 1),
+        (Events.ITERATION_COMPLETED, "iteration", 2, 1),
+        (Events.EPOCH_STARTED, "epoch", 2, 1),
+        (Events.EPOCH_COMPLETED, "epoch", 2, 1),
+        (Events.ITERATION_STARTED, "iteration", [1, 5], 2),
+        (Events.ITERATION_COMPLETED, "iteration", [1, 5], 2),
+        (Events.EPOCH_STARTED, "epoch", [1, 5], 2),
+        (Events.EPOCH_COMPLETED, "epoch", [1, 5], 2),
+    ],
+)
+def test_once_event_filter(event_name, event_attr, once, expect_calls):
 
-    _test(Events.ITERATION_STARTED, "iteration")
-    _test(Events.ITERATION_COMPLETED, "iteration")
-    _test(Events.EPOCH_STARTED, "epoch")
-    _test(Events.EPOCH_COMPLETED, "epoch")
+    data = list(range(100))
+
+    engine = Engine(lambda e, b: b)
+    num_calls = [0]
+    counter = [0]
+
+    test_once = [once] if isinstance(once, int) else once
+
+    @engine.on(event_name(once=once))
+    def assert_once(engine):
+        assert getattr(engine.state, event_attr) in test_once
+        num_calls[0] += 1
+
+    @engine.on(event_name)
+    def assert_(engine):
+        counter[0] += 1
+        assert getattr(engine.state, event_attr) == counter[0]
+
+    engine.run(data, max_epochs=10)
+    assert num_calls[0] == expect_calls
 
 
 def test_custom_event_filter_with_engine():

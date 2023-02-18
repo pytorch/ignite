@@ -13,6 +13,8 @@ class SSIM(Metric):
     """
     Computes Structual Similarity Index Measure
 
+    - ``update`` must receive output of the form ``(y_pred, y)``.
+
     Args:
         data_range: Range of the image. Typically, ``1.0`` or ``255``.
         kernel_size: Size of the kernel. Default: (11, 11)
@@ -31,7 +33,8 @@ class SSIM(Metric):
     Examples:
         To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
         The output of the engine's ``process_function`` needs to be in the format of
-        ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``.
+        ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``. If not, ``output_tranform`` can be added
+        to the metric to transform the output into the form expected by the metric.
 
         ``y_pred`` and ``y`` can be un-normalized or normalized image tensors. Depending on that, the user might need
         to adjust ``data_range``. ``y_pred`` and ``y`` should have the same shape.
@@ -69,14 +72,14 @@ class SSIM(Metric):
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
         if isinstance(kernel_size, int):
-            self.kernel_size = [kernel_size, kernel_size]  # type: Sequence[int]
+            self.kernel_size: Sequence[int] = [kernel_size, kernel_size]
         elif isinstance(kernel_size, Sequence):
             self.kernel_size = kernel_size
         else:
             raise ValueError("Argument kernel_size should be either int or a sequence of int.")
 
         if isinstance(sigma, float):
-            self.sigma = [sigma, sigma]  # type: Sequence[float]
+            self.sigma: Sequence[float] = [sigma, sigma]
         elif isinstance(sigma, Sequence):
             self.sigma = sigma
         else:

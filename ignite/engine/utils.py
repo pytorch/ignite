@@ -5,7 +5,7 @@ from typing import Any, Callable, Tuple, Union
 def _check_signature(fn: Callable, fn_description: str, *args: Any, **kwargs: Any) -> None:
     # if handler with filter, check the handler rather than the decorator
     if hasattr(fn, "_parent"):
-        signature = inspect.signature(fn._parent())  # type: ignore[attr-defined]
+        signature = inspect.signature(fn._parent())
     else:
         signature = inspect.signature(fn)
     try:  # try without engine

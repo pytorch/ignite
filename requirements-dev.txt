@@ -31,7 +31,5 @@ py-rouge
 nltk
 # Examples dependencies
 pandas
-gym
-# pygame is now required by gym for cartpole env
-pygame
+gymnasium
 mkl

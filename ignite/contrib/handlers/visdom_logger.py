@@ -188,7 +188,7 @@ class VisdomLogger(BaseLogger):
         if not self.vis.offline and not self.vis.check_connection():  # type: ignore[attr-defined]
             raise RuntimeError(f"Failed to connect to Visdom server at {server}. Did you run python -m visdom.server ?")
 
-        self.executor = _DummyExecutor()  # type: Union[_DummyExecutor, "ThreadPoolExecutor"]
+        self.executor: Union[_DummyExecutor, "ThreadPoolExecutor"] = _DummyExecutor()
         if num_workers > 0:
             self.executor = ThreadPoolExecutor(max_workers=num_workers)
 
@@ -208,7 +208,7 @@ class VisdomLogger(BaseLogger):
 
 class _BaseVisDrawer:
     def __init__(self, show_legend: bool = False):
-        self.windows = {}  # type: Dict[str, Any]
+        self.windows: Dict[str, Any] = {}
         self.show_legend = show_legend
 
     def add_scalar(
@@ -354,7 +354,7 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
         tag: str,
         metric_names: Optional[str] = None,
         output_transform: Optional[Callable] = None,
-        global_step_transform: Optional[Callable] = None,
+        global_step_transform: Optional[Callable[[Engine, Union[str, Events]], int]] = None,
         show_legend: bool = False,
         state_attributes: Optional[List[str]] = None,
     ):
@@ -370,7 +370,7 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
 
         metrics = self._setup_output_metrics_state_attrs(engine, key_tuple=False)
 
-        global_step = self.global_step_transform(engine, event_name)  # type: ignore[misc]
+        global_step = self.global_step_transform(engine, event_name)
 
         if not isinstance(global_step, int):
             raise TypeError(

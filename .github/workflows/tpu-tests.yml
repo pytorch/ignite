@@ -1,6 +1,9 @@
 name: Run TPU tests
 on:
   push:
+    branches:
+      - master
+      - "*.*.*"
     paths:
       - "ignite/**"
       - "tests/ignite/**"
@@ -12,6 +15,7 @@ on:
       - "tests/ignite/**"
       - "tests/run_tpu_tests.sh"
       - ".github/workflows/tpu-tests.yml"
+  workflow_dispatch:
 
 concurrency:
   # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>
@@ -27,44 +31,45 @@ jobs:
         xla-version: [nightly]
 
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python 3.7
-        uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v4
         with:
-          python-version: "3.7"
+          python-version: "3.8"
           architecture: "x64"
 
       - name: Get year & week number
         id: get-date
-        run: echo "::set-output name=date::$(/bin/date "+%Y-%U")"
+        run: echo "date=$(/bin/date "+%Y-%U")" >> $GITHUB_OUTPUT
         shell: bash -l {0}
 
       - name: Get pip cache dir
         id: pip-cache
         run: |
           pip3 install -U pip
-          echo "::set-output name=dir::$(pip cache dir)"
+          echo "pip_cache=$(pip cache dir)" >> $GITHUB_OUTPUT
         shell: bash -l {0}
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: |
-            ${{ steps.pip-cache.outputs.dir }}
+            ${{ steps.pip-cache.outputs.pip_cache }}
           key: ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.xla-version }}-${{ hashFiles('requirements-dev.txt') }}
           restore-keys: |
             ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.xla-version }}-
 
-      # mkl version fixed due to https://github.com/pytorch/ignite/issues/2350
       - name: Install Torch XLA and others
         run: |
 
           ## Install openblas, mkl, gsutil
-          sudo apt-get install -y libopenblas-dev libomp5-10 libomp5
+          sudo apt-get update && sudo apt-get install -y libopenblas-dev libomp5
+          # mkl version fixed due to https://github.com/pytorch/ignite/issues/2350
           pip install mkl==2021.4.0 requests gsutil
 
-          ## Install torch & xla
-          curl https://raw.githubusercontent.com/pytorch/xla/master/contrib/scripts/env-setup.py -o pytorch-xla-env-setup.py
-          python pytorch-xla-env-setup.py --version "nightly"
+          ## Install torch & xla and torchvision
+          pip install --pre  https://storage.googleapis.com/tpu-pytorch/wheels/colab/torch-nightly-cp38-cp38-linux_x86_64.whl
+          pip install --pre  https://storage.googleapis.com/tpu-pytorch/wheels/colab/torch_xla-nightly-cp38-cp38-linux_x86_64.whl
+          pip install --pre  https://storage.googleapis.com/tpu-pytorch/wheels/colab/torchvision-nightly-cp38-cp38-linux_x86_64.whl
 
           ## Install test deps and Ignite
           pip install -r requirements-dev.txt
@@ -79,7 +84,7 @@ jobs:
 
       - name: Run Tests
         run: |
-          export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/hostedtoolcache/Python/3.7.10/x64/lib
+          export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${Python_ROOT_DIR}/lib
           export XRT_DEVICE_MAP="CPU:0;/job:localservice/replica:0/task:0/device:XLA_CPU:0"
           export XRT_WORKERS="localservice:0;grpc://localhost:40934"
 
@@ -87,7 +92,7 @@ jobs:
           bash tests/run_tpu_tests.sh
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v3
         with:
           file: ./coverage.xml
           flags: tpu

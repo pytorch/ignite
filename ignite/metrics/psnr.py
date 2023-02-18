@@ -17,6 +17,7 @@ class PSNR(Metric):
 
     where :math:`\text{MSE}` is `mean squared error <https://en.wikipedia.org/wiki/Mean_squared_error>`_.
 
+    - ``update`` must receive output of the form ``(y_pred, y)``.
     - `y_pred` and `y` **must** have (batch_size, ...) shape.
     - `y_pred` and `y` **must** have same dtype and same shape.
 
@@ -33,7 +34,8 @@ class PSNR(Metric):
     Examples:
         To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
         The output of the engine's ``process_function`` needs to be in format of
-        ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``.
+        ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y, ...}``. If not, ``output_tranform`` can be added
+        to the metric to transform the output into the form expected by the metric.
 
         For more information on how metric works with :class:`~ignite.engine.engine.Engine`,
         visit :ref:`attach-engine`.
@@ -118,7 +120,7 @@ class PSNR(Metric):
         self._num_examples += y.shape[0]
 
     @sync_all_reduce("_sum_of_batchwise_psnr", "_num_examples")
-    def compute(self) -> torch.Tensor:
+    def compute(self) -> float:
         if self._num_examples == 0:
             raise NotComputableError("PSNR must have at least one example before it can be computed.")
-        return self._sum_of_batchwise_psnr / self._num_examples
+        return (self._sum_of_batchwise_psnr / self._num_examples).item()

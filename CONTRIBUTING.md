@@ -293,6 +293,10 @@ for formatting docstrings, specially from an example of `Google style with Pytho
 - [`.. versionchanged::`] directive for adding new arguments, changing internal behaviours, fixing bugs and
 - [`.. deprecated::`] directive for deprecations.
 
+Examples: ``versionadded`` usage [link](https://github.com/pytorch/ignite/blob/52c69251dd9d97c32da1df0477ec3854e5702029/ignite/handlers/state_param_scheduler.py#L24), ``versionchanged`` usage [link](https://github.com/pytorch/ignite/blob/d2020e4e253ac1455a757c2db895c68ccfd2b958/ignite/metrics/metric.py#L281-L282)
+
+
+
 Length of line inside docstrings block must be limited to 120 characters.
 
 [`.. versionadded::`]: https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-versionadded

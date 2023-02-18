@@ -3,7 +3,7 @@
 ported from [pytorch-examples](https://github.com/pytorch/examples/tree/master/reinforcement_learning)
 
 ```bash
-pip install gym
+pip install gymnasium
 # For REINFORCE:
 python reinforce.py
 # For actor critic:
