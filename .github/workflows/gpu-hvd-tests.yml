@@ -9,6 +9,7 @@ on:
       - "examples/**.py"
       - "requirements-dev.txt"
       - ".github/workflows/gpu-hvd-tests.yml"
+  workflow_dispatch:
 
 concurrency:
   # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>
@@ -49,6 +50,8 @@ jobs:
           key: ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-3.8-pytorch-${{ hashFiles('requirements-dev.txt') }}
           restore-keys: |
             ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}--3.8-pytorch-
+
+      - run: pip install pip wheel setuptools -Uqq
 
       - name: Install PyTorch
         # https://pytorch.org/get-started/locally/
