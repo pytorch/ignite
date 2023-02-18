@@ -33,7 +33,7 @@ class DummyModel(torch.nn.Module):
 
     def forward(self, x):
         if self.output_as_list:
-            return [self.fc(x), self.fc(x)]
+            return self.fc(x), self.fc(x)
 
         return self.fc(x)
 
