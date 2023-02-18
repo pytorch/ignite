@@ -72,15 +72,20 @@ jobs:
         run: |
 # <<<<<<< HEAD
 # # <<<<<<< HEAD
-# #           HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]
+# # # <<<<<<< HEAD
+# # #           HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]
+# # # =======
+# # #           cd $GITHUB_WORKSPACE/horovod && python setup.py sdist
+# # #           conda install -y cmake nccl cuda-nvcc -c nvidia
+# # #           cd $GITHUB_WORKSPACE/horovod && HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_NCCL_LINK=SHARED HOROVOD_WITHOUT_MPI=1 HOROVOD_WITH_PYTORCH=1 pip install -v $(ls $GITHUB_WORKSPACE/horovod/dist/horovod-*.tar.gz) && ldconfig
+# # # >>>>>>> a670b8620 (Update gpu-hvd-tests.yml)
 # # =======
-# #           cd $GITHUB_WORKSPACE/horovod && python setup.py sdist
-# #           conda install -y cmake nccl cuda-nvcc -c nvidia
-# #           cd $GITHUB_WORKSPACE/horovod && HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_NCCL_LINK=SHARED HOROVOD_WITHOUT_MPI=1 HOROVOD_WITH_PYTORCH=1 pip install -v $(ls $GITHUB_WORKSPACE/horovod/dist/horovod-*.tar.gz) && ldconfig
-# # >>>>>>> a670b8620 (Update gpu-hvd-tests.yml)
+# #           HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch] --no-cache-dir
+# # >>>>>>> 7174b733d (Update gpu-hvd-tests.yml)
 # =======
-#           HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch] --no-cache-dir
-# >>>>>>> 7174b733d (Update gpu-hvd-tests.yml)
+#           # This env lack nvcc thus we can't use option: HOROVOD_GPU_OPERATIONS=NCCL
+#           HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]
+# >>>>>>> ffee5fd73 (Do not build with NCCL)
           horovodrun --check-build
 
       - name: Install dependencies
