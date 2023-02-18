@@ -60,7 +60,7 @@ jobs:
         # https://pytorch.org/get-started/locally/
         if: ${{ matrix.pytorch-channel == 'pytorch' }}
         run: |
-          pip install --upgrade torch torchvision --extra-index-url https://download.pytorch.org/whl/cu116
+          pip install --upgrade torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
           nvidia-smi
           python -c "import torch; print(torch.__version__, ', CUDA is available: ', torch.cuda.is_available()); exit(not torch.cuda.is_available())"
 
@@ -68,7 +68,7 @@ jobs:
         # https://pytorch.org/get-started/locally/
         if: ${{ matrix.pytorch-channel == 'pytorch-nightly' }}
         run: |
-          pip install --upgrade --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cu116
+          pip install --upgrade --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cu117
           nvidia-smi
           python -c "import torch; print(torch.__version__, ', CUDA is available: ', torch.cuda.is_available()); exit(not torch.cuda.is_available())"
           python -c "import torch; exit(not ('.dev' in torch.__version__))"
