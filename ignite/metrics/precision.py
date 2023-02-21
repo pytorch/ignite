@@ -6,7 +6,7 @@ import torch
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
 from ignite.metrics.accuracy import _BaseClassification
-from ignite.metrics.metric import reinit__is_reduced
+from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 from ignite.utils import to_onehot
 
 __all__ = ["Precision"]
@@ -121,6 +121,7 @@ class _BasePrecisionRecall(_BaseClassification):
 
         super(_BasePrecisionRecall, self).reset()
 
+    @sync_all_reduce("_numerator", "_denominator")
     def compute(self) -> Union[torch.Tensor, float]:
 
         # Return value of the metric for `average` options `'weighted'` and `'macro'` is computed as follows.
@@ -138,18 +139,13 @@ class _BasePrecisionRecall(_BaseClassification):
             raise NotComputableError(
                 f"{self.__class__.__name__} must have at least one example before it can be computed."
             )
-        if not self._is_reduced:
-            self._numerator = idist.all_reduce(self._numerator)  # type: ignore[assignment]
-            self._denominator = idist.all_reduce(self._denominator)  # type: ignore[assignment]
-            if self._average == "weighted":
-                self._weight = idist.all_reduce(self._weight)  # type: ignore[assignment]
-            self._is_reduced: bool = True
 
         fraction = self._numerator / (self._denominator + (self.eps if self._average != "samples" else 0))
 
         if self._average == "weighted":
-            sum_of_weights = cast(torch.Tensor, self._weight).sum() + self.eps
-            return ((fraction @ self._weight) / sum_of_weights).item()  # type: ignore
+            _weight = idist.all_reduce(self._weight.clone())  # type: ignore[union-attr]
+            sum_of_weights = cast(torch.Tensor, _weight).sum() + self.eps
+            return ((fraction @ _weight) / sum_of_weights).item()  # type: ignore
         elif self._average == "micro" or self._average == "samples":
             return cast(torch.Tensor, fraction).item()
         elif self._average == "macro":

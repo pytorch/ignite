@@ -1,6 +1,9 @@
 name: Run unit tests
 on:
   push:
+    branches:
+      - master
+      - "*.*.*"
     paths:
       - "ignite/**"
       - "tests/ignite/**"
@@ -9,7 +12,6 @@ on:
       - "examples/**.py"
       - "requirements-dev.txt"
       - ".github/workflows/unit-tests.yml"
-
   pull_request:
     paths:
       - "ignite/**"
@@ -19,6 +21,7 @@ on:
       - "examples/**.py"
       - "requirements-dev.txt"
       - ".github/workflows/unit-tests.yml"
+  workflow_dispatch:
 
 concurrency:
   # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>
@@ -28,6 +31,7 @@ concurrency:
 jobs:
   cpu-tests:
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
     defaults:
       run:
         shell: bash

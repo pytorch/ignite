@@ -1,6 +1,9 @@
 name: Run Horovod tests
 on:
   push:
+    branches:
+      - master
+      - "*.*.*"
     paths:
       - "ignite/**"
       - "tests/ignite/**"
@@ -12,6 +15,7 @@ on:
       - "tests/ignite/**"
       - "tests/run_cpu_tests.sh"
       - ".github/workflows/hvd-tests.yml"
+  workflow_dispatch:
 
 concurrency:
   # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>

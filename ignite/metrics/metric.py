@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import Mapping
 from functools import wraps
 from numbers import Number
-from typing import Any, Callable, Dict, Optional, Sequence, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, cast, Dict, Optional, Sequence, Tuple, TYPE_CHECKING, Union
 
 import torch
 
@@ -214,7 +214,6 @@ class Metric(metaclass=ABCMeta):
             raise ValueError("Cannot create metric on an XLA device. Use device='cpu' instead.")
 
         self._device = torch.device(device)
-        self._is_reduced = False
         self.reset()
 
     @abstractmethod
@@ -556,25 +555,37 @@ def sync_all_reduce(*attrs: Any) -> Callable:
                     "Decorator sync_all_reduce should be used on ignite.metric.Metric class methods only"
                 )
             ws = idist.get_world_size()
-            if len(attrs) > 0 and not self._is_reduced:
-                if ws > 1:
-                    for attr in attrs:
-                        op_kwargs = {}
-                        if ":" in attr:
-                            attr, op = attr.split(":")
-                            valid_ops = ["MIN", "MAX", "SUM", "PRODUCT"]
-                            if op not in valid_ops:
-                                raise ValueError(f"Reduction operation is not valid (expected : {valid_ops}, got: {op}")
-                            op_kwargs["op"] = op
-                        t = getattr(self, attr, None)
-                        if t is not None:
-                            t = idist.all_reduce(t, **op_kwargs)
-                            self._is_reduced = True
-                            setattr(self, attr, t)
-                else:
-                    self._is_reduced = True
+            unreduced_attrs = {}
+            if len(attrs) > 0 and ws > 1:
+                for attr in attrs:
+                    op_kwargs = {}
+                    if ":" in attr:
+                        attr, op = attr.split(":")
+                        valid_ops = ["MIN", "MAX", "SUM", "PRODUCT"]
+                        if op not in valid_ops:
+                            raise ValueError(f"Reduction operation is not valid (expected : {valid_ops}, got: {op}")
+                        op_kwargs["op"] = op
+                    if attr not in self.__dict__:
+                        raise ValueError(f"Metric {type(self)} has no attribute named `{attr}`.")
+                    t = getattr(self, attr)
+                    if not isinstance(t, (Number, torch.Tensor)):
+                        raise TypeError(
+                            "Attribute provided to sync_all_reduce should be a "
+                            f"number or tensor but `{attr}` has type {type(t)}"
+                        )
+                    unreduced_attrs[attr] = t
+                    # Here `clone` is necessary since `idist.all_reduce` modifies `t` inplace in the case
+                    # `t` is a tensor and its `device` is same as that of the process.
+                    # TODO: Remove this dual behavior of `all_reduce` to always either return a new tensor or
+                    #       modify it in-place.
+                    t_reduced = idist.all_reduce(cast(float, t) if isinstance(t, Number) else t.clone(), **op_kwargs)
+                    setattr(self, attr, t_reduced)
 
-            return func(self, *args, **kwargs)
+            result = func(self, *args, **kwargs)
+
+            for attr, value in unreduced_attrs.items():
+                setattr(self, attr, value)
+            return result
 
         return another_wrapper
 
@@ -594,7 +605,8 @@ def reinit__is_reduced(func: Callable) -> Callable:
     @wraps(func)
     def wrapper(self: Metric, *args: Any, **kwargs: Any) -> None:
         func(self, *args, **kwargs)
-        self._is_reduced = False
+        if "_result" in self.__dict__:
+            self._result = None  # type: ignore[attr-defined]
 
     setattr(wrapper, "_decorated", True)
     return wrapper

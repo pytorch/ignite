@@ -1,6 +1,9 @@
 name: Run TPU tests
 on:
   push:
+    branches:
+      - master
+      - "*.*.*"
     paths:
       - "ignite/**"
       - "tests/ignite/**"
@@ -12,6 +15,7 @@ on:
       - "tests/ignite/**"
       - "tests/run_tpu_tests.sh"
       - ".github/workflows/tpu-tests.yml"
+  workflow_dispatch:
 
 concurrency:
   # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>

@@ -8,7 +8,6 @@ import pytest
 import torch
 from packaging.version import Version
 from pytest import approx
-from torch.nn import Linear
 from torch.nn.functional import mse_loss
 from torch.optim import SGD
 
@@ -26,6 +25,19 @@ from ignite.engine import (
 from ignite.metrics import MeanSquaredError
 
 
+class DummyModel(torch.nn.Module):
+    def __init__(self, output_as_list=False):
+        super(DummyModel, self).__init__()
+        self.output_as_list = output_as_list
+        self.fc = torch.nn.Linear(1, 1, bias=False)
+
+    def forward(self, x):
+        if self.output_as_list:
+            return self.fc(x), self.fc(x)
+
+        return self.fc(x)
+
+
 def _default_create_supervised_trainer(
     gradient_accumulation_steps: int = 1,
     model_device: Optional[str] = None,
@@ -33,13 +45,23 @@ def _default_create_supervised_trainer(
     trace: bool = False,
     amp_mode: str = None,
     scaler: Union[bool, "torch.cuda.amp.GradScaler"] = False,
+    with_model_transform: bool = False,
 ):
-    model = Linear(1, 1, bias=False)
+    if with_model_transform:
+
+        def get_first_element(output):
+            return output[0]
+
+        model = DummyModel(output_as_list=True)
+        model_transform = get_first_element
+    else:
+        model = DummyModel()
+        model_transform = None
 
     if model_device:
         model.to(model_device)
 
-    model.weight.data.zero_()
+    model.fc.weight.data.zero_()
     optimizer = SGD(model.parameters(), 0.1)
 
     if trace:
@@ -60,9 +82,9 @@ def _default_create_supervised_trainer(
         amp_mode=amp_mode,
         scaler=scaler,
         gradient_accumulation_steps=gradient_accumulation_steps,
+        model_transform=model_transform if model_transform is not None else lambda x: x,
     )
-    assert model.weight.data[0, 0].item() == approx(0.0)
-
+    assert model.fc.weight.data[0, 0].item() == approx(0.0)
     return trainer, model
 
 
@@ -73,6 +95,7 @@ def _test_create_supervised_trainer(
     trace: bool = False,
     amp_mode: str = None,
     scaler: Union[bool, "torch.cuda.amp.GradScaler"] = False,
+    with_model_transform: bool = False,
 ):
     trainer, model = _default_create_supervised_trainer(
         gradient_accumulation_steps=gradient_accumulation_steps,
@@ -81,6 +104,7 @@ def _test_create_supervised_trainer(
         trace=trace,
         amp_mode=amp_mode,
         scaler=scaler,
+        with_model_transform=with_model_transform,
     )
 
     x = torch.tensor([[0.01], [0.02], [0.03], [0.04], [0.05]])
@@ -93,17 +117,20 @@ def _test_create_supervised_trainer(
 
     @trainer.on(Events.ITERATION_COMPLETED)
     def _():
-        assert model.weight.grad != 0
+        assert model.fc.weight.grad != 0
         _x, _y = trainer.state.batch
         _x, _y = _x.to(model_device), _y.to(model_device)
         accumulation[0] += 0.2 * _x.item() * (theta[0] * _x.item() - _y.item())
         # value of loss should not be accumulated
-        loss[0] = mse_loss(model(_x), _y).item()
+        if with_model_transform:
+            loss[0] = mse_loss(model(_x)[0], _y).item()
+        else:
+            loss[0] = mse_loss(model(_x), _y).item()
 
     @trainer.on(Events.ITERATION_COMPLETED(every=gradient_accumulation_steps))
     def _():
         theta[0] -= accumulation[0] / gradient_accumulation_steps
-        assert pytest.approx(model.weight.data[0, 0].item(), abs=1.0e-5) == theta[0]
+        assert pytest.approx(model.fc.weight.data[0, 0].item(), abs=1.0e-5) == theta[0]
         assert pytest.approx(trainer.state.output[-1], abs=1e-5) == loss[0]
         accumulation[0] = loss[0] = 0.0
 
@@ -175,10 +202,16 @@ def _test_create_mocked_supervised_trainer(
                             assert training_step_mock.called
 
 
-def _test_create_supervised_trainer_wrong_accumulation(model_device=None, trainer_device=None, amp_mode=None):
+def _test_create_supervised_trainer_wrong_accumulation(
+    model_device=None, trainer_device=None, amp_mode=None, trace=False
+):
     with pytest.raises(ValueError, match="Gradient_accumulation_steps must be strictly positive."):
         _default_create_supervised_trainer(
-            gradient_accumulation_steps=0, model_device=model_device, trainer_device=trainer_device, amp_mode=amp_mode
+            gradient_accumulation_steps=0,
+            model_device=model_device,
+            trainer_device=trainer_device,
+            amp_mode=amp_mode,
+            trace=trace,
         )
 
 
@@ -188,13 +221,12 @@ def _default_create_supervised_evaluator(
     trace: bool = False,
     amp_mode: str = None,
 ):
-    model = Linear(1, 1)
+    model = DummyModel()
 
     if model_device:
         model.to(model_device)
 
-    model.weight.data.zero_()
-    model.bias.data.zero_()
+    model.fc.weight.data.zero_()
 
     if trace:
         example_input = torch.randn(1, 1)
@@ -202,8 +234,7 @@ def _default_create_supervised_evaluator(
 
     evaluator = create_supervised_evaluator(model, device=evaluator_device, amp_mode=amp_mode)
 
-    assert model.weight.data[0, 0].item() == approx(0.0)
-    assert model.bias.item() == approx(0.0)
+    assert model.fc.weight.data[0, 0].item() == approx(0.0)
 
     return model, evaluator
 
@@ -231,8 +262,7 @@ def _test_create_supervised_evaluator(
         assert y[0, 0].item() == approx(3.0)
         assert y[1, 0].item() == approx(5.0)
 
-        assert model.weight.data[0, 0].item() == approx(0.0)
-        assert model.bias.item() == approx(0.0)
+        assert model.fc.weight.data[0, 0].item() == approx(0.0)
 
     else:
         if Version(torch.__version__) >= Version("1.7.0"):
@@ -277,13 +307,12 @@ def _test_create_evaluation_step_amp(
 ):
 
     output_transform_mock = MagicMock()
-    model = Linear(1, 1)
+    model = DummyModel()
 
     if model_device:
         model.to(model_device)
 
-    model.weight.data.zero_()
-    model.bias.data.zero_()
+    model.fc.weight.data.zero_()
 
     if trace:
         example_input = torch.randn(1, 1)
@@ -313,13 +342,12 @@ def _test_create_evaluation_step(
     amp_mode: str = None,
 ):
     output_transform_mock = MagicMock()
-    model = Linear(1, 1)
+    model = DummyModel()
 
     if model_device:
         model.to(model_device)
 
-    model.weight.data.zero_()
-    model.bias.data.zero_()
+    model.fc.weight.data.zero_()
 
     if trace:
         example_input = torch.randn(1, 1)
@@ -341,25 +369,14 @@ def _test_create_evaluation_step(
     assert output_transform_mock.called
 
 
-def test_create_supervised_trainer():
-    _test_create_supervised_trainer_wrong_accumulation()
-    _test_create_supervised_trainer(gradient_accumulation_steps=1)
-    _test_create_supervised_trainer(gradient_accumulation_steps=3)
-    _test_create_mocked_supervised_trainer()
-
-
-def test_create_supervised_trainer_with_cpu():
-    _test_create_supervised_trainer_wrong_accumulation(trainer_device="cpu")
-    _test_create_supervised_trainer(gradient_accumulation_steps=1, trainer_device="cpu")
-    _test_create_supervised_trainer(gradient_accumulation_steps=3, trainer_device="cpu")
-    _test_create_mocked_supervised_trainer(trainer_device="cpu")
-
-
-def test_create_supervised_trainer_traced_with_cpu():
-    _test_create_supervised_trainer_wrong_accumulation(trainer_device="cpu")
-    _test_create_supervised_trainer(gradient_accumulation_steps=1, trainer_device="cpu", trace=True)
-    _test_create_supervised_trainer(gradient_accumulation_steps=3, trainer_device="cpu", trace=True)
-    _test_create_mocked_supervised_trainer(trainer_device="cpu", trace=True)
+@pytest.mark.parametrize("trainer_device", [None, "cpu"])
+@pytest.mark.parametrize("trace", [False, True])
+def test_create_supervised_trainer(trainer_device, trace):
+    _test_create_supervised_trainer_wrong_accumulation(trainer_device=trainer_device, trace=trace)
+    _test_create_supervised_trainer(gradient_accumulation_steps=1, trainer_device=trainer_device, trace=trace)
+    _test_create_supervised_trainer(gradient_accumulation_steps=3, trainer_device=trainer_device, trace=trace)
+    _test_create_supervised_trainer(with_model_transform=True, trainer_device=trainer_device, trace=trace)
+    _test_create_mocked_supervised_trainer(trainer_device=trainer_device, trace=trace)
 
 
 @pytest.mark.skipif(find_spec("apex"), reason="Skip if APEX")
@@ -599,9 +616,8 @@ def test_create_supervised_evaluator_amp_error(mock_torch_cuda_amp_module):
 
 
 def test_create_supervised_evaluator_with_metrics():
-    model = Linear(1, 1)
-    model.weight.data.zero_()
-    model.bias.data.zero_()
+    model = DummyModel()
+    model.fc.weight.data.zero_()
 
     evaluator = create_supervised_evaluator(model, metrics={"mse": MeanSquaredError()})
 
