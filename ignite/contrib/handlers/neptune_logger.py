@@ -42,24 +42,7 @@ class NeptuneLogger(BaseLogger):
            "namespace/project_name" for example "tom/minst-classification".
            If None, the value of NEPTUNE_PROJECT environment variable will be taken.
            You need to create the project in https://neptune.ai first.
-        offline_mode: Optional default False. If offline_mode=True no logs will be send to neptune.
-           Usually used for debug purposes.
-        experiment_name: Optional. Editable name of the experiment.
-           Name is displayed in the experiment’s Details (Metadata section) and in experiments view as a column.
-        upload_source_files: Optional. List of source files to be uploaded.
-           Must be list of str or single str. Uploaded sources are displayed in the experiment’s Source code tab.
-           If None is passed, Python file from which experiment was created will be uploaded.
-           Pass empty list (`[]`) to upload no files. Unix style pathname pattern expansion is supported.
-           For example, you can pass `*.py` to upload all python source files from the current directory.
-           For recursion lookup use `**/*.py` (for Python 3.5 and later). For more information see glob library.
-        params: Optional. Parameters of the experiment. After experiment creation params are read-only.
-           Parameters are displayed in the experiment’s Parameters section and each key-value pair can be
-           viewed in experiments view as a column.
-        properties: Optional default is `{}`. Properties of the experiment.
-           They are editable after experiment is created. Properties are displayed in the experiment’s Details and
-           each key-value pair can be viewed in experiments view as a column.
-        tags: Optional default `[]`. Must be list of str. Tags of the experiment.
-           Tags are displayed in the experiment’s Details and can be viewed in experiments view as a column.
+        **kwargs: Other arguments to be passed to Neptune's `init_run`.
 
     Examples:
         .. code-block:: python
@@ -71,8 +54,8 @@ class NeptuneLogger(BaseLogger):
 
             npt_logger = NeptuneLogger(
                 api_token="ANONYMOUS",
-                project_name="shared/pytorch-ignite-integration",
-                experiment_name="cnn-mnist", # Optional,
+                project="shared/pytorch-ignite-integration",
+                name="cnn-mnist", # Optional,
                 params={"max_epochs": 10}, # Optional,
                 tags=["pytorch-ignite","minst"] # Optional
             )
@@ -153,8 +136,8 @@ class NeptuneLogger(BaseLogger):
             # We are using the api_token for the anonymous user neptuner but you can use your own.
 
             with NeptuneLogger(api_token="ANONYMOUS",
-                               project_name="shared/pytorch-ignite-integration",
-                               experiment_name="cnn-mnist", # Optional,
+                               project="shared/pytorch-ignite-integration",
+                               name="cnn-mnist", # Optional,
                                params={"max_epochs": 10}, # Optional,
                                tags=["pytorch-ignite","mnist"] # Optional
                                ) as npt_logger:
@@ -171,39 +154,36 @@ class NeptuneLogger(BaseLogger):
     """
 
     def __getattr__(self, attr: Any) -> Any:
+        return getattr(self.experiment, attr)
 
-        import neptune
+    def __getitem__(self, key) -> Any:
+        return self.experiment[key]
 
-        return getattr(neptune, attr)
+    def __setitem__(self, key, val) -> Any:
+        self.experiment[key] = val
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, api_token: Optional[str] = None, project: Optional[str] = None, **kwargs) -> None:
         try:
-            import neptune
+            try:
+                # neptune-client=0.9.0+ package structure
+                import neptune.new as neptune
+            except ImportError:
+                # neptune-client>=1.0.0 package structure
+                import neptune
         except ImportError:
             raise ModuleNotFoundError(
                 "This contrib module requires neptune-client to be installed. "
                 "You may install neptune with command: \n pip install neptune-client \n"
             )
 
-        if kwargs.get("offline_mode", False):
-            self.mode = "offline"
-            neptune.init(
-                project_qualified_name="dry-run/project",
-                backend=neptune.OfflineBackend(),
-            )
-        else:
-            self.mode = "online"
-            neptune.init(api_token=kwargs.get("api_token"), project_qualified_name=kwargs.get("project_name"))
-
-        kwargs["name"] = kwargs.pop("experiment_name", None)
-        self._experiment_kwargs = {
-            k: v for k, v in kwargs.items() if k not in ["api_token", "project_name", "offline_mode"]
-        }
-
-        self.experiment = neptune.create_experiment(**self._experiment_kwargs)
+        self.experiment = neptune.init_run(
+            api_token=api_token,
+            project=project,
+            **kwargs,
+        )
 
     def close(self) -> None:
-        self.stop()
+        self.experiment.stop()
 
     def _create_output_handler(self, *args: Any, **kwargs: Any) -> "OutputHandler":
         return OutputHandler(*args, **kwargs)
@@ -355,7 +335,7 @@ class OutputHandler(BaseOutputHandler):
             )
 
         for key, value in metrics.items():
-            logger.log_metric(key, x=global_step, y=value)
+            logger[key].append(value, step=global_step)
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):
@@ -412,7 +392,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
         }
 
         for k, v in params.items():
-            logger.log_metric(k, x=global_step, y=v)
+            logger[k].append(v, step=global_step)
 
 
 class WeightsScalarHandler(BaseWeightsScalarHandler):
@@ -515,11 +495,8 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
                 continue
 
             name = name.replace(".", "/")
-            logger.log_metric(
-                f"{tag_prefix}weights_{self.reduction.__name__}/{name}",
-                x=global_step,
-                y=self.reduction(p.data),
-            )
+            key = f"{tag_prefix}weights_{self.reduction.__name__}/{name}"
+            logger[key].append(self.reduction(p.data), step=global_step)
 
 
 class GradsScalarHandler(BaseWeightsScalarHandler):
@@ -622,9 +599,8 @@ class GradsScalarHandler(BaseWeightsScalarHandler):
                 continue
 
             name = name.replace(".", "/")
-            logger.log_metric(
-                f"{tag_prefix}grads_{self.reduction.__name__}/{name}", x=global_step, y=self.reduction(p.grad)
-            )
+            key = f"{tag_prefix}grads_{self.reduction.__name__}/{name}"
+            logger[key].append(self.reduction(p.grad), step=global_step)
 
 
 class NeptuneSaver(BaseSaveHandler):
@@ -693,8 +669,8 @@ class NeptuneSaver(BaseSaveHandler):
             # we can not use tmp.name to open tmp.file twice on Win32
             # https://docs.python.org/3/library/tempfile.html#tempfile.NamedTemporaryFile
             torch.save(checkpoint, tmp.file)
-            self._logger.log_artifact(tmp.name, filename)
+            self._logger[filename].upload(tmp.name)
 
     @idist.one_rank_only(with_barrier=True)
     def remove(self, filename: str) -> None:
-        self._logger.delete_artifacts(filename)
+        self._logger.delete_files(filename)
