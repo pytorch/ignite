@@ -59,6 +59,11 @@ jobs:
 #           pip list
 # >>>>>>> db7a53a72 (WIP)
 
+      - name: Install dependencies
+        run: |
+          pip install -r requirements-dev.txt
+          pip install -e .
+
       - name: Install Horovod with NCCL GPU ops
         run: |
 # <<<<<<< HEAD
@@ -79,11 +84,6 @@ jobs:
 # >>>>>>> ffee5fd73 (Do not build with NCCL)
           horovodrun --check-build
           pip list
-
-      - name: Install dependencies
-        run: |
-          pip install -r requirements-dev.txt
-          pip install -e .
 
       - name: Run GPU and CPU Unit Tests
         run: |
