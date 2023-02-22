@@ -1444,16 +1444,28 @@ def test_engine_debug():
 
         @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
         def log_training_debug_events(engine):
-            trainer.debug(level=DEBUG_EVENTS)
+            trainer.debug(level=Engine.DEBUG_EVENTS)
 
         @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
         def log_training_debug_outputs(engine):
-            trainer.debug(level=DEBUG_OUTPUT, optimizer=optimizer)
+            trainer.debug(level=Engine.DEBUG_OUTPUT)
 
         @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
         def log_training_debug_grads(engine):
-            trainer.debug(level=DEBUG_GRADS, optimizer=optimizer, layer=model.fc2)
+            trainer.debug(level=Engine.DEBUG_GRADS)
 
-        trainer.run(train_loader, max_epochs=epochs)
+        with pytest.raises(
+            ValueError,
+            match=r"Unknown event name '2'. Level should be one of Engine.DEBUG_NONE, Engine.DEBUG_EVENTS, Engine.DEBUG_OUTPUT, Engine.DEBUG_GRADS",
+        ):
+
+            @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
+            def log_training_debug_grads(engine):
+                trainer.debug(level=2)
+
+        debug_config = {}
+        debug_config["optimizer"] = optimizer
+        debug_config["layer"] = model.fc2
+        trainer.run(train_loader, max_epochs=epochs, debug_config=debug_config)
 
     _test()

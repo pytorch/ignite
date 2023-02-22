@@ -125,9 +125,10 @@ class Engine(Serializable):
     _state_dict_all_req_keys = ("epoch_length", "max_epochs")
     _state_dict_one_of_opt_keys = ("iteration", "epoch")
 
-    DEBUG_EVENTS = 1
-    DEBUG_OUTPUT = 2
-    DEBUG_GRADS = 3
+    DEBUG_NONE = "Engine.DEBUG_NONE"
+    DEBUG_EVENTS = "Engine.DEBUG_EVENTS"
+    DEBUG_OUTPUT = "Engine.DEBUG_OUTPUT"
+    DEBUG_GRADS = "Engine.DEBUG_GRADS"
 
     # Flag to disable engine._internal_run as generator feature for BC
     interrupt_resume_enabled = True
@@ -150,6 +151,8 @@ class Engine(Serializable):
         self.debug_level = 0
 
         self.register_events(*Events)
+
+        self.debug_attr = {Engine.DEBUG_NONE: 0, Engine.DEBUG_EVENTS: 1, Engine.DEBUG_OUTPUT: 2, Engine.DEBUG_GRADS: 3}
 
         if self._process_function is None:
             raise ValueError("Engine must be given a processing function in order to run.")
@@ -431,18 +434,23 @@ class Engine(Serializable):
             first, others = ((args[0],), args[1:]) if (args and args[0] == self) else ((), args)
             func(*first, *(event_args + others), **kwargs)
 
-    def debug(self, level: int = 0, **kwargs: Any) -> None:
-        self.level = level
+    def debug(self, level: str = "Engine.DEBUG_NONE") -> None:
+        if level not in self.debug_attr:
+            raise RuntimeError(
+                f"Unknown event name '{level}'. Level should be one of Engine.DEBUG_NONE, Engine.DEBUG_EVENTS, Engine.DEBUG_OUTPUT, Engine.DEBUG_GRADS"
+            )
+
+        self.level = self.debug_attr[level]
 
         if self.level > 2:
-            self.lr = kwargs["optimizer"].param_groups[0]["lr"]
-            self.layer = kwargs["layer"]
+            self.lr = self.state.debug_config["optimizer"].param_groups[0]["lr"]
+            self.layer = self.state.debug_config["layer"]
             self.logger.debug(
                 f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name}, \
                     Loss : {self.state.output}, LR : {self.lr}, Gradients : {self.layer.weight.grad}"
             )
         elif self.level > 1:
-            self.lr = kwargs["optimizer"].param_groups[0]["lr"]
+            self.lr = self.state.debug_config["optimizer"].param_groups[0]["lr"]
             self.logger.debug(
                 f"{self.state.epoch} | {self.state.iteration} Firing handlers for event {self.last_event_name}, \
                     Loss : {self.state.output}, LR : {self.lr}"
@@ -803,6 +811,7 @@ class Engine(Serializable):
         max_epochs: Optional[int] = None,
         max_iters: Optional[int] = None,
         epoch_length: Optional[int] = None,
+        debug_config: Optional[Any] = None,
     ) -> State:
         """Runs the ``process_function`` over the passed data.
 
@@ -922,6 +931,9 @@ class Engine(Serializable):
 
         if self._dataloader_iter is None:
             self.state.dataloader = data
+
+        if debug_config is not None:
+            self.state.debug_config = debug_config
 
         if self.interrupt_resume_enabled:
             return self._internal_run()
