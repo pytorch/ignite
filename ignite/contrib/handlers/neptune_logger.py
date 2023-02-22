@@ -6,6 +6,7 @@ import torch
 from torch.optim import Optimizer
 
 import ignite.distributed as idist
+from ignite import __version__
 from ignite.contrib.handlers.base_logger import (
     BaseLogger,
     BaseOptimizerParamsHandler,
@@ -25,6 +26,8 @@ __all__ = [
     "GradsScalarHandler",
     "global_step_from_engine",
 ]
+
+INTEGRATION_VERSION_KEY = "source_code/integrations/neptune-pytorch-ignite"
 
 
 class NeptuneLogger(BaseLogger):
@@ -176,11 +179,14 @@ class NeptuneLogger(BaseLogger):
                 "You may install neptune with command: \n pip install neptune-client \n"
             )
 
-        self.experiment = neptune.init_run(
+        run = neptune.init_run(
             api_token=api_token,
             project=project,
             **kwargs,
         )
+        run[INTEGRATION_VERSION_KEY] = __version__
+
+        self.experiment = run
 
     def close(self) -> None:
         self.experiment.stop()

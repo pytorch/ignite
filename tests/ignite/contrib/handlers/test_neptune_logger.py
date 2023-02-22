@@ -521,3 +521,14 @@ def test_neptune_saver(model, serializable):
         pass
 
     assert mock_logger["model"].upload.call_count == int(serializable)
+
+
+def test_logs_version():
+    from ignite import __version__
+    from ignite.contrib.handlers.neptune_logger import INTEGRATION_VERSION_KEY
+
+    logger = NeptuneLogger(
+        project="tests/dry-run",
+        mode="debug",
+    )
+    assert logger[INTEGRATION_VERSION_KEY].fetch() == __version__
