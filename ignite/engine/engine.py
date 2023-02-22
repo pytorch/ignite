@@ -437,7 +437,8 @@ class Engine(Serializable):
     def debug(self, level: str = "Engine.DEBUG_NONE") -> None:
         if level not in self.debug_attr:
             raise RuntimeError(
-                f"Unknown event name '{level}'. Level should be one of Engine.DEBUG_NONE, Engine.DEBUG_EVENTS, Engine.DEBUG_OUTPUT, Engine.DEBUG_GRADS"
+                f"Unknown event name '{level}'. Level should be one of Engine.DEBUG_NONE, \
+                    Engine.DEBUG_EVENTS, Engine.DEBUG_OUTPUT, Engine.DEBUG_GRADS"
             )
 
         self.level = self.debug_attr[level]
