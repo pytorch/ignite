@@ -167,6 +167,7 @@ class NeptuneLogger(BaseLogger):
 
     def __init__(self, api_token: Optional[str] = None, project: Optional[str] = None, **kwargs) -> None:
         import warnings
+
         try:
             try:
                 # neptune-client<1.0.0 package structure
