@@ -28,55 +28,42 @@ jobs:
       fail-fast: true
       matrix:
         pytorch-channel: [pytorch, pytorch-nightly]
+    env:
+      AGENT_TOOLSDIRECTORY: /tmp/python
 
     steps:
       - uses: actions/checkout@v3
+
+      - name: Clean python tool path
+        run: |
+          rm -rf ${AGENT_TOOLSDIRECTORY}
+
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.8
-
-      - name: Get year & week number
-        id: get-date
-        run: |
-          echo "date=$(/bin/date "+%Y-%U")" >> $GITHUB_OUTPUT
-
-      - name: Get pip cache dir
-        id: pip-cache
-        run: |
-          pip install -U pip || python -m pip install -U pip
-          echo "pip_cache=$(pip cache dir)" >> $GITHUB_OUTPUT
-
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ${{ steps.pip-cache.outputs.pip_cache }}
-          key: ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-3.8-${{ matrix.pytorch-channel }}-${{ hashFiles('requirements-dev.txt') }}
-          restore-keys: |
-            ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-3.8-${{ matrix.pytorch-channel }}-
-
-      - run: pip install pip wheel setuptools -Uqq
+          python-version: 3.9
 
       - name: Install PyTorch
         # https://pytorch.org/get-started/locally/
         if: ${{ matrix.pytorch-channel == 'pytorch' }}
         run: |
-          pip install --upgrade torch torchvision --extra-index-url https://download.pytorch.org/whl/cu116
+          pip install --upgrade torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
           nvidia-smi
           python -c "import torch; print(torch.__version__, ', CUDA is available: ', torch.cuda.is_available()); exit(not torch.cuda.is_available())"
+          pip list
 
       - name: Install PyTorch (nightly)
         # https://pytorch.org/get-started/locally/
         if: ${{ matrix.pytorch-channel == 'pytorch-nightly' }}
         run: |
-          pip install --upgrade --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cu116
+          pip install --upgrade --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cu117
           nvidia-smi
           python -c "import torch; print(torch.__version__, ', CUDA is available: ', torch.cuda.is_available()); exit(not torch.cuda.is_available())"
-          python -c "import torch; exit(not ('.dev' in torch.__version__))"
+          pip list
 
       - name: Install dependencies
         run: |
           pip install -r requirements-dev.txt
-          python setup.py install
+          pip install -e .
 
       - name: Run 1 Node 2 GPUs Unit Tests
         run: |
