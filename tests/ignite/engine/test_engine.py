@@ -1460,7 +1460,7 @@ def test_engine_debug():
         ):
 
             @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
-            def log_training_debug_grads(engine):
+            def log_training_debug_int(engine):
                 trainer.debug(level=2)
 
         debug_config = {}
