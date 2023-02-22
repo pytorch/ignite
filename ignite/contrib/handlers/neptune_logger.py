@@ -166,17 +166,21 @@ class NeptuneLogger(BaseLogger):
         self.experiment[key] = val
 
     def __init__(self, api_token: Optional[str] = None, project: Optional[str] = None, **kwargs) -> None:
+        import warnings
         try:
             try:
-                # neptune-client=0.9.0+ package structure
-                import neptune.new as neptune
+                # neptune-client<1.0.0 package structure
+                with warnings.catch_warnings():
+                    # ignore the deprecation warnings
+                    warnings.simplefilter("ignore")
+                    import neptune.new as neptune
             except ImportError:
-                # neptune-client>=1.0.0 package structure
+                # neptune>=1.0.0 package structure
                 import neptune
         except ImportError:
             raise ModuleNotFoundError(
-                "This contrib module requires neptune-client to be installed. "
-                "You may install neptune with command: \n pip install neptune-client \n"
+                "This contrib module requires neptune client to be installed. "
+                "You may install neptune with command: \n pip install neptune \n"
             )
 
         run = neptune.init_run(
