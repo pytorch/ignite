@@ -43,16 +43,17 @@ do
 
 done
 
-image_name="msdp-apex"
-image_tag=`docker run --rm -i pytorchignite/${image_name}:latest python -c "import torch; import ignite; print(torch.__version__ + \"-\" + ignite.__version__, end=\"\")"`
+# DEPRECATED due to no activity
+# image_name="msdp-apex"
+# image_tag=`docker run --rm -i pytorchignite/${image_name}:latest python -c "import torch; import ignite; print(torch.__version__ + \"-\" + ignite.__version__, end=\"\")"`
 
-for image_name in "msdp-apex" "msdp-apex-vision" "msdp-apex-nlp"
-do
+# for image_name in "msdp-apex" "msdp-apex-vision" "msdp-apex-nlp"
+# do
 
-    docker push pytorchignite/${image_name}:latest
-    docker push pytorchignite/${image_name}:${image_tag}
+#     docker push pytorchignite/${image_name}:latest
+#     docker push pytorchignite/${image_name}:${image_tag}
 
-done
+# done
 
 # If use locally, mind to clean dangling images
 # docker images | grep 'pytorchignite\|<none>' | awk '{print $3}' | xargs docker rmi -f

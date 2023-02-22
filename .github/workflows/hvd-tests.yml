@@ -1,5 +1,14 @@
 name: Run Horovod tests
 on:
+  push:
+    branches:
+      - master
+      - "*.*.*"
+    paths:
+      - "ignite/**"
+      - "tests/ignite/**"
+      - "tests/run_cpu_tests.sh"
+      - ".github/workflows/hvd-tests.yml"
   pull_request:
     paths:
       - "ignite/**"
