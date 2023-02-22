@@ -30,26 +30,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.8
-
-      - name: Get year & week number
-        id: get-date
-        run: |
-          echo "date=$(/bin/date "+%Y-%U")" >> $GITHUB_OUTPUT
-
-      - name: Get pip cache dir
-        id: pip-cache
-        run: |
-          pip install -U pip || python -m pip install -U pip
-          echo "pip_cache=$(pip cache dir)" >> $GITHUB_OUTPUT
-
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ${{ steps.pip-cache.outputs.pip_cache }}
-          key: ${{ steps.get-date.outputs.date }}-hvd-pytorch-${{ runner.os }}-3.8-pytorch-${{ hashFiles('requirements-dev.txt') }}
-          restore-keys: |
-            ${{ steps.get-date.outputs.date }}-hvd-pytorch-${{ runner.os }}--3.8-pytorch-
+          python-version: 3.9
 
       - run: pip install pip wheel setuptools -Uqq
 
@@ -63,10 +44,15 @@ jobs:
 # >>>>>>> a670b8620 (Update gpu-hvd-tests.yml)
           nvidia-smi
 # <<<<<<< HEAD
-#           python -c "import torch; print(torch.__version__, ', CUDA is available: ', torch.cuda.is_available()); exit(not torch.cuda.is_available())"
+# # <<<<<<< HEAD
+# #           python -c "import torch; print(torch.__version__, ', CUDA is available: ', torch.cuda.is_available()); exit(not torch.cuda.is_available())"
+# # =======
+# #           python -c "import torch; print('CUDA is available: ', torch.cuda.is_available())"
+# # >>>>>>> 7174b733d (Update gpu-hvd-tests.yml)
 # =======
-#           python -c "import torch; print('CUDA is available: ', torch.cuda.is_available())"
-# >>>>>>> 7174b733d (Update gpu-hvd-tests.yml)
+#           python -c "import torch; print(torch.__version__, ', CUDA is available: ', torch.cuda.is_available()); exit(not torch.cuda.is_available())"
+#           pip list
+# >>>>>>> db7a53a72 (WIP)
 
       - name: Install Horovod with NCCL GPU ops
         run: |
@@ -93,7 +79,7 @@ jobs:
           pip install -r requirements-dev.txt
           python setup.py install
 
-      - name: Run GPU/CPU Unit Tests
+      - name: Run GPU and CPU Unit Tests
         run: |
           bash tests/run_gpu_tests.sh 2 hvd
 
