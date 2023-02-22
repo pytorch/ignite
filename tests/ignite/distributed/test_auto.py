@@ -113,7 +113,11 @@ def _test_auto_dataloader(
             assert dataloader.num_workers == num_workers
 
         if hasattr(dataloader, "persistent_workers"):
-            assert dataloader.persistent_workers == persistent_workers
+            if persistent_workers is None:
+                # By default dataloader persistent_workers is True
+                assert dataloader.persistent_workers
+            else:
+                assert dataloader.persistent_workers == persistent_workers
 
         if isinstance(data, IterableDataset):
             sampler_type = _InfiniteConstantSampler
@@ -210,6 +214,8 @@ def test_auto_methods_gloo(distributed_context_single_node_gloo):
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=2)
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, sampler_name="WeightedRandomSampler")
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, sampler_name="DistributedSampler")
+    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=2, persistent_workers=True)
+    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=2, persistent_workers=False)
 
     device = idist.device()
     _test_auto_model_optimizer(ws, device)
@@ -235,6 +241,8 @@ def test_auto_methods_nccl(distributed_context_single_node_nccl):
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=10)
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1, sampler_name="WeightedRandomSampler")
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1, sampler_name="DistributedSampler")
+    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=2, persistent_workers=True)
+    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=2, persistent_workers=False)
 
     device = idist.device()
     _test_auto_model_optimizer(ws, device)
@@ -256,6 +264,8 @@ def test_auto_methods_hvd(gloo_hvd_executor):
     gloo_hvd_executor(_test_auto_dataloader, args=(np, np, 10, 10), np=np, do_init=True)
     gloo_hvd_executor(_test_auto_dataloader, args=(np, np, 1, 1, "WeightedRandomSampler"), np=np, do_init=True)
     gloo_hvd_executor(_test_auto_dataloader, args=(np, np, 1, 1, "DistributedSampler"), np=np, do_init=True)
+    gloo_hvd_executor(_test_auto_dataloader, args=(np, np, 10, 2, None, DataLoader, True), np=np, do_init=True)
+    gloo_hvd_executor(_test_auto_dataloader, args=(np, np, 10, 2, None, DataLoader, False), np=np, do_init=True)
 
     gloo_hvd_executor(_test_auto_model_optimizer, args=(np, device), np=np, do_init=True)
 
