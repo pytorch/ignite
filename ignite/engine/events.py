@@ -445,7 +445,7 @@ class State:
         self.batch: Optional[int] = None
         self.metrics: Dict[str, Any] = {}
         self.dataloader: Optional[Union[DataLoader, Iterable[Any]]] = None
-        self.debug_config: Optional[Dict[Any]] = None
+        self.debug_config: Dict[str, Any] = {}
         self.seed: Optional[int] = None
         self.times: Dict[str, Optional[float]] = {
             Events.EPOCH_COMPLETED.name: None,
