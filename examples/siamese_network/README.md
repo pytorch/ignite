@@ -6,5 +6,5 @@ Usage:
 
 ```
 pip install -r requirements.txt
-python siamese.py
+python siamese_network.py
 ```
