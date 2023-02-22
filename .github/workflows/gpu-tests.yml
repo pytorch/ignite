@@ -28,14 +28,19 @@ jobs:
       fail-fast: true
       matrix:
         pytorch-channel: [pytorch, pytorch-nightly]
+    env:
+      AGENT_TOOLSDIRECTORY: /tmp/python
 
     steps:
       - uses: actions/checkout@v3
+
+      - name: Clean python tool path
+        run: |
+          rm -rf ${AGENT_TOOLSDIRECTORY}
+
       - uses: actions/setup-python@v4
         with:
           python-version: 3.9
-
-      - run: pip install pip wheel setuptools -Uqq
 
       - name: Install PyTorch
         # https://pytorch.org/get-started/locally/
@@ -58,7 +63,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements-dev.txt
-          python setup.py install
+          pip install -e .
 
       - name: Run 1 Node 2 GPUs Unit Tests
         run: |
