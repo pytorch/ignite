@@ -116,7 +116,7 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> Union[DataLoader, "_MpDe
         kwargs["pin_memory"] = kwargs.get("pin_memory", "cuda" in idist.device().type)
 
     if Version(torch.__version__) >= Version("1.7.0"):
-        kwargs["persistent_workers"] = kwargs.get("persistent_workers", True)
+        kwargs["persistent_workers"] = kwargs.get("persistent_workers", kwargs.get("num_workers", 0) > 0)
 
     logger.info(f"Use data loader kwargs for dataset '{repr(dataset)[:20].strip()}': \n\t{kwargs}")
     dataloader = DataLoader(dataset, **kwargs)
