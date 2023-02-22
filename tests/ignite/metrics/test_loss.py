@@ -148,7 +148,7 @@ def _test_distrib_compute_on_criterion(device, y_test_1, y_test_2, tol=None):
         n = loss._num_examples
         assert n == len(y)
         res = loss.compute()
-        assert n * idist.get_world_size() == loss._num_examples
+        assert n == loss._num_examples
 
         y_pred = idist.all_gather(y_pred)
         y = idist.all_gather(y)
@@ -160,7 +160,7 @@ def _test_distrib_compute_on_criterion(device, y_test_1, y_test_2, tol=None):
         loss.update((y_pred, y))
         n = loss._num_examples
         res = loss.compute()
-        assert n * idist.get_world_size() == loss._num_examples
+        assert n == loss._num_examples
 
         y_pred = idist.all_gather(y_pred)
         y = idist.all_gather(y)

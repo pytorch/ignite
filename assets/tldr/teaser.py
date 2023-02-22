@@ -15,7 +15,7 @@ from ignite.engine import Engine, Events, create_supervised_evaluator
 from ignite.metrics import Accuracy
 
 in_colab = "COLAB_TPU_ADDR" in os.environ
-with_torch_launch = "WORLD_SIZE" in os.environ
+with_torchrun = "WORLD_SIZE" in os.environ
 
 train_transform = Compose(
     [
@@ -31,8 +31,17 @@ test_transform = Compose([ToTensor(), Normalize((0.485, 0.456, 0.406), (0.229, 0
 
 
 def get_train_test_datasets(path):
+    # - Get train/test datasets
+    if idist.get_rank() > 0:
+        # Ensure that only rank 0 download the dataset
+        idist.barrier()
+
     train_ds = datasets.CIFAR10(root=path, train=True, download=True, transform=train_transform)
     test_ds = datasets.CIFAR10(root=path, train=False, download=False, transform=test_transform)
+
+    if idist.get_rank() == 0:
+        # Ensure that only rank 0 download the dataset
+        idist.barrier()
 
     return train_ds, test_ds
 
@@ -48,16 +57,7 @@ def get_model(name):
 
 def get_dataflow(config):
 
-    # - Get train/test datasets
-    if idist.get_rank() > 0:
-        # Ensure that only rank 0 download the dataset
-        idist.barrier()
-
     train_dataset, test_dataset = get_train_test_datasets(config.get("data_path", "."))
-
-    if idist.get_rank() == 0:
-        # Ensure that only rank 0 download the dataset
-        idist.barrier()
 
     # Setup data loader also adapted to distributed config: nccl, gloo, xla-tpu
     train_loader = idist.auto_dataloader(
@@ -175,10 +175,10 @@ def training(local_rank, config):
 # --- Single computation device ---
 # $ python main.py
 #
-if __name__ == "__main__" and not (in_colab or with_torch_launch):
+if __name__ == "__main__" and not (in_colab or with_torchrun):
 
-    backend = None  # or "nccl", "gloo", "xla-tpu" ...
-    nproc_per_node = None  # or N to spawn N processes
+    backend = None
+    nproc_per_node = None
     config = {
         "model": "resnet18",
         "dataset": "cifar10",
@@ -189,12 +189,12 @@ if __name__ == "__main__" and not (in_colab or with_torch_launch):
 
 
 # --- Multiple GPUs ---
-# $ python -m torch.distributed.launch --nproc_per_node=2 --use_env main.py
+# $ torchrun --nproc_per_node=2 main.py
 #
-if __name__ == "__main__" and with_torch_launch:
+if __name__ == "__main__" and with_torchrun:
 
-    backend = "nccl"  # or "nccl", "gloo", "xla-tpu" ...
-    nproc_per_node = None  # or N to spawn N processes
+    backend = "nccl"  # or "nccl", "gloo", ...
+    nproc_per_node = None
     config = {
         "model": "resnet18",
         "dataset": "cifar10",
@@ -208,8 +208,8 @@ if __name__ == "__main__" and with_torch_launch:
 #
 if in_colab:
 
-    backend = "xla-tpu"  # or "nccl", "gloo", "xla-tpu" ...
-    nproc_per_node = 8  # or N to spawn N processes
+    backend = "xla-tpu"
+    nproc_per_node = 8
     config = {
         "model": "resnet18",
         "dataset": "cifar10",

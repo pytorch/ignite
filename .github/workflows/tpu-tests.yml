@@ -1,5 +1,14 @@
 name: Run TPU tests
 on:
+  push:
+    branches:
+      - master
+      - "*.*.*"
+    paths:
+      - "ignite/**"
+      - "tests/ignite/**"
+      - "tests/run_tpu_tests.sh"
+      - ".github/workflows/tpu-tests.yml"
   pull_request:
     paths:
       - "ignite/**"
