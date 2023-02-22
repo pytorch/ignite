@@ -47,9 +47,9 @@ jobs:
         with:
           path: |
             ${{ steps.pip-cache.outputs.pip_cache }}
-          key: ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-3.8-pytorch-${{ hashFiles('requirements-dev.txt') }}
+          key: ${{ steps.get-date.outputs.date }}-hvd-pytorch-${{ runner.os }}-3.8-pytorch-${{ hashFiles('requirements-dev.txt') }}
           restore-keys: |
-            ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}--3.8-pytorch-
+            ${{ steps.get-date.outputs.date }}-hvd-pytorch-${{ runner.os }}--3.8-pytorch-
 
       - run: pip install pip wheel setuptools -Uqq
 
