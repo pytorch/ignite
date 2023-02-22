@@ -27,7 +27,7 @@ __all__ = [
     "global_step_from_engine",
 ]
 
-INTEGRATION_VERSION_KEY = "source_code/integrations/neptune-pytorch-ignite"
+_INTEGRATION_VERSION_KEY = "source_code/integrations/neptune-pytorch-ignite"
 
 
 class NeptuneLogger(BaseLogger):
@@ -189,7 +189,7 @@ class NeptuneLogger(BaseLogger):
             project=project,
             **kwargs,
         )
-        run[INTEGRATION_VERSION_KEY] = __version__
+        run[_INTEGRATION_VERSION_KEY] = __version__
 
         self.experiment = run
 

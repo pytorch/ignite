@@ -525,10 +525,10 @@ def test_neptune_saver(model, serializable):
 
 def test_logs_version():
     from ignite import __version__
-    from ignite.contrib.handlers.neptune_logger import INTEGRATION_VERSION_KEY
+    from ignite.contrib.handlers.neptune_logger import _INTEGRATION_VERSION_KEY
 
     logger = NeptuneLogger(
         project="tests/dry-run",
         mode="debug",
     )
-    assert logger[INTEGRATION_VERSION_KEY].fetch() == __version__
+    assert logger[_INTEGRATION_VERSION_KEY].fetch() == __version__
