@@ -33,26 +33,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.8
-
-      - name: Get year & week number
-        id: get-date
-        run: |
-          echo "date=$(/bin/date "+%Y-%U")" >> $GITHUB_OUTPUT
-
-      - name: Get pip cache dir
-        id: pip-cache
-        run: |
-          pip install -U pip || python -m pip install -U pip
-          echo "pip_cache=$(pip cache dir)" >> $GITHUB_OUTPUT
-
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ${{ steps.pip-cache.outputs.pip_cache }}
-          key: ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-3.8-${{ matrix.pytorch-channel }}-${{ hashFiles('requirements-dev.txt') }}
-          restore-keys: |
-            ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-3.8-${{ matrix.pytorch-channel }}-
+          python-version: 3.9
 
       - run: pip install pip wheel setuptools -Uqq
 
