@@ -165,7 +165,7 @@ class NeptuneLogger(BaseLogger):
     def __setitem__(self, key: str, val: Any) -> Any:
         self.experiment[key] = val
 
-    def __init__(self, api_token: Optional[str] = None, project: Optional[str] = None, **kwargs) -> None:
+    def __init__(self, api_token: Optional[str] = None, project: Optional[str] = None, **kwargs: Any) -> None:
         import warnings
 
         try:
