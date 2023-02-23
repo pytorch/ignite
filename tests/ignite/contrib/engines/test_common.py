@@ -561,7 +561,7 @@ def test_setup_clearml_logging():
 def test_setup_neptune_logging(dirname):
     npt_logger = _test_setup_logging(
         setup_logging_fn=setup_neptune_logging,
-        kwargs_dict={"offline_mode": True},
+        kwargs_dict={"mode": "offline"},
         output_handler_cls=handlers.neptune_logger.OutputHandler,
         opt_params_handler_cls=handlers.neptune_logger.OptimizerParamsHandler,
         with_eval=False,
@@ -570,7 +570,7 @@ def test_setup_neptune_logging(dirname):
     npt_logger.close()
     npt_logger = _test_setup_logging(
         setup_logging_fn=setup_neptune_logging,
-        kwargs_dict={"offline_mode": True},
+        kwargs_dict={"mode": "offline"},
         output_handler_cls=handlers.neptune_logger.OutputHandler,
         opt_params_handler_cls=handlers.neptune_logger.OptimizerParamsHandler,
         with_eval=True,
