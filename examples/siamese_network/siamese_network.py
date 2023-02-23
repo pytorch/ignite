@@ -115,7 +115,7 @@ class APP_MATCHER():
         # group examples based on class
         self.grouped_examples = {}
         for i in range(0,10):
-            self.grouped_examples[i] = np.where((np_arr==i))[0]
+            self.grouped_examples[i] = np.where((np_arr == i))[0]
 
     def __len__(self):
         return self.data.shape[0]
@@ -307,8 +307,7 @@ def main():
     lr_scheduler = LRScheduler(scheduler)
 
     # call train function
-    train(model, device, optimizer, train_loader, lr_scheduler,
-        log_interval=args.log_interval, max_epochs=args.epochs)
+    train(model, device, optimizer, train_loader, lr_scheduler, log_interval=args.log_interval, max_epochs=args.epochs)
 
     # call test function
     test(model, device, test_loader, lr_scheduler, log_interval=args.log_interval)
