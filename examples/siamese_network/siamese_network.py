@@ -1,32 +1,36 @@
 from __future__ import print_function
+
 import argparse
-import numpy as np
 import random
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torchvision
-from ignite.engine import Engine, Events
-from ignite.contrib.handlers import ProgressBar
-from ignite.handlers.param_scheduler import LRScheduler
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
 from torchvision import datasets
+
+from ignite.contrib.handlers import ProgressBar
+from ignite.engine import Engine, Events
+from ignite.handlers.param_scheduler import LRScheduler
 
 
 class SiameseNetwork(nn.Module):
     # update Siamese Network implementation in accordance with the dataset
     """
-        Siamese network for image similarity estimation.
-        The network is composed of two identical networks, one for each input.
-        The output of each network is concatenated and passed to a linear layer.
-        The output of the linear layer passed through a sigmoid function.
-        `"FaceNet" <https://arxiv.org/pdf/1503.03832.pdf>`_ is a variant of the Siamese network.
-        This implementation varies from FaceNet as we use the `ResNet-18` model from
-        `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`
-        as our feature extractor.
-        In addition, we aren't using `TripletLoss` as the MNIST dataset is simple, so `BCELoss` can do the trick.
+    Siamese network for image similarity estimation.
+    The network is composed of two identical networks, one for each input.
+    The output of each network is concatenated and passed to a linear layer.
+    The output of the linear layer passed through a sigmoid function.
+    `"FaceNet" <https://arxiv.org/pdf/1503.03832.pdf>`_ is a variant of the Siamese network.
+    This implementation varies from FaceNet as we use the `ResNet-18` model from
+    `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`
+    as our feature extractor.
+    In addition, we aren't using `TripletLoss` as the MNIST dataset is simple, so `BCELoss` can do the trick.
     """
+
     def __init__(self):
         super(SiameseNetwork, self).__init__()
         # get resnet model
@@ -81,7 +85,7 @@ class SiameseNetwork(nn.Module):
         return output
 
 
-class APP_MATCHER():
+class APP_MATCHER:
     # following class implements data downloading and handles preprocessing
     def __init__(self, root, train, download=False):
         super(APP_MATCHER, self).__init__()
@@ -101,12 +105,12 @@ class APP_MATCHER():
 
     def group_examples(self):
         """
-            To ease the accessibility of data based on the class, we will use `group_examples` to group
-            examples based on class.
+        To ease the accessibility of data based on the class, we will use `group_examples` to group
+        examples based on class.
 
-            Every key in `grouped_examples` corresponds to a class in MNIST dataset. For every key in
-            `grouped_examples`, every value will conform to all of the indices for the MNIST
-            dataset examples that correspond to that key.
+        Every key in `grouped_examples` corresponds to a class in MNIST dataset. For every key in
+        `grouped_examples`, every value will conform to all of the indices for the MNIST
+        dataset examples that correspond to that key.
         """
 
         # get the targets from MNIST dataset
@@ -114,7 +118,7 @@ class APP_MATCHER():
 
         # group examples based on class
         self.grouped_examples = {}
-        for i in range(0,10):
+        for i in range(0, 10):
             self.grouped_examples[i] = np.where((np_arr == i))[0]
 
     def __len__(self):
@@ -122,17 +126,17 @@ class APP_MATCHER():
 
     def __getitem__(self, index):
         """
-            For every example, we will select two images. There are two cases,
-            positive and negative examples. For positive examples, we will have two
-            images from the same class. For negative examples, we will have two images
-            from different classes.
+        For every example, we will select two images. There are two cases,
+        positive and negative examples. For positive examples, we will have two
+        images from the same class. For negative examples, we will have two images
+        from different classes.
 
-            Given an index, if the index is even, we will pick the second image from the same class,
-            but it won't be the same image we chose for the first class. This is used to ensure the positive
-            example isn't trivial as the network would easily distinguish the similarity between same images. However,
-            if the network were given two different images from the same class, the network will need to learn
-            the similarity between two different images representing the same class. If the index is odd, we will
-            pick the second image from a different class than the first image.
+        Given an index, if the index is even, we will pick the second image from the same class,
+        but it won't be the same image we chose for the first class. This is used to ensure the positive
+        example isn't trivial as the network would easily distinguish the similarity between same images. However,
+        if the network were given two different images from the same class, the network will need to learn
+        the similarity between two different images representing the same class. If the index is odd, we will
+        pick the second image from a different class than the first image.
         """
 
         # pick some random class for the first image
@@ -202,7 +206,10 @@ def train(model, device, optimizer, train_loader, lr_scheduler, log_interval, ma
         image_1, image_2, target = batch
         image_1, image_2, target = image_1.to(device), image_2.to(device), target.to(device)
         optimizer.zero_grad()
-        outputs = model(image_1, image_2,).squeeze()
+        outputs = model(
+            image_1,
+            image_2,
+        ).squeeze()
         loss = criterion(outputs, target)
         loss.backward()
         optimizer.step()
@@ -218,7 +225,7 @@ def train(model, device, optimizer, train_loader, lr_scheduler, log_interval, ma
     # attach various handlers to trainer engine
     @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
     def log_training_results(engine):
-        print(f'Train Epoch: {engine.state.epoch}, Train Loss: {engine.state.output: .5f}')
+        print(f"Train Epoch: {engine.state.epoch}, Train Loss: {engine.state.output: .5f}")
 
     trainer.add_event_handler(Events.ITERATION_STARTED, lr_scheduler)
 
@@ -253,7 +260,7 @@ def test(model, device, test_loader, lr_scheduler, log_interval):
     def log_testing_results(engine):
         nonlocal average_test_loss
         average_test_loss += engine.state.output
-        print(f'Test Epoch: {engine.state.epoch} Test Loss: {engine.state.output: .5f}')
+        print(f"Test Epoch: {engine.state.epoch} Test Loss: {engine.state.output: .5f}")
 
     evaluator.add_event_handler(Events.ITERATION_STARTED, lr_scheduler)
 
@@ -261,42 +268,43 @@ def test(model, device, test_loader, lr_scheduler, log_interval):
     evaluator.run(test_loader)
 
     # print average loss over test dataset
-    print(f'Average Test Loss: {average_test_loss/len(test_loader.dataset): .7f}')
+    print(f"Average Test Loss: {average_test_loss/len(test_loader.dataset): .7f}")
 
 
 def main():
     # adds training defaults and support for terminal arguments
-    parser = argparse.ArgumentParser(description='PyTorch Siamese network Example')
-    parser.add_argument('--batch-size', type=int, default=64, metavar='N',
-                        help='input batch size for training (default: 64)')
-    parser.add_argument('--test-batch-size', type=int, default=200, metavar='N',
-                        help='input batch size for testing (default: 1000)')
-    parser.add_argument('--epochs', type=int, default=10, metavar='N',
-                        help='number of epochs to train (default: 14)')
-    parser.add_argument('--lr', type=float, default=1.0, metavar='LR',
-                        help='learning rate (default: 1.0)')
-    parser.add_argument('--gamma', type=float, default=0.95, metavar='M',
-                        help='Learning rate step gamma (default: 0.7)')
-    parser.add_argument('--no-cuda', action='store_true', default=False,
-                        help='disables CUDA training')
-    parser.add_argument('--no-mps', action='store_true', default=False,
-                        help='disables macOS GPU training')
-    parser.add_argument('--dry-run', action='store_true', default=False,
-                        help='quickly check a single pass')
-    parser.add_argument('--seed', type=int, default=1, metavar='S',
-                        help='random seed (default: 1)')
-    parser.add_argument('--log-interval', type=int, default=10, metavar='N',
-                        help='how many batches to wait before logging training status')
-    parser.add_argument('--save-model', action='store_true', default=False,
-                        help='For Saving the current Model')
+    parser = argparse.ArgumentParser(description="PyTorch Siamese network Example")
+    parser.add_argument(
+        "--batch-size", type=int, default=64, metavar="N", help="input batch size for training (default: 64)"
+    )
+    parser.add_argument(
+        "--test-batch-size", type=int, default=200, metavar="N", help="input batch size for testing (default: 1000)"
+    )
+    parser.add_argument("--epochs", type=int, default=10, metavar="N", help="number of epochs to train (default: 14)")
+    parser.add_argument("--lr", type=float, default=1.0, metavar="LR", help="learning rate (default: 1.0)")
+    parser.add_argument(
+        "--gamma", type=float, default=0.95, metavar="M", help="Learning rate step gamma (default: 0.7)"
+    )
+    parser.add_argument("--no-cuda", action="store_true", default=False, help="disables CUDA training")
+    parser.add_argument("--no-mps", action="store_true", default=False, help="disables macOS GPU training")
+    parser.add_argument("--dry-run", action="store_true", default=False, help="quickly check a single pass")
+    parser.add_argument("--seed", type=int, default=1, metavar="S", help="random seed (default: 1)")
+    parser.add_argument(
+        "--log-interval",
+        type=int,
+        default=10,
+        metavar="N",
+        help="how many batches to wait before logging training status",
+    )
+    parser.add_argument("--save-model", action="store_true", default=False, help="For Saving the current Model")
     args = parser.parse_args()
 
     # set device
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
     # data loading
-    train_dataset = APP_MATCHER('../data', train=True, download=True)
-    test_dataset = APP_MATCHER('../data', train=False)
+    train_dataset = APP_MATCHER("../data", train=True, download=True)
+    test_dataset = APP_MATCHER("../data", train=False)
     train_loader = DataLoader(train_dataset, shuffle=True, batch_size=args.batch_size)
     test_loader = DataLoader(test_dataset, batch_size=args.test_batch_size)
 
@@ -313,5 +321,5 @@ def main():
     test(model, device, test_loader, lr_scheduler, log_interval=args.log_interval)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
