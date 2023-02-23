@@ -159,10 +159,10 @@ class NeptuneLogger(BaseLogger):
     def __getattr__(self, attr: Any) -> Any:
         return getattr(self.experiment, attr)
 
-    def __getitem__(self, key) -> Any:
+    def __getitem__(self, key: str) -> Any:
         return self.experiment[key]
 
-    def __setitem__(self, key, val) -> Any:
+    def __setitem__(self, key: str, val: Any) -> Any:
         self.experiment[key] = val
 
     def __init__(self, api_token: Optional[str] = None, project: Optional[str] = None, **kwargs) -> None:
