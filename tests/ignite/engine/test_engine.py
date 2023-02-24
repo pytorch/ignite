@@ -1458,7 +1458,7 @@ def test_engine_debug():
             with pytest.raises(
                 ValueError,
                 match=r"Unknown event name '2'. Level should be combinations of Engine.DEBUG_NONE, "
-                    r"Engine.DEBUG_EVENTS, Engine.DEBUG_OUTPUT, Engine.DEBUG_GRADS"
+                r"Engine.DEBUG_EVENTS, Engine.DEBUG_OUTPUT, Engine.DEBUG_GRADS",
             ):
                 trainer.debug(level=2, config=debug_config)
 
