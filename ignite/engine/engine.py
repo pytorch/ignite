@@ -131,6 +131,9 @@ class Engine(Serializable):
         DEBUG_OUTPUT = 2
         DEBUG_GRADS = 4
 
+        def __iter__(self):
+            return self 
+
         def __int__(self) -> int:
             return self.value
 
