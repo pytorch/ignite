@@ -134,7 +134,7 @@ class Engine(Serializable):
         def __iter__(self):
             return self
 
-        def __int__(self) -> int:
+        def __int__(self) -> str:
             return self.value
 
     DEBUG_NONE = debug_mode.DEBUG_NONE
