@@ -1441,19 +1441,15 @@ def test_engine_debug():
         debug_config["optimizer"] = optimizer
         debug_config["layer"] = model.fc2
 
-        @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
         def log_training_debug_events(engine):
             trainer.debug(level=Engine.DEBUG_EVENTS, config=debug_config)
 
-        @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
         def log_training_debug_outputs(engine):
             trainer.debug(level=Engine.DEBUG_OUTPUT, config=debug_config)
 
-        @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
         def log_training_debug_grads(engine):
             trainer.debug(level=Engine.DEBUG_GRADS, config=debug_config)
 
-        @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
         def log_training_debug_int(engine):
             with pytest.raises(
                 ValueError,

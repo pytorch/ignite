@@ -473,6 +473,7 @@ class Engine(Serializable):
                 Loss : {self.state.output}, LR : {self.lr}, Gradients : {self.layer.weight.grad}"
 
         self.logger.debug(log)
+        print(log)
 
     def fire_event(self, event_name: Any) -> None:
         """Execute all the handlers associated with given event.
