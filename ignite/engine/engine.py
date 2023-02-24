@@ -446,7 +446,7 @@ class Engine(Serializable):
         if not isinstance(level, Engine.debug_mode):
             raise ValueError(
                 f"Unknown event name '{level}'. Level should be combinations of Engine.DEBUG_NONE, "
-                    f"Engine.DEBUG_EVENTS, Engine.DEBUG_OUTPUT, Engine.DEBUG_GRADS"
+                f"Engine.DEBUG_EVENTS, Engine.DEBUG_OUTPUT, Engine.DEBUG_GRADS"
             )
         self.lr = config["optimizer"].param_groups[0]["lr"]
         self.layer = config["layer"]
