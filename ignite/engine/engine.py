@@ -442,7 +442,7 @@ class Engine(Serializable):
             first, others = ((args[0],), args[1:]) if (args and args[0] == self) else ((), args)
             func(*first, *(event_args + others), **kwargs)
 
-    def debug(self, level: debug_mode = DEBUG_NONE, config: dict = None) -> None:
+    def debug(self, level: debug_mode = DEBUG_NONE, config: Union[Dict, None] = None) -> None:
         if not isinstance(level, Engine.debug_mode):
             raise ValueError(
                 f"Unknown event name '{level}'. Level should be combinations of Engine.DEBUG_NONE, \
@@ -450,25 +450,25 @@ class Engine(Serializable):
             )
         self.lr = config["optimizer"].param_groups[0]["lr"]
         self.layer = config["layer"]
-        level = level.value
-        if level == 0:
+        self.level = level.value
+        if self.level == 0:
             pass
-        elif level == 1:
+        elif self.level == 1:
             log = f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name}"
-        elif level == 2:
+        elif self.level == 2:
             log = f"{self.state.epoch} | {self.state.iteration} Loss : {self.state.output}, LR : {self.lr}"
-        elif level == 3:
+        elif self.level == 3:
             log = f"{self.state.epoch} | {self.state.iteration} Firing handlers for event {self.last_event_name}, \
                 Loss : {self.state.output}, LR : {self.lr}"
-        elif level == 4:
+        elif self.level == 4:
             log = f"{self.state.epoch} | {self.state.iteration}, Gradients : {self.layer.weight.grad}"
-        elif level == 5:
+        elif self.level == 5:
             log = f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name}, \
                 Gradients : {self.layer.weight.grad}"
-        elif level == 6:
+        elif self.level == 6:
             log = f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name}, \
                 Gradients : {self.layer.weight.grad}"
-        elif level == 7:
+        elif self.level == 7:
             log = f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name}, \
                 Loss : {self.state.output}, LR : {self.lr}, Gradients : {self.layer.weight.grad}"
 
