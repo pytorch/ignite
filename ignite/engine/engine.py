@@ -131,8 +131,8 @@ class Engine(Serializable):
         DEBUG_OUTPUT = 2
         DEBUG_GRADS = 4
 
-        def __iter__(self):
-            return self
+        def __iter__(self) -> Iterator:
+            return iter(self.name)
 
         def __int__(self) -> str:
             return self.value
@@ -141,11 +141,6 @@ class Engine(Serializable):
     DEBUG_EVENTS = debug_mode.DEBUG_EVENTS
     DEBUG_OUTPUT = debug_mode.DEBUG_OUTPUT
     DEBUG_GRADS = debug_mode.DEBUG_GRADS
-
-    # DEBUG_NONE = "DEBUG_NONE"
-    # DEBUG_EVENTS = "DEBUG_EVENTS"
-    # DEBUG_OUTPUT = "DEBUG_OUTPUT"
-    # DEBUG_GRADS = "DEBUG_GRADS"
 
     # Flag to disable engine._internal_run as generator feature for BC
     interrupt_resume_enabled = True
@@ -450,7 +445,6 @@ class Engine(Serializable):
             func(*first, *(event_args + others), **kwargs)
 
     def debug(self, level: debug_mode = DEBUG_NONE, config: Union[Dict, Any] = None) -> None:
-        print(type(level), level)
         if isinstance(level, int):
             raise ValueError(
                 f"Unknown event name '{level}'. Level should be combinations of Engine.DEBUG_NONE, "
