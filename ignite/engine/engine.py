@@ -132,7 +132,7 @@ class Engine(Serializable):
         DEBUG_OUTPUT = 2
         DEBUG_GRADS = 4
 
-        def __int__(self):
+        def __int__(self) -> int:
             return self.value
 
     DEBUG_NONE = debug_mode.DEBUG_NONE
@@ -445,8 +445,8 @@ class Engine(Serializable):
     def debug(self, level: debug_mode = DEBUG_NONE, config: Union[Dict, Any] = None) -> None:
         if not isinstance(level, Engine.debug_mode):
             raise ValueError(
-                f"Unknown event name '{level}'. Level should be combinations of Engine.DEBUG_NONE, \
-                    Engine.DEBUG_EVENTS, Engine.DEBUG_OUTPUT, Engine.DEBUG_GRADS"
+                f"Unknown event name '{level}'. Level should be combinations of Engine.DEBUG_NONE, "
+                    f"Engine.DEBUG_EVENTS, Engine.DEBUG_OUTPUT, Engine.DEBUG_GRADS"
             )
         self.lr = config["optimizer"].param_groups[0]["lr"]
         self.layer = config["layer"]

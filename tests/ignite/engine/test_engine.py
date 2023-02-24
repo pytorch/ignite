@@ -1453,14 +1453,13 @@ def test_engine_debug():
         def log_training_debug_grads(engine):
             trainer.debug(level=Engine.DEBUG_GRADS, config=debug_config)
 
-        with pytest.raises(
-            ValueError,
-            match=r"Unknown event name '2'. Level should be one of Engine.DEBUG_NONE, Engine.DEBUG_EVENTS, \
-                Engine.DEBUG_OUTPUT, Engine.DEBUG_GRADS",
-        ):
-
-            @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
-            def log_training_debug_int(engine):
+        @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
+        def log_training_debug_int(engine):
+            with pytest.raises(
+                ValueError,
+                match=r"Unknown event name '2'. Level should be combinations of Engine.DEBUG_NONE, "
+                    r"Engine.DEBUG_EVENTS, Engine.DEBUG_OUTPUT, Engine.DEBUG_GRADS"
+            ):
                 trainer.debug(level=2, config=debug_config)
 
         trainer.run(train_loader, max_epochs=epochs)
