@@ -6,7 +6,6 @@ import warnings
 import weakref
 from collections import defaultdict, OrderedDict
 from collections.abc import Mapping
-from enum import Flag
 from typing import Any, Callable, Dict, Generator, Iterable, Iterator, List, Optional, Tuple, Union
 
 from torch.utils.data import DataLoader
