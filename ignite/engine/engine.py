@@ -442,7 +442,7 @@ class Engine(Serializable):
             first, others = ((args[0],), args[1:]) if (args and args[0] == self) else ((), args)
             func(*first, *(event_args + others), **kwargs)
 
-    def debug(self, level: debug_mode = DEBUG_NONE, config: Union[Dict, None] = None) -> None:
+    def debug(self, level: debug_mode = DEBUG_NONE, config: Union[Dict, Any] = None) -> None:
         if not isinstance(level, Engine.debug_mode):
             raise ValueError(
                 f"Unknown event name '{level}'. Level should be combinations of Engine.DEBUG_NONE, \
