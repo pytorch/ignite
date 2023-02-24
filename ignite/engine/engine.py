@@ -132,7 +132,7 @@ class Engine(Serializable):
         DEBUG_GRADS = 4
 
         def __iter__(self):
-            return self 
+            return self
 
         def __int__(self) -> int:
             return self.value
