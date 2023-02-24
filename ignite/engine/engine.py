@@ -126,7 +126,7 @@ class Engine(Serializable):
     _state_dict_all_req_keys = ("epoch_length", "max_epochs")
     _state_dict_one_of_opt_keys = ("iteration", "epoch")
 
-    class debug_mode(Flag):
+    class debug_mode(EventEnum):
         DEBUG_NONE = 0
         DEBUG_EVENTS = 1
         DEBUG_OUTPUT = 2
@@ -139,6 +139,11 @@ class Engine(Serializable):
     DEBUG_EVENTS = debug_mode.DEBUG_EVENTS
     DEBUG_OUTPUT = debug_mode.DEBUG_OUTPUT
     DEBUG_GRADS = debug_mode.DEBUG_GRADS
+
+    # DEBUG_NONE = "DEBUG_NONE"
+    # DEBUG_EVENTS = "DEBUG_EVENTS"
+    # DEBUG_OUTPUT = "DEBUG_OUTPUT"
+    # DEBUG_GRADS = "DEBUG_GRADS"
 
     # Flag to disable engine._internal_run as generator feature for BC
     interrupt_resume_enabled = True
@@ -443,37 +448,27 @@ class Engine(Serializable):
             func(*first, *(event_args + others), **kwargs)
 
     def debug(self, level: debug_mode = DEBUG_NONE, config: Union[Dict, Any] = None) -> None:
-        if not isinstance(level, Engine.debug_mode):
+        print(type(level), level)
+        if isinstance(level, int):
             raise ValueError(
                 f"Unknown event name '{level}'. Level should be combinations of Engine.DEBUG_NONE, "
                 f"Engine.DEBUG_EVENTS, Engine.DEBUG_OUTPUT, Engine.DEBUG_GRADS"
             )
         self.lr = config["optimizer"].param_groups[0]["lr"]
         self.layer = config["layer"]
-        self.level = level.value
-        if self.level == 0:
-            pass
-        elif self.level == 1:
-            log = f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name}"
-        elif self.level == 2:
-            log = f"{self.state.epoch} | {self.state.iteration} Loss : {self.state.output}, LR : {self.lr}"
-        elif self.level == 3:
-            log = f"{self.state.epoch} | {self.state.iteration} Firing handlers for event {self.last_event_name}, \
-                Loss : {self.state.output}, LR : {self.lr}"
-        elif self.level == 4:
-            log = f"{self.state.epoch} | {self.state.iteration}, Gradients : {self.layer.weight.grad}"
-        elif self.level == 5:
-            log = f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name}, \
-                Gradients : {self.layer.weight.grad}"
-        elif self.level == 6:
-            log = f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name}, \
-                Gradients : {self.layer.weight.grad}"
-        elif self.level == 7:
-            log = f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name}, \
-                Loss : {self.state.output}, LR : {self.lr}, Gradients : {self.layer.weight.grad}"
+
+        log = ""
+        for item in level:
+            if item == Engine.DEBUG_NONE:
+                log += ""
+            elif item == Engine.DEBUG_EVENTS:
+                log += f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name} "
+            elif item == Engine.DEBUG_OUTPUT:
+                log += f"Loss : {self.state.output}, LR : {self.lr} "
+            elif item == Engine.DEBUG_GRADS:
+                log += f"Gradients : {self.layer.weight.grad} "
 
         self.logger.debug(log)
-        print(log)
 
     def fire_event(self, event_name: Any) -> None:
         """Execute all the handlers associated with given event.
