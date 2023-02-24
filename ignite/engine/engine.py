@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader
 
 from ignite.base import Serializable
 from ignite.engine.events import CallableEventWithFilter, EventEnum, Events, EventsList, RemovableEventHandle, State
+from enum import Flag
 from ignite.engine.utils import _check_signature, _to_hours_mins_secs
 
 __all__ = ["Engine"]
@@ -125,10 +126,19 @@ class Engine(Serializable):
     _state_dict_all_req_keys = ("epoch_length", "max_epochs")
     _state_dict_one_of_opt_keys = ("iteration", "epoch")
 
-    DEBUG_NONE = "Engine.DEBUG_NONE"
-    DEBUG_EVENTS = "Engine.DEBUG_EVENTS"
-    DEBUG_OUTPUT = "Engine.DEBUG_OUTPUT"
-    DEBUG_GRADS = "Engine.DEBUG_GRADS"
+    class debug_mode(Flag):
+        DEBUG_NONE = 0
+        DEBUG_EVENTS = 1
+        DEBUG_OUTPUT = 2
+        DEBUG_GRADS = 4
+
+        def __int__(self):
+            return self.value
+
+    DEBUG_NONE = debug_mode.DEBUG_NONE
+    DEBUG_EVENTS = debug_mode.DEBUG_EVENTS
+    DEBUG_OUTPUT = debug_mode.DEBUG_OUTPUT
+    DEBUG_GRADS = debug_mode.DEBUG_GRADS
 
     # Flag to disable engine._internal_run as generator feature for BC
     interrupt_resume_enabled = True
@@ -151,8 +161,6 @@ class Engine(Serializable):
         self.debug_level = 0
 
         self.register_events(*Events)
-
-        self.debug_attr = {Engine.DEBUG_NONE: 0, Engine.DEBUG_EVENTS: 1, Engine.DEBUG_OUTPUT: 2, Engine.DEBUG_GRADS: 3}
 
         if self._process_function is None:
             raise ValueError("Engine must be given a processing function in order to run.")
@@ -434,32 +442,37 @@ class Engine(Serializable):
             first, others = ((args[0],), args[1:]) if (args and args[0] == self) else ((), args)
             func(*first, *(event_args + others), **kwargs)
 
-    def debug(self, level: str = "Engine.DEBUG_NONE") -> None:
-        if level not in self.debug_attr:
+    def debug(self, level: debug_mode = DEBUG_NONE, config: dict = None) -> None:
+        if not isinstance(level, Engine.debug_mode):
             raise ValueError(
-                f"Unknown event name '{level}'. Level should be one of Engine.DEBUG_NONE, \
+                f"Unknown event name '{level}'. Level should be combinations of Engine.DEBUG_NONE, \
                     Engine.DEBUG_EVENTS, Engine.DEBUG_OUTPUT, Engine.DEBUG_GRADS"
             )
+        self.lr = config["optimizer"].param_groups[0]["lr"]
+        self.layer = config["layer"]
+        level = level.value
+        if level == 0:
+            pass
+        elif level == 1:
+            log = f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name}"
+        elif level == 2:
+            log = f"{self.state.epoch} | {self.state.iteration} Loss : {self.state.output}, LR : {self.lr}"
+        elif level == 3:
+            log = f"{self.state.epoch} | {self.state.iteration} Firing handlers for event {self.last_event_name}, \
+                Loss : {self.state.output}, LR : {self.lr}"
+        elif level == 4:
+            log = f"{self.state.epoch} | {self.state.iteration}, Gradients : {self.layer.weight.grad}"
+        elif level == 5:
+            log = f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name}, \
+                Gradients : {self.layer.weight.grad}"
+        elif level == 6:
+            log = f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name}, \
+                Gradients : {self.layer.weight.grad}"
+        elif level == 7:
+            log = f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name}, \
+                Loss : {self.state.output}, LR : {self.lr}, Gradients : {self.layer.weight.grad}"
 
-        self.level = self.debug_attr[level]
-
-        if self.level > 2:
-            self.lr = self.state.debug_config["optimizer"].param_groups[0]["lr"]
-            self.layer = self.state.debug_config["layer"]
-            self.logger.debug(
-                f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name}, \
-                    Loss : {self.state.output}, LR : {self.lr}, Gradients : {self.layer.weight.grad}"
-            )
-        elif self.level > 1:
-            self.lr = self.state.debug_config["optimizer"].param_groups[0]["lr"]
-            self.logger.debug(
-                f"{self.state.epoch} | {self.state.iteration} Firing handlers for event {self.last_event_name}, \
-                    Loss : {self.state.output}, LR : {self.lr}"
-            )
-        elif self.level > 0:
-            self.logger.debug(
-                f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name}"
-            )
+        self.logger.debug(log)
 
     def fire_event(self, event_name: Any) -> None:
         """Execute all the handlers associated with given event.
@@ -812,7 +825,6 @@ class Engine(Serializable):
         max_epochs: Optional[int] = None,
         max_iters: Optional[int] = None,
         epoch_length: Optional[int] = None,
-        debug_config: Optional[Any] = None,
     ) -> State:
         """Runs the ``process_function`` over the passed data.
 
@@ -932,9 +944,6 @@ class Engine(Serializable):
 
         if self._dataloader_iter is None:
             self.state.dataloader = data
-
-        if debug_config is not None:
-            self.state.debug_config = debug_config
 
         if self.interrupt_resume_enabled:
             return self._internal_run()

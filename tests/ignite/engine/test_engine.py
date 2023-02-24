@@ -1400,10 +1400,6 @@ def test_engine_debug():
 
     from ignite.engine import create_supervised_trainer
 
-    DEBUG_EVENTS = 1
-    DEBUG_OUTPUT = 2
-    DEBUG_GRADS = 3
-
     class Net(nn.Module):
         def __init__(self):
             super(Net, self).__init__()
@@ -1441,18 +1437,21 @@ def test_engine_debug():
         optimizer = SGD(model.parameters(), lr=0.01, momentum=0.5)
         criterion = nn.NLLLoss()
         trainer = create_supervised_trainer(model, optimizer, criterion, device=device)
+        debug_config = {}
+        debug_config["optimizer"] = optimizer
+        debug_config["layer"] = model.fc2
 
         @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
         def log_training_debug_events(engine):
-            trainer.debug(level=Engine.DEBUG_EVENTS)
+            trainer.debug(level=Engine.DEBUG_EVENTS, config=debug_config)
 
         @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
         def log_training_debug_outputs(engine):
-            trainer.debug(level=Engine.DEBUG_OUTPUT)
+            trainer.debug(level=Engine.DEBUG_OUTPUT, config=debug_config)
 
         @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
         def log_training_debug_grads(engine):
-            trainer.debug(level=Engine.DEBUG_GRADS)
+            trainer.debug(level=Engine.DEBUG_GRADS, config=debug_config)
 
         with pytest.raises(
             ValueError,
@@ -1462,11 +1461,8 @@ def test_engine_debug():
 
             @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
             def log_training_debug_int(engine):
-                trainer.debug(level=2)
+                trainer.debug(level=2, config=debug_config)
 
-        debug_config = {}
-        debug_config["optimizer"] = optimizer
-        debug_config["layer"] = model.fc2
-        trainer.run(train_loader, max_epochs=epochs, debug_config=debug_config)
+        trainer.run(train_loader, max_epochs=epochs)
 
     _test()
