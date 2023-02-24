@@ -6,13 +6,13 @@ import warnings
 import weakref
 from collections import defaultdict, OrderedDict
 from collections.abc import Mapping
+from enum import Flag
 from typing import Any, Callable, Dict, Generator, Iterable, Iterator, List, Optional, Tuple, Union
 
 from torch.utils.data import DataLoader
 
 from ignite.base import Serializable
 from ignite.engine.events import CallableEventWithFilter, EventEnum, Events, EventsList, RemovableEventHandle, State
-from enum import Flag
 from ignite.engine.utils import _check_signature, _to_hours_mins_secs
 
 __all__ = ["Engine"]
