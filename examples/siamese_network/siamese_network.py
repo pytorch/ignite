@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import argparse
 import random
 
@@ -9,7 +7,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision
 from torch.optim.lr_scheduler import StepLR
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 from torchvision import datasets
 
 from ignite.contrib.handlers import ProgressBar
@@ -28,7 +26,7 @@ class SiameseNetwork(nn.Module):
     This implementation varies from FaceNet as we use the `ResNet-18` model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`
     as our feature extractor.
-    In addition, we aren't using `TripletLoss` as the MNIST dataset is simple, so `BCELoss` can do the trick.
+    In addition we use CIFAR10 dataset along with TripletMarginLoss
     """
 
     def __init__(self):
@@ -36,27 +34,11 @@ class SiameseNetwork(nn.Module):
         # get resnet model
         self.resnet = torchvision.models.resnet18(weights=None)
 
-        # over-write the first conv layer to be able to read MNIST images
-        # as resnet18 reads (3,x,x) where 3 is RGB channels
-        # whereas MNIST has (1,x,x) where 1 is a gray-scale channel
-        self.resnet.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
-        self.fc_in_features = self.resnet.fc.in_features
-
-        # remove the last layer of resnet18 (linear layer which is before avgpool layer)
-        self.resnet = torch.nn.Sequential(*(list(self.resnet.children())[:-1]))
-
-        # add linear layers to compare between the features of the two images
-        self.fc = nn.Sequential(
-            nn.Linear(self.fc_in_features * 2, 256),
-            nn.ReLU(inplace=True),
-            nn.Linear(256, 1),
-        )
-
+        # initialise sigmoid activation
         self.sigmoid = nn.Sigmoid()
 
         # initialize the weights
         self.resnet.apply(self.init_weights)
-        self.fc.apply(self.init_weights)
 
     def init_weights(self, m):
         if isinstance(m, nn.Linear):
@@ -68,52 +50,48 @@ class SiameseNetwork(nn.Module):
         output = output.view(output.size()[0], -1)
         return output
 
-    def forward(self, input1, input2):
-        # get two images' features
-        output1 = self.forward_once(input1)
-        output2 = self.forward_once(input2)
+    def forward(self, input):
 
-        # concatenate both images' feature
-        output = torch.cat((output1, output2), 1)
+        # pass the input through resnet
+        output = self.forward_once(input)
 
-        # pass the concatenation to the linear layers
-        output = self.fc(output)
-
-        # pass the out of the linear layers to sigmoid layer
+        # pass the output of resnet to sigmoid layer
         output = self.sigmoid(output)
 
         return output
 
 
-class APP_MATCHER:
+class MatcherDataset(Dataset):
     # following class implements data downloading and handles preprocessing
     def __init__(self, root, train, download=False):
-        super(APP_MATCHER, self).__init__()
+        super(MatcherDataset, self).__init__()
 
-        # get MNIST dataset
-        self.dataset = datasets.MNIST(root, train=train, download=download)
+        # get CIFAR10 dataset
+        self.dataset = datasets.CIFAR10(root, train=train, download=download)
 
-        # as `self.dataset.data`'s shape is (Nx28x28), where N is the number of
-        # examples in MNIST dataset, a single example has the dimensions of
-        # (28x28) for (WxH), where W and H are the width and the height of the image.
-        # However, every example should have (CxWxH) dimensions where C is the number
-        # of channels to be passed to the network. As MNIST contains gray-scale images,
-        # we add an additional dimension to corresponds to the number of channels.
-        self.data = self.dataset.data.unsqueeze(1).clone()
+        # convert data from numpy array to Tensor
+        self.data = torch.from_numpy(self.dataset.data)
+
+        # shift the dimensions of dataset to match the initial input layer dimensions
+        self.data = torch.movedim(self.data, (0, 1, 2, 3), (0, 2, 3, 1))
+
+        # convert targets list to torch Tensor
+        self.dataset.targets = torch.Tensor(self.dataset.targets)
 
         self.group_examples()
 
     def group_examples(self):
         """
         To ease the accessibility of data based on the class, we will use `group_examples` to group
-        examples based on class.
+        examples based on class. The data classes have already been mapped to numeric values and
+        so are the target outputs for each training input
 
-        Every key in `grouped_examples` corresponds to a class in MNIST dataset. For every key in
-        `grouped_examples`, every value will conform to all of the indices for the MNIST
+        Every key in `grouped_examples` corresponds to a class in CIFAR10 dataset. For every key in
+        `grouped_examples`, every value will conform to all of the indices for the CIFAR10
         dataset examples that correspond to that key.
         """
 
-        # get the targets from MNIST dataset
+        # get the targets from CIFAR10 dataset
         np_arr = np.array(self.dataset.targets.clone())
 
         # group examples based on class
@@ -126,18 +104,21 @@ class APP_MATCHER:
 
     def __getitem__(self, index):
         """
-        For every example, we will select two images. There are two cases,
-        positive and negative examples. For positive examples, we will have two
-        images from the same class. For negative examples, we will have two images
-        from different classes.
+        For every sample in the batch we select 3 images. First one is the anchor image
+        which is the image obtained from the current index. We also obtain the label of
+        anchor image.
 
-        Given an index, if the index is even, we will pick the second image from the same class,
-        but it won't be the same image we chose for the first class. This is used to ensure the positive
-        example isn't trivial as the network would easily distinguish the similarity between same images. However,
-        if the network were given two different images from the same class, the network will need to learn
-        the similarity between two different images representing the same class. If the index is odd, we will
-        pick the second image from a different class than the first image.
+        Now we select two random images, one belonging to the same class as that of the
+        anchor image (named as positive_image) and the other belonging to a different class
+        than that of the anchor image (named as negative_image). We return the anchor image,
+        positive image, negative image and anchor label.
         """
+
+        # obtain the anchor image
+        anchor_image = self.data[index].clone().float()
+
+        # obtain the class label of the anchor image
+        anchor_label = self.dataset.targets[index].clone().float()
 
         # pick some random class for the first image
         selected_class = random.randint(0, 9)
@@ -146,71 +127,46 @@ class APP_MATCHER:
         # of the class
         random_index_1 = random.randint(0, self.grouped_examples[selected_class].shape[0] - 1)
 
+        while random_index_1 != anchor_label:
+            random_index_1 = random.randint(0, self.grouped_examples[selected_class].shape[0] - 1)
+
         # pick the index to get the first image
         index_1 = self.grouped_examples[selected_class][random_index_1]
 
         # get the first image
-        image_1 = self.data[index_1].clone().float()
+        positive_image = self.data[index_1].clone().float()
 
-        # same class
-        if index % 2 == 0:
-            # pick a random index for the second image
+        random_index_2 = random.randint(0, self.grouped_examples[selected_class].shape[0] - 1)
+
+        # ensure that the index of the second image isn't the same as the first image
+        while random_index_2 == anchor_label:
             random_index_2 = random.randint(0, self.grouped_examples[selected_class].shape[0] - 1)
 
-            # ensure that the index of the second image isn't the same as the first image
-            while random_index_2 == random_index_1:
-                random_index_2 = random.randint(0, self.grouped_examples[selected_class].shape[0] - 1)
+        # pick the index to get the second image
+        index_2 = self.grouped_examples[selected_class][random_index_2]
 
-            # pick the index to get the second image
-            index_2 = self.grouped_examples[selected_class][random_index_2]
+        # get the second image
+        negative_image = self.data[index_2].clone().float()
 
-            # get the second image
-            image_2 = self.data[index_2].clone().float()
-
-            # set the label for this example to be positive (1)
-            target = torch.tensor(1, dtype=torch.float)
-
-        # different class
-        else:
-            # pick a random class
-            other_selected_class = random.randint(0, 9)
-
-            # ensure that the class of the second image isn't the same as the first image
-            while other_selected_class == selected_class:
-                other_selected_class = random.randint(0, 9)
-
-            # pick a random index for the second image in the grouped indices based of the label
-            # of the class
-            random_index_2 = random.randint(0, self.grouped_examples[other_selected_class].shape[0] - 1)
-
-            # pick the index to get the second image
-            index_2 = self.grouped_examples[other_selected_class][random_index_2]
-
-            # get the second image
-            image_2 = self.data[index_2].clone().float()
-
-            # set the label for this example to be negative (0)
-            target = torch.tensor(0, dtype=torch.float)
-
-        return image_1, image_2, target
+        return anchor_image, positive_image, negative_image, anchor_label
 
 
 def train(model, device, optimizer, train_loader, lr_scheduler, log_interval, max_epochs):
 
-    # we aren't using `TripletLoss` as the MNIST dataset is simple, so `BCELoss` can do the trick.
-    criterion = nn.BCELoss()
+    criterion = nn.TripletMarginLoss()
 
     # define model training step
     def train_step(engine, batch):
         model.train()
-        image_1, image_2, target = batch
-        image_1, image_2, target = image_1.to(device), image_2.to(device), target.to(device)
+        anchor_image, positive_image, negative_image, anchor_label = batch
+        anchor_image = anchor_image.to(device)
+        positive_image, negative_image = positive_image.to(device), negative_image.to(device)
+        anchor_label = anchor_label.to(device)
         optimizer.zero_grad()
-        outputs = model(
-            image_1,
-            image_2,
-        ).squeeze()
-        loss = criterion(outputs, target)
+        anchor_out = model(anchor_image)
+        positive_out = model(positive_image)
+        negative_out = model(negative_image)
+        loss = criterion(anchor_out, positive_out, negative_out)
         loss.backward()
         optimizer.step()
         return loss
@@ -235,17 +191,20 @@ def train(model, device, optimizer, train_loader, lr_scheduler, log_interval, ma
 
 def test(model, device, test_loader, lr_scheduler, log_interval):
 
-    # we aren't using `TripletLoss` as the MNIST dataset is simple, so `BCELoss` can do the trick.
-    criterion = nn.BCELoss()
+    criterion = nn.TripletMarginLoss()
     average_test_loss = 0
 
     # define model testing step
     def test_step(engine, batch):
         model.eval()
-        image_1, image_2, target = batch
-        image_1, image_2, target = image_1.to(device), image_2.to(device), target.to(device)
-        outputs = model(image_1, image_2).squeeze()
-        test_loss = criterion(outputs, target)
+        anchor_image, positive_image, negative_image, anchor_label = batch
+        anchor_image = anchor_image.to(device)
+        positive_image, negative_image = positive_image.to(device), negative_image.to(device)
+        anchor_label = anchor_label.to(device)
+        anchor_out = model(anchor_image)
+        positive_out = model(positive_image)
+        negative_out = model(negative_image)
+        test_loss = criterion(anchor_out, positive_out, negative_out)
         return test_loss
 
     # create evaluator engine and attach test step
@@ -303,8 +262,8 @@ def main():
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
     # data loading
-    train_dataset = APP_MATCHER("../data", train=True, download=True)
-    test_dataset = APP_MATCHER("../data", train=False)
+    train_dataset = MatcherDataset("../data", train=True, download=True)
+    test_dataset = MatcherDataset("../data", train=False)
     train_loader = DataLoader(train_dataset, shuffle=True, batch_size=args.batch_size)
     test_loader = DataLoader(test_dataset, batch_size=args.test_batch_size)
 

@@ -1,6 +1,6 @@
 # Siamese Network example on MNIST dataset
 
-This example is ported over from [pytorch/examples](https://github.com/pytorch/examples)
+This example is ported over from [pytorch/examples/siamese_network](https://github.com/pytorch/examples/tree/main/siamese_network)
 
 Usage:
 
