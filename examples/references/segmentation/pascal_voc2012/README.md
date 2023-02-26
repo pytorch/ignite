@@ -22,7 +22,7 @@ For docker users, you can use the following images to run the example:
 ```bash
 docker pull pytorchignite/vision:latest
 ```
-or 
+or
 ```bash
 docker pull pytorchignite/hvd-vision:latest
 ```
@@ -31,7 +31,7 @@ and install other requirements as suggested above
 
 ### Using Horovod as distributed framework
 
-We do not add `horovod` as a requirement into `requirements.txt`. Please, install it manually following the official guides or 
+We do not add `horovod` as a requirement into `requirements.txt`. Please, install it manually following the official guides or
 use `pytorchignite/hvd-vision:latest` docker image.
 
 ### (Optional) Download Pascal VOC2012 and SDB datasets
@@ -73,7 +73,7 @@ export SBD_DATASET_PATH=/path/to/SBD/
 Run the following command:
 ```bash
 CUDA_VISIBLE_DEVICES=0 python -u main.py training configs/baseline_dplv3_resnet101_sbd.py
-# or without SBD 
+# or without SBD
 # CUDA_VISIBLE_DEVICES=0 python -u main.py training configs/baseline_dplv3_resnet101.py
 ```
 
@@ -82,9 +82,9 @@ CUDA_VISIBLE_DEVICES=0 python -u main.py training configs/baseline_dplv3_resnet1
 - Adjust total batch size for your GPUs in the configuration file: `configs/baseline_dplv3_resnet101_sbd.py` or `configs/baseline_dplv3_resnet101.py`
 
 ```bash
-python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py training configs/baseline_dplv3_resnet101_sbd.py
-# or without SBD 
-# python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py training configs/baseline_dplv3_resnet101.py
+torchrun --nproc_per_node=2 main.py training configs/baseline_dplv3_resnet101_sbd.py
+# or without SBD
+# torchrun --nproc_per_node=2 main.py training configs/baseline_dplv3_resnet101.py
 ```
 
 #### Using Horovod as distributed framework
@@ -108,7 +108,7 @@ CUDA_VISIBLE_DEVICES=0 python -u main.py eval configs/eval_baseline_dplv3_resnet
 #### Multiple GPUs
 
 ```bash
-python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py eval configs/eval_baseline_dplv3_resnet101_sbd.py
+torchrun --nproc_per_node=2 main.py eval configs/eval_baseline_dplv3_resnet101_sbd.py
 ```
 
 #### Using Horovod as distributed framework
@@ -120,5 +120,5 @@ horovodrun -np=2 python -u main.py eval configs/eval_baseline_dplv3_resnet101_sb
 
 ## Acknowledgements
 
-Trainings were done using credits provided by AWS for open-source development via NumFOCUS 
+Trainings were done using credits provided by AWS for open-source development via NumFOCUS
 and using [trainml.ai](trainml.ai) platform.

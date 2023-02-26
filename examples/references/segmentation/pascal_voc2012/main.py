@@ -138,7 +138,7 @@ def training(local_rank, config, logger, with_clearml):
         tb_logger.attach(
             evaluator,
             log_handler=vis.predictions_gt_images_handler(
-                img_denormalize_fn=img_denormalize, n_images=15, another_engine=trainer, prefix_tag="validation"
+                img_denormalize_fn=img_denormalize, n_images=8, another_engine=trainer, prefix_tag="validation"
             ),
             event_name=Events.ITERATION_COMPLETED(event_filter=custom_event_filter),
         )
@@ -162,14 +162,20 @@ def compute_and_log_cm(cm_metric, iteration):
         from clearml import Task
 
         clearml_logger = Task.current_task().get_logger()
-        clearml_logger.report_confusion_matrix(
-            title="Final Confusion Matrix",
-            series="cm-preds-gt",
-            matrix=cm,
-            iteration=iteration,
-            xlabels=data.VOCSegmentationOpencv.target_names,
-            ylabels=data.VOCSegmentationOpencv.target_names,
-        )
+
+        try:
+            clearml_logger.report_confusion_matrix(
+                title="Final Confusion Matrix",
+                matrix=cm,
+                iteration=iteration,
+                xlabels=data.VOCSegmentationOpencv.target_names,
+                ylabels=data.VOCSegmentationOpencv.target_names,
+                extra_layout=None,
+            )
+        except NameError:
+            # Temporary clearml bug work-around:
+            # https://github.com/allegroai/clearml/pull/936
+            pass
 
 
 def create_trainer(model, optimizer, criterion, train_sampler, config, logger, with_clearml):
