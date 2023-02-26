@@ -8,7 +8,11 @@ Features:
 - Distributed training with native automatic mixed precision
 - Experiments tracking with [ClearML](https://github.com/allegroai/clearml)
 
-ClearML Server: TODO: ADD THE LINK
+Experiment | Model | Dataset | Val Avg IoU | ClearML Link
+---|---|---|---|---
+configs/baseline_dplv3_resnet101.py | DeepLabV3 Resnet101 | VOC Only | 0.659161 | [link](https://app.clear.ml/projects/0e9a3a92d3134283b7d5572d516d60c5/experiments/a7254f084a9e47ca9380dfd739f89520/output/execution)
+configs/baseline_dplv3_resnet101_sbd.py | DeepLabV3 Resnet101 | VOC+SBD | 0.6853087 | [link](https://app.clear.ml/projects/0e9a3a92d3134283b7d5572d516d60c5/experiments/dc4cee3377a74d19bc2d0e0e4d638c1f/output/execution)
+
 
 ## Setup
 
