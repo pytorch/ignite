@@ -74,13 +74,16 @@ class Timer:
 
             from ignite.engine import Engine, Events
             from ignite.handlers import Timer
+
             trainer = Engine(training_update_function)
             timer = Timer(average=True)
-            timer.attach(trainer,
-                         start=Events.STARTED,
-                         resume=Events.ITERATION_STARTED,
-                         pause=Events.ITERATION_COMPLETED,
-                         step=Events.ITERATION_COMPLETED)
+            timer.attach(
+                trainer,
+                start=Events.STARTED,
+                resume=Events.ITERATION_STARTED,
+                pause=Events.ITERATION_COMPLETED,
+                step=Events.ITERATION_COMPLETED
+            )
     """
 
     def __init__(self, average: bool = False):
