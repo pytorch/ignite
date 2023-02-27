@@ -383,10 +383,6 @@ def evaluation(local_rank, config, logger, with_clearml):
         tb_logger = common.TensorboardLogger(log_dir=config.output_path.as_posix())
         tb_logger.attach_output_handler(evaluator, event_name=Events.COMPLETED, tag="validation", metric_names="all")
 
-    # Log confusion matrix to ClearML:
-    if with_clearml:
-        evaluator.add_event_handler(Events.COMPLETED, compute_and_log_cm, cm_metric, evaluator.state.iteration)
-
     state = evaluator.run(data_loader)
     utils.log_metrics(logger, 0, state.times["COMPLETED"], "Validation", state.metrics)
 
