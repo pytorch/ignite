@@ -7,8 +7,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.optim.lr_scheduler as lrs
 from albumentations.pytorch import ToTensorV2 as ToTensor
-from dataflow.dataloaders import get_train_val_loaders
-from dataflow.transforms import denormalize
+from dataflow import denormalize, get_train_val_loaders
 from torchvision.models.resnet import resnet50
 
 import ignite.distributed as idist
@@ -19,20 +18,19 @@ import ignite.distributed as idist
 
 seed = 19
 device = "cuda"
-debug = False
+debug = True
 
 # config to measure time passed to prepare batches and report measured time before the training
 benchmark_dataflow = True
 benchmark_dataflow_num_iters = 100
 
-fp16_opt_level = "O2"
-val_interval = 2
-
 train_crop_size = 224
 val_crop_size = 320
 
 batch_size = 64 * idist.get_world_size()  # total batch size
-num_workers = 10
+num_workers = 8
+val_interval = 2
+start_by_validation = True
 
 
 # ##############################
@@ -73,6 +71,8 @@ train_loader, val_loader, train_eval_loader = get_train_val_loaders(
     batch_size=batch_size,
     num_workers=num_workers,
     val_batch_size=batch_size,
+    limit_train_num_samples=batch_size * 6 if debug else None,
+    limit_val_num_samples=batch_size * 6 if debug else None,
 )
 
 # Image denormalization function to plot predictions with images
@@ -82,14 +82,14 @@ img_denormalize = partial(denormalize, mean=mean, std=std)
 # Setup Model
 # ##############################
 
-model = resnet50(pretrained=False)
+model = resnet50(weights=None)
 
 
 # ##############################
 # Setup Solver
 # ##############################
 
-num_epochs = 105
+num_epochs = 2
 
 criterion = nn.CrossEntropyLoss()
 
