@@ -13,6 +13,8 @@ from torchvision import datasets
 from ignite.contrib.handlers import ProgressBar
 from ignite.engine import Engine, Events
 from ignite.handlers.param_scheduler import LRScheduler
+from ignite.metrics import RunningAverage
+from ignite.utils import manual_seed
 
 
 class SiameseNetwork(nn.Module):
@@ -50,15 +52,19 @@ class SiameseNetwork(nn.Module):
         output = output.view(output.size()[0], -1)
         return output
 
-    def forward(self, input):
+    def forward(self, input1, input2, input3):
 
         # pass the input through resnet
-        output = self.forward_once(input)
+        output1 = self.forward_once(input1)
+        output2 = self.forward_once(input2)
+        output3 = self.forward_once(input3)
 
         # pass the output of resnet to sigmoid layer
-        output = self.sigmoid(output)
+        output1 = self.sigmoid(output1)
+        output2 = self.sigmoid(output2)
+        output3 = self.sigmoid(output3)
 
-        return output
+        return output1, output2, output3
 
 
 class MatcherDataset(Dataset):
@@ -118,42 +124,34 @@ class MatcherDataset(Dataset):
         anchor_image = self.data[index].clone().float()
 
         # obtain the class label of the anchor image
-        anchor_label = self.dataset.targets[index].clone().float()
+        anchor_label = self.dataset.targets[index]
+        anchor_label = int(anchor_label.item())
 
-        # pick some random class for the first image
-        selected_class = random.randint(0, 9)
+        # find a label which is different from anchor_label
+        neg_label = random.randint(0, 9)
+        while neg_label == anchor_label:
+            neg_label = random.randint(0, 9)
 
-        # pick a random index for the first image in the grouped indices based of the label
-        # of the class
-        random_index_1 = random.randint(0, self.grouped_examples[selected_class].shape[0] - 1)
+        # find the index of image with positive label
+        positive_index = random.choice(self.grouped_examples[anchor_label])
 
-        while random_index_1 != anchor_label:
-            random_index_1 = random.randint(0, self.grouped_examples[selected_class].shape[0] - 1)
+        # find the index of image with negative label
+        negative_index = random.choice(self.grouped_examples[neg_label])
 
-        # pick the index to get the first image
-        index_1 = self.grouped_examples[selected_class][random_index_1]
+        # retrieve the image
+        positive_image = self.data[positive_index].float()
 
-        # get the first image
-        positive_image = self.data[index_1].clone().float()
-
-        random_index_2 = random.randint(0, self.grouped_examples[selected_class].shape[0] - 1)
-
-        # ensure that the index of the second image isn't the same as the first image
-        while random_index_2 == anchor_label:
-            random_index_2 = random.randint(0, self.grouped_examples[selected_class].shape[0] - 1)
-
-        # pick the index to get the second image
-        index_2 = self.grouped_examples[selected_class][random_index_2]
-
-        # get the second image
-        negative_image = self.data[index_2].clone().float()
+        # retrieve the image
+        negative_image = self.data[negative_index].float()
 
         return anchor_image, positive_image, negative_image, anchor_label
 
 
-def train(model, device, optimizer, train_loader, lr_scheduler, log_interval, max_epochs):
+def run(args, model, device, optimizer, train_loader, test_loader, lr_scheduler):
 
+    # using Triplet Margin Loss
     criterion = nn.TripletMarginLoss()
+    average_test_loss = 0
 
     # define model training step
     def train_step(engine, batch):
@@ -163,36 +161,11 @@ def train(model, device, optimizer, train_loader, lr_scheduler, log_interval, ma
         positive_image, negative_image = positive_image.to(device), negative_image.to(device)
         anchor_label = anchor_label.to(device)
         optimizer.zero_grad()
-        anchor_out = model(anchor_image)
-        positive_out = model(positive_image)
-        negative_out = model(negative_image)
+        anchor_out, positive_out, negative_out = model(anchor_image, positive_image, negative_image)
         loss = criterion(anchor_out, positive_out, negative_out)
         loss.backward()
         optimizer.step()
         return loss
-
-    # create a trainer engine and attach train_step
-    trainer = Engine(train_step)
-
-    # attach progress bar to trainer
-    pbar = ProgressBar()
-    pbar.attach(trainer)
-
-    # attach various handlers to trainer engine
-    @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
-    def log_training_results(engine):
-        print(f"Train Epoch: {engine.state.epoch}, Train Loss: {engine.state.output: .5f}")
-
-    trainer.add_event_handler(Events.ITERATION_STARTED, lr_scheduler)
-
-    # run trainer engine
-    trainer.run(train_loader, max_epochs=max_epochs)
-
-
-def test(model, device, test_loader, lr_scheduler, log_interval):
-
-    criterion = nn.TripletMarginLoss()
-    average_test_loss = 0
 
     # define model testing step
     def test_step(engine, batch):
@@ -201,33 +174,45 @@ def test(model, device, test_loader, lr_scheduler, log_interval):
         anchor_image = anchor_image.to(device)
         positive_image, negative_image = positive_image.to(device), negative_image.to(device)
         anchor_label = anchor_label.to(device)
-        anchor_out = model(anchor_image)
-        positive_out = model(positive_image)
-        negative_out = model(negative_image)
+        anchor_out, positive_out, negative_out = model(anchor_image, positive_image, negative_image)
         test_loss = criterion(anchor_out, positive_out, negative_out)
-        return test_loss
+        return test_loss.item()
 
-    # create evaluator engine and attach test step
+    # create engines for trainer and evaluator
+    trainer = Engine(train_step)
     evaluator = Engine(test_step)
 
-    # attach progress bar to evaluator
-    pbar = ProgressBar()
-    pbar.attach(evaluator)
+    # attach Running Average Loss metric to trainer and evaluator engines
+    RunningAverage(output_transform=lambda x: x).attach(trainer, "loss")
+    RunningAverage(output_transform=lambda x: x).attach(evaluator, "loss")
 
-    # attach various handlers to evaluator engine
-    @evaluator.on(Events.ITERATION_COMPLETED(every=log_interval))
-    def log_testing_results(engine):
+    # attach progress bar to trainer with loss
+    pbar1 = ProgressBar()
+    pbar1.attach(trainer, metric_names=["loss"])
+
+    # attach progress bar to evaluator with loss
+    pbar2 = ProgressBar()
+    pbar2.attach(evaluator, metric_names=["loss"])
+
+    # attach LR Scheduler to trainer engine
+    trainer.add_event_handler(Events.ITERATION_STARTED, lr_scheduler)
+
+    # event handler to calculate average loss
+    @evaluator.on(Events.ITERATION_COMPLETED(every=args.log_interval))
+    def test_loss(engine):
         nonlocal average_test_loss
         average_test_loss += engine.state.output
-        print(f"Test Epoch: {engine.state.epoch} Test Loss: {engine.state.output: .5f}")
 
-    evaluator.add_event_handler(Events.ITERATION_STARTED, lr_scheduler)
+    # event handler triggers evauator at end of every epoch
+    @trainer.on(Events.EPOCH_COMPLETED(every=args.log_interval))
+    def test(engine):
+        nonlocal average_test_loss
+        average_test_loss = 0
+        evaluator.run(test_loader)
+        print(f"Average Test Loss: {average_test_loss/len(test_loader.dataset): .5f}")
 
-    # run evaluator engine
-    evaluator.run(test_loader)
-
-    # print average loss over test dataset
-    print(f"Average Test Loss: {average_test_loss/len(test_loader.dataset): .7f}")
+    # run the trainer
+    trainer.run(train_loader, max_epochs=args.epochs)
 
 
 def main():
@@ -237,7 +222,7 @@ def main():
         "--batch-size", type=int, default=64, metavar="N", help="input batch size for training (default: 64)"
     )
     parser.add_argument(
-        "--test-batch-size", type=int, default=200, metavar="N", help="input batch size for testing (default: 1000)"
+        "--test-batch-size", type=int, default=64, metavar="N", help="input batch size for testing (default: 1000)"
     )
     parser.add_argument("--epochs", type=int, default=10, metavar="N", help="number of epochs to train (default: 14)")
     parser.add_argument("--lr", type=float, default=1.0, metavar="LR", help="learning rate (default: 1.0)")
@@ -251,12 +236,16 @@ def main():
     parser.add_argument(
         "--log-interval",
         type=int,
-        default=10,
+        default=1,
         metavar="N",
         help="how many batches to wait before logging training status",
     )
     parser.add_argument("--save-model", action="store_true", default=False, help="For Saving the current Model")
+    parser.add_argument("--num-workers", default=4, help="number of processes generating parallel batches")
     args = parser.parse_args()
+
+    # set manual seed
+    manual_seed(args.seed)
 
     # set device
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -273,11 +262,8 @@ def main():
     scheduler = StepLR(optimizer, step_size=15, gamma=args.gamma)
     lr_scheduler = LRScheduler(scheduler)
 
-    # call train function
-    train(model, device, optimizer, train_loader, lr_scheduler, log_interval=args.log_interval, max_epochs=args.epochs)
-
-    # call test function
-    test(model, device, test_loader, lr_scheduler, log_interval=args.log_interval)
+    # call run function
+    run(args, model, device, optimizer, train_loader, test_loader, lr_scheduler)
 
 
 if __name__ == "__main__":
