@@ -18,34 +18,9 @@ from py_config_runner import ConfigObject, get_params, InferenceConfigSchema, Tr
 import ignite.distributed as idist
 from ignite.contrib.engines import common
 from ignite.engine import Engine, Events
-from ignite.handlers import Checkpoint
-from ignite.metrics import ConfusionMatrix, IoU, mIoU
+from ignite.handlers import Checkpoint, Timer
+from ignite.metrics import Accuracy, Frequency, TopKCategoricalAccuracy
 from ignite.utils import manual_seed, setup_logger
-
-
-def download_datasets(output_path):
-    """Helper tool to download datasets
-
-    Args:
-        output_path (str): path where to download and unzip the dataset
-    """
-    from torchvision.datasets.sbd import SBDataset
-    from torchvision.datasets.voc import VOCSegmentation
-
-    output_path = Path(output_path)
-    output_path.mkdir(parents=True, exist_ok=True)
-
-    print("Download Pascal VOC 2012 - Training")
-    VOCSegmentation(output_path.as_posix(), image_set="train", download=True)
-    print("Download Pascal VOC 2012 - Validation")
-    VOCSegmentation(output_path.as_posix(), image_set="val", download=True)
-    print("Download SBD - Training without Pascal VOC validation part")
-    sbd_path = output_path / "SBD"
-    sbd_path.mkdir(exist_ok=True)
-    SBDataset(sbd_path.as_posix(), image_set="train_noval", mode="segmentation", download=True)
-    print("Done")
-    print(f"Pascal VOC 2012 is at : {(output_path / 'VOCdevkit').as_posix()}")
-    print(f"SBD is at : {sbd_path.as_posix()}")
 
 
 def training(local_rank, config, logger, with_clearml):
@@ -63,12 +38,11 @@ def training(local_rank, config, logger, with_clearml):
     trainer = create_trainer(model, optimizer, criterion, train_loader.sampler, config, logger, with_clearml)
 
     # Setup evaluators
-    num_classes = config.num_classes
-    cm_metric = ConfusionMatrix(num_classes=num_classes)
-
+    accuracy = Accuracy()
     val_metrics = {
-        "IoU": IoU(cm_metric),
-        "mIoU_bg": mIoU(cm_metric),
+        "Accuracy": accuracy,
+        "Top-5 Accuracy": TopKCategoricalAccuracy(k=5),
+        "Error": (1.0 - accuracy) * 100,
     }
 
     if ("val_metrics" in config) and isinstance(config.val_metrics, dict):
@@ -95,7 +69,7 @@ def training(local_rank, config, logger, with_clearml):
         state = evaluator.run(val_loader)
         utils.log_metrics(logger, epoch, state.times["COMPLETED"], "Test", state.metrics)
 
-    score_metric_name = "mIoU_bg"
+    score_metric_name = "Accuracy"
     if "es_patience" in config:
         common.add_early_stopping_by_val_score(config.es_patience, evaluator, trainer, metric_name=score_metric_name)
 
@@ -125,7 +99,7 @@ def training(local_rank, config, logger, with_clearml):
         # - once every 3 validations and
         # - at the end of the training
         def custom_event_filter(_, val_iteration):
-            c1 = val_iteration == len(val_loader) // 2
+            c1 = val_iteration == 1
             c2 = trainer.state.epoch % (config.get("val_interval", 1) * 3) == 0
             c2 |= trainer.state.epoch == config.num_epochs
             return c1 and c2
@@ -138,14 +112,18 @@ def training(local_rank, config, logger, with_clearml):
         tb_logger.attach(
             evaluator,
             log_handler=vis.predictions_gt_images_handler(
-                img_denormalize_fn=img_denormalize, n_images=8, another_engine=trainer, prefix_tag="validation"
+                img_denormalize_fn=img_denormalize, n_images=12, another_engine=trainer, prefix_tag="validation"
             ),
             event_name=Events.ITERATION_COMPLETED(event_filter=custom_event_filter),
         )
 
-    # Log confusion matrix to ClearML:
-    if with_clearml:
-        trainer.add_event_handler(Events.COMPLETED, compute_and_log_cm, cm_metric, trainer.state.iteration)
+        tb_logger.attach(
+            train_evaluator,
+            log_handler=vis.predictions_gt_images_handler(
+                img_denormalize_fn=img_denormalize, n_images=12, another_engine=trainer, prefix_tag="training"
+            ),
+            event_name=Events.ITERATION_COMPLETED(event_filter=custom_event_filter),
+        )
 
     trainer.run(train_loader, max_epochs=config.num_epochs)
 
@@ -153,34 +131,9 @@ def training(local_rank, config, logger, with_clearml):
         tb_logger.close()
 
 
-def compute_and_log_cm(cm_metric, iteration):
-    cm = cm_metric.compute()
-    # CM: values are normalized such that diagonal values represent class recalls
-    cm = ConfusionMatrix.normalize(cm, "recall").cpu().numpy()
-
-    if idist.get_rank() == 0:
-        from clearml import Task
-
-        clearml_logger = Task.current_task().get_logger()
-
-        try:
-            clearml_logger.report_confusion_matrix(
-                title="Final Confusion Matrix",
-                matrix=cm,
-                iteration=iteration,
-                xlabels=data.VOCSegmentationOpencv.target_names,
-                ylabels=data.VOCSegmentationOpencv.target_names,
-                extra_layout=None,
-            )
-        except NameError:
-            # Temporary clearml bug work-around:
-            # https://github.com/allegroai/clearml/pull/936
-            pass
-
-
 def create_trainer(model, optimizer, criterion, train_sampler, config, logger, with_clearml):
     device = config.device
-    prepare_batch = data.prepare_image_mask
+    prepare_batch = data.prepare_batch
 
     # Setup trainer
     accumulation_steps = config.get("accumulation_steps", 1)
@@ -189,43 +142,52 @@ def create_trainer(model, optimizer, criterion, train_sampler, config, logger, w
     with_amp = config.get("with_amp", True)
     scaler = GradScaler(enabled=with_amp)
 
-    def forward_pass(batch):
+    def training_step(engine, batch):
         model.train()
         x, y = prepare_batch(batch, device=device, non_blocking=True)
         with autocast(enabled=with_amp):
             y_pred = model(x)
             y_pred = model_output_transform(y_pred)
             loss = criterion(y_pred, y) / accumulation_steps
-        return loss
 
-    def amp_backward_pass(engine, loss):
+        output = {"supervised batch loss": loss.item(), "num_samples": len(x)}
+
         scaler.scale(loss).backward()
         if engine.state.iteration % accumulation_steps == 0:
             scaler.step(optimizer)
             scaler.update()
             optimizer.zero_grad()
 
-    def hvd_amp_backward_pass(engine, loss):
-        scaler.scale(loss).backward()
-        optimizer.synchronize()
-        with optimizer.skip_synchronize():
-            scaler.step(optimizer)
-            scaler.update()
-        optimizer.zero_grad()
-
-    if idist.backend() == "horovod" and with_amp:
-        backward_pass = hvd_amp_backward_pass
-    else:
-        backward_pass = amp_backward_pass
-
-    def training_step(engine, batch):
-        loss = forward_pass(batch)
-        output = {"supervised batch loss": loss.item()}
-        backward_pass(engine, loss)
         return output
 
     trainer = Engine(training_step)
     trainer.logger = logger
+
+    throughput_metric = Frequency(output_transform=lambda x: x["num_samples"])
+    throughput_metric.attach(trainer, name="Throughput")
+
+    timer = Timer(average=True)
+    timer.attach(
+        trainer,
+        resume=Events.ITERATION_STARTED,
+        pause=Events.ITERATION_COMPLETED,
+        step=Events.ITERATION_COMPLETED,
+    )
+
+    @trainer.on(Events.ITERATION_COMPLETED(every=20))
+    def log_progress():
+        metrics = dict(trainer.state.metrics)
+        epoch_length = trainer.state.epoch_length
+
+        metrics["ETA (seconds)"] = int((epoch_length - (trainer.state.iteration % epoch_length)) * timer.value())
+
+        metrics_str = ", ".join([f"{k}: {v}" for k, v in metrics.items()])
+        metrics_format = (
+            f"[{trainer.state.epoch}/{trainer.state.max_epochs}] "
+            + f"Iter={trainer.state.iteration % epoch_length}/{epoch_length}: "
+            + f"{metrics_str}"
+        )
+        trainer.logger.info(metrics_format)
 
     output_names = [
         "supervised batch loss",
@@ -250,7 +212,8 @@ def create_trainer(model, optimizer, criterion, train_sampler, config, logger, w
         save_handler=utils.get_save_handler(config.output_path.as_posix(), with_clearml),
         lr_scheduler=lr_scheduler,
         output_names=output_names,
-        with_pbars=not with_clearml,
+        # with_pbars=not with_clearml,
+        with_pbars=False,
         log_every_iters=1,
     )
 
@@ -268,7 +231,7 @@ def create_trainer(model, optimizer, criterion, train_sampler, config, logger, w
 def create_evaluator(model, metrics, config, with_clearml, tag="val"):
     model_output_transform = config.get("model_output_transform", lambda x: x)
     with_amp = config.get("with_amp", True)
-    prepare_batch = data.prepare_image_mask
+    prepare_batch = data.prepare_batch
 
     @torch.no_grad()
     def evaluate_step(engine, batch):
@@ -277,7 +240,7 @@ def create_evaluator(model, metrics, config, with_clearml, tag="val"):
             x, y = prepare_batch(batch, device=config.device, non_blocking=True)
             y_pred = model(x)
             y_pred = model_output_transform(y_pred)
-            return y_pred, y
+        return y_pred, y
 
     evaluator = Engine(evaluate_step)
 
@@ -302,7 +265,7 @@ def setup_experiment_tracking(config, with_clearml, task_type="training"):
 
             schema = TrainvalConfigSchema if task_type == "training" else InferenceConfigSchema
 
-            task = Task.init("Pascal-VOC12 Training", config.config_filepath.stem, task_type=task_type)
+            task = Task.init("ImageNet Training", config.config_filepath.stem, task_type=task_type)
             task.connect_configuration(config.config_filepath.as_posix())
 
             task.upload_artifact(config.script_filepath.name, config.script_filepath.as_posix())
@@ -314,7 +277,7 @@ def setup_experiment_tracking(config, with_clearml, task_type="training"):
         else:
             import shutil
 
-            output_path = Path(os.environ.get("OUTPUT_PATH", "/tmp/output-pascal-voc12"))
+            output_path = Path(os.environ.get("OUTPUT_PATH", "/tmp/output-imagenet"))
             output_path = output_path / task_type / config.config_filepath.stem
             output_path = output_path / datetime.now().strftime("%Y%m%d-%H%M%S")
             output_path.mkdir(parents=True, exist_ok=True)
@@ -331,7 +294,7 @@ def run_training(config_filepath, backend="nccl", with_clearml=True):
 
     Args:
         config_filepath (str): training configuration .py file
-        backend (str): distributed backend: nccl, gloo, horovod or None to run without distributed config
+        backend (str): distributed backend: nccl, gloo or None to run without distributed config
         with_clearml (bool): if True, uses ClearML as experiment tracking system
     """
     assert torch.cuda.is_available(), torch.cuda.is_available()
@@ -343,7 +306,7 @@ def run_training(config_filepath, backend="nccl", with_clearml=True):
 
     with idist.Parallel(backend=backend) as parallel:
 
-        logger = setup_logger(name="Pascal-VOC12 Training", distributed_rank=idist.get_rank())
+        logger = setup_logger(name="ImageNet Training", distributed_rank=idist.get_rank())
 
         config = ConfigObject(config_filepath)
         TrainvalConfigSchema.validate(config)
@@ -405,12 +368,9 @@ def evaluation(local_rank, config, logger, with_clearml):
     model = idist.auto_model(model)
 
     # Setup evaluators
-    num_classes = config.num_classes
-    cm_metric = ConfusionMatrix(num_classes=num_classes)
-
     val_metrics = {
-        "IoU": IoU(cm_metric),
-        "mIoU_bg": mIoU(cm_metric),
+        "Accuracy": Accuracy(),
+        "Top-5 Accuracy": TopKCategoricalAccuracy(k=5),
     }
 
     if ("val_metrics" in config) and isinstance(config.val_metrics, dict):
@@ -422,10 +382,6 @@ def evaluation(local_rank, config, logger, with_clearml):
     if rank == 0:
         tb_logger = common.TensorboardLogger(log_dir=config.output_path.as_posix())
         tb_logger.attach_output_handler(evaluator, event_name=Events.COMPLETED, tag="validation", metric_names="all")
-
-    # Log confusion matrix to ClearML:
-    if with_clearml:
-        evaluator.add_event_handler(Events.COMPLETED, compute_and_log_cm, cm_metric, evaluator.state.iteration)
 
     state = evaluator.run(data_loader)
     utils.log_metrics(logger, 0, state.times["COMPLETED"], "Validation", state.metrics)
@@ -451,7 +407,7 @@ def run_evaluation(config_filepath, backend="nccl", with_clearml=True):
     assert config_filepath.exists(), f"File '{config_filepath.as_posix()}' is not found"
 
     with idist.Parallel(backend=backend) as parallel:
-        logger = setup_logger(name="Pascal-VOC12 Evaluation", distributed_rank=idist.get_rank())
+        logger = setup_logger(name="ImageNet Evaluation", distributed_rank=idist.get_rank())
 
         config = ConfigObject(config_filepath)
         InferenceConfigSchema.validate(config)
@@ -473,4 +429,4 @@ def run_evaluation(config_filepath, backend="nccl", with_clearml=True):
 
 if __name__ == "__main__":
 
-    fire.Fire({"download": download_datasets, "training": run_training, "eval": run_evaluation})
+    fire.Fire({"training": run_training, "eval": run_evaluation})
