@@ -1,7 +1,6 @@
 from __future__ import print_function
 
 import argparse
-from math import log10
 
 import torch
 import torch.nn as nn
@@ -11,7 +10,6 @@ from model import Net
 from torch.utils.data import DataLoader
 
 from ignite.engine import Engine, Events
-from ignite.handlers import Checkpoint
 from ignite.metrics import PSNR
 
 # Training settings
