@@ -8,7 +8,11 @@ Features:
 - Distributed training with native automatic mixed precision
 - Experiments tracking with [ClearML](https://github.com/allegroai/clearml)
 
-ClearML Server: TODO: ADD THE LINK
+Experiment | Model | Dataset | Val Avg IoU | ClearML Link
+---|---|---|---|---
+configs/baseline_dplv3_resnet101.py | DeepLabV3 Resnet101 | VOC Only | 0.659161 | [link](https://app.clear.ml/projects/0e9a3a92d3134283b7d5572d516d60c5/experiments/a7254f084a9e47ca9380dfd739f89520/output/execution)
+configs/baseline_dplv3_resnet101_sbd.py | DeepLabV3 Resnet101 | VOC+SBD | 0.6853087 | [link](https://app.clear.ml/projects/0e9a3a92d3134283b7d5572d516d60c5/experiments/dc4cee3377a74d19bc2d0e0e4d638c1f/output/execution)
+
 
 ## Setup
 
@@ -22,7 +26,7 @@ For docker users, you can use the following images to run the example:
 ```bash
 docker pull pytorchignite/vision:latest
 ```
-or 
+or
 ```bash
 docker pull pytorchignite/hvd-vision:latest
 ```
@@ -31,7 +35,7 @@ and install other requirements as suggested above
 
 ### Using Horovod as distributed framework
 
-We do not add `horovod` as a requirement into `requirements.txt`. Please, install it manually following the official guides or 
+We do not add `horovod` as a requirement into `requirements.txt`. Please, install it manually following the official guides or
 use `pytorchignite/hvd-vision:latest` docker image.
 
 ### (Optional) Download Pascal VOC2012 and SDB datasets
@@ -73,7 +77,7 @@ export SBD_DATASET_PATH=/path/to/SBD/
 Run the following command:
 ```bash
 CUDA_VISIBLE_DEVICES=0 python -u main.py training configs/baseline_dplv3_resnet101_sbd.py
-# or without SBD 
+# or without SBD
 # CUDA_VISIBLE_DEVICES=0 python -u main.py training configs/baseline_dplv3_resnet101.py
 ```
 
@@ -82,9 +86,9 @@ CUDA_VISIBLE_DEVICES=0 python -u main.py training configs/baseline_dplv3_resnet1
 - Adjust total batch size for your GPUs in the configuration file: `configs/baseline_dplv3_resnet101_sbd.py` or `configs/baseline_dplv3_resnet101.py`
 
 ```bash
-python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py training configs/baseline_dplv3_resnet101_sbd.py
-# or without SBD 
-# python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py training configs/baseline_dplv3_resnet101.py
+torchrun --nproc_per_node=2 main.py training configs/baseline_dplv3_resnet101_sbd.py
+# or without SBD
+# torchrun --nproc_per_node=2 main.py training configs/baseline_dplv3_resnet101.py
 ```
 
 #### Using Horovod as distributed framework
@@ -108,7 +112,7 @@ CUDA_VISIBLE_DEVICES=0 python -u main.py eval configs/eval_baseline_dplv3_resnet
 #### Multiple GPUs
 
 ```bash
-python -u -m torch.distributed.launch --nproc_per_node=2 --use_env main.py eval configs/eval_baseline_dplv3_resnet101_sbd.py
+torchrun --nproc_per_node=2 main.py eval configs/eval_baseline_dplv3_resnet101_sbd.py
 ```
 
 #### Using Horovod as distributed framework
@@ -120,5 +124,5 @@ horovodrun -np=2 python -u main.py eval configs/eval_baseline_dplv3_resnet101_sb
 
 ## Acknowledgements
 
-Trainings were done using credits provided by AWS for open-source development via NumFOCUS 
+Trainings were done using credits provided by AWS for open-source development via NumFOCUS
 and using [trainml.ai](trainml.ai) platform.

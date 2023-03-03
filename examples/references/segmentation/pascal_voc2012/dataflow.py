@@ -116,8 +116,8 @@ def get_train_noval_sbdataset(root_path, return_meta=False):
 def get_dataloader(dataset, sampler=None, shuffle=False, limit_num_samples=None, **kwargs):
 
     if limit_num_samples is not None:
-        np.random.seed(limit_num_samples)
-        indices = np.random.permutation(len(dataset))[:limit_num_samples]
+        g = torch.Generator().manual_seed(limit_num_samples)
+        indices = torch.randperm(len(dataset), generator=g)[:limit_num_samples]
         dataset = Subset(dataset, indices)
 
     return idist.auto_dataloader(dataset, sampler=sampler, shuffle=(sampler is None) and shuffle, **kwargs)
@@ -144,7 +144,8 @@ def get_train_val_loaders(
         train_ds = train_ds + sbd_train_ds
 
     if len(val_ds) < len(train_ds):
-        train_eval_indices = np.random.permutation(len(train_ds))[: len(val_ds)]
+        g = torch.Generator().manual_seed(len(train_ds))
+        train_eval_indices = torch.randperm(len(train_ds), generator=g)[: len(val_ds)]
         train_eval_ds = Subset(train_ds, train_eval_indices)
     else:
         train_eval_ds = train_ds
