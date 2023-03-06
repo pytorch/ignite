@@ -1,9 +1,9 @@
 import tarfile
+import urllib
 from os import makedirs, remove
 from os.path import basename, exists, join
 
 from dataset import DatasetFromFolder
-from six.moves import urllib
 from torchvision.transforms import CenterCrop, Compose, Resize, ToTensor
 
 
