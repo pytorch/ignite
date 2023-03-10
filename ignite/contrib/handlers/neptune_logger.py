@@ -32,20 +32,21 @@ _INTEGRATION_VERSION_KEY = "source_code/integrations/neptune-pytorch-ignite"
 
 class NeptuneLogger(BaseLogger):
     """
-    `Neptune <https://neptune.ai/>`_ handler to log metrics, model/optimizer parameters, gradients during the training
-    and validation. It can also log model checkpoints to Neptune server.
+    `Neptune <https://neptune.ai/>`_ handler to log metrics, model/optimizer parameters, and gradients during training
+    and validation. It can also log model checkpoints to Neptune.
 
     .. code-block:: bash
 
-        pip install neptune-client
+        pip install neptune
 
     Args:
-        api_token: Required in online mode. Neptune API token, found on https://neptune.ai.
-        project_name: Required in online mode. Qualified name of a project in a form of
-           "namespace/project_name" for example "tom/minst-classification".
-           If None, the value of NEPTUNE_PROJECT environment variable will be taken.
-           You need to create the project in https://neptune.ai first.
-        **kwargs: Other arguments to be passed to Neptune's `init_run`.
+        api_token: Neptune API token, found on https://neptune.ai -> User menu -> "Get your API token".
+           If None, the value of the NEPTUNE_API_TOKEN environment variable is used. To keep your token
+           secure, you should set it to the environment variable rather than including it in your code.
+        project: Name of a Neptune project, in the form "workspace-name/project-name".
+           For example "tom/mnist-classification".
+           If None, the value of the NEPTUNE_PROJECT environment variable is used.
+        **kwargs: Other arguments to be passed to the `init_run()` function.
 
     Examples:
         .. code-block:: python
@@ -53,26 +54,27 @@ class NeptuneLogger(BaseLogger):
             from ignite.contrib.handlers.neptune_logger import *
 
             # Create a logger
-            # We are using the api_token for the anonymous user neptuner but you can use your own.
+            # Note: We are using the API token for anonymous logging. You can pass your own token, or save it as an
+            # environment variable and leave out the api_token argument.
 
             npt_logger = NeptuneLogger(
                 api_token="ANONYMOUS",
-                project="shared/pytorch-ignite-integration",
-                name="cnn-mnist", # Optional,
-                params={"max_epochs": 10}, # Optional,
-                tags=["pytorch-ignite","minst"] # Optional
+                project="common/pytorch-ignite-integration",
+                name="cnn-mnist",  # Optional,
+                tags=["pytorch-ignite", "minst"],  # Optional
             )
 
-            # Attach the logger to the trainer to log training loss at each iteration
+            # Attach the logger to the trainer to log training loss at each iteration.
             npt_logger.attach_output_handler(
                 trainer,
                 event_name=Events.ITERATION_COMPLETED,
                 tag="training",
-                output_transform=lambda loss: {'loss': loss}
+                output_transform=lambda loss: {"loss": loss},
             )
 
-            # Attach the logger to the evaluator on the training dataset and log NLL, Accuracy metrics after each epoch
-            # We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch
+            # Attach the logger to the evaluator on the training dataset and log NLL
+            # and accuracy metrics after each epoch.
+            # We set up `global_step_transform=global_step_from_engine(trainer)` to take the epoch
             # of the `trainer` instead of `train_evaluator`.
             npt_logger.attach_output_handler(
                 train_evaluator,
@@ -82,42 +84,45 @@ class NeptuneLogger(BaseLogger):
                 global_step_transform=global_step_from_engine(trainer),
             )
 
-            # Attach the logger to the evaluator on the validation dataset and log NLL, Accuracy metrics after
-            # each epoch. We setup `global_step_transform=global_step_from_engine(trainer)` to take the epoch of the
+            # Attach the logger to the evaluator on the validation dataset and log NLL and accuracy metrics after
+            # each epoch. We set up `global_step_transform=global_step_from_engine(trainer)` to take the epoch of the
             # `trainer` instead of `evaluator`.
             npt_logger.attach_output_handler(
                 evaluator,
                 event_name=Events.EPOCH_COMPLETED,
                 tag="validation",
                 metric_names=["nll", "accuracy"],
-                global_step_transform=global_step_from_engine(trainer)),
+                global_step_transform=global_step_from_engine(trainer),
             )
 
-            # Attach the logger to the trainer to log optimizer's parameters, e.g. learning rate at each iteration
+            # Attach the logger to the trainer to log optimizer parameters, such as learning rate at each iteration.
             npt_logger.attach_opt_params_handler(
                 trainer,
                 event_name=Events.ITERATION_STARTED,
                 optimizer=optimizer,
-                param_name='lr'  # optional
+                param_name="lr",  # optional
             )
 
-            # Attach the logger to the trainer to log model's weights norm after each iteration
+            # Attach the logger to the trainer to log model's weights norm after each iteration.
             npt_logger.attach(
                 trainer,
                 event_name=Events.ITERATION_COMPLETED,
-                log_handler=WeightsScalarHandler(model)
+                log_handler=WeightsScalarHandler(model),
             )
 
-        Explore an experiment with neptune tracking here:
-        https://ui.neptune.ai/o/shared/org/pytorch-ignite-integration/e/PYTOR1-18/charts
-        You can save model checkpoints to a Neptune server:
+        Explore runs with Neptune tracking here:
+        https://app.neptune.ai/o/common/org/pytorch-ignite-integration/
+
+        You can also save model checkpoints to a Neptune:
 
         .. code-block:: python
 
             from ignite.handlers import Checkpoint
 
+
             def score_function(engine):
                 return engine.state.metrics["accuracy"]
+
 
             to_save = {"model": model}
             handler = Checkpoint(
@@ -126,32 +131,24 @@ class NeptuneLogger(BaseLogger):
                 filename_prefix="best",
                 score_function=score_function,
                 score_name="validation_accuracy",
-                global_step_transform=global_step_from_engine(trainer)
+                global_step_transform=global_step_from_engine(trainer),
             )
             validation_evaluator.add_event_handler(Events.COMPLETED, handler)
 
-        It is also possible to use the logger as context manager:
+        It is also possible to use the logger as a context manager:
 
         .. code-block:: python
 
             from ignite.contrib.handlers.neptune_logger import *
 
-            # We are using the api_token for the anonymous user neptuner but you can use your own.
-
-            with NeptuneLogger(api_token="ANONYMOUS",
-                               project="shared/pytorch-ignite-integration",
-                               name="cnn-mnist", # Optional,
-                               params={"max_epochs": 10}, # Optional,
-                               tags=["pytorch-ignite","mnist"] # Optional
-                               ) as npt_logger:
-
+            with NeptuneLogger() as npt_logger:
                 trainer = Engine(update_fn)
                 # Attach the logger to the trainer to log training loss at each iteration
                 npt_logger.attach_output_handler(
                     trainer,
                     event_name=Events.ITERATION_COMPLETED,
                     tag="training",
-                    output_transform=lambda loss: {"loss": loss}
+                    output_transform=lambda loss: {"loss": loss},
                 )
 
     """
@@ -180,8 +177,8 @@ class NeptuneLogger(BaseLogger):
                 import neptune
         except ImportError:
             raise ModuleNotFoundError(
-                "This contrib module requires neptune client to be installed. "
-                "You may install neptune with command: \n pip install neptune \n"
+                "This contrib module requires the Neptune client library to be installed. "
+                "Install neptune with the command: \n pip install neptune \n"
             )
 
         run = neptune.init_run(
@@ -204,7 +201,7 @@ class NeptuneLogger(BaseLogger):
 
 
 class OutputHandler(BaseOutputHandler):
-    """Helper handler to log engine's output and/or metrics
+    """Helper handler to log engine's output and/or metrics.
 
     Args:
         tag: common title for all produced plots. For example, "training"
