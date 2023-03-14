@@ -32,7 +32,7 @@ _INTEGRATION_VERSION_KEY = "source_code/integrations/neptune-pytorch-ignite"
 
 class NeptuneLogger(BaseLogger):
     """
-    `Neptune <https://neptune.ai/>`_ handler to log metrics, model/optimizer parameters, and gradients during training
+    `Neptune <https://neptune.ai/>`_ handler to log metrics, model/optimizer parameters and gradients during training
     and validation. It can also log model checkpoints to Neptune.
 
     .. code-block:: bash
