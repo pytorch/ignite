@@ -16,40 +16,41 @@ jobs:
       matrix:
         python-version: [3.8, 3.9, "3.10"]
         pytorch-version:
-          [1.12.1, 1.11.0, 1.10.0, 1.9.1, 1.8.1, 1.7.1, 1.6.0, 1.5.1, 1.4.0, 1.3.1]
+          [1.13.1, 1.12.1, 1.11.0, 1.10.0, 1.9.1, 1.8.1, 1.7.1, 1.6.0, 1.5.1, 1.4.0]
         exclude:
-          - pytorch-version: 1.3.1
-            python-version: 3.8
-          - pytorch-version: 1.3.1
-            python-version: 3.9
           - pytorch-version: 1.4.0
             python-version: 3.9
+          - pytorch-version: 1.4.0
+            python-version: 3.10
+            
           - pytorch-version: 1.5.1
             python-version: 3.9
+          - pytorch-version: 1.5.1
+            python-version: 3.10
+
           - pytorch-version: 1.6.0
             python-version: 3.9
+          - pytorch-version: 1.6.0
+            python-version: 3.10
+
           # disabling python 3.9 support with PyTorch 1.7.1 and 1.8.1, to stop repeated pytorch-version test fail.
           # https://github.com/pytorch/ignite/issues/2383
           - pytorch-version: 1.7.1
             python-version: 3.9
-          - pytorch-version: 1.8.1
-            python-version: 3.9
-          - pytorch-version: 1.3.1
-            python-version: 3.10
-          - pytorch-version: 1.4.0
-            python-version: 3.10
-          - pytorch-version: 1.5.1
-            python-version: 3.10
-          - pytorch-version: 1.6.0
-            python-version: 3.10
           - pytorch-version: 1.7.1
             python-version: 3.10
+
+          - pytorch-version: 1.8.1
+            python-version: 3.9
           - pytorch-version: 1.8.1
             python-version: 3.10
+
           - pytorch-version: 1.9.1
             python-version: 3.10
+
           - pytorch-version: 1.10.0
             python-version: 3.10
+
           - pytorch-version: 1.11.0
             python-version: 3.10
 
@@ -90,13 +91,6 @@ jobs:
           conda install pytorch=${{ matrix.pytorch-version }} torchvision cpuonly python=${{ matrix.python-version }} -c pytorch
           pip install -r requirements-dev.txt
           python setup.py install
-
-      - name: Install appropriate Pillow for PyTorch 1.3.1
-        shell: bash -l {0}
-        if: ${{ matrix.pytorch-version == '1.3.1' }}
-        run: |
-          pip install --upgrade 'Pillow<7'
-          python -c "import torchvision"
 
       - name: Download MNIST
         uses: pytorch-ignite/download-mnist-github-action@master
