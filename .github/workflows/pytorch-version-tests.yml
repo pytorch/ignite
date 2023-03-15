@@ -93,11 +93,14 @@ jobs:
           pip install -r requirements-dev.txt
           python setup.py install
 
+      # There is no more torchvision 0.5.0 binaries in anaconda pytorch channel:
+      # https://anaconda.org/pytorch/torchvision/files 
       - name: Install appropriate dependencies for PyTorch 1.4.0
         shell: bash -l {0}
         if: ${{ matrix.pytorch-version == '1.4.0' }}
-        run: |
-          conda install pytorch=${{ matrix.pytorch-version }} torchvision="0.5.0" cpuonly python=${{ matrix.python-version }} -c pytorch
+        run: |         
+          conda install pytorch=${{ matrix.pytorch-version }} cpuonly python=${{ matrix.python-version }} -c pytorch
+          pip install torchvision==0.5.0
           pip install -r requirements-dev.txt
           python setup.py install
 
