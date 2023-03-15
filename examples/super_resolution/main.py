@@ -102,6 +102,16 @@ def log_validation():
 
 
 @trainer.on(Events.EPOCH_COMPLETED)
+def log_epoch_time():
+    print(f"Epoch {trainer.state.epoch}, Time Taken : {trainer.state.times['EPOCH_COMPLETED']}")
+
+
+@trainer.on(Events.COMPLETED)
+def log_total_time():
+    print(f"Total Time: {trainer.state.times['COMPLETED']}")
+
+
+@trainer.on(Events.EPOCH_COMPLETED)
 def checkpoint():
     model_out_path = "model_epoch_{}.pth".format(trainer.state.epoch)
     torch.save(model, model_out_path)
