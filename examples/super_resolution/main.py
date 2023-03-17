@@ -3,7 +3,8 @@ import argparse
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from data import get_test_set, get_training_set
+import torchvision
+import torchvision.transforms as transforms
 from model import Net
 from torch.utils.data import DataLoader
 
@@ -41,10 +42,36 @@ else:
     device = torch.device("cpu")
 
 print("===> Loading datasets")
-train_set = get_training_set(opt.upscale_factor)
-test_set = get_test_set(opt.upscale_factor)
-training_data_loader = DataLoader(dataset=train_set, num_workers=opt.threads, batch_size=opt.batchSize, shuffle=True)
-testing_data_loader = DataLoader(dataset=test_set, num_workers=opt.threads, batch_size=opt.testBatchSize, shuffle=False)
+
+
+class SRDataset(torch.utils.data.Dataset):
+    def __init__(self, dataset, scale_factor):
+        self.dataset = dataset
+        self.transform = transforms.Resize(
+            (len(dataset[0][0][0]) * scale_factor, len(dataset[0][0][0][0]) * scale_factor)
+        )
+
+    def __getitem__(self, index):
+        lr_image, _ = self.dataset[index]
+        hr_image = self.transform(lr_image)
+        return lr_image, hr_image
+
+    def __len__(self):
+        return len(self.dataset)
+
+
+transform = transforms.Compose([transforms.ToTensor()])
+
+trainset = torchvision.datasets.CIFAR10(root="./data", train=True, download=True, transform=transform)
+testset = torchvision.datasets.CIFAR10(root="./data", train=False, download=True, transform=transform)
+
+trainset_sr = SRDataset(trainset, scale_factor=opt.upscale_factor)
+testset_sr = SRDataset(testset, scale_factor=opt.upscale_factor)
+
+training_data_loader = DataLoader(dataset=trainset_sr, num_workers=opt.threads, batch_size=opt.batchSize, shuffle=True)
+testing_data_loader = DataLoader(
+    dataset=testset_sr, num_workers=opt.threads, batch_size=opt.testBatchSize, shuffle=False
+)
 
 print("===> Building model")
 model = Net(upscale_factor=opt.upscale_factor).to(device)
