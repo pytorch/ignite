@@ -220,8 +220,18 @@ def _default_create_supervised_evaluator(
     evaluator_device: Optional[str] = None,
     trace: bool = False,
     amp_mode: str = None,
+    with_model_transform: bool = False,
 ):
-    model = DummyModel()
+    if with_model_transform:
+
+        def get_first_element(output):
+            return output[0]
+
+        model = DummyModel(output_as_list=True)
+        model_transform = get_first_element
+    else:
+        model = DummyModel()
+        model_transform = None
 
     if model_device:
         model.to(model_device)
@@ -232,7 +242,12 @@ def _default_create_supervised_evaluator(
         example_input = torch.randn(1, 1)
         model = torch.jit.trace(model, example_input)
 
-    evaluator = create_supervised_evaluator(model, device=evaluator_device, amp_mode=amp_mode)
+    evaluator = create_supervised_evaluator(
+        model,
+        device=evaluator_device,
+        amp_mode=amp_mode,
+        model_transform=model_transform if model_transform is not None else lambda x: x,
+    )
 
     assert model.fc.weight.data[0, 0].item() == approx(0.0)
 
@@ -244,9 +259,14 @@ def _test_create_supervised_evaluator(
     evaluator_device: Optional[str] = None,
     trace: bool = False,
     amp_mode: str = None,
+    with_model_transform: bool = False,
 ):
     model, evaluator = _default_create_supervised_evaluator(
-        model_device=model_device, evaluator_device=evaluator_device, trace=trace, amp_mode=amp_mode
+        model_device=model_device,
+        evaluator_device=evaluator_device,
+        trace=trace,
+        amp_mode=amp_mode,
+        with_model_transform=with_model_transform,
     )
     x = torch.tensor([[1.0], [2.0]])
     y = torch.tensor([[3.0], [5.0]])
