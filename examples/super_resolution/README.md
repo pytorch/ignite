@@ -5,8 +5,8 @@ ported from [pytorch-examples](https://github.com/pytorch/examples/tree/main/sup
 This example illustrates how to use the efficient sub-pixel convolution layer described in ["Real-Time Single Image and Video Super-Resolution Using an Efficient Sub-Pixel Convolutional Neural Network" - Shi et al.](https://arxiv.org/abs/1609.05158) for increasing spatial resolution within your network for tasks such as superresolution.
 
 ```
-usage: main.py [-h] --upscale_factor UPSCALE_FACTOR [--batchSize BATCHSIZE]
-               [--testBatchSize TESTBATCHSIZE] [--nEpochs NEPOCHS] [--lr LR]
+usage: main.py [-h] --upscale_factor UPSCALE_FACTOR [--batch_size BATCHSIZE]
+               [--test_batch_size TESTBATCHSIZE] [--n_epochs NEPOCHS] [--lr LR]
                [--cuda] [--threads THREADS] [--seed SEED]
 
 PyTorch Super Res Example
