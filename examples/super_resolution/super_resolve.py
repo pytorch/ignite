@@ -3,7 +3,7 @@ import argparse
 import numpy as np
 import torch
 from PIL import Image
-from torchvision.transforms import ToTensor
+from torchvision.transforms.functional import to_tensor
 
 # Training settings
 parser = argparse.ArgumentParser(description="PyTorch Super Res Example")
@@ -18,8 +18,7 @@ img = Image.open(opt.input_image).convert("YCbCr")
 y, cb, cr = img.split()
 
 model = torch.load(opt.model)
-img_to_tensor = ToTensor()
-input = img_to_tensor(y).view(1, -1, y.size[1], y.size[0])
+input = to_tensor(y).view(1, -1, y.size[1], y.size[0])
 
 if opt.cuda:
     model = model.cuda()

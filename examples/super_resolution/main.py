@@ -6,7 +6,7 @@ import torch.optim as optim
 import torchvision
 from model import Net
 from torch.utils.data import DataLoader
-from torchvision.transforms import CenterCrop, Compose, Resize, ToTensor
+from torchvision.transforms.functional import center_crop, resize, to_tensor
 
 from ignite.engine import Engine, Events
 from ignite.metrics import PSNR
@@ -45,21 +45,22 @@ print("===> Loading datasets")
 
 
 class SRDataset(torch.utils.data.Dataset):
-    def __init__(self, dataset, scale_factor, input_transform=None, target_transform=None):
+    def __init__(self, dataset, scale_factor, crop_size=256):
         self.dataset = dataset
-        self.input_transform = input_transform
-        self.target_transform = target_transform
+        self.scale_factor = scale_factor
+        self.crop_size = crop_size
 
     def __getitem__(self, index):
         image, _ = self.dataset[index]
         img = image.convert("YCbCr")
-        lr_image, _, _ = img.split()
-
-        hr_image = lr_image.copy()
-        if self.input_transform:
-            lr_image = self.input_transform(lr_image)
-        if self.target_transform:
-            hr_image = self.target_transform(hr_image)
+        hr_image, _, _ = img.split()
+        hr_image = center_crop(hr_image, self.crop_size)
+        lr_image = hr_image.copy()
+        if self.scale_factor != 1:
+            dim = self.crop_size // self.scale_factor
+            lr_image = resize(lr_image, [dim, dim])
+        hr_image = to_tensor(hr_image)
+        lr_image = to_tensor(lr_image)
         return lr_image, hr_image
 
     def __len__(self):
@@ -70,42 +71,13 @@ def calculate_valid_crop_size(crop_size, upscale_factor):
     return crop_size - (crop_size % upscale_factor)
 
 
-def input_transform(crop_size, upscale_factor):
-    return Compose(
-        [
-            CenterCrop(crop_size),
-            Resize(crop_size // upscale_factor),
-            ToTensor(),
-        ]
-    )
-
-
-def target_transform(crop_size):
-    return Compose(
-        [
-            CenterCrop(crop_size),
-            ToTensor(),
-        ]
-    )
-
-
 crop_size = calculate_valid_crop_size(256, opt.upscale_factor)
 
 trainset = torchvision.datasets.Caltech101(root="./data", download=True)
 testset = torchvision.datasets.Caltech101(root="./data", download=False)
 
-trainset_sr = SRDataset(
-    trainset,
-    scale_factor=opt.upscale_factor,
-    input_transform=input_transform(crop_size, opt.upscale_factor),
-    target_transform=target_transform(crop_size),
-)
-testset_sr = SRDataset(
-    testset,
-    scale_factor=opt.upscale_factor,
-    input_transform=input_transform(crop_size, opt.upscale_factor),
-    target_transform=target_transform(crop_size),
-)
+trainset_sr = SRDataset(trainset, scale_factor=opt.upscale_factor, crop_size=crop_size)
+testset_sr = SRDataset(testset, scale_factor=opt.upscale_factor, crop_size=crop_size)
 
 training_data_loader = DataLoader(dataset=trainset_sr, num_workers=opt.threads, batch_size=opt.batch_size, shuffle=True)
 testing_data_loader = DataLoader(

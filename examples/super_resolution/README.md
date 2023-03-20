@@ -24,7 +24,7 @@ optional arguments:
   --seed                random seed to use. Default=123
 ```
 
-This example trains a super-resolution network on the [Cifar10 dataset](https://www.cs.toronto.edu/~kriz/cifar.html). A snapshot of the model after every epoch with filename `model_epoch_<epoch_number>.pth`
+This example trains a super-resolution network on the [Caltech101 dataset](https://pytorch.org/vision/main/generated/torchvision.datasets.Caltech101.html). A snapshot of the model after every epoch with filename `model_epoch_<epoch_number>.pth`
 
 ## Example Usage:
 
@@ -34,4 +34,4 @@ This example trains a super-resolution network on the [Cifar10 dataset](https://
 
 ### Super Resolve
 
-`python super_resolve.py --input_image dataset/BSDS300/images/test/16077.jpg --model model_epoch_500.pth --output_filename out.png`
+`python super_resolve.py --input_image <in>.jpg --model model_epoch_500.pth --output_filename out.png`
