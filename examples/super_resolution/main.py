@@ -4,9 +4,9 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torchvision
-import torchvision.transforms as transforms
 from model import Net
 from torch.utils.data import DataLoader
+from torchvision.transforms import CenterCrop, Compose, Resize, ToTensor
 
 from ignite.engine import Engine, Events
 from ignite.metrics import PSNR
@@ -45,28 +45,67 @@ print("===> Loading datasets")
 
 
 class SRDataset(torch.utils.data.Dataset):
-    def __init__(self, dataset, scale_factor):
+    def __init__(self, dataset, scale_factor, input_transform=None, target_transform=None):
         self.dataset = dataset
-        self.transform = transforms.Resize(
-            (len(dataset[0][0][0]) * scale_factor, len(dataset[0][0][0][0]) * scale_factor)
-        )
+        self.input_transform = input_transform
+        self.target_transform = target_transform
 
     def __getitem__(self, index):
-        lr_image, _ = self.dataset[index]
-        hr_image = self.transform(lr_image)
+        image, _ = self.dataset[index]
+        img = image.convert("YCbCr")
+        lr_image, _, _ = img.split()
+
+        hr_image = lr_image.copy()
+        if self.input_transform:
+            lr_image = self.input_transform(lr_image)
+        if self.target_transform:
+            hr_image = self.target_transform(hr_image)
         return lr_image, hr_image
 
     def __len__(self):
         return len(self.dataset)
 
 
-transform = transforms.Compose([transforms.ToTensor()])
+def calculate_valid_crop_size(crop_size, upscale_factor):
+    return crop_size - (crop_size % upscale_factor)
 
-trainset = torchvision.datasets.CIFAR10(root="./data", train=True, download=True, transform=transform)
-testset = torchvision.datasets.CIFAR10(root="./data", train=False, download=True, transform=transform)
 
-trainset_sr = SRDataset(trainset, scale_factor=opt.upscale_factor)
-testset_sr = SRDataset(testset, scale_factor=opt.upscale_factor)
+def input_transform(crop_size, upscale_factor):
+    return Compose(
+        [
+            CenterCrop(crop_size),
+            Resize(crop_size // upscale_factor),
+            ToTensor(),
+        ]
+    )
+
+
+def target_transform(crop_size):
+    return Compose(
+        [
+            CenterCrop(crop_size),
+            ToTensor(),
+        ]
+    )
+
+
+crop_size = calculate_valid_crop_size(256, opt.upscale_factor)
+
+trainset = torchvision.datasets.Caltech101(root="./data", download=True)
+testset = torchvision.datasets.Caltech101(root="./data", download=False)
+
+trainset_sr = SRDataset(
+    trainset,
+    scale_factor=opt.upscale_factor,
+    input_transform=input_transform(crop_size, opt.upscale_factor),
+    target_transform=target_transform(crop_size),
+)
+testset_sr = SRDataset(
+    testset,
+    scale_factor=opt.upscale_factor,
+    input_transform=input_transform(crop_size, opt.upscale_factor),
+    target_transform=target_transform(crop_size),
+)
 
 training_data_loader = DataLoader(dataset=trainset_sr, num_workers=opt.threads, batch_size=opt.batch_size, shuffle=True)
 testing_data_loader = DataLoader(
@@ -118,12 +157,8 @@ def log_training_loss(engine):
 
 
 @trainer.on(Events.EPOCH_COMPLETED(every=validate_every))
-def run_validation():
-    evaluator.run(testing_data_loader)
-
-
-@trainer.on(Events.EPOCH_COMPLETED(every=validate_every))
 def log_validation():
+    evaluator.run(testing_data_loader)
     metrics = evaluator.state.metrics
     print(f"Epoch: {trainer.state.epoch}, Avg. PSNR: {metrics['psnr']} dB")
 
