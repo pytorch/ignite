@@ -30,7 +30,7 @@ This example trains a super-resolution network on the [Cifar10 dataset](https://
 
 ### Train
 
-`python main.py --upscale_factor 3 --batchSize 4 --testBatchSize 100 --nEpochs 30 --lr 0.001`
+`python main.py --upscale_factor 3 --batch_size 4 --test_batch_size 100 --n_epochs 30 --lr 0.001`
 
 ### Super Resolve
 

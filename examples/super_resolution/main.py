@@ -14,9 +14,9 @@ from ignite.metrics import PSNR
 # Training settings
 parser = argparse.ArgumentParser(description="PyTorch Super Res Example")
 parser.add_argument("--upscale_factor", type=int, required=True, help="super resolution upscale factor")
-parser.add_argument("--batchSize", type=int, default=64, help="training batch size")
-parser.add_argument("--testBatchSize", type=int, default=10, help="testing batch size")
-parser.add_argument("--nEpochs", type=int, default=2, help="number of epochs to train for")
+parser.add_argument("--batch_size", type=int, default=64, help="training batch size")
+parser.add_argument("--test_batch_size", type=int, default=10, help="testing batch size")
+parser.add_argument("--n_epochs", type=int, default=2, help="number of epochs to train for")
 parser.add_argument("--lr", type=float, default=0.01, help="Learning Rate. Default=0.01")
 parser.add_argument("--cuda", action="store_true", help="use cuda?")
 parser.add_argument("--mps", action="store_true", default=False, help="enables macOS GPU training")
@@ -68,9 +68,9 @@ testset = torchvision.datasets.CIFAR10(root="./data", train=False, download=True
 trainset_sr = SRDataset(trainset, scale_factor=opt.upscale_factor)
 testset_sr = SRDataset(testset, scale_factor=opt.upscale_factor)
 
-training_data_loader = DataLoader(dataset=trainset_sr, num_workers=opt.threads, batch_size=opt.batchSize, shuffle=True)
+training_data_loader = DataLoader(dataset=trainset_sr, num_workers=opt.threads, batch_size=opt.batch_size, shuffle=True)
 testing_data_loader = DataLoader(
-    dataset=testset_sr, num_workers=opt.threads, batch_size=opt.testBatchSize, shuffle=False
+    dataset=testset_sr, num_workers=opt.threads, batch_size=opt.test_batch_size, shuffle=False
 )
 
 print("===> Building model")
@@ -105,7 +105,7 @@ evaluator = Engine(validation_step)
 psnr = PSNR(data_range=1)
 psnr.attach(evaluator, "psnr")
 validate_every = 1
-log_interval = 10
+log_interval = 100
 
 
 @trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
@@ -145,4 +145,4 @@ def checkpoint():
     print("Checkpoint saved to {}".format(model_out_path))
 
 
-trainer.run(training_data_loader, opt.nEpochs)
+trainer.run(training_data_loader, opt.n_epochs)
