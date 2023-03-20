@@ -350,7 +350,7 @@ def _test_distrib_one_rank_only(device):
 
         @idist.one_rank_only(rank=rank, with_barrier=barrier)
         def initialize():
-            value.data = torch.tensor(100).to(device)
+            value.add_(torch.tensor(100).to(device))
 
         initialize()
 
