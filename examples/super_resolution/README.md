@@ -14,9 +14,9 @@ PyTorch Super Res Example
 optional arguments:
   -h, --help            show this help message and exit
   --upscale_factor      super resolution upscale factor
-  --batchSize           training batch size
-  --testBatchSize       testing batch size
-  --nEpochs             number of epochs to train for
+  --batch_size           training batch size
+  --test_batch_size       testing batch size
+  --n_epochs             number of epochs to train for
   --lr                  Learning Rate. Default=0.01
   --cuda                use cuda
   --mps                 enable GPU on macOS
