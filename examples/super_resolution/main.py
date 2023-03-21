@@ -57,8 +57,8 @@ class SRDataset(torch.utils.data.Dataset):
         hr_image = center_crop(hr_image, self.crop_size)
         lr_image = hr_image.copy()
         if self.scale_factor != 1:
-            dim = self.crop_size // self.scale_factor
-            lr_image = resize(lr_image, [dim, dim])
+            size = self.crop_size // self.scale_factor
+            lr_image = resize(lr_image, [size, size])
         hr_image = to_tensor(hr_image)
         lr_image = to_tensor(lr_image)
         return lr_image, hr_image
@@ -74,9 +74,7 @@ trainset_sr = SRDataset(trainset, scale_factor=opt.upscale_factor)
 testset_sr = SRDataset(testset, scale_factor=opt.upscale_factor)
 
 training_data_loader = DataLoader(dataset=trainset_sr, num_workers=opt.threads, batch_size=opt.batch_size, shuffle=True)
-testing_data_loader = DataLoader(
-    dataset=testset_sr, num_workers=opt.threads, batch_size=opt.test_batch_size, shuffle=False
-)
+testing_data_loader = DataLoader(dataset=testset_sr, num_workers=opt.threads, batch_size=opt.test_batch_size)
 
 print("===> Building model")
 model = Net(upscale_factor=opt.upscale_factor).to(device)
@@ -86,6 +84,7 @@ optimizer = optim.Adam(model.parameters(), lr=opt.lr)
 
 
 def train_step(engine, batch):
+    model.train()
     input, target = batch[0].to(device), batch[1].to(device)
 
     optimizer.zero_grad()
