@@ -67,17 +67,11 @@ class SRDataset(torch.utils.data.Dataset):
         return len(self.dataset)
 
 
-def calculate_valid_crop_size(crop_size, upscale_factor):
-    return crop_size - (crop_size % upscale_factor)
-
-
-crop_size = calculate_valid_crop_size(256, opt.upscale_factor)
-
 trainset = torchvision.datasets.Caltech101(root="./data", download=True)
 testset = torchvision.datasets.Caltech101(root="./data", download=False)
 
-trainset_sr = SRDataset(trainset, scale_factor=opt.upscale_factor, crop_size=crop_size)
-testset_sr = SRDataset(testset, scale_factor=opt.upscale_factor, crop_size=crop_size)
+trainset_sr = SRDataset(trainset, scale_factor=opt.upscale_factor)
+testset_sr = SRDataset(testset, scale_factor=opt.upscale_factor)
 
 training_data_loader = DataLoader(dataset=trainset_sr, num_workers=opt.threads, batch_size=opt.batch_size, shuffle=True)
 testing_data_loader = DataLoader(
