@@ -15,6 +15,7 @@ from ignite.metrics import PSNR
 
 # Training settings
 parser = argparse.ArgumentParser(description="PyTorch Super Res Example")
+parser.add_argument("--crop_size", type=int, default=256, help="cropped size of the images for training")
 parser.add_argument("--upscale_factor", type=int, required=True, help="super resolution upscale factor")
 parser.add_argument("--batch_size", type=int, default=64, help="training batch size")
 parser.add_argument("--test_batch_size", type=int, default=10, help="testing batch size")
@@ -24,6 +25,7 @@ parser.add_argument("--cuda", action="store_true", help="use cuda?")
 parser.add_argument("--mps", action="store_true", default=False, help="enables macOS GPU training")
 parser.add_argument("--threads", type=int, default=4, help="number of threads for data loader to use")
 parser.add_argument("--seed", type=int, default=123, help="random seed to use. Default=123")
+
 opt = parser.parse_args()
 
 print(opt)
@@ -47,7 +49,7 @@ print("===> Loading datasets")
 
 
 class SRDataset(torch.utils.data.Dataset):
-    def __init__(self, dataset, scale_factor, crop_size=180):
+    def __init__(self, dataset, scale_factor, crop_size=256):
         self.dataset = dataset
         self.scale_factor = scale_factor
         self.crop_size = crop_size
@@ -72,8 +74,8 @@ class SRDataset(torch.utils.data.Dataset):
 trainset = torchvision.datasets.Caltech101(root="./data", download=True)
 testset = torchvision.datasets.Caltech101(root="./data", download=False)
 
-trainset_sr = SRDataset(trainset, scale_factor=opt.upscale_factor)
-testset_sr = SRDataset(testset, scale_factor=opt.upscale_factor)
+trainset_sr = SRDataset(trainset, scale_factor=opt.upscale_factor, crop_size=opt.crop_size)
+testset_sr = SRDataset(testset, scale_factor=opt.upscale_factor, crop_size=opt.crop_size)
 
 training_data_loader = DataLoader(dataset=trainset_sr, num_workers=opt.threads, batch_size=opt.batch_size, shuffle=True)
 testing_data_loader = DataLoader(dataset=testset_sr, num_workers=opt.threads, batch_size=opt.test_batch_size)
