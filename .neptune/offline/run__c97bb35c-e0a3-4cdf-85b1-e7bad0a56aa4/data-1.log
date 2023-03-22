@@ -1,0 +1,17 @@
+{"obj": {"type": "AssignString", "path": ["sys", "name"], "value": "Untitled"}, "version": 1}
+{"obj": {"type": "AssignString", "path": ["sys", "description"], "value": ""}, "version": 2}
+{"obj": {"type": "AssignString", "path": ["monitoring", "8c1b9ff2", "hostname"], "value": "caoyus-MacBook-Pro.local"}, "version": 3}
+{"obj": {"type": "AssignString", "path": ["sys", "hostname"], "value": "caoyus-MacBook-Pro.local"}, "version": 4}
+{"obj": {"type": "AssignString", "path": ["monitoring", "8c1b9ff2", "pid"], "value": "11898"}, "version": 5}
+{"obj": {"type": "AssignString", "path": ["monitoring", "8c1b9ff2", "tid"], "value": "140704564520128"}, "version": 6}
+{"obj": {"type": "AssignBool", "path": ["sys", "failed"], "value": false}, "version": 7}
+{"obj": {"type": "ClearStringLog", "path": ["monitoring", "8c1b9ff2", "stdout"]}, "version": 8}
+{"obj": {"type": "ClearStringLog", "path": ["monitoring", "8c1b9ff2", "stderr"]}, "version": 9}
+{"obj": {"type": "ConfigFloatSeries", "path": ["monitoring", "8c1b9ff2", "cpu"], "min": 0.0, "max": 100.0, "unit": "%"}, "version": 10}
+{"obj": {"type": "ClearFloatLog", "path": ["monitoring", "8c1b9ff2", "cpu"]}, "version": 11}
+{"obj": {"type": "ConfigFloatSeries", "path": ["monitoring", "8c1b9ff2", "memory"], "min": 0.0, "max": 16.0, "unit": "GB"}, "version": 12}
+{"obj": {"type": "ClearFloatLog", "path": ["monitoring", "8c1b9ff2", "memory"]}, "version": 13}
+{"obj": {"type": "LogFloats", "path": ["monitoring", "8c1b9ff2", "cpu"], "values": [{"value": 14.0, "step": null, "ts": 1679471932.385563}]}, "version": 14}
+{"obj": {"type": "LogFloats", "path": ["monitoring", "8c1b9ff2", "memory"], "values": [{"value": 11.0618896484375, "step": null, "ts": 1679471932.385563}]}, "version": 15}
+{"obj": {"type": "AssignString", "path": ["source_code", "integrations", "neptune-pytorch-ignite"], "value": "0.5.0"}, "version": 16}
+{"obj": {"type": "LogStrings", "path": ["monitoring", "8c1b9ff2", "stdout"], "values": [{"value": "Shutting down background jobs, please wait a moment...\n", "step": null, "ts": 1679471932.3886662}]}, "version": 17}

@@ -6,6 +6,7 @@ from unittest.mock import ANY, call, MagicMock, Mock, patch
 import clearml
 import pytest
 import torch
+from clearml import Task
 from clearml.binding.frameworks import WeightsFileHandler
 from clearml.model import Framework
 
@@ -24,6 +25,35 @@ from ignite.contrib.handlers.clearml_logger import (
 
 from ignite.engine import Engine, Events, State
 from ignite.handlers import Checkpoint
+
+
+def test_clearml_logger_get_clearml_task_bypass(dirname):
+
+    with pytest.warns(UserWarning, match="ClearMLSaver: running in bypass mode"):
+        ClearMLLogger.set_bypass_mode(True)
+        with ClearMLLogger(output_uri=dirname) as clearml_logger:
+            assert clearml_logger.get_clearml_task() is None
+
+
+def test_clearml_logger_get_clearml_task_not_bypass_create_task():
+
+    ClearMLLogger.set_bypass_mode(False)
+    with ClearMLLogger() as clearml_logger:
+        res_task = clearml_logger.get_clearml_task()
+        assert res_task == Task.current_task()
+        res_task.close()
+
+
+def test_clearml_logger_get_clearml_task_not_bypass_task_already_exists():
+
+    user_created_task = Task.init(project_name="experiment", task_name="experiment")
+
+    ClearMLLogger.set_bypass_mode(False)
+    with ClearMLLogger(project_name="experiment", task_name="experiment") as clearml_logger:
+        res_task = clearml_logger.get_clearml_task()
+        assert res_task == user_created_task
+        res_task.close()
+        user_created_task.close()
 
 
 def test_no_clearml():

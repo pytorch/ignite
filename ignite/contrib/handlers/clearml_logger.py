@@ -7,6 +7,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Callable, DefaultDict, List, Mapping, Optional, Tuple, Type, Union
 
+from clearml import Task
+
 from torch.optim import Optimizer
 
 import ignite.distributed as idist
@@ -177,6 +179,20 @@ class ClearMLLogger(BaseLogger):
             If True, all outside communication is skipped.
         """
         return getattr(cls, "_bypass", bool(os.environ.get("CI")))
+
+    def get_clearml_task(self) -> Union[None, Task]:
+        """
+        Returns the ClearML Task.
+
+        Return:
+            If bypass mode state is ``True``, all outside communication is skipped,
+            and ``get_task`` will return ``None``.
+            If bypass mode state is ``False``, ``get_task`` will return the ClearML Task.
+        """
+        if self.bypass_mode():
+            return None
+
+        return self._task
 
     def close(self) -> None:
         self.clearml_logger.flush()

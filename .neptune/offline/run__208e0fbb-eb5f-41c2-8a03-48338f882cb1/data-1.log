@@ -1,0 +1,21 @@
+{"obj": {"type": "AssignString", "path": ["sys", "name"], "value": "Untitled"}, "version": 1}
+{"obj": {"type": "AssignString", "path": ["sys", "description"], "value": ""}, "version": 2}
+{"obj": {"type": "AssignString", "path": ["monitoring", "8c1b9ff2", "hostname"], "value": "caoyus-MacBook-Pro.local"}, "version": 3}
+{"obj": {"type": "AssignString", "path": ["sys", "hostname"], "value": "caoyus-MacBook-Pro.local"}, "version": 4}
+{"obj": {"type": "AssignString", "path": ["monitoring", "8c1b9ff2", "pid"], "value": "11898"}, "version": 5}
+{"obj": {"type": "AssignString", "path": ["monitoring", "8c1b9ff2", "tid"], "value": "140704564520128"}, "version": 6}
+{"obj": {"type": "AssignBool", "path": ["sys", "failed"], "value": false}, "version": 7}
+{"obj": {"type": "ClearStringLog", "path": ["monitoring", "8c1b9ff2", "stdout"]}, "version": 8}
+{"obj": {"type": "ClearStringLog", "path": ["monitoring", "8c1b9ff2", "stderr"]}, "version": 9}
+{"obj": {"type": "ConfigFloatSeries", "path": ["monitoring", "8c1b9ff2", "cpu"], "min": 0.0, "max": 100.0, "unit": "%"}, "version": 10}
+{"obj": {"type": "ClearFloatLog", "path": ["monitoring", "8c1b9ff2", "cpu"]}, "version": 11}
+{"obj": {"type": "ConfigFloatSeries", "path": ["monitoring", "8c1b9ff2", "memory"], "min": 0.0, "max": 16.0, "unit": "GB"}, "version": 12}
+{"obj": {"type": "ClearFloatLog", "path": ["monitoring", "8c1b9ff2", "memory"]}, "version": 13}
+{"obj": {"type": "LogFloats", "path": ["monitoring", "8c1b9ff2", "memory"], "values": [{"value": 10.992366790771484, "step": null, "ts": 1679471943.679272}]}, "version": 14}
+{"obj": {"type": "AssignString", "path": ["source_code", "integrations", "neptune-pytorch-ignite"], "value": "0.5.0"}, "version": 15}
+{"obj": {"type": "LogFloats", "path": ["test_value"], "values": [{"value": 1.0, "step": 1, "ts": 1679471943.682256}]}, "version": 16}
+{"obj": {"type": "LogFloats", "path": ["test_value"], "values": [{"value": 2.0, "step": 2, "ts": 1679471943.684136}]}, "version": 17}
+{"obj": {"type": "LogFloats", "path": ["test_value"], "values": [{"value": 3.0, "step": 3, "ts": 1679471943.685931}]}, "version": 18}
+{"obj": {"type": "LogFloats", "path": ["test_value"], "values": [{"value": 4.0, "step": 4, "ts": 1679471943.687809}]}, "version": 19}
+{"obj": {"type": "LogFloats", "path": ["test_value"], "values": [{"value": 5.0, "step": 5, "ts": 1679471943.689564}]}, "version": 20}
+{"obj": {"type": "LogStrings", "path": ["monitoring", "8c1b9ff2", "stdout"], "values": [{"value": "Shutting down background jobs, please wait a moment...\n", "step": null, "ts": 1679471943.690144}]}, "version": 21}
