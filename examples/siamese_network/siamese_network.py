@@ -34,13 +34,26 @@ class SiameseNetwork(nn.Module):
     def __init__(self):
         super(SiameseNetwork, self).__init__()
         # get resnet model
-        self.resnet = torchvision.models.resnet18(weights=None)
+        self.resnet = torchvision.models.resnet34(weights=None)
+        self.fc_in_features = self.resnet.fc.in_features
 
-        # initialise sigmoid activation
-        self.sigmoid = nn.Sigmoid()
+        # remove the last layer of resnet18 (linear layer which is before avgpool layer)
+        self.resnet = torch.nn.Sequential(*(list(self.resnet.children())[:-1]))
+
+        # add linear layers to compare between the features of the two images
+        self.fc = nn.Sequential(
+            nn.Linear(self.fc_in_features, 256),
+            nn.ReLU(inplace=True),
+            nn.Linear(256, 10),
+            nn.ReLU(inplace=True),
+        )
+
+        # initialise relu activation
+        self.relu = nn.ReLU()
 
         # initialize the weights
         self.resnet.apply(self.init_weights)
+        self.fc.apply(self.init_weights)
 
     def init_weights(self, m):
         if isinstance(m, nn.Linear):
@@ -60,9 +73,9 @@ class SiameseNetwork(nn.Module):
         output3 = self.forward_once(input3)
 
         # pass the output of resnet to sigmoid layer
-        output1 = self.sigmoid(output1)
-        output2 = self.sigmoid(output2)
-        output3 = self.sigmoid(output3)
+        output1 = self.fc(output1)
+        output2 = self.fc(output2)
+        output3 = self.fc(output3)
 
         return output1, output2, output3
 
@@ -82,7 +95,7 @@ class MatcherDataset(Dataset):
         self.data = torch.movedim(self.data, (0, 1, 2, 3), (0, 2, 3, 1))
 
         # convert targets list to torch Tensor
-        self.dataset.targets = torch.Tensor(self.dataset.targets)
+        self.dataset.targets = torch.tensor(self.dataset.targets)
 
         self.group_examples()
 
@@ -98,7 +111,7 @@ class MatcherDataset(Dataset):
         """
 
         # get the targets from CIFAR10 dataset
-        np_arr = np.array(self.dataset.targets.clone())
+        np_arr = np.array(self.dataset.targets)
 
         # group examples based on class
         self.grouped_examples = {}
@@ -121,14 +134,14 @@ class MatcherDataset(Dataset):
         """
 
         # obtain the anchor image
-        anchor_image = self.data[index].clone().float()
+        anchor_image = self.data[index].float()
 
         # obtain the class label of the anchor image
         anchor_label = self.dataset.targets[index]
         anchor_label = int(anchor_label.item())
 
         # find a label which is different from anchor_label
-        neg_label = random.randint(0, 9)
+        neg_label = torch.randint(0, 10, (1,)).item()
         while neg_label == anchor_label:
             neg_label = random.randint(0, 9)
 
@@ -147,11 +160,37 @@ class MatcherDataset(Dataset):
         return anchor_image, positive_image, negative_image, anchor_label
 
 
+def pairwise_distance(input1, input2):
+    dist = input1 - input2
+    dist = torch.pow(dist, 2)
+    return dist
+
+
+def calculate_loss(input1, input2):
+    output = pairwise_distance(input1, input2)
+    loss = torch.sum(output, 1)
+    loss = torch.sqrt(loss)
+    return loss
+
+
+def make_predictions(loss, anchor_label, other_label):
+    pred = torch.where(loss < 3, 1, 0)
+    correct = 0
+    for i in range(loss.shape[0]):
+        if anchor_label[i].item() == other_label[i].item():
+            if pred[i] == 1:
+                correct += 1
+        if anchor_label[i].item() != other_label[i].item():
+            if pred[i] == 0:
+                correct += 1
+    return correct
+
+
 def run(args, model, device, optimizer, train_loader, test_loader, lr_scheduler):
 
     # using Triplet Margin Loss
-    criterion = nn.TripletMarginLoss()
-    average_test_loss = 0
+    criterion = nn.TripletMarginLoss(p=2, margin=2.8)
+    total_correct = 0
 
     # define model training step
     def train_step(engine, batch):
@@ -170,17 +209,29 @@ def run(args, model, device, optimizer, train_loader, test_loader, lr_scheduler)
     # define model testing step
     def test_step(engine, batch):
         model.eval()
-        anchor_image, positive_image, negative_image, anchor_label = batch
+        anchor_image, _, _, anchor_label = batch
         anchor_image = anchor_image.to(device)
-        positive_image, negative_image = positive_image.to(device), negative_image.to(device)
         anchor_label = anchor_label.to(device)
-        anchor_out, positive_out, negative_out = model(anchor_image, positive_image, negative_image)
-        test_loss = criterion(anchor_out, positive_out, negative_out)
-        return test_loss.item()
+        other_image = []
+        other_label = []
+        for i in range(anchor_image.shape[0]):
+            index = torch.randint(0, anchor_image.shape[0], (1,)).item()
+            img = anchor_image[index]
+            label = anchor_label[index]
+            other_image.append(img)
+            other_label.append(label)
+        other = torch.stack(other_image)
+        other_label = torch.tensor(other_label)
+        other, other_label = other.to(device), other_label.to(device)
+        anchor_out, other_out, _ = model(anchor_image, other, other)
+        test_loss = calculate_loss(anchor_out, other_out)
+        correct = make_predictions(test_loss, anchor_label, other_label)
+        return correct
 
     # create engines for trainer and evaluator
     trainer = Engine(train_step)
     evaluator = Engine(test_step)
+    evaluator.run(test_loader)
 
     # attach Running Average Loss metric to trainer and evaluator engines
     RunningAverage(output_transform=lambda x: x).attach(trainer, "loss")
@@ -200,16 +251,17 @@ def run(args, model, device, optimizer, train_loader, test_loader, lr_scheduler)
     # event handler to calculate average loss
     @evaluator.on(Events.ITERATION_COMPLETED(every=args.log_interval))
     def test_loss(engine):
-        nonlocal average_test_loss
-        average_test_loss += engine.state.output
+        nonlocal total_correct
+        total_correct += engine.state.output
 
     # event handler triggers evauator at end of every epoch
     @trainer.on(Events.EPOCH_COMPLETED(every=args.log_interval))
     def test(engine):
-        nonlocal average_test_loss
-        average_test_loss = 0
+        nonlocal total_correct
+        total_correct = 0
         evaluator.run(test_loader)
-        print(f"Average Test Loss: {average_test_loss/len(test_loader.dataset): .5f}")
+        print(f"Accurate predictions: {total_correct}/{len(test_loader.dataset)} ")
+        print(f"Average Accuracy: {(total_correct*100)/(len(test_loader.dataset )): .5f}")
 
     # run the trainer
     trainer.run(train_loader, max_epochs=args.epochs)
@@ -219,10 +271,10 @@ def main():
     # adds training defaults and support for terminal arguments
     parser = argparse.ArgumentParser(description="PyTorch Siamese network Example")
     parser.add_argument(
-        "--batch-size", type=int, default=64, metavar="N", help="input batch size for training (default: 64)"
+        "--batch-size", type=int, default=256, metavar="N", help="input batch size for training (default: 64)"
     )
     parser.add_argument(
-        "--test-batch-size", type=int, default=64, metavar="N", help="input batch size for testing (default: 1000)"
+        "--test-batch-size", type=int, default=256, metavar="N", help="input batch size for testing (default: 1000)"
     )
     parser.add_argument("--epochs", type=int, default=10, metavar="N", help="number of epochs to train (default: 14)")
     parser.add_argument("--lr", type=float, default=1.0, metavar="LR", help="learning rate (default: 1.0)")
