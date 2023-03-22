@@ -47,7 +47,7 @@ print("===> Loading datasets")
 
 
 class SRDataset(torch.utils.data.Dataset):
-    def __init__(self, dataset, scale_factor, crop_size=256):
+    def __init__(self, dataset, scale_factor, crop_size=180):
         self.dataset = dataset
         self.scale_factor = scale_factor
         self.crop_size = crop_size
