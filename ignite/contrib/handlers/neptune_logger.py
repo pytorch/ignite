@@ -673,11 +673,26 @@ class NeptuneSaver(BaseSaveHandler):
     def __call__(self, checkpoint: Mapping, filename: str, metadata: Optional[Mapping] = None) -> None:
         # wont work on XLA
 
+        # Imports for BC compatibility
+        try:
+            # neptune-client<1.0.0 package structure
+            with warnings.catch_warnings():
+                # ignore the deprecation warnings
+                warnings.simplefilter("ignore")
+                from neptune.new.types import File
+        except ImportError:
+            # neptune>=1.0.0 package structure
+            from neptune.types import File
+
         with tempfile.NamedTemporaryFile() as tmp:
             # we can not use tmp.name to open tmp.file twice on Win32
             # https://docs.python.org/3/library/tempfile.html#tempfile.NamedTemporaryFile
             torch.save(checkpoint, tmp.file)
-            self._logger[filename].upload(tmp.name)
+
+            # hold onto the file stream for uploading.
+            # NOTE: This won't load the whole file in memory and upload
+            #       the stream in smaller chunks.
+            self._logger[filename].upload(File.from_stream(tmp.file))
 
     @idist.one_rank_only(with_barrier=True)
     def remove(self, filename: str) -> None:
