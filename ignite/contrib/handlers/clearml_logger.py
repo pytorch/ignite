@@ -187,7 +187,7 @@ class ClearMLLogger(BaseLogger):
         Return:
             If bypass mode state is ``True``, all outside communication is skipped,
             and ``get_task`` will return ``None``.
-            If bypass mode state is ``False``, ``get_task`` will return the ClearML Task.
+            If bypass mode state is ``False``, ``get_clearml_task`` will return the ClearML Task.
         """
         if self.bypass_mode():
             return None
