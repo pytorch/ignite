@@ -188,4 +188,4 @@ jobs:
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
           # Super-Resolution
-          python /content/main.py --upscale_factor 3 --batch_size 4 --cuda --test_batch_size 100 --n_epochs 4 --lr 0.001 --threads 2
+          python /examples/super_resolution/main.py --upscale_factor 3 --batch_size 4 --cuda --test_batch_size 100 --n_epochs 4 --lr 0.001 --threads 2

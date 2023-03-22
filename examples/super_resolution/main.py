@@ -8,6 +8,8 @@ from model import Net
 from torch.utils.data import DataLoader
 from torchvision.transforms.functional import center_crop, resize, to_tensor
 
+from ignite.contrib.handlers import ProgressBar
+
 from ignite.engine import Engine, Events
 from ignite.metrics import PSNR
 
@@ -144,5 +146,7 @@ def checkpoint():
     torch.save(model, model_out_path)
     print("Checkpoint saved to {}".format(model_out_path))
 
+
+ProgressBar().attach(trainer)
 
 trainer.run(training_data_loader, opt.n_epochs)
