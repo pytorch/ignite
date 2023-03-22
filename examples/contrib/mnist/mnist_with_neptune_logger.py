@@ -2,7 +2,7 @@
  MNIST example with training and validation monitoring using Neptune.
 
  Requirements:
-    Neptune: `pip install neptune-client`
+    Neptune: `pip install neptune`
 
  Usage:
 
@@ -11,11 +11,11 @@
     python mnist_with_neptune_logger.py
     ```
 
-    Go to https://neptune.ai and explore your experiment.
+    Go to https://neptune.ai and explore your run.
 
 Note:
-    You can see an example experiment here:
-    https://ui.neptune.ai/o/shared/org/pytorch-ignite-integration/e/PYTOR-26/charts
+    You can view example runs here:
+    https://app.neptune.ai/o/common/org/pytorch-ignite-integration/
 """
 from argparse import ArgumentParser
 
@@ -100,16 +100,17 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum):
 
     npt_logger = NeptuneLogger(
         api_token="ANONYMOUS",
-        project_name="shared/pytorch-ignite-integration",
+        project="common/pytorch-ignite-integration",
         name="ignite-mnist-example",
-        params={
-            "train_batch_size": train_batch_size,
-            "val_batch_size": val_batch_size,
-            "epochs": epochs,
-            "lr": lr,
-            "momentum": momentum,
-        },
     )
+
+    npt_logger.experiment["params"] = {
+        "train_batch_size": train_batch_size,
+        "val_batch_size": val_batch_size,
+        "epochs": epochs,
+        "lr": lr,
+        "momentum": momentum,
+    }
 
     npt_logger.attach_output_handler(
         trainer,
