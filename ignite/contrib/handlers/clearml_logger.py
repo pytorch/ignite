@@ -180,14 +180,14 @@ class ClearMLLogger(BaseLogger):
 
     def __getattr__(self, attr: Any) -> Any:
         """
-        Calls the corresponding method of ``ClearML.Logger``.
+        Calls the corresponding method of ``clearml.Logger``.
 
         Args:
-            attr: methods of the ClearML.Logger class.
+            attr: methods of the clearml.Logger class.
         """
         return getattr(self.clearml_logger, attr)
 
-    def get_task(self) -> Callable:
+    def get_task(self) -> Any:
         """
         Returns the task context that the logger is reporting.
 
