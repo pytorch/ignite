@@ -180,10 +180,10 @@ class ClearMLLogger(BaseLogger):
 
     def __getattr__(self, attr: Any) -> Any:
         """
-        Calls the corresponding method on the ClearML Logger.
+        Calls the corresponding method of ``ClearML.Logger``.
 
         Args:
-            attr: methods of the clearml.Logger class.
+            attr: methods of the ClearML.Logger class.
         """
         return getattr(self.clearml_logger, attr)
 
