@@ -979,29 +979,31 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, on_zero_rank
 
 def test_clearml_logger_getattr_method(dirname):
 
-    ClearMLLogger.set_bypass_mode(True)
-    with ClearMLLogger(output_uri=dirname) as clearml_logger:
-        # Create a mock clearml.Logger() object
-        mock_logger = MagicMock()
-        clearml_logger.clearml_logger = mock_logger
+    with pytest.warns(UserWarning, match="ClearMLSaver: running in bypass mode"):
+        ClearMLLogger.set_bypass_mode(True)
+        with ClearMLLogger(output_uri=dirname) as clearml_logger:
+            # Create a mock clearml.Logger() object
+            mock_logger = MagicMock()
+            clearml_logger.clearml_logger = mock_logger
 
-        # Test a method called by __getattr__ calls the corresponding method of the mock project.
-        clearml_logger.report_single_value("accuracy", 0.72)
-        mock_logger.report_single_value.assert_called_once_with("accuracy", 0.72)
+            # Test a method called by __getattr__ calls the corresponding method of the mock project.
+            clearml_logger.report_single_value("accuracy", 0.72)
+            mock_logger.report_single_value.assert_called_once_with("accuracy", 0.72)
 
-        # Test a method called by __getattr__ calls the corresponding classmethod of the mock project's class.
-        clearml_logger.current_logger()
-        mock_logger.current_logger.assert_called_once()
+            # Test a method called by __getattr__ calls the corresponding classmethod of the mock project's class.
+            clearml_logger.current_logger()
+            mock_logger.current_logger.assert_called_once()
 
 
 def test_clearml_logger_get_task_bypass(dirname):
 
-    ClearMLLogger.set_bypass_mode(True)
-    with ClearMLLogger(output_uri=dirname) as clearml_logger:
-        task = clearml_logger.get_task()
-        # In bypass mode, there is no external communication so Task should not be created.
-        assert isinstance(task, clearml.Task) is False
-        assert "._Stub" in repr(task)
+    with pytest.warns(UserWarning, match="ClearMLSaver: running in bypass mode"):
+        ClearMLLogger.set_bypass_mode(True)
+        with ClearMLLogger(output_uri=dirname) as clearml_logger:
+            task = clearml_logger.get_task()
+            # In bypass mode, there is no external communication so Task should not be created.
+            assert isinstance(task, clearml.Task) is False
+            assert "._Stub" in repr(task)
 
 
 @pytest.mark.distributed
