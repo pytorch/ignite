@@ -994,6 +994,16 @@ def test_clearml_logger_getattr_method(dirname):
         mock_logger.current_logger.assert_called_once()
 
 
+def test_clearml_logger_get_task_bypass(dirname):
+
+    ClearMLLogger.set_bypass_mode(True)
+    with ClearMLLogger(output_uri=dirname) as clearml_logger:
+        task = clearml_logger.get_task()
+        # In bypass mode, there is no external communication so Task should not be created.
+        assert isinstance(task, clearml.Task) is False
+        assert "._Stub" in repr(task)
+
+
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
