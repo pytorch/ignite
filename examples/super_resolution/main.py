@@ -25,6 +25,7 @@ parser.add_argument("--cuda", action="store_true", help="use cuda?")
 parser.add_argument("--mps", action="store_true", default=False, help="enables macOS GPU training")
 parser.add_argument("--threads", type=int, default=4, help="number of threads for data loader to use")
 parser.add_argument("--seed", type=int, default=123, help="random seed to use. Default=123")
+parser.add_argument("--debug", action="store_true", help="use debug")
 
 opt = parser.parse_args()
 
@@ -115,19 +116,17 @@ psnr.attach(evaluator, "psnr")
 validate_every = 1
 log_interval = 100
 
-
-@trainer.on(Events.ITERATION_COMPLETED(every=log_interval))
-def log_training_loss(engine):
-    print(
-        "===> Epoch[{}]({}/{}): Loss: {:.4f}".format(
-            engine.state.epoch, engine.state.iteration, len(training_data_loader), engine.state.output
-        )
-    )
+if opt.debug:
+    epoch_length = 100
+    validate_epoch_length=7
+else:
+    epoch_length = len(training_data_loader)
+    validate_epoch_length= len(testing_data_loader)
 
 
 @trainer.on(Events.EPOCH_COMPLETED(every=validate_every))
 def log_validation():
-    evaluator.run(testing_data_loader)
+    evaluator.run(testing_data_loader, epoch_length=validate_epoch_length)
     metrics = evaluator.state.metrics
     print(f"Epoch: {trainer.state.epoch}, Avg. PSNR: {metrics['psnr']} dB")
 
@@ -149,6 +148,7 @@ def checkpoint():
     print("Checkpoint saved to {}".format(model_out_path))
 
 
-ProgressBar().attach(trainer)
+ProgressBar().attach(trainer, output_transform=lambda x: {'loss': x})
+ProgressBar().attach(evaluator)
 
-trainer.run(training_data_loader, opt.n_epochs)
+trainer.run(training_data_loader, opt.n_epochs, epoch_length=epoch_length)

@@ -7,7 +7,7 @@ This example illustrates how to use the efficient sub-pixel convolution layer de
 ```
 usage: main.py [-h] --upscale_factor UPSCALE_FACTOR [--crop_size CROPSIZE] [--batch_size BATCHSIZE]
                [--test_batch_size TESTBATCHSIZE] [--n_epochs NEPOCHS] [--lr LR]
-               [--cuda] [--threads THREADS] [--seed SEED]
+               [--cuda] [--threads THREADS] [--seed SEED] [--debug]
 
 PyTorch Super Res Example
 
@@ -23,6 +23,7 @@ optional arguments:
   --mps                 enable GPU on macOS
   --threads             number of threads for data loader to use Default=4
   --seed                random seed to use. Default=123
+  --debug               debug mode for testing
 ```
 
 This example trains a super-resolution network on the [Caltech101 dataset](https://pytorch.org/vision/main/generated/torchvision.datasets.Caltech101.html). A snapshot of the model after every epoch with filename `model_epoch_<epoch_number>.pth`
