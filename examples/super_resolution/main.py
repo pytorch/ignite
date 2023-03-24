@@ -118,10 +118,10 @@ log_interval = 100
 
 if opt.debug:
     epoch_length = 100
-    validate_epoch_length=7
+    validate_epoch_length = 7
 else:
     epoch_length = len(training_data_loader)
-    validate_epoch_length= len(testing_data_loader)
+    validate_epoch_length = len(testing_data_loader)
 
 
 @trainer.on(Events.EPOCH_COMPLETED(every=validate_every))
@@ -148,7 +148,7 @@ def checkpoint():
     print("Checkpoint saved to {}".format(model_out_path))
 
 
-ProgressBar().attach(trainer, output_transform=lambda x: {'loss': x})
+ProgressBar().attach(trainer, output_transform=lambda x: {"loss": x})
 ProgressBar().attach(evaluator)
 
 trainer.run(training_data_loader, opt.n_epochs, epoch_length=epoch_length)
