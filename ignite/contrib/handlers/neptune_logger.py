@@ -1,6 +1,7 @@
 """Neptune logger and its helper handlers."""
 import tempfile
 from typing import Any, Callable, List, Mapping, Optional, Union
+import warnings
 
 import torch
 from torch.optim import Optimizer
@@ -163,8 +164,6 @@ class NeptuneLogger(BaseLogger):
         self.experiment[key] = val
 
     def __init__(self, api_token: Optional[str] = None, project: Optional[str] = None, **kwargs: Any) -> None:
-        import warnings
-
         try:
             try:
                 # neptune-client<1.0.0 package structure
