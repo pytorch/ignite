@@ -150,8 +150,8 @@ class ClearMLLogger(BaseLogger):
         Args:
             bypass: If ``True``, all outside communication is skipped.
             Data and logs will be stored in a local session folder.
-            For more information, please refer to `ClearML Offline Mode
-            <https://clear.ml/docs/latest/docs/clearml_sdk/task_sdk/#offline-mode>`_.
+            For more information, please refer to
+            `ClearML docs <https://clear.ml/docs/latest/docs/clearml_sdk/task_sdk/#offline-mode>`_.
         """
         from clearml import Task
 
@@ -166,8 +166,8 @@ class ClearMLLogger(BaseLogger):
         Note:
             `GITHUB_ACTIONS` env will automatically set bypass_mode to ``True``
             unless overridden specifically with ``ClearMLLogger.set_bypass_mode(False)``.
-            For more information, please refer to `ClearML Offline Mode
-            <https://clear.ml/docs/latest/docs/clearml_sdk/task_sdk/#offline-mode>`_.
+            For more information, please refer to
+            `ClearML docs <https://clear.ml/docs/latest/docs/clearml_sdk/task_sdk/#offline-mode>`_.
 
         Return:
             If True, ``clearml.Task`` is on offline mode, and all outside communication is skipped.
