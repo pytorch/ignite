@@ -115,11 +115,10 @@ evaluator = Engine(validation_step)
 psnr = PSNR(data_range=1)
 psnr.attach(evaluator, "psnr")
 validate_every = 1
-log_interval = 100
 
 if opt.debug:
-    epoch_length = 100
-    validate_epoch_length = 7
+    epoch_length = 10
+    validate_epoch_length = 1
 else:
     epoch_length = len(training_data_loader)
     validate_epoch_length = len(testing_data_loader)
