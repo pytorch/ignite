@@ -1,7 +1,7 @@
 """Neptune logger and its helper handlers."""
 import tempfile
-from typing import Any, Callable, List, Mapping, Optional, Union
 import warnings
+from typing import Any, Callable, List, Mapping, Optional, Union
 
 import torch
 from torch.optim import Optimizer
