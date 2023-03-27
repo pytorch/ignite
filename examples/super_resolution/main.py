@@ -11,6 +11,7 @@ from torchvision.transforms.functional import center_crop, resize, to_tensor
 from ignite.contrib.handlers import ProgressBar
 
 from ignite.engine import Engine, Events
+from ignite.handlers import BasicTimeProfiler
 from ignite.metrics import PSNR
 
 # Training settings
@@ -132,23 +133,19 @@ def log_validation():
 
 
 @trainer.on(Events.EPOCH_COMPLETED)
-def log_epoch_time():
-    print(f"Epoch {trainer.state.epoch}, Time Taken : {trainer.state.times['EPOCH_COMPLETED']}")
-
-
-@trainer.on(Events.COMPLETED)
-def log_total_time():
-    print(f"Total Time: {trainer.state.times['COMPLETED']}")
-
-
-@trainer.on(Events.EPOCH_COMPLETED)
 def checkpoint():
     model_out_path = "model_epoch_{}.pth".format(trainer.state.epoch)
     torch.save(model, model_out_path)
     print("Checkpoint saved to {}".format(model_out_path))
 
 
+# Attach basic profiler
+basic_profiler = BasicTimeProfiler()
+basic_profiler.attach(trainer)
+
 ProgressBar().attach(trainer, output_transform=lambda x: {"loss": x})
-ProgressBar().attach(evaluator)
 
 trainer.run(training_data_loader, opt.n_epochs, epoch_length=epoch_length)
+
+results = basic_profiler.get_results()
+basic_profiler.print_results(results)
