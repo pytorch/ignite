@@ -156,7 +156,7 @@ class ClearMLLogger(BaseLogger):
         from clearml import Task
 
         setattr(cls, "_bypass", bypass)
-        return Task.set_offline(offline_mode=bypass)
+        Task.set_offline(offline_mode=bypass)
 
     @classmethod
     def bypass_mode(cls) -> bool:
