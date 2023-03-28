@@ -34,16 +34,16 @@ This example trains a super-resolution network on the [Caltech101 dataset](https
 
 `python main.py --upscale_factor 3 --crop_size 180 --batch_size 4 --test_batch_size 100 --n_epochs 30 --lr 0.001`
 
-### Super Resolve
+### Super-Resolve
 
 `python super_resolve.py --input_image <in>.jpg --model model_epoch_500.pth --output_filename out.png`
 
-## Example Usage on an Image of Cifar-10
+### Super-resolve example on a Cifar-10 image
 
-### Input Image
+##### Input Image
 ![Cifar input image](./images/input_cifar.png)
 
-## Output Images
+#### Output Images
 | Output image from Model | Output from bicubic sampling | 
 |-------------------------------|------------------------------------|
 | ![Cifar output image](./images/out_cifar.png) | ![Cifar output from bicubic sampling](./images/bicubic_image_cifar.png)|
