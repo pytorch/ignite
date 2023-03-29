@@ -1,5 +1,4 @@
 import argparse
-import random
 
 import numpy as np
 import torch
@@ -14,6 +13,7 @@ from ignite.contrib.handlers import ProgressBar
 from ignite.engine import Engine, Events
 from ignite.handlers.param_scheduler import LRScheduler
 from ignite.metrics import RunningAverage
+from ignite.metrics import Accuracy
 from ignite.utils import manual_seed
 
 
@@ -37,8 +37,8 @@ class SiameseNetwork(nn.Module):
         self.resnet = torchvision.models.resnet34(weights=None)
         self.fc_in_features = self.resnet.fc.in_features
 
-        # remove the last layer of resnet18 (linear layer which is before avgpool layer)
-        self.resnet = torch.nn.Sequential(*(list(self.resnet.children())[:-1]))
+        # changing the FC layer of resnet model to a linear layer
+        self.resnet.fc = nn.Identity(self.fc_in_features)
 
         # add linear layers to compare between the features of the two images
         self.fc = nn.Sequential(
@@ -57,7 +57,7 @@ class SiameseNetwork(nn.Module):
 
     def init_weights(self, m):
         if isinstance(m, nn.Linear):
-            torch.nn.init.xavier_uniform_(m.weight)
+            nn.init.xavier_uniform_(m.weight)
             m.bias.data.fill_(0.01)
 
     def forward_once(self, x):
@@ -141,20 +141,27 @@ class MatcherDataset(Dataset):
         anchor_label = int(anchor_label.item())
 
         # find a label which is different from anchor_label
-        neg_label = torch.randint(0, 10, (1,)).item()
-        while neg_label == anchor_label:
-            neg_label = random.randint(0, 9)
+        labels = list(range(0, 10))
+        labels.remove(anchor_label)
+        neg_index = torch.randint(0, 9, (1,)).item()
+        neg_label = labels[neg_index]
 
-        # find the index of image with positive label
-        positive_index = random.choice(self.grouped_examples[anchor_label])
+        # get a random index from the range range of indices 
+        random_index = torch.randint(0, len(self.grouped_examples[anchor_label]), (1, )).item()
 
-        # find the index of image with negative label
-        negative_index = random.choice(self.grouped_examples[neg_label])
+        # get the index of image in actual data using the anchor label and random index
+        positive_index = self.grouped_examples[anchor_label][random_index]
 
-        # retrieve the image
+        # choosing a random image using positive_index
         positive_image = self.data[positive_index].float()
 
-        # retrieve the image
+        # get a random index from the range range of indices 
+        random_index = torch.randint(0, len(self.grouped_examples[neg_label]), (1, )).item()
+
+        # get the index of image in actual data using the negative label and random index
+        negative_index = self.grouped_examples[neg_label][random_index]
+
+        # choosing a random image using negative_index
         negative_image = self.data[negative_index].float()
 
         return anchor_image, positive_image, negative_image, anchor_label
@@ -173,24 +180,10 @@ def calculate_loss(input1, input2):
     return loss
 
 
-def make_predictions(loss, anchor_label, other_label):
-    pred = torch.where(loss < 3, 1, 0)
-    correct = 0
-    for i in range(loss.shape[0]):
-        if anchor_label[i].item() == other_label[i].item():
-            if pred[i] == 1:
-                correct += 1
-        if anchor_label[i].item() != other_label[i].item():
-            if pred[i] == 0:
-                correct += 1
-    return correct
-
-
 def run(args, model, device, optimizer, train_loader, test_loader, lr_scheduler):
 
     # using Triplet Margin Loss
     criterion = nn.TripletMarginLoss(p=2, margin=2.8)
-    total_correct = 0
 
     # define model training step
     def train_step(engine, batch):
@@ -209,33 +202,39 @@ def run(args, model, device, optimizer, train_loader, test_loader, lr_scheduler)
     # define model testing step
     def test_step(engine, batch):
         model.eval()
-        anchor_image, _, _, anchor_label = batch
-        anchor_image = anchor_image.to(device)
-        anchor_label = anchor_label.to(device)
-        other_image = []
-        other_label = []
-        for i in range(anchor_image.shape[0]):
-            index = torch.randint(0, anchor_image.shape[0], (1,)).item()
-            img = anchor_image[index]
-            label = anchor_label[index]
-            other_image.append(img)
-            other_label.append(label)
-        other = torch.stack(other_image)
-        other_label = torch.tensor(other_label)
-        other, other_label = other.to(device), other_label.to(device)
-        anchor_out, other_out, _ = model(anchor_image, other, other)
-        test_loss = calculate_loss(anchor_out, other_out)
-        correct = make_predictions(test_loss, anchor_label, other_label)
-        return correct
+        with torch.no_grad():
+            anchor_image, _, _, anchor_label = batch
+            anchor_image = anchor_image.to(device)
+            anchor_label = anchor_label.to(device)
+            other_image = []
+            other_label = []
+            y_true = []
+            for i in range(anchor_image.shape[0]):
+                index = torch.randint(0, anchor_image.shape[0], (1,)).item()
+                img = anchor_image[index]
+                label = anchor_label[index]
+                other_image.append(img)
+                other_label.append(label)
+                if anchor_label[i] == other_label[i]:
+                    y_true.append(1)
+                else:
+                    y_true.append(0)
+            other = torch.stack(other_image)
+            other_label = torch.tensor(other_label)
+            other, other_label = other.to(device), other_label.to(device)
+            anchor_out, other_out, _ = model(anchor_image, other, other)
+            test_loss = calculate_loss(anchor_out, other_out)
+            y_pred = torch.where(test_loss < 3, 1, 0)
+            y_true = torch.tensor(y_true)
+            return [y_pred, y_true]
 
     # create engines for trainer and evaluator
     trainer = Engine(train_step)
     evaluator = Engine(test_step)
-    evaluator.run(test_loader)
 
     # attach Running Average Loss metric to trainer and evaluator engines
     RunningAverage(output_transform=lambda x: x).attach(trainer, "loss")
-    RunningAverage(output_transform=lambda x: x).attach(evaluator, "loss")
+    Accuracy(output_transform=lambda x: x).attach(evaluator, "accuracy")
 
     # attach progress bar to trainer with loss
     pbar1 = ProgressBar()
@@ -243,25 +242,16 @@ def run(args, model, device, optimizer, train_loader, test_loader, lr_scheduler)
 
     # attach progress bar to evaluator with loss
     pbar2 = ProgressBar()
-    pbar2.attach(evaluator, metric_names=["loss"])
+    pbar2.attach(evaluator)
 
     # attach LR Scheduler to trainer engine
     trainer.add_event_handler(Events.ITERATION_STARTED, lr_scheduler)
 
-    # event handler to calculate average loss
-    @evaluator.on(Events.ITERATION_COMPLETED(every=args.log_interval))
-    def test_loss(engine):
-        nonlocal total_correct
-        total_correct += engine.state.output
-
     # event handler triggers evauator at end of every epoch
     @trainer.on(Events.EPOCH_COMPLETED(every=args.log_interval))
     def test(engine):
-        nonlocal total_correct
-        total_correct = 0
-        evaluator.run(test_loader)
-        print(f"Accurate predictions: {total_correct}/{len(test_loader.dataset)} ")
-        print(f"Average Accuracy: {(total_correct*100)/(len(test_loader.dataset )): .5f}")
+        state = evaluator.run(test_loader)
+        print(f'Test Accuracy: {state.metrics["accuracy"]}')
 
     # run the trainer
     trainer.run(train_loader, max_epochs=args.epochs)
@@ -305,8 +295,8 @@ def main():
     # data loading
     train_dataset = MatcherDataset("../data", train=True, download=True)
     test_dataset = MatcherDataset("../data", train=False)
-    train_loader = DataLoader(train_dataset, shuffle=True, batch_size=args.batch_size)
-    test_loader = DataLoader(test_dataset, batch_size=args.test_batch_size)
+    train_loader = DataLoader(train_dataset, shuffle=True, batch_size=args.batch_size, num_workers=args.num_workers)
+    test_loader = DataLoader(test_dataset, batch_size=args.test_batch_size, num_workers=args.num_workers)
 
     # set model parameters
     model = SiameseNetwork().to(device)
