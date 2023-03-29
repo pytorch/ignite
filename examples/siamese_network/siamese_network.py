@@ -12,8 +12,7 @@ from torchvision import datasets
 from ignite.contrib.handlers import ProgressBar
 from ignite.engine import Engine, Events
 from ignite.handlers.param_scheduler import LRScheduler
-from ignite.metrics import RunningAverage
-from ignite.metrics import Accuracy
+from ignite.metrics import Accuracy, RunningAverage
 from ignite.utils import manual_seed
 
 
@@ -146,8 +145,8 @@ class MatcherDataset(Dataset):
         neg_index = torch.randint(0, 9, (1,)).item()
         neg_label = labels[neg_index]
 
-        # get a random index from the range range of indices 
-        random_index = torch.randint(0, len(self.grouped_examples[anchor_label]), (1, )).item()
+        # get a random index from the range range of indices
+        random_index = torch.randint(0, len(self.grouped_examples[anchor_label]), (1,)).item()
 
         # get the index of image in actual data using the anchor label and random index
         positive_index = self.grouped_examples[anchor_label][random_index]
@@ -155,8 +154,8 @@ class MatcherDataset(Dataset):
         # choosing a random image using positive_index
         positive_image = self.data[positive_index].float()
 
-        # get a random index from the range range of indices 
-        random_index = torch.randint(0, len(self.grouped_examples[neg_label]), (1, )).item()
+        # get a random index from the range range of indices
+        random_index = torch.randint(0, len(self.grouped_examples[neg_label]), (1,)).item()
 
         # get the index of image in actual data using the negative label and random index
         negative_index = self.grouped_examples[neg_label][random_index]
