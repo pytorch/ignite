@@ -617,6 +617,10 @@ class NeptuneSaver(BaseSaveHandler):
         neptune_logger: an instance of
             NeptuneLogger class.
 
+    .. Note ::
+
+        NeptuneSaver is currently not supported on Windows.
+
     Examples:
         .. code-block:: python
 
