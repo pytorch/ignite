@@ -40,7 +40,7 @@ This example trains a super-resolution network on the [Caltech101 dataset](https
 
 ### Super-resolve example on a Cifar-10 image
 
-##### Input Image
+#### Input Image
 ![Cifar input image](./images/input_cifar.png)
 
 #### Output Images
