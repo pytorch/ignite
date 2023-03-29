@@ -683,14 +683,18 @@ class NeptuneSaver(BaseSaveHandler):
             # neptune>=1.0.0 package structure
             from neptune.types import File
 
-        with tempfile.TemporaryFile() as tmp:
-            torch.save(checkpoint, tmp)
-            tmp.seek(0)
+        with tempfile.NamedTemporaryFile() as tmp:
+            # we can not use tmp.name to open tmp.file twice on Win32
+            # https://docs.python.org/3/library/tempfile.html#tempfile.NamedTemporaryFile
+            torch.save(checkpoint, tmp.file)
+
+            # rewind the buffer
+            tmp.file.seek(0)
 
             # hold onto the file stream for uploading.
             # NOTE: This won't load the whole file in memory and upload
             #       the stream in smaller chunks.
-            self._logger[filename].upload(File.from_stream(tmp))
+            self._logger[filename].upload(File.from_stream(tmp.file))
 
     @idist.one_rank_only(with_barrier=True)
     def remove(self, filename: str) -> None:
