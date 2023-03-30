@@ -184,3 +184,8 @@ jobs:
           #train
           mkdir -p ~/.cache/torch/checkpoints/ && wget "https://download.pytorch.org/models/vgg16-397923af.pth" -O ~/.cache/torch/checkpoints/vgg16-397923af.pth
           python examples/fast_neural_style/neural_style.py train --epochs 1 --cuda 0 --dataset test --dataroot . --image_size 32 --style_image examples/fast_neural_style/images/style_images/mosaic.jpg --style_size 32
+      - name: Run SR Example
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+          # Super-Resolution
+          python examples/super_resolution/main.py --upscale_factor 3 --crop_size 180 --batch_size 4 --test_batch_size 100 --n_epochs 1 --lr 0.001 --threads 2 --debug
