@@ -785,6 +785,7 @@ def test_clearml_logger_get_task_bypass(dirname):
             task = clearml_logger.get_task()
             assert isinstance(task, clearml.Task)
             assert task == clearml.Task.current_task()
+        task.close()
 
 
 def test_clearml_disk_saver_integration():
@@ -792,7 +793,7 @@ def test_clearml_disk_saver_integration():
     to_save_serializable = {"model": model}
     with pytest.warns(UserWarning, match="ClearMLSaver created a temporary checkpoints directory"):
         mock_logger = MagicMock(spec=ClearMLLogger)
-        task = clearml.Task.create()
+        task = clearml.Task.init("test_clearml_logger", "test_clearml_disk_saver_integration")
         clearml_saver = ClearMLSaver(mock_logger)
         clearml.binding.frameworks.WeightsFileHandler.create_output_model = MagicMock()
 
@@ -818,7 +819,7 @@ def test_clearml_disk_saver_integration_no_logger():
     to_save_serializable = {"model": model}
 
     with pytest.warns(UserWarning, match="ClearMLSaver created a temporary checkpoints directory"):
-        task = clearml.Task.create()
+        task = clearml.Task.init("test_clearml_logger", "test_clearml_disk_saver_integration_no_logger")
         clearml.binding.frameworks.WeightsFileHandler.create_output_model = MagicMock()
         clearml_saver = ClearMLSaver()
         checkpoint = Checkpoint(to_save=to_save_serializable, save_handler=clearml_saver, n_saved=1)
@@ -932,7 +933,7 @@ class DummyModel(torch.nn.Module):
 def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, on_zero_rank=False):
 
     if idist.get_rank() == 0:
-        task = clearml.Task.create()
+        task = clearml.Task.init("test_clearml_logger", "_test_save_model_optimizer_lr_scheduler_with_state_dict")
         clearml.binding.frameworks.WeightsFileHandler.create_output_model = MagicMock()
 
     torch.manual_seed(23)
