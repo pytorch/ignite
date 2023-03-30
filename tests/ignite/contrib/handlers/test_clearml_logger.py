@@ -792,6 +792,7 @@ def test_clearml_disk_saver_integration():
     to_save_serializable = {"model": model}
     with pytest.warns(UserWarning, match="ClearMLSaver created a temporary checkpoints directory"):
         mock_logger = MagicMock(spec=ClearMLLogger)
+        task = clearml.Task.create()
         clearml_saver = ClearMLSaver(mock_logger)
         clearml.binding.frameworks.WeightsFileHandler.create_output_model = MagicMock()
 
@@ -809,12 +810,15 @@ def test_clearml_disk_saver_integration():
         assert len(saved_files) == 1
         assert saved_files[0] == "model_1.pt"
 
+    task.close()
+
 
 def test_clearml_disk_saver_integration_no_logger():
     model = torch.nn.Module()
     to_save_serializable = {"model": model}
 
     with pytest.warns(UserWarning, match="ClearMLSaver created a temporary checkpoints directory"):
+        task = clearml.Task.create()
         clearml.binding.frameworks.WeightsFileHandler.create_output_model = MagicMock()
         clearml_saver = ClearMLSaver()
         checkpoint = Checkpoint(to_save=to_save_serializable, save_handler=clearml_saver, n_saved=1)
@@ -831,6 +835,8 @@ def test_clearml_disk_saver_integration_no_logger():
         saved_files = list(os.listdir(clearml_saver.dirname))
         assert len(saved_files) == 1
         assert saved_files[0] == "model_1.pt"
+
+    task.close()
 
 
 def test_clearml_saver_callbacks():
@@ -926,6 +932,7 @@ class DummyModel(torch.nn.Module):
 def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, on_zero_rank=False):
 
     if idist.get_rank() == 0:
+        task = clearml.Task.create()
         clearml.binding.frameworks.WeightsFileHandler.create_output_model = MagicMock()
 
     torch.manual_seed(23)
@@ -1007,6 +1014,8 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, on_zero_rank
         lr_scheduler_value = lr_scheduler_state_dict[key]
         loaded_lr_scheduler_value = loaded_lr_scheduler_state_dict[key]
         assert lr_scheduler_value == loaded_lr_scheduler_value
+
+    task.close()
 
 
 @pytest.mark.distributed
