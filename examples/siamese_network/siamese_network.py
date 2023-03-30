@@ -34,14 +34,14 @@ class SiameseNetwork(nn.Module):
         super(SiameseNetwork, self).__init__()
         # get resnet model
         self.resnet = torchvision.models.resnet34(weights=None)
-        self.fc_in_features = self.resnet.fc.in_features
+        fc_in_features = self.resnet.fc.in_features
 
         # changing the FC layer of resnet model to a linear layer
-        self.resnet.fc = nn.Identity(self.fc_in_features)
+        self.resnet.fc = nn.Identity()
 
         # add linear layers to compare between the features of the two images
         self.fc = nn.Sequential(
-            nn.Linear(self.fc_in_features, 256),
+            nn.Linear(fc_in_features, 256),
             nn.ReLU(inplace=True),
             nn.Linear(256, 10),
             nn.ReLU(inplace=True),
@@ -239,7 +239,7 @@ def run(args, model, device, optimizer, train_loader, test_loader, lr_scheduler)
     pbar1 = ProgressBar()
     pbar1.attach(trainer, metric_names=["loss"])
 
-    # attach progress bar to evaluator with loss
+    # attach progress bar to evaluator
     pbar2 = ProgressBar()
     pbar2.attach(evaluator)
 
