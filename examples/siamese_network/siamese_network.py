@@ -282,7 +282,7 @@ def main():
         help="how many batches to wait before logging training status",
     )
     parser.add_argument("--save-model", action="store_true", default=False, help="saves model parameters")
-    parser.add_argument("--num-workers", default=4, help="number of processes generating parallel batches")
+    parser.add_argument("--num-workers", type=int, default=4, help="number of parallel batches (default: 4)")
     args = parser.parse_args()
 
     # set manual seed
