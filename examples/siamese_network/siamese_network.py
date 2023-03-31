@@ -260,15 +260,15 @@ def main():
     # adds training defaults and support for terminal arguments
     parser = argparse.ArgumentParser(description="PyTorch Siamese network Example")
     parser.add_argument(
-        "--batch-size", type=int, default=256, metavar="N", help="input batch size for training (default: 64)"
+        "--batch-size", type=int, default=256, metavar="N", help="input batch size for training (default: 256)"
     )
     parser.add_argument(
-        "--test-batch-size", type=int, default=256, metavar="N", help="input batch size for testing (default: 1000)"
+        "--test-batch-size", type=int, default=256, metavar="N", help="input batch size for testing (default: 256)"
     )
-    parser.add_argument("--epochs", type=int, default=10, metavar="N", help="number of epochs to train (default: 14)")
+    parser.add_argument("--epochs", type=int, default=10, metavar="N", help="number of epochs to train (default: 10)")
     parser.add_argument("--lr", type=float, default=1.0, metavar="LR", help="learning rate (default: 1.0)")
     parser.add_argument(
-        "--gamma", type=float, default=0.95, metavar="M", help="Learning rate step gamma (default: 0.7)"
+        "--gamma", type=float, default=0.95, metavar="M", help="Learning rate step gamma (default: 0.95)"
     )
     parser.add_argument("--no-cuda", action="store_true", default=False, help="disables CUDA training")
     parser.add_argument("--no-mps", action="store_true", default=False, help="disables macOS GPU training")
@@ -281,7 +281,7 @@ def main():
         metavar="N",
         help="how many batches to wait before logging training status",
     )
-    parser.add_argument("--save-model", action="store_true", default=False, help="For Saving the current Model")
+    parser.add_argument("--save-model", action="store_true", default=False, help="saves model parameters")
     parser.add_argument("--num-workers", default=4, help="number of processes generating parallel batches")
     args = parser.parse_args()
 
@@ -289,7 +289,15 @@ def main():
     manual_seed(args.seed)
 
     # set device
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    use_cuda = not args.no_cuda and torch.cuda.is_available()
+    use_mps = not args.no_mps and torch.backends.mps.is_available()
+
+    if use_cuda:
+        device = torch.device("cuda")
+    elif use_mps:
+        device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
 
     # data loading
     train_dataset = MatcherDataset("../data", train=True, download=True)

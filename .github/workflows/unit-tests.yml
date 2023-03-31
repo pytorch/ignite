@@ -101,7 +101,7 @@ jobs:
 
       - name: Run Mypy
         # https://github.com/pytorch/ignite/pull/2780
-        # 
+        #
         if: ${{ matrix.os == 'ubuntu-latest' && matrix.pytorch-channel == 'pytorch-nightly'}}
         run: |
           bash ./tests/run_code_style.sh mypy
@@ -189,3 +189,8 @@ jobs:
         run: |
           # Super-Resolution
           python examples/super_resolution/main.py --upscale_factor 3 --crop_size 180 --batch_size 4 --test_batch_size 100 --n_epochs 1 --lr 0.001 --threads 2 --debug
+      - name: Run Siamese Network Example
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+          # Siamese Network
+          python examples/siamese_network/siamese_network.py --batch-size 64 --test-batch-size 256 --epochs 14 --lr 0.95 --gamma 0.97 --num-workers 5
