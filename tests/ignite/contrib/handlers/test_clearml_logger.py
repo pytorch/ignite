@@ -1,7 +1,7 @@
 import math
 import os
 from collections import defaultdict
-from unittest.mock import ANY, call, MagicMock, Mock, patch
+from unittest.mock import ANY, call, MagicMock, patch
 
 import clearml
 import pytest
@@ -718,7 +718,8 @@ def test_integration(dirname):
 
         def dummy_handler(engine, logger, event_name):
             global_step = engine.state.get_event_attrib_value(event_name)
-            logger.clearml_logger.report_scalar(title="", series="", value="test_value", iteration=global_step)
+            test_value = 0.3  # example
+            logger.clearml_logger.report_scalar(title="", series="", value=test_value, iteration=global_step)
 
         logger.attach(trainer, log_handler=dummy_handler, event_name=Events.EPOCH_COMPLETED)
 
@@ -745,11 +746,46 @@ def test_integration_as_context_manager(dirname):
 
             def dummy_handler(engine, logger, event_name):
                 global_step = engine.state.get_event_attrib_value(event_name)
-                logger.clearml_logger.report_scalar(title="", series="", value="test_value", iteration=global_step)
+                test_value = 0.3  # example
+                logger.clearml_logger.report_scalar(title="", series="", value=test_value, iteration=global_step)
 
             clearml_logger.attach(trainer, log_handler=dummy_handler, event_name=Events.EPOCH_COMPLETED)
 
             trainer.run(data, max_epochs=n_epochs)
+
+
+def test_clearml_logger_getattr_method(dirname):
+
+    with pytest.warns(UserWarning, match="ClearMLSaver: running in bypass mode"):
+        ClearMLLogger.set_bypass_mode(True)
+
+        logger = ClearMLLogger(output_uri=dirname)
+
+        # Create a mock clearml.Logger() object
+        mock_logger = MagicMock()
+        logger.clearml_logger = mock_logger
+
+        # Test a method called by __getattr__ calls the corresponding method of the mock project.
+        logger.report_single_value("accuracy", 0.72)
+        mock_logger.report_single_value.assert_called_once_with("accuracy", 0.72)
+
+        # Test a method called by __getattr__ calls the corresponding classmethod of the mock project's class.
+        logger.current_logger()
+        mock_logger.current_logger.assert_called_once()
+
+        logger.close()
+
+
+def test_clearml_logger_get_task_bypass(dirname):
+
+    with pytest.warns(UserWarning, match="ClearMLSaver: running in bypass mode"):
+        ClearMLLogger.set_bypass_mode(True)
+
+        with ClearMLLogger(output_uri=dirname) as clearml_logger:
+            task = clearml_logger.get_task()
+            assert isinstance(task, clearml.Task)
+            assert task == clearml.Task.current_task()
+            task.close()
 
 
 def test_clearml_disk_saver_integration():
@@ -757,7 +793,7 @@ def test_clearml_disk_saver_integration():
     to_save_serializable = {"model": model}
     with pytest.warns(UserWarning, match="ClearMLSaver created a temporary checkpoints directory"):
         mock_logger = MagicMock(spec=ClearMLLogger)
-        clearml.Task.current_task = Mock(return_value=object())
+        clearml.Task.current_task = MagicMock(spec=clearml.Task)
         clearml_saver = ClearMLSaver(mock_logger)
         clearml.binding.frameworks.WeightsFileHandler.create_output_model = MagicMock()
 
@@ -781,7 +817,7 @@ def test_clearml_disk_saver_integration_no_logger():
     to_save_serializable = {"model": model}
 
     with pytest.warns(UserWarning, match="ClearMLSaver created a temporary checkpoints directory"):
-        clearml.Task.current_task = Mock(return_value=object())
+        clearml.Task.current_task = MagicMock(spec=clearml.Task)
         clearml.binding.frameworks.WeightsFileHandler.create_output_model = MagicMock()
         clearml_saver = ClearMLSaver()
         checkpoint = Checkpoint(to_save=to_save_serializable, save_handler=clearml_saver, n_saved=1)
@@ -893,7 +929,7 @@ class DummyModel(torch.nn.Module):
 def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, on_zero_rank=False):
 
     if idist.get_rank() == 0:
-        clearml.Task.current_task = Mock(return_value=object())
+        clearml.Task.current_task = MagicMock(spec=clearml.Task)
         clearml.binding.frameworks.WeightsFileHandler.create_output_model = MagicMock()
 
     torch.manual_seed(23)
