@@ -187,7 +187,7 @@ class PyTorchProfiler:
         }
 
     def _profiler_create(self):
-        self._profiler = profiler.profile(
+        self._profiler = torch.profiler.profile(
             activities=self._activities,
             schedule=self._schedule,
             on_trace_ready=self._trace_handler,
