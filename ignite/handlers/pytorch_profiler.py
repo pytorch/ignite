@@ -112,9 +112,16 @@ class PyTorchProfiler:
         repeat: int = 1,
     ) -> None:
 
-        self._activities = [torch.profiler.ProfilerActivity.CPU]
+        try:
+            from torch import profiler
+        except ImportError:
+            raise ModuleNotFoundError(
+                "This module requires torch >= 1.8.1. "
+                "You may upgrade PyTorch using your package manager of choice (pip or conda)."
+            )
+        self._activities = [profiler.ProfilerActivity.CPU]
         if cuda_activity and torch.cuda.is_available():
-            self._activities.append(torch.profiler.ProfilerActivity.GPU)
+            self._activities.append(profiler.ProfilerActivity.GPU)
 
         self._output_path = output_path
         self._file_name = file_name
@@ -125,12 +132,12 @@ class PyTorchProfiler:
 
         self._with_stack = with_stack
 
-        self._schedule = torch.profiler.schedule(
+        self._schedule = profiler.schedule(
             wait=wait, warmup=warmup, active=active, repeat=repeat, skip_first=skip_first
         )
 
         if on_trace_ready == "tensorboard":
-            self._trace_handler = torch.profiler.tensorboard_trace_handler(self._output_path)
+            self._trace_handler = profiler.tensorboard_trace_handler(self._output_path)
 
         elif on_trace_ready == "chrome":
 
@@ -180,7 +187,7 @@ class PyTorchProfiler:
         }
 
     def _profiler_create(self):
-        self._profiler = torch.profiler.profile(
+        self._profiler = profiler.profile(
             activities=self._activities,
             schedule=self._schedule,
             on_trace_ready=self._trace_handler,

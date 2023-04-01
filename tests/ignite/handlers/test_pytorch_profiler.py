@@ -43,7 +43,7 @@ def output_string_to_dict(output_string):
 def check_profiler_output(data, sort_key="cpu_time", wait=1, warmup=1, active=3, repeat=1):
     # Returns output of PyTorch Profiler directly (Without using Ignite handler) for comparison
 
-    from torch.profiler import ProfilerActivity, profile, schedule
+    from torch.profiler import profile, ProfilerActivity, schedule
 
     with profile(
         activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
