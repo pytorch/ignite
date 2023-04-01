@@ -125,29 +125,16 @@ class ClearMLLogger(BaseLogger):
         if self.bypass_mode():
             warnings.warn("ClearMLSaver: running in bypass mode")
 
-            class _Stub(object):
-                def __call__(self, *_: Any, **__: Any) -> "_Stub":
-                    return self
+        # Try to retrieve current the ClearML Task before trying to create a new one
+        self._task = Task.current_task()
 
-                def __getattr__(self, attr: str) -> "_Stub":
-                    if attr in ("name", "id"):
-                        return ""  # type: ignore[return-value]
-                    return self
-
-                def __setattr__(self, attr: str, val: Any) -> None:
-                    pass
-
-            self._task = _Stub()
-        else:
-            # Try to retrieve current the ClearML Task before trying to create a new one
-            self._task = Task.current_task()
-            if self._task is None:
-                self._task = Task.init(
-                    project_name=kwargs.get("project_name"),
-                    task_name=kwargs.get("task_name"),
-                    task_type=kwargs.get("task_type", Task.TaskTypes.training),
-                    **experiment_kwargs,
-                )
+        if self._task is None:
+            self._task = Task.init(
+                project_name=kwargs.get("project_name"),
+                task_name=kwargs.get("task_name"),
+                task_type=kwargs.get("task_type", Task.TaskTypes.training),
+                **experiment_kwargs,
+            )
 
         self.clearml_logger = self._task.get_logger()
 
@@ -156,13 +143,20 @@ class ClearMLLogger(BaseLogger):
     @classmethod
     def set_bypass_mode(cls, bypass: bool) -> None:
         """
-        Will bypass all outside communication, and will drop all logs.
+        Set ``clearml.Task`` to offline mode.
+        Will bypass all outside communication, and will save all data and logs to a local session folder.
         Should only be used in "standalone mode", when there is no access to the *clearml-server*.
 
         Args:
             bypass: If ``True``, all outside communication is skipped.
+                Data and logs will be stored in a local session folder.
+                For more information, please refer to `ClearML docs
+                <https://clear.ml/docs/latest/docs/clearml_sdk/task_sdk/#offline-mode>`_.
         """
+        from clearml import Task
+
         setattr(cls, "_bypass", bypass)
+        Task.set_offline(offline_mode=bypass)
 
     @classmethod
     def bypass_mode(cls) -> bool:
@@ -172,11 +166,31 @@ class ClearMLLogger(BaseLogger):
         Note:
             `GITHUB_ACTIONS` env will automatically set bypass_mode to ``True``
             unless overridden specifically with ``ClearMLLogger.set_bypass_mode(False)``.
+            For more information, please refer to `ClearML docs
+            <https://clear.ml/docs/latest/docs/clearml_sdk/task_sdk/#offline-mode>`_.
 
         Return:
-            If True, all outside communication is skipped.
+            If True, ``clearml.Task`` is on offline mode, and all outside communication is skipped.
         """
         return getattr(cls, "_bypass", bool(os.environ.get("CI")))
+
+    def __getattr__(self, attr: Any) -> Any:
+        """
+        Calls the corresponding method of ``clearml.Logger``.
+
+        Args:
+            attr: methods of the ``clearml.Logger`` class.
+        """
+        return getattr(self.clearml_logger, attr)
+
+    def get_task(self) -> Any:
+        """
+        Returns the task context that the logger is reporting.
+
+        Return:
+            Returns the current task, equivalent to ``clearml.Task.current_task()``.
+        """
+        return self._task
 
     def close(self) -> None:
         self.clearml_logger.flush()
