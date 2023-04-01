@@ -237,7 +237,13 @@ class EventEnum(CallableEventWithFilter, Enum):
                 # ...
     """
 
-    pass
+    def __new__(cls, value: str) -> "EventEnum":
+        obj = CallableEventWithFilter.__new__(cls)
+        obj._value_ = value
+        return obj
+
+    def __repr__(self) -> str:
+        return CallableEventWithFilter.__repr__(self)
 
 
 class Events(EventEnum):
