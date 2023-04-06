@@ -34,7 +34,7 @@ class CallableEventWithFilter:
             self._value_ = value
 
         if not hasattr(self, "_name_"):
-            self._name_ = name
+            self._name_ = name if name is not None else ""
 
     @property
     def name(self) -> str:
