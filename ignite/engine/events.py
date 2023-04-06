@@ -3,7 +3,6 @@ import warnings
 import weakref
 from collections.abc import Sequence
 from enum import Enum
-from types import DynamicClassAttribute
 from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, TYPE_CHECKING, Union
 
 from torch.utils.data import DataLoader
@@ -34,16 +33,15 @@ class CallableEventWithFilter:
         if not hasattr(self, "_value_"):
             self._value_ = value
 
-        if not hasattr(self, "_name_") and name is not None:
+        if not hasattr(self, "_name_"):
             self._name_ = name
 
-    # copied to be compatible to enum
-    @DynamicClassAttribute
+    @property
     def name(self) -> str:
         """The name of the Enum member."""
         return self._name_
 
-    @DynamicClassAttribute
+    @property
     def value(self) -> str:
         """The value of the Enum member."""
         return self._value_
@@ -197,15 +195,15 @@ class CallableEventWithFilter:
             return NotImplemented
 
     def __hash__(self) -> int:
-        return hash(self._name_)
+        return hash(self.name)
 
     def __or__(self, other: Any) -> "EventsList":
         return EventsList() | self | other
 
 
 class EventEnum(CallableEventWithFilter, Enum):
-    """Base class for all :class:`~ignite.engine.events.Events`. User defined custom events should also inherit
-    this class.
+    """Base class for all :class:`~ignite.engine.events.Events`. User defined custom events should inherit
+    from this class.
 
      Examples:
          Custom events based on the loss calculation and backward pass can be created as follows:
