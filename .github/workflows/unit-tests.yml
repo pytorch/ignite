@@ -193,4 +193,4 @@ jobs:
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
           # Siamese Network
-          python examples/siamese_network/siamese_network.py --batch-size 512 --test-batch-size 512 --epochs 1 --lr 0.95 --gamma 0.97 --num-workers 4
+          python examples/siamese_network/siamese_network.py --batch-size 512 --test-batch-size 512 --epochs 1 --lr 0.95 --gamma 0.97 --num-workers 3
