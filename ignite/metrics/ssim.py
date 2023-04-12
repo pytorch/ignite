@@ -159,10 +159,10 @@ class SSIM(Metric):
         y_pred = F.pad(y_pred, [self.pad_w, self.pad_w, self.pad_h, self.pad_h], mode="reflect")
         y = F.pad(y, [self.pad_w, self.pad_w, self.pad_h, self.pad_h], mode="reflect")
 
-        input_list = torch.cat([y_pred, y, y_pred * y_pred, y * y, y_pred * y])
-        outputs = F.conv2d(input_list, self._kernel, groups=channel)
-
-        output_list = [outputs[x * y_pred.size(0) : (x + 1) * y_pred.size(0)] for x in range(len(outputs))]
+        input_list= [y_pred, y, y_pred * y_pred, y * y, y_pred * y]
+        outputs = F.conv2d(torch.cat(input_list), self._kernel, groups=channel)
+        
+        output_list = [outputs[x * y_pred.size(0) : (x + 1) * y_pred.size(0)] for x in range(len(input_list))]
 
         mu_pred_sq = output_list[0].pow(2)
         mu_target_sq = output_list[1].pow(2)
