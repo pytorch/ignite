@@ -1,7 +1,6 @@
 # Tests
 numpy
 pytest
-codecov
 pytest-cov
 pytest-xdist
 dill==0.3.4
