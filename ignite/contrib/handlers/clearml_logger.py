@@ -985,7 +985,18 @@ class ClearMLSaver(DiskSaver):
 
     @idist.one_rank_only()
     def remove(self, filename: str) -> None:
-        super(ClearMLSaver, self).remove(filename)
+        from clearml.storage.helper import StorageHelper
+
+        helper = StorageHelper.get(filename)
+
+        try:
+            helper.delete(filename)
+        except ValueError:
+            warnings.warn(
+                "Checkpoints being uploaded to clearml-server with version "
+                "earlier than 1.0.0 does not support delete operation."
+            )
+
         for slots in self._checkpoint_slots.values():
             try:
                 slots[slots.index(filename)] = None

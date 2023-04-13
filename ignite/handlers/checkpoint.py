@@ -415,7 +415,7 @@ class Checkpoint(Serializable):
                 global_step = engine.state.get_event_attrib_value(Events.ITERATION_COMPLETED)
             priority = global_step
 
-        if self._check_lt_n_saved() or self._compare_fn(priority):
+        if self._check_lt_n_saved(or_equal=True) or self._compare_fn(priority):
 
             priority_str = f"{priority}" if isinstance(priority, numbers.Integral) else f"{priority:.4f}"
 
@@ -445,18 +445,6 @@ class Checkpoint(Serializable):
                 "priority": priority,
             }
 
-            try:
-                index = list(map(lambda it: it.filename == filename, self._saved)).index(True)
-                to_remove = True
-            except ValueError:
-                index = 0
-                to_remove = not self._check_lt_n_saved()
-
-            if to_remove:
-                item = self._saved.pop(index)
-                if isinstance(self.save_handler, BaseSaveHandler):
-                    self.save_handler.remove(item.filename)
-
             self._saved.append(Checkpoint.Item(priority, filename))
             self._saved.sort(key=lambda it: it[0])
 
@@ -468,6 +456,14 @@ class Checkpoint(Serializable):
                 self.save_handler(checkpoint, filename, metadata)
             except TypeError:
                 self.save_handler(checkpoint, filename)
+
+            index = list(map(lambda it: it.filename == filename, self._saved)).index(True)
+            to_remove = not self._check_lt_n_saved(or_equal=True)
+
+            if to_remove:
+                item = self._saved.pop(index)
+                if isinstance(self.save_handler, BaseSaveHandler):
+                    self.save_handler.remove(item.filename)
 
     def _setup_checkpoint(self) -> Dict[str, Dict[Any, Any]]:
         checkpoint = {}
@@ -774,13 +770,20 @@ class DiskSaver(BaseSaveHandler):
         dirname: Directory path where the checkpoint will be saved
         atomic: if True, checkpoint is serialized to a temporary file, and then
             moved to final destination, so that files are guaranteed to not be damaged
-            (for example if exception occurs during saving).
+            (for example if exception occurs during saving). Setting ``atomic=True`` is
+            recommended if ``n_saved=1`` is set in checkpoint object. See notes below
+            for detail.
         create_dir: if True, will create directory ``dirname`` if it doesnt exist.
         require_empty: If True, will raise exception if there are any files in the
             directory ``dirname``.
         save_on_rank: The rank on which the checkpoint will be saved. Used in distributed
             configuration.
         kwargs: Accepted keyword arguments for `torch.save` or `xm.save`.
+
+    Note:
+        When ``n_saved=1`` is set in the checkpoint object, then to protect only saved
+        checkpoint, ``atomic=True`` is the only option to preserve a non-corrupt
+        checkpoint.
 
     .. versionchanged:: 0.4.2
         Accept ``kwargs`` for `torch.save` or `xm.save`.
