@@ -242,9 +242,6 @@ class EventEnum(CallableEventWithFilter, Enum):
         obj._value_ = value
         return obj
 
-    def __repr__(self) -> str:
-        return CallableEventWithFilter.__repr__(self)
-
 
 class Events(EventEnum):
     """Events that are fired by the :class:`~ignite.engine.engine.Engine` during execution. Built-in events:
