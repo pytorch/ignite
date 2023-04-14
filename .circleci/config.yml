@@ -190,7 +190,7 @@ jobs:
             export mnist4_cmd='CUDA_VISIBLE_DEVICES=0 python examples/mnist/mnist_save_resume_engine.py --epochs=2 --resume_from=/tmp/mnist_save_resume/checkpoint_1.pt'
             docker exec -it pthd /bin/bash -c "$mnist4_cmd"
 
-      - codecov/upload
+      - codecov/upload:
           flags: gpu
 
   one_gpu_windows_tests:
@@ -259,7 +259,7 @@ jobs:
             export test_cmd='bash tests/run_gpu_tests.sh 2'
             docker exec -it pthd /bin/bash -c "${test_cmd}"
 
-      - codecov/upload
+      - codecov/upload:
           flags: gpu-2
 
   two_gpus_check_dist_cifar10_example:
@@ -352,7 +352,7 @@ jobs:
             export test_cmd='CUDA_VISIBLE_DEVICES="" pytest --cov ignite --cov-append --cov-report term-missing --cov-report xml -vvv tests/ -m distributed -k hvd'
             docker exec -it pthd /bin/bash -c "${test_cmd}"
 
-      - codecov/upload
+      - codecov/upload:
           flags: gpu-2-hvd
 
       - run:
