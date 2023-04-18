@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional
 
 from ignite.distributed import utils as idist
@@ -344,3 +345,16 @@ class Parallel:
                 f"Finalized processing group with backend: '{self.backend}'"
             )
             idist.finalize()
+
+
+@dataclass
+class RankProcessFirst:
+    rank: int
+
+    def __enter__(self):
+        if idist.get_local_rank() != self.rank:
+            idist.barrier()
+
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        if idist.get_local_rank() == self.rank:
+            idist.barrier()
