@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from types import TracebackType
 from typing import Any, Callable, Dict, Optional
 
 from ignite.distributed import utils as idist
@@ -225,7 +226,13 @@ class Parallel:
             if backend not in idist.available_backends():
                 raise ValueError(f"Unknown backend '{backend}'. Available backends: {idist.available_backends()}")
         else:
-            arg_names = ["nproc_per_node", "nnodes", "node_rank", "master_addr", "master_port"]
+            arg_names = [
+                "nproc_per_node",
+                "nnodes",
+                "node_rank",
+                "master_addr",
+                "master_port",
+            ]
             arg_values = [nproc_per_node, nnodes, node_rank, master_addr, master_port]
             for name, value in zip(arg_names, arg_values):
                 if value is not None:
@@ -238,7 +245,13 @@ class Parallel:
         if self.backend is not None:
             if nproc_per_node is not None:
                 self._spawn_params = self._setup_spawn_params(
-                    nproc_per_node, nnodes, node_rank, master_addr, master_port, init_method, **spawn_kwargs
+                    nproc_per_node,
+                    nnodes,
+                    node_rank,
+                    master_addr,
+                    master_port,
+                    init_method,
+                    **spawn_kwargs,
                 )
 
         # The logger will be setup after the idist.initialize() call
@@ -351,10 +364,10 @@ class Parallel:
 class RankProcessFirst:
     rank: int
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         if idist.get_local_rank() != self.rank:
             idist.barrier()
 
-    def __exit__(self, exc_type, exc_value, exc_tb):
+    def __exit__(self, exc_type: Exception, exc_value: Any, exc_tb: TracebackType) -> None:
         if idist.get_local_rank() == self.rank:
             idist.barrier()
