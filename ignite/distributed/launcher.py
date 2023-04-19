@@ -1,5 +1,4 @@
-from dataclasses import dataclass
-from types import TracebackType
+from contextlib import contextmanager
 from typing import Any, Callable, Dict, Optional
 
 from ignite.distributed import utils as idist
@@ -360,14 +359,12 @@ class Parallel:
             idist.finalize()
 
 
-@dataclass
-class RankProcessFirst:
-    rank: int
+@contextmanager
+def one_process_first(rank):
+    if idist.get_local_rank() != rank:
+        idist.barrier()
 
-    def __enter__(self) -> None:
-        if idist.get_local_rank() != self.rank:
-            idist.barrier()
+    yield
 
-    def __exit__(self, exc_type: Exception, exc_value: Any, exc_tb: TracebackType) -> None:
-        if idist.get_local_rank() == self.rank:
-            idist.barrier()
+    if idist.get_local_rank() == rank:
+        idist.barrier()
