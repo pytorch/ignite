@@ -580,6 +580,7 @@ def gen_save_best_models_by_val_score(
     n_saved: int = 3,
     trainer: Optional[Engine] = None,
     tag: str = "val",
+    score_sign: float = 1.0,
     **kwargs: Any,
 ) -> Checkpoint:
     """Method adds a handler to ``evaluator`` to save ``n_saved`` of best models based on the metric
@@ -602,6 +603,8 @@ def gen_save_best_models_by_val_score(
         n_saved: number of best models to store
         trainer: trainer engine to fetch the epoch when saving the best model.
         tag: score name prefix: `{tag}_{metric_name}`. By default, tag is "val".
+        score_sign: sign of the score: 1.0 or -1.0. For error-like metrics, e.g. smaller is better,
+            a negative score sign should be used (objects with larger score are retained). Default, 1.0.
         kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.
 
     Returns:
@@ -623,7 +626,7 @@ def gen_save_best_models_by_val_score(
         n_saved=n_saved,
         global_step_transform=global_step_transform,
         score_name=f"{tag}_{metric_name.lower()}",
-        score_function=Checkpoint.get_default_score_fn(metric_name),
+        score_function=Checkpoint.get_default_score_fn(metric_name, score_sign=score_sign),
         **kwargs,
     )
     evaluator.add_event_handler(Events.COMPLETED, best_model_handler)
@@ -639,6 +642,7 @@ def save_best_model_by_val_score(
     n_saved: int = 3,
     trainer: Optional[Engine] = None,
     tag: str = "val",
+    score_sign: float = 1.0,
     **kwargs: Any,
 ) -> Checkpoint:
     """Method adds a handler to ``evaluator`` to save on a disk ``n_saved`` of best models based on the metric
@@ -654,6 +658,9 @@ def save_best_model_by_val_score(
         n_saved: number of best models to store
         trainer: trainer engine to fetch the epoch when saving the best model.
         tag: score name prefix: `{tag}_{metric_name}`. By default, tag is "val".
+        score_sign: sign of the score: 1.0 or -1.0. For error-like metrics, e.g. smaller is better,
+            a negative score sign should be used (objects with larger score are retained). Default, 1.0.
+
         kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.
 
     Returns:
@@ -667,6 +674,7 @@ def save_best_model_by_val_score(
         n_saved=n_saved,
         trainer=trainer,
         tag=tag,
+        score_sign=score_sign,
         **kwargs,
     )
 
