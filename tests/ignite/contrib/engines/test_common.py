@@ -293,20 +293,35 @@ def test_gen_save_best_models_by_val_score():
 
 
 def test_add_early_stopping_by_val_score():
-    trainer = Engine(lambda e, b: None)
-    evaluator = Engine(lambda e, b: None)
-
     acc_scores = [0.1, 0.2, 0.3, 0.4, 0.3, 0.3, 0.2, 0.1, 0.1, 0.0]
 
-    @trainer.on(Events.EPOCH_COMPLETED)
-    def validate(engine):
-        evaluator.run([0, 1])
+    def setup_trainer():
+        trainer = Engine(lambda e, b: None)
+        evaluator = Engine(lambda e, b: None)
 
-    @evaluator.on(Events.EPOCH_COMPLETED)
-    def set_eval_metric(engine):
-        engine.state.metrics = {"acc": acc_scores[trainer.state.epoch - 1]}
+
+        @trainer.on(Events.EPOCH_COMPLETED)
+        def validate(engine):
+            evaluator.run([0, 1])
+
+        @evaluator.on(Events.EPOCH_COMPLETED)
+        def set_eval_metric(engine):
+            acc = acc_scores[trainer.state.epoch - 1]
+            engine.state.metrics = {"acc":  acc, "loss": 1 - acc}
+        
+        return trainer, evaluator
+
+    trainer, evaluator = setup_trainer()
 
     add_early_stopping_by_val_score(patience=3, evaluator=evaluator, trainer=trainer, metric_name="acc")
+
+    state = trainer.run([0, 1], max_epochs=len(acc_scores))
+
+    assert state.epoch == 7
+
+    trainer, evaluator = setup_trainer()
+
+    add_early_stopping_by_val_score(patience=3, evaluator=evaluator, trainer=trainer, metric_name="loss", score_sign=-1.0)
 
     state = trainer.run([0, 1], max_epochs=len(acc_scores))
 
