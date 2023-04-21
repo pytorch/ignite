@@ -683,6 +683,8 @@ def add_early_stopping_by_val_score(
         trainer: trainer engine to stop the run if no improvement.
         metric_name: metric name to use for score evaluation. This metric should be present in
             `evaluator.state.metrics`.
+        score_sign: sign of the score: 1.0 or -1.0. For error-like metrics, e.g. smaller is better,
+            a negative score sign should be used (objects with larger score are retained). Default, 1.0.
 
     Returns:
         A :class:`~ignite.handlers.early_stopping.EarlyStopping` handler.
