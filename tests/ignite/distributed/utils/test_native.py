@@ -1,10 +1,12 @@
 import os
+from pathlib import Path
 
 import pytest
 import torch
 import torch.distributed as dist
 
 import ignite.distributed as idist
+from ignite.distributed.launcher import one_process_first
 from ignite.distributed.utils import has_native_dist_support
 from tests.ignite.distributed.utils import (
     _test_distrib__get_max_length,
@@ -37,7 +39,6 @@ def _test_native_distrib_single_node_launch_tool(backend, device, local_rank, wo
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.parametrize("init_method", [None, "tcp://0.0.0.0:22334", "FILE"])
 def test_native_distrib_single_node_launch_tool_gloo(init_method, get_fixed_dirname, local_rank, world_size):
-
     from datetime import timedelta
 
     timeout = timedelta(seconds=20)
@@ -56,7 +57,6 @@ def test_native_distrib_single_node_launch_tool_gloo(init_method, get_fixed_dirn
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 @pytest.mark.parametrize("init_method", [None, "tcp://0.0.0.0:22334", "FILE"])
 def test_native_distrib_single_node_launch_tool_nccl(init_method, get_fixed_dirname, local_rank, world_size):
-
     if init_method == "FILE":
         init_method = f"file://{get_fixed_dirname('native_distrib_single_node_launch_tool_nccl')}/shared"
 
@@ -81,7 +81,6 @@ def _test_native_distrib_single_node_spawn(init_method, backend, device, **kwarg
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 @pytest.mark.parametrize("init_method", [None, "tcp://0.0.0.0:22334", "FILE"])
 def test_native_distrib_single_node_spawn_gloo(init_method, dirname):
-
     from datetime import timedelta
 
     timeout = timedelta(seconds=20)
@@ -190,7 +189,6 @@ def _test_idist_methods_in_native_context_set_local_rank(backend, device, local_
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 def test_idist_methods_in_native_gloo_context_set_local_rank(distributed_context_single_node_gloo):
-
     local_rank = distributed_context_single_node_gloo["local_rank"]
     device = idist.device()
     _test_idist_methods_in_native_context_set_local_rank("gloo", device, local_rank)
@@ -209,7 +207,6 @@ def test_idist_methods_in_native_nccl_context_set_local_rank(distributed_context
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_idist__model_methods_nccl(distributed_context_single_node_nccl):
-
     device = idist.device()
     _test_distrib__get_max_length(device)
 
@@ -217,7 +214,6 @@ def test_idist__model_methods_nccl(distributed_context_single_node_nccl):
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 def test_idist__model_methods_gloo(distributed_context_single_node_gloo):
-
     device = idist.device()
     _test_distrib__get_max_length(device)
 
@@ -226,7 +222,6 @@ def test_idist__model_methods_gloo(distributed_context_single_node_gloo):
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_idist_all_reduce_nccl(distributed_context_single_node_nccl):
-
     device = idist.device()
     _test_distrib_all_reduce(device)
     _test_distrib_all_reduce_group(device)
@@ -235,7 +230,6 @@ def test_idist_all_reduce_nccl(distributed_context_single_node_nccl):
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 def test_idist_all_reduce_gloo(distributed_context_single_node_gloo):
-
     device = idist.device()
     _test_distrib_all_reduce(device)
     _test_distrib_all_reduce_group(device)
@@ -245,7 +239,6 @@ def test_idist_all_reduce_gloo(distributed_context_single_node_gloo):
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_idist_all_gather_nccl(distributed_context_single_node_nccl):
-
     device = idist.device()
     _test_distrib_all_gather(device)
     _test_distrib_all_gather_group(device)
@@ -254,7 +247,6 @@ def test_idist_all_gather_nccl(distributed_context_single_node_nccl):
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 def test_idist_all_gather_gloo(distributed_context_single_node_gloo):
-
     device = idist.device()
     _test_distrib_all_gather(device)
     _test_distrib_all_gather_group(device)
@@ -264,7 +256,6 @@ def test_idist_all_gather_gloo(distributed_context_single_node_gloo):
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_idist_broadcast_nccl(distributed_context_single_node_nccl):
-
     device = idist.device()
     _test_distrib_broadcast(device)
 
@@ -272,7 +263,6 @@ def test_idist_broadcast_nccl(distributed_context_single_node_nccl):
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 def test_idist_broadcast_gloo(distributed_context_single_node_gloo):
-
     device = idist.device()
     _test_distrib_broadcast(device)
 
@@ -281,7 +271,6 @@ def test_idist_broadcast_gloo(distributed_context_single_node_gloo):
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_idist_barrier_nccl(distributed_context_single_node_nccl):
-
     device = idist.device()
     _test_distrib_barrier(device)
 
@@ -356,7 +345,6 @@ def test_idist_methods_overhead_nccl(distributed_context_single_node_nccl):
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 def test_idist_one_rank_only_gloo(distributed_context_single_node_gloo):
-
     device = idist.device()
     _test_distrib_one_rank_only(device=device)
     _test_distrib_one_rank_only_with_engine(device=device)
@@ -366,7 +354,27 @@ def test_idist_one_rank_only_gloo(distributed_context_single_node_gloo):
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_idist_one_rank_only_nccl(local_rank, distributed_context_single_node_nccl):
-
     device = idist.device()
     _test_distrib_one_rank_only(device=device)
     _test_distrib_one_rank_only_with_engine(device=device)
+
+
+def test_one_process_first(distributed, get_fixed_dirname, ds_file="res.txt", rank=0):
+    def get_ds(file_path):
+        if not file_path.exists():
+            with open(file_path, "w") as f:
+                f.write("readed")
+            return f"{idist.get_rank()} not readed"
+        else:
+            return f"{idist.get_rank()} readed"
+
+    folder = Path(get_fixed_dirname())
+    folder.mkdir(exist_ok=True)
+    file_path = folder / ds_file
+
+    with one_process_first(rank):
+        x = get_ds(file_path)
+    all_x = idist.all_gather(x)
+
+    true = [f"{x} not readed" if x == rank else f"{x} readed" for x in range(idist.get_world_size())]
+    assert set(all_x) == set(true)
