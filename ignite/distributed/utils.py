@@ -462,8 +462,6 @@ def new_group(ranks: List[int], **kwargs: Any) -> Any:
             group = idist.new_group(ranks)
 
     .. versionadded:: 0.4.11
-        ``backend`` now accepts `horovod` distributed framework.
-
     """
 
     if _need_to_sync and isinstance(_model, _SerialModel):
