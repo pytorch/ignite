@@ -378,3 +378,5 @@ def test_one_process_first(distributed, get_fixed_dirname, ds_file="res.txt", ra
 
     true = [f"{x} not readed" if x == rank else f"{x} readed" for x in range(idist.get_world_size())]
     assert set(all_x) == set(true)
+
+    file_path.unlink()
