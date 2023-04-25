@@ -244,13 +244,7 @@ class Parallel:
         if self.backend is not None:
             if nproc_per_node is not None:
                 self._spawn_params = self._setup_spawn_params(
-                    nproc_per_node,
-                    nnodes,
-                    node_rank,
-                    master_addr,
-                    master_port,
-                    init_method,
-                    **spawn_kwargs,
+                    nproc_per_node, nnodes, node_rank, master_addr, master_port, init_method, **spawn_kwargs
                 )
 
         # The logger will be setup after the idist.initialize() call
