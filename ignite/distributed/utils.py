@@ -336,7 +336,7 @@ def all_reduce(
     Returns:
         torch.Tensor or number
 
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.11
         added ``group``
     """
     if _need_to_sync and isinstance(_model, _SerialModel):
@@ -362,7 +362,7 @@ def all_gather(
         torch.Tensor of shape ``(world_size, )`` if input is a number or
         List of strings if input is a string
 
-    .. versionchanged:: 0.5.0
+    .. versionchanged:: 0.4.11
         added ``group``
     """
     if _need_to_sync and isinstance(_model, _SerialModel):
@@ -461,9 +461,7 @@ def new_group(ranks: List[int], **kwargs: Any) -> Any:
             ranks = [0, 1]
             group = idist.new_group(ranks)
 
-    .. versionadded:: 0.5.0
-        ``backend`` now accepts `horovod` distributed framework.
-
+    .. versionadded:: 0.4.11
     """
 
     if _need_to_sync and isinstance(_model, _SerialModel):
