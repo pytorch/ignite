@@ -1,14 +1,11 @@
 import os
-import uuid
-from pathlib import Path
 
 import pytest
 import torch
 import torch.distributed as dist
 
 import ignite.distributed as idist
-from ignite.distributed.launcher import one_process_first
-from ignite.distributed.utils import has_native_dist_support
+from ignite.distributed.utils import has_native_dist_support, one_process_first
 from tests.ignite.distributed.utils import (
     _test_distrib__get_max_length,
     _test_distrib_all_gather,
@@ -375,7 +372,8 @@ def test_idist_one_rank_only_nccl(local_rank, distributed_context_single_node_nc
     _test_distrib_one_rank_only_with_engine(device=device)
 
 
-def test_one_process_first(distributed, get_fixed_dirname, ds_file="res.txt", rank=0):
+@pytest.mark.parametrize("rank", [0, 1])
+def test_one_process_first(distributed, get_rank_zero_dirname, rank):
     def get_ds(file_path):
         if not file_path.exists():
             with open(file_path, "w") as f:
@@ -384,13 +382,23 @@ def test_one_process_first(distributed, get_fixed_dirname, ds_file="res.txt", ra
         else:
             return f"{idist.get_rank()} readed"
 
-    folder = Path(get_fixed_dirname()) / str(uuid.uuid4())
-    folder.mkdir(exist_ok=True)
-    file_path = folder / ds_file
+    folder = get_rank_zero_dirname()
+    file_path = folder / "res.txt"
 
     with one_process_first(rank):
         x = get_ds(file_path)
-    all_x = idist.all_gather(x)
 
-    true = [f"{x} not readed" if x == rank else f"{x} readed" for x in range(idist.get_world_size())]
-    assert set(all_x) == set(true)
+    output = idist.all_gather(x)
+
+    expected = [f"{x} not readed" if x == rank else f"{x} readed" for x in range(idist.get_world_size())]
+    assert set(expected) == set(output)
+
+
+@pytest.mark.distributed
+def test_one_process_first_asserts():
+    rank = 100
+    with pytest.raises(
+        ValueError, match=f"rank should be between 0 and {idist.get_world_size() - 1}, but given {rank}"
+    ):
+        with one_process_first(rank):
+            pass

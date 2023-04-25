@@ -1,4 +1,3 @@
-from contextlib import contextmanager
 from typing import Any, Callable, Dict, Optional
 
 from ignite.distributed import utils as idist
@@ -225,13 +224,7 @@ class Parallel:
             if backend not in idist.available_backends():
                 raise ValueError(f"Unknown backend '{backend}'. Available backends: {idist.available_backends()}")
         else:
-            arg_names = [
-                "nproc_per_node",
-                "nnodes",
-                "node_rank",
-                "master_addr",
-                "master_port",
-            ]
+            arg_names = ["nproc_per_node", "nnodes", "node_rank", "master_addr", "master_port"]
             arg_values = [nproc_per_node, nnodes, node_rank, master_addr, master_port]
             for name, value in zip(arg_names, arg_values):
                 if value is not None:
@@ -351,32 +344,3 @@ class Parallel:
                 f"Finalized processing group with backend: '{self.backend}'"
             )
             idist.finalize()
-
-
-@contextmanager
-def one_process_first(rank: int = 0) -> Any:
-    """This is a context manager function that ensures a specific process runs first before others in a distributed
-    environment.
-
-    Args:
-        rank: an integer that specifies the rank of the process that should execute the code
-    block inside the context manager first.
-
-    Examples:
-        .. code-block:: python
-
-            def download_dataset():
-                ...
-
-            with one_process_first(rank=0):
-                ds = download_dataset()
-
-    """
-
-    if rank >= idist.get_world_size() or rank < 0:
-        raise ValueError(f"rank should be between 0 and {idist.get_world_size() - 1}, but given {rank}")
-    if idist.get_local_rank() != rank:
-        idist.barrier()
-    yield
-    if idist.get_local_rank() == rank:
-        idist.barrier()

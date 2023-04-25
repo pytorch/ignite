@@ -1,9 +1,11 @@
 import socket
+from contextlib import contextmanager
 from functools import wraps
 from typing import Any, Callable, List, Mapping, Optional, Tuple, Union
 
 import torch
 
+import ignite.distributed as idist
 from ignite.distributed.comp_models import (
     _SerialModel,
     has_hvd_support,
@@ -637,3 +639,31 @@ def one_rank_only(rank: int = 0, with_barrier: bool = False) -> Callable:
         return wrapper
 
     return _one_rank_only
+
+
+@contextmanager
+def one_process_first(rank: int = 0) -> Any:
+    """This is a context manager function that ensures a specific process runs first before others in a distributed
+    environment.
+
+    Args:
+        rank: an integer that specifies the rank of the process that should execute the code
+    block inside the context manager first.
+
+    Examples:
+        .. code-block:: python
+
+            def download_dataset():
+                ...
+
+            with one_process_first(rank=0):
+                ds = download_dataset()
+    """
+
+    if rank >= idist.get_world_size() or rank < 0:
+        raise ValueError(f"rank should be between 0 and {idist.get_world_size() - 1}, but given {rank}")
+    if idist.get_local_rank() != rank:
+        idist.barrier()
+    yield
+    if idist.get_local_rank() == rank:
+        idist.barrier()
