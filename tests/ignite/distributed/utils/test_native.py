@@ -5,7 +5,7 @@ import torch
 import torch.distributed as dist
 
 import ignite.distributed as idist
-from ignite.distributed.utils import has_native_dist_support, one_process_first
+from ignite.distributed.utils import has_native_dist_support
 from tests.ignite.distributed.utils import (
     _test_distrib__get_max_length,
     _test_distrib_all_gather,
@@ -386,7 +386,7 @@ def test_one_process_first(distributed, get_rank_zero_dirname, rank):
     folder = get_rank_zero_dirname()
     file_path = folder / "res.txt"
 
-    with one_process_first(rank):
+    with idist.one_process_first(rank):
         x = get_ds(file_path)
 
     output = idist.all_gather(x)
