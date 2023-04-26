@@ -680,7 +680,11 @@ def save_best_model_by_val_score(
 
 
 def add_early_stopping_by_val_score(
-    patience: int, evaluator: Engine, trainer: Engine, metric_name: str, score_sign: float = 1.0,
+    patience: int,
+    evaluator: Engine,
+    trainer: Engine,
+    metric_name: str,
+    score_sign: float = 1.0,
 ) -> EarlyStopping:
     """Method setups early stopping handler based on the score (named by `metric_name`) provided by `evaluator`.
     Metric value should increase in order to keep training and not early stop.
@@ -698,9 +702,7 @@ def add_early_stopping_by_val_score(
         A :class:`~ignite.handlers.early_stopping.EarlyStopping` handler.
     """
     es_handler = EarlyStopping(
-        patience=patience,
-        score_function=get_default_score_fn(metric_name, score_sign=score_sign),
-        trainer=trainer
+        patience=patience, score_function=get_default_score_fn(metric_name, score_sign=score_sign), trainer=trainer
     )
     evaluator.add_event_handler(Events.COMPLETED, es_handler)
 
