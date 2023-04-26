@@ -5,7 +5,6 @@ from typing import Any, Callable, List, Mapping, Optional, Tuple, Union
 
 import torch
 
-import ignite.distributed as idist
 from ignite.distributed.comp_models import (
     _SerialModel,
     has_hvd_support,
@@ -43,6 +42,7 @@ __all__ = [
     "registered_computation_models",
     "one_rank_only",
     "new_group",
+    "one_process_first",
 ]
 
 _model = _SerialModel()
@@ -648,7 +648,7 @@ def one_process_first(rank: int = 0) -> Any:
 
     Args:
         rank: an integer that specifies the rank of the process that should execute the code
-    block inside the context manager first.
+            block inside the context manager first. Default, 0.
 
     Examples:
         .. code-block:: python
@@ -656,14 +656,16 @@ def one_process_first(rank: int = 0) -> Any:
             def download_dataset():
                 ...
 
-            with one_process_first(rank=0):
+            with one_process_first():
                 ds = download_dataset()
+
+    .. versionadded:: 0.5.0
     """
 
-    if rank >= idist.get_world_size() or rank < 0:
-        raise ValueError(f"rank should be between 0 and {idist.get_world_size() - 1}, but given {rank}")
-    if idist.get_local_rank() != rank:
-        idist.barrier()
+    if rank >= get_world_size() or rank < 0:
+        raise ValueError(f"rank should be between 0 and {get_world_size() - 1}, but given {rank}")
+    if get_local_rank() != rank:
+        barrier()
     yield
-    if idist.get_local_rank() == rank:
-        idist.barrier()
+    if get_local_rank() == rank:
+        barrier()

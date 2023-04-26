@@ -372,6 +372,7 @@ def test_idist_one_rank_only_nccl(local_rank, distributed_context_single_node_nc
     _test_distrib_one_rank_only_with_engine(device=device)
 
 
+@pytest.mark.distributed
 @pytest.mark.parametrize("rank", [0, 1])
 def test_one_process_first(distributed, get_rank_zero_dirname, rank):
     def get_ds(file_path):
