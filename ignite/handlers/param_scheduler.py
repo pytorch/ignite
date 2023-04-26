@@ -1436,7 +1436,7 @@ class ParamGroupScheduler:
         """
         Method to get current `schedulers`' parameter values
 
-        .. versionadded:: 0.5.0
+        .. versionadded:: 0.4.11
         """
         return [scheduler.get_param() for scheduler in self.schedulers]
 
