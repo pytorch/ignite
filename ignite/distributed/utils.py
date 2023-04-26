@@ -643,7 +643,7 @@ def one_rank_only(rank: int = 0, with_barrier: bool = False) -> Callable:
 
 @contextmanager
 def one_process_first(rank: int = 0) -> Any:
-    """This is a context manager function that ensures a specific process runs first before others in a distributed
+    """Context manager function that ensures a specific process runs first before others in a distributed
     environment.
 
     Args:
