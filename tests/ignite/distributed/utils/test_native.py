@@ -401,5 +401,5 @@ def test_one_process_first_asserts():
     with pytest.raises(
         ValueError, match=f"rank should be between 0 and {idist.get_world_size() - 1}, but given {rank}"
     ):
-        with one_process_first(rank):
+        with idist.one_process_first(rank):
             pass
