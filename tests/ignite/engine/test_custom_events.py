@@ -17,6 +17,11 @@ def test_deprecated_callable_events_class():
         class CustomEvents(CallableEvents, Enum):
             TEST_EVENT = "test_event"
 
+            def __new__(cls, value: str) -> "CallableEvents":
+                obj = CallableEvents.__new__(cls)
+                obj._value_ = value
+                return obj
+
         with pytest.raises(TypeError, match=r"Value at \d of event_names should be a str or EventEnum"):
             engine.register_events(*CustomEvents)
 
