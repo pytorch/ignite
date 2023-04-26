@@ -626,7 +626,7 @@ def gen_save_best_models_by_val_score(
         n_saved=n_saved,
         global_step_transform=global_step_transform,
         score_name=f"{tag}_{metric_name.lower()}",
-        score_function=Checkpoint.get_default_score_fn(metric_name, score_sign=score_sign),
+        score_function=get_default_score_fn(metric_name, score_sign=score_sign),
         **kwargs,
     )
     evaluator.add_event_handler(Events.COMPLETED, best_model_handler)
