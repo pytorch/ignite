@@ -42,7 +42,7 @@ __all__ = [
     "registered_computation_models",
     "one_rank_only",
     "new_group",
-    "one_process_first",
+    "one_rank_first",
 ]
 
 _model = _SerialModel()
@@ -640,13 +640,16 @@ def one_rank_only(rank: int = 0, with_barrier: bool = False) -> Callable:
 
 
 @contextmanager
-def one_process_first(rank: int = 0) -> Any:
-    """Context manager function that ensures a specific process runs first before others in a distributed
+def one_rank_first(rank: int = 0, local: bool = False) -> Any:
+    """Context manager that ensures a specific rank runs first before others in a distributed
     environment.
 
     Args:
-        rank: an integer that specifies the rank of the process that should execute the code
+        rank: rank of the process that should execute the code
             block inside the context manager first. Default, 0.
+        local: flag to specify local rank or global rank.
+            If True ``rank`` argument will define a local rank to run first.
+            Default, False
 
     Examples:
         .. code-block:: python
@@ -654,16 +657,24 @@ def one_process_first(rank: int = 0) -> Any:
             def download_dataset():
                 ...
 
-            with one_process_first():
+            with idist.one_rank_first():
                 ds = download_dataset()
+
+            dp = ds[0]
 
     .. versionadded:: 0.5.0
     """
 
-    if rank >= get_world_size() or rank < 0:
-        raise ValueError(f"rank should be between 0 and {get_world_size() - 1}, but given {rank}")
-    if get_local_rank() != rank:
+    current_rank = get_local_rank() if local else get_rank()
+    size = get_nproc_per_node() if local else get_world_size()
+
+    if rank >= size or rank < 0:
+        raise ValueError(f"rank should be between 0 and {size - 1}, but given {rank}")
+
+    if current_rank != rank:
         barrier()
+
     yield
-    if get_local_rank() == rank:
+
+    if current_rank == rank:
         barrier()
