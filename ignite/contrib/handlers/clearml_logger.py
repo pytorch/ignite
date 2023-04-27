@@ -325,7 +325,6 @@ class OutputHandler(BaseOutputHandler):
         )
 
     def __call__(self, engine: Engine, logger: ClearMLLogger, event_name: Union[str, Events]) -> None:
-
         if not isinstance(logger, ClearMLLogger):
             raise RuntimeError("Handler OutputHandler works only with ClearMLLogger")
 
@@ -481,14 +480,12 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
     """
 
     def __call__(self, engine: Engine, logger: ClearMLLogger, event_name: Union[str, Events]) -> None:
-
         if not isinstance(logger, ClearMLLogger):
             raise RuntimeError("Handler WeightsScalarHandler works only with ClearMLLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = f"{self.tag}/" if self.tag else ""
         for name, p in self.weights:
-
             title_name, _, series_name = name.partition(".")
             logger.clearml_logger.report_scalar(
                 title=f"{tag_prefix}weights_{self.reduction.__name__}/{title_name}",
@@ -579,7 +576,6 @@ class WeightsHistHandler(BaseWeightsHandler):
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = f"{self.tag}/" if self.tag else ""
         for name, p in self.weights:
-
             title_name, _, series_name = name.partition(".")
 
             logger.grad_helper.add_histogram(
@@ -826,7 +822,6 @@ class ClearMLSaver(DiskSaver):
         *args: Any,
         **kwargs: Any,
     ):
-
         self._setup_check_clearml(logger, output_uri)
 
         if not dirname:

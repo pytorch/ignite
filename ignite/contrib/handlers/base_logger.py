@@ -32,7 +32,6 @@ class BaseWeightsHandler(BaseHandler):
         tag: Optional[str] = None,
         whitelist: Optional[Union[List[str], Callable[[str, nn.Parameter], bool]]] = None,
     ):
-
         if not isinstance(model, torch.nn.Module):
             raise TypeError(f"Argument model should be of type torch.nn.Module, but given {type(model)}")
 
@@ -41,15 +40,12 @@ class BaseWeightsHandler(BaseHandler):
 
         weights = {}
         if whitelist is None:
-
             weights = dict(model.named_parameters())
         elif callable(whitelist):
-
             for n, p in model.named_parameters():
                 if whitelist(n, p):
                     weights[n] = p
         else:
-
             for n, p in model.named_parameters():
                 for item in whitelist:
                     if n.startswith(item):
@@ -91,7 +87,6 @@ class BaseOutputHandler(BaseHandler):
         global_step_transform: Optional[Callable[[Engine, Union[str, Events]], int]] = None,
         state_attributes: Optional[List[str]] = None,
     ):
-
         if metric_names is not None:
             if not (isinstance(metric_names, list) or (isinstance(metric_names, str) and metric_names == "all")):
                 raise TypeError(
@@ -185,7 +180,6 @@ class BaseWeightsScalarHandler(BaseWeightsHandler):
         tag: Optional[str] = None,
         whitelist: Optional[Union[List[str], Callable[[str, nn.Parameter], bool]]] = None,
     ):
-
         super(BaseWeightsScalarHandler, self).__init__(model, tag=tag, whitelist=whitelist)
 
         if not callable(reduction):
@@ -239,7 +233,6 @@ class BaseLogger(metaclass=ABCMeta):
             return RemovableEventHandle(event_name, log_handler, engine)
 
         else:
-
             if event_name not in State.event_to_attr:
                 raise RuntimeError(f"Unknown event name '{event_name}'")
 

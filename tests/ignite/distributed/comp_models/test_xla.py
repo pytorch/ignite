@@ -59,7 +59,6 @@ def test__xla_dist_model_spawn_n_procs():
 
 
 def _assert_model(model, true_conf):
-
     assert model.device() == true_conf["device"]
     assert model.get_local_rank() == true_conf["local_rank"]
     assert model.get_rank() == true_conf["rank"]

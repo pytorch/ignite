@@ -159,7 +159,6 @@ def mnist_dataloader():
 
 
 def test_attach_incorrect_input_args(lr_finder, dummy_engine, model, optimizer, dataloader):
-
     with pytest.raises(TypeError, match=r"Argument to_save should be a mapping"):
         with lr_finder.attach(dummy_engine, to_save=123):
             pass
@@ -249,7 +248,6 @@ def test_with_attach(lr_finder, to_save, dummy_engine, dataloader):
 def test_wrong_values_start_lr_and_end_lr(
     lr_finder, dummy_engine, to_save, dummy_engine_mulitple_param_groups, to_save_mulitple_param_groups
 ):
-
     with pytest.raises(ValueError, match=r"start_lr must be less than end_lr"):
         with lr_finder.attach(dummy_engine, to_save=to_save, start_lr=10.0, end_lr=1.0):
             pass
@@ -322,7 +320,6 @@ def assert_output_sizes(lr_finder, dummy_engine):
 
 
 def test_num_iter_is_none(lr_finder, to_save, dummy_engine, dataloader):
-
     with pytest.warns(UserWarning, match=r"Run completed without loss diverging"):
         with lr_finder.attach(dummy_engine, to_save=to_save, diverge_th=float("inf")) as trainer_with_finder:
             trainer_with_finder.run(dataloader)
@@ -331,7 +328,6 @@ def test_num_iter_is_none(lr_finder, to_save, dummy_engine, dataloader):
 
 
 def test_num_iter_is_enough(lr_finder, to_save, dummy_engine, dataloader):
-
     with pytest.warns(UserWarning, match=r"Run completed without loss diverging"):
         with lr_finder.attach(
             dummy_engine, to_save=to_save, num_iter=50, diverge_th=float("inf")
@@ -460,11 +456,9 @@ def test_lr_suggestion_multiple_param_groups(lr_finder):
 
 
 def test_lr_suggestion_mnist(lr_finder, mnist_to_save, dummy_engine_mnist, mnist_dataloader):
-
     max_iters = 50
 
     with lr_finder.attach(dummy_engine_mnist, mnist_to_save, diverge_th=2, step_mode="linear") as trainer_with_finder:
-
         with trainer_with_finder.add_event_handler(
             Events.ITERATION_COMPLETED(once=max_iters), lambda _: trainer_with_finder.terminate()
         ):
@@ -476,7 +470,6 @@ def test_lr_suggestion_mnist(lr_finder, mnist_to_save, dummy_engine_mnist, mnist
 def test_apply_suggested_lr_unmatched_optimizers(
     lr_finder, mnist_to_save, dummy_engine_mnist, optimizer_multiple_param_groups, mnist_dataloader
 ):
-
     with lr_finder.attach(dummy_engine_mnist, mnist_to_save) as trainer_with_finder:
         trainer_with_finder.run(mnist_dataloader)
 
@@ -489,7 +482,6 @@ def test_apply_suggested_lr_unmatched_optimizers(
 def test_apply_suggested_lr_single_param_groups(
     lr_finder, mnist_to_save, dummy_engine_mnist, mnist_optimizer, mnist_dataloader
 ):
-
     with lr_finder.attach(dummy_engine_mnist, mnist_to_save) as trainer_with_finder:
         trainer_with_finder.run(mnist_dataloader)
 
@@ -506,7 +498,6 @@ def test_apply_suggested_lr_multiple_param_groups(
     optimizer_multiple_param_groups,
     dataloader_plot,
 ):
-
     with lr_finder.attach(dummy_engine_mulitple_param_groups, to_save_mulitple_param_groups) as trainer_with_finder:
         trainer_with_finder.run(dataloader_plot)
 
@@ -518,13 +509,11 @@ def test_apply_suggested_lr_multiple_param_groups(
 
 
 def test_no_matplotlib(no_site_packages, lr_finder):
-
     with pytest.raises(ModuleNotFoundError, match=r"This method requires matplotlib to be installed"):
         lr_finder.plot()
 
 
 def test_plot_single_param_group(dirname, lr_finder, mnist_to_save, dummy_engine_mnist, mnist_dataloader):
-
     with lr_finder.attach(dummy_engine_mnist, mnist_to_save, end_lr=20.0, smooth_f=0.04) as trainer_with_finder:
         trainer_with_finder.run(mnist_dataloader)
 
@@ -553,7 +542,6 @@ def test_plot_single_param_group(dirname, lr_finder, mnist_to_save, dummy_engine
 def test_plot_multiple_param_groups(
     dirname, lr_finder, to_save_mulitple_param_groups, dummy_engine_mulitple_param_groups, dataloader_plot
 ):
-
     with lr_finder.attach(
         dummy_engine_mulitple_param_groups, to_save_mulitple_param_groups, end_lr=20.0, smooth_f=0.04
     ) as trainer_with_finder:
@@ -654,7 +642,6 @@ def _test_distrib_integration_mnist(dirname, device):
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_gloo_cpu_or_gpu(dirname, distributed_context_single_node_gloo):
-
     device = idist.device()
     _test_distrib_log_lr_and_loss(device)
     _test_distrib_integration_mnist(dirname, device)
@@ -664,7 +651,6 @@ def test_distrib_gloo_cpu_or_gpu(dirname, distributed_context_single_node_gloo):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_nccl_gpu(dirname, distributed_context_single_node_nccl):
-
     device = idist.device()
     _test_distrib_log_lr_and_loss(device)
     _test_distrib_integration_mnist(dirname, device)

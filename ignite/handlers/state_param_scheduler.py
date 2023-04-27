@@ -382,7 +382,7 @@ class ExpStateScheduler(StateParamScheduler):
         self._state_attrs += ["initial_value", "gamma"]
 
     def get_param(self) -> Union[List[float], float]:
-        return self.initial_value * self.gamma ** self.event_index
+        return self.initial_value * self.gamma**self.event_index
 
 
 class StepStateScheduler(StateParamScheduler):

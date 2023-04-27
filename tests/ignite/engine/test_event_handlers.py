@@ -139,7 +139,6 @@ def test_adding_multiple_event_handlers():
     ],
 )
 def test_event_removable_handle(event1, event2):
-
     # Removable handle removes event from engine.
     engine = Engine(lambda e, b: None)
     handler = create_autospec(spec=lambda x: None)
@@ -227,7 +226,6 @@ def test_event_removable_handle(event1, event2):
 
 
 def test_events_list_removable_handle():
-
     # Removable handle removes event from engine.
     engine = DummyEngine()
     handler = create_autospec(spec=lambda x: None)
@@ -495,7 +493,6 @@ def test_custom_exception_handler():
 
 
 def test_event_handlers_with_decoration():
-
     engine = Engine(lambda e, b: b)
 
     def decorated(fun):

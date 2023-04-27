@@ -131,7 +131,6 @@ def test_load_state_dict_integration():
 
 
 def test_load_state_dict_with_params_overriding_integration():
-
     state_dict = {"max_epochs": 100, "epoch_length": 120, "epoch": 5}
     data = range(120)
 
@@ -205,7 +204,6 @@ def test_state_dict_with_user_keys_integration(dirname):
 
 def test_epoch_length():
     def _test(data, max_epochs, num_iters):
-
         batch_checker = BatchChecker(data)
 
         def update_fn(_, batch):
@@ -219,7 +217,6 @@ def test_epoch_length():
         assert engine.state.epoch == max_epochs
 
     def _test_as_iter(data, max_epochs, num_iters):
-
         batch_checker = BatchChecker(data)
 
         def update_fn(_, batch):

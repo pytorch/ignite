@@ -116,7 +116,6 @@ def test_distrib_input_float(distributed):
     device = idist.device()
 
     def get_test_cases():
-
         y_pred = torch.rand(n_iters * batch_size, 2, 2, device=device)
         y = y_pred * 0.65
 
@@ -139,7 +138,6 @@ def test_distrib_multilabel_input_YCbCr(distributed):
     device = idist.device()
 
     def get_test_cases():
-
         y_pred = torch.randint(16, 236, (n_iters * batch_size, 1, 12, 12), dtype=torch.uint8, device=device)
         cbcr_pred = torch.randint(16, 241, (n_iters * batch_size, 2, 12, 12), dtype=torch.uint8, device=device)
         y = torch.randint(16, 236, (n_iters * batch_size, 1, 12, 12), dtype=torch.uint8, device=device)
@@ -170,7 +168,6 @@ def test_distrib_multilabel_input_uint8(distributed):
     device = idist.device()
 
     def get_test_cases():
-
         y_pred = torch.randint(0, 256, (n_iters * batch_size, 3, 16, 16), device=device, dtype=torch.uint8)
         y = (y_pred * 0.65).to(torch.uint8)
 
@@ -193,7 +190,6 @@ def test_distrib_multilabel_input_NHW(distributed):
     device = idist.device()
 
     def get_test_cases():
-
         y_pred = torch.rand(n_iters * batch_size, 28, 28, device=device)
         y = y_pred * 0.8
 

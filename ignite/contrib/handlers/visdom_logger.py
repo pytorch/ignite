@@ -364,7 +364,6 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
     def __call__(self, engine: Engine, logger: VisdomLogger, event_name: Union[str, Events]) -> None:
-
         if not isinstance(logger, VisdomLogger):
             raise RuntimeError("Handler 'OutputHandler' works only with VisdomLogger")
 
@@ -473,7 +472,6 @@ class WeightsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
     def __call__(self, engine: Engine, logger: VisdomLogger, event_name: Union[str, Events]) -> None:
-
         if not isinstance(logger, VisdomLogger):
             raise RuntimeError("Handler 'WeightsScalarHandler' works only with VisdomLogger")
 

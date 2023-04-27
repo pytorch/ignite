@@ -8,7 +8,6 @@ from ignite.metrics.epoch_metric import EpochMetricWarning, NotComputableError
 
 
 def test_epoch_metric_wrong_setup_or_input():
-
     # Wrong compute function
     with pytest.raises(TypeError, match=r"Argument compute_fn should be callable."):
         EpochMetric(12345)
@@ -152,7 +151,6 @@ def test_check_compute_fn():
 
 
 def test_distrib_integration(distributed):
-
     device = idist.device() if idist.device().type != "xla" else "cpu"
     rank = idist.get_rank()
     torch.manual_seed(40 + rank)

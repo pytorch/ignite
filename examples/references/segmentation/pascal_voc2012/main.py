@@ -49,7 +49,6 @@ def download_datasets(output_path):
 
 
 def training(local_rank, config, logger, with_clearml):
-
     rank = idist.get_rank()
     manual_seed(config.seed + local_rank)
 
@@ -342,7 +341,6 @@ def run_training(config_filepath, backend="nccl", with_clearml=True):
     assert config_filepath.exists(), f"File '{config_filepath.as_posix()}' is not found"
 
     with idist.Parallel(backend=backend) as parallel:
-
         logger = setup_logger(name="Pascal-VOC12 Training", distributed_rank=idist.get_rank())
 
         config = ConfigObject(config_filepath)
@@ -364,7 +362,6 @@ def run_training(config_filepath, backend="nccl", with_clearml=True):
 
 
 def get_model_weights(config, logger, with_clearml):
-
     path = ""
     if with_clearml:
         from clearml import Model
@@ -389,7 +386,6 @@ def get_model_weights(config, logger, with_clearml):
 
 
 def evaluation(local_rank, config, logger, with_clearml):
-
     rank = idist.get_rank()
     device = idist.device()
     manual_seed(config.seed + local_rank)
@@ -472,5 +468,4 @@ def run_evaluation(config_filepath, backend="nccl", with_clearml=True):
 
 
 if __name__ == "__main__":
-
     fire.Fire({"download": download_datasets, "training": run_training, "eval": run_evaluation})

@@ -207,7 +207,6 @@ def main(
     alpha,
     output_dir,
 ):
-
     # seed
     check_manual_seed(seed)
 
@@ -243,7 +242,6 @@ def main(
 
     # The main function, processing a batch of examples
     def step(engine, batch):
-
         # unpack the batch. It comes from a dataset, so we have <images, labels> pairs. Discard labels.
         real, _ = batch
         real = real.to(device)

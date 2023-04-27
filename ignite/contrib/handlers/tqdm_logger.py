@@ -122,7 +122,6 @@ class ProgressBar(BaseLogger):
         ] = "{desc}[{n_fmt}/{total_fmt}] {percentage:3.0f}%|{bar}{postfix} [{elapsed}<{remaining}]",
         **tqdm_kwargs: Any,
     ):
-
         try:
             from tqdm.autonotebook import tqdm
         except ImportError:
@@ -281,7 +280,6 @@ class _OutputHandler(BaseOutputHandler):
         return 1
 
     def __call__(self, engine: Engine, logger: ProgressBar, event_name: Union[str, Events]) -> None:
-
         pbar_total = self.get_max_number_events(event_name, engine)
         if logger.pbar is None:
             logger._reset(pbar_total=pbar_total)

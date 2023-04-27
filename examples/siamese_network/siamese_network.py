@@ -65,7 +65,6 @@ class SiameseNetwork(nn.Module):
         return output
 
     def forward(self, input1, input2, input3):
-
         # pass the input through resnet
         output1 = self.forward_once(input1)
         output2 = self.forward_once(input2)
@@ -180,7 +179,6 @@ def calculate_loss(input1, input2):
 
 
 def run(args, model, device, optimizer, train_loader, test_loader, lr_scheduler):
-
     # using Triplet Margin Loss
     criterion = nn.TripletMarginLoss(p=2, margin=2.8)
 

@@ -68,7 +68,6 @@ class AveragePrecision(EpochMetric):
         check_compute_fn: bool = False,
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
-
         try:
             from sklearn.metrics import average_precision_score  # noqa: F401
         except ImportError:

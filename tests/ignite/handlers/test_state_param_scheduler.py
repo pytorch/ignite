@@ -141,7 +141,6 @@ def test_pwlinear_scheduler_max_value(max_epochs, milestones_values):
 
 
 def test_piecewiselinear_asserts():
-
     with pytest.raises(TypeError, match=r"Argument milestones_values should be a list or tuple"):
         PiecewiseLinearStateScheduler(param_name="linear_scheduled_param", milestones_values=None)
 
@@ -169,7 +168,7 @@ def test_exponential_scheduler(max_epochs, initial_value, gamma):
     )
     exp_state_parameter_scheduler.attach(engine, Events.EPOCH_COMPLETED)
     engine.run([0] * 8, max_epochs=max_epochs)
-    torch_testing_assert_close(getattr(engine.state, "exp_scheduled_param"), initial_value * gamma ** max_epochs)
+    torch_testing_assert_close(getattr(engine.state, "exp_scheduled_param"), initial_value * gamma**max_epochs)
 
     state_dict = exp_state_parameter_scheduler.state_dict()
     exp_state_parameter_scheduler.load_state_dict(state_dict)
@@ -222,7 +221,6 @@ def test_multistep_scheduler(max_epochs, initial_value, gamma, milestones):
 
 
 def test_custom_scheduler():
-
     engine = Engine(lambda e, b: None)
 
     class LambdaState:
@@ -264,7 +262,6 @@ def test_custom_scheduler_asserts():
 
 @pytest.mark.parametrize("scheduler_cls, scheduler_kwargs", [config3, config4, config5, config6])
 def test_simulate_and_plot_values(scheduler_cls, scheduler_kwargs):
-
     import matplotlib
 
     matplotlib.use("Agg")
@@ -285,7 +282,6 @@ def test_simulate_and_plot_values(scheduler_cls, scheduler_kwargs):
 @pytest.mark.parametrize("save_history", [False, True])
 @pytest.mark.parametrize("scheduler_cls, scheduler_kwargs", [config3, config4, config5, config6])
 def test_simulate_values(scheduler_cls, scheduler_kwargs, save_history):
-
     max_epochs = 2
     data = [0] * 10
     scheduler_kwargs["save_history"] = save_history
@@ -293,7 +289,6 @@ def test_simulate_values(scheduler_cls, scheduler_kwargs, save_history):
 
 
 def test_torch_save_load(dirname):
-
     lambda_state_parameter_scheduler = LambdaStateScheduler(
         param_name="custom_scheduled_param", lambda_obj=LambdaState(initial_value=10, gamma=0.99), create_new=True
     )
@@ -321,7 +316,6 @@ def test_torch_save_load(dirname):
 
 
 def test_simulate_and_plot_values_no_matplotlib():
-
     with pytest.raises(ModuleNotFoundError, match=r"This method requires matplotlib to be installed."):
         with patch.dict("sys.modules", {"matplotlib.pyplot": None}):
             event = Events.EPOCH_COMPLETED
@@ -477,7 +471,6 @@ def test_param_scheduler_attach_warning():
 
 
 def test_param_scheduler_with_ema_handler():
-
     from ignite.handlers import EMAHandler
 
     model = nn.Linear(2, 1)
