@@ -195,16 +195,8 @@ def run(
 
 def get_dataflow(config):
     # - Get train/test datasets
-    if idist.get_local_rank() > 0:
-        # Ensure that only local rank 0 download the dataset
-        # Thus each node will download a copy of the dataset
-        idist.barrier()
-
-    train_dataset, test_dataset = utils.get_train_test_datasets(config["data_path"])
-
-    if idist.get_local_rank() == 0:
-        # Ensure that only local rank 0 download the dataset
-        idist.barrier()
+    with idist.one_rank_first(local=True):
+        train_dataset, test_dataset = utils.get_train_test_datasets(config["data_path"])
 
     # Setup data loader also adapted to distributed config: nccl, gloo, xla-tpu
     train_loader = idist.auto_dataloader(

@@ -370,3 +370,45 @@ def test_idist_one_rank_only_nccl(local_rank, distributed_context_single_node_nc
     device = idist.device()
     _test_distrib_one_rank_only(device=device)
     _test_distrib_one_rank_only_with_engine(device=device)
+
+
+@pytest.mark.distributed
+@pytest.mark.parametrize("rank", range(int(os.environ.get("WORLD_SIZE", 1))))
+@pytest.mark.parametrize("local", [True, False])
+def test_one_rank_first(distributed, get_rank_zero_dirname, rank, local):
+    def get_ds(file_path):
+        rank = idist.get_local_rank() if local else idist.get_rank()
+        if not file_path.exists():
+            with open(file_path, "w") as f:
+                f.write("readed")
+            return f"{rank} not readed"
+        else:
+            return f"{rank} readed"
+
+    folder = get_rank_zero_dirname()
+    file_path = folder / "res.txt"
+
+    with idist.one_rank_first(rank, local=local):
+        x = get_ds(file_path)
+
+    output = idist.all_gather(x)
+
+    if local:
+        expected = [
+            f"{x} not readed" if x == rank else f"{x} readed" for x in range(idist.get_nproc_per_node())
+        ] * idist.get_nnodes()
+    else:
+        expected = [f"{x} not readed" if x == rank else f"{x} readed" for x in range(idist.get_world_size())]
+
+    print("expected:", expected, idist.get_nnodes())
+    assert set(expected) == set(output)
+
+
+@pytest.mark.distributed
+def test_one_rank_first_asserts():
+    rank = 100
+    with pytest.raises(
+        ValueError, match=f"rank should be between 0 and {idist.get_world_size() - 1}, but given {rank}"
+    ):
+        with idist.one_rank_first(rank):
+            pass

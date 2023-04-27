@@ -1,4 +1,5 @@
 import socket
+from contextlib import contextmanager
 from functools import wraps
 from typing import Any, Callable, List, Mapping, Optional, Tuple, Union
 
@@ -41,6 +42,7 @@ __all__ = [
     "registered_computation_models",
     "one_rank_only",
     "new_group",
+    "one_rank_first",
 ]
 
 _model = _SerialModel()
@@ -635,3 +637,44 @@ def one_rank_only(rank: int = 0, with_barrier: bool = False) -> Callable:
         return wrapper
 
     return _one_rank_only
+
+
+@contextmanager
+def one_rank_first(rank: int = 0, local: bool = False) -> Any:
+    """Context manager that ensures a specific rank runs first before others in a distributed
+    environment.
+
+    Args:
+        rank: rank of the process that should execute the code
+            block inside the context manager first. Default, 0.
+        local: flag to specify local rank or global rank.
+            If True ``rank`` argument will define a local rank to run first.
+            Default, False
+
+    Examples:
+        .. code-block:: python
+
+            def download_dataset():
+                ...
+
+            with idist.one_rank_first():
+                ds = download_dataset()
+
+            dp = ds[0]
+
+    .. versionadded:: 0.5.0
+    """
+
+    current_rank = get_local_rank() if local else get_rank()
+    size = get_nproc_per_node() if local else get_world_size()
+
+    if rank >= size or rank < 0:
+        raise ValueError(f"rank should be between 0 and {size - 1}, but given {rank}")
+
+    if current_rank != rank:
+        barrier()
+
+    yield
+
+    if current_rank == rank:
+        barrier()
