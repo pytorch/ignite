@@ -21,7 +21,6 @@ except ImportError:
 
 
 if has_hvd_support:
-
     HOROVOD = "horovod"
 
     class _HorovodDistModel(ComputationModel):

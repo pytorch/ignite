@@ -166,7 +166,7 @@ class ConfusionMatrix(Metric):
         y_pred = y_pred[target_mask]
 
         indices = self.num_classes * y + y_pred
-        m = torch.bincount(indices, minlength=self.num_classes ** 2).reshape(self.num_classes, self.num_classes)
+        m = torch.bincount(indices, minlength=self.num_classes**2).reshape(self.num_classes, self.num_classes)
         self.confusion_matrix += m.to(self.confusion_matrix)
 
     @sync_all_reduce("confusion_matrix", "_num_examples")

@@ -19,7 +19,6 @@ from ignite.utils import manual_seed, setup_logger
 
 
 def training(local_rank, config):
-
     rank = idist.get_rank()
     manual_seed(config["seed"] + rank)
     device = idist.device()
@@ -189,7 +188,6 @@ def run(
     spawn_kwargs["nproc_per_node"] = nproc_per_node
 
     with idist.Parallel(backend=backend, **spawn_kwargs) as parallel:
-
         parallel.run(training, config)
 
 
@@ -267,7 +265,6 @@ def log_basic_info(logger, config):
 
 
 def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, config, logger):
-
     device = idist.device()
 
     # Setup Ignite trainer:
@@ -283,7 +280,6 @@ def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, con
     scaler = GradScaler(enabled=with_amp)
 
     def train_step(engine, batch):
-
         x, y = batch[0], batch[1]
 
         if x.device != device:

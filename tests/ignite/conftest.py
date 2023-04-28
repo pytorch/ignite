@@ -83,7 +83,6 @@ def local_rank(worker_id):
 
 @pytest.fixture(scope="module")
 def world_size():
-
     remove_env_var = False
 
     if "WORLD_SIZE" not in os.environ:
@@ -98,14 +97,12 @@ def world_size():
 
 @pytest.fixture()
 def clean_env():
-
     for k in ["RANK", "LOCAL_RANK", "WORLD_SIZE"]:
         if k in os.environ:
             del os.environ[k]
 
 
 def _create_dist_context(dist_info, lrank):
-
     dist.init_process_group(**dist_info)
     dist.barrier()
     if torch.cuda.is_available():
@@ -115,7 +112,6 @@ def _create_dist_context(dist_info, lrank):
 
 
 def _destroy_dist_context():
-
     if dist.get_rank() == 0:
         # To support Python 3.7; Otherwise we could do `.unlink(missing_ok=True)`
         try:
@@ -145,7 +141,6 @@ def _find_free_port():
 
 
 def _setup_free_port(local_rank):
-
     port_file = "/tmp/free_port"
 
     if local_rank == 0:
@@ -169,7 +164,6 @@ def _setup_free_port(local_rank):
 
 @pytest.fixture()
 def distributed_context_single_node_nccl(local_rank, world_size):
-
     free_port = _setup_free_port(local_rank)
 
     dist_info = {
@@ -184,7 +178,6 @@ def distributed_context_single_node_nccl(local_rank, world_size):
 
 @pytest.fixture()
 def distributed_context_single_node_gloo(local_rank, world_size):
-
     from datetime import timedelta
 
     if sys.platform.startswith("win"):
@@ -212,7 +205,6 @@ def distributed_context_single_node_gloo(local_rank, world_size):
 
 @pytest.fixture()
 def multi_node_conf(local_rank):
-
     assert "node_id" in os.environ
     assert "nnodes" in os.environ
     assert "nproc_per_node" in os.environ
@@ -229,7 +221,6 @@ def multi_node_conf(local_rank):
 
 
 def _create_mnodes_dist_context(dist_info, mnodes_conf):
-
     dist.init_process_group(**dist_info)
     dist.barrier()
     if torch.cuda.is_available():
@@ -249,7 +240,6 @@ def _destroy_mnodes_dist_context():
 
 @pytest.fixture()
 def distributed_context_multi_node_gloo(multi_node_conf):
-
     assert "MASTER_ADDR" in os.environ
     assert "MASTER_PORT" in os.environ
 
@@ -265,7 +255,6 @@ def distributed_context_multi_node_gloo(multi_node_conf):
 
 @pytest.fixture()
 def distributed_context_multi_node_nccl(multi_node_conf):
-
     assert "MASTER_ADDR" in os.environ
     assert "MASTER_PORT" in os.environ
 
@@ -289,7 +278,6 @@ def _xla_template_worker_task(index, fn, args):
 
 
 def _xla_execute(fn, args, nprocs):
-
     import torch_xla.distributed.xla_multiprocessing as xmp
 
     spawn_kwargs = {}

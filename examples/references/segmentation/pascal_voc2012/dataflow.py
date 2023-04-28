@@ -27,7 +27,6 @@ class TransformedDataset(Dataset):
 
 
 class VOCSegmentationOpencv(VOCSegmentation):
-
     target_names = [
         "background",
         "aeroplane",
@@ -114,7 +113,6 @@ def get_train_noval_sbdataset(root_path, return_meta=False):
 
 
 def get_dataloader(dataset, sampler=None, shuffle=False, limit_num_samples=None, **kwargs):
-
     if limit_num_samples is not None:
         g = torch.Generator().manual_seed(limit_num_samples)
         indices = torch.randperm(len(dataset), generator=g)[:limit_num_samples]
@@ -135,7 +133,6 @@ def get_train_val_loaders(
     limit_train_num_samples=None,
     limit_val_num_samples=None,
 ):
-
     train_ds = get_train_dataset(root_path)
     val_ds = get_val_dataset(root_path)
 

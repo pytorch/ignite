@@ -287,7 +287,6 @@ class OutputHandler(BaseOutputHandler):
         )
 
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, Events]) -> None:
-
         if not isinstance(logger, TensorboardLogger):
             raise RuntimeError("Handler 'OutputHandler' works only with TensorboardLogger")
 
@@ -422,14 +421,12 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
     """
 
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: Union[str, Events]) -> None:
-
         if not isinstance(logger, TensorboardLogger):
             raise RuntimeError("Handler 'WeightsScalarHandler' works only with TensorboardLogger")
 
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = f"{self.tag}/" if self.tag else ""
         for name, p in self.weights:
-
             name = name.replace(".", "/")
             logger.writer.add_scalar(
                 f"{tag_prefix}weights_{self.reduction.__name__}/{name}",
@@ -509,7 +506,6 @@ class WeightsHistHandler(BaseWeightsHandler):
         global_step = engine.state.get_event_attrib_value(event_name)
         tag_prefix = f"{self.tag}/" if self.tag else ""
         for name, p in self.weights:
-
             name = name.replace(".", "/")
             logger.writer.add_histogram(
                 tag=f"{tag_prefix}weights/{name}", values=p.data.cpu().numpy(), global_step=global_step

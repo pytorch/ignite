@@ -14,7 +14,6 @@ from tests.ignite.distributed.utils import (
 
 
 def test_no_distrib(capsys):
-
     assert idist.backend() is None
     if torch.cuda.is_available():
         assert idist.device().type == "cuda"

@@ -164,8 +164,8 @@ class MultiLabelConfusionMatrix(Metric):
         if y.dtype not in valid_types:
             raise ValueError(f"y must be of any type: {valid_types}")
 
-        if not torch.equal(y_pred, y_pred ** 2):
+        if not torch.equal(y_pred, y_pred**2):
             raise ValueError("y_pred must be a binary tensor")
 
-        if not torch.equal(y, y ** 2):
+        if not torch.equal(y, y**2):
             raise ValueError("y must be a binary tensor")

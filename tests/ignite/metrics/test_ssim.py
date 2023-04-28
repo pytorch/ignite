@@ -191,7 +191,6 @@ def test_distrib_integration(distributed, metric_device):
 
 @pytest.mark.parametrize("metric_device", [torch.device("cpu"), "process_device"])
 def test_distrib_accumulator_device(distributed, metric_device):
-
     device = idist.device()
     if metric_device == "process_device":
         metric_device = torch.device(device if device.type != "xla" else "cpu")

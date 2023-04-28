@@ -13,7 +13,6 @@ def do_nothing_update_fn(engine, batch):
 
 
 def test_args_validation():
-
     trainer = Engine(do_nothing_update_fn)
 
     with pytest.raises(ValueError, match=r"Argument patience should be positive integer."):
@@ -30,7 +29,6 @@ def test_args_validation():
 
 
 def test_simple_early_stopping():
-
     scores = iter([1.0, 0.8, 0.88])
 
     def score_function(engine):
@@ -50,7 +48,6 @@ def test_simple_early_stopping():
 
 
 def test_state_dict():
-
     scores = iter([1.0, 0.8, 0.88])
 
     def score_function(engine):
@@ -75,7 +72,6 @@ def test_state_dict():
 
 
 def test_early_stopping_on_delta():
-
     scores = iter([1.0, 2.0, 2.01, 3.0, 3.01, 3.02])
 
     trainer = Engine(do_nothing_update_fn)
@@ -98,7 +94,6 @@ def test_early_stopping_on_delta():
 
 
 def test_early_stopping_on_last_event_delta():
-
     scores = iter([0.0, 0.3, 0.6])
 
     trainer = Engine(do_nothing_update_fn)
@@ -117,7 +112,6 @@ def test_early_stopping_on_last_event_delta():
 
 
 def test_early_stopping_on_cumulative_delta():
-
     scores = iter([0.0, 0.3, 0.6])
 
     trainer = Engine(do_nothing_update_fn)
@@ -151,7 +145,6 @@ def test_simple_early_stopping_on_plateau():
 
 
 def test_simple_no_early_stopping():
-
     scores = iter([1.0, 0.8, 1.2])
 
     def score_function(engine):
@@ -248,7 +241,6 @@ def test_with_engine_no_early_stopping():
 
 
 def _test_distrib_with_engine_early_stopping(device):
-
     if device is None:
         device = idist.device()
     if isinstance(device, str):
@@ -287,7 +279,6 @@ def _test_distrib_with_engine_early_stopping(device):
 
 
 def _test_distrib_integration_engine_early_stopping(device):
-
     from ignite.metrics import Accuracy
 
     if device is None:
@@ -346,7 +337,6 @@ def _test_distrib_integration_engine_early_stopping(device):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
-
     device = idist.device()
     _test_distrib_with_engine_early_stopping(device)
     _test_distrib_integration_engine_early_stopping(device)
@@ -355,7 +345,6 @@ def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
-
     device = idist.device()
     _test_distrib_with_engine_early_stopping(device)
     _test_distrib_integration_engine_early_stopping(device)
@@ -365,7 +354,6 @@ def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
 @pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test_distrib_hvd(gloo_hvd_executor):
-
     device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
 
@@ -377,7 +365,6 @@ def test_distrib_hvd(gloo_hvd_executor):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
-
     device = idist.device()
     _test_distrib_with_engine_early_stopping(device)
     _test_distrib_integration_engine_early_stopping(device)
@@ -387,7 +374,6 @@ def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
-
     device = idist.device()
     _test_distrib_with_engine_early_stopping(device)
     _test_distrib_integration_engine_early_stopping(device)

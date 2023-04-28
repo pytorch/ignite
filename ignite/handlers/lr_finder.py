@@ -94,7 +94,6 @@ class FastaiLRFinder:
         smooth_f: float,
         diverge_th: float,
     ) -> None:
-
         self._history = {"lr": [], "loss": []}
         self._best_loss = None
         self._diverge_flag = False

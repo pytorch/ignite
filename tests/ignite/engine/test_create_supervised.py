@@ -135,7 +135,6 @@ def _test_create_supervised_trainer(
         accumulation[0] = loss[0] = 0.0
 
     if model_device == trainer_device or ((model_device == "cpu") ^ (trainer_device == "cpu")):
-
         state = trainer.run(data)
 
         if amp_mode == "amp":
@@ -154,7 +153,6 @@ def _test_create_supervised_trainer(
 
 @pytest.mark.skipif(Version(torch.__version__) < Version("1.6.0"), reason="Skip if < 1.6.0")
 def test_create_supervised_training_scalar_assignment():
-
     with mock.patch("ignite.engine._check_arg") as check_arg_mock:
         check_arg_mock.return_value = None, torch.cuda.amp.GradScaler(enabled=False)
         trainer, _ = _default_create_supervised_trainer(model_device="cpu", trainer_device="cpu", scaler=True)
@@ -173,7 +171,6 @@ def _test_create_mocked_supervised_trainer(
         with mock.patch("ignite.engine.supervised_training_step_apex") as training_step_apex_mock:
             with mock.patch("ignite.engine.supervised_training_step_tpu") as training_step_tpu_mock:
                 with mock.patch("ignite.engine.supervised_training_step") as training_step_mock:
-
                     trainer, _ = _default_create_supervised_trainer(
                         model_device=model_device,
                         trainer_device=trainer_device,
@@ -325,7 +322,6 @@ def _test_create_evaluation_step_amp(
     trace: bool = False,
     amp_mode: str = None,
 ):
-
     output_transform_mock = MagicMock()
     model = DummyModel()
 

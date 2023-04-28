@@ -22,7 +22,6 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"  # remove tokenizer paralleism wa
 
 
 def training(local_rank, config):
-
     rank = idist.get_rank()
     manual_seed(config["seed"] + rank)
     device = idist.device()
@@ -33,7 +32,6 @@ def training(local_rank, config):
 
     output_path = config["output_dir"]
     if rank == 0:
-
         now = datetime.now().strftime("%Y%m%d-%H%M%S")
         folder_name = f"{config['model']}_backend-{idist.backend()}-{idist.get_world_size()}_{now}"
         output_path = Path(output_path) / folder_name
@@ -207,7 +205,6 @@ def run(
     spawn_kwargs["nproc_per_node"] = nproc_per_node
 
     with idist.Parallel(backend=backend, **spawn_kwargs) as parallel:
-
         parallel.run(training, config)
 
 
@@ -293,7 +290,6 @@ def log_basic_info(logger, config):
 
 
 def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, config, logger):
-
     device = idist.device()
 
     # Setup Ignite trainer:
@@ -309,7 +305,6 @@ def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, con
     scaler = GradScaler(enabled=with_amp)
 
     def train_step(engine, batch):
-
         input_batch = batch[0]
         labels = batch[1].view(-1, 1)
 

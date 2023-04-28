@@ -19,7 +19,6 @@ def opencv_loader(path):
 
 
 def get_dataloader(dataset, sampler=None, shuffle=False, limit_num_samples=None, **kwargs):
-
     if limit_num_samples is not None:
         g = torch.Generator().manual_seed(limit_num_samples)
         indices = torch.randperm(len(dataset), generator=g)[:limit_num_samples]
@@ -38,7 +37,6 @@ def get_train_val_loaders(
     limit_train_num_samples: Optional[int] = None,
     limit_val_num_samples: Optional[int] = None,
 ) -> Tuple[DataLoader, DataLoader, DataLoader]:
-
     train_ds = ImageFolder(
         Path(root_path) / "train",
         transform=lambda sample: train_transforms(image=sample)["image"],

@@ -20,7 +20,6 @@ class _BasePrecisionRecall(_BaseClassification):
         is_multilabel: bool = False,
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
-
         if not (average is None or isinstance(average, bool) or average in ["macro", "micro", "weighted", "samples"]):
             raise ValueError(
                 "Argument average should be None or a boolean or one of values"
@@ -59,7 +58,6 @@ class _BasePrecisionRecall(_BaseClassification):
         y_pred, y = output[0].detach(), output[1].detach()
 
         if self._type == "binary" or self._type == "multiclass":
-
             num_classes = 2 if self._type == "binary" else y_pred.size(1)
             if self._type == "multiclass" and y.max() + 1 > num_classes:
                 raise ValueError(
@@ -88,7 +86,6 @@ class _BasePrecisionRecall(_BaseClassification):
 
     @reinit__is_reduced
     def reset(self) -> None:
-
         # `numerator`, `denominator` and `weight` are three variables chosen to be abstract
         # representatives of the ones that are measured for cases with different `average` parameters.
         # `weight` is only used when `average='weighted'`. Actual value of these three variables is
@@ -123,7 +120,6 @@ class _BasePrecisionRecall(_BaseClassification):
 
     @sync_all_reduce("_numerator", "_denominator")
     def compute(self) -> Union[torch.Tensor, float]:
-
         # Return value of the metric for `average` options `'weighted'` and `'macro'` is computed as follows.
         #
         # .. math:: \text{Precision/Recall} = \frac{ numerator }{ denominator } \cdot weight
@@ -376,17 +372,14 @@ class Precision(_BasePrecisionRecall):
         y_pred, y, correct = self._prepare_output(output)
 
         if self._average == "samples":
-
             all_positives = y_pred.sum(dim=1)
             true_positives = correct.sum(dim=1)
             self._numerator += torch.sum(true_positives / (all_positives + self.eps))
             self._denominator += y.size(0)
         elif self._average == "micro":
-
             self._denominator += y_pred.sum()
             self._numerator += correct.sum()
         else:  # _average in [False, None, 'macro', 'weighted']
-
             self._denominator += y_pred.sum(dim=0)
             self._numerator += correct.sum(dim=0)
 

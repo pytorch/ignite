@@ -176,7 +176,6 @@ def _setup_common_training_handlers(
         trainer.add_event_handler(Events.EPOCH_COMPLETED, empty_cuda_cache)
 
     if to_save is not None:
-
         if output_path is None and save_handler is None:
             raise ValueError(
                 "If to_save argument is provided then output_path or save_handler arguments should be also defined"
@@ -242,7 +241,6 @@ def _setup_common_distrib_training_handlers(
     save_handler: Optional[Union[Callable, BaseSaveHandler]] = None,
     **kwargs: Any,
 ) -> None:
-
     _setup_common_training_handlers(
         trainer,
         to_save=to_save,

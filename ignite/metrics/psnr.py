@@ -114,7 +114,7 @@ class PSNR(Metric):
 
         dim = tuple(range(1, y.ndim))
         mse_error = torch.pow(y_pred.double() - y.view_as(y_pred).double(), 2).mean(dim=dim)
-        self._sum_of_batchwise_psnr += torch.sum(10.0 * torch.log10(self.data_range ** 2 / (mse_error + 1e-10))).to(
+        self._sum_of_batchwise_psnr += torch.sum(10.0 * torch.log10(self.data_range**2 / (mse_error + 1e-10))).to(
             device=self._device
         )
         self._num_examples += y.shape[0]

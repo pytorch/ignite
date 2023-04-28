@@ -19,7 +19,6 @@ from ignite.engine import Engine, Events, State
 
 
 def test_optimizer_params_handler_wrong_setup():
-
     with pytest.raises(TypeError):
         OptimizerParamsHandler(optimizer=None)
 
@@ -44,7 +43,6 @@ def test_getattr_method():
 
 
 def test_optimizer_params():
-
     optimizer = torch.optim.SGD([torch.tensor(0.0)], lr=0.01)
     wrapper = OptimizerParamsHandler(optimizer=optimizer, param_name="lr")
     mock_logger = MagicMock(spec=TensorboardLogger)
@@ -65,7 +63,6 @@ def test_optimizer_params():
 
 
 def test_output_handler_with_wrong_logger_type():
-
     wrapper = OutputHandler("tag", output_transform=lambda x: x)
 
     mock_logger = MagicMock()
@@ -75,7 +72,6 @@ def test_output_handler_with_wrong_logger_type():
 
 
 def test_output_handler_output_transform():
-
     wrapper = OutputHandler("tag", output_transform=lambda x: x)
     mock_logger = MagicMock(spec=TensorboardLogger)
     mock_logger.writer = MagicMock()
@@ -98,7 +94,6 @@ def test_output_handler_output_transform():
 
 
 def test_output_handler_metric_names():
-
     wrapper = OutputHandler("tag", metric_names=["a", "b"])
     mock_logger = MagicMock(spec=TensorboardLogger)
     mock_logger.writer = MagicMock()
@@ -176,7 +171,6 @@ def test_output_handler_metric_names():
 
 
 def test_output_handler_both():
-
     wrapper = OutputHandler("tag", metric_names=["a", "b"], output_transform=lambda x: {"loss": x})
     mock_logger = MagicMock(spec=TensorboardLogger)
     mock_logger.writer = MagicMock()
@@ -212,7 +206,6 @@ def test_output_handler_with_wrong_global_step_transform_output():
 
 
 def test_output_handler_with_global_step_from_engine():
-
     mock_another_engine = MagicMock()
     mock_another_engine.state = State()
     mock_another_engine.state.epoch = 10
@@ -267,7 +260,6 @@ def test_output_handler_with_global_step_transform():
 
 
 def test_weights_scalar_handler_wrong_setup():
-
     model = MagicMock(spec=torch.nn.Module)
     wrapper = WeightsScalarHandler(model)
     mock_logger = MagicMock()
@@ -277,7 +269,6 @@ def test_weights_scalar_handler_wrong_setup():
 
 
 def test_weights_scalar_handler(dummy_model_factory):
-
     model = dummy_model_factory(with_grads=True, with_frozen_layer=False)
 
     # define test wrapper to test with and without optional tag
@@ -310,7 +301,6 @@ def test_weights_scalar_handler(dummy_model_factory):
 
 
 def test_weights_scalar_handler_whitelist(dummy_model_factory):
-
     model = dummy_model_factory()
 
     wrapper = WeightsScalarHandler(model, whitelist=["fc2.weight"])
@@ -355,7 +345,6 @@ def test_weights_scalar_handler_whitelist(dummy_model_factory):
 
 
 def test_weights_hist_handler_wrong_setup():
-
     model = MagicMock(spec=torch.nn.Module)
     wrapper = WeightsHistHandler(model)
     mock_logger = MagicMock()
@@ -365,7 +354,6 @@ def test_weights_hist_handler_wrong_setup():
 
 
 def test_weights_hist_handler(dummy_model_factory):
-
     model = dummy_model_factory(with_grads=True, with_frozen_layer=False)
 
     # define test wrapper to test with and without optional tag
@@ -442,7 +430,6 @@ def test_weights_hist_handler_whitelist(dummy_model_factory):
 
 
 def test_grads_scalar_handler_wrong_setup():
-
     model = MagicMock(spec=torch.nn.Module)
     wrapper = GradsScalarHandler(model)
     mock_logger = MagicMock()
@@ -530,7 +517,6 @@ def test_grads_scalar_handler_whitelist(dummy_model_factory, norm_mock):
 
 
 def test_grads_hist_handler_wrong_setup():
-
     model = MagicMock(spec=torch.nn.Module)
     wrapper = GradsHistHandler(model)
     mock_logger = MagicMock()
@@ -616,7 +602,6 @@ def test_grads_hist_handler_whitelist(dummy_model_factory):
 
 
 def test_integration(dirname):
-
     n_epochs = 5
     data = list(range(50))
 
@@ -646,7 +631,6 @@ def test_integration(dirname):
 
 
 def test_integration_as_context_manager(dirname):
-
     n_epochs = 5
     data = list(range(50))
 
@@ -657,7 +641,6 @@ def test_integration_as_context_manager(dirname):
         return next(losses_iter)
 
     with TensorboardLogger(log_dir=dirname) as tb_logger:
-
         trainer = Engine(update_fn)
 
         def dummy_handler(engine, logger, event_name):

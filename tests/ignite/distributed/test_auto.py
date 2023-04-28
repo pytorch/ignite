@@ -180,7 +180,6 @@ def _test_auto_model_optimizer(ws, device):
 
 
 def test_auto_methods_no_dist():
-
     _test_auto_dataloader(1, 1, batch_size=1)
     _test_auto_dataloader(1, 1, batch_size=10, num_workers=2)
     _test_auto_dataloader(1, 1, batch_size=10, sampler_name="WeightedRandomSampler")
@@ -192,7 +191,6 @@ def test_auto_methods_no_dist():
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_auto_methods_gloo(distributed_context_single_node_gloo):
-
     ws = distributed_context_single_node_gloo["world_size"]
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1)
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=2)
@@ -217,7 +215,6 @@ def test_auto_methods_gloo(distributed_context_single_node_gloo):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_auto_methods_nccl(distributed_context_single_node_nccl):
-
     ws = distributed_context_single_node_nccl["world_size"]
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1)
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=10)
@@ -236,7 +233,6 @@ def test_auto_methods_nccl(distributed_context_single_node_nccl):
 @pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test_auto_methods_hvd(gloo_hvd_executor):
-
     device = "cpu" if not torch.cuda.is_available() else "cuda"
     np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
 
@@ -249,10 +245,8 @@ def test_auto_methods_hvd(gloo_hvd_executor):
 
 
 def _test_auto_methods_xla(index, ws):
-
     dl_type = DataLoader
     if ws > 1:
-
         from ignite.distributed.auto import _MpDeviceLoader
 
         dl_type = _MpDeviceLoader
@@ -288,7 +282,6 @@ def test_auto_methods_xla():
 
 
 def test_dist_proxy_sampler():
-
     weights = torch.ones(100)
     weights[:50] += 1
     num_samples = 200
