@@ -16,27 +16,56 @@ concurrency:
   group: gpu-tests-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
   cancel-in-progress: true
 
+# Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml
+
 jobs:
-  gpu-tests:
-    runs-on: [self-hosted, 2-gpus]
-    timeout-minutes: 45
-    defaults:
-      run:
-        shell: bash
+  gpu-tests:    
     strategy:
-      max-parallel: 1
-      fail-fast: true
       matrix:
         pytorch-channel: [pytorch, pytorch-nightly]
+      fail-fast: false
     env:
-      AGENT_TOOLSDIRECTORY: /tmp/python
+      DOCKER_IMAGE: "pytorch/conda-builder:cuda11.7"
+      REPOSITORY: ${{ github.repository }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    runs-on: linux.8xlarge.nvidia.gpu
+    timeout-minutes: 45
 
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Clean python tool path
+      #######
+      # Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml
+      - name: Clean workspace
         run: |
-          rm -rf ${AGENT_TOOLSDIRECTORY}
+          echo "::group::Cleanup debug output"
+          sudo rm -rfv "${GITHUB_WORKSPACE}"
+          mkdir -p "${GITHUB_WORKSPACE}"
+          echo "::endgroup::"
+
+      - name: Checkout repository (pytorch/test-infra)
+        uses: actions/checkout@v3
+        with:
+          # Support the use case where we need to checkout someone's fork
+          repository: pytorch/test-infra
+          path: test-infra
+
+      - name: Setup Linux
+        uses: ./test-infra/.github/actions/setup-linux
+
+      - name: Pull docker image
+        uses: ./test-infra/.github/actions/pull-docker-image
+        with:
+          docker-image: ${{ env.DOCKER_IMAGE }}
+
+      - name: Checkout repository (${{ github.repository }})
+        uses: actions/checkout@v3
+        with:
+          # Support the use case where we need to checkout someone's fork
+          repository: ${{ github.repository }}
+          ref: ${{ github.ref }}
+          path: ${{ github.repository }}
+          fetch-depth: 1
+      # End of cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml      
+      #######
 
       - uses: actions/setup-python@v4
         with:
@@ -108,3 +137,13 @@ jobs:
           # resume
           export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt"
           CI=1 python -u ${example_path}/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200 --num_epochs=7 ${resume_opt}
+
+      #######
+      # Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml
+
+      - name: Teardown Linux
+        if: ${{ always() }}
+        uses: ./test-infra/.github/actions/teardown-linux
+
+      # End of cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml      
+      #######
