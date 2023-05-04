@@ -67,9 +67,10 @@ jobs:
       # End of cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml      
       #######
 
-      - uses: actions/setup-python@v4
-        with:
-          python-version: 3.9
+      - name: Check Python version from Conda
+        run: |
+          python --version
+          conda --version
 
       - name: Install PyTorch
         # https://pytorch.org/get-started/locally/
