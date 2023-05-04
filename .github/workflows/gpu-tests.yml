@@ -107,7 +107,7 @@ jobs:
             echo "${SCRIPT}";          
           } > "${RUNNER_TEMP}/exec_script"
           chmod +x "${RUNNER_TEMP}/exec_script"
-          python3 "${{ github.workspace }}/test-infra/.github/scripts/run_docker_with_env_secrets.py"
+          python3 "${{ github.workspace }}/test-infra/.github/scripts/run_docker_with_env_secrets.py" ""
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
@@ -166,7 +166,7 @@ jobs:
             echo "${SCRIPT}";
           } > "${RUNNER_TEMP}/exec_script"
           chmod +x "${RUNNER_TEMP}/exec_script"
-          python3 "${{ github.workspace }}/test-infra/.github/scripts/run_docker_with_env_secrets.py"
+          python3 "${{ github.workspace }}/test-infra/.github/scripts/run_docker_with_env_secrets.py" ""
 
       - name: Teardown Linux
         if: ${{ always() }}
