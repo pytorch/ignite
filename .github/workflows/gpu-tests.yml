@@ -63,7 +63,7 @@ jobs:
           path: ${{ github.repository }}
           fetch-depth: 1
 
-      - name: Run tests in container
+      - name: Install PyTorch and dependencies
         continue-on-error: false
         working-directory: ${{ github.repository }}
         env:
@@ -74,8 +74,6 @@ jobs:
           # Check Python version from Conda
           conda --version
           python --version
-
-          ls -alh
 
           # Install PyTorch
           if [ "${{ matrix.pytorch-channel }}" == "pytorch" ]; then
@@ -110,6 +108,33 @@ jobs:
           chmod +x "${RUNNER_TEMP}/exec_script"
           python3 "${{ github.workspace }}/test-infra/.github/scripts/run_docker_with_env_secrets.py" ""
 
+      - name: Run 1 Node 2 GPUs Unit Tests
+        continue-on-error: false
+        working-directory: ${{ github.repository }}
+        env:
+          ALL_SECRETS: ${{ toJSON(secrets) }}
+        run: |
+
+          SCRIPT=$(cat << EOF
+
+          bash tests/run_gpu_tests.sh 2
+
+          EOF
+          )
+
+          set -ex
+          {
+            echo "#!/usr/bin/env bash";
+            echo "set -eou pipefail";
+            # shellcheck disable=SC2016
+            echo 'eval "$(conda shell.bash hook)"';
+            echo "set -x";
+            echo "${SCRIPT}";          
+          } > "${RUNNER_TEMP}/exec_script"
+          chmod +x "${RUNNER_TEMP}/exec_script"
+          python3 "${{ github.workspace }}/test-infra/.github/scripts/run_docker_with_env_secrets.py" ""
+
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
@@ -129,31 +154,22 @@ jobs:
           pip install fire
 
           # Check training on cifar10, run without backend
-          export example_path="examples/contrib/cifar10"
           ## initial run
-          export stop_cmd="--stop_iteration=500"
-          CI=1 python ${example_path}/main.py run --checkpoint_every=200 ${stop_cmd}
+          CI=1 python examples/contrib/cifar10/main.py run --checkpoint_every=200 --stop_iteration=500
           ## resume
-          export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-None-1_stop-on-500/training_checkpoint_400.pt"
-          CI=1 python ${example_path}/main.py run --checkpoint_every=200 --num_epochs=7 ${resume_opt}
+          CI=1 python examples/contrib/cifar10/main.py run --checkpoint_every=200 --num_epochs=7 --resume-from=/tmp/output-cifar10/resnet18_backend-None-1_stop-on-500/training_checkpoint_400.pt
     
           # Check training on cifar10, run with NCCL backend using torchrun
-          export example_path="examples/contrib/cifar10"
           ## initial run
-          export stop_cmd="--stop_iteration=500"
-          CI=1 torchrun --nproc_per_node=2 ${example_path}/main.py run --backend=nccl --checkpoint_every=200 ${stop_cmd}
+          CI=1 torchrun --nproc_per_node=2 examples/contrib/cifar10/main.py run --backend=nccl --checkpoint_every=200 --stop_iteration=500
           ## resume
-          export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt"
-          CI=1 torchrun --nproc_per_node=2 ${example_path}/main.py run --backend=nccl --checkpoint_every=200 --num_epochs=7 ${resume_opt}
+          CI=1 torchrun --nproc_per_node=2 examples/contrib/cifar10/main.py run --backend=nccl --checkpoint_every=200 --num_epochs=7 --resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt
 
           # Check training on cifar10, run with NCCL backend using spawn
-          export example_path="examples/contrib/cifar10"
           ## initial run
-          export stop_cmd="--stop_iteration=500"
-          CI=1 python -u ${example_path}/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200 ${stop_cmd}
+          CI=1 python -u examples/contrib/cifar10/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200 --stop_iteration=500
           ## resume
-          export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt"
-          CI=1 python -u ${example_path}/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200 --num_epochs=7 ${resume_opt}
+          CI=1 python -u examples/contrib/cifar10/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200 --num_epochs=7 --resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt
 
           EOF
           )
