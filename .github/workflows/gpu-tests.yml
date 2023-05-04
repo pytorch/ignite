@@ -69,6 +69,34 @@ jobs:
         env:
           ALL_SECRETS: ${{ toJSON(secrets) }}
         run: |
+
+          SCRIPT=$(cat << EOF
+          # Check Python version from Conda
+          conda --version
+          python --version
+
+          # Install PyTorch
+          if [ "pytorch-nightly" -eq "pytorch" ]; then
+            pip install --upgrade torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
+          else
+            pip install --upgrade --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cu117
+          fi
+
+          pip install --upgrade ${pre_arg} torch torchvision --extra-index-url ${extra_index_url}
+          nvidia-smi
+          python -c "import torch; print(torch.__version__, ', CUDA is available: ', torch.cuda.is_available()); exit(not torch.cuda.is_available())"
+          pip list
+
+          # Install dependencies
+          pip install -r requirements-dev.txt
+          pip install -e .
+
+          # Run 1 Node 2 GPUs Unit Tests
+          bash tests/run_gpu_tests.sh 2
+
+          EOF
+          )
+
           set -ex
           {
             echo "#!/usr/bin/env bash";
@@ -76,30 +104,7 @@ jobs:
             # shellcheck disable=SC2016
             echo 'eval "$(conda shell.bash hook)"';
             echo "set -x";
-            
-            # Check Python version from Conda
-            conda --version
-            python --version
-
-            # Install PyTorch
-            if [ "pytorch-nightly" -eq "pytorch" ]; then
-              pip install --upgrade torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
-            else
-              pip install --upgrade --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cu117
-            fi            
-
-            pip install --upgrade ${pre_arg} torch torchvision --extra-index-url ${extra_index_url}
-            nvidia-smi
-            python -c "import torch; print(torch.__version__, ', CUDA is available: ', torch.cuda.is_available()); exit(not torch.cuda.is_available())"
-            pip list
-
-            # Install dependencies
-            pip install -r requirements-dev.txt
-            pip install -e .
-
-            # Run 1 Node 2 GPUs Unit Tests
-            bash tests/run_gpu_tests.sh 2
-
+            echo "${SCRIPT}";          
           } > "${RUNNER_TEMP}/exec_script"
           chmod +x "${RUNNER_TEMP}/exec_script"
           python3 "${{ github.workspace }}/test-infra/.github/scripts/run_docker_with_env_secrets.py"
@@ -117,44 +122,48 @@ jobs:
         env:
           ALL_SECRETS: ${{ toJSON(secrets) }}
         run: |
-          set -ex
+          SCRIPT=$(cat << EOF
+
+          # Install additional example dependencies
+          pip install fire
+
+          # Check training on cifar10, run without backend
+          export example_path="examples/contrib/cifar10"
+          ## initial run
+          export stop_cmd="--stop_iteration=500"
+          CI=1 python ${example_path}/main.py run --checkpoint_every=200 ${stop_cmd}
+          ## resume
+          export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-None-1_stop-on-500/training_checkpoint_400.pt"
+          CI=1 python ${example_path}/main.py run --checkpoint_every=200 --num_epochs=7 ${resume_opt}
+    
+          # Check training on cifar10, run with NCCL backend using torchrun
+          export example_path="examples/contrib/cifar10"
+          ## initial run
+          export stop_cmd="--stop_iteration=500"
+          CI=1 torchrun --nproc_per_node=2 ${example_path}/main.py run --backend=nccl --checkpoint_every=200 ${stop_cmd}
+          ## resume
+          export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt"
+          CI=1 torchrun --nproc_per_node=2 ${example_path}/main.py run --backend=nccl --checkpoint_every=200 --num_epochs=7 ${resume_opt}
+
+          # Check training on cifar10, run with NCCL backend using spawn
+          export example_path="examples/contrib/cifar10"
+          ## initial run
+          export stop_cmd="--stop_iteration=500"
+          CI=1 python -u ${example_path}/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200 ${stop_cmd}
+          ## resume
+          export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt"
+          CI=1 python -u ${example_path}/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200 --num_epochs=7 ${resume_opt}
+
+          EOF
+          )
+
           {
             echo "#!/usr/bin/env bash";
             echo "set -eou pipefail";
             # shellcheck disable=SC2016
             echo 'eval "$(conda shell.bash hook)"';
             echo "set -x";
-
-            # Install additional example dependencies
-            pip install fire
-
-            # Check training on cifar10, run without backend
-            export example_path="examples/contrib/cifar10"
-            ## initial run
-            export stop_cmd="--stop_iteration=500"
-            CI=1 python ${example_path}/main.py run --checkpoint_every=200 ${stop_cmd}
-            ## resume
-            export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-None-1_stop-on-500/training_checkpoint_400.pt"
-            CI=1 python ${example_path}/main.py run --checkpoint_every=200 --num_epochs=7 ${resume_opt}
-      
-            # Check training on cifar10, run with NCCL backend using torchrun
-            export example_path="examples/contrib/cifar10"
-            ## initial run
-            export stop_cmd="--stop_iteration=500"
-            CI=1 torchrun --nproc_per_node=2 ${example_path}/main.py run --backend=nccl --checkpoint_every=200 ${stop_cmd}
-            ## resume
-            export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt"
-            CI=1 torchrun --nproc_per_node=2 ${example_path}/main.py run --backend=nccl --checkpoint_every=200 --num_epochs=7 ${resume_opt}
-
-            # Check training on cifar10, run with NCCL backend using spawn
-            export example_path="examples/contrib/cifar10"
-            ## initial run
-            export stop_cmd="--stop_iteration=500"
-            CI=1 python -u ${example_path}/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200 ${stop_cmd}
-            ## resume
-            export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt"
-            CI=1 python -u ${example_path}/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200 --num_epochs=7 ${resume_opt}
-
+            echo "${SCRIPT}";
           } > "${RUNNER_TEMP}/exec_script"
           chmod +x "${RUNNER_TEMP}/exec_script"
           python3 "${{ github.workspace }}/test-infra/.github/scripts/run_docker_with_env_secrets.py"
