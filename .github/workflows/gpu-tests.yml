@@ -32,8 +32,6 @@ jobs:
     timeout-minutes: 45
 
     steps:
-      #######
-      # Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml
       - name: Clean workspace
         run: |
           echo "::group::Cleanup debug output"
@@ -64,87 +62,101 @@ jobs:
           ref: ${{ github.ref }}
           path: ${{ github.repository }}
           fetch-depth: 1
-      # End of cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml      
-      #######
 
-      - name: Check Python version from Conda
+      - name: Run tests in container
+        continue-on-error: false
+        working-directory: ${{ github.repository }}
+        env:
+          ALL_SECRETS: ${{ toJSON(secrets) }}
         run: |
-          python --version
-          conda --version
+          set -ex
+          {
+            echo "#!/usr/bin/env bash";
+            echo "set -eou pipefail";
+            # shellcheck disable=SC2016
+            echo 'eval "$(conda shell.bash hook)"';
+            echo "set -x";
+            
+            # Check Python version from Conda
+            conda --version
+            python --version
 
-      - name: Install PyTorch
-        # https://pytorch.org/get-started/locally/
-        if: ${{ matrix.pytorch-channel == 'pytorch' }}
-        run: |
-          pip install --upgrade torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
-          nvidia-smi
-          python -c "import torch; print(torch.__version__, ', CUDA is available: ', torch.cuda.is_available()); exit(not torch.cuda.is_available())"
-          pip list
+            # Install PyTorch
+            if [ "${{ matrix.pytorch-channel }}" -eq "pytorch" ];
+              pip install --upgrade torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
+            else
+              pip install --upgrade --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cu117
+            fi
+            nvidia-smi
+            python -c "import torch; print(torch.__version__, ', CUDA is available: ', torch.cuda.is_available()); exit(not torch.cuda.is_available())"
+            pip list
 
-      - name: Install PyTorch (nightly)
-        # https://pytorch.org/get-started/locally/
-        if: ${{ matrix.pytorch-channel == 'pytorch-nightly' }}
-        run: |
-          pip install --upgrade --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cu117
-          nvidia-smi
-          python -c "import torch; print(torch.__version__, ', CUDA is available: ', torch.cuda.is_available()); exit(not torch.cuda.is_available())"
-          pip list
+            # Install dependencies
+            pip install -r requirements-dev.txt
+            pip install -e .
 
-      - name: Install dependencies
-        run: |
-          pip install -r requirements-dev.txt
-          pip install -e .
+            # Run 1 Node 2 GPUs Unit Tests
+            bash tests/run_gpu_tests.sh 2
 
-      - name: Run 1 Node 2 GPUs Unit Tests
-        run: |
-          bash tests/run_gpu_tests.sh 2
+          } > "${RUNNER_TEMP}/exec_script"
+          chmod +x "${RUNNER_TEMP}/exec_script"
+          python3 "${{ github.workspace }}/test-infra/.github/scripts/run_docker_with_env_secrets.py"
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
-          file: ./coverage.xml
+          file: ${{ github.repository }}/coverage.xml
           flags: gpu-2
           fail_ci_if_error: false
 
-      - name: Install additional example dependencies
-        run: pip install fire
-
-      - name: Check training on cifar10, run without backend
+      - name: Run examples in container
+        continue-on-error: false
+        working-directory: ${{ github.repository }}
+        env:
+          ALL_SECRETS: ${{ toJSON(secrets) }}
         run: |
-          export example_path="examples/contrib/cifar10"
-          # initial run
-          export stop_cmd="--stop_iteration=500"
-          CI=1 python ${example_path}/main.py run --checkpoint_every=200 ${stop_cmd}
-          # resume
-          export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-None-1_stop-on-500/training_checkpoint_400.pt"
-          CI=1 python ${example_path}/main.py run --checkpoint_every=200 --num_epochs=7 ${resume_opt}
+          set -ex
+          {
+            echo "#!/usr/bin/env bash";
+            echo "set -eou pipefail";
+            # shellcheck disable=SC2016
+            echo 'eval "$(conda shell.bash hook)"';
+            echo "set -x";
 
-      - name: Check training on cifar10, run with NCCL backend using torchrun
-        run: |
-          export example_path="examples/contrib/cifar10"
-          # initial run
-          export stop_cmd="--stop_iteration=500"
-          CI=1 torchrun --nproc_per_node=2 ${example_path}/main.py run --backend=nccl --checkpoint_every=200 ${stop_cmd}
-          # resume
-          export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt"
-          CI=1 torchrun --nproc_per_node=2 ${example_path}/main.py run --backend=nccl --checkpoint_every=200 --num_epochs=7 ${resume_opt}
+            # Install additional example dependencies
+            pip install fire
 
-      - name: Check training on cifar10, run with NCCL backend using spawn
-        run: |
-          export example_path="examples/contrib/cifar10"
-          # initial run
-          export stop_cmd="--stop_iteration=500"
-          CI=1 python -u ${example_path}/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200 ${stop_cmd}
-          # resume
-          export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt"
-          CI=1 python -u ${example_path}/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200 --num_epochs=7 ${resume_opt}
+            # Check training on cifar10, run without backend
+            export example_path="examples/contrib/cifar10"
+            ## initial run
+            export stop_cmd="--stop_iteration=500"
+            CI=1 python ${example_path}/main.py run --checkpoint_every=200 ${stop_cmd}
+            ## resume
+            export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-None-1_stop-on-500/training_checkpoint_400.pt"
+            CI=1 python ${example_path}/main.py run --checkpoint_every=200 --num_epochs=7 ${resume_opt}
+      
+            # Check training on cifar10, run with NCCL backend using torchrun
+            export example_path="examples/contrib/cifar10"
+            ## initial run
+            export stop_cmd="--stop_iteration=500"
+            CI=1 torchrun --nproc_per_node=2 ${example_path}/main.py run --backend=nccl --checkpoint_every=200 ${stop_cmd}
+            ## resume
+            export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt"
+            CI=1 torchrun --nproc_per_node=2 ${example_path}/main.py run --backend=nccl --checkpoint_every=200 --num_epochs=7 ${resume_opt}
 
-      #######
-      # Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml
+            # Check training on cifar10, run with NCCL backend using spawn
+            export example_path="examples/contrib/cifar10"
+            ## initial run
+            export stop_cmd="--stop_iteration=500"
+            CI=1 python -u ${example_path}/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200 ${stop_cmd}
+            ## resume
+            export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt"
+            CI=1 python -u ${example_path}/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200 --num_epochs=7 ${resume_opt}
+
+          } > "${RUNNER_TEMP}/exec_script"
+          chmod +x "${RUNNER_TEMP}/exec_script"
+          python3 "${{ github.workspace }}/test-infra/.github/scripts/run_docker_with_env_secrets.py"
 
       - name: Teardown Linux
         if: ${{ always() }}
         uses: ./test-infra/.github/actions/teardown-linux
-
-      # End of cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml      
-      #######
