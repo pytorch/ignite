@@ -76,7 +76,7 @@ jobs:
           python --version
 
           # Install PyTorch
-          if [ "pytorch-nightly" -eq "pytorch" ]; then
+          if [ "pytorch-nightly" == "pytorch" ]; then
             pip install --upgrade torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
           else
             pip install --upgrade --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cu117
