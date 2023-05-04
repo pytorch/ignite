@@ -75,14 +75,15 @@ jobs:
           conda --version
           python --version
 
+          ls -alh
+
           # Install PyTorch
-          if [ "pytorch-nightly" == "pytorch" ]; then
+          if [ "${{ matrix.pytorch-channel }}" == "pytorch" ]; then
             pip install --upgrade torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
           else
             pip install --upgrade --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cu117
           fi
 
-          pip install --upgrade ${pre_arg} torch torchvision --extra-index-url ${extra_index_url}
           nvidia-smi
           python -c "import torch; print(torch.__version__, ', CUDA is available: ', torch.cuda.is_available()); exit(not torch.cuda.is_available())"
           pip list
