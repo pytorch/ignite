@@ -133,7 +133,7 @@ jobs:
           EOF
           )
 
-          docker exec -it pthd /bin/bash -c "${script}"
+          docker exec -t pthd /bin/bash -c "${script}"
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
