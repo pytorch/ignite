@@ -66,10 +66,20 @@ jobs:
       - name: Start Pytorch container
         working-directory: ${{ github.repository }}
         run: |
-          docker run --name pthd --gpus=all --rm -td --ipc=host --ulimit stack=10485760:83886080 \
-            -v $PWD:/work ${DOCKER_IMAGE}
+          docker run --name pthd --gpus=all --rm \
+            --cap-add=SYS_PTRACE \
+            --detach \
+            --ipc=host \
+            --security-opt seccomp=unconfined \
+            --shm-size=2g \
+            --tty \
+            --ulimit stack=10485760:83886080 \
+            -v $PWD:/work \
+            ${DOCKER_IMAGE}
 
           script=$(cat << EOF
+
+            set -x
 
             nvidia-smi
             ls -alh
@@ -79,7 +89,7 @@ jobs:
 
           EOF
           )
-          docker exec -it pthd /bin/bash -c "${script}"
+          docker exec -t pthd /bin/bash -c "${script}"
 
       - name: Install PyTorch and dependencies
         continue-on-error: false
@@ -87,6 +97,8 @@ jobs:
         run: |
 
           script=$(cat << EOF
+
+          set -x
 
           # Install PyTorch
           if [ "${{ matrix.pytorch-channel }}" == "pytorch" ]; then
@@ -106,7 +118,7 @@ jobs:
           EOF
           )
 
-          docker exec -it pthd /bin/bash -c "${script}"
+          docker exec -t pthd /bin/bash -c "${script}"
 
       - name: Run 1 Node 2 GPUs Unit Tests
         continue-on-error: false
@@ -114,6 +126,8 @@ jobs:
         run: |
 
           script=$(cat << EOF
+
+          set -x
 
           bash tests/run_gpu_tests.sh 2
 
@@ -134,6 +148,8 @@ jobs:
         working-directory: ${{ github.repository }}
         run: |
           SCRIPT=$(cat << EOF
+          
+          set -x
 
           # Install additional example dependencies
           pip install fire
@@ -159,7 +175,7 @@ jobs:
           EOF
           )
 
-          docker exec -it pthd /bin/bash -c "${script}"
+          docker exec -t pthd /bin/bash -c "${script}"
 
       - name: Teardown Linux
         if: ${{ always() }}
