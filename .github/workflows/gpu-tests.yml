@@ -75,6 +75,7 @@ jobs:
             --tty \
             --ulimit stack=10485760:83886080 \
             -v $PWD:/work \
+            -w /work \
             ${DOCKER_IMAGE}
 
           script=$(cat << EOF
@@ -93,7 +94,6 @@ jobs:
 
       - name: Install PyTorch and dependencies
         continue-on-error: false
-        working-directory: ${{ github.repository }}
         run: |
 
           script=$(cat << EOF
@@ -122,7 +122,6 @@ jobs:
 
       - name: Run 1 Node 2 GPUs Unit Tests
         continue-on-error: false
-        working-directory: ${{ github.repository }}
         run: |
 
           script=$(cat << EOF
@@ -145,7 +144,6 @@ jobs:
 
       - name: Run examples in container
         continue-on-error: false
-        working-directory: ${{ github.repository }}
         run: |
           SCRIPT=$(cat << EOF
           
