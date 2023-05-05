@@ -63,17 +63,30 @@ jobs:
           path: ${{ github.repository }}
           fetch-depth: 1
 
+      - name: Start Pytorch container
+        working-directory: ${{ github.repository }}
+        run: |
+          docker run --name pthd --gpus=all --rm -itd --ipc=host --ulimit stack=10485760:83886080 \
+            -v $PWD:/work ${DOCKER_IMAGE}
+
+          script=$(cat << EOF
+
+            nvidia-smi
+            ls -alh
+
+            conda --version
+            python --version
+
+          EOF
+          )
+          docker exec -it pthd /bin/bash -c "${script}"
+
       - name: Install PyTorch and dependencies
         continue-on-error: false
         working-directory: ${{ github.repository }}
-        env:
-          ALL_SECRETS: ${{ toJSON(secrets) }}
         run: |
 
-          SCRIPT=$(cat << EOF
-          # Check Python version from Conda
-          conda --version
-          python --version
+          script=$(cat << EOF
 
           # Install PyTorch
           if [ "${{ matrix.pytorch-channel }}" == "pytorch" ]; then
@@ -90,50 +103,24 @@ jobs:
           pip install -r requirements-dev.txt
           pip install -e .
 
-          # Run 1 Node 2 GPUs Unit Tests
-          bash tests/run_gpu_tests.sh 2
-
           EOF
           )
 
-          set -ex
-          {
-            echo "#!/usr/bin/env bash";
-            echo "set -eou pipefail";
-            # shellcheck disable=SC2016
-            echo 'eval "$(conda shell.bash hook)"';
-            echo "set -x";
-            echo "${SCRIPT}";          
-          } > "${RUNNER_TEMP}/exec_script"
-          chmod +x "${RUNNER_TEMP}/exec_script"
-          python3 "${{ github.workspace }}/test-infra/.github/scripts/run_docker_with_env_secrets.py" ""
+          docker exec -it pthd /bin/bash -c "${script}"
 
       - name: Run 1 Node 2 GPUs Unit Tests
         continue-on-error: false
         working-directory: ${{ github.repository }}
-        env:
-          ALL_SECRETS: ${{ toJSON(secrets) }}
         run: |
 
-          SCRIPT=$(cat << EOF
+          script=$(cat << EOF
 
           bash tests/run_gpu_tests.sh 2
 
           EOF
           )
 
-          set -ex
-          {
-            echo "#!/usr/bin/env bash";
-            echo "set -eou pipefail";
-            # shellcheck disable=SC2016
-            echo 'eval "$(conda shell.bash hook)"';
-            echo "set -x";
-            echo "${SCRIPT}";          
-          } > "${RUNNER_TEMP}/exec_script"
-          chmod +x "${RUNNER_TEMP}/exec_script"
-          python3 "${{ github.workspace }}/test-infra/.github/scripts/run_docker_with_env_secrets.py" ""
-
+          docker exec -it pthd /bin/bash -c "${script}"
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
@@ -145,8 +132,6 @@ jobs:
       - name: Run examples in container
         continue-on-error: false
         working-directory: ${{ github.repository }}
-        env:
-          ALL_SECRETS: ${{ toJSON(secrets) }}
         run: |
           SCRIPT=$(cat << EOF
 
@@ -174,16 +159,7 @@ jobs:
           EOF
           )
 
-          {
-            echo "#!/usr/bin/env bash";
-            echo "set -eou pipefail";
-            # shellcheck disable=SC2016
-            echo 'eval "$(conda shell.bash hook)"';
-            echo "set -x";
-            echo "${SCRIPT}";
-          } > "${RUNNER_TEMP}/exec_script"
-          chmod +x "${RUNNER_TEMP}/exec_script"
-          python3 "${{ github.workspace }}/test-infra/.github/scripts/run_docker_with_env_secrets.py" ""
+          docker exec -it pthd /bin/bash -c "${script}"
 
       - name: Teardown Linux
         if: ${{ always() }}
