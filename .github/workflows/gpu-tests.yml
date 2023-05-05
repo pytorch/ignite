@@ -66,7 +66,7 @@ jobs:
       - name: Start Pytorch container
         working-directory: ${{ github.repository }}
         run: |
-          docker run --name pthd --gpus=all --rm -itd --ipc=host --ulimit stack=10485760:83886080 \
+          docker run --name pthd --gpus=all --rm -td --ipc=host --ulimit stack=10485760:83886080 \
             -v $PWD:/work ${DOCKER_IMAGE}
 
           script=$(cat << EOF
