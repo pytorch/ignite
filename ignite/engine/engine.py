@@ -39,9 +39,11 @@ class Engine(Serializable):
         Create a basic trainer
 
         .. code-block:: python
+
             model = ...
             model = model.cuda()
             optimized = ...
+            criterion = ...
 
             def train_step(engine, batch):
                 model.train()
