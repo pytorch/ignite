@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, cast, Dict, List, Mapping, Optional, Sequence, Tuple, Type, Union
 
 import torch
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ReduceLROnPlateau
 from torch.optim.optimizer import Optimizer
 
 # https://github.com/pytorch/ignite/issues/2773
@@ -855,6 +855,44 @@ class LRScheduler(ParamScheduler):
                 f"torch.optim.lr_scheduler.{PyTorchLRScheduler.__name__}, "
                 f"but given {type(lr_scheduler)}"
             )
+        if isinstance(lr_scheduler, torch.optim.lr_scheduler.CosineAnnealingWarmRestarts):
+
+            class _CosineAnnealingWarmRestarts(CosineAnnealingWarmRestarts):
+                def get_lr(self, epoch=None):
+                    if epoch is None and self.last_epoch < 0:
+                        epoch = 0
+
+                    if epoch is None:
+                        epoch = self.last_epoch + 1
+                        self.T_cur = self.T_cur + 1
+                        if self.T_cur >= self.T_i:
+                            self.T_cur = self.T_cur - self.T_i
+                            self.T_i = self.T_i * self.T_mult
+                    else:
+                        if epoch < 0:
+                            raise ValueError("Expected non-negative epoch, but got {}".format(epoch))
+                        if epoch >= self.T_0:
+                            if self.T_mult == 1:
+                                self.T_cur = epoch % self.T_0
+                            else:
+                                n = int(math.log((epoch / self.T_0 * (self.T_mult - 1) + 1), self.T_mult))
+                                self.T_cur = epoch - self.T_0 * (self.T_mult ** n - 1) / (self.T_mult - 1)
+                                self.T_i = self.T_0 * self.T_mult ** (n)
+                        else:
+                            self.T_i = self.T_0
+                            self.T_cur = epoch
+                    self.last_epoch = math.floor(epoch)
+
+                    return super(_CosineAnnealingWarmRestarts, self).get_lr()
+
+            lr_scheduler = _CosineAnnealingWarmRestarts(
+                lr_scheduler.optimizer,
+                lr_scheduler.T_0,
+                lr_scheduler.T_mult,
+                lr_scheduler.eta_min,
+                lr_scheduler.last_epoch,
+                lr_scheduler.verbose,
+            )
 
         self.lr_scheduler = lr_scheduler
         super(LRScheduler, self).__init__(
@@ -875,7 +913,6 @@ class LRScheduler(ParamScheduler):
     def __call__(self, engine: Optional[Engine], name: Optional[str] = None) -> None:
         super(LRScheduler, self).__call__(engine, name)
         self.lr_scheduler.last_epoch += 1
-        self.lr_scheduler.step()
 
     def get_param(self) -> Union[float, List[float]]:
         """Method to get current optimizer's parameter value"""
