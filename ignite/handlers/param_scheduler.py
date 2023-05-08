@@ -855,7 +855,7 @@ class LRScheduler(ParamScheduler):
         if isinstance(lr_scheduler, torch.optim.lr_scheduler.CosineAnnealingWarmRestarts):
 
             class _CosineAnnealingWarmRestarts(CosineAnnealingWarmRestarts):
-                def get_lr(self, epoch=None):
+                def get_lr(self, epoch: Union[int, None] = None) -> Union[List[float], float]:
                     if epoch is None and self.last_epoch < 0:
                         epoch = 0
 
