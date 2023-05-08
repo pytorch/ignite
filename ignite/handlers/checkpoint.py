@@ -293,7 +293,6 @@ class Checkpoint(Serializable):
         greater_or_equal: bool = False,
         save_on_rank: int = 0,
     ):
-
         if not isinstance(to_save, collections.Mapping):
             raise TypeError(f"Argument `to_save` should be a dictionary, but given {type(to_save)}")
 
@@ -401,7 +400,6 @@ class Checkpoint(Serializable):
             return new > self._saved[0].priority
 
     def __call__(self, engine: Engine) -> None:
-
         global_step = None
         if self.global_step_transform is not None:
             global_step = self.global_step_transform(engine, engine.last_event_name)
@@ -416,7 +414,6 @@ class Checkpoint(Serializable):
             priority = global_step
 
         if self._check_lt_n_saved() or self._compare_fn(priority):
-
             priority_str = f"{priority}" if isinstance(priority, numbers.Integral) else f"{priority:.4f}"
 
             checkpoint = self._setup_checkpoint()
@@ -965,7 +962,6 @@ class ModelCheckpoint(Checkpoint):
         save_on_rank: int = 0,
         **kwargs: Any,
     ):
-
         disk_saver = DiskSaver(
             dirname,
             atomic=atomic,
@@ -1000,7 +996,6 @@ class ModelCheckpoint(Checkpoint):
         return self.save_handler.dirname / self._saved[-1].filename
 
     def __call__(self, engine: Engine, to_save: Mapping):  # type: ignore
-
         if len(to_save) == 0:
             raise RuntimeError("No objects to checkpoint found.")
 

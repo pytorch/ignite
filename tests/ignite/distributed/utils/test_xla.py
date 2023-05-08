@@ -148,7 +148,6 @@ def test_idist_new_group_xla():
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_idist_all_gather_xla():
-
     device = idist.device()
     _test_distrib_all_gather(device)
     _test_distrib_all_gather_group(device)
@@ -172,7 +171,6 @@ def test_idist_all_gather_xla_in_child_proc(xmp_executor):
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_idist_broadcast_xla():
-
     device = idist.device()
     _test_distrib_broadcast(device)
 
@@ -194,7 +192,6 @@ def test_idist_broadcast_xla_in_child_proc(xmp_executor):
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_idist_barrier_xla():
-
     device = idist.device()
     _test_distrib_barrier(device)
 
@@ -216,7 +213,6 @@ def test_idist_barrier_xla_in_child_proc(xmp_executor):
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_idist_one_rank_only_xla():
-
     device = idist.device()
     _test_distrib_one_rank_only(device=device)
     _test_distrib_one_rank_only_with_engine(device=device)

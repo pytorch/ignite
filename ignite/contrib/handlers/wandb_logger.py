@@ -278,7 +278,6 @@ class OutputHandler(BaseOutputHandler):
         self.sync = sync
 
     def __call__(self, engine: Engine, logger: WandBLogger, event_name: Union[str, Events]) -> None:
-
         if not isinstance(logger, WandBLogger):
             raise RuntimeError(f"Handler '{self.__class__.__name__}' works only with WandBLogger.")
 

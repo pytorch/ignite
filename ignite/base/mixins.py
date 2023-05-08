@@ -4,7 +4,6 @@ from typing import Tuple
 
 
 class Serializable:
-
     _state_dict_all_req_keys: Tuple = ()
     _state_dict_one_of_opt_keys: Tuple = ()
 

@@ -45,7 +45,6 @@ class DummyPretrainedModel(nn.Module):
 
 
 def test_checkpoint_wrong_input():
-
     with pytest.raises(TypeError, match=r"Argument `to_save` should be a dictionary"):
         Checkpoint(12, lambda x: x, "prefix")
 
@@ -81,7 +80,6 @@ def test_checkpoint_wrong_input():
 
 
 def test_save_handler_as_str(dirname):
-
     to_save = {"model": model}
 
     checkpointer = Checkpoint(to_save, save_handler=dirname)
@@ -89,7 +87,6 @@ def test_save_handler_as_str(dirname):
 
 
 def test_checkpoint_score_function_wrong_output():
-
     to_save = {"model": model}
 
     checkpointer = Checkpoint(to_save, lambda x: x, score_function=lambda e: {"1": 1}, score_name="acc")
@@ -188,7 +185,6 @@ def test_checkpoint_include_self_state_dict(to_save, obj, name):
 
 
 def test_checkpoint_with_dp():
-
     dp_model = nn.DataParallel(model)
     to_save = {"model": dp_model}
 
@@ -584,7 +580,6 @@ def test_model_checkpoint_simple_recovery(dirname):
 
 @pytest.mark.parametrize("ext, require_empty", [(".txt", True), (".pt", False)])
 def test_model_checkpoint_simple_recovery_from_existing_non_empty(ext, require_empty, dirname):
-
     previous_fname = dirname / f"{_PREFIX}_obj_{1}{ext}"
     with open(previous_fname, "w") as f:
         f.write("test")
@@ -624,13 +619,11 @@ def test_model_checkpoint_invalid_save_handler(dirname):
 
 
 def test_disk_saver_atomic(dirname):
-
     model = DummyModel()
     to_save_serializable = {"model": model}
     to_save_non_serializable = {"model": lambda x: x}
 
     def _test_existence(atomic, _to_save, expected):
-
         saver = DiskSaver(dirname, atomic=atomic, create_dir=False, require_empty=False)
         fname = "test.pt"
         try:
@@ -685,7 +678,6 @@ def test_disk_saver_unknown_keyword(dirname):
 
 
 def test_last_k(dirname):
-
     h = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=2)
     engine = Engine(lambda e, b: None)
     engine.state = State(epoch=0, iteration=0)
@@ -704,7 +696,6 @@ def test_last_k(dirname):
 
 
 def test_disabled_n_saved(dirname):
-
     h = ModelCheckpoint(dirname, _PREFIX, create_dir=False, n_saved=None)
     engine = Engine(lambda e, b: None)
     engine.state = State(epoch=0, iteration=0)
@@ -857,7 +848,6 @@ def test_valid_state_dict_save(dirname):
 
 
 def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname, just_on_zero_rank=False):
-
     torch.manual_seed(23)
 
     model = DummyModel().to(device)
@@ -946,7 +936,6 @@ def _test_save_model_optimizer_lr_scheduler_with_validation(device, dirname, jus
     torch.manual_seed(23)
 
     def _build_objects(acc_list):
-
         model = DummyModel().to(device)
         optim = torch.optim.SGD(model.parameters(), lr=0.1)
         lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, gamma=0.5)
@@ -1075,7 +1064,6 @@ def test_save_model_optimizer_lr_scheduler_with_validation(dirname):
 
 
 def test_checkpoint_load_objects():
-
     with pytest.raises(TypeError, match=r"Argument checkpoint should be a string or a dictionary"):
         Checkpoint.load_objects({}, [])
 
@@ -1191,7 +1179,6 @@ def test_load_checkpoint_with_different_num_classes(dirname):
 
 
 def test_disksaver_wrong_input(dirname):
-
     with pytest.raises(ValueError, match=r"Directory path '\S+' is not found"):
         DiskSaver("/tmp/non-existing-folder", create_dir=False)
 
@@ -1244,7 +1231,6 @@ def _test_checkpoint_load_objects_ddp(device):
 
 
 def _test_checkpoint_with_ZeRO(device, dirname, local_rank):
-
     from torch.distributed.optim import ZeroRedundancyOptimizer
 
     model = DummyModel().to(device)
@@ -1265,7 +1251,6 @@ def _test_checkpoint_with_ZeRO(device, dirname, local_rank):
     mocked_opt.consolidate_state_dict.assert_called_once_with(to=1)
 
     if local_rank == 1:
-
         loaded_state_dict = torch.load(dirname / "checkpoint_0.pt", map_location=device)["optim"]
         state_dict = opt.state_dict()
         assert loaded_state_dict == state_dict
@@ -1274,7 +1259,6 @@ def _test_checkpoint_with_ZeRO(device, dirname, local_rank):
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo, dirname, get_rank_zero_dirname, local_rank):
-
     device = idist.device()
     rank_zero_dirname = get_rank_zero_dirname()
     _test_save_model_optimizer_lr_scheduler_with_state_dict(device, rank_zero_dirname / "1")
@@ -1292,7 +1276,6 @@ def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo, dirname, 
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_nccl_gpu(distributed_context_single_node_nccl, get_rank_zero_dirname):
-
     device = idist.device()
     dirname = get_rank_zero_dirname()
     _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname / "1")
@@ -1305,7 +1288,6 @@ def test_distrib_nccl_gpu(distributed_context_single_node_nccl, get_rank_zero_di
 @pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test_distrib_hvd(gloo_hvd_executor, get_rank_zero_dirname):
-
     device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
     dirname = get_rank_zero_dirname()
@@ -1430,7 +1412,6 @@ def _test_model_checkpoint_filename_pattern_helper(
 
 @pytest.mark.parametrize("test_class", ["checkpoint", "model_checkpoint"])
 def test_checkpoint_filename_pattern(test_class, dirname):
-
     if test_class == "checkpoint":
         _test = _test_checkpoint_filename_pattern_helper
     elif test_class == "model_checkpoint":
@@ -1783,7 +1764,6 @@ def test_greater_or_equal_model_checkpoint(dirname):
 
 
 def test_get_default_score_fn():
-
     with pytest.raises(ValueError, match=r"Argument score_sign should be 1 or -1"):
         Checkpoint.get_default_score_fn("acc", 2.0)
 
@@ -1823,7 +1803,6 @@ def test_load_single_object(obj_to_save, dirname):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.parametrize("atomic", [False, True])
 def test_disksaver_distrib(distributed_context_single_node_gloo, dirname, local_rank, atomic):
-
     saver = DiskSaver(dirname, atomic, save_on_rank=1)
     mocked_saver = MagicMock(wraps=saver)
 

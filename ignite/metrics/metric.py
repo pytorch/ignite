@@ -484,12 +484,12 @@ class Metric(metaclass=ABCMeta):
     def __pow__(self, other: Any) -> "MetricsLambda":
         from ignite.metrics.metrics_lambda import MetricsLambda
 
-        return MetricsLambda(lambda x, y: x ** y, self, other)
+        return MetricsLambda(lambda x, y: x**y, self, other)
 
     def __rpow__(self, other: Any) -> "MetricsLambda":
         from ignite.metrics.metrics_lambda import MetricsLambda
 
-        return MetricsLambda(lambda x, y: x ** y, other, self)
+        return MetricsLambda(lambda x, y: x**y, other, self)
 
     def __mod__(self, other: Any) -> "MetricsLambda":
         from ignite.metrics.metrics_lambda import MetricsLambda

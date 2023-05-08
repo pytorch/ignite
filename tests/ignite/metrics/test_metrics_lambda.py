@@ -100,7 +100,6 @@ def test_metrics_lambda_reset():
 
 
 def test_metrics_lambda_update_and_attach_together():
-
     y_pred = torch.randint(0, 2, size=(15, 10, 4)).float()
     y = torch.randint(0, 2, size=(15, 10, 4)).long()
 
@@ -114,7 +113,7 @@ def test_metrics_lambda_update_and_attach_together():
     recall = Recall(average=False)
 
     def Fbeta(r, p, beta):
-        return torch.mean((1 + beta ** 2) * p * r / (beta ** 2 * p + r)).item()
+        return torch.mean((1 + beta**2) * p * r / (beta**2 * p + r)).item()
 
     F1 = MetricsLambda(Fbeta, recall, precision, 1)
 
@@ -138,7 +137,6 @@ def test_metrics_lambda_update_and_attach_together():
 
 
 def test_metrics_lambda_update():
-
     """
     Test if the underlying metrics are updated
     """
@@ -149,7 +147,7 @@ def test_metrics_lambda_update():
     recall = Recall(average=False)
 
     def Fbeta(r, p, beta):
-        return torch.mean((1 + beta ** 2) * p * r / (beta ** 2 * p + r)).item()
+        return torch.mean((1 + beta**2) * p * r / (beta**2 * p + r)).item()
 
     F1 = MetricsLambda(Fbeta, recall, precision, 1)
 
@@ -248,7 +246,7 @@ def test_integration(attach_pr_re):
     recall = Recall(average=False)
 
     def Fbeta(r, p, beta):
-        return torch.mean((1 + beta ** 2) * p * r / (beta ** 2 * p + r)).item()
+        return torch.mean((1 + beta**2) * p * r / (beta**2 * p + r)).item()
 
     F1 = MetricsLambda(Fbeta, recall, precision, 1)
 
@@ -274,7 +272,6 @@ def test_integration(attach_pr_re):
 
 
 def test_state_metrics():
-
     y_pred = torch.randint(0, 2, size=(15, 10, 4)).float()
     y = torch.randint(0, 2, size=(15, 10, 4)).long()
 
@@ -304,7 +301,6 @@ def test_state_metrics():
 
 
 def test_state_metrics_ingredients_not_attached():
-
     y_pred = torch.randint(0, 2, size=(15, 10, 4)).float()
     y = torch.randint(0, 2, size=(15, 10, 4)).long()
 
@@ -333,7 +329,6 @@ def test_state_metrics_ingredients_not_attached():
 
 def test_recursive_attachment():
     def _test(composed_metric, metric_name, compute_true_value_fn):
-
         metrics = {
             metric_name: composed_metric,
         }
@@ -397,7 +392,6 @@ def test_recursive_attachment():
 
 
 def _test_distrib_integration(device):
-
     rank = idist.get_rank()
 
     n_iters = 10
@@ -425,7 +419,7 @@ def _test_distrib_integration(device):
         recall = Recall(average=False, device=metric_device)
 
         def Fbeta(r, p, beta):
-            return torch.mean((1 + beta ** 2) * p * r / (beta ** 2 * p + r)).item()
+            return torch.mean((1 + beta**2) * p * r / (beta**2 * p + r)).item()
 
         F1 = MetricsLambda(Fbeta, recall, precision, 1)
         F1.attach(evaluator, "f1")
@@ -474,7 +468,7 @@ def _test_distrib_metrics_on_diff_devices(device):
     recall = Recall(average=False, device=device)
 
     def Fbeta(r, p, beta):
-        return torch.mean((1 + beta ** 2) * p * r / (beta ** 2 * p + r)).item()
+        return torch.mean((1 + beta**2) * p * r / (beta**2 * p + r)).item()
 
     F1 = MetricsLambda(Fbeta, recall, precision, 1)
     F1.attach(evaluator, "f1")
@@ -499,7 +493,6 @@ def _test_distrib_metrics_on_diff_devices(device):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
-
     device = idist.device()
     _test_distrib_integration(device)
     _test_distrib_metrics_on_diff_devices(device)
@@ -508,7 +501,6 @@ def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
-
     device = idist.device()
     _test_distrib_integration(device)
 
@@ -517,7 +509,6 @@ def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
 @pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test_distrib_hvd(gloo_hvd_executor):
-
     device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
 
@@ -529,7 +520,6 @@ def test_distrib_hvd(gloo_hvd_executor):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
-
     device = idist.device()
     _test_distrib_integration(device)
 
@@ -538,7 +528,6 @@ def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
-
     device = idist.device()
     _test_distrib_integration(device)
     _test_distrib_metrics_on_diff_devices(device)

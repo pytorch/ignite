@@ -234,7 +234,6 @@ def test_callable_events_with_wrong_inputs():
     ],
 )
 def test_callable_events(event):
-
     assert isinstance(event.value, str)
 
     def foo(engine, _):
@@ -296,7 +295,6 @@ def test_has_handler_on_callable_events():
 
 
 def test_remove_event_handler_on_callable_events():
-
     engine = Engine(lambda e, b: 1)
 
     def foo(e):
@@ -324,11 +322,9 @@ def test_remove_event_handler_on_callable_events():
 
 
 def _test_every_event_filter_with_engine(device="cpu"):
-
     data = torch.rand(100, 4, device=device)
 
     def _test(event_name, event_attr, every, true_num_calls):
-
         engine = Engine(lambda e, b: b)
 
         counter = [0]
@@ -382,7 +378,6 @@ def test_every_event_filter_with_engine():
     ],
 )
 def test_before_event_filter_with_engine(event_name, event_attr, before, expect_calls):
-
     data = range(100)
 
     engine = Engine(lambda e, b: 1)
@@ -410,7 +405,6 @@ def test_before_event_filter_with_engine(event_name, event_attr, before, expect_
     ],
 )
 def test_after_event_filter_with_engine(event_name, event_attr, after, expect_calls):
-
     data = range(100)
 
     engine = Engine(lambda e, b: 1)
@@ -431,7 +425,6 @@ def test_after_event_filter_with_engine(event_name, event_attr, after, expect_ca
     [(Events.ITERATION_STARTED, "iteration", 300, 100, 199), (Events.EPOCH_COMPLETED, "epoch", 4, 1, 2)],
 )
 def test_before_and_after_event_filter_with_engine(event_name, event_attr, before, after, expect_calls):
-
     data = range(100)
 
     engine = Engine(lambda e, b: 1)
@@ -452,7 +445,6 @@ def test_before_and_after_event_filter_with_engine(event_name, event_attr, befor
     [(Events.ITERATION_STARTED, "iteration", 5, 25, 8, 4), (Events.EPOCH_COMPLETED, "epoch", 2, 5, 1, 2)],
 )
 def test_every_before_and_after_event_filter_with_engine(event_name, event_attr, every, before, after, expect_calls):
-
     data = range(100)
 
     engine = Engine(lambda e, b: 1)
@@ -484,7 +476,6 @@ def test_every_before_and_after_event_filter_with_engine(event_name, event_attr,
     ],
 )
 def test_once_event_filter(event_name, event_attr, once, expect_calls):
-
     data = list(range(100))
 
     engine = Engine(lambda e, b: b)
@@ -508,7 +499,6 @@ def test_once_event_filter(event_name, event_attr, once, expect_calls):
 
 
 def test_custom_event_filter_with_engine():
-
     special_events = [1, 2, 5, 7, 17, 20]
 
     def custom_event_filter(engine, event):
@@ -517,7 +507,6 @@ def test_custom_event_filter_with_engine():
         return False
 
     def _test(event_name, event_attr, true_num_calls):
-
         engine = Engine(lambda e, b: b)
 
         num_calls = [0]
@@ -539,7 +528,6 @@ def test_custom_event_filter_with_engine():
 
 
 def test_callable_event_bad_behaviour():
-
     special_events = [1, 2, 5, 7, 17, 20]
 
     def custom_event_filter(engine, event):
@@ -660,7 +648,6 @@ def test_every_event_filter_with_engine_with_dataloader():
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
-
     device = idist.device()
     _test_every_event_filter_with_engine(device)
     _test_every_event_filter_with_engine_with_dataloader(device)
@@ -670,14 +657,12 @@ def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
-
     device = idist.device()
     _test_every_event_filter_with_engine(device)
     _test_every_event_filter_with_engine_with_dataloader(device)
 
 
 def test_event_list():
-
     e1 = Events.ITERATION_STARTED(once=1)
     e2 = Events.ITERATION_STARTED(every=3)
     e3 = Events.COMPLETED
@@ -693,7 +678,6 @@ def test_event_list():
 
 def test_list_of_events():
     def _test(event_list, true_iterations):
-
         engine = Engine(lambda e, b: b)
 
         iterations = []

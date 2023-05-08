@@ -7,7 +7,6 @@ from ignite.handlers import TimeLimit
 
 
 def test_arg_validation():
-
     with pytest.raises(ValueError, match=r"Argument limit_sec should be a positive integer."):
         TimeLimit(limit_sec=-5)
 

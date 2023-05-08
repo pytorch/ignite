@@ -42,7 +42,6 @@ def exec_filepath():
 
 
 def execute(cmd, env=None):
-
     import ignite
 
     env = dict(os.environ) if env is None else env
@@ -268,7 +267,6 @@ def test_idist_parallel_no_dist():
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if no NUM_TPU_WORKERS in env vars")
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_idist_parallel_spawn_params_xla():
-
     res = idist.Parallel._setup_spawn_params(
         nproc_per_node=8, nnodes=None, node_rank=None, master_addr=None, master_port=None, start_method="fork"
     )

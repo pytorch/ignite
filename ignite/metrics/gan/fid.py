@@ -21,7 +21,6 @@ else:
 def fid_score(
     mu1: torch.Tensor, mu2: torch.Tensor, sigma1: torch.Tensor, sigma2: torch.Tensor, eps: float = 1e-6
 ) -> float:
-
     try:
         import numpy as np
     except ImportError:
@@ -171,7 +170,6 @@ class FID(_BaseInceptionMetric):
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
-
         try:
             import numpy as np  # noqa: F401
         except ImportError:
@@ -197,7 +195,6 @@ class FID(_BaseInceptionMetric):
 
     @staticmethod
     def _online_update(features: torch.Tensor, total: torch.Tensor, sigma: torch.Tensor) -> None:
-
         total += features
         sigma += torch_outer(features, features)
 
@@ -213,7 +210,6 @@ class FID(_BaseInceptionMetric):
 
     @reinit__is_reduced
     def reset(self) -> None:
-
         self._train_sigma = torch.zeros(
             (self._num_features, self._num_features), dtype=torch.float64, device=self._device
         )
@@ -231,7 +227,6 @@ class FID(_BaseInceptionMetric):
 
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
-
         train, test = output
         train_features = self._extract_features(train)
         test_features = self._extract_features(test)
@@ -255,7 +250,6 @@ class FID(_BaseInceptionMetric):
 
     @sync_all_reduce("_num_examples", "_train_total", "_test_total", "_train_sigma", "_test_sigma")
     def compute(self) -> float:
-
         fid = fid_score(
             mu1=self._train_total / self._num_examples,
             mu2=self._test_total / self._num_examples,

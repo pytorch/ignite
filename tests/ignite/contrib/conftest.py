@@ -25,7 +25,6 @@ def no_site_packages(request):
 
 @pytest.fixture()
 def visdom_offline_logfile(dirname):
-
     log_file = dirname / "logs.visdom"
     yield log_file
 
@@ -41,7 +40,6 @@ def visdom_server():
     global vd_hostname, vd_port, vd_server_process
 
     if vd_server_process is None:
-
         import subprocess
         import time
 
@@ -73,7 +71,6 @@ def visdom_server():
 
 @pytest.fixture()
 def visdom_server_stop():
-
     yield None
 
     import time

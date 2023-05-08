@@ -437,7 +437,6 @@ class TestEngine:
         _test(data)
 
     def test_state_repr(self):
-
         data = [0, 1, 2, 3, 4, 5]
         max_epochs = 1
         metrics = {"accuracy": Mock()}
@@ -452,7 +451,6 @@ class TestEngine:
         assert "batch" in s
 
     def test_alter_batch(self):
-
         small_shape = (1, 2, 2)
         large_shape = (1, 3, 3)
 

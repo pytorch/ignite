@@ -19,7 +19,6 @@ def mock_no_scipy():
 
 
 def test_no_scipy(mock_no_scipy):
-
     with pytest.raises(ModuleNotFoundError, match=r"This module requires scipy to be installed."):
         FID()
 
@@ -34,7 +33,6 @@ def mock_no_numpy():
 
 
 def test_no_numpy(mock_no_numpy):
-
     with pytest.raises(ModuleNotFoundError, match=r"This module requires numpy to be installed."):
         FID()
 
@@ -105,7 +103,6 @@ def test_compute_fid_sqrtm():
 
 
 def test_wrong_inputs():
-
     with pytest.raises(ValueError, match=r"Argument num_features must be greater to zero"):
         FID(num_features=-1, feature_extractor=torch.nn.Identity())
 
@@ -156,7 +153,6 @@ def test_statistics():
 
 
 def _test_distrib_integration(device):
-
     from ignite.engine import Engine
 
     rank = idist.get_rank()
@@ -218,7 +214,6 @@ def test_distrib_cpu(distributed_context_single_node_gloo):
 @pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test_distrib_hvd(gloo_hvd_executor):
-
     device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
 

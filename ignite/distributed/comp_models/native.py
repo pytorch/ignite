@@ -15,7 +15,6 @@ has_native_dist_support = dist.is_available()
 
 
 if has_native_dist_support:
-
     NCCL = dist.Backend.NCCL
     GLOO = dist.Backend.GLOO
     MPI = dist.Backend.MPI
@@ -196,7 +195,6 @@ if has_native_dist_support:
             return local_rank
 
         def _identify_local_rank(self) -> None:
-
             if "SLURM_JOB_ID" in os.environ:
                 os.environ["LOCAL_RANK"] = os.environ["SLURM_LOCALID"]
 
@@ -216,7 +214,6 @@ if has_native_dist_support:
                 self._local_rank = self._compute_local_rank_via_hostname()
 
         def setup_env_vars(self, rank: Optional[int] = None, world_size: Optional[int] = None) -> None:
-
             self._env_backup = os.environ.copy()
 
             if "SLURM_JOB_ID" in os.environ:
@@ -475,7 +472,6 @@ if has_native_dist_support:
         nodelist = nodelist.replace(" ", "")
 
         for node in re.findall(nodelist_match, nodelist):
-
             node_match = r"(.+)\[((,?[0-9]+-?,?-?){0,})\](.*)?"
 
             match = re.search(node_match, node)

@@ -40,7 +40,6 @@ class TerminateOnNan:
         output = self._output_transform(engine.state.output)
 
         def raise_error(x: Union[float, torch.Tensor]) -> None:
-
             if isinstance(x, numbers.Number):
                 x = torch.tensor(x)
 

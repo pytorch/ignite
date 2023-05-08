@@ -102,7 +102,6 @@ def test_integration():
 
 
 def _test_distrib_compute(device):
-
     rank = idist.get_rank()
 
     def _test(metric_device):
@@ -135,7 +134,6 @@ def _test_distrib_compute(device):
 
 
 def _test_distrib_integration(device):
-
     rank = idist.get_rank()
 
     def _test(n_epochs, metric_device):
@@ -192,7 +190,6 @@ def _test_distrib_integration(device):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
-
     device = idist.device()
     _test_distrib_compute(device)
     _test_distrib_integration(device)
@@ -201,7 +198,6 @@ def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
-
     device = idist.device()
     _test_distrib_compute(device)
     _test_distrib_integration(device)
@@ -222,7 +218,6 @@ def test_distrib_hvd(gloo_hvd_executor):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
-
     device = idist.device()
     _test_distrib_compute(device)
     _test_distrib_integration(device)
@@ -232,7 +227,6 @@ def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
-
     device = idist.device()
     _test_distrib_compute(device)
 

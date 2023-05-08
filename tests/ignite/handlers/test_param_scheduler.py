@@ -36,7 +36,6 @@ class FakeParamScheduler(ParamScheduler):
 
 
 def test_param_scheduler_asserts():
-
     t1 = torch.zeros([1], requires_grad=True)
     t2 = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([{"params": t1, "lr": 0.1}, {"params": t2, "lr": 0.1}])
@@ -57,7 +56,6 @@ def test_param_scheduler_asserts():
 
 
 def test_linear_scheduler():
-
     with pytest.raises(TypeError, match=r"Argument optimizer should be torch.optim.Optimizer"):
         LinearCyclicalScheduler({}, "lr", 1, 0, cycle_size=0)
 
@@ -296,7 +294,6 @@ def test_cosine_annealing_scheduler():
 
 
 def test_concat_scheduler_asserts():
-
     tensor = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([tensor], lr=0)
 
@@ -620,7 +617,6 @@ def test_save_param_history():
 
 
 def test_lr_scheduler_asserts():
-
     err_msg = r"Argument lr_scheduler should be a subclass of torch.optim.lr_scheduler.(_LRScheduler|LRScheduler)"
     with pytest.raises(TypeError, match=err_msg):
         LRScheduler(123)
@@ -638,7 +634,6 @@ def test_lr_scheduler_asserts():
     ],
 )
 def test_lr_scheduler(torch_lr_scheduler_cls, kwargs):
-
     if torch_lr_scheduler_cls is None:
         return
 
@@ -713,7 +708,6 @@ def test_lr_scheduler(torch_lr_scheduler_cls, kwargs):
 
 
 def test_piecewiselinear_asserts():
-
     tensor = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([tensor], lr=0)
 
@@ -738,7 +732,6 @@ def test_piecewiselinear_asserts():
 
 @pytest.mark.parametrize("milestones_as_np_int", [True, False])
 def test_piecewiselinear(milestones_as_np_int):
-
     tensor = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([tensor], lr=0)
 
@@ -821,13 +814,11 @@ def test_piecewiselinear(milestones_as_np_int):
 
 
 def test_simulate_and_plot_values():
-
     import matplotlib
 
     matplotlib.use("Agg")
 
     def _test(scheduler_cls, **scheduler_kwargs):
-
         if scheduler_cls == LRScheduler:
             optimizer = scheduler_kwargs["lr_scheduler"].optimizer
         elif scheduler_cls == ConcatScheduler:
@@ -914,7 +905,6 @@ def test_simulate_and_plot_values():
 
 
 def test_create_lr_scheduler_with_warmup_asserts():
-
     with pytest.raises(TypeError, match=r"Argument lr_scheduler should be a subclass of"):
         create_lr_scheduler_with_warmup(12, warmup_start_value=0.0, warmup_end_value=0.1, warmup_duration=10)
 
@@ -966,7 +956,6 @@ def test_create_lr_scheduler_with_warmup_asserts():
 def test_create_lr_scheduler_with_warmup(
     lr_scheduler_name, warmup_start_value, warmup_end_value, warmup_duration, warmup_end_next_value
 ):
-
     t1 = torch.zeros([1], requires_grad=True)
 
     if lr_scheduler_name == "ExponentialLR":
@@ -1091,7 +1080,6 @@ def test_create_lr_scheduler_with_warmup_on_combined_scheduler(save_history):
 
 
 def test_create_lr_scheduler_with_warmup_with_real_model(dummy_model_factory):
-
     model = dummy_model_factory(with_grads=False, with_frozen_layer=False)
     init_lr = 0.01
     optimizer = torch.optim.SGD(model.parameters(), lr=init_lr)
@@ -1118,7 +1106,6 @@ def test_create_lr_scheduler_with_warmup_with_real_model(dummy_model_factory):
 
 
 def test_param_group_scheduler_asserts():
-
     t1 = torch.zeros([1], requires_grad=True)
     t2 = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([{"params": t1, "lr": 0.1}, {"params": t2, "lr": 0.1}])
@@ -1169,7 +1156,6 @@ def test_param_group_scheduler_asserts():
 
 @pytest.mark.parametrize("param_groups_setting", ["single_optim", "multi_optim"])
 def test_param_group_scheduler(param_groups_setting):
-
     t1 = torch.zeros([1], requires_grad=True)
     t2 = torch.zeros([1], requires_grad=True)
     if param_groups_setting == "single_optim":
@@ -1234,7 +1220,6 @@ def test_param_group_scheduler(param_groups_setting):
     ],
 )
 def test_scheduler_with_param_groups(scheduler_cls, kwargs):
-
     t1 = torch.zeros([1], requires_grad=True)
     t2 = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([{"params": t1, "lr": 0.1}, {"params": t2, "lr": 0.1}])

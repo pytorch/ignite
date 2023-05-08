@@ -17,7 +17,6 @@ from ignite.engine import Engine, Events, State
 
 
 def test_optimizer_params_handler_wrong_setup():
-
     with pytest.raises(TypeError):
         OptimizerParamsHandler(optimizer=None)
 
@@ -31,7 +30,6 @@ def test_optimizer_params_handler_wrong_setup():
 
 
 def test_optimizer_params():
-
     optimizer = torch.optim.SGD([torch.tensor(0.0)], lr=0.01)
     wrapper = OptimizerParamsHandler(optimizer=optimizer, param_name="lr")
     mock_logger = MagicMock(spec=VisdomLogger)
@@ -79,7 +77,6 @@ def test_optimizer_params():
 
 
 def test_output_handler_with_wrong_logger_type():
-
     wrapper = OutputHandler("tag", output_transform=lambda x: x)
 
     mock_logger = MagicMock()
@@ -89,7 +86,6 @@ def test_output_handler_with_wrong_logger_type():
 
 
 def test_output_handler_output_transform(dirname):
-
     wrapper = OutputHandler("tag", output_transform=lambda x: x)
     mock_logger = MagicMock(spec=VisdomLogger)
     mock_logger.vis = MagicMock()
@@ -137,7 +133,6 @@ def test_output_handler_output_transform(dirname):
 
 
 def test_output_handler_metric_names(dirname):
-
     wrapper = OutputHandler("tag", metric_names=["a", "b"])
     mock_logger = MagicMock(spec=VisdomLogger)
     mock_logger.vis = MagicMock()
@@ -314,7 +309,6 @@ def test_output_handler_metric_names(dirname):
 
 
 def test_output_handler_both(dirname):
-
     wrapper = OutputHandler("tag", metric_names=["a", "b"], output_transform=lambda x: {"loss": x})
     mock_logger = MagicMock(spec=VisdomLogger)
     mock_logger.vis = MagicMock()
@@ -543,7 +537,6 @@ def test_output_handler_with_global_step_transform():
 
 
 def test_output_handler_with_global_step_from_engine():
-
     mock_another_engine = MagicMock()
     mock_another_engine.state = State()
     mock_another_engine.state.epoch = 10
@@ -605,7 +598,6 @@ def test_output_handler_with_global_step_from_engine():
 
 
 def test_weights_scalar_handler_wrong_setup():
-
     with pytest.raises(TypeError, match="Argument model should be of type torch.nn.Module"):
         WeightsScalarHandler(None)
 
@@ -770,7 +762,6 @@ def test_weights_scalar_handler_custom_reduction():
 
 
 def test_grads_scalar_handler_wrong_setup():
-
     with pytest.raises(TypeError, match="Argument model should be of type torch.nn.Module"):
         GradsScalarHandler(None)
 
@@ -852,7 +843,6 @@ def test_grads_scalar_handler(dummy_model_factory, norm_mock):
 
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_integration_no_server():
-
     with pytest.raises(ConnectionError, match="Error connecting to Visdom server"):
         VisdomLogger()
 
@@ -958,7 +948,6 @@ def test_integration_with_executor(visdom_server):
 
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_integration_with_executor_as_context_manager(visdom_server, visdom_server_stop):
-
     n_epochs = 5
     data = list(range(50))
 
@@ -969,7 +958,6 @@ def test_integration_with_executor_as_context_manager(visdom_server, visdom_serv
         return next(losses_iter)
 
     with VisdomLogger(server=visdom_server[0], port=visdom_server[1], num_workers=1) as vd_logger:
-
         # close all windows in 'main' environment
         vd_logger.vis.close()
 
@@ -994,7 +982,6 @@ def test_integration_with_executor_as_context_manager(visdom_server, visdom_serv
 
 @pytest.mark.parametrize("no_site_packages", ["visdom"], indirect=True)
 def test_no_visdom(no_site_packages):
-
     with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires visdom package"):
         VisdomLogger()
 

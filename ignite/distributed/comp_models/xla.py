@@ -15,7 +15,6 @@ except ImportError:
 
 
 if has_xla_support:
-
     XLA_TPU = "xla-tpu"
 
     class _XlaDistModel(ComputationModel):

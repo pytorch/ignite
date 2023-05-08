@@ -118,7 +118,6 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> Union[DataLoader, "_MpDe
     dataloader = DataLoader(dataset, **kwargs)
 
     if idist.has_xla_support and idist.backend() == idist_xla.XLA_TPU and world_size > 1:
-
         logger.info("DataLoader is wrapped by `MpDeviceLoader` on XLA")
 
         mp_device_loader_cls = _MpDeviceLoader
@@ -294,7 +293,6 @@ class DistributedProxySampler(DistributedSampler):
     """
 
     def __init__(self, sampler: Sampler, num_replicas: Optional[int] = None, rank: Optional[int] = None) -> None:
-
         if not isinstance(sampler, Sampler):
             raise TypeError(f"Argument sampler should be instance of torch Sampler, but given: {type(sampler)}")
 
@@ -329,7 +327,6 @@ class DistributedProxySampler(DistributedSampler):
 
 
 if idist.has_xla_support:
-
     import torch_xla.core.xla_model as xm
     from torch_xla.distributed.parallel_loader import ParallelLoader
 

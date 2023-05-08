@@ -40,8 +40,14 @@ class Engine(Serializable):
 
         .. code-block:: python
 
-            def update_model(engine, batch):
-                inputs, targets = batch
+            model = ...
+            model = model.cuda()
+            optimized = ...
+            criterion = ...
+
+            def train_step(engine, batch):
+                model.train()
+                inputs, targets = batch[0].cuda(), batch[1].cuda()
                 optimizer.zero_grad()
                 outputs = model(inputs)
                 loss = criterion(outputs, targets)

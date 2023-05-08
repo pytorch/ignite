@@ -78,7 +78,6 @@ def train(args):
     running_avgs = OrderedDict()
 
     def step(engine, batch):
-
         x, _ = batch
         x = x.to(device)
 

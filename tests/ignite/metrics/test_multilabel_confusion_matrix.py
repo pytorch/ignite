@@ -190,12 +190,10 @@ def _test_distrib_multiclass_images(device):
 
 
 def _test_distrib_accumulator_device(device):
-
     metric_devices = [torch.device("cpu")]
     if device.type != "xla":
         metric_devices.append(idist.device())
     for metric_device in metric_devices:
-
         cm = MultiLabelConfusionMatrix(num_classes=3, device=metric_device)
         assert cm._device == metric_device
         assert (
@@ -233,7 +231,6 @@ def test_simple_2D_input():
 
 
 def test_simple_ND_input():
-
     num_iters = 5
     num_samples = 100
     num_classes = 10
@@ -279,7 +276,6 @@ def test_simple_ND_input():
 
 
 def test_simple_batched():
-
     num_iters = 5
     num_samples = 100
     num_classes = 10
