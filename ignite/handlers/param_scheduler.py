@@ -1000,7 +1000,51 @@ def create_lr_scheduler_with_warmup(
 
     .. versionadded:: 0.4.5
     """
-    if not isinstance(lr_scheduler, (ParamScheduler, PyTorchLRScheduler)):
+
+    def get_group_scheduler(param_group, param_group_index) -> Tuple[PiecewiseLinear, List[int]]:
+        if warmup_end_value is None:
+            param_group_warmup_end_value = param_group.get("lr")
+        else:
+            param_group_warmup_end_value = warmup_end_value
+
+        milestones_values = [(0, warmup_start_value), (warmup_duration - 1, param_group_warmup_end_value)]
+
+        if isinstance(lr_scheduler, LRScheduler):
+            init_lr = param_group["lr"]
+            if init_lr != param_group_warmup_end_value:
+                milestones_values.append((warmup_duration, init_lr))
+
+            # We need to advance torch lr_scheduler to avoid duplicated lr value
+            # given by PiecewiseLinear and LRScheduler.
+            # We suggest to attach output scheduler on ITERATION_STARTED but
+            # torch lr_scheduler works with ITERATION_COMPLETED
+            # See also https://github.com/pytorch/ignite/pull/2496#issuecomment-1065984440
+        else:
+            init_lr = lr_scheduler.get_param()
+            if init_lr == param_group_warmup_end_value:
+                if warmup_duration > 2:
+                    d = (param_group_warmup_end_value - warmup_start_value) / (warmup_duration - 1)
+                    milestones_values[-1] = (warmup_duration - 2, param_group_warmup_end_value - d)
+                else:
+                    milestones_values.pop(-1)
+        scheduler = PiecewiseLinear(
+            lr_scheduler.optimizer,
+            param_name="lr",
+            milestones_values=milestones_values,
+            param_group_index=param_group_index,
+            save_history=save_history,
+        )
+
+        durations = [milestones_values[-1][0] + 1]
+
+        return scheduler, durations
+
+    if isinstance(lr_scheduler, PyTorchLRScheduler):
+        lr_scheduler.last_epoch += 1
+        lr_scheduler = LRScheduler(lr_scheduler, save_history=save_history)
+    elif isinstance(lr_scheduler, ParamScheduler):
+        pass
+    else:
         raise TypeError(
             "Argument lr_scheduler should be a subclass of "
             f"torch.optim.lr_scheduler.{PyTorchLRScheduler.__name__} or ParamScheduler, "
@@ -1016,51 +1060,15 @@ def create_lr_scheduler_with_warmup(
     warmup_schedulers: List[ParamScheduler] = []
 
     for param_group_index, param_group in enumerate(lr_scheduler.optimizer.param_groups):
-        if warmup_end_value is None:
-            param_group_warmup_end_value = param_group["lr"]
-        else:
-            param_group_warmup_end_value = warmup_end_value
-
-        milestones_values = [(0, warmup_start_value), (warmup_duration - 1, param_group_warmup_end_value)]
-
-        if isinstance(lr_scheduler, PyTorchLRScheduler):
-            init_lr = param_group["lr"]
-            if init_lr != param_group_warmup_end_value:
-                milestones_values.append((warmup_duration, init_lr))
-
-            # We need to advance torch lr_scheduler to avoid duplicated lr value
-            # given by PiecewiseLinear and LRScheduler.
-            # We suggest to attach output scheduler on ITERATION_STARTED but
-            # torch lr_scheduler works with ITERATION_COMPLETED
-            # See also https://github.com/pytorch/ignite/pull/2496#issuecomment-1065984440
-            lr_scheduler.last_epoch += 1
-            lr_scheduler = LRScheduler(lr_scheduler, save_history=save_history)
-        else:
-            init_lr = lr_scheduler.get_param()
-            if init_lr == param_group_warmup_end_value:
-                if warmup_duration > 2:
-                    d = (param_group_warmup_end_value - warmup_start_value) / (warmup_duration - 1)
-                    milestones_values[-1] = (warmup_duration - 2, param_group_warmup_end_value - d)
-                else:
-                    milestones_values.pop(-1)
-
-        warmup_schedulers.append(
-            PiecewiseLinear(
-                lr_scheduler.optimizer,
-                param_name="lr",
-                milestones_values=milestones_values,
-                param_group_index=param_group_index,
-                save_history=save_history,
-            )
-        )
+        group_scheduler, durations = get_group_scheduler(param_group, param_group_index)
+        warmup_schedulers.append(group_scheduler)
 
     warmup_scheduler = ParamGroupScheduler(warmup_schedulers, save_history=save_history)
 
-    schedulers: List[Union[ParamScheduler, ParamGroupScheduler, PyTorchLRScheduler]] = [
+    schedulers: List[Union[ParamScheduler, ParamGroupScheduler, LRScheduler]] = [
         warmup_scheduler,
         lr_scheduler,
     ]
-    durations = [milestones_values[-1][0] + 1]
     combined_scheduler = ConcatScheduler(schedulers, durations=durations, save_history=save_history)
 
     if output_simulated_values is not None:
