@@ -32,3 +32,4 @@ nltk
 pandas
 gymnasium
 mkl
+pycocotools
