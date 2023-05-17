@@ -61,7 +61,7 @@ class _BasePrecisionRecall(_BaseClassification):
             num_classes = 2 if self._type == "binary" else y_pred.size(1)
             if self._type == "multiclass" and y.max() + 1 > num_classes:
                 raise ValueError(
-                    f"y_pred contains fewer classes than y. Number of classes in prediction is {num_classes}"
+                    f"y_pred contains fewer classes than y. Number of classes in the prediction is {num_classes}"
                     f" and an element in y has invalid class = {y.max().item() + 1}."
                 )
             y = y.view(-1)
