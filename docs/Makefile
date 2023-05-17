@@ -20,11 +20,11 @@ docset: html
 	convert $(SPHINXPROJ).docset/icon@2x.png -resize 16x16 $(SPHINXPROJ).docset/icon.png
 
 rebuild:
-	rm -rf source/generated && make clean && make html
+	rm -rf source/generated && find ../ignite -name *.pyc -delete && rm -rf source/__pycache__ && make clean && make html
 
 .PHONY: help Makefile docset
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
 %: Makefile
-	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	@ find ../ignite -name *.pyc -delete && $(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
