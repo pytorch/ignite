@@ -155,17 +155,19 @@ def _test_distrib_all_reduce_group(device):
 
 
 def _test_distrib_all_gather(device):
+    rank = idist.get_rank()
+
     res = torch.tensor(idist.all_gather(10), device=device)
     true_res = torch.tensor([10] * idist.get_world_size(), device=device)
     assert (res == true_res).all()
 
-    t = torch.tensor(idist.get_rank(), device=device)
+    t = torch.tensor(rank, device=device)
     res = idist.all_gather(t)
     true_res = torch.tensor([i for i in range(idist.get_world_size())], device=device)
     assert (res == true_res).all()
 
     x = "test-test"
-    if idist.get_rank() == 0:
+    if rank == 0:
         x = "abc"
     res = idist.all_gather(x)
     true_res = ["abc"] + ["test-test"] * (idist.get_world_size() - 1)
@@ -173,14 +175,14 @@ def _test_distrib_all_gather(device):
 
     base_x = "tests/ignite/distributed/utils/test_native.py" * 2000
     x = base_x
-    if idist.get_rank() == 0:
+    if rank == 0:
         x = "abc"
 
     res = idist.all_gather(x)
     true_res = ["abc"] + [base_x] * (idist.get_world_size() - 1)
     assert res == true_res
 
-    t = torch.arange(100, device=device).reshape(4, 25) * (idist.get_rank() + 1)
+    t = torch.arange(100, device=device).reshape(4, 25) * (rank + 1)
     in_dtype = t.dtype
     res = idist.all_gather(t)
     assert res.shape == (idist.get_world_size() * 4, 25)
@@ -189,6 +191,14 @@ def _test_distrib_all_gather(device):
     for i in range(idist.get_world_size()):
         true_res[i * 4 : (i + 1) * 4, ...] = torch.arange(100, device=device).reshape(4, 25) * (i + 1)
     assert (res == true_res).all()
+
+    t = torch.full((rank + 1, (rank + 1) * 2, idist.get_world_size() - rank), rank)
+    in_dtype = t.dtype
+    res = idist.all_gather(t, tensor_different_shape=True)
+    assert res[rank].shape == (rank + 1, (rank + 1) * 2, idist.get_world_size() - rank)
+    assert type(res) == list and res[0].dtype == in_dtype
+    for i in range(idist.get_world_size()):
+        assert (res[i] == torch.full((i + 1, (i + 1) * 2, idist.get_world_size() - i), i)).all()
 
     if idist.get_world_size() > 1:
         with pytest.raises(TypeError, match=r"Unhandled input type"):
@@ -218,7 +228,13 @@ def _test_distrib_all_gather_group(device):
             res = idist.all_gather(t, group=ranks)
             assert torch.equal(res, torch.tensor(ranks, device=device))
 
-        ranks = "abc"
+        t = torch.tensor([rank], device=device)
+        if bnd not in ("horovod"):
+            res = idist.all_gather(t, group=ranks, tensor_different_shape=True)
+            if rank not in ranks:
+                assert res == [t]
+            else:
+                assert torch.equal(res[rank], torch.tensor(ranks, device=device))
 
         if bnd in ("nccl", "gloo", "mpi"):
             with pytest.raises(ValueError, match=r"Argument group should be list of int or ProcessGroup"):
