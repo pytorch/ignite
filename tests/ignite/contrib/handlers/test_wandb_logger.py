@@ -208,7 +208,6 @@ def test_output_handler_with_global_step_transform():
 
 
 def test_output_handler_with_global_step_from_engine():
-
     mock_another_engine = MagicMock()
     mock_another_engine.state = State()
     mock_another_engine.state.epoch = 10
@@ -283,7 +282,6 @@ def test_wandb_close():
 
 @pytest.mark.parametrize("no_site_packages", ["wandb"], indirect=True)
 def test_no_wandb_client(no_site_packages):
-
     with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires wandb to be installed."):
         WandBLogger()
 

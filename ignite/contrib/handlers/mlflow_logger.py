@@ -101,7 +101,6 @@ class MLflowLogger(BaseLogger):
             self.active_run = mlflow.start_run()
 
     def __getattr__(self, attr: Any) -> Any:
-
         import mlflow
 
         return getattr(mlflow, attr)
@@ -230,7 +229,6 @@ class OutputHandler(BaseOutputHandler):
         )
 
     def __call__(self, engine: Engine, logger: MLflowLogger, event_name: Union[str, Events]) -> None:
-
         if not isinstance(logger, MLflowLogger):
             raise TypeError("Handler 'OutputHandler' works only with MLflowLogger")
 

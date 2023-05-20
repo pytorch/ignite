@@ -15,7 +15,6 @@ torch.manual_seed(15)
 
 
 def test_variable_accumulation_wrong_inputs():
-
     with pytest.raises(TypeError, match=r"Argument op should be a callable"):
         VariableAccumulation(1)
 
@@ -29,7 +28,6 @@ def test_variable_accumulation_wrong_inputs():
 
 
 def test_variable_accumulation_mean_variable():
-
     mean_var = VariableAccumulation(lambda a, x: a + x)
     y_true = torch.rand(100)
 
@@ -61,7 +59,6 @@ def test_variable_accumulation_mean_variable():
 
 
 def test_average():
-
     with pytest.raises(NotComputableError):
         v = Average()
         v.compute()
@@ -102,7 +99,6 @@ def _mean(y_true):
 
 
 def test_geom_average():
-
     with pytest.raises(NotComputableError):
         v = GeometricAverage()
         v.compute()
@@ -136,13 +132,11 @@ def test_geom_average():
 @pytest.mark.parametrize("metric_cls, true_result_fn", [(Average, _mean), (GeometricAverage, _geom_mean)])
 @pytest.mark.parametrize("shape", [[100, 12], [100]])
 def test_integration(metric_cls, true_result_fn, shape):
-
     assert len(shape) > 0 and len(shape) < 3
 
     custom_variable = 10.0 + 5.0 * torch.rand(shape)
 
     def update_fn(engine, batch):
-
         output = custom_variable[engine.state.iteration - 1]
         output = output.item() if output.ndimension() < 1 else output
         return 0, output
@@ -174,7 +168,7 @@ def test_compute_mean_std():
         _b, _c = batch.shape[:2]
         data = batch.reshape(_b, _c, -1).to(dtype=torch.float64)
         _mean = torch.mean(data, dim=-1)
-        _mean2 = torch.mean(data ** 2, dim=-1)
+        _mean2 = torch.mean(data**2, dim=-1)
         return {"mean": _mean, "mean^2": _mean2}
 
     compute_engine = Engine(compute_mean_std)
@@ -327,7 +321,6 @@ def _dist_geom_mean(y_true):
 
 def _test_distrib_integration(device):
     def _test(metric_cls, shape, true_result_fn, metric_device, tol=1e-5):
-
         size = 100
         custom_variable = 10.0 + 5.0 * torch.rand(size, *shape, dtype=torch.float64)
         custom_variable = custom_variable.to(device)
@@ -373,12 +366,10 @@ def _test_distrib_integration(device):
 
 
 def _test_distrib_accumulator_device(device):
-
     metric_devices = [torch.device("cpu")]
     if device.type != "xla":
         metric_devices.append(idist.device())
     for metric_device in metric_devices:
-
         m = VariableAccumulation(lambda a, x: x, device=metric_device)
         assert m._device == metric_device
         assert (
@@ -423,7 +414,6 @@ def _test_apex_average(device, amp_mode, opt_level):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
-
     device = idist.device()
     _test_distrib_variable_accumulation(device)
     _test_distrib_average(device)
@@ -435,7 +425,6 @@ def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
-
     device = idist.device()
     _test_distrib_variable_accumulation(device)
     _test_distrib_average(device)
@@ -448,7 +437,6 @@ def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
 @pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test_distrib_hvd(gloo_hvd_executor):
-
     device = idist.device()
     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
 
@@ -463,7 +451,6 @@ def test_distrib_hvd(gloo_hvd_executor):
 @pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_distrib_single_device_xla():
-
     device = idist.device()
     _test_distrib_variable_accumulation(device)
     _test_distrib_average(device)
@@ -505,7 +492,6 @@ def test_apex_average_on_cuda():
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
-
     device = idist.device()
     _test_distrib_variable_accumulation(device)
     _test_distrib_average(device)
@@ -518,7 +504,6 @@ def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
-
     device = idist.device()
     _test_distrib_variable_accumulation(device)
     _test_distrib_average(device)

@@ -28,7 +28,6 @@ def test_no_update():
 
 
 def test_average_parameter():
-
     re = Recall(average="samples")
     with pytest.raises(
         ValueError, match=r"Argument average='samples' is incompatible with binary and multiclass input data."
@@ -107,7 +106,6 @@ def ignite_average_to_scikit_average(average, data_type: str):
 
 @pytest.mark.parametrize("average", [None, False, "macro", "micro", "weighted"])
 def test_binary_input(average):
-
     re = Recall(average=average)
     assert re._updated is False
 
@@ -134,7 +132,6 @@ def test_binary_input(average):
         assert recall_score(np_y, np_y_pred, average=sk_average_parameter, labels=[0, 1]) == pytest.approx(re_compute)
 
     def get_test_cases():
-
         test_cases = [
             # Binary accuracy on input of shape (N, 1) or (N, )
             (torch.randint(0, 2, size=(10,)), torch.randint(0, 2, size=(10,)), 1),
@@ -227,7 +224,6 @@ def test_multiclass_wrong_inputs():
 
 @pytest.mark.parametrize("average", [None, False, "macro", "micro", "weighted"])
 def test_multiclass_input(average):
-
     re = Recall(average=average)
     assert re._updated is False
 
@@ -258,7 +254,6 @@ def test_multiclass_input(average):
             assert sk_compute == pytest.approx(re_compute)
 
     def get_test_cases():
-
         test_cases = [
             # Multiclass input data of shape (N, ) and (N, C)
             (torch.rand(10, 6), torch.randint(0, 6, size=(10,)), 1),
@@ -328,7 +323,6 @@ def to_numpy_multilabel(y):
 
 @pytest.mark.parametrize("average", [None, False, "macro", "micro", "samples"])
 def test_multilabel_input(average):
-
     re = Recall(average=average, is_multilabel=True)
     assert re._updated is False
 
@@ -356,7 +350,6 @@ def test_multilabel_input(average):
             assert recall_score(np_y, np_y_pred, average=sk_average_parameter) == pytest.approx(re_compute)
 
     def get_test_cases():
-
         test_cases = [
             # Multilabel input data of shape (N, C)
             (torch.randint(0, 2, size=(10, 5)), torch.randint(0, 2, size=(10, 5)), 1),
@@ -427,7 +420,6 @@ def test_incorrect_y_classes(average):
 
 
 def _test_distrib_integration_multiclass(device):
-
     from ignite.engine import Engine
 
     def _test(average, n_epochs, metric_device):
@@ -489,7 +481,6 @@ def _test_distrib_integration_multiclass(device):
 
 
 def _test_distrib_integration_multilabel(device):
-
     from ignite.engine import Engine
 
     torch.manual_seed(12)
@@ -642,7 +633,6 @@ def _test_distrib_multilabel_accumulator_device(device):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
-
     device = idist.device()
     _test_distrib_integration_multiclass(device)
     _test_distrib_integration_multilabel(device)
@@ -653,7 +643,6 @@ def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
-
     device = idist.device()
     _test_distrib_integration_multiclass(device)
     _test_distrib_integration_multilabel(device)
@@ -665,7 +654,6 @@ def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
 @pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test_distrib_hvd(gloo_hvd_executor):
-
     device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
 
@@ -679,7 +667,6 @@ def test_distrib_hvd(gloo_hvd_executor):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
-
     device = idist.device()
     _test_distrib_integration_multiclass(device)
     _test_distrib_integration_multilabel(device)
@@ -691,7 +678,6 @@ def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
-
     device = idist.device()
     _test_distrib_integration_multiclass(device)
     _test_distrib_integration_multilabel(device)

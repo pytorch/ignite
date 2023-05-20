@@ -488,7 +488,6 @@ def test_integration_as_context_manager():
 
 
 def test_neptune_saver_serializable(dirname):
-
     mock_logger = MagicMock(spec=NeptuneLogger)
     mock_logger.upload = MagicMock()
     model = torch.nn.Module()
@@ -503,7 +502,6 @@ def test_neptune_saver_serializable(dirname):
 
 @pytest.mark.parametrize("model, serializable", [(lambda x: x, False), (torch.nn.Module().to("cpu"), True)])
 def test_neptune_saver(model, serializable):
-
     mock_logger = MagicMock(spec=NeptuneLogger)
     mock_logger.upload = MagicMock()
 

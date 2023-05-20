@@ -23,7 +23,6 @@ from ignite.handlers import TerminateOnNan
     ],
 )
 def test_terminate_on_nan_and_inf(state_output, should_terminate):
-
     torch.manual_seed(12)
 
     def update_fn(engine, batch):
@@ -41,7 +40,6 @@ def test_terminate_on_nan_and_inf(state_output, should_terminate):
 
 
 def test_with_terminate_on_nan():
-
     torch.manual_seed(12)
 
     data = [1.0, 0.8, (torch.rand(4, 4), torch.rand(4, 4)), torch.rand(5), torch.asin(torch.randn(4, 4)), 0.0, 1.0]
@@ -58,7 +56,6 @@ def test_with_terminate_on_nan():
 
 
 def test_with_terminate_on_inf():
-
     torch.manual_seed(12)
 
     data = [
@@ -84,7 +81,6 @@ def test_with_terminate_on_inf():
 
 
 def test_without_terminate_on_nan_inf():
-
     data = [1.0, 0.8, torch.rand(4, 4), (torch.rand(5), torch.rand(5, 4)), 0.0, 1.0]
 
     def update_fn(engine, batch):

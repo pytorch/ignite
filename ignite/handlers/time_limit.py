@@ -29,7 +29,6 @@ class TimeLimit:
     """
 
     def __init__(self, limit_sec: Optional[int] = 28800):
-
         if not isinstance(limit_sec, int):
             raise TypeError("Argument limit_sec should be an integer.")
         if limit_sec <= 0:

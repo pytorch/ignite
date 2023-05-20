@@ -21,7 +21,6 @@ import docker
 
 
 def run_python_cmd(cmd):
-
     try_except_cmd = f"""
 import warnings
 warnings.filterwarnings("ignore")
@@ -65,7 +64,6 @@ base_cmd = """
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser("Check docker image script")
     parser.add_argument("image", type=str, help="Docker image to check")
     args = parser.parse_args()

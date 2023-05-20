@@ -34,7 +34,6 @@ class DummyInceptionMetric(_BaseInceptionMetric):
 
 
 def test_dummy_metric():
-
     with pytest.raises(ValueError, match=r"Argument num_features must be greater to zero, got:"):
         DummyInceptionMetric(num_features=-1, feature_extractor=torch.nn.Identity()).update(torch.rand(2, 0))
 
@@ -57,7 +56,6 @@ def test_dummy_metric():
 
 
 def test_inception_extractor_wrong_inputs():
-
     with pytest.raises(ValueError, match=r"Inputs should be a tensor of dim 4"):
         InceptionModel(return_features=True)(torch.rand(2))
 

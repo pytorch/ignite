@@ -40,18 +40,18 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.8, 3.9, "3.10"]
+        python-version: [3.8, 3.9, "3.10", "3.11"]
         pytorch-channel: [pytorch, pytorch-nightly]
         include:
           # includes a single build on windows
           - os: windows-latest
             pytorch-channel: pytorch
-            python-version: 3.8
+            python-version: 3.9
             skip-distrib-tests: 1
           # includes a single build on macosx
           - os: macos-latest
             pytorch-channel: pytorch
-            python-version: 3.8
+            python-version: 3.9
             skip-distrib-tests: 1
 
     steps:

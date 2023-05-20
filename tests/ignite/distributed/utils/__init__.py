@@ -72,7 +72,6 @@ def _test_distrib__get_max_length(device):
 
 
 def _test_distrib_all_reduce(device):
-
     res = idist.all_reduce(10)
     assert res == 10 * idist.get_world_size()
 
@@ -120,7 +119,6 @@ def _test_distrib_all_reduce(device):
 
 
 def _test_distrib_all_reduce_group(device):
-
     if idist.get_world_size() > 1 and idist.backend() is not None:
         ranks = [0, 1]
         rank = idist.get_rank()
@@ -157,7 +155,6 @@ def _test_distrib_all_reduce_group(device):
 
 
 def _test_distrib_all_gather(device):
-
     res = torch.tensor(idist.all_gather(10), device=device)
     true_res = torch.tensor([10] * idist.get_world_size(), device=device)
     assert (res == true_res).all()
@@ -199,7 +196,6 @@ def _test_distrib_all_gather(device):
 
 
 def _test_distrib_all_gather_group(device):
-
     if idist.get_world_size() > 1:
         ranks = [0, 1]
         rank = idist.get_rank()
@@ -236,13 +232,11 @@ def _test_distrib_all_gather_group(device):
 
 
 def _test_distrib_broadcast(device):
-
     rank = idist.get_rank()
     ws = idist.get_world_size()
 
     def _test(data_src, data_others, safe_mode):
         for src in range(ws):
-
             data = data_src if rank == src else data_others
             res = idist.broadcast(data, src=src, safe_mode=safe_mode)
 
@@ -290,7 +284,6 @@ def _test_distrib_broadcast(device):
 
 
 def _test_distrib_barrier(device):
-
     t = torch.tensor([idist.get_rank()], device=device, dtype=torch.float)
     true_res = sum([i for i in range(idist.get_world_size())])
 
@@ -303,12 +296,10 @@ def _test_distrib_barrier(device):
 
 
 def _test_distrib_new_group(device):
-
     if idist.get_world_size() > 1 and idist.backend() is not None:
         bnd = idist.backend()
         ranks = [0, 1]
         if idist.has_native_dist_support and bnd in ("nccl", "gloo", "mpi"):
-
             g1 = idist.new_group(ranks)
             g2 = dist.new_group(ranks)
 
@@ -316,7 +307,6 @@ def _test_distrib_new_group(device):
             if rank in ranks:
                 assert g1.rank() == g2.rank()
         elif idist.has_xla_support and bnd in ("xla-tpu"):
-
             assert idist.new_group(ranks) == [ranks]
         elif idist.has_hvd_support and bnd in ("horovod"):
             from horovod.common.process_sets import ProcessSet

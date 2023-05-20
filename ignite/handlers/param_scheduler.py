@@ -193,7 +193,6 @@ class ParamScheduler(BaseParamScheduler):
         self._state_attrs += ["param_group_index"]
 
     def __call__(self, engine: Optional[Engine], name: Optional[str] = None) -> None:
-
         value = self.get_param()
 
         if isinstance(value, list):
@@ -595,7 +594,6 @@ class ConcatScheduler(ParamScheduler):
     """
 
     def __init__(self, schedulers: List[ParamScheduler], durations: List[int], save_history: bool = False):
-
         if not isinstance(schedulers, Sequence):
             raise TypeError(f"Argument schedulers should be a sequence, but given {schedulers}")
 
@@ -848,7 +846,6 @@ class LRScheduler(ParamScheduler):
         save_history: bool = False,
         use_legacy: bool = False,
     ):
-
         if not isinstance(lr_scheduler, PyTorchLRScheduler):
             raise TypeError(
                 "Argument lr_scheduler should be a subclass of "
@@ -1019,7 +1016,6 @@ def create_lr_scheduler_with_warmup(
     warmup_schedulers: List[ParamScheduler] = []
 
     for param_group_index, param_group in enumerate(lr_scheduler.optimizer.param_groups):
-
         if warmup_end_value is None:
             param_group_warmup_end_value = param_group["lr"]
         else:
@@ -1436,7 +1432,7 @@ class ParamGroupScheduler:
         """
         Method to get current `schedulers`' parameter values
 
-        .. versionadded:: 0.5.0
+        .. versionadded:: 0.4.11
         """
         return [scheduler.get_param() for scheduler in self.schedulers]
 

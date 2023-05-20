@@ -6,7 +6,6 @@ import ignite.distributed as idist
 
 
 def training(local_rank, config, **kwargs):
-
     import time
 
     time.sleep(idist.get_rank() * 0.1)

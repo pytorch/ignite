@@ -182,13 +182,11 @@ def setup_logger(
 
     # Remove previous handlers
     if distributed_rank > 0 or reset:
-
         if logger.hasHandlers():
             for h in list(logger.handlers):
                 logger.removeHandler(h)
 
     if distributed_rank > 0:
-
         # Add null handler to avoid multiple parallel messages
         logger.addHandler(logging.NullHandler())
 
@@ -254,7 +252,6 @@ def manual_seed(seed: int) -> None:
 def deprecated(
     deprecated_in: str, removed_in: str = "", reasons: Tuple[str, ...] = (), raise_exception: bool = False
 ) -> Callable:
-
     F = TypeVar("F", bound=Callable[..., Any])
 
     def decorator(func: F) -> F:

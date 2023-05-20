@@ -1,10 +1,9 @@
 # Tests
 numpy
 pytest
-codecov
 pytest-cov
 pytest-xdist
-dill==0.3.4
+dill
 setuptools
 # Test contrib dependencies
 scipy

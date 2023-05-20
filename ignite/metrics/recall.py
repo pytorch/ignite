@@ -221,17 +221,14 @@ class Recall(_BasePrecisionRecall):
         _, y, correct = self._prepare_output(output)
 
         if self._average == "samples":
-
             actual_positives = y.sum(dim=1)
             true_positives = correct.sum(dim=1)
             self._numerator += torch.sum(true_positives / (actual_positives + self.eps))
             self._denominator += y.size(0)
         elif self._average == "micro":
-
             self._denominator += y.sum()
             self._numerator += correct.sum()
         else:  # _average in [False, 'macro', 'weighted']
-
             self._denominator += y.sum(dim=0)
             self._numerator += correct.sum(dim=0)
 

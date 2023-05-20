@@ -190,19 +190,19 @@ def test_arithmetics():
     assert m2_times_2.compute() == 200
 
     # __pow__
-    m0_pow_m1 = m0 ** m1
+    m0_pow_m1 = m0**m1
     m0.update([1, 10, 100])
     m1.update([1, 10, 100])
     assert m0_pow_m1.compute() == 1
     m0.update([2, 20, 200])
     m1.update([2, 20, 200])
-    assert m0_pow_m1.compute() == 2 ** 20
+    assert m0_pow_m1.compute() == 2**20
 
-    m2_pow_2 = m2 ** 2
+    m2_pow_2 = m2**2
     m2.update([1, 10, 100])
     assert m2_pow_2.compute() == 10000
 
-    m2_pow_2 = 0.99 ** m2
+    m2_pow_2 = 0.99**m2
     m2.update([1, 10, 100])
     assert m2_pow_2.compute() == 0.3660323412732292
 
@@ -404,7 +404,6 @@ def test_abstract_class():
 
 def test_pytorch_operators():
     def _test(composed_metric, metric_name, compute_true_value_fn):
-
         metrics = {
             metric_name: composed_metric,
         }
@@ -700,7 +699,6 @@ def _test_creating_on_xla_fails(device):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
-
     device = idist.device()
     _test_distrib_sync_all_reduce_decorator(device)
     _test_invalid_sync_all_reduce(device)
@@ -710,7 +708,6 @@ def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
-
     device = idist.device()
     _test_distrib_sync_all_reduce_decorator(device)
     _test_invalid_sync_all_reduce(device)
@@ -721,7 +718,6 @@ def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
 @pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test_distrib_hvd(gloo_hvd_executor):
-
     device = "cpu" if not torch.cuda.is_available() else "cuda"
     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
 
@@ -734,7 +730,6 @@ def test_distrib_hvd(gloo_hvd_executor):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
-
     device = idist.device()
     _test_distrib_sync_all_reduce_decorator(device)
     _test_invalid_sync_all_reduce(device)
@@ -745,7 +740,6 @@ def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
-
     device = idist.device()
     _test_distrib_sync_all_reduce_decorator(device)
     _test_invalid_sync_all_reduce(device)
@@ -818,7 +812,6 @@ def test_completed():
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_completed_on_cuda():
-
     # Checks https://github.com/pytorch/ignite/issues/1635#issuecomment-863026919
 
     class DummyMetric(Metric):

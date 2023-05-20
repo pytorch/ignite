@@ -100,13 +100,11 @@ def test_to_onehot():
 
 
 def test_dist_setup_logger():
-
     logger = setup_logger("trainer", level=logging.CRITICAL, distributed_rank=1)
     assert logger.level != logging.CRITICAL
 
 
 def test_setup_logger(capsys, dirname):
-
     trainer = Engine(lambda e, b: None)
     evaluator = Engine(lambda e, b: None)
 
@@ -118,7 +116,6 @@ def test_setup_logger(capsys, dirname):
     fp = dirname / "log"
 
     def _test(stream):
-
         trainer.logger = setup_logger("trainer", stream=stream, filepath=fp, reset=True)
         evaluator.logger = setup_logger("evaluator", stream=stream, filepath=fp, reset=True)
 
@@ -158,7 +155,6 @@ def _setup_a_logger_and_dump(name, message):
 
 
 def test_override_setup_logger(capsys):
-
     _setup_a_logger_and_dump(__name__, "test_override_setup_logger")
 
     source = capsys.readouterr().err.split("\n")
@@ -179,7 +175,6 @@ def test_override_setup_logger(capsys):
 
 
 def test_deprecated():
-
     # Test on function without docs, @deprecated without reasons
     @deprecated("0.4.2", "0.6.0")
     def func_no_docs():

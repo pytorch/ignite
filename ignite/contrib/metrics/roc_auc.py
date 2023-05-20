@@ -79,7 +79,6 @@ class ROC_AUC(EpochMetric):
         check_compute_fn: bool = False,
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
-
         try:
             from sklearn.metrics import roc_auc_score  # noqa: F401
         except ImportError:
@@ -152,7 +151,6 @@ class RocCurve(EpochMetric):
         check_compute_fn: bool = False,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
-
         try:
             from sklearn.metrics import roc_curve  # noqa: F401
         except ImportError:

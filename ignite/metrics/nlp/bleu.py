@@ -49,7 +49,6 @@ class _Smoother:
 
     @staticmethod
     def _smooth2(numerators: torch.Tensor, denominators: torch.Tensor) -> Sequence[float]:
-
         return [
             (n.item() + 1) / (d.item() + 1) if i != 0 else n.item() / d.item()
             for i, (n, d) in enumerate(zip(numerators, denominators))
@@ -157,7 +156,6 @@ class Bleu(Metric):
         p_numerators: torch.Tensor,
         p_denominators: torch.Tensor,
     ) -> Tuple[int, int]:
-
         if len(references) != len(candidates):
             raise ValueError(
                 f"nb of candidates should be equal to nb of reference lists ({len(candidates)} != "
@@ -187,7 +185,6 @@ class Bleu(Metric):
     def _brevity_penalty_smoothing(
         self, p_numerators: torch.Tensor, p_denominators: torch.Tensor, hyp_length_sum: int, ref_length_sum: int
     ) -> float:
-
         # Returns 0 if there's no matching n-grams
         # We only need to check for p_numerators[1] == 0, since if there's
         # no unigrams, there won't be any higher order ngrams.
@@ -216,7 +213,6 @@ class Bleu(Metric):
         return self._corpus_bleu([references], [candidates])
 
     def _corpus_bleu(self, references: Sequence[Sequence[Sequence[Any]]], candidates: Sequence[Sequence[Any]]) -> float:
-
         p_numerators: torch.Tensor = torch.zeros(self.ngrams_order + 1)
         p_denominators: torch.Tensor = torch.zeros(self.ngrams_order + 1)
 
@@ -234,7 +230,6 @@ class Bleu(Metric):
 
     @reinit__is_reduced
     def reset(self) -> None:
-
         if self.average == "macro":
             self._sum_of_bleu = torch.tensor(0.0, dtype=torch.double, device=self._device)
             self._num_sentences = 0
@@ -270,7 +265,6 @@ class Bleu(Metric):
 
     @sync_all_reduce("p_numerators", "p_denominators", "hyp_length_sum", "ref_length_sum")
     def _compute_micro(self) -> float:
-
         bleu_score = self._brevity_penalty_smoothing(
             p_numerators=self.p_numerators,
             p_denominators=self.p_denominators,

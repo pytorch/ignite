@@ -50,7 +50,6 @@ class EarlyStopping(Serializable):
         min_delta: float = 0.0,
         cumulative_delta: bool = False,
     ):
-
         if not callable(score_function):
             raise TypeError("Argument score_function should be a function.")
 

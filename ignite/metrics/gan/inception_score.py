@@ -84,7 +84,6 @@ class InceptionScore(_BaseInceptionMetric):
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
-
         if num_features is None and feature_extractor is None:
             num_features = 1000
             feature_extractor = InceptionModel(return_features=False, device=device)
@@ -100,7 +99,6 @@ class InceptionScore(_BaseInceptionMetric):
 
     @reinit__is_reduced
     def reset(self) -> None:
-
         self._num_examples = 0
 
         self._prob_total = torch.zeros(self._num_features, dtype=torch.float64, device=self._device)
@@ -110,7 +108,6 @@ class InceptionScore(_BaseInceptionMetric):
 
     @reinit__is_reduced
     def update(self, output: torch.Tensor) -> None:
-
         probabilities = self._extract_features(output)
 
         prob_sum = torch.sum(probabilities, 0, dtype=torch.float64)
@@ -125,7 +122,6 @@ class InceptionScore(_BaseInceptionMetric):
 
     @sync_all_reduce("_num_examples", "_prob_total", "_total_kl_d")
     def compute(self) -> float:
-
         if self._num_examples == 0:
             raise NotComputableError("InceptionScore must have at least one example before it can be computed.")
 

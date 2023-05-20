@@ -10,6 +10,5 @@ def test_state_dict():
 
 
 def test_load_state_dict():
-
     s = Serializable()
     s.load_state_dict({})

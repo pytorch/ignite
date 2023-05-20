@@ -11,9 +11,9 @@ if TYPE_CHECKING:
     from ignite.distributed.comp_models.xla import _XlaDistModel
 
 
-def setup_available_computation_models() -> Tuple[
-    Type[Union[_SerialModel, "_NativeDistModel", "_XlaDistModel", "_HorovodDistModel"]], ...
-]:
+def setup_available_computation_models() -> (
+    Tuple[Type[Union[_SerialModel, "_NativeDistModel", "_XlaDistModel", "_HorovodDistModel"]], ...]
+):
     models: List[Type[Union[_SerialModel, "_NativeDistModel", "_XlaDistModel", "_HorovodDistModel"]]] = [
         _SerialModel,
     ]

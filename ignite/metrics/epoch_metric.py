@@ -74,7 +74,6 @@ class EpochMetric(Metric):
         check_compute_fn: bool = True,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
-
         if not callable(compute_fn):
             raise TypeError("Argument compute_fn should be callable.")
 

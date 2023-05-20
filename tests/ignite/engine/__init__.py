@@ -5,7 +5,6 @@ try:
 except ImportError:
 
     class IterableDataset:
-
         pass
 
 

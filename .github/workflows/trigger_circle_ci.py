@@ -42,7 +42,6 @@ def assert_pipeline_created(pipeline_id, headers):
 
 
 def get_workflow_id(pipeline_id, headers):
-
     while True:
         result = requests.get(f"https://circleci.com/api/v2/pipeline/{pipeline_id}/workflow", headers=headers)
         assert_result(result, 200)
@@ -59,7 +58,6 @@ def get_workflow_id(pipeline_id, headers):
 
 
 def assert_workflows_successful(pipeline_id, headers):
-
     workflow_id = get_workflow_id(pipeline_id, headers)
 
     base_url = "https://app.circleci.com/pipelines/github/pytorch/ignite"
@@ -84,7 +82,6 @@ def assert_workflows_successful(pipeline_id, headers):
 
 
 if __name__ == "__main__":
-
     print("Trigger new pipeline on Circle-CI")
 
     if "CIRCLE_TOKEN" not in os.environ:

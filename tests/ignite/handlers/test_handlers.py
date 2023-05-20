@@ -5,7 +5,6 @@ from ignite.handlers import global_step_from_engine
 
 
 def test_global_step_from_engine():
-
     iteration = 12
     epoch = 23
 
