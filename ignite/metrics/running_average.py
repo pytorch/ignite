@@ -143,6 +143,8 @@ class RunningAverage(Metric):
         if self.epoch_bound:
             # restart average every epoch
             engine.add_event_handler(Events.EPOCH_STARTED, self.started)
+        else:
+            engine.add_event_handler(Events.EPOCH_STARTED(once=1), self.started)
         # compute metric
         engine.add_event_handler(Events.ITERATION_COMPLETED, self.iteration_completed)
         # apply running average
