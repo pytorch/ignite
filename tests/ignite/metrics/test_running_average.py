@@ -146,9 +146,7 @@ def test_epoch_unbound():
 
     running_avg_acc = [None]
 
-    @trainer.on(Events.STARTED)
-    def running_avg_output_init(engine):
-        engine.state.running_avg_output = None
+    trainer.state.running_avg_output = None
 
     @trainer.on(Events.ITERATION_COMPLETED, running_avg_acc)
     def manual_running_avg_acc(engine, running_avg_acc):
@@ -187,7 +185,8 @@ def test_epoch_unbound():
 
     trainer.run(data, max_epochs=3)
 
-    running_avg_acc[:] = [None]
+    running_avg_acc[0] = None
+    trainer.state.running_avg_output = None
     trainer.run(data, max_epochs=3)
 
 
