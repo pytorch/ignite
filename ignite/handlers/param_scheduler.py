@@ -793,15 +793,19 @@ class ConcatScheduler(ParamScheduler):
 
 
 class _CosineAnnealingWarmRestarts:
-    def __init__(self, lr_scheduler):
+    def __init__(self, lr_scheduler: torch.optim.lr_scheduler.CosineAnnealingWarmRestarts):
         self._lr_scheduler = lr_scheduler
 
     @property
-    def last_epoch(self):
+    def last_epoch(self) -> int:
         return self._lr_scheduler.last_epoch
 
+    @property
+    def optimizer(self) -> torch.optim.Optimizer:
+        return self._lr_scheduler.optimizer
+
     @last_epoch.setter
-    def last_epoch(self, value):
+    def last_epoch(self, value: int):
         self._lr_scheduler.last_epoch = value
 
     def get_lr(self, epoch: Union[int, None] = None) -> Union[List[float], float]:
@@ -834,6 +838,7 @@ class _CosineAnnealingWarmRestarts:
             else:
                 self._lr_scheduler.T_i = self._lr_scheduler.T_0
                 self._lr_scheduler.T_cur = epoch
+
         self.last_epoch = math.floor(epoch)
 
         if not self._get_lr_called_within_step:
@@ -900,7 +905,7 @@ class LRScheduler(ParamScheduler):
 
     def __init__(
         self,
-        lr_scheduler: PyTorchLRScheduler,
+        lr_scheduler: Union[PyTorchLRScheduler, _CosineAnnealingWarmRestarts],
         save_history: bool = False,
         use_legacy: bool = False,
     ):
@@ -916,7 +921,7 @@ class LRScheduler(ParamScheduler):
             self.lr_scheduler = lr_scheduler
 
         super(LRScheduler, self).__init__(
-            optimizer=lr_scheduler.optimizer,
+            optimizer=self.lr_scheduler.optimizer,
             param_name="lr",
             save_history=save_history,
         )
