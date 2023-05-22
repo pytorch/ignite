@@ -125,9 +125,9 @@ def test_epoch_unbound():
     batch_size = 10
     n_classes = 10
     data = list(range(n_iters))
-    loss_values = iter(range(n_epochs * n_iters))
-    y_true_batch_values = iter(np.random.randint(0, n_classes, size=(n_epochs * n_iters, batch_size)))
-    y_pred_batch_values = iter(np.random.rand(n_epochs * n_iters, batch_size, n_classes))
+    loss_values = iter(range(2 * n_epochs * n_iters))
+    y_true_batch_values = iter(np.random.randint(0, n_classes, size=(2 * n_epochs * n_iters, batch_size)))
+    y_pred_batch_values = iter(np.random.rand(2 * n_epochs * n_iters, batch_size, n_classes))
 
     def update_fn(engine, batch):
         loss_value = next(loss_values)
@@ -146,9 +146,7 @@ def test_epoch_unbound():
 
     running_avg_acc = [None]
 
-    @trainer.on(Events.STARTED)
-    def running_avg_output_init(engine):
-        engine.state.running_avg_output = None
+    trainer.state.running_avg_output = None
 
     @trainer.on(Events.ITERATION_COMPLETED, running_avg_acc)
     def manual_running_avg_acc(engine, running_avg_acc):
@@ -185,6 +183,10 @@ def test_epoch_unbound():
             engine.state.running_avg_output == engine.state.metrics["running_avg_output"]
         ), f"{engine.state.running_avg_output} vs {engine.state.metrics['running_avg_output']}"
 
+    trainer.run(data, max_epochs=3)
+
+    running_avg_acc[0] = None
+    trainer.state.running_avg_output = None
     trainer.run(data, max_epochs=3)
 
 
