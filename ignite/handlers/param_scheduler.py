@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, cast, Dict, List, Mapping, Optional, Sequence, Tuple, Type, Union
 
 import torch
-from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ReduceLROnPlateau
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.optim.optimizer import Optimizer
 
 # https://github.com/pytorch/ignite/issues/2773
@@ -792,6 +792,64 @@ class ConcatScheduler(ParamScheduler):
             return output
 
 
+class _CosineAnnealingWarmRestarts:
+    def __init__(self, lr_scheduler):
+        self._lr_scheduler = lr_scheduler
+
+    @property
+    def last_epoch(self):
+        return self._lr_scheduler.last_epoch
+
+    @last_epoch.setter
+    def last_epoch(self, value):
+        self._lr_scheduler.last_epoch = value
+
+    def get_lr(self, epoch: Union[int, None] = None) -> Union[List[float], float]:
+        if epoch is None and self.last_epoch < 0:
+            epoch = 0
+
+        if epoch is None:
+            epoch = self.last_epoch + 1
+            self._lr_scheduler.T_cur = self._lr_scheduler.T_cur + 1
+            if self._lr_scheduler.T_cur >= self._lr_scheduler.T_i:
+                self._lr_scheduler.T_cur = self._lr_scheduler.T_cur - self._lr_scheduler.T_i
+                self._lr_scheduler.T_i = self._lr_scheduler.T_i * self._lr_scheduler.T_mult
+        else:
+            if epoch < 0:
+                raise ValueError("Expected non-negative epoch, but got {}".format(epoch))
+            if epoch >= self._lr_scheduler.T_0:
+                if self._lr_scheduler.T_mult == 1:
+                    self._lr_scheduler.T_cur = epoch % self._lr_scheduler.T_0
+                else:
+                    n = int(
+                        math.log(
+                            (epoch / self._lr_scheduler.T_0 * (self._lr_scheduler.T_mult - 1) + 1),
+                            self._lr_scheduler.T_mult,
+                        )
+                    )
+                    self._lr_scheduler.T_cur = epoch - self._lr_scheduler.T_0 * (self._lr_scheduler.T_mult**n - 1) / (
+                        self._lr_scheduler.T_mult - 1
+                    )
+                    self._lr_scheduler.T_i = self._lr_scheduler.T_0 * self._lr_scheduler.T_mult ** (n)
+            else:
+                self._lr_scheduler.T_i = self._lr_scheduler.T_0
+                self._lr_scheduler.T_cur = epoch
+        self.last_epoch = math.floor(epoch)
+
+        if not self._get_lr_called_within_step:
+            warnings.warn(
+                "To get the last learning rate computed by the scheduler, " "please use `get_last_lr()`.", UserWarning
+            )
+
+        return [
+            self._lr_scheduler.eta_min
+            + (base_lr - self._lr_scheduler.eta_min)
+            * (1 + math.cos(math.pi * self._lr_scheduler.T_cur / self._lr_scheduler.T_i))
+            / 2
+            for base_lr in self._lr_scheduler.base_lrs
+        ]
+
+
 class LRScheduler(ParamScheduler):
     """A wrapper class to call `torch.optim.lr_scheduler` objects as `ignite` handlers.
 
@@ -853,47 +911,12 @@ class LRScheduler(ParamScheduler):
                 f"but given {type(lr_scheduler)}"
             )
         if isinstance(lr_scheduler, torch.optim.lr_scheduler.CosineAnnealingWarmRestarts):
+            self.lr_scheduler = _CosineAnnealingWarmRestarts(lr_scheduler)
+        else:
+            self.lr_scheduler = lr_scheduler
 
-            class _CosineAnnealingWarmRestarts(CosineAnnealingWarmRestarts):
-                def get_lr(self, epoch: Union[int, None] = None) -> Union[List[float], float]:
-                    if epoch is None and self.last_epoch < 0:
-                        epoch = 0
-
-                    if epoch is None:
-                        epoch = self.last_epoch + 1
-                        self.T_cur = self.T_cur + 1
-                        if self.T_cur >= self.T_i:
-                            self.T_cur = self.T_cur - self.T_i
-                            self.T_i = self.T_i * self.T_mult
-                    else:
-                        if epoch < 0:
-                            raise ValueError("Expected non-negative epoch, but got {}".format(epoch))
-                        if epoch >= self.T_0:
-                            if self.T_mult == 1:
-                                self.T_cur = epoch % self.T_0
-                            else:
-                                n = int(math.log((epoch / self.T_0 * (self.T_mult - 1) + 1), self.T_mult))
-                                self.T_cur = epoch - self.T_0 * (self.T_mult**n - 1) / (self.T_mult - 1)
-                                self.T_i = self.T_0 * self.T_mult ** (n)
-                        else:
-                            self.T_i = self.T_0
-                            self.T_cur = epoch
-                    self.last_epoch = math.floor(epoch)
-
-                    return super(_CosineAnnealingWarmRestarts, self).get_lr()
-
-            lr_scheduler = _CosineAnnealingWarmRestarts(
-                lr_scheduler.optimizer,
-                lr_scheduler.T_0,
-                lr_scheduler.T_mult,
-                lr_scheduler.eta_min,
-                lr_scheduler.last_epoch,
-                lr_scheduler.verbose,
-            )
-
-        self.lr_scheduler = lr_scheduler
         super(LRScheduler, self).__init__(
-            optimizer=self.lr_scheduler.optimizer,
+            optimizer=lr_scheduler.optimizer,
             param_name="lr",
             save_history=save_history,
         )

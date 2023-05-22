@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 import torch
-from torch.optim.lr_scheduler import ExponentialLR, StepLR
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ExponentialLR, StepLR
 
 from ignite.engine import Engine, Events
 from ignite.handlers.param_scheduler import (
@@ -1362,3 +1362,33 @@ def test_reduce_lr_on_plateau_scheduler_asserts():
     with pytest.raises(ValueError, match=r"Length of argument metric_values should be equal to num_events."):
         metric_values = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
         ReduceLROnPlateauScheduler.simulate_values(5, metric_values, 0.01)
+
+
+def test_create_lr_scheduler_with_warmup2():
+    def get_optim():
+        lr = 0.2
+        t1 = torch.zeros([1], requires_grad=True)
+        return torch.optim.SGD([t1], lr=lr)
+
+    def get_cos_shed():
+        return CosineAnnealingWarmRestarts(optimizer, T_0=12, T_mult=3, verbose=False)
+
+    optimizer = get_optim()
+    scheduler = get_cos_shed()
+    cosine_lrs = []
+    for i in range(10):
+        cosine_lrs.append(optimizer.param_groups[0]["lr"])
+        scheduler.step()
+
+    optimizer = get_optim()
+    scheduler = create_lr_scheduler_with_warmup(
+        get_cos_shed(), warmup_start_value=0.023, warmup_end_value=0.23, warmup_duration=10
+    )
+
+    warm_lrs = []
+    for epoch in range(20):
+        scheduler(None)
+        warm_lrs.append(optimizer.param_groups[0]["lr"])
+
+    assert (np.linspace(0.023, 0.23, 10).round(3) == np.array(warm_lrs[:10]).round(3)).all()
+    assert warm_lrs[10:] == cosine_lrs
