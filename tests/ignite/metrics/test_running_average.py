@@ -188,7 +188,7 @@ def test_epoch_unbound():
     trainer.run(data, max_epochs=3)
 
     running_avg_acc[:] = [None]
-    trainer.run([1] * n_iters, max_epochs=3)
+    trainer.run(data, max_epochs=3)
 
 
 def test_multiple_attach():
