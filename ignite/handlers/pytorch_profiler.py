@@ -111,7 +111,6 @@ class PyTorchProfiler:
         active: int = 3,
         repeat: int = 1,
     ) -> None:
-
         try:
             from torch import profiler
         except ImportError:
@@ -241,7 +240,6 @@ class PyTorchProfiler:
         )
 
     def write_results(self, n: int = -1, sort_key: str = "self_cuda_memory_usage", top_level_events_only=False):
-
         with open(os.path.join(self._output_path, self._file_name + ".txt"), "w") as f:
             f.write(self.get_results(n, sort_key, top_level_events_only))
 
