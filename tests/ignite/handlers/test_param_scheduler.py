@@ -1364,7 +1364,7 @@ def test_reduce_lr_on_plateau_scheduler_asserts():
         ReduceLROnPlateauScheduler.simulate_values(5, metric_values, 0.01)
 
 
-def test_create_lr_scheduler_with_warmup2():
+def test_create_lr_scheduler_with_warmup_cosine():
     def get_optim():
         lr = 0.2
         t1 = torch.zeros([1], requires_grad=True)
