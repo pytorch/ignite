@@ -136,7 +136,6 @@ class ComputationModel(metaclass=ABCMeta):
     def _setup_placeholder(
         self, x: Union[torch.Tensor, float, str, None], device: torch.device, is_src: bool
     ) -> Union[torch.Tensor, float, str]:
-
         encoded_msg_per_rank = self._encode_input_data(x, is_src)
         encoded_msg_all_ranks = self._do_all_reduce(torch.tensor(encoded_msg_per_rank, device=device), op="MAX")
 

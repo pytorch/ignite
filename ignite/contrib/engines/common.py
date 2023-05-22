@@ -176,7 +176,6 @@ def _setup_common_training_handlers(
         trainer.add_event_handler(Events.EPOCH_COMPLETED, empty_cuda_cache)
 
     if to_save is not None:
-
         if output_path is None and save_handler is None:
             raise ValueError(
                 "If to_save argument is provided then output_path or save_handler arguments should be also defined"
@@ -242,7 +241,6 @@ def _setup_common_distrib_training_handlers(
     save_handler: Optional[Union[Callable, BaseSaveHandler]] = None,
     **kwargs: Any,
 ) -> None:
-
     _setup_common_training_handlers(
         trainer,
         to_save=to_save,
@@ -580,6 +578,7 @@ def gen_save_best_models_by_val_score(
     n_saved: int = 3,
     trainer: Optional[Engine] = None,
     tag: str = "val",
+    score_sign: float = 1.0,
     **kwargs: Any,
 ) -> Checkpoint:
     """Method adds a handler to ``evaluator`` to save ``n_saved`` of best models based on the metric
@@ -602,6 +601,8 @@ def gen_save_best_models_by_val_score(
         n_saved: number of best models to store
         trainer: trainer engine to fetch the epoch when saving the best model.
         tag: score name prefix: `{tag}_{metric_name}`. By default, tag is "val".
+        score_sign: sign of the score: 1.0 or -1.0. For error-like metrics, e.g. smaller is better,
+            a negative score sign should be used (objects with larger score are retained). Default, 1.0.
         kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.
 
     Returns:
@@ -623,7 +624,7 @@ def gen_save_best_models_by_val_score(
         n_saved=n_saved,
         global_step_transform=global_step_transform,
         score_name=f"{tag}_{metric_name.lower()}",
-        score_function=Checkpoint.get_default_score_fn(metric_name),
+        score_function=get_default_score_fn(metric_name, score_sign=score_sign),
         **kwargs,
     )
     evaluator.add_event_handler(Events.COMPLETED, best_model_handler)
@@ -639,6 +640,7 @@ def save_best_model_by_val_score(
     n_saved: int = 3,
     trainer: Optional[Engine] = None,
     tag: str = "val",
+    score_sign: float = 1.0,
     **kwargs: Any,
 ) -> Checkpoint:
     """Method adds a handler to ``evaluator`` to save on a disk ``n_saved`` of best models based on the metric
@@ -654,6 +656,9 @@ def save_best_model_by_val_score(
         n_saved: number of best models to store
         trainer: trainer engine to fetch the epoch when saving the best model.
         tag: score name prefix: `{tag}_{metric_name}`. By default, tag is "val".
+        score_sign: sign of the score: 1.0 or -1.0. For error-like metrics, e.g. smaller is better,
+            a negative score sign should be used (objects with larger score are retained). Default, 1.0.
+
         kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.
 
     Returns:
@@ -667,12 +672,17 @@ def save_best_model_by_val_score(
         n_saved=n_saved,
         trainer=trainer,
         tag=tag,
+        score_sign=score_sign,
         **kwargs,
     )
 
 
 def add_early_stopping_by_val_score(
-    patience: int, evaluator: Engine, trainer: Engine, metric_name: str
+    patience: int,
+    evaluator: Engine,
+    trainer: Engine,
+    metric_name: str,
+    score_sign: float = 1.0,
 ) -> EarlyStopping:
     """Method setups early stopping handler based on the score (named by `metric_name`) provided by `evaluator`.
     Metric value should increase in order to keep training and not early stop.
@@ -683,11 +693,15 @@ def add_early_stopping_by_val_score(
         trainer: trainer engine to stop the run if no improvement.
         metric_name: metric name to use for score evaluation. This metric should be present in
             `evaluator.state.metrics`.
+        score_sign: sign of the score: 1.0 or -1.0. For error-like metrics, e.g. smaller is better,
+            a negative score sign should be used (objects with larger score are retained). Default, 1.0.
 
     Returns:
         A :class:`~ignite.handlers.early_stopping.EarlyStopping` handler.
     """
-    es_handler = EarlyStopping(patience=patience, score_function=get_default_score_fn(metric_name), trainer=trainer)
+    es_handler = EarlyStopping(
+        patience=patience, score_function=get_default_score_fn(metric_name, score_sign=score_sign), trainer=trainer
+    )
     evaluator.add_event_handler(Events.COMPLETED, es_handler)
 
     return es_handler

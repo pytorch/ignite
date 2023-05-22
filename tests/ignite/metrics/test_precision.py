@@ -102,7 +102,6 @@ def ignite_average_to_scikit_average(average, data_type: str):
 
 @pytest.mark.parametrize("average", [None, False, "macro", "micro", "weighted"])
 def test_binary_input(average):
-
     pr = Precision(average=average)
     assert pr._updated is False
 
@@ -131,7 +130,6 @@ def test_binary_input(average):
         ) == pytest.approx(pr_compute)
 
     def get_test_cases():
-
         test_cases = [
             # Binary accuracy on input of shape (N, 1) or (N, )
             (torch.randint(0, 2, size=(10,)), torch.randint(0, 2, size=(10,)), 1),
@@ -224,7 +222,6 @@ def test_multiclass_wrong_inputs():
 
 @pytest.mark.parametrize("average", [None, False, "macro", "micro", "weighted"])
 def test_multiclass_input(average):
-
     pr = Precision(average=average)
     assert pr._updated is False
 
@@ -255,7 +252,6 @@ def test_multiclass_input(average):
             assert sk_compute == pytest.approx(pr_compute)
 
     def get_test_cases():
-
         test_cases = [
             # Multiclass input data of shape (N, ) and (N, C)
             (torch.rand(10, 6), torch.randint(0, 6, size=(10,)), 1),
@@ -325,7 +321,6 @@ def to_numpy_multilabel(y):
 
 @pytest.mark.parametrize("average", [None, False, "macro", "micro", "weighted", "samples"])
 def test_multilabel_input(average):
-
     pr = Precision(average=average, is_multilabel=True)
     assert pr._updated is False
 
@@ -353,7 +348,6 @@ def test_multilabel_input(average):
             assert precision_score(np_y, np_y_pred, average=sk_average_parameter) == pytest.approx(pr_compute)
 
     def get_test_cases():
-
         test_cases = [
             # Multilabel input data of shape (N, C)
             (torch.randint(0, 2, size=(10, 5)), torch.randint(0, 2, size=(10, 5)), 1),
@@ -485,7 +479,6 @@ def test_distrib_integration_multiclass(distributed):
 
 
 def test_distrib_integration_multilabel(distributed):
-
     from ignite.engine import Engine
 
     rank = idist.get_rank()

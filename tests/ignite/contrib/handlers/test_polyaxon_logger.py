@@ -16,7 +16,6 @@ os.environ["POLYAXON_NO_OP"] = "1"
 
 
 def test_output_handler_with_wrong_logger_type():
-
     wrapper = OutputHandler("tag", output_transform=lambda x: x)
 
     mock_logger = MagicMock()
@@ -26,7 +25,6 @@ def test_output_handler_with_wrong_logger_type():
 
 
 def test_output_handler_output_transform():
-
     wrapper = OutputHandler("tag", output_transform=lambda x: x)
     mock_logger = MagicMock(spec=PolyaxonLogger)
     mock_logger.log_metrics = MagicMock()
@@ -49,7 +47,6 @@ def test_output_handler_output_transform():
 
 
 def test_output_handler_metric_names():
-
     wrapper = OutputHandler("tag", metric_names=["a", "b", "c"])
     mock_logger = MagicMock(spec=PolyaxonLogger)
     mock_logger.log_metrics = MagicMock()
@@ -110,7 +107,6 @@ def test_output_handler_metric_names():
 
 
 def test_output_handler_both():
-
     wrapper = OutputHandler("tag", metric_names=["a", "b"], output_transform=lambda x: {"loss": x})
     mock_logger = MagicMock(spec=PolyaxonLogger)
     mock_logger.log_metrics = MagicMock()
@@ -161,7 +157,6 @@ def test_output_handler_with_global_step_transform():
 
 
 def test_output_handler_with_global_step_from_engine():
-
     mock_another_engine = MagicMock()
     mock_another_engine.state = State()
     mock_another_engine.state.epoch = 10
@@ -217,7 +212,6 @@ def test_output_handler_state_attrs():
 
 
 def test_optimizer_params_handler_wrong_setup():
-
     with pytest.raises(TypeError):
         OptimizerParamsHandler(optimizer=None)
 
@@ -231,7 +225,6 @@ def test_optimizer_params_handler_wrong_setup():
 
 
 def test_optimizer_params():
-
     optimizer = torch.optim.SGD([torch.tensor(0.0)], lr=0.01)
     wrapper = OptimizerParamsHandler(optimizer=optimizer, param_name="lr")
     mock_logger = MagicMock(spec=PolyaxonLogger)
@@ -252,7 +245,6 @@ def test_optimizer_params():
 
 
 def test_integration():
-
     n_epochs = 5
     data = list(range(50))
 
@@ -277,7 +269,6 @@ def test_integration():
 
 
 def test_integration_as_context_manager():
-
     n_epochs = 5
     data = list(range(50))
 
@@ -288,7 +279,6 @@ def test_integration_as_context_manager():
         return next(losses_iter)
 
     with PolyaxonLogger() as plx_logger:
-
         trainer = Engine(update_fn)
 
         def dummy_handler(engine, logger, event_name):
@@ -302,6 +292,5 @@ def test_integration_as_context_manager():
 
 @pytest.mark.parametrize("no_site_packages", ["polyaxon"], indirect=True)
 def test_no_polyaxon_client(no_site_packages):
-
     with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires polyaxon"):
         PolyaxonLogger()

@@ -327,7 +327,6 @@ class OutputHandler(BaseOutputHandler):
         )
 
     def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, Events]) -> None:
-
         if not isinstance(logger, NeptuneLogger):
             raise TypeError("Handler OutputHandler works only with NeptuneLogger")
 
@@ -491,7 +490,6 @@ class WeightsScalarHandler(BaseWeightsScalarHandler):
     """
 
     def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, Events]) -> None:
-
         if not isinstance(logger, NeptuneLogger):
             raise TypeError("Handler WeightsScalarHandler works only with NeptuneLogger")
 

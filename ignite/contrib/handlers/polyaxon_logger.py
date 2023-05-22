@@ -238,7 +238,6 @@ class OutputHandler(BaseOutputHandler):
         )
 
     def __call__(self, engine: Engine, logger: PolyaxonLogger, event_name: Union[str, Events]) -> None:
-
         if not isinstance(logger, PolyaxonLogger):
             raise RuntimeError("Handler 'OutputHandler' works only with PolyaxonLogger")
 

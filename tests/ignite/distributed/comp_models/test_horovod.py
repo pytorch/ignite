@@ -18,7 +18,6 @@ def test__hvd_dist_model():
 
 
 def _assert_model(model, true_conf):
-
     if "cuda" in true_conf["device"]:
         assert model.device() == torch.device(f"{true_conf['device']}:{true_conf['local_rank']}")
     else:
@@ -33,7 +32,6 @@ def _assert_model(model, true_conf):
 
 
 def _test__hvd_dist_model_create_from_backend_no_dist(backend, true_device):
-
     model = _HorovodDistModel.create_from_backend(backend=backend)
 
     assert hvd.rank() > -1
@@ -54,7 +52,6 @@ def _test__hvd_dist_model_create_from_backend_no_dist(backend, true_device):
 
 
 def _test__hvd_dist_model_create_from_backend_dist(backend, true_device):
-
     model = _HorovodDistModel.create_from_backend(backend=backend)
 
     assert hvd.rank() > -1
@@ -79,7 +76,6 @@ def _test__hvd_dist_model_create_from_backend_dist(backend, true_device):
 
 
 def _test__hvd_dist_model_create_from_context_no_dist(true_backend, true_device):
-
     with pytest.raises(ValueError, match=r"Horovod has not been initialized"):
         hvd.rank()
 
@@ -105,7 +101,6 @@ def _test__hvd_dist_model_create_from_context_no_dist(true_backend, true_device)
 
 
 def _test__hvd_dist_model_create_from_context_dist(true_backend, true_device):
-
     assert _HorovodDistModel.create_from_context() is None
 
     hvd.init()
@@ -169,7 +164,6 @@ def test__hvd_dist_model_create_dist_cuda_2(gloo_hvd_executor):
 
 
 def _test__hvd_dist_model_warning_index_less_localrank():
-
     assert torch.cuda.is_available()
     assert _HorovodDistModel.create_from_context() is None
 

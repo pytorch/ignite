@@ -41,7 +41,6 @@ def test_pbar_errors():
 
 
 def test_pbar(capsys):
-
     n_epochs = 2
     loader = [1, 2]
     engine = Engine(update_fn)
@@ -143,7 +142,6 @@ def test_pbar_batch_indeces(capsys):
 
 
 def test_pbar_with_metric(capsys):
-
     n_iters = 2
     data = list(range(n_iters))
     loss_values = iter(range(n_iters))
@@ -174,7 +172,6 @@ def test_pbar_with_metric(capsys):
 
 
 def test_pbar_with_all_metric(capsys):
-
     n_iters = 2
     data = list(range(n_iters))
     loss_values = iter(range(n_iters))
@@ -208,7 +205,6 @@ def test_pbar_with_all_metric(capsys):
 
 
 def test_pbar_with_state_attrs(capsys):
-
     n_iters = 2
     data = list(range(n_iters))
     loss_values = iter(range(n_iters))
@@ -246,7 +242,6 @@ def test_pbar_with_state_attrs(capsys):
 
 
 def test_pbar_no_metric_names(capsys):
-
     n_epochs = 2
     loader = [1, 2]
     engine = Engine(update_fn)
@@ -412,7 +407,6 @@ def test_pbar_output_warning(capsys):
 
 
 def test_pbar_on_epochs(capsys):
-
     n_epochs = 10
     loader = [1, 2, 3, 4, 5]
     engine = Engine(update_fn)
@@ -452,7 +446,6 @@ def test_pbar_with_max_epochs_set_to_one(capsys):
 
 
 def test_pbar_wrong_events_order():
-
     engine = Engine(update_fn)
     pbar = ProgressBar()
 
@@ -504,7 +497,6 @@ def test_pbar_with_nan_input():
 
 
 def test_pbar_on_callable_events(capsys):
-
     n_epochs = 1
     loader = list(range(100))
     engine = Engine(update_fn)
@@ -539,7 +531,6 @@ def test_tqdm_logger_epoch_length(capsys):
 
 
 def test_tqdm_logger_iter_without_epoch_length(capsys):
-
     size = 11
 
     def finite_size_data_iter(size):

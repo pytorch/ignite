@@ -95,7 +95,6 @@ def test__native_dist_model():
 @pytest.mark.skipif(not dist.is_nccl_available(), reason="Skip if nccl not available")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test__native_nccl_but_no_gpu(mock_gpu_is_not_available):
-
     with pytest.raises(RuntimeError, match=r"Nccl backend is required but no cuda capable devices"):
         _NativeDistModel(backend="nccl")
 
@@ -152,7 +151,6 @@ def test__native_dist_model_create_from_backend_bad_slurm_config():
 
 
 def _assert_model(model, true_conf):
-
     assert model.device() == torch.device(true_conf["device"])
     assert model.get_local_rank() == true_conf["local_rank"]
     assert model.get_rank() == true_conf["rank"]
@@ -188,7 +186,6 @@ def _test__native_dist_model_create_from_backend_no_dist(backend, true_device):
 
 
 def _test__native_dist_model_create_from_backend_dist(init_method, local_rank, rank, world_size, backend, true_device):
-
     import os
     from datetime import timedelta
 
@@ -234,7 +231,6 @@ def _test__native_dist_model_create_from_backend_dist(init_method, local_rank, r
 
 
 def _test__native_dist_model_create_from_backend_slurm(local_rank, rank, world_size, backend, true_device):
-
     import os
     from datetime import timedelta
 
@@ -292,7 +288,6 @@ def _test__native_dist_model_create_from_backend_slurm(local_rank, rank, world_s
 
 
 def _test__native_dist_model_create_from_context_no_local_rank():
-
     if "LOCAL_RANK" in os.environ:
         del os.environ["LOCAL_RANK"]
 
@@ -321,7 +316,6 @@ def _test__native_dist_model_create_from_context_env_local_rank(true_conf):
 
 
 def _test__native_dist_model_create_from_context_set_local_rank(true_conf):
-
     from ignite.distributed.comp_models.base import ComputationModel
 
     lrank = None
@@ -341,7 +335,6 @@ def _test__native_dist_model_create_from_context_set_local_rank(true_conf):
 
 
 def _test__native_dist_model_create_from_context_no_dist(true_backend, true_device):
-
     assert _NativeDistModel.create_from_context() is None
 
     dist.init_process_group(true_backend, "tcp://0.0.0.0:2222", world_size=1, rank=0)
@@ -366,7 +359,6 @@ def _test__native_dist_model_create_from_context_no_dist(true_backend, true_devi
 
 
 def _test__native_dist_model_create_from_context_dist(local_rank, rank, world_size, true_backend, true_device):
-
     assert _NativeDistModel.create_from_context() is None
 
     dist.init_process_group(true_backend, "tcp://0.0.0.0:2222", world_size=world_size, rank=rank)
@@ -422,7 +414,6 @@ def test__native_dist_model_create_dist_gloo_1(init_method, get_fixed_dirname, l
 
 @pytest.mark.distributed
 def test__native_dist_model_create_dist_gloo_2(local_rank, world_size):
-
     device = torch.device(f"cuda:{local_rank}" if torch.cuda.is_available() else "cpu")
     _test__native_dist_model_create_from_context_dist(local_rank, local_rank, world_size, "gloo", device)
     _test__native_dist_model_create_from_backend_slurm(local_rank, local_rank, world_size, "gloo", device)
@@ -454,7 +445,6 @@ def test__native_dist_model_create_dist_nccl_2(local_rank, world_size):
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Skip if less than 2 GPUs")
 def test__native_dist_model_warning_index_less_localrank(local_rank, world_size):
-
     assert _NativeDistModel.create_from_context() is None
 
     dist.init_process_group("nccl", "tcp://0.0.0.0:2222", world_size=world_size, rank=local_rank)

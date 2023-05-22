@@ -6,7 +6,6 @@ from ignite.handlers import DiskSaver
 
 
 def initialize(config):
-
     device = idist.device()
 
     model = config.model.to(device)

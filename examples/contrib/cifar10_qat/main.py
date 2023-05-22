@@ -19,7 +19,6 @@ from ignite.utils import manual_seed, setup_logger
 
 
 def training(local_rank, config):
-
     rank = idist.get_rank()
     manual_seed(config["seed"] + rank)
     device = idist.device()
@@ -189,22 +188,13 @@ def run(
     spawn_kwargs["nproc_per_node"] = nproc_per_node
 
     with idist.Parallel(backend=backend, **spawn_kwargs) as parallel:
-
         parallel.run(training, config)
 
 
 def get_dataflow(config):
     # - Get train/test datasets
-    if idist.get_local_rank() > 0:
-        # Ensure that only local rank 0 download the dataset
-        # Thus each node will download a copy of the dataset
-        idist.barrier()
-
-    train_dataset, test_dataset = utils.get_train_test_datasets(config["data_path"])
-
-    if idist.get_local_rank() == 0:
-        # Ensure that only local rank 0 download the dataset
-        idist.barrier()
+    with idist.one_rank_first(local=True):
+        train_dataset, test_dataset = utils.get_train_test_datasets(config["data_path"])
 
     # Setup data loader also adapted to distributed config: nccl, gloo, xla-tpu
     train_loader = idist.auto_dataloader(
@@ -275,7 +265,6 @@ def log_basic_info(logger, config):
 
 
 def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, config, logger):
-
     device = idist.device()
 
     # Setup Ignite trainer:
@@ -291,7 +280,6 @@ def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, con
     scaler = GradScaler(enabled=with_amp)
 
     def train_step(engine, batch):
-
         x, y = batch[0], batch[1]
 
         if x.device != device:

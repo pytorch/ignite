@@ -49,7 +49,6 @@ class DummyWeightsScalarHandler(BaseWeightsScalarHandler):
 
 
 def test_base_output_handler_wrong_setup():
-
     with pytest.raises(TypeError, match="metric_names should be either a list or equal 'all'"):
         DummyOutputHandler("tag", metric_names="abc", output_transform=None)
 
@@ -67,7 +66,6 @@ def test_base_output_handler_wrong_setup():
 
 
 def test_base_output_handler_setup_output_metrics():
-
     engine = Engine(lambda engine, batch: None)
     true_metrics = {"a": 0, "b": 1}
     engine.state = State(metrics=true_metrics)
@@ -183,7 +181,6 @@ def test_opt_params_handler_on_non_torch_optimizers():
     ],
 )
 def test_attach(event, n_calls, kwargs):
-
     n_epochs = 5
     data = list(range(50))
 
@@ -218,7 +215,6 @@ def test_attach(event, n_calls, kwargs):
 
 
 def test_attach_wrong_event_name():
-
     trainer = Engine(lambda b, e: None)
     logger = DummyLogger()
     mock_log_handler = MagicMock()
@@ -238,7 +234,6 @@ def test_attach_on_custom_event():
     data = list(range(150))
 
     def _test(event, n_calls, cpe):
-
         losses = torch.rand(n_epochs * len(data))
         losses_iter = iter(losses)
 
@@ -273,7 +268,6 @@ def test_attach_on_custom_event():
     ],
 )
 def test_as_context_manager(event, n_calls):
-
     n_epochs = 5
     data = list(range(50))
 
@@ -313,13 +307,11 @@ def test_as_context_manager(event, n_calls):
 
 
 def test_base_weights_handler_wrong_setup():
-
     with pytest.raises(TypeError, match="Argument model should be of type torch.nn.Module"):
         DummyWeightsHandler(None)
 
 
 def test_base_weights_scalar_handler_wrong_setup():
-
     model = MagicMock(spec=torch.nn.Module)
     with pytest.raises(TypeError, match="Argument reduction should be callable"):
         DummyWeightsScalarHandler(model, reduction=123)

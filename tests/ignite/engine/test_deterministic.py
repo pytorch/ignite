@@ -95,7 +95,6 @@ def test_reproducible_batch_sampler_wrong_input():
 
 
 def test_reproducible_batch_sampler():
-
     data = list(range(100))
     dataloader = DataLoader(data, batch_size=12, num_workers=0, shuffle=True, drop_last=True)
 
@@ -125,7 +124,6 @@ def test_reproducible_batch_sampler():
 
 
 def _test_keep_random_state(with_numpy):
-
     manual_seed(54)
     true_values = []
     for _ in range(5):
@@ -175,7 +173,6 @@ def test_keep_random_state_without_numpy():
 
 def test_strict_resume_from_iter():
     def _test(epoch_length=None):
-
         max_epochs = 5
         num_iters = 21
         torch.manual_seed(0)
@@ -244,7 +241,6 @@ def test_strict_resume_from_epoch():
 
 def _test_resume_random_dataloader_from_epoch(device, _setup_sampler, sampler_type=None):
     def _test(epoch_length=None):
-
         max_epochs = 5
         total_batch_size = 4
         num_iters = 21
@@ -255,7 +251,6 @@ def _test_resume_random_dataloader_from_epoch(device, _setup_sampler, sampler_ty
             epoch_length = num_iters
 
         for resume_epoch in range(1, max_epochs, 2):
-
             for num_workers in [0, 2]:
                 sampler, batch_size = _setup_sampler(sampler_type, num_iters, total_batch_size)
 
@@ -361,9 +356,7 @@ def _test_resume_random_dataloader_from_iter(device, _setup_sampler, sampler_typ
             epoch_length = num_iters
 
         for resume_iteration in range(2, min(num_iters * max_epochs, epoch_length * max_epochs), 13):
-
             for num_workers in [0, 2]:
-
                 sampler, batch_size = _setup_sampler(sampler_type, num_iters, total_batch_size)
                 orig_dataloader = DataLoader(
                     data,
@@ -513,7 +506,6 @@ def _test_resume_random_data_iterator_from_iter(device):
             epoch_length = num_iters
 
         for resume_iteration in range(1, min(num_iters * max_epochs, epoch_length * max_epochs), 7):
-
             seen_batchs = []
 
             def update_fn(_, batch):
@@ -557,7 +549,6 @@ def test_resume_random_data_iterator_from_iter():
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
-
     device = idist.device()
     _test_resume_random_dataloader_from_iter(device, setup_sampler, sampler_type="distributed")
     _test_resume_random_dataloader_from_epoch(device, setup_sampler, sampler_type="distributed")
@@ -566,7 +557,6 @@ def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
-
     device = idist.device()
     _test_resume_random_dataloader_from_iter(device, setup_sampler, sampler_type="distributed")
     _test_resume_random_dataloader_from_epoch(device, setup_sampler, sampler_type="distributed")
@@ -577,7 +567,6 @@ def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
-
     device = idist.device()
     _test_resume_random_dataloader_from_iter(device, setup_sampler, sampler_type="distributed")
     _test_resume_random_dataloader_from_epoch(device, setup_sampler, sampler_type="distributed")
@@ -587,14 +576,12 @@ def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
-
     device = idist.device()
     _test_resume_random_dataloader_from_iter(device, setup_sampler, sampler_type="distributed")
     _test_resume_random_dataloader_from_epoch(device, setup_sampler, sampler_type="distributed")
 
 
 def test_concepts_snippet_resume():
-
     # Commented imports required in the snippet
     # import torch
     # from torch.utils.data import DataLoader
@@ -659,7 +646,6 @@ def test_concepts_snippet_warning():
 def _test_gradients_on_resume(
     dirname, device, with_dropout=True, with_dataaugs=True, data_size=24, batch_size=4, save_iter=None, save_epoch=None
 ):
-
     debug = False
 
     def random_train_data_loader(size):

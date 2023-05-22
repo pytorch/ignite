@@ -10,11 +10,9 @@ from ignite.metrics.classification_report import ClassificationReport
 
 
 def _test_integration_multiclass(device, output_dict):
-
     rank = idist.get_rank()
 
     def _test(metric_device, n_classes, labels=None):
-
         classification_report = ClassificationReport(device=metric_device, output_dict=output_dict, labels=labels)
         n_iters = 80
         batch_size = 16
@@ -78,11 +76,9 @@ def _test_integration_multiclass(device, output_dict):
 
 
 def _test_integration_multilabel(device, output_dict):
-
     rank = idist.get_rank()
 
     def _test(metric_device, n_epochs, labels=None):
-
         classification_report = ClassificationReport(device=metric_device, output_dict=output_dict, is_multilabel=True)
 
         n_iters = 10
@@ -150,7 +146,6 @@ def _test_integration_multilabel(device, output_dict):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
-
     device = idist.device()
     _test_integration_multiclass(device, True)
     _test_integration_multiclass(device, False)
@@ -161,7 +156,6 @@ def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 def test_distrib_gloo_cpu_or_gpu(local_rank, distributed_context_single_node_gloo):
-
     device = idist.device()
     _test_integration_multiclass(device, True)
     _test_integration_multiclass(device, False)
@@ -173,7 +167,6 @@ def test_distrib_gloo_cpu_or_gpu(local_rank, distributed_context_single_node_glo
 @pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test_distrib_hvd(gloo_hvd_executor):
-
     device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
 
@@ -184,7 +177,6 @@ def test_distrib_hvd(gloo_hvd_executor):
 
 
 def _test_distrib_xla_nprocs(index):
-
     device = idist.device()
     _test_integration_multiclass(device, True)
     _test_integration_multiclass(device, False)
@@ -212,7 +204,6 @@ def to_numpy_multilabel(y):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
-
     device = idist.device()
     _test_integration_multiclass(device, True)
     _test_integration_multiclass(device, False)
@@ -224,7 +215,6 @@ def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("GPU_MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
-
     device = idist.device()
     _test_integration_multiclass(device, True)
     _test_integration_multiclass(device, False)

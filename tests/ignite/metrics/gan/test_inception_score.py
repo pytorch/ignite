@@ -9,7 +9,6 @@ from ignite.metrics.gan.inception_score import InceptionScore
 
 
 def calculate_inception_score(p_yx):
-
     p_y = torch.unsqueeze(p_yx.mean(axis=0), 0)
     kl_d = torch.kl_div(torch.log(p_y), p_yx)
 
@@ -22,7 +21,6 @@ def calculate_inception_score(p_yx):
 
 
 def test_inception_score():
-
     p_yx = torch.rand(20, 10)
     m = InceptionScore(num_features=10, feature_extractor=torch.nn.Identity())
     m.update(p_yx)
@@ -43,7 +41,6 @@ def test_device_mismatch_cuda():
 
 
 def test_wrong_inputs():
-
     with pytest.raises(ValueError, match=r"Argument num_features must be greater to zero, got:"):
         InceptionScore(num_features=-1, feature_extractor=torch.nn.Identity()).update(torch.rand(2, 0))
 
@@ -66,7 +63,6 @@ def test_wrong_inputs():
 
 
 def _test_distrib_integration(device):
-
     from ignite.engine import Engine
 
     rank = idist.get_rank()
@@ -119,7 +115,6 @@ def test_distrib_cpu(distributed_context_single_node_gloo):
 @pytest.mark.skipif(not idist.has_hvd_support, reason="Skip if no Horovod dist support")
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test_distrib_hvd(gloo_hvd_executor):
-
     device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
     nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
 

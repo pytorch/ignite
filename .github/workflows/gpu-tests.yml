@@ -16,95 +16,165 @@ concurrency:
   group: gpu-tests-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
   cancel-in-progress: true
 
+# Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml
+
 jobs:
-  gpu-tests:
-    runs-on: [self-hosted, 2-gpus]
-    timeout-minutes: 45
-    defaults:
-      run:
-        shell: bash
+  gpu-tests:    
     strategy:
-      max-parallel: 1
-      fail-fast: true
       matrix:
         pytorch-channel: [pytorch, pytorch-nightly]
+      fail-fast: false
     env:
-      AGENT_TOOLSDIRECTORY: /tmp/python
+      DOCKER_IMAGE: "pytorch/conda-builder:cuda11.7"
+      REPOSITORY: ${{ github.repository }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    runs-on: linux.8xlarge.nvidia.gpu
+    timeout-minutes: 45
 
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Clean python tool path
+      - name: Clean workspace
         run: |
-          rm -rf ${AGENT_TOOLSDIRECTORY}
+          echo "::group::Cleanup debug output"
+          sudo rm -rfv "${GITHUB_WORKSPACE}"
+          mkdir -p "${GITHUB_WORKSPACE}"
+          echo "::endgroup::"
 
-      - uses: actions/setup-python@v4
+      - name: Checkout repository (pytorch/test-infra)
+        uses: actions/checkout@v3
         with:
-          python-version: 3.9
+          # Support the use case where we need to checkout someone's fork
+          repository: pytorch/test-infra
+          path: test-infra
 
-      - name: Install PyTorch
-        # https://pytorch.org/get-started/locally/
-        if: ${{ matrix.pytorch-channel == 'pytorch' }}
+      - name: Setup Linux
+        uses: ./test-infra/.github/actions/setup-linux
+
+      - name: Pull docker image
+        uses: ./test-infra/.github/actions/pull-docker-image
+        with:
+          docker-image: ${{ env.DOCKER_IMAGE }}
+
+      - name: Checkout repository (${{ github.repository }})
+        uses: actions/checkout@v3
+        with:
+          # Support the use case where we need to checkout someone's fork
+          repository: ${{ github.repository }}
+          ref: ${{ github.ref }}
+          path: ${{ github.repository }}
+          fetch-depth: 1
+
+      - name: Start Pytorch container
+        working-directory: ${{ github.repository }}
         run: |
-          pip install --upgrade torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
+          docker run --name pthd --gpus=all --rm \
+            --cap-add=SYS_PTRACE \
+            --detach \
+            --ipc=host \
+            --security-opt seccomp=unconfined \
+            --shm-size=2g \
+            --tty \
+            --ulimit stack=10485760:83886080 \
+            -v $PWD:/work \
+            -w /work \
+            ${DOCKER_IMAGE}
+
+          script=$(cat << EOF
+
+            set -x
+
+            nvidia-smi
+            ls -alh
+
+            conda --version
+            python --version
+
+          EOF
+          )
+          docker exec -t pthd /bin/bash -c "${script}"
+
+      - name: Install PyTorch and dependencies
+        continue-on-error: false
+        run: |
+
+          script=$(cat << EOF
+
+          set -x
+
+          # Install PyTorch
+          if [ "${{ matrix.pytorch-channel }}" == "pytorch" ]; then
+            pip install --upgrade torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
+          else
+            pip install --upgrade --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cu117
+          fi
+
           nvidia-smi
           python -c "import torch; print(torch.__version__, ', CUDA is available: ', torch.cuda.is_available()); exit(not torch.cuda.is_available())"
           pip list
 
-      - name: Install PyTorch (nightly)
-        # https://pytorch.org/get-started/locally/
-        if: ${{ matrix.pytorch-channel == 'pytorch-nightly' }}
-        run: |
-          pip install --upgrade --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cu117
-          nvidia-smi
-          python -c "import torch; print(torch.__version__, ', CUDA is available: ', torch.cuda.is_available()); exit(not torch.cuda.is_available())"
-          pip list
-
-      - name: Install dependencies
-        run: |
+          # Install dependencies
           pip install -r requirements-dev.txt
           pip install -e .
 
+          EOF
+          )
+
+          docker exec -t pthd /bin/bash -c "${script}"
+
       - name: Run 1 Node 2 GPUs Unit Tests
+        continue-on-error: false
         run: |
+
+          script=$(cat << EOF
+
+          set -x
+
           bash tests/run_gpu_tests.sh 2
+
+          EOF
+          )
+
+          docker exec -t pthd /bin/bash -c "${script}"
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
-          file: ./coverage.xml
+          file: ${{ github.repository }}/coverage.xml
           flags: gpu-2
           fail_ci_if_error: false
 
-      - name: Install additional example dependencies
-        run: pip install fire
-
-      - name: Check training on cifar10, run without backend
+      - name: Run examples in container
+        continue-on-error: false
         run: |
-          export example_path="examples/contrib/cifar10"
-          # initial run
-          export stop_cmd="--stop_iteration=500"
-          CI=1 python ${example_path}/main.py run --checkpoint_every=200 ${stop_cmd}
-          # resume
-          export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-None-1_stop-on-500/training_checkpoint_400.pt"
-          CI=1 python ${example_path}/main.py run --checkpoint_every=200 --num_epochs=7 ${resume_opt}
+          SCRIPT=$(cat << EOF
+          
+          set -x
 
-      - name: Check training on cifar10, run with NCCL backend using torchrun
-        run: |
-          export example_path="examples/contrib/cifar10"
-          # initial run
-          export stop_cmd="--stop_iteration=500"
-          CI=1 torchrun --nproc_per_node=2 ${example_path}/main.py run --backend=nccl --checkpoint_every=200 ${stop_cmd}
-          # resume
-          export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt"
-          CI=1 torchrun --nproc_per_node=2 ${example_path}/main.py run --backend=nccl --checkpoint_every=200 --num_epochs=7 ${resume_opt}
+          # Install additional example dependencies
+          pip install fire
 
-      - name: Check training on cifar10, run with NCCL backend using spawn
-        run: |
-          export example_path="examples/contrib/cifar10"
-          # initial run
-          export stop_cmd="--stop_iteration=500"
-          CI=1 python -u ${example_path}/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200 ${stop_cmd}
-          # resume
-          export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt"
-          CI=1 python -u ${example_path}/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200 --num_epochs=7 ${resume_opt}
+          # Check training on cifar10, run without backend
+          ## initial run
+          CI=1 python examples/contrib/cifar10/main.py run --checkpoint_every=200 --stop_iteration=500
+          ## resume
+          CI=1 python examples/contrib/cifar10/main.py run --checkpoint_every=200 --num_epochs=7 --resume-from=/tmp/output-cifar10/resnet18_backend-None-1_stop-on-500/training_checkpoint_400.pt
+    
+          # Check training on cifar10, run with NCCL backend using torchrun
+          ## initial run
+          CI=1 torchrun --nproc_per_node=2 examples/contrib/cifar10/main.py run --backend=nccl --checkpoint_every=200 --stop_iteration=500
+          ## resume
+          CI=1 torchrun --nproc_per_node=2 examples/contrib/cifar10/main.py run --backend=nccl --checkpoint_every=200 --num_epochs=7 --resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt
+
+          # Check training on cifar10, run with NCCL backend using spawn
+          ## initial run
+          CI=1 python -u examples/contrib/cifar10/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200 --stop_iteration=500
+          ## resume
+          CI=1 python -u examples/contrib/cifar10/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200 --num_epochs=7 --resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt
+
+          EOF
+          )
+
+          docker exec -t pthd /bin/bash -c "${script}"
+
+      - name: Teardown Linux
+        if: ${{ always() }}
+        uses: ./test-infra/.github/actions/teardown-linux

@@ -830,7 +830,6 @@ def test_write_results_handlers_profiler(dirname):
 
 
 def test_print_results_basic_profiler(capsys):
-
     true_max_epochs = 1
     true_num_iters = 5
 
@@ -848,7 +847,6 @@ def test_print_results_basic_profiler(capsys):
 
 
 def test_print_results_handlers_profiler_handlers_profiler(capsys):
-
     true_max_epochs = 1
     true_num_iters = 5
 

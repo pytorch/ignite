@@ -51,10 +51,10 @@ class _BaseClassification(Metric):
     def _check_binary_multilabel_cases(self, output: Sequence[torch.Tensor]) -> None:
         y_pred, y = output
 
-        if not torch.equal(y, y ** 2):
+        if not torch.equal(y, y**2):
             raise ValueError("For binary cases, y must be comprised of 0's and 1's.")
 
-        if not torch.equal(y_pred, y_pred ** 2):
+        if not torch.equal(y_pred, y_pred**2):
             raise ValueError("For binary cases, y_pred must be comprised of 0's and 1's.")
 
     def _check_type(self, output: Sequence[torch.Tensor]) -> None:

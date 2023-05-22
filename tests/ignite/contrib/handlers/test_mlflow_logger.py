@@ -14,7 +14,6 @@ from ignite.engine import Engine, Events, State
 
 
 def test_output_handler_with_wrong_logger_type():
-
     wrapper = OutputHandler("tag", output_transform=lambda x: x)
 
     mock_logger = MagicMock()
@@ -24,7 +23,6 @@ def test_output_handler_with_wrong_logger_type():
 
 
 def test_output_handler_output_transform():
-
     wrapper = OutputHandler("tag", output_transform=lambda x: x)
     mock_logger = MagicMock(spec=MLflowLogger)
     mock_logger.log_metrics = MagicMock()
@@ -47,7 +45,6 @@ def test_output_handler_output_transform():
 
 
 def test_output_handler_metric_names():
-
     wrapper = OutputHandler("tag", metric_names=["a", "b", "c"])
     mock_logger = MagicMock(spec=MLflowLogger)
     mock_logger.log_metrics = MagicMock()
@@ -94,7 +91,6 @@ def test_output_handler_metric_names():
 
 
 def test_output_handler_both():
-
     wrapper = OutputHandler("tag", metric_names=["a", "b"], output_transform=lambda x: {"loss": x})
     mock_logger = MagicMock(spec=MLflowLogger)
     mock_logger.log_metrics = MagicMock()
@@ -145,7 +141,6 @@ def test_output_handler_with_global_step_transform():
 
 
 def test_output_handler_with_global_step_from_engine():
-
     mock_another_engine = MagicMock()
     mock_another_engine.state = State()
     mock_another_engine.state.epoch = 10
@@ -201,7 +196,6 @@ def test_output_handler_state_attrs():
 
 
 def test_optimizer_params_handler_wrong_setup():
-
     with pytest.raises(TypeError):
         OptimizerParamsHandler(optimizer=None)
 
@@ -215,7 +209,6 @@ def test_optimizer_params_handler_wrong_setup():
 
 
 def test_optimizer_params():
-
     optimizer = torch.optim.SGD([torch.tensor(0.0)], lr=0.01)
     wrapper = OptimizerParamsHandler(optimizer=optimizer, param_name="lr")
     mock_logger = MagicMock(spec=MLflowLogger)
@@ -237,7 +230,6 @@ def test_optimizer_params():
 
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_integration(dirname):
-
     n_epochs = 5
     data = list(range(50))
 
@@ -279,7 +271,6 @@ def test_integration(dirname):
 
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
 def test_integration_as_context_manager(dirname):
-
     n_epochs = 5
     data = list(range(50))
 
@@ -292,7 +283,6 @@ def test_integration_as_context_manager(dirname):
     true_values = []
 
     with MLflowLogger(str(dirname / "mlruns")) as mlflow_logger:
-
         trainer = Engine(update_fn)
 
         def dummy_handler(engine, logger, event_name):
@@ -324,7 +314,6 @@ def test_mlflow_bad_metric_name_handling(dirname):
 
     true_values = [123.0, 23.4, 333.4]
     with MLflowLogger(str(dirname / "mlruns")) as mlflow_logger:
-
         active_run = mlflow.active_run()
 
         handler = OutputHandler(tag="training", metric_names="all")
@@ -332,7 +321,6 @@ def test_mlflow_bad_metric_name_handling(dirname):
         engine.state = State(metrics={"metric:0 in %": 123.0, "metric 0": 1000.0})
 
         with pytest.warns(UserWarning, match=r"MLflowLogger output_handler encountered an invalid metric name"):
-
             engine.state.epoch = 1
             handler(engine, mlflow_logger, event_name=Events.EPOCH_COMPLETED)
 
@@ -352,6 +340,5 @@ def test_mlflow_bad_metric_name_handling(dirname):
 
 @pytest.mark.parametrize("no_site_packages", ["mlflow"], indirect=True)
 def test_no_mlflow_client(no_site_packages):
-
     with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires mlflow to be installed."):
         MLflowLogger()

@@ -57,7 +57,6 @@ class _BaseInceptionMetric(Metric):
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
-
         if num_features is None:
             raise ValueError("Argument num_features must be provided, if feature_extractor is specified.")
 
@@ -78,7 +77,6 @@ class _BaseInceptionMetric(Metric):
         super(_BaseInceptionMetric, self).__init__(output_transform=output_transform, device=device)
 
     def _check_feature_shapes(self, samples: torch.Tensor) -> None:
-
         if samples.dim() != 2:
             raise ValueError(f"feature_extractor output must be a tensor of dim 2, got: {samples.dim()}")
 
@@ -91,7 +89,6 @@ class _BaseInceptionMetric(Metric):
             )
 
     def _extract_features(self, inputs: torch.Tensor) -> torch.Tensor:
-
         inputs = inputs.detach()
 
         if inputs.device != torch.device(self._device):

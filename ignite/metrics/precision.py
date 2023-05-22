@@ -20,7 +20,6 @@ class _BasePrecisionRecall(_BaseClassification):
         is_multilabel: bool = False,
         device: Union[str, torch.device] = torch.device("cpu"),
     ):
-
         if not (average is None or isinstance(average, bool) or average in ["macro", "micro", "weighted", "samples"]):
             raise ValueError(
                 "Argument average should be None or a boolean or one of values"
@@ -59,12 +58,11 @@ class _BasePrecisionRecall(_BaseClassification):
         y_pred, y = output[0].detach(), output[1].detach()
 
         if self._type == "binary" or self._type == "multiclass":
-
             num_classes = 2 if self._type == "binary" else y_pred.size(1)
             if self._type == "multiclass" and y.max() + 1 > num_classes:
                 raise ValueError(
-                    f"y_pred contains less classes than y. Number of predicted classes is {num_classes}"
-                    f" and element in y has invalid class = {y.max().item() + 1}."
+                    f"y_pred contains fewer classes than y. Number of classes in the prediction is {num_classes}"
+                    f" and an element in y has invalid class = {y.max().item() + 1}."
                 )
             y = y.view(-1)
             if self._type == "binary" and self._average is False:
@@ -88,31 +86,32 @@ class _BasePrecisionRecall(_BaseClassification):
 
     @reinit__is_reduced
     def reset(self) -> None:
+        """
+        `numerator`, `denominator` and `weight` are three variables chosen to be abstract
+        representatives of the ones that are measured for cases with different `average` parameters.
+        `weight` is only used when `average='weighted'`. Actual value of these three variables is
+        as follows.
 
-        # `numerator`, `denominator` and `weight` are three variables chosen to be abstract
-        # representatives of the ones that are measured for cases with different `average` parameters.
-        # `weight` is only used when `average='weighted'`. Actual value of these three variables is
-        # as follows.
-        #
-        # average='samples':
-        #   numerator (torch.Tensor): sum of metric value for samples
-        #   denominator (int): number of samples
-        #
-        # average='weighted':
-        #   numerator (torch.Tensor): number of true positives per class/label
-        #   denominator (torch.Tensor): number of predicted(for precision) or actual(for recall)
-        #     positives per class/label
-        #   weight (torch.Tensor): number of actual positives per class
-        #
-        # average='micro':
-        #   numerator (torch.Tensor): sum of number of true positives for classes/labels
-        #   denominator (torch.Tensor): sum of number of predicted(for precision) or actual(for recall) positives
-        #     for classes/labels
-        #
-        # average='macro' or boolean or None:
-        #   numerator (torch.Tensor): number of true positives per class/label
-        #   denominator (torch.Tensor): number of predicted(for precision) or actual(for recall)
-        #     positives per class/label
+        average='samples':
+          numerator (torch.Tensor): sum of metric value for samples
+          denominator (int): number of samples
+
+        average='weighted':
+          numerator (torch.Tensor): number of true positives per class/label
+          denominator (torch.Tensor): number of predicted(for precision) or actual(for recall) positives per
+            class/label.
+          weight (torch.Tensor): number of actual positives per class
+
+        average='micro':
+          numerator (torch.Tensor): sum of number of true positives for classes/labels
+          denominator (torch.Tensor): sum of number of predicted(for precision) or actual(for recall) positives for
+            classes/labels.
+
+        average='macro' or boolean or None:
+          numerator (torch.Tensor): number of true positives per class/label
+          denominator (torch.Tensor): number of predicted(for precision) or actual(for recall) positives per
+            class/label.
+        """
 
         self._numerator: Union[int, torch.Tensor] = 0
         self._denominator: Union[int, torch.Tensor] = 0
@@ -123,17 +122,20 @@ class _BasePrecisionRecall(_BaseClassification):
 
     @sync_all_reduce("_numerator", "_denominator")
     def compute(self) -> Union[torch.Tensor, float]:
+        r"""
+        Return value of the metric for `average` options `'weighted'` and `'macro'` is computed as follows.
 
-        # Return value of the metric for `average` options `'weighted'` and `'macro'` is computed as follows.
-        #
-        # .. math:: \text{Precision/Recall} = \frac{ numerator }{ denominator } \cdot weight
-        #
-        # wherein `weight` is the internal variable `weight` for `'weighted'` option and :math:`1/C`
-        # for the `macro` one. :math:`C` is the number of classes/labels.
-        #
-        # Return value of the metric for `average` options `'micro'`, `'samples'`, `False` and None is as follows.
-        #
-        # .. math:: \text{Precision/Recall} = \frac{ numerator }{ denominator }
+        .. math::
+            \text{Precision/Recall} = \frac{ numerator }{ denominator } \cdot weight
+
+        wherein `weight` is the internal variable `_weight` for `'weighted'` option and :math:`1/C`
+        for the `macro` one. :math:`C` is the number of classes/labels.
+
+        Return value of the metric for `average` options `'micro'`, `'samples'`, `False` and None is as follows.
+
+        .. math::
+            \text{Precision/Recall} = \frac{ numerator }{ denominator }
+        """
 
         if not self._updated:
             raise NotComputableError(
@@ -371,22 +373,46 @@ class Precision(_BasePrecisionRecall):
 
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
+        r"""
+        Update the metric state using prediction and target.
+
+        Args:
+            output: a binary tuple of tensors (y_pred, y) whose shapes follow the table below. N stands for the batch
+                dimension, `...` for possible additional dimensions and C for class dimension.
+
+                .. list-table::
+                    :widths: 20 10 10 10
+                    :header-rows: 1
+
+                    * - Output member\\Data type
+                      - Binary
+                      - Multiclass
+                      - Multilabel
+                    * - y_pred
+                      - (N, ...)
+                      - (N, C, ...)
+                      - (N, C, ...)
+                    * - y
+                      - (N, ...)
+                      - (N, ...)
+                      - (N, C, ...)
+
+                For binary and multilabel data, both y and y_pred should consist of 0's and 1's, but for multiclass
+                data, y_pred and y should consist of probabilities and integers respectively.
+        """
         self._check_shape(output)
         self._check_type(output)
         y_pred, y, correct = self._prepare_output(output)
 
         if self._average == "samples":
-
             all_positives = y_pred.sum(dim=1)
             true_positives = correct.sum(dim=1)
             self._numerator += torch.sum(true_positives / (all_positives + self.eps))
             self._denominator += y.size(0)
         elif self._average == "micro":
-
             self._denominator += y_pred.sum()
             self._numerator += correct.sum()
         else:  # _average in [False, None, 'macro', 'weighted']
-
             self._denominator += y_pred.sum(dim=0)
             self._numerator += correct.sum(dim=0)
 
