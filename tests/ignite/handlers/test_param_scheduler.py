@@ -1365,9 +1365,11 @@ def test_reduce_lr_on_plateau_scheduler_asserts():
 
 
 @pytest.mark.parametrize("warmup_end_value", [0.23, None])
-def test_create_lr_scheduler_with_warmup_cosine(warmup_end_value):
+@pytest.mark.parametrize("T_0", [1, 12])
+@pytest.mark.parametrize("T_mult", [1, 3])
+def test_create_lr_scheduler_with_warmup_cosine(warmup_end_value, T_0, T_mult):
     lr = 0.2
-    steps = 100
+    steps = 200
     warm_steps = 50
     warm_start = 0.023
 
@@ -1376,7 +1378,7 @@ def test_create_lr_scheduler_with_warmup_cosine(warmup_end_value):
         return torch.optim.SGD([t1], lr=lr)
 
     def get_cos_shed():
-        return CosineAnnealingWarmRestarts(optimizer, T_0=12, T_mult=3, verbose=False)
+        return CosineAnnealingWarmRestarts(optimizer, T_0=T_0, T_mult=T_mult, verbose=False)
 
     optimizer = get_optim()
     scheduler = get_cos_shed()
@@ -1396,10 +1398,8 @@ def test_create_lr_scheduler_with_warmup_cosine(warmup_end_value):
         warm_lrs.append(optimizer.param_groups[0]["lr"])
 
     if warmup_end_value is not None:
-        assert (
-            np.linspace(warm_start, warmup_end_value, warm_steps).round(3) == np.array(warm_lrs[:warm_steps]).round(3)
-        ).all()
+        np.testing.assert_allclose(np.linspace(warm_start, warmup_end_value, warm_steps), warm_lrs[:warm_steps])
         assert warm_lrs[warm_steps:] == cosine_lrs
     else:
-        assert (np.linspace(warm_start, lr, warm_steps).round(3) == np.array(warm_lrs[:warm_steps]).round(3)).all()
+        np.testing.assert_allclose(np.linspace(warm_start, lr, warm_steps), warm_lrs[:warm_steps])
         assert warm_lrs[warm_steps - 1 : -1] == cosine_lrs
