@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 import torch
-from torch.optim.lr_scheduler import ExponentialLR, StepLR
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ExponentialLR, StepLR
 
 from ignite.engine import Engine, Events
 from ignite.handlers.param_scheduler import (
@@ -650,7 +650,7 @@ def test_lr_scheduler(torch_lr_scheduler_cls, kwargs):
     state_dict1 = scheduler1.state_dict()
 
     torch_lr_scheduler2 = torch_lr_scheduler_cls(optimizer=optimizer2, **kwargs)
-    with pytest.warns(UserWarning, match=r"the first lr value from the optimizer, otherwise it is will be skipped"):
+    with pytest.warns(UserWarning, match=r"the first lr value from the optimizer, otherwise it will be skipped"):
         scheduler2 = LRScheduler(torch_lr_scheduler2, use_legacy=True)
     state_dict2 = scheduler2.state_dict()
 
@@ -1362,3 +1362,45 @@ def test_reduce_lr_on_plateau_scheduler_asserts():
     with pytest.raises(ValueError, match=r"Length of argument metric_values should be equal to num_events."):
         metric_values = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
         ReduceLROnPlateauScheduler.simulate_values(5, metric_values, 0.01)
+
+
+@pytest.mark.parametrize("warmup_end_value", [0.23, None])
+@pytest.mark.parametrize("T_0", [1, 12])
+@pytest.mark.parametrize("T_mult", [1, 3])
+def test_create_lr_scheduler_with_warmup_cosine(warmup_end_value, T_0, T_mult):
+    lr = 0.2
+    steps = 200
+    warm_steps = 50
+    warm_start = 0.023
+
+    def get_optim():
+        t1 = torch.zeros([1], requires_grad=True)
+        return torch.optim.SGD([t1], lr=lr)
+
+    def get_cos_shed():
+        return CosineAnnealingWarmRestarts(optimizer, T_0=T_0, T_mult=T_mult, verbose=False)
+
+    optimizer = get_optim()
+    scheduler = get_cos_shed()
+    cosine_lrs = []
+    for i in range(steps):
+        cosine_lrs.append(optimizer.param_groups[0]["lr"])
+        scheduler.step()
+
+    optimizer = get_optim()
+    scheduler = create_lr_scheduler_with_warmup(
+        get_cos_shed(), warmup_start_value=warm_start, warmup_end_value=warmup_end_value, warmup_duration=warm_steps
+    )
+
+    warm_lrs = []
+    real_warm_steps = warm_steps if warmup_end_value is not None else (warm_steps - 1)
+    for epoch in range(real_warm_steps + steps):
+        scheduler(None)
+        warm_lrs.append(optimizer.param_groups[0]["lr"])
+
+    if warmup_end_value is not None:
+        np.testing.assert_allclose(np.linspace(warm_start, warmup_end_value, warm_steps), warm_lrs[:warm_steps])
+        assert warm_lrs[real_warm_steps:] == cosine_lrs
+    else:
+        np.testing.assert_allclose(np.linspace(warm_start, lr, warm_steps), warm_lrs[:warm_steps])
+        assert warm_lrs[real_warm_steps:] == cosine_lrs
