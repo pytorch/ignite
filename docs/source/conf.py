@@ -144,7 +144,7 @@ html_context = {
         # 'https://fonts.googleapis.com/css?family=Lato',
         # '_static/css/pytorch_theme.css'
         "_static/css/ignite_theme.css",
-        "https://cdn.jsdelivr.net/npm/@docsearch/css@3.3.0/dist/style.min.css",
+        "https://cdn.jsdelivr.net/npm/@docsearch/css@3",
     ],
 }
 
