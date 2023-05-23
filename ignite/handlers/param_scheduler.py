@@ -809,32 +809,31 @@ class _CosineAnnealingWarmRestarts:
         return self._lr_scheduler.optimizer
 
     def get_lr(self, epoch: Optional[int] = None) -> List[float]:
+        # TODO: Remove this workaround when pytorch has fixed wrong type hints:
+        # https://github.com/pytorch/pytorch/pull/102067
+        # Replace below T_mult -> self._lr_scheduler.T_mult
+        # Replace below eta_min -> self._lr_scheduler.eta_min
+        T_mult = cast(int, self._lr_scheduler.T_mult)
+        eta_min = cast(float, self._lr_scheduler.eta_min)
+
         if epoch is None and self.last_epoch < 0:
             epoch = 0
-
         if epoch is None:
             epoch = self.last_epoch + 1
             self._lr_scheduler.T_cur = self._lr_scheduler.T_cur + 1
             if self._lr_scheduler.T_cur >= self._lr_scheduler.T_i:
                 self._lr_scheduler.T_cur = self._lr_scheduler.T_cur - self._lr_scheduler.T_i
-                self._lr_scheduler.T_i = self._lr_scheduler.T_i * self._lr_scheduler.T_mult
+                self._lr_scheduler.T_i = self._lr_scheduler.T_i * T_mult
         else:
             if epoch < 0:
                 raise ValueError("Expected non-negative epoch, but got {}".format(epoch))
             if epoch >= self._lr_scheduler.T_0:
-                if self._lr_scheduler.T_mult == 1:
+                if T_mult == 1:
                     self._lr_scheduler.T_cur = epoch % self._lr_scheduler.T_0
                 else:
-                    n = int(
-                        math.log(
-                            (epoch / self._lr_scheduler.T_0 * (self._lr_scheduler.T_mult - 1) + 1),
-                            self._lr_scheduler.T_mult,
-                        )
-                    )
-                    self._lr_scheduler.T_cur = epoch - self._lr_scheduler.T_0 * (self._lr_scheduler.T_mult**n - 1) / (
-                        self._lr_scheduler.T_mult - 1
-                    )
-                    self._lr_scheduler.T_i = self._lr_scheduler.T_0 * self._lr_scheduler.T_mult ** (n)
+                    n = int(math.log((epoch / self._lr_scheduler.T_0 * (T_mult - 1) + 1), T_mult))
+                    self._lr_scheduler.T_cur = epoch - self._lr_scheduler.T_0 * (T_mult**n - 1) / (T_mult - 1)
+                    self._lr_scheduler.T_i = self._lr_scheduler.T_0 * T_mult**n
             else:
                 self._lr_scheduler.T_i = self._lr_scheduler.T_0
                 self._lr_scheduler.T_cur = epoch
@@ -842,10 +841,8 @@ class _CosineAnnealingWarmRestarts:
         self.last_epoch = math.floor(epoch)
 
         return [
-            self._lr_scheduler.eta_min
-            + (base_lr - self._lr_scheduler.eta_min)
-            * (1 + math.cos(math.pi * self._lr_scheduler.T_cur / self._lr_scheduler.T_i))
-            / 2
+            eta_min
+            + (base_lr - eta_min) * (1 + math.cos(math.pi * self._lr_scheduler.T_cur / self._lr_scheduler.T_i)) / 2
             for base_lr in self._lr_scheduler.base_lrs
         ]
 
@@ -924,7 +921,7 @@ class LRScheduler(ParamScheduler):
             warnings.warn(
                 "Please make sure to attach scheduler to Events.ITERATION_COMPLETED "
                 "instead of Events.ITERATION_STARTED to make sure to use "
-                "the first lr value from the optimizer, otherwise it is will be skipped"
+                "the first lr value from the optimizer, otherwise it will be skipped"
             )
             self.lr_scheduler.last_epoch += 1
 
@@ -937,9 +934,9 @@ class LRScheduler(ParamScheduler):
     def get_param(self) -> Union[float, List[float]]:
         """Method to get current optimizer's parameter value"""
         # Emulate context manager for pytorch>=1.4
-        self.lr_scheduler._get_lr_called_within_step = True  # type: ignore[attr-defined]
+        self.lr_scheduler._get_lr_called_within_step = True  # type: ignore[union-attr]
         lr_list = cast(List[float], self.lr_scheduler.get_lr())
-        self.lr_scheduler._get_lr_called_within_step = False  # type: ignore[attr-defined]
+        self.lr_scheduler._get_lr_called_within_step = False  # type: ignore[union-attr]
         if len(lr_list) == 1:
             return lr_list[0]
         else:
