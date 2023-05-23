@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, cast, Dict, List, Mapping, Optional, Sequence, Tuple, Type, Union
 
 import torch
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ReduceLROnPlateau
 from torch.optim.optimizer import Optimizer
 
 # https://github.com/pytorch/ignite/issues/2773
@@ -793,25 +793,25 @@ class ConcatScheduler(ParamScheduler):
 
 
 class _CosineAnnealingWarmRestarts:
-    def __init__(self, lr_scheduler: torch.optim.lr_scheduler.CosineAnnealingWarmRestarts):
+    def __init__(self, lr_scheduler: CosineAnnealingWarmRestarts):
         self._lr_scheduler = lr_scheduler
 
     @property
     def last_epoch(self) -> int:
         return self._lr_scheduler.last_epoch
 
+    @last_epoch.setter
+    def last_epoch(self, value: int) -> None:
+        self._lr_scheduler.last_epoch = value
+
     @property
     def optimizer(self) -> torch.optim.Optimizer:
         return self._lr_scheduler.optimizer
 
-    @last_epoch.setter
-    def last_epoch(self, value: int):
-        self._lr_scheduler.last_epoch = value
-
-    def get_lr(self, epoch: Union[int, None] = None) -> Union[List[float], float]:
+    def get_lr(self, epoch: Optional[int] = None) -> List[float]:
         if epoch is None and self.last_epoch < 0:
             epoch = 0
-
+        self._lr_scheduler.T_mult: int
         if epoch is None:
             epoch = self.last_epoch + 1
             self._lr_scheduler.T_cur = self._lr_scheduler.T_cur + 1
@@ -840,11 +840,6 @@ class _CosineAnnealingWarmRestarts:
                 self._lr_scheduler.T_cur = epoch
 
         self.last_epoch = math.floor(epoch)
-
-        if not self._get_lr_called_within_step:
-            warnings.warn(
-                "To get the last learning rate computed by the scheduler, " "please use `get_last_lr()`.", UserWarning
-            )
 
         return [
             self._lr_scheduler.eta_min
@@ -905,7 +900,7 @@ class LRScheduler(ParamScheduler):
 
     def __init__(
         self,
-        lr_scheduler: Union[PyTorchLRScheduler, _CosineAnnealingWarmRestarts],
+        lr_scheduler: PyTorchLRScheduler,
         save_history: bool = False,
         use_legacy: bool = False,
     ):
@@ -915,6 +910,7 @@ class LRScheduler(ParamScheduler):
                 f"torch.optim.lr_scheduler.{PyTorchLRScheduler.__name__}, "
                 f"but given {type(lr_scheduler)}"
             )
+        self.lr_scheduler: Union[PyTorchLRScheduler, _CosineAnnealingWarmRestarts]
         if isinstance(lr_scheduler, torch.optim.lr_scheduler.CosineAnnealingWarmRestarts):
             self.lr_scheduler = _CosineAnnealingWarmRestarts(lr_scheduler)
         else:
