@@ -650,7 +650,7 @@ def test_lr_scheduler(torch_lr_scheduler_cls, kwargs):
     state_dict1 = scheduler1.state_dict()
 
     torch_lr_scheduler2 = torch_lr_scheduler_cls(optimizer=optimizer2, **kwargs)
-    with pytest.warns(UserWarning, match=r"the first lr value from the optimizer, otherwise it is will be skipped"):
+    with pytest.warns(UserWarning, match=r"the first lr value from the optimizer, otherwise it will be skipped"):
         scheduler2 = LRScheduler(torch_lr_scheduler2, use_legacy=True)
     state_dict2 = scheduler2.state_dict()
 
@@ -1393,13 +1393,14 @@ def test_create_lr_scheduler_with_warmup_cosine(warmup_end_value, T_0, T_mult):
     )
 
     warm_lrs = []
-    for epoch in range(warm_steps + steps):
+    real_warm_steps = warm_steps if warmup_end_value is not None else (warm_steps - 1)
+    for epoch in range(real_warm_steps + steps):
         scheduler(None)
         warm_lrs.append(optimizer.param_groups[0]["lr"])
 
     if warmup_end_value is not None:
         np.testing.assert_allclose(np.linspace(warm_start, warmup_end_value, warm_steps), warm_lrs[:warm_steps])
-        assert warm_lrs[warm_steps:] == cosine_lrs
+        assert warm_lrs[real_warm_steps:] == cosine_lrs
     else:
         np.testing.assert_allclose(np.linspace(warm_start, lr, warm_steps), warm_lrs[:warm_steps])
-        assert warm_lrs[warm_steps - 1 : -1] == cosine_lrs
+        assert warm_lrs[real_warm_steps:] == cosine_lrs
