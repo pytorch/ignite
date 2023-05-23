@@ -650,7 +650,7 @@ def test_lr_scheduler(torch_lr_scheduler_cls, kwargs):
     state_dict1 = scheduler1.state_dict()
 
     torch_lr_scheduler2 = torch_lr_scheduler_cls(optimizer=optimizer2, **kwargs)
-    with pytest.warns(UserWarning, match=r"the first lr value from the optimizer, otherwise it is will be skipped"):
+    with pytest.warns(UserWarning, match=r"the first lr value from the optimizer, otherwise it will be skipped"):
         scheduler2 = LRScheduler(torch_lr_scheduler2, use_legacy=True)
     state_dict2 = scheduler2.state_dict()
 
@@ -1365,10 +1365,12 @@ def test_reduce_lr_on_plateau_scheduler_asserts():
 
 
 @pytest.mark.parametrize("warmup_end_value", [0.23, None])
-def test_create_lr_scheduler_with_warmup_cosine(warmup_end_value):
+@pytest.mark.parametrize("T_0", [1, 12])
+@pytest.mark.parametrize("T_mult", [1, 3])
+def test_create_lr_scheduler_with_warmup_cosine(warmup_end_value, T_0, T_mult):
     lr = 0.2
-    steps = 100
-    warm_steps = 50
+    steps = 10
+    warm_steps = 5
     warm_start = 0.023
 
     def get_optim():
@@ -1376,7 +1378,7 @@ def test_create_lr_scheduler_with_warmup_cosine(warmup_end_value):
         return torch.optim.SGD([t1], lr=lr)
 
     def get_cos_shed():
-        return CosineAnnealingWarmRestarts(optimizer, T_0=12, T_mult=3, verbose=False)
+        return CosineAnnealingWarmRestarts(optimizer, T_0=T_0, T_mult=T_mult, verbose=False)
 
     optimizer = get_optim()
     scheduler = get_cos_shed()
@@ -1391,15 +1393,14 @@ def test_create_lr_scheduler_with_warmup_cosine(warmup_end_value):
     )
 
     warm_lrs = []
-    for epoch in range(warm_steps + steps):
+    real_warm_steps = warm_steps if warmup_end_value is not None else (warm_steps - 1)
+    for epoch in range(real_warm_steps + steps):
         scheduler(None)
         warm_lrs.append(optimizer.param_groups[0]["lr"])
 
     if warmup_end_value is not None:
-        assert (
-            np.linspace(warm_start, warmup_end_value, warm_steps).round(3) == np.array(warm_lrs[:warm_steps]).round(3)
-        ).all()
-        assert warm_lrs[warm_steps:] == cosine_lrs
+        np.testing.assert_allclose(np.linspace(warm_start, warmup_end_value, warm_steps), warm_lrs[:warm_steps])
+        assert warm_lrs[real_warm_steps:] == cosine_lrs
     else:
-        assert (np.linspace(warm_start, lr, warm_steps).round(3) == np.array(warm_lrs[:warm_steps]).round(3)).all()
-        assert warm_lrs[warm_steps - 1 : -1] == cosine_lrs
+        np.testing.assert_allclose(np.linspace(warm_start, lr, warm_steps), warm_lrs[:warm_steps])
+        assert warm_lrs[real_warm_steps:] == cosine_lrs
