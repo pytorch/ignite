@@ -811,7 +811,7 @@ class _CosineAnnealingWarmRestarts:
     def get_lr(self, epoch: Optional[int] = None) -> List[float]:
         if epoch is None and self.last_epoch < 0:
             epoch = 0
-        self._lr_scheduler.T_mult: int
+
         if epoch is None:
             epoch = self.last_epoch + 1
             self._lr_scheduler.T_cur = self._lr_scheduler.T_cur + 1
@@ -910,11 +910,10 @@ class LRScheduler(ParamScheduler):
                 f"torch.optim.lr_scheduler.{PyTorchLRScheduler.__name__}, "
                 f"but given {type(lr_scheduler)}"
             )
-        self.lr_scheduler: Union[PyTorchLRScheduler, _CosineAnnealingWarmRestarts]
-        if isinstance(lr_scheduler, torch.optim.lr_scheduler.CosineAnnealingWarmRestarts):
+
+        self.lr_scheduler: Union[PyTorchLRScheduler, _CosineAnnealingWarmRestarts] = lr_scheduler
+        if isinstance(lr_scheduler, CosineAnnealingWarmRestarts):
             self.lr_scheduler = _CosineAnnealingWarmRestarts(lr_scheduler)
-        else:
-            self.lr_scheduler = lr_scheduler
 
         super(LRScheduler, self).__init__(
             optimizer=self.lr_scheduler.optimizer,
