@@ -1378,7 +1378,7 @@ def test_create_lr_scheduler_with_warmup_cosine(warmup_end_value, T_0, T_mult):
         return torch.optim.SGD([t1], lr=lr)
 
     def get_cos_shed():
-        return CosineAnnealingWarmRestarts(optimizer, T_0=T_0, T_mult=T_mult, verbose=False)
+        return CosineAnnealingWarmRestarts(optimizer, T_0=T_0, T_mult=T_mult)
 
     optimizer = get_optim()
     scheduler = get_cos_shed()

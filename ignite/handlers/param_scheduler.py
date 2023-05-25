@@ -809,12 +809,8 @@ class _CosineAnnealingWarmRestarts:
         return self._lr_scheduler.optimizer
 
     def get_lr(self, epoch: Optional[int] = None) -> List[float]:
-        # TODO: Remove this workaround when pytorch has fixed wrong type hints:
-        # https://github.com/pytorch/pytorch/pull/102067
-        # Replace below T_mult -> self._lr_scheduler.T_mult
-        # Replace below eta_min -> self._lr_scheduler.eta_min
-        T_mult = cast(int, self._lr_scheduler.T_mult)
-        eta_min = cast(float, self._lr_scheduler.eta_min)
+        T_mult = self._lr_scheduler.T_mult
+        eta_min = self._lr_scheduler.eta_min
 
         if epoch is None and self.last_epoch < 0:
             epoch = 0
