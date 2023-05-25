@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, cast, Dict, List, Mapping, Optional, Sequence, Tuple, Type, Union
 
 import torch
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ReduceLROnPlateau
 from torch.optim.optimizer import Optimizer
 
 # https://github.com/pytorch/ignite/issues/2773
@@ -792,6 +792,61 @@ class ConcatScheduler(ParamScheduler):
             return output
 
 
+class _CosineAnnealingWarmRestarts:
+    def __init__(self, lr_scheduler: CosineAnnealingWarmRestarts):
+        self._lr_scheduler = lr_scheduler
+
+    @property
+    def last_epoch(self) -> int:
+        return self._lr_scheduler.last_epoch
+
+    @last_epoch.setter
+    def last_epoch(self, value: int) -> None:
+        self._lr_scheduler.last_epoch = value
+
+    @property
+    def optimizer(self) -> torch.optim.Optimizer:
+        return self._lr_scheduler.optimizer
+
+    def get_lr(self, epoch: Optional[int] = None) -> List[float]:
+        # TODO: Remove this workaround when pytorch has fixed wrong type hints:
+        # https://github.com/pytorch/pytorch/pull/102067
+        # Replace below T_mult -> self._lr_scheduler.T_mult
+        # Replace below eta_min -> self._lr_scheduler.eta_min
+        T_mult = cast(int, self._lr_scheduler.T_mult)
+        eta_min = cast(float, self._lr_scheduler.eta_min)
+
+        if epoch is None and self.last_epoch < 0:
+            epoch = 0
+        if epoch is None:
+            epoch = self.last_epoch + 1
+            self._lr_scheduler.T_cur = self._lr_scheduler.T_cur + 1
+            if self._lr_scheduler.T_cur >= self._lr_scheduler.T_i:
+                self._lr_scheduler.T_cur = self._lr_scheduler.T_cur - self._lr_scheduler.T_i
+                self._lr_scheduler.T_i = self._lr_scheduler.T_i * T_mult
+        else:
+            if epoch < 0:
+                raise ValueError("Expected non-negative epoch, but got {}".format(epoch))
+            if epoch >= self._lr_scheduler.T_0:
+                if T_mult == 1:
+                    self._lr_scheduler.T_cur = epoch % self._lr_scheduler.T_0
+                else:
+                    n = int(math.log((epoch / self._lr_scheduler.T_0 * (T_mult - 1) + 1), T_mult))
+                    self._lr_scheduler.T_cur = epoch - self._lr_scheduler.T_0 * (T_mult**n - 1) / (T_mult - 1)
+                    self._lr_scheduler.T_i = self._lr_scheduler.T_0 * T_mult**n
+            else:
+                self._lr_scheduler.T_i = self._lr_scheduler.T_0
+                self._lr_scheduler.T_cur = epoch
+
+        self.last_epoch = math.floor(epoch)
+
+        return [
+            eta_min
+            + (base_lr - eta_min) * (1 + math.cos(math.pi * self._lr_scheduler.T_cur / self._lr_scheduler.T_i)) / 2
+            for base_lr in self._lr_scheduler.base_lrs
+        ]
+
+
 class LRScheduler(ParamScheduler):
     """A wrapper class to call `torch.optim.lr_scheduler` objects as `ignite` handlers.
 
@@ -853,7 +908,10 @@ class LRScheduler(ParamScheduler):
                 f"but given {type(lr_scheduler)}"
             )
 
-        self.lr_scheduler = lr_scheduler
+        self.lr_scheduler: Union[PyTorchLRScheduler, _CosineAnnealingWarmRestarts] = lr_scheduler
+        if isinstance(lr_scheduler, CosineAnnealingWarmRestarts):
+            self.lr_scheduler = _CosineAnnealingWarmRestarts(lr_scheduler)
+
         super(LRScheduler, self).__init__(
             optimizer=self.lr_scheduler.optimizer,
             param_name="lr",
@@ -863,7 +921,7 @@ class LRScheduler(ParamScheduler):
             warnings.warn(
                 "Please make sure to attach scheduler to Events.ITERATION_COMPLETED "
                 "instead of Events.ITERATION_STARTED to make sure to use "
-                "the first lr value from the optimizer, otherwise it is will be skipped"
+                "the first lr value from the optimizer, otherwise it will be skipped"
             )
             self.lr_scheduler.last_epoch += 1
 
@@ -876,9 +934,9 @@ class LRScheduler(ParamScheduler):
     def get_param(self) -> Union[float, List[float]]:
         """Method to get current optimizer's parameter value"""
         # Emulate context manager for pytorch>=1.4
-        self.lr_scheduler._get_lr_called_within_step = True  # type: ignore[attr-defined]
+        self.lr_scheduler._get_lr_called_within_step = True  # type: ignore[union-attr]
         lr_list = cast(List[float], self.lr_scheduler.get_lr())
-        self.lr_scheduler._get_lr_called_within_step = False  # type: ignore[attr-defined]
+        self.lr_scheduler._get_lr_called_within_step = False  # type: ignore[union-attr]
         if len(lr_list) == 1:
             return lr_list[0]
         else:
