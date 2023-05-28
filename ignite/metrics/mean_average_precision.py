@@ -37,17 +37,14 @@ class MeanAveragePrecision(_BasePrecisionRecall):
         Mean average precision is the computed by taking the mean of this average precision over different classes
         and possibly some additional dimensions in the detection task.
 
-        For detection tasks user should use downstream metrics like
-        :class:`~ignite.metrics.vision.object_detection_map.ObjectDetectionMAP` or subclass this metric and implement
-        its :meth:`_do_matching` method to provide the metric with desired matching logic. Then this method is called
-        internally in :meth:`update` method on prediction-target pairs. For classification, all the binary, multiclass
-        and multilabel data are supported. In the latter case, ``classification_is_multilabel`` should be set to true.
+        For detection tasks, user should use downstream metrics like
+        :class:`~ignite.metrics.vision.object_detection_map.ObjectDetectionMAP`. For classification, all the binary,
+        multiclass and multilabel data are supported. In the latter case, ``classification_is_multilabel`` should be
+        set to true.
 
         `mean` in the mean average precision accounts for mean of the average precision across classes. ``class_mean``
         determines how to take this mean. In the detection tasks, it's possible to take mean of the average precision
-        in other respects as well e.g. IoU threshold in an object detection task. To this end, average precision
-        corresponding to each value of IoU thresholds should get measured in :meth:`_do_matching`. Please refer to
-        :meth:`_do_matching` for more info on this.
+        in other respects as well e.g. IoU threshold in an object detection task.
 
         Args:
             rec_thresholds: recall thresholds (sensivity levels) to be considered for computing Mean Average Precision.
@@ -317,8 +314,9 @@ class MeanAveragePrecision(_BasePrecisionRecall):
         """Metric update function using prediction and target.
 
         Args:
-            output: a binary tuple. It should consist of prediction and target tensors in the classification case but
-                for detection it is the same as the implemented-by-user :meth:`_do_matching`.
+            output: a binary tuple. It should consist of prediction and target tensors in the classification case.
+                for detection, user should refer to the desired subclass metric e.g.
+                :meth:`~ignite.metrics.vision.object_detection_map.ObjectDetectionMAP.update`
 
                 For classification, this metric follows the same rules on ``output`` members shape as the
                 :meth:`Precision.update <precision.Precision.update>` except for ``y_pred`` of binary and multilabel
