@@ -5,6 +5,7 @@ from typing import Dict, List, Tuple
 from unittest.mock import patch
 
 import numpy as np
+from sklearn.utils.extmath import stable_cumsum
 
 np.float = float
 
@@ -800,9 +801,67 @@ def test_matching():
     assert (metric._fp[1][3] == torch.tensor([[False, True]])).all()
 
 
+def sklearn_precision_recall_curve_allowing_multiple_recalls_at_single_threshold(y_true, y_score):
+    y_true = y_true == 1
+
+    desc_score_indices = np.argsort(y_score, kind="mergesort")[::-1]
+    y_true = y_true[desc_score_indices]
+    weight = 1.0
+
+    tps = stable_cumsum(y_true * weight)
+    fps = stable_cumsum((1 - y_true) * weight)
+    ps = tps + fps
+    precision = np.zeros_like(tps)
+    np.divide(tps, ps, out=precision, where=(ps != 0))
+    if tps[-1] == 0:
+        recall = np.ones_like(tps)
+    else:
+        recall = tps / tps[-1]
+
+    sl = slice(None, None, -1)
+    return np.hstack((precision[sl], 1)), np.hstack((recall[sl], 0)), None
+
+
+def test__compute_recall_and_precision():
+    # Detection, in the case detector detects all gt objects but also produces some wrong predictions.
+    scores = torch.rand((50,))
+    y_true = torch.randint(0, 2, (50,))
+    m = ObjectDetectionMAP()
+
+    ignite_recall, ignite_precision = m._compute_recall_and_precision(
+        y_true.bool(), ~(y_true.bool()), scores, y_true.sum()
+    )
+    sklearn_precision, sklearn_recall, _ = sklearn_precision_recall_curve_allowing_multiple_recalls_at_single_threshold(
+        y_true.numpy(), scores.numpy()
+    )
+    assert (ignite_recall.flip(0).numpy() == sklearn_recall[:-1]).all()
+    assert (ignite_precision.flip(0).numpy() == sklearn_precision[:-1]).all()
+
+    # Detection like above but with two additional mean dimensions.
+    scores = torch.rand((50,))
+    y_true = torch.zeros((6, 8, 50))
+    sklearn_precisions, sklearn_recalls = [], []
+    for i in range(6):
+        for j in range(8):
+            y_true[i, j, np.random.choice(50, size=15, replace=False)] = 1
+            precision, recall, _ = sklearn_precision_recall_curve_allowing_multiple_recalls_at_single_threshold(
+                y_true[i, j].numpy(), scores.numpy()
+            )
+            sklearn_precisions.append(precision[:-1])
+            sklearn_recalls.append(recall[:-1])
+    sklearn_precisions = np.array(sklearn_precisions).reshape(6, 8, -1)
+    sklearn_recalls = np.array(sklearn_recalls).reshape(6, 8, -1)
+    ignite_recall, ignite_precision = m._compute_recall_and_precision(
+        y_true.bool(), ~(y_true.bool()), scores, torch.tensor(15)
+    )
+    assert (ignite_recall.flip(-1).numpy() == sklearn_recalls).all()
+    assert (ignite_precision.flip(-1).numpy() == sklearn_precisions).all()
+
+
 def test_compute(sample):
     device = idist.device()
     metric_50 = ObjectDetectionMAP(iou_thresholds=[0.5], device=device)
+    assert metric_50._task == "detection"
     metric_75 = ObjectDetectionMAP(iou_thresholds=[0.75], device=device)
     metric_50_95 = ObjectDetectionMAP(device=device)
 

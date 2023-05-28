@@ -22,10 +22,9 @@ class MeanAveragePrecision(_BasePrecisionRecall):
     def __init__(
         self,
         rec_thresholds: Optional[Union[Sequence[float], torch.Tensor]] = None,
-        average_operand: Optional[Literal["precision", "max-precision"]] = "precision",
+        average: Optional[Literal["precision", "max-precision"]] = "precision",
         class_mean: Optional[Literal["micro", "macro", "weighted", "with_other_dims"]] = "macro",
         classification_is_multilabel: bool = False,
-        allow_multiple_recalls_at_single_threshold: bool = False,
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
@@ -38,22 +37,23 @@ class MeanAveragePrecision(_BasePrecisionRecall):
         Mean average precision is the computed by taking the mean of this average precision over different classes
         and possibly some additional dimensions in the detection task.
 
-        For detection tasks user must subclass this metric and implement its :meth:`do_matching`
-        method to provide the metric with desired matching logic. Then this method is called internally in
-        :meth:`update` method on prediction-target pairs. For classification, all the binary, multiclass and
-        multilabel data are supported. In the latter case, ``classification_is_multilabel`` should be set to true.
+        For detection tasks user should use downstream metrics like
+        :class:`~ignite.metrics.vision.object_detection_map.ObjectDetectionMAP` or subclass this metric and implement
+        its :meth:`_do_matching` method to provide the metric with desired matching logic. Then this method is called
+        internally in :meth:`update` method on prediction-target pairs. For classification, all the binary, multiclass
+        and multilabel data are supported. In the latter case, ``classification_is_multilabel`` should be set to true.
 
         `mean` in the mean average precision accounts for mean of the average precision across classes. ``class_mean``
         determines how to take this mean. In the detection tasks, it's possible to take mean of the average precision
         in other respects as well e.g. IoU threshold in an object detection task. To this end, average precision
-        corresponding to each value of IoU thresholds should get measured in :meth:`do_matching`. Please refer to
-        :meth:`do_matching` for more info on this.
+        corresponding to each value of IoU thresholds should get measured in :meth:`_do_matching`. Please refer to
+        :meth:`_do_matching` for more info on this.
 
         Args:
             rec_thresholds: recall thresholds (sensivity levels) to be considered for computing Mean Average Precision.
                 It could be a 1-dim tensor or a sequence of floats. Its values should be between 0 and 1 and don't need
                 to be sorted. If missing, thresholds are considered automatically using the data.
-            average_operand: one of values "precision" or "max-precision". In the former case, the precision at a
+            average: one of values "precision" or "max-precision". In the former case, the precision at a
                 recall threshold is used for that threshold:
 
                 .. math::
@@ -62,7 +62,7 @@ class MeanAveragePrecision(_BasePrecisionRecall):
                 :math:`r` stands for recall thresholds and :math:`P` for precision values. :math:`r_0` is set to zero.
 
                 In the latter case, the maximum precision across thresholds greater or equal a recall threshold is
-                considered as the summation operand; In other words, the precision peek across lower or equall
+                considered as the summation operand; In other words, the precision peek across lower or equal
                 sensivity levels is used for a recall threshold:
 
                 .. math::
@@ -108,11 +108,6 @@ class MeanAveragePrecision(_BasePrecisionRecall):
 
             classification_is_multilabel: Used in classification task and determines if the data
                 is multilabel or not. Default False.
-            allow_multiple_recalls_at_single_threshold: When there are predictions with the same scores, it's faster to
-                consider those predictions associated with different thresholds in the course of measuring recall
-                values, but it's not logically correct since those predictions are associated with a single threshold,
-                thus outputing a single recall value. This option is added mainly due to some downstream mAP metrics
-                which allow such a thing in their computation e.g. pycocotools' mAP. Default False.
             output_transform: a callable that is used to transform the
                 :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
                 form expected by the metric. This can be useful if, for example, you have a multi-output model and
@@ -127,15 +122,13 @@ class MeanAveragePrecision(_BasePrecisionRecall):
         else:
             self.rec_thresholds = None
 
-        if average_operand not in ("precision", "max-precision"):
-            raise ValueError(f"Wrong `average_operand` parameter, given {average_operand}")
-        self.average_operand = average_operand
+        if average not in ("precision", "max-precision"):
+            raise ValueError(f"Wrong `average` parameter, given {average}")
+        self.average = average
 
         if class_mean is not None and class_mean not in ("micro", "macro", "weighted", "with_other_dims"):
             raise ValueError(f"Wrong `class_mean` parameter, given {class_mean}")
         self.class_mean = class_mean
-
-        self.allow_multiple_recalls_at_single_threshold = allow_multiple_recalls_at_single_threshold
 
         super(_BasePrecisionRecall, self).__init__(
             output_transform=output_transform, is_multilabel=classification_is_multilabel, device=device
@@ -169,7 +162,7 @@ class MeanAveragePrecision(_BasePrecisionRecall):
         Reset method of the metric
         """
         super(_BasePrecisionRecall, self).reset()
-        if self.do_matching.__func__ == MeanAveragePrecision.do_matching:  # type: ignore[attr-defined]
+        if self._do_matching.__func__ == MeanAveragePrecision._do_matching:  # type: ignore[attr-defined]
             self._task: Literal["classification", "detection"] = "classification"
         else:
             self._task = "detection"
@@ -202,7 +195,7 @@ class MeanAveragePrecision(_BasePrecisionRecall):
     ) -> None:
         if not (tps.keys() == fps.keys() == scores.keys()):
             raise ValueError(
-                "Returned TP, FP and scores dictionaries from do_matching should have"
+                "Returned TP, FP and scores dictionaries from _do_matching should have"
                 f" the same keys (classes), given {tps.keys()}, {fps.keys()} and {scores.keys()}"
             )
         try:
@@ -228,7 +221,7 @@ class MeanAveragePrecision(_BasePrecisionRecall):
             else:
                 if self_tp_or_fp[cls][-1].shape[:-1] != new_tp_or_fp[cls].shape[:-1]:
                     raise ValueError(
-                        f"Tensors in returned {name} from do_matching should not change in shape "
+                        f"Tensors in returned {name} from _do_matching should not change in shape "
                         "except possibly in the last dimension which is the dimension of samples. Given "
                         f"{self_tp_or_fp[cls][-1].shape} and {new_tp_or_fp[cls].shape}"
                     )
@@ -278,13 +271,13 @@ class MeanAveragePrecision(_BasePrecisionRecall):
 
         return scores, P
 
-    def do_matching(
+    def _do_matching(
         self, pred: Any, target: Any
     ) -> Tuple[Dict[int, torch.Tensor], Dict[int, torch.Tensor], Dict[int, int], Dict[int, torch.Tensor]]:
         r"""
         Matching logic holder of the metric for detection tasks.
 
-        User must implement this method by subclassing the metric. There is no constraint on type and shape of
+        The developer must implement this method by subclassing the metric. There is no constraint on type and shape of
         ``pred`` and ``target``, but the method should return a quadrople of dictionaries containing TP, FP,
         P (actual positive) counts and scores for each class respectively. Please note that class numbers start from
         zero.
@@ -315,7 +308,8 @@ class MeanAveragePrecision(_BasePrecisionRecall):
             `(TP, FP, P, scores)` A quadrople of true positives, false positives, number of actual positives and scores.
         """
         raise NotImplementedError(
-            "Please subclass MeanAveragePrecision and implement `do_matching` method" " to use the metric in detection."
+            "Please subclass MeanAveragePrecision and implement `_do_matching` method"
+            " to use the metric in detection."
         )
 
     @reinit__is_reduced
@@ -324,7 +318,7 @@ class MeanAveragePrecision(_BasePrecisionRecall):
 
         Args:
             output: a binary tuple. It should consist of prediction and target tensors in the classification case but
-                for detection it is the same as the implemented-by-user :meth:`do_matching`.
+                for detection it is the same as the implemented-by-user :meth:`_do_matching`.
 
                 For classification, this metric follows the same rules on ``output`` members shape as the
                 :meth:`Precision.update <precision.Precision.update>` except for ``y_pred`` of binary and multilabel
@@ -341,7 +335,7 @@ class MeanAveragePrecision(_BasePrecisionRecall):
                 P.to(self._device, dtype=torch.uint8 if self._type != "multiclass" else torch.long)
             )
         else:
-            tps, fps, ps, scores_dict = self.do_matching(output[0], output[1])
+            tps, fps, ps, scores_dict = self._do_matching(output[0], output[1])
             self._check_matching_output_shape(tps, fps, scores_dict)
             for cls in tps:
                 self._tp[cls].append(tps[cls].to(device=self._device, dtype=torch.uint8))
@@ -353,7 +347,7 @@ class MeanAveragePrecision(_BasePrecisionRecall):
             if classes:
                 self._num_classes = max(max(classes) + 1, self._num_classes)
 
-    def _measure_recall_and_precision(
+    def _compute_recall_and_precision(
         self, TP: torch.Tensor, FP: Union[torch.Tensor, None], scores: torch.Tensor, P: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         r"""Measuring recall & precision which is the common operation among different settings of the metric.
@@ -363,34 +357,30 @@ class MeanAveragePrecision(_BasePrecisionRecall):
         classification task. ``...`` stands for the additional dimensions in the detection task. Finally,
         \#unique scores represents number of unique scores in ``scores`` which is actually the number of thresholds.
 
-        This method is called on a per class basis in the detection task and if
-        ``allow_multiple_recalls_at_single_threshold=False``.
-
-        =========================== ================================== ===================================
+        ============== ======================
         Detection task
-        --------------------------------------------------------------------------------------------------
-        **Object**/ **Condition**   ``allow_multiple_recalls...=True`` ``allow_multiple_recalls...=False``
-        =========================== ================================== ===================================
-        TP and FP                   (..., N\ :sub:`pred`)              (..., N\ :sub:`pred`)
-        scores                      (N\ :sub:`pred`,)                  (N\ :sub:`pred`,)
-        P                           () (A single float)                () (A single float)
-        recall                      (..., N\ :sub:`pred`)              (..., \#unique scores)
-        precision                   (..., N\ :sub:`pred`)              (..., \#unique scores)
-        =========================== =====================
+        -------------------------------------
+        **Object**     **Shape**
+        ============== ======================
+        TP and FP      (..., N\ :sub:`pred`)
+        scores         (N\ :sub:`pred`,)
+        P              () (A single float)
+        recall         (..., \#unique scores)
+        precision      (..., \#unique scores)
+        ============== ======================
 
-        =========================== ================================== ===================================
+        =================== =======================================
         Classification task
-        --------------------------------------------------------------------------------------------------
-        **Object**/ **Condition**   ``allow_multiple_recalls...=True`` ``allow_multiple_recalls...=False``
-        =========================== ================================== ===================================
-        TP                          (C, N\ :sub:`pred`)                (N\ :sub:`pred`,)
-        FP                          (C, N\ :sub:`pred`)                None (FP is computed here to be
-                                                                       faster)
-        scores                      (C, N\ :sub:`pred`)                (N\ :sub:`pred`,)
-        P                           (C,)                               () (A single float)
-        recall                      (C, N\ :sub:`pred`)                (\#unique scores,)
-        precision                   (C, N\ :sub:`pred`)                (\#unique scores,)
-        =========================== ================================== ===================================
+        -----------------------------------------------------------
+        **Object**          **Shape**
+        =================== =======================================
+        TP                  (N\ :sub:`pred`,)
+        FP                  None (FP is computed here to be faster)
+        scores              (N\ :sub:`pred`,)
+        P                   () (A single float)
+        recall              (\#unique scores,)
+        precision           (\#unique scores,)
+        =================== =======================================
 
         Returns:
             `(recall, precision)`
@@ -398,32 +388,24 @@ class MeanAveragePrecision(_BasePrecisionRecall):
         indices = torch.argsort(scores, dim=-1, stable=True, descending=True)
         tp = TP.take_along_dim(indices, dim=-1) if self._task == "classification" else TP[..., indices]
         tp_summation = tp.cumsum(dim=-1).double()
-        if self._task == "detection" or self.allow_multiple_recalls_at_single_threshold:
-            fp = (
-                cast(torch.Tensor, FP).take_along_dim(indices, dim=-1)
-                if self._task == "classification"
-                else cast(torch.Tensor, FP)[..., indices]
-            )
-            fp_summation = fp.cumsum(dim=-1).double()
-        if not self.allow_multiple_recalls_at_single_threshold:
-            # Adopted from Scikit-learn's implementation
-            unique_scores_indices = torch.nonzero(
-                scores.take_along_dim(indices).diff(append=(scores.max() + 1).unsqueeze(dim=0)), as_tuple=True
-            )[0]
-            tp_summation = tp_summation[..., unique_scores_indices]
-            if self._task == "classification":
-                fp_summation = (unique_scores_indices + 1) - tp_summation
-            else:
-                fp_summation = fp_summation[..., unique_scores_indices]
 
-        if self._task == "classification" and self.allow_multiple_recalls_at_single_threshold:
-            recall = torch.where(P == 0, 1, tp_summation.T / P).T
-        elif self._task == "classification" and P == 0:
+        # Adopted from Scikit-learn's implementation
+        unique_scores_indices = torch.nonzero(
+            scores.take_along_dim(indices).diff(append=(scores.max() + 1).unsqueeze(dim=0)), as_tuple=True
+        )[0]
+        tp_summation = tp_summation[..., unique_scores_indices]
+        if self._task == "classification":
+            fp_summation = (unique_scores_indices + 1) - tp_summation
+        else:
+            fp = cast(torch.Tensor, FP)[..., indices]
+            fp_summation = fp.cumsum(dim=-1).double()
+            fp_summation = fp_summation[..., unique_scores_indices]
+
+        if self._task == "classification" and P == 0:
             recall = torch.ones_like(tp_summation, device=self._device, dtype=torch.bool)
         else:
             recall = tp_summation / P
-        # precision = tp_summation / (fp_summation + tp_summation + torch.finfo(torch.double).eps)
-        # or
+
         predicted_positive = tp_summation + fp_summation
         precision = tp_summation / torch.where(predicted_positive == 0, 1, predicted_positive)
         return recall, precision
@@ -440,7 +422,7 @@ class MeanAveragePrecision(_BasePrecisionRecall):
             average_precision: (n-1)-dimensional tensor containing the average precision for mean dimensions.
         """
         precision_integrand = (
-            precision.flip(-1).cummax(dim=-1).values.flip(-1) if self.average_operand == "max-precision" else precision
+            precision.flip(-1).cummax(dim=-1).values.flip(-1) if self.average == "max-precision" else precision
         )
         if self.rec_thresholds is not None:
             rec_thresholds = self.rec_thresholds.repeat((*recall.shape[:-1], 1))
@@ -549,7 +531,7 @@ class MeanAveragePrecision(_BasePrecisionRecall):
                     if TP[cls].size(-1) == 0:
                         average_precisions[cls] = 0
                         continue
-                    recall, precision = self._measure_recall_and_precision(TP[cls], FP[cls], scores[cls], P[cls])
+                    recall, precision = self._compute_recall_and_precision(TP[cls], FP[cls], scores[cls], P[cls])
                     average_precision_for_cls_across_other_dims = self._measure_average_precision(recall, precision)
                     if self.class_mean != "with_other_dims":
                         average_precisions[cls] = average_precision_for_cls_across_other_dims.mean()
@@ -607,7 +589,7 @@ class MeanAveragePrecision(_BasePrecisionRecall):
                     )
                 )
                 P = P.sum()
-                recall, precision = self._measure_recall_and_precision(TP_micro, FP_micro, scores_micro, P)
+                recall, precision = self._compute_recall_and_precision(TP_micro, FP_micro, scores_micro, P)
                 return self._measure_average_precision(recall, precision).mean()
         else:
             rank_P = (
@@ -644,16 +626,12 @@ class MeanAveragePrecision(_BasePrecisionRecall):
                 P = P.reshape(1, -1)
                 scores_classification = scores_classification.view(1, -1)
             P_count = P.sum(dim=-1)
-            if self.allow_multiple_recalls_at_single_threshold:
-                recall, precision = self._measure_recall_and_precision(P, 1 - P, scores_classification, P_count)
-                average_precisions = self._measure_average_precision(recall, precision)
-            else:
-                average_precisions = torch.zeros_like(P_count, device=self._device, dtype=torch.double)
-                for cls in range(len(P_count)):
-                    recall, precision = self._measure_recall_and_precision(
-                        P[cls], None, scores_classification[cls], P_count[cls]
-                    )
-                    average_precisions[cls] = self._measure_average_precision(recall, precision)
+            average_precisions = torch.zeros_like(P_count, device=self._device, dtype=torch.double)
+            for cls in range(len(P_count)):
+                recall, precision = self._compute_recall_and_precision(
+                    P[cls], None, scores_classification[cls], P_count[cls]
+                )
+                average_precisions[cls] = self._measure_average_precision(recall, precision)
             if self._type == "binary":
                 return average_precisions.item()
             if self.class_mean is None:

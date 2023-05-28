@@ -86,12 +86,33 @@ class ObjectDetectionMAP(MeanAveragePrecision):
 
         super(ObjectDetectionMAP, self).__init__(
             rec_thresholds=rec_thresholds,
-            average_operand="max-precision" if flavor == "COCO" else "precision",
+            average="max-precision" if flavor == "COCO" else "precision",
             class_mean="with_other_dims",
-            allow_multiple_recalls_at_single_threshold=flavor == "COCO",
             output_transform=output_transform,
             device=device,
         )
+
+    def _compute_recall_and_precision(
+        self, TP: torch.Tensor, FP: Union[torch.Tensor, None], scores: torch.Tensor, P: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        r"""Measuring recall & precision
+
+        This method is overriden since in the pycocotools reference implementation, when there are predictions with the
+        same scores, they're considered associated with different thresholds in the course of measuring recall
+        values, although it's not logically correct as those predictions are really associated with a single threshold,
+        thus outputing a single recall value.
+        """
+        indices = torch.argsort(scores, dim=-1, stable=True, descending=True)
+        tp = TP[..., indices]
+        tp_summation = tp.cumsum(dim=-1).double()
+        fp = cast(torch.Tensor, FP)[..., indices]
+        fp_summation = fp.cumsum(dim=-1).double()
+
+        recall = tp_summation / P
+        predicted_positive = tp_summation + fp_summation
+        precision = tp_summation / torch.where(predicted_positive == 0, 1, predicted_positive)
+
+        return recall, precision
 
     def _measure_average_precision(self, recall: torch.Tensor, precision: torch.Tensor) -> torch.Tensor:
         """Measuring average precision.
@@ -110,7 +131,7 @@ class ObjectDetectionMAP(MeanAveragePrecision):
             return super()._measure_average_precision(recall, precision)
 
         precision_integrand = (
-            precision.flip(-1).cummax(dim=-1).values.flip(-1) if self.average_operand == "max-precision" else precision
+            precision.flip(-1).cummax(dim=-1).values.flip(-1) if self.average == "max-precision" else precision
         )
         rec_thresholds = cast(torch.Tensor, self.rec_thresholds).repeat((*recall.shape[:-1], 1))
         rec_thresh_indices = torch.searchsorted(recall, rec_thresholds)
@@ -124,7 +145,7 @@ class ObjectDetectionMAP(MeanAveragePrecision):
             return -1
         return super().compute()
 
-    def do_matching(
+    def _do_matching(
         self, pred: Dict[str, torch.Tensor], target: Dict[str, torch.Tensor]
     ) -> Tuple[Dict[int, torch.Tensor], Dict[int, torch.Tensor], Dict[int, int], Dict[int, torch.Tensor]]:
         """
