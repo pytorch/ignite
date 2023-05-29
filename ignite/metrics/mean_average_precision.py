@@ -316,11 +316,11 @@ class MeanAveragePrecision(_BasePrecisionRecall):
         Args:
             output: a binary tuple. It should consist of prediction and target tensors in the classification case.
                 for detection, user should refer to the desired subclass metric e.g.
-                :meth:`~ignite.metrics.vision.object_detection_map.ObjectDetectionMAP.update`
+                :meth:`~ignite.metrics.vision.object_detection_map.ObjectDetectionMAP`
 
                 For classification, this metric follows the same rules on ``output`` members shape as the
-                :meth:`Precision.update <precision.Precision.update>` except for ``y_pred`` of binary and multilabel
-                data which should be comprised of positive class probabilities here.
+                :meth:`Precision.update <.metrics.precision.Precision.update>` except for ``y_pred`` of binary and
+                multilabel data which should be comprised of positive class probabilities here.
         """
 
         if self._task == "classification":
