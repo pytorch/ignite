@@ -11,7 +11,16 @@ from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_
 import ignite.distributed as idist
 from ignite.engine import Engine, Events, State
 from ignite.metrics import ConfusionMatrix, Precision, Recall
-from ignite.metrics.metric import BatchFiltered, BatchWise, EpochWise, Metric, reinit__is_reduced, sync_all_reduce
+from ignite.metrics.metric import (
+    BatchFiltered,
+    BatchWise,
+    EpochWise,
+    Metric,
+    reinit__is_reduced,
+    RunningBatchWise,
+    RunningEpochWise,
+    sync_all_reduce,
+)
 
 
 class DummyMetric1(Metric):
@@ -839,7 +848,9 @@ def test_usage_exception():
     m = DummyMetric2()
     with pytest.raises(TypeError, match=r"Unhandled usage type"):
         m.attach(engine, "dummy", usage=1)
-    with pytest.raises(ValueError, match=r"usage should be 'EpochWise.usage_name' or 'BatchWise.usage_name'"):
+    with pytest.raises(
+        ValueError, match=r"usage should be '\(Running\)EpochWise.usage_name' or '\(Running\)BatchWise.usage_name'"
+    ):
         m.attach(engine, "dummy", usage="fake")
 
 
@@ -879,6 +890,46 @@ def test_epochwise_usage():
     test(EpochWise())
 
 
+def test_running_epochwise_usage():
+    class MyMetric(Metric):
+        def __init__(self):
+            super(MyMetric, self).__init__()
+            self.value = 0
+
+        def reset(self):
+            self.value = 0
+
+        def compute(self):
+            return self.value
+
+        def update(self, output):
+            self.value += output
+
+    def test(usage):
+        engine = Engine(lambda e, b: e.state.metrics["ewm"])
+
+        engine.state.metrics["ewm"] = 0
+
+        @engine.on(Events.EPOCH_STARTED)
+        def _():
+            engine.state.metrics["ewm"] += 1
+
+        m = MyMetric()
+        m.attach(engine, "rewm", usage=usage)
+
+        @engine.on(Events.EPOCH_COMPLETED)
+        def _():
+            assert engine.state.metrics["rewm"] == sum(range(engine.state.epoch + 1))
+
+        engine.run([0, 1, 2], max_epochs=10)
+
+        m.detach(engine, usage=usage)
+
+    test("running_epoch_wise")
+    test(RunningEpochWise.usage_name)
+    test(RunningEpochWise())
+
+
 def test_batchwise_usage():
     class MyMetric(Metric):
         def __init__(self):
@@ -913,6 +964,40 @@ def test_batchwise_usage():
     test("batch_wise")
     test(BatchWise.usage_name)
     test(BatchWise())
+
+
+def test_running_batchwise_usage():
+    class MyMetric(Metric):
+        def __init__(self):
+            super(MyMetric, self).__init__()
+            self.value = 0
+
+        def reset(self):
+            self.value = 0
+
+        def compute(self):
+            return self.value
+
+        def update(self, output):
+            self.value += output
+
+    def test(usage):
+        engine = Engine(lambda e, b: b)
+
+        m = MyMetric()
+        m.attach(engine, "rbwm", usage=usage)
+
+        @engine.on(Events.EPOCH_COMPLETED)
+        def _():
+            assert engine.state.metrics["rbwm"] == 3 * engine.state.epoch
+
+        engine.run([0, 1, 2], max_epochs=10)
+
+        m.detach(engine, usage=usage)
+
+    test("running_batch_wise")
+    test(RunningBatchWise.usage_name)
+    test(RunningBatchWise())
 
 
 def test_batchfiltered_usage():

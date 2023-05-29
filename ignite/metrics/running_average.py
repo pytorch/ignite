@@ -3,8 +3,16 @@ from typing import Callable, cast, Optional, Sequence, Union
 import torch
 
 import ignite.distributed as idist
-from ignite.engine import Engine, Events
-from ignite.metrics.metric import EpochWise, Metric, MetricUsage, reinit__is_reduced, sync_all_reduce
+from ignite.engine import Engine
+from ignite.metrics.metric import (
+    BatchWise,
+    EpochWise,
+    Metric,
+    MetricUsage,
+    reinit__is_reduced,
+    SingleEpochRunningBatchWise,
+    sync_all_reduce,
+)
 
 __all__ = ["RunningAverage"]
 
@@ -18,8 +26,6 @@ class RunningAverage(Metric):
         alpha: running average decay factor, default 0.98
         output_transform: a function to use to transform the output if `src` is None and
             corresponds the output of process function. Otherwise it should be None.
-        epoch_bound: whether the running average should be reset after each epoch (defaults
-            to True).
         device: specifies which device updates are accumulated on. Should be
             None when ``src`` is an instance of :class:`~ignite.metrics.metric.Metric`, as the running average will
             use the ``src``'s device. Otherwise, defaults to CPU. Only applicable when the computed value
@@ -90,7 +96,6 @@ class RunningAverage(Metric):
         src: Optional[Metric] = None,
         alpha: float = 0.98,
         output_transform: Optional[Callable] = None,
-        epoch_bound: bool = True,
         device: Optional[Union[str, torch.device]] = None,
     ):
         if not (isinstance(src, Metric) or src is None):
@@ -105,7 +110,6 @@ class RunningAverage(Metric):
                 raise ValueError("Argument device should be None if src is a Metric.")
             self.src = src
             self._get_src_value = self._get_metric_value
-            setattr(self, "iteration_completed", self._metric_iteration_completed)
             device = src._device
         else:
             if output_transform is None:
@@ -119,7 +123,6 @@ class RunningAverage(Metric):
                 device = torch.device("cpu")
 
         self.alpha = alpha
-        self.epoch_bound = epoch_bound
         super(RunningAverage, self).__init__(output_transform=output_transform, device=device)  # type: ignore[arg-type]
 
     @reinit__is_reduced
@@ -139,16 +142,62 @@ class RunningAverage(Metric):
 
         return self._value
 
-    def attach(self, engine: Engine, name: str, _usage: Union[str, MetricUsage] = EpochWise()) -> None:
-        if self.epoch_bound:
-            # restart average every epoch
-            engine.add_event_handler(Events.EPOCH_STARTED, self.started)
-        else:
-            engine.add_event_handler(Events.STARTED, self.started)
-        # compute metric
-        engine.add_event_handler(Events.ITERATION_COMPLETED, self.iteration_completed)
-        # apply running average
-        engine.add_event_handler(Events.ITERATION_COMPLETED, self.completed, name)
+    def attach(self, engine: Engine, name: str, usage: Union[str, MetricUsage] = SingleEpochRunningBatchWise()) -> None:
+        r"""
+        Attach the metric to the ``engine`` using the events determined by the ``usage``.
+
+        Args:
+            engine: the engine to get attached to.
+            name: by which, the metric is inserted into ``engine.state.metrics`` dictionary.
+            usage: the usage determining on which events the metric is reset, updated and computed. It should be an
+                instance of the :class:`~ignite.metrics.metric.MetricUsage`\ s in the following table.
+
+                ======================================================= ===========================================
+                ``usage`` **class**                                     **Description**
+                ======================================================= ===========================================
+                :class:`~.metrics.metric.RunningBatchWise`              Running average of the ``src`` metric or
+                                                                        ``engine.state.output`` is computed across
+                                                                        batches. In the former case, on each batch,
+                                                                        ``src`` is reset, updated and computed then
+                                                                        its value is retrieved.
+                :class:`~.metrics.metric.SingleEpochRunningBatchWise`   Same as above but the running average is
+                                                                        computed across batches in an epoch so it
+                                                                        is reset at the end of the epoch. Default.
+                :class:`~.metrics.metric.RunningEpochWise`              Running average of the ``src`` metric or
+                                                                        ``engine.state.output`` is computed across
+                                                                        epochs. In the former case, ``src`` works
+                                                                        as if it was attached in a
+                                                                        :class:`~ignite.metrics.metric.EpochWise`
+                                                                        manner and its computed value is retrieved
+                                                                        at the end of the epoch. The latter case
+                                                                        doesn't make much sense for this usage as
+                                                                        the ``engine.state.output`` of the last
+                                                                        batch is retrieved then.
+                ======================================================= ===========================================
+
+        ``RunningAverage`` retrieves ``engine.state.output`` at ``usage.ITERATION_COMPLETED`` if the ``src`` is not
+        given and it's computed and updated using ``src`, by manually calling its ``compute`` method, or
+        ``engine.state.output`` at ``usage.COMPLETED``event.
+        Also if ``src`` is given, it is updated at ``usage.ITERATION_COMPLETED``, but its reset event is determined by
+        ``usage`` type. If ``isinstance(usage, BatchWise)`` holds true, ``src`` is reset on ``BatchWise().STARTED``,
+        otherwise on ``EpochWise().STARTED`` if ``isinstance(usage, EpochWise)``.
+        """
+        usage = self._check_usage(usage)
+        has_src = hasattr(self, "src") and isinstance(self.src, Metric)
+
+        src_usage = EpochWise() if isinstance(usage, EpochWise) else BatchWise()
+        if has_src and not engine.has_event_handler(self.src.started, src_usage.STARTED):
+            engine.add_event_handler(src_usage.STARTED, self.src.started)
+            engine.add_event_handler(usage.ITERATION_COMPLETED, self.src.iteration_completed)
+
+        if not has_src:
+            engine.add_event_handler(usage.ITERATION_COMPLETED, self.iteration_completed)
+
+        if not engine.has_event_handler(self.started, usage.STARTED):
+            engine.add_event_handler(usage.STARTED, self.started)
+        engine.add_event_handler(usage.COMPLETED, self.completed, name)
+
+    # detach?
 
     def _get_metric_value(self) -> Union[torch.Tensor, float]:
         return self.src.compute()
@@ -158,10 +207,6 @@ class RunningAverage(Metric):
         # we need to compute average instead of sum produced by @sync_all_reduce("src")
         output = cast(Union[torch.Tensor, float], self.src) / idist.get_world_size()
         return output
-
-    def _metric_iteration_completed(self, engine: Engine) -> None:
-        self.src.started(engine)
-        self.src.iteration_completed(engine)
 
     @reinit__is_reduced
     def _output_update(self, output: Union[torch.Tensor, float]) -> None:
