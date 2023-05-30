@@ -22,4 +22,4 @@ jobs:
             discord_bot_token: ${{ secrets.DISCORD_BOT_TOKEN }}
             destination: ${{ secrets.DISCORD_BOT_DESTINATION }}
             issue_number: ${{ github.event.inputs.issue_number || github.event.issue.number }}
-            issue_comment: Hey 👋 I've just created a thread for this issue on PyTorch-Ignite Discord where you can quickly talk to the community on the topic. You can find it [here]($THREAD_LINK$)
+            issue_comment: Hey 👋, I've just created a [thread]($THREAD_LINK$) for this issue on [PyTorch-Ignite Discord](https://pytorch-ignite.ai/chat) where you can quickly talk to the community on the topic.
