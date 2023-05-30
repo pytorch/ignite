@@ -1,0 +1,25 @@
+on:
+  issues:
+    types:
+      - labeled
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number'
+        required: true
+      
+permissions:
+  issues: write
+
+jobs:
+  discord:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Discuss on Discord
+        uses: EndBug/discuss-on-discord@v1.1.0
+        if: ${{ github.event.label.name == 'help wanted' }}
+        with:
+            discord_bot_token: ${{ secrets.DISCORD_BOT_TOKEN }}
+            destination: ${{ secrets.DISCORD_BOT_DESTINATION }}
+            issue_number: ${{ github.event.inputs.issue_number || github.event.issue.number }}
+            issue_comment: Hey 👋 I've just created a thread for this issue on PyTorch-Ignite Discord where you can quickly talk to the community on the topic. You can find it [here]($THREAD_LINK$)
