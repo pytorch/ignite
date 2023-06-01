@@ -187,10 +187,9 @@ class ComputationModel(metaclass=ABCMeta):
         device = self.device()
         if isinstance(tensor, (Number, float)):
             tensor_to_number = True
-            if self._collective_op_dtype is None:
-                dtype = torch.double if isinstance(tensor, float) else torch.int64
-            else:
-                dtype = self._collective_op_dtype
+            dtype = self._collective_op_dtype
+            if dtype is None and isinstance(tensor, float):
+                dtype = torch.double
             tensor = torch.tensor(tensor, device=device, dtype=dtype)
         elif isinstance(tensor, str):
             tensor_to_str = True
