@@ -849,7 +849,8 @@ def test_usage_exception():
     with pytest.raises(TypeError, match=r"Unhandled usage type"):
         m.attach(engine, "dummy", usage=1)
     with pytest.raises(
-        ValueError, match=r"usage should be '\(Running\)EpochWise.usage_name' or '\(Running\)BatchWise.usage_name'"
+        ValueError,
+        match=r"usage should be '\(Running\)EpochWise.usage_name' or '\(\(SingleEpoch\)Running\)BatchWise.usage_name'",
     ):
         m.attach(engine, "dummy", usage="fake")
 

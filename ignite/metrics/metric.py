@@ -40,6 +40,8 @@ class MetricUsage:
             :meth:`~ignite.metrics.metric.Metric.iteration_completed`.
     """
 
+    usage_name: str
+
     def __init__(self, started: Events, completed: Events, iteration_completed: CallableEventWithFilter) -> None:
         self.__started = started
         self.__completed = completed
@@ -432,18 +434,16 @@ class Metric(metaclass=ABCMeta):
             engine.state.metrics[name] = result
 
     def _check_usage(self, usage: Union[str, MetricUsage]) -> MetricUsage:
+        usages = [EpochWise, RunningEpochWise, BatchWise, RunningBatchWise, SingleEpochRunningBatchWise]
         if isinstance(usage, str):
-            if usage == EpochWise.usage_name:
-                usage = EpochWise()
-            elif usage == RunningEpochWise.usage_name:
-                usage = RunningEpochWise()
-            elif usage == BatchWise.usage_name:
-                usage = BatchWise()
-            elif usage == RunningBatchWise.usage_name:
-                usage = RunningBatchWise()
-            else:
+            for _usage in usages:
+                if usage == _usage.usage_name:
+                    usage = _usage()
+                    break
+            if isinstance(usage, str):
                 raise ValueError(
-                    f"usage should be '(Running)EpochWise.usage_name' or '(Running)BatchWise.usage_name', got {usage}"
+                    "usage should be '(Running)EpochWise.usage_name' or "
+                    f"'((SingleEpoch)Running)BatchWise.usage_name', got {usage}"
                 )
         if not isinstance(usage, MetricUsage):
             raise TypeError(f"Unhandled usage type {type(usage)}")
