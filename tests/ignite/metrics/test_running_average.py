@@ -1,3 +1,4 @@
+import warnings
 from functools import partial
 from itertools import accumulate
 
@@ -26,6 +27,23 @@ def test_wrong_input_args():
 
     with pytest.raises(ValueError, match=r"Argument device should be None if src is a Metric"):
         RunningAverage(Accuracy(), device="cpu")
+
+    with pytest.warns(UserWarning, match=r"`epoch_bound` is deprecated and will be removed in the future."):
+        m = RunningAverage(Accuracy(), epoch_bound=True)
+        e = Engine(lambda _, __: None)
+        m.attach(e, "")
+
+
+@pytest.mark.filterwarnings("ignore")
+@pytest.mark.parametrize("epoch_bound, usage", [(False, RunningBatchWise()), (True, SingleEpochRunningBatchWise())])
+def test_epoch_bound(epoch_bound, usage):
+    metric = RunningAverage(output_transform=lambda _: _, epoch_bound=epoch_bound)
+    e1 = Engine(lambda _, __: None)
+    e2 = Engine(lambda _, __: None)
+    metric.attach(e1, "")
+    metric.epoch_bound = None
+    metric.attach(e2, "", usage)
+    e1._event_handlers == e2._event_handlers
 
 
 @pytest.mark.parametrize("usage", [RunningBatchWise(), SingleEpochRunningBatchWise()])
@@ -179,6 +197,22 @@ def test_multiple_attach(usage):
 
     data = list(range(n_iters))
     trainer.run(data)
+
+
+@pytest.mark.filterwarnings("ignore")
+@pytest.mark.parametrize("epoch_bound", [True, False, None])
+@pytest.mark.parametrize("src", [Accuracy(), None])
+@pytest.mark.parametrize("usage", [RunningBatchWise(), SingleEpochRunningBatchWise(), RunningEpochWise()])
+def test_detach(epoch_bound, src, usage):
+    m = RunningAverage(src, output_transform=(lambda _: _) if src is None else None, epoch_bound=epoch_bound)
+    e = Engine(lambda _, __: None)
+    with warnings.catch_warnings():
+        m.attach(e, "m", usage)
+    for event_handlers in e._event_handlers.values():
+        assert len(event_handlers) != 0
+    m.detach(e, usage)
+    for event_handlers in e._event_handlers.values():
+        assert len(event_handlers) == 0
 
 
 def test_output_is_tensor():
