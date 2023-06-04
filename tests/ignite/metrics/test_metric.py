@@ -18,6 +18,7 @@ from ignite.metrics.metric import (
     Metric,
     reinit__is_reduced,
     RunningBatchWise,
+    SingleEpochRunningBatchWise,
     RunningEpochWise,
     sync_all_reduce,
 )
@@ -855,25 +856,26 @@ def test_usage_exception():
         m.attach(engine, "dummy", usage="fake")
 
 
+class DummyAccumulateInListMetric(Metric):
+    def __init__(self):
+        super(DummyAccumulateInListMetric, self).__init__()
+        self.value = []
+
+    def reset(self):
+        self.value = []
+
+    def compute(self):
+        return self.value
+
+    def update(self, output):
+        self.value.append(output)
+
+
 def test_epochwise_usage():
-    class MyMetric(Metric):
-        def __init__(self):
-            super(MyMetric, self).__init__()
-            self.value = []
-
-        def reset(self):
-            self.value = []
-
-        def compute(self):
-            return self.value
-
-        def update(self, output):
-            self.value.append(output)
-
     def test(usage):
         engine = Engine(lambda e, b: b)
 
-        m = MyMetric()
+        m = DummyAccumulateInListMetric()
 
         m.attach(engine, "ewm", usage=usage)
 
@@ -891,20 +893,22 @@ def test_epochwise_usage():
     test(EpochWise())
 
 
+class DummyAccumulateMetric(Metric):
+    def __init__(self):
+        super(DummyAccumulateMetric, self).__init__()
+        self.value = 0
+
+    def reset(self):
+        self.value = 0
+
+    def compute(self):
+        return self.value
+
+    def update(self, output):
+        self.value += output
+
+
 def test_running_epochwise_usage():
-    class MyMetric(Metric):
-        def __init__(self):
-            super(MyMetric, self).__init__()
-            self.value = 0
-
-        def reset(self):
-            self.value = 0
-
-        def compute(self):
-            return self.value
-
-        def update(self, output):
-            self.value += output
 
     def test(usage):
         engine = Engine(lambda e, b: e.state.metrics["ewm"])
@@ -915,12 +919,12 @@ def test_running_epochwise_usage():
         def _():
             engine.state.metrics["ewm"] += 1
 
-        m = MyMetric()
+        m = DummyAccumulateMetric()
         m.attach(engine, "rewm", usage=usage)
 
         @engine.on(Events.EPOCH_COMPLETED)
         def _():
-            assert engine.state.metrics["rewm"] == sum(range(engine.state.epoch + 1))
+            assert engine.state.metrics["rewm"] == 3 * sum(range(engine.state.epoch + 1))
 
         engine.run([0, 1, 2], max_epochs=10)
 
@@ -932,24 +936,10 @@ def test_running_epochwise_usage():
 
 
 def test_batchwise_usage():
-    class MyMetric(Metric):
-        def __init__(self):
-            super(MyMetric, self).__init__()
-            self.value = []
-
-        def reset(self):
-            self.value = []
-
-        def compute(self):
-            return self.value
-
-        def update(self, output):
-            self.value.append(output)
-
     def test(usage):
         engine = Engine(lambda e, b: b)
 
-        m = MyMetric()
+        m = DummyAccumulateInListMetric()
 
         m.attach(engine, "bwm", usage=usage)
 
@@ -968,37 +958,43 @@ def test_batchwise_usage():
 
 
 def test_running_batchwise_usage():
-    class MyMetric(Metric):
-        def __init__(self):
-            super(MyMetric, self).__init__()
-            self.value = 0
-
-        def reset(self):
-            self.value = 0
-
-        def compute(self):
-            return self.value
-
-        def update(self, output):
-            self.value += output
-
     def test(usage):
         engine = Engine(lambda e, b: b)
 
-        m = MyMetric()
+        m = DummyAccumulateMetric()
         m.attach(engine, "rbwm", usage=usage)
 
         @engine.on(Events.EPOCH_COMPLETED)
         def _():
-            assert engine.state.metrics["rbwm"] == 3 * engine.state.epoch
+            assert engine.state.metrics["rbwm"] == 6 * engine.state.epoch
 
-        engine.run([0, 1, 2], max_epochs=10)
+        engine.run([0, 1, 2, 3], max_epochs=10)
 
         m.detach(engine, usage=usage)
 
     test("running_batch_wise")
     test(RunningBatchWise.usage_name)
     test(RunningBatchWise())
+
+
+def test_single_epoch_running_batchwise_usage():
+    def test(usage):
+        engine = Engine(lambda e, b: b)
+
+        m = DummyAccumulateMetric()
+        m.attach(engine, "rbwm", usage=usage)
+
+        @engine.on(Events.EPOCH_COMPLETED)
+        def _():
+            assert engine.state.metrics["rbwm"] == 6
+
+        engine.run([0, 1, 2, 3], max_epochs=10)
+
+        m.detach(engine, usage=usage)
+
+    test("single_epoch_running_batch_wise")
+    test(SingleEpochRunningBatchWise.usage_name)
+    test(SingleEpochRunningBatchWise())
 
 
 def test_batchfiltered_usage():
