@@ -29,9 +29,9 @@ class RunningAverage(Metric):
         output_transform: a function to use to transform the output if `src` is None and
             corresponds the output of process function. Otherwise it should be None.
         epoch_bound: whether the running average should be reset after each epoch. It is depracated in favor of
-            ``usage`` argument in :meth:`attach` method. Setting ``epoch_bound`` to ``False`` is equivalent with
-            ``usage=SingleEpochRunningBatchWise()`` and setting it to ``True`` is equivalent with
-            `usage=RunningBatchWise()` in the :method:`attach` method. Default None.
+            ``usage`` argument in :meth:`attach` method. Setting ``epoch_bound`` to ``False`` is equivalent to
+            ``usage=SingleEpochRunningBatchWise()`` and setting it to ``True`` is equivalent to
+            `usage=RunningBatchWise()` in the :meth:`attach` method. Default None.
         device: specifies which device updates are accumulated on. Should be
             None when ``src`` is an instance of :class:`~ignite.metrics.metric.Metric`, as the running average will
             use the ``src``'s device. Otherwise, defaults to CPU. Only applicable when the computed value
@@ -185,8 +185,8 @@ class RunningAverage(Metric):
                 ======================================================= ===========================================
 
         ``RunningAverage`` retrieves ``engine.state.output`` at ``usage.ITERATION_COMPLETED`` if the ``src`` is not
-        given and it's computed and updated using ``src`, by manually calling its ``compute`` method, or
-        ``engine.state.output`` at ``usage.COMPLETED``event.
+        given and it's computed and updated using ``src``, by manually calling its ``compute`` method, or
+        ``engine.state.output`` at ``usage.COMPLETED`` event.
         Also if ``src`` is given, it is updated at ``usage.ITERATION_COMPLETED``, but its reset event is determined by
         ``usage`` type. If ``isinstance(usage, BatchWise)`` holds true, ``src`` is reset on ``BatchWise().STARTED``,
         otherwise on ``EpochWise().STARTED`` if ``isinstance(usage, EpochWise)``.
