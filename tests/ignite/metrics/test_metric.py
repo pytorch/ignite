@@ -18,8 +18,8 @@ from ignite.metrics.metric import (
     Metric,
     reinit__is_reduced,
     RunningBatchWise,
-    SingleEpochRunningBatchWise,
     RunningEpochWise,
+    SingleEpochRunningBatchWise,
     sync_all_reduce,
 )
 
@@ -909,7 +909,6 @@ class DummyAccumulateMetric(Metric):
 
 
 def test_running_epochwise_usage():
-
     def test(usage):
         engine = Engine(lambda e, b: e.state.metrics["ewm"])
 
