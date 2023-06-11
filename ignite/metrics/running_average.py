@@ -31,7 +31,7 @@ class RunningAverage(Metric):
         epoch_bound: whether the running average should be reset after each epoch. It is depracated in favor of
             ``usage`` argument in :meth:`attach` method. Setting ``epoch_bound`` to ``False`` is equivalent to
             ``usage=SingleEpochRunningBatchWise()`` and setting it to ``True`` is equivalent to
-            `usage=RunningBatchWise()` in the :meth:`attach` method. Default None.
+            ``usage=RunningBatchWise()`` in the :meth:`attach` method. Default None.
         device: specifies which device updates are accumulated on. Should be
             None when ``src`` is an instance of :class:`~ignite.metrics.metric.Metric`, as the running average will
             use the ``src``'s device. Otherwise, defaults to CPU. Only applicable when the computed value
@@ -190,6 +190,9 @@ class RunningAverage(Metric):
         Also if ``src`` is given, it is updated at ``usage.ITERATION_COMPLETED``, but its reset event is determined by
         ``usage`` type. If ``isinstance(usage, BatchWise)`` holds true, ``src`` is reset on ``BatchWise().STARTED``,
         otherwise on ``EpochWise().STARTED`` if ``isinstance(usage, EpochWise)``.
+
+        .. versionchanged:: 0.5.1
+            Added `usage` argument
         """
         usage = self._check_usage(usage)
 

@@ -871,26 +871,22 @@ class DummyAccumulateInListMetric(Metric):
         self.value.append(output)
 
 
-def test_epochwise_usage():
-    def test(usage):
-        engine = Engine(lambda e, b: b)
+@pytest.mark.parametrize("usage", ["epoch_wise", EpochWise.usage_name, EpochWise()])
+def test_epochwise_usage(usage):
+    engine = Engine(lambda e, b: b)
 
-        m = DummyAccumulateInListMetric()
+    m = DummyAccumulateInListMetric()
 
-        m.attach(engine, "ewm", usage=usage)
+    m.attach(engine, "ewm", usage=usage)
 
-        @engine.on(Events.EPOCH_COMPLETED)
-        def _():
-            ewm = engine.state.metrics["ewm"]
-            assert len(ewm) == 3
-            assert ewm == [0, 1, 2]
+    @engine.on(Events.EPOCH_COMPLETED)
+    def _():
+        ewm = engine.state.metrics["ewm"]
+        assert len(ewm) == 3
+        assert ewm == [0, 1, 2]
 
-        engine.run([0, 1, 2], max_epochs=10)
-        m.detach(engine, usage=usage)
-
-    test("epoch_wise")
-    test(EpochWise.usage_name)
-    test(EpochWise())
+    engine.run([0, 1, 2], max_epochs=10)
+    m.detach(engine, usage=usage)
 
 
 class DummyAccumulateMetric(Metric):
@@ -908,92 +904,78 @@ class DummyAccumulateMetric(Metric):
         self.value += output
 
 
-def test_running_epochwise_usage():
-    def test(usage):
-        engine = Engine(lambda e, b: e.state.metrics["ewm"])
+@pytest.mark.parametrize("usage", ["running_epoch_wise", RunningEpochWise.usage_name, RunningEpochWise()])
+def test_running_epochwise_usage(usage):
+    engine = Engine(lambda e, b: e.state.metrics["ewm"])
 
-        engine.state.metrics["ewm"] = 0
+    engine.state.metrics["ewm"] = 0
 
-        @engine.on(Events.EPOCH_STARTED)
-        def _():
-            engine.state.metrics["ewm"] += 1
+    @engine.on(Events.EPOCH_STARTED)
+    def _():
+        engine.state.metrics["ewm"] += 1
 
-        m = DummyAccumulateMetric()
-        m.attach(engine, "rewm", usage=usage)
+    m = DummyAccumulateMetric()
+    m.attach(engine, "rewm", usage=usage)
 
-        @engine.on(Events.EPOCH_COMPLETED)
-        def _():
-            assert engine.state.metrics["rewm"] == 3 * sum(range(engine.state.epoch + 1))
+    @engine.on(Events.EPOCH_COMPLETED)
+    def _():
+        assert engine.state.metrics["rewm"] == 3 * sum(range(engine.state.epoch + 1))
 
-        engine.run([0, 1, 2], max_epochs=10)
+    engine.run([0, 1, 2], max_epochs=10)
 
-        m.detach(engine, usage=usage)
-
-    test("running_epoch_wise")
-    test(RunningEpochWise.usage_name)
-    test(RunningEpochWise())
+    m.detach(engine, usage=usage)
 
 
-def test_batchwise_usage():
-    def test(usage):
-        engine = Engine(lambda e, b: b)
+@pytest.mark.parametrize("usage", ["batch_wise", BatchWise.usage_name, BatchWise()])
+def test_batchwise_usage(usage):
+    engine = Engine(lambda e, b: b)
 
-        m = DummyAccumulateInListMetric()
+    m = DummyAccumulateInListMetric()
 
-        m.attach(engine, "bwm", usage=usage)
+    m.attach(engine, "bwm", usage=usage)
 
-        @engine.on(Events.ITERATION_COMPLETED)
-        def _():
-            bwm = engine.state.metrics["bwm"]
-            assert len(bwm) == 1
-            assert bwm[0] == (engine.state.iteration - 1) % 3
+    @engine.on(Events.ITERATION_COMPLETED)
+    def _():
+        bwm = engine.state.metrics["bwm"]
+        assert len(bwm) == 1
+        assert bwm[0] == (engine.state.iteration - 1) % 3
 
-        engine.run([0, 1, 2], max_epochs=10)
-        m.detach(engine, usage=usage)
-
-    test("batch_wise")
-    test(BatchWise.usage_name)
-    test(BatchWise())
+    engine.run([0, 1, 2], max_epochs=10)
+    m.detach(engine, usage=usage)
 
 
-def test_running_batchwise_usage():
-    def test(usage):
-        engine = Engine(lambda e, b: b)
+@pytest.mark.parametrize("usage", ["running_batch_wise", RunningBatchWise.usage_name, RunningBatchWise()])
+def test_running_batchwise_usage(usage):
+    engine = Engine(lambda e, b: b)
 
-        m = DummyAccumulateMetric()
-        m.attach(engine, "rbwm", usage=usage)
+    m = DummyAccumulateMetric()
+    m.attach(engine, "rbwm", usage=usage)
 
-        @engine.on(Events.EPOCH_COMPLETED)
-        def _():
-            assert engine.state.metrics["rbwm"] == 6 * engine.state.epoch
+    @engine.on(Events.EPOCH_COMPLETED)
+    def _():
+        assert engine.state.metrics["rbwm"] == 6 * engine.state.epoch
 
-        engine.run([0, 1, 2, 3], max_epochs=10)
+    engine.run([0, 1, 2, 3], max_epochs=10)
 
-        m.detach(engine, usage=usage)
-
-    test("running_batch_wise")
-    test(RunningBatchWise.usage_name)
-    test(RunningBatchWise())
+    m.detach(engine, usage=usage)
 
 
-def test_single_epoch_running_batchwise_usage():
-    def test(usage):
-        engine = Engine(lambda e, b: b)
+@pytest.mark.parametrize(
+    "usage", ["single_epoch_running_batch_wise", SingleEpochRunningBatchWise.usage_name, SingleEpochRunningBatchWise()]
+)
+def test_single_epoch_running_batchwise_usage(usage):
+    engine = Engine(lambda e, b: b)
 
-        m = DummyAccumulateMetric()
-        m.attach(engine, "rbwm", usage=usage)
+    m = DummyAccumulateMetric()
+    m.attach(engine, "rbwm", usage=usage)
 
-        @engine.on(Events.EPOCH_COMPLETED)
-        def _():
-            assert engine.state.metrics["rbwm"] == 6
+    @engine.on(Events.EPOCH_COMPLETED)
+    def _():
+        assert engine.state.metrics["rbwm"] == 6
 
-        engine.run([0, 1, 2, 3], max_epochs=10)
+    engine.run([0, 1, 2, 3], max_epochs=10)
 
-        m.detach(engine, usage=usage)
-
-    test("single_epoch_running_batch_wise")
-    test(SingleEpochRunningBatchWise.usage_name)
-    test(SingleEpochRunningBatchWise())
+    m.detach(engine, usage=usage)
 
 
 def test_batchfiltered_usage():

@@ -434,13 +434,13 @@ class Metric(metaclass=ABCMeta):
             engine.state.metrics[name] = result
 
     def _check_usage(self, usage: Union[str, MetricUsage]) -> MetricUsage:
-        usages = [EpochWise, RunningEpochWise, BatchWise, RunningBatchWise, SingleEpochRunningBatchWise]
         if isinstance(usage, str):
-            for _usage in usages:
-                if usage == _usage.usage_name:
-                    usage = _usage()
+            usages = [EpochWise, RunningEpochWise, BatchWise, RunningBatchWise, SingleEpochRunningBatchWise]
+            for usage_cls in usages:
+                if usage == usage_cls.usage_name:
+                    usage = usage_cls()
                     break
-            if isinstance(usage, str):
+            if not isinstance(usage, MetricUsage):
                 raise ValueError(
                     "usage should be '(Running)EpochWise.usage_name' or "
                     f"'((SingleEpoch)Running)BatchWise.usage_name', got {usage}"
