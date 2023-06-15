@@ -363,7 +363,7 @@ def _all_gather_tensors_with_shapes(
     if isinstance(_model, _SerialModel) or (group is not None and _model.get_rank() not in group):
         return [tensor]
 
-    max_shape = torch.tensor(shapes).amax(dim=1)
+    max_shape = torch.tensor(shapes).amax(dim=0)
     padding_sizes = (max_shape - torch.tensor(tensor.shape)).tolist()
     padded_tensor = torch.nn.functional.pad(
         tensor, tuple(itertools.chain.from_iterable(map(lambda dim_size: (0, dim_size), reversed(padding_sizes))))
