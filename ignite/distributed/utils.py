@@ -5,6 +5,7 @@ from functools import wraps
 from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple, Union
 
 import torch
+import torch.distributed as dist
 
 from ignite.distributed.comp_models import (
     _SerialModel,
@@ -360,15 +361,15 @@ def _all_gather_tensors_with_shapes(
     if isinstance(group, list) and all(isinstance(item, int) for item in group):
         group = _model.new_group(group)
 
-    if isinstance(_model, _SerialModel) or (group is not None and _model.get_rank() not in group):
+    if isinstance(_model, _SerialModel) or group == dist.GroupMember.NON_GROUP_MEMBER:
         return [tensor]
 
-    max_shape = torch.tensor(shapes).amax(dim=1)
+    max_shape = torch.tensor(shapes).amax(dim=0)
     padding_sizes = (max_shape - torch.tensor(tensor.shape)).tolist()
     padded_tensor = torch.nn.functional.pad(
         tensor, tuple(itertools.chain.from_iterable(map(lambda dim_size: (0, dim_size), reversed(padding_sizes))))
     )
-    all_padded_tensors: torch.Tensor = _model.all_gather(padded_tensor, group=group)
+    all_padded_tensors: torch.Tensor = _model.all_gather(padded_tensor, group=group)  # .split(max_shape[0], dim=0)
     return [
         all_padded_tensors[
             [
@@ -377,7 +378,6 @@ def _all_gather_tensors_with_shapes(
             ]
         ]
         for rank, shape in enumerate(shapes)
-        if group is None or rank in group
     ]
 
 
@@ -389,8 +389,8 @@ def all_gather(
     """Helper method to perform all gather operation.
 
     Args:
-        tensor: tensor or number or str to collect across participating processes. If tensor, it should have
-            the same number of dimensions across processes.
+        tensor: tensor or number or str to collect across participating processes. If tensor, it should have the
+            same shape across processes if ``tensor_different_shape=False`` otherwise the same number of dimensions.
         group: list of integer or the process group for each backend. If None, the default process group will be used.
         tensor_different_shape: If True, it accounts for difference in input shape across processes. In this case, it
             induces more collective operations. If False, `tensor` should have the same shape across processes.
@@ -418,7 +418,7 @@ def all_gather(
         group = _model.new_group(group)
 
     if isinstance(tensor, torch.Tensor) and tensor_different_shape:
-        if isinstance(_model, _SerialModel) or (group is not None and _model.get_rank() not in group):
+        if isinstance(_model, _SerialModel) or group == dist.GroupMember.NON_GROUP_MEMBER:
             return [tensor]
         all_shapes: torch.Tensor = _model.all_gather(torch.tensor(tensor.shape), group=group).view(
             -1, len(tensor.shape)
