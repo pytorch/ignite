@@ -627,6 +627,12 @@ def test_wrong_input():
     with pytest.raises(ValueError, match="Currently, the only available flavor for ObjectDetectionMAP is 'COCO'"):
         ObjectDetectionMAP(flavor="wrong flavor")
 
+    m = ObjectDetectionMAP()
+    with pytest.raises(ValueError, match="y_pred dict in update's input should have 'bbox', 'scores'"):
+        m.update(({"bbox": None, "scores": None}, {"bbox": None, "labels": None}))
+    with pytest.raises(ValueError, match="y dict in update's input should have 'bbox', 'labels'"):
+        m.update(({"bbox": None, "scores": None, "labels": None}, {"labels": None}))
+
 
 def test_empty_data():
     """
@@ -727,6 +733,54 @@ def test_iou_thresholding():
     assert (metric._tp[1][1] == torch.tensor([[True], [False], [False], [False]])).all()
 
 
+def test__do_matching_output(sample):
+    metric = ObjectDetectionMAP()
+
+    for pred, target in zip(*sample.data):
+        tps, fps, _, scores = metric._do_matching(pred, target)
+
+        assert tps.keys() == fps.keys() == scores.keys()
+
+        try:
+            cls = list(tps.keys()).pop()
+        except IndexError:  # No prediction
+            pass
+        else:
+            assert tps[cls].dtype in (torch.bool, torch.uint8)
+            assert tps[cls].size(-1) == fps[cls].size(-1) == scores[cls].size(0)
+
+        metric.update((pred, target))
+
+        for metric_tp_or_fp, new_tp_or_fp in [(metric._tp, tps), (metric._fp, fps)]:
+            try:
+                cls = (metric_tp_or_fp.keys() & new_tp_or_fp.keys()).pop()
+            except KeyError:
+                pass
+            else:
+                assert metric_tp_or_fp[cls][-1].shape[:-1] == new_tp_or_fp[cls].shape[:-1]
+
+
+class Dummy_mAP(ObjectDetectionMAP):
+    def _do_matching(self, pred: Tuple, target: Tuple):
+        return *pred, *target
+
+    def _check_matching_input(self, output: Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]):
+        pass
+
+
+def test_update():
+    metric = Dummy_mAP()
+    assert len(metric._tp) == len(metric._fp) == len(metric._scores) == len(metric._P) == metric._num_classes == 0
+
+    metric.update((({1: torch.tensor([True])}, {1: torch.tensor([False])}), ({1: 1, 2: 1}, {1: torch.tensor([0.8])})))
+    assert len(metric._tp[1]) == len(metric._fp[1]) == len(metric._scores[1]) == 1
+    assert len(metric._P) == 2 and metric._P[2] == 1
+    assert metric._num_classes == 3
+
+    metric.update((({}, {}), ({2: 2}, {})))
+    assert metric._P[2] == 3
+
+
 def test_matching():
     """
     PyCOCO matching rules:
@@ -823,7 +877,7 @@ def sklearn_precision_recall_curve_allowing_multiple_recalls_at_single_threshold
 
 
 def test__compute_recall_and_precision():
-    # Detection, in the case detector detects all gt objects but also produces some wrong predictions.
+    # The case in which detector detects all gt objects but also produces some wrong predictions.
     scores = torch.rand((50,))
     y_true = torch.randint(0, 2, (50,))
     m = ObjectDetectionMAP()
@@ -837,7 +891,7 @@ def test__compute_recall_and_precision():
     assert (ignite_recall.flip(0).numpy() == sklearn_recall[:-1]).all()
     assert (ignite_precision.flip(0).numpy() == sklearn_precision[:-1]).all()
 
-    # Detection like above but with two additional mean dimensions.
+    # Like above but with two additional mean dimensions.
     scores = torch.rand((50,))
     y_true = torch.zeros((6, 8, 50))
     sklearn_precisions, sklearn_recalls = [], []
@@ -861,7 +915,6 @@ def test__compute_recall_and_precision():
 def test_compute(sample):
     device = idist.device()
     metric_50 = ObjectDetectionMAP(iou_thresholds=[0.5], device=device)
-    assert metric_50._task == "detection"
     metric_75 = ObjectDetectionMAP(iou_thresholds=[0.75], device=device)
     metric_50_95 = ObjectDetectionMAP(device=device)
 
