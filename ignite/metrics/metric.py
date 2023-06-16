@@ -219,7 +219,7 @@ class Metric(metaclass=ABCMeta):
     @abstractmethod
     def reset(self) -> None:
         """
-        Resets the metric to it's initial state.
+        Resets the metric to its initial state.
 
         By default, this is called at the start of each epoch.
         """
@@ -240,7 +240,7 @@ class Metric(metaclass=ABCMeta):
     @abstractmethod
     def compute(self) -> Any:
         """
-        Computes the metric based on it's accumulated state.
+        Computes the metric based on its accumulated state.
 
         By default, this is called at the end of each epoch.
 
@@ -273,7 +273,7 @@ class Metric(metaclass=ABCMeta):
 
         Note:
             ``engine.state.output`` is used to compute metric values.
-            The majority of implemented metrics accepts the following formats for ``engine.state.output``:
+            The majority of implemented metrics accept the following formats for ``engine.state.output``:
             ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``. ``y_pred`` and ``y`` can be torch tensors or
             list of tensors/numbers if applicable.
 
