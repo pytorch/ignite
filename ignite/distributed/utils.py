@@ -1,11 +1,9 @@
-import itertools
 import socket
 from contextlib import contextmanager
 from functools import wraps
-from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, List, Mapping, Optional, Tuple, Union
 
 import torch
-import torch.distributed as dist
 
 from ignite.distributed.comp_models import (
     _SerialModel,
@@ -352,50 +350,15 @@ def all_reduce(
     return _model.all_reduce(tensor, op, group=group)
 
 
-def _all_gather_tensors_with_shapes(
-    tensor: torch.Tensor, shapes: Sequence[Sequence[int]], group: Optional[Union[Any, List[int]]] = None
-) -> List[torch.Tensor]:
-    if _need_to_sync and isinstance(_model, _SerialModel):
-        sync(temporary=True)
-
-    if isinstance(group, list) and all(isinstance(item, int) for item in group):
-        group = _model.new_group(group)
-
-    if isinstance(_model, _SerialModel) or group == dist.GroupMember.NON_GROUP_MEMBER:
-        return [tensor]
-
-    max_shape = torch.tensor(shapes).amax(dim=0)
-    padding_sizes = (max_shape - torch.tensor(tensor.shape)).tolist()
-    padded_tensor = torch.nn.functional.pad(
-        tensor, tuple(itertools.chain.from_iterable(map(lambda dim_size: (0, dim_size), reversed(padding_sizes))))
-    )
-    all_padded_tensors: torch.Tensor = _model.all_gather(padded_tensor, group=group)  # .split(max_shape[0], dim=0)
-    return [
-        all_padded_tensors[
-            [
-                slice(rank * max_shape[0] if dim == 0 else 0, rank * max_shape[0] + dim_size if dim == 0 else dim_size)
-                for dim, dim_size in enumerate(shape)
-            ]
-        ]
-        for rank, shape in enumerate(shapes)
-    ]
-
-
 def all_gather(
-    tensor: Union[torch.Tensor, float, str],
-    group: Optional[Union[Any, List[int]]] = None,
-    tensor_different_shape: bool = False,
-) -> Union[torch.Tensor, float, List[float], List[str], List[torch.Tensor]]:
+    tensor: Union[torch.Tensor, float, str], group: Optional[Union[Any, List[int]]] = None
+) -> Union[torch.Tensor, float, List[float], List[str]]:
     """Helper method to perform all gather operation.
 
     Args:
         tensor: tensor or number or str to collect across participating processes. If tensor, it should have the
             same shape across processes.
         group: list of integer or the process group for each backend. If None, the default process group will be used.
-        tensor_different_shape: If True, it accounts for difference in input shape across processes. In this case, it
-            induces more collective operations. If False, `tensor` should have the same shape across processes.
-            Ignored when `tensor` is not a tensor. Default False.
-
 
     Returns:
         If input is a tensor, returns a torch.Tensor of shape ``(world_size * tensor.shape[0], tensor.shape[1], ...)``.
@@ -405,23 +368,12 @@ def all_gather(
 
     .. versionchanged:: 0.4.11
         added ``group``
-
-    .. versionchanged:: 0.5.1
-        added ``tensor_different_shape``
     """
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
 
     if isinstance(group, list) and all(isinstance(item, int) for item in group):
         group = _model.new_group(group)
-
-    if isinstance(tensor, torch.Tensor) and tensor_different_shape:
-        if isinstance(_model, _SerialModel) or group == dist.GroupMember.NON_GROUP_MEMBER:
-            return [tensor]
-        all_shapes: torch.Tensor = _model.all_gather(torch.tensor(tensor.shape), group=group).view(
-            -1, len(tensor.shape)
-        )
-        return _all_gather_tensors_with_shapes(tensor, all_shapes.tolist(), group=group)
 
     return _model.all_gather(tensor, group=group)
 
