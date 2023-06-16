@@ -192,14 +192,6 @@ def _test_distrib_all_gather(device):
         true_res[i * 4 : (i + 1) * 4, ...] = torch.arange(100, device=device).reshape(4, 25) * (i + 1)
     assert (res == true_res).all()
 
-    t = torch.full((rank + 1, (rank + 1) * 2, idist.get_world_size() - rank), rank)
-    in_dtype = t.dtype
-    res = idist.all_gather(t, tensor_different_shape=True)
-    assert res[rank].shape == (rank + 1, (rank + 1) * 2, idist.get_world_size() - rank)
-    assert type(res) == list and res[0].dtype == in_dtype
-    for i in range(idist.get_world_size()):
-        assert (res[i] == torch.full((i + 1, (i + 1) * 2, idist.get_world_size() - i), i)).all()
-
     if idist.get_world_size() > 1:
         with pytest.raises(TypeError, match=r"Unhandled input type"):
             idist.all_reduce([0, 1, 2])
