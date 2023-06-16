@@ -449,7 +449,7 @@ def random_sample() -> Tuple[List[Dict[str, torch.Tensor]], List[Dict[str, torch
         x2 = (x1 + w).clip(max=640)
         y2 = (y1 + h).clip(max=640)
         category = (category + perturb_category) % 100
-        confidence = torch.rand_like(category, dtype=torch.float)
+        confidence = torch.rand_like(category, dtype=torch.double)
         perturbed_gt_boxes = torch.cat((x1, y1, x2, y2, confidence, category), dim=1)
 
         # Generate some additional prediction boxes
@@ -461,7 +461,7 @@ def random_sample() -> Tuple[List[Dict[str, torch.Tensor]], List[Dict[str, torch
         x2 = (x1 + w).clip(max=640)
         y2 = (y1 + h).clip(max=640)
         category = torch.randint(100, (n_additional_pred_boxes, 1))
-        confidence = torch.rand_like(category, dtype=torch.float)
+        confidence = torch.rand_like(category, dtype=torch.double)
         additional_pred_boxes = torch.cat((x1, y1, x2, y2, confidence, category), dim=1)
 
         preds.append(torch.cat((perturbed_gt_boxes, additional_pred_boxes), dim=0))

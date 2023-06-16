@@ -377,7 +377,6 @@ def _all_gather_tensors_with_shapes(
             ]
         ]
         for rank, shape in enumerate(shapes)
-        if group is None or rank in group
     ]
 
 

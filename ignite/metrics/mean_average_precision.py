@@ -434,6 +434,11 @@ class MeanAveragePrecision(_BasePrecisionRecall):
         )
         return torch.sum(recall_differential * precision_integrand, dim=-1)
 
+    def concat_dict_of_tensor_lists_in_key_order(
+        self, tensor_dict: Dict[int, List[torch.Tensor]], num_keys: int
+    ) -> torch.Tensor:
+        return torch.cat(list(itertools.chain(*map(tensor_dict.__getitem__, range(num_keys)))), dim=-1)
+
     def compute(self) -> Union[torch.Tensor, float]:
         """
         Compute method of the metric
@@ -475,49 +480,6 @@ class MeanAveragePrecision(_BasePrecisionRecall):
             ).tolist()
 
             if self.class_mean != "micro":
-                shapes_across_ranks = {
-                    cls: [
-                        (*mean_dimensions_shape, num_pred_in_rank)
-                        for num_pred_in_rank in num_preds_per_class_across_ranks[:, cls]
-                    ]
-                    for cls in range(num_classes)
-                }
-                TP = {
-                    cls: torch.cat(
-                        _all_gather_tensors_with_shapes(
-                            torch.cat(self._tp[cls], dim=-1)
-                            if self._tp[cls]
-                            else torch.empty((*mean_dimensions_shape, 0), dtype=torch.uint8, device=self._device),
-                            shapes_across_ranks[cls],
-                        ),
-                        dim=-1,
-                    )
-                    for cls in range(num_classes)
-                }
-                FP = {
-                    cls: torch.cat(
-                        _all_gather_tensors_with_shapes(
-                            torch.cat(self._fp[cls], dim=-1)
-                            if self._fp[cls]
-                            else torch.empty((*mean_dimensions_shape, 0), dtype=torch.uint8, device=self._device),
-                            shapes_across_ranks[cls],
-                        ),
-                        dim=-1,
-                    )
-                    for cls in range(num_classes)
-                }
-                scores = {
-                    cls: torch.cat(
-                        _all_gather_tensors_with_shapes(
-                            torch.cat(cast(List[torch.Tensor], self._scores[cls]))
-                            if self._scores[cls]
-                            else torch.tensor([], dtype=torch.double, device=self._device),
-                            num_preds_per_class_across_ranks[:, [cls]].tolist(),
-                        )
-                    )
-                    for cls in range(num_classes)
-                }
-
                 average_precisions = -torch.ones(
                     (num_classes, *(mean_dimensions_shape if self.class_mean == "with_other_dims" else ())),
                     device=self._device,
@@ -526,15 +488,47 @@ class MeanAveragePrecision(_BasePrecisionRecall):
                 for cls in range(num_classes):
                     if P[cls] == 0:
                         continue
-                    if TP[cls].size(-1) == 0:
+
+                    num_preds_across_ranks = num_preds_per_class_across_ranks[:, [cls]]
+                    if num_preds_across_ranks.sum() == 0:
                         average_precisions[cls] = 0
                         continue
-                    recall, precision = self._compute_recall_and_precision(TP[cls], FP[cls], scores[cls], P[cls])
+                    shape_across_ranks = [
+                        (*mean_dimensions_shape, num_pred_in_rank.item()) for num_pred_in_rank in num_preds_across_ranks
+                    ]
+                    TP = torch.cat(
+                        _all_gather_tensors_with_shapes(
+                            torch.cat(self._tp[cls], dim=-1)
+                            if self._tp[cls]
+                            else torch.empty((*mean_dimensions_shape, 0), dtype=torch.uint8, device=self._device),
+                            shape_across_ranks,
+                        ),
+                        dim=-1,
+                    )
+                    FP = torch.cat(
+                        _all_gather_tensors_with_shapes(
+                            torch.cat(self._fp[cls], dim=-1)
+                            if self._fp[cls]
+                            else torch.empty((*mean_dimensions_shape, 0), dtype=torch.uint8, device=self._device),
+                            shape_across_ranks,
+                        ),
+                        dim=-1,
+                    )
+                    scores = torch.cat(
+                        _all_gather_tensors_with_shapes(
+                            torch.cat(cast(List[torch.Tensor], self._scores[cls]))
+                            if self._scores[cls]
+                            else torch.tensor([], dtype=torch.double, device=self._device),
+                            num_preds_across_ranks.tolist(),
+                        )
+                    )
+                    recall, precision = self._compute_recall_and_precision(TP, FP, scores, P[cls])
                     average_precision_for_cls_across_other_dims = self._measure_average_precision(recall, precision)
                     if self.class_mean != "with_other_dims":
                         average_precisions[cls] = average_precision_for_cls_across_other_dims.mean()
                     else:
                         average_precisions[cls] = average_precision_for_cls_across_other_dims
+
                 if self.class_mean is None:
                     average_precisions[average_precisions == -1] = 0
                     return average_precisions
@@ -549,9 +543,7 @@ class MeanAveragePrecision(_BasePrecisionRecall):
                 ]
                 TP_micro = torch.cat(
                     _all_gather_tensors_with_shapes(
-                        torch.cat(list(itertools.chain(*map(self._tp.__getitem__, range(num_classes)))), dim=-1).to(
-                            torch.uint8
-                        )
+                        self.concat_dict_of_tensor_lists_in_key_order(self._tp, num_classes).to(torch.uint8)
                         if num_preds_across_ranks[idist.get_rank()]
                         else torch.empty((*mean_dimensions_shape, 0), dtype=torch.uint8, device=self._device),
                         shapes_across_ranks_in_micro,
@@ -560,9 +552,7 @@ class MeanAveragePrecision(_BasePrecisionRecall):
                 ).bool()
                 FP_micro = torch.cat(
                     _all_gather_tensors_with_shapes(
-                        torch.cat(list(itertools.chain(*map(self._fp.__getitem__, range(num_classes)))), dim=-1).to(
-                            torch.uint8
-                        )
+                        self.concat_dict_of_tensor_lists_in_key_order(self._fp, num_classes).to(torch.uint8)
                         if num_preds_across_ranks[idist.get_rank()]
                         else torch.empty((*mean_dimensions_shape, 0), dtype=torch.uint8, device=self._device),
                         shapes_across_ranks_in_micro,
@@ -571,15 +561,8 @@ class MeanAveragePrecision(_BasePrecisionRecall):
                 ).bool()
                 scores_micro = torch.cat(
                     _all_gather_tensors_with_shapes(
-                        torch.cat(
-                            list(
-                                itertools.chain(
-                                    *map(
-                                        cast(Dict[int, List[torch.Tensor]], self._scores).__getitem__,
-                                        range(num_classes),
-                                    )
-                                )
-                            )
+                        self.concat_dict_of_tensor_lists_in_key_order(
+                            cast(Dict[int, List[torch.Tensor]], self._scores), num_classes
                         )
                         if num_preds_across_ranks[idist.get_rank()]
                         else torch.tensor([], dtype=torch.double, device=self._device),
