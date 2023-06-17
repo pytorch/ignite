@@ -108,7 +108,7 @@ class RunningEpochWise(EpochWise):
         super(EpochWise, self).__init__(
             started=Events.STARTED,
             completed=Events.EPOCH_COMPLETED,
-            iteration_completed=Events.ITERATION_COMPLETED,
+            iteration_completed=Events.EPOCH_COMPLETED,
         )
 
 

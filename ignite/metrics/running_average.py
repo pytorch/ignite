@@ -1,20 +1,11 @@
 import warnings
-from typing import Callable, cast, Optional, Sequence, Union
+from typing import Callable, cast, Optional, Union
 
 import torch
 
 import ignite.distributed as idist
-from ignite.engine import Engine
-from ignite.metrics.metric import (
-    BatchWise,
-    EpochWise,
-    Metric,
-    MetricUsage,
-    reinit__is_reduced,
-    RunningBatchWise,
-    SingleEpochRunningBatchWise,
-    sync_all_reduce,
-)
+from ignite.engine import Engine, Events
+from ignite.metrics.metric import Metric, MetricUsage, reinit__is_reduced, RunningBatchWise, SingleEpochRunningBatchWise
 
 __all__ = ["RunningAverage"]
 
@@ -113,10 +104,13 @@ class RunningAverage(Metric):
         if isinstance(src, Metric):
             if output_transform is not None:
                 raise ValueError("Argument output_transform should be None if src is a Metric.")
+
+            def output_transform(x):
+                return x
+
             if device is not None:
                 raise ValueError("Argument device should be None if src is a Metric.")
-            self.src: Union[Metric, torch.Tensor, float, None] = src
-            self._get_src_value = self._get_metric_value
+            self.src: Union[Metric, None] = src
             device = src._device
         else:
             if output_transform is None:
@@ -125,8 +119,6 @@ class RunningAverage(Metric):
                     "to the output of process function."
                 )
             self.src = None
-            self._get_src_value = self._get_output_value
-            setattr(self, "update", self._output_update)
             if device is None:
                 device = torch.device("cpu")
 
@@ -137,18 +129,24 @@ class RunningAverage(Metric):
     @reinit__is_reduced
     def reset(self) -> None:
         self._value: Optional[Union[float, torch.Tensor]] = None
+        if isinstance(self.src, Metric):
+            self.src.reset()
 
     @reinit__is_reduced
-    def update(self, output: Sequence) -> None:
-        # Implement abstract method
-        pass
+    def update(self, output: Union[torch.Tensor, float]) -> None:
+        if self.src is None:
+            output = output.detach().to(self._device) if isinstance(output, torch.Tensor) else output
+            value = idist.all_reduce(output) / idist.get_world_size()
+        else:
+            value = cast(Metric, self.src).compute()
+            cast(Metric, self.src).reset()
+
+        if self._value is None:
+            self._value = value
+        else:
+            self._value = self._value * self.alpha + (1.0 - self.alpha) * value
 
     def compute(self) -> Union[torch.Tensor, float]:
-        if self._value is None:
-            self._value = self._get_src_value()
-        else:
-            self._value = self._value * self.alpha + (1.0 - self.alpha) * self._get_src_value()
-
         return self._value
 
     def attach(self, engine: Engine, name: str, usage: Union[str, MetricUsage] = RunningBatchWise()) -> None:
@@ -204,51 +202,21 @@ class RunningAverage(Metric):
             )
             usage = SingleEpochRunningBatchWise() if self.epoch_bound else RunningBatchWise()
 
-        src_usage = EpochWise() if isinstance(usage, EpochWise) else BatchWise()
-        if isinstance(self.src, Metric) and not engine.has_event_handler(self.src.started, src_usage.STARTED):
-            engine.add_event_handler(src_usage.STARTED, self.src.started)
-            engine.add_event_handler(usage.ITERATION_COMPLETED, self.src.iteration_completed)
-
-        if not isinstance(self.src, Metric) and not engine.has_event_handler(
-            self.iteration_completed, usage.ITERATION_COMPLETED
+        if isinstance(self.src, Metric) and not engine.has_event_handler(
+            self.src.iteration_completed, Events.ITERATION_COMPLETED
         ):
-            engine.add_event_handler(usage.ITERATION_COMPLETED, self.iteration_completed)
+            engine.add_event_handler(Events.ITERATION_COMPLETED, self.src.iteration_completed)
 
-        if not engine.has_event_handler(self.started, usage.STARTED):
-            engine.add_event_handler(usage.STARTED, self.started)
-        engine.add_event_handler(usage.COMPLETED, self.completed, name)
+        super().attach(engine, name, usage)
 
     def detach(self, engine: Engine, usage: Union[str, MetricUsage] = RunningBatchWise()) -> None:
         usage = self._check_usage(usage)
         if self.epoch_bound is not None:
             usage = SingleEpochRunningBatchWise() if self.epoch_bound else RunningBatchWise()
 
-        src_usage = EpochWise() if isinstance(usage, EpochWise) else BatchWise()
-        if isinstance(self.src, Metric) and engine.has_event_handler(self.src.started, src_usage.STARTED):
-            engine.remove_event_handler(self.src.started, src_usage.STARTED)
-            engine.remove_event_handler(self.src.iteration_completed, usage.ITERATION_COMPLETED)
-
-        if not isinstance(self.src, Metric) and engine.has_event_handler(
-            self.iteration_completed, usage.ITERATION_COMPLETED
+        if isinstance(self.src, Metric) and engine.has_event_handler(
+            self.src.iteration_completed, Events.ITERATION_COMPLETED
         ):
-            engine.remove_event_handler(self.iteration_completed, usage.ITERATION_COMPLETED)
+            engine.remove_event_handler(self.src.iteration_completed, Events.ITERATION_COMPLETED)
 
-        if engine.has_event_handler(self.started, usage.STARTED):
-            engine.remove_event_handler(self.started, usage.STARTED)
-        if engine.has_event_handler(self.completed, usage.COMPLETED):
-            engine.remove_event_handler(self.completed, usage.COMPLETED)
-
-    def _get_metric_value(self) -> Union[torch.Tensor, float]:
-        return cast(Metric, self.src).compute()
-
-    @sync_all_reduce("src")
-    def _get_output_value(self) -> Union[torch.Tensor, float]:
-        # we need to compute average instead of sum produced by @sync_all_reduce("src")
-        output = cast(Union[torch.Tensor, float], self.src) / idist.get_world_size()
-        return output
-
-    @reinit__is_reduced
-    def _output_update(self, output: Union[torch.Tensor, float]) -> None:
-        if isinstance(output, torch.Tensor):
-            output = output.detach().to(self._device, copy=True)
-        self.src = output
+        super().detach(engine, usage)
