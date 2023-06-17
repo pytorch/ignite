@@ -1,5 +1,5 @@
 import warnings
-from typing import Callable, cast, Optional, Union
+from typing import Any, Callable, cast, Optional, Union
 
 import torch
 
@@ -105,7 +105,7 @@ class RunningAverage(Metric):
             if output_transform is not None:
                 raise ValueError("Argument output_transform should be None if src is a Metric.")
 
-            def output_transform(x):
+            def output_transform(x: Any) -> Any:
                 return x
 
             if device is not None:
@@ -124,7 +124,7 @@ class RunningAverage(Metric):
 
         self.epoch_bound = epoch_bound
         self.alpha = alpha
-        super(RunningAverage, self).__init__(output_transform=output_transform, device=device)  # type: ignore[arg-type]
+        super(RunningAverage, self).__init__(output_transform=output_transform, device=device)
 
     @reinit__is_reduced
     def reset(self) -> None:
@@ -138,8 +138,8 @@ class RunningAverage(Metric):
             output = output.detach().to(self._device) if isinstance(output, torch.Tensor) else output
             value = idist.all_reduce(output) / idist.get_world_size()
         else:
-            value = cast(Metric, self.src).compute()
-            cast(Metric, self.src).reset()
+            value = self.src.compute()
+            self.src.reset()
 
         if self._value is None:
             self._value = value
@@ -147,7 +147,7 @@ class RunningAverage(Metric):
             self._value = self._value * self.alpha + (1.0 - self.alpha) * value
 
     def compute(self) -> Union[torch.Tensor, float]:
-        return self._value
+        return cast(Union[torch.Tensor, float], self._value)
 
     def attach(self, engine: Engine, name: str, usage: Union[str, MetricUsage] = RunningBatchWise()) -> None:
         r"""
