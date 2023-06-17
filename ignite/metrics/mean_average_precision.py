@@ -5,6 +5,7 @@ import torch
 from typing_extensions import Literal
 
 import ignite.distributed as idist
+from ignite.distributed.utils import all_gather_tensors_with_shapes
 from ignite.metrics.metric import reinit__is_reduced
 from ignite.metrics.recall import _BasePrecisionRecall
 from ignite.utils import to_onehot
@@ -390,7 +391,7 @@ class MeanAveragePrecision(_BaseMeanAveragePrecision):
         """
         if self._num_classes is None:
             raise RuntimeError("Metric could not be computed without any update method call")
-        num_classes = cast(int, self._num_classes)
+        num_classes = self._num_classes
 
         rank_P = (
             torch.cat(self._P, dim=-1)
@@ -403,32 +404,32 @@ class MeanAveragePrecision(_BaseMeanAveragePrecision):
                 )
             )
         )
-        P = torch.cat(cast(List[torch.Tensor], idist.all_gather(rank_P, tensor_different_shape=True)), dim=-1)
-        scores_classification = torch.cat(
-            cast(
-                List[torch.Tensor],
-                idist.all_gather(
-                    torch.cat(self._scores, dim=-1)
-                    if self._scores
-                    else (
-                        torch.tensor([], device=self._device)
-                        if self._type == "binary"
-                        else torch.empty((num_classes, 0), dtype=torch.double, device=self._device)
-                    ),
-                    tensor_different_shape=True,
-                ),
-            ),
-            dim=-1,
+        rank_P_shapes = cast(torch.Tensor, idist.all_gather(torch.tensor(rank_P.shape))).view(-1, len(rank_P.shape))
+        P = torch.cat(all_gather_tensors_with_shapes(rank_P, rank_P_shapes.tolist()), dim=-1)
+
+        rank_scores = (
+            torch.cat(self._scores, dim=-1)
+            if self._scores
+            else (
+                torch.tensor([], device=self._device)
+                if self._type == "binary"
+                else torch.empty((num_classes, 0), dtype=torch.double, device=self._device)
+            )
         )
+        rank_scores_shapes = cast(torch.Tensor, idist.all_gather(torch.tensor(rank_scores.shape))).view(
+            -1, len(rank_scores.shape)
+        )
+        scores = torch.cat(all_gather_tensors_with_shapes(rank_scores, rank_scores_shapes.tolist()), dim=-1)
+
         if self._type == "multiclass":
             P = to_onehot(P, num_classes=num_classes).T
         if self.class_mean == "micro":
             P = P.reshape(1, -1)
-            scores_classification = scores_classification.view(1, -1)
+            scores = scores.view(1, -1)
         P_count = P.sum(dim=-1)
         average_precisions = torch.zeros_like(P_count, device=self._device, dtype=torch.double)
         for cls in range(len(P_count)):
-            recall, precision = self._compute_recall_and_precision(P[cls], scores_classification[cls], P_count[cls])
+            recall, precision = self._compute_recall_and_precision(P[cls], scores[cls], P_count[cls])
             average_precisions[cls] = self._compute_average_precision(recall, precision)
         if self._type == "binary":
             return average_precisions.item()

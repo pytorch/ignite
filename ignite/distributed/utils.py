@@ -351,7 +351,7 @@ def all_reduce(
     return _model.all_reduce(tensor, op, group=group)
 
 
-def _all_gather_tensors_with_shapes(
+def all_gather_tensors_with_shapes(
     tensor: torch.Tensor, shapes: Sequence[Sequence[int]], group: Optional[Union[Any, List[int]]] = None
 ) -> List[torch.Tensor]:
     if _need_to_sync and isinstance(_model, _SerialModel):
@@ -381,48 +381,28 @@ def _all_gather_tensors_with_shapes(
 
 
 def all_gather(
-    tensor: Union[torch.Tensor, float, str],
-    group: Optional[Union[Any, List[int]]] = None,
-    tensor_different_shape: bool = False,
-) -> Union[torch.Tensor, float, List[float], List[str], List[torch.Tensor]]:
+    tensor: Union[torch.Tensor, float, str], group: Optional[Union[Any, List[int]]] = None
+) -> Union[torch.Tensor, float, List[float], List[str]]:
     """Helper method to perform all gather operation.
 
     Args:
         tensor: tensor or number or str to collect across participating processes. If tensor, it should have
-            the same number of dimensions across processes.
+            the same shape across processes.
         group: list of integer or the process group for each backend. If None, the default process group will be used.
-        tensor_different_shape: If True, it accounts for difference in input shape across processes. In this case, it
-            induces more collective operations. If False, `tensor` should have the same shape across processes.
-            Ignored when `tensor` is not a tensor. Default False.
-
 
     Returns:
         If input is a tensor, returns a torch.Tensor of shape ``(world_size * tensor.shape[0], tensor.shape[1], ...)``
-        if ``tensor_different_shape = False``, otherwise a list of tensors with length ``world_size``(if ``group``
-        is `None`) or `len(group)`. If current process does not belong to `group`, a list with `tensor` as its only
-        item is retured.
         If input is a number, a torch.Tensor of shape ``(world_size, )`` is returned and finally a list of strings
         is returned if input is a string.
 
     .. versionchanged:: 0.4.11
         added ``group``
-
-    .. versionchanged:: 0.5.1
-        added ``tensor_different_shape``
     """
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
 
     if isinstance(group, list) and all(isinstance(item, int) for item in group):
         group = _model.new_group(group)
-
-    if isinstance(tensor, torch.Tensor) and tensor_different_shape:
-        if isinstance(_model, _SerialModel) or (group is not None and _model.get_rank() not in group):
-            return [tensor]
-        all_shapes: torch.Tensor = _model.all_gather(torch.tensor(tensor.shape), group=group).view(
-            -1, len(tensor.shape)
-        )
-        return _all_gather_tensors_with_shapes(tensor, all_shapes.tolist(), group=group)
 
     return _model.all_gather(tensor, group=group)
 

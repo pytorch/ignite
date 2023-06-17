@@ -4,7 +4,7 @@ from typing import Callable, cast, Dict, List, Literal, Optional, Sequence, Tupl
 import torch
 
 import ignite.distributed as idist
-from ignite.distributed.utils import _all_gather_tensors_with_shapes
+from ignite.distributed.utils import all_gather_tensors_with_shapes
 from ignite.metrics.mean_average_precision import _BaseMeanAveragePrecision
 
 from ignite.metrics.metric import reinit__is_reduced
@@ -20,7 +20,7 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
     def __init__(
         self,
         iou_thresholds: Optional[Union[Sequence[float], torch.Tensor]] = None,
-        flavor: Optional[Literal["COCO",]] = "COCO",
+        flavor: Optional["Literal['COCO']"] = "COCO",
         rec_thresholds: Optional[Union[Sequence[float], torch.Tensor]] = None,
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
@@ -378,7 +378,7 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
                 (*mean_dimensions_shape, num_pred_in_rank.item()) for num_pred_in_rank in num_preds_across_ranks
             ]
             TP = torch.cat(
-                _all_gather_tensors_with_shapes(
+                all_gather_tensors_with_shapes(
                     torch.cat(self._tp[cls], dim=-1)
                     if self._tp[cls]
                     else torch.empty((*mean_dimensions_shape, 0), dtype=torch.uint8, device=self._device),
@@ -387,7 +387,7 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
                 dim=-1,
             )
             FP = torch.cat(
-                _all_gather_tensors_with_shapes(
+                all_gather_tensors_with_shapes(
                     torch.cat(self._fp[cls], dim=-1)
                     if self._fp[cls]
                     else torch.empty((*mean_dimensions_shape, 0), dtype=torch.uint8, device=self._device),
@@ -396,7 +396,7 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
                 dim=-1,
             )
             scores = torch.cat(
-                _all_gather_tensors_with_shapes(
+                all_gather_tensors_with_shapes(
                     torch.cat(self._scores[cls])
                     if self._scores[cls]
                     else torch.tensor([], dtype=torch.double, device=self._device),
