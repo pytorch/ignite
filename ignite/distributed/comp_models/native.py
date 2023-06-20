@@ -436,9 +436,6 @@ if has_native_dist_support:
                 group_size = self.get_world_size()
             elif isinstance(group, dist.ProcessGroup):
                 group_size = group.size()
-            elif isinstance(group, list):
-                group_size = len(group)
-                group = self._do_new_group(group)
             else:
                 raise ValueError("Argument group should be list of int or ProcessGroup")
             if tensor.ndimension() == 0:
