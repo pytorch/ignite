@@ -210,7 +210,10 @@ def _test_distrib_all_gather_group(device):
                 res = idist.all_gather(t, group=group)
         else:
             res = idist.all_gather(t, group=group)
-            assert torch.equal(res, torch.tensor(ranks, device=device))
+            if rank in ranks:
+                assert torch.equal(res, torch.tensor(ranks, device=device))
+            else:
+                assert res == t
 
         t = torch.tensor([rank], device=device)
         if bnd in ("horovod"):
@@ -218,7 +221,10 @@ def _test_distrib_all_gather_group(device):
                 res = idist.all_gather(t, group=ranks)
         else:
             res = idist.all_gather(t, group=ranks)
-            assert torch.equal(res, torch.tensor(ranks, device=device))
+            if rank in ranks:
+                assert torch.equal(res, torch.tensor(ranks, device=device))
+            else:
+                assert res == t
 
         if bnd in ("nccl", "gloo", "mpi"):
             with pytest.raises(ValueError, match=r"Argument group should be list of int or ProcessGroup"):
