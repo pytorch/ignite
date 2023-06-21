@@ -25,7 +25,7 @@ jobs:
         pytorch-channel: [pytorch, pytorch-nightly]
       fail-fast: false
     env:
-      DOCKER_IMAGE: "pytorch/conda-builder:cuda11.7"
+      DOCKER_IMAGE: "pytorch/conda-builder:cuda11.8"
       REPOSITORY: ${{ github.repository }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
     runs-on: linux.8xlarge.nvidia.gpu
@@ -102,12 +102,11 @@ jobs:
 
           # Install PyTorch
           if [ "${{ matrix.pytorch-channel }}" == "pytorch" ]; then
-            pip install --upgrade torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
+            pip install --upgrade torch torchvision --index-url https://download.pytorch.org/whl/cu118
           else
-            pip install --upgrade --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cu117
+            pip install --upgrade --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu118
           fi
 
-          nvidia-smi
           python -c "import torch; print(torch.__version__, ', CUDA is available: ', torch.cuda.is_available()); exit(not torch.cuda.is_available())"
           pip list
 
