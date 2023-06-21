@@ -264,7 +264,7 @@ def _setup_common_distrib_training_handlers(
 
         @trainer.on(Events.EPOCH_STARTED)
         def distrib_set_epoch(engine: Engine) -> None:
-            cast(DistributedSampler, train_sampler).set_epoch(engine.state.epoch - 1)
+            train_sampler.set_epoch(engine.state.epoch - 1)
 
 
 def empty_cuda_cache(_: Engine) -> None:
