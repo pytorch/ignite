@@ -919,7 +919,7 @@ def test_running_epochwise_usage(usage):
 
     @engine.on(Events.EPOCH_COMPLETED)
     def _():
-        assert engine.state.metrics["rewm"] == 3 * sum(range(engine.state.epoch + 1))
+        assert engine.state.metrics["rewm"] == sum(range(engine.state.epoch + 1))
 
     engine.run([0, 1, 2], max_epochs=10)
 
