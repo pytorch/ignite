@@ -436,14 +436,15 @@ if has_native_dist_support:
                 group_size = self.get_world_size()
             elif isinstance(group, dist.ProcessGroup):
                 group_size = group.size()
-            elif isinstance(group, list):
-                group_size = len(group)
             else:
                 raise ValueError("Argument group should be list of int or ProcessGroup")
             if tensor.ndimension() == 0:
                 tensor = tensor.unsqueeze(0)
             output = [torch.zeros_like(tensor) for _ in range(group_size)]
-            dist.all_gather(output, tensor, group=group)
+            if group is None:
+                dist.all_gather(output, tensor)
+            else:
+                dist.all_gather(output, tensor, group=group)
             return torch.cat(output, dim=0)
 
         def _do_new_group(self, ranks: List[int], **kwargs: Any) -> Any:

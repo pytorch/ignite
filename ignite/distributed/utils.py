@@ -5,6 +5,7 @@ from functools import wraps
 from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple, Union
 
 import torch
+from torch import distributed as dist
 
 from ignite.distributed.comp_models import (
     _SerialModel,
@@ -44,6 +45,7 @@ __all__ = [
     "one_rank_only",
     "new_group",
     "one_rank_first",
+    "all_gather_tensors_with_shapes",
 ]
 
 _model = _SerialModel()
@@ -360,7 +362,7 @@ def all_gather_tensors_with_shapes(
     if isinstance(group, list) and all(isinstance(item, int) for item in group):
         group = _model.new_group(group)
 
-    if isinstance(_model, _SerialModel) or (group is not None and _model.get_rank() not in group):
+    if isinstance(_model, _SerialModel) or group == dist.GroupMember.NON_GROUP_MEMBER:
         return [tensor]
 
     max_shape = torch.tensor(shapes).amax(dim=0)
