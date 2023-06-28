@@ -61,8 +61,8 @@ class Frequency(Metric):
     def compute(self) -> float:
         time_divisor = 1.0
 
-        if idist.get_world_size() > 1:
-            time_divisor *= idist.get_world_size()
+        if idist.get_metrics_computation_world_size() > 1:
+            time_divisor *= idist.get_metrics_computation_world_size()
 
         # Returns the average processed objects per second across all workers
         return self._n / self._elapsed * time_divisor

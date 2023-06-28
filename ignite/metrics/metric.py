@@ -554,7 +554,7 @@ def sync_all_reduce(*attrs: Any) -> Callable:
                 raise RuntimeError(
                     "Decorator sync_all_reduce should be used on ignite.metric.Metric class methods only"
                 )
-            ws = idist.get_world_size()
+            ws = idist.get_metrics_computation_world_size()
             unreduced_attrs = {}
             if len(attrs) > 0 and ws > 1:
                 for attr in attrs:

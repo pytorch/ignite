@@ -143,7 +143,7 @@ class EpochMetric(Metric):
             _prediction_tensor = torch.cat(self._predictions, dim=0)
             _target_tensor = torch.cat(self._targets, dim=0)
 
-            ws = idist.get_world_size()
+            ws = idist.get_metrics_computation_world_size()
             if ws > 1:
                 # All gather across all processes
                 _prediction_tensor = cast(torch.Tensor, idist.all_gather(_prediction_tensor))

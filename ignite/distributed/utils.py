@@ -1,3 +1,4 @@
+import os
 import socket
 from contextlib import contextmanager
 from functools import wraps
@@ -21,6 +22,7 @@ __all__ = [
     "available_backends",
     "model_name",
     "get_world_size",
+    "get_metrics_computation_world_size",
     "get_rank",
     "get_local_rank",
     "get_nproc_per_node",
@@ -141,6 +143,14 @@ def get_world_size() -> int:
         sync(temporary=True)
 
     return _model.get_world_size()
+
+
+def get_metrics_computation_world_size() -> int:
+    """Returns world size of current distributed configuration for metrics computation. Returns 1 if no distributed configuration."""
+    if os.environ.get("IGNITE_DISABLE_DISTRIBUTED_METRICS") == "1":
+        return 1
+
+    return get_world_size()
 
 
 def get_rank() -> int:

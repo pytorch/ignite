@@ -156,7 +156,7 @@ class RunningAverage(Metric):
     @sync_all_reduce("src")
     def _get_output_value(self) -> Union[torch.Tensor, float]:
         # we need to compute average instead of sum produced by @sync_all_reduce("src")
-        output = cast(Union[torch.Tensor, float], self.src) / idist.get_world_size()
+        output = cast(Union[torch.Tensor, float], self.src) / idist.get_metrics_computation_world_size()
         return output
 
     def _metric_iteration_completed(self, engine: Engine) -> None:
