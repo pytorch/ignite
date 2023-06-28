@@ -1520,7 +1520,7 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
 
             scheduler = ReduceLROnPlateauScheduler(
                 default_optimizer,
-                metric_name="metric-name", mode="max",
+                metric_name="accuracy", mode="max",
                 factor=0.5, patience=1, threshold_mode='abs',
                 threshold=1, trainer=trainer
             )
