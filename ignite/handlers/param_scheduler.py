@@ -1514,7 +1514,7 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
 
         .. code-block:: python
 
-            # Metric 'metric-name' should surpass its best value by
+            # Metric "accuracy" should increase the best value by
             # more than 1 unit after at most 2 epochs, otherwise LR
             # would get multiplied by 0.5 .
 
@@ -1537,10 +1537,10 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
 
             default_trainer = get_default_trainer()
 
-            # Metric `loss` should decrease more than
-            # a tenth of best loss after at most
+            # Metric "loss" should decrease more than
+            # 0.1 of best loss after at most
             # three iterations. Then best loss would get
-            # updated, otherwise lr is multiplied by 2
+            # updated, otherwise lr is multiplied by 0.5
 
             scheduler = ReduceLROnPlateauScheduler(
                 default_optimizer, "loss",
