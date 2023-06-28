@@ -1508,12 +1508,11 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
             Default: False.
         param_group_index: `optimizer`'s parameters group
             to use.  Default: None. Use all `optimizer`'s paramater groups.
-        **scheduler_kwargs: Keyword arguments to be passed to the wrapped
-            `ReduceLROnPlateau`.
+        scheduler_kwargs: Keyword arguments to be passed to the wrapped ``ReduceLROnPlateau``.
 
     Examples:
 
-        .. code-block python
+        .. code-block:: python
 
             # Metric 'metric-name' should surpass its best value by
             # more than 1 unit after at most 2 epochs, otherwise LR
