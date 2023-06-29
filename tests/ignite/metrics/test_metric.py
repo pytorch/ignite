@@ -11,7 +11,17 @@ from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_
 import ignite.distributed as idist
 from ignite.engine import Engine, Events, State
 from ignite.metrics import ConfusionMatrix, Precision, Recall
-from ignite.metrics.metric import BatchFiltered, BatchWise, EpochWise, Metric, reinit__is_reduced, sync_all_reduce
+from ignite.metrics.metric import (
+    BatchFiltered,
+    BatchWise,
+    EpochWise,
+    Metric,
+    reinit__is_reduced,
+    RunningBatchWise,
+    RunningEpochWise,
+    SingleEpochRunningBatchWise,
+    sync_all_reduce,
+)
 
 
 class DummyMetric1(Metric):
@@ -839,80 +849,133 @@ def test_usage_exception():
     m = DummyMetric2()
     with pytest.raises(TypeError, match=r"Unhandled usage type"):
         m.attach(engine, "dummy", usage=1)
-    with pytest.raises(ValueError, match=r"usage should be 'EpochWise.usage_name' or 'BatchWise.usage_name'"):
+    with pytest.raises(
+        ValueError,
+        match=r"usage should be '\(Running\)EpochWise.usage_name' or '\(\(SingleEpoch\)Running\)BatchWise.usage_name'",
+    ):
         m.attach(engine, "dummy", usage="fake")
 
 
-def test_epochwise_usage():
-    class MyMetric(Metric):
-        def __init__(self):
-            super(MyMetric, self).__init__()
-            self.value = []
+class DummyAccumulateInListMetric(Metric):
+    def __init__(self):
+        super(DummyAccumulateInListMetric, self).__init__()
+        self.value = []
 
-        def reset(self):
-            self.value = []
+    def reset(self):
+        self.value = []
 
-        def compute(self):
-            return self.value
+    def compute(self):
+        return self.value
 
-        def update(self, output):
-            self.value.append(output)
-
-    def test(usage):
-        engine = Engine(lambda e, b: b)
-
-        m = MyMetric()
-
-        m.attach(engine, "ewm", usage=usage)
-
-        @engine.on(Events.EPOCH_COMPLETED)
-        def _():
-            ewm = engine.state.metrics["ewm"]
-            assert len(ewm) == 3
-            assert ewm == [0, 1, 2]
-
-        engine.run([0, 1, 2], max_epochs=10)
-        m.detach(engine, usage=usage)
-
-    test("epoch_wise")
-    test(EpochWise.usage_name)
-    test(EpochWise())
+    def update(self, output):
+        self.value.append(output)
 
 
-def test_batchwise_usage():
-    class MyMetric(Metric):
-        def __init__(self):
-            super(MyMetric, self).__init__()
-            self.value = []
+@pytest.mark.parametrize("usage", ["epoch_wise", EpochWise.usage_name, EpochWise()])
+def test_epochwise_usage(usage):
+    engine = Engine(lambda e, b: b)
 
-        def reset(self):
-            self.value = []
+    m = DummyAccumulateInListMetric()
 
-        def compute(self):
-            return self.value
+    m.attach(engine, "ewm", usage=usage)
 
-        def update(self, output):
-            self.value.append(output)
+    @engine.on(Events.EPOCH_COMPLETED)
+    def _():
+        ewm = engine.state.metrics["ewm"]
+        assert len(ewm) == 3
+        assert ewm == [0, 1, 2]
 
-    def test(usage):
-        engine = Engine(lambda e, b: b)
+    engine.run([0, 1, 2], max_epochs=10)
+    m.detach(engine, usage=usage)
 
-        m = MyMetric()
 
-        m.attach(engine, "bwm", usage=usage)
+class DummyAccumulateMetric(Metric):
+    def __init__(self):
+        super(DummyAccumulateMetric, self).__init__()
+        self.value = 0
 
-        @engine.on(Events.ITERATION_COMPLETED)
-        def _():
-            bwm = engine.state.metrics["bwm"]
-            assert len(bwm) == 1
-            assert bwm[0] == (engine.state.iteration - 1) % 3
+    def reset(self):
+        self.value = 0
 
-        engine.run([0, 1, 2], max_epochs=10)
-        m.detach(engine, usage=usage)
+    def compute(self):
+        return self.value
 
-    test("batch_wise")
-    test(BatchWise.usage_name)
-    test(BatchWise())
+    def update(self, output):
+        self.value += output
+
+
+@pytest.mark.parametrize("usage", ["running_epoch_wise", RunningEpochWise.usage_name, RunningEpochWise()])
+def test_running_epochwise_usage(usage):
+    engine = Engine(lambda e, b: e.state.metrics["ewm"])
+
+    engine.state.metrics["ewm"] = 0
+
+    @engine.on(Events.EPOCH_STARTED)
+    def _():
+        engine.state.metrics["ewm"] += 1
+
+    m = DummyAccumulateMetric()
+    m.attach(engine, "rewm", usage=usage)
+
+    @engine.on(Events.EPOCH_COMPLETED)
+    def _():
+        assert engine.state.metrics["rewm"] == sum(range(engine.state.epoch + 1))
+
+    engine.run([0, 1, 2], max_epochs=10)
+
+    m.detach(engine, usage=usage)
+
+
+@pytest.mark.parametrize("usage", ["batch_wise", BatchWise.usage_name, BatchWise()])
+def test_batchwise_usage(usage):
+    engine = Engine(lambda e, b: b)
+
+    m = DummyAccumulateInListMetric()
+
+    m.attach(engine, "bwm", usage=usage)
+
+    @engine.on(Events.ITERATION_COMPLETED)
+    def _():
+        bwm = engine.state.metrics["bwm"]
+        assert len(bwm) == 1
+        assert bwm[0] == (engine.state.iteration - 1) % 3
+
+    engine.run([0, 1, 2], max_epochs=10)
+    m.detach(engine, usage=usage)
+
+
+@pytest.mark.parametrize("usage", ["running_batch_wise", RunningBatchWise.usage_name, RunningBatchWise()])
+def test_running_batchwise_usage(usage):
+    engine = Engine(lambda e, b: b)
+
+    m = DummyAccumulateMetric()
+    m.attach(engine, "rbwm", usage=usage)
+
+    @engine.on(Events.EPOCH_COMPLETED)
+    def _():
+        assert engine.state.metrics["rbwm"] == 6 * engine.state.epoch
+
+    engine.run([0, 1, 2, 3], max_epochs=10)
+
+    m.detach(engine, usage=usage)
+
+
+@pytest.mark.parametrize(
+    "usage", ["single_epoch_running_batch_wise", SingleEpochRunningBatchWise.usage_name, SingleEpochRunningBatchWise()]
+)
+def test_single_epoch_running_batchwise_usage(usage):
+    engine = Engine(lambda e, b: b)
+
+    m = DummyAccumulateMetric()
+    m.attach(engine, "rbwm", usage=usage)
+
+    @engine.on(Events.EPOCH_COMPLETED)
+    def _():
+        assert engine.state.metrics["rbwm"] == 6
+
+    engine.run([0, 1, 2, 3], max_epochs=10)
+
+    m.detach(engine, usage=usage)
 
 
 def test_batchfiltered_usage():
