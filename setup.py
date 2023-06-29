@@ -30,8 +30,8 @@ setup(
     # Metadata
     name="pytorch-ignite",
     version=VERSION,
-    author="PyTorch Core Team",
-    author_email="soumith@pytorch.org",
+    author="PyTorch-Ignite Team",
+    author_email="contact@pytorch-ignite.ai",
     url="https://github.com/pytorch/ignite",
     description="A lightweight library to help with training neural networks in PyTorch.",
     long_description_content_type="text/markdown",
