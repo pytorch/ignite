@@ -122,6 +122,12 @@ class RunningAverage(Metric):
             if device is None:
                 device = torch.device("cpu")
 
+        if epoch_bound is not None:
+            warnings.warn(
+                "`epoch_bound` is deprecated and will be removed in the future. Consider using `usage` argument of"
+                "`attach` method instead. `epoch_bound=True` is equivalent with `usage=SingleEpochRunningBatchWise()`"
+                " and `epoch_bound=False` is equivalent with `usage=RunningBatchWise()`."
+            )
         self.epoch_bound = epoch_bound
         self.alpha = alpha
         super(RunningAverage, self).__init__(output_transform=output_transform, device=device)
@@ -135,7 +141,7 @@ class RunningAverage(Metric):
     @reinit__is_reduced
     def update(self, output: Union[torch.Tensor, float]) -> None:
         if self.src is None:
-            output = output.detach().to(self._device) if isinstance(output, torch.Tensor) else output
+            output = output.detach().to(self._device, copy=True) if isinstance(output, torch.Tensor) else output
             value = idist.all_reduce(output) / idist.get_world_size()
         else:
             value = self.src.compute()
@@ -193,13 +199,7 @@ class RunningAverage(Metric):
             Added `usage` argument
         """
         usage = self._check_usage(usage)
-
         if self.epoch_bound is not None:
-            warnings.warn(
-                "`epoch_bound` is deprecated and will be removed in the future. Consider using `usage` argument"
-                "instead. `epoch_bound=True` is equivalent with `usage=SingleEpochRunningBatchWise()` and "
-                "`epoch_bound=False` is equivalent with `usage=RunningBatchWise()`."
-            )
             usage = SingleEpochRunningBatchWise() if self.epoch_bound else RunningBatchWise()
 
         if isinstance(self.src, Metric) and not engine.has_event_handler(

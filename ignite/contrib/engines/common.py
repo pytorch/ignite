@@ -211,7 +211,7 @@ def _setup_common_training_handlers(
 
         for i, n in enumerate(output_names):
             RunningAverage(output_transform=partial(output_transform, index=i, name=n)).attach(
-                trainer, n, RunningBatchWise()
+                trainer, n, usage=RunningBatchWise()
             )
 
     if with_pbars:

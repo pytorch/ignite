@@ -442,7 +442,7 @@ class Metric(metaclass=ABCMeta):
                     break
             if not isinstance(usage, MetricUsage):
                 raise ValueError(
-                    "usage should be '(Running)EpochWise.usage_name' or "
+                    "Argument usage should be '(Running)EpochWise.usage_name' or "
                     f"'((SingleEpoch)Running)BatchWise.usage_name', got {usage}"
                 )
         if not isinstance(usage, MetricUsage):

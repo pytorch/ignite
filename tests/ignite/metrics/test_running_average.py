@@ -30,14 +30,13 @@ def test_wrong_input_args():
 
     with pytest.warns(UserWarning, match=r"`epoch_bound` is deprecated and will be removed in the future."):
         m = RunningAverage(Accuracy(), epoch_bound=True)
-        e = Engine(lambda _, __: None)
-        m.attach(e, "")
 
 
 @pytest.mark.filterwarnings("ignore")
 @pytest.mark.parametrize("epoch_bound, usage", [(False, RunningBatchWise()), (True, SingleEpochRunningBatchWise())])
 def test_epoch_bound(epoch_bound, usage):
-    metric = RunningAverage(output_transform=lambda _: _, epoch_bound=epoch_bound)
+    with warnings.catch_warnings():
+        metric = RunningAverage(output_transform=lambda _: _, epoch_bound=epoch_bound)
     e1 = Engine(lambda _, __: None)
     e2 = Engine(lambda _, __: None)
     metric.attach(e1, "")
@@ -204,10 +203,10 @@ def test_multiple_attach(usage):
 @pytest.mark.parametrize("src", [Accuracy(), None])
 @pytest.mark.parametrize("usage", [RunningBatchWise(), SingleEpochRunningBatchWise(), RunningEpochWise()])
 def test_detach(epoch_bound, src, usage):
-    m = RunningAverage(src, output_transform=(lambda _: _) if src is None else None, epoch_bound=epoch_bound)
-    e = Engine(lambda _, __: None)
     with warnings.catch_warnings():
-        m.attach(e, "m", usage)
+        m = RunningAverage(src, output_transform=(lambda _: _) if src is None else None, epoch_bound=epoch_bound)
+    e = Engine(lambda _, __: None)
+    m.attach(e, "m", usage)
     for event_handlers in e._event_handlers.values():
         assert len(event_handlers) != 0
     m.detach(e, usage)
