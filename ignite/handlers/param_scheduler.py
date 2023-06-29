@@ -1508,20 +1508,19 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
             Default: False.
         param_group_index: `optimizer`'s parameters group
             to use.  Default: None. Use all `optimizer`'s paramater groups.
-        **scheduler_kwargs: Keyword arguments to be passed to the wrapped
-            `ReduceLROnPlateau`.
+        scheduler_kwargs: Keyword arguments to be passed to the wrapped ``ReduceLROnPlateau``.
 
     Examples:
 
-        .. code-block python
+        .. code-block:: python
 
-            # Metric 'metric-name' should surpass its best value by
+            # Metric "accuracy" should increase the best value by
             # more than 1 unit after at most 2 epochs, otherwise LR
             # would get multiplied by 0.5 .
 
             scheduler = ReduceLROnPlateauScheduler(
                 default_optimizer,
-                metric_name="metric-name", mode="max",
+                metric_name="accuracy", mode="max",
                 factor=0.5, patience=1, threshold_mode='abs',
                 threshold=1, trainer=trainer
             )
@@ -1538,10 +1537,10 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
 
             default_trainer = get_default_trainer()
 
-            # Metric `loss` should decrease more than
-            # a tenth of best loss after at most
+            # Metric "loss" should decrease more than
+            # 0.1 of best loss after at most
             # three iterations. Then best loss would get
-            # updated, otherwise lr is multiplied by 2
+            # updated, otherwise lr is multiplied by 0.5
 
             scheduler = ReduceLROnPlateauScheduler(
                 default_optimizer, "loss",
