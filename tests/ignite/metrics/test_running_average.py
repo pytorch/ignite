@@ -54,7 +54,7 @@ def test_integration_batchwise(usage):
     n_classes = 10
     max_epochs = 3
     data = list(range(n_iters))
-    loss = torch.arange(n_iters)
+    loss = torch.arange(n_iters, dtype=torch.float)
     y_true = torch.randint(0, n_classes, size=(n_iters, batch_size))
     y_pred = torch.rand(n_iters, batch_size, n_classes)
 
