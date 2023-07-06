@@ -134,7 +134,12 @@ class RocCurve(EpochMetric):
             print("FPR", [round(i, 3) for i in state.metrics['roc_auc'][0].tolist()])
             print("TPR", [round(i, 3) for i in state.metrics['roc_auc'][1].tolist()])
             print("Thresholds", [round(i, 3) for i in state.metrics['roc_auc'][2].tolist()])
-            print("TPR", [round(i, 3) for i in state.metrics['roc_auc'][1].tolist()])
+
+        .. testoutput::
+
+            FPR [0.0, 0.333, 0.333, 1.0]
+            TPR [0.0, 0.0, 1.0, 1.0]
+            Thresholds [2.0, 1.0, 0.711, 0.047]
             print("Thresholds", [round(i, 3) for i in state.metrics['roc_auc'][2].tolist()])
 
     ..  versionchanged:: 0.4.11
