@@ -4,6 +4,7 @@ import torch
 from torchvision import models
 from torchvision.models.vgg16 import VGG16_Weights
 
+
 class Vgg16(torch.nn.Module):
     def __init__(self, requires_grad=False):
         super(Vgg16, self).__init__()
