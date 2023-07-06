@@ -138,7 +138,7 @@ class RocCurve(EpochMetric):
         .. testoutput::
 
             FPR [0.0, 0.333, 0.333, 1.0]
-            TPR [0.0, 0.0, 1.0, 1.0]
+            Thresholds [inf, 1.0, 0.711, 0.047]
             Thresholds [2.0, 1.0, 0.711, 0.047]
 
     ..  versionchanged:: 0.4.11
@@ -192,3 +192,4 @@ class RocCurve(EpochMetric):
             thresholds = idist.broadcast(thresholds, src=0, safe_mode=True)
 
         return fpr, tpr, thresholds
+
