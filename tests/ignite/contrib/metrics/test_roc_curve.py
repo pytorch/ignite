@@ -77,8 +77,6 @@ def test_integration_roc_curve_with_output_transform():
     roc_curve_metric.attach(engine, "roc_curve")
 
     data = list(range(size // batch_size))
-    fpr, tpr, thresholds = engine.run(data, max_epochs=1).metrics["roc_curve"]
-    fpr, tpr, thresholds = engine.run(data, max_epochs=1).metrics["roc_curve"]
 
     assert np.array_equal(fpr, sk_fpr)
     assert np.array_equal(tpr, sk_tpr)
@@ -160,11 +158,6 @@ def test_distrib_integration(distributed):
 
     engine.run(data=data, max_epochs=1)
 
-    fpr, tpr, thresholds = engine.state.metrics["roc_curve"]
-
-    assert isinstance(fpr, torch.Tensor) and fpr.device == device
-    assert isinstance(tpr, torch.Tensor) and tpr.device == device
-    assert isinstance(thresholds, torch.Tensor) and thresholds.device == device
     fpr, tpr, thresholds = engine.state.metrics["roc_curve"]
 
     assert isinstance(fpr, torch.Tensor) and fpr.device == device
