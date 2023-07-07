@@ -2,7 +2,7 @@ from collections import namedtuple
 
 import torch
 from torchvision import models
-from torchvision.models.vgg16 import VGG16_Weights
+from torchvision.models.vgg import VGG16_Weights
 
 
 class Vgg16(torch.nn.Module):
