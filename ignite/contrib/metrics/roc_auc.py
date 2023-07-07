@@ -1,6 +1,7 @@
 from typing import Any, Callable, cast, Tuple, Union
 
 import torch
+import numpy as np
 
 from ignite import distributed as idist
 from ignite.exceptions import NotComputableError
@@ -20,7 +21,12 @@ def roc_auc_curve_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor) -> 
 
     y_true = y_targets.cpu().numpy()
     y_pred = y_preds.cpu().numpy()
-    return roc_curve(y_true, y_pred)
+    fpr, tpr, thresholds = roc_curve(y_true, y_pred)
+
+    # Replace any 'inf' values in the thresholds array with a large finite number
+    thresholds = np.where(np.isinf(thresholds), np.nanmax(thresholds[np.isfinite(thresholds)]), thresholds)
+
+    return fpr, tpr, thresholds
 
 
 class ROC_AUC(EpochMetric):
@@ -192,3 +198,4 @@ class RocCurve(EpochMetric):
             thresholds = idist.broadcast(thresholds, src=0, safe_mode=True)
 
         return fpr, tpr, thresholds
+
