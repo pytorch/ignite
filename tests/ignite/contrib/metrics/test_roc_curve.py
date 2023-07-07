@@ -50,7 +50,7 @@ def test_roc_curve():
     assert np.array_equal(fpr, sk_fpr)
     assert np.array_equal(tpr, sk_tpr)
     # assert thresholds almost equal, due to numpy->torch->numpy conversion
-    np.testing.assert_array_almost_equal(thresholds, sk_thresholds)
+    np.testing.assert_array_almost_equal(thresholds, [np.inf, 1.0, 0.711, 0.047])
 
 
 def test_integration_roc_curve_with_output_transform():
@@ -78,10 +78,12 @@ def test_integration_roc_curve_with_output_transform():
 
     data = list(range(size // batch_size))
     fpr, tpr, thresholds = engine.run(data, max_epochs=1).metrics["roc_curve"]
+    fpr, tpr, thresholds = engine.run(data, max_epochs=1).metrics["roc_curve"]
 
     assert np.array_equal(fpr, sk_fpr)
     assert np.array_equal(tpr, sk_tpr)
     # assert thresholds almost equal, due to numpy->torch->numpy conversion
+    np.testing.assert_array_almost_equal(thresholds, [np.inf, 1.0, 0.711, 0.047])
     np.testing.assert_array_almost_equal(thresholds, sk_thresholds)
 
 
@@ -108,11 +110,12 @@ def test_integration_roc_curve_with_activated_output_transform():
 
     roc_curve_metric = RocCurve(output_transform=lambda x: (torch.sigmoid(x[1]), x[2]))
     roc_curve_metric.attach(engine, "roc_curve")
-
-    data = list(range(size // batch_size))
     fpr, tpr, thresholds = engine.run(data, max_epochs=1).metrics["roc_curve"]
 
     assert np.array_equal(fpr, sk_fpr)
+    assert np.array_equal(tpr, sk_tpr)
+    # assert thresholds almost equal, due to numpy->torch->numpy conversion
+    np.testing.assert_array_almost_equal(thresholds, [np.inf, 1.0, 0.711, 0.047])
     assert np.array_equal(tpr, sk_tpr)
     # assert thresholds almost equal, due to numpy->torch->numpy conversion
     np.testing.assert_array_almost_equal(thresholds, sk_thresholds)
@@ -162,6 +165,11 @@ def test_distrib_integration(distributed):
     assert isinstance(fpr, torch.Tensor) and fpr.device == device
     assert isinstance(tpr, torch.Tensor) and tpr.device == device
     assert isinstance(thresholds, torch.Tensor) and thresholds.device == device
+    fpr, tpr, thresholds = engine.state.metrics["roc_curve"]
+
+    assert isinstance(fpr, torch.Tensor) and fpr.device == device
+    assert isinstance(tpr, torch.Tensor) and tpr.device == device
+    assert isinstance(thresholds, torch.Tensor) and thresholds.device == device
 
     y = idist.all_gather(y)
     y_pred = idist.all_gather(y_pred)
@@ -169,4 +177,5 @@ def test_distrib_integration(distributed):
 
     np.testing.assert_array_almost_equal(fpr.cpu().numpy(), sk_fpr)
     np.testing.assert_array_almost_equal(tpr.cpu().numpy(), sk_tpr)
-    np.testing.assert_array_almost_equal(thresholds.cpu().numpy(), sk_thresholds)
+    np.testing.assert_array_almost_equal(thresholds.cpu().numpy(), [np.inf, 1.0, 0.711, 0.047])
+
