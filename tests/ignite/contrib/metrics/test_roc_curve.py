@@ -72,17 +72,14 @@ def test_integration_roc_curve_with_output_transform():
         return idx, torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
 
     engine = Engine(update_fn)
-
     roc_curve_metric = RocCurve(output_transform=lambda x: (x[1], x[2]))
     roc_curve_metric.attach(engine, "roc_curve")
-
     data = list(range(size // batch_size))
-
+    fpr, tpr, thresholds = engine.run(data, max_epochs=1).metrics["roc_curve"]
     assert np.array_equal(fpr, sk_fpr)
     assert np.array_equal(tpr, sk_tpr)
     # assert thresholds almost equal, due to numpy->torch->numpy conversion
     np.testing.assert_array_almost_equal(thresholds, [np.inf, 1.0, 0.711, 0.047])
-    np.testing.assert_array_almost_equal(thresholds, sk_thresholds)
 
 
 def test_integration_roc_curve_with_activated_output_transform():
@@ -105,18 +102,13 @@ def test_integration_roc_curve_with_activated_output_transform():
         return idx, torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
 
     engine = Engine(update_fn)
-
     roc_curve_metric = RocCurve(output_transform=lambda x: (torch.sigmoid(x[1]), x[2]))
     roc_curve_metric.attach(engine, "roc_curve")
+    data = list(range(size // batch_size))
     fpr, tpr, thresholds = engine.run(data, max_epochs=1).metrics["roc_curve"]
-
-    assert np.array_equal(fpr, sk_fpr)
     assert np.array_equal(tpr, sk_tpr)
     # assert thresholds almost equal, due to numpy->torch->numpy conversion
     np.testing.assert_array_almost_equal(thresholds, [np.inf, 1.0, 0.711, 0.047])
-    assert np.array_equal(tpr, sk_tpr)
-    # assert thresholds almost equal, due to numpy->torch->numpy conversion
-    np.testing.assert_array_almost_equal(thresholds, sk_thresholds)
 
 
 def test_check_compute_fn():
