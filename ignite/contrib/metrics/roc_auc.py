@@ -139,7 +139,7 @@ class RocCurve(EpochMetric):
 
             FPR [0.0, 0.333, 0.333, 1.0]
             TPR [0.0, 0.0, 1.0, 1.0]
-            Thresholds [2.0, 1.0, 0.711, 0.047]
+            Thresholds [inf, 1.0, 0.711, 0.047]
 
     ..  versionchanged:: 0.4.11
         added `device` argument
