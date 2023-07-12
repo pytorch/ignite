@@ -380,7 +380,7 @@ def _check_arg(
 ) -> Tuple[Optional[str], Optional["torch.cuda.amp.GradScaler"]]:
     """Checking tpu, mps, amp and GradScaler instance combinations."""
     if on_mps and amp_mode:
-         raise ValueError("amp_mode cannot be used with mps device. Consider using amp_mode=None or device='cuda'.")
+        raise ValueError("amp_mode cannot be used with mps device. Consider using amp_mode=None or device='cuda'.")
 
     if on_tpu and not idist.has_xla_support:
         raise RuntimeError("In order to run on TPU, please install PyTorch XLA")
