@@ -2,12 +2,13 @@ from collections import namedtuple
 
 import torch
 from torchvision import models
+from torchvision.models.vgg import VGG16_Weights
 
 
 class Vgg16(torch.nn.Module):
     def __init__(self, requires_grad=False):
         super(Vgg16, self).__init__()
-        vgg_pretrained_features = models.vgg16(pretrained=True).features
+        vgg_pretrained_features = models.vgg16(weights=VGG16_Weights.IMAGENET1K_V1).features
         self.slice1 = torch.nn.Sequential()
         self.slice2 = torch.nn.Sequential()
         self.slice3 = torch.nn.Sequential()
