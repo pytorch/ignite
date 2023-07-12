@@ -1,0 +1,184 @@
+name: Run unit tests on MPS Backend
+on:
+  push:
+    paths:
+      - "ignite/**"
+      - "tests/ignite/**"
+      - "tests/run_code_style.sh"
+      - "examples/**.py"
+      - "requirements-dev.txt"
+      - ".github/workflows/mps-tests.yml"
+  pull_request:
+    paths:
+      - "ignite/**"
+      - "tests/ignite/**"
+      - "tests/run_code_style.sh"
+      - "examples/**.py"
+      - "requirements-dev.txt"
+      - ".github/workflows/unit-tests.yml"
+  workflow_dispatch:
+
+concurrency:
+  # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>
+  group: mps-tests-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
+  cancel-in-progress: true
+
+# Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml
+
+jobs:
+  gpu-tests:    
+    strategy:
+      matrix:
+        python-version:
+          - "3.8"
+        pytorch-channel: [pytorch, pytorch-nightly]
+      fail-fast: false
+    runs-on: ["macos-m1-12"]
+    timeout-minutes: 45
+    
+    steps:
+      - name: Clean workspace
+        run: |
+          echo "::group::Cleanup debug output"
+          sudo rm -rfv "${GITHUB_WORKSPACE}"
+          mkdir -p "${GITHUB_WORKSPACE}"
+          echo "::endgroup::"
+
+      - name: Checkout repository (pytorch/test-infra)
+        uses: actions/checkout@v3
+        with:
+          # Support the use case where we need to checkout someone's fork
+          repository: pytorch/test-infra
+          path: test-infra
+
+      - name: Setup MacOS-M1
+        uses: ./test-infra/.github/actions/macos-job
+
+      - name: Pull docker image
+        uses: ./test-infra/.github/actions/pull-docker-image
+        with:
+          docker-image: ${{ env.DOCKER_IMAGE }}
+
+      - name: Checkout repository (${{ github.repository }})
+        uses: actions/checkout@v3
+        with:
+          # Support the use case where we need to checkout someone's fork
+          repository: ${{ github.repository }}
+          ref: ${{ github.ref }}
+          path: ${{ github.repository }}
+          fetch-depth: 1
+
+      - name: Start Pytorch container
+        working-directory: ${{ github.repository }}
+        run: |
+          docker run --name pthd --gpus=all --rm \
+            --cap-add=SYS_PTRACE \
+            --detach \
+            --ipc=host \
+            --security-opt seccomp=unconfined \
+            --shm-size=2g \
+            --tty \
+            --ulimit stack=10485760:83886080 \
+            -v $PWD:/work \
+            -w /work \
+            ${DOCKER_IMAGE}
+
+          script=$(cat << EOF
+
+            set -x
+
+            nvidia-smi
+            ls -alh
+
+            conda --version
+            python --version
+
+          EOF
+          )
+          docker exec -t pthd /bin/bash -c "${script}"
+
+      - name: Install PyTorch and dependencies
+        continue-on-error: false
+        run: |
+
+          script=$(cat << EOF
+
+          set -x
+
+          # Install PyTorch
+          if [ "${{ matrix.pytorch-channel }}" == "pytorch" ]; then
+            pip install --upgrade torch torchvision --index-url https://download.pytorch.org/whl/cu118
+          else
+            pip install --upgrade --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu118
+          fi
+
+          python -c "import torch; print(torch.__version__, ', CUDA is available: ', torch.cuda.is_available()); exit(not torch.cuda.is_available())"
+          pip list
+
+          # Install dependencies
+          pip install -r requirements-dev.txt
+          pip install -e .
+
+          EOF
+          )
+
+          docker exec -t pthd /bin/bash -c "${script}"
+
+      - name: Run 1 Node 2 GPUs Unit Tests
+        continue-on-error: false
+        run: |
+
+          script=$(cat << EOF
+
+          set -x
+
+          bash tests/run_gpu_tests.sh 2
+
+          EOF
+          )
+
+          docker exec -t pthd /bin/bash -c "${script}"
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ${{ github.repository }}/coverage.xml
+          flags: gpu-2
+          fail_ci_if_error: false
+
+      - name: Run examples in container
+        continue-on-error: false
+        run: |
+          SCRIPT=$(cat << EOF
+          
+          set -x
+
+          # Install additional example dependencies
+          pip install fire
+
+          # Check training on cifar10, run without backend
+          ## initial run
+          CI=1 python examples/contrib/cifar10/main.py run --checkpoint_every=200 --stop_iteration=500
+          ## resume
+          CI=1 python examples/contrib/cifar10/main.py run --checkpoint_every=200 --num_epochs=7 --resume-from=/tmp/output-cifar10/resnet18_backend-None-1_stop-on-500/training_checkpoint_400.pt
+    
+          # Check training on cifar10, run with NCCL backend using torchrun
+          ## initial run
+          CI=1 torchrun --nproc_per_node=2 examples/contrib/cifar10/main.py run --backend=nccl --checkpoint_every=200 --stop_iteration=500
+          ## resume
+          CI=1 torchrun --nproc_per_node=2 examples/contrib/cifar10/main.py run --backend=nccl --checkpoint_every=200 --num_epochs=7 --resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt
+
+          # Check training on cifar10, run with NCCL backend using spawn
+          ## initial run
+          CI=1 python -u examples/contrib/cifar10/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200 --stop_iteration=500
+          ## resume
+          CI=1 python -u examples/contrib/cifar10/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200 --num_epochs=7 --resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt
+
+          EOF
+          )
+
+          docker exec -t pthd /bin/bash -c "${script}"
+
+      - name: Teardown Linux
+        if: ${{ always() }}
+        uses: ./test-infra/.github/actions/teardown-linux
