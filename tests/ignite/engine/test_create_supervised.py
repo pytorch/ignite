@@ -454,6 +454,7 @@ def test_create_supervised_trainer_on_cuda():
     )
     _test_create_mocked_supervised_trainer(model_device=model_device, trainer_device=trainer_device)
 
+
 @pytest.mark.skipif(not torch.backends.mps.is_available(), reason="Skip if no MPS")
 def test_create_supervised_trainer_on_mps():
     model_device = trainer_device = "mps"
