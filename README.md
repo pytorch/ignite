@@ -346,8 +346,8 @@ For more details, see [here](docker).
 
 Few pointers to get you started:
 
-- [Quick Start Guide: Essentials of getting a project up and running](https://pytorch.org/ignite/quickstart.html)
-- [Concepts of the library: Engine, Events & Handlers, State, Metrics](https://pytorch.org/ignite/concepts.html)
+- [Quick Start Guide: Essentials of getting a project up and running](https://pytorch-ignite.ai/tutorials/beginner/01-getting-started/)
+- [Concepts of the library: Engine, Events & Handlers, State, Metrics](https://pytorch-ignite.ai/concepts/)
 - Full-featured template examples (coming soon)
 
 <!-- ############################################################################################################### -->
