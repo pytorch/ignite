@@ -713,6 +713,7 @@ def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
     _test_distrib_sync_all_reduce_decorator(device)
     _test_invalid_sync_all_reduce(device)
     _test_compute_with_sync_all_reduce_doesnt_change_attributes(device)
+    _test_distrib_state_dict(device)
 
 
 @pytest.mark.distributed
@@ -722,6 +723,7 @@ def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
     _test_distrib_sync_all_reduce_decorator(device)
     _test_invalid_sync_all_reduce(device)
     _test_compute_with_sync_all_reduce_doesnt_change_attributes(device)
+    _test_distrib_state_dict(device)
 
 
 @pytest.mark.distributed
@@ -744,6 +746,7 @@ def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
     _test_distrib_sync_all_reduce_decorator(device)
     _test_invalid_sync_all_reduce(device)
     _test_compute_with_sync_all_reduce_doesnt_change_attributes(device)
+    _test_distrib_state_dict(device)
 
 
 @pytest.mark.multinode_distributed
@@ -1125,3 +1128,46 @@ def test_list_of_tensors_and_numbers_unsupported_output():
 
     with pytest.raises(ValueError, match=r"Output should have 2 items of the same length"):
         engine.run([0] * 10)
+
+
+class DummyMetric4(Metric):
+    _state_dict_all_req_keys = ("number", "tensor", "object")
+
+    def __init__(self, value):
+        super().reset()
+        self.number = value
+        self.tensor = torch.tensor([value + 1])
+        self.object = {"a": [value + 2]}
+
+    def reset(self):
+        self.number = -1
+        self.tensor = torch.tensor([-2])
+        self.object = {"a": [-3]}
+
+    def update(output):
+        pass
+
+    def compute():
+        pass
+
+
+def test_state_dict():
+    metric = DummyMetric4(1)
+    state = metric.state_dict()
+    assert state.keys() == {"number", "tensor", "object"}
+    metric.reset()
+    metric.load_state_dict(state)
+    assert metric.number == 1
+    assert metric.tensor == torch.tensor([2])
+    assert metric.object == {"a": [3]}
+
+
+def _test_distrib_state_dict(device):
+    rank = idist.get_local_rank()
+    metric = DummyMetric4(rank)
+    state = metric.state_dict()
+    metric.reset()
+    metric.load_state_dict(state)
+    assert metric.number == rank
+    assert metric.tensor == torch.tensor([rank + 1])
+    assert metric.object == {"a": [rank + 2]}

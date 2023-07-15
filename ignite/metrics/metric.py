@@ -1,12 +1,16 @@
 from abc import ABCMeta, abstractmethod
+from collections import OrderedDict
 from collections.abc import Mapping
 from functools import wraps
 from numbers import Number
-from typing import Any, Callable, cast, Dict, Optional, Sequence, Tuple, TYPE_CHECKING, Union
+from typing import Any, Callable, cast, Dict, List, Optional, Sequence, Tuple, TYPE_CHECKING, Union
 
 import torch
+from torch import distributed as torch_dist
 
 import ignite.distributed as idist
+
+from ignite.base.mixins import Serializable
 from ignite.engine import CallableEventWithFilter, Engine, Events
 
 if TYPE_CHECKING:
@@ -216,7 +220,7 @@ class BatchFiltered(MetricUsage):
         )
 
 
-class Metric(metaclass=ABCMeta):
+class Metric(Serializable, metaclass=ABCMeta):
     """
     Base class for all Metrics.
 
@@ -545,6 +549,26 @@ class Metric(metaclass=ABCMeta):
         """
         usage = self._check_usage(usage)
         return engine.has_event_handler(self.completed, usage.COMPLETED)
+
+    def state_dict(self) -> OrderedDict:
+        state = OrderedDict()
+        for attr_name in self._state_dict_all_req_keys:
+            attr = getattr(self, attr_name)
+            if idist.get_world_size() == 1:
+                state[attr_name] = [attr]
+            else:
+                if isinstance(attr, (float, torch.Tensor)):
+                    state[attr_name] = cast(List[Any], idist.all_gather(attr))
+                else:
+                    state[attr_name] = [None] * idist.get_world_size()
+                    torch_dist.all_gather_object(state[attr_name], attr)
+        return state
+
+    def load_state_dict(self, state_dict: Mapping) -> None:
+        super().load_state_dict(state_dict)
+        rank = idist.get_local_rank()
+        for attr in self._state_dict_all_req_keys:
+            setattr(self, attr, state_dict[attr][rank])
 
     def __add__(self, other: Any) -> "MetricsLambda":
         from ignite.metrics.metrics_lambda import MetricsLambda
