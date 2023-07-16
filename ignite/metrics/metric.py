@@ -551,6 +551,12 @@ class Metric(Serializable, metaclass=ABCMeta):
         return engine.has_event_handler(self.completed, usage.COMPLETED)
 
     def state_dict(self) -> OrderedDict:
+        """Method returns state dict with attributes of the metric specified in its
+        `_state_dict_all_req_keys` attribute. Can be used to save internal state of the class.
+
+        If there's an active distributed configuration, some collective operations is done and
+        the list of values across ranks is saved under each attribute's name in the dict.
+        """
         state = OrderedDict()
         for attr_name in self._state_dict_all_req_keys:
             attr = getattr(self, attr_name)
@@ -565,6 +571,15 @@ class Metric(Serializable, metaclass=ABCMeta):
         return state
 
     def load_state_dict(self, state_dict: Mapping) -> None:
+        """Method replaces internal state of the class with provided state dict data.
+
+        If there's an active distributed configuration, the process uses its rank to pick the proper value from
+        the list of values saved under each attribute's name in the dict.
+
+        Args:
+            state_dict: a dict containing attributes of the metric specified in its `_state_dict_all_req_keys`
+                attribute.
+        """
         super().load_state_dict(state_dict)
         rank = idist.get_local_rank()
         for attr in self._state_dict_all_req_keys:

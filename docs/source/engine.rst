@@ -69,7 +69,7 @@ Resuming the training
 It is possible to resume the training from a checkpoint and approximately reproduce original run's behaviour.
 Using Ignite, this can be easily done using :class:`~ignite.handlers.checkpoint.Checkpoint` handler. Engine provides two methods
 to serialize and deserialize its internal state :meth:`~ignite.engine.engine.Engine.state_dict` and
-:meth:`~ignite.engine.engine.Engine.load_state_dict`. In addition to serializing model, optimizer, lr scheduler etc user can
+:meth:`~ignite.engine.engine.Engine.load_state_dict`. In addition to serializing model, optimizer, lr scheduler, metrics, etc., user can
 store the trainer and then resume the training. For example:
 
 .. code-block:: python
@@ -82,8 +82,9 @@ store the trainer and then resume the training. For example:
     optimizer = ...
     lr_scheduler = ...
     data_loader = ...
+    metric = ...
 
-    to_save = {'trainer': trainer, 'model': model, 'optimizer': optimizer, 'lr_scheduler': lr_scheduler}
+    to_save = {'trainer': trainer, 'model': model, 'optimizer': optimizer, 'lr_scheduler': lr_scheduler, 'metric': metric}
     handler = Checkpoint(to_save, DiskSaver('/tmp/training', create_dir=True))
     trainer.add_event_handler(Events.EPOCH_COMPLETED, handler)
     trainer.run(data_loader, max_epochs=100)
@@ -104,8 +105,9 @@ We can then restore the training from the last checkpoint.
     optimizer = ...
     lr_scheduler = ...
     data_loader = ...
+    metric = ...
 
-    to_load = {'trainer': trainer, 'model': model, 'optimizer': optimizer, 'lr_scheduler': lr_scheduler}
+    to_load = {'trainer': trainer, 'model': model, 'optimizer': optimizer, 'lr_scheduler': lr_scheduler, 'metric': metric}
     checkpoint = torch.load(checkpoint_file)
     Checkpoint.load_objects(to_load=to_load, checkpoint=checkpoint)
 
