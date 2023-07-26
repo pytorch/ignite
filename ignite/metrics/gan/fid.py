@@ -163,6 +163,8 @@ class FID(_BaseInceptionMetric):
     .. versionadded:: 0.4.6
     """
 
+    _state_dict_all_req_keys = ("_num_examples", "_train_total", "_test_total", "_train_sigma", "_test_sigma")
+
     def __init__(
         self,
         num_features: Optional[int] = None,

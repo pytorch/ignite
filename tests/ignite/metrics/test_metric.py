@@ -1131,43 +1131,71 @@ def test_list_of_tensors_and_numbers_unsupported_output():
 
 
 class DummyMetric4(Metric):
-    _state_dict_all_req_keys = ("number", "tensor", "object")
+    _state_dict_all_req_keys = ("dnumber", "fnumber", "tensor")
 
-    def __init__(self, value):
+    def __init__(self, value: int):
         super().reset()
-        self.number = value
-        self.tensor = torch.tensor([value + 1])
-        self.object = {"a": [value + 2]}
+        self.dnumber = value
+        self.fnumber = float(value + 1)
+        self.tensor = torch.tensor([value + 2])
 
     def reset(self):
-        self.number = -1
-        self.tensor = torch.tensor([-2])
-        self.object = {"a": [-3]}
+        self.dnumber = -1
+        self.fnumber = -2.0
+        self.tensor = torch.tensor([-3])
 
-    def update(output):
+    def update(self, output):
         pass
 
-    def compute():
+    def compute(self):
         pass
+
+
+def test_wrong_state_dict():
+    class WrongMetric(Metric):
+        _state_dict_all_req_keys = ("object",)
+
+        def __init__(self, value):
+            super().__init__()
+            self.object = {"a": [value]}
+
+        def reset(self):
+            pass
+
+        def update(self, output):
+            pass
+
+        def compute(self):
+            pass
+
+    metric = WrongMetric(2)
+    with pytest.raises(TypeError, match="Currently, only numeric or tensor-typed attributes of the metric"):
+        metric.state_dict()
+
+    delattr(metric, "object")
+    with pytest.raises(ValueError, match="Found a value in _state_dict_all_req_keys that is not among"):
+        metric.state_dict()
 
 
 def test_state_dict():
     metric = DummyMetric4(1)
     state = metric.state_dict()
-    assert state.keys() == {"number", "tensor", "object"}
+    assert state.keys() == {"dnumber", "fnumber", "tensor"}
     metric.reset()
     metric.load_state_dict(state)
-    assert metric.number == 1
-    assert metric.tensor == torch.tensor([2])
-    assert metric.object == {"a": [3]}
+    assert metric.dnumber == 1
+    assert metric.fnumber == 2
+    assert metric.tensor == torch.tensor([3])
 
 
 def _test_distrib_state_dict(device):
     rank = idist.get_local_rank()
     metric = DummyMetric4(rank)
     state = metric.state_dict()
+    assert isinstance(state["dnumber"][rank], int)
+    assert isinstance(state["fnumber"][rank], float)
     metric.reset()
     metric.load_state_dict(state)
-    assert metric.number == rank
-    assert metric.tensor == torch.tensor([rank + 1])
-    assert metric.object == {"a": [rank + 2]}
+    assert metric.dnumber == rank and isinstance(metric.dnumber, int)
+    assert metric.fnumber == rank + 1 and isinstance(metric.fnumber, float)
+    assert metric.tensor == torch.tensor([rank + 2])

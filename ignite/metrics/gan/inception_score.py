@@ -77,6 +77,8 @@ class InceptionScore(_BaseInceptionMetric):
     .. versionadded:: 0.4.6
     """
 
+    _state_dict_all_req_keys = ("_num_examples", "_prob_total", "_total_kl_d")
+
     def __init__(
         self,
         num_features: Optional[int] = None,

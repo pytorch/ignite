@@ -81,6 +81,8 @@ class MultiLabelConfusionMatrix(Metric):
 
     """
 
+    _state_dict_all_req_keys = ("confusion_matrix", "_num_examples")
+
     def __init__(
         self,
         num_classes: int,

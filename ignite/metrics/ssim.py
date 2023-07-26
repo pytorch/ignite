@@ -60,6 +60,8 @@ class SSIM(Metric):
     .. versionadded:: 0.4.2
     """
 
+    _state_dict_all_req_keys = ("_sum_of_ssim", "_num_examples", "_kernel")
+
     def __init__(
         self,
         data_range: Union[int, float],

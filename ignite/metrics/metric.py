@@ -6,7 +6,6 @@ from numbers import Number
 from typing import Any, Callable, cast, Dict, List, Optional, Sequence, Tuple, TYPE_CHECKING, Union
 
 import torch
-from torch import distributed as torch_dist
 
 import ignite.distributed as idist
 
@@ -559,15 +558,27 @@ class Metric(Serializable, metaclass=ABCMeta):
         """
         state = OrderedDict()
         for attr_name in self._state_dict_all_req_keys:
+            if attr_name not in self.__dict__:
+                raise ValueError(
+                    f"Found a value in _state_dict_all_req_keys that is not among metric attributes: {attr_name}"
+                )
             attr = getattr(self, attr_name)
+            if not isinstance(attr, (int, float, torch.Tensor)):
+                raise TypeError(
+                    "Currently, only numeric or tensor-typed attributes of the metric"
+                    " could be added to its state_dict."
+                )
             if idist.get_world_size() == 1:
                 state[attr_name] = [attr]
             else:
-                if isinstance(attr, (float, torch.Tensor)):
-                    state[attr_name] = cast(List[Any], idist.all_gather(attr))
-                else:
-                    state[attr_name] = [None] * idist.get_world_size()
-                    torch_dist.all_gather_object(state[attr_name], attr)
+                if isinstance(attr, (int, float)):
+                    attr = float(attr)
+                gathered_attr = cast(List[Any], idist.all_gather(attr))
+                if isinstance(attr, (int, float)):
+                    attr_type = type(attr)
+                    gathered_attr = [attr_type(process_attr) for process_attr in gathered_attr]
+                state[attr_name] = gathered_attr
+
         return state
 
     def load_state_dict(self, state_dict: Mapping) -> None:
@@ -581,7 +592,7 @@ class Metric(Serializable, metaclass=ABCMeta):
                 attribute.
         """
         super().load_state_dict(state_dict)
-        rank = idist.get_local_rank()
+        rank = idist.get_rank()
         for attr in self._state_dict_all_req_keys:
             setattr(self, attr, state_dict[attr][rank])
 
