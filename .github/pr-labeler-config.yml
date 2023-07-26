@@ -6,9 +6,8 @@ docker:
 docs:
   - docs/**/*
 
-# Add 'ci' to any changes within 'circleci' and '.github' folder
+# Add 'ci' to any changes in '.github' folder
 ci:
-  - .circleci/**/*
   - .github/**/*
 
 # Add 'examples' to any changes within 'examples' folder
