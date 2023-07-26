@@ -12,7 +12,16 @@ from ignite.engine import CallableEventWithFilter, Engine, Events
 if TYPE_CHECKING:
     from ignite.metrics.metrics_lambda import MetricsLambda
 
-__all__ = ["Metric", "MetricUsage", "EpochWise", "BatchWise", "BatchFiltered"]
+__all__ = [
+    "Metric",
+    "MetricUsage",
+    "EpochWise",
+    "BatchWise",
+    "BatchFiltered",
+    "RunningEpochWise",
+    "RunningBatchWise",
+    "SingleEpochRunningBatchWise",
+]
 
 
 class MetricUsage:
@@ -30,6 +39,8 @@ class MetricUsage:
         iteration_completed: event when the metric updates. This event will be associated to
             :meth:`~ignite.metrics.metric.Metric.iteration_completed`.
     """
+
+    usage_name: str
 
     def __init__(self, started: Events, completed: Events, iteration_completed: CallableEventWithFilter) -> None:
         self.__started = started
@@ -74,6 +85,33 @@ class EpochWise(MetricUsage):
         )
 
 
+class RunningEpochWise(EpochWise):
+    """
+    Running epoch-wise usage of Metrics. It's the running version of the :class:`~.metrics.metric.EpochWise` metric
+    usage. A metric with such a usage most likely accompanies an :class:`~.metrics.metric.EpochWise` one to compute
+    a running measure of it e.g. running average.
+
+    Metric's methods are triggered on the following engine events:
+
+    - :meth:`~ignite.metrics.metric.Metric.started` on every ``STARTED``
+      (See :class:`~ignite.engine.events.Events`).
+    - :meth:`~ignite.metrics.metric.Metric.iteration_completed` on every ``EPOCH_COMPLETED``.
+    - :meth:`~ignite.metrics.metric.Metric.completed` on every ``EPOCH_COMPLETED``.
+
+    Attributes:
+        usage_name: usage name string
+    """
+
+    usage_name: str = "running_epoch_wise"
+
+    def __init__(self) -> None:
+        super(EpochWise, self).__init__(
+            started=Events.STARTED,
+            completed=Events.EPOCH_COMPLETED,
+            iteration_completed=Events.EPOCH_COMPLETED,
+        )
+
+
 class BatchWise(MetricUsage):
     """
     Batch-wise usage of Metrics.
@@ -94,6 +132,59 @@ class BatchWise(MetricUsage):
     def __init__(self) -> None:
         super(BatchWise, self).__init__(
             started=Events.ITERATION_STARTED,
+            completed=Events.ITERATION_COMPLETED,
+            iteration_completed=Events.ITERATION_COMPLETED,
+        )
+
+
+class RunningBatchWise(BatchWise):
+    """
+    Running batch-wise usage of Metrics. It's the running version of the :class:`~.metrics.metric.EpochWise` metric
+    usage. A metric with such a usage could for example accompany a :class:`~.metrics.metric.BatchWise` one to compute
+    a running measure of it e.g. running average.
+
+    Metric's methods are triggered on the following engine events:
+
+    - :meth:`~ignite.metrics.metric.Metric.started` on every ``STARTED``
+      (See :class:`~ignite.engine.events.Events`).
+    - :meth:`~ignite.metrics.metric.Metric.iteration_completed` on every ``ITERATION_COMPLETED``.
+    - :meth:`~ignite.metrics.metric.Metric.completed` on every ``ITERATION_COMPLETED``.
+
+    Attributes:
+        usage_name: usage name string
+    """
+
+    usage_name: str = "running_batch_wise"
+
+    def __init__(self) -> None:
+        super(BatchWise, self).__init__(
+            started=Events.STARTED,
+            completed=Events.ITERATION_COMPLETED,
+            iteration_completed=Events.ITERATION_COMPLETED,
+        )
+
+
+class SingleEpochRunningBatchWise(BatchWise):
+    """
+    Running batch-wise usage of Metrics in a single epoch. It's like :class:`~.metrics.metric.RunningBatchWise` metric
+    usage with the difference that is used during a single epoch.
+
+    Metric's methods are triggered on the following engine events:
+
+    - :meth:`~ignite.metrics.metric.Metric.started` on every ``EPOCH_STARTED``
+      (See :class:`~ignite.engine.events.Events`).
+    - :meth:`~ignite.metrics.metric.Metric.iteration_completed` on every ``ITERATION_COMPLETED``.
+    - :meth:`~ignite.metrics.metric.Metric.completed` on every ``ITERATION_COMPLETED``.
+
+    Attributes:
+        usage_name: usage name string
+    """
+
+    usage_name: str = "single_epoch_running_batch_wise"
+
+    def __init__(self) -> None:
+        super(BatchWise, self).__init__(
+            started=Events.EPOCH_STARTED,
             completed=Events.ITERATION_COMPLETED,
             iteration_completed=Events.ITERATION_COMPLETED,
         )
@@ -344,12 +435,16 @@ class Metric(metaclass=ABCMeta):
 
     def _check_usage(self, usage: Union[str, MetricUsage]) -> MetricUsage:
         if isinstance(usage, str):
-            if usage == EpochWise.usage_name:
-                usage = EpochWise()
-            elif usage == BatchWise.usage_name:
-                usage = BatchWise()
-            else:
-                raise ValueError(f"usage should be 'EpochWise.usage_name' or 'BatchWise.usage_name', get {usage}")
+            usages = [EpochWise, RunningEpochWise, BatchWise, RunningBatchWise, SingleEpochRunningBatchWise]
+            for usage_cls in usages:
+                if usage == usage_cls.usage_name:
+                    usage = usage_cls()
+                    break
+            if not isinstance(usage, MetricUsage):
+                raise ValueError(
+                    "Argument usage should be '(Running)EpochWise.usage_name' or "
+                    f"'((SingleEpoch)Running)BatchWise.usage_name', got {usage}"
+                )
         if not isinstance(usage, MetricUsage):
             raise TypeError(f"Unhandled usage type {type(usage)}")
         return usage

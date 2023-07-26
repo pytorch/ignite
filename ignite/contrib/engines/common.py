@@ -33,6 +33,7 @@ from ignite.handlers import Checkpoint, DiskSaver, EarlyStopping, TerminateOnNan
 from ignite.handlers.checkpoint import BaseSaveHandler
 from ignite.handlers.param_scheduler import ParamScheduler
 from ignite.metrics import RunningAverage
+from ignite.metrics.metric import RunningBatchWise
 from ignite.utils import deprecated
 
 
@@ -209,8 +210,8 @@ def _setup_common_training_handlers(
                 )
 
         for i, n in enumerate(output_names):
-            RunningAverage(output_transform=partial(output_transform, index=i, name=n), epoch_bound=False).attach(
-                trainer, n
+            RunningAverage(output_transform=partial(output_transform, index=i, name=n)).attach(
+                trainer, n, usage=RunningBatchWise()
             )
 
     if with_pbars:
@@ -264,7 +265,7 @@ def _setup_common_distrib_training_handlers(
 
         @trainer.on(Events.EPOCH_STARTED)
         def distrib_set_epoch(engine: Engine) -> None:
-            cast(DistributedSampler, train_sampler).set_epoch(engine.state.epoch - 1)
+            train_sampler.set_epoch(engine.state.epoch - 1)
 
 
 def empty_cuda_cache(_: Engine) -> None:

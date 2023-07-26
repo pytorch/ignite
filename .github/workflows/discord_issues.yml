@@ -1,3 +1,4 @@
+name: Discuss on Discord
 on:
   issues:
     types:

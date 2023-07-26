@@ -155,17 +155,19 @@ def _test_distrib_all_reduce_group(device):
 
 
 def _test_distrib_all_gather(device):
+    rank = idist.get_rank()
+
     res = torch.tensor(idist.all_gather(10), device=device)
     true_res = torch.tensor([10] * idist.get_world_size(), device=device)
     assert (res == true_res).all()
 
-    t = torch.tensor(idist.get_rank(), device=device)
+    t = torch.tensor(rank, device=device)
     res = idist.all_gather(t)
     true_res = torch.tensor([i for i in range(idist.get_world_size())], device=device)
     assert (res == true_res).all()
 
     x = "test-test"
-    if idist.get_rank() == 0:
+    if rank == 0:
         x = "abc"
     res = idist.all_gather(x)
     true_res = ["abc"] + ["test-test"] * (idist.get_world_size() - 1)
@@ -173,14 +175,14 @@ def _test_distrib_all_gather(device):
 
     base_x = "tests/ignite/distributed/utils/test_native.py" * 2000
     x = base_x
-    if idist.get_rank() == 0:
+    if rank == 0:
         x = "abc"
 
     res = idist.all_gather(x)
     true_res = ["abc"] + [base_x] * (idist.get_world_size() - 1)
     assert res == true_res
 
-    t = torch.arange(100, device=device).reshape(4, 25) * (idist.get_rank() + 1)
+    t = torch.arange(100, device=device).reshape(4, 25) * (rank + 1)
     in_dtype = t.dtype
     res = idist.all_gather(t)
     assert res.shape == (idist.get_world_size() * 4, 25)
@@ -208,7 +210,10 @@ def _test_distrib_all_gather_group(device):
                 res = idist.all_gather(t, group=group)
         else:
             res = idist.all_gather(t, group=group)
-            assert torch.equal(res, torch.tensor(ranks, device=device))
+            if rank in ranks:
+                assert torch.equal(res, torch.tensor(ranks, device=device))
+            else:
+                assert res == t
 
         t = torch.tensor([rank], device=device)
         if bnd in ("horovod"):
@@ -216,9 +221,10 @@ def _test_distrib_all_gather_group(device):
                 res = idist.all_gather(t, group=ranks)
         else:
             res = idist.all_gather(t, group=ranks)
-            assert torch.equal(res, torch.tensor(ranks, device=device))
-
-        ranks = "abc"
+            if rank in ranks:
+                assert torch.equal(res, torch.tensor(ranks, device=device))
+            else:
+                assert res == t
 
         if bnd in ("nccl", "gloo", "mpi"):
             with pytest.raises(ValueError, match=r"Argument group should be list of int or ProcessGroup"):
