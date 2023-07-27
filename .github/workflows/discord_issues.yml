@@ -37,10 +37,10 @@ jobs:
           
           if [ "$GITHUB_API" -eq "204" ]; then
             echo "PR is from a maintainer"
-            echo "::set-output name=is_maintainer::true"
+            echo "is_maintainer=true" >> $GITHUB_OUTPUT
           else
             echo "PR is from a non-maintainer"
-            echo "::set-output name=is_maintainer::false"
+            echo "is_maintainer=false" >> $GITHUB_OUTPUT
           fi
         shell: bash
 
