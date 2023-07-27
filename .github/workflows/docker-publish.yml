@@ -18,13 +18,4 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: 3.8
-      - name: Trigger Circle-CI pipeline
-        env:
-          CIRCLE_TOKEN: ${{ secrets.CIRCLE_TOKEN }}
-        run: |
-          pip install requests
-
-          if [ $GITHUB_EVENT_NAME == 'pull_request' ]; then should_publish_docker_images=false; else should_publish_docker_images=true; fi
-          branch=$GITHUB_REF
-
-          python -u .github/workflows/trigger_circle_ci.py $should_publish_docker_images $branch
+      # TODO

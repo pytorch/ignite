@@ -244,13 +244,12 @@ If you are not familiar with creating a Pull Request, here are some guides:
 **NOTE : When sending a PR, please kindly check if the changes are required to run in the CI.**
 
 For example, typo changes in `CONTRIBUTING.md`, `README.md` are not required to run in the CI.
-So, please add `[skip ci]` in the PR title to save the resources. Ignite has setup 3 CIs.
+So, please add `[skip ci]` in the PR title to save the resources. Ignite has setup several CIs.
 
 - GitHub Actions
-- CircleCI
 - Netlify
 
-CircleCI is disabled on forked PR. So, please add
+So, please add
 
 - `[skip actions]` for the changes which are not required to run on GitHub Actions,
 - `[skip netlify]` for the changes which are not required to run on Netlify PR Preview build, or
