@@ -572,10 +572,10 @@ class Metric(Serializable, metaclass=ABCMeta):
                 state[attr_name] = [attr]
             else:
                 if isinstance(attr, (int, float)):
+                    attr_type = type(attr)
                     attr = float(attr)
                 gathered_attr = cast(List[Any], idist.all_gather(attr))
-                if isinstance(attr, (int, float)):
-                    attr_type = type(attr)
+                if isinstance(attr, float):
                     gathered_attr = [attr_type(process_attr) for process_attr in gathered_attr]
                 state[attr_name] = gathered_attr
 
