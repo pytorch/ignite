@@ -43,7 +43,7 @@ class VisdomLogger(BaseLogger):
             visdom server. Default, `num_workers=1`. If `num_workers=0` and logger uses the main thread. If using
             Python 2.7 and `num_workers>0` the package `futures` should be installed: `pip install futures`
         kwargs: kwargs to pass into
-            `visdom.Visdom <https://github.com/fossasia/visdom#user-content-visdom-arguments-python-only>`_.
+            `visdom.Visdom <https://github.com/fossasia/visdom#visdom-arguments-python-only>`_.
 
     Note:
         We can also specify username/password using environment variables: VISDOM_USERNAME, VISDOM_PASSWORD
