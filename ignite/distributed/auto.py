@@ -57,7 +57,7 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> Union[DataLoader, "_MpDe
             )
 
     .. _torch DataLoader: https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader
-    .. _XLA MpDeviceLoader: 
+    .. _XLA MpDeviceLoader:
         https://pytorch.org/xla/release/2.0/index.html#running-on-multiple-xla-devices-with-multi-processing
     .. _torch DistributedSampler:
         https://pytorch.org/docs/stable/data.html#torch.utils.data.distributed.DistributedSampler
