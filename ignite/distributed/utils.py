@@ -305,7 +305,7 @@ def spawn(
 
     .. _dist.init_process_group: https://pytorch.org/docs/stable/distributed.html#torch.distributed.init_process_group
     .. _mp.start_processes: https://pytorch.org/docs/stable/multiprocessing.html#torch.multiprocessing.spawn
-    .. _xmp.spawn: http://pytorch.org/xla/release/1.6/index.html#torch_xla.distributed.xla_multiprocessing.spawn
+    .. _xmp.spawn: https://pytorch.org/xla/release/1.6/index.html#torch_xla.distributed.xla_multiprocessing.spawn
     .. _hvd_run: https://horovod.readthedocs.io/en/latest/api.html#module-horovod.run
 
     .. versionchanged:: 0.4.2
