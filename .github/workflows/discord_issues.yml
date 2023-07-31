@@ -4,6 +4,9 @@ on:
   issues:
     types:
       - labeled
+  pull_request:
+    types:
+      - labeled
   workflow_dispatch:
     inputs:
       issue_number:
@@ -12,6 +15,7 @@ on:
 
 permissions:
   issues: write
+  pull-requests: write
 
 jobs:
   discord:
