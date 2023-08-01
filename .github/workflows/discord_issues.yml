@@ -1,4 +1,4 @@
-name: Discuss on Discord (Issues)
+name: Discuss "help-wanted" issue on Discord
 
 on:
   issues:
