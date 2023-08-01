@@ -1,4 +1,4 @@
-name: Discuss on Discord
+name: Discuss "help-wanted" PR on Discord
 
 on:
   pull_request:
