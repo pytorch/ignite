@@ -4,6 +4,7 @@ import pytest
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from packaging.version import Version
 from torch.utils.data import DataLoader
 from torch.utils.data.dataloader import _InfiniteConstantSampler
 from torch.utils.data.dataset import Dataset, IterableDataset
@@ -74,7 +75,9 @@ def test_auto_dataloader_warning_tpu():
         auto_dataloader(DummyDS(), pin_memory=True)
 
 
-def _test_auto_dataloader(ws, nproc, batch_size, num_workers=1, sampler_name=None, dl_type=DataLoader):
+def _test_auto_dataloader(
+    ws, nproc, batch_size, num_workers=1, sampler_name=None, dl_type=DataLoader, persistent_workers=None
+):
     def _test(data):
         if sampler_name is None:
             sampler = None
@@ -89,8 +92,12 @@ def _test_auto_dataloader(ws, nproc, batch_size, num_workers=1, sampler_name=Non
         assert idist.get_world_size() == ws, f"{idist.get_world_size()} vs {ws}"
 
         shuffle = sampler is None if not isinstance(data, IterableDataset) else False
+        kwargs = {}
+        if Version(torch.__version__) >= Version("1.7.0") and persistent_workers is not None:
+            kwargs["persistent_workers"] = persistent_workers
+
         dataloader = auto_dataloader(
-            data, batch_size=batch_size, num_workers=num_workers, sampler=sampler, shuffle=shuffle
+            data, batch_size=batch_size, num_workers=num_workers, sampler=sampler, shuffle=shuffle, **kwargs
         )
 
         assert isinstance(dataloader, dl_type)
@@ -104,6 +111,13 @@ def _test_auto_dataloader(ws, nproc, batch_size, num_workers=1, sampler_name=Non
             assert dataloader.num_workers == (num_workers + nproc - 1) // nproc
         else:
             assert dataloader.num_workers == num_workers
+
+        if hasattr(dataloader, "persistent_workers"):
+            if persistent_workers is None:
+                # By default dataloader persistent_workers is True
+                assert dataloader.persistent_workers
+            else:
+                assert dataloader.persistent_workers == persistent_workers
 
         if isinstance(data, IterableDataset):
             sampler_type = _InfiniteConstantSampler
@@ -184,6 +198,8 @@ def test_auto_methods_no_dist():
     _test_auto_dataloader(1, 1, batch_size=10, num_workers=2)
     _test_auto_dataloader(1, 1, batch_size=10, sampler_name="WeightedRandomSampler")
     _test_auto_dataloader(1, 1, batch_size=10, sampler_name="DistributedSampler")
+    _test_auto_dataloader(1, 1, batch_size=10, num_workers=2, persistent_workers=True)
+    _test_auto_dataloader(1, 1, batch_size=10, num_workers=2, persistent_workers=False)
 
     _test_auto_model_optimizer(1, "cuda" if torch.cuda.is_available() else "cpu")
 
@@ -196,6 +212,8 @@ def test_auto_methods_gloo(distributed_context_single_node_gloo):
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=2)
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, sampler_name="WeightedRandomSampler")
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, sampler_name="DistributedSampler")
+    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=2, persistent_workers=True)
+    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=2, persistent_workers=False)
 
     device = idist.device()
     _test_auto_model_optimizer(ws, device)
@@ -220,6 +238,8 @@ def test_auto_methods_nccl(distributed_context_single_node_nccl):
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=10)
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1, sampler_name="WeightedRandomSampler")
     _test_auto_dataloader(ws=ws, nproc=ws, batch_size=1, sampler_name="DistributedSampler")
+    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=2, persistent_workers=True)
+    _test_auto_dataloader(ws=ws, nproc=ws, batch_size=10, num_workers=2, persistent_workers=False)
 
     device = idist.device()
     _test_auto_model_optimizer(ws, device)
@@ -240,6 +260,8 @@ def test_auto_methods_hvd(gloo_hvd_executor):
     gloo_hvd_executor(_test_auto_dataloader, args=(np, np, 10, 10), np=np, do_init=True)
     gloo_hvd_executor(_test_auto_dataloader, args=(np, np, 1, 1, "WeightedRandomSampler"), np=np, do_init=True)
     gloo_hvd_executor(_test_auto_dataloader, args=(np, np, 1, 1, "DistributedSampler"), np=np, do_init=True)
+    gloo_hvd_executor(_test_auto_dataloader, args=(np, np, 10, 2, None, DataLoader, True), np=np, do_init=True)
+    gloo_hvd_executor(_test_auto_dataloader, args=(np, np, 10, 2, None, DataLoader, False), np=np, do_init=True)
 
     gloo_hvd_executor(_test_auto_model_optimizer, args=(np, device), np=np, do_init=True)
 
