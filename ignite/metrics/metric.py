@@ -8,6 +8,7 @@ import torch
 
 import ignite.distributed as idist
 from ignite.engine import CallableEventWithFilter, Engine, Events
+from ignite.exceptions import NotComputableError
 
 if TYPE_CHECKING:
     from ignite.metrics.metrics_lambda import MetricsLambda
@@ -294,6 +295,35 @@ class Metric(metaclass=ABCMeta):
     required_output_keys: Optional[Tuple] = ("y_pred", "y")
     # for backward compatibility
     _required_output_keys = required_output_keys
+
+    def __new__(cls, *args, **kwargs):
+        """Prevents metric from being computed before updated.
+        """
+
+        _reset = cls.reset
+        _update = cls.update
+        _compute = cls.compute
+
+        def wrapped_reset(self):
+            _reset(self)
+            self._updated = False
+
+        cls.reset = wraps(cls.reset)(wrapped_reset)
+
+        def wrapped_update(self, output):
+            _update(self, output)
+            self._updated = True
+
+        cls.update = wraps(cls.update)(wrapped_update)
+
+        def wrapped_compute(self):
+            if not self._updated:
+                raise NotComputableError(f"{self.__class__.__name__} must be updated before computed.")
+            return _compute(self)
+
+        cls.compute = wraps(cls.compute)(wrapped_compute)
+
+        return super(Metric, cls).__new__(cls)
 
     def __init__(
         self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu")
