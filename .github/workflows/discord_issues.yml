@@ -1,6 +1,10 @@
-name: Discuss on Discord
+name: Discuss "help-wanted" issue on Discord
+
 on:
   issues:
+    types:
+      - labeled
+  pull_request:
     types:
       - labeled
   workflow_dispatch:
@@ -8,19 +12,23 @@ on:
       issue_number:
         description: 'Issue number'
         required: true
-      
+
 permissions:
   issues: write
+  pull-requests: write
 
 jobs:
   discord:
     runs-on: ubuntu-latest
     steps:
-      - name: Discuss on Discord
-        uses: EndBug/discuss-on-discord@v1.1.0
+      - name: "Discuss on Discord-Issues"
         if: ${{ github.event.label.name == 'help wanted' }}
+        uses: EndBug/discuss-on-discord@v1.1.0
         with:
-            discord_bot_token: ${{ secrets.DISCORD_BOT_TOKEN }}
-            destination: ${{ secrets.DISCORD_BOT_DESTINATION }}
-            issue_number: ${{ github.event.inputs.issue_number || github.event.issue.number }}
-            issue_comment: Hey 👋, I've just created a [thread]($THREAD_LINK$) for this issue on [PyTorch-Ignite Discord](https://pytorch-ignite.ai/chat) where you can quickly talk to the community on the topic.
+          discord_bot_token: ${{ secrets.DISCORD_BOT_TOKEN }}
+          destination: ${{ secrets.DISCORD_BOT_DESTINATION }}
+          issue_number: ${{ github.event.inputs.issue_number || github.event.issue.number }}
+          issue_comment: Hey 👋, I've just created a [thread]($THREAD_LINK$) for this issue on [PyTorch-Ignite Discord](https://pytorch-ignite.ai/chat) where you can quickly talk to the community on the topic.
+          discord_message: New issue created in `${{ github.repository }}`:<https://github.com/${{ github.repository }}/issues/${{ github.event.issue.number }}>
+          
+      

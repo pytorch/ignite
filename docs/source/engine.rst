@@ -119,8 +119,8 @@ from iteration.
 
 Complete examples that resumes the training from a checkpoint can be found here:
 
-- `save/resume MNIST <https://github.com/pytorch/ignite/tree/master/examples/mnist#user-content-training-save--resume>`_
-- `save/resume Distributed CIFAR10 <https://github.com/pytorch/ignite/tree/master/examples/contrib/cifar10#user-content-check-resume-training>`_
+- `save/resume MNIST <https://github.com/pytorch/ignite/tree/master/examples/mnist#training-save--resume>`_
+- `save/resume Distributed CIFAR10 <https://github.com/pytorch/ignite/tree/master/examples/contrib/cifar10#check-resume-training>`_
 
 Deterministic training
 ----------------------
@@ -215,8 +215,8 @@ We can see that the data samples are exactly the same between original and resum
 Complete examples that simulates a crash on a defined iteration and resumes the training from a checkpoint can be found
 here:
 
-- `save/resume MNIST <https://github.com/pytorch/ignite/tree/master/examples/mnist#user-content-training-save--resume>`_
-- `save/resume Distributed CIFAR10 <https://github.com/pytorch/ignite/tree/master/examples/contrib/cifar10#user-content-check-resume-training>`_
+- `save/resume MNIST <https://github.com/pytorch/ignite/tree/master/examples/mnist#training-save--resume>`_
+- `save/resume Distributed CIFAR10 <https://github.com/pytorch/ignite/tree/master/examples/contrib/cifar10#check-resume-training>`_
 
 
 .. Note ::
