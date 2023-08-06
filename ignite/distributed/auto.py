@@ -1,5 +1,5 @@
 import warnings
-from typing import Any, Callable, Iterator, List, Optional, Union
+from typing import Any, Iterator, List, Optional, Union
 
 import torch
 import torch.nn as nn
@@ -350,5 +350,5 @@ if idist.has_xla_support:
             super(self.__class__, self).__init__(optimizer.param_groups)  # type: ignore[call-arg]
             self.wrapped_optimizer = optimizer
 
-        def step(self, closure: Optional[Callable] = None) -> None:
+        def step(self, closure: Any = None) -> Any:
             xm.optimizer_step(self.wrapped_optimizer, barrier=True)
