@@ -405,13 +405,13 @@ def test_engine_output_type(lr_finder, dummy_engine, optimizer):
     lr_finder._history = {"lr": [], "loss": []}
     lr_finder._log_lr_and_loss(dummy_engine, output_transform=lambda x: x, smooth_f=0, diverge_th=1)
     loss = lr_finder._history["loss"][-1]
-    assert type(loss) == float
+    assert type(loss) is float
 
     dummy_engine.state.output = torch.tensor([10.0], dtype=torch.float32)
     lr_finder._history = {"lr": [], "loss": []}
     lr_finder._log_lr_and_loss(dummy_engine, output_transform=lambda x: x, smooth_f=0, diverge_th=1)
     loss = lr_finder._history["loss"][-1]
-    assert type(loss) == float
+    assert type(loss) is float
 
 
 def test_lr_suggestion_unexpected_curve(lr_finder, to_save, dummy_engine, dataloader):
