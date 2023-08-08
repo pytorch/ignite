@@ -11,7 +11,7 @@ __all__ = ["SSIM"]
 
 class SSIM(Metric):
     """
-    Computes Structual Similarity Index Measure
+    Computes Structural Similarity Index Measure
 
     - ``update`` must receive output of the form ``(y_pred, y)``.
 
