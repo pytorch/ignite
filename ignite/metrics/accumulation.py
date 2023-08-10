@@ -38,6 +38,7 @@ class VariableAccumulation(Metric):
     """
 
     required_output_keys = None
+    _state_dict_all_req_keys = ("accumulator", "num_examples")
 
     def __init__(
         self,

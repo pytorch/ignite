@@ -59,6 +59,8 @@ class MeanSquaredError(Metric):
             3.828125
     """
 
+    _state_dict_all_req_keys = ("_sum_of_squared_errors", "_num_examples")
+
     @reinit__is_reduced
     def reset(self) -> None:
         self._sum_of_squared_errors = torch.tensor(0.0, device=self._device)

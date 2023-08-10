@@ -65,6 +65,7 @@ class Loss(Metric):
     """
 
     required_output_keys = ("y_pred", "y", "criterion_kwargs")
+    _state_dict_all_req_keys = ("_sum", "_num_examples")
 
     def __init__(
         self,

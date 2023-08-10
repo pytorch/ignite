@@ -59,6 +59,8 @@ class MeanPairwiseDistance(Metric):
             1.5955...
     """
 
+    _state_dict_all_req_keys = ("_sum_of_distances", "_num_examples")
+
     def __init__(
         self,
         p: int = 2,

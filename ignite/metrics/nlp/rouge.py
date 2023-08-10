@@ -119,6 +119,8 @@ class _BaseRouge(Metric):
     Rouge interface for Rouge-L and Rouge-N
     """
 
+    _state_dict_all_req_keys = ("_recall", "_precision", "_fmeasure", "_num_examples")
+
     def __init__(
         self,
         multiref: str = "average",

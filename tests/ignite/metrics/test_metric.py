@@ -713,6 +713,7 @@ def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
     _test_distrib_sync_all_reduce_decorator(device)
     _test_invalid_sync_all_reduce(device)
     _test_compute_with_sync_all_reduce_doesnt_change_attributes(device)
+    _test_distrib_state_dict(device)
 
 
 @pytest.mark.distributed
@@ -722,6 +723,7 @@ def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
     _test_distrib_sync_all_reduce_decorator(device)
     _test_invalid_sync_all_reduce(device)
     _test_compute_with_sync_all_reduce_doesnt_change_attributes(device)
+    _test_distrib_state_dict(device)
 
 
 @pytest.mark.distributed
@@ -744,6 +746,7 @@ def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
     _test_distrib_sync_all_reduce_decorator(device)
     _test_invalid_sync_all_reduce(device)
     _test_compute_with_sync_all_reduce_doesnt_change_attributes(device)
+    _test_distrib_state_dict(device)
 
 
 @pytest.mark.multinode_distributed
@@ -1125,3 +1128,74 @@ def test_list_of_tensors_and_numbers_unsupported_output():
 
     with pytest.raises(ValueError, match=r"Output should have 2 items of the same length"):
         engine.run([0] * 10)
+
+
+class DummyMetric4(Metric):
+    _state_dict_all_req_keys = ("dnumber", "fnumber", "tensor")
+
+    def __init__(self, value: int):
+        super().reset()
+        self.dnumber = value
+        self.fnumber = float(value + 1)
+        self.tensor = torch.tensor([value + 2])
+
+    def reset(self):
+        self.dnumber = -1
+        self.fnumber = -2.0
+        self.tensor = torch.tensor([-3])
+
+    def update(self, output):
+        pass
+
+    def compute(self):
+        pass
+
+
+def test_wrong_state_dict():
+    class WrongMetric(Metric):
+        _state_dict_all_req_keys = ("object",)
+
+        def __init__(self, value):
+            super().__init__()
+            self.object = {"a": [value]}
+
+        def reset(self):
+            pass
+
+        def update(self, output):
+            pass
+
+        def compute(self):
+            pass
+
+    metric = WrongMetric(2)
+    with pytest.raises(TypeError, match="Currently, only numeric or tensor-typed attributes of the metric"):
+        metric.state_dict()
+
+    delattr(metric, "object")
+    with pytest.raises(ValueError, match="Found a value in _state_dict_all_req_keys that is not among"):
+        metric.state_dict()
+
+
+def test_state_dict():
+    metric = DummyMetric4(1)
+    state = metric.state_dict()
+    assert state.keys() == {"dnumber", "fnumber", "tensor"}
+    metric.reset()
+    metric.load_state_dict(state)
+    assert metric.dnumber == 1
+    assert metric.fnumber == 2
+    assert metric.tensor == torch.tensor([3])
+
+
+def _test_distrib_state_dict(device):
+    rank = idist.get_local_rank()
+    metric = DummyMetric4(rank)
+    state = metric.state_dict()
+    assert isinstance(state["dnumber"][rank], int)
+    assert isinstance(state["fnumber"][rank], float)
+    metric.reset()
+    metric.load_state_dict(state)
+    assert metric.dnumber == rank and isinstance(metric.dnumber, int)
+    assert metric.fnumber == rank + 1 and isinstance(metric.fnumber, float)
+    assert metric.tensor == torch.tensor([rank + 2])
