@@ -220,4 +220,4 @@ if in_colab:
 
 
 # Full featured CIFAR10 example:
-# https://github.com/pytorch/ignite/tree/master/examples/contrib/cifar10
+# https://github.com/pytorch/ignite/tree/master/examples/cifar10
