@@ -153,21 +153,21 @@ jobs:
 
           # Check training on cifar10, run without backend
           ## initial run
-          CI=1 python examples/contrib/cifar10/main.py run --checkpoint_every=200 --stop_iteration=500
+          CI=1 python examples/cifar10/main.py run --checkpoint_every=200 --stop_iteration=500
           ## resume
-          CI=1 python examples/contrib/cifar10/main.py run --checkpoint_every=200 --num_epochs=7 --resume-from=/tmp/output-cifar10/resnet18_backend-None-1_stop-on-500/training_checkpoint_400.pt
+          CI=1 python examples/cifar10/main.py run --checkpoint_every=200 --num_epochs=7 --resume-from=/tmp/output-cifar10/resnet18_backend-None-1_stop-on-500/training_checkpoint_400.pt
     
           # Check training on cifar10, run with NCCL backend using torchrun
           ## initial run
-          CI=1 torchrun --nproc_per_node=2 examples/contrib/cifar10/main.py run --backend=nccl --checkpoint_every=200 --stop_iteration=500
+          CI=1 torchrun --nproc_per_node=2 examples/cifar10/main.py run --backend=nccl --checkpoint_every=200 --stop_iteration=500
           ## resume
-          CI=1 torchrun --nproc_per_node=2 examples/contrib/cifar10/main.py run --backend=nccl --checkpoint_every=200 --num_epochs=7 --resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt
+          CI=1 torchrun --nproc_per_node=2 examples/cifar10/main.py run --backend=nccl --checkpoint_every=200 --num_epochs=7 --resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt
 
           # Check training on cifar10, run with NCCL backend using spawn
           ## initial run
-          CI=1 python -u examples/contrib/cifar10/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200 --stop_iteration=500
+          CI=1 python -u examples/cifar10/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200 --stop_iteration=500
           ## resume
-          CI=1 python -u examples/contrib/cifar10/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200 --num_epochs=7 --resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt
+          CI=1 python -u examples/cifar10/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200 --num_epochs=7 --resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt
 
           EOF
           )

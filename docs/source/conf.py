@@ -348,7 +348,7 @@ nitpick_ignore = [
 
 linkcheck_ignore = [
     "https://github.com/fossasia/visdom#visdom-arguments-python-only",
-    "https://github.com/pytorch/ignite/tree/master/examples/contrib/cifar10#check-resume-training",
+    "https://github.com/pytorch/ignite/tree/master/examples/cifar10#check-resume-training",
     "https://github.com/pytorch/ignite/tree/master/examples/mnist#training-save--resume",
 ]
 
