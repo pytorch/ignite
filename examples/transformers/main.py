@@ -44,11 +44,7 @@ def training(local_rank, config):
             config["cuda device name"] = torch.cuda.get_device_name(local_rank)
 
         if config["with_clearml"]:
-            try:
-                from clearml import Task
-            except ImportError:
-                # Backwards-compatibility for legacy Trains SDK
-                from trains import Task
+            from clearml import Task
 
             task = Task.init("IMDB-Training", task_name=output_path.stem)
             task.connect_configuration(config)
