@@ -651,7 +651,7 @@ class Checkpoint(Serializable):
                 trainer = Engine(lambda engine, batch: None)
 
                 with tempfile.TemporaryDirectory() as tmpdirname:
-                    checkpoint = ModelCheckpoint(tmpdirname, 'myprefix', n_saved=None, create_dir=True)
+                    checkpoint = ModelCheckpoint(tmpdirname, 'myprefix', n_saved=None, create_dir=True, require_empty=False)
 
                     model = torch.nn.Linear(3, 3)
                     optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
@@ -697,7 +697,10 @@ class Checkpoint(Serializable):
 
         checkpoint_fp = filename_pattern.format(**filename_dict)
 
-        path = self.save_handler.dirname / checkpoint_fp
+        if isinstance(self.save_handler, DiskSaver):
+            path = self.save_handler.dirname / checkpoint_fp
+        else:
+            path = self.save_handler(checkpoint_fp)
 
         load_kwargs = {} if load_kwargs is None else load_kwargs
 
