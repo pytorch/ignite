@@ -161,7 +161,7 @@ class SSIM(Metric):
         y_pred = F.pad(y_pred, [self.pad_w, self.pad_w, self.pad_h, self.pad_h], mode="reflect")
         y = F.pad(y, [self.pad_w, self.pad_w, self.pad_h, self.pad_h], mode="reflect")
 
-        if y_pred.dtype != torch.get_default_dtype():
+        if y_pred.dtype != self._kernel.dtype:
             self._kernel = self._kernel.to(dtype=y_pred.dtype)
 
         input_list = [y_pred, y, y_pred * y_pred, y * y, y_pred * y]
