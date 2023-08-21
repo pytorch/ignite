@@ -380,6 +380,8 @@ class Rouge(Metric):
         ``update`` method has changed and now works on batch of inputs.
     """
 
+    _state_dict_all_req_keys = ("internal_metrics",)
+
     def __init__(
         self,
         variants: Optional[Sequence[Union[str, int]]] = None,

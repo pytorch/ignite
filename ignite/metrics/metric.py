@@ -554,31 +554,40 @@ class Metric(Serializable, metaclass=ABCMeta):
         `_state_dict_all_req_keys` attribute. Can be used to save internal state of the class.
 
         If there's an active distributed configuration, some collective operations is done and
-        the list of values across ranks is saved under each attribute's name in the dict.
+        the list of values across ranks is saved under each attribute's name in the dict, for numeric
+        and tensor values.
         """
-        state = OrderedDict()
+        state: Dict[str, Union[torch.Tensor, List, Dict, None]] = OrderedDict()
         for attr_name in self._state_dict_all_req_keys:
             if attr_name not in self.__dict__:
                 raise ValueError(
                     f"Found a value in _state_dict_all_req_keys that is not among metric attributes: {attr_name}"
                 )
             attr = getattr(self, attr_name)
-            if not isinstance(attr, (int, float, torch.Tensor)):
-                raise TypeError(
-                    "Currently, only numeric or tensor-typed attributes of the metric"
-                    " could be added to its state_dict."
-                )
-            if idist.get_world_size() == 1:
-                state[attr_name] = [attr]
+            if isinstance(attr, Mapping):
+                state[attr_name] = {k: m.state_dict() for k, m in attr.items()}
+            elif isinstance(attr, Sequence):
+                state[attr_name] = [m.state_dict() for m in attr]
+            elif isinstance(attr, Metric):
+                state[attr_name] = attr.state_dict()
+            elif isinstance(attr, (int, float, torch.Tensor)):
+                if idist.get_world_size() == 1:
+                    state[attr_name] = [attr]
+                else:
+                    if isinstance(attr, (int, float)):
+                        attr_type = type(attr)
+                        attr = float(attr)
+                    gathered_attr = idist.all_gather(attr)
+                    if isinstance(attr, float):
+                        gathered_attr = [attr_type(process_attr) for process_attr in cast(torch.Tensor, gathered_attr)]
+                    state[attr_name] = cast(Union[torch.Tensor, List], gathered_attr)
+            elif attr is None:
+                state[attr_name] = None
             else:
-                if isinstance(attr, (int, float)):
-                    attr_type = type(attr)
-                    attr = float(attr)
-                gathered_attr = cast(List[Any], idist.all_gather(attr))
-                if isinstance(attr, float):
-                    gathered_attr = [attr_type(process_attr) for process_attr in gathered_attr]
-                state[attr_name] = gathered_attr
-
+                raise TypeError(
+                    "Found attribute of unsupported type. Currently, supported types include"
+                    " numeric types, tensor, Metric or sequence/mapping of metrics."
+                )
         return state
 
     def load_state_dict(self, state_dict: Mapping) -> None:
@@ -593,8 +602,26 @@ class Metric(Serializable, metaclass=ABCMeta):
         """
         super().load_state_dict(state_dict)
         rank = idist.get_rank()
-        for attr in self._state_dict_all_req_keys:
-            setattr(self, attr, state_dict[attr][rank])
+        for attr_name in self._state_dict_all_req_keys:
+            attr = getattr(self, attr_name)
+            if isinstance(attr, Mapping):
+                for metric_name in attr:
+                    attr[metric_name].load_state_dict(state_dict[attr_name][metric_name])
+            elif isinstance(attr, Sequence):
+                for i, metric in enumerate(attr):
+                    metric.load_state_dict(state_dict[attr_name][i])
+            elif isinstance(attr, Metric):
+                attr.load_state_dict(state_dict[attr_name])
+            elif state_dict[attr_name] is None:
+                setattr(self, attr_name, None)
+            else:
+                world_size = idist.get_world_size()
+                len_rank_slice = len(state_dict[attr_name]) // world_size
+                if len_rank_slice == 1:
+                    setattr(self, attr_name, state_dict[attr_name][rank])
+                else:
+                    rank_slice = slice(rank * len_rank_slice, (rank + 1) * len_rank_slice)
+                    setattr(self, attr_name, state_dict[attr_name][rank_slice])
 
     def __add__(self, other: Any) -> "MetricsLambda":
         from ignite.metrics.metrics_lambda import MetricsLambda

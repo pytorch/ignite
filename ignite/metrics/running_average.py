@@ -87,9 +87,7 @@ class RunningAverage(Metric):
     """
 
     required_output_keys = None
-    # TODO Shall we put `src` here? Then we should add a new branch for metric-typed attributes in `state_dict`
-    # and `load_state_dict`. Examples; This class; `Rouge` which has a `List[_BaseRouge]`.
-    _state_dict_all_req_keys = ("_value",)
+    _state_dict_all_req_keys = ("_value", "src")
 
     def __init__(
         self,
