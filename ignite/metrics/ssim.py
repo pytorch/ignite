@@ -15,8 +15,8 @@ class SSIM(Metric):
 
     - ``update`` must receive output of the form ``(y_pred, y)``. They have to be of the same type.
         Valid :class:`torch.dtype` are the following:
-        - on CPU: torch.float32.
-        - on cuda: torch.float16, torch.float32, torch.float64.
+        - on CPU: `torch.float32`, `torch.float64`.
+        - on cuda: `torch.float16`, `torch.float32`, `torch.float64`.
 
     Args:
         data_range: Range of the image. Typically, ``1.0`` or ``255``.

@@ -127,8 +127,8 @@ def test_ssim_variable_batchsize(available_device):
 def test_cuda_ssim_dtypes(available_device, dtype):
     # Checks https://github.com/pytorch/ignite/pull/3034
     # this test should not be run on CPU
-    if available_device == "cpu":
-        return
+    if available_device == "cpu" and dtype == torch.float16:
+        pytest.skip(reason="Unsupported dtype float16 on CPU device")
 
     test_ssim(
         available_device,
