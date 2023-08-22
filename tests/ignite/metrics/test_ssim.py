@@ -127,7 +127,6 @@ def test_cuda_ssim_dtypes(available_device):
     # Checks https://github.com/pytorch/ignite/pull/3034
     # this test should not be run on CPU
     if available_device == "cpu":
-        assert True
         return
 
     for dtype in [torch.float16, torch.float32, torch.float64]:
