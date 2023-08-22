@@ -80,6 +80,9 @@ def test_ssim(available_device, shape, kernel_size, gaussian, use_sample_covaria
     ssim.update((y_pred, y))
     ignite_ssim = ssim.compute()
 
+    if y_pred.dtype == torch.bfloat16:
+        y_pred = y_pred.to(dtype=torch.float16)
+
     skimg_pred = y_pred.cpu().numpy()
     skimg_y = skimg_pred * 0.8
     skimg_ssim = ski_ssim(
@@ -123,12 +126,14 @@ def test_ssim_variable_batchsize(available_device):
     assert np.allclose(out, expected)
 
 
-@pytest.mark.parametrize("dtype", [torch.float16, torch.float32, torch.float64])
-def test_cuda_ssim_dtypes(available_device, dtype):
+@pytest.mark.parametrize(
+    "dtype, precision",
+    [(torch.bfloat16, 2e-3), (torch.float16, 4e-4), (torch.float32, 2e-5), (torch.float64, 2e-5)]
+)
+def test_cuda_ssim_dtypes(available_device, dtype, precision):
     # Checks https://github.com/pytorch/ignite/pull/3034
-    # this test should not be run on CPU
-    if available_device == "cpu" and dtype == torch.float16:
-        pytest.skip(reason="Unsupported dtype float16 on CPU device")
+    if available_device == "cpu" and dtype in [torch.float16, torch.bfloat16]:
+        pytest.skip(reason=f"Unsupported dtype {dtype} on CPU device")
 
     test_ssim(
         available_device,
@@ -137,7 +142,7 @@ def test_cuda_ssim_dtypes(available_device, dtype):
         True,
         False,
         dtype=dtype,
-        precision=4e-4
+        precision=precision
     )
 
 
