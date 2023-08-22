@@ -123,22 +123,22 @@ def test_ssim_variable_batchsize(available_device):
     assert np.allclose(out, expected)
 
 
-def test_cuda_ssim_dtypes(available_device):
+@pytest.mark.parametrize("dtype", [torch.float16, torch.float32, torch.float64])
+def test_cuda_ssim_dtypes(available_device, dtype):
     # Checks https://github.com/pytorch/ignite/pull/3034
     # this test should not be run on CPU
     if available_device == "cpu":
         return
 
-    for dtype in [torch.float16, torch.float32, torch.float64]:
-        test_ssim(
-            available_device,
-            (12, 3, 28, 28),
-            11,
-            True,
-            False,
-            dtype=dtype,
-            precision=4e-4
-        )
+    test_ssim(
+        available_device,
+        (12, 3, 28, 28),
+        11,
+        True,
+        False,
+        dtype=dtype,
+        precision=4e-4
+    )
 
 
 @pytest.mark.parametrize("metric_device", ["cpu", "process_device"])
