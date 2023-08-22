@@ -70,8 +70,10 @@ def test_invalid_ssim():
     "shape, kernel_size, gaussian, use_sample_covariance",
     [[(8, 3, 224, 224), 7, False, True], [(12, 3, 28, 28), 11, True, False]],
 )
-def test_ssim(available_device, shape, kernel_size, gaussian, use_sample_covariance):
-    y_pred = torch.rand(shape, device=available_device)
+def test_ssim(
+    available_device, shape, kernel_size, gaussian, use_sample_covariance, dtype=torch.float32, precision=7e-5
+):
+    y_pred = torch.rand(shape, device=available_device, dtype=dtype)
     y = y_pred * 0.8
 
     sigma = 1.5
@@ -79,6 +81,9 @@ def test_ssim(available_device, shape, kernel_size, gaussian, use_sample_covaria
     ssim = SSIM(data_range=data_range, sigma=sigma, device=available_device)
     ssim.update((y_pred, y))
     ignite_ssim = ssim.compute()
+
+    if y_pred.dtype == torch.bfloat16:
+        y_pred = y_pred.to(dtype=torch.float16)
 
     skimg_pred = y_pred.cpu().numpy()
     skimg_y = skimg_pred * 0.8
@@ -94,7 +99,7 @@ def test_ssim(available_device, shape, kernel_size, gaussian, use_sample_covaria
     )
 
     assert isinstance(ignite_ssim, float)
-    assert np.allclose(ignite_ssim, skimg_ssim, atol=7e-5)
+    assert np.allclose(ignite_ssim, skimg_ssim, atol=precision)
 
 
 def test_ssim_variable_batchsize(available_device):
@@ -121,6 +126,17 @@ def test_ssim_variable_batchsize(available_device):
     ssim.update((torch.cat(y_preds), torch.cat(y_true)))
     expected = ssim.compute()
     assert np.allclose(out, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype, precision", [(torch.bfloat16, 2e-3), (torch.float16, 4e-4), (torch.float32, 2e-5), (torch.float64, 2e-5)]
+)
+def test_cuda_ssim_dtypes(available_device, dtype, precision):
+    # Checks https://github.com/pytorch/ignite/pull/3034
+    if available_device == "cpu" and dtype in [torch.float16, torch.bfloat16]:
+        pytest.skip(reason=f"Unsupported dtype {dtype} on CPU device")
+
+    test_ssim(available_device, (12, 3, 28, 28), 11, True, False, dtype=dtype, precision=precision)
 
 
 @pytest.mark.parametrize("metric_device", ["cpu", "process_device"])
