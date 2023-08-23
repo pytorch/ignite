@@ -30,7 +30,7 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
         Args:
             iou_thresholds: sequence of IoU thresholds to be considered for computing mean average precision.
                 Values should be between 0 and 1. If not given, it's determined by ``flavor`` argument.
-            flavor: string values so that metric computation recipe correspond to its respective flavor. For now, only
+            flavor: string value so that metric computation recipe correspond to its respective flavor. For now, only
                 available option is 'COCO'. Default 'COCO'.
             rec_thresholds: sequence of recall thresholds to be considered for computing mean average precision.
                 Values should be between 0 and 1. If not given, it's determined by ``flavor`` argument.
@@ -202,9 +202,9 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
         Returns:
             `(TP, FP, P, scores)` A quadrople of true positives, false positives, number of actual positives and scores.
         """
-        labels = target["labels"].detach()
-        pred_labels = pred["labels"].detach()
-        pred_scores = pred["scores"].detach()
+        labels = target["labels"]
+        pred_labels = pred["labels"]
+        pred_scores = pred["scores"]
         categories = list(set(labels.int().tolist() + pred_labels.int().tolist()))
 
         pred_boxes = pred["bbox"]
@@ -288,28 +288,28 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
                 are as follows. N\ :sub:`det` and N\ :sub:`gt` are number of detections and
                 ground truths respectively.
 
-                =======   ================== =================================================
+                ======== ================== =================================================
                 **y_pred items**
-                ------------------------------------------------------------------------------
-                Key       Value shape        Description
-                =======   ================== =================================================
-                'bbox'    (N\ :sub:`det`, 4) Bounding boxes of form (x1, y1, x2, y2)
-                                             containing top left and bottom right coordinates.
-                'score'   (N\ :sub:`det`,)   Confidence score of detections.
-                'label'   (N\ :sub:`det`,)   Predicted category number of detections.
-                =======   ================== =================================================
+                -----------------------------------------------------------------------------
+                Key      Value shape        Description
+                ======== ================== =================================================
+                'bbox'   (N\ :sub:`det`, 4) Bounding boxes of form (x1, y1, x2, y2)
+                                            containing top left and bottom right coordinates.
+                'scores' (N\ :sub:`det`,)   Confidence score of detections.
+                'labels' (N\ :sub:`det`,)   Predicted category number of detections.
+                ======== ================== =================================================
 
-                ========= ================== =================================================
+                ========= ================= =================================================
                 **y items**
-                ------------------------------------------------------------------------------
+                -----------------------------------------------------------------------------
                 Key       Value shape        Description
-                ========= ================== =================================================
-                'bbox'    (N\ :sub:`gt`, 4)  Bounding boxes of form (x1, y1, x2, y2)
-                                             containing top left and bottom right coordinates.
-                'label'   (N\ :sub:`gt`,)    Category number of ground truths.
-                'iscrowd' (N\ :sub:`gt`,)    Whether ground truth boxes are crowd ones or not.
-                                             It's optional with default value of ``False``.
-                ========= ================== =================================================
+                ========= ================= =================================================
+                'bbox'    (N\ :sub:`gt`, 4) Bounding boxes of form (x1, y1, x2, y2)
+                                            containing top left and bottom right coordinates.
+                'labels'  (N\ :sub:`gt`,)   Category number of ground truths.
+                'iscrowd' (N\ :sub:`gt`,)   Whether ground truth boxes are crowd ones or not.
+                                            This key is optional.
+                ========= ================= =================================================
         """
         self._check_matching_input(output)
         tps, fps, ps, scores_dict = self._do_matching(output[0], output[1])
