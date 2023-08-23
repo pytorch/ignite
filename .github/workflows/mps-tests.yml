@@ -73,14 +73,15 @@ jobs:
       - name: Install PyTorch
         if: ${{ matrix.pytorch-channel == 'pytorch' }}
         shell: bash -l {0}
-        continue-on-error: false
-        run: pip install --upgrade torch torchvision --index-url https://download.pytorch.org/whl/cu118
+        run: pip install torch torchvision
 
       - name: Install PyTorch (nightly)
         if: ${{ matrix.pytorch-channel == 'pytorch-nightly' }}
-        run: pip install torch torchvision -f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html --pre
+        shell: bash -l {0}
+        run: pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cpu
 
       - name: Install dependencies
+        shell: bash -l {0}
         run: |
           pip install -r requirements-dev.txt
           pip install -e .
@@ -99,6 +100,7 @@ jobs:
           cp -R /tmp/MNIST .
 
       - name: Run Tests
+        shell: bash -l {0}
         run: |
           SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} bash tests/run_cpu_tests.sh
 
@@ -110,4 +112,5 @@ jobs:
           fail_ci_if_error: false
 
       - name: Run MNIST Examples
+        shell: bash -l {0}
         run: python examples/mnist/mnist.py --epochs=1
