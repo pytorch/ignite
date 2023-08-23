@@ -57,7 +57,7 @@ into the following categories:
 
 <details>
 
-- Install [miniconda](https://docs.conda.io/projects/continuumio-conda/en/latest/user-guide/install/index.html) for your system.
+- Install [miniconda](https://docs.conda.io/en/latest/miniconda.html) for your system.
 - Create an isolated conda environment for pytorch-ignite:
 
 ```bash
