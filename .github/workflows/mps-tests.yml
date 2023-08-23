@@ -86,7 +86,7 @@ jobs:
         run: |
           # TODO: We add set -x to explicitly fail the CI if one of the commands is failing.
           # Somehow the step is passing even if a subcommand failed
-          set -x
+          set -xe
           pip install -r requirements-dev.txt
           echo "1 returned code: $?"
           pip install -e .
