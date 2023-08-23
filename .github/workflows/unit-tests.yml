@@ -93,6 +93,7 @@ jobs:
         run: |
           pip install -r requirements-dev.txt
           python setup.py install
+          pip list
 
       - name: Check code formatting
         run: |
