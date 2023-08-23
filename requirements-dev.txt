@@ -31,4 +31,4 @@ nltk
 # Examples dependencies
 pandas
 gymnasium
-mkl
+mkl;platform_machine=="x86_64"
