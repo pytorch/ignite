@@ -56,11 +56,6 @@ jobs:
           repository: pytorch/test-infra
           path: test-infra
 
-      - name: Setup miniconda
-        uses: ./test-infra/.github/actions/setup-miniconda
-        with:
-          python-version: ${{ matrix.python-version }}
-
       - name: Checkout repository (${{ github.repository }})
         uses: actions/checkout@v3
         with:
@@ -69,6 +64,11 @@ jobs:
           ref: ${{ github.ref }}
           path: ${{ github.repository }}
           fetch-depth: 1
+
+      - name: Setup miniconda
+        uses: ./test-infra/.github/actions/setup-miniconda
+        with:
+          python-version: ${{ matrix.python-version }}
 
       - name: Install PyTorch
         if: ${{ matrix.pytorch-channel == 'pytorch' }}
@@ -84,9 +84,15 @@ jobs:
         shell: bash -l {0}
         working-directory: ${{ github.repository }}
         run: |
+          # TODO: We add set -x to explicitly fail the CI if one of the commands is failing.
+          # Somehow the step is passing even if a subcommand failed
+          set -x
           pip install -r requirements-dev.txt
+          echo "1 returned code: $?"
           pip install -e .
+          echo "2 returned code: $?"
           pip list
+          echo "3 returned code: $?"
 
       # Download MNIST: https://github.com/pytorch/ignite/issues/1737
       # to "/tmp" for unit tests
