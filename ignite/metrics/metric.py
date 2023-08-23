@@ -588,7 +588,7 @@ class Metric(Serializable, metaclass=ABCMeta):
                     "Found attribute of unsupported type. Currently, supported types include"
                     " numeric types, tensor, Metric or sequence/mapping of metrics."
                 )
-        return state
+        return cast(OrderedDict, state)
 
     def load_state_dict(self, state_dict: Mapping) -> None:
         """Method replaces internal state of the class with provided state dict data.
