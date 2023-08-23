@@ -1,3 +1,4 @@
+import warnings
 from typing import Callable, Sequence, Union
 
 import torch
@@ -158,8 +159,13 @@ class SSIM(Metric):
             )
 
         channel = y_pred.size(1)
-        if len(self._kernel.shape) < 4:
-            self._kernel = self._kernel.expand(channel, 1, -1, -1).to(device=y_pred.device)
+
+        if y_pred.device != self._device:
+            warnings.warn(
+                "The metric's device should be the same than your update tensors. See SSIM() device argument.",
+                RuntimeWarning,
+            )
+        self._kernel = self._kernel.expand(channel, 1, -1, -1).to(device=y_pred.device)
 
         y_pred = F.pad(y_pred, [self.pad_w, self.pad_w, self.pad_h, self.pad_h], mode="reflect")
         y = F.pad(y, [self.pad_w, self.pad_w, self.pad_h, self.pad_h], mode="reflect")
