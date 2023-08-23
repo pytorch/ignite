@@ -84,7 +84,7 @@ jobs:
         shell: bash -l {0}
         working-directory: ${{ github.repository }}
         run: |
-          # TODO: We add set -x to explicitly fail the CI if one of the commands is failing.
+          # TODO: We add set -xe to explicitly fail the CI if one of the commands is failing.
           # Somehow the step is passing even if a subcommand failed
           set -xe
           pip install -r requirements-dev.txt
