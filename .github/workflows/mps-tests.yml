@@ -82,6 +82,7 @@ jobs:
 
       - name: Install dependencies
         shell: bash -l {0}
+        working-directory: ${{ github.repository }}
         run: |
           pip install -r requirements-dev.txt
           pip install -e .
@@ -101,6 +102,7 @@ jobs:
 
       - name: Run Tests
         shell: bash -l {0}
+        working-directory: ${{ github.repository }}
         run: |
           SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} bash tests/run_cpu_tests.sh
 
@@ -113,4 +115,5 @@ jobs:
 
       - name: Run MNIST Examples
         shell: bash -l {0}
+        working-directory: ${{ github.repository }}
         run: python examples/mnist/mnist.py --epochs=1
