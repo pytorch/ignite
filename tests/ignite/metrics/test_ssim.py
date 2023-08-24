@@ -126,14 +126,19 @@ def test_ssim_device(available_device, metric_device, y_pred_device):
     y_pred = torch.rand(shape, device=y_pred_device)
     y = y_pred * 0.8
 
-    with pytest.warns() as record_warning:
-        warnings.warn("Avoid pytest DID NOT WARN failure.")
+    if metric_device == torch.device("cuda") and y_pred_device == torch.device("cpu"):
+        with pytest.warns(RuntimeWarning):
+            ssim.update((y_pred, y))
+    else:
         ssim.update((y_pred, y))
 
-    if metric_device == y_pred_device:
-        assert len(record_warning) == 1
+    if metric_device == torch.device("cuda") or y_pred_device == torch.device("cuda"):
+        # A tensor will always have the device index set
+        excepted_device = torch.device("cuda:0")
     else:
-        assert len(record_warning) == 2
+        excepted_device = torch.device("cpu")
+
+    assert ssim._kernel.device  == excepted_device
 
 
 def test_ssim_variable_batchsize(available_device):
