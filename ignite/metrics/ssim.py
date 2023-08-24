@@ -108,7 +108,6 @@ class SSIM(Metric):
     def reset(self) -> None:
         self._sum_of_ssim = torch.tensor(0.0, dtype=torch.float64, device=self._device)
         self._num_examples = 0
-        self._kernel = self._gaussian_or_uniform_kernel(kernel_size=self.kernel_size, sigma=self.sigma)
 
     def _uniform(self, kernel_size: int) -> torch.Tensor:
         kernel = torch.zeros(kernel_size)
