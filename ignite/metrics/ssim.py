@@ -161,29 +161,27 @@ class SSIM(Metric):
         channel = y_pred.size(1)
 
         self._kernel = self._kernel.expand(channel, 1, -1, -1)
-        kernel = self._kernel
 
         if y_pred.device != self._kernel.device:
-            warnings.warn(
-                "The metric's device should be the same than your update tensors. See SSIM() device argument.",
-                RuntimeWarning,
-            )
-
             if self._kernel.device == torch.device("cpu"):
-                kernel = kernel.to(device=y_pred.device)
+                self._kernel = self._kernel.to(device=y_pred.device)
 
             if y_pred.device == torch.device("cpu"):
+                warnings.warn(
+                    "The metric device or one of the previous update tensor was set on another device than this update tensor, which is on CPU. To avoid having a performance hit, ensure that your metric device and all of your update tensors are on the same device.",
+                    RuntimeWarning,
+                )
                 y_pred = y_pred.to(device=self._kernel.device)
                 y = y.to(device=self._kernel.device)
 
         y_pred = F.pad(y_pred, [self.pad_w, self.pad_w, self.pad_h, self.pad_h], mode="reflect")
         y = F.pad(y, [self.pad_w, self.pad_w, self.pad_h, self.pad_h], mode="reflect")
 
-        if y_pred.dtype != kernel.dtype:
-            kernel = kernel.to(dtype=y_pred.dtype)
+        if y_pred.dtype != self._kernel.dtype:
+            self._kernel = self._kernel.to(dtype=y_pred.dtype)
 
         input_list = [y_pred, y, y_pred * y_pred, y * y, y_pred * y]
-        outputs = F.conv2d(torch.cat(input_list), kernel, groups=channel)
+        outputs = F.conv2d(torch.cat(input_list), self._kernel, groups=channel)
         batch_size = y_pred.size(0)
         output_list = [outputs[x * batch_size : (x + 1) * batch_size] for x in range(len(input_list))]
 
