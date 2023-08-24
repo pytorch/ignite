@@ -165,6 +165,7 @@ class SSIM(Metric):
         if y_pred.device != self._kernel.device:
             if self._kernel.device == torch.device("cpu"):
                 self._kernel = self._kernel.to(device=y_pred.device)
+                self._sum_of_ssim = self._sum_of_ssim.to(device=y_pred.device)
 
             if y_pred.device == torch.device("cpu"):
                 warnings.warn(
