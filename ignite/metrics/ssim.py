@@ -110,14 +110,13 @@ class SSIM(Metric):
         self._num_examples = 0
 
     def _uniform(self, kernel_size: int) -> torch.Tensor:
-        max, min = 2.5, -2.5
-        ksize_half = (kernel_size - 1) * 0.5
-        kernel = torch.linspace(-ksize_half, ksize_half, steps=kernel_size, device=self._device)
-        for i, j in enumerate(kernel):
-            if min <= j <= max:
-                kernel[i] = 1 / (max - min)
-            else:
-                kernel[i] = 0
+        kernel = torch.zeros(kernel_size)
+
+        start_uniform_index = max(kernel_size // 2 - 2, 0)
+        end_uniform_index = min(kernel_size // 2 + 3, kernel_size)
+
+        min_, max_ = -2.5, 2.5
+        kernel[start_uniform_index:end_uniform_index] = 1 / (max_ - min_)
 
         return kernel.unsqueeze(dim=0)  # (1, kernel_size)
 
