@@ -102,12 +102,12 @@ class SSIM(Metric):
         self.c2 = (k2 * data_range) ** 2
         self.pad_h = (self.kernel_size[0] - 1) // 2
         self.pad_w = (self.kernel_size[1] - 1) // 2
+        self._kernel = self._gaussian_or_uniform_kernel(kernel_size=self.kernel_size, sigma=self.sigma)
 
     @reinit__is_reduced
     def reset(self) -> None:
         self._sum_of_ssim = torch.tensor(0.0, dtype=torch.float64, device=self._device)
         self._num_examples = 0
-        self._kernel = self._gaussian_or_uniform_kernel(kernel_size=self.kernel_size, sigma=self.sigma)
 
     def _uniform(self, kernel_size: int) -> torch.Tensor:
         max, min = 2.5, -2.5
