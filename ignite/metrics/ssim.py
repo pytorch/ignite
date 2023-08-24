@@ -1,3 +1,4 @@
+import warnings
 from typing import Callable, Sequence, Union
 
 import torch
@@ -98,6 +99,7 @@ class SSIM(Metric):
 
         super(SSIM, self).__init__(output_transform=output_transform, device=device)
         self.gaussian = gaussian
+        self.data_range = data_range
         self.c1 = (k1 * data_range) ** 2
         self.c2 = (k2 * data_range) ** 2
         self.pad_h = (self.kernel_size[0] - 1) // 2
@@ -156,6 +158,13 @@ class SSIM(Metric):
             raise ValueError(
                 f"Expected y_pred and y to have BxCxHxW shape. Got y_pred: {y_pred.shape} and y: {y.shape}."
             )
+
+        if y_pred.dtype == torch.uint8 or y.dtype == torch.uint8:
+            if self.data_range != 255:
+                warnings.warn("dtypes of the input tensors are torch.uint8 but data range is not set to 255.", RuntimeWarning)
+
+            y_pred = y_pred.to(dtype=torch.float32)
+            y = y.to(dtype=torch.float32)
 
         channel = y_pred.size(1)
         if len(self._kernel.shape) < 4:
