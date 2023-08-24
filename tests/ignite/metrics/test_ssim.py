@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pytest
 import torch
@@ -100,6 +102,38 @@ def test_ssim(
 
     assert isinstance(ignite_ssim, float)
     assert np.allclose(ignite_ssim, skimg_ssim, atol=precision)
+
+
+@pytest.mark.parametrize(
+    "metric_device, y_pred_device",
+    [
+        [torch.device("cpu"), torch.device("cpu")],
+        [torch.device("cpu"), torch.device("cuda")],
+        [torch.device("cuda"), torch.device("cpu")],
+        [torch.device("cuda"), torch.device("cuda")],
+    ],
+)
+def test_ssim_device(available_device, metric_device, y_pred_device):
+    if available_device == "cpu":
+        pytest.skip("This test requires a cuda device.")
+
+    data_range = 1.0
+    sigma = 1.5
+    shape = (12, 5, 256, 256)
+
+    ssim = SSIM(data_range=data_range, sigma=sigma, device=metric_device)
+
+    y_pred = torch.rand(shape, device=y_pred_device)
+    y = y_pred * 0.8
+
+    with pytest.warns() as record_warning:
+        warnings.warn("Avoid pytest DID NOT WARN failure.")
+        ssim.update((y_pred, y))
+
+    if metric_device == y_pred_device:
+        assert len(record_warning) == 1
+    else:
+        assert len(record_warning) == 2
 
 
 def test_ssim_variable_batchsize(available_device):
