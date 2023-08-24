@@ -102,7 +102,6 @@ class SSIM(Metric):
         self.c2 = (k2 * data_range) ** 2
         self.pad_h = (self.kernel_size[0] - 1) // 2
         self.pad_w = (self.kernel_size[1] - 1) // 2
-        self._kernel = self._gaussian_or_uniform_kernel(kernel_size=self.kernel_size, sigma=self.sigma)
 
     @reinit__is_reduced
     def reset(self) -> None:
