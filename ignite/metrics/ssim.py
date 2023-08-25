@@ -157,9 +157,9 @@ class SSIM(Metric):
                 f"Expected y_pred and y to have BxCxHxW shape. Got y_pred: {y_pred.shape} and y: {y.shape}."
             )
 
-        channel = y_pred.size(1)
-        if self._kernel is None or self._kernel.shape[0] != channel:
-            self._kernel = self._kernel_2d.expand(channel, 1, -1, -1)
+        nb_channel = y_pred.size(1)
+        if self._kernel is None or self._kernel.shape[0] != nb_channel:
+            self._kernel = self._kernel_2d.expand(nb_channel, 1, -1, -1)
 
         if y_pred.device != self._kernel.device:
             if self._kernel.device == torch.device("cpu"):
@@ -181,7 +181,7 @@ class SSIM(Metric):
             self._kernel = self._kernel.to(dtype=y_pred.dtype)
 
         input_list = [y_pred, y, y_pred * y_pred, y * y, y_pred * y]
-        outputs = F.conv2d(torch.cat(input_list), self._kernel, groups=channel)
+        outputs = F.conv2d(torch.cat(input_list), self._kernel, groups=nb_channel)
         batch_size = y_pred.size(0)
         output_list = [outputs[x * batch_size : (x + 1) * batch_size] for x in range(len(input_list))]
 
