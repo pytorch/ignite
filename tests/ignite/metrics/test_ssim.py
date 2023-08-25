@@ -1,5 +1,3 @@
-import warnings
-
 import numpy as np
 import pytest
 import torch
@@ -138,7 +136,7 @@ def test_ssim_device(available_device, metric_device, y_pred_device):
     else:
         excepted_device = torch.device("cpu")
 
-    assert ssim._kernel.device  == excepted_device
+    assert ssim._kernel.device == excepted_device
 
 
 def test_ssim_variable_batchsize(available_device):
