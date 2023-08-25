@@ -1,5 +1,5 @@
 import warnings
-from typing import Callable, Sequence, Union
+from typing import Callable, Sequence, Union, Optional
 
 import torch
 import torch.nn.functional as F
@@ -104,7 +104,7 @@ class SSIM(Metric):
         self.pad_h = (self.kernel_size[0] - 1) // 2
         self.pad_w = (self.kernel_size[1] - 1) // 2
         self._kernel_2d = self._gaussian_or_uniform_kernel(kernel_size=self.kernel_size, sigma=self.sigma)
-        self._kernel = torch.empty(0)
+        self._kernel: Optional[torch.Tensor] = None
 
     @reinit__is_reduced
     def reset(self) -> None:
@@ -158,10 +158,7 @@ class SSIM(Metric):
             )
 
         channel = y_pred.size(1)
-        if (
-            not self._kernel.numel()  # when the tensor is still empty from the __init__
-            or self._kernel.shape[0] != channel
-        ):
+        if self._kernel is None or self._kernel.shape[0] != channel:
             self._kernel = self._kernel_2d.expand(channel, 1, -1, -1)
 
         if y_pred.device != self._kernel.device:
