@@ -1,3 +1,5 @@
+from typing import Sequence, Union
+
 import numpy as np
 import pytest
 import torch
@@ -70,25 +72,49 @@ def test_invalid_ssim():
     "shape, kernel_size, gaussian, use_sample_covariance",
     [[(8, 3, 224, 224), 7, False, True], [(12, 3, 28, 28), 11, True, False]],
 )
-def test_ssim(
-    available_device, shape, kernel_size, gaussian, use_sample_covariance, dtype=torch.float32, precision=7e-5
-):
-    y_pred = torch.rand(shape, device=available_device, dtype=dtype)
+def test_ssim(available_device, shape, kernel_size, gaussian, use_sample_covariance):
+    y_pred = torch.rand(shape, device=available_device)
     y = y_pred * 0.8
 
+    compare_ssim_ignite_skiimg(
+        y_pred,
+        y,
+        available_device,
+        kernel_size=kernel_size,
+        gaussian=gaussian,
+        use_sample_covariance=use_sample_covariance,
+    )
+
+
+def compare_ssim_ignite_skiimg(
+    y_pred: torch.Tensor,
+    y: torch.Tensor,
+    device: torch.device,
+    precision: float = 2e-5,  # default to float32 expected precision
+    *,
+    skimg_y_pred: Union[np.ndarray, None] = None,
+    skimg_y: Union[np.ndarray, None] = None,
+    data_range: float = 1.0,
+    kernel_size: Union[int, Sequence[int]] = 11,
+    gaussian: bool = True,
+    use_sample_covariance: bool = False,
+):
     sigma = 1.5
-    data_range = 1.0
-    ssim = SSIM(data_range=data_range, sigma=sigma, device=available_device)
+
+    ssim = SSIM(data_range=data_range, sigma=sigma, device=device)
     ssim.update((y_pred, y))
     ignite_ssim = ssim.compute()
 
     if y_pred.dtype == torch.bfloat16:
         y_pred = y_pred.to(dtype=torch.float16)
 
-    skimg_pred = y_pred.cpu().numpy()
-    skimg_y = skimg_pred * 0.8
+    if skimg_y_pred is None:
+        skimg_y_pred = y_pred.cpu().numpy()
+    if skimg_y is None:
+        skimg_y = skimg_y_pred * 0.8
+
     skimg_ssim = ski_ssim(
-        skimg_pred,
+        skimg_y_pred,
         skimg_y,
         win_size=kernel_size,
         sigma=sigma,
@@ -165,6 +191,21 @@ def test_ssim_variable_batchsize(available_device):
     assert np.allclose(out, expected)
 
 
+def test_ssim_variable_channel(available_device):
+    y_preds = [
+        torch.rand(12, 5, 28, 28, device=available_device),
+        torch.rand(12, 4, 28, 28, device=available_device),
+        torch.rand(12, 7, 28, 28, device=available_device),
+        torch.rand(12, 3, 28, 28, device=available_device),
+        torch.rand(12, 11, 28, 28, device=available_device),
+        torch.rand(12, 6, 28, 28, device=available_device),
+    ]
+    y_true = [v * 0.8 for v in y_preds]
+
+    for y_pred, y in zip(y_preds, y_true):
+        compare_ssim_ignite_skiimg(y_pred, y, available_device)
+
+
 @pytest.mark.parametrize(
     "dtype, precision", [(torch.bfloat16, 2e-3), (torch.float16, 4e-4), (torch.float32, 2e-5), (torch.float64, 2e-5)]
 )
@@ -173,7 +214,12 @@ def test_cuda_ssim_dtypes(available_device, dtype, precision):
     if available_device == "cpu" and dtype in [torch.float16, torch.bfloat16]:
         pytest.skip(reason=f"Unsupported dtype {dtype} on CPU device")
 
-    test_ssim(available_device, (12, 3, 28, 28), 11, True, False, dtype=dtype, precision=precision)
+    shape = (12, 3, 28, 28)
+
+    y_pred = torch.rand(shape, device=available_device, dtype=dtype)
+    y = y_pred * 0.8
+
+    compare_ssim_ignite_skiimg(y_pred, y, available_device, precision)
 
 
 @pytest.mark.parametrize("metric_device", ["cpu", "process_device"])
