@@ -104,7 +104,7 @@ class SSIM(Metric):
         self.pad_h = (self.kernel_size[0] - 1) // 2
         self.pad_w = (self.kernel_size[1] - 1) // 2
         self._kernel = self._gaussian_or_uniform_kernel(kernel_size=self.kernel_size, sigma=self.sigma)
-        self._expanded_kernel = None
+        self._expanded_kernel = torch.empty(0)
 
     @reinit__is_reduced
     def reset(self) -> None:
@@ -163,7 +163,7 @@ class SSIM(Metric):
             if self._kernel.device == torch.device("cpu"):
                 self._kernel = self._kernel.to(device=y_pred.device)
                 self._sum_of_ssim = self._sum_of_ssim.to(device=y_pred.device)
-                self._expanded_kernel = None
+                self._expanded_kernel = torch.empty(0)
 
             if y_pred.device == torch.device("cpu"):
                 warnings.warn(
@@ -182,7 +182,7 @@ class SSIM(Metric):
             self._kernel = self._kernel.to(dtype=y_pred.dtype)
 
         channel = y_pred.size(1)
-        if self._expanded_kernel is None or self._expanded_kernel.shape[0] != channel:
+        if not self._expanded_kernel.numel() or self._expanded_kernel.shape[0] != channel:
             self._expanded_kernel = self._kernel.expand(channel, 1, -1, -1)
 
         input_list = [y_pred, y, y_pred * y_pred, y * y, y_pred * y]
