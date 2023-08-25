@@ -104,12 +104,12 @@ class SSIM(Metric):
         self.pad_h = (self.kernel_size[0] - 1) // 2
         self.pad_w = (self.kernel_size[1] - 1) // 2
         self._kernel_2d = self._gaussian_or_uniform_kernel(kernel_size=self.kernel_size, sigma=self.sigma)
+        self._kernel = torch.empty(0)
 
     @reinit__is_reduced
     def reset(self) -> None:
         self._sum_of_ssim = torch.tensor(0.0, dtype=torch.float64, device=self._device)
         self._num_examples = 0
-        self._kernel = torch.empty(0)
 
     def _uniform(self, kernel_size: int) -> torch.Tensor:
         kernel = torch.zeros(kernel_size)
@@ -170,9 +170,9 @@ class SSIM(Metric):
 
             elif y_pred.device == torch.device("cpu"):
                 warnings.warn(
-                    f"y_pred tensor is on cpu device but previous computation was on another device: {self._kernel.device}. "
-                    "To avoid having a performance hit, please ensure that all y and y_pred tensors "
-                    "are on the same device.",
+                    "y_pred tensor is on cpu device but previous computation was on another device: "
+                    f"{self._kernel.device}. To avoid having a performance hit, please ensure that all "
+                    "y and y_pred tensors are on the same device.",
                 )
                 y_pred = y_pred.to(device=self._kernel.device)
                 y = y.to(device=self._kernel.device)
