@@ -161,7 +161,9 @@ class SSIM(Metric):
 
         if y_pred.dtype == torch.uint8 or y.dtype == torch.uint8:
             if self.data_range != 255:
-                warnings.warn("dtypes of the input tensors are torch.uint8 but data range is not set to 255.", RuntimeWarning)
+                warnings.warn(
+                    "dtypes of the input tensors are torch.uint8 but data range is not set to 255.", RuntimeWarning
+                )
 
             y_pred = y_pred.to(dtype=torch.float32)
             y = y.to(dtype=torch.float32)

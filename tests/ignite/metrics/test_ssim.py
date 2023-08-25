@@ -179,7 +179,9 @@ def test_ssim_uint8_warning(available_device):
     data_range = 1.0
     ssim = SSIM(data_range=data_range, sigma=sigma, device=available_device)
 
-    with pytest.warns(RuntimeWarning, match=r"dtypes of the input tensors are torch.uint8 but data range is not set to 255."):
+    with pytest.warns(
+        RuntimeWarning, match=r"dtypes of the input tensors are torch.uint8 but data range is not set to 255."
+    ):
         ssim.update((y_pred, y))
 
 
