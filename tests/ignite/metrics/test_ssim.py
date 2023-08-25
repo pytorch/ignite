@@ -296,7 +296,10 @@ def test_distrib_accumulator_device(distributed, metric_device):
 
     ssim = SSIM(data_range=1.0, device=metric_device)
 
-    for dev in [ssim._device, ssim._kernel.device]:
+    assert ssim._kernel is None
+    assert isinstance(ssim._kernel_2d, torch.Tensor)
+
+    for dev in [ssim._device, ssim._kernel_2d.device]:
         assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
 
     y_pred = torch.rand(2, 3, 28, 28, dtype=torch.float, device=device)
