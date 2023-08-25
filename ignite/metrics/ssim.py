@@ -1,5 +1,5 @@
 import warnings
-from typing import Callable, Sequence, Union, Optional
+from typing import Callable, Optional, Sequence, Union
 
 import torch
 import torch.nn.functional as F
