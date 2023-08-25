@@ -168,12 +168,11 @@ class SSIM(Metric):
             if self._kernel.device == torch.device("cpu"):
                 self._kernel = self._kernel.to(device=y_pred.device)
 
-            if y_pred.device == torch.device("cpu"):
+            elif y_pred.device == torch.device("cpu"):
                 warnings.warn(
-                    "The metric device or one of the previous update tensor was set on another device than this "
-                    "update tensor, which is on CPU. To avoid having a performance hit, ensure that your metric "
-                    "device and all of your update tensors are on the same device.",
-                    RuntimeWarning,
+                    f"y_pred tensor is on cpu device but previous computation was on another device: {self._kernel.device}. "
+                    "To avoid having a performance hit, please ensure that all y and y_pred tensors "
+                    "are on the same device.",
                 )
                 y_pred = y_pred.to(device=self._kernel.device)
                 y = y.to(device=self._kernel.device)
