@@ -104,7 +104,6 @@ class SSIM(Metric):
         self.pad_h = (self.kernel_size[0] - 1) // 2
         self.pad_w = (self.kernel_size[1] - 1) // 2
         self._kernel_2d = self._gaussian_or_uniform_kernel(kernel_size=self.kernel_size, sigma=self.sigma)
-        self._kernel = torch.empty(0)
 
     @reinit__is_reduced
     def reset(self) -> None:
