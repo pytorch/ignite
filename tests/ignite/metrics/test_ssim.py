@@ -222,7 +222,6 @@ def test_cuda_ssim_dtypes(available_device, dtype, precision):
     compare_ssim_ignite_skiimg(y_pred, y, available_device, precision)
 
 
-@pytest.mark.skip
 @pytest.mark.parametrize("metric_device", ["cpu", "process_device"])
 def test_distrib_integration(distributed, metric_device):
     from ignite.engine import Engine
@@ -289,7 +288,6 @@ def test_distrib_integration(distributed, metric_device):
     assert pytest.approx(res, abs=tol) == true_res
 
 
-@pytest.mark.skip
 @pytest.mark.parametrize("metric_device", [torch.device("cpu"), "process_device"])
 def test_distrib_accumulator_device(distributed, metric_device):
     device = idist.device()
