@@ -581,6 +581,7 @@ class Metric(Serializable, metaclass=ABCMeta):
                     if isinstance(attr, float):
                         gathered_attr = [attr_type(process_attr) for process_attr in cast(torch.Tensor, gathered_attr)]
                     state[attr_name] = cast(Union[torch.Tensor, List], gathered_attr)
+            # Some attributes might be `None` upon serialization e.g. `RunningAverage`'s initial `_value`.
             elif attr is None:
                 state[attr_name] = None
             else:
