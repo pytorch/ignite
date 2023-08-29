@@ -16,113 +16,174 @@ concurrency:
   group: gpu-hvd-tests-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
   cancel-in-progress: true
 
+# Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml
+
 jobs:
   gpu-hvd-tests:
-    runs-on: [self-hosted, 2-gpus]
-    defaults:
-      run:
-        shell: bash
     strategy:
-      max-parallel: 1
-      fail-fast: true
+      matrix:
+        pytorch-channel: [pytorch, ]
+      fail-fast: false
     env:
-      AGENT_TOOLSDIRECTORY: /tmp/python
+      DOCKER_IMAGE: "pytorch/conda-builder:cuda11.8"
+      REPOSITORY: ${{ github.repository }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    runs-on: linux.8xlarge.nvidia.gpu
+    timeout-minutes: 60
 
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Clean python tool path
+      - name: Clean workspace
         run: |
-          rm -rf ${AGENT_TOOLSDIRECTORY}
+          echo "::group::Cleanup debug output"
+          sudo rm -rfv "${GITHUB_WORKSPACE}"
+          mkdir -p "${GITHUB_WORKSPACE}"
+          echo "::endgroup::"
 
-      - uses: actions/setup-python@v4
+      - name: Checkout repository (pytorch/test-infra)
+        uses: actions/checkout@v3
         with:
-          python-version: 3.9
+          # Support the use case where we need to checkout someone's fork
+          repository: pytorch/test-infra
+          path: test-infra
 
-      - name: Install PyTorch
-        # https://pytorch.org/get-started/locally/
-        run: |
-# <<<<<<< HEAD
-#           pip install --upgrade torch torchvision --extra-index-url https://download.pytorch.org/whl/cu117
-# =======
-#           pip install torch torchvision -f https://download.pytorch.org/whl/cu116/torch_stable.html
-# >>>>>>> a670b8620 (Update gpu-hvd-tests.yml)
-          nvidia-smi
-# <<<<<<< HEAD
-# # <<<<<<< HEAD
-# #           python -c "import torch; print(torch.__version__, ', CUDA is available: ', torch.cuda.is_available()); exit(not torch.cuda.is_available())"
-# # =======
-# #           python -c "import torch; print('CUDA is available: ', torch.cuda.is_available())"
-# # >>>>>>> 7174b733d (Update gpu-hvd-tests.yml)
-# =======
-#           python -c "import torch; print(torch.__version__, ', CUDA is available: ', torch.cuda.is_available()); exit(not torch.cuda.is_available())"
-#           pip list
-# >>>>>>> db7a53a72 (WIP)
+      - name: Setup Linux
+        uses: ./test-infra/.github/actions/setup-linux
 
-      - name: Install dependencies
+      - name: Pull docker image
+        uses: ./test-infra/.github/actions/pull-docker-image
+        with:
+          docker-image: ${{ env.DOCKER_IMAGE }}
+
+      - name: Checkout repository (${{ github.repository }})
+        uses: actions/checkout@v3
+        with:
+          # Support the use case where we need to checkout someone's fork
+          repository: ${{ github.repository }}
+          ref: ${{ github.ref }}
+          path: ${{ github.repository }}
+          fetch-depth: 1
+
+      - name: Start Pytorch container
+        working-directory: ${{ github.repository }}
         run: |
+          docker run --name pthd --gpus=all --rm \
+            --cap-add=SYS_PTRACE \
+            --detach \
+            --ipc=host \
+            --security-opt seccomp=unconfined \
+            --shm-size=2g \
+            --tty \
+            --ulimit stack=10485760:83886080 \
+            -v $PWD:/work \
+            -w /work \
+            ${DOCKER_IMAGE}
+
+          script=$(cat << EOF
+
+            set -x
+
+            nvidia-smi
+            ls -alh
+
+            conda --version
+            python --version
+
+          EOF
+          )
+          docker exec -t pthd /bin/bash -c "${script}"
+
+      - name: Install PyTorch and dependencies
+        continue-on-error: false
+        run: |
+
+          script=$(cat << EOF
+
+          set -x
+
+          # Install PyTorch
+          if [ "${{ matrix.pytorch-channel }}" == "pytorch" ]; then
+            pip install --upgrade torch torchvision --index-url https://download.pytorch.org/whl/cu118
+          else
+            pip install --upgrade --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu118
+          fi
+
+          python -c "import torch; print(torch.__version__, ', CUDA is available: ', torch.cuda.is_available()); exit(not torch.cuda.is_available())"
+          pip list
+
+          # Install dependencies
           pip install -r requirements-dev.txt
           pip install -e .
 
+          EOF
+          )
+
+          docker exec -t pthd /bin/bash -c "${script}"
+
       - name: Install Horovod with NCCL GPU ops
         run: |
-# <<<<<<< HEAD
-# # <<<<<<< HEAD
-# # # <<<<<<< HEAD
-# # # # <<<<<<< HEAD
-# # # #           HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]
-# # # # =======
-# # # #           cd $GITHUB_WORKSPACE/horovod && python setup.py sdist
-# # # #           conda install -y cmake nccl cuda-nvcc -c nvidia
-# # # #           cd $GITHUB_WORKSPACE/horovod && HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_NCCL_LINK=SHARED HOROVOD_WITHOUT_MPI=1 HOROVOD_WITH_PYTORCH=1 pip install -v $(ls $GITHUB_WORKSPACE/horovod/dist/horovod-*.tar.gz) && ldconfig
-# # # # >>>>>>> a670b8620 (Update gpu-hvd-tests.yml)
-# # # =======
-# # #           HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch] --no-cache-dir
-# # # >>>>>>> 7174b733d (Update gpu-hvd-tests.yml)
-# # =======
-# #           # This env lack nvcc thus we can't use option: HOROVOD_GPU_OPERATIONS=NCCL
-# #           HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]
-# # >>>>>>> ffee5fd73 (Do not build with NCCL)
-# =======
-#           pip install cmake scikit-build
-#           # This env lack nvcc thus we can't use option: HOROVOD_GPU_OPERATIONS=NCCL
-#           HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]
-# >>>>>>> 6b87e61ce (Added cmake and scikit-build step)
+          script=$(cat << EOF
+
+          set -x
+
+          HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]
           horovodrun --check-build
           pip list
 
-      - name: Run GPU and CPU Unit Tests
-        run: |
-          bash tests/run_gpu_tests.sh 2 hvd
+          EOF
+          )
 
+          docker exec -t pthd /bin/bash -c "${script}"
+
+      - name: Run GPU and CPU Unit HVD Tests
+        run: |
+
+          script=$(cat << EOF
+
+          set -x
+
+          bash tests/run_gpu_tests.sh 2 hvd
           CUDA_VISIBLE_DEVICES="" pytest --cov ignite --cov-append --cov-report term-missing --cov-report xml -vvv tests/ -m distributed -k hvd
+
+          EOF
+          )
+
+          docker exec -t pthd /bin/bash -c "${script}"
+
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
-          file: ./coverage.xml
+          file: ${{ github.repository }}/coverage.xml
           flags: gpu-2
           fail_ci_if_error: false
 
-      - name: Install additional example dependencies
-        run: pip install fire
-
-      - name: Check CIFAR10 using horovodrun
+      - name: Run examples in container
+        continue-on-error: false
         run: |
-          export example_path="examples/contrib/cifar10"
-          # initial run
-          export stop_cmd="--stop_iteration=500"
-          CI=1 horovodrun -np 2 python -u ${example_path}/main.py run --backend=horovod --checkpoint_every=200
-          # resume
-          export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-horovod-2_stop-on-500/training_checkpoint_400.pt"
-          CI=1 horovodrun -np 2 python ${example_path}/main.py run --checkpoint_every=200 --num_epochs=7 ${resume_opt}
+          SCRIPT=$(cat << EOF
 
-      - name: Check CIFAR10 using spawn
-        run: |
-          export example_path="examples/contrib/cifar10"
+          set -x
+
+          # Install additional example dependencies
+          pip install fire
+
+          # Check training on CIFAR10, run with horovod backend using horovodrun
           # initial run
-          export stop_cmd="--stop_iteration=500"
-          CI=1 python -u ${example_path}/main.py run --backend=horovod --nproc_per_node=2 --checkpoint_every=200 ${stop_cmd}
+          CI=1 horovodrun -np 2 python -u examples/cifar10/main.py run --backend=horovod --checkpoint_every=200 --stop_iteration=500
           # resume
-          export resume_opt="--resume-from=/tmp/output-cifar10/resnet18_backend-horovod-2_stop-on-500/training_checkpoint_400.pt"
-          CI=1 python -u ${example_path}/main.py run --backend=horovod --nproc_per_node=2 --checkpoint_every=200 --num_epochs=7 ${resume_opt}
+          CI=1 horovodrun -np 2 python examples/cifar10/main.py run --checkpoint_every=200 --num_epochs=7 --resume-from=/tmp/output-cifar10/resnet18_backend-horovod-2_stop-on-500/training_checkpoint_400.pt
+
+          # Check training on CIFAR10 using spawn
+          # initial run
+          CI=1 python -u examples/cifar10/main.py run --backend=horovod --nproc_per_node=2 --checkpoint_every=200 --stop_iteration=500
+          # resume
+          CI=1 python -u examples/cifar10/main.py run --backend=horovod --nproc_per_node=2 --checkpoint_every=200 --num_epochs=7 --resume-from=/tmp/output-cifar10/resnet18_backend-horovod-2_stop-on-500/training_checkpoint_400.pt
+
+          EOF
+          )
+
+          docker exec -t pthd /bin/bash -c "${script}"
+
+      - name: Teardown Linux
+        if: ${{ always() }}
+        uses: ./test-infra/.github/actions/teardown-linux

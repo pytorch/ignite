@@ -19,7 +19,7 @@ concurrency:
 # Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml
 
 jobs:
-  gpu-tests:    
+  gpu-tests:
     strategy:
       matrix:
         pytorch-channel: [pytorch, pytorch-nightly]
@@ -119,7 +119,7 @@ jobs:
 
           docker exec -t pthd /bin/bash -c "${script}"
 
-      - name: Run 1 Node 2 GPUs Unit Tests
+      - name: Run GPU Unit Tests
         continue-on-error: false
         run: |
 
@@ -145,7 +145,7 @@ jobs:
         continue-on-error: false
         run: |
           SCRIPT=$(cat << EOF
-          
+
           set -x
 
           # Install additional example dependencies
@@ -156,7 +156,7 @@ jobs:
           CI=1 python examples/cifar10/main.py run --checkpoint_every=200 --stop_iteration=500
           ## resume
           CI=1 python examples/cifar10/main.py run --checkpoint_every=200 --num_epochs=7 --resume-from=/tmp/output-cifar10/resnet18_backend-None-1_stop-on-500/training_checkpoint_400.pt
-    
+
           # Check training on cifar10, run with NCCL backend using torchrun
           ## initial run
           CI=1 torchrun --nproc_per_node=2 examples/cifar10/main.py run --backend=nccl --checkpoint_every=200 --stop_iteration=500
