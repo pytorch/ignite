@@ -9,6 +9,7 @@ from ignite.engine import Engine, Events
 from ignite.handlers.param_scheduler import (
     ConcatScheduler,
     CosineAnnealingScheduler,
+    CosineAnnealingWarmupRestartsEachCycle,
     create_lr_scheduler_with_warmup,
     LinearCyclicalScheduler,
     LRScheduler,
@@ -728,6 +729,60 @@ def test_piecewiselinear_asserts():
 
     with pytest.raises(TypeError, match=r"Value of a milestone should be integer"):
         PiecewiseLinear(optimizer, "lr", milestones_values=[(0.5, 1)])
+
+
+def test_cosine_annealing_warup_restart_each_cycle_scheduler():
+    tensor = torch.zeros([1], requires_grad=True)
+    optimizer = torch.optim.SGD([tensor], lr=0)
+
+    scheduler = CosineAnnealingWarmupRestartsEachCycle(optimizer, "lr", 1, 0, 0, 10)
+    state_dict = scheduler.state_dict()
+
+    data = [0] * 9
+    max_epochs = 2
+    simulated_values = CosineAnnealingWarmupRestartsEachCycle.simulate_values(
+        num_events=len(data) * max_epochs, param_name="lr", start_value=1, end_value=0, cycle_size=10, warmup_size=0
+    )
+
+    def save_lr(engine):
+        lrs.append(optimizer.param_groups[0]["lr"])
+
+    trainer = Engine(lambda engine, batch: None)
+    trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+    trainer.add_event_handler(Events.ITERATION_COMPLETED, save_lr)
+
+    for _ in range(2):
+        lrs = []
+        trainer.run(data, max_epochs=max_epochs)
+
+        assert lrs == list(
+            map(
+                pytest.approx,
+                [
+                    1.0,
+                    0.97552826,
+                    0.9045085,
+                    0.79389263,
+                    0.6545085,
+                    0.5,
+                    0.3454915,
+                    0.20610737,
+                    0.0954915,
+                    0.02447174,
+                    1.0,
+                    0.97552826,
+                    0.9045085,
+                    0.79389263,
+                    0.6545085,
+                    0.5,
+                    0.3454915,
+                    0.20610737,  # 0.9045084971874737, 0.9755282581475768
+                ],
+            )
+        )
+        scheduler.load_state_dict(state_dict)
+
+        assert lrs == pytest.approx([v for i, v in simulated_values])
 
 
 @pytest.mark.parametrize("milestones_as_np_int", [True, False])

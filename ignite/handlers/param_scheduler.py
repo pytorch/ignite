@@ -542,6 +542,73 @@ class CosineAnnealingScheduler(CyclicalScheduler):
         return self.start_value + ((self.end_value - self.start_value) / 2) * (1 - math.cos(math.pi * cycle_progress))
 
 
+class CosineAnnealingWarmupRestartsEachCycle(ParamScheduler):
+    def __init__(
+        self,
+        optimizer: Optimizer,
+        param_name: str,
+        start_value: float,
+        end_value: float,
+        warmup_size: int,
+        cycle_size: int,
+        cycle_mult: float = 1.0,
+        start_value_mult: float = 1.0,
+        end_value_mult: float = 1.0,
+        save_history: bool = False,
+        param_group_index: Optional[int] = None,
+    ):
+        super(CosineAnnealingWarmupRestartsEachCycle, self).__init__(
+            optimizer, param_name, save_history=save_history, param_group_index=param_group_index
+        )
+        self.start_value = start_value
+        self.end_value = end_value
+        self.warmup_size = int(warmup_size)  # Ensure warmup_size is integer
+        self.cycle_size = int(cycle_size)  # Ensure cycle_size is integer
+        self.cycle_mult = cycle_mult
+        self.cycle = 0
+        self.start_value_mult = start_value_mult
+        self.end_value_mult = end_value_mult
+
+        if self.cycle_size < 2:
+            raise ValueError(f"Argument cycle_size should be positive and larger than 1, but given {cycle_size}")
+
+        if self.cycle_size < self.warmup_size:
+            raise ValueError("Argument cycle_size should be smaller than warmup_size, please check both size")
+
+        self._state_attrs += [
+            "start_value",
+            "end_value",
+            "warmup_size",
+            "cycle_size",
+            "cycle_mult",
+            "cycle",
+            "start_value_mult",
+            "end_value_mult",
+        ]
+
+    def __call__(self, engine: Optional[Engine], name: Optional[str] = None) -> None:
+        if self.event_index != 0 and self.event_index % self.cycle_size == 0:
+            self.event_index = 0
+            self.cycle_size = int(self.cycle_size * self.cycle_mult)
+            self.cycle += 1
+            self.start_value *= self.start_value_mult
+        elif self.event_index != 0 and self.event_index % self.cycle_size == self.warmup_size:
+            self.end_value *= self.end_value_mult
+
+        return super(CosineAnnealingWarmupRestartsEachCycle, self).__call__(engine, name)
+
+    def get_param(self) -> float:
+        """Method to get current optimizer's parameter value"""
+
+        if self.event_index < self.warmup_size:
+            return (self.start_value - self.end_value) * self.event_index / self.warmup_size + self.end_value
+        else:
+            cycle_progress = (self.event_index - self.warmup_size) / (self.cycle_size - self.warmup_size)
+            return self.start_value + ((self.end_value - self.start_value) / 2) * (
+                1 - math.cos(math.pi * cycle_progress)
+            )
+
+
 class ConcatScheduler(ParamScheduler):
     """Concat a list of parameter schedulers.
 
