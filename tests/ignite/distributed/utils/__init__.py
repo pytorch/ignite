@@ -156,21 +156,22 @@ def _test_distrib_all_reduce_group(device):
 
 def _test_distrib_all_gather(device):
     rank = idist.get_rank()
+    ws = idist.get_world_size()
 
     res = torch.tensor(idist.all_gather(10), device=device)
-    true_res = torch.tensor([10] * idist.get_world_size(), device=device)
+    true_res = torch.tensor([10] * ws, device=device)
     assert (res == true_res).all()
 
     t = torch.tensor(rank, device=device)
     res = idist.all_gather(t)
-    true_res = torch.tensor([i for i in range(idist.get_world_size())], device=device)
+    true_res = torch.tensor([i for i in range(ws)], device=device)
     assert (res == true_res).all()
 
     x = "test-test"
     if rank == 0:
         x = "abc"
     res = idist.all_gather(x)
-    true_res = ["abc"] + ["test-test"] * (idist.get_world_size() - 1)
+    true_res = ["abc"] + ["test-test"] * (ws - 1)
     assert res == true_res
 
     base_x = "tests/ignite/distributed/utils/test_native.py" * 2000
@@ -179,22 +180,41 @@ def _test_distrib_all_gather(device):
         x = "abc"
 
     res = idist.all_gather(x)
-    true_res = ["abc"] + [base_x] * (idist.get_world_size() - 1)
+    true_res = ["abc"] + [base_x] * (ws - 1)
     assert res == true_res
 
     t = torch.arange(100, device=device).reshape(4, 25) * (rank + 1)
     in_dtype = t.dtype
     res = idist.all_gather(t)
-    assert res.shape == (idist.get_world_size() * 4, 25)
+    assert res.shape == (ws * 4, 25)
     assert res.dtype == in_dtype
-    true_res = torch.zeros(idist.get_world_size() * 4, 25, device=device)
-    for i in range(idist.get_world_size()):
+    true_res = torch.zeros(ws * 4, 25, device=device)
+    for i in range(ws):
         true_res[i * 4 : (i + 1) * 4, ...] = torch.arange(100, device=device).reshape(4, 25) * (i + 1)
     assert (res == true_res).all()
 
-    if idist.get_world_size() > 1:
-        with pytest.raises(TypeError, match=r"Unhandled input type"):
-            idist.all_reduce([0, 1, 2])
+    if ws > 1 and idist.backend() != "xla-tpu":
+        t = {
+            "a": [rank + 1, rank + 2, torch.tensor(rank + 3, device=device)],
+            "b": torch.tensor([[rank + 1, rank + 2, rank + 3]], device=device),
+            "c": {"abcd": rank, "cdfg": torch.tensor(rank, dtype=torch.uint8, device=device)},
+        }
+        res = idist.all_gather(t)
+        assert isinstance(res, list) and len(res) == ws
+        for i, obj in enumerate(res):
+            assert isinstance(obj, dict)
+            assert list(obj.keys()) == ["a", "b", "c"], obj
+            expected_device = (
+                device if torch.device(device).type == "cpu" else torch.device(f"{torch.device(device).type}:{i}")
+            )
+            expected = {
+                "a": [i + 1, i + 2, torch.tensor(i + 3, device=expected_device)],
+                "b": torch.tensor([[i + 1, i + 2, i + 3]], device=expected_device),
+                "c": {"abcd": i, "cdfg": torch.tensor(i, dtype=torch.uint8, device=expected_device)},
+            }
+            assert obj["a"] == expected["a"]
+            assert (obj["b"] == expected["b"]).all()
+            assert obj["c"] == expected["c"]
 
 
 def _test_distrib_all_gather_group(device):
