@@ -80,7 +80,7 @@ jobs:
 
           script=$(cat << EOF
 
-            set -x
+            set -xe
 
             nvidia-smi
             ls -alh
@@ -98,7 +98,7 @@ jobs:
 
           script=$(cat << EOF
 
-          set -x
+          set -xe
 
           # Install PyTorch
           if [ "${{ matrix.pytorch-channel }}" == "pytorch" ]; then
@@ -123,7 +123,7 @@ jobs:
         run: |
           script=$(cat << EOF
 
-          set -x
+          set -xe
 
           HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]
           horovodrun --check-build
@@ -139,7 +139,7 @@ jobs:
 
           script=$(cat << EOF
 
-          set -x
+          set -xe
 
           bash tests/run_gpu_tests.sh 2 hvd
           CUDA_VISIBLE_DEVICES="" pytest --cov ignite --cov-append --cov-report term-missing --cov-report xml -vvv tests/ -m distributed -k hvd
@@ -148,7 +148,6 @@ jobs:
           )
 
           docker exec -t pthd /bin/bash -c "${script}"
-
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
@@ -162,7 +161,7 @@ jobs:
         run: |
           SCRIPT=$(cat << EOF
 
-          set -x
+          set -xe
 
           # Install additional example dependencies
           pip install fire

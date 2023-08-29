@@ -80,7 +80,7 @@ jobs:
 
           script=$(cat << EOF
 
-            set -x
+            set -xe
 
             nvidia-smi
             ls -alh
@@ -98,7 +98,7 @@ jobs:
 
           script=$(cat << EOF
 
-          set -x
+          set -xe
 
           # Install PyTorch
           if [ "${{ matrix.pytorch-channel }}" == "pytorch" ]; then
@@ -125,7 +125,7 @@ jobs:
 
           script=$(cat << EOF
 
-          set -x
+          set -xe
 
           bash tests/run_gpu_tests.sh 2
 
@@ -146,7 +146,7 @@ jobs:
         run: |
           SCRIPT=$(cat << EOF
 
-          set -x
+          set -xe
 
           # Install additional example dependencies
           pip install fire
