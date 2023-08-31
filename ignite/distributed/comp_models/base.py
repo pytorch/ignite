@@ -181,7 +181,7 @@ class ComputationModel(metaclass=ABCMeta):
         return tensor
 
     def _collective_op(
-        self, tensor: Union[torch.Tensor, float, str], fn: Callable, *args: Any, **kwargs: Any
+        self, tensor: Union[torch.Tensor, Number, str], fn: Callable, *args: Any, **kwargs: Any
     ) -> Union[torch.Tensor, float, List[float], List[str]]:
         tensor_to_number = tensor_to_str = False
         device = self.device()
@@ -216,10 +216,10 @@ class ComputationModel(metaclass=ABCMeta):
         return cast(Union[torch.Tensor, float], self._collective_op(tensor, self._do_all_reduce, op, group=group))
 
     def all_gather(
-        self, tensor: Union[torch.Tensor, float, str], group: Optional[Any] = None
+        self, tensor: Union[torch.Tensor, float, str, Any], group: Optional[Any] = None
     ) -> Union[torch.Tensor, float, List[float], List[str]]:
         if not isinstance(tensor, (torch.Tensor, Number, str)):
-            raise TypeError(f"Unhandled input type {type(tensor)}")
+            return self._do_all_gather_object(tensor, group=group)
 
         return self._collective_op(tensor, self._do_all_gather, group=group)
 
@@ -280,6 +280,10 @@ class ComputationModel(metaclass=ABCMeta):
 
     @abstractmethod
     def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None) -> torch.Tensor:
+        pass
+
+    @abstractmethod
+    def _do_all_gather_object(self, tensor: Any, group: Optional[Any] = None) -> List[Any]:
         pass
 
     @abstractmethod
@@ -371,6 +375,9 @@ class _SerialModel(ComputationModel):
         return tensor
 
     def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None) -> torch.Tensor:
+        return tensor
+
+    def _do_all_gather_object(self, tensor: Any, group: Optional[Any] = None) -> Any:
         return tensor
 
     def _do_new_group(self, ranks: List[int], **kwargs: Any) -> Any:
