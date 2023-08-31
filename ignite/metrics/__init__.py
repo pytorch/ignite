@@ -23,6 +23,7 @@ from ignite.metrics.root_mean_squared_error import RootMeanSquaredError
 from ignite.metrics.running_average import RunningAverage
 from ignite.metrics.ssim import SSIM
 from ignite.metrics.top_k_categorical_accuracy import TopKCategoricalAccuracy
+from ignite.metrics.recsys.ndcg import NDCG
 
 __all__ = [
     "Metric",
@@ -58,4 +59,5 @@ __all__ = [
     "Rouge",
     "RougeN",
     "RougeL",
+    "NDCG"
 ]
