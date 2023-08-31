@@ -3,6 +3,7 @@ import os
 import pytest
 import torch
 import torch.distributed as dist
+from packaging.version import Version
 
 import ignite.distributed as idist
 from ignite.distributed.utils import has_native_dist_support
@@ -236,14 +237,16 @@ def test_idist_all_reduce_gloo(distributed_context_single_node_gloo):
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+@pytest.mark.skipif(Version(torch.__version__) < Version("1.7.0"), reason="dist.all_gather_object is not implemented")
 def test_idist_all_gather_nccl(distributed_context_single_node_nccl):
     device = idist.device()
-    # _test_distrib_all_gather(device)
+    _test_distrib_all_gather(device)
     _test_distrib_all_gather_group(device)
 
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif(Version(torch.__version__) < Version("1.7.0"), reason="dist.all_gather_object is not implemented")
 def test_idist_all_gather_gloo(distributed_context_single_node_gloo):
     device = idist.device()
     _test_distrib_all_gather(device)

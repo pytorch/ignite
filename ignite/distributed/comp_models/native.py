@@ -451,6 +451,12 @@ if has_native_dist_support:
             return torch.cat(output, dim=0)
 
         def _do_all_gather_object(self, tensor: Any, group: Optional[Any] = None) -> List[Any]:
+            if Version(torch.__version__) < Version("1.7.0"):
+                raise RuntimeError(
+                    "Current torch version does not implement dist.all_gather_object. "
+                    "Required version should be >=1.7.0"
+                )
+
             if group == dist.GroupMember.NON_GROUP_MEMBER:
                 return tensor
 
