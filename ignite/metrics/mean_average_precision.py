@@ -17,7 +17,7 @@ class _BaseMeanAveragePrecision(_BasePrecisionRecall):
         rec_thresholds: Optional[Union[Sequence[float], torch.Tensor]] = None,
         average: Optional[str] = "precision",
         class_mean: Optional[Literal["micro", "macro", "weighted", "with_other_dims"]] = "macro",
-        classification_is_multilabel: bool = False,
+        is_multilabel: bool = False,
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
@@ -85,7 +85,7 @@ class _BaseMeanAveragePrecision(_BasePrecisionRecall):
                 Note:
                     Please note that classes with no ground truth are not considered into the mean in detection.
 
-            classification_is_multilabel: Used in classification task and determines if the data
+            is_multilabel: Used in classification task and determines if the data
                 is multilabel or not. Default False.
             output_transform: a callable that is used to transform the
                 :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
@@ -109,7 +109,7 @@ class _BaseMeanAveragePrecision(_BasePrecisionRecall):
             raise ValueError(f"Wrong `class_mean` parameter, given {class_mean}")
         self.class_mean = class_mean
 
-        super().__init__(output_transform=output_transform, is_multilabel=classification_is_multilabel, device=device)
+        super().__init__(output_transform=output_transform, is_multilabel=is_multilabel, device=device)
 
     def _setup_thresholds(self, thresholds: Union[Sequence[float], torch.Tensor], threshold_type: str) -> torch.Tensor:
         if isinstance(thresholds, Sequence):
@@ -252,7 +252,7 @@ class MeanAveragePrecision(_BaseMeanAveragePrecision):
             average=average,
             class_mean=class_mean,
             output_transform=output_transform,
-            classification_is_multilabel=is_multilabel,
+            is_multilabel=is_multilabel,
             device=device,
         )
 

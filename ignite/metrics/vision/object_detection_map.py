@@ -11,6 +11,37 @@ from ignite.metrics.metric import reinit__is_reduced
 from ignite.metrics.recall import _BasePrecisionRecall
 
 
+def tensor_list_to_dict_list(
+    output: Tuple[
+        Union[List[torch.Tensor], List[Dict[str, torch.Tensor]]],
+        Union[List[torch.Tensor], List[Dict[str, torch.Tensor]]],
+    ]
+) -> Tuple[List[Dict[str, torch.Tensor]], List[Dict[str, torch.Tensor]]]:
+    """Convert either of output's `y_pred` or `y` from list of `(N, 6)` tensors to list of str-to-tensor dictionaries,
+    or keep them unchanged if they're already in the deisred format.
+
+    Input format is a `(N, 6)` or (`N, 5)` tensor which `N` is the number of predicted/target bounding boxes for the
+    image and the second dimension contains `(x1, y1, x2, y2, confidence, class)`/`(x1, y1, x2, y2, class[, iscrowd])`.
+    Output format is a str-to-tensor dictionary containing 'bbox' and `class` keys, plus `confidence` key for `y_pred`
+    and possibly `iscrowd` for `y`.
+
+    Args:
+        output: `(y_pred,y)` tuple whose members are either list of tensors or list of dicts.
+
+    Returns:
+        `(y_pred,y)` tuple whose members are list of str-to-tensor dictionaries.
+    """
+    y_pred, y = output
+    if len(y_pred) > 0 and isinstance(y_pred[0], torch.Tensor):
+        y_pred = [{"bbox": t[:, :4], "confidence": t[:, 4], "class": t[:, 5]} for t in cast(List[torch.Tensor], y_pred)]
+    if len(y) > 0 and isinstance(y[0], torch.Tensor):
+        if y[0].size(1) == 5:
+            y = [{"bbox": t[:, :4], "class": t[:, 4]} for t in cast(List[torch.Tensor], y)]
+        else:
+            y = [{"bbox": t[:, :4], "class": t[:, 4], "iscrowd": t[:, 5]} for t in cast(List[torch.Tensor], y)]
+    return cast(Tuple[List[Dict[str, torch.Tensor]], List[Dict[str, torch.Tensor]]], (y_pred, y))
+
+
 class ObjectDetectionMAP(_BaseMeanAveragePrecision):
     _tp: Dict[int, List[torch.Tensor]]
     _fp: Dict[int, List[torch.Tensor]]
@@ -25,7 +56,7 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
-        r"""Calculate the mean average precision for evaluating an object detector.
+        """Calculate the mean average precision for evaluating an object detector.
 
         Args:
             iou_thresholds: sequence of IoU thresholds to be considered for computing mean average precision.
@@ -34,11 +65,11 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
                 available option is 'COCO'. Default 'COCO'.
             rec_thresholds: sequence of recall thresholds to be considered for computing mean average precision.
                 Values should be between 0 and 1. If not given, it's determined by ``flavor`` argument.
-            output_transform: a callable that is used to transform the
-                :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
-                form expected by the metric. This can be useful if, for example, you have a multi-output model and
-                you want to compute the metric with respect to one of the outputs.
-                By default, metrics require the output as ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
+            output_transform: a callable that is used to transform the :class:`~ignite.engine.engine.Engine`'s
+                ``process_function``'s output into the form expected by the metric. An already
+                provided example is :func:`~ignite.metrics.vision.object_detection_map.tensor_list_to_dict_list`
+                which accepts `y_pred` and `y` as lists of tensors and transforms them to the expected format.
+                Default is the identity function.
             device: specifies which device updates are accumulated on. Setting the
                 metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
                 non-blocking. By default, CPU.
