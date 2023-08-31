@@ -14,7 +14,6 @@ def _tie_averaged_dcg(
     discount_cumsum: torch.Tensor,
     device: Union[str, torch.device] = torch.device("cpu"),
 ) -> torch.Tensor:
-
     _, inv, counts = torch.unique(-y_pred, return_inverse=True, return_counts=True)
     ranked = torch.zeros(counts.shape[0]).to(device)
     ranked.index_put_([inv], y_true, accumulate=True)
@@ -35,7 +34,6 @@ def _dcg_sample_scores(
     ignore_ties: bool = False,
     device: Union[str, torch.device] = torch.device("cpu"),
 ) -> torch.Tensor:
-
     discount = torch.log(torch.tensor(log_base)) / torch.log(torch.arange(y_true.shape[1]) + 2)
     discount = discount.to(device)
 
@@ -63,7 +61,6 @@ def _ndcg_sample_scores(
     log_base: Union[int, float] = 2,
     ignore_ties: bool = False,
 ) -> torch.Tensor:
-
     device = y_true.device
     gain = _dcg_sample_scores(y_pred, y_true, k=k, log_base=log_base, ignore_ties=ignore_ties, device=device)
     if not ignore_ties:
@@ -84,7 +81,6 @@ class NDCG(Metric):
         exponential: bool = False,
         ignore_ties: bool = False,
     ):
-
         if log_base == 1 or log_base <= 0:
             raise ValueError(f"Argument log_base should positive and not equal one,but got {log_base}")
         self.log_base = log_base
@@ -95,20 +91,18 @@ class NDCG(Metric):
 
     @reinit__is_reduced
     def reset(self) -> None:
-
         self.num_examples = 0
         self.ndcg = torch.tensor(0.0, device=self._device)
 
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
-
         y_pred, y_true = output[0].detach(), output[1].detach()
 
         y_pred = y_pred.to(torch.float32).to(self._device)
         y_true = y_true.to(torch.float32).to(self._device)
 
         if self.exponential:
-            y_true = 2 ** y_true - 1
+            y_true = 2**y_true - 1
 
         gain = _ndcg_sample_scores(y_pred, y_true, k=self.k, log_base=self.log_base, ignore_ties=self.ignore_ties)
         self.ndcg += torch.sum(gain)

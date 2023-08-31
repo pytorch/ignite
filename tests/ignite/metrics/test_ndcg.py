@@ -15,7 +15,6 @@ from ignite.metrics.recsys.ndcg import NDCG
 
 @pytest.fixture(params=[item for item in range(6)])
 def test_case(request):
-
     return [
         (torch.tensor([[3.7, 4.8, 3.9, 4.3, 4.9]]), torch.tensor([[2.9, 5.6, 3.8, 7.9, 6.2]])),
         (
@@ -28,32 +27,8 @@ def test_case(request):
 @pytest.mark.parametrize("k", [None, 2, 3])
 @pytest.mark.parametrize("exponential", [True, False])
 @pytest.mark.parametrize("ignore_ties, replacement", [(True, False), (False, True), (False, False)])
-def test_output_cpu(test_case, k, exponential, ignore_ties, replacement):
-
-    device = "cpu"
-    y_pred_distribution, y = test_case
-
-    y_pred = torch.multinomial(y_pred_distribution, 5, replacement=replacement)
-
-    ndcg = NDCG(k=k, device=device, exponential=exponential, ignore_ties=ignore_ties)
-    ndcg.update([y_pred, y])
-    result_ignite = ndcg.compute()
-
-    if exponential:
-        y = 2 ** y - 1
-
-    result_sklearn = ndcg_score(y.numpy(), y_pred.numpy(), k=k, ignore_ties=ignore_ties)
-
-    np.testing.assert_allclose(np.array(result_ignite), result_sklearn, rtol=2e-6)
-
-
-@pytest.mark.parametrize("k", [None, 2, 3])
-@pytest.mark.parametrize("exponential", [True, False])
-@pytest.mark.parametrize("ignore_ties, replacement", [(True, False), (False, True), (False, False)])
-@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_output_cuda(test_case, k, exponential, ignore_ties, replacement):
-
-    device = "cuda"
+def test_output(available_device, test_case, k, exponential, ignore_ties, replacement):
+    device = available_device
     y_pred_distribution, y = test_case
 
     y_pred = torch.multinomial(y_pred_distribution, 5, replacement=replacement)
@@ -66,7 +41,7 @@ def test_output_cuda(test_case, k, exponential, ignore_ties, replacement):
     result_ignite = ndcg.compute()
 
     if exponential:
-        y = 2 ** y - 1
+        y = 2**y - 1
 
     result_sklearn = ndcg_score(y.cpu().numpy(), y_pred.cpu().numpy(), k=k, ignore_ties=ignore_ties)
 
@@ -74,7 +49,6 @@ def test_output_cuda(test_case, k, exponential, ignore_ties, replacement):
 
 
 def test_reset():
-
     y = torch.tensor([[1.0, 2.0, 3.0, 4.0, 5.0]])
     y_pred = torch.tensor([[0.1, 0.2, 0.3, 0.4, 0.5]])
     ndcg = NDCG()
@@ -86,7 +60,6 @@ def test_reset():
 
 
 def _ndcg_sample_scores(y, y_score, k=None, ignore_ties=False):
-
     gain = _dcg_sample_scores(y, y_score, k, ignore_ties=ignore_ties)
     normalizing_gain = _dcg_sample_scores(y, y, k, ignore_ties=True)
     all_irrelevant = normalizing_gain == 0
@@ -98,7 +71,6 @@ def _ndcg_sample_scores(y, y_score, k=None, ignore_ties=False):
 @pytest.mark.parametrize("log_base", [2, 3, 10])
 def test_log_base(log_base):
     def ndcg_score_with_log_base(y, y_score, *, k=None, sample_weight=None, ignore_ties=False, log_base=2):
-
         gain = _ndcg_sample_scores(y, y_score, k=k, ignore_ties=ignore_ties)
         return np.average(gain, weights=sample_weight)
 
@@ -115,7 +87,6 @@ def test_log_base(log_base):
 
 
 def test_update(test_case):
-
     y_pred, y = test_case
 
     y_pred = y_pred
@@ -141,8 +112,10 @@ def test_update(test_case):
 
     np.testing.assert_allclose(np.array(result_ignite), result_sklearn, rtol=2e-6)
 
+
 @pytest.mark.parametrize("metric_device", ["cpu", "process_device"])
-def test_distrib_integration(distributed, metric_device):
+@pytest.mark.parametrize("num_epochs", [1, 2])
+def test_distrib_integration(distributed, num_epochs, metric_device):
     from ignite.engine import Engine
 
     rank = idist.get_rank()
@@ -153,7 +126,7 @@ def test_distrib_integration(distributed, metric_device):
     if metric_device == "process_device":
         metric_device = device if device.type != "xla" else "cpu"
 
-    #10 items
+    # 10 items
     y = torch.rand((n_iters * batch_size, 10)).to(device)
     y_preds = torch.rand((n_iters * batch_size, 10)).to(device)
 
@@ -167,7 +140,7 @@ def test_distrib_integration(distributed, metric_device):
     NDCG(device=metric_device).attach(engine, "ndcg")
 
     data = list(range(n_iters))
-    engine.run(data=data, max_epochs=1)
+    engine.run(data=data, max_epochs=num_epochs)
 
     y_preds = idist.all_gather(y_preds)
     y = idist.all_gather(y)
@@ -176,7 +149,7 @@ def test_distrib_integration(distributed, metric_device):
     res = engine.state.metrics["ndcg"]
 
     true_res = ndcg_score(y.cpu().numpy(), y_preds.cpu().numpy())
-    
+
     tol = 1e-3 if device.type == "xla" else 1e-4  # Isn't better to ask `distributed` about backend info?
 
     assert pytest.approx(res, abs=tol) == true_res
@@ -190,7 +163,6 @@ def test_distrib_accumulator_device(distributed, metric_device):
 
     ndcg = NDCG(device=metric_device)
 
-   
     assert ndcg._device == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
 
     y_pred = torch.rand((2, 10)).to(device)
