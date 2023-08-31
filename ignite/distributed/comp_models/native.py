@@ -433,7 +433,8 @@ if has_native_dist_support:
         def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None) -> torch.Tensor:
             if group == dist.GroupMember.NON_GROUP_MEMBER:
                 return tensor
-            elif group is None:
+
+            if group is None:
                 group_size = self.get_world_size()
             elif isinstance(group, dist.ProcessGroup):
                 group_size = group.size()
@@ -452,14 +453,20 @@ if has_native_dist_support:
         def _do_all_gather_object(self, tensor: Any, group: Optional[Any] = None) -> List[Any]:
             if group == dist.GroupMember.NON_GROUP_MEMBER:
                 return tensor
-            elif group is None:
+
+            if group is None:
                 group_size = self.get_world_size()
             elif isinstance(group, dist.ProcessGroup):
                 group_size = group.size()
             else:
                 raise ValueError("Argument group should be list of int or ProcessGroup")
             output = [None for _ in range(group_size)]
-            dist.all_gather_object(output, tensor, group=group)
+            # We do if/else here for compatibility with older pytorch versions
+            if group is not None:
+                dist.all_gather_object(output, tensor, group=group)
+            else:
+                dist.all_gather_object(output, tensor)
+
             return output
 
         def _do_new_group(self, ranks: List[int], **kwargs: Any) -> Any:

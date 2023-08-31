@@ -219,7 +219,7 @@ def _test_distrib_all_gather(device):
 
 def _test_distrib_all_gather_group(device):
     if idist.get_world_size() > 1:
-        ranks = [0, 1]
+        ranks = list(range(idist.get_world_size() - 1, 0, -1))  # [0, 1, 2, 3] -> [3, 2, 1]
         rank = idist.get_rank()
         bnd = idist.backend()
 
@@ -243,6 +243,40 @@ def _test_distrib_all_gather_group(device):
             res = idist.all_gather(t, group=ranks)
             if rank in ranks:
                 assert torch.equal(res, torch.tensor(ranks, device=device))
+            else:
+                assert res == t
+
+        t = {
+            "a": [rank + 1, rank + 2, torch.tensor(rank + 3, device=device)],
+            "b": torch.tensor([[rank + 1, rank + 2, rank + 3]], device=device),
+            "c": {"abcd": rank, "cdfg": torch.tensor(rank, dtype=torch.uint8, device=device)},
+        }
+        if bnd in ("xla-tpu"):
+            with pytest.raises(NotImplementedError, match=r"all_gather on object is not implemented for xla"):
+                res = idist.all_gather(t, group=ranks)
+        elif bnd in ("horovod"):
+            with pytest.raises(NotImplementedError, match=r"all_gather with group for horovod is not implemented"):
+                res = idist.all_gather(t, group=ranks)
+        else:
+            res = idist.all_gather(t, group=ranks)
+            if rank in ranks:
+                assert isinstance(res, list) and len(res) == len(ranks)
+                for i, obj in zip(ranks, res):
+                    assert isinstance(obj, dict)
+                    assert list(obj.keys()) == ["a", "b", "c"], obj
+                    expected_device = (
+                        device
+                        if torch.device(device).type == "cpu"
+                        else torch.device(f"{torch.device(device).type}:{i}")
+                    )
+                    expected = {
+                        "a": [i + 1, i + 2, torch.tensor(i + 3, device=expected_device)],
+                        "b": torch.tensor([[i + 1, i + 2, i + 3]], device=expected_device),
+                        "c": {"abcd": i, "cdfg": torch.tensor(i, dtype=torch.uint8, device=expected_device)},
+                    }
+                    assert obj["a"] == expected["a"], (obj, expected)
+                    assert (obj["b"] == expected["b"]).all(), (obj, expected)
+                    assert obj["c"] == expected["c"], (obj, expected)
             else:
                 assert res == t
 
