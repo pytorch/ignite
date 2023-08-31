@@ -18,6 +18,7 @@ from torch.distributions.geometric import Geometric
 import ignite.distributed as idist
 from ignite.engine import Engine
 from ignite.metrics import ObjectDetectionMAP
+from ignite.metrics.vision.object_detection_map import tensor_list_to_dict_list
 from ignite.utils import manual_seed
 
 torch.set_printoptions(linewidth=200)
@@ -959,6 +960,48 @@ def test_integration(sample):
     pycoco_res_50_95 = sample.mAP[0]
 
     assert np.allclose(res_50_95, pycoco_res_50_95)
+
+
+def test_tensor_list_to_dict_list():
+    y_preds = [
+        [torch.randn((2, 6)), torch.randn((0, 6)), torch.randn((5, 6))],
+        [
+            {"bbox": torch.randn((2, 4)), "confidence": torch.randn((2,)), "class": torch.randn((2,))},
+            {"bbox": torch.randn((5, 4)), "confidence": torch.randn((5,)), "class": torch.randn((5,))},
+        ],
+    ]
+    ys = [
+        [torch.randn((2, 6)), torch.randn((0, 6)), torch.randn((5, 6))],
+        [
+            {"bbox": torch.randn((2, 4)), "class": torch.randn((2,))},
+            {"bbox": torch.randn((5, 4)), "class": torch.randn((5,))},
+        ],
+    ]
+    for y_pred in y_preds:
+        for y in ys:
+            y_pred_new, y_new = tensor_list_to_dict_list((y_pred, y))
+            if isinstance(y_pred[0], dict):
+                assert y_pred_new is y_pred
+            else:
+                assert all(
+                    [
+                        (ypn["bbox"] == yp[:, :4]).all()
+                        & (ypn["confidence"] == yp[:, 4]).all()
+                        & (ypn["class"] == yp[:, 5]).all()
+                        for yp, ypn in zip(y_pred, y_pred_new)
+                    ]
+                )
+            if isinstance(y[0], dict):
+                assert y_new is y
+            else:
+                assert all(
+                    [
+                        (ytn["bbox"] == yt[:, :4]).all()
+                        & (ytn["class"] == yt[:, 4]).all()
+                        & (ytn["iscrowd"] == yt[:, 5]).all()
+                        for yt, ytn in zip(y, y_new)
+                    ]
+                )
 
 
 def test_distrib_update_compute(distributed, sample):
