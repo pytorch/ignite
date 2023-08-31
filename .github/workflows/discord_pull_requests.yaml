@@ -8,6 +8,7 @@ on:
     inputs:
       pull_request_number:
         description: 'Pull request number'
+        required: true
 
 permissions:
   pull-requests: write
@@ -24,5 +25,5 @@ jobs:
           destination: ${{ secrets.DISCORD_BOT_DESTINATION }}
           issue_number: ${{ github.event.inputs.pull_request_number || github.event.pull_request.number }}
           issue_comment: Hey 👋, I've just created a [thread]($THREAD_LINK$) for this pull request on [PyTorch-Ignite Discord](https://pytorch-ignite.ai/chat) where you can quickly talk to the community on the topic.
-          discord_message: New PR created in `${{ github.repository }}`:<https://github.com/${{ github.repository }}/pull/${{ github.event.pull_request.number }}>
+          discord_message: New PR created in `${{ github.repository }}`:<https://github.com/${{ github.repository }}/pull/${{ github.event.pull_request_number || github.event.pull_request.number }}>
 
