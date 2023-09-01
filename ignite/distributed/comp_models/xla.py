@@ -155,6 +155,9 @@ if has_xla_support:
             xm.all_reduce("sum", [output], groups=group)
             return output.reshape(-1, *output.shape[2:])
 
+        def _do_all_gather_object(self, tensor: Any, group: Optional[Any] = None) -> List[Any]:
+            raise NotImplementedError("all_gather on object is not implemented for xla")
+
         def _do_new_group(self, ranks: List[int], **kwargs: Any) -> Any:
             return [ranks]
 
