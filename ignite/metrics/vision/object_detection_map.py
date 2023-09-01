@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Callable, cast, Dict, List, Literal, Optional, Sequence, Tuple, Union
+from typing import Callable, cast, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 
@@ -51,7 +51,6 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
     def __init__(
         self,
         iou_thresholds: Optional[Union[Sequence[float], torch.Tensor]] = None,
-        flavor: Optional["Literal['COCO']"] = "COCO",
         rec_thresholds: Optional[Union[Sequence[float], torch.Tensor]] = None,
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
@@ -61,8 +60,6 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
         Args:
             iou_thresholds: sequence of IoU thresholds to be considered for computing mean average precision.
                 Values should be between 0 and 1. If not given, it's determined by ``flavor`` argument.
-            flavor: string value so that metric computation recipe correspond to its respective flavor. For now, only
-                available option is 'COCO'. Default 'COCO'.
             rec_thresholds: sequence of recall thresholds to be considered for computing mean average precision.
                 Values should be between 0 and 1. If not given, it's determined by ``flavor`` argument.
             output_transform: a callable that is used to transform the :class:`~ignite.engine.engine.Engine`'s
@@ -88,10 +85,6 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
         except ImportError:
             raise ModuleNotFoundError("This metric requires torchvision to be installed.")
 
-        if flavor != "COCO":
-            raise ValueError(f"Currently, the only available flavor for ObjectDetectionMAP is 'COCO', given {flavor}")
-        self.flavor = flavor
-
         if iou_thresholds is None:
             iou_thresholds = torch.linspace(0.5, 0.95, 10, dtype=torch.double)
 
@@ -102,7 +95,7 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
 
         super().__init__(
             rec_thresholds=rec_thresholds,
-            average="max-precision" if flavor == "COCO" else "precision",
+            average="max-precision",
             class_mean="with_other_dims",
             output_transform=output_transform,
             device=device,

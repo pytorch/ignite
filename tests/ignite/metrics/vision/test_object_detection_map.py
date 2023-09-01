@@ -625,9 +625,6 @@ def sample(request) -> Sample:
 
 
 def test_wrong_input():
-    with pytest.raises(ValueError, match="Currently, the only available flavor for ObjectDetectionMAP is 'COCO'"):
-        ObjectDetectionMAP(flavor="wrong flavor")
-
     m = ObjectDetectionMAP()
     with pytest.raises(ValueError, match="y_pred dict in update's input should have 'bbox', 'scores'"):
         m.update(({"bbox": None, "scores": None}, {"bbox": None, "labels": None}))
