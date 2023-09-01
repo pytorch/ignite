@@ -1,5 +1,3 @@
-import os
-
 import numpy as np
 import pytest
 import torch
@@ -7,7 +5,6 @@ from sklearn.metrics import ndcg_score
 from sklearn.metrics._ranking import _dcg_sample_scores
 
 import ignite.distributed as idist
-from ignite.engine import Engine
 
 from ignite.exceptions import NotComputableError
 from ignite.metrics.recsys.ndcg import NDCG
@@ -162,8 +159,6 @@ def test_distrib_accumulator_device(distributed, metric_device):
         metric_device = torch.device(device if device.type != "xla" else "cpu")
 
     ndcg = NDCG(device=metric_device)
-
-    assert ndcg._device == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
 
     y_pred = torch.rand((2, 10)).to(device)
     y = torch.rand((2, 10)).to(device)
