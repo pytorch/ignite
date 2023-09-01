@@ -208,6 +208,8 @@ class Accuracy(_BaseClassification):
             0.6666...
     """
 
+    _state_dict_all_req_keys = ("_num_correct", "_num_examples")
+
     def __init__(
         self,
         output_transform: Callable = lambda x: x,

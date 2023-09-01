@@ -81,6 +81,8 @@ class PSNR(Metric):
     .. versionadded:: 0.4.3
     """
 
+    _state_dict_all_req_keys = ("_sum_of_batchwise_psnr", "_num_examples")
+
     def __init__(
         self,
         data_range: Union[int, float],

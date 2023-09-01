@@ -6,12 +6,11 @@
 
 <!-- [![image](https://travis-ci.com/pytorch/ignite.svg?branch=master)](https://travis-ci.com/pytorch/ignite) -->
 
-| ![image](https://img.shields.io/badge/-Tests:-black?style=flat-square) [![image](https://github.com/pytorch/ignite/workflows/Run%20unit%20tests/badge.svg)](https://github.com/pytorch/ignite/actions) [![image](https://img.shields.io/badge/-GPU%20tests-black?style=flat-square)](https://app.circleci.com/pipelines/github/pytorch/ignite?branch=master)[![image](https://circleci.com/gh/pytorch/ignite.svg?style=svg)](https://app.circleci.com/pipelines/github/pytorch/ignite?branch=master) [![image](https://codecov.io/gh/pytorch/ignite/branch/master/graph/badge.svg)](https://codecov.io/gh/pytorch/ignite) [![image](https://img.shields.io/badge/dynamic/json.svg?label=docs&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fpytorch-ignite%2Fjson&query=%24.info.version&colorB=brightgreen&prefix=v)](https://pytorch.org/ignite/index.html) |
+| ![image](https://img.shields.io/badge/-Tests:-black?style=flat-square) [![image](https://github.com/pytorch/ignite/actions/workflows/unit-tests.yml/badge.svg?branch=master)](https://github.com/pytorch/ignite/actions/workflows/unit-tests.yml) [![image](https://github.com/pytorch/ignite/actions/workflows/gpu-tests.yml/badge.svg)](https://github.com/pytorch/ignite/actions/workflows/gpu-tests.yml) [![image](https://codecov.io/gh/pytorch/ignite/branch/master/graph/badge.svg)](https://codecov.io/gh/pytorch/ignite) [![image](https://img.shields.io/badge/dynamic/json.svg?label=docs&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fpytorch-ignite%2Fjson&query=%24.info.version&colorB=brightgreen&prefix=v)](https://pytorch.org/ignite/index.html) |
 |:---
-| ![image](https://img.shields.io/badge/-Stable%20Releases:-black?style=flat-square) [![image](https://anaconda.org/pytorch/ignite/badges/version.svg)](https://anaconda.org/pytorch/ignite) [![image](https://anaconda.org/pytorch/ignite/badges/downloads.svg)](https://anaconda.org/pytorch/ignite) [![image](https://img.shields.io/badge/dynamic/json.svg?label=PyPI&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fpytorch-ignite%2Fjson&query=%24.info.version&colorB=brightgreen&prefix=v)](https://pypi.org/project/pytorch-ignite/) [![image](https://pepy.tech/badge/pytorch-ignite)](https://pepy.tech/project/pytorch-ignite) |
+| ![image](https://img.shields.io/badge/-Stable%20Releases:-black?style=flat-square) [![image](https://anaconda.org/pytorch/ignite/badges/version.svg)](https://anaconda.org/pytorch/ignite) ・ [![image](https://img.shields.io/badge/dynamic/json.svg?label=PyPI&url=https%3A%2F%2Fpypi.org%2Fpypi%2Fpytorch-ignite%2Fjson&query=%24.info.version&colorB=brightgreen&prefix=v)](https://pypi.org/project/pytorch-ignite/) [![image](https://static.pepy.tech/badge/pytorch-ignite)](https://pepy.tech/project/pytorch-ignite) ・ [![image](https://img.shields.io/badge/docker-hub-blue)](https://hub.docker.com/u/pytorchignite) |
 | ![image](https://img.shields.io/badge/-Nightly%20Releases:-black?style=flat-square) [![image](https://anaconda.org/pytorch-nightly/ignite/badges/version.svg)](https://anaconda.org/pytorch-nightly/ignite) [![image](https://img.shields.io/badge/PyPI-pre%20releases-brightgreen)](https://pypi.org/project/pytorch-ignite/#history)|
-| ![image](https://img.shields.io/badge/-Features:-black?style=flat-square) [![image](https://img.shields.io/badge/docker-hub-blue)](https://hub.docker.com/u/pytorchignite) [![image](https://img.shields.io/badge/Optuna-integrated-blue)](https://optuna.org) [![image](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) |
-| ![image](https://img.shields.io/badge/-Community:-black?style=flat-square) [![Twitter](https://img.shields.io/badge/news-twitter-blue)](https://twitter.com/pytorch_ignite) [![facebook](https://img.shields.io/badge/news-facebook-blue)](https://www.facebook.com/PyTorch-Ignite-Community-105837321694508) [![numfocus](https://img.shields.io/badge/NumFOCUS-affiliated%20project-green)](https://numfocus.org/sponsored-projects/affiliated-projects) [![discord](https://img.shields.io/badge/chat-discord-blue?logo=discord)](https://discord.gg/djZtm3EmKj) |
+| ![image](https://img.shields.io/badge/-Community:-black?style=flat-square) [![Twitter](https://img.shields.io/badge/news-twitter-blue)](https://twitter.com/pytorch_ignite) [![discord](https://img.shields.io/badge/chat-discord-blue?logo=discord)](https://discord.gg/djZtm3EmKj) [![numfocus](https://img.shields.io/badge/NumFOCUS-affiliated%20project-green)](https://numfocus.org/sponsored-projects/affiliated-projects) |
 | ![image](https://img.shields.io/badge/-Supported_PyTorch/Python_versions:-black?style=flat-square) [![link](https://img.shields.io/badge/-check_here-blue)](https://github.com/pytorch/ignite/actions?query=workflow%3A%22PyTorch+version+tests%22)|
 
 </div>
@@ -346,8 +345,8 @@ For more details, see [here](docker).
 
 Few pointers to get you started:
 
-- [Quick Start Guide: Essentials of getting a project up and running](https://pytorch.org/ignite/quickstart.html)
-- [Concepts of the library: Engine, Events & Handlers, State, Metrics](https://pytorch.org/ignite/concepts.html)
+- [Quick Start Guide: Essentials of getting a project up and running](https://pytorch-ignite.ai/tutorials/beginner/01-getting-started/)
+- [Concepts of the library: Engine, Events & Handlers, State, Metrics](https://pytorch-ignite.ai/concepts/)
 - Full-featured template examples (coming soon)
 
 <!-- ############################################################################################################### -->
@@ -398,7 +397,7 @@ Few pointers to get you started:
   torch.cuda.amp vs nvidia/apex](https://github.com/pytorch/ignite/blob/master/examples/notebooks/Cifar100_bench_amp.ipynb)
 - [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pytorch/ignite/blob/master/examples/notebooks/MNIST_on_TPU.ipynb) [MNIST training on a single
   TPU](https://github.com/pytorch/ignite/blob/master/examples/notebooks/MNIST_on_TPU.ipynb)
-- [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1E9zJrptnLJ_PKhmaP5Vhb6DTVRvyrKHx) [CIFAR10 Training on multiple TPUs](https://github.com/pytorch/ignite/tree/master/examples/contrib/cifar10)
+- [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1E9zJrptnLJ_PKhmaP5Vhb6DTVRvyrKHx) [CIFAR10 Training on multiple TPUs](https://github.com/pytorch/ignite/tree/master/examples/cifar10)
 - [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pytorch/ignite/blob/master/examples/notebooks/HandlersTimeProfiler_MNIST.ipynb) [Basic example of handlers
   time profiling on MNIST training example](https://github.com/pytorch/ignite/blob/master/examples/notebooks/HandlersTimeProfiler_MNIST.ipynb)
 

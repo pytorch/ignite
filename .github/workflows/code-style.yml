@@ -10,7 +10,6 @@ on:
       - "tests/run_code_style.sh"
       - ".github/workflows/code-style.yml"
       - "!assets/**"
-      - "!.circleci/**"
       - "!docker/**"
       - "!docs/**"
       - "!conda.recipe"

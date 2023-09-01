@@ -73,6 +73,8 @@ class TopKCategoricalAccuracy(Metric):
             0.75
     """
 
+    _state_dict_all_req_keys = ("_num_correct", "_num_examples")
+
     def __init__(
         self,
         k: int = 5,

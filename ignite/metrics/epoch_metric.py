@@ -67,6 +67,8 @@ class EpochMetric(Metric):
         To disable the warning, set ``check_compute_fn=False``.
     """
 
+    _state_dict_all_req_keys = ("_predictions", "_targets")
+
     def __init__(
         self,
         compute_fn: Callable[[torch.Tensor, torch.Tensor], float],

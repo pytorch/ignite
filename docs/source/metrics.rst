@@ -290,7 +290,10 @@ Complete list of usages
 
     - :class:`~ignite.metrics.metric.MetricUsage`
     - :class:`~ignite.metrics.metric.EpochWise`
+    - :class:`~ignite.metrics.metric.RunningEpochWise`
     - :class:`~ignite.metrics.metric.BatchWise`
+    - :class:`~ignite.metrics.metric.RunningBatchWise`
+    - :class:`~ignite.metrics.metric.SingleEpochRunningBatchWise`
     - :class:`~ignite.metrics.metric.BatchFiltered`
 
 Metrics and distributed computations
@@ -361,9 +364,21 @@ EpochWise
 ~~~~~~~~~
 .. autoclass:: ignite.metrics.metric.EpochWise
 
+RunningEpochWise
+~~~~~~~~~~~~~~~~
+.. autoclass:: ignite.metrics.metric.RunningEpochWise
+
 BatchWise
 ~~~~~~~~~
 .. autoclass:: ignite.metrics.metric.BatchWise
+
+RunningBatchWise
+~~~~~~~~~~~~~~~~
+.. autoclass:: ignite.metrics.metric.RunningBatchWise
+
+SingleEpochRunningBatchWise
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: ignite.metrics.metric.SingleEpochRunningBatchWise
 
 BatchFiltered
 ~~~~~~~~~~~~~

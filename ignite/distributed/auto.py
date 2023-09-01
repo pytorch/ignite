@@ -1,5 +1,5 @@
 import warnings
-from typing import Any, Callable, Iterator, List, Optional, Union
+from typing import Any, Iterator, List, Optional, Union
 
 import torch
 import torch.nn as nn
@@ -57,7 +57,8 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> Union[DataLoader, "_MpDe
             )
 
     .. _torch DataLoader: https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader
-    .. _XLA MpDeviceLoader: https://github.com/pytorch/xla/blob/master/torch_xla/distributed/parallel_loader.py#L178
+    .. _XLA MpDeviceLoader:
+        https://pytorch.org/xla/release/2.0/index.html#running-on-multiple-xla-devices-with-multi-processing
     .. _torch DistributedSampler:
         https://pytorch.org/docs/stable/data.html#torch.utils.data.distributed.DistributedSampler
     .. _torch IterableDataset: https://pytorch.org/docs/stable/data.html#torch.utils.data.IterableDataset
@@ -255,7 +256,7 @@ def auto_optim(optimizer: Optimizer, **kwargs: Any) -> Optimizer:
 
             optimizer = idist.auto_optim(optimizer)
 
-    .. _xm.optimizer_step: http://pytorch.org/xla/release/1.5/index.html#torch_xla.core.xla_model.optimizer_step
+    .. _xm.optimizer_step: https://pytorch.org/xla/release/1.5/index.html#torch_xla.core.xla_model.optimizer_step
 
     .. versionchanged:: 0.4.2
         Added Horovod distributed optimizer.
@@ -350,5 +351,5 @@ if idist.has_xla_support:
             super(self.__class__, self).__init__(optimizer.param_groups)  # type: ignore[call-arg]
             self.wrapped_optimizer = optimizer
 
-        def step(self, closure: Optional[Callable] = None) -> None:
+        def step(self, closure: Any = None) -> Any:
             xm.optimizer_step(self.wrapped_optimizer, barrier=True)

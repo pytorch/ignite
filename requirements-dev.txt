@@ -31,5 +31,5 @@ nltk
 # Examples dependencies
 pandas
 gymnasium
-mkl
 pycocotools
+mkl;platform_machine=="x86_64"

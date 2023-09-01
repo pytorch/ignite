@@ -346,6 +346,12 @@ nitpick_ignore = [
     ("py:class", "torch.utils.data.dataloader.DataLoader"),
 ]
 
+linkcheck_ignore = [
+    "https://github.com/fossasia/visdom#visdom-arguments-python-only",
+    "https://github.com/pytorch/ignite/tree/master/examples/cifar10#check-resume-training",
+    "https://github.com/pytorch/ignite/tree/master/examples/mnist#training-save--resume",
+]
+
 
 def setup(app):
     app.add_directive("autosummary", AutolistAutosummary, override=True)

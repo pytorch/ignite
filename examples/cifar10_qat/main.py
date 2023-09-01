@@ -1,6 +1,5 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
 
 import fire
 import torch
@@ -13,7 +12,7 @@ import ignite
 import ignite.distributed as idist
 from ignite.contrib.engines import common
 from ignite.contrib.handlers import PiecewiseLinear
-from ignite.engine import Engine, Events
+from ignite.engine import create_supervised_evaluator, Engine, Events
 from ignite.handlers import Checkpoint, DiskSaver, global_step_from_engine
 from ignite.metrics import Accuracy, Loss
 from ignite.utils import manual_seed, setup_logger
@@ -24,16 +23,13 @@ def training(local_rank, config):
     manual_seed(config["seed"] + rank)
     device = idist.device()
 
-    logger = setup_logger(name="CIFAR10-Training")
+    logger = setup_logger(name="CIFAR10-QAT-Training", distributed_rank=local_rank)
 
     log_basic_info(logger, config)
 
     output_path = config["output_path"]
     if rank == 0:
-        if config["stop_iteration"] is None:
-            now = datetime.now().strftime("%Y%m%d-%H%M%S")
-        else:
-            now = f"stop-on-{config['stop_iteration']}"
+        now = datetime.now().strftime("%Y%m%d-%H%M%S")
 
         folder_name = f"{config['model']}_backend-{idist.backend()}-{idist.get_world_size()}_{now}"
         output_path = Path(output_path) / folder_name
@@ -46,11 +42,7 @@ def training(local_rank, config):
             config["cuda device name"] = torch.cuda.get_device_name(local_rank)
 
         if config["with_clearml"]:
-            try:
-                from clearml import Task
-            except ImportError:
-                # Backwards-compatibility for legacy Trains SDK
-                from trains import Task
+            from clearml import Task
 
             task = Task.init("CIFAR10-Training", task_name=output_path.stem)
             task.connect_configuration(config)
@@ -83,8 +75,8 @@ def training(local_rank, config):
 
     # We define two evaluators as they wont have exactly similar roles:
     # - `evaluator` will save the best model based on validation score
-    evaluator = create_evaluator(model, metrics=metrics, config=config)
-    train_evaluator = create_evaluator(model, metrics=metrics, config=config)
+    evaluator = create_supervised_evaluator(model, metrics=metrics, device=device, non_blocking=True)
+    train_evaluator = create_supervised_evaluator(model, metrics=metrics, device=device, non_blocking=True)
 
     def run_validation(engine):
         epoch = trainer.state.epoch
@@ -117,14 +109,6 @@ def training(local_rank, config):
         Events.COMPLETED(lambda *_: trainer.state.epoch > config["num_epochs"] // 2), best_model_handler
     )
 
-    # In order to check training resuming we can stop training on a given iteration
-    if config["stop_iteration"] is not None:
-
-        @trainer.on(Events.ITERATION_STARTED(once=config["stop_iteration"]))
-        def _():
-            logger.info(f"Stop training on {trainer.state.iteration} iteration")
-            trainer.terminate()
-
     try:
         trainer.run(train_loader, max_epochs=config["num_epochs"])
     except Exception as e:
@@ -136,27 +120,26 @@ def training(local_rank, config):
 
 
 def run(
-    seed: int = 543,
-    data_path: str = "/tmp/cifar10",
-    output_path: str = "/tmp/output-cifar10/",
-    model: str = "resnet18",
-    batch_size: int = 512,
-    momentum: float = 0.9,
-    weight_decay: float = 1e-4,
-    num_workers: int = 12,
-    num_epochs: int = 24,
-    learning_rate: float = 0.4,
-    num_warmup_epochs: int = 4,
-    validate_every: int = 3,
-    checkpoint_every: int = 1000,
-    backend: Optional[str] = None,
-    resume_from: Optional[str] = None,
-    log_every_iters: int = 15,
-    nproc_per_node: Optional[int] = None,
-    stop_iteration: Optional[int] = None,
-    with_clearml: bool = False,
-    with_amp: bool = False,
-    **spawn_kwargs: Any,
+    seed=543,
+    data_path="/tmp/cifar10",
+    output_path="/tmp/output-cifar10/",
+    model="resnet18_QAT_8b",
+    batch_size=512,
+    momentum=0.9,
+    weight_decay=1e-4,
+    num_workers=12,
+    num_epochs=24,
+    learning_rate=0.4,
+    num_warmup_epochs=4,
+    validate_every=3,
+    checkpoint_every=1000,
+    backend=None,
+    resume_from=None,
+    log_every_iters=15,
+    nproc_per_node=None,
+    with_clearml=False,
+    with_amp=False,
+    **spawn_kwargs,
 ):
     """Main entry to train an model on CIFAR10 dataset.
 
@@ -173,7 +156,7 @@ def run(
         learning_rate (float): peak of piecewise linear learning rate scheduler. Default, 0.4.
         num_warmup_epochs (int): number of warm-up epochs before learning rate decay. Default, 4.
         validate_every (int): run model's validation every ``validate_every`` epochs. Default, 3.
-        checkpoint_every (int): store training checkpoint every ``checkpoint_every`` iterations. Default, 1000.
+        checkpoint_every (int): store training checkpoint every ``checkpoint_every`` iterations. Default, 200.
         backend (str, optional): backend to use for distributed configuration. Possible values: None, "nccl", "xla-tpu",
             "gloo" etc. Default, None.
         nproc_per_node (int, optional): optional argument to setup number of processes per node. It is useful,
@@ -181,7 +164,6 @@ def run(
         resume_from (str, optional): path to checkpoint to use to resume the training from. Default, None.
         log_every_iters (int): argument to log batch loss every ``log_every_iters`` iterations.
             It can be 0 to disable it. Default, 15.
-        stop_iteration (int, optional): iteration to stop the training. Can be used to check resume from checkpoint.
         with_clearml (bool): if True, experiment ClearML logger is setup. Default, False.
         with_amp (bool): if True, enables native automatic mixed precision. Default, False.
         **spawn_kwargs: Other kwargs to spawn run in child processes: master_addr, master_port, node_rank, nnodes
@@ -200,8 +182,6 @@ def run(
     del config["spawn_kwargs"]
 
     spawn_kwargs["nproc_per_node"] = nproc_per_node
-    if backend == "xla-tpu" and with_amp:
-        raise RuntimeError("The value of with_amp should be False if backend is xla")
 
     with idist.Parallel(backend=backend, **spawn_kwargs) as parallel:
         parallel.run(training, config)
@@ -226,7 +206,7 @@ def get_dataflow(config):
 def initialize(config):
     model = utils.get_model(config["model"])
     # Adapt model for distributed settings if configured
-    model = idist.auto_model(model)
+    model = idist.auto_model(model, find_unused_parameters=True)
 
     optimizer = optim.SGD(
         model.parameters(),
@@ -251,11 +231,11 @@ def initialize(config):
 
 def log_metrics(logger, epoch, elapsed, tag, metrics):
     metrics_output = "\n".join([f"\t{k}: {v}" for k, v in metrics.items()])
-    logger.info(f"Epoch[{epoch}] - Evaluation time (seconds): {elapsed:.3f}\n - {tag} metrics:\n {metrics_output}")
+    logger.info(f"\nEpoch {epoch} - Evaluation time (seconds): {elapsed:.2f} - {tag} metrics:\n {metrics_output}")
 
 
 def log_basic_info(logger, config):
-    logger.info(f"Train {config['model']} on CIFAR10")
+    logger.info(f"Quantization Aware Training {config['model']} on CIFAR10")
     logger.info(f"- PyTorch version: {torch.__version__}")
     logger.info(f"- Ignite version: {ignite.__version__}")
     if torch.cuda.is_available():
@@ -346,30 +326,6 @@ def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, con
         Checkpoint.load_objects(to_load=to_save, checkpoint=checkpoint)
 
     return trainer
-
-
-def create_evaluator(model, metrics, config, tag="val"):
-    with_amp = config["with_amp"]
-    device = idist.device()
-
-    @torch.no_grad()
-    def evaluate_step(engine: Engine, batch):
-        model.eval()
-        x, y = batch[0], batch[1]
-        if x.device != device:
-            x = x.to(device, non_blocking=True)
-            y = y.to(device, non_blocking=True)
-
-        with autocast(enabled=with_amp):
-            output = model(x)
-        return output, y
-
-    evaluator = Engine(evaluate_step)
-
-    for name, metric in metrics.items():
-        metric.attach(evaluator, name)
-
-    return evaluator
 
 
 def get_save_handler(config):

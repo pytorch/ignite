@@ -82,7 +82,7 @@ class Checkpoint(Serializable):
             ``load_state_dict`` methods. If contains objects of type torch `DistributedDataParallel`_ or
             `DataParallel`_, their internal wrapped model is automatically saved (to avoid additional key ``module.`` in
             the state dictionary).
-        save_handler: String, method or callable class
+        save_handler: String, function or callable object.
             used to save engine and other provided objects. Function receives two objects: checkpoint as a dictionary
             and filename. If ``save_handler`` is callable class, it can
             inherit of :class:`~ignite.handlers.checkpoint.BaseSaveHandler` and optionally implement ``remove`` method
@@ -710,7 +710,7 @@ class Checkpoint(Serializable):
         return OrderedDict([("saved", [(p, f) for p, f in self._saved])])
 
     def load_state_dict(self, state_dict: Mapping) -> None:
-        """Method replace internal state of the class with provided state dict data.
+        """Method replaces internal state of the class with provided state dict data.
 
         Args:
             state_dict: a dict with "saved" key and list of ``(priority, filename)`` pairs as values.

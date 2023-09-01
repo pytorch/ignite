@@ -147,6 +147,11 @@ class Bleu(Metric):
             raise ValueError(f'Average must be either "macro" or "micro" (got: {average})')
         self.average = average
 
+        if average == "micro":
+            self._state_dict_all_req_keys = ("p_numerators", "p_denominators", "hyp_length_sum", "ref_length_sum")
+        else:
+            self._state_dict_all_req_keys = ("_sum_of_bleu", "_num_sentences")
+
         super(Bleu, self).__init__(output_transform=output_transform, device=device)
 
     def _n_gram_counter(

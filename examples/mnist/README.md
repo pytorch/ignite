@@ -2,7 +2,7 @@
 
 ported from [pytorch-examples](https://github.com/pytorch/examples/tree/master/mnist)
 
-#### Requirements:
+#### Minimal requirements:
 
 - [torchvision](https://github.com/pytorch/vision/): `pip install torchvision`
 - [tqdm](https://github.com/tqdm/tqdm/): `pip install tqdm`
@@ -11,22 +11,25 @@ ported from [pytorch-examples](https://github.com/pytorch/examples/tree/master/m
 
 Run the example:
 
-```
+```bash
 python mnist.py
+```
+
+Same example with logging using TQDM progress bar
+
+
+```bash
+python mnist_with_tqdm_logger.py
 ```
 
 ### Logging with Tensorboard
 
-MNIST example with training and validation monitoring using Tensorboard. Notice
-that if PyTorch version is less than 1.2, the module TensorboardX is required.
+MNIST example with training and validation monitoring using Tensorboard
 
-#### Requirements:
+#### Additional requirements:
 
-- [torchvision](https://github.com/pytorch/vision/): `pip install torchvision`
-- [TensorboardX](https://github.com/lanpa/tensorboard-pytorch) (if and only if `PyTorch <= 1.2`): `pip install tensorboardX`
 - Tensorboard: `pip install tensorboard`
 
-#### Usage:
 
 Run the example:
 
@@ -44,9 +47,8 @@ tensorboard --logdir=/tmp/tensorboard_logs/
 
 MNIST example with training and validation monitoring using Visdom
 
-#### Requirements:
+#### Additional requirements:
 
-- [torchvision](https://github.com/pytorch/vision/): `pip install torchvision`
 - [Visdom](https://github.com/facebookresearch/visdom): `pip install visdom`
 
 #### Usage:
@@ -61,6 +63,18 @@ Run the example:
 
 ```bash
 python mnist_with_visdom.py
+```
+
+### Logging with ClearML
+
+#### Additional requirements:
+
+- [ClearML python client](https://clear.ml/docs/latest/docs/): `pip install clearml`
+
+#### Usage:
+
+```bash
+python mnist_with_clearml_logger.py
 ```
 
 ### Training save & resume

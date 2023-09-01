@@ -56,7 +56,7 @@ in the code. For more details, please, see :class:`~ignite.distributed.launcher.
 :meth:`~ignite.distributed.auto.auto_dataloader`.
 
 Complete example of CIFAR10 training can be found
-`here <https://github.com/pytorch/ignite/tree/master/examples/contrib/cifar10>`_.
+`here <https://github.com/pytorch/ignite/tree/master/examples/cifar10>`_.
 
 
 .. _torch.distributed.launch: https://pytorch.org/docs/stable/distributed.html#launch-utility

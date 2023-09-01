@@ -11,7 +11,17 @@ from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_
 import ignite.distributed as idist
 from ignite.engine import Engine, Events, State
 from ignite.metrics import ConfusionMatrix, Precision, Recall
-from ignite.metrics.metric import BatchFiltered, BatchWise, EpochWise, Metric, reinit__is_reduced, sync_all_reduce
+from ignite.metrics.metric import (
+    BatchFiltered,
+    BatchWise,
+    EpochWise,
+    Metric,
+    reinit__is_reduced,
+    RunningBatchWise,
+    RunningEpochWise,
+    SingleEpochRunningBatchWise,
+    sync_all_reduce,
+)
 
 
 class DummyMetric1(Metric):
@@ -703,6 +713,7 @@ def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
     _test_distrib_sync_all_reduce_decorator(device)
     _test_invalid_sync_all_reduce(device)
     _test_compute_with_sync_all_reduce_doesnt_change_attributes(device)
+    _test_distrib_state_dict(device)
 
 
 @pytest.mark.distributed
@@ -712,6 +723,7 @@ def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
     _test_distrib_sync_all_reduce_decorator(device)
     _test_invalid_sync_all_reduce(device)
     _test_compute_with_sync_all_reduce_doesnt_change_attributes(device)
+    _test_distrib_state_dict(device)
 
 
 @pytest.mark.distributed
@@ -734,6 +746,7 @@ def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
     _test_distrib_sync_all_reduce_decorator(device)
     _test_invalid_sync_all_reduce(device)
     _test_compute_with_sync_all_reduce_doesnt_change_attributes(device)
+    _test_distrib_state_dict(device)
 
 
 @pytest.mark.multinode_distributed
@@ -839,80 +852,133 @@ def test_usage_exception():
     m = DummyMetric2()
     with pytest.raises(TypeError, match=r"Unhandled usage type"):
         m.attach(engine, "dummy", usage=1)
-    with pytest.raises(ValueError, match=r"usage should be 'EpochWise.usage_name' or 'BatchWise.usage_name'"):
+    with pytest.raises(
+        ValueError,
+        match=r"usage should be '\(Running\)EpochWise.usage_name' or '\(\(SingleEpoch\)Running\)BatchWise.usage_name'",
+    ):
         m.attach(engine, "dummy", usage="fake")
 
 
-def test_epochwise_usage():
-    class MyMetric(Metric):
-        def __init__(self):
-            super(MyMetric, self).__init__()
-            self.value = []
+class DummyAccumulateInListMetric(Metric):
+    def __init__(self):
+        super(DummyAccumulateInListMetric, self).__init__()
+        self.value = []
 
-        def reset(self):
-            self.value = []
+    def reset(self):
+        self.value = []
 
-        def compute(self):
-            return self.value
+    def compute(self):
+        return self.value
 
-        def update(self, output):
-            self.value.append(output)
-
-    def test(usage):
-        engine = Engine(lambda e, b: b)
-
-        m = MyMetric()
-
-        m.attach(engine, "ewm", usage=usage)
-
-        @engine.on(Events.EPOCH_COMPLETED)
-        def _():
-            ewm = engine.state.metrics["ewm"]
-            assert len(ewm) == 3
-            assert ewm == [0, 1, 2]
-
-        engine.run([0, 1, 2], max_epochs=10)
-        m.detach(engine, usage=usage)
-
-    test("epoch_wise")
-    test(EpochWise.usage_name)
-    test(EpochWise())
+    def update(self, output):
+        self.value.append(output)
 
 
-def test_batchwise_usage():
-    class MyMetric(Metric):
-        def __init__(self):
-            super(MyMetric, self).__init__()
-            self.value = []
+@pytest.mark.parametrize("usage", ["epoch_wise", EpochWise.usage_name, EpochWise()])
+def test_epochwise_usage(usage):
+    engine = Engine(lambda e, b: b)
 
-        def reset(self):
-            self.value = []
+    m = DummyAccumulateInListMetric()
 
-        def compute(self):
-            return self.value
+    m.attach(engine, "ewm", usage=usage)
 
-        def update(self, output):
-            self.value.append(output)
+    @engine.on(Events.EPOCH_COMPLETED)
+    def _():
+        ewm = engine.state.metrics["ewm"]
+        assert len(ewm) == 3
+        assert ewm == [0, 1, 2]
 
-    def test(usage):
-        engine = Engine(lambda e, b: b)
+    engine.run([0, 1, 2], max_epochs=10)
+    m.detach(engine, usage=usage)
 
-        m = MyMetric()
 
-        m.attach(engine, "bwm", usage=usage)
+class DummyAccumulateMetric(Metric):
+    def __init__(self):
+        super(DummyAccumulateMetric, self).__init__()
+        self.value = 0
 
-        @engine.on(Events.ITERATION_COMPLETED)
-        def _():
-            bwm = engine.state.metrics["bwm"]
-            assert len(bwm) == 1
-            assert bwm[0] == (engine.state.iteration - 1) % 3
+    def reset(self):
+        self.value = 0
 
-        engine.run([0, 1, 2], max_epochs=10)
-        m.detach(engine, usage=usage)
+    def compute(self):
+        return self.value
 
-    test("batch_wise")
-    test(BatchWise.usage_name)
-    test(BatchWise())
+    def update(self, output):
+        self.value += output
+
+
+@pytest.mark.parametrize("usage", ["running_epoch_wise", RunningEpochWise.usage_name, RunningEpochWise()])
+def test_running_epochwise_usage(usage):
+    engine = Engine(lambda e, b: e.state.metrics["ewm"])
+
+    engine.state.metrics["ewm"] = 0
+
+    @engine.on(Events.EPOCH_STARTED)
+    def _():
+        engine.state.metrics["ewm"] += 1
+
+    m = DummyAccumulateMetric()
+    m.attach(engine, "rewm", usage=usage)
+
+    @engine.on(Events.EPOCH_COMPLETED)
+    def _():
+        assert engine.state.metrics["rewm"] == sum(range(engine.state.epoch + 1))
+
+    engine.run([0, 1, 2], max_epochs=10)
+
+    m.detach(engine, usage=usage)
+
+
+@pytest.mark.parametrize("usage", ["batch_wise", BatchWise.usage_name, BatchWise()])
+def test_batchwise_usage(usage):
+    engine = Engine(lambda e, b: b)
+
+    m = DummyAccumulateInListMetric()
+
+    m.attach(engine, "bwm", usage=usage)
+
+    @engine.on(Events.ITERATION_COMPLETED)
+    def _():
+        bwm = engine.state.metrics["bwm"]
+        assert len(bwm) == 1
+        assert bwm[0] == (engine.state.iteration - 1) % 3
+
+    engine.run([0, 1, 2], max_epochs=10)
+    m.detach(engine, usage=usage)
+
+
+@pytest.mark.parametrize("usage", ["running_batch_wise", RunningBatchWise.usage_name, RunningBatchWise()])
+def test_running_batchwise_usage(usage):
+    engine = Engine(lambda e, b: b)
+
+    m = DummyAccumulateMetric()
+    m.attach(engine, "rbwm", usage=usage)
+
+    @engine.on(Events.EPOCH_COMPLETED)
+    def _():
+        assert engine.state.metrics["rbwm"] == 6 * engine.state.epoch
+
+    engine.run([0, 1, 2, 3], max_epochs=10)
+
+    m.detach(engine, usage=usage)
+
+
+@pytest.mark.parametrize(
+    "usage", ["single_epoch_running_batch_wise", SingleEpochRunningBatchWise.usage_name, SingleEpochRunningBatchWise()]
+)
+def test_single_epoch_running_batchwise_usage(usage):
+    engine = Engine(lambda e, b: b)
+
+    m = DummyAccumulateMetric()
+    m.attach(engine, "rbwm", usage=usage)
+
+    @engine.on(Events.EPOCH_COMPLETED)
+    def _():
+        assert engine.state.metrics["rbwm"] == 6
+
+    engine.run([0, 1, 2, 3], max_epochs=10)
+
+    m.detach(engine, usage=usage)
 
 
 def test_batchfiltered_usage():
@@ -1062,3 +1128,74 @@ def test_list_of_tensors_and_numbers_unsupported_output():
 
     with pytest.raises(ValueError, match=r"Output should have 2 items of the same length"):
         engine.run([0] * 10)
+
+
+class DummyMetric4(Metric):
+    _state_dict_all_req_keys = ("dnumber", "fnumber", "tensor")
+
+    def __init__(self, value: int):
+        super().reset()
+        self.dnumber = value
+        self.fnumber = float(value + 1)
+        self.tensor = torch.tensor([value + 2])
+
+    def reset(self):
+        self.dnumber = -1
+        self.fnumber = -2.0
+        self.tensor = torch.tensor([-3])
+
+    def update(self, output):
+        pass
+
+    def compute(self):
+        pass
+
+
+def test_wrong_state_dict():
+    class WrongMetric(Metric):
+        _state_dict_all_req_keys = ("object",)
+
+        def __init__(self, value):
+            super().__init__()
+            self.object = {"a": [value]}
+
+        def reset(self):
+            pass
+
+        def update(self, output):
+            pass
+
+        def compute(self):
+            pass
+
+    metric = WrongMetric(2)
+    with pytest.raises(TypeError, match="Currently, only numeric or tensor-typed attributes of the metric"):
+        metric.state_dict()
+
+    delattr(metric, "object")
+    with pytest.raises(ValueError, match="Found a value in _state_dict_all_req_keys that is not among"):
+        metric.state_dict()
+
+
+def test_state_dict():
+    metric = DummyMetric4(1)
+    state = metric.state_dict()
+    assert state.keys() == {"dnumber", "fnumber", "tensor"}
+    metric.reset()
+    metric.load_state_dict(state)
+    assert metric.dnumber == 1
+    assert metric.fnumber == 2
+    assert metric.tensor == torch.tensor([3])
+
+
+def _test_distrib_state_dict(device):
+    rank = idist.get_local_rank()
+    metric = DummyMetric4(rank)
+    state = metric.state_dict()
+    assert isinstance(state["dnumber"][rank], int)
+    assert isinstance(state["fnumber"][rank], float)
+    metric.reset()
+    metric.load_state_dict(state)
+    assert metric.dnumber == rank and isinstance(metric.dnumber, int)
+    assert metric.fnumber == rank + 1 and isinstance(metric.fnumber, float)
+    assert metric.tensor == torch.tensor([rank + 2])

@@ -184,7 +184,7 @@ def _test__hvd_dist_model_warning_index_less_localrank():
 @pytest.mark.distributed
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Skip if less than 2 GPUs")
 def test__hvd_dist_model_warning_index_less_localrank(gloo_hvd_executor):
-    gloo_hvd_executor(_test__hvd_dist_model_warning_index_less_localrank, (), num_proc=torch.cuda.device_count())
+    gloo_hvd_executor(_test__hvd_dist_model_warning_index_less_localrank, (), np=torch.cuda.device_count())
 
 
 def _test_dist_spawn_fn(local_rank, backend, world_size, device):
