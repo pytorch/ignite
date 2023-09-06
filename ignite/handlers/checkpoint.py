@@ -670,7 +670,8 @@ class Checkpoint(Serializable):
             `DataParallel`_, method ``load_state_dict`` will applied to their internal wrapped model (``obj.module``).
 
         Note:
-            This method works only when the ``save_handler`` is of type :class:`~ignite.handlers.checkpoint.DiskSaver`.
+            This method works only when the ``save_handler`` is of types string,
+            :class:`~pathlib.Path` or :class:`~ignite.handlers.checkpoint.DiskSaver`.
 
         .. _DistributedDataParallel: https://pytorch.org/docs/stable/generated/
             torch.nn.parallel.DistributedDataParallel.html
