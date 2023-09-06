@@ -78,6 +78,10 @@ def test_checkpoint_wrong_input():
     with pytest.raises(TypeError, match="If `include_self` is True, then `to_save` must be mutable"):
         Checkpoint(ImmutableMapping(), lambda x: x, include_self=True)
 
+    checkpoint = Checkpoint(to_save, lambda x: x)
+    with pytest.raises(AttributeError, match="Checkpoint's `save_handler` should be of type `DiskSaver`"):
+        checkpoint.reload_objects(to_save)
+
 
 def test_save_handler_as_str(dirname):
     to_save = {"model": model}

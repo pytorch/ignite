@@ -669,10 +669,17 @@ class Checkpoint(Serializable):
             If ``to_load`` contains objects of type torch `DistributedDataParallel`_ or
             `DataParallel`_, method ``load_state_dict`` will applied to their internal wrapped model (``obj.module``).
 
+        Note:
+            This method works only when the ``save_handler`` is of type :class:`~ignite.handlers.checkpoint.DiskSaver`.
+
         .. _DistributedDataParallel: https://pytorch.org/docs/stable/generated/
             torch.nn.parallel.DistributedDataParallel.html
         .. _DataParallel: https://pytorch.org/docs/stable/generated/torch.nn.DataParallel.html
         """
+        if not isinstance(self.save_handler, DiskSaver):
+            raise AttributeError(
+                f"Checkpoint's `save_handler` should be of type `DiskSaver`, given {type(self.save_handler)}"
+            )
 
         global_step = filename_components.get("global_step", None)
 
