@@ -59,9 +59,9 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
 
         Args:
             iou_thresholds: sequence of IoU thresholds to be considered for computing mean average precision.
-                Values should be between 0 and 1. If not given, it's determined by ``flavor`` argument.
+                Values should be between 0 and 1. If not given, COCO's default (.5, .55, ..., .95) would be used.
             rec_thresholds: sequence of recall thresholds to be considered for computing mean average precision.
-                Values should be between 0 and 1. If not given, it's determined by ``flavor`` argument.
+                Values should be between 0 and 1. If not given, COCO's default (.0, .01, .02, ..., 1.) would be used.
             output_transform: a callable that is used to transform the :class:`~ignite.engine.engine.Engine`'s
                 ``process_function``'s output into the form expected by the metric. An already
                 provided example is :func:`~ignite.metrics.vision.object_detection_map.tensor_list_to_dict_list`
@@ -114,19 +114,27 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
         self._P = defaultdict(lambda: 0)
         self._num_classes: int = 0
 
-    def _check_matching_input(self, output: Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]) -> None:
+    def _check_matching_input(
+        self, output: Tuple[List[Dict[str, torch.Tensor]], List[Dict[str, torch.Tensor]]]
+    ) -> None:
+        y_pred, y = output
+        if len(y_pred) != len(y):
+            raise ValueError(f"y_pred and y should have the same number of samples, given {len(y_pred)} and {len(y)}.")
+        if len(y_pred) == 0:
+            raise ValueError("y_pred and y should contain at least one sample.")
+
         y_pred_keys = {"bbox", "scores", "labels"}
-        if (output[0].keys() & y_pred_keys) != y_pred_keys:
+        if (y_pred[0].keys() & y_pred_keys) != y_pred_keys:
             raise ValueError(
-                "y_pred dict in update's input should have 'bbox', 'scores'"
-                f" and 'labels' keys. It has {output[0].keys()}"
+                "y_pred sample dictionaries should have 'bbox', 'scores'"
+                f" and 'labels' keys, given keys: {y_pred[0].keys()}"
             )
 
         y_keys = {"bbox", "labels"}
-        if (output[1].keys() & y_keys) != y_keys:
+        if (y[0].keys() & y_keys) != y_keys:
             raise ValueError(
-                "y dict in update's input should have 'bbox', 'labels'"
-                f" and optionaly 'iscrowd' keys. It has {output[1].keys()}"
+                "y sample dictionaries should have 'bbox', 'labels'"
+                f" and optionally 'iscrowd' keys, given keys: {y[0].keys()}"
             )
 
     def _compute_recall_and_precision(
@@ -172,7 +180,7 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
     def _compute_average_precision(self, recall: torch.Tensor, precision: torch.Tensor) -> torch.Tensor:
         """Measuring average precision.
         This method is overriden since :math:`1/#recall_thresholds` is used instead of :math:`r_k - r_{k-1}`
-        as the recall differential in COCO flavor.
+        as the recall differential in COCO's reference implementation i.e., pycocotools.
 
         Args:
             recall: n-dimensional tensor whose last dimension is the dimension of the samples. Should be ordered in
@@ -182,9 +190,6 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
         Returns:
             average_precision: (n-1)-dimensional tensor containing the average precision for mean dimensions.
         """
-        if self.flavor != "COCO":
-            return super()._compute_average_precision(recall, precision)
-
         precision_integrand = (
             precision.flip(-1).cummax(dim=-1).values.flip(-1) if self.average == "max-precision" else precision
         )
@@ -304,13 +309,14 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
         return tp, fp, P, scores
 
     @reinit__is_reduced
-    def update(self, output: Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]) -> None:
+    def update(self, output: Tuple[List[Dict[str, torch.Tensor]], List[Dict[str, torch.Tensor]]]) -> None:
         r"""Metric update function using prediction and target.
 
         Args:
-            output: a binary tuple of str-to-tensor dictionaries, (y_pred, y), which their items
-                are as follows. N\ :sub:`det` and N\ :sub:`gt` are number of detections and
-                ground truths respectively.
+            output: a tuple, (y_pred, y), of two same-length lists, each one containing
+                str-to-tensor dictionaries whose items is as follows. N\ :sub:`det` and
+                N\ :sub:`gt` are number of detections and ground truths for a sample
+                respectively.
 
                 ======== ================== =================================================
                 **y_pred items**
@@ -336,22 +342,23 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
                 ========= ================= =================================================
         """
         self._check_matching_input(output)
-        tps, fps, ps, scores_dict = self._do_matching(output[0], output[1])
-        for cls in tps:
-            self._tp[cls].append(tps[cls].to(device=self._device, dtype=torch.uint8))
-            self._fp[cls].append(fps[cls].to(device=self._device, dtype=torch.uint8))
-            self._scores[cls].append(scores_dict[cls].to(self._device))
-        for cls in ps:
-            self._P[cls] += ps[cls]
-        classes = tps.keys() | ps.keys()
-        if classes:
-            self._num_classes = max(max(classes) + 1, self._num_classes)
+        for y_pred, y in zip(*output):
+            tps, fps, ps, scores_dict = self._do_matching(y_pred, y)
+            for cls in tps:
+                self._tp[cls].append(tps[cls].to(device=self._device, dtype=torch.uint8))
+                self._fp[cls].append(fps[cls].to(device=self._device, dtype=torch.uint8))
+                self._scores[cls].append(scores_dict[cls].to(self._device))
+            for cls in ps:
+                self._P[cls] += ps[cls]
+            classes = tps.keys() | ps.keys()
+            if classes:
+                self._num_classes = max(max(classes) + 1, self._num_classes)
 
-    def compute(self) -> Union[torch.Tensor, float]:
+    def compute(self) -> float:
         """
         Compute method of the metric
         """
-        if sum(self._P.values()) < 1 and self.flavor == "COCO":
+        if sum(self._P.values()) < 1:
             return -1
 
         num_classes = int(idist.all_reduce(self._num_classes or 0, "MAX"))
@@ -431,4 +438,4 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
             average_precision_for_cls_across_other_dims = self._compute_average_precision(recall, precision)
             average_precisions[cls] = average_precision_for_cls_across_other_dims
 
-        return average_precisions[average_precisions > -1].mean()
+        return average_precisions[average_precisions > -1].mean().item()

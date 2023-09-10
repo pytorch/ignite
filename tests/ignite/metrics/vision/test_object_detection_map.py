@@ -1,7 +1,7 @@
 import sys
 from collections import namedtuple
 from math import ceil
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 from unittest.mock import patch
 
 import numpy as np
@@ -626,10 +626,15 @@ def sample(request) -> Sample:
 
 def test_wrong_input():
     m = ObjectDetectionMAP()
-    with pytest.raises(ValueError, match="y_pred dict in update's input should have 'bbox', 'scores'"):
-        m.update(({"bbox": None, "scores": None}, {"bbox": None, "labels": None}))
-    with pytest.raises(ValueError, match="y dict in update's input should have 'bbox', 'labels'"):
-        m.update(({"bbox": None, "scores": None, "labels": None}, {"labels": None}))
+
+    with pytest.raises(ValueError, match="y_pred and y should have the same number of samples"):
+        m.update(([{"bbox": None, "scores": None}], []))
+    with pytest.raises(ValueError, match="y_pred and y should contain at least one sample."):
+        m.update(([], []))
+    with pytest.raises(ValueError, match="y_pred sample dictionaries should have 'bbox', 'scores'"):
+        m.update(([{"bbox": None, "scores": None}], [{"bbox": None, "labels": None}]))
+    with pytest.raises(ValueError, match="y sample dictionaries should have 'bbox', 'labels'"):
+        m.update(([{"bbox": None, "scores": None, "labels": None}], [{"labels": None}]))
 
 
 def test_empty_data():
@@ -640,8 +645,8 @@ def test_empty_data():
     metric = ObjectDetectionMAP()
     metric.update(
         (
-            {"bbox": torch.zeros((0, 4)), "scores": torch.zeros((0,)), "labels": torch.zeros((0))},
-            {"bbox": torch.zeros((0, 4)), "iscrowd": torch.zeros((0,)), "labels": torch.zeros((0))},
+            [{"bbox": torch.zeros((0, 4)), "scores": torch.zeros((0,)), "labels": torch.zeros((0))}],
+            [{"bbox": torch.zeros((0, 4)), "iscrowd": torch.zeros((0,)), "labels": torch.zeros((0))}],
         )
     )
     assert len(metric._tp) == 0
@@ -653,12 +658,14 @@ def test_empty_data():
     metric = ObjectDetectionMAP()
     metric.update(
         (
-            {"bbox": torch.zeros((0, 4)), "scores": torch.zeros((0,)), "labels": torch.zeros((0))},
-            {
-                "bbox": torch.tensor([[0.0, 0.0, 100.0, 100.0]]),
-                "iscrowd": torch.zeros((1,)),
-                "labels": torch.ones((1,)),
-            },
+            [{"bbox": torch.zeros((0, 4)), "scores": torch.zeros((0,)), "labels": torch.zeros((0))}],
+            [
+                {
+                    "bbox": torch.tensor([[0.0, 0.0, 100.0, 100.0]]),
+                    "iscrowd": torch.zeros((1,)),
+                    "labels": torch.ones((1,)),
+                }
+            ],
         )
     )
     assert len(metric._tp) == 0
@@ -674,7 +681,7 @@ def test_empty_data():
         "labels": torch.tensor([5]),
     }
     target = {"bbox": torch.zeros((0, 4)), "iscrowd": torch.zeros((0,)), "labels": torch.zeros((0))}
-    metric.update((pred, target))
+    metric.update(([pred], [target]))
     assert (5 in metric._tp) and metric._tp[5][0].shape[1] == 1
     assert (5 in metric._fp) and metric._fp[5][0].shape[1] == 1
     assert len(metric._P) == 0
@@ -718,7 +725,7 @@ def test_iou_thresholding():
         "labels": torch.tensor([1]),
     }
     gt = {"bbox": torch.tensor([[0.0, 0.0, 50.0, 100.0]]), "iscrowd": torch.zeros((1,)), "labels": torch.tensor([1])}
-    metric.update((pred, gt))
+    metric.update(([pred], [gt]))
     assert (metric._tp[1][0] == torch.tensor([[True], [True], [True], [False]])).all()
 
     pred = {
@@ -727,7 +734,7 @@ def test_iou_thresholding():
         "labels": torch.tensor([1]),
     }
     gt = {"bbox": torch.tensor([[100.0, 0.0, 200.0, 100.0]]), "iscrowd": torch.zeros((1,)), "labels": torch.tensor([1])}
-    metric.update((pred, gt))
+    metric.update(([pred], [gt]))
     assert (metric._tp[1][1] == torch.tensor([[True], [False], [False], [False]])).all()
 
 
@@ -747,7 +754,7 @@ def test__do_matching_output(sample):
             assert tps[cls].dtype in (torch.bool, torch.uint8)
             assert tps[cls].size(-1) == fps[cls].size(-1) == scores[cls].size(0)
 
-        metric.update((pred, target))
+        metric.update(([pred], [target]))
 
         for metric_tp_or_fp, new_tp_or_fp in [(metric._tp, tps), (metric._fp, fps)]:
             try:
@@ -759,10 +766,12 @@ def test__do_matching_output(sample):
 
 
 class Dummy_mAP(ObjectDetectionMAP):
-    def _do_matching(self, pred: Tuple, target: Tuple):
-        return *pred, *target
+    def _do_matching(self, tup1: Tuple, tup2: Tuple):
+        tp, fp = tup1
+        p, score = tup2
+        return tp, fp, p, score
 
-    def _check_matching_input(self, output: Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]):
+    def _check_matching_input(self, output: Any):
         pass
 
 
@@ -770,12 +779,14 @@ def test_update():
     metric = Dummy_mAP()
     assert len(metric._tp) == len(metric._fp) == len(metric._scores) == len(metric._P) == metric._num_classes == 0
 
-    metric.update((({1: torch.tensor([True])}, {1: torch.tensor([False])}), ({1: 1, 2: 1}, {1: torch.tensor([0.8])})))
+    metric.update(
+        ([({1: torch.tensor([True])}, {1: torch.tensor([False])})], [({1: 1, 2: 1}, {1: torch.tensor([0.8])})])
+    )
     assert len(metric._tp[1]) == len(metric._fp[1]) == len(metric._scores[1]) == 1
     assert len(metric._P) == 2 and metric._P[2] == 1
     assert metric._num_classes == 3
 
-    metric.update((({}, {}), ({2: 2}, {})))
+    metric.update(([({}, {})], [({2: 2}, {})]))
     assert metric._P[2] == 3
 
 
@@ -806,7 +817,7 @@ def test_matching():
         "iscrowd": torch.zeros((1,)),
         "labels": torch.tensor([1]),
     }
-    metric.update((rule_1_pred, rule_1_gt))
+    metric.update(([rule_1_pred], [rule_1_gt]))
     assert (metric._tp[1][0] == torch.tensor([[False, True]])).all()
     assert (metric._fp[1][0] == torch.tensor([[True, False]])).all()
 
@@ -820,7 +831,7 @@ def test_matching():
         "iscrowd": torch.zeros((1,)),
         "labels": torch.tensor([1]),
     }
-    metric.update((rule_1_and_2_pred, rule_1_and_2_gt))
+    metric.update(([rule_1_and_2_pred], [rule_1_and_2_gt]))
     assert (metric._tp[1][1] == torch.tensor([[True, False]])).all()
     assert (metric._fp[1][1] == torch.tensor([[False, True]])).all()
 
@@ -834,7 +845,7 @@ def test_matching():
         "iscrowd": torch.tensor([1]),
         "labels": torch.tensor([1]),
     }
-    metric.update((rule_2_pred, rule_2_gt))
+    metric.update(([rule_2_pred], [rule_2_gt]))
     assert (metric._tp[1][2] == torch.tensor([[False, False]])).all()
     assert (metric._fp[1][2] == torch.tensor([[False, False]])).all()
 
@@ -848,7 +859,7 @@ def test_matching():
         "iscrowd": torch.zeros((2,)),
         "labels": torch.tensor([1, 1]),
     }
-    metric.update((rule_2_and_3_pred, rule_2_and_3_gt))
+    metric.update(([rule_2_and_3_pred], [rule_2_and_3_gt]))
     assert (metric._tp[1][3] == torch.tensor([[True, False]])).all()
     assert (metric._fp[1][3] == torch.tensor([[False, True]])).all()
 
@@ -916,14 +927,13 @@ def test_compute(sample):
     metric_75 = ObjectDetectionMAP(iou_thresholds=[0.75], device=device)
     metric_50_95 = ObjectDetectionMAP(device=device)
 
-    for prediction, target in zip(*sample.data):
-        metric_50.update((prediction, target))
-        metric_75.update((prediction, target))
-        metric_50_95.update((prediction, target))
+    metric_50.update(sample.data)
+    metric_75.update(sample.data)
+    metric_50_95.update(sample.data)
 
-    res_50 = metric_50.compute().item()
-    res_75 = metric_75.compute().item()
-    res_50_95 = metric_50_95.compute().item()
+    res_50 = metric_50.compute()
+    res_75 = metric_75.compute()
+    res_50_95 = metric_50_95.compute()
 
     pycoco_res_50_95, pycoco_res_50, pycoco_res_75 = sample.mAP
 
@@ -941,8 +951,11 @@ def test_compute(sample):
 
 
 def test_integration(sample):
+    bs = 3
+
     def update(engine, i):
-        return sample.data[0][i], sample.data[1][i]
+        b = slice(i * bs, (i + 1) * bs)
+        return sample.data[0][b], sample.data[1][b]
 
     engine = Engine(update)
 
@@ -951,7 +964,8 @@ def test_integration(sample):
     metric_50_95 = ObjectDetectionMAP(device=metric_device)
     metric_50_95.attach(engine, name="mAP[50-95]")
 
-    engine.run(range(sample.length), max_epochs=1)
+    n_iter = ceil(sample.length / bs)
+    engine.run(range(n_iter), max_epochs=1)
 
     res_50_95 = engine.state.metrics["mAP[50-95]"]
     pycoco_res_50_95 = sample.mAP[0]
@@ -1012,10 +1026,11 @@ def test_distrib_update_compute(distributed, sample):
     metric_75 = ObjectDetectionMAP(iou_thresholds=[0.75], device=metric_device)
     metric_50_95 = ObjectDetectionMAP(device=metric_device)
 
-    for prediction, target in zip(sample.data[0][rank_samples_range], sample.data[1][rank_samples_range]):
-        metric_50.update((prediction, target))
-        metric_75.update((prediction, target))
-        metric_50_95.update((prediction, target))
+    y_pred_rank = sample.data[0][rank_samples_range]
+    y_rank = sample.data[1][rank_samples_range]
+    metric_50.update((y_pred_rank, y_rank))
+    metric_75.update((y_pred_rank, y_rank))
+    metric_50_95.update((y_pred_rank, y_rank))
 
     res_50 = metric_50.compute()
     res_75 = metric_75.compute()
