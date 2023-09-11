@@ -476,7 +476,10 @@ class Checkpoint(Serializable):
                     obj.consolidate_state_dict(to=self.save_on_rank)
                     if self.save_on_rank != idist.get_rank():
                         continue
-                checkpoint[k] = obj.state_dict()
+                if is_dict_of_serializable_objects(obj):
+                    checkpoint[k] = {k: v.state_dict() for k, v in obj.items()}
+                else:
+                    checkpoint[k] = obj.state_dict()
         return checkpoint
 
     @staticmethod
@@ -532,8 +535,8 @@ class Checkpoint(Serializable):
 
     @staticmethod
     def _check_objects(objs: Mapping, attr: str) -> None:
-        for k, obj in objs.items():
-            if not hasattr(obj, attr):
+        for _, obj in objs.items():
+            if not hasattr(obj, attr) and not is_dict_of_serializable_objects(obj):
                 raise TypeError(f"Object {type(obj)} should have `{attr}` method")
 
     @staticmethod
@@ -611,6 +614,9 @@ class Checkpoint(Serializable):
                 obj = obj.module
             if isinstance(obj, torch.nn.Module):
                 obj.load_state_dict(chkpt_obj, strict=is_state_dict_strict)
+            elif is_dict_of_serializable_objects(obj):
+                for k, v in obj.items():
+                    v.load_state_dict(chkpt_obj[k])
             else:
                 obj.load_state_dict(chkpt_obj)
 
@@ -1002,3 +1008,7 @@ class ModelCheckpoint(Checkpoint):
         self._check_objects(to_save, "state_dict")
         self.to_save = to_save
         super(ModelCheckpoint, self).__call__(engine)
+
+
+def is_dict_of_serializable_objects(obj: Any) -> bool:
+    return isinstance(obj, Mapping) and all([hasattr(v, "state_dict") for v in obj.values()])
