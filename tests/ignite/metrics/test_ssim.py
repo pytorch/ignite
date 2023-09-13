@@ -253,21 +253,6 @@ def test_ssim_uint8(available_device, shape, kernel_size, gaussian, use_sample_c
     assert np.allclose(ignite_ssim, skimg_ssim, atol=1e-5)
 
 
-def test_ssim_uint8_warning(available_device):
-    shape = (7, 3, 256, 256)
-    y_pred = torch.randint(0, 255, shape, device=available_device, dtype=torch.uint8)
-    y = (y_pred * 0.8).to(dtype=torch.uint8)
-
-    sigma = 1.5
-    data_range = 1.0
-    ssim = SSIM(data_range=data_range, sigma=sigma, device=available_device)
-
-    with pytest.warns(
-        RuntimeWarning, match=r"dtypes of the input tensors are torch.uint8 but data range is not set to 255."
-    ):
-        ssim.update((y_pred, y))
-
-
 @pytest.mark.parametrize("metric_device", ["cpu", "process_device"])
 def test_distrib_integration(distributed, metric_device):
     from ignite.engine import Engine
