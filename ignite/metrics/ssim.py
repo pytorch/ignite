@@ -99,6 +99,7 @@ class SSIM(Metric):
 
         super(SSIM, self).__init__(output_transform=output_transform, device=device)
         self.gaussian = gaussian
+        self.data_range = data_range
         self.c1 = (k1 * data_range) ** 2
         self.c2 = (k2 * data_range) ** 2
         self.pad_h = (self.kernel_size[0] - 1) // 2
@@ -156,6 +157,12 @@ class SSIM(Metric):
             raise ValueError(
                 f"Expected y_pred and y to have BxCxHxW shape. Got y_pred: {y_pred.shape} and y: {y.shape}."
             )
+
+        # converts potential integer tensor to fp
+        if not y.is_floating_point():
+            y = y.float()
+        if not y_pred.is_floating_point():
+            y_pred = y_pred.float()
 
         nb_channel = y_pred.size(1)
         if self._kernel is None or self._kernel.shape[0] != nb_channel:
