@@ -222,6 +222,37 @@ def test_cuda_ssim_dtypes(available_device, dtype, precision):
     compare_ssim_ignite_skiimg(y_pred, y, available_device, precision)
 
 
+@pytest.mark.parametrize(
+    "shape, kernel_size, gaussian, use_sample_covariance",
+    [[(8, 3, 224, 224), 7, False, True], [(12, 3, 28, 28), 11, True, False]],
+)
+def test_ssim_uint8(available_device, shape, kernel_size, gaussian, use_sample_covariance):
+    y_pred = torch.randint(0, 255, shape, device=available_device, dtype=torch.uint8)
+    y = (y_pred * 0.8).to(dtype=torch.uint8)
+
+    sigma = 1.5
+    data_range = 255
+    ssim = SSIM(data_range=data_range, sigma=sigma, device=available_device)
+    ssim.update((y_pred, y))
+    ignite_ssim = ssim.compute()
+
+    skimg_pred = y_pred.cpu().numpy()
+    skimg_y = (skimg_pred * 0.8).astype(np.uint8)
+    skimg_ssim = ski_ssim(
+        skimg_pred,
+        skimg_y,
+        win_size=kernel_size,
+        sigma=sigma,
+        channel_axis=1,
+        gaussian_weights=gaussian,
+        data_range=data_range,
+        use_sample_covariance=use_sample_covariance,
+    )
+
+    assert isinstance(ignite_ssim, float)
+    assert np.allclose(ignite_ssim, skimg_ssim, atol=1e-5)
+
+
 @pytest.mark.parametrize("metric_device", ["cpu", "process_device"])
 def test_distrib_integration(distributed, metric_device):
     from ignite.engine import Engine

@@ -90,7 +90,7 @@ class ProgressBar(BaseLogger):
 
 
     Note:
-        When attaching the progress bar to an engine, it is recommend that you replace
+        When attaching the progress bar to an engine, it is recommended that you replace
         every print operation in the engine's handlers triggered every iteration with
         ``pbar.log_message`` to guarantee the correct format of the stdout.
 
