@@ -378,13 +378,13 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
         )
         if num_preds_per_class_across_ranks.sum() == 0:
             return 0.0
-        a_nonempty_rank, its_class_with_pred = list(zip(*torch.where(num_preds_per_class_across_ranks != 0))).pop(0)
+        a_nonempty_rank, a_nonempty_class = list(zip(*torch.where(num_preds_per_class_across_ranks != 0))).pop(0)
         a_nonempty_rank = a_nonempty_rank.item()
-        its_class_with_pred = its_class_with_pred.item()
+        a_nonempty_class = a_nonempty_class.item()
         mean_dimensions_shape = cast(
             torch.Tensor,
             idist.broadcast(
-                torch.tensor(self._tp[its_class_with_pred][-1].shape[:-1], device=self._device)
+                torch.tensor(self._tp[a_nonempty_class][-1].shape[:-1], device=self._device)
                 if idist.get_rank() == a_nonempty_rank
                 else None,
                 a_nonempty_rank,
