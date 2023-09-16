@@ -300,6 +300,8 @@ class CyclicalScheduler(ParamScheduler):
         cycle_mult: float = 1.0,
         start_value_mult: float = 1.0,
         end_value_mult: float = 1.0,
+        warmup_each_cycle: bool = False,
+        warmup_duration: Optional[int] = None,
         save_history: bool = False,
         param_group_index: Optional[int] = None,
     ):
@@ -313,6 +315,18 @@ class CyclicalScheduler(ParamScheduler):
         self.cycle = 0
         self.start_value_mult = start_value_mult
         self.end_value_mult = end_value_mult
+        self.warmup_each_cycle = warmup_each_cycle
+        if not self.warmup_each_cycle:
+            if warmup_duration is not None:
+                warnings.warn(
+                    f"warmup_each_cycle=False but your warmup_duration is {warmup_duration}. "
+                    f"so warmup_duration will be set to 0. "
+                    f"If you want to use warmup each cycle, pleas set warmup_each_cycle=True"
+                )
+            self.warmup_duration = 0
+        else:
+            self.warmup_duration = warmup_duration
+        self.total_cycle_size = self.warmup_duration + self.cycle_size
 
         if self.cycle_size < 2:
             raise ValueError(f"Argument cycle_size should be positive and larger than 1, but given {cycle_size}")
@@ -325,17 +339,25 @@ class CyclicalScheduler(ParamScheduler):
             "cycle",
             "start_value_mult",
             "end_value_mult",
+            "warmup_duration",
         ]
 
     def __call__(self, engine: Optional[Engine], name: Optional[str] = None) -> None:
-        if self.event_index != 0 and self.event_index % self.cycle_size == 0:
+        if self.event_index != 0 and self.event_index % self.total_cycle_size == 0:
             self.event_index = 0
             self.cycle_size = int(self.cycle_size * self.cycle_mult)
+            self.warmup_duration = int(self.warmup_duration * self.cycle_mult)
+            self.total_cycle_size = int(self.warmup_duration + self.cycle_size)
             self.cycle += 1
             self.start_value *= self.start_value_mult
+        if self.event_index != 0 and self.event_index == self.warmup_duration:
             self.end_value *= self.end_value_mult
 
         return super(CyclicalScheduler, self).__call__(engine, name)
+
+    def _get_cycle_param(self):
+        cycle_progress = (self.event_index - self.warmup_duration) / self.cycle_size
+        return self.start_value + ((self.end_value - self.start_value) / 2) * (1 - math.cos(math.pi * cycle_progress))
 
 
 class LinearCyclicalScheduler(CyclicalScheduler):
@@ -538,8 +560,9 @@ class CosineAnnealingScheduler(CyclicalScheduler):
 
     def get_param(self) -> float:
         """Method to get current optimizer's parameter value"""
-        cycle_progress = self.event_index / self.cycle_size
-        return self.start_value + ((self.end_value - self.start_value) / 2) * (1 - math.cos(math.pi * cycle_progress))
+        if self.warmup_each_cycle and self.event_index < self.warmup_duration:
+            return self.end_value + (self.start_value - self.end_value) * self.event_index / self.warmup_duration
+        return self._get_cycle_param()
 
 
 class ConcatScheduler(ParamScheduler):
