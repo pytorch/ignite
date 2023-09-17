@@ -355,9 +355,15 @@ class CyclicalScheduler(ParamScheduler):
 
         return super(CyclicalScheduler, self).__call__(engine, name)
 
+    def get_param(self) -> float:
+        """Method to get current optimizer's parameter value"""
+        if self.warmup_each_cycle and self.event_index < self.warmup_duration:
+            return self.end_value + (self.start_value - self.end_value) * self.event_index / self.warmup_duration
+
+        return self._get_cycle_param()
+
     def _get_cycle_param(self):
-        cycle_progress = (self.event_index - self.warmup_duration) / self.cycle_size
-        return self.start_value + ((self.end_value - self.start_value) / 2) * (1 - math.cos(math.pi * cycle_progress))
+        raise NotImplementedError
 
 
 class LinearCyclicalScheduler(CyclicalScheduler):
@@ -454,7 +460,7 @@ class LinearCyclicalScheduler(CyclicalScheduler):
     .. versionadded:: 0.4.5
     """
 
-    def get_param(self) -> float:
+    def _get_cycle_param(self):
         cycle_progress = self.event_index / self.cycle_size
         return self.end_value + (self.start_value - self.end_value) * abs(cycle_progress - 0.5) * 2
 
@@ -558,11 +564,10 @@ class CosineAnnealingScheduler(CyclicalScheduler):
     .. versionadded:: 0.4.5
     """
 
-    def get_param(self) -> float:
+    def _get_cycle_param(self):
         """Method to get current optimizer's parameter value"""
-        if self.warmup_each_cycle and self.event_index < self.warmup_duration:
-            return self.end_value + (self.start_value - self.end_value) * self.event_index / self.warmup_duration
-        return self._get_cycle_param()
+        cycle_progress = (self.event_index - self.warmup_duration) / self.cycle_size
+        return self.start_value + ((self.end_value - self.start_value) / 2) * (1 - math.cos(math.pi * cycle_progress))
 
 
 class ConcatScheduler(ParamScheduler):
