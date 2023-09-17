@@ -320,8 +320,8 @@ class CyclicalScheduler(ParamScheduler):
             if warmup_duration is not None:
                 warnings.warn(
                     f"warmup_each_cycle=False but your warmup_duration is {warmup_duration}. "
-                    f"so warmup_duration will be set to 0. "
-                    f"If you want to use warmup each cycle, pleas set warmup_each_cycle=True"
+                    "so warmup_duration will be set to 0. "
+                    "If you want to use warmup each cycle, pleas set warmup_each_cycle=True"
                 )
             self.warmup_duration = 0
         else:
