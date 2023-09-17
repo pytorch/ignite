@@ -339,6 +339,7 @@ class CyclicalScheduler(ParamScheduler):
             "cycle",
             "start_value_mult",
             "end_value_mult",
+            "total_cycle_size",
             "warmup_duration",
         ]
 
