@@ -10,6 +10,7 @@ from ignite.handlers.param_scheduler import (
     ConcatScheduler,
     CosineAnnealingScheduler,
     create_lr_scheduler_with_warmup,
+    CyclicalScheduler,
     LinearCyclicalScheduler,
     LRScheduler,
     ParamGroupScheduler,
@@ -53,6 +54,16 @@ def test_param_scheduler_asserts():
 
     with pytest.raises(TypeError, match=r"Argument optimizer should be torch.optim.Optimizer"):
         FakeParamScheduler({}, "lr")
+
+
+def test_cyclical_scheduler_asserts():
+    tensor = torch.zeros([1], requires_grad=True)
+    optimizer = torch.optim.SGD([tensor], lr=0)
+
+    with pytest.raises(
+        TypeError, match="Can't instantiate abstract class CyclicalScheduler with abstract method _get_cycle_param"
+    ):
+        CyclicalScheduler({}, "lr", 0.0, 1.0, 10)
 
 
 def test_linear_scheduler():
@@ -285,6 +296,66 @@ def test_cosine_annealing_scheduler():
                     0.5,
                     0.6545084971874737,
                     0.7938926261462365,  # 0.9045084971874737, 0.9755282581475768
+                ],
+            )
+        )
+        scheduler.load_state_dict(state_dict)
+
+        assert lrs == pytest.approx([v for i, v in simulated_values])
+
+
+def test_cosine_annealing_scheduler_warmup():
+    tensor = torch.zeros([1], requires_grad=True)
+    optimizer = torch.optim.SGD([tensor], lr=0)
+
+    scheduler = CosineAnnealingScheduler(optimizer, "lr", 0, 1, 10, warmup_each_cycle=True, warmup_duration=5)
+    state_dict = scheduler.state_dict()
+
+    data = [0] * 9
+    max_epochs = 2
+    simulated_values = CosineAnnealingScheduler.simulate_values(
+        num_events=len(data) * max_epochs,
+        param_name="lr",
+        start_value=0,
+        end_value=1,
+        cycle_size=10,
+        warmup_each_cycle=True,
+        warmup_duration=5,
+    )
+
+    def save_lr(engine):
+        lrs.append(optimizer.param_groups[0]["lr"])
+
+    trainer = Engine(lambda engine, batch: None)
+    trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+    trainer.add_event_handler(Events.ITERATION_COMPLETED, save_lr)
+
+    for _ in range(2):
+        lrs = []
+        trainer.run(data, max_epochs=max_epochs)
+
+        assert lrs == list(
+            map(
+                pytest.approx,
+                [
+                    1.0,
+                    0.8,
+                    0.6,
+                    0.4,
+                    0.2,
+                    0.0,
+                    0.024471741852423234,
+                    0.09549150281252627,
+                    0.20610737385376343,
+                    0.3454915028125263,
+                    0.49999999999999994,
+                    0.6545084971874737,
+                    0.7938926261462365,
+                    0.9045084971874737,
+                    0.9755282581475768,
+                    1.0,
+                    0.8,
+                    0.6,
                 ],
             )
         )
