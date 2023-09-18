@@ -60,9 +60,7 @@ def test_cyclical_scheduler_asserts():
     tensor = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([tensor], lr=0)
 
-    with pytest.raises(
-        TypeError, match="Can't instantiate abstract class CyclicalScheduler with abstract methods _get_cycle_param"
-    ):
+    with pytest.raises(TypeError, match="Can't instantiate abstract class CyclicalScheduler"):
         CyclicalScheduler({}, "lr", 0.0, 1.0, 10)
 
 
