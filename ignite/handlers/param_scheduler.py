@@ -287,7 +287,8 @@ class CyclicalScheduler(ParamScheduler):
         If the scheduler is bound to an 'ITERATION_*' event, 'cycle_size' should
         usually be the number of batches in an epoch.
 
-    .. versionadded:: 0.4.5
+    .. versionchanged:: 0.4.13
+        Added warmup to the scheduler using ``warmup_each_cycle`` and ``warmup_duration``.
     """
 
     def __init__(
@@ -321,10 +322,12 @@ class CyclicalScheduler(ParamScheduler):
                 warnings.warn(
                     f"warmup_each_cycle=False but your warmup_duration is {warmup_duration}. "
                     "so warmup_duration will be set to 0. "
-                    "If you want to use warmup each cycle, pleas set warmup_each_cycle=True"
+                    "If you want to use warmup each cycle, please set warmup_each_cycle=True"
                 )
             self.warmup_duration = 0
         else:
+            if warmup_duration is None:
+                raise ValueError("Argument warmup_duration should be integer, but given None")
             self.warmup_duration = warmup_duration
         self.total_cycle_size = self.warmup_duration + self.cycle_size
 
@@ -363,8 +366,14 @@ class CyclicalScheduler(ParamScheduler):
 
         return self._get_cycle_param()
 
-    def _get_cycle_param(self):
-        raise NotImplementedError
+    @abstractmethod
+    def _get_cycle_param(self) -> float:
+        """Method to get the cycle's current parameter value
+
+        Returns:
+            list of params, or scalar param
+        """
+        pass
 
 
 class LinearCyclicalScheduler(CyclicalScheduler):
@@ -461,7 +470,8 @@ class LinearCyclicalScheduler(CyclicalScheduler):
     .. versionadded:: 0.4.5
     """
 
-    def _get_cycle_param(self):
+    def _get_cycle_param(self) -> float:
+        """Method to get the cycle's current parameter value"""
         cycle_progress = self.event_index / self.cycle_size
         return self.end_value + (self.start_value - self.end_value) * abs(cycle_progress - 0.5) * 2
 
@@ -565,8 +575,8 @@ class CosineAnnealingScheduler(CyclicalScheduler):
     .. versionadded:: 0.4.5
     """
 
-    def _get_cycle_param(self):
-        """Method to get current optimizer's parameter value"""
+    def _get_cycle_param(self) -> float:
+        """Method to get the cycle's current parameter value"""
         cycle_progress = (self.event_index - self.warmup_duration) / self.cycle_size
         return self.start_value + ((self.end_value - self.start_value) / 2) * (1 - math.cos(math.pi * cycle_progress))
 
