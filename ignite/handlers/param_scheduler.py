@@ -287,6 +287,8 @@ class CyclicalScheduler(ParamScheduler):
         If the scheduler is bound to an 'ITERATION_*' event, 'cycle_size' should
         usually be the number of batches in an epoch.
 
+    .. versionadded:: 0.4.5
+
     .. versionchanged:: 0.4.13
         Added warmup to the scheduler using ``warmup_each_cycle`` and ``warmup_duration``.
     """
