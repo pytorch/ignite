@@ -10,7 +10,6 @@ from ignite.handlers.param_scheduler import (
     ConcatScheduler,
     CosineAnnealingScheduler,
     create_lr_scheduler_with_warmup,
-    CyclicalScheduler,
     LinearCyclicalScheduler,
     LRScheduler,
     ParamGroupScheduler,
@@ -54,14 +53,6 @@ def test_param_scheduler_asserts():
 
     with pytest.raises(TypeError, match=r"Argument optimizer should be torch.optim.Optimizer"):
         FakeParamScheduler({}, "lr")
-
-
-def test_cyclical_scheduler_asserts():
-    tensor = torch.zeros([1], requires_grad=True)
-    optimizer = torch.optim.SGD([tensor], lr=0)
-
-    with pytest.raises(TypeError, match="Can't instantiate abstract class CyclicalScheduler"):
-        CyclicalScheduler({}, "lr", 0.0, 1.0, 10)
 
 
 def test_linear_scheduler():
@@ -306,7 +297,7 @@ def test_cosine_annealing_scheduler_warmup():
     tensor = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([tensor], lr=0)
 
-    scheduler = CosineAnnealingScheduler(optimizer, "lr", 0, 1, 10, warmup_each_cycle=True, warmup_duration=5)
+    scheduler = CosineAnnealingScheduler(optimizer, "lr", 0, 1, 10, warmup_duration=5)
     state_dict = scheduler.state_dict()
 
     data = [0] * 9
@@ -317,7 +308,6 @@ def test_cosine_annealing_scheduler_warmup():
         start_value=0,
         end_value=1,
         cycle_size=10,
-        warmup_each_cycle=True,
         warmup_duration=5,
     )
 
