@@ -44,7 +44,7 @@ def _prepare_batch(
 def supervised_training_step(
     model: torch.nn.Module,
     optimizer: torch.optim.Optimizer,
-    loss_fn: Union[Callable, torch.nn.Module],
+    loss_fn: Union[Callable[[Any, Any], torch.Tensor], torch.nn.Module],
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
@@ -57,7 +57,7 @@ def supervised_training_step(
     Args:
         model: the model to train.
         optimizer: the optimizer to use.
-        loss_fn: the loss function to use.
+        loss_fn: the loss function that receives `y_pred` and `y`, and returns the loss as a tensor.
         device: device type specification (default: None).
             Applies to batches after starting the engine. Model *will not* be moved.
             Device can be CPU, GPU.
@@ -120,7 +120,7 @@ def supervised_training_step(
 def supervised_training_step_amp(
     model: torch.nn.Module,
     optimizer: torch.optim.Optimizer,
-    loss_fn: Union[Callable, torch.nn.Module],
+    loss_fn: Union[Callable[[Any, Any], torch.Tensor], torch.nn.Module],
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
@@ -134,7 +134,7 @@ def supervised_training_step_amp(
     Args:
         model: the model to train.
         optimizer: the optimizer to use.
-        loss_fn: the loss function to use.
+        loss_fn: the loss function that receives `y_pred` and `y`, and returns the loss as a tensor.
         device: device type specification (default: None).
             Applies to batches after starting the engine. Model *will not* be moved.
             Device can be CPU, GPU.
@@ -212,7 +212,7 @@ def supervised_training_step_amp(
 def supervised_training_step_apex(
     model: torch.nn.Module,
     optimizer: torch.optim.Optimizer,
-    loss_fn: Union[Callable, torch.nn.Module],
+    loss_fn: Union[Callable[[Any, Any], torch.Tensor], torch.nn.Module],
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
@@ -225,7 +225,7 @@ def supervised_training_step_apex(
     Args:
         model: the model to train.
         optimizer: the optimizer to use.
-        loss_fn: the loss function to use.
+        loss_fn: the loss function that receives `y_pred` and `y`, and returns the loss as a tensor.
         device: device type specification (default: None).
             Applies to batches after starting the engine. Model *will not* be moved.
             Device can be CPU, GPU.
@@ -295,7 +295,7 @@ def supervised_training_step_apex(
 def supervised_training_step_tpu(
     model: torch.nn.Module,
     optimizer: torch.optim.Optimizer,
-    loss_fn: Union[Callable, torch.nn.Module],
+    loss_fn: Union[Callable[[Any, Any], torch.Tensor], torch.nn.Module],
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
@@ -308,7 +308,7 @@ def supervised_training_step_tpu(
     Args:
         model: the model to train.
         optimizer: the optimizer to use.
-        loss_fn: the loss function to use.
+        loss_fn: the loss function that receives `y_pred` and `y`, and returns the loss as a tensor.
         device: device type specification (default: None).
             Applies to batches after starting the engine. Model *will not* be moved.
             Device can be CPU, TPU.
@@ -404,7 +404,7 @@ def _check_arg(
 def create_supervised_trainer(
     model: torch.nn.Module,
     optimizer: torch.optim.Optimizer,
-    loss_fn: Union[Callable, torch.nn.Module],
+    loss_fn: Union[Callable[[Any, Any], torch.Tensor], torch.nn.Module],
     device: Optional[Union[str, torch.device]] = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
@@ -420,7 +420,7 @@ def create_supervised_trainer(
     Args:
         model: the model to train.
         optimizer: the optimizer to use.
-        loss_fn: the loss function to use.
+        loss_fn: the loss function that receives `y_pred` and `y`, and returns the loss as a tensor.
         device: device type specification (default: None).
             Applies to batches after starting the engine. Model *will not* be moved.
             Device can be CPU, GPU or TPU.
