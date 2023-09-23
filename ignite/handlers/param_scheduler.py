@@ -261,9 +261,9 @@ class ParamScheduler(BaseParamScheduler):
             values.append([i, scheduler.optimizer_param_groups[0][scheduler.param_name]])
         return values
 
-    def _get_param(self):
-        # `ParamScheduler` does nothing special, only returning what child class returns
-        # intermediate child classes edit this method
+    def _get_param(self) -> Union[List[float], float]:
+        # `ParamScheduler` does nothing special, only returning what child class returns.
+        # Intermediate child classes edit this method
         return self.get_param()
 
 
@@ -284,6 +284,9 @@ class CyclicalScheduler(ParamScheduler):
             end of each cycle (default=1.0).
         end_value_mult: ratio by which to change the end value at the
             end of each cycle (default=1.0).
+        cyclic_warmup_duration: duration of warm-up to be applied before each cycle.
+            Through this warm-up, the parameter starts from the last cycle's end value
+            and linearly goes to next cycle's start value. Default is no cyclic warm-up.
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
         param_group_index: optimizer's parameters group to use.
@@ -295,7 +298,7 @@ class CyclicalScheduler(ParamScheduler):
     .. versionadded:: 0.4.5
 
     .. versionchanged:: 0.4.13
-        Added warmup to the scheduler using ``warmup_each_cycle`` and ``warmup_duration``.
+        Added cyclic warm-up to the scheduler using ``warmup_each_cycle`` and ``warmup_duration``.
     """
 
     def __init__(
@@ -308,7 +311,7 @@ class CyclicalScheduler(ParamScheduler):
         cycle_mult: float = 1.0,
         start_value_mult: float = 1.0,
         end_value_mult: float = 1.0,
-        warmup_duration: int = 0,
+        cyclic_warmup_duration: int = 0,
         save_history: bool = False,
         param_group_index: Optional[int] = None,
     ):
@@ -317,12 +320,12 @@ class CyclicalScheduler(ParamScheduler):
         )
         self.start_value = start_value
         self.end_value = end_value
-        self.cycle_size = int(cycle_size)  # Ensure cycle_size is integer
+        self.cycle_size = cycle_size
         self.cycle_mult = cycle_mult
         self.cycle = 0
         self.start_value_mult = start_value_mult
         self.end_value_mult = end_value_mult
-        self.warmup_duration = int(warmup_duration)  # Ensure wramup_duration is integer
+        self.warmup_duration = cyclic_warmup_duration
         self.total_cycle_size = self.warmup_duration + self.cycle_size
 
         if self.cycle_size < 2:
@@ -341,27 +344,25 @@ class CyclicalScheduler(ParamScheduler):
         ]
 
     def __call__(self, engine: Optional[Engine], name: Optional[str] = None) -> None:
-        if self.event_index != 0 and self.event_index % self.total_cycle_size == 0:
+        if self.event_index != 0 and self.event_index == self.cycle_size:
+            self.start_value *= self.start_value_mult
+        if self.event_index != 0 and self.event_index == self.total_cycle_size:
             self.event_index = 0
             self.cycle_size = int(self.cycle_size * self.cycle_mult)
             self.warmup_duration = int(self.warmup_duration * self.cycle_mult)
-            self.total_cycle_size = int(self.warmup_duration + self.cycle_size)
+            self.total_cycle_size = self.warmup_duration + self.cycle_size
             self.cycle += 1
-            self.start_value *= self.start_value_mult
-        if self.event_index != 0 and self.event_index == self.warmup_duration:
             self.end_value *= self.end_value_mult
 
         return super(CyclicalScheduler, self).__call__(engine, name)
 
-    def _get_param(self):
-        """define what you want to do before get parameter value.
-
-        Here it returns the warmup parameter value if we're in warmup duration,
-        otherwise what is returned by `self.get_param()`
+    def _get_param(self) -> Union[List[float], float]:
+        """Applies warm-up if the scheduler is in the warm-up phase,
+        otherwise returns what is returned by `self.get_param()`
         """
-
-        if self.event_index < self.warmup_duration:
-            return self.end_value + (self.start_value - self.end_value) * self.event_index / self.warmup_duration
+        if self.event_index > self.cycle_size:
+            warmup_progress = (self.event_index - self.cycle_size) / self.warmup_duration
+            return self.end_value + (self.start_value - self.end_value) * warmup_progress
 
         return self.get_param()
 
@@ -383,6 +384,9 @@ class LinearCyclicalScheduler(CyclicalScheduler):
             end of each cycle (default=1.0).
         end_value_mult: ratio by which to change the end value at the
             end of each cycle (default=1.0).
+        cyclic_warmup_duration: duration of warm-up to be applied before each cycle.
+            Through this warm-up, the parameter starts from the last cycle's end value
+            and linearly goes to next cycle's start value. Default is no cyclic warm-up.
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
         param_group_index: optimizer's parameters group to use.
@@ -485,6 +489,9 @@ class CosineAnnealingScheduler(CyclicalScheduler):
             end of each cycle (default=1.0).
         end_value_mult: ratio by which to change the end value at the
             end of each cycle (default=1.0).
+        cyclic_warmup_duration: duration of warm-up to be applied before each cycle.
+            Through this warm-up, the parameter starts from the last cycle's end value
+            and linearly goes to next cycle's start value. Default is no cyclic warm-up.
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
         param_group_index: optimizer's parameters group to use.
@@ -567,7 +574,7 @@ class CosineAnnealingScheduler(CyclicalScheduler):
 
     def get_param(self) -> float:
         """Method to get current optimizer's parameter value"""
-        cycle_progress = (self.event_index - self.warmup_duration) / self.cycle_size
+        cycle_progress = self.event_index / self.cycle_size
         return self.start_value + ((self.end_value - self.start_value) / 2) * (1 - math.cos(math.pi * cycle_progress))
 
 
