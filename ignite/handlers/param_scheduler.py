@@ -323,7 +323,7 @@ class CyclicalScheduler(ParamScheduler):
         self.start_value_mult = start_value_mult
         self.end_value_mult = end_value_mult
         self.warmup_duration = int(warmup_duration)  # Ensure wramup_duration is integer
-        self.total_cycle_size = self.warmup_duration + self.cycle_size
+        self.total_cycle_size = self.cycle_size
 
         if self.cycle_size < 2:
             raise ValueError(f"Argument cycle_size should be positive and larger than 1, but given {cycle_size}")
@@ -348,7 +348,11 @@ class CyclicalScheduler(ParamScheduler):
             self.total_cycle_size = int(self.warmup_duration + self.cycle_size)
             self.cycle += 1
             self.start_value *= self.start_value_mult
-        if self.event_index != 0 and self.event_index == self.warmup_duration:
+        if (
+            self.event_index != 0
+            and (self.cycle > 0 and self.event_index == self.warmup_duration)
+            or (self.cycle == 0 and self.event_index == self.total_cycle_size)
+        ):
             self.end_value *= self.end_value_mult
 
         return super(CyclicalScheduler, self).__call__(engine, name)
@@ -360,7 +364,7 @@ class CyclicalScheduler(ParamScheduler):
         otherwise what is returned by `self.get_param()`
         """
 
-        if self.event_index < self.warmup_duration:
+        if self.cycle > 0 and self.event_index < self.warmup_duration:
             return self.end_value + (self.start_value - self.end_value) * self.event_index / self.warmup_duration
 
         return self.get_param()
@@ -567,7 +571,7 @@ class CosineAnnealingScheduler(CyclicalScheduler):
 
     def get_param(self) -> float:
         """Method to get current optimizer's parameter value"""
-        cycle_progress = (self.event_index - self.warmup_duration) / self.cycle_size
+        cycle_progress = (self.event_index - (0 if self.cycle == 0 else self.warmup_duration)) / self.cycle_size
         return self.start_value + ((self.end_value - self.start_value) / 2) * (1 - math.cos(math.pi * cycle_progress))
 
 
