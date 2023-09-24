@@ -907,7 +907,9 @@ class DummyModel(torch.nn.Module):
         return self.net(x)
 
 
-def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, on_zero_rank=False):
+@pytest.mark.parametrize("on_zero_rank", [True, False])
+def test_distrib_save_model_optimizer_lr_scheduler_with_state_dict(distributed, on_zero_rank):
+    device = idist.device()
     if idist.get_rank() == 0:
         clearml.Task.current_task = MagicMock(spec=clearml.Task)
         clearml.binding.frameworks.WeightsFileHandler.create_output_model = MagicMock()
@@ -991,47 +993,3 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, on_zero_rank
         lr_scheduler_value = lr_scheduler_state_dict[key]
         loaded_lr_scheduler_value = loaded_lr_scheduler_state_dict[key]
         assert lr_scheduler_value == loaded_lr_scheduler_value
-
-
-@pytest.mark.distributed
-@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
-    device = idist.device()
-    _test_save_model_optimizer_lr_scheduler_with_state_dict(device)
-    _test_save_model_optimizer_lr_scheduler_with_state_dict(device, on_zero_rank=True)
-
-
-@pytest.mark.distributed
-@pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
-    device = idist.device()
-    _test_save_model_optimizer_lr_scheduler_with_state_dict(device)
-    _test_save_model_optimizer_lr_scheduler_with_state_dict(device, on_zero_rank=True)
-
-
-@pytest.mark.tpu
-@pytest.mark.skipif("NUM_TPU_WORKERS" in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
-@pytest.mark.skipif(not idist.has_xla_support, reason="Not on TPU device")
-def test_distrib_single_device_xla():
-    device = idist.device()
-    assert "xla" in device.type
-    _test_save_model_optimizer_lr_scheduler_with_state_dict(device)
-
-
-def _test_save_model_optimizer_lr_scheduler_with_state_dict_xla_nprocs(index):
-    device = idist.device()
-    _test_save_model_optimizer_lr_scheduler_with_state_dict(device)
-
-    import time
-
-    # hack to have all proc properly sync:
-    time.sleep(1)
-
-
-@pytest.mark.tpu
-@pytest.mark.skipif("NUM_TPU_WORKERS" not in os.environ, reason="Skip if NUM_TPU_WORKERS is in env vars")
-@pytest.mark.skipif(not idist.has_xla_support, reason="Not on TPU device")
-def test_distrib_single_device_xla_nprocs(xmp_executor):
-    n = int(os.environ["NUM_TPU_WORKERS"])
-    xmp_executor(_test_save_model_optimizer_lr_scheduler_with_state_dict_xla_nprocs, args=(), nprocs=n)
