@@ -112,115 +112,117 @@ def _test(
     assert np.allclose(result, np_psnr / np_y.shape[0], atol=atol)
 
 
-def test_distrib_input_float(distributed):
-    device = idist.device()
+@pytest.mark.usefixtures("distributed")
+class TestDistributed:
+    def test_input_float(self):
+        device = idist.device()
 
-    def get_test_cases():
-        y_pred = torch.rand(n_iters * batch_size, 2, 2, device=device)
-        y = y_pred * 0.65
+        def get_test_cases():
+            y_pred = torch.rand(n_iters * batch_size, 2, 2, device=device)
+            y = y_pred * 0.65
 
-        return y_pred, y
+            return y_pred, y
 
-    n_iters = 100
-    batch_size = 10
+        n_iters = 100
+        batch_size = 10
 
-    rank = idist.get_rank()
-    for i in range(3):
-        # check multiple random inputs as random exact occurencies are rare
-        torch.manual_seed(42 + rank + i)
-        y_pred, y = get_test_cases()
-        _test(y_pred, y, 1, "cpu", n_iters, batch_size, atol=1e-8)
-        if device.type != "xla":
-            _test(y_pred, y, 1, idist.device(), n_iters, batch_size, atol=1e-8)
+        rank = idist.get_rank()
+        for i in range(3):
+            # check multiple random inputs as random exact occurencies are rare
+            torch.manual_seed(42 + rank + i)
+            y_pred, y = get_test_cases()
+            _test(y_pred, y, 1, "cpu", n_iters, batch_size, atol=1e-8)
+            if device.type != "xla":
+                _test(y_pred, y, 1, idist.device(), n_iters, batch_size, atol=1e-8)
 
+    def test_multilabel_input_YCbCr(self):
+        device = idist.device()
 
-def test_distrib_multilabel_input_YCbCr(distributed):
-    device = idist.device()
+        def get_test_cases():
+            y_pred = torch.randint(16, 236, (n_iters * batch_size, 1, 12, 12), dtype=torch.uint8, device=device)
+            cbcr_pred = torch.randint(16, 241, (n_iters * batch_size, 2, 12, 12), dtype=torch.uint8, device=device)
+            y = torch.randint(16, 236, (n_iters * batch_size, 1, 12, 12), dtype=torch.uint8, device=device)
+            cbcr = torch.randint(16, 241, (n_iters * batch_size, 2, 12, 12), dtype=torch.uint8, device=device)
 
-    def get_test_cases():
-        y_pred = torch.randint(16, 236, (n_iters * batch_size, 1, 12, 12), dtype=torch.uint8, device=device)
-        cbcr_pred = torch.randint(16, 241, (n_iters * batch_size, 2, 12, 12), dtype=torch.uint8, device=device)
-        y = torch.randint(16, 236, (n_iters * batch_size, 1, 12, 12), dtype=torch.uint8, device=device)
-        cbcr = torch.randint(16, 241, (n_iters * batch_size, 2, 12, 12), dtype=torch.uint8, device=device)
+            y_pred, y = torch.cat((y_pred, cbcr_pred), dim=1), torch.cat((y, cbcr), dim=1)
 
-        y_pred, y = torch.cat((y_pred, cbcr_pred), dim=1), torch.cat((y, cbcr), dim=1)
+            return y_pred, y
 
-        return y_pred, y
+        n_iters = 100
+        batch_size = 10
 
-    n_iters = 100
-    batch_size = 10
+        def out_fn(x):
+            return x[0][:, 0, ...], x[1][:, 0, ...]
 
-    def out_fn(x):
-        return x[0][:, 0, ...], x[1][:, 0, ...]
+        rank = idist.get_rank()
+        for i in range(3):
+            # check multiple random inputs as random exact occurencies are rare
+            torch.manual_seed(42 + rank + i)
+            y_pred, y = get_test_cases()
+            _test(
+                y_pred, y, 220, "cpu", n_iters, batch_size, atol=1e-8, output_transform=out_fn, compute_y_channel=True
+            )
+            if device.type != "xla":
+                dev = idist.device()
+                _test(
+                    y_pred, y, 220, dev, n_iters, batch_size, atol=1e-8, output_transform=out_fn, compute_y_channel=True
+                )
 
-    rank = idist.get_rank()
-    for i in range(3):
-        # check multiple random inputs as random exact occurencies are rare
-        torch.manual_seed(42 + rank + i)
-        y_pred, y = get_test_cases()
-        _test(y_pred, y, 220, "cpu", n_iters, batch_size, atol=1e-8, output_transform=out_fn, compute_y_channel=True)
-        if device.type != "xla":
-            dev = idist.device()
-            _test(y_pred, y, 220, dev, n_iters, batch_size, atol=1e-8, output_transform=out_fn, compute_y_channel=True)
+    def test_multilabel_input_uint8(self):
+        device = idist.device()
 
+        def get_test_cases():
+            y_pred = torch.randint(0, 256, (n_iters * batch_size, 3, 16, 16), device=device, dtype=torch.uint8)
+            y = (y_pred * 0.65).to(torch.uint8)
 
-def test_distrib_multilabel_input_uint8(distributed):
-    device = idist.device()
+            return y_pred, y
 
-    def get_test_cases():
-        y_pred = torch.randint(0, 256, (n_iters * batch_size, 3, 16, 16), device=device, dtype=torch.uint8)
-        y = (y_pred * 0.65).to(torch.uint8)
+        n_iters = 100
+        batch_size = 10
 
-        return y_pred, y
+        rank = idist.get_rank()
+        for i in range(3):
+            # check multiple random inputs as random exact occurencies are rare
+            torch.manual_seed(42 + rank + i)
+            y_pred, y = get_test_cases()
+            _test(y_pred, y, 100, "cpu", n_iters, batch_size, atol=1e-8)
+            if device.type != "xla":
+                _test(y_pred, y, 100, idist.device(), n_iters, batch_size, atol=1e-8)
 
-    n_iters = 100
-    batch_size = 10
+    def test_multilabel_input_NHW(self):
+        device = idist.device()
 
-    rank = idist.get_rank()
-    for i in range(3):
-        # check multiple random inputs as random exact occurencies are rare
-        torch.manual_seed(42 + rank + i)
-        y_pred, y = get_test_cases()
-        _test(y_pred, y, 100, "cpu", n_iters, batch_size, atol=1e-8)
-        if device.type != "xla":
-            _test(y_pred, y, 100, idist.device(), n_iters, batch_size, atol=1e-8)
+        def get_test_cases():
+            y_pred = torch.rand(n_iters * batch_size, 28, 28, device=device)
+            y = y_pred * 0.8
 
+            return y_pred, y
 
-def test_distrib_multilabel_input_NHW(distributed):
-    device = idist.device()
+        n_iters = 100
+        batch_size = 10
 
-    def get_test_cases():
-        y_pred = torch.rand(n_iters * batch_size, 28, 28, device=device)
-        y = y_pred * 0.8
+        rank = idist.get_rank()
+        for i in range(3):
+            # check multiple random inputs as random exact occurencies are rare
+            torch.manual_seed(42 + rank + i)
+            y_pred, y = get_test_cases()
+            _test(y_pred, y, 10, "cpu", n_iters, batch_size, atol=1e-8)
+            if device.type != "xla":
+                _test(y_pred, y, 10, idist.device(), n_iters, batch_size, atol=1e-8)
 
-        return y_pred, y
+    def test_accumulator_device(self):
+        device = idist.device()
+        metric_devices = [torch.device("cpu")]
+        if torch.device(device).type != "xla":
+            metric_devices.append(idist.device())
 
-    n_iters = 100
-    batch_size = 10
+        for metric_device in metric_devices:
+            psnr = PSNR(data_range=1.0, device=metric_device)
+            dev = psnr._device
+            assert dev == metric_device, f"{dev} vs {metric_device}"
 
-    rank = idist.get_rank()
-    for i in range(3):
-        # check multiple random inputs as random exact occurencies are rare
-        torch.manual_seed(42 + rank + i)
-        y_pred, y = get_test_cases()
-        _test(y_pred, y, 10, "cpu", n_iters, batch_size, atol=1e-8)
-        if device.type != "xla":
-            _test(y_pred, y, 10, idist.device(), n_iters, batch_size, atol=1e-8)
-
-
-def test_distrib_accumulator_device(distributed):
-    device = idist.device()
-    metric_devices = [torch.device("cpu")]
-    if torch.device(device).type != "xla":
-        metric_devices.append(idist.device())
-
-    for metric_device in metric_devices:
-        psnr = PSNR(data_range=1.0, device=metric_device)
-        dev = psnr._device
-        assert dev == metric_device, f"{dev} vs {metric_device}"
-
-        y_pred = torch.rand(2, 3, 28, 28, dtype=torch.float, device=device)
-        y = y_pred * 0.65
-        psnr.update((y_pred, y))
-        dev = psnr._sum_of_batchwise_psnr.device
-        assert dev == metric_device, f"{dev} vs {metric_device}"
+            y_pred = torch.rand(2, 3, 28, 28, dtype=torch.float, device=device)
+            y = y_pred * 0.65
+            psnr.update((y_pred, y))
+            dev = psnr._sum_of_batchwise_psnr.device
+            assert dev == metric_device, f"{dev} vs {metric_device}"

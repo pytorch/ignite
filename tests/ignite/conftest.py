@@ -397,6 +397,7 @@ is_xla_single_device_stash_key = pytest.StashKey[bool]()
             ],
         ),
     ],
+    scope="class",
 )
 def distributed(request, local_rank, world_size):
     if request.param in ("nccl", "gloo_cpu", "gloo"):
