@@ -284,7 +284,7 @@ class CyclicalScheduler(ParamScheduler):
             end of each cycle (default=1.0).
         end_value_mult: ratio by which to change the end value at the
             end of each cycle (default=1.0).
-        cyclic_warmup_duration: duration of warm-up to be applied before each cycle.
+        warmup_duration: duration of warm-up to be applied before each cycle.
             Through this warm-up, the parameter starts from the last cycle's end value
             and linearly goes to next cycle's start value. Default is no cyclic warm-up.
         save_history: whether to log the parameter values to
@@ -298,7 +298,7 @@ class CyclicalScheduler(ParamScheduler):
     .. versionadded:: 0.4.5
 
     .. versionchanged:: 0.4.13
-        Added cyclic warm-up to the scheduler using ``warmup_each_cycle`` and ``warmup_duration``.
+        Added cyclic warm-up to the scheduler using ``warmup_duration``.
     """
 
     def __init__(
@@ -311,7 +311,7 @@ class CyclicalScheduler(ParamScheduler):
         cycle_mult: float = 1.0,
         start_value_mult: float = 1.0,
         end_value_mult: float = 1.0,
-        cyclic_warmup_duration: int = 0,
+        warmup_duration: int = 0,
         save_history: bool = False,
         param_group_index: Optional[int] = None,
     ):
@@ -325,7 +325,7 @@ class CyclicalScheduler(ParamScheduler):
         self.cycle = 0
         self.start_value_mult = start_value_mult
         self.end_value_mult = end_value_mult
-        self.warmup_duration = cyclic_warmup_duration
+        self.warmup_duration = warmup_duration
         self.total_cycle_size = self.warmup_duration + self.cycle_size
 
         if self.cycle_size < 2:
@@ -384,7 +384,7 @@ class LinearCyclicalScheduler(CyclicalScheduler):
             end of each cycle (default=1.0).
         end_value_mult: ratio by which to change the end value at the
             end of each cycle (default=1.0).
-        cyclic_warmup_duration: duration of warm-up to be applied before each cycle.
+        warmup_duration: duration of warm-up to be applied before each cycle.
             Through this warm-up, the parameter starts from the last cycle's end value
             and linearly goes to next cycle's start value. Default is no cyclic warm-up.
         save_history: whether to log the parameter values to
@@ -462,6 +462,9 @@ class LinearCyclicalScheduler(CyclicalScheduler):
             ...
 
     .. versionadded:: 0.4.5
+
+    .. versionchanged:: 0.4.13
+        Added cyclic warm-up to the scheduler using ``warmup_duration``.
     """
 
     def get_param(self) -> float:
@@ -489,7 +492,7 @@ class CosineAnnealingScheduler(CyclicalScheduler):
             end of each cycle (default=1.0).
         end_value_mult: ratio by which to change the end value at the
             end of each cycle (default=1.0).
-        cyclic_warmup_duration: duration of warm-up to be applied before each cycle.
+        warmup_duration: duration of warm-up to be applied before each cycle.
             Through this warm-up, the parameter starts from the last cycle's end value
             and linearly goes to next cycle's start value. Default is no cyclic warm-up.
         save_history: whether to log the parameter values to
@@ -570,6 +573,9 @@ class CosineAnnealingScheduler(CyclicalScheduler):
                  Applications of Computer Vision (WACV), 2017 IEEE Winter Conference on. IEEE, 2017
 
     .. versionadded:: 0.4.5
+
+    .. versionchanged:: 0.4.13
+        Added cyclic warm-up to the scheduler using ``warmup_duration``.
     """
 
     def get_param(self) -> float:
