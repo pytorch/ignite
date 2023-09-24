@@ -180,7 +180,7 @@ def test_cosine_annealing_scheduler(cyclic_warmup):
     tensor = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([tensor], lr=0)
 
-    scheduler = CosineAnnealingScheduler(optimizer, "lr", 0, 1, 10, cyclic_warmup_duration=2 if cyclic_warmup else 0)
+    scheduler = CosineAnnealingScheduler(optimizer, "lr", 0, 1, 10, warmup_duration=2 if cyclic_warmup else 0)
     state_dict = scheduler.state_dict()
 
     data = [0] * (10 + int(cyclic_warmup))
@@ -191,7 +191,7 @@ def test_cosine_annealing_scheduler(cyclic_warmup):
         start_value=0,
         end_value=1,
         cycle_size=10,
-        cyclic_warmup_duration=2 if cyclic_warmup else 0,
+        warmup_duration=2 if cyclic_warmup else 0,
     )
 
     def save_lr(engine):
