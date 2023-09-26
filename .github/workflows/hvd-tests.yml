@@ -32,7 +32,7 @@ jobs:
         pytorch-channel: [pytorch]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Get year & week number
         id: get-date
