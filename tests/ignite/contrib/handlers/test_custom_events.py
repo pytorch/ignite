@@ -7,7 +7,6 @@ from ignite.engine import Engine
 
 
 def test_bad_input():
-
     with pytest.warns(DeprecationWarning, match=r"CustomPeriodicEvent is deprecated"):
         with pytest.raises(TypeError, match="Argument n_iterations should be an integer"):
             CustomPeriodicEvent(n_iterations="a")
