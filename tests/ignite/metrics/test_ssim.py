@@ -253,89 +253,90 @@ def test_ssim_uint8(available_device, shape, kernel_size, gaussian, use_sample_c
     assert np.allclose(ignite_ssim, skimg_ssim, atol=1e-5)
 
 
-@pytest.mark.parametrize("metric_device", ["cpu", "process_device"])
-def test_distrib_integration(distributed, metric_device):
-    from ignite.engine import Engine
+@pytest.mark.usefixtures("distributed")
+class TestDistributed:
+    @pytest.mark.parametrize("metric_device", ["cpu", "process_device"])
+    def test_integration(self, metric_device):
+        from ignite.engine import Engine
 
-    rank = idist.get_rank()
-    torch.manual_seed(12 + rank)
-    n_iters = 100
-    batch_size = 10
-    device = idist.device()
-    if metric_device == "process_device":
-        metric_device = device if device.type != "xla" else "cpu"
+        rank = idist.get_rank()
+        torch.manual_seed(12 + rank)
+        n_iters = 100
+        batch_size = 10
+        device = idist.device()
+        if metric_device == "process_device":
+            metric_device = device if device.type != "xla" else "cpu"
 
-    y_pred = torch.rand(n_iters * batch_size, 3, 28, 28, dtype=torch.float, device=device)
-    y = y_pred * 0.65
+        y_pred = torch.rand(n_iters * batch_size, 3, 28, 28, dtype=torch.float, device=device)
+        y = y_pred * 0.65
 
-    def update(engine, i):
-        return (
-            y_pred[i * batch_size : (i + 1) * batch_size, ...],
-            y[i * batch_size : (i + 1) * batch_size, ...],
+        def update(engine, i):
+            return (
+                y_pred[i * batch_size : (i + 1) * batch_size, ...],
+                y[i * batch_size : (i + 1) * batch_size, ...],
+            )
+
+        engine = Engine(update)
+        SSIM(data_range=1.0, device=metric_device).attach(engine, "ssim")
+
+        data = list(range(n_iters))
+        engine.run(data=data, max_epochs=1)
+
+        y_pred = idist.all_gather(y_pred)
+        y = idist.all_gather(y)
+
+        assert "ssim" in engine.state.metrics
+        res = engine.state.metrics["ssim"]
+
+        np_pred = y_pred.cpu().numpy()
+        np_true = np_pred * 0.65
+        true_res = ski_ssim(
+            np_pred,
+            np_true,
+            win_size=11,
+            sigma=1.5,
+            channel_axis=1,
+            gaussian_weights=True,
+            data_range=1.0,
+            use_sample_covariance=False,
         )
 
-    engine = Engine(update)
-    SSIM(data_range=1.0, device=metric_device).attach(engine, "ssim")
+        tol = 1e-3 if device.type == "xla" else 1e-4  # Isn't better to ask `distributed` about backend info?
 
-    data = list(range(n_iters))
-    engine.run(data=data, max_epochs=1)
+        assert pytest.approx(res, abs=tol) == true_res
 
-    y_pred = idist.all_gather(y_pred)
-    y = idist.all_gather(y)
+        engine = Engine(update)
+        SSIM(data_range=1.0, gaussian=False, kernel_size=7, device=metric_device).attach(engine, "ssim")
 
-    assert "ssim" in engine.state.metrics
-    res = engine.state.metrics["ssim"]
+        data = list(range(n_iters))
+        engine.run(data=data, max_epochs=1)
 
-    np_pred = y_pred.cpu().numpy()
-    np_true = np_pred * 0.65
-    true_res = ski_ssim(
-        np_pred,
-        np_true,
-        win_size=11,
-        sigma=1.5,
-        channel_axis=1,
-        gaussian_weights=True,
-        data_range=1.0,
-        use_sample_covariance=False,
-    )
+        assert "ssim" in engine.state.metrics
+        res = engine.state.metrics["ssim"]
 
-    tol = 1e-3 if device.type == "xla" else 1e-4  # Isn't better to ask `distributed` about backend info?
+        np_pred = y_pred.cpu().numpy()
+        np_true = np_pred * 0.65
+        true_res = ski_ssim(np_pred, np_true, win_size=7, channel_axis=1, gaussian_weights=False, data_range=1.0)
 
-    assert pytest.approx(res, abs=tol) == true_res
+        assert pytest.approx(res, abs=tol) == true_res
 
-    engine = Engine(update)
-    SSIM(data_range=1.0, gaussian=False, kernel_size=7, device=metric_device).attach(engine, "ssim")
+    @pytest.mark.parametrize("metric_device", [torch.device("cpu"), "process_device"])
+    def test_accumulator_device(self, metric_device):
+        device = idist.device()
+        if metric_device == "process_device":
+            metric_device = torch.device(device if device.type != "xla" else "cpu")
 
-    data = list(range(n_iters))
-    engine.run(data=data, max_epochs=1)
+        ssim = SSIM(data_range=1.0, device=metric_device)
 
-    assert "ssim" in engine.state.metrics
-    res = engine.state.metrics["ssim"]
+        assert ssim._kernel is None
+        assert isinstance(ssim._kernel_2d, torch.Tensor)
 
-    np_pred = y_pred.cpu().numpy()
-    np_true = np_pred * 0.65
-    true_res = ski_ssim(np_pred, np_true, win_size=7, channel_axis=1, gaussian_weights=False, data_range=1.0)
+        for dev in [ssim._device, ssim._kernel_2d.device]:
+            assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
 
-    assert pytest.approx(res, abs=tol) == true_res
+        y_pred = torch.rand(2, 3, 28, 28, dtype=torch.float, device=device)
+        y = y_pred * 0.65
+        ssim.update((y_pred, y))
 
-
-@pytest.mark.parametrize("metric_device", [torch.device("cpu"), "process_device"])
-def test_distrib_accumulator_device(distributed, metric_device):
-    device = idist.device()
-    if metric_device == "process_device":
-        metric_device = torch.device(device if device.type != "xla" else "cpu")
-
-    ssim = SSIM(data_range=1.0, device=metric_device)
-
-    assert ssim._kernel is None
-    assert isinstance(ssim._kernel_2d, torch.Tensor)
-
-    for dev in [ssim._device, ssim._kernel_2d.device]:
+        dev = ssim._sum_of_ssim.device
         assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
-
-    y_pred = torch.rand(2, 3, 28, 28, dtype=torch.float, device=device)
-    y = y_pred * 0.65
-    ssim.update((y_pred, y))
-
-    dev = ssim._sum_of_ssim.device
-    assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"

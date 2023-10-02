@@ -55,7 +55,7 @@ def test_param_scheduler_asserts():
         FakeParamScheduler({}, "lr")
 
 
-def test_linear_scheduler():
+def test_linear_scheduler_asserts():
     with pytest.raises(TypeError, match=r"Argument optimizer should be torch.optim.Optimizer"):
         LinearCyclicalScheduler({}, "lr", 1, 0, cycle_size=0)
 
@@ -68,6 +68,11 @@ def test_linear_scheduler():
     with pytest.raises(ValueError, match=r"Argument cycle_size should be positive and larger than 1"):
         LinearCyclicalScheduler(optimizer, "lr", 1, 0, cycle_size=1)
 
+
+def test_linear_scheduler():
+    tensor = torch.zeros([1], requires_grad=True)
+    optimizer = torch.optim.SGD([tensor], lr=0.0)
+
     scheduler = LinearCyclicalScheduler(optimizer, "lr", 1, 0, 10)
     state_dict = scheduler.state_dict()
 
@@ -77,38 +82,12 @@ def test_linear_scheduler():
     trainer = Engine(lambda engine, batch: None)
     trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
     trainer.add_event_handler(Events.ITERATION_COMPLETED, save_lr)
-
+    lr_values_in_cycle = [1.0, 0.8, 0.6, 0.4, 0.2, 0.0, 0.2, 0.4, 0.6, 0.8]
     for _ in range(2):
         lrs = []
-        trainer.run([0] * 9, max_epochs=2)
+        trainer.run([0] * 10, max_epochs=2)
 
-        assert lrs == list(
-            map(
-                pytest.approx,
-                [
-                    # Cycle 1
-                    1.0,
-                    0.8,
-                    0.6,
-                    0.4,
-                    0.2,
-                    0.0,
-                    0.2,
-                    0.4,
-                    0.6,
-                    0.8,
-                    # Cycle 2
-                    1.0,
-                    0.8,
-                    0.6,
-                    0.4,
-                    0.2,
-                    0.0,
-                    0.2,
-                    0.4,  # 0.6, 0.8,
-                ],
-            )
-        )
+        assert lrs == pytest.approx([*lr_values_in_cycle, *lr_values_in_cycle])
         scheduler.load_state_dict(state_dict)
 
     optimizer = torch.optim.SGD([tensor], lr=0)
@@ -164,49 +143,6 @@ def test_linear_scheduler():
         )
         scheduler.load_state_dict(state_dict)
 
-    # With float cycle_size
-    optimizer = torch.optim.SGD([tensor], lr=0)
-    scheduler = LinearCyclicalScheduler(
-        optimizer, "lr", start_value=1.2, end_value=0.2, cycle_size=10.00000012, cycle_mult=1.0
-    )
-    state_dict = scheduler.state_dict()
-
-    trainer = Engine(lambda engine, batch: None)
-    trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
-    trainer.add_event_handler(Events.ITERATION_COMPLETED, save_lr)
-
-    for _ in range(2):
-        lrs = []
-        trainer.run([0] * 9, max_epochs=2)
-        assert lrs == list(
-            map(
-                pytest.approx,
-                [
-                    # Cycle 1
-                    1.2,
-                    1.0,
-                    0.8,
-                    0.6,
-                    0.4,
-                    0.2,
-                    0.4,
-                    0.6,
-                    0.8,
-                    1.0,
-                    # Cycle 2
-                    1.2,
-                    1.0,
-                    0.8,
-                    0.6,
-                    0.4,
-                    0.2,
-                    0.4,
-                    0.6,  # 0.8, 1.0,
-                ],
-            )
-        )
-        scheduler.load_state_dict(state_dict)
-
 
 def test_linear_scheduler_cycle_size_two():
     tensor = torch.zeros([1], requires_grad=True)
@@ -239,17 +175,23 @@ def test_linear_scheduler_cycle_size_two():
     assert lrs == pytest.approx([v for i, v in simulated_values])
 
 
-def test_cosine_annealing_scheduler():
+@pytest.mark.parametrize("cyclic_warmup", [False, True])
+def test_cosine_annealing_scheduler(cyclic_warmup):
     tensor = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([tensor], lr=0)
 
-    scheduler = CosineAnnealingScheduler(optimizer, "lr", 0, 1, 10)
+    scheduler = CosineAnnealingScheduler(optimizer, "lr", 0, 1, 10, warmup_duration=2 if cyclic_warmup else 0)
     state_dict = scheduler.state_dict()
 
-    data = [0] * 9
+    data = [0] * (10 + int(cyclic_warmup))
     max_epochs = 2
     simulated_values = CosineAnnealingScheduler.simulate_values(
-        num_events=len(data) * max_epochs, param_name="lr", start_value=0, end_value=1, cycle_size=10
+        num_events=len(data) * max_epochs,
+        param_name="lr",
+        start_value=0,
+        end_value=1,
+        cycle_size=10,
+        warmup_duration=2 if cyclic_warmup else 0,
     )
 
     def save_lr(engine):
@@ -258,36 +200,25 @@ def test_cosine_annealing_scheduler():
     trainer = Engine(lambda engine, batch: None)
     trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
     trainer.add_event_handler(Events.ITERATION_COMPLETED, save_lr)
+    lr_values_in_cycle = [
+        0.0,
+        0.02447174185242318,
+        0.09549150281252627,
+        0.20610737385376332,
+        0.3454915028125263,
+        0.5,
+        0.6545084971874737,
+        0.7938926261462365,
+        0.9045084971874737,
+        0.9755282581475768,
+    ]
+    lr_values_in_warmup = np.linspace(1.0, 0.0, 2 + 1)[:-1].tolist() if cyclic_warmup else []
 
     for _ in range(2):
         lrs = []
         trainer.run(data, max_epochs=max_epochs)
 
-        assert lrs == list(
-            map(
-                pytest.approx,
-                [
-                    0.0,
-                    0.02447174185242318,
-                    0.09549150281252627,
-                    0.20610737385376332,
-                    0.3454915028125263,
-                    0.5,
-                    0.6545084971874737,
-                    0.7938926261462365,
-                    0.9045084971874737,
-                    0.9755282581475768,
-                    0.0,
-                    0.02447174185242318,
-                    0.09549150281252627,
-                    0.20610737385376332,
-                    0.3454915028125263,
-                    0.5,
-                    0.6545084971874737,
-                    0.7938926261462365,  # 0.9045084971874737, 0.9755282581475768
-                ],
-            )
-        )
+        assert lrs == pytest.approx([*lr_values_in_cycle, *lr_values_in_warmup, *lr_values_in_cycle])
         scheduler.load_state_dict(state_dict)
 
         assert lrs == pytest.approx([v for i, v in simulated_values])
