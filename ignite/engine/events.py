@@ -208,7 +208,7 @@ class CallableEvents(CallableEventWithFilter):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super(CallableEvents, self).__init__(*args, **kwargs)
         warnings.warn(
-            "Class ignite.engine.events.CallableEvents is deprecated. It will be removed in 0.5.0. "
+            "Class ignite.engine.events.CallableEvents is deprecated. It will be removed in 0.4.14. "
             "Please, use ignite.engine.EventEnum instead",
             DeprecationWarning,
         )

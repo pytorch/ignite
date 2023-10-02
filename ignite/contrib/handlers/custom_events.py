@@ -56,7 +56,7 @@ class CustomPeriodicEvent:
     def __init__(self, n_iterations=None, n_epochs=None):
 
         warnings.warn(
-            "CustomPeriodicEvent is deprecated since 0.4.0 and will be removed in 0.5.0. Use filtered events instead.",
+            "CustomPeriodicEvent is deprecated since 0.4.0 and will be removed in 0.4.14. Use filtered events instead.",
             DeprecationWarning,
         )
 

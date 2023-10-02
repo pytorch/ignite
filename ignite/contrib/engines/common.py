@@ -93,10 +93,10 @@ def setup_common_training_handlers(
             class to use to store ``to_save``. See :class:`~ignite.handlers.checkpoint.Checkpoint` for more details.
             Argument is mutually exclusive with ``output_path``.
         kwargs: optional keyword args to be passed to construct :class:`~ignite.handlers.checkpoint.Checkpoint`.
-        device: deprecated argument, it will be removed in v0.5.0.
+        device: deprecated argument, it will be removed in 0.4.14.
     """
     if device is not None:
-        warnings.warn("Argument device is unused and deprecated. It will be removed in v0.5.0")
+        warnings.warn("Argument device is unused and deprecated. It will be removed in 0.4.14")
 
     if idist.get_world_size() > 1:
         _setup_common_distrib_training_handlers(

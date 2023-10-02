@@ -322,7 +322,7 @@ class Checkpoint(Serializable):
         if global_step_transform is not None and not callable(global_step_transform):
             raise TypeError(f"global_step_transform should be a function, got {type(global_step_transform)} instead.")
         if archived:
-            warnings.warn("Argument archived is deprecated and will be removed in 0.5.0")
+            warnings.warn("Argument archived is deprecated and will be removed in 0.4.14")
 
         self.to_save = to_save
         self.filename_prefix = filename_prefix
@@ -983,11 +983,11 @@ class ModelCheckpoint(Checkpoint):
         if not save_as_state_dict:
             raise ValueError(
                 "Argument save_as_state_dict is deprecated and should be True."
-                "This argument will be removed in 0.5.0."
+                "This argument will be removed in 0.4.14."
             )
         if save_interval is not None:
             msg = (
-                "Argument save_interval is deprecated and should be None. This argument will be removed in 0.5.0."
+                "Argument save_interval is deprecated and should be None. This argument will be removed in 0.4.14."
                 "Please, use events filtering instead, e.g. Events.ITERATION_STARTED(every=1000)"
             )
             if save_interval == 1:
