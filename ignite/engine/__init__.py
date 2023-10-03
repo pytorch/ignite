@@ -94,7 +94,7 @@ def supervised_training_step(
         Added Gradient Accumulation.
     .. versionchanged:: 0.4.11
         Added `model_transform` to transform model's output
-    .. versionchanged:: 0.4.11
+    .. versionchanged:: 0.4.13
         Added `model_fn` to customize model's application on the sample
     """
 
@@ -178,7 +178,7 @@ def supervised_training_step_amp(
         Added Gradient Accumulation.
     .. versionchanged:: 0.4.11
         Added `model_transform` to transform model's output
-    .. versionchanged:: 0.4.11
+    .. versionchanged:: 0.4.13
         Added `model_fn` to customize model's application on the sample
     """
 
@@ -271,7 +271,7 @@ def supervised_training_step_apex(
         Added Gradient Accumulation.
     .. versionchanged:: 0.4.11
         Added `model_transform` to transform model's output
-    .. versionchanged:: 0.4.11
+    .. versionchanged:: 0.4.13
         Added `model_fn` to customize model's application on the sample
     """
 
@@ -358,7 +358,7 @@ def supervised_training_step_tpu(
        Added Gradient Accumulation argument for all supervised training methods.
     .. versionchanged:: 0.4.11
         Added `model_transform` to transform model's output
-    .. versionchanged:: 0.4.11
+    .. versionchanged:: 0.4.13
         Added `model_fn` to customize model's application on the sample
     """
     try:
@@ -544,7 +544,7 @@ def create_supervised_trainer(
         Added Gradient Accumulation argument for all supervised training methods.
     .. versionchanged:: 0.4.11
         Added ``model_transform`` to transform model's output
-    .. versionchanged:: 0.4.11
+    .. versionchanged:: 0.4.13
         Added `model_fn` to customize model's application on the sample
     """
 
@@ -656,7 +656,7 @@ def supervised_evaluation_step(
     .. versionadded:: 0.4.5
     .. versionchanged:: 0.4.12
         Added ``model_transform`` to transform model's output
-    .. versionchanged:: 0.4.11
+    .. versionchanged:: 0.4.13
         Added `model_fn` to customize model's application on the sample
     """
 
@@ -714,7 +714,7 @@ def supervised_evaluation_step_amp(
     .. versionadded:: 0.4.5
     .. versionchanged:: 0.4.12
         Added ``model_transform`` to transform model's output
-    .. versionchanged:: 0.4.11
+    .. versionchanged:: 0.4.13
         Added `model_fn` to customize model's application on the sample
     """
     try:
@@ -789,7 +789,7 @@ def create_supervised_evaluator(
         Added ``amp_mode`` argument for automatic mixed precision.
     .. versionchanged:: 0.4.12
         Added ``model_transform`` to transform model's output
-    .. versionchanged:: 0.4.11
+    .. versionchanged:: 0.4.13
         Added `model_fn` to customize model's application on the sample
     """
     device_type = device.type if isinstance(device, torch.device) else device
