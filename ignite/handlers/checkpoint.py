@@ -3,7 +3,6 @@ import numbers
 import os
 import stat
 import tempfile
-import warnings
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from pathlib import Path
