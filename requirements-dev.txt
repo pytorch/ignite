@@ -12,8 +12,8 @@ tqdm
 scikit-learn
 matplotlib
 tensorboardX
-visdom==0.2.3
-polyaxon-client
+visdom
+polyaxon
 wandb
 mlflow
 neptune-client>=0.16.17
