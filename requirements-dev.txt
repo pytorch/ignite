@@ -12,12 +12,8 @@ tqdm
 scikit-learn
 matplotlib
 tensorboardX
-visdom==0.2.3
-# temporary fix for
-# ImportError: cannot import name 'soft_unicode' from 'markupsafe'
-markupsafe==2.0.1
+visdom
 polyaxon
-polyaxon-client
 wandb
 mlflow
 neptune-client>=0.16.17

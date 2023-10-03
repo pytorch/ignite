@@ -1,5 +1,6 @@
 import numbers
 import os
+from typing import Dict, List
 from unittest.mock import MagicMock
 
 import numpy as np
@@ -10,7 +11,7 @@ from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_
 
 import ignite.distributed as idist
 from ignite.engine import Engine, Events, State
-from ignite.metrics import ConfusionMatrix, Precision, Recall
+from ignite.metrics import Accuracy, ConfusionMatrix, Precision, Recall
 from ignite.metrics.metric import (
     BatchFiltered,
     BatchWise,
@@ -1131,7 +1132,15 @@ def test_list_of_tensors_and_numbers_unsupported_output():
 
 
 class DummyMetric4(Metric):
-    _state_dict_all_req_keys = ("dnumber", "fnumber", "tensor")
+    _state_dict_all_req_keys = (
+        "dnumber",
+        "fnumber",
+        "tensor",
+        "metric",
+        "metric_dict",
+        "metric_list",
+        "initially_none",
+    )
 
     def __init__(self, value: int):
         super().reset()
@@ -1139,10 +1148,34 @@ class DummyMetric4(Metric):
         self.fnumber = float(value + 1)
         self.tensor = torch.tensor([value + 2])
 
+        self.metric = Accuracy()
+        self.metric._num_correct = torch.tensor(value + 3)
+        self.metric._num_examples = value + 4
+
+        self.metric_dict: Dict[str, Metric] = {"m1": Accuracy(), "m2": Precision()}
+        self.metric_dict["m1"]._num_correct = torch.tensor(value + 5)
+        self.metric_dict["m1"]._num_examples = value + 6
+        self.metric_dict["m2"]._numerator = torch.tensor([value + 7, value + 8])
+        self.metric_dict["m2"]._denominator = torch.tensor([value + 9, value + 10])
+
+        self.metric_list: List[Metric] = [Recall(), Precision()]
+        self.metric_list[0]._numerator = torch.tensor([value + 11, value + 12])
+        self.metric_list[0]._denominator = torch.tensor([value + 13, value + 14])
+        self.metric_list[1]._numerator = torch.tensor([value + 15, value + 16])
+        self.metric_list[1]._denominator = torch.tensor([value + 17, value + 18])
+
+        self.initially_none = None
+
     def reset(self):
         self.dnumber = -1
         self.fnumber = -2.0
         self.tensor = torch.tensor([-3])
+        self.metric.reset()
+        for m in self.metric_dict.values():
+            m.reset()
+        for m in self.metric_list:
+            m.reset()
+        self.initially_none = None
 
     def update(self, output):
         pass
@@ -1157,7 +1190,7 @@ def test_wrong_state_dict():
 
         def __init__(self, value):
             super().__init__()
-            self.object = {"a": [value]}
+            self.object = value
 
         def reset(self):
             pass
@@ -1168,8 +1201,8 @@ def test_wrong_state_dict():
         def compute(self):
             pass
 
-    metric = WrongMetric(2)
-    with pytest.raises(TypeError, match="Currently, only numeric or tensor-typed attributes of the metric"):
+    metric = WrongMetric(object())
+    with pytest.raises(TypeError, match="Found attribute of unsupported type. Currently, supported types include"):
         metric.state_dict()
 
     delattr(metric, "object")
@@ -1180,22 +1213,56 @@ def test_wrong_state_dict():
 def test_state_dict():
     metric = DummyMetric4(1)
     state = metric.state_dict()
-    assert state.keys() == {"dnumber", "fnumber", "tensor"}
+    assert state.keys() == {"dnumber", "fnumber", "tensor", "metric", "metric_dict", "metric_list", "initially_none"}
     metric.reset()
+    metric.initially_none = 1
     metric.load_state_dict(state)
     assert metric.dnumber == 1
     assert metric.fnumber == 2
     assert metric.tensor == torch.tensor([3])
+
+    assert metric.metric._num_correct == torch.tensor(4)
+    assert metric.metric._num_examples == 5
+
+    assert metric.metric_dict["m1"]._num_correct == torch.tensor(6)
+    assert metric.metric_dict["m1"]._num_examples == 7
+    assert torch.all(metric.metric_dict["m2"]._numerator == torch.tensor([8, 9]))
+    assert torch.all(metric.metric_dict["m2"]._denominator == torch.tensor([10, 11]))
+
+    assert torch.all(metric.metric_list[0]._numerator == torch.tensor([12, 13]))
+    assert torch.all(metric.metric_list[0]._denominator == torch.tensor([14, 15]))
+    assert torch.all(metric.metric_list[1]._numerator == torch.tensor([16, 17]))
+    assert torch.all(metric.metric_list[1]._denominator == torch.tensor([18, 19]))
+
+    assert metric.initially_none is None
 
 
 def _test_distrib_state_dict(device):
     rank = idist.get_local_rank()
     metric = DummyMetric4(rank)
     state = metric.state_dict()
+    print(state)
     assert isinstance(state["dnumber"][rank], int)
     assert isinstance(state["fnumber"][rank], float)
+    assert state["initially_none"] is None
     metric.reset()
+    metric.initially_none = rank
     metric.load_state_dict(state)
     assert metric.dnumber == rank and isinstance(metric.dnumber, int)
     assert metric.fnumber == rank + 1 and isinstance(metric.fnumber, float)
     assert metric.tensor == torch.tensor([rank + 2])
+
+    assert metric.metric._num_correct == torch.tensor(rank + 3)
+    assert metric.metric._num_examples == rank + 4
+
+    assert metric.metric_dict["m1"]._num_correct == torch.tensor(rank + 5)
+    assert metric.metric_dict["m1"]._num_examples == rank + 6
+    assert torch.all(metric.metric_dict["m2"]._numerator == torch.tensor([rank + 7, rank + 8]))
+    assert torch.all(metric.metric_dict["m2"]._denominator == torch.tensor([rank + 9, rank + 10]))
+
+    assert torch.all(metric.metric_list[0]._numerator == torch.tensor([rank + 11, rank + 12]))
+    assert torch.all(metric.metric_list[0]._denominator == torch.tensor([rank + 13, rank + 14]))
+    assert torch.all(metric.metric_list[1]._numerator == torch.tensor([rank + 15, rank + 16]))
+    assert torch.all(metric.metric_list[1]._denominator == torch.tensor([rank + 17, rank + 18]))
+
+    assert metric.initially_none is None

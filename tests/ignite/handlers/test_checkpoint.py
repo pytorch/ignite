@@ -51,6 +51,9 @@ def test_checkpoint_wrong_input():
     with pytest.raises(TypeError, match=r"Argument `to_save` should be a dictionary"):
         Checkpoint([12], lambda x: x, "prefix")
 
+    with pytest.raises(TypeError, match=r"should have `state_dict`"):
+        Checkpoint({"model": {"abc": 12}}, lambda x: x, "prefix")
+
     to_save = {"model": model}
 
     with pytest.raises(
@@ -1074,6 +1077,9 @@ def test_checkpoint_load_objects():
     with pytest.raises(TypeError, match=r"should have `load_state_dict` method"):
         Checkpoint.load_objects({"a": None}, {"a": None})
 
+    with pytest.raises(TypeError, match=r"should have `load_state_dict` method"):
+        Checkpoint.load_objects({"a": {"b": None}}, {"a": {"b": None}})
+
     model = DummyModel()
     to_load = {"model": model, "another_model": model}
 
@@ -1088,6 +1094,11 @@ def test_checkpoint_load_objects():
     Checkpoint.load_objects(to_load, chkpt)
     assert model.state_dict() == model2.state_dict()
 
+    chkpt = {"models": {"model1": {"abc": model.state_dict()}}}
+    to_load = {"models": {"model1": {"abc": model}}}
+    Checkpoint.load_objects(to_load, chkpt)
+    assert model.state_dict() == model2.state_dict()
+
 
 def test_checkpoint_load_objects_from_saved_file(dirname):
     def _get_single_obj_to_save():
@@ -1099,7 +1110,11 @@ def test_checkpoint_load_objects_from_saved_file(dirname):
         model = DummyModel()
         optim = torch.optim.SGD(model.parameters(), lr=0.001)
         lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, gamma=0.5)
-        to_save = {"model": model, "optimizer": optim, "lr_scheduler": lr_scheduler}
+        to_save = {
+            "model": model,
+            "optimizer": optim,
+            "lr_scheduler": lr_scheduler,
+        }
         return to_save
 
     trainer = Engine(lambda e, b: None)
@@ -1173,9 +1188,7 @@ def test_load_checkpoint_with_different_num_classes(dirname):
     with pytest.raises(RuntimeError):
         Checkpoint.load_objects(to_load_single_object, loaded_checkpoint)
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=UserWarning)
-        Checkpoint.load_objects(to_load_single_object, loaded_checkpoint, strict=False, blah="blah")
+    Checkpoint.load_objects(to_load_single_object, loaded_checkpoint, strict=False)
 
     loaded_weights = to_load_single_object["pretrained_features"].state_dict()["weight"]
 
@@ -1631,6 +1644,34 @@ def test_checkpoint_load_state_dict():
     sd = {"saved": [(0, "model_0.pt"), (10, "model_10.pt"), (20, "model_20.pt")]}
     checkpointer.load_state_dict(sd)
     assert checkpointer._saved == true_checkpointer._saved
+
+
+@pytest.mark.parametrize(
+    "to_save",
+    [
+        {"model": DummyModel()},
+        {"model": {"a": {"b": DummyModel()}}},
+    ],
+)
+def test_checkpoint__setup_checkpoint(to_save):
+    save_handler = MagicMock(spec=BaseSaveHandler)
+    checkpointer = Checkpoint(to_save, save_handler=save_handler, n_saved=2)
+    checkpoint = checkpointer._setup_checkpoint()
+
+    assert isinstance(checkpoint, dict)
+    for k, obj in to_save.items():
+        assert k in checkpoint
+        if isinstance(obj, torch.nn.Module):
+            assert checkpoint[k] == obj.state_dict()
+        elif isinstance(obj, dict):
+            c2 = checkpoint[k]
+            for k2, obj2 in obj.items():
+                if isinstance(obj2, torch.nn.Module):
+                    assert c2[k2] == obj2.state_dict()
+                elif isinstance(obj2, dict):
+                    c3 = c2[k2]
+                    for k3, obj3 in obj2.items():
+                        assert c3[k3] == obj3.state_dict()
 
 
 def test_checkpoint_fixed_filename():
