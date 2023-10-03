@@ -664,7 +664,7 @@ def one_rank_first(rank: int = 0, local: bool = False) -> Any:
 
             dp = ds[0]
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.13
     """
 
     current_rank = get_local_rank() if local else get_rank()

@@ -71,43 +71,38 @@ def test_cohen_kappa_wrong_weights_type():
         ck = CohenKappa(weights="dd")
 
 
+@pytest.fixture(params=range(4))
+def test_data_binary(request):
+    return [
+        # Binary input data of shape (N,) or (N, 1)
+        (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 1),
+        (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 1),
+        # updated batches
+        (torch.randint(0, 2, size=(50,)).long(), torch.randint(0, 2, size=(50,)).long(), 16),
+        (torch.randint(0, 2, size=(50, 1)).long(), torch.randint(0, 2, size=(50, 1)).long(), 16),
+    ][request.param]
+
+
+@pytest.mark.parametrize("n_times", range(5))
 @pytest.mark.parametrize("weights", [None, "linear", "quadratic"])
-def test_binary_input(weights):
+def test_binary_input(n_times, weights, test_data_binary):
+    y_pred, y, batch_size = test_data_binary
     ck = CohenKappa(weights)
+    ck.reset()
+    if batch_size > 1:
+        n_iters = y.shape[0] // batch_size + 1
+        for i in range(n_iters):
+            idx = i * batch_size
+            ck.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+    else:
+        ck.update((y_pred, y))
 
-    def _test(y_pred, y, batch_size):
-        ck.reset()
-        if batch_size > 1:
-            n_iters = y.shape[0] // batch_size + 1
-            for i in range(n_iters):
-                idx = i * batch_size
-                ck.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-        else:
-            ck.update((y_pred, y))
+    np_y = y.numpy()
+    np_y_pred = y_pred.numpy()
 
-        np_y = y.numpy()
-        np_y_pred = y_pred.numpy()
-
-        res = ck.compute()
-        assert isinstance(res, float)
-        assert cohen_kappa_score(np_y, np_y_pred, weights=weights) == pytest.approx(res)
-
-    def get_test_cases():
-        test_cases = [
-            # Binary input data of shape (N,) or (N, 1)
-            (torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10,)).long(), 1),
-            (torch.randint(0, 2, size=(10, 1)).long(), torch.randint(0, 2, size=(10, 1)).long(), 1),
-            # updated batches
-            (torch.randint(0, 2, size=(50,)).long(), torch.randint(0, 2, size=(50,)).long(), 16),
-            (torch.randint(0, 2, size=(50, 1)).long(), torch.randint(0, 2, size=(50, 1)).long(), 16),
-        ]
-        return test_cases
-
-    for _ in range(5):
-        # check multiple random inputs as random exact occurencies are rare
-        test_cases = get_test_cases()
-        for y_pred, y, batch_size in test_cases:
-            _test(y_pred, y, batch_size)
+    res = ck.compute()
+    assert isinstance(res, float)
+    assert cohen_kappa_score(np_y, np_y_pred, weights=weights) == pytest.approx(res)
 
 
 def test_multilabel_inputs():
@@ -129,44 +124,41 @@ def test_multilabel_inputs():
         ck.compute()
 
 
+@pytest.fixture(params=range(2))
+def test_data_integration_binary(request):
+    return [
+        # Binary input data of shape (N,) or (N, 1)
+        (torch.randint(0, 2, size=(50,)).long(), torch.randint(0, 2, size=(50,)).long(), 10),
+        (torch.randint(0, 2, size=(50, 1)).long(), torch.randint(0, 2, size=(50, 1)).long(), 10),
+    ][request.param]
+
+
+@pytest.mark.parametrize("n_times", range(5))
 @pytest.mark.parametrize("weights", [None, "linear", "quadratic"])
-def test_integration_binary_input(weights):
-    def _test(y_pred, y, batch_size):
-        def update_fn(engine, batch):
-            idx = (engine.state.iteration - 1) * batch_size
-            y_true_batch = np_y[idx : idx + batch_size]
-            y_pred_batch = np_y_pred[idx : idx + batch_size]
-            return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+def test_integration_binary_input(n_times, weights, test_data_integration_binary):
+    y_pred, y, batch_size = test_data_integration_binary
 
-        engine = Engine(update_fn)
+    def update_fn(engine, batch):
+        idx = (engine.state.iteration - 1) * batch_size
+        y_true_batch = np_y[idx : idx + batch_size]
+        y_pred_batch = np_y_pred[idx : idx + batch_size]
+        return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
 
-        ck_metric = CohenKappa(weights=weights)
-        ck_metric.attach(engine, "ck")
+    engine = Engine(update_fn)
 
-        np_y = y.numpy()
-        np_y_pred = y_pred.numpy()
+    ck_metric = CohenKappa(weights=weights)
+    ck_metric.attach(engine, "ck")
 
-        np_ck = cohen_kappa_score(np_y, np_y_pred, weights=weights)
+    np_y = y.numpy()
+    np_y_pred = y_pred.numpy()
 
-        data = list(range(y_pred.shape[0] // batch_size))
-        ck = engine.run(data, max_epochs=1).metrics["ck"]
+    np_ck = cohen_kappa_score(np_y, np_y_pred, weights=weights)
 
-        assert isinstance(ck, float)
-        assert np_ck == pytest.approx(ck)
+    data = list(range(y_pred.shape[0] // batch_size))
+    ck = engine.run(data, max_epochs=1).metrics["ck"]
 
-    def get_test_cases():
-        test_cases = [
-            # Binary input data of shape (N,) or (N, 1)
-            (torch.randint(0, 2, size=(50,)).long(), torch.randint(0, 2, size=(50,)).long(), 10),
-            (torch.randint(0, 2, size=(50, 1)).long(), torch.randint(0, 2, size=(50, 1)).long(), 10),
-        ]
-        return test_cases
-
-    for _ in range(5):
-        # check multiple random inputs as random exact occurencies are rare
-        test_cases = get_test_cases()
-        for y_pred, y, batch_size in test_cases:
-            _test(y_pred, y, batch_size)
+    assert isinstance(ck, float)
+    assert np_ck == pytest.approx(ck)
 
 
 def _test_distrib_binary_input(device):
