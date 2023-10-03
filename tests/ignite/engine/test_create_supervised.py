@@ -31,7 +31,7 @@ class DummyModel(torch.nn.Module):
         self.output_as_list = output_as_list
         self.fc = torch.nn.Linear(1, 1, bias=False)
 
-    def forward(self, x, bias = None):
+    def forward(self, x, bias=None):
         if bias is None:
             bias = 0.0
         if self.output_as_list:
@@ -86,7 +86,9 @@ def _default_create_supervised_trainer(
         scaler=scaler,
         gradient_accumulation_steps=gradient_accumulation_steps,
         model_transform=model_transform if model_transform is not None else lambda x: x,
-        model_fn=(lambda model, x: model(x, torch.tensor([0.01], device=model_device))) if with_model_fn else (lambda model, x: model(x)),
+        model_fn=(lambda model, x: model(x, torch.tensor([0.01], device=model_device)))
+        if with_model_fn
+        else (lambda model, x: model(x)),
     )
     assert model.fc.weight.data[0, 0].item() == approx(0.0)
     return trainer, model
@@ -110,7 +112,7 @@ def _test_create_supervised_trainer(
         amp_mode=amp_mode,
         scaler=scaler,
         with_model_transform=with_model_transform,
-        with_model_fn = with_model_fn,
+        with_model_fn=with_model_fn,
     )
 
     x = torch.tensor([[0.01], [0.02], [0.03], [0.04], [0.05]])
@@ -258,7 +260,9 @@ def _default_create_supervised_evaluator(
         device=evaluator_device,
         amp_mode=amp_mode,
         model_transform=model_transform if model_transform is not None else lambda x: x,
-        model_fn=(lambda model, x: model(x, torch.tensor([0.01], device=model_device))) if with_model_fn else (lambda model, x: model(x)),
+        model_fn=(lambda model, x: model(x, torch.tensor([0.01], device=model_device)))
+        if with_model_fn
+        else (lambda model, x: model(x)),
     )
 
     assert model.fc.weight.data[0, 0].item() == approx(0.0)

@@ -51,7 +51,7 @@ def supervised_training_step(
     model_transform: Callable[[Any], Any] = lambda output: output,
     output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
     gradient_accumulation_steps: int = 1,
-    model_fn: Callable[[torch.nn.Module, Any], Any]= lambda model, x: model(x),
+    model_fn: Callable[[torch.nn.Module, Any], Any] = lambda model, x: model(x),
 ) -> Callable:
     """Factory function for supervised training.
 
@@ -133,7 +133,7 @@ def supervised_training_step_amp(
     output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
     scaler: Optional["torch.cuda.amp.GradScaler"] = None,
     gradient_accumulation_steps: int = 1,
-    model_fn: Callable[[torch.nn.Module, Any], Any]= lambda model, x: model(x),
+    model_fn: Callable[[torch.nn.Module, Any], Any] = lambda model, x: model(x),
 ) -> Callable:
     """Factory function for supervised training using ``torch.cuda.amp``.
 
@@ -228,7 +228,7 @@ def supervised_training_step_apex(
     model_transform: Callable[[Any], Any] = lambda output: output,
     output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
     gradient_accumulation_steps: int = 1,
-    model_fn: Callable[[torch.nn.Module, Any], Any]= lambda model, x: model(x),
+    model_fn: Callable[[torch.nn.Module, Any], Any] = lambda model, x: model(x),
 ) -> Callable:
     """Factory function for supervised training using apex.
 
@@ -315,7 +315,7 @@ def supervised_training_step_tpu(
     model_transform: Callable[[Any], Any] = lambda output: output,
     output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
     gradient_accumulation_steps: int = 1,
-    model_fn: Callable[[torch.nn.Module, Any], Any]= lambda model, x: model(x),
+    model_fn: Callable[[torch.nn.Module, Any], Any] = lambda model, x: model(x),
 ) -> Callable:
     """Factory function for supervised training using ``torch_xla``.
 
@@ -431,7 +431,7 @@ def create_supervised_trainer(
     amp_mode: Optional[str] = None,
     scaler: Union[bool, "torch.cuda.amp.GradScaler"] = False,
     gradient_accumulation_steps: int = 1,
-    model_fn: Callable[[torch.nn.Module, Any], Any]= lambda model, x: model(x),
+    model_fn: Callable[[torch.nn.Module, Any], Any] = lambda model, x: model(x),
 ) -> Engine:
     """Factory function for creating a trainer for supervised models.
 
@@ -620,7 +620,7 @@ def supervised_evaluation_step(
     prepare_batch: Callable = _prepare_batch,
     model_transform: Callable[[Any], Any] = lambda output: output,
     output_transform: Callable[[Any, Any, Any], Any] = lambda x, y, y_pred: (y_pred, y),
-    model_fn: Callable[[torch.nn.Module, Any], Any]= lambda model, x: model(x),
+    model_fn: Callable[[torch.nn.Module, Any], Any] = lambda model, x: model(x),
 ) -> Callable:
     """
     Factory function for supervised evaluation.
@@ -678,7 +678,7 @@ def supervised_evaluation_step_amp(
     prepare_batch: Callable = _prepare_batch,
     model_transform: Callable[[Any], Any] = lambda output: output,
     output_transform: Callable[[Any, Any, Any], Any] = lambda x, y, y_pred: (y_pred, y),
-    model_fn: Callable[[torch.nn.Module, Any], Any]= lambda model, x: model(x),
+    model_fn: Callable[[torch.nn.Module, Any], Any] = lambda model, x: model(x),
 ) -> Callable:
     """
     Factory function for supervised evaluation using ``torch.cuda.amp``.
@@ -743,7 +743,7 @@ def create_supervised_evaluator(
     model_transform: Callable[[Any], Any] = lambda output: output,
     output_transform: Callable[[Any, Any, Any], Any] = lambda x, y, y_pred: (y_pred, y),
     amp_mode: Optional[str] = None,
-    model_fn: Callable[[torch.nn.Module, Any], Any]= lambda model, x: model(x),
+    model_fn: Callable[[torch.nn.Module, Any], Any] = lambda model, x: model(x),
 ) -> Engine:
     """
     Factory function for creating an evaluator for supervised models.
