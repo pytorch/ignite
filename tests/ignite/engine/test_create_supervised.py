@@ -139,14 +139,11 @@ def _test_create_supervised_trainer(
 
         loss[0] = mse_loss(_y_pred, _y).item()
 
-        # loss[0] = mse_loss(model(_x), _y).item()
-
     @trainer.on(Events.ITERATION_COMPLETED(every=gradient_accumulation_steps))
     def _():
         theta[0] -= accumulation[0] / gradient_accumulation_steps
         assert pytest.approx(model.fc.weight.data[0, 0].item(), abs=1.0e-5) == theta[0]
         assert pytest.approx(trainer.state.output[-1], abs=1e-5) == loss[0]
-        print("loss:", loss[0], "theta:", theta[0])
         accumulation[0] = loss[0] = 0.0
 
     if model_device == trainer_device or ((model_device == "cpu") ^ (trainer_device == "cpu")):
