@@ -466,21 +466,25 @@ class Checkpoint(Serializable):
             except TypeError:
                 self.save_handler(checkpoint, filename)
 
-    def _setup_checkpoint(self) -> Dict[str, Dict[Any, Any]]:
+    def _setup_checkpoint_recursive(self, objs: Mapping) -> Dict[str, Dict[Any, Any]]:
         checkpoint = {}
-        if self.to_save is not None:
-            for k, obj in self.to_save.items():
+        for k, obj in objs.items():
+            if isinstance(obj, Mapping):
+                checkpoint[k] = self._setup_checkpoint_recursive(obj)
+            else:
                 if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
                     obj = obj.module
                 elif HAVE_ZERO and isinstance(obj, ZeroRedundancyOptimizer):
                     obj.consolidate_state_dict(to=self.save_on_rank)
                     if self.save_on_rank != idist.get_rank():
                         continue
-                if is_dict_of_serializable_objects(obj):
-                    checkpoint[k] = {k: v.state_dict() for k, v in obj.items()}
-                else:
-                    checkpoint[k] = obj.state_dict()
+                checkpoint[k] = obj.state_dict()
         return checkpoint
+
+    def _setup_checkpoint(self) -> Dict[str, Dict[Any, Any]]:
+        if self.to_save is not None:
+            return self._setup_checkpoint_recursive(self.to_save)
+        return {}
 
     @staticmethod
     def setup_filename_pattern(
@@ -535,8 +539,10 @@ class Checkpoint(Serializable):
 
     @staticmethod
     def _check_objects(objs: Mapping, attr: str) -> None:
-        for _, obj in objs.items():
-            if not hasattr(obj, attr) and not is_dict_of_serializable_objects(obj):
+        for obj in objs.values():
+            if isinstance(obj, Mapping):
+                Checkpoint._check_objects(obj, attr=attr)
+            elif not hasattr(obj, attr):
                 raise TypeError(f"Object {type(obj)} should have `{attr}` method")
 
     @staticmethod
@@ -594,29 +600,22 @@ class Checkpoint(Serializable):
             torch.nn.parallel.DistributedDataParallel.html
         .. _DataParallel: https://pytorch.org/docs/stable/generated/torch.nn.DataParallel.html
         """
+        if not isinstance(checkpoint, (collections.Mapping, str, Path)):
+            raise TypeError(f"Argument checkpoint should be a string or a dictionary, but given {type(checkpoint)}")
+
+        Checkpoint._check_objects(to_load, "load_state_dict")
 
         if isinstance(checkpoint, (str, Path)):
             checkpoint_obj = torch.load(checkpoint)
         else:
             checkpoint_obj = checkpoint
 
-        Checkpoint._check_objects(to_load, "load_state_dict")
-        if not isinstance(checkpoint, (collections.Mapping, str, Path)):
-            raise TypeError(f"Argument checkpoint should be a string or a dictionary, but given {type(checkpoint)}")
-
-        if len(kwargs) > 1 or any(k for k in kwargs if k not in ["strict"]):
-            warnings.warn("kwargs contains keys other than strict and these will be ignored")
-
-        is_state_dict_strict = kwargs.get("strict", True)
-
         def _load_object(obj: Any, chkpt_obj: Any) -> None:
             if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
                 obj = obj.module
+
             if isinstance(obj, torch.nn.Module):
-                obj.load_state_dict(chkpt_obj, strict=is_state_dict_strict)
-            elif is_dict_of_serializable_objects(obj):
-                for k, v in obj.items():
-                    v.load_state_dict(chkpt_obj[k])
+                obj.load_state_dict(chkpt_obj, **kwargs)
             else:
                 obj.load_state_dict(chkpt_obj)
 
@@ -627,11 +626,17 @@ class Checkpoint(Serializable):
                 _load_object(obj, checkpoint_obj)
                 return
 
+        def _load_objects_recursive(objs: Mapping, chkpt_objs: Mapping) -> None:
+            for k, obj in objs.items():
+                if k not in chkpt_objs:
+                    raise ValueError(f"Object labeled by '{k}' from `to_load` is not found in the checkpoint")
+                if isinstance(obj, Mapping):
+                    _load_objects_recursive(obj, chkpt_objs[k])
+                else:
+                    _load_object(obj, chkpt_objs[k])
+
         # multiple objects to load
-        for k, obj in to_load.items():
-            if k not in checkpoint_obj:
-                raise ValueError(f"Object labeled by '{k}' from `to_load` is not found in the checkpoint")
-            _load_object(obj, checkpoint_obj[k])
+        _load_objects_recursive(to_load, checkpoint_obj)
 
     def reload_objects(self, to_load: Mapping, load_kwargs: Optional[Dict] = None, **filename_components: Any) -> None:
         """Helper method to apply ``load_state_dict`` on the objects from ``to_load``. Filename components such as
@@ -1016,7 +1021,3 @@ class ModelCheckpoint(Checkpoint):
         self._check_objects(to_save, "state_dict")
         self.to_save = to_save
         super(ModelCheckpoint, self).__call__(engine)
-
-
-def is_dict_of_serializable_objects(obj: Any) -> bool:
-    return isinstance(obj, Mapping) and all([hasattr(v, "state_dict") for v in obj.values()])
