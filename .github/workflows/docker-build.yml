@@ -48,7 +48,7 @@ jobs:
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.8
+          python-version: 3.10
       - name: Build hvd hvd-base
         working-directory: docker
         run: |
@@ -86,7 +86,7 @@ jobs:
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.8
+          python-version: 3.10
       - name: Build hvd hvd-apex
         working-directory: docker
         run: |
@@ -124,7 +124,7 @@ jobs:
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.8
+          python-version: 3.10
       - name: Build main base
         working-directory: docker
         run: |
@@ -159,7 +159,7 @@ jobs:
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.8
+          python-version: 3.10
       - name: Build main apex
         working-directory: docker
         run: |
@@ -194,7 +194,7 @@ jobs:
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.8
+          python-version: 3.10
       - name: Build msdp msdp-apex
         working-directory: docker
         run: |
