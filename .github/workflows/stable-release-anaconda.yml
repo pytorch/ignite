@@ -14,7 +14,7 @@ jobs:
         uses: conda-incubator/setup-miniconda@v2
         with:
           miniconda-version: "latest"
-          python-version: 3.10
+          python-version: "3.10"
 
       - name: Install dependencies
         shell: bash -l {0}
