@@ -199,10 +199,7 @@ class ComputationModel(metaclass=ABCMeta):
         tensor = self._apply_op(tensor, device, fn, *args, **kwargs)
 
         if tensor_to_number:
-            if tensor.numel() == 1:
-                return tensor.item()
-            else:
-                return tensor.tolist()
+            return tensor.tolist()
         elif tensor_to_str:
             return self._decode_str(tensor)
         return tensor
