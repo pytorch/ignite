@@ -11,6 +11,7 @@ import ignite.distributed as idist
 
 from ignite.base.mixins import Serializable
 from ignite.engine import CallableEventWithFilter, Engine, Events
+from ignite.utils import _CollectionItem, _tree_apply2, _tree_map
 
 if TYPE_CHECKING:
     from ignite.metrics.metrics_lambda import MetricsLambda
@@ -558,37 +559,30 @@ class Metric(Serializable, metaclass=ABCMeta):
         and tensor values.
         """
         state: Dict[str, Union[torch.Tensor, List, Dict, None]] = OrderedDict()
+
+        def func(x: Union[torch.Tensor, Metric, None, float]) -> Union[torch.Tensor, Sequence, Mapping, None]:
+            if isinstance(x, Metric):
+                return x.state_dict()
+            if isinstance(x, (int, float, torch.Tensor)):
+                gathered_x = idist.all_gather(x)
+                return cast(Union[torch.Tensor, List], gathered_x)
+            # Some attributes might be `None` upon serialization e.g. `RunningAverage`'s initial `_value`.
+            elif x is None:
+                return None
+            else:
+                raise TypeError(
+                    "Found attribute of unsupported type. Currently, supported types include"
+                    " numeric types, tensor, Metric or sequence/mapping of metrics."
+                )
+
         for attr_name in self._state_dict_all_req_keys:
             if attr_name not in self.__dict__:
                 raise ValueError(
                     f"Found a value in _state_dict_all_req_keys that is not among metric attributes: {attr_name}"
                 )
             attr = getattr(self, attr_name)
-            if isinstance(attr, Mapping):
-                state[attr_name] = {k: m.state_dict() for k, m in attr.items()}
-            elif isinstance(attr, Sequence):
-                state[attr_name] = [m.state_dict() for m in attr]
-            elif isinstance(attr, Metric):
-                state[attr_name] = attr.state_dict()
-            elif isinstance(attr, (int, float, torch.Tensor)):
-                if idist.get_world_size() == 1:
-                    state[attr_name] = [attr]
-                else:
-                    if isinstance(attr, (int, float)):
-                        attr_type = type(attr)
-                        attr = float(attr)
-                    gathered_attr = idist.all_gather(attr)
-                    if isinstance(attr, float):
-                        gathered_attr = [attr_type(process_attr) for process_attr in cast(torch.Tensor, gathered_attr)]
-                    state[attr_name] = cast(Union[torch.Tensor, List], gathered_attr)
-            # Some attributes might be `None` upon serialization e.g. `RunningAverage`'s initial `_value`.
-            elif attr is None:
-                state[attr_name] = None
-            else:
-                raise TypeError(
-                    "Found attribute of unsupported type. Currently, supported types include"
-                    " numeric types, tensor, Metric or sequence/mapping of metrics."
-                )
+            state[attr_name] = _tree_map(func, attr)  # type: ignore[assignment]
+
         return cast(OrderedDict, state)
 
     def load_state_dict(self, state_dict: Mapping) -> None:
@@ -603,26 +597,33 @@ class Metric(Serializable, metaclass=ABCMeta):
         """
         super().load_state_dict(state_dict)
         rank = idist.get_rank()
+        world_size = idist.get_world_size()
+
+        def func(x, y):
+            if isinstance(x, Metric):
+                x.load_state_dict(y)
+            elif isinstance(x, _CollectionItem):
+                value = x.value()
+                if isinstance(y, torch.Tensor) and y.ndim > 0:
+                    len_rank_slice = len(y) // world_size
+                    rank_slice = slice(rank * len_rank_slice, (rank + 1) * len_rank_slice)
+                    x.load_value(y[rank_slice])
+                elif isinstance(y, list):
+                    len_rank_slice = len(y) // world_size
+                    if len_rank_slice == 1:
+                        x.load_value(y[rank])
+                    else:
+                        rank_slice = slice(rank * len_rank_slice, (rank + 1) * len_rank_slice)
+                        x.load_value(y[rank_slice])
+                elif value is None or y is None or (isinstance(y, torch.Tensor) and y.ndim == 0):
+                    x.load_value(y)
+                elif isinstance(value, Metric):
+                    value.load_state_dict(y)
+
         for attr_name in self._state_dict_all_req_keys:
             attr = getattr(self, attr_name)
-            if isinstance(attr, Mapping):
-                for metric_name in attr:
-                    attr[metric_name].load_state_dict(state_dict[attr_name][metric_name])
-            elif isinstance(attr, Sequence):
-                for i, metric in enumerate(attr):
-                    metric.load_state_dict(state_dict[attr_name][i])
-            elif isinstance(attr, Metric):
-                attr.load_state_dict(state_dict[attr_name])
-            elif state_dict[attr_name] is None:
-                setattr(self, attr_name, None)
-            else:
-                world_size = idist.get_world_size()
-                len_rank_slice = len(state_dict[attr_name]) // world_size
-                if len_rank_slice == 1:
-                    setattr(self, attr_name, state_dict[attr_name][rank])
-                else:
-                    rank_slice = slice(rank * len_rank_slice, (rank + 1) * len_rank_slice)
-                    setattr(self, attr_name, state_dict[attr_name][rank_slice])
+            attr = _CollectionItem.wrap(self.__dict__, attr_name, attr)
+            _tree_apply2(func, attr, state_dict[attr_name])
 
     def __add__(self, other: Any) -> "MetricsLambda":
         from ignite.metrics.metrics_lambda import MetricsLambda

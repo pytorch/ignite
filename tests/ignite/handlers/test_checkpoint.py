@@ -69,17 +69,20 @@ def test_checkpoint_wrong_input():
         Checkpoint({"checkpointer": model}, lambda x: x, include_self=True)
 
     class ImmutableMapping(Mapping):
+        def __init__(self, d):
+            self._dict = d
+
         def __getitem__(self, key):
-            return to_save[key]
+            return self._dict[key]
 
         def __iter__(self):
-            return iter(to_save)
+            return iter(self._dict)
 
         def __len__(self):
-            return len(to_save)
+            return len(self._dict)
 
     with pytest.raises(TypeError, match="If `include_self` is True, then `to_save` must be mutable"):
-        Checkpoint(ImmutableMapping(), lambda x: x, include_self=True)
+        Checkpoint(ImmutableMapping(to_save), lambda x: x, include_self=True)
 
     checkpoint = Checkpoint(to_save, lambda x: x)
     with pytest.raises(AttributeError, match="Checkpoint's `save_handler` should be of type `DiskSaver`"):
@@ -870,7 +873,6 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname, jus
         # Probably related to https://github.com/pytorch/xla/issues/2576
         # loss = y.pow(2.0).sum()
         loss = y.sum()
-        print(loss.device, y.device, x.device)
         loss.backward()
         if idist.has_xla_support:
             import torch_xla.core.xla_model as xm
@@ -1083,7 +1085,7 @@ def test_checkpoint_load_objects():
     model = DummyModel()
     to_load = {"model": model, "another_model": model}
 
-    with pytest.raises(ValueError, match=r"from `to_load` is not found in the checkpoint"):
+    with pytest.raises(ValueError, match=r"Key 'model' from x is not found in y"):
         Checkpoint.load_objects(to_load, {})
 
     model = DummyModel()
@@ -1094,8 +1096,8 @@ def test_checkpoint_load_objects():
     Checkpoint.load_objects(to_load, chkpt)
     assert model.state_dict() == model2.state_dict()
 
-    chkpt = {"models": {"model1": {"abc": model.state_dict()}}}
-    to_load = {"models": {"model1": {"abc": model}}}
+    chkpt = {"models": [{"model1": {"abc": model.state_dict()}}, model.state_dict()]}
+    to_load = {"models": [{"model1": {"abc": model}}, model]}
     Checkpoint.load_objects(to_load, chkpt)
     assert model.state_dict() == model2.state_dict()
 
@@ -1650,6 +1652,7 @@ def test_checkpoint_load_state_dict():
     "to_save",
     [
         {"model": DummyModel()},
+        {"model": [DummyModel(), DummyModel()]},
         {"model": {"a": {"b": DummyModel()}}},
     ],
 )
@@ -1663,6 +1666,9 @@ def test_checkpoint__setup_checkpoint(to_save):
         assert k in checkpoint
         if isinstance(obj, torch.nn.Module):
             assert checkpoint[k] == obj.state_dict()
+        elif isinstance(obj, list):
+            for c2, obj2 in zip(checkpoint[k], obj):
+                assert c2 == obj2.state_dict()
         elif isinstance(obj, dict):
             c2 = checkpoint[k]
             for k2, obj2 in obj.items():
