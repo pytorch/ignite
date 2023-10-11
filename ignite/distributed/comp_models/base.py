@@ -214,7 +214,7 @@ class ComputationModel(metaclass=ABCMeta):
 
     def all_gather(
         self, tensor: Union[torch.Tensor, float, str, Any], group: Optional[Any] = None
-    ) -> Union[torch.Tensor, float, List[float], List[str]]:
+    ) -> Union[torch.Tensor, float, List[float], List[str], List[Any]]:
         if not isinstance(tensor, (torch.Tensor, Number, str)):
             return self._do_all_gather_object(tensor, group=group)
 
@@ -355,11 +355,11 @@ class _SerialModel(ComputationModel):
         return tensor
 
     def all_gather(
-        self, tensor: Union[torch.Tensor, float, str], group: Optional[Any] = None
-    ) -> Union[torch.Tensor, float, List[float], List[str]]:
+        self, tensor: Union[torch.Tensor, float, str, Any], group: Optional[Any] = None
+    ) -> Union[torch.Tensor, float, List[float], List[str], List[Any]]:
         if isinstance(tensor, torch.Tensor):
             return tensor
-        return cast(Union[List[float], List[str]], [tensor])
+        return cast(Union[List[float], List[str], List[Any]], [tensor])
 
     def broadcast(
         self, tensor: Union[torch.Tensor, float, str, None], src: int = 0, safe_mode: bool = False

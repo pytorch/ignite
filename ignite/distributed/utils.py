@@ -351,8 +351,8 @@ def all_reduce(
 
 
 def all_gather(
-    tensor: Union[torch.Tensor, float, str], group: Optional[Union[Any, List[int]]] = None
-) -> Union[torch.Tensor, float, List[float], List[str]]:
+    tensor: Union[torch.Tensor, float, str, Any], group: Optional[Union[Any, List[int]]] = None
+) -> Union[torch.Tensor, float, List[float], List[str], List[Any]]:
     """Helper method to perform all gather operation.
 
     Args:
