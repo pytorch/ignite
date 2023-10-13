@@ -469,7 +469,7 @@ class Checkpoint(Serializable):
     def _setup_checkpoint(self) -> Dict[str, Any]:
         if self.to_save is not None:
 
-            def func(obj: Any) -> Dict:
+            def func(obj: Any, **kwargs: Any) -> Dict:
                 if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
                     obj = obj.module
                 elif HAVE_ZERO and isinstance(obj, ZeroRedundancyOptimizer):
@@ -534,7 +534,7 @@ class Checkpoint(Serializable):
 
     @staticmethod
     def _check_objects(objs: Mapping, attr: str) -> None:
-        def func(obj: Any) -> None:
+        def func(obj: Any, **kwargs: Any) -> None:
             if not hasattr(obj, attr):
                 raise TypeError(f"Object {type(obj)} should have `{attr}` method")
 

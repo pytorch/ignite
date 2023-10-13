@@ -715,7 +715,9 @@ def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
     _test_distrib_sync_all_reduce_decorator(device)
     _test_invalid_sync_all_reduce(device)
     _test_compute_with_sync_all_reduce_doesnt_change_attributes(device)
-    _test_distrib_state_dict(device)
+
+    test_state_dict()
+    test_load_state_dict()
 
 
 @pytest.mark.distributed
@@ -725,7 +727,8 @@ def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
     _test_distrib_sync_all_reduce_decorator(device)
     _test_invalid_sync_all_reduce(device)
     _test_compute_with_sync_all_reduce_doesnt_change_attributes(device)
-    _test_distrib_state_dict(device)
+    test_state_dict()
+    test_load_state_dict()
 
 
 @pytest.mark.distributed
@@ -748,7 +751,6 @@ def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
     _test_distrib_sync_all_reduce_decorator(device)
     _test_invalid_sync_all_reduce(device)
     _test_compute_with_sync_all_reduce_doesnt_change_attributes(device)
-    _test_distrib_state_dict(device)
 
 
 @pytest.mark.multinode_distributed
@@ -1270,60 +1272,65 @@ def test_wrong_state_dict():
         metric.state_dict()
 
 
+def test_wrong_load_state_dict():
+    metric = DummyMetric4(1)
+
+    with pytest.raises(TypeError, match="Argument state_dict should be a dictionary"):
+        metric.load_state_dict(123)
+
+    with pytest.raises(ValueError, match="Incorrect state_dict object. Argument state_dict should be a dictionary"):
+        metric.load_state_dict({"abc": 123})
+
+    with pytest.raises(ValueError, match="Expected a list of state_dicts of size equal world_size"):
+        metric.load_state_dict({Metric._Metric__state_dict_key_per_rank: []})
+
+
 def test_state_dict():
     metric = DummyMetric4(1)
     state = metric.state_dict()
 
-    expected_state = metric.expected_state
-    assert state.keys() == expected_state.keys()
+    assert isinstance(state, dict) and len(state) == 1 and Metric._Metric__state_dict_key_per_rank in state
+
     rank = idist.get_rank()
     ws = idist.get_world_size()
-    for (k1, v1), (k2, v2) in zip(state.items(), expected_state.items()):
-        assert k1 == k2, (k1, k2)
-        if isinstance(v1, dict) and isinstance(v2, dict):
-            assert v1.keys() == v2.keys()
-            for (kk1, vv1), (kk2, vv2) in zip(v1.items(), v2.items()):
-                assert kk1 == kk2, (kk1, kk2)
-                if isinstance(vv1, list) and len(vv1) == ws:
-                    assert vv1[rank] == vv2, (vv1, vv2)
-                elif isinstance(vv1, dict) and isinstance(vv2, dict):
-                    assert vv1.keys() == vv2.keys(), (k1, kk1, vv1.keys(), vv2.keys())
-                    for (kkk1, vvv1), (kkk2, vvv2) in zip(vv1.items(), vv2.items()):
-                        assert kkk1 == kkk2, (kkk1, kkk2)
-                        if isinstance(vvv1, list) and len(vvv1) == ws:
-                            assert vvv1[rank] == vvv2, (k1, kk1, kkk1, vvv1, kkk2, vvv2)
-                        elif isinstance(vvv1, torch.Tensor) and isinstance(vvv2, torch.Tensor):
-                            assert vvv1.allclose(vvv2), (kkk1, vvv1, kkk2, vvv2)
-                        else:
-                            assert vvv1 == vvv2, (kkk1, vvv1, kkk2, vvv2)
-                else:
-                    assert vv1 == vv2, (kk1, vv1, kk2, vv2)
-        elif isinstance(v1, list) and isinstance(v2, list):
-            assert len(v1) == len(v2)
-            for vv1, vv2 in zip(v1, v2):
-                assert kk1 == kk2, (kk1, kk2)
-                if isinstance(vv1, list):
-                    assert vv1[rank] == vv2, (vv1, vv2)
-                elif isinstance(vv1, dict) and isinstance(vv2, dict):
-                    assert vv1.keys() == vv2.keys(), (k1, kk1, vv1.keys(), vv2.keys())
-                    for (kkk1, vvv1), (kkk2, vvv2) in zip(vv1.items(), vv2.items()):
-                        assert kkk1 == kkk2, (kkk1, kkk2)
-                        if isinstance(vvv1, list):
-                            assert vvv1[rank] == vvv2, (k1, kk1, kkk1, vvv1, kkk2, vvv2)
-                        elif isinstance(vvv1, torch.Tensor) and isinstance(vvv2, torch.Tensor):
-                            assert vvv1.allclose(vvv2), (kkk1, vvv1, kkk2, vvv2)
-                        else:
-                            assert vvv1 == vvv2, (kkk1, vvv1, kkk2, vvv2)
-                else:
-                    assert vv1 == vv2, (kk1, vv1, kk2, vv2)
-        elif isinstance(v1, torch.Tensor) and isinstance(v2, torch.Tensor):
-            assert v1 == v2
-        elif isinstance(v1, list):
-            assert v1[rank] == v2, (v1, v2)
-        elif v1 is None:
-            assert v2 is None
+
+    list_state_dicts = state[Metric._Metric__state_dict_key_per_rank]
+    assert len(list_state_dicts) == ws
+
+    state = list_state_dicts[rank]
+    expected_state = metric.expected_state
+    assert state.keys() == expected_state.keys()
+
+    # Flatten expected state and output state and compare values
+    output_flatten = []
+    expected_flatten = []
+
+    def get_func(flatten):
+        def wrapper(x, key):
+            if isinstance(x, Metric):
+                flatten.extend([(key, getattr(x, k)) for k in x._state_dict_all_req_keys])
+            else:
+                flatten.append((key, x))
+
+        return wrapper
+
+    _tree_map(get_func(expected_flatten), expected_state)
+    _tree_map(get_func(output_flatten), state)
+
+    assert len(output_flatten) == len(expected_flatten) and len(expected_flatten) > 0, (
+        expected_flatten,
+        output_flatten,
+    )
+
+    for key_output, key_expected in zip(output_flatten, expected_flatten):
+        key1, output = key_output
+        key2, expected = key_expected
+        assert key1 == key2, (key1, key2)
+        if isinstance(output, torch.Tensor):
+            assert isinstance(expected, torch.Tensor)
+            assert (output == expected).all(), (output, expected)
         else:
-            raise AssertionError(f"Unhandled types v1: {type(v1)} and v2: {type(v2)} for the key: {k1}")
+            assert output == expected, (output, expected)
 
 
 def test_load_state_dict():
@@ -1335,90 +1342,34 @@ def test_load_state_dict():
     metric.load_state_dict(state)
 
     rank = idist.get_rank()
-    ws = idist.get_world_size()
+    world_size = idist.get_world_size()
+    assert len(state[Metric._Metric__state_dict_key_per_rank]) == world_size
+    expected_state = state[Metric._Metric__state_dict_key_per_rank][rank]
 
-    # def _check(output_value, expected_value):
-    #     if isinstance(output_value, Metric):
-    #         for key2 in output_value._state_dict_all_req_keys:
-    #             output2 = getattr(output_value, key2)
-    #             assert key2 in expected_value, expected_value
-    #             _check(output2, expected_value[key2])
-
-    # for key, expected in state.items():
-    #     output = getattr(metric, key)
-    #     if isinstance(output, dict):
-    #         for key2 in output:
-
-    #     else:
-    #         _check(output, expected)
+    # Flatten expected state and output state and compare values
     output_flatten = []
     expected_flatten = []
 
     def get_func(flatten):
-        def wrapper(x):
+        def wrapper(x, **kwargs):
             if isinstance(x, Metric):
-                flatten.extend([getattr(x, key) for key in x._state_dict_all_req_keys])
+                flatten.extend([getattr(x, k) for k in x._state_dict_all_req_keys])
             else:
                 flatten.append(x)
+
         return wrapper
 
-    _tree_map(get_func(expected_flatten), state)
-    _tree_map(get_func(output_flatten), [getattr(metric, key) for key in metric._state_dict_all_req_keys])
+    _tree_map(get_func(expected_flatten), expected_state)
+    _tree_map(get_func(output_flatten), {key: getattr(metric, key) for key in metric._state_dict_all_req_keys})
 
-    assert len(output_flatten) == len(expected_flatten) and len(expected_flatten) > 0, (expected_flatten, output_flatten)
+    assert len(output_flatten) == len(expected_flatten) and len(expected_flatten) > 0, (
+        expected_flatten,
+        output_flatten,
+    )
 
     for output, expected in zip(output_flatten, expected_flatten):
-        if isinstance(output, (int, float)) and expected is not None:
-            assert isinstance(expected, list) and len(expected) == ws, (output, expected)
-            assert output == expected[rank]
-        elif isinstance(output, torch.Tensor):
+        if isinstance(output, torch.Tensor):
             assert isinstance(expected, torch.Tensor)
+            assert (output == expected).all(), (output, expected)
+        else:
             assert output == expected, (output, expected)
-        elif expected is None:
-            assert output == expected, (output, expected)
-
-    # assert metric.metric._num_correct == torch.tensor(4)
-    # assert metric.metric._num_examples == 5
-
-    # assert metric.metric_dict["m1"]._num_correct == torch.tensor(6)
-    # assert metric.metric_dict["m1"]._num_examples == 7
-    # assert torch.all(metric.metric_dict["m2"]._numerator == torch.tensor([8, 9]))
-    # assert torch.all(metric.metric_dict["m2"]._denominator == torch.tensor([10, 11]))
-
-    # assert torch.all(metric.metric_list[0]._numerator == torch.tensor([12, 13]))
-    # assert torch.all(metric.metric_list[0]._denominator == torch.tensor([14, 15]))
-    # assert torch.all(metric.metric_list[1]._numerator == torch.tensor([16, 17]))
-    # assert torch.all(metric.metric_list[1]._denominator == torch.tensor([18, 19]))
-
-    # assert metric.initially_none is None
-
-
-def _test_distrib_state_dict(device):
-    rank = idist.get_local_rank()
-    metric = DummyMetric4(rank)
-    state = metric.state_dict()
-
-    assert isinstance(state["dnumber"][rank], int)
-    assert isinstance(state["fnumber"][rank], float)
-    assert state["initially_none"] is None
-    metric.reset()
-    metric.initially_none = rank
-    metric.load_state_dict(state)
-    assert metric.dnumber == rank and isinstance(metric.dnumber, int)
-    assert metric.fnumber == rank + 1 and isinstance(metric.fnumber, float)
-    assert metric.tensor == torch.tensor([rank + 2])
-
-    assert metric.metric._num_correct == torch.tensor(rank + 3)
-    assert metric.metric._num_examples == rank + 4
-
-    assert metric.metric_dict["m1"]._num_correct == torch.tensor(rank + 5)
-    assert metric.metric_dict["m1"]._num_examples == rank + 6
-    assert torch.all(metric.metric_dict["m2"]._numerator == torch.tensor([rank + 7, rank + 8]))
-    assert torch.all(metric.metric_dict["m2"]._denominator == torch.tensor([rank + 9, rank + 10]))
-
-    assert torch.all(metric.metric_list[0]._numerator == torch.tensor([rank + 11, rank + 12]))
-    assert torch.all(metric.metric_list[0]._denominator == torch.tensor([rank + 13, rank + 14]))
-    assert torch.all(metric.metric_list[1]._numerator == torch.tensor([rank + 15, rank + 16]))
-    assert torch.all(metric.metric_list[1]._denominator == torch.tensor([rank + 17, rank + 18]))
-
-    assert metric.initially_none is None

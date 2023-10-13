@@ -79,29 +79,29 @@ def apply_to_type(
 
 
 def _tree_map(
-    func: Callable, x: Union[Any, collections.Sequence, collections.Mapping]
+    func: Callable, x: Union[Any, collections.Sequence, collections.Mapping], key: Optional[Union[int, str]] = None
 ) -> Union[Any, collections.Sequence, collections.Mapping]:
     if isinstance(x, collections.Mapping):
-        return cast(Callable, type(x))({k: _tree_map(func, sample) for k, sample in x.items()})
+        return cast(Callable, type(x))({k: _tree_map(func, sample, key=k) for k, sample in x.items()})
     if isinstance(x, tuple) and hasattr(x, "_fields"):  # namedtuple
         return cast(Callable, type(x))(*(_tree_map(func, sample) for sample in x))
     if isinstance(x, collections.Sequence):
-        return cast(Callable, type(x))([_tree_map(func, sample) for sample in x])
-    return func(x)
+        return cast(Callable, type(x))([_tree_map(func, sample, key=i) for i, sample in enumerate(x)])
+    return func(x, key=key)
 
 
 class _CollectionItem:
-    types_as_collection_item: Tuple[Type] = (int, float, torch.Tensor)
+    types_as_collection_item: Tuple = (int, float, torch.Tensor)
 
-    def __init__(self, collection, key) -> None:
+    def __init__(self, collection: Union[collections.Mapping, collections.Sequence], key: Union[int, str]) -> None:
         self.collection = collection
         self.key = key
 
-    def load_value(self, value):
-        self.collection[self.key] = value
+    def load_value(self, value: Any) -> None:
+        self.collection[self.key] = value  # type: ignore[index]
 
-    def value(self):
-        return self.collection[self.key]
+    def value(self) -> Any:
+        return self.collection[self.key]  # type: ignore[index]
 
     @staticmethod
     def wrap(
