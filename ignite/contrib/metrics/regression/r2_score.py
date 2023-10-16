@@ -56,6 +56,7 @@ class R2Score(_BaseRegression):
     .. versionchanged:: 0.4.3
         Works with DDP.
     """
+    _state_dict_all_req_keys = ("_num_examples", "_sum_of_errors", "_y_sq_sum", "_y_sum")
 
     @reinit__is_reduced
     def reset(self) -> None:

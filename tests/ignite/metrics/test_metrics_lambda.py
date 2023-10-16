@@ -8,7 +8,7 @@ from sklearn.metrics import f1_score, precision_score, recall_score
 
 import ignite.distributed as idist
 from ignite.engine import Engine
-from ignite.metrics import Metric, MetricsLambda, Precision, Recall
+from ignite.metrics import Accuracy, Metric, MetricsLambda, Precision, Recall
 
 
 class ListGatherMetric(Metric):
@@ -269,6 +269,34 @@ def test_integration(attach_pr_re):
 
         assert precision_true == approx(precision), f"{precision_true} vs {precision}"
         assert recall_true == approx(recall), f"{recall_true} vs {recall}"
+
+    metric_state = F1.state_dict()
+    F1.reset()
+    F1.load_state_dict(metric_state)
+    f1_value = F1.compute()
+    assert f1_value == state.metrics["f1"]
+
+
+def test_load_state_dict():
+    acc = Accuracy()
+    error = 1.0 - acc
+
+    acc.update(
+        (
+            torch.randint(0, 2, size=(8,)),
+            torch.randint(0, 2, size=(8,)),
+        )
+    )
+
+    e = error.compute()
+    a = acc.compute()
+    assert 1.0 - a == e
+
+    metric_state = error.state_dict()
+    error.reset()
+    error.load_state_dict(metric_state)
+    e2 = error.compute()
+    assert e2 == e
 
 
 def test_state_metrics():

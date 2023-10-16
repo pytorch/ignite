@@ -6,7 +6,7 @@ import random
 import shutil
 import warnings
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, Optional, TextIO, Tuple, Type, TypeVar, Union
+from typing import Any, Callable, cast, Dict, List, Optional, TextIO, Tuple, Type, TypeVar, Union
 
 import torch
 
@@ -93,7 +93,14 @@ def _tree_map(
 class _CollectionItem:
     types_as_collection_item: Tuple = (int, float, torch.Tensor)
 
-    def __init__(self, collection: Union[collections.Mapping, collections.Sequence], key: Union[int, str]) -> None:
+    def __init__(self, collection: Union[Dict, List], key: Union[int, str]) -> None:
+        if not isinstance(collection, (dict, list)):
+            raise TypeError(
+                f"Input type is expected to be a mapping or list, but got {type(collection)} " f"for input key '{key}'."
+            )
+        if isinstance(collection, list) and isinstance(key, str):
+            raise ValueError("Key should be int for collection of type list")
+
         self.collection = collection
         self.key = key
 
@@ -105,7 +112,7 @@ class _CollectionItem:
 
     @staticmethod
     def wrap(
-        object: Union[collections.Mapping, collections.Sequence], key: Union[int, str], value: Any
+        object: Union[Dict, List], key: Union[int, str], value: Any
     ) -> Union[Any, "_CollectionItem"]:
         return (
             _CollectionItem(object, key)
@@ -116,15 +123,15 @@ class _CollectionItem:
 
 def _tree_apply2(
     func: Callable,
-    x: Union[Any, collections.Sequence, collections.Mapping],
+    x: Union[Any, List, Dict],
     y: Union[Any, collections.Sequence, collections.Mapping],
 ) -> None:
-    if isinstance(x, collections.Mapping) and isinstance(y, collections.Mapping):
+    if isinstance(x, dict) and isinstance(y, collections.Mapping):
         for k, v in x.items():
             if k not in y:
                 raise ValueError(f"Key '{k}' from x is not found in y: {y.keys()}")
             _tree_apply2(func, _CollectionItem.wrap(x, k, v), y[k])
-    elif isinstance(x, collections.Sequence) and isinstance(y, collections.Sequence):
+    elif isinstance(x, list) and isinstance(y, collections.Sequence):
         if len(x) != len(y):
             raise ValueError(f"Size of y: {len(y)} does not match the size of x: '{len(x)}'")
         for i, (v1, v2) in enumerate(zip(x, y)):
