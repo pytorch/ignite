@@ -1292,6 +1292,39 @@ def test_wrong_load_state_dict():
         metric.load_state_dict({Metric._Metric__state_dict_key_per_rank: []})
 
 
+# @pytest.mark.distributed
+# @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+# @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+# def test_distrib_state_dict_metric_in_metric(distributed_context_single_node_nccl):
+#     class _TestMetric(Metric):
+#         _state_dict_all_req_keys = ("metric", )
+#         def __init__(self):
+#             self.metric = Accuracy()
+
+#         def reset(self):
+#             self.metric.reset()
+
+#         def update(self, output):
+#             self.metric.update(output)
+
+#         def compute(self):
+#             return self.metric.compute()
+
+#     m = _TestMetric()
+#     m.update((
+#         torch.rand(4, 10),
+#         torch.randint(0, 10, size=(4, )),
+#     ))
+
+#     rank = idist.get_rank()
+
+#     import time
+#     time.sleep(rank * 0.1)
+
+#     print("m: ", m.state_dict())
+#     assert False
+
+
 def test_state_dict():
     metric = DummyMetric4(1)
     state = metric.state_dict()

@@ -550,22 +550,12 @@ class Metric(Serializable, metaclass=ABCMeta):
         usage = self._check_usage(usage)
         return engine.has_event_handler(self.completed, usage.COMPLETED)
 
-    __state_dict_key_per_rank: str = "__metric_state_per_rank"
-
-    def state_dict(self) -> OrderedDict:
-        """Method returns state dict with attributes of the metric specified in its
-        `_state_dict_all_req_keys` attribute. Can be used to save internal state of the class.
-
-        If there's an active distributed configuration, some collective operations is done and
-        the list of values across ranks is saved under each attribute's name in the dict, for numeric
-        and tensor values.
-        """
-
+    def _state_dict_per_rank(self) -> OrderedDict:
         def func(
             x: Union[torch.Tensor, Metric, None, float], **kwargs: Any
         ) -> Union[torch.Tensor, float, OrderedDict, None]:
             if isinstance(x, Metric):
-                return x.state_dict()
+                return x._state_dict_per_rank()
             if x is None or isinstance(x, (int, float, torch.Tensor)):
                 return x
             else:
@@ -574,7 +564,7 @@ class Metric(Serializable, metaclass=ABCMeta):
                     " numeric types, tensor, Metric or sequence/mapping of metrics."
                 )
 
-        state: Dict[str, Union[torch.Tensor, List, Dict, None]] = OrderedDict()
+        state: OrderedDict[str, Union[torch.Tensor, List, Dict, None]] = OrderedDict()
         for attr_name in self._state_dict_all_req_keys:
             if attr_name not in self.__dict__:
                 raise ValueError(
@@ -583,9 +573,39 @@ class Metric(Serializable, metaclass=ABCMeta):
             attr = getattr(self, attr_name)
             state[attr_name] = _tree_map(func, attr)  # type: ignore[assignment]
 
+        return state
+
+    __state_dict_key_per_rank: str = "__metric_state_per_rank"
+
+    def state_dict(self) -> OrderedDict:
+        """Method returns state dict with attributes of the metric specified in its
+        `_state_dict_all_req_keys` attribute. Can be used to save internal state of the class.
+        """
+        state = self._state_dict_per_rank()
+
         if idist.get_world_size() > 1:
             return OrderedDict([(Metric.__state_dict_key_per_rank, idist.all_gather(state))])
         return OrderedDict([(Metric.__state_dict_key_per_rank, [state])])
+
+    def _load_state_dict_per_rank(self, state_dict: Mapping) -> None:
+        super().load_state_dict(state_dict)
+
+        def func(x: Any, y: Any) -> None:
+            if isinstance(x, Metric):
+                x._load_state_dict_per_rank(y)
+            elif isinstance(x, _CollectionItem):
+                value = x.value()
+                if y is None or isinstance(y, _CollectionItem.types_as_collection_item):
+                    x.load_value(y)
+                elif isinstance(value, Metric):
+                    value._load_state_dict_per_rank(y)
+                else:
+                    raise ValueError(f"Unsupported type for provided state_dict data: {type(y)}")
+
+        for attr_name in self._state_dict_all_req_keys:
+            attr = getattr(self, attr_name)
+            attr = _CollectionItem.wrap(self.__dict__, attr_name, attr)
+            _tree_apply2(func, attr, state_dict[attr_name])
 
     def load_state_dict(self, state_dict: Mapping) -> None:
         """Method replaces internal state of the class with provided state dict data.
@@ -619,24 +639,7 @@ class Metric(Serializable, metaclass=ABCMeta):
             )
 
         state_dict = list_state_dicts_per_rank[rank]
-        super().load_state_dict(state_dict)
-
-        def func(x: Any, y: Any) -> None:
-            if isinstance(x, Metric):
-                x.load_state_dict(y)
-            elif isinstance(x, _CollectionItem):
-                value = x.value()
-                if y is None or isinstance(y, _CollectionItem.types_as_collection_item):
-                    x.load_value(y)
-                elif isinstance(value, Metric):
-                    value.load_state_dict(y)
-                else:
-                    raise ValueError(f"Unsupported type for provided state_dict data: {type(y)}")
-
-        for attr_name in self._state_dict_all_req_keys:
-            attr = getattr(self, attr_name)
-            attr = _CollectionItem.wrap(self.__dict__, attr_name, attr)
-            _tree_apply2(func, attr, state_dict[attr_name])
+        self._load_state_dict_per_rank(state_dict)
 
     def __add__(self, other: Any) -> "MetricsLambda":
         from ignite.metrics.metrics_lambda import MetricsLambda
