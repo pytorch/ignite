@@ -167,7 +167,7 @@ def test_checkpoint_include_self_state_dict(to_save, obj, name):
     assert save_handler.call_count == 1
 
     fname = f"{name}_0.pt"
-    obj["checkpointer"] = OrderedDict([("saved", [(0, fname)])])
+    obj["checkpointer"] = OrderedDict([("_saved", [(0, fname)])])
 
     metadata = {"basename": name, "score_name": None, "priority": 0}
     save_handler.assert_called_with(obj, fname, metadata)
@@ -187,7 +187,7 @@ def test_checkpoint_include_self_state_dict(to_save, obj, name):
     save_handler.remove.assert_called_with(f"{name}_0.pt")
 
     fname = f"{name}_1234.pt"
-    obj["checkpointer"] = OrderedDict([("saved", [(1234, fname)])])
+    obj["checkpointer"] = OrderedDict([("_saved", [(1234, fname)])])
 
     save_handler.assert_called_with(obj, fname, metadata)
     assert save_handler.remove.call_count == 1
@@ -1627,10 +1627,10 @@ def _setup_checkpoint():
 def test_checkpoint_state_dict():
     checkpointer = _setup_checkpoint()
     sd = checkpointer.state_dict()
-    assert "saved" in sd
-    assert isinstance(sd["saved"], list) and len(sd["saved"]) == len(checkpointer._saved)
+    assert "_saved" in sd
+    assert isinstance(sd["_saved"], list) and len(sd["_saved"]) == len(checkpointer._saved)
 
-    for saved_item, true_item in zip(sd["saved"], checkpointer._saved):
+    for saved_item, true_item in zip(sd["_saved"], checkpointer._saved):
         assert saved_item[0] == true_item.priority
         assert saved_item[1] == true_item.filename
 

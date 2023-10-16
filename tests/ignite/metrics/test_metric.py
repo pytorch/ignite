@@ -1166,6 +1166,7 @@ class DummyMetric4(Metric):
                     "_numerator": torch.tensor([value + 7, value + 8]),
                     "_denominator": torch.tensor([value + 9, value + 10]),
                     "_weight": value,
+                    "_updated": True,
                 },
                 "n": value + 12,
             },
@@ -1174,11 +1175,13 @@ class DummyMetric4(Metric):
                     "_numerator": torch.tensor([value + 11, value + 12]),
                     "_denominator": torch.tensor([value + 13, value + 14]),
                     "_weight": value,
+                    "_updated": True,
                 },
                 {
                     "_numerator": torch.tensor([value + 15, value + 16]),
                     "_denominator": torch.tensor([value + 17, value + 18]),
                     "_weight": value,
+                    "_updated": True,
                 },
                 value + 234,
             ],
@@ -1210,6 +1213,7 @@ class DummyMetric4(Metric):
         self.metric_dict["m2"]._numerator = self.expected_state["metric_dict"]["m2"]["_numerator"]
         self.metric_dict["m2"]._denominator = self.expected_state["metric_dict"]["m2"]["_denominator"]
         self.metric_dict["m2"]._weight = self.expected_state["metric_dict"]["m2"]["_weight"]
+        self.metric_dict["m2"]._updated = self.expected_state["metric_dict"]["m2"]["_updated"]
 
         self.metric_list: List[Metric] = [
             Recall(),
@@ -1219,9 +1223,12 @@ class DummyMetric4(Metric):
         self.metric_list[0]._numerator = self.expected_state["metric_list"][0]["_numerator"]
         self.metric_list[0]._denominator = self.expected_state["metric_list"][0]["_denominator"]
         self.metric_list[0]._weight = self.expected_state["metric_list"][0]["_weight"]
+        self.metric_list[0]._updated = self.expected_state["metric_list"][0]["_updated"]
+
         self.metric_list[1]._numerator = self.expected_state["metric_list"][1]["_numerator"]
         self.metric_list[1]._denominator = self.expected_state["metric_list"][1]["_denominator"]
         self.metric_list[1]._weight = self.expected_state["metric_list"][1]["_weight"]
+        self.metric_list[1]._updated = self.expected_state["metric_list"][1]["_updated"]
 
         self.initially_none = None
 
