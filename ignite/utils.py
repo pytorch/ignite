@@ -111,9 +111,7 @@ class _CollectionItem:
         return self.collection[self.key]  # type: ignore[index]
 
     @staticmethod
-    def wrap(
-        object: Union[Dict, List], key: Union[int, str], value: Any
-    ) -> Union[Any, "_CollectionItem"]:
+    def wrap(object: Union[Dict, List], key: Union[int, str], value: Any) -> Union[Any, "_CollectionItem"]:
         return (
             _CollectionItem(object, key)
             if value is None or isinstance(value, _CollectionItem.types_as_collection_item)

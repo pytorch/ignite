@@ -1643,7 +1643,7 @@ def test_checkpoint_load_state_dict():
     to_save = {"model": model}
     checkpointer = Checkpoint(to_save, save_handler=save_handler, n_saved=None)
 
-    sd = {"saved": [(0, "model_0.pt"), (10, "model_10.pt"), (20, "model_20.pt")]}
+    sd = {"_saved": [(0, "model_0.pt"), (10, "model_10.pt"), (20, "model_20.pt")]}
     checkpointer.load_state_dict(sd)
     assert checkpointer._saved == true_checkpointer._saved
 

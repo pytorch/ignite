@@ -710,7 +710,7 @@ def _test_creating_on_xla_fails(device):
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_distrib_nccl_gpu(distributed):
+def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
     device = idist.device()
     _test_distrib_sync_all_reduce_decorator(device)
     _test_invalid_sync_all_reduce(device)
