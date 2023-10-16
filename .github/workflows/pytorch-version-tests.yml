@@ -17,13 +17,8 @@ jobs:
       matrix:
         python-version: [3.8, 3.9, "3.10"]
         pytorch-version:
-          [1.13.1, 1.12.1, 1.11.0, 1.10.0, 1.9.1, 1.8.1, 1.7.1, 1.6.0, 1.5.1, 1.4.0]
-        exclude:
-          - pytorch-version: 1.4.0
-            python-version: 3.9
-          - pytorch-version: 1.4.0
-            python-version: "3.10"
-            
+          [2.0.1, 1.13.1, 1.12.1, 1.11.0, 1.10.0, 1.9.1, 1.8.1, 1.7.1, 1.6.0, 1.5.1]
+        exclude:            
           - pytorch-version: 1.5.1
             python-version: 3.9
           - pytorch-version: 1.5.1
@@ -88,7 +83,6 @@ jobs:
 
       - name: Install dependencies
         shell: bash -l {0}
-        if: ${{ matrix.pytorch-version != '1.4.0' }}
         run: |
           conda install pytorch=${{ matrix.pytorch-version }} torchvision cpuonly python=${{ matrix.python-version }} -c pytorch
           pip install -r requirements-dev.txt
@@ -101,17 +95,6 @@ jobs:
             pip install --upgrade "setuptools<59"
             python -c "from setuptools import distutils; distutils.version.LooseVersion"
           fi
-
-      # There is no more torchvision 0.5.0 binaries in anaconda pytorch channel:
-      # https://anaconda.org/pytorch/torchvision/files 
-      - name: Install appropriate dependencies for PyTorch 1.4.0
-        shell: bash -l {0}
-        if: ${{ matrix.pytorch-version == '1.4.0' }}
-        run: |         
-          conda install pytorch=${{ matrix.pytorch-version }} cpuonly python=${{ matrix.python-version }} -c pytorch
-          pip install torchvision==0.5.0
-          pip install -r requirements-dev.txt
-          python setup.py install
 
       - name: Download MNIST
         uses: pytorch-ignite/download-mnist-github-action@master
