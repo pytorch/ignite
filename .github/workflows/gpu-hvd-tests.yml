@@ -25,7 +25,7 @@ jobs:
         pytorch-channel: [pytorch, ]
       fail-fast: false
     env:
-      DOCKER_IMAGE: "pytorch/conda-builder:cuda11.8"
+      DOCKER_IMAGE: "pytorch/conda-builder:cuda12.1"
       REPOSITORY: ${{ github.repository }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
     runs-on: linux.8xlarge.nvidia.gpu
@@ -102,9 +102,9 @@ jobs:
 
           # Install PyTorch
           if [ "${{ matrix.pytorch-channel }}" == "pytorch" ]; then
-            pip install --upgrade torch torchvision --index-url https://download.pytorch.org/whl/cu118
+            pip install --upgrade torch torchvision --index-url https://download.pytorch.org/whl/cu121
           else
-            pip install --upgrade --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu118
+            pip install --upgrade --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu121
           fi
 
           python -c "import torch; print(torch.__version__, ', CUDA is available: ', torch.cuda.is_available()); exit(not torch.cuda.is_available())"
@@ -125,7 +125,17 @@ jobs:
 
           set -xe
 
-          HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]
+          # Can't build Horovod with recent pytorch due to pytorch required C++17 standard
+          # and horovod is still using C++14
+          # HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]
+          # Using a similar hack as described here: 
+          # https://github.com/horovod/horovod/issues/3941#issuecomment-1732505345 
+          git clone --recursive https://github.com/horovod/horovod.git /horovod
+          cd /horovod
+          sed -i "s/CMAKE_CXX_STANDARD 14/CMAKE_CXX_STANDARD 17/g" CMakeLists.txt
+          sed -i "s/CMAKE_CXX_STANDARD 14/CMAKE_CXX_STANDARD 17/g" horovod/torch/CMakeLists.txt
+          HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_WITH_PYTORCH=1 python setup.py install
+
           horovodrun --check-build
           pip list
 
