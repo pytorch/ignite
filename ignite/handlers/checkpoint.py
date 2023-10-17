@@ -6,7 +6,7 @@ import tempfile
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping, NamedTuple, Optional, Tuple, Union
+from typing import Any, Callable, cast, Dict, List, Mapping, NamedTuple, Optional, Union
 
 import torch
 import torch.nn as nn
@@ -22,6 +22,7 @@ else:
 import ignite.distributed as idist
 from ignite.base import Serializable
 from ignite.engine import Engine, Events
+from ignite.utils import _tree_apply2, _tree_map
 
 __all__ = ["Checkpoint", "DiskSaver", "ModelCheckpoint", "BaseSaveHandler"]
 
@@ -276,7 +277,7 @@ class Checkpoint(Serializable):
     """
 
     Item = NamedTuple("Item", [("priority", int), ("filename", str)])
-    _state_dict_all_req_keys = ("saved",)
+    _state_dict_all_req_keys = ("_saved",)
 
     def __init__(
         self,
@@ -465,24 +466,19 @@ class Checkpoint(Serializable):
             except TypeError:
                 self.save_handler(checkpoint, filename)
 
-    def _setup_checkpoint_recursive(self, objs: Mapping) -> Dict[str, Dict[Any, Any]]:
-        checkpoint = {}
-        for k, obj in objs.items():
-            if isinstance(obj, Mapping):
-                checkpoint[k] = self._setup_checkpoint_recursive(obj)
-            else:
+    def _setup_checkpoint(self) -> Dict[str, Any]:
+        if self.to_save is not None:
+
+            def func(obj: Any, **kwargs: Any) -> Dict:
                 if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
                     obj = obj.module
                 elif HAVE_ZERO and isinstance(obj, ZeroRedundancyOptimizer):
                     obj.consolidate_state_dict(to=self.save_on_rank)
                     if self.save_on_rank != idist.get_rank():
-                        continue
-                checkpoint[k] = obj.state_dict()
-        return checkpoint
+                        return {}
+                return obj.state_dict()
 
-    def _setup_checkpoint(self) -> Dict[str, Dict[Any, Any]]:
-        if self.to_save is not None:
-            return self._setup_checkpoint_recursive(self.to_save)
+            return cast(Dict[str, Any], _tree_map(func, self.to_save))
         return {}
 
     @staticmethod
@@ -538,11 +534,11 @@ class Checkpoint(Serializable):
 
     @staticmethod
     def _check_objects(objs: Mapping, attr: str) -> None:
-        for obj in objs.values():
-            if isinstance(obj, Mapping):
-                Checkpoint._check_objects(obj, attr=attr)
-            elif not hasattr(obj, attr):
+        def func(obj: Any, **kwargs: Any) -> None:
+            if not hasattr(obj, attr):
                 raise TypeError(f"Object {type(obj)} should have `{attr}` method")
+
+        _tree_map(func, objs)
 
     @staticmethod
     def load_objects(to_load: Mapping, checkpoint: Union[str, Mapping, Path], **kwargs: Any) -> None:
@@ -625,17 +621,7 @@ class Checkpoint(Serializable):
                 _load_object(obj, checkpoint_obj)
                 return
 
-        def _load_objects_recursive(objs: Mapping, chkpt_objs: Mapping) -> None:
-            for k, obj in objs.items():
-                if k not in chkpt_objs:
-                    raise ValueError(f"Object labeled by '{k}' from `to_load` is not found in the checkpoint")
-                if isinstance(obj, Mapping):
-                    _load_objects_recursive(obj, chkpt_objs[k])
-                else:
-                    _load_object(obj, chkpt_objs[k])
-
-        # multiple objects to load
-        _load_objects_recursive(to_load, checkpoint_obj)
+        _tree_apply2(_load_object, to_load, checkpoint_obj)
 
     def reload_objects(self, to_load: Mapping, load_kwargs: Optional[Dict] = None, **filename_components: Any) -> None:
         """Helper method to apply ``load_state_dict`` on the objects from ``to_load``. Filename components such as
@@ -721,11 +707,12 @@ class Checkpoint(Serializable):
 
         Checkpoint.load_objects(to_load=to_load, checkpoint=path, **load_kwargs)
 
-    def state_dict(self) -> "OrderedDict[str, List[Tuple[int, str]]]":
+    def state_dict(self) -> OrderedDict:
         """Method returns state dict with saved items: list of ``(priority, filename)`` pairs.
         Can be used to save internal state of the class.
         """
-        return OrderedDict([("saved", [(p, f) for p, f in self._saved])])
+        # TODO: this method should use _state_dict_all_req_keys
+        return OrderedDict([("_saved", [(p, f) for p, f in self._saved])])
 
     def load_state_dict(self, state_dict: Mapping) -> None:
         """Method replaces internal state of the class with provided state dict data.
@@ -734,7 +721,7 @@ class Checkpoint(Serializable):
             state_dict: a dict with "saved" key and list of ``(priority, filename)`` pairs as values.
         """
         super().load_state_dict(state_dict)
-        self._saved = [Checkpoint.Item(p, f) for p, f in state_dict["saved"]]
+        self._saved = [Checkpoint.Item(p, f) for p, f in state_dict["_saved"]]
 
     @staticmethod
     def get_default_score_fn(metric_name: str, score_sign: float = 1.0) -> Callable:

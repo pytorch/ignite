@@ -405,6 +405,14 @@ def _test_distrib_integration_multiclass(device):
 
         assert pytest.approx(res) == true_res
 
+        metric_state = acc.state_dict()
+        saved__num_correct = acc._num_correct
+        saved__num_examples = acc._num_examples
+        acc.reset()
+        acc.load_state_dict(metric_state)
+        assert acc._num_examples == saved__num_examples
+        assert (acc._num_correct == saved__num_correct).all()
+
     metric_devices = ["cpu"]
     if device.type != "xla":
         metric_devices.append(idist.device())

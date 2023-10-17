@@ -23,6 +23,7 @@ from ignite.metrics.metric import (
     SingleEpochRunningBatchWise,
     sync_all_reduce,
 )
+from ignite.utils import _tree_map
 
 
 class DummyMetric1(Metric):
@@ -714,7 +715,9 @@ def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
     _test_distrib_sync_all_reduce_decorator(device)
     _test_invalid_sync_all_reduce(device)
     _test_compute_with_sync_all_reduce_doesnt_change_attributes(device)
-    _test_distrib_state_dict(device)
+
+    test_state_dict()
+    test_load_state_dict()
 
 
 @pytest.mark.distributed
@@ -724,7 +727,8 @@ def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
     _test_distrib_sync_all_reduce_decorator(device)
     _test_invalid_sync_all_reduce(device)
     _test_compute_with_sync_all_reduce_doesnt_change_attributes(device)
-    _test_distrib_state_dict(device)
+    test_state_dict()
+    test_load_state_dict()
 
 
 @pytest.mark.distributed
@@ -747,7 +751,6 @@ def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
     _test_distrib_sync_all_reduce_decorator(device)
     _test_invalid_sync_all_reduce(device)
     _test_compute_with_sync_all_reduce_doesnt_change_attributes(device)
-    _test_distrib_state_dict(device)
 
 
 @pytest.mark.multinode_distributed
@@ -1136,33 +1139,96 @@ class DummyMetric4(Metric):
         "dnumber",
         "fnumber",
         "tensor",
+        "tensor2",
         "metric",
         "metric_dict",
         "metric_list",
         "initially_none",
     )
 
-    def __init__(self, value: int):
+    @staticmethod
+    def gen_expected_state(value):
+        expected_state = {
+            "dnumber": value + 1,
+            "fnumber": value + 2.234,
+            "tensor": torch.tensor(value + 2.5),
+            "tensor2": torch.tensor(value + 3.5),
+            "metric": {
+                "_num_correct": torch.tensor(value + 3),
+                "_num_examples": value + 4,
+            },
+            "metric_dict": {
+                "m1": {
+                    "_num_correct": torch.tensor(value + 5),
+                    "_num_examples": value + 6,
+                },
+                "m2": {
+                    "_numerator": torch.tensor([value + 7, value + 8]),
+                    "_denominator": torch.tensor([value + 9, value + 10]),
+                    "_weight": value,
+                    "_updated": True,
+                },
+                "n": value + 12,
+            },
+            "metric_list": [
+                {
+                    "_numerator": torch.tensor([value + 11, value + 12]),
+                    "_denominator": torch.tensor([value + 13, value + 14]),
+                    "_weight": value,
+                    "_updated": True,
+                },
+                {
+                    "_numerator": torch.tensor([value + 15, value + 16]),
+                    "_denominator": torch.tensor([value + 17, value + 18]),
+                    "_weight": value,
+                    "_updated": True,
+                },
+                value + 234,
+            ],
+            "initially_none": None,
+        }
+        return expected_state
+
+    def __init__(self, value):
         super().reset()
-        self.dnumber = value
-        self.fnumber = float(value + 1)
-        self.tensor = torch.tensor([value + 2])
+
+        self.expected_state = DummyMetric4.gen_expected_state(value)
+
+        self.dnumber = self.expected_state["dnumber"]
+        self.fnumber = self.expected_state["fnumber"]
+        self.tensor = self.expected_state["tensor"]
+        self.tensor2 = self.expected_state["tensor2"]
 
         self.metric = Accuracy()
-        self.metric._num_correct = torch.tensor(value + 3)
-        self.metric._num_examples = value + 4
+        self.metric._num_correct = self.expected_state["metric"]["_num_correct"]
+        self.metric._num_examples = self.expected_state["metric"]["_num_examples"]
 
-        self.metric_dict: Dict[str, Metric] = {"m1": Accuracy(), "m2": Precision()}
-        self.metric_dict["m1"]._num_correct = torch.tensor(value + 5)
-        self.metric_dict["m1"]._num_examples = value + 6
-        self.metric_dict["m2"]._numerator = torch.tensor([value + 7, value + 8])
-        self.metric_dict["m2"]._denominator = torch.tensor([value + 9, value + 10])
+        self.metric_dict: Dict[str, Metric] = {
+            "m1": Accuracy(),
+            "m2": Precision(),
+            "n": self.expected_state["metric_dict"]["n"],
+        }
+        self.metric_dict["m1"]._num_correct = self.expected_state["metric_dict"]["m1"]["_num_correct"]
+        self.metric_dict["m1"]._num_examples = self.expected_state["metric_dict"]["m1"]["_num_examples"]
+        self.metric_dict["m2"]._numerator = self.expected_state["metric_dict"]["m2"]["_numerator"]
+        self.metric_dict["m2"]._denominator = self.expected_state["metric_dict"]["m2"]["_denominator"]
+        self.metric_dict["m2"]._weight = self.expected_state["metric_dict"]["m2"]["_weight"]
+        self.metric_dict["m2"]._updated = self.expected_state["metric_dict"]["m2"]["_updated"]
 
-        self.metric_list: List[Metric] = [Recall(), Precision()]
-        self.metric_list[0]._numerator = torch.tensor([value + 11, value + 12])
-        self.metric_list[0]._denominator = torch.tensor([value + 13, value + 14])
-        self.metric_list[1]._numerator = torch.tensor([value + 15, value + 16])
-        self.metric_list[1]._denominator = torch.tensor([value + 17, value + 18])
+        self.metric_list: List[Metric] = [
+            Recall(),
+            Precision(),
+            self.expected_state["metric_list"][2],
+        ]
+        self.metric_list[0]._numerator = self.expected_state["metric_list"][0]["_numerator"]
+        self.metric_list[0]._denominator = self.expected_state["metric_list"][0]["_denominator"]
+        self.metric_list[0]._weight = self.expected_state["metric_list"][0]["_weight"]
+        self.metric_list[0]._updated = self.expected_state["metric_list"][0]["_updated"]
+
+        self.metric_list[1]._numerator = self.expected_state["metric_list"][1]["_numerator"]
+        self.metric_list[1]._denominator = self.expected_state["metric_list"][1]["_denominator"]
+        self.metric_list[1]._weight = self.expected_state["metric_list"][1]["_weight"]
+        self.metric_list[1]._updated = self.expected_state["metric_list"][1]["_updated"]
 
         self.initially_none = None
 
@@ -1170,11 +1236,14 @@ class DummyMetric4(Metric):
         self.dnumber = -1
         self.fnumber = -2.0
         self.tensor = torch.tensor([-3])
+        self.tensor2 = 0
         self.metric.reset()
         for m in self.metric_dict.values():
-            m.reset()
+            if isinstance(m, Metric):
+                m.reset()
         for m in self.metric_list:
-            m.reset()
+            if isinstance(m, Metric):
+                m.reset()
         self.initially_none = None
 
     def update(self, output):
@@ -1210,59 +1279,137 @@ def test_wrong_state_dict():
         metric.state_dict()
 
 
+def test_wrong_load_state_dict():
+    metric = DummyMetric4(1)
+
+    with pytest.raises(TypeError, match="Argument state_dict should be a dictionary"):
+        metric.load_state_dict(123)
+
+    with pytest.raises(ValueError, match="Incorrect state_dict object. Argument state_dict should be a dictionary"):
+        metric.load_state_dict({"abc": 123})
+
+    with pytest.raises(ValueError, match="Expected a list of state_dicts of size equal world_size"):
+        metric.load_state_dict({Metric._Metric__state_dict_key_per_rank: []})
+
+
+# @pytest.mark.distributed
+# @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+# @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+# def test_distrib_state_dict_metric_in_metric(distributed_context_single_node_nccl):
+#     class _TestMetric(Metric):
+#         _state_dict_all_req_keys = ("metric", )
+#         def __init__(self):
+#             self.metric = Accuracy()
+
+#         def reset(self):
+#             self.metric.reset()
+
+#         def update(self, output):
+#             self.metric.update(output)
+
+#         def compute(self):
+#             return self.metric.compute()
+
+#     m = _TestMetric()
+#     m.update((
+#         torch.rand(4, 10),
+#         torch.randint(0, 10, size=(4, )),
+#     ))
+
+#     rank = idist.get_rank()
+
+#     import time
+#     time.sleep(rank * 0.1)
+
+#     print("m: ", m.state_dict())
+#     assert False
+
+
 def test_state_dict():
     metric = DummyMetric4(1)
     state = metric.state_dict()
-    assert state.keys() == {"dnumber", "fnumber", "tensor", "metric", "metric_dict", "metric_list", "initially_none"}
+
+    assert isinstance(state, dict) and len(state) == 1 and Metric._Metric__state_dict_key_per_rank in state
+
+    rank = idist.get_rank()
+    ws = idist.get_world_size()
+
+    list_state_dicts = state[Metric._Metric__state_dict_key_per_rank]
+    assert len(list_state_dicts) == ws
+
+    state = list_state_dicts[rank]
+    expected_state = metric.expected_state
+    assert state.keys() == expected_state.keys()
+
+    # Flatten expected state and output state and compare values
+    output_flatten = []
+    expected_flatten = []
+
+    def get_func(flatten):
+        def wrapper(x, key):
+            if isinstance(x, Metric):
+                flatten.extend([(key, getattr(x, k)) for k in x._state_dict_all_req_keys])
+            else:
+                flatten.append((key, x))
+
+        return wrapper
+
+    _tree_map(get_func(expected_flatten), expected_state)
+    _tree_map(get_func(output_flatten), state)
+
+    assert len(output_flatten) == len(expected_flatten) and len(expected_flatten) > 0, (
+        expected_flatten,
+        output_flatten,
+    )
+
+    for key_output, key_expected in zip(output_flatten, expected_flatten):
+        key1, output = key_output
+        key2, expected = key_expected
+        assert key1 == key2, (key1, key2)
+        if isinstance(output, torch.Tensor):
+            assert isinstance(expected, torch.Tensor)
+            assert (output == expected).all(), (output, expected)
+        else:
+            assert output == expected, (output, expected)
+
+
+def test_load_state_dict():
+    metric = DummyMetric4(1)
+    state = metric.state_dict()
+
     metric.reset()
     metric.initially_none = 1
     metric.load_state_dict(state)
-    assert metric.dnumber == 1
-    assert metric.fnumber == 2
-    assert metric.tensor == torch.tensor([3])
 
-    assert metric.metric._num_correct == torch.tensor(4)
-    assert metric.metric._num_examples == 5
+    rank = idist.get_rank()
+    world_size = idist.get_world_size()
+    assert len(state[Metric._Metric__state_dict_key_per_rank]) == world_size
+    expected_state = state[Metric._Metric__state_dict_key_per_rank][rank]
 
-    assert metric.metric_dict["m1"]._num_correct == torch.tensor(6)
-    assert metric.metric_dict["m1"]._num_examples == 7
-    assert torch.all(metric.metric_dict["m2"]._numerator == torch.tensor([8, 9]))
-    assert torch.all(metric.metric_dict["m2"]._denominator == torch.tensor([10, 11]))
+    # Flatten expected state and output state and compare values
+    output_flatten = []
+    expected_flatten = []
 
-    assert torch.all(metric.metric_list[0]._numerator == torch.tensor([12, 13]))
-    assert torch.all(metric.metric_list[0]._denominator == torch.tensor([14, 15]))
-    assert torch.all(metric.metric_list[1]._numerator == torch.tensor([16, 17]))
-    assert torch.all(metric.metric_list[1]._denominator == torch.tensor([18, 19]))
+    def get_func(flatten):
+        def wrapper(x, **kwargs):
+            if isinstance(x, Metric):
+                flatten.extend([getattr(x, k) for k in x._state_dict_all_req_keys])
+            else:
+                flatten.append(x)
 
-    assert metric.initially_none is None
+        return wrapper
 
+    _tree_map(get_func(expected_flatten), expected_state)
+    _tree_map(get_func(output_flatten), {key: getattr(metric, key) for key in metric._state_dict_all_req_keys})
 
-def _test_distrib_state_dict(device):
-    rank = idist.get_local_rank()
-    metric = DummyMetric4(rank)
-    state = metric.state_dict()
-    print(state)
-    assert isinstance(state["dnumber"][rank], int)
-    assert isinstance(state["fnumber"][rank], float)
-    assert state["initially_none"] is None
-    metric.reset()
-    metric.initially_none = rank
-    metric.load_state_dict(state)
-    assert metric.dnumber == rank and isinstance(metric.dnumber, int)
-    assert metric.fnumber == rank + 1 and isinstance(metric.fnumber, float)
-    assert metric.tensor == torch.tensor([rank + 2])
+    assert len(output_flatten) == len(expected_flatten) and len(expected_flatten) > 0, (
+        expected_flatten,
+        output_flatten,
+    )
 
-    assert metric.metric._num_correct == torch.tensor(rank + 3)
-    assert metric.metric._num_examples == rank + 4
-
-    assert metric.metric_dict["m1"]._num_correct == torch.tensor(rank + 5)
-    assert metric.metric_dict["m1"]._num_examples == rank + 6
-    assert torch.all(metric.metric_dict["m2"]._numerator == torch.tensor([rank + 7, rank + 8]))
-    assert torch.all(metric.metric_dict["m2"]._denominator == torch.tensor([rank + 9, rank + 10]))
-
-    assert torch.all(metric.metric_list[0]._numerator == torch.tensor([rank + 11, rank + 12]))
-    assert torch.all(metric.metric_list[0]._denominator == torch.tensor([rank + 13, rank + 14]))
-    assert torch.all(metric.metric_list[1]._numerator == torch.tensor([rank + 15, rank + 16]))
-    assert torch.all(metric.metric_list[1]._denominator == torch.tensor([rank + 17, rank + 18]))
-
-    assert metric.initially_none is None
+    for output, expected in zip(output_flatten, expected_flatten):
+        if isinstance(output, torch.Tensor):
+            assert isinstance(expected, torch.Tensor)
+            assert (output == expected).all(), (output, expected)
+        else:
+            assert output == expected, (output, expected)

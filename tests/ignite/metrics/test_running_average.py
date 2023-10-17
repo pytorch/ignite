@@ -113,6 +113,24 @@ def test_integration_batchwise(usage):
     assert (torch.tensor(metric_acc_running_averages) == accuracy_running_averages).all()
     assert (torch.tensor(metric_loss_running_averages) == loss_running_averages).all()
 
+    metric_state = acc_metric.state_dict()
+    saved__value = acc_metric._value
+    saved_src__num_correct = acc_metric.src._num_correct
+    saved_src__num_examples = acc_metric.src._num_examples
+    acc_metric.reset()
+    acc_metric.load_state_dict(metric_state)
+    assert acc_metric._value == saved__value
+    assert acc_metric.src._num_examples == saved_src__num_examples
+    assert (acc_metric.src._num_correct == saved_src__num_correct).all()
+
+    metric_state = avg_output.state_dict()
+    saved__value = avg_output._value
+    assert avg_output.src is None
+    avg_output.reset()
+    avg_output.load_state_dict(metric_state)
+    assert avg_output._value == saved__value
+    assert avg_output.src is None
+
 
 def test_integration_epochwise():
     torch.manual_seed(10)

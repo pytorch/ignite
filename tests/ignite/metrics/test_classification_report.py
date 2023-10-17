@@ -60,6 +60,22 @@ def _test_integration_multiclass(device, output_dict):
         assert sklearn_result["macro avg"]["recall"] == pytest.approx(res["macro avg"]["recall"])
         assert sklearn_result["macro avg"]["f1-score"] == pytest.approx(res["macro avg"]["f1-score"])
 
+        metric_state = classification_report.state_dict()
+        classification_report.reset()
+        classification_report.load_state_dict(metric_state)
+        res2 = classification_report.compute()
+        if not output_dict:
+            res2 = json.loads(res2)
+
+        for i in range(n_classes):
+            label_i = labels[i] if labels else str(i)
+            assert res2[label_i]["precision"] == res[label_i]["precision"]
+            assert res2[label_i]["f1-score"] == res[label_i]["f1-score"]
+            assert res2[label_i]["recall"] == res[label_i]["recall"]
+        assert res2["macro avg"]["precision"] == res["macro avg"]["precision"]
+        assert res2["macro avg"]["recall"] == res["macro avg"]["recall"]
+        assert res2["macro avg"]["f1-score"] == res["macro avg"]["f1-score"]
+
     for i in range(5):
         torch.manual_seed(12 + rank + i)
         # check multiple random inputs as random exact occurencies are rare
@@ -121,7 +137,6 @@ def _test_integration_multilabel(device, output_dict):
         sklearn_result = sklearn_classification_report(np_y_true, np_y_preds, output_dict=True, zero_division=1)
 
         for i in range(n_classes):
-            torch.manual_seed(12 + rank + i)
             label_i = labels[i] if labels else str(i)
             assert sklearn_result[str(i)]["precision"] == pytest.approx(res[label_i]["precision"])
             assert sklearn_result[str(i)]["f1-score"] == pytest.approx(res[label_i]["f1-score"])
@@ -130,7 +145,8 @@ def _test_integration_multilabel(device, output_dict):
         assert sklearn_result["macro avg"]["recall"] == pytest.approx(res["macro avg"]["recall"])
         assert sklearn_result["macro avg"]["f1-score"] == pytest.approx(res["macro avg"]["f1-score"])
 
-    for _ in range(3):
+    for i in range(3):
+        torch.manual_seed(12 + rank + i)
         # check multiple random inputs as random exact occurencies are rare
         metric_devices = ["cpu"]
         if device.type != "xla":
