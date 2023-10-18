@@ -31,7 +31,7 @@ jobs:
       hvd_version: ${{ steps.set-versions.outputs.hvd_version }}
       msdp_version: ${{ steps.set-versions.outputs.msdp_version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.1
       - name: Changed Files Exporter
         id: files
         uses: umani/changed-files@v4
