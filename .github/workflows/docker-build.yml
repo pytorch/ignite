@@ -5,10 +5,6 @@ on:
     paths:
       - docker/**
       - ".github/workflows/docker-build.yml"
-  push:
-    paths:
-      - docker/**
-      - ".github/workflows/docker-build.yml"
   release:
     types: [published]      
   workflow_dispatch:
