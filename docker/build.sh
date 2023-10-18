@@ -91,6 +91,5 @@ echo "Show installed packages:"
 docker run --rm -i pytorchignite/${image_name}:${image_tag} pip list
 
 echo "Test pytorchignite/${image_name}:${image_tag}"
-# python test_image.py pytorchignite/${image_name}:${image_tag}
-docker run --rm -i -v $PWD:/ws -w /ws -e HVD_VERSION=${HVD_VERSION:-} -e MSDP_VERSION=${MSDP_VERSION:-} pytorchignite/${image_name}:${image_tag} python test_image.py pytorchignite/${image_name}:${image_tag}
+docker run --rm -i -v $PWD:/ws -w /ws -e HVD_VERSION=${HVD_VERSION:-} -e MSDP_VERSION=${MSDP_VERSION:-} pytorchignite/${image_name}:${image_tag} /bin/bash -c "python test_image.py pytorchignite/${image_name}:${image_tag}"
 echo "OK"
