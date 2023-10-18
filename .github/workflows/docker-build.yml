@@ -6,11 +6,11 @@ on:
       - docker/**
       - ".github/workflows/docker-build.yml"
   push:
-    branches:
-      - master
     paths:
       - docker/**
       - ".github/workflows/docker-build.yml"
+  release:
+    types: [published]      
   workflow_dispatch:
 
 
@@ -23,6 +23,7 @@ jobs:
 
   setup:
     name: Setup
+    if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     outputs:
       modified: ${{ steps.set-modified.outputs.modified }}
@@ -52,7 +53,7 @@ jobs:
   build-hvd:
     name: Build all Horovod flavoured PyTorch-Ignite images
     needs: setup
-    if: contains(needs.setup.outputs.modified, 'hvd/') || contains(needs.setup.outputs.modified, 'docker.cfg')
+    if: (contains(needs.setup.outputs.modified, 'hvd/') || contains(needs.setup.outputs.modified, 'docker.cfg')) && ${{ github.event_name == 'pull_request' }}
 
     # Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml
     env:
@@ -98,7 +99,7 @@ jobs:
           bash build.sh hvd hvd-nlp
 
       - name: Publish docker images
-        if: ${{ (github.ref == 'refs/heads/master' && github.event_name == 'push') || github.event_name == 'release' }}
+        if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'release' }}
         env:
           DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
           DOCKER_USER: ${{ secrets.DOCKER_USER }}
@@ -112,7 +113,7 @@ jobs:
   build-hvd-apex:
     name: Build all Horovod + Apex flavoured PyTorch-Ignite images
     needs: setup
-    if: contains(needs.setup.outputs.modified, 'hvd/') || contains(needs.setup.outputs.modified, 'docker.cfg')
+    if: (contains(needs.setup.outputs.modified, 'hvd/') || contains(needs.setup.outputs.modified, 'docker.cfg')) && ${{ github.event_name == 'pull_request' }}
 
     # Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml
     env:
@@ -158,7 +159,7 @@ jobs:
           bash build.sh hvd hvd-apex-nlp
 
       - name: Publish docker images
-        if: ${{ (github.ref == 'refs/heads/master' && github.event_name == 'push') || github.event_name == 'release' }}
+        if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'release' }}
         env:
           DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
           DOCKER_USER: ${{ secrets.DOCKER_USER }}
@@ -172,7 +173,7 @@ jobs:
   build-main:
     name: Build all PyTorch-Ignite images
     needs: setup
-    if: contains(needs.setup.outputs.modified, 'main/') || contains(needs.setup.outputs.modified, 'docker.cfg')
+    if: (contains(needs.setup.outputs.modified, 'main/') || contains(needs.setup.outputs.modified, 'docker.cfg')) && ${{ github.event_name == 'pull_request' }}
 
     # Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml
     env:
@@ -218,7 +219,7 @@ jobs:
           bash build.sh main nlp
 
       - name: Publish docker images
-        if: ${{ (github.ref == 'refs/heads/master' && github.event_name == 'push') || github.event_name == 'release' }}
+        if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'release' }}
         env:
           DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
           DOCKER_USER: ${{ secrets.DOCKER_USER }}
@@ -232,7 +233,7 @@ jobs:
   build-main-apex:
     name: Build all PyTorch-Ignite images with Apex
     needs: setup
-    if: contains(needs.setup.outputs.modified, 'main/') || contains(needs.setup.outputs.modified, 'docker.cfg')
+    if: (contains(needs.setup.outputs.modified, 'main/') || contains(needs.setup.outputs.modified, 'docker.cfg')) && ${{ github.event_name == 'pull_request' }}
 
     # Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml
     env:
@@ -278,7 +279,7 @@ jobs:
           bash build.sh main apex-nlp
 
       - name: Publish docker images
-        if: ${{ (github.ref == 'refs/heads/master' && github.event_name == 'push') || github.event_name == 'release' }}
+        if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'release' }}
         env:
           DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
           DOCKER_USER: ${{ secrets.DOCKER_USER }}
