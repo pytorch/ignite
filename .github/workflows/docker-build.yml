@@ -49,7 +49,7 @@ jobs:
   build-hvd:
     name: Build all Horovod flavoured PyTorch-Ignite images
     needs: setup
-    if: (contains(needs.setup.outputs.modified, 'hvd/') || contains(needs.setup.outputs.modified, 'docker.cfg')) && ${{ github.event_name == 'pull_request' }}
+    if: contains(needs.setup.outputs.modified, 'hvd/') || contains(needs.setup.outputs.modified, 'docker.cfg')
 
     # Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml
     env:
@@ -109,7 +109,7 @@ jobs:
   build-hvd-apex:
     name: Build all Horovod + Apex flavoured PyTorch-Ignite images
     needs: setup
-    if: (contains(needs.setup.outputs.modified, 'hvd/') || contains(needs.setup.outputs.modified, 'docker.cfg')) && ${{ github.event_name == 'pull_request' }}
+    if: contains(needs.setup.outputs.modified, 'hvd/') || contains(needs.setup.outputs.modified, 'docker.cfg')
 
     # Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml
     env:
@@ -169,7 +169,7 @@ jobs:
   build-main:
     name: Build all PyTorch-Ignite images
     needs: setup
-    if: (contains(needs.setup.outputs.modified, 'main/') || contains(needs.setup.outputs.modified, 'docker.cfg')) && ${{ github.event_name == 'pull_request' }}
+    if: contains(needs.setup.outputs.modified, 'main/') || contains(needs.setup.outputs.modified, 'docker.cfg')
 
     # Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml
     env:
@@ -229,7 +229,7 @@ jobs:
   build-main-apex:
     name: Build all PyTorch-Ignite images with Apex
     needs: setup
-    if: (contains(needs.setup.outputs.modified, 'main/') || contains(needs.setup.outputs.modified, 'docker.cfg')) && ${{ github.event_name == 'pull_request' }}
+    if: contains(needs.setup.outputs.modified, 'main/') || contains(needs.setup.outputs.modified, 'docker.cfg')
 
     # Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml
     env:
