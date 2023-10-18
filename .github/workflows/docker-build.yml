@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Changed Files Exporter
         id: files
-        uses: umani/changed-files@v4.1
+        uses: umani/changed-files@v4.1.0
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Get a list of modified files
