@@ -31,10 +31,10 @@ jobs:
       hvd_version: ${{ steps.set-versions.outputs.hvd_version }}
       msdp_version: ${{ steps.set-versions.outputs.msdp_version }}
     steps:
-      - uses: actions/checkout@v4.1
+      - uses: actions/checkout@v4
       - name: Changed Files Exporter
         id: files
-        uses: umani/changed-files@v4
+        uses: umani/changed-files@v4.1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Get a list of modified files
