@@ -18,7 +18,7 @@ concurrency:
 jobs:
 
   setup:
-    name: Setup    
+    name: Setup
     runs-on: ubuntu-latest
     outputs:
       modified: ${{ steps.set-modified.outputs.modified }}
