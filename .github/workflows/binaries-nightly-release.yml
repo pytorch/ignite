@@ -38,7 +38,7 @@ jobs:
           chmod +x ./conda.recipe/build_and_upload.sh
           ./conda.recipe/build_and_upload.sh
 
-      - name: Build and Publish PyPi binaries
+      - name: Build and Publish PyPI binaries
         shell: bash -l {0}
         run: |
           # workaround to fix https://github.com/pytorch/ignite/issues/2373
