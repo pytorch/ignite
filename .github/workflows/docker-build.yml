@@ -5,12 +5,8 @@ on:
     paths:
       - docker/**
       - ".github/workflows/docker-build.yml"
-  push:
-    branches:
-      - master
-    paths:
-      - docker/**
-      - ".github/workflows/docker-build.yml"
+  release:
+    types: [published]
   workflow_dispatch:
 
 
@@ -32,11 +28,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Changed Files Exporter
+        if: github.event_name == 'pull_request'
         id: files
         uses: umani/changed-files@v4.1.0
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Get a list of modified files
+        if: github.event_name == 'pull_request'
         run: echo "modified=${{ steps.files.outputs.files_created }} ${{ steps.files.outputs.files_updated }}" >> $GITHUB_ENV
       - name: Set outputs
         id: set-modified
@@ -52,7 +50,7 @@ jobs:
   build-hvd:
     name: Build all Horovod flavoured PyTorch-Ignite images
     needs: setup
-    if: contains(needs.setup.outputs.modified, 'hvd/') || contains(needs.setup.outputs.modified, 'docker.cfg')
+    if: github.event_name != 'pull_request' || (contains(needs.setup.outputs.modified, 'hvd/') || contains(needs.setup.outputs.modified, 'docker.cfg'))
 
     # Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml
     env:
@@ -98,7 +96,7 @@ jobs:
           bash build.sh hvd hvd-nlp
 
       - name: Publish docker images
-        if: ${{ (github.ref == 'refs/heads/master' && github.event_name == 'push') || github.event_name == 'release' }}
+        if: github.event_name == 'workflow_dispatch' || github.event_name == 'release'
         env:
           DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
           DOCKER_USER: ${{ secrets.DOCKER_USER }}
@@ -112,7 +110,7 @@ jobs:
   build-hvd-apex:
     name: Build all Horovod + Apex flavoured PyTorch-Ignite images
     needs: setup
-    if: contains(needs.setup.outputs.modified, 'hvd/') || contains(needs.setup.outputs.modified, 'docker.cfg')
+    if: github.event_name != 'pull_request' || (contains(needs.setup.outputs.modified, 'hvd/') || contains(needs.setup.outputs.modified, 'docker.cfg'))
 
     # Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml
     env:
@@ -158,7 +156,7 @@ jobs:
           bash build.sh hvd hvd-apex-nlp
 
       - name: Publish docker images
-        if: ${{ (github.ref == 'refs/heads/master' && github.event_name == 'push') || github.event_name == 'release' }}
+        if: github.event_name == 'workflow_dispatch' || github.event_name == 'release'
         env:
           DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
           DOCKER_USER: ${{ secrets.DOCKER_USER }}
@@ -172,7 +170,7 @@ jobs:
   build-main:
     name: Build all PyTorch-Ignite images
     needs: setup
-    if: contains(needs.setup.outputs.modified, 'main/') || contains(needs.setup.outputs.modified, 'docker.cfg')
+    if: github.event_name != 'pull_request' || (contains(needs.setup.outputs.modified, 'main/') || contains(needs.setup.outputs.modified, 'docker.cfg'))
 
     # Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml
     env:
@@ -218,7 +216,7 @@ jobs:
           bash build.sh main nlp
 
       - name: Publish docker images
-        if: ${{ (github.ref == 'refs/heads/master' && github.event_name == 'push') || github.event_name == 'release' }}
+        if: github.event_name == 'workflow_dispatch' || github.event_name == 'release'
         env:
           DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
           DOCKER_USER: ${{ secrets.DOCKER_USER }}
@@ -232,7 +230,7 @@ jobs:
   build-main-apex:
     name: Build all PyTorch-Ignite images with Apex
     needs: setup
-    if: contains(needs.setup.outputs.modified, 'main/') || contains(needs.setup.outputs.modified, 'docker.cfg')
+    if: github.event_name != 'pull_request' || (contains(needs.setup.outputs.modified, 'main/') || contains(needs.setup.outputs.modified, 'docker.cfg'))
 
     # Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml
     env:
@@ -278,7 +276,7 @@ jobs:
           bash build.sh main apex-nlp
 
       - name: Publish docker images
-        if: ${{ (github.ref == 'refs/heads/master' && github.event_name == 'push') || github.event_name == 'release' }}
+        if: github.event_name == 'workflow_dispatch' || github.event_name == 'release'
         env:
           DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
           DOCKER_USER: ${{ secrets.DOCKER_USER }}
