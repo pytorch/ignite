@@ -27,7 +27,7 @@ echo $DOCKER_TOKEN | docker login --username=$DOCKER_USER --password-stdin
 set -xeu
 
 
-if [ ${folder_name} == "all" ]; then
+if [ ${push_selected_image} == "all" ]; then
 
     image_name="base"
     image_tag=`docker run --rm -i pytorchignite/${image_name}:latest python -c "import torch; import ignite; print(torch.__version__ + \"-\" + ignite.__version__, end=\"\")"`

@@ -6,7 +6,7 @@ on:
       - docker/**
       - ".github/workflows/docker-build.yml"
   release:
-    types: [published]      
+    types: [published]
   workflow_dispatch:
 
 
