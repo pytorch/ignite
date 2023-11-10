@@ -1,5 +1,6 @@
 import numbers
 import os
+from packaging.version import Version
 from typing import Dict, List
 from unittest.mock import MagicMock
 
@@ -710,6 +711,7 @@ def _test_creating_on_xla_fails(device):
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+@pytest.mark.skipif(Version(torch.__version__) < Version("1.7.0"), reason="Skip if < 1.7.0")
 def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
     device = idist.device()
     _test_distrib_sync_all_reduce_decorator(device)
@@ -722,6 +724,7 @@ def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif(Version(torch.__version__) < Version("1.7.0"), reason="Skip if < 1.7.0")
 def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
     device = idist.device()
     _test_distrib_sync_all_reduce_decorator(device)
