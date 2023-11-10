@@ -62,11 +62,11 @@ class FID(_BaseInceptionMetric):
     where :math:`\mu_1` and :math:`\sigma_1` refer to the mean and covariance of the train data and
     :math:`\mu_2` and :math:`\sigma_2` refer to the mean and covariance of the test data.
 
-    More details can be found in `Heusel et al. 2002`__
+    More details can be found in `Heusel et al. 2017`__
 
     __ https://arxiv.org/pdf/1706.08500.pdf
 
-    In addition, a faster and online computation approach can be found in `Chen et al. 2014`__
+    In addition, a faster and online computation approach can be found in `Mathiasen et al. 2020`__
 
     __ https://arxiv.org/pdf/2009.14075.pdf
 
