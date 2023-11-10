@@ -19,7 +19,9 @@ def check_package(package_name, expected_version=None):
     if expected_version is not None:
         assert hasattr(mod, "__version__"), f"Imported package {package_name} does not have __version__ attribute"
         version = mod.__version__
-        assert version == expected_version, f"Version mismatch for package {package_name}: got {version} but expected {expected_version}"
+        assert (
+            version == expected_version
+        ), f"Version mismatch for package {package_name}: got {version} but expected {expected_version}"
 
 
 if __name__ == "__main__":
