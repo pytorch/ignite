@@ -3,6 +3,7 @@ import os
 
 import pytest
 import torch
+from packaging.version import Version
 
 import ignite.distributed as idist
 from ignite.engine import Engine
@@ -161,6 +162,7 @@ def _test_integration_multilabel(device, output_dict):
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+@pytest.mark.skipif(Version(torch.__version__) < Version("1.7.0"), reason="Skip if < 1.7.0")
 def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
     device = idist.device()
     _test_integration_multiclass(device, True)
@@ -171,6 +173,7 @@ def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif(Version(torch.__version__) < Version("1.7.0"), reason="Skip if < 1.7.0")
 def test_distrib_gloo_cpu_or_gpu(local_rank, distributed_context_single_node_gloo):
     device = idist.device()
     _test_integration_multiclass(device, True)
