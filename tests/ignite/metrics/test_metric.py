@@ -1,12 +1,12 @@
 import numbers
 import os
-from packaging.version import Version
 from typing import Dict, List
 from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
 import torch
+from packaging.version import Version
 from pytest import approx, raises
 from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score
 
