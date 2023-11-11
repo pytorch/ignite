@@ -1,6 +1,8 @@
 import torch
-from ignite.metrics import Metric
+
 from ignite.exceptions import NotComputableError
+from ignite.metrics import Metric
+
 
 class ExpectedCalibrationError(Metric):
     def __init__(self, num_bins=10, device=None):
@@ -26,7 +28,9 @@ class ExpectedCalibrationError(Metric):
 
     def compute(self):
         if self.confidences.numel() == 0:
-            raise NotComputableError("ExpectedCalibrationError must have at least one example before it can be computed.")
+            raise NotComputableError(
+                "ExpectedCalibrationError must have at least one example before it can be computed."
+            )
 
         bin_edges = torch.linspace(0, 1, self.num_bins + 1, device=self.device)
 
