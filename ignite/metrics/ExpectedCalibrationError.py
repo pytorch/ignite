@@ -1,8 +1,6 @@
 import torch
-
-from ignite.exceptions import NotComputableError
 from ignite.metrics import Metric
-
+from ignite.exceptions import NotComputableError
 
 class ExpectedCalibrationError(Metric):
     def __init__(self, num_bins=10, device=None):
@@ -18,7 +16,10 @@ class ExpectedCalibrationError(Metric):
     def update(self, output):
         y_pred, y = output
 
-        assert y_pred.dim() == 2 and y_pred.shape[1] == 2, "This metric is for binary classification."
+        if not (y_pred.dim() == 2 and y_pred.shape[1] == 2):
+            raise ValueError("This metric is for binary classification.")
+
+        y_pred, y = y_pred.detach(), y.detach()
 
         softmax_probs = torch.softmax(y_pred, dim=1)
         max_probs, predicted_class = torch.max(softmax_probs, dim=1)
@@ -28,9 +29,7 @@ class ExpectedCalibrationError(Metric):
 
     def compute(self):
         if self.confidences.numel() == 0:
-            raise NotComputableError(
-                "ExpectedCalibrationError must have at least one example before it can be computed."
-            )
+            raise NotComputableError("ExpectedCalibrationError must have at least one example before it can be computed.")
 
         bin_edges = torch.linspace(0, 1, self.num_bins + 1, device=self.device)
 
