@@ -1,6 +1,7 @@
 import torch
 
 import ignite.distributed as idist
+from ignite.distributed.comp_models.base import _torch_version_le_112
 from tests.ignite.distributed.utils import (
     _sanity_check,
     _test_distrib__get_max_length,
@@ -13,6 +14,9 @@ from tests.ignite.distributed.utils import (
 )
 
 
+@pytest.mark.skipif(
+    _torch_version_le_112 and torch.backends.mps.is_available(), reason="Temporary skip if MPS is available"
+)
 def test_no_distrib(capsys):
     assert idist.backend() is None
     if torch.cuda.is_available():
