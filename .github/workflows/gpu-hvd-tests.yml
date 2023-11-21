@@ -1,4 +1,4 @@
-name: Run unit tests on GPUs
+name: Run HVD-specific unit tests on GPUs
 on:
   push:
     paths:
@@ -8,28 +8,28 @@ on:
       - "tests/run_code_style.sh"
       - "examples/**.py"
       - "requirements-dev.txt"
-      - ".github/workflows/gpu-tests.yml"
+      - ".github/workflows/gpu-hvd-tests.yml"
   workflow_dispatch:
 
 concurrency:
   # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>
-  group: gpu-tests-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
+  group: gpu-hvd-tests-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
   cancel-in-progress: true
 
 # Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml
 
 jobs:
-  gpu-tests:
+  gpu-hvd-tests:
     strategy:
       matrix:
-        pytorch-channel: [pytorch, pytorch-nightly]
+        pytorch-channel: [pytorch, ]
       fail-fast: false
     env:
       DOCKER_IMAGE: "pytorch/conda-builder:cuda12.1"
       REPOSITORY: ${{ github.repository }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
     runs-on: linux.8xlarge.nvidia.gpu
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
       - name: Clean workspace
@@ -119,15 +119,40 @@ jobs:
 
           docker exec -t pthd /bin/bash -c "${script}"
 
-      - name: Run GPU Unit Tests
-        continue-on-error: false
+      - name: Install Horovod with NCCL GPU ops
+        run: |
+          script=$(cat << EOF
+
+          set -xe
+
+          # Can't build Horovod with recent pytorch due to pytorch required C++17 standard
+          # and horovod is still using C++14
+          # HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]
+          # Using a similar hack as described here: 
+          # https://github.com/horovod/horovod/issues/3941#issuecomment-1732505345 
+          git clone --recursive https://github.com/horovod/horovod.git /horovod
+          cd /horovod
+          sed -i "s/CMAKE_CXX_STANDARD 14/CMAKE_CXX_STANDARD 17/g" CMakeLists.txt
+          sed -i "s/CMAKE_CXX_STANDARD 14/CMAKE_CXX_STANDARD 17/g" horovod/torch/CMakeLists.txt
+          HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_WITH_PYTORCH=1 python setup.py install
+
+          horovodrun --check-build
+          pip list
+
+          EOF
+          )
+
+          docker exec -t pthd /bin/bash -c "${script}"
+
+      - name: Run GPU and CPU Unit HVD Tests
         run: |
 
           script=$(cat << EOF
 
           set -xe
 
-          bash tests/run_gpu_tests.sh 2
+          bash tests/run_gpu_tests.sh 2 hvd
+          CUDA_VISIBLE_DEVICES="" pytest --cov ignite --cov-append --cov-report term-missing --cov-report xml -vvv tests/ -m distributed -k hvd
 
           EOF
           )
@@ -151,23 +176,17 @@ jobs:
           # Install additional example dependencies
           pip install fire
 
-          # Check training on cifar10, run without backend
-          ## initial run
-          CI=1 python examples/cifar10/main.py run --checkpoint_every=200 --stop_iteration=500
-          ## resume
-          CI=1 python examples/cifar10/main.py run --checkpoint_every=200 --num_epochs=7 --resume-from=/tmp/output-cifar10/resnet18_backend-None-1_stop-on-500/training_checkpoint_400.pt
+          # Check training on CIFAR10, run with horovod backend using horovodrun
+          # initial run
+          CI=1 horovodrun -np 2 python -u examples/cifar10/main.py run --backend=horovod --checkpoint_every=200 --stop_iteration=500
+          # resume
+          CI=1 horovodrun -np 2 python examples/cifar10/main.py run --checkpoint_every=200 --num_epochs=7 --resume-from=/tmp/output-cifar10/resnet18_backend-horovod-2_stop-on-500/training_checkpoint_400.pt
 
-          # Check training on cifar10, run with NCCL backend using torchrun
-          ## initial run
-          CI=1 torchrun --nproc_per_node=2 examples/cifar10/main.py run --backend=nccl --checkpoint_every=200 --stop_iteration=500
-          ## resume
-          CI=1 torchrun --nproc_per_node=2 examples/cifar10/main.py run --backend=nccl --checkpoint_every=200 --num_epochs=7 --resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt
-
-          # Check training on cifar10, run with NCCL backend using spawn
-          ## initial run
-          CI=1 python -u examples/cifar10/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200 --stop_iteration=500
-          ## resume
-          CI=1 python -u examples/cifar10/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200 --num_epochs=7 --resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt
+          # Check training on CIFAR10 using spawn
+          # initial run
+          CI=1 python -u examples/cifar10/main.py run --backend=horovod --nproc_per_node=2 --checkpoint_every=200 --stop_iteration=500
+          # resume
+          CI=1 python -u examples/cifar10/main.py run --backend=horovod --nproc_per_node=2 --checkpoint_every=200 --num_epochs=7 --resume-from=/tmp/output-cifar10/resnet18_backend-horovod-2_stop-on-500/training_checkpoint_400.pt
 
           EOF
           )

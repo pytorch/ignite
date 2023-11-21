@@ -13,7 +13,7 @@ __all__ = ["Precision"]
 
 
 class _BasePrecisionRecall(_BaseClassification):
-    _state_dict_all_req_keys = ("_numerator", "_denominator", "_weight")
+    _state_dict_all_req_keys = ("_numerator", "_denominator", "_weight", "_updated")
 
     def __init__(
         self,

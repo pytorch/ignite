@@ -7,67 +7,27 @@
 #     can import opencv without driver issue
 # for all horovod images
 #     can import horovod and its version == required one
-# for all msdp images
-#     can import deepspeed and its version == required one
-#
-# Requirements:
-#   pip install docker
 #
 import argparse
-import json
+import importlib
 import os
 
-import docker
 
+def check_package(package_name, expected_version=None):
+    mod = importlib.import_module(package_name)
 
-def run_python_cmd(cmd):
-    try_except_cmd = f"""
-import warnings
-warnings.filterwarnings("ignore")
-
-def main():
-    {cmd}
-
-try:
-    main()
-except Exception as e:
-    import traceback
-    print(traceback.format_exc())
-    """
-    try:
-        out = client.containers.run(args.image, f"python -c '{try_except_cmd}'", auto_remove=True, stderr=True)
-        assert isinstance(out, bytes), type(out)
-        out = out.decode("utf-8").strip()
-
-        out_lower = out.lower()
-        if any([k in out_lower for k in ["error", "exception"]]):
-            raise RuntimeError(out)
-
-    except docker.errors.ContainerError as e:
-        raise RuntimeError(e)
-    return out
-
-
-base_cmd = """
-    import torch
-    import ignite
-
-    result = dict()
-    result["torch"] = torch.__version__
-    result["ignite"] = ignite.__version__
-
-    {hvd}
-    {msdp}
-
-    print(result)
-"""
+    if expected_version is not None:
+        assert hasattr(mod, "__version__"), f"Imported package {package_name} does not have __version__ attribute"
+        version = mod.__version__
+        assert (
+            version == expected_version
+        ), f"Version mismatch for package {package_name}: got {version} but expected {expected_version}"
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Check docker image script")
     parser.add_argument("image", type=str, help="Docker image to check")
     args = parser.parse_args()
-    client = docker.from_env()
 
     docker_image_name = args.image
     name, version = docker_image_name.split(":")
@@ -75,42 +35,27 @@ if __name__ == "__main__":
     torch_version, ignite_version = version.split("-")
     _, image_type = name.split("/")
 
-    expected_out = {
-        "torch": torch_version,
-        "ignite": ignite_version,
-    }
+    check_package("torch", expected_version=torch_version)
+    check_package("ignite", expected_version=ignite_version)
 
-    hvd_cmd = ""
     if "hvd" in image_type:
-        hvd_cmd = 'import horovod; result["hvd"] = horovod.__version__'
         assert "HVD_VERSION" in os.environ
         val = os.environ["HVD_VERSION"]
-        expected_out["hvd"] = val if val[0] != "v" else val[1:]
+        hvd_version = val if val[0] != "v" else val[1:]
+        check_package("horovod", expected_version=hvd_version)
 
-    msdp_cmd = ""
     if "msdp" in image_type:
-        msdp_cmd = 'import deepspeed; result["msdp"] = deepspeed.__version__'
         assert "MSDP_VERSION" in os.environ
         val = os.environ["MSDP_VERSION"]
-        expected_out["msdp"] = val if val[0] != "v" else val[1:]
-
-    cmd = base_cmd.format(hvd=hvd_cmd, msdp=msdp_cmd)
-    out = run_python_cmd(cmd)
-    try:
-        out = out.replace("'", '"')
-        out = json.loads(out)
-    except json.decoder.JSONDecodeError:
-        raise RuntimeError(out)
-
-    for k, v in expected_out.items():
-        assert k in out, f"{k} not in {out.keys()}"
-        assert v in out[k], f"{v} not in {out[k]}"
+        hvd_version = val if val[0] != "v" else val[1:]
+        check_package("deepspeed", expected_version=hvd_version)
 
     if "vision" in image_type:
-        run_python_cmd("import cv2")
+        check_package("cv2")
 
     if "nlp" in image_type:
-        run_python_cmd("import torchtext, transformers")
+        check_package("torchtext")
+        check_package("transformers")
 
     if "apex" in image_type:
-        run_python_cmd("import apex")
+        check_package("apex")

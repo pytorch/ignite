@@ -3,11 +3,10 @@ import numbers
 import os
 import stat
 import tempfile
-import warnings
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping, NamedTuple, Optional, Tuple, Union
+from typing import Any, Callable, cast, Dict, List, Mapping, NamedTuple, Optional, Union
 
 import torch
 import torch.nn as nn
@@ -23,6 +22,7 @@ else:
 import ignite.distributed as idist
 from ignite.base import Serializable
 from ignite.engine import Engine, Events
+from ignite.utils import _tree_apply2, _tree_map
 
 __all__ = ["Checkpoint", "DiskSaver", "ModelCheckpoint", "BaseSaveHandler"]
 
@@ -277,7 +277,7 @@ class Checkpoint(Serializable):
     """
 
     Item = NamedTuple("Item", [("priority", int), ("filename", str)])
-    _state_dict_all_req_keys = ("saved",)
+    _state_dict_all_req_keys = ("_saved",)
 
     def __init__(
         self,
@@ -466,18 +466,20 @@ class Checkpoint(Serializable):
             except TypeError:
                 self.save_handler(checkpoint, filename)
 
-    def _setup_checkpoint(self) -> Dict[str, Dict[Any, Any]]:
-        checkpoint = {}
+    def _setup_checkpoint(self) -> Dict[str, Any]:
         if self.to_save is not None:
-            for k, obj in self.to_save.items():
+
+            def func(obj: Any, **kwargs: Any) -> Dict:
                 if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
                     obj = obj.module
                 elif HAVE_ZERO and isinstance(obj, ZeroRedundancyOptimizer):
                     obj.consolidate_state_dict(to=self.save_on_rank)
                     if self.save_on_rank != idist.get_rank():
-                        continue
-                checkpoint[k] = obj.state_dict()
-        return checkpoint
+                        return {}
+                return obj.state_dict()
+
+            return cast(Dict[str, Any], _tree_map(func, self.to_save))
+        return {}
 
     @staticmethod
     def setup_filename_pattern(
@@ -532,9 +534,11 @@ class Checkpoint(Serializable):
 
     @staticmethod
     def _check_objects(objs: Mapping, attr: str) -> None:
-        for k, obj in objs.items():
+        def func(obj: Any, **kwargs: Any) -> None:
             if not hasattr(obj, attr):
                 raise TypeError(f"Object {type(obj)} should have `{attr}` method")
+
+        _tree_map(func, objs)
 
     @staticmethod
     def load_objects(to_load: Mapping, checkpoint: Union[str, Mapping, Path], **kwargs: Any) -> None:
@@ -591,26 +595,22 @@ class Checkpoint(Serializable):
             torch.nn.parallel.DistributedDataParallel.html
         .. _DataParallel: https://pytorch.org/docs/stable/generated/torch.nn.DataParallel.html
         """
+        if not isinstance(checkpoint, (collections.Mapping, str, Path)):
+            raise TypeError(f"Argument checkpoint should be a string or a dictionary, but given {type(checkpoint)}")
+
+        Checkpoint._check_objects(to_load, "load_state_dict")
 
         if isinstance(checkpoint, (str, Path)):
             checkpoint_obj = torch.load(checkpoint)
         else:
             checkpoint_obj = checkpoint
 
-        Checkpoint._check_objects(to_load, "load_state_dict")
-        if not isinstance(checkpoint, (collections.Mapping, str, Path)):
-            raise TypeError(f"Argument checkpoint should be a string or a dictionary, but given {type(checkpoint)}")
-
-        if len(kwargs) > 1 or any(k for k in kwargs if k not in ["strict"]):
-            warnings.warn("kwargs contains keys other than strict and these will be ignored")
-
-        is_state_dict_strict = kwargs.get("strict", True)
-
         def _load_object(obj: Any, chkpt_obj: Any) -> None:
             if isinstance(obj, (nn.DataParallel, nn.parallel.DistributedDataParallel)):
                 obj = obj.module
+
             if isinstance(obj, torch.nn.Module):
-                obj.load_state_dict(chkpt_obj, strict=is_state_dict_strict)
+                obj.load_state_dict(chkpt_obj, **kwargs)
             else:
                 obj.load_state_dict(chkpt_obj)
 
@@ -621,11 +621,7 @@ class Checkpoint(Serializable):
                 _load_object(obj, checkpoint_obj)
                 return
 
-        # multiple objects to load
-        for k, obj in to_load.items():
-            if k not in checkpoint_obj:
-                raise ValueError(f"Object labeled by '{k}' from `to_load` is not found in the checkpoint")
-            _load_object(obj, checkpoint_obj[k])
+        _tree_apply2(_load_object, to_load, checkpoint_obj)
 
     def reload_objects(self, to_load: Mapping, load_kwargs: Optional[Dict] = None, **filename_components: Any) -> None:
         """Helper method to apply ``load_state_dict`` on the objects from ``to_load``. Filename components such as
@@ -669,10 +665,18 @@ class Checkpoint(Serializable):
             If ``to_load`` contains objects of type torch `DistributedDataParallel`_ or
             `DataParallel`_, method ``load_state_dict`` will applied to their internal wrapped model (``obj.module``).
 
+        Note:
+            This method works only when the ``save_handler`` is of types string,
+            :class:`~pathlib.Path` or :class:`~ignite.handlers.checkpoint.DiskSaver`.
+
         .. _DistributedDataParallel: https://pytorch.org/docs/stable/generated/
             torch.nn.parallel.DistributedDataParallel.html
         .. _DataParallel: https://pytorch.org/docs/stable/generated/torch.nn.DataParallel.html
         """
+        if not isinstance(self.save_handler, DiskSaver):
+            raise AttributeError(
+                f"Checkpoint's `save_handler` should be of type `DiskSaver`, given {type(self.save_handler)}"
+            )
 
         global_step = filename_components.get("global_step", None)
 
@@ -703,11 +707,12 @@ class Checkpoint(Serializable):
 
         Checkpoint.load_objects(to_load=to_load, checkpoint=path, **load_kwargs)
 
-    def state_dict(self) -> "OrderedDict[str, List[Tuple[int, str]]]":
+    def state_dict(self) -> OrderedDict:
         """Method returns state dict with saved items: list of ``(priority, filename)`` pairs.
         Can be used to save internal state of the class.
         """
-        return OrderedDict([("saved", [(p, f) for p, f in self._saved])])
+        # TODO: this method should use _state_dict_all_req_keys
+        return OrderedDict([("_saved", [(p, f) for p, f in self._saved])])
 
     def load_state_dict(self, state_dict: Mapping) -> None:
         """Method replaces internal state of the class with provided state dict data.
@@ -716,7 +721,7 @@ class Checkpoint(Serializable):
             state_dict: a dict with "saved" key and list of ``(priority, filename)`` pairs as values.
         """
         super().load_state_dict(state_dict)
-        self._saved = [Checkpoint.Item(p, f) for p, f in state_dict["saved"]]
+        self._saved = [Checkpoint.Item(p, f) for p, f in state_dict["_saved"]]
 
     @staticmethod
     def get_default_score_fn(metric_name: str, score_sign: float = 1.0) -> Callable:

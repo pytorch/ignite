@@ -57,6 +57,7 @@ class WaveHedgesDistance(_BaseRegression):
     .. versionchanged:: 0.4.5
         - Works with DDP.
     """
+    _state_dict_all_req_keys = ("_sum_of_errors",)
 
     @reinit__is_reduced
     def reset(self) -> None:

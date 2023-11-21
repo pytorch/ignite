@@ -167,9 +167,7 @@ def _setup_common_training_handlers(
 
     if lr_scheduler is not None:
         if isinstance(lr_scheduler, PyTorchLRScheduler):
-            trainer.add_event_handler(
-                Events.ITERATION_COMPLETED, lambda engine: cast(PyTorchLRScheduler, lr_scheduler).step()
-            )
+            trainer.add_event_handler(Events.ITERATION_COMPLETED, lambda engine: lr_scheduler.step())
         else:
             trainer.add_event_handler(Events.ITERATION_STARTED, lr_scheduler)
 

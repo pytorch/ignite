@@ -131,12 +131,12 @@ def ClassificationReport(
             dict_obj[_get_label_for_class(idx)] = {
                 "precision": p_label.item(),
                 "recall": re[idx].item(),
-                "f{0}-score".format(beta): f[idx].item(),
+                f"f{beta}-score": f[idx].item(),
             }
         dict_obj["macro avg"] = {
             "precision": a_pr.item(),
             "recall": a_re.item(),
-            "f{0}-score".format(beta): a_f.item(),
+            f"f{beta}-score": a_f.item(),
         }
         return dict_obj if output_dict else json.dumps(dict_obj)
 

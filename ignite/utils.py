@@ -6,7 +6,7 @@ import random
 import shutil
 import warnings
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, Optional, TextIO, Tuple, Type, TypeVar, Union
+from typing import Any, Callable, cast, Dict, List, Optional, TextIO, Tuple, Type, TypeVar, Union
 
 import torch
 
@@ -76,6 +76,66 @@ def apply_to_type(
     if isinstance(x, collections.Sequence):
         return cast(Callable, type(x))([apply_to_type(sample, input_type, func) for sample in x])
     raise TypeError((f"x must contain {input_type}, dicts or lists; found {type(x)}"))
+
+
+def _tree_map(
+    func: Callable, x: Union[Any, collections.Sequence, collections.Mapping], key: Optional[Union[int, str]] = None
+) -> Union[Any, collections.Sequence, collections.Mapping]:
+    if isinstance(x, collections.Mapping):
+        return cast(Callable, type(x))({k: _tree_map(func, sample, key=k) for k, sample in x.items()})
+    if isinstance(x, tuple) and hasattr(x, "_fields"):  # namedtuple
+        return cast(Callable, type(x))(*(_tree_map(func, sample) for sample in x))
+    if isinstance(x, collections.Sequence):
+        return cast(Callable, type(x))([_tree_map(func, sample, key=i) for i, sample in enumerate(x)])
+    return func(x, key=key)
+
+
+class _CollectionItem:
+    types_as_collection_item: Tuple = (int, float, torch.Tensor)
+
+    def __init__(self, collection: Union[Dict, List], key: Union[int, str]) -> None:
+        if not isinstance(collection, (dict, list)):
+            raise TypeError(
+                f"Input type is expected to be a mapping or list, but got {type(collection)} " f"for input key '{key}'."
+            )
+        if isinstance(collection, list) and isinstance(key, str):
+            raise ValueError("Key should be int for collection of type list")
+
+        self.collection = collection
+        self.key = key
+
+    def load_value(self, value: Any) -> None:
+        self.collection[self.key] = value  # type: ignore[index]
+
+    def value(self) -> Any:
+        return self.collection[self.key]  # type: ignore[index]
+
+    @staticmethod
+    def wrap(object: Union[Dict, List], key: Union[int, str], value: Any) -> Union[Any, "_CollectionItem"]:
+        return (
+            _CollectionItem(object, key)
+            if value is None or isinstance(value, _CollectionItem.types_as_collection_item)
+            else value
+        )
+
+
+def _tree_apply2(
+    func: Callable,
+    x: Union[Any, List, Dict],
+    y: Union[Any, collections.Sequence, collections.Mapping],
+) -> None:
+    if isinstance(x, dict) and isinstance(y, collections.Mapping):
+        for k, v in x.items():
+            if k not in y:
+                raise ValueError(f"Key '{k}' from x is not found in y: {y.keys()}")
+            _tree_apply2(func, _CollectionItem.wrap(x, k, v), y[k])
+    elif isinstance(x, list) and isinstance(y, collections.Sequence):
+        if len(x) != len(y):
+            raise ValueError(f"Size of y: {len(y)} does not match the size of x: '{len(x)}'")
+        for i, (v1, v2) in enumerate(zip(x, y)):
+            _tree_apply2(func, _CollectionItem.wrap(x, i, v1), v2)
+    else:
+        return func(x, y)
 
 
 def to_onehot(indices: torch.Tensor, num_classes: int) -> torch.Tensor:

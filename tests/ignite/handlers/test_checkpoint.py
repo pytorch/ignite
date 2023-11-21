@@ -51,6 +51,9 @@ def test_checkpoint_wrong_input():
     with pytest.raises(TypeError, match=r"Argument `to_save` should be a dictionary"):
         Checkpoint([12], lambda x: x, "prefix")
 
+    with pytest.raises(TypeError, match=r"should have `state_dict`"):
+        Checkpoint({"model": {"abc": 12}}, lambda x: x, "prefix")
+
     to_save = {"model": model}
 
     with pytest.raises(
@@ -66,17 +69,24 @@ def test_checkpoint_wrong_input():
         Checkpoint({"checkpointer": model}, lambda x: x, include_self=True)
 
     class ImmutableMapping(Mapping):
+        def __init__(self, d):
+            self._dict = d
+
         def __getitem__(self, key):
-            return to_save[key]
+            return self._dict[key]
 
         def __iter__(self):
-            return iter(to_save)
+            return iter(self._dict)
 
         def __len__(self):
-            return len(to_save)
+            return len(self._dict)
 
     with pytest.raises(TypeError, match="If `include_self` is True, then `to_save` must be mutable"):
-        Checkpoint(ImmutableMapping(), lambda x: x, include_self=True)
+        Checkpoint(ImmutableMapping(to_save), lambda x: x, include_self=True)
+
+    checkpoint = Checkpoint(to_save, lambda x: x)
+    with pytest.raises(AttributeError, match="Checkpoint's `save_handler` should be of type `DiskSaver`"):
+        checkpoint.reload_objects(to_save)
 
 
 def test_save_handler_as_str(dirname):
@@ -157,7 +167,7 @@ def test_checkpoint_include_self_state_dict(to_save, obj, name):
     assert save_handler.call_count == 1
 
     fname = f"{name}_0.pt"
-    obj["checkpointer"] = OrderedDict([("saved", [(0, fname)])])
+    obj["checkpointer"] = OrderedDict([("_saved", [(0, fname)])])
 
     metadata = {"basename": name, "score_name": None, "priority": 0}
     save_handler.assert_called_with(obj, fname, metadata)
@@ -177,7 +187,7 @@ def test_checkpoint_include_self_state_dict(to_save, obj, name):
     save_handler.remove.assert_called_with(f"{name}_0.pt")
 
     fname = f"{name}_1234.pt"
-    obj["checkpointer"] = OrderedDict([("saved", [(1234, fname)])])
+    obj["checkpointer"] = OrderedDict([("_saved", [(1234, fname)])])
 
     save_handler.assert_called_with(obj, fname, metadata)
     assert save_handler.remove.call_count == 1
@@ -863,7 +873,6 @@ def _test_save_model_optimizer_lr_scheduler_with_state_dict(device, dirname, jus
         # Probably related to https://github.com/pytorch/xla/issues/2576
         # loss = y.pow(2.0).sum()
         loss = y.sum()
-        print(loss.device, y.device, x.device)
         loss.backward()
         if idist.has_xla_support:
             import torch_xla.core.xla_model as xm
@@ -1070,10 +1079,13 @@ def test_checkpoint_load_objects():
     with pytest.raises(TypeError, match=r"should have `load_state_dict` method"):
         Checkpoint.load_objects({"a": None}, {"a": None})
 
+    with pytest.raises(TypeError, match=r"should have `load_state_dict` method"):
+        Checkpoint.load_objects({"a": {"b": None}}, {"a": {"b": None}})
+
     model = DummyModel()
     to_load = {"model": model, "another_model": model}
 
-    with pytest.raises(ValueError, match=r"from `to_load` is not found in the checkpoint"):
+    with pytest.raises(ValueError, match=r"Key 'model' from x is not found in y"):
         Checkpoint.load_objects(to_load, {})
 
     model = DummyModel()
@@ -1081,6 +1093,11 @@ def test_checkpoint_load_objects():
     model2 = DummyModel()
 
     chkpt = {"model": model2.state_dict()}
+    Checkpoint.load_objects(to_load, chkpt)
+    assert model.state_dict() == model2.state_dict()
+
+    chkpt = {"models": [{"model1": {"abc": model.state_dict()}}, model.state_dict()]}
+    to_load = {"models": [{"model1": {"abc": model}}, model]}
     Checkpoint.load_objects(to_load, chkpt)
     assert model.state_dict() == model2.state_dict()
 
@@ -1095,7 +1112,11 @@ def test_checkpoint_load_objects_from_saved_file(dirname):
         model = DummyModel()
         optim = torch.optim.SGD(model.parameters(), lr=0.001)
         lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, gamma=0.5)
-        to_save = {"model": model, "optimizer": optim, "lr_scheduler": lr_scheduler}
+        to_save = {
+            "model": model,
+            "optimizer": optim,
+            "lr_scheduler": lr_scheduler,
+        }
         return to_save
 
     trainer = Engine(lambda e, b: None)
@@ -1169,9 +1190,7 @@ def test_load_checkpoint_with_different_num_classes(dirname):
     with pytest.raises(RuntimeError):
         Checkpoint.load_objects(to_load_single_object, loaded_checkpoint)
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=UserWarning)
-        Checkpoint.load_objects(to_load_single_object, loaded_checkpoint, strict=False, blah="blah")
+    Checkpoint.load_objects(to_load_single_object, loaded_checkpoint, strict=False)
 
     loaded_weights = to_load_single_object["pretrained_features"].state_dict()["weight"]
 
@@ -1608,10 +1627,10 @@ def _setup_checkpoint():
 def test_checkpoint_state_dict():
     checkpointer = _setup_checkpoint()
     sd = checkpointer.state_dict()
-    assert "saved" in sd
-    assert isinstance(sd["saved"], list) and len(sd["saved"]) == len(checkpointer._saved)
+    assert "_saved" in sd
+    assert isinstance(sd["_saved"], list) and len(sd["_saved"]) == len(checkpointer._saved)
 
-    for saved_item, true_item in zip(sd["saved"], checkpointer._saved):
+    for saved_item, true_item in zip(sd["_saved"], checkpointer._saved):
         assert saved_item[0] == true_item.priority
         assert saved_item[1] == true_item.filename
 
@@ -1624,9 +1643,41 @@ def test_checkpoint_load_state_dict():
     to_save = {"model": model}
     checkpointer = Checkpoint(to_save, save_handler=save_handler, n_saved=None)
 
-    sd = {"saved": [(0, "model_0.pt"), (10, "model_10.pt"), (20, "model_20.pt")]}
+    sd = {"_saved": [(0, "model_0.pt"), (10, "model_10.pt"), (20, "model_20.pt")]}
     checkpointer.load_state_dict(sd)
     assert checkpointer._saved == true_checkpointer._saved
+
+
+@pytest.mark.parametrize(
+    "to_save",
+    [
+        {"model": DummyModel()},
+        {"model": [DummyModel(), DummyModel()]},
+        {"model": {"a": {"b": DummyModel()}}},
+    ],
+)
+def test_checkpoint__setup_checkpoint(to_save):
+    save_handler = MagicMock(spec=BaseSaveHandler)
+    checkpointer = Checkpoint(to_save, save_handler=save_handler, n_saved=2)
+    checkpoint = checkpointer._setup_checkpoint()
+
+    assert isinstance(checkpoint, dict)
+    for k, obj in to_save.items():
+        assert k in checkpoint
+        if isinstance(obj, torch.nn.Module):
+            assert checkpoint[k] == obj.state_dict()
+        elif isinstance(obj, list):
+            for c2, obj2 in zip(checkpoint[k], obj):
+                assert c2 == obj2.state_dict()
+        elif isinstance(obj, dict):
+            c2 = checkpoint[k]
+            for k2, obj2 in obj.items():
+                if isinstance(obj2, torch.nn.Module):
+                    assert c2[k2] == obj2.state_dict()
+                elif isinstance(obj2, dict):
+                    c3 = c2[k2]
+                    for k3, obj3 in obj2.items():
+                        assert c3[k3] == obj3.state_dict()
 
 
 def test_checkpoint_fixed_filename():

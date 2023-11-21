@@ -192,6 +192,12 @@ if has_hvd_support:
                 tensor = tensor.unsqueeze(0)
             return hvd.allgather(tensor)
 
+        def _do_all_gather_object(self, tensor: Any, group: Optional[Any] = None) -> List[Any]:
+            if group is not None:
+                raise NotImplementedError("all_gather with group for horovod is not implemented")
+
+            return hvd.allgather_object(tensor)
+
         def _do_new_group(self, ranks: List[int], **kwargs: Any) -> Any:
             return hvd.ProcessSet(ranks)
 

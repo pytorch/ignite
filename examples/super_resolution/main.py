@@ -73,8 +73,12 @@ class SRDataset(torch.utils.data.Dataset):
         return len(self.dataset)
 
 
-trainset = torchvision.datasets.Caltech101(root="./data", download=True)
-testset = torchvision.datasets.Caltech101(root="./data", download=False)
+try:
+    trainset = torchvision.datasets.Caltech101(root="./data", download=True)
+    testset = torchvision.datasets.Caltech101(root="./data", download=False)
+except RuntimeError:
+    print("Dataset download problem, exiting without error code")
+    exit(0)
 
 trainset_sr = SRDataset(trainset, scale_factor=opt.upscale_factor, crop_size=opt.crop_size)
 testset_sr = SRDataset(testset, scale_factor=opt.upscale_factor, crop_size=opt.crop_size)

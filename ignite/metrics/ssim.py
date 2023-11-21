@@ -1,4 +1,5 @@
-from typing import Callable, Sequence, Union
+import warnings
+from typing import Callable, Optional, Sequence, Union
 
 import torch
 import torch.nn.functional as F
@@ -98,27 +99,27 @@ class SSIM(Metric):
 
         super(SSIM, self).__init__(output_transform=output_transform, device=device)
         self.gaussian = gaussian
+        self.data_range = data_range
         self.c1 = (k1 * data_range) ** 2
         self.c2 = (k2 * data_range) ** 2
         self.pad_h = (self.kernel_size[0] - 1) // 2
         self.pad_w = (self.kernel_size[1] - 1) // 2
-        self._kernel = self._gaussian_or_uniform_kernel(kernel_size=self.kernel_size, sigma=self.sigma)
+        self._kernel_2d = self._gaussian_or_uniform_kernel(kernel_size=self.kernel_size, sigma=self.sigma)
+        self._kernel: Optional[torch.Tensor] = None
 
     @reinit__is_reduced
     def reset(self) -> None:
         self._sum_of_ssim = torch.tensor(0.0, dtype=torch.float64, device=self._device)
         self._num_examples = 0
-        self._kernel = self._gaussian_or_uniform_kernel(kernel_size=self.kernel_size, sigma=self.sigma)
 
     def _uniform(self, kernel_size: int) -> torch.Tensor:
-        max, min = 2.5, -2.5
-        ksize_half = (kernel_size - 1) * 0.5
-        kernel = torch.linspace(-ksize_half, ksize_half, steps=kernel_size, device=self._device)
-        for i, j in enumerate(kernel):
-            if min <= j <= max:
-                kernel[i] = 1 / (max - min)
-            else:
-                kernel[i] = 0
+        kernel = torch.zeros(kernel_size)
+
+        start_uniform_index = max(kernel_size // 2 - 2, 0)
+        end_uniform_index = min(kernel_size // 2 + 3, kernel_size)
+
+        min_, max_ = -2.5, 2.5
+        kernel[start_uniform_index:end_uniform_index] = 1 / (max_ - min_)
 
         return kernel.unsqueeze(dim=0)  # (1, kernel_size)
 
@@ -157,9 +158,28 @@ class SSIM(Metric):
                 f"Expected y_pred and y to have BxCxHxW shape. Got y_pred: {y_pred.shape} and y: {y.shape}."
             )
 
-        channel = y_pred.size(1)
-        if len(self._kernel.shape) < 4:
-            self._kernel = self._kernel.expand(channel, 1, -1, -1).to(device=y_pred.device)
+        # converts potential integer tensor to fp
+        if not y.is_floating_point():
+            y = y.float()
+        if not y_pred.is_floating_point():
+            y_pred = y_pred.float()
+
+        nb_channel = y_pred.size(1)
+        if self._kernel is None or self._kernel.shape[0] != nb_channel:
+            self._kernel = self._kernel_2d.expand(nb_channel, 1, -1, -1)
+
+        if y_pred.device != self._kernel.device:
+            if self._kernel.device == torch.device("cpu"):
+                self._kernel = self._kernel.to(device=y_pred.device)
+
+            elif y_pred.device == torch.device("cpu"):
+                warnings.warn(
+                    "y_pred tensor is on cpu device but previous computation was on another device: "
+                    f"{self._kernel.device}. To avoid having a performance hit, please ensure that all "
+                    "y and y_pred tensors are on the same device.",
+                )
+                y_pred = y_pred.to(device=self._kernel.device)
+                y = y.to(device=self._kernel.device)
 
         y_pred = F.pad(y_pred, [self.pad_w, self.pad_w, self.pad_h, self.pad_h], mode="reflect")
         y = F.pad(y, [self.pad_w, self.pad_w, self.pad_h, self.pad_h], mode="reflect")
@@ -168,7 +188,7 @@ class SSIM(Metric):
             self._kernel = self._kernel.to(dtype=y_pred.dtype)
 
         input_list = [y_pred, y, y_pred * y_pred, y * y, y_pred * y]
-        outputs = F.conv2d(torch.cat(input_list), self._kernel, groups=channel)
+        outputs = F.conv2d(torch.cat(input_list), self._kernel, groups=nb_channel)
         batch_size = y_pred.size(0)
         output_list = [outputs[x * batch_size : (x + 1) * batch_size] for x in range(len(input_list))]
 
@@ -186,7 +206,7 @@ class SSIM(Metric):
         b2 = sigma_pred_sq + sigma_target_sq + self.c2
 
         ssim_idx = (a1 * a2) / (b1 * b2)
-        self._sum_of_ssim += torch.mean(ssim_idx, (1, 2, 3), dtype=torch.float64).sum().to(self._device)
+        self._sum_of_ssim += torch.mean(ssim_idx, (1, 2, 3), dtype=torch.float64).sum().to(device=self._device)
 
         self._num_examples += y.shape[0]
 
