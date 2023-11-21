@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from ignite.distributed.comp_models.base import _torch_version_le_112, _SerialModel, ComputationModel
+from ignite.distributed.comp_models.base import _SerialModel, _torch_version_le_112, ComputationModel
 
 
 @pytest.mark.skipif(
