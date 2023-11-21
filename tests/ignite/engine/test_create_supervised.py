@@ -309,7 +309,7 @@ def _test_create_supervised_evaluator(
         if Version(torch.__version__) >= Version("1.7.0"):
             # This is broken in 1.6.0 but will be probably fixed with 1.7.0
             err_msg_1 = "Expected all tensors to be on the same device"
-            err_msg_2 = "Placeholder storage has not been allocated on MPS device" 
+            err_msg_2 = "Placeholder storage has not been allocated on MPS device"
             with pytest.raises(RuntimeError, match=f"({err_msg_1}|{err_msg_2})"):
                 evaluator.run(data)
 
