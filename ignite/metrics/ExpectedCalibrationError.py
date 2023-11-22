@@ -1,4 +1,5 @@
 import torch
+
 from ignite.exceptions import NotComputableError
 from ignite.metrics import Metric
 
@@ -40,7 +41,7 @@ class ExpectedCalibrationError(Metric):
             # Multi-class classification
             if y_pred.shape[1] <= 1:
                 raise ValueError("Invalid number of classes for multi-class ECE computation.")
-            
+
             self.update_multi_class(y_pred, y)
 
         elif y_pred.dim() == 1:
