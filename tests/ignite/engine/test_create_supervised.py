@@ -12,6 +12,7 @@ from torch.nn.functional import mse_loss
 from torch.optim import SGD
 
 import ignite.distributed as idist
+from ignite.distributed.comp_models.base import _torch_version_le_112
 from ignite.engine import (
     _check_arg,
     create_supervised_evaluator,
@@ -196,7 +197,8 @@ def _test_create_mocked_supervised_trainer(
                     data = [(x, y)]
 
                     on_tpu = "xla" in trainer_device if trainer_device is not None else False
-                    mode, _ = _check_arg(on_tpu, amp_mode, scaler)
+                    on_mps = "mps" in trainer_device if trainer_device is not None else False
+                    mode, _ = _check_arg(on_tpu, on_mps, amp_mode, scaler)
 
                     if model_device == trainer_device or ((model_device == "cpu") ^ (trainer_device == "cpu")):
                         trainer.run(data)
@@ -306,7 +308,9 @@ def _test_create_supervised_evaluator(
     else:
         if Version(torch.__version__) >= Version("1.7.0"):
             # This is broken in 1.6.0 but will be probably fixed with 1.7.0
-            with pytest.raises(RuntimeError, match=r"Expected all tensors to be on the same device"):
+            err_msg_1 = "Expected all tensors to be on the same device"
+            err_msg_2 = "Placeholder storage has not been allocated on MPS device"
+            with pytest.raises(RuntimeError, match=f"({err_msg_1}|{err_msg_2})"):
                 evaluator.run(data)
 
 
@@ -358,7 +362,8 @@ def _test_create_evaluation_step_amp(
 
     device_type = evaluator_device.type if isinstance(evaluator_device, torch.device) else evaluator_device
     on_tpu = "xla" in device_type if device_type is not None else False
-    mode, _ = _check_arg(on_tpu, amp_mode, None)
+    on_mps = "mps" in device_type if device_type is not None else False
+    mode, _ = _check_arg(on_tpu, on_mps, amp_mode, None)
 
     evaluate_step = supervised_evaluation_step_amp(model, evaluator_device, output_transform=output_transform_mock)
 
@@ -393,7 +398,8 @@ def _test_create_evaluation_step(
 
     device_type = evaluator_device.type if isinstance(evaluator_device, torch.device) else evaluator_device
     on_tpu = "xla" in device_type if device_type is not None else False
-    mode, _ = _check_arg(on_tpu, amp_mode, None)
+    on_mps = "mps" in device_type if device_type is not None else False
+    mode, _ = _check_arg(on_tpu, on_mps, amp_mode, None)
 
     evaluate_step = supervised_evaluation_step(model, evaluator_device, output_transform=output_transform_mock)
 
@@ -465,6 +471,19 @@ def test_create_supervised_trainer_scaler_not_amp():
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_create_supervised_trainer_on_cuda():
     model_device = trainer_device = "cuda"
+    _test_create_supervised_trainer_wrong_accumulation(model_device=model_device, trainer_device=trainer_device)
+    _test_create_supervised_trainer(
+        gradient_accumulation_steps=1, model_device=model_device, trainer_device=trainer_device
+    )
+    _test_create_supervised_trainer(
+        gradient_accumulation_steps=3, model_device=model_device, trainer_device=trainer_device
+    )
+    _test_create_mocked_supervised_trainer(model_device=model_device, trainer_device=trainer_device)
+
+
+@pytest.mark.skipif(not torch.backends.mps.is_available(), reason="Skip if no MPS")
+def test_create_supervised_trainer_on_mps():
+    model_device = trainer_device = "mps"
     _test_create_supervised_trainer_wrong_accumulation(model_device=model_device, trainer_device=trainer_device)
     _test_create_supervised_trainer(
         gradient_accumulation_steps=1, model_device=model_device, trainer_device=trainer_device
@@ -641,6 +660,19 @@ def test_create_supervised_evaluator_on_cuda():
 def test_create_supervised_evaluator_on_cuda_with_model_on_cpu():
     _test_create_supervised_evaluator(evaluator_device="cuda")
     _test_mocked_supervised_evaluator(evaluator_device="cuda")
+
+
+@pytest.mark.skipif(not (_torch_version_le_112 and torch.backends.mps.is_available()), reason="Skip if no MPS")
+def test_create_supervised_evaluator_on_mps():
+    model_device = evaluator_device = "mps"
+    _test_create_supervised_evaluator(model_device=model_device, evaluator_device=evaluator_device)
+    _test_mocked_supervised_evaluator(model_device=model_device, evaluator_device=evaluator_device)
+
+
+@pytest.mark.skipif(not (_torch_version_le_112 and torch.backends.mps.is_available()), reason="Skip if no MPS")
+def test_create_supervised_evaluator_on_mps_with_model_on_cpu():
+    _test_create_supervised_evaluator(evaluator_device="mps")
+    _test_mocked_supervised_evaluator(evaluator_device="mps")
 
 
 @pytest.mark.skipif(Version(torch.__version__) < Version("1.6.0"), reason="Skip if < 1.6.0")
