@@ -96,6 +96,8 @@ def supervised_training_step(
         Added `model_transform` to transform model's output
     .. versionchanged:: 0.4.13
         Added `model_fn` to customize model's application on the sample
+    .. versionchanged:: 0.4.14
+        Added support for ``mps`` device
     """
 
     if gradient_accumulation_steps <= 0:
@@ -391,9 +393,12 @@ def supervised_training_step_tpu(
 
 
 def _check_arg(
-    on_tpu: bool, amp_mode: Optional[str], scaler: Optional[Union[bool, "torch.cuda.amp.GradScaler"]]
+    on_tpu: bool, on_mps: bool, amp_mode: Optional[str], scaler: Optional[Union[bool, "torch.cuda.amp.GradScaler"]]
 ) -> Tuple[Optional[str], Optional["torch.cuda.amp.GradScaler"]]:
-    """Checking tpu, amp and GradScaler instance combinations."""
+    """Checking tpu, mps, amp and GradScaler instance combinations."""
+    if on_mps and amp_mode:
+        raise ValueError("amp_mode cannot be used with mps device. Consider using amp_mode=None or device='cuda'.")
+
     if on_tpu and not idist.has_xla_support:
         raise RuntimeError("In order to run on TPU, please install PyTorch XLA")
 
@@ -546,11 +551,14 @@ def create_supervised_trainer(
         Added ``model_transform`` to transform model's output
     .. versionchanged:: 0.4.13
         Added `model_fn` to customize model's application on the sample
+    .. versionchanged:: 0.4.14
+        Added support for ``mps`` device
     """
 
     device_type = device.type if isinstance(device, torch.device) else device
     on_tpu = "xla" in device_type if device_type is not None else False
-    mode, _scaler = _check_arg(on_tpu, amp_mode, scaler)
+    on_mps = "mps" in device_type if device_type is not None else False
+    mode, _scaler = _check_arg(on_tpu, on_mps, amp_mode, scaler)
 
     if mode == "amp":
         _update = supervised_training_step_amp(
@@ -791,10 +799,13 @@ def create_supervised_evaluator(
         Added ``model_transform`` to transform model's output
     .. versionchanged:: 0.4.13
         Added `model_fn` to customize model's application on the sample
+    .. versionchanged:: 0.4.14
+        Added support for ``mps`` device
     """
     device_type = device.type if isinstance(device, torch.device) else device
     on_tpu = "xla" in device_type if device_type is not None else False
-    mode, _ = _check_arg(on_tpu, amp_mode, None)
+    on_mps = "mps" in device_type if device_type is not None else False
+    mode, _ = _check_arg(on_tpu, on_mps, amp_mode, None)
 
     metrics = metrics or {}
     if mode == "amp":
