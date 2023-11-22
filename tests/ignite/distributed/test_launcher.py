@@ -258,7 +258,7 @@ def test_idist_parallel_n_procs_native(init_method, backend, get_fixed_dirname, 
 
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test_idist_parallel_no_dist():
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = idist.device()
     with idist.Parallel(backend=None) as parallel:
         parallel.run(_test_func, ws=1, device=device, backend=None, true_init_method=None)
 

@@ -31,13 +31,11 @@ class DummyModel(torch.nn.Module):
         self.output_as_list = output_as_list
         self.fc = torch.nn.Linear(1, 1, bias=False)
 
-    def forward(self, x, bias=None):
-        if bias is None:
-            bias = 0.0
+    def forward(self, x):
         if self.output_as_list:
-            return self.fc(x) + bias, self.fc(x) + bias
+            return self.fc(x), self.fc(x)
 
-        return self.fc(x) + bias
+        return self.fc(x)
 
 
 def _default_create_supervised_trainer(
@@ -48,7 +46,6 @@ def _default_create_supervised_trainer(
     amp_mode: str = None,
     scaler: Union[bool, "torch.cuda.amp.GradScaler"] = False,
     with_model_transform: bool = False,
-    with_model_fn: bool = False,
 ):
     if with_model_transform:
 
@@ -68,8 +65,8 @@ def _default_create_supervised_trainer(
     optimizer = SGD(model.parameters(), 0.1)
 
     if trace:
-        example_inputs = (torch.randn(1), torch.randn(1)) if with_model_fn else torch.randn(1)
-        model = torch.jit.trace(model, example_inputs)
+        example_input = torch.randn(1)
+        model = torch.jit.trace(model, example_input)
 
     if amp_mode == "apex" and model_device == trainer_device == "cuda":
         from apex import amp
@@ -86,9 +83,6 @@ def _default_create_supervised_trainer(
         scaler=scaler,
         gradient_accumulation_steps=gradient_accumulation_steps,
         model_transform=model_transform if model_transform is not None else lambda x: x,
-        model_fn=(lambda model, x: model(x, torch.tensor([0.01], device=model_device)))
-        if with_model_fn
-        else (lambda model, x: model(x)),
     )
     assert model.fc.weight.data[0, 0].item() == approx(0.0)
     return trainer, model
@@ -102,7 +96,6 @@ def _test_create_supervised_trainer(
     amp_mode: str = None,
     scaler: Union[bool, "torch.cuda.amp.GradScaler"] = False,
     with_model_transform: bool = False,
-    with_model_fn: bool = False,
 ):
     trainer, model = _default_create_supervised_trainer(
         gradient_accumulation_steps=gradient_accumulation_steps,
@@ -112,13 +105,10 @@ def _test_create_supervised_trainer(
         amp_mode=amp_mode,
         scaler=scaler,
         with_model_transform=with_model_transform,
-        with_model_fn=with_model_fn,
     )
 
     x = torch.tensor([[0.01], [0.02], [0.03], [0.04], [0.05]])
     y = torch.tensor([[0.015], [0.025], [0.035], [0.045], [0.055]])
-    if with_model_fn:
-        y += 0.01
     data = [(_x, _y) for _x, _y in zip(x, y)]
 
     theta = [0.0]
@@ -130,14 +120,12 @@ def _test_create_supervised_trainer(
         assert model.fc.weight.grad != 0
         _x, _y = trainer.state.batch
         _x, _y = _x.to(model_device), _y.to(model_device)
-        bias = 0.01 if with_model_fn else 0.0
-        accumulation[0] += 0.2 * _x.item() * (theta[0] * _x.item() - (_y.item() - bias))
+        accumulation[0] += 0.2 * _x.item() * (theta[0] * _x.item() - _y.item())
         # value of loss should not be accumulated
-        _y_pred = model(_x, torch.tensor([bias], device=model_device)) if with_model_fn else model(_x)
         if with_model_transform:
-            _y_pred = _y_pred[0]
-
-        loss[0] = mse_loss(_y_pred, _y).item()
+            loss[0] = mse_loss(model(_x)[0], _y).item()
+        else:
+            loss[0] = mse_loss(model(_x), _y).item()
 
     @trainer.on(Events.ITERATION_COMPLETED(every=gradient_accumulation_steps))
     def _():
@@ -196,7 +184,8 @@ def _test_create_mocked_supervised_trainer(
                     data = [(x, y)]
 
                     on_tpu = "xla" in trainer_device if trainer_device is not None else False
-                    mode, _ = _check_arg(on_tpu, amp_mode, scaler)
+                    on_mps = "mps" in trainer_device if trainer_device is not None else False
+                    mode, _ = _check_arg(on_tpu, on_mps, amp_mode, scaler)
 
                     if model_device == trainer_device or ((model_device == "cpu") ^ (trainer_device == "cpu")):
                         trainer.run(data)
@@ -230,7 +219,6 @@ def _default_create_supervised_evaluator(
     trace: bool = False,
     amp_mode: str = None,
     with_model_transform: bool = False,
-    with_model_fn: bool = False,
 ):
     if with_model_transform:
 
@@ -249,17 +237,14 @@ def _default_create_supervised_evaluator(
     model.fc.weight.data.zero_()
 
     if trace:
-        example_inputs = (torch.randn(1), torch.randn(1)) if with_model_fn else torch.randn(1)
-        model = torch.jit.trace(model, example_inputs)
+        example_input = torch.randn(1, 1)
+        model = torch.jit.trace(model, example_input)
 
     evaluator = create_supervised_evaluator(
         model,
         device=evaluator_device,
         amp_mode=amp_mode,
         model_transform=model_transform if model_transform is not None else lambda x: x,
-        model_fn=(lambda model, x: model(x, torch.tensor([0.01], device=model_device)))
-        if with_model_fn
-        else (lambda model, x: model(x)),
     )
 
     assert model.fc.weight.data[0, 0].item() == approx(0.0)
@@ -273,7 +258,6 @@ def _test_create_supervised_evaluator(
     trace: bool = False,
     amp_mode: str = None,
     with_model_transform: bool = False,
-    with_model_fn: bool = False,
 ):
     model, evaluator = _default_create_supervised_evaluator(
         model_device=model_device,
@@ -281,21 +265,20 @@ def _test_create_supervised_evaluator(
         trace=trace,
         amp_mode=amp_mode,
         with_model_transform=with_model_transform,
-        with_model_fn=with_model_fn,
     )
-    x = torch.tensor([[1.0], [2.0]])
-    y = torch.tensor([[3.0], [5.0]])
-    if with_model_fn:
-        y += 0.01
+    x = torch.tensor([[1.0], [2.0]], device=model_device)
+    y = torch.tensor([[3.0], [5.0]], device=evaluator_device)
     data = [(x, y)]
 
-    if model_device == evaluator_device or ((model_device == "cpu") ^ (evaluator_device == "cpu")):
+    if (
+        model_device == evaluator_device
+        or ((model_device == "cpu") ^ (evaluator_device == "cpu"))
+        or ((model_device == "mps") ^ (evaluator_device == "mps"))
+    ):
         state = evaluator.run(data)
 
         y_pred, y = state.output
-        if with_model_fn:
-            y_pred -= 0.01
-            y -= 0.01
+
         assert y_pred[0, 0].item() == approx(0.0)
         assert y_pred[1, 0].item() == approx(0.0)
         assert y[0, 0].item() == approx(3.0)
@@ -358,7 +341,8 @@ def _test_create_evaluation_step_amp(
 
     device_type = evaluator_device.type if isinstance(evaluator_device, torch.device) else evaluator_device
     on_tpu = "xla" in device_type if device_type is not None else False
-    mode, _ = _check_arg(on_tpu, amp_mode, None)
+    on_mps = "mps" in device_type if device_type is not None else False
+    mode, _ = _check_arg(on_tpu, on_mps, amp_mode, None)
 
     evaluate_step = supervised_evaluation_step_amp(model, evaluator_device, output_transform=output_transform_mock)
 
@@ -393,7 +377,8 @@ def _test_create_evaluation_step(
 
     device_type = evaluator_device.type if isinstance(evaluator_device, torch.device) else evaluator_device
     on_tpu = "xla" in device_type if device_type is not None else False
-    mode, _ = _check_arg(on_tpu, amp_mode, None)
+    on_mps = "mps" in device_type if device_type is not None else False
+    mode, _ = _check_arg(on_tpu, on_mps, amp_mode, None)
 
     evaluate_step = supervised_evaluation_step(model, evaluator_device, output_transform=output_transform_mock)
 
@@ -414,7 +399,6 @@ def test_create_supervised_trainer(trainer_device, trace):
     _test_create_supervised_trainer(gradient_accumulation_steps=1, trainer_device=trainer_device, trace=trace)
     _test_create_supervised_trainer(gradient_accumulation_steps=3, trainer_device=trainer_device, trace=trace)
     _test_create_supervised_trainer(with_model_transform=True, trainer_device=trainer_device, trace=trace)
-    _test_create_supervised_trainer(with_model_fn=True, trainer_device=trainer_device, trace=trace)
     _test_create_mocked_supervised_trainer(trainer_device=trainer_device, trace=trace)
 
 
@@ -465,6 +449,19 @@ def test_create_supervised_trainer_scaler_not_amp():
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_create_supervised_trainer_on_cuda():
     model_device = trainer_device = "cuda"
+    _test_create_supervised_trainer_wrong_accumulation(model_device=model_device, trainer_device=trainer_device)
+    _test_create_supervised_trainer(
+        gradient_accumulation_steps=1, model_device=model_device, trainer_device=trainer_device
+    )
+    _test_create_supervised_trainer(
+        gradient_accumulation_steps=3, model_device=model_device, trainer_device=trainer_device
+    )
+    _test_create_mocked_supervised_trainer(model_device=model_device, trainer_device=trainer_device)
+
+
+@pytest.mark.skipif(not torch.backends.mps.is_available(), reason="Skip if no MPS")
+def test_create_supervised_trainer_on_mps():
+    model_device = trainer_device = "mps"
     _test_create_supervised_trainer_wrong_accumulation(model_device=model_device, trainer_device=trainer_device)
     _test_create_supervised_trainer(
         gradient_accumulation_steps=1, model_device=model_device, trainer_device=trainer_device
@@ -599,8 +596,6 @@ def test_create_supervised_trainer_on_cuda_with_model_on_cpu():
 
 def test_create_supervised_evaluator():
     _test_create_supervised_evaluator()
-    _test_create_supervised_evaluator(with_model_transform=True)
-    _test_create_supervised_evaluator(with_model_fn=True)
     _test_mocked_supervised_evaluator()
 
     # older versions didn't have the autocast method so we skip the test for older builds
@@ -641,6 +636,19 @@ def test_create_supervised_evaluator_on_cuda():
 def test_create_supervised_evaluator_on_cuda_with_model_on_cpu():
     _test_create_supervised_evaluator(evaluator_device="cuda")
     _test_mocked_supervised_evaluator(evaluator_device="cuda")
+
+
+@pytest.mark.skipif(not torch.backends.mps.is_available(), reason="Skip if no MPS Backend")
+def test_create_supervised_evaluator_on_mps():
+    model_device = evaluator_device = "mps"
+    _test_create_supervised_evaluator(model_device=model_device, evaluator_device=evaluator_device)
+    _test_mocked_supervised_evaluator(model_device=model_device, evaluator_device=evaluator_device)
+
+
+@pytest.mark.skipif(not torch.backends.mps.is_available(), reason="Skip if no MPS Backend")
+def test_create_supervised_evaluator_on_mps_with_model_on_cpu():
+    _test_create_supervised_evaluator(model_device="mps", evaluator_device="mps")
+    _test_mocked_supervised_evaluator(model_device="mps", evaluator_device="mps")
 
 
 @pytest.mark.skipif(Version(torch.__version__) < Version("1.6.0"), reason="Skip if < 1.6.0")

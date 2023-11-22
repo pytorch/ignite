@@ -16,6 +16,8 @@ def test_serial_model():
     assert model.get_node_rank() == 0
     if torch.cuda.is_available():
         assert model.device().type == "cuda"
+    elif torch.backends.mps.is_available():
+        assert model.device().type == "mps"
     else:
         assert model.device().type == "cpu"
     assert model.backend() is None
