@@ -12,6 +12,7 @@ from torch.nn.functional import mse_loss
 from torch.optim import SGD
 
 import ignite.distributed as idist
+from ignite.distributed.comp_models.base import _torch_version_le_112
 from ignite.engine import (
     _check_arg,
     create_supervised_evaluator,
@@ -289,7 +290,9 @@ def _test_create_supervised_evaluator(
     else:
         if Version(torch.__version__) >= Version("1.7.0"):
             # This is broken in 1.6.0 but will be probably fixed with 1.7.0
-            with pytest.raises(RuntimeError, match=r"Expected all tensors to be on the same device"):
+            err_msg_1 = "Expected all tensors to be on the same device"
+            err_msg_2 = "Placeholder storage has not been allocated on MPS device"
+            with pytest.raises(RuntimeError, match=f"({err_msg_1}|{err_msg_2})"):
                 evaluator.run(data)
 
 
@@ -638,7 +641,7 @@ def test_create_supervised_evaluator_on_cuda_with_model_on_cpu():
     _test_mocked_supervised_evaluator(evaluator_device="cuda")
 
 
-@pytest.mark.skipif(not torch.backends.mps.is_available(), reason="Skip if no MPS Backend")
+@pytest.mark.skipif(not (_torch_version_le_112 and torch.backends.mps.is_available()), reason="Skip if no MPS")
 def test_create_supervised_evaluator_on_mps():
     model_device = evaluator_device = "mps"
     _test_create_supervised_evaluator(model_device=model_device, evaluator_device=evaluator_device)

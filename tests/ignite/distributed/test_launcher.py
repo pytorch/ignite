@@ -8,6 +8,7 @@ import torch
 from packaging.version import Version
 
 import ignite.distributed as idist
+from ignite.distributed.comp_models.base import _torch_version_le_112
 from ignite.distributed.utils import has_hvd_support, has_native_dist_support, has_xla_support
 
 
@@ -257,6 +258,9 @@ def test_idist_parallel_n_procs_native(init_method, backend, get_fixed_dirname, 
 
 
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
+@pytest.mark.skipif(
+    _torch_version_le_112 and torch.backends.mps.is_available(), reason="Temporary skip if MPS is available"
+)
 def test_idist_parallel_no_dist():
     device = idist.device()
     with idist.Parallel(backend=None) as parallel:

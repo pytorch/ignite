@@ -1,9 +1,12 @@
 import pytest
 import torch
 
-from ignite.distributed.comp_models.base import _SerialModel, ComputationModel
+from ignite.distributed.comp_models.base import _SerialModel, _torch_version_le_112, ComputationModel
 
 
+@pytest.mark.skipif(
+    _torch_version_le_112 and torch.backends.mps.is_available(), reason="Temporary skip if MPS is available"
+)
 def test_serial_model():
     _SerialModel.create_from_backend()
     model = _SerialModel.create_from_context()

@@ -3,6 +3,9 @@ from numbers import Number
 from typing import Any, Callable, cast, List, Optional, Union
 
 import torch
+from packaging.version import Version
+
+_torch_version_le_112 = Version(torch.__version__) > Version("1.12.0")
 
 
 class ComputationModel(metaclass=ABCMeta):
@@ -326,6 +329,8 @@ class _SerialModel(ComputationModel):
     def device(self) -> torch.device:
         if torch.cuda.is_available():
             return torch.device("cuda")
+        if _torch_version_le_112 and torch.backends.mps.is_available():
+            return torch.device("mps")
         return torch.device("cpu")
 
     def backend(self) -> Optional[str]:

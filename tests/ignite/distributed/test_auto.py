@@ -12,6 +12,7 @@ from torch.utils.data.sampler import BatchSampler, RandomSampler, Sampler, Seque
 
 import ignite.distributed as idist
 from ignite.distributed.auto import auto_dataloader, auto_model, auto_optim, DistributedProxySampler
+from ignite.distributed.comp_models.base import _torch_version_le_112
 
 
 class DummyDS(Dataset):
@@ -179,6 +180,9 @@ def _test_auto_model_optimizer(ws, device):
         assert optimizer.backward_passes_per_step == backward_passes_per_step
 
 
+@pytest.mark.skipif(
+    _torch_version_le_112 and torch.backends.mps.is_available(), reason="Temporary skip if MPS is available"
+)
 def test_auto_methods_no_dist():
     _test_auto_dataloader(1, 1, batch_size=1)
     _test_auto_dataloader(1, 1, batch_size=10, num_workers=2)
