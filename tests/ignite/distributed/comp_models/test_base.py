@@ -2,11 +2,9 @@ import pytest
 import torch
 
 from ignite.distributed.comp_models.base import _SerialModel, _torch_version_le_112, ComputationModel
+from ignite.distributed.comp_models.base import _torch_version_le_112
 
 
-@pytest.mark.skipif(
-    _torch_version_le_112 and torch.backends.mps.is_available(), reason="Temporary skip if MPS is available"
-)
 def test_serial_model():
     _SerialModel.create_from_backend()
     model = _SerialModel.create_from_context()
@@ -19,6 +17,9 @@ def test_serial_model():
     assert model.get_node_rank() == 0
     if torch.cuda.is_available():
         assert model.device().type == "cuda"
+    elif _torch_version_le_112:
+        if torch.backends.mps.is_available():
+            assert model.device().type == "mps"
     else:
         assert model.device().type == "cpu"
     assert model.backend() is None
