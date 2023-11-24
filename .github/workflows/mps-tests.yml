@@ -75,7 +75,8 @@ jobs:
         shell: bash -l {0}
         run: |
           conda shell.bash hook
-          conda activate ci
+          conda activate $CONDA_ENV
+          conda env list
           pip install torch torchvision
 
       - name: Install PyTorch (nightly)
@@ -83,7 +84,8 @@ jobs:
         shell: bash -l {0}
         run: |
           conda shell.bash hook
-          conda activate ci
+          conda activate $CONDA_ENV
+          conda env list
           pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cpu
 
       - name: Install dependencies
