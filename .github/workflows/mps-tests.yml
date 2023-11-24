@@ -73,7 +73,9 @@ jobs:
       - name: Install PyTorch
         if: ${{ matrix.pytorch-channel == 'pytorch' }}
         shell: bash -l {0}
-        run: pip install torch torchvision
+        run: |
+          conda shell.bash hook
+          pip install torch torchvision
 
       - name: Install PyTorch (nightly)
         if: ${{ matrix.pytorch-channel == 'pytorch-nightly' }}
