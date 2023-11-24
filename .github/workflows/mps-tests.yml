@@ -27,7 +27,7 @@ concurrency:
   cancel-in-progress: true
 
 # Cherry-picked from 
-# - https://github.com/pytorch/vision/main/.github/workflows/tests.yml
+# - https://github.com/pytorch/vision/blob/main/.github/workflows/tests.yml
 # - https://github.com/pytorch/test-infra/blob/main/.github/workflows/macos_job.yml
 
 jobs:
@@ -73,17 +73,24 @@ jobs:
       - name: Install PyTorch
         if: ${{ matrix.pytorch-channel == 'pytorch' }}
         shell: bash -l {0}
-        run: pip install torch torchvision
+        run: |
+          conda shell.bash hook
+          conda activate $CONDA_ENV
+          pip install torch torchvision
 
       - name: Install PyTorch (nightly)
         if: ${{ matrix.pytorch-channel == 'pytorch-nightly' }}
         shell: bash -l {0}
-        run: pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cpu
+        run: |
+          conda shell.bash hook
+          conda activate $CONDA_ENV
+          pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cpu
 
       - name: Install dependencies
         shell: bash -l {0}
         working-directory: ${{ github.repository }}
         run: |
+          conda activate $CONDA_ENV
           # TODO: We add set -xe to explicitly fail the CI if one of the commands is failing.
           # Somehow the step is passing even if a subcommand failed
           set -xe
@@ -110,6 +117,7 @@ jobs:
         shell: bash -l {0}
         working-directory: ${{ github.repository }}
         run: |
+          conda activate $CONDA_ENV
           SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} bash tests/run_cpu_tests.sh
 
       - name: Upload coverage to Codecov
@@ -122,4 +130,6 @@ jobs:
       - name: Run MNIST Examples
         shell: bash -l {0}
         working-directory: ${{ github.repository }}
-        run: python examples/mnist/mnist.py --epochs=1
+        run: |
+          conda activate $CONDA_ENV
+          python examples/mnist/mnist.py --epochs=1
