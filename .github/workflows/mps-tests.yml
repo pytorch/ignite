@@ -90,7 +90,7 @@ jobs:
         shell: bash -l {0}
         working-directory: ${{ github.repository }}
         run: |
-          conda activate $CONDA_ENV 
+          conda activate $CONDA_ENV
           # TODO: We add set -xe to explicitly fail the CI if one of the commands is failing.
           # Somehow the step is passing even if a subcommand failed
           set -xe
@@ -130,4 +130,6 @@ jobs:
       - name: Run MNIST Examples
         shell: bash -l {0}
         working-directory: ${{ github.repository }}
-        run: python examples/mnist/mnist.py --epochs=1
+        run: |
+          conda activate $CONDA_ENV
+          python examples/mnist/mnist.py --epochs=1
