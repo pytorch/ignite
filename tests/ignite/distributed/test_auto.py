@@ -180,7 +180,6 @@ def _test_auto_model_optimizer(ws, device):
         assert optimizer.backward_passes_per_step == backward_passes_per_step
 
 
-
 def test_auto_methods_no_dist():
     _test_auto_dataloader(1, 1, batch_size=1)
     _test_auto_dataloader(1, 1, batch_size=10, num_workers=2)

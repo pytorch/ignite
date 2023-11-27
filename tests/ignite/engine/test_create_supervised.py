@@ -286,12 +286,15 @@ def _test_create_supervised_evaluator(
         with_model_fn=with_model_fn,
     )
     x = torch.tensor([[1.0], [2.0]])
+    x.to(evaluator_device)
     y = torch.tensor([[3.0], [5.0]])
+    y.to(evaluator_device)
     if with_model_fn:
         y += 0.01
     data = [(x, y)]
 
-    if model_device == evaluator_device or ((model_device == "cpu") ^ (evaluator_device == "cpu")) or ((model_device == "mps") ^ (evaluator_device == "mps")):
+    if model_device == evaluator_device or ((model_device == "cpu") ^ (evaluator_device == "cpu")):
+        print("inside test")
         state = evaluator.run(data)
 
         y_pred, y = state.output
@@ -671,8 +674,8 @@ def test_create_supervised_evaluator_on_mps():
 
 @pytest.mark.skipif(not (_torch_version_le_112 and torch.backends.mps.is_available()), reason="Skip if no MPS")
 def test_create_supervised_evaluator_on_mps_with_model_on_cpu():
-    _test_create_supervised_evaluator(model_device="mps", evaluator_device="mps")
-    _test_mocked_supervised_evaluator(model_device="mps", evaluator_device="mps")
+    _test_create_supervised_evaluator(evaluator_device="mps")
+    _test_mocked_supervised_evaluator(evaluator_device="mps")
 
 
 @pytest.mark.skipif(Version(torch.__version__) < Version("1.6.0"), reason="Skip if < 1.6.0")

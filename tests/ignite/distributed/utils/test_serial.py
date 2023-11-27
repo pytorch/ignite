@@ -15,16 +15,12 @@ from tests.ignite.distributed.utils import (
 )
 
 
-#@pytest.mark.skipif(
-#    _torch_version_le_112 and torch.backends.mps.is_available(), reason="Temporary skip if MPS is available"
-#)
 def test_no_distrib(capsys):
     assert idist.backend() is None
     if torch.cuda.is_available():
         assert idist.device().type == "cuda"
-    elif _torch_version_le_112:
-        if torch.backends.mps.is_available():
-            assert idist.device().type == "mps"
+    elif _torch_version_le_112 and torch.backends.mps.is_available():
+        assert idist.device().type == "mps"
     else:
         assert idist.device().type == "cpu"
     assert idist.get_rank() == 0
