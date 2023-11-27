@@ -18,7 +18,7 @@ def test_serial_model():
     if torch.cuda.is_available():
         assert model.device().type == "cuda"
     elif _torch_version_le_112 and torch.backends.mps.is_available():
-            assert model.device().type == "mps"
+        assert model.device().type == "mps"
     else:
         assert model.device().type == "cpu"
     assert model.backend() is None
