@@ -12,7 +12,6 @@ from torch.utils.data.sampler import BatchSampler, RandomSampler, Sampler, Seque
 
 import ignite.distributed as idist
 from ignite.distributed.auto import auto_dataloader, auto_model, auto_optim, DistributedProxySampler
-from ignite.distributed.comp_models.base import _torch_version_le_112
 
 
 class DummyDS(Dataset):

@@ -1,4 +1,3 @@
-import pytest
 import torch
 
 import ignite.distributed as idist

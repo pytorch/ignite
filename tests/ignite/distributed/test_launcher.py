@@ -8,7 +8,6 @@ import torch
 from packaging.version import Version
 
 import ignite.distributed as idist
-from ignite.distributed.comp_models.base import _torch_version_le_112
 from ignite.distributed.utils import has_hvd_support, has_native_dist_support, has_xla_support
 
 
