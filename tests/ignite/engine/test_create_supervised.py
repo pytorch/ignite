@@ -286,15 +286,12 @@ def _test_create_supervised_evaluator(
         with_model_fn=with_model_fn,
     )
     x = torch.tensor([[1.0], [2.0]])
-    x.to(evaluator_device)
     y = torch.tensor([[3.0], [5.0]])
-    y.to(evaluator_device)
     if with_model_fn:
         y += 0.01
     data = [(x, y)]
 
     if model_device == evaluator_device or ((model_device == "cpu") ^ (evaluator_device == "cpu")):
-        print("inside test")
         state = evaluator.run(data)
 
         y_pred, y = state.output
