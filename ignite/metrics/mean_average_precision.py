@@ -15,7 +15,7 @@ class _BaseMeanAveragePrecision(_BasePrecisionRecall):
     def __init__(
         self,
         rec_thresholds: Optional[Union[Sequence[float], torch.Tensor]] = None,
-        average: Optional[str] = "precision",
+        average: Optional[Literal["precision", "max-precision"]] = "precision",
         class_mean: Optional[Literal["micro", "macro", "weighted", "with_other_dims"]] = "macro",
         is_multilabel: bool = False,
         output_transform: Callable = lambda x: x,
@@ -32,7 +32,7 @@ class _BaseMeanAveragePrecision(_BasePrecisionRecall):
             rec_thresholds: recall thresholds (sensivity levels) to be considered for computing Mean Average Precision.
                 It could be a 1-dim tensor or a sequence of floats. Its values should be between 0 and 1 and don't need
                 to be sorted. If missing, thresholds are considered automatically using the data.
-            average: one of values precision or max-precision. In the former case, the precision at a
+            average: one of values "precision" or "max-precision". In the former case, the precision at a
                 recall threshold is used for that threshold:
 
                 .. math::

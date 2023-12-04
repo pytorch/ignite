@@ -531,18 +531,16 @@ def create_coco_api(
     return coco_dt, coco_gt
 
 
-def pycoco_mAP(
-    predictions: List[Dict[str, torch.Tensor]], targets: List[Dict[str, torch.Tensor]]
-) -> Tuple[float, float, float]:
+def pycoco_mAP(predictions: List[Dict[str, torch.Tensor]], targets: List[Dict[str, torch.Tensor]]) -> np.array:
     """
-    Returned values belong to IOU thresholds of [0.5, 0.55, ..., 0.95], [0.5] and [0.75] respectively.
+    Returned values are AP@.5...95, AP@.5, AP@.75, AP-S, AP-M, AP-L
     """
     coco_dt, coco_gt = create_coco_api(predictions, targets)
     eval = COCOeval(coco_gt, coco_dt, iouType="bbox")
     eval.evaluate()
     eval.accumulate()
     eval.summarize()
-    return eval.stats[0], eval.stats[1], eval.stats[2]
+    return eval.stats[:6]
 
 
 Sample = namedtuple("Sample", ["data", "mAP", "length"])
@@ -653,6 +651,19 @@ def test_empty_data():
     assert len(metric._fp) == 0
     assert len(metric._P) == 0
     assert metric._num_classes == 0
+    assert metric.compute() == 0
+    metric.update(
+        (
+            [
+                {
+                    "bbox": torch.tensor([[0.0, 0.0, 100.0, 100.0]]),
+                    "scores": torch.ones((1,)),
+                    "labels": torch.ones((1,)),
+                }
+            ],
+            [{"bbox": torch.zeros((0, 4)), "iscrowd": torch.zeros((0,)), "labels": torch.zeros((0))}],
+        )
+    )
     assert metric.compute() == -1
 
     metric = ObjectDetectionMAP()
@@ -801,67 +812,58 @@ def test_matching():
         3. Among many plausible ground truth boxes, a prediction is matched with the
             one which has the highest mutual IOU. If two ground truth boxes have the
             same IOU with a prediction, the later one is matched.
-        4. A non-crowd ground truth has priority over a crowd ground truth in getting
+        4. A prediction is matched with an out-of-area-range ground truth box only if there's no
+            plausible within-area-range ground truth box. In that case the prediction would get ignored.
+        5. An unmatched prediction would get ignored if it's out of area range.
+        6. A non-crowd ground truth has priority over a crowd ground truth in getting
             matched with a prediction in the sense that even if the crowd ground truth
             has a higher IOU, the non-crowd one gets matched if its IOU is viable.
     """
     metric = ObjectDetectionMAP(iou_thresholds=[0.2])
 
-    rule_1_pred = {
+    pred = {
         "bbox": torch.tensor([[0.0, 0.0, 100.0, 100.0], [0.0, 0.0, 100.0, 100.0]]),
         "scores": torch.tensor([0.8, 0.9]),
         "labels": torch.tensor([1, 1]),
     }
-    rule_1_gt = {
+    gt = {
         "bbox": torch.tensor([[0.0, 0.0, 100.0, 100.0]]),
         "iscrowd": torch.zeros((1,)),
         "labels": torch.tensor([1]),
     }
-    metric.update(([rule_1_pred], [rule_1_gt]))
-    assert (metric._tp[1][0] == torch.tensor([[False, True]])).all()
-    assert (metric._fp[1][0] == torch.tensor([[True, False]])).all()
+    metric.update(([pred], [gt]))
+    assert (metric._tp[1][0] == torch.tensor([[True, False]])).all()
+    assert (metric._fp[1][0] == torch.tensor([[False, True]])).all()
+    assert (metric._scores[1][0] == torch.tensor([[0.9, 0.8]])).all()
 
-    rule_1_and_2_pred = {
-        "bbox": torch.tensor([[0.0, 0.0, 100.0, 100.0], [0.0, 0.0, 100.0, 100.0]]),
-        "scores": torch.tensor([0.9, 0.9]),
-        "labels": torch.tensor([1, 1]),
-    }
-    rule_1_and_2_gt = {
-        "bbox": torch.tensor([[0.0, 0.0, 100.0, 100.0]]),
-        "iscrowd": torch.zeros((1,)),
-        "labels": torch.tensor([1]),
-    }
-    metric.update(([rule_1_and_2_pred], [rule_1_and_2_gt]))
+    pred["scores"] = torch.tensor([0.9, 0.9])
+    metric.update(([pred], [gt]))
     assert (metric._tp[1][1] == torch.tensor([[True, False]])).all()
     assert (metric._fp[1][1] == torch.tensor([[False, True]])).all()
 
-    rule_2_pred = {
-        "bbox": torch.tensor([[0.0, 0.0, 100.0, 100.0], [0.0, 0.0, 100.0, 100.0]]),
-        "scores": torch.tensor([0.9, 0.9]),
-        "labels": torch.tensor([1, 1]),
-    }
-    rule_2_gt = {
-        "bbox": torch.tensor([[0.0, 0.0, 100.0, 100.0]]),
-        "iscrowd": torch.tensor([1]),
-        "labels": torch.tensor([1]),
-    }
-    metric.update(([rule_2_pred], [rule_2_gt]))
+    gt["iscrowd"] = torch.tensor([1])
+    metric.update(([pred], [gt]))
     assert (metric._tp[1][2] == torch.tensor([[False, False]])).all()
     assert (metric._fp[1][2] == torch.tensor([[False, False]])).all()
 
-    rule_2_and_3_pred = {
-        "bbox": torch.tensor([[0.0, 0.0, 100.0, 100.0], [100.0, 0.0, 200.0, 100.0]]),
-        "scores": torch.tensor([0.9, 0.9]),
-        "labels": torch.tensor([1, 1]),
-    }
-    rule_2_and_3_gt = {
-        "bbox": torch.tensor([[0.0, 0.0, 25.0, 50.0], [50.0, 0.0, 150.0, 100.0]]),
-        "iscrowd": torch.zeros((2,)),
-        "labels": torch.tensor([1, 1]),
-    }
-    metric.update(([rule_2_and_3_pred], [rule_2_and_3_gt]))
+    pred["bbox"] = torch.tensor([[0.0, 0.0, 100.0, 100.0], [100.0, 0.0, 200.0, 100.0]])
+    gt["bbox"] = torch.tensor([[0.0, 0.0, 25.0, 50.0], [50.0, 0.0, 150.0, 100.0]])
+    gt["iscrowd"] = torch.zeros((2,))
+    gt["labels"] = torch.tensor([1, 1])
+    metric.update(([pred], [gt]))
     assert (metric._tp[1][3] == torch.tensor([[True, False]])).all()
     assert (metric._fp[1][3] == torch.tensor([[False, True]])).all()
+
+    metric.area_range = "small"
+    pred["bbox"] = torch.tensor(
+        [[0.0, 0.0, 100.0, 10.0], [0.0, 0.0, 100.0, 10.0], [0.0, 0.0, 100.0, 11.0], [0.0, 0.0, 100.0, 10.0]]
+    )
+    pred["scores"] = torch.tensor([0.9, 0.9, 0.9, 0.9])
+    pred["labels"] = torch.tensor([1, 1, 1, 1])
+    gt["bbox"] = torch.tensor([[0.0, 0.0, 100.0, 11.0], [0.0, 0.0, 100.0, 5.0]])
+    metric.update(([pred], [gt]))
+    assert (metric._tp[1][4] == torch.tensor([[True, False, False, False]])).all()
+    assert (metric._fp[1][4] == torch.tensor([[False, False, False, True]])).all()
 
 
 def sklearn_precision_recall_curve_allowing_multiple_recalls_at_single_threshold(y_true, y_score):
@@ -923,31 +925,24 @@ def test__compute_recall_and_precision():
 
 def test_compute(sample):
     device = idist.device()
+    metric_50_95 = ObjectDetectionMAP(device=device)
     metric_50 = ObjectDetectionMAP(iou_thresholds=[0.5], device=device)
     metric_75 = ObjectDetectionMAP(iou_thresholds=[0.75], device=device)
-    metric_50_95 = ObjectDetectionMAP(device=device)
+    metric_S = ObjectDetectionMAP(device=device, area_range="small")
+    metric_M = ObjectDetectionMAP(device=device, area_range="medium")
+    metric_L = ObjectDetectionMAP(device=device, area_range="large")
 
-    metric_50.update(sample.data)
-    metric_75.update(sample.data)
-    metric_50_95.update(sample.data)
+    metrics = [metric_50_95, metric_50, metric_75, metric_S, metric_M, metric_L]
 
-    res_50 = metric_50.compute()
-    res_75 = metric_75.compute()
-    res_50_95 = metric_50_95.compute()
+    for metric in metrics:
+        metric.update(sample.data)
 
-    pycoco_res_50_95, pycoco_res_50, pycoco_res_75 = sample.mAP
+    ignite_res = [metric.compute() for metric in metrics]
+    assert all([np.allclose(re, pycoco_res) for re, pycoco_res in zip(ignite_res, sample.mAP)])
 
-    assert np.allclose(res_50, pycoco_res_50)
-    assert np.allclose(res_75, pycoco_res_75)
-    assert np.allclose(res_50_95, pycoco_res_50_95)
+    ignite_res_recompute = [metric.compute() for metric in metrics]
 
-    res_50_recompute = metric_50.compute()
-    res_75_recompute = metric_75.compute()
-    res_50_95_recompute = metric_50_95.compute()
-
-    assert res_50 == res_50_recompute
-    assert res_75 == res_75_recompute
-    assert res_50_95 == res_50_95_recompute
+    assert all([r1 == r2 for r1, r2 in zip(ignite_res, ignite_res_recompute)])
 
 
 def test_integration(sample):
@@ -1022,30 +1017,22 @@ def test_distrib_update_compute(distributed, sample):
 
     device = idist.device()
     metric_device = "cpu" if device.type == "xla" else device
+    metric_50_95 = ObjectDetectionMAP(device=metric_device)
     metric_50 = ObjectDetectionMAP(iou_thresholds=[0.5], device=metric_device)
     metric_75 = ObjectDetectionMAP(iou_thresholds=[0.75], device=metric_device)
-    metric_50_95 = ObjectDetectionMAP(device=metric_device)
+    metric_S = ObjectDetectionMAP(device=metric_device, area_range="small")
+    metric_M = ObjectDetectionMAP(device=metric_device, area_range="medium")
+    metric_L = ObjectDetectionMAP(device=metric_device, area_range="large")
+
+    metrics = [metric_50_95, metric_50, metric_75, metric_S, metric_M, metric_L]
 
     y_pred_rank = sample.data[0][rank_samples_range]
     y_rank = sample.data[1][rank_samples_range]
-    metric_50.update((y_pred_rank, y_rank))
-    metric_75.update((y_pred_rank, y_rank))
-    metric_50_95.update((y_pred_rank, y_rank))
+    for metric in metrics:
+        metric.update((y_pred_rank, y_rank))
 
-    res_50 = metric_50.compute()
-    res_75 = metric_75.compute()
-    res_50_95 = metric_50_95.compute()
+    ignite_res = [metric.compute() for metric in metrics]
+    assert all([np.allclose(re, pycoco_res) for re, pycoco_res in zip(ignite_res, sample.mAP)])
 
-    pycoco_res_50_95, pycoco_res_50, pycoco_res_75 = sample.mAP
-
-    assert np.allclose(res_50_95, pycoco_res_50_95)
-    assert np.allclose(res_50, pycoco_res_50)
-    assert np.allclose(res_75, pycoco_res_75)
-
-    res_50_recompute = metric_50.compute()
-    res_75_recompute = metric_75.compute()
-    res_50_95_recompute = metric_50_95.compute()
-
-    assert res_50_recompute == res_50
-    assert res_75_recompute == res_75
-    assert res_50_95_recompute == res_50_95
+    ignite_res_recompute = [metric.compute() for metric in metrics]
+    assert all([r1 == r2 for r1, r2 in zip(ignite_res, ignite_res_recompute)])

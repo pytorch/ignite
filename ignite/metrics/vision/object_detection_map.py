@@ -2,6 +2,7 @@ from collections import defaultdict
 from typing import Callable, cast, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
+from typing_extensions import Literal
 
 import ignite.distributed as idist
 from ignite.distributed.utils import all_gather_tensors_with_shapes
@@ -52,6 +53,8 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
         self,
         iou_thresholds: Optional[Union[Sequence[float], torch.Tensor]] = None,
         rec_thresholds: Optional[Union[Sequence[float], torch.Tensor]] = None,
+        max_detections_per_image: Optional[int] = 100,
+        area_range: Optional[Literal["small", "medium", "large", "all"]] = "all",
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
@@ -93,6 +96,9 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
         if rec_thresholds is None:
             rec_thresholds = torch.linspace(0, 1, 101, device=device, dtype=torch.double)
 
+        self.area_range = area_range
+        self.max_detections_per_image = max_detections_per_image
+
         super().__init__(
             rec_thresholds=rec_thresholds,
             average="max-precision",
@@ -113,6 +119,24 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
         self._scores = defaultdict(lambda: [])
         self._P = defaultdict(lambda: 0)
         self._num_classes: int = 0
+
+    def _match_area_range(self, bboxes: torch.Tensor) -> torch.Tensor:
+        from torchvision.ops.boxes import box_area
+
+        areas = box_area(bboxes)
+        if self.area_range == "all":
+            min_area = 0
+            max_area = 1e10
+        elif self.area_range == "small":
+            min_area = 0
+            max_area = 1024
+        elif self.area_range == "medium":
+            min_area = 1024
+            max_area = 9216
+        elif self.area_range == "large":
+            min_area = 9216
+            max_area = 1e10
+        return torch.logical_and(areas >= min_area, areas <= max_area)
 
     def _check_matching_input(
         self, output: Tuple[List[Dict[str, torch.Tensor]], List[Dict[str, torch.Tensor]]]
@@ -232,14 +256,20 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
             `(TP, FP, P, scores)` A quadrople of true positives, false positives, number of actual positives and scores.
         """
         labels = target["labels"]
-        pred_labels = pred["labels"]
-        pred_scores = pred["scores"]
-        categories = list(set(labels.int().tolist() + pred_labels.int().tolist()))
-
-        pred_boxes = pred["bbox"]
         gt_boxes = target["bbox"]
+        gt_is_crowd = (
+            target["iscrowd"].bool() if "iscrowd" in target else torch.zeros_like(target["labels"], dtype=torch.bool)
+        )
+        gt_ignore = ~self._match_area_range(gt_boxes) | gt_is_crowd
 
-        is_crowd = target["iscrowd"] if "iscrowd" in target else torch.zeros_like(target["labels"], dtype=torch.bool)
+        best_detections_index = torch.argsort(pred["scores"], stable=True, descending=True)[
+            : self.max_detections_per_image
+        ]
+        pred_scores = pred["scores"][best_detections_index]
+        pred_labels = pred["labels"][best_detections_index]
+        pred_boxes = pred["bbox"][best_detections_index]
+
+        categories = list(set(labels.int().tolist() + pred_labels.int().tolist()))
 
         tp: Dict[int, torch.Tensor] = {}
         fp: Dict[int, torch.Tensor] = {}
@@ -247,61 +277,62 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
         scores: Dict[int, torch.Tensor] = {}
 
         for category in categories:
-            class_index_gt = labels == category
-            num_category_gt = class_index_gt.sum()
-            category_is_crowd = is_crowd[class_index_gt]
-            if num_category_gt:
-                P[category] = num_category_gt - category_is_crowd.sum()
+            category_index_gt = labels == category
+            num_category_gt = category_index_gt.sum()
+            category_is_crowd = gt_is_crowd[category_index_gt]
+            category_gt_ignore = gt_ignore[category_index_gt]
+            if num_category_gt:  # what if P[c] becomes 0 ?
+                P[category] = num_category_gt - category_gt_ignore.sum()
 
-            class_index_dt = pred_labels == category
-            if not class_index_dt.any():
+            category_index_dt = pred_labels == category
+            if not category_index_dt.any():
                 continue
 
-            scores[category] = pred_scores[class_index_dt]
-
+            scores[category] = pred_scores[category_index_dt]
+            pred_match_area_range = self._match_area_range(pred_boxes[category_index_dt])
+            num_category_dt = category_index_dt.sum().item()
             category_tp = torch.zeros(
-                (len(self.iou_thresholds), class_index_dt.sum().item()), dtype=torch.uint8, device=self._device
+                (len(self.iou_thresholds), num_category_dt), dtype=torch.uint8, device=self._device
             )
             category_fp = torch.zeros(
-                (len(self.iou_thresholds), class_index_dt.sum().item()), dtype=torch.uint8, device=self._device
+                (len(self.iou_thresholds), num_category_dt), dtype=torch.uint8, device=self._device
             )
             if num_category_gt:
-                class_iou = self.box_iou(
-                    pred_boxes[class_index_dt],
-                    gt_boxes[class_index_gt],
-                    cast(torch.BoolTensor, category_is_crowd.bool()),
+                category_iou = self.box_iou(
+                    pred_boxes[category_index_dt],
+                    gt_boxes[category_index_gt],
+                    cast(torch.BoolTensor, category_is_crowd),
                 )
-                class_maximum_iou = class_iou.max()
-                category_pred_idx_sorted_by_decreasing_score = torch.argsort(
-                    pred_scores[class_index_dt], stable=True, descending=True
-                ).tolist()
+                category_maximum_iou = category_iou.max()
                 for thres_idx, iou_thres in enumerate(self.iou_thresholds):
-                    if iou_thres <= class_maximum_iou:
+                    if iou_thres <= category_maximum_iou:
                         matched_gt_indices = set()
-                        for pred_idx in category_pred_idx_sorted_by_decreasing_score:
+                        for pred_idx in range(num_category_dt):
                             match_iou, match_idx = min(iou_thres, 1 - 1e-10), -1
                             for gt_idx in range(num_category_gt):
-                                if (class_iou[pred_idx][gt_idx] < iou_thres) or (
-                                    gt_idx in matched_gt_indices and torch.logical_not(category_is_crowd[gt_idx])
+                                if (category_iou[pred_idx, gt_idx] < iou_thres) or (
+                                    gt_idx in matched_gt_indices and ~category_is_crowd[gt_idx]
                                 ):
                                     continue
-                                if match_idx == -1 or (
-                                    class_iou[pred_idx][gt_idx] >= match_iou
-                                    and torch.logical_or(
-                                        torch.logical_not(category_is_crowd[gt_idx]), category_is_crowd[match_idx]
+                                if (
+                                    match_idx == -1
+                                    or (category_gt_ignore[match_idx] & ~category_gt_ignore[gt_idx])
+                                    or (
+                                        (category_gt_ignore[match_idx] | ~category_gt_ignore[gt_idx])
+                                        and category_iou[pred_idx][gt_idx] >= match_iou
                                     )
                                 ):
-                                    match_iou = class_iou[pred_idx][gt_idx]
+                                    match_iou = category_iou[pred_idx][gt_idx]
                                     match_idx = gt_idx
                             if match_idx != -1:
                                 matched_gt_indices.add(match_idx)
-                                category_tp[thres_idx][pred_idx] = torch.logical_not(category_is_crowd[match_idx])
+                                category_tp[thres_idx][pred_idx] = ~category_gt_ignore[match_idx]
                             else:
-                                category_fp[thres_idx][pred_idx] = 1
+                                category_fp[thres_idx][pred_idx] = pred_match_area_range[pred_idx]
                     else:
-                        category_fp[thres_idx] = 1
+                        category_fp[thres_idx] = pred_match_area_range
             else:
-                category_fp[:, :] = 1
+                category_fp[:, :] = pred_match_area_range
 
             tp[category] = category_tp
             fp[category] = category_fp
@@ -358,9 +389,6 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
         """
         Compute method of the metric
         """
-        if sum(self._P.values()) < 1:
-            return -1
-
         num_classes = int(idist.all_reduce(self._num_classes or 0, "MAX"))
         if num_classes < 1:
             return 0.0
@@ -369,6 +397,9 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
             torch.Tensor,
             idist.all_reduce(torch.tensor(list(map(self._P.__getitem__, range(num_classes))), device=self._device)),
         )
+        if P.sum() < 1:
+            return -1
+
         num_preds = torch.tensor(
             [sum([tp.shape[-1] for tp in self._tp[cls]]) if self._tp[cls] else 0 for cls in range(num_classes)],
             device=self._device,
