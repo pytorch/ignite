@@ -161,7 +161,13 @@ class FastaiLRFinder:
                     raise ValueError(
                         "if output of the engine is torch.Tensor, then "
                         "it must be 0d torch.Tensor or 1d torch.Tensor with 1 element, "
-                        f"but got torch.Tensor of shape {loss.shape}"
+                        f"but got torch.Tensor of shape {loss.shape}."
+                        "You may wish to use the output_transform kwarg with the attach method e.g.\n"
+                        """
+                        lr_finder = FastaiLRFinder()
+                        with lr_finder.attach(trainer, output_transform=lambda x:x["train_loss"]) as trainer_with_lr_finder:
+                            trainer_with_lr_finder.run(dataloader_train)
+                        """
                     )
             else:
                 raise TypeError(
