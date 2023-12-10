@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
-      max-parallel: 10
+      max-parallel: 7
       fail-fast: false
       matrix:
         python-version: [3.8, 3.9, "3.10"]
