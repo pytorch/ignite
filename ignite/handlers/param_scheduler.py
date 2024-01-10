@@ -729,7 +729,7 @@ class ConcatScheduler(ParamScheduler):
         for s, sd in zip(self.schedulers, sds):
             s.load_state_dict(sd)
         super(ConcatScheduler, self).load_state_dict(state_dict)
-        self._setup_scheduler()
+        self._current_scheduler = self.schedulers[self._scheduler_index]
 
     def _setup_scheduler(self) -> None:
         self._current_scheduler = self.schedulers[self._scheduler_index]
