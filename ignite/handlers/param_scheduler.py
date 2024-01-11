@@ -348,8 +348,11 @@ class CyclicalScheduler(ParamScheduler):
             self.start_value *= self.start_value_mult
         if self.event_index != 0 and self.event_index == self.total_cycle_size:
             self.event_index = 0
+            # self.cycle_size = math.ceil(self.cycle_size * self.cycle_mult)
+            # self.warmup_duration = math.ceil(self.warmup_duration * self.cycle_mult)
             self.cycle_size = int(self.cycle_size * self.cycle_mult)
             self.warmup_duration = int(self.warmup_duration * self.cycle_mult)
+
             self.total_cycle_size = self.warmup_duration + self.cycle_size
             self.cycle += 1
             self.end_value *= self.end_value_mult
@@ -467,10 +470,19 @@ class LinearCyclicalScheduler(CyclicalScheduler):
         Added cyclic warm-up to the scheduler using ``warmup_duration``.
     """
 
+    def __init__(self, use_legacy=False, **kwargs):
+        super(LinearCyclicalScheduler, self).__init__(**kwargs)
+        self.use_legacy = use_legacy
+
     def get_param(self) -> float:
         """Method to get current optimizer's parameter value"""
         cycle_progress = self.event_index / self.cycle_size
-        return self.end_value + (self.start_value - self.end_value) * abs(cycle_progress - 0.5) * 2
+        if self.use_legacy:
+            if self.warmup_duration != 0:
+                raise ValueError("can not use use_legacy option and warmup duration please remove one of them")
+            return self.end_value + (self.start_value - self.end_value) * abs(cycle_progress - 0.5) * 2
+        else:
+            return self.start_value + (self.end_value - self.start_value) * cycle_progress
 
 
 class CosineAnnealingScheduler(CyclicalScheduler):
