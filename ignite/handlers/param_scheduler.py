@@ -470,7 +470,7 @@ class LinearCyclicalScheduler(CyclicalScheduler):
     def get_param(self) -> float:
         """Method to get current optimizer's parameter value"""
         cycle_progress = self.event_index / self.cycle_size
-        return self.end_value + (self.start_value - self.end_value) * abs(cycle_progress - 0.5) * 2
+        return self.start_value + (self.end_value - self.start_value) * cycle_progress
 
 
 class CosineAnnealingScheduler(CyclicalScheduler):
