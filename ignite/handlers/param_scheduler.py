@@ -470,19 +470,19 @@ class LinearCyclicalScheduler(CyclicalScheduler):
         Added cyclic warm-up to the scheduler using ``warmup_duration``.
     """
 
-    def __init__(self, use_legacy=False, **kwargs):
-        super(LinearCyclicalScheduler, self).__init__(**kwargs)
-        self.use_legacy = use_legacy
+    def __init__(self, *args, use_sawtooth=False, **kwargs):
+        super(LinearCyclicalScheduler, self).__init__(*args, **kwargs)
+        self.use_sawtooth = use_sawtooth
+        if self.use_sawtooth and self.warmup_duration != 0:
+            raise ValueError("can not use use_sawtooth option and warmup duration please remove one of them")
 
     def get_param(self) -> float:
         """Method to get current optimizer's parameter value"""
         cycle_progress = self.event_index / self.cycle_size
-        if self.use_legacy:
-            if self.warmup_duration != 0:
-                raise ValueError("can not use use_legacy option and warmup duration please remove one of them")
-            return self.end_value + (self.start_value - self.end_value) * abs(cycle_progress - 0.5) * 2
-        else:
+        if self.use_sawtooth:
             return self.start_value + (self.end_value - self.start_value) * cycle_progress
+        else:
+            return self.end_value + (self.start_value - self.end_value) * abs(cycle_progress - 0.5) * 2
 
 
 class CosineAnnealingScheduler(CyclicalScheduler):
