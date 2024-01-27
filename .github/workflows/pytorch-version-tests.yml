@@ -106,16 +106,16 @@ jobs:
         run: |
           bash tests/run_cpu_tests.sh "not test_time_profilers"
 
-  create-issue:
-    runs-on: ubuntu-latest
-    # https://docs.github.com/en/actions/reference/context-and-expression-syntax-for-github-actions#needs-context
-    needs: build
-    if: always() && needs.build.result == 'failure'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: JasonEtco/create-an-issue@v2
-        name: Create issue if pytorch version tests failed
-        with:
-          filename: .github/failed_schedule_issue_template.md
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  # create-issue:
+  #   runs-on: ubuntu-latest
+  #   # https://docs.github.com/en/actions/reference/context-and-expression-syntax-for-github-actions#needs-context
+  #   needs: build
+  #   if: always() && needs.build.result == 'failure'
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: JasonEtco/create-an-issue@v2
+  #       name: Create issue if pytorch version tests failed
+  #       with:
+  #         filename: .github/failed_schedule_issue_template.md
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
