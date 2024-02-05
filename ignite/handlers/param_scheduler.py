@@ -348,11 +348,8 @@ class CyclicalScheduler(ParamScheduler):
             self.start_value *= self.start_value_mult
         if self.event_index != 0 and self.event_index == self.total_cycle_size:
             self.event_index = 0
-            # self.cycle_size = math.ceil(self.cycle_size * self.cycle_mult)
-            # self.warmup_duration = math.ceil(self.warmup_duration * self.cycle_mult)
             self.cycle_size = int(self.cycle_size * self.cycle_mult)
             self.warmup_duration = int(self.warmup_duration * self.cycle_mult)
-
             self.total_cycle_size = self.warmup_duration + self.cycle_size
             self.cycle += 1
             self.end_value *= self.end_value_mult
@@ -468,6 +465,9 @@ class LinearCyclicalScheduler(CyclicalScheduler):
 
     .. versionchanged:: 0.4.13
         Added cyclic warm-up to the scheduler using ``warmup_duration``.
+
+    .. versionchanged:: 0.5.0
+        Added monotonic argument ....
     """
 
     def __init__(self, *args, monotonic=False, **kwagrs):
