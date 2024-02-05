@@ -470,16 +470,19 @@ class LinearCyclicalScheduler(CyclicalScheduler):
         Added cyclic warm-up to the scheduler using ``warmup_duration``.
     """
 
-    def __init__(self, *args, use_sawtooth=False, **kwargs):
-        super(LinearCyclicalScheduler, self).__init__(*args, **kwargs)
-        self.use_sawtooth = use_sawtooth
-        if self.use_sawtooth and self.warmup_duration != 0:
-            raise ValueError("can not use use_sawtooth option and warmup duration please remove one of them")
+    def __init__(self, *args, monotonic=False, **kwagrs):
+        super(LinearCyclicalScheduler, self).__init__(*args, **kwagrs)
+        self.monotonic = monotonic
+        if self.warmup_duration > 0 and not self.monotonic:
+            raise ValueError(
+                "Invalid combination when warmup_duration > 0 and monotonic=False, please use either set warmup_duration=0 or monotonic=True"  # noqa E501
+            )
 
     def get_param(self) -> float:
         """Method to get current optimizer's parameter value"""
         cycle_progress = self.event_index / self.cycle_size
-        if self.use_sawtooth:
+
+        if self.monotonic:
             return self.start_value + (self.end_value - self.start_value) * cycle_progress
         else:
             return self.end_value + (self.start_value - self.end_value) * abs(cycle_progress - 0.5) * 2
