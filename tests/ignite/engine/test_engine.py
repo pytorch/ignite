@@ -601,8 +601,8 @@ class TestEngine:
             Events.EPOCH_COMPLETED: max_epochs,
             Events.ITERATION_STARTED: max_epochs * epoch_length,
             Events.ITERATION_COMPLETED: max_epochs * epoch_length,
-            Events.GET_BATCH_STARTED: max_epochs * epoch_length,
-            Events.GET_BATCH_COMPLETED: max_epochs * epoch_length,
+            Events.GET_BATCH_STARTED: max_epochs * epoch_length if data is not None else 0,
+            Events.GET_BATCH_COMPLETED: max_epochs * epoch_length if data is not None else 0,
             Events.DATALOADER_STOP_ITERATION: (max_epochs - 1) if exp_iter_stops is None else exp_iter_stops,
         }
 
@@ -617,7 +617,7 @@ class TestEngine:
         self._test_check_triggered_events(
             list(range(100)), max_epochs=5, epoch_length=150, exp_iter_stops=150 * 5 // 100
         )
-        self._test_check_triggered_events(None, max_epochs=5, epoch_length=150)
+        self._test_check_triggered_events(None, max_epochs=5, epoch_length=150, exp_iter_stops=0)
 
     def test_run_check_triggered_events_list(self):
         self._test_run_check_triggered_events()
@@ -1145,6 +1145,25 @@ class TestEngine:
         assert trainer.state.iteration == 20 * 10
         assert trainer.state.epoch == 20
         assert trainer.state.dataloader is None
+
+    def test_engine_no_data_events(self):
+        # Reproduces the issue https://github.com/pytorch/ignite/issues/3190
+        max_epochs = 4
+        dataset = range(10)
+
+        def training_step(engine, _):
+            assert engine.state.dataloader is None
+
+        trainer = Engine(training_step)
+        trainer.state.dataiter = iter(dataset)
+
+        @trainer.on(Events.DATALOADER_STOP_ITERATION)
+        @trainer.on(Events.GET_BATCH_STARTED)
+        @trainer.on(Events.GET_BATCH_COMPLETED)
+        def should_not_be_called():
+            assert False, trainer.last_event_name
+
+        trainer.run(max_epochs=max_epochs, epoch_length=4)
 
     @pytest.mark.parametrize("data, epoch_length", [(None, 10), (range(10), None)])
     def test_engine_run_resume(self, data, epoch_length):
