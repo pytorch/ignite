@@ -475,7 +475,8 @@ class LinearCyclicalScheduler(CyclicalScheduler):
         self.monotonic = monotonic
         if self.warmup_duration > 0 and not self.monotonic:
             raise ValueError(
-                "Invalid combination when warmup_duration > 0 and monotonic=False, please use either set warmup_duration=0 or monotonic=True"  # noqa E501
+                "Invalid combination when warmup_duration > 0 and monotonic=False, "
+                "please use either set warmup_duration=0 or monotonic=True"
             )
 
     def get_param(self) -> float:

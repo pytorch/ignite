@@ -70,7 +70,8 @@ def test_linear_scheduler_asserts():
 
     with pytest.raises(
         ValueError,
-        match=r"Invalid combination when warmup_duration > 0 and monotonic=False, please use either set warmup_duration=0 or monotonic=True",  # noqa E501
+        match=r"Invalid combination when warmup_duration > 0 and monotonic=False, "
+        r"please use either set warmup_duration=0 or monotonic=True",
     ):
         LinearCyclicalScheduler(optimizer, "lr", 1, 0, cycle_size=2, warmup_duration=1)
 
