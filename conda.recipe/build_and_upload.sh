@@ -26,4 +26,5 @@ conda config --set anaconda_upload no
 conda build --no-test --output-folder conda_build conda.recipe -c pytorch
 
 # Upload to Anaconda
+conda config --set anaconda_upload yes
 ls conda_build/*/*.tar.bz2 | xargs -I {} anaconda -v -t $ANACONDA_TOKEN upload -u $UPLOAD_USER {}
