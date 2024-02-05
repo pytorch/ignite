@@ -2,7 +2,7 @@ name: Triage
 
 on:
   pull_request_target:
-    types: [opened]
+    # types: [opened]
 #   issues:
 #     types: [opened]
 
