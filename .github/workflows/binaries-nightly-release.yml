@@ -5,6 +5,7 @@ on:
   schedule:
     # Run at 00:00 UTC Every Day
     - cron: "0 0 * * *"
+  workflow_dispatch:
 
 jobs:
   build-publish:
@@ -36,6 +37,7 @@ jobs:
           UPLOAD_USER: "pytorch-nightly"
         run: |
           chmod +x ./conda.recipe/build_and_upload.sh
+          cat ./conda.recipe/build_and_upload.sh
           ./conda.recipe/build_and_upload.sh
 
       - name: Build and Publish PyPI binaries
