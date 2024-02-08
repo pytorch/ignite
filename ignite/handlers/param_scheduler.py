@@ -473,7 +473,7 @@ class LinearCyclicalScheduler(CyclicalScheduler):
         Added monotonic argument.
     """
 
-    def __init__(self, *args, monotonic=False, **kwagrs):
+    def __init__(self, *args: Any, monotonic: bool = False, **kwagrs: Any):
         super(LinearCyclicalScheduler, self).__init__(*args, **kwagrs)
         self.monotonic = monotonic
         if self.warmup_duration > 0 and not self.monotonic:
