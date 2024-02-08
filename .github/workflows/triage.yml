@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Pull Request Labeler
 #         if: github.event_name == 'pull_request_target'
-        uses: actions/labeler@v3
+        uses: actions/labeler@v5
         with:
           configuration-path: .github/pr-labeler-config.yml
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
