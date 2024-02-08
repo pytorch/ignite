@@ -390,6 +390,9 @@ class LinearCyclicalScheduler(CyclicalScheduler):
         save_history: whether to log the parameter values to
             `engine.state.param_history`, (default=False).
         param_group_index: optimizer's parameters group to use.
+        monotonic: whether to schedule only one half of the cycle: descending or ascending.
+            If True, this argument can not be used together with ``warmup_duration``.
+            (default=False).
 
     Note:
         If the scheduler is bound to an 'ITERATION_*' event, 'cycle_size' should
@@ -467,7 +470,7 @@ class LinearCyclicalScheduler(CyclicalScheduler):
         Added cyclic warm-up to the scheduler using ``warmup_duration``.
 
     .. versionchanged:: 0.5.0
-        Added monotonic argument ....
+        Added monotonic argument.
     """
 
     def __init__(self, *args, monotonic=False, **kwagrs):
