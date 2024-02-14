@@ -8,7 +8,7 @@ from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
 
 class MeanAbsoluteRelativeError(_BaseRegression):
-    r"""Calculate Mean Absolute Relative Error.
+    r"""Calculate Mean Absolute Relative Error (MARE), also known as Mean Absolute Percentage Error (MAPE).
 
     .. math::
         \text{MARE} = \frac{1}{n}\sum_{j=1}^n\frac{\left|A_j-P_j\right|}{\left|A_j\right|}
