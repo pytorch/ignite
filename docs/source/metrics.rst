@@ -327,6 +327,7 @@ Complete list of metrics
     JaccardIndex
     IoU
     mIoU
+    MeanAveragePrecision
     EpochMetric
     Fbeta
     Frequency
