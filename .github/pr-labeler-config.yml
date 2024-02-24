@@ -1,5 +1,8 @@
 # Add 'docker' to any changes within 'docker' folder or any subfolders
 docker:
+  - docker/hvd/**
+  - docker/main/**
+  - docker/msdp/**
   - docker/**/*
 
 # Add 'docs' to any changes within 'docs' folder
