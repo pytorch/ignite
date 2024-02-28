@@ -14,7 +14,7 @@ jobs:
 #         if: github.event_name == 'pull_request_target'
         uses: actions/labeler@v5
         with:
-          configuration-path: .github/pr-labeler-config.yml
+          configuration-path: .github/labeler.yml
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
 
 # Turned off due to unexpected behavior on issue opening+labeling? https://github.com/pytorch/ignite/issues/1836
