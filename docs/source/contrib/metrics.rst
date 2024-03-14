@@ -12,6 +12,7 @@ Contrib module metrics
 
     AveragePrecision
     CohenKappa
+    CosineSimilarity
     GpuInfo
     PrecisionRecallCurve
     ROC_AUC
@@ -40,7 +41,6 @@ Complete list of metrics:
     :toctree: ../generated
 
     CanberraMetric
-    CosineSimilarity
     FractionalAbsoluteError
     FractionalBias
     GeometricMeanAbsoluteError
