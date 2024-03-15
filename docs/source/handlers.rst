@@ -54,6 +54,7 @@ Loggers
 
     visdom_logger
     wandb_logger
+    fbresearch_logger
 
 .. seealso::
 
