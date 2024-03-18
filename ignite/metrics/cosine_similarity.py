@@ -11,7 +11,9 @@ __all__ = ["CosineSimilarity"]
 class CosineSimilarity(Metric):
     r"""Calculates the mean of the `cosine similarity <https://en.wikipedia.org/wiki/Cosine_similarity>`_.
 
-    .. math:: \text{cosine\_similarity} = \frac{1}{N} \sum_{i=1}^N \frac{x_i \cdot y_i}{\max ( \| x_i \|_2 \| y_i \|_2 , \epsilon)}
+    .. math::
+       \text{cosine\_similarity} = \frac{1}{N} \sum_{i=1}^N
+       \frac{x_i \cdot y_i}{\max ( \| x_i \|_2 \| y_i \|_2 , \epsilon)}
 
     where :math:`y_{i}` is the prediction tensor and :math:`x_{i}` is ground true tensor.
 
