@@ -20,11 +20,21 @@ def test_zero_sample():
 @pytest.fixture(params=[item for item in range(4)])
 def test_case(request):
     return [
-        (torch.randn((100, 50)), torch.randn((100, 50)), 10**np.random.uniform(-8, 0), 1),
-        (torch.normal(1.0, 2.0, size=(100, 10)), torch.normal(3.0, 4.0, size=(100, 10)), 10**np.random.uniform(-8, 0), 1),
+        (torch.randn((100, 50)), torch.randn((100, 50)), 10 ** np.random.uniform(-8, 0), 1),
+        (
+            torch.normal(1.0, 2.0, size=(100, 10)),
+            torch.normal(3.0, 4.0, size=(100, 10)),
+            10 ** np.random.uniform(-8, 0),
+            1,
+        ),
         # updated batches
-        (torch.rand((100, 128)), torch.rand((100, 128)), 10**np.random.uniform(-8, 0), 16),
-        (torch.normal(0.0, 5.0, size=(100, 30)), torch.normal(5.0, 1.0, size=(100, 30)), 10**np.random.uniform(-8, 0), 16),
+        (torch.rand((100, 128)), torch.rand((100, 128)), 10 ** np.random.uniform(-8, 0), 16),
+        (
+            torch.normal(0.0, 5.0, size=(100, 30)),
+            torch.normal(5.0, 1.0, size=(100, 30)),
+            10 ** np.random.uniform(-8, 0),
+            16,
+        ),
     ][request.param]
 
 
@@ -39,7 +49,7 @@ def test_compute(n_times, test_case):
         n_iters = y.shape[0] // batch_size + 1
         for i in range(n_iters):
             idx = i * batch_size
-            cos.update((y_pred[idx: idx + batch_size], y[idx: idx + batch_size]))
+            cos.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
     else:
         cos.update((y_pred, y))
 
@@ -71,8 +81,8 @@ def _test_distrib_integration(device, tol=2e-5):
 
         def update(engine, i):
             return (
-                y_preds[i * batch_size: (i + 1) * batch_size],
-                y_true[i * batch_size: (i + 1) * batch_size],
+                y_preds[i * batch_size : (i + 1) * batch_size],
+                y_true[i * batch_size : (i + 1) * batch_size],
             )
 
         engine = Engine(update)
