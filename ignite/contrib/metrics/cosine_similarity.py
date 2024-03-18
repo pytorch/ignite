@@ -1,4 +1,4 @@
-from typing import Sequence, Union, Callable
+from typing import Callable, Sequence, Union
 
 import torch
 
@@ -69,7 +69,7 @@ class CosineSimilarity(Metric):
         self,
         eps: float = 1e-8,
         output_transform: Callable = lambda x: x,
-        device: Union[str, torch.device] = torch.device("cpu")
+        device: Union[str, torch.device] = torch.device("cpu"),
     ):
         super().__init__(output_transform, device)
 
