@@ -86,7 +86,9 @@ class CosineSimilarity(Metric):
     def update(self, output: Sequence[torch.Tensor]) -> None:
         y_pred = output[0].flatten(start_dim=1).detach()
         y = output[1].flatten(start_dim=1).detach()
-        cos_similarities = torch.nn.functional.cosine_similarity(y_pred, y, dim=1, eps=self.eps)
+        cos_similarities = torch.nn.functional.cosine_similarity(
+            y_pred, y, dim=1, eps=self.eps
+        )
         self._sum_of_cos_similarities += torch.sum(cos_similarities).to(self._device)
         self._num_examples += y.shape[0]
 
