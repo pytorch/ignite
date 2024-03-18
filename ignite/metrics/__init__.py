@@ -34,7 +34,7 @@ __all__ = [
     "MeanPairwiseDistance",
     "MeanSquaredError",
     "ConfusionMatrix",
-    "CosineSimilarity"
+    "CosineSimilarity",
     "ClassificationReport",
     "TopKCategoricalAccuracy",
     "Average",
