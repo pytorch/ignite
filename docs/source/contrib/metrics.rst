@@ -12,7 +12,6 @@ Contrib module metrics
 
     AveragePrecision
     CohenKappa
-    CosineSimilarity
     GpuInfo
     PrecisionRecallCurve
     ROC_AUC
