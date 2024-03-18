@@ -34,12 +34,8 @@ __all__ = [
     "MeanPairwiseDistance",
     "MeanSquaredError",
     "ConfusionMatrix",
-<<<<<<< HEAD
     "CosineSimilarity",
     "ClassificationReport",
-=======
-    "CosineSimilarity" "ClassificationReport",
->>>>>>> 9524d20827bb2c4fcb29fe505d060522eb69288f
     "TopKCategoricalAccuracy",
     "Average",
     "DiceCoefficient",
