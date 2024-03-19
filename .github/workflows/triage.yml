@@ -1,7 +1,10 @@
 name: Triage
 
 on:
-  pull_request_target:
+  # For testing purposes only
+  # https://github.com/actions/labeler?tab=readme-ov-file#updating-major-version-of-the-labeler
+  pull_request
+  # pull_request_target:
 #     types: [opened]
 #   issues:
 #     types: [opened]
