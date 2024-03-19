@@ -28,3 +28,5 @@ nltk
 pandas
 gymnasium
 mkl;platform_machine=="x86_64"
+# temporary fix: E   AttributeError: module 'mpmath' has no attribute 'rational'
+mpmath<1.4
