@@ -20,7 +20,7 @@ jobs:
       - name: Pull Request Labeler        
         uses: actions/labeler@v5
         with:
-          configuration-path: .github/labeler.yml
+          configuration-path: labeler.yml  # .github is auto-included, https://github.com/actions/labeler?tab=readme-ov-file#inputs
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
 
 # Turned off due to unexpected behavior on issue opening+labeling? https://github.com/pytorch/ignite/issues/1836
