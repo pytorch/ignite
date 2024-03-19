@@ -17,10 +17,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Pull Request Labeler        
+      - name: Pull Request Labeler
         uses: actions/labeler@v5
         with:
-          configuration-path: labeler.yml  # .github is auto-included, https://github.com/actions/labeler?tab=readme-ov-file#inputs
+          configuration-path: pr-labeler-config.yml  # .github is auto-included, https://github.com/actions/labeler?tab=readme-ov-file#inputs
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
 
 # Turned off due to unexpected behavior on issue opening+labeling? https://github.com/pytorch/ignite/issues/1836
