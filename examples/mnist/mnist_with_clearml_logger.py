@@ -11,6 +11,7 @@
     python mnist_with_clearml_logger.py
     ```
 """
+
 from argparse import ArgumentParser
 
 import torch

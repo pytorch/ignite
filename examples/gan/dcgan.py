@@ -85,7 +85,7 @@ class Generator(Net):
             nn.ReLU(inplace=True),
             # state size. (nf) x 32 x 32
             nn.ConvTranspose2d(in_channels=nf, out_channels=nc, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.Tanh()
+            nn.Tanh(),
             # state size. (nc) x 64 x 64
         )
 
