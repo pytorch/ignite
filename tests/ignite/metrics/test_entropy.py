@@ -66,7 +66,7 @@ def _test_distrib_integration(device, tol=1e-6):
         batch_size = 10
         n_cls = 50
 
-        y_true = torch.randint(0, n_cls, size=n_iters * batch_size, dtype=torch.long).to(device)
+        y_true = torch.randint(0, n_cls, size=[n_iters * batch_size], dtype=torch.long).to(device)
         y_preds = torch.normal(2.0, 3.0, size=(n_iters * batch_size, n_cls), dtype=torch.float).to(device)
 
         def update(engine, i):
