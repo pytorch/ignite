@@ -351,6 +351,7 @@ Complete list of metrics
     InceptionScore
     FID
     CosineSimilarity
+    Entropy
 
 Helpers for customizing metrics
 -------------------------------
