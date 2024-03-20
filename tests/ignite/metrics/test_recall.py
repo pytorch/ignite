@@ -1,4 +1,3 @@
-import os
 import warnings
 
 import pytest
@@ -422,7 +421,6 @@ def test_incorrect_y_classes(average):
 
 @pytest.mark.usefixtures("distributed")
 class TestDistributed:
-
     @pytest.mark.parametrize("average", [False, "macro", "weighted", "micro"])
     @pytest.mark.parametrize("n_epochs", [1, 2])
     def test_integration_multiclass(self, average, n_epochs):
@@ -531,9 +529,8 @@ class TestDistributed:
                 warnings.simplefilter("ignore", category=UndefinedMetricWarning)
                 assert recall_score(np_y_true, np_y_preds, average=sk_average_parameter) == pytest.approx(res)
 
-
     @pytest.mark.parametrize("average", [False, "macro", "weighted", "micro", "samples"])
-    def test_multilabel_accumulator_device(self, average):
+    def test_accumulator_device(self, average):
         # Binary accuracy on input of shape (N, 1) or (N, )
 
         metric_devices = [torch.device("cpu")]
@@ -566,7 +563,6 @@ class TestDistributed:
             if average == "weighted":
                 assert re._weight.device == metric_device, f"{type(re._weight.device)}:{re._weight.device} vs "
                 f"{type(metric_device)}:{metric_device}"
-
 
     @pytest.mark.parametrize("average", [False, "macro", "weighted", "micro", "samples"])
     def test_multilabel_accumulator_device(self, average):

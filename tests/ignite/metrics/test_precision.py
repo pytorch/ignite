@@ -420,7 +420,6 @@ def test_incorrect_y_classes(average):
 
 @pytest.mark.usefixtures("distributed")
 class TestDistributed:
-
     @pytest.mark.parametrize("average", [False, "macro", "weighted", "micro"])
     @pytest.mark.parametrize("n_epochs", [1, 2])
     def test_integration_multiclass(self, average, n_epochs):
