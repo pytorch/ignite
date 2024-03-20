@@ -11,10 +11,10 @@ class PearsonCorrelation(_BaseRegression):
     r"""Calculates the `Pearson correlation coefficient <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_.
 
     .. math::
-        r = \frac{\sum_{i=1}^N (x_i-\bar{x})(y_i-\bar{y})}{\max (\sqrt{\sum_{i=1}^N (x_i-\bar{x})^2 \sum_{i=1}^N (y_i-\bar{y})^2}, \epsilon)},
-        \quad \bar{x}=\frac{1}{N}\sum_{i=1}^N x_i, \quad \bar{y}=\frac{1}{N}\sum_{i=1}^N y_i
+        r = \frac{\sum_{j=1}^n (P_j-\bar{P})(A_j-\bar{A})}{\max (\sqrt{\sum_{j=1}^n (P_j-\bar{P})^2 \sum_{j=1}^n (A_j-\bar{A})^2}, \epsilon)},
+        \quad \bar{P}=\frac{1}{n}\sum_{j=1}^n P_j, \quad \bar{A}=\frac{1}{n}\sum_{j=1}^n A_j
 
-    where :math:`x_i` is the ground truth and :math:`y_i` is the predicted value.
+    where :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
 
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     - `y` and `y_pred` must be of same shape `(N, )` or `(N, 1)`.
