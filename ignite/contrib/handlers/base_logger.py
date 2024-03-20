@@ -1,4 +1,5 @@
 """Base logger and its helper handlers."""
+
 import numbers
 import warnings
 from abc import ABCMeta, abstractmethod

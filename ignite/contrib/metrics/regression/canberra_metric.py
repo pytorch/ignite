@@ -63,6 +63,7 @@ class CanberraMetric(_BaseRegression):
         - Fixed implementation: ``abs`` in denominator.
         - Works with DDP.
     """
+
     _state_dict_all_req_keys = ("_sum_of_errors",)
 
     @reinit__is_reduced
