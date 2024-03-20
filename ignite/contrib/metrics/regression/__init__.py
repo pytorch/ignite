@@ -11,5 +11,6 @@ from ignite.contrib.metrics.regression.mean_normalized_bias import MeanNormalize
 from ignite.contrib.metrics.regression.median_absolute_error import MedianAbsoluteError
 from ignite.contrib.metrics.regression.median_absolute_percentage_error import MedianAbsolutePercentageError
 from ignite.contrib.metrics.regression.median_relative_absolute_error import MedianRelativeAbsoluteError
+from ignite.contrib.metrics.regression.pearson_correlation import PearsonCorrelation
 from ignite.contrib.metrics.regression.r2_score import R2Score
 from ignite.contrib.metrics.regression.wave_hedges_distance import WaveHedgesDistance

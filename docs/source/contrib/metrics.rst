@@ -52,5 +52,6 @@ Complete list of metrics:
     MedianAbsoluteError
     MedianAbsolutePercentageError
     MedianRelativeAbsoluteError
+    PearsonCorrelation
     R2Score
     WaveHedgesDistance
