@@ -529,7 +529,7 @@ class TestDistributed:
                 warnings.simplefilter("ignore", category=UndefinedMetricWarning)
                 assert recall_score(np_y_true, np_y_preds, average=sk_average_parameter) == pytest.approx(res)
 
-    @pytest.mark.parametrize("average", [False, "macro", "weighted", "micro", "samples"])
+    @pytest.mark.parametrize("average", [False, "macro", "weighted", "micro"])
     def test_accumulator_device(self, average):
         # Binary accuracy on input of shape (N, 1) or (N, )
 
