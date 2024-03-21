@@ -11,8 +11,8 @@ from torch import nn
 from torch.optim import SGD
 
 import ignite.distributed as idist
-from ignite.contrib.handlers import FastaiLRFinder
 from ignite.engine import create_supervised_trainer, Engine, Events
+from ignite.handlers import FastaiLRFinder
 
 matplotlib.use("agg")
 

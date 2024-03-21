@@ -62,11 +62,11 @@ def _test_setup_common_training_handlers(
     if lr_scheduler is None:
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
     elif isinstance(lr_scheduler, str) and lr_scheduler == "ignite|LRScheduler":
-        from ignite.contrib.handlers import LRScheduler
+        from ignite.handlers import LRScheduler
 
         lr_scheduler = LRScheduler(torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma))
     elif isinstance(lr_scheduler, str) and lr_scheduler == "ignite":
-        from ignite.contrib.handlers import PiecewiseLinear
+        from ignite.handlers import PiecewiseLinear
 
         milestones_values = [(0, 0.0), (step_size, lr), (num_iters * (num_epochs - 1), 0.0)]
         lr_scheduler = PiecewiseLinear(optimizer, param_name="lr", milestones_values=milestones_values)

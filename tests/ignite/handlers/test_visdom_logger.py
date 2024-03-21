@@ -4,7 +4,9 @@ from unittest.mock import ANY, call, MagicMock, patch
 import pytest
 import torch
 
-from ignite.contrib.handlers.visdom_logger import (
+from ignite.engine import Engine, Events, State
+
+from ignite.handlers.visdom_logger import (
     _DummyExecutor,
     global_step_from_engine,
     GradsScalarHandler,
@@ -13,7 +15,6 @@ from ignite.contrib.handlers.visdom_logger import (
     VisdomLogger,
     WeightsScalarHandler,
 )
-from ignite.engine import Engine, Events, State
 
 
 def test_optimizer_params_handler_wrong_setup():
