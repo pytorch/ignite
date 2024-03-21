@@ -23,6 +23,13 @@ def test_zero_sample():
         ent.compute()
 
 
+def test_invalid_shape():
+    ent = Entropy()
+    y_pred = torch.randn(10).float()
+    with pytest.raises(ValueError, match=r"y_pred must be in the shape of \(B, C\) or \(B, C, ...\), got"):
+        ent.update((y_pred, None))
+
+
 @pytest.fixture(params=[item for item in range(4)])
 def test_case(request):
     return [
@@ -31,6 +38,9 @@ def test_case(request):
         # updated batches
         (torch.normal(0.0, 5.0, size=(100, 10)), torch.randint(0, 10, size=[100]), 16),
         (torch.normal(5.0, 3.0, size=(100, 200)), torch.randint(0, 200, size=[100]), 16),
+        # image segmentation
+        (torch.randn((100, 5, 32, 32)), torch.randint(0, 5, size=(100, 32, 32)), 16),
+        (torch.randn((100, 5, 224, 224)), torch.randint(0, 5, size=(100, 224, 224)), 16)
     ][request.param]
 
 

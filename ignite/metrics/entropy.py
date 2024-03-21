@@ -18,7 +18,7 @@ class Entropy(Metric):
     where :math:`p_{i,c}` is the prediction probability of :math:`i`-th data belonging to the class :math:`c`.
 
     - ``update`` must receive output of the form ``(y_pred, y)`` while ``y`` is not used in this metric.
-    - ``y_pred`` is expected to be the unnormalized logits for each class.
+    - ``y_pred`` is expected to be the unnormalized logits for each class. :math:`(B, C)` (classification) or :math:`(B, C, ...)` (e.g., image segmentation) shapes are allowed.
 
     Args:
         output_transform: a callable that is used to transform the
@@ -69,6 +69,14 @@ class Entropy(Metric):
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
         y_pred = output[0].detach()
+        if y_pred.ndim >= 3:
+            num_classes = y_pred.shape[1]
+            # (B, C, ...) -> (B, ..., C) -> (B*..., C)
+            # regarding as B*... predictions
+            y_pred = y_pred.movedim(1, -1).reshape(-1, num_classes)
+        elif y_pred.ndim == 1:
+            raise ValueError(f"y_pred must be in the shape of (B, C) or (B, C, ...), got {y_pred.shape}.")
+
         prob = F.softmax(y_pred, dim=1)
         log_prob = F.log_softmax(y_pred, dim=1)
         entropy_sum = -torch.sum(prob * log_prob)
