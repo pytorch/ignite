@@ -480,7 +480,7 @@ def create_supervised_trainer(
 
             from ignite.engine import create_supervised_trainer
             from ignite.utils import convert_tensor
-            from ignite.contrib.handlers.tqdm_logger import ProgressBar
+            from ignite.handlers.tqdm_logger import ProgressBar
 
             model = ...
             loss = ...

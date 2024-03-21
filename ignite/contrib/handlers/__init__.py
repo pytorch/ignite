@@ -1,14 +1,8 @@
-from ignite.contrib.handlers.clearml_logger import ClearMLLogger
-from ignite.contrib.handlers.mlflow_logger import MLflowLogger
-from ignite.contrib.handlers.neptune_logger import NeptuneLogger
-from ignite.contrib.handlers.polyaxon_logger import PolyaxonLogger
-from ignite.contrib.handlers.tensorboard_logger import TensorboardLogger
-from ignite.contrib.handlers.tqdm_logger import ProgressBar
-
-from ignite.contrib.handlers.visdom_logger import VisdomLogger
-from ignite.contrib.handlers.wandb_logger import WandBLogger
 from ignite.handlers import EpochOutputStore, global_step_from_engine  # ref  # ref
+from ignite.handlers.clearml_logger import ClearMLLogger
 from ignite.handlers.lr_finder import FastaiLRFinder
+from ignite.handlers.mlflow_logger import MLflowLogger
+from ignite.handlers.neptune_logger import NeptuneLogger
 from ignite.handlers.param_scheduler import (
     ConcatScheduler,
     CosineAnnealingScheduler,
@@ -18,4 +12,10 @@ from ignite.handlers.param_scheduler import (
     ParamGroupScheduler,
     PiecewiseLinear,
 )
+from ignite.handlers.polyaxon_logger import PolyaxonLogger
+from ignite.handlers.tensorboard_logger import TensorboardLogger
 from ignite.handlers.time_profilers import BasicTimeProfiler, HandlersTimeProfiler
+from ignite.handlers.tqdm_logger import ProgressBar
+
+from ignite.handlers.visdom_logger import VisdomLogger
+from ignite.handlers.wandb_logger import WandBLogger

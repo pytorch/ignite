@@ -28,37 +28,5 @@ Time profilers [deprecated]
 Loggers
 -------
 
-.. currentmodule:: ignite.contrib.handlers
-
-.. autosummary::
-    :nosignatures:
-    :toctree: ../generated
-    :recursive:
-
-    base_logger
-    clearml_logger
-    mlflow_logger
-    neptune_logger
-    polyaxon_logger
-    tensorboard_logger
-    tqdm_logger
-   
-    visdom_logger
-    wandb_logger
-
-.. seealso::
-
-    Below are a comprehensive list of examples of various loggers.
-
-    * See `tensorboardX mnist example <https://github.com/pytorch/ignite/blob/master/examples/mnist/mnist_with_tensorboard_logger.py>`_
-      and `CycleGAN and EfficientNet notebooks <https://github.com/pytorch/ignite/tree/master/examples/notebooks>`_ for detailed usage.
-
-    * See `visdom mnist example <https://github.com/pytorch/ignite/blob/master/examples/mnist/mnist_with_visdom_logger.py>`_ for detailed usage.
-
-    * See `neptune mnist example <https://github.com/pytorch/ignite/blob/master/examples/mnist/mnist_with_neptune_logger.py>`_ for detailed usage.
-
-    * See `tqdm mnist example <https://github.com/pytorch/ignite/blob/master/examples/mnist/mnist_with_tqdm_logger.py>`_ for detailed usage.
-
-    * See `wandb mnist example <https://github.com/pytorch/ignite/blob/master/examples/mnist/mnist_with_wandb_logger.py>`_ for detailed usage.
-
-    * See `clearml mnist example <https://github.com/pytorch/ignite/blob/master/examples/mnist/mnist_with_clearml_logger.py>`_ for detailed usage.
+.. deprecated:: 0.4.14
+    Loggers moved to ignite.handlers.
