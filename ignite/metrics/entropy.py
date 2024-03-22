@@ -18,7 +18,8 @@ class Entropy(Metric):
     where :math:`p_{i,c}` is the prediction probability of :math:`i`-th data belonging to the class :math:`c`.
 
     - ``update`` must receive output of the form ``(y_pred, y)`` while ``y`` is not used in this metric.
-    - ``y_pred`` is expected to be the unnormalized logits for each class. :math:`(B, C)` (classification) or :math:`(B, C, ...)` (e.g., image segmentation) shapes are allowed.
+    - ``y_pred`` is expected to be the unnormalized logits for each class. :math:`(B, C)` (classification) 
+      or :math:`(B, C, ...)` (e.g., image segmentation) shapes are allowed.
 
     Args:
         output_transform: a callable that is used to transform the
