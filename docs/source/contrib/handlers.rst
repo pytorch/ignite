@@ -25,8 +25,8 @@ Time profilers [deprecated]
     Use :class:`~ignite.handlers.time_profilers.BasicTimeProfiler` instead, will be removed in version 0.6.0.
     Use :class:`~ignite.handlers.time_profilers.HandlersTimeProfiler` instead, will be removed in version 0.6.0.
 
-Loggers
--------
+Loggers [deprecated]
+--------------------
 
 .. deprecated:: 0.4.14
-    Loggers moved to ignite.handlers.
+    Loggers moved to :ref:`Loggers`.
