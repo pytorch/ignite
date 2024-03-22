@@ -3,6 +3,7 @@ from ignite.metrics.accuracy import Accuracy
 from ignite.metrics.classification_report import ClassificationReport
 from ignite.metrics.confusion_matrix import ConfusionMatrix, DiceCoefficient, IoU, JaccardIndex, mIoU
 from ignite.metrics.cosine_similarity import CosineSimilarity
+from ignite.metrics.entropy import Entropy
 from ignite.metrics.epoch_metric import EpochMetric
 from ignite.metrics.fbeta import Fbeta
 from ignite.metrics.frequency import Frequency
@@ -39,6 +40,7 @@ __all__ = [
     "TopKCategoricalAccuracy",
     "Average",
     "DiceCoefficient",
+    "Entropy",
     "EpochMetric",
     "Fbeta",
     "FID",
