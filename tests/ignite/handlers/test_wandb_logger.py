@@ -3,13 +3,9 @@ from unittest.mock import call, MagicMock
 import pytest
 import torch
 
-from ignite.contrib.handlers.wandb_logger import (
-    global_step_from_engine,
-    OptimizerParamsHandler,
-    OutputHandler,
-    WandBLogger,
-)
 from ignite.engine import Events, State
+
+from ignite.handlers.wandb_logger import global_step_from_engine, OptimizerParamsHandler, OutputHandler, WandBLogger
 
 
 def test_optimizer_params_handler_wrong_setup():
