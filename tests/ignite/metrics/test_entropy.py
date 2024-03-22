@@ -99,7 +99,7 @@ def _test_distrib_integration(device, tol=1e-6):
         assert "entropy" in engine.state.metrics
         res = engine.state.metrics["entropy"]
 
-        true_res = np_entropy(y_preds.numpy())
+        true_res = np_entropy(y_preds.cpu().numpy())
 
         assert pytest.approx(res, rel=tol) == true_res
 
