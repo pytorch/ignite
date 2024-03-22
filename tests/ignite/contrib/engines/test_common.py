@@ -7,8 +7,9 @@ import torch
 import torch.nn as nn
 from torch.utils.data.distributed import DistributedSampler
 
-import ignite.handlers as handlers
 import ignite.distributed as idist
+
+import ignite.handlers as handlers
 from ignite.contrib.engines.common import (
     _setup_logging,
     add_early_stopping_by_val_score,
