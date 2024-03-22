@@ -187,6 +187,7 @@ class NeptuneLogger(BaseLogger):
             **kwargs,
         )
         from ignite import __version__
+
         run[_INTEGRATION_VERSION_KEY] = __version__
 
         self.experiment = run
