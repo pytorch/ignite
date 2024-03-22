@@ -12,9 +12,8 @@ from torch.cuda.amp import autocast, GradScaler
 import ignite
 import ignite.distributed as idist
 from ignite.contrib.engines import common
-from ignite.contrib.handlers import PiecewiseLinear
 from ignite.engine import Engine, Events
-from ignite.handlers import Checkpoint, global_step_from_engine
+from ignite.handlers import Checkpoint, global_step_from_engine, PiecewiseLinear
 from ignite.metrics import Accuracy, Loss
 from ignite.utils import manual_seed, setup_logger
 

@@ -28,14 +28,15 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, Normalize, ToTensor
 
-from ignite.contrib.handlers.visdom_logger import (
+from ignite.engine import create_supervised_evaluator, create_supervised_trainer, Events
+from ignite.handlers import ModelCheckpoint
+
+from ignite.handlers.visdom_logger import (
     global_step_from_engine,
     GradsScalarHandler,
     VisdomLogger,
     WeightsScalarHandler,
 )
-from ignite.engine import create_supervised_evaluator, create_supervised_trainer, Events
-from ignite.handlers import ModelCheckpoint
 from ignite.metrics import Accuracy, Loss
 from ignite.utils import setup_logger
 
