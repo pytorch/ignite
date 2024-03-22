@@ -8,7 +8,7 @@ import torch
 from torch.optim import Optimizer
 
 import ignite.distributed as idist
-from ignite import __version__
+
 from ignite.engine import Engine, Events
 from ignite.handlers.base_logger import (
     BaseLogger,
@@ -186,6 +186,7 @@ class NeptuneLogger(BaseLogger):
             project=project,
             **kwargs,
         )
+        from ignite import __version__
         run[_INTEGRATION_VERSION_KEY] = __version__
 
         self.experiment = run
