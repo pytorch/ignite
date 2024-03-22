@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data.distributed import DistributedSampler
 
-import ignite.contrib.handlers as handlers
+import ignite.handlers as handlers
 import ignite.distributed as idist
 from ignite.contrib.engines.common import (
     _setup_logging,
