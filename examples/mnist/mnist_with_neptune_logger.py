@@ -17,6 +17,7 @@ Note:
     You can view example runs here:
     https://app.neptune.ai/o/common/org/pytorch-ignite-integration/
 """
+
 from argparse import ArgumentParser
 
 import torch
