@@ -1,6 +1,8 @@
 import os
 
 import numpy as np
+from scipy.stats import entropy as scipy_entropy
+from scipy.special import softmax
 import pytest
 import torch
 
@@ -10,11 +12,9 @@ from ignite.metrics import Entropy
 
 
 def np_entropy(np_y_pred: np.ndarray):
-    np_y_pred = np_y_pred - np_y_pred.max(axis=1, keepdims=True)
-    prob = np.exp(np_y_pred) / np.sum(np.exp(np_y_pred), axis=1, keepdims=True)
-    log_prob = np_y_pred - np.log(np.sum(np.exp(np_y_pred), axis=1, keepdims=True))
-    np_ent = -np.sum(prob * log_prob) / np_y_pred.shape[0]
-    return np_ent
+    prob = softmax(np_y_pred, axis=1)
+    ent = np.mean(scipy_entropy(prob, axis=1))
+    return ent
 
 
 def test_zero_sample():
