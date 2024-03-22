@@ -1,10 +1,10 @@
 import os
 
 import numpy as np
-from scipy.stats import entropy as scipy_entropy
-from scipy.special import softmax
 import pytest
 import torch
+from scipy.special import softmax
+from scipy.stats import entropy as scipy_entropy
 
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
@@ -40,7 +40,7 @@ def test_case(request):
         (torch.normal(5.0, 3.0, size=(100, 200)), torch.randint(0, 200, size=[100]), 16),
         # image segmentation
         (torch.randn((100, 5, 32, 32)), torch.randint(0, 5, size=(100, 32, 32)), 16),
-        (torch.randn((100, 5, 224, 224)), torch.randint(0, 5, size=(100, 224, 224)), 16)
+        (torch.randn((100, 5, 224, 224)), torch.randint(0, 5, size=(100, 224, 224)), 16),
     ][request.param]
 
 
