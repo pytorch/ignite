@@ -4,15 +4,16 @@ from unittest.mock import call, MagicMock
 import pytest
 import torch
 
-from ignite.contrib.handlers.base_logger import (
+from ignite.engine import Engine, Events, EventsList, State
+
+from ignite.handlers.base_logger import (
     BaseLogger,
     BaseOptimizerParamsHandler,
     BaseOutputHandler,
     BaseWeightsHandler,
     BaseWeightsScalarHandler,
 )
-from ignite.engine import Engine, Events, EventsList, State
-from tests.ignite.contrib.handlers import MockFP16DeepSpeedZeroOptimizer
+from tests.ignite.handlers import MockFP16DeepSpeedZeroOptimizer
 
 
 class DummyOutputHandler(BaseOutputHandler):
