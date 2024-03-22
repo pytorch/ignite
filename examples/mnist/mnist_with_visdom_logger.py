@@ -17,6 +17,7 @@
     python mnist_with_visdom_logger.py
     ```
 """
+
 from argparse import ArgumentParser
 
 import torch

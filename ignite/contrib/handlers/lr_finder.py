@@ -3,6 +3,7 @@ Note:
     ``ignite.contrib.handlers.lr_finder`` was moved to ``ignite.handlers.lr_finder``.
     Please refer to :mod:`~ignite.handlers.lr_finder`.
 """
+
 import warnings
 
 removed_in = "0.6.0"

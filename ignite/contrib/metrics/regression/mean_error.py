@@ -55,6 +55,7 @@ class MeanError(_BaseRegression):
 
             0.625...
     """
+
     _state_dict_all_req_keys = ("_sum_of_errors", "_num_examples")
 
     @reinit__is_reduced
