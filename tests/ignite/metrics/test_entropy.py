@@ -76,17 +76,22 @@ def test_accumulator_detached():
 
 
 @pytest.mark.usefixtures("distributed")
-class TestDistributed:
-    def _test_integration(self, tol=1e-6):
+class TestDistributed:    
+    def test_integration(self):
+        tol = 1e-6
         device = idist.device()
         rank = idist.get_rank()
         torch.manual_seed(12 + rank)
 
-        def _test(metric_device):
-            n_iters = 100
-            batch_size = 10
-            n_cls = 50
+        n_iters = 100
+        batch_size = 10
+        n_cls = 50
 
+        metric_devices = [torch.device("cpu")]
+        if device.type != "xla":
+            metric_devices.append(idist.device())
+
+        for metric_device in metric_devices:
             y_true = torch.randint(0, n_cls, size=[n_iters * batch_size], dtype=torch.long).to(device)
             y_preds = torch.normal(2.0, 3.0, size=(n_iters * batch_size, n_cls), dtype=torch.float).to(device)
 
@@ -114,15 +119,12 @@ class TestDistributed:
 
             assert pytest.approx(res, rel=tol) == true_res
 
-        _test("cpu")
-        if device.type != "xla":
-            _test(idist.device())
-
-    def _test_accumulator_device(self):
+    def test_accumulator_device(self):
         device = idist.device()
         metric_devices = [torch.device("cpu")]
         if device.type != "xla":
             metric_devices.append(idist.device())
+
         for metric_device in metric_devices:
             device = torch.device(device)
             ent = Entropy(device=metric_device)
