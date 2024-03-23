@@ -76,7 +76,7 @@ def test_accumulator_detached():
 
 
 @pytest.mark.usefixtures("distributed")
-class TestDistributed:    
+class TestDistributed:
     def test_integration(self):
         tol = 1e-6
         device = idist.device()
