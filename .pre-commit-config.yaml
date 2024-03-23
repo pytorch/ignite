@@ -15,15 +15,15 @@ repos:
         exclude_types: ["python", "jupyter", "shell", "gitignore"]
 
   - repo: https://github.com/omnilib/ufmt
-    rev: v2.2.0
+    rev: v2.5.1
     hooks:
       - id: ufmt
         additional_dependencies:
-          - black == 23.9.1
-          - usort == 1.0.7
+          - black == 24.3.0
+          - usort == 1.0.8.post1
 
   - repo: https://github.com/pycqa/flake8
-    rev: 6.1.0
+    rev: 7.0.0
     hooks:
       - id: flake8
         args: ["--config", "setup.cfg"]

@@ -3,69 +3,69 @@ import os
 import numpy as np
 import pytest
 import torch
+from scipy.special import softmax
+from scipy.stats import entropy as scipy_entropy
 
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
-from ignite.metrics import CosineSimilarity
+from ignite.metrics import Entropy
+
+
+def np_entropy(np_y_pred: np.ndarray):
+    prob = softmax(np_y_pred, axis=1)
+    ent = np.mean(scipy_entropy(prob, axis=1))
+    return ent
 
 
 def test_zero_sample():
-    cos_sim = CosineSimilarity()
-    with pytest.raises(
-        NotComputableError, match=r"CosineSimilarity must have at least one example before it can be computed"
-    ):
-        cos_sim.compute()
+    ent = Entropy()
+    with pytest.raises(NotComputableError, match=r"Entropy must have at least one example before it can be computed"):
+        ent.compute()
+
+
+def test_invalid_shape():
+    ent = Entropy()
+    y_pred = torch.randn(10).float()
+    with pytest.raises(ValueError, match=r"y_pred must be in the shape of \(B, C\) or \(B, C, ...\), got"):
+        ent.update((y_pred, None))
 
 
 @pytest.fixture(params=[item for item in range(4)])
 def test_case(request):
     return [
-        (torch.randn((100, 50)), torch.randn((100, 50)), 10 ** np.random.uniform(-8, 0), 1),
-        (
-            torch.normal(1.0, 2.0, size=(100, 10)),
-            torch.normal(3.0, 4.0, size=(100, 10)),
-            10 ** np.random.uniform(-8, 0),
-            1,
-        ),
+        (torch.randn((100, 10)), torch.randint(0, 10, size=[100]), 1),
+        (torch.rand((100, 500)), torch.randint(0, 500, size=[100]), 1),
         # updated batches
-        (torch.rand((100, 128)), torch.rand((100, 128)), 10 ** np.random.uniform(-8, 0), 16),
-        (
-            torch.normal(0.0, 5.0, size=(100, 30)),
-            torch.normal(5.0, 1.0, size=(100, 30)),
-            10 ** np.random.uniform(-8, 0),
-            16,
-        ),
+        (torch.normal(0.0, 5.0, size=(100, 10)), torch.randint(0, 10, size=[100]), 16),
+        (torch.normal(5.0, 3.0, size=(100, 200)), torch.randint(0, 200, size=[100]), 16),
+        # image segmentation
+        (torch.randn((100, 5, 32, 32)), torch.randint(0, 5, size=(100, 32, 32)), 16),
+        (torch.randn((100, 5, 224, 224)), torch.randint(0, 5, size=(100, 224, 224)), 16),
     ][request.param]
 
 
 @pytest.mark.parametrize("n_times", range(5))
 def test_compute(n_times, test_case):
-    y_pred, y, eps, batch_size = test_case
+    ent = Entropy()
 
-    cos = CosineSimilarity(eps=eps)
+    y_pred, y, batch_size = test_case
 
-    cos.reset()
+    ent.reset()
     if batch_size > 1:
         n_iters = y.shape[0] // batch_size + 1
         for i in range(n_iters):
             idx = i * batch_size
-            cos.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+            ent.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
     else:
-        cos.update((y_pred, y))
+        ent.update((y_pred, y))
 
-    np_y = y.numpy()
-    np_y_pred = y_pred.numpy()
+    np_res = np_entropy(y_pred.numpy())
 
-    np_y_norm = np.clip(np.linalg.norm(np_y, axis=1, keepdims=True), eps, None)
-    np_y_pred_norm = np.clip(np.linalg.norm(np_y_pred, axis=1, keepdims=True), eps, None)
-    np_res = np.sum((np_y / np_y_norm) * (np_y_pred / np_y_pred_norm), axis=1)
-    np_res = np.mean(np_res)
-
-    assert isinstance(cos.compute(), float)
-    assert pytest.approx(np_res, rel=2e-5) == cos.compute()
+    assert isinstance(ent.compute(), float)
+    assert pytest.approx(ent.compute()) == np_res
 
 
-def _test_distrib_integration(device, tol=2e-5):
+def _test_distrib_integration(device, tol=1e-6):
     from ignite.engine import Engine
 
     rank = idist.get_rank()
@@ -74,10 +74,10 @@ def _test_distrib_integration(device, tol=2e-5):
     def _test(metric_device):
         n_iters = 100
         batch_size = 10
-        n_dims = 100
+        n_cls = 50
 
-        y_true = torch.randn((n_iters * batch_size, n_dims), dtype=torch.float).to(device)
-        y_preds = torch.normal(2.0, 3.0, size=(n_iters * batch_size, n_dims), dtype=torch.float).to(device)
+        y_true = torch.randint(0, n_cls, size=[n_iters * batch_size], dtype=torch.long).to(device)
+        y_preds = torch.normal(2.0, 3.0, size=(n_iters * batch_size, n_cls), dtype=torch.float).to(device)
 
         def update(engine, i):
             return (
@@ -87,8 +87,8 @@ def _test_distrib_integration(device, tol=2e-5):
 
         engine = Engine(update)
 
-        m = CosineSimilarity(device=metric_device)
-        m.attach(engine, "cosine_similarity")
+        m = Entropy(device=metric_device)
+        m.attach(engine, "entropy")
 
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=1)
@@ -96,15 +96,10 @@ def _test_distrib_integration(device, tol=2e-5):
         y_preds = idist.all_gather(y_preds)
         y_true = idist.all_gather(y_true)
 
-        assert "cosine_similarity" in engine.state.metrics
-        res = engine.state.metrics["cosine_similarity"]
+        assert "entropy" in engine.state.metrics
+        res = engine.state.metrics["entropy"]
 
-        y_true_np = y_true.cpu().numpy()
-        y_preds_np = y_preds.cpu().numpy()
-        y_true_norm = np.clip(np.linalg.norm(y_true_np, axis=1, keepdims=True), 1e-8, None)
-        y_preds_norm = np.clip(np.linalg.norm(y_preds_np, axis=1, keepdims=True), 1e-8, None)
-        true_res = np.sum((y_true_np / y_true_norm) * (y_preds_np / y_preds_norm), axis=1)
-        true_res = np.mean(true_res)
+        true_res = np_entropy(y_preds.cpu().numpy())
 
         assert pytest.approx(res, rel=tol) == true_res
 
@@ -119,27 +114,27 @@ def _test_distrib_accumulator_device(device):
         metric_devices.append(idist.device())
     for metric_device in metric_devices:
         device = torch.device(device)
-        cos = CosineSimilarity(device=metric_device)
+        ent = Entropy(device=metric_device)
 
-        for dev in [cos._device, cos._sum_of_cos_similarities.device]:
+        for dev in [ent._device, ent._sum_of_entropies.device]:
             assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
 
-        y_pred = torch.tensor([[2.0, 3.0], [-2.0, 1.0]], dtype=torch.float)
-        y = torch.ones(2, 2, dtype=torch.float)
-        cos.update((y_pred, y))
+        y_pred = torch.tensor([[2.0], [-2.0]])
+        y = torch.zeros(2)
+        ent.update((y_pred, y))
 
-        for dev in [cos._device, cos._sum_of_cos_similarities.device]:
+        for dev in [ent._device, ent._sum_of_entropies.device]:
             assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
 
 
 def test_accumulator_detached():
-    cos = CosineSimilarity()
+    ent = Entropy()
 
-    y_pred = torch.tensor([[2.0, 3.0], [-2.0, 1.0]], dtype=torch.float)
-    y = torch.ones(2, 2, dtype=torch.float)
-    cos.update((y_pred, y))
+    y_pred = torch.tensor([[2.0, 3.0], [-2.0, -1.0]], requires_grad=True)
+    y = torch.zeros(2)
+    ent.update((y_pred, y))
 
-    assert not cos._sum_of_cos_similarities.requires_grad
+    assert not ent._sum_of_entropies.requires_grad
 
 
 @pytest.mark.distributed

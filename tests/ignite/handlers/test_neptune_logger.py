@@ -5,7 +5,9 @@ from unittest.mock import MagicMock
 import pytest
 import torch
 
-from ignite.contrib.handlers.neptune_logger import (
+from ignite.engine import Engine, Events, State
+
+from ignite.handlers.neptune_logger import (
     global_step_from_engine,
     GradsScalarHandler,
     NeptuneLogger,
@@ -14,7 +16,6 @@ from ignite.contrib.handlers.neptune_logger import (
     OutputHandler,
     WeightsScalarHandler,
 )
-from ignite.engine import Engine, Events, State
 
 
 def assert_logger_called_once_with(logger, key, value):
@@ -523,7 +524,7 @@ def test_neptune_saver(model, serializable):
 
 def test_logs_version():
     from ignite import __version__
-    from ignite.contrib.handlers.neptune_logger import _INTEGRATION_VERSION_KEY
+    from ignite.handlers.neptune_logger import _INTEGRATION_VERSION_KEY
 
     logger = NeptuneLogger(
         project="tests/dry-run",

@@ -5,7 +5,9 @@ from unittest.mock import ANY, call, MagicMock, patch
 import pytest
 import torch
 
-from ignite.contrib.handlers.tensorboard_logger import (
+from ignite.engine import Engine, Events, State
+
+from ignite.handlers.tensorboard_logger import (
     global_step_from_engine,
     GradsHistHandler,
     GradsScalarHandler,
@@ -15,7 +17,6 @@ from ignite.contrib.handlers.tensorboard_logger import (
     WeightsHistHandler,
     WeightsScalarHandler,
 )
-from ignite.engine import Engine, Events, State
 
 
 def test_optimizer_params_handler_wrong_setup():

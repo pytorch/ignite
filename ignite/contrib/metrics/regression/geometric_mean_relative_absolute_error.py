@@ -69,6 +69,7 @@ class GeometricMeanRelativeAbsoluteError(_BaseRegression):
 
             0.0...
     """
+
     _state_dict_all_req_keys = ("_predictions", "_targets")
 
     @reinit__is_reduced

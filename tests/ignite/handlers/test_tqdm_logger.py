@@ -9,9 +9,9 @@ import pytest
 import torch
 from packaging.version import Version
 
-from ignite.contrib.handlers import ProgressBar
 from ignite.engine import Engine, Events
-from ignite.handlers import TerminateOnNan
+
+from ignite.handlers import ProgressBar, TerminateOnNan
 from ignite.metrics import RunningAverage
 
 if sys.platform.startswith("win"):

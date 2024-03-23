@@ -8,10 +8,9 @@ from model import Net
 from torch.utils.data import DataLoader
 from torchvision.transforms.functional import center_crop, resize, to_tensor
 
-from ignite.contrib.handlers import ProgressBar
-
 from ignite.engine import Engine, Events
-from ignite.handlers import BasicTimeProfiler
+
+from ignite.handlers import BasicTimeProfiler, ProgressBar
 from ignite.metrics import PSNR
 
 # Training settings
