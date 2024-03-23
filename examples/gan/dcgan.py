@@ -9,9 +9,9 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data as data
 
-from ignite.contrib.handlers import ProgressBar
 from ignite.engine import Engine, Events
-from ignite.handlers import ModelCheckpoint, Timer
+
+from ignite.handlers import ModelCheckpoint, ProgressBar, Timer
 from ignite.metrics import RunningAverage
 
 try:

@@ -8,8 +8,9 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, Normalize, ToTensor
 
-from ignite.contrib.handlers import ProgressBar
 from ignite.engine import create_supervised_evaluator, create_supervised_trainer, Events
+
+from ignite.handlers import ProgressBar
 from ignite.metrics import Accuracy, Loss, RunningAverage
 
 

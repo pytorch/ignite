@@ -1,3 +1,8 @@
+<<<<<<< HEAD
+=======
+import os
+
+>>>>>>> master
 import numpy as np
 import pytest
 import torch
@@ -5,8 +10,11 @@ from scipy.special import softmax
 from scipy.stats import entropy as scipy_entropy
 
 import ignite.distributed as idist
+<<<<<<< HEAD
 
 from ignite.engine import Engine
+=======
+>>>>>>> master
 from ignite.exceptions import NotComputableError
 from ignite.metrics import Entropy
 
