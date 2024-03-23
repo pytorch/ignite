@@ -9,8 +9,9 @@ from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader, Dataset
 from torchvision import datasets
 
-from ignite.contrib.handlers import ProgressBar
 from ignite.engine import Engine, Events
+
+from ignite.handlers import ProgressBar
 from ignite.handlers.param_scheduler import LRScheduler
 from ignite.metrics import Accuracy, RunningAverage
 from ignite.utils import manual_seed

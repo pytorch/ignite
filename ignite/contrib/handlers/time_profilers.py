@@ -3,6 +3,7 @@ Note:
     ``ignite.contrib.handlers.time_profilers`` was moved to ``ignite.handlers.time_profilers``.
     Please refer to :mod:`~ignite.handlers.time_profilers`.
 """
+
 import warnings
 
 removed_in = "0.6.0"

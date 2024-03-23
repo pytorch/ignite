@@ -3,6 +3,7 @@ Note:
     ``ignite.contrib.handlers.param_scheduler`` was moved to ``ignite.handlers.param_scheduler``.
     Please refer to :mod:`~ignite.handlers.param_scheduler`.
 """
+
 import warnings
 
 removed_in = "0.6.0"

@@ -34,7 +34,7 @@ def thresholded_output_transform(output):
 
 def get_save_handler(config):
     if config["with_clearml"]:
-        from ignite.contrib.handlers.clearml_logger import ClearMLSaver
+        from ignite.handlers.clearml_logger import ClearMLSaver
 
         return ClearMLSaver(dirname=config["output_dir"])
 

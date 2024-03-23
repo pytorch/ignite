@@ -17,7 +17,7 @@ from ignite.handlers.param_scheduler import (
     PiecewiseLinear,
     ReduceLROnPlateauScheduler,
 )
-from tests.ignite.contrib.handlers import MockFP16DeepSpeedZeroOptimizer
+from tests.ignite.handlers import MockFP16DeepSpeedZeroOptimizer
 
 try:
     from torch.optim.lr_scheduler import MultiplicativeLR

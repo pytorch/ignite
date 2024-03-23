@@ -10,7 +10,10 @@ from clearml.binding.frameworks import WeightsFileHandler
 from clearml.model import Framework
 
 import ignite.distributed as idist
-from ignite.contrib.handlers.clearml_logger import (
+
+from ignite.engine import Engine, Events, State
+from ignite.handlers import Checkpoint
+from ignite.handlers.clearml_logger import (
     ClearMLLogger,
     ClearMLSaver,
     global_step_from_engine,
@@ -21,9 +24,6 @@ from ignite.contrib.handlers.clearml_logger import (
     WeightsHistHandler,
     WeightsScalarHandler,
 )
-
-from ignite.engine import Engine, Events, State
-from ignite.handlers import Checkpoint
 
 
 def test_no_clearml():

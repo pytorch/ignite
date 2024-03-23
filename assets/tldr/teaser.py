@@ -10,7 +10,7 @@ from torchvision.transforms import Compose, Normalize, Pad, RandomCrop, RandomHo
 
 import ignite.distributed as idist
 from ignite.contrib.engines import common
-from ignite.contrib.handlers import ProgressBar
+from ignite.handlers import ProgressBar
 from ignite.engine import Engine, Events, create_supervised_evaluator
 from ignite.metrics import Accuracy
 
