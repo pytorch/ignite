@@ -13,7 +13,7 @@ class MutualInformation(Metric):
     r"""Calculates the `mutual information <https://en.wikipedia.org/wiki/Mutual_information>`_
         between input :math:`X` and prediction :math:`Y`.
 
-    .. math:: I(X;Y) = H(Y) - H(Y|X) 
+    .. math:: I(X;Y) = H(Y) - H(Y|X)
        = H \left( \frac{1}{N}\sum_{i=1}^N \hat{\mathbf{p}}_i \right)
        - \frac{1}{N}\sum_{i=1}^N H(\hat{\mathbf{p}}_i),
 
@@ -102,5 +102,5 @@ class MutualInformation(Metric):
         marginal_ent = -(marginal_prob * torch.log(marginal_prob)).sum()
         conditional_ent = self._sum_of_conditional_entropies / n
         mi = marginal_ent - conditional_ent
-        mi = torch.clamp(mi, min=0.0)   # mutual information cannot be negative
+        mi = torch.clamp(mi, min=0.0)  # mutual information cannot be negative
         return float(mi.item())
