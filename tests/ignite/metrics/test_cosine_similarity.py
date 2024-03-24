@@ -81,6 +81,9 @@ def test_accumulator_detached():
 class TestDistributed:
     def test_integration(self):
         tol = 2e-5
+        n_iters = 100
+        batch_size = 10
+        n_dims = 100
 
         rank = idist.get_rank()
         torch.manual_seed(12 + rank)
@@ -89,10 +92,6 @@ class TestDistributed:
         metric_devices = [torch.device("cpu")]
         if device.type != "xla":
             metric_devices.append(device)
-
-        n_iters = 100
-        batch_size = 10
-        n_dims = 100
 
         for metric_device in metric_devices:
             y_true = torch.randn((n_iters * batch_size, n_dims)).float().to(device)
@@ -130,9 +129,8 @@ class TestDistributed:
         device = idist.device()
         metric_devices = [torch.device("cpu")]
         if device.type != "xla":
-            metric_devices.append(idist.device())
+            metric_devices.append(device)
         for metric_device in metric_devices:
-            device = torch.device(device)
             cos = CosineSimilarity(device=metric_device)
 
             for dev in (cos._device, cos._sum_of_cos_similarities.device):
