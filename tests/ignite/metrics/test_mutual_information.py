@@ -37,7 +37,7 @@ def test_invalid_shape():
         mi.update((y_pred, None))
 
 
-@pytest.fixture(params=[item for item in range(4)])
+@pytest.fixture(params=list(range(4)))
 def test_case(request):
     return [
         (torch.randn((100, 10)).float(), torch.randint(0, 10, size=[100]), 1),
@@ -89,6 +89,9 @@ def test_accumulator_detached():
 class TestDistributed:
     def test_integration(self):
         tol = 1e-4
+        n_iters = 100
+        batch_size = 10
+        n_cls = 50
         device = idist.device()
         rank = idist.get_rank()
         torch.manual_seed(12 + rank)
@@ -98,10 +101,6 @@ class TestDistributed:
             metric_devices.append(device)
 
         for metric_device in metric_devices:
-            n_iters = 100
-            batch_size = 10
-            n_cls = 50
-
             y_true = torch.randint(0, n_cls, size=[n_iters * batch_size], dtype=torch.long).to(device)
             y_preds = torch.normal(0.0, 3.0, size=(n_iters * batch_size, n_cls), dtype=torch.float).to(device)
 
