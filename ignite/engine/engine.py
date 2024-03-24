@@ -1037,15 +1037,23 @@ class Engine(Serializable):
 
             while True:
                 self.state.batch = self.state.output = None
+
                 try:
                     # Avoid Events.GET_BATCH_STARTED triggered twice when data iter is restarted
                     if self.last_event_name != Events.DATALOADER_STOP_ITERATION:
-                        self._fire_event(Events.GET_BATCH_STARTED)
-                        yield from self._maybe_terminate_or_interrupt()
+                        # We should not trigger GET_BATCH_STARTED, GET_BATCH_COMPLETED, DATALOADER_STOP_ITERATION events
+                        # if no data was provided to engine.run(data=None, ...)
+                        if self.state.dataloader is not None:
+                            self._fire_event(Events.GET_BATCH_STARTED)
+                            yield from self._maybe_terminate_or_interrupt()
 
                     self.state.batch = next(self._dataloader_iter)
-                    self._fire_event(Events.GET_BATCH_COMPLETED)
-                    yield from self._maybe_terminate_or_interrupt()
+
+                    # We should not trigger GET_BATCH_STARTED, GET_BATCH_COMPLETED, DATALOADER_STOP_ITERATION events
+                    # if no data was provided to engine.run(data=None, ...)
+                    if self.state.dataloader is not None:
+                        self._fire_event(Events.GET_BATCH_COMPLETED)
+                        yield from self._maybe_terminate_or_interrupt()
 
                     iter_counter += 1
                     should_exit = False
@@ -1074,8 +1082,11 @@ class Engine(Serializable):
                             )
                         break
 
-                    self._fire_event(Events.DATALOADER_STOP_ITERATION)
-                    yield from self._maybe_terminate_or_interrupt()
+                    # We should not trigger GET_BATCH_STARTED, GET_BATCH_COMPLETED, DATALOADER_STOP_ITERATION events
+                    # if no data was provided to engine.run(data=None, ...)
+                    if self.state.dataloader is not None:
+                        self._fire_event(Events.DATALOADER_STOP_ITERATION)
+                        yield from self._maybe_terminate_or_interrupt()
 
                     self._setup_dataloader_iter()
                     should_exit = True
@@ -1198,12 +1209,18 @@ class Engine(Serializable):
                 try:
                     # Avoid Events.GET_BATCH_STARTED triggered twice when data iter is restarted
                     if self.last_event_name != Events.DATALOADER_STOP_ITERATION:
-                        self._fire_event(Events.GET_BATCH_STARTED)
-                        self._maybe_terminate_legacy()
+                        # We should not trigger GET_BATCH_STARTED, GET_BATCH_COMPLETED, DATALOADER_STOP_ITERATION events
+                        # if no data was provided to engine.run(data=None, ...)
+                        if self.state.dataloader is not None:
+                            self._fire_event(Events.GET_BATCH_STARTED)
+                            self._maybe_terminate_legacy()
 
                     self.state.batch = next(self._dataloader_iter)
-                    self._fire_event(Events.GET_BATCH_COMPLETED)
-                    self._maybe_terminate_legacy()
+                    # We should not trigger GET_BATCH_STARTED, GET_BATCH_COMPLETED, DATALOADER_STOP_ITERATION events
+                    # if no data was provided to engine.run(data=None, ...)
+                    if self.state.dataloader is not None:
+                        self._fire_event(Events.GET_BATCH_COMPLETED)
+                        self._maybe_terminate_legacy()
 
                     iter_counter += 1
                     should_exit = False
@@ -1232,8 +1249,11 @@ class Engine(Serializable):
                             )
                         break
 
-                    self._fire_event(Events.DATALOADER_STOP_ITERATION)
-                    self._maybe_terminate_legacy()
+                    # We should not trigger GET_BATCH_STARTED, GET_BATCH_COMPLETED, DATALOADER_STOP_ITERATION events
+                    # if no data was provided to engine.run(data=None, ...)
+                    if self.state.dataloader is not None:
+                        self._fire_event(Events.DATALOADER_STOP_ITERATION)
+                        self._maybe_terminate_legacy()
 
                     self._setup_dataloader_iter()
                     should_exit = True
