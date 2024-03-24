@@ -17,6 +17,7 @@
     python mnist_with_tensorboard_logger.py --log_dir=/tmp/tensorboard_logs
     ```
 """
+
 import sys
 from argparse import ArgumentParser
 
@@ -28,7 +29,10 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, Normalize, ToTensor
 
-from ignite.contrib.handlers.tensorboard_logger import (
+from ignite.engine import create_supervised_evaluator, create_supervised_trainer, Events
+from ignite.handlers import ModelCheckpoint
+
+from ignite.handlers.tensorboard_logger import (
     global_step_from_engine,
     GradsHistHandler,
     GradsScalarHandler,
@@ -36,8 +40,6 @@ from ignite.contrib.handlers.tensorboard_logger import (
     WeightsHistHandler,
     WeightsScalarHandler,
 )
-from ignite.engine import create_supervised_evaluator, create_supervised_trainer, Events
-from ignite.handlers import ModelCheckpoint
 from ignite.metrics import Accuracy, Loss
 from ignite.utils import setup_logger
 

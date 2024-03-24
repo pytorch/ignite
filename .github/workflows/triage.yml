@@ -2,16 +2,19 @@ name: Triage
 
 on:
   pull_request_target:
-    types: [opened]
+#     types: [opened]
 #   issues:
 #     types: [opened]
 
 jobs:
   triage:
+    permissions:
+      contents: read
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Pull Request Labeler
-#         if: github.event_name == 'pull_request_target'
         uses: actions/labeler@v5
         with:
           configuration-path: .github/pr-labeler-config.yml

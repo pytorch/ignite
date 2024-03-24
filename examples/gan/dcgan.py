@@ -9,9 +9,9 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data as data
 
-from ignite.contrib.handlers import ProgressBar
 from ignite.engine import Engine, Events
-from ignite.handlers import ModelCheckpoint, Timer
+
+from ignite.handlers import ModelCheckpoint, ProgressBar, Timer
 from ignite.metrics import RunningAverage
 
 try:
@@ -85,7 +85,7 @@ class Generator(Net):
             nn.ReLU(inplace=True),
             # state size. (nf) x 32 x 32
             nn.ConvTranspose2d(in_channels=nf, out_channels=nc, kernel_size=4, stride=2, padding=1, bias=False),
-            nn.Tanh()
+            nn.Tanh(),
             # state size. (nc) x 64 x 64
         )
 

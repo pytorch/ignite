@@ -58,6 +58,7 @@ class MeanAbsoluteRelativeError(_BaseRegression):
     .. versionchanged:: 0.4.5
         - Works with DDP.
     """
+
     _state_dict_all_req_keys = ("_sum_of_absolute_relative_errors", "_num_samples")
 
     @reinit__is_reduced

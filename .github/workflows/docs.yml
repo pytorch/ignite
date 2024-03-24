@@ -14,6 +14,8 @@ on:
 
 jobs:
   build-deploy:
+    permissions:
+      contents: write
     if: (github.ref == 'refs/heads/master' && github.event_name == 'push') || github.event_name == 'release'
     runs-on: ubuntu-latest
     steps:

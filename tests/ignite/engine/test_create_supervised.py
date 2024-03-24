@@ -87,9 +87,11 @@ def _default_create_supervised_trainer(
         scaler=scaler,
         gradient_accumulation_steps=gradient_accumulation_steps,
         model_transform=model_transform if model_transform is not None else lambda x: x,
-        model_fn=(lambda model, x: model(x, torch.tensor([0.01], device=model_device)))
-        if with_model_fn
-        else (lambda model, x: model(x)),
+        model_fn=(
+            (lambda model, x: model(x, torch.tensor([0.01], device=model_device)))
+            if with_model_fn
+            else (lambda model, x: model(x))
+        ),
     )
     assert model.fc.weight.data[0, 0].item() == approx(0.0)
     return trainer, model
@@ -259,9 +261,11 @@ def _default_create_supervised_evaluator(
         device=evaluator_device,
         amp_mode=amp_mode,
         model_transform=model_transform if model_transform is not None else lambda x: x,
-        model_fn=(lambda model, x: model(x, torch.tensor([0.01], device=model_device)))
-        if with_model_fn
-        else (lambda model, x: model(x)),
+        model_fn=(
+            (lambda model, x: model(x, torch.tensor([0.01], device=model_device)))
+            if with_model_fn
+            else (lambda model, x: model(x))
+        ),
     )
 
     assert model.fc.weight.data[0, 0].item() == approx(0.0)

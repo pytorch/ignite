@@ -350,6 +350,8 @@ Complete list of metrics
     RougeN
     InceptionScore
     FID
+    CosineSimilarity
+    Entropy
 
 Helpers for customizing metrics
 -------------------------------
