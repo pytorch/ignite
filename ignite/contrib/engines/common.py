@@ -15,21 +15,24 @@ except ImportError:
     from torch.optim.lr_scheduler import _LRScheduler as PyTorchLRScheduler
 
 import ignite.distributed as idist
-from ignite.contrib.handlers import (
+from ignite.contrib.metrics import GpuInfo
+from ignite.engine import Engine, Events
+from ignite.handlers import (
+    Checkpoint,
     ClearMLLogger,
+    DiskSaver,
+    EarlyStopping,
     global_step_from_engine,
     MLflowLogger,
     NeptuneLogger,
     PolyaxonLogger,
     ProgressBar,
     TensorboardLogger,
+    TerminateOnNan,
     VisdomLogger,
     WandBLogger,
 )
-from ignite.contrib.handlers.base_logger import BaseLogger
-from ignite.contrib.metrics import GpuInfo
-from ignite.engine import Engine, Events
-from ignite.handlers import Checkpoint, DiskSaver, EarlyStopping, TerminateOnNan
+from ignite.handlers.base_logger import BaseLogger
 from ignite.handlers.checkpoint import BaseSaveHandler
 from ignite.handlers.param_scheduler import ParamScheduler
 from ignite.metrics import RunningAverage
@@ -361,7 +364,7 @@ def setup_tb_logging(
         kwargs: optional keyword args to be passed to construct the logger.
 
     Returns:
-        :class:`~ignite.contrib.handlers.tensorboard_logger.TensorboardLogger`
+        :class:`~ignite.handlers.tensorboard_logger.TensorboardLogger`
     """
     logger = TensorboardLogger(log_dir=output_path, **kwargs)
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
@@ -392,7 +395,7 @@ def setup_visdom_logging(
         kwargs: optional keyword args to be passed to construct the logger.
 
     Returns:
-        :class:`~ignite.contrib.handlers.visdom_logger.VisdomLogger`
+        :class:`~ignite.handlers.visdom_logger.VisdomLogger`
     """
     logger = VisdomLogger(**kwargs)
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
@@ -423,7 +426,7 @@ def setup_mlflow_logging(
         kwargs: optional keyword args to be passed to construct the logger.
 
     Returns:
-        :class:`~ignite.contrib.handlers.mlflow_logger.MLflowLogger`
+        :class:`~ignite.handlers.mlflow_logger.MLflowLogger`
     """
     logger = MLflowLogger(**kwargs)
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
@@ -454,7 +457,7 @@ def setup_neptune_logging(
         kwargs: optional keyword args to be passed to construct the logger.
 
     Returns:
-        :class:`~ignite.contrib.handlers.neptune_logger.NeptuneLogger`
+        :class:`~ignite.handlers.neptune_logger.NeptuneLogger`
     """
     logger = NeptuneLogger(**kwargs)
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
@@ -485,7 +488,7 @@ def setup_wandb_logging(
         kwargs: optional keyword args to be passed to construct the logger.
 
     Returns:
-        :class:`~ignite.contrib.handlers.wandb_logger.WandBLogger`
+        :class:`~ignite.handlers.wandb_logger.WandBLogger`
     """
     logger = WandBLogger(**kwargs)
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
@@ -516,7 +519,7 @@ def setup_plx_logging(
         kwargs: optional keyword args to be passed to construct the logger.
 
     Returns:
-        :class:`~ignite.contrib.handlers.polyaxon_logger.PolyaxonLogger`
+        :class:`~ignite.handlers.polyaxon_logger.PolyaxonLogger`
     """
     logger = PolyaxonLogger(**kwargs)
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
@@ -547,7 +550,7 @@ def setup_clearml_logging(
         kwargs: optional keyword args to be passed to construct the logger.
 
     Returns:
-        :class:`~ignite.contrib.handlers.clearml_logger.ClearMLLogger`
+        :class:`~ignite.handlers.clearml_logger.ClearMLLogger`
     """
     logger = ClearMLLogger(**kwargs)
     _setup_logging(logger, trainer, optimizers, evaluators, log_every_iters)
