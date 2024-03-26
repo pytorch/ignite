@@ -152,8 +152,8 @@ class FBResearchLogger:
         epoch_time = engine.state.times[Events.EPOCH_COMPLETED.name]
         epoch_info = (
             f"Epoch [{engine.state.epoch}/{engine.state.max_epochs}]"
-            if engine.state.max_epochs > 1
-            else ""  # type: ignore
+            if engine.state.max_epochs > 1  # type: ignore
+            else ""
         )
         msg = self.delimiter.join(
             [
