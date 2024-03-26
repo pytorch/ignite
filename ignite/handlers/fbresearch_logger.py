@@ -49,9 +49,9 @@ class FBResearchLogger:
         """Attaches all the logging handlers to the given engine.
 
         Args:
-            engine (Engine): The engine to attach the logging handlers to.
-            name (str): The name of the engine (e.g., "Train", "Validate") to include in log messages.
-            every (int): Frequency of iterations to log information. Logs are generated every 'every' iterations.
+            engine: The engine to attach the logging handlers to.
+            name: The name of the engine (e.g., "Train", "Validate") to include in log messages.
+            every: Frequency of iterations to log information. Logs are generated every 'every' iterations.
             optimizer: The optimizer used during training to log current learning rates.
         """
         engine.add_event_handler(Events.EPOCH_STARTED, self.log_epoch_started, engine, name)
@@ -81,8 +81,8 @@ class FBResearchLogger:
         Logs the training progress at regular intervals.
 
         Args:
-            engine (Engine): The training engine.
-            optimizer (torch.optim.Optimizer): The optimizer used for training. Defaults to None.
+            engine: The training engine.
+            optimizer: The optimizer used for training. Defaults to None.
         """
         assert engine.state.epoch_length is not None
         cuda_max_mem = ""
@@ -131,8 +131,8 @@ class FBResearchLogger:
         Logs the start of an epoch.
 
         Args:
-            engine (Engine): The engine object.
-            name (str): The name of the epoch.
+            engine: The engine object.
+            name: The name of the epoch.
 
         """
         msg = f"{name}: start epoch [{engine.state.epoch}/{engine.state.max_epochs}]"
@@ -143,8 +143,8 @@ class FBResearchLogger:
         Logs the completion of an epoch.
 
         Args:
-            engine (Engine): The engine object that triggered the event.
-            name (str): The name of the event.
+            engine: The engine object that triggered the event.
+            name: The name of the event.
 
         Returns:
             None
@@ -169,8 +169,8 @@ class FBResearchLogger:
         Logs the completion of a run.
 
         Args:
-            engine (Engine): The engine object representing the training/validation loop.
-            name (str): The name of the run.
+            engine: The engine object representing the training/validation loop.
+            name: The name of the run.
 
         """
         if engine.state.max_epochs and engine.state.max_epochs > 1:
