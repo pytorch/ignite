@@ -22,9 +22,9 @@ class FBResearchLogger:
     times, and GPU memory usage.
 
     Args:
-        logger (logging.Logger): The logger to use for output.
-        delimiter (str): The delimiter to use between metrics in the log output.
-        show_output (bool): Flag to enable logging of the output from the engine's process function.
+        logger: The logger to use for output.
+        delimiter: The delimiter to use between metrics in the log output.
+        show_output: Flag to enable logging of the output from the engine's process function.
 
     Examples:
         .. code-block:: python
