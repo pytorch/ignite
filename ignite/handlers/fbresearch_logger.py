@@ -82,7 +82,7 @@ class FBResearchLogger:
 
         Args:
             engine (Engine): The training engine.
-            optimizer (torch.optim.Optimizer, optional): The optimizer used for training. Defaults to None.
+            optimizer (torch.optim.Optimizer): The optimizer used for training. Defaults to None.
         """
         assert engine.state.epoch_length is not None
         cuda_max_mem = ""
