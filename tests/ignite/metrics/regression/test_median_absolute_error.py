@@ -3,53 +3,67 @@ import os
 import numpy as np
 import pytest
 import torch
-from sklearn.metrics import r2_score
 
 import ignite.distributed as idist
-from ignite.contrib.metrics.regression import R2Score
 from ignite.engine import Engine
 from ignite.exceptions import NotComputableError
+from ignite.metrics.regression import MedianAbsoluteError
 
 
 def test_zero_sample():
-    m = R2Score()
-    with pytest.raises(NotComputableError, match=r"R2Score must have at least one example before it can be computed"):
+    m = MedianAbsoluteError()
+    with pytest.raises(
+        NotComputableError, match=r"EpochMetric must have at least one example before it can be computed"
+    ):
         m.compute()
 
 
 def test_wrong_input_shapes():
-    m = R2Score()
+    m = MedianAbsoluteError()
 
-    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
-        m.update((torch.rand(4), torch.rand(4, 1)))
+    with pytest.raises(ValueError, match=r"Predictions should be of shape"):
+        m.update((torch.rand(4, 1, 2), torch.rand(4, 1)))
 
-    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
-        m.update((torch.rand(4, 1), torch.rand(4)))
+    with pytest.raises(ValueError, match=r"Targets should be of shape"):
+        m.update((torch.rand(4, 1), torch.rand(4, 1, 2)))
+
+    with pytest.raises(ValueError, match=r"Predictions should be of shape"):
+        m.update((torch.rand(4, 1, 2), torch.rand(4)))
+
+    with pytest.raises(ValueError, match=r"Targets should be of shape"):
+        m.update((torch.rand(4), torch.rand(4, 1, 2)))
 
 
-def test_r2_score():
+def test_median_absolute_error():
+    # See https://github.com/torch/torch7/pull/182
+    # For even number of elements, PyTorch returns middle element
+    # NumPy returns average of middle elements
+    # Size of dataset will be odd for these tests
+
     size = 51
     np_y_pred = np.random.rand(size)
     np_y = np.random.rand(size)
+    np_median_absolute_error = np.median(np.abs(np_y - np_y_pred))
 
-    m = R2Score()
+    m = MedianAbsoluteError()
     y_pred = torch.from_numpy(np_y_pred)
     y = torch.from_numpy(np_y)
 
     m.reset()
     m.update((y_pred, y))
 
-    assert r2_score(np_y, np_y_pred) == pytest.approx(m.compute())
+    assert np_median_absolute_error == pytest.approx(m.compute())
 
 
-def test_r2_score_2():
+def test_median_absolute_error_2():
     np.random.seed(1)
     size = 105
     np_y_pred = np.random.rand(size, 1)
     np_y = np.random.rand(size, 1)
     np.random.shuffle(np_y)
+    np_median_absolute_error = np.median(np.abs(np_y - np_y_pred))
 
-    m = R2Score()
+    m = MedianAbsoluteError()
     y_pred = torch.from_numpy(np_y_pred)
     y = torch.from_numpy(np_y)
 
@@ -60,15 +74,16 @@ def test_r2_score_2():
         idx = i * batch_size
         m.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
 
-    assert r2_score(np_y, np_y_pred) == pytest.approx(m.compute())
+    assert np_median_absolute_error == pytest.approx(m.compute())
 
 
-def test_integration_r2_score():
+def test_integration_median_absolute_error():
     np.random.seed(1)
     size = 105
     np_y_pred = np.random.rand(size, 1)
     np_y = np.random.rand(size, 1)
     np.random.shuffle(np_y)
+    np_median_absolute_error = np.median(np.abs(np_y - np_y_pred))
 
     batch_size = 15
 
@@ -80,36 +95,41 @@ def test_integration_r2_score():
 
     engine = Engine(update_fn)
 
-    m = R2Score()
-    m.attach(engine, "r2_score")
+    m = MedianAbsoluteError()
+    m.attach(engine, "median_absolute_error")
 
     data = list(range(size // batch_size))
-    r_squared = engine.run(data, max_epochs=1).metrics["r2_score"]
+    median_absolute_error = engine.run(data, max_epochs=1).metrics["median_absolute_error"]
 
-    assert r2_score(np_y, np_y_pred) == pytest.approx(r_squared)
+    assert np_median_absolute_error == pytest.approx(median_absolute_error)
 
 
-def _test_distrib_compute(device, tol=1e-6):
-    rank = idist.get_rank()
-
+def _test_distrib_compute(device):
     def _test(metric_device):
         metric_device = torch.device(metric_device)
-        m = R2Score(device=metric_device)
+        m = MedianAbsoluteError(device=metric_device)
 
-        y_pred = torch.randint(0, 10, size=(10,), device=device).float()
-        y = torch.randint(0, 10, size=(10,), device=device).float()
+        size = 105
 
+        y_pred = torch.randint(1, 10, size=(size, 1), dtype=torch.double, device=device)
+        y = torch.randint(1, 10, size=(size, 1), dtype=torch.double, device=device)
         m.update((y_pred, y))
 
         # gather y_pred, y
         y_pred = idist.all_gather(y_pred)
         y = idist.all_gather(y)
 
-        np_y_pred = y_pred.cpu().numpy()
-        np_y = y.cpu().numpy()
-        res = m.compute()
-        assert r2_score(np_y, np_y_pred) == pytest.approx(res, abs=tol)
+        np_y_pred = y_pred.cpu().numpy().ravel()
+        np_y = y.cpu().numpy().ravel()
 
+        res = m.compute()
+
+        e = np.abs(np_y - np_y_pred)
+
+        np_res = np.median(e)
+        assert pytest.approx(res) == np_res
+
+    rank = idist.get_rank()
     for i in range(3):
         torch.manual_seed(10 + rank + i)
         _test("cpu")
@@ -118,15 +138,12 @@ def _test_distrib_compute(device, tol=1e-6):
 
 
 def _test_distrib_integration(device):
-    rank = idist.get_rank()
-
     def _test(n_epochs, metric_device):
         metric_device = torch.device(metric_device)
         n_iters = 80
-        batch_size = 16
-
-        y_true = torch.randint(0, 10, size=(n_iters * batch_size,)).to(device).float()
-        y_preds = torch.randint(0, 10, size=(n_iters * batch_size,)).to(device).float()
+        batch_size = 105
+        y_true = torch.rand(size=(n_iters * batch_size,)).to(device)
+        y_preds = torch.rand(size=(n_iters * batch_size,)).to(device)
 
         def update(engine, i):
             return (
@@ -136,8 +153,8 @@ def _test_distrib_integration(device):
 
         engine = Engine(update)
 
-        r2 = R2Score(device=metric_device)
-        r2.attach(engine, "r2")
+        m = MedianAbsoluteError(device=metric_device)
+        m.attach(engine, "mae")
 
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=n_epochs)
@@ -145,22 +162,25 @@ def _test_distrib_integration(device):
         y_preds = idist.all_gather(y_preds)
         y_true = idist.all_gather(y_true)
 
-        assert "r2" in engine.state.metrics
+        assert "mae" in engine.state.metrics
 
-        res = engine.state.metrics["r2"]
-        if isinstance(res, torch.Tensor):
-            res = res.cpu().numpy()
+        res = engine.state.metrics["mae"]
 
-        true_res = r2_score(y_true.cpu().numpy(), y_preds.cpu().numpy())
+        np_y_true = y_true.cpu().numpy().ravel()
+        np_y_preds = y_preds.cpu().numpy().ravel()
 
-        assert pytest.approx(res) == true_res
+        e = np.abs(np_y_true - np_y_preds)
+        np_res = np.median(e)
+
+        assert pytest.approx(res) == np_res
 
     metric_devices = ["cpu"]
     if device.type != "xla":
         metric_devices.append(idist.device())
     for metric_device in metric_devices:
+        rank = idist.get_rank()
         for i in range(2):
-            torch.manual_seed(12 + rank + i)
+            torch.manual_seed(10 + rank + i)
             _test(n_epochs=1, metric_device=metric_device)
             _test(n_epochs=2, metric_device=metric_device)
 
@@ -216,13 +236,13 @@ def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
 @pytest.mark.skipif(not idist.has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_distrib_single_device_xla():
     device = idist.device()
-    _test_distrib_compute(device, tol=1e-3)
+    _test_distrib_compute(device)
     _test_distrib_integration(device)
 
 
 def _test_distrib_xla_nprocs(index):
     device = idist.device()
-    _test_distrib_compute(device, tol=1e-3)
+    _test_distrib_compute(device)
     _test_distrib_integration(device)
 
 

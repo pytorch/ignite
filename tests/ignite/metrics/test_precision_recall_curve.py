@@ -9,9 +9,9 @@ import torch
 from sklearn.metrics import precision_recall_curve
 
 import ignite.distributed as idist
-from ignite.contrib.metrics.precision_recall_curve import PrecisionRecallCurve
 from ignite.engine import Engine
 from ignite.metrics.epoch_metric import EpochMetricWarning
+from ignite.metrics.precision_recall_curve import PrecisionRecallCurve
 
 
 @pytest.fixture()

@@ -3,15 +3,24 @@ import os
 import numpy as np
 import pytest
 import torch
-from sklearn.metrics import DistanceMetric
 
 import ignite.distributed as idist
-from ignite.contrib.metrics.regression import CanberraMetric
 from ignite.engine import Engine
+from ignite.exceptions import NotComputableError
+from ignite.metrics.regression import GeometricMeanRelativeAbsoluteError
+
+
+def test_zero_sample():
+    m = GeometricMeanRelativeAbsoluteError()
+    with pytest.raises(
+        NotComputableError,
+        match=r"GeometricMeanRelativeAbsoluteError must have at least one example before it can be computed",
+    ):
+        m.compute()
 
 
 def test_wrong_input_shapes():
-    m = CanberraMetric()
+    m = GeometricMeanRelativeAbsoluteError()
 
     with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
         m.update((torch.rand(4), torch.rand(4, 1)))
@@ -21,111 +30,75 @@ def test_wrong_input_shapes():
 
 
 def test_compute():
-    a = np.random.randn(4)
-    b = np.random.randn(4)
-    c = np.random.randn(4)
-    d = np.random.randn(4)
-    ground_truth = np.random.randn(4)
+    size = 51
+    np_y_pred = np.random.rand(size)
+    np_y = np.random.rand(size)
+    np_gmrae = np.exp(np.log(np.abs(np_y - np_y_pred) / np.abs(np_y - np_y.mean())).mean())
 
-    m = CanberraMetric()
+    m = GeometricMeanRelativeAbsoluteError()
+    y_pred = torch.from_numpy(np_y_pred)
+    y = torch.from_numpy(np_y)
 
-    canberra = DistanceMetric.get_metric("canberra")
+    m.reset()
+    m.update((y_pred, y))
 
-    m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
-    np_sum = (np.abs(ground_truth - a) / (np.abs(a) + np.abs(ground_truth))).sum()
-    assert m.compute() == pytest.approx(np_sum)
-    assert canberra.pairwise([a, ground_truth])[0][1] == pytest.approx(np_sum)
-
-    m.update((torch.from_numpy(b), torch.from_numpy(ground_truth)))
-    np_sum += ((np.abs(ground_truth - b)) / (np.abs(b) + np.abs(ground_truth))).sum()
-    assert m.compute() == pytest.approx(np_sum)
-    v1 = np.hstack([a, b])
-    v2 = np.hstack([ground_truth, ground_truth])
-    assert canberra.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
-
-    m.update((torch.from_numpy(c), torch.from_numpy(ground_truth)))
-    np_sum += ((np.abs(ground_truth - c)) / (np.abs(c) + np.abs(ground_truth))).sum()
-    assert m.compute() == pytest.approx(np_sum)
-    v1 = np.hstack([v1, c])
-    v2 = np.hstack([v2, ground_truth])
-    assert canberra.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
-
-    m.update((torch.from_numpy(d), torch.from_numpy(ground_truth)))
-    np_sum += (np.abs(ground_truth - d) / (np.abs(d) + np.abs(ground_truth))).sum()
-    assert m.compute() == pytest.approx(np_sum)
-    v1 = np.hstack([v1, d])
-    v2 = np.hstack([v2, ground_truth])
-    assert canberra.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
+    assert np_gmrae == pytest.approx(m.compute())
 
 
 def test_integration():
-    def _test(y_pred, y, batch_size):
-        def update_fn(engine, batch):
-            idx = (engine.state.iteration - 1) * batch_size
-            y_true_batch = np_y[idx : idx + batch_size]
-            y_pred_batch = np_y_pred[idx : idx + batch_size]
-            return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+    y_pred = torch.rand(size=(100,))
+    y = torch.rand(size=(100,))
 
-        engine = Engine(update_fn)
+    batch_size = 10
 
-        m = CanberraMetric()
-        m.attach(engine, "cm")
+    def update_fn(engine, batch):
+        idx = (engine.state.iteration - 1) * batch_size
+        y_true_batch = np_y[idx : idx + batch_size]
+        y_pred_batch = np_y_pred[idx : idx + batch_size]
+        return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
 
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().ravel()
+    engine = Engine(update_fn)
 
-        canberra = DistanceMetric.get_metric("canberra")
+    m = GeometricMeanRelativeAbsoluteError()
+    m.attach(engine, "gmrae")
 
-        data = list(range(y_pred.shape[0] // batch_size))
-        cm = engine.run(data, max_epochs=1).metrics["cm"]
+    np_y = y.numpy().ravel()
+    np_y_pred = y_pred.numpy().ravel()
 
-        assert canberra.pairwise([np_y_pred, np_y])[0][1] == pytest.approx(cm)
+    data = list(range(y_pred.shape[0] // batch_size))
+    gmrae = engine.run(data, max_epochs=1).metrics["gmrae"]
 
-    def get_test_cases():
-        test_cases = [
-            (torch.rand(size=(100,)), torch.rand(size=(100,)), 10),
-            (torch.rand(size=(100, 1)), torch.rand(size=(100, 1)), 20),
-        ]
-        return test_cases
+    sum_errors = np.log(np.abs(np_y - np_y_pred) / np.abs(np_y - np_y.mean())).sum()
+    np_len = len(y_pred)
+    np_ans = np.exp(sum_errors / np_len)
 
-    for _ in range(5):
-        # check multiple random inputs as random exact occurencies are rare
-        test_cases = get_test_cases()
-        for y_pred, y, batch_size in test_cases:
-            _test(y_pred, y, batch_size)
-
-
-def test_error_is_not_nan():
-    m = CanberraMetric()
-    m.update((torch.zeros(4), torch.zeros(4)))
-    assert not (torch.isnan(m._sum_of_errors).any() or torch.isinf(m._sum_of_errors).any()), m._sum_of_errors
+    assert np_ans == pytest.approx(gmrae)
 
 
 def _test_distrib_compute(device):
     rank = idist.get_rank()
 
-    canberra = DistanceMetric.get_metric("canberra")
-
     def _test(metric_device):
         metric_device = torch.device(metric_device)
-        m = CanberraMetric(device=metric_device)
+        m = GeometricMeanRelativeAbsoluteError(device=metric_device)
 
-        y_pred = torch.randint(0, 10, size=(10,), device=device).float()
-        y = torch.randint(0, 10, size=(10,), device=device).float()
+        y_pred = torch.rand(size=(100,), device=device)
+        y = torch.rand(size=(100,), device=device)
 
         m.update((y_pred, y))
 
-        # gather y_pred, y
         y_pred = idist.all_gather(y_pred)
         y = idist.all_gather(y)
 
-        np_y_pred = y_pred.cpu().numpy()
         np_y = y.cpu().numpy()
-        res = m.compute()
-        assert canberra.pairwise([np_y_pred, np_y])[0][1] == pytest.approx(res)
+        np_y_pred = y_pred.cpu().numpy()
+
+        np_gmrae = np.exp(np.log(np.abs(np_y - np_y_pred) / np.abs(np_y - np_y.mean())).mean())
+
+        assert m.compute() == pytest.approx(np_gmrae, rel=1e-4)
 
     for i in range(3):
-        torch.manual_seed(10 + rank + i)
+        torch.manual_seed(12 + rank + i)
         _test("cpu")
         if device.type != "xla":
             _test(idist.device())
@@ -133,7 +106,7 @@ def _test_distrib_compute(device):
 
 def _test_distrib_integration(device):
     rank = idist.get_rank()
-    canberra = DistanceMetric.get_metric("canberra")
+    torch.manual_seed(12)
 
     def _test(n_epochs, metric_device):
         metric_device = torch.device(metric_device)
@@ -151,8 +124,8 @@ def _test_distrib_integration(device):
 
         engine = Engine(update)
 
-        m = CanberraMetric(device=metric_device)
-        m.attach(engine, "cm")
+        gmrae = GeometricMeanRelativeAbsoluteError(device=metric_device)
+        gmrae.attach(engine, "gmrae")
 
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=n_epochs)
@@ -160,16 +133,16 @@ def _test_distrib_integration(device):
         y_preds = idist.all_gather(y_preds)
         y_true = idist.all_gather(y_true)
 
-        assert "cm" in engine.state.metrics
+        assert "gmrae" in engine.state.metrics
 
-        res = engine.state.metrics["cm"]
-        if isinstance(res, torch.Tensor):
-            res = res.cpu().numpy()
+        res = engine.state.metrics["gmrae"]
 
-        np_y_true = y_true.cpu().numpy()
-        np_y_preds = y_preds.cpu().numpy()
+        np_y = y_true.cpu().numpy()
+        np_y_pred = y_preds.cpu().numpy()
 
-        assert pytest.approx(res) == canberra.pairwise([np_y_preds, np_y_true])[0][1]
+        np_gmrae = np.exp(np.log(np.abs(np_y - np_y_pred) / np.abs(np_y - np_y.mean())).mean())
+
+        assert pytest.approx(res, rel=1e-4) == np_gmrae
 
     metric_devices = ["cpu"]
     if device.type != "xla":
@@ -224,7 +197,6 @@ def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
 def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
     device = idist.device()
     _test_distrib_compute(device)
-    _test_distrib_integration(device)
 
 
 @pytest.mark.tpu

@@ -3,61 +3,79 @@ import os
 import numpy as np
 import pytest
 import torch
+from pytest import approx, raises
 
 import ignite.distributed as idist
-from ignite.contrib.metrics.regression import MeanError
 from ignite.engine import Engine
 from ignite.exceptions import NotComputableError
-
-
-def test_zero_sample():
-    m = MeanError()
-    with pytest.raises(NotComputableError, match=r"MeanError must have at least one example before it can be computed"):
-        m.compute()
+from ignite.metrics.regression import MeanAbsoluteRelativeError
 
 
 def test_wrong_input_shapes():
-    m = MeanError()
+    m = MeanAbsoluteRelativeError()
 
-    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
+    with raises(ValueError, match=r"Input data shapes should be the same, but given"):
         m.update((torch.rand(4), torch.rand(4, 1)))
 
-    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
+    with raises(ValueError, match=r"Input data shapes should be the same, but given"):
         m.update((torch.rand(4, 1), torch.rand(4)))
 
 
-def test_mean_error():
-    a = np.random.randn(4)
-    b = np.random.randn(4)
-    c = np.random.randn(4)
-    d = np.random.randn(4)
-    ground_truth = np.random.randn(4)
+def test_mean_absolute_relative_error():
+    a = torch.rand(4)
+    b = torch.rand(4)
+    c = torch.rand(4)
+    d = torch.rand(4)
+    ground_truth = torch.rand(4)
 
-    m = MeanError()
+    m = MeanAbsoluteRelativeError()
 
-    m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
-    np_sum = (ground_truth - a).sum()
-    np_len = len(a)
-    np_ans = np_sum / np_len
-    assert m.compute() == pytest.approx(np_ans)
+    m.update((a, ground_truth))
+    abs_error_a = torch.sum(torch.abs(ground_truth - a) / torch.abs(ground_truth))
+    num_samples_a = a.size()[0]
+    sum_error = abs_error_a
+    sum_samples = num_samples_a
+    MARE_a = sum_error / sum_samples
+    assert m.compute() == approx(MARE_a.item())
 
-    m.update((torch.from_numpy(b), torch.from_numpy(ground_truth)))
-    np_sum += (ground_truth - b).sum()
-    np_len += len(b)
-    np_ans = np_sum / np_len
-    assert m.compute() == pytest.approx(np_ans)
+    m.update((b, ground_truth))
+    abs_error_b = torch.sum(torch.abs(ground_truth - b) / torch.abs(ground_truth))
+    num_samples_b = b.size()[0]
+    sum_error += abs_error_b
+    sum_samples += num_samples_b
+    MARE_b = sum_error / sum_samples
+    assert m.compute() == approx(MARE_b.item())
 
-    m.update((torch.from_numpy(c), torch.from_numpy(ground_truth)))
-    np_sum += (ground_truth - c).sum()
-    np_len += len(c)
-    np_ans = np_sum / np_len
-    assert m.compute() == pytest.approx(np_ans)
+    m.update((c, ground_truth))
+    abs_error_c = torch.sum(torch.abs(ground_truth - c) / torch.abs(ground_truth))
+    num_samples_c = c.size()[0]
+    sum_error += abs_error_c
+    sum_samples += num_samples_c
+    MARE_c = sum_error / sum_samples
+    assert m.compute() == approx(MARE_c.item())
 
-    m.update((torch.from_numpy(d), torch.from_numpy(ground_truth)))
-    np_sum += (ground_truth - d).sum()
-    np_len += len(d)
-    np_ans = np_sum / np_len
-    assert m.compute() == pytest.approx(np_ans)
+    m.update((d, ground_truth))
+    abs_error_d = torch.sum(torch.abs(ground_truth - d) / torch.abs(ground_truth))
+    num_samples_d = d.size()[0]
+    sum_error += abs_error_d
+    sum_samples += num_samples_d
+    MARE_d = sum_error / sum_samples
+    assert m.compute() == approx(MARE_d.item())
+
+
+def test_zero_div():
+    a = torch.tensor([2.0, -1.0, -1.0, 2.0])
+    ground_truth = torch.tensor([0.0, 0.5, 0.2, 1.0])
+
+    m = MeanAbsoluteRelativeError()
+    with raises(NotComputableError, match=r"The ground truth has 0"):
+        m.update((a, ground_truth))
+
+
+def test_zero_sample():
+    m = MeanAbsoluteRelativeError()
+    with raises(NotComputableError, match=r"MeanAbsoluteRelativeError must have at least one sample"):
+        m.compute()
 
 
 def test_integration():
@@ -70,29 +88,30 @@ def test_integration():
 
         engine = Engine(update_fn)
 
-        m = MeanError()
-        m.attach(engine, "me")
+        m = MeanAbsoluteRelativeError()
+        m.attach(engine, "mare")
 
         np_y = y.numpy().ravel()
         np_y_pred = y_pred.numpy().ravel()
 
         data = list(range(y_pred.shape[0] // batch_size))
-        me = engine.run(data, max_epochs=1).metrics["me"]
+        mare = engine.run(data, max_epochs=1).metrics["mare"]
 
-        np_sum = (np_y - np_y_pred).sum()
-        np_len = len(np_y_pred)
-        np_ans = np_sum / np_len
+        abs_error = np.sum(abs(np_y - np_y_pred) / abs(np_y))
+        num_samples = len(y_pred)
+        res = abs_error / num_samples
 
-        assert np_ans == pytest.approx(me, rel=1e-4)
+        assert res == approx(mare)
 
     def get_test_cases():
         test_cases = [
-            (torch.rand(size=(50,)), torch.rand(size=(50,)), 1),
-            (torch.rand(size=(50, 1)), torch.rand(size=(50, 1)), 10),
+            (torch.rand(size=(100,)), torch.rand(size=(100,)), 10),
+            (torch.rand(size=(100, 1)), torch.rand(size=(100, 1)), 20),
         ]
         return test_cases
 
     for _ in range(5):
+        # check multiple random inputs as random exact occurencies are rare
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
             _test(y_pred, y, batch_size)
@@ -103,24 +122,27 @@ def _test_distrib_compute(device):
 
     def _test(metric_device):
         metric_device = torch.device(metric_device)
-        m = MeanError(device=metric_device)
+        m = MeanAbsoluteRelativeError(device=metric_device)
 
-        y_pred = torch.rand(size=(100,), device=device)
-        y = torch.rand(size=(100,), device=device)
+        y_pred = torch.randint(1, 11, size=(10,), device=device).float()
+        y = torch.randint(1, 11, size=(10,), device=device).float()
 
         m.update((y_pred, y))
 
+        # gather y_pred, y
         y_pred = idist.all_gather(y_pred)
         y = idist.all_gather(y)
 
-        np_y = y.cpu().numpy()
         np_y_pred = y_pred.cpu().numpy()
+        np_y = y.cpu().numpy()
 
-        np_sum = (np_y - np_y_pred).sum()
-        np_len = len(np_y_pred)
-        np_ans = np_sum / np_len
+        res = m.compute()
 
-        assert m.compute() == pytest.approx(np_ans)
+        abs_error = np.sum(abs(np_y - np_y_pred) / abs(np_y))
+        num_samples = len(y_pred)
+        np_res = abs_error / num_samples
+
+        assert np_res == approx(res)
 
     for i in range(3):
         torch.manual_seed(10 + rank + i)
@@ -129,7 +151,7 @@ def _test_distrib_compute(device):
             _test(idist.device())
 
 
-def _test_distrib_integration(device, tol=1e-5):
+def _test_distrib_integration(device):
     rank = idist.get_rank()
 
     def _test(n_epochs, metric_device):
@@ -148,8 +170,8 @@ def _test_distrib_integration(device, tol=1e-5):
 
         engine = Engine(update)
 
-        me = MeanError(device=metric_device)
-        me.attach(engine, "me")
+        m = MeanAbsoluteRelativeError(device=metric_device)
+        m.attach(engine, "mare")
 
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=n_epochs)
@@ -157,18 +179,18 @@ def _test_distrib_integration(device, tol=1e-5):
         y_preds = idist.all_gather(y_preds)
         y_true = idist.all_gather(y_true)
 
-        assert "me" in engine.state.metrics
+        assert "mare" in engine.state.metrics
 
-        res = engine.state.metrics["me"]
+        mare = engine.state.metrics["mare"]
 
-        np_y = y_true.cpu().numpy()
-        np_y_pred = y_preds.cpu().numpy()
+        np_y_true = y_true.cpu().numpy()
+        np_y_preds = y_preds.cpu().numpy()
 
-        np_sum = (np_y - np_y_pred).sum()
-        np_len = len(np_y_pred)
-        np_ans = np_sum / np_len
+        abs_error = np.sum(abs(np_y_true - np_y_preds) / abs(np_y_true))
+        num_samples = len(y_preds)
+        np_res = abs_error / num_samples
 
-        assert pytest.approx(res, rel=tol) == np_ans
+        assert approx(mare) == np_res
 
     metric_devices = ["cpu"]
     if device.type != "xla":
@@ -223,6 +245,7 @@ def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
 def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
     device = idist.device()
     _test_distrib_compute(device)
+    _test_distrib_integration(device)
 
 
 @pytest.mark.tpu

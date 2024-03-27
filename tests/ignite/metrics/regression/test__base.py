@@ -7,7 +7,7 @@ import torch
 
 import ignite.distributed as idist
 
-from ignite.contrib.metrics.regression._base import _BaseRegression, _torch_median
+from ignite.metrics.regression._base import _BaseRegression, _torch_median
 
 
 def test_base_regression_shapes():

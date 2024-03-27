@@ -5,9 +5,9 @@ import pytest
 import torch
 
 import ignite.distributed as idist
-from ignite.contrib.metrics.regression import MeanNormalizedBias
 from ignite.engine import Engine
 from ignite.exceptions import NotComputableError
+from ignite.metrics.regression import MeanNormalizedBias
 
 
 def test_zero_sample():

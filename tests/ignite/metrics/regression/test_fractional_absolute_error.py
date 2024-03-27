@@ -5,22 +5,21 @@ import pytest
 import torch
 
 import ignite.distributed as idist
-from ignite.contrib.metrics.regression import GeometricMeanRelativeAbsoluteError
 from ignite.engine import Engine
 from ignite.exceptions import NotComputableError
+from ignite.metrics.regression import FractionalAbsoluteError
 
 
 def test_zero_sample():
-    m = GeometricMeanRelativeAbsoluteError()
+    m = FractionalAbsoluteError()
     with pytest.raises(
-        NotComputableError,
-        match=r"GeometricMeanRelativeAbsoluteError must have at least one example before it can be computed",
+        NotComputableError, match=r"FractionalAbsoluteError must have at least one example before it can be computed"
     ):
         m.compute()
 
 
 def test_wrong_input_shapes():
-    m = GeometricMeanRelativeAbsoluteError()
+    m = FractionalAbsoluteError()
 
     with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
         m.update((torch.rand(4), torch.rand(4, 1)))
@@ -30,49 +29,76 @@ def test_wrong_input_shapes():
 
 
 def test_compute():
-    size = 51
-    np_y_pred = np.random.rand(size)
-    np_y = np.random.rand(size)
-    np_gmrae = np.exp(np.log(np.abs(np_y - np_y_pred) / np.abs(np_y - np_y.mean())).mean())
+    a = np.random.randn(4)
+    b = np.random.randn(4)
+    c = np.random.randn(4)
+    d = np.random.randn(4)
+    ground_truth = np.random.randn(4)
 
-    m = GeometricMeanRelativeAbsoluteError()
-    y_pred = torch.from_numpy(np_y_pred)
-    y = torch.from_numpy(np_y)
+    m = FractionalAbsoluteError()
 
-    m.reset()
-    m.update((y_pred, y))
+    m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
+    np_sum = (2 * np.abs((a - ground_truth)) / (np.abs(a) + np.abs(ground_truth))).sum()
+    np_len = len(a)
+    np_ans = np_sum / np_len
+    assert m.compute() == pytest.approx(np_ans)
 
-    assert np_gmrae == pytest.approx(m.compute())
+    m.update((torch.from_numpy(b), torch.from_numpy(ground_truth)))
+    np_sum += (2 * np.abs((b - ground_truth)) / (np.abs(b) + np.abs(ground_truth))).sum()
+    np_len += len(b)
+    np_ans = np_sum / np_len
+    assert m.compute() == pytest.approx(np_ans)
+
+    m.update((torch.from_numpy(c), torch.from_numpy(ground_truth)))
+    np_sum += (2 * np.abs((c - ground_truth)) / (np.abs(c) + np.abs(ground_truth))).sum()
+    np_len += len(c)
+    np_ans = np_sum / np_len
+    assert m.compute() == pytest.approx(np_ans)
+
+    m.update((torch.from_numpy(d), torch.from_numpy(ground_truth)))
+    np_sum += (2 * np.abs((d - ground_truth)) / (np.abs(d) + np.abs(ground_truth))).sum()
+    np_len += len(d)
+    np_ans = np_sum / np_len
+    assert m.compute() == pytest.approx(np_ans)
 
 
 def test_integration():
-    y_pred = torch.rand(size=(100,))
-    y = torch.rand(size=(100,))
+    def _test(y_pred, y, batch_size):
+        def update_fn(engine, batch):
+            idx = (engine.state.iteration - 1) * batch_size
+            y_true_batch = np_y[idx : idx + batch_size]
+            y_pred_batch = np_y_pred[idx : idx + batch_size]
+            return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
 
-    batch_size = 10
+        engine = Engine(update_fn)
 
-    def update_fn(engine, batch):
-        idx = (engine.state.iteration - 1) * batch_size
-        y_true_batch = np_y[idx : idx + batch_size]
-        y_pred_batch = np_y_pred[idx : idx + batch_size]
-        return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+        m = FractionalAbsoluteError()
+        m.attach(engine, "fab")
 
-    engine = Engine(update_fn)
+        np_y = y.numpy().ravel()
+        np_y_pred = y_pred.numpy().ravel()
 
-    m = GeometricMeanRelativeAbsoluteError()
-    m.attach(engine, "gmrae")
+        data = list(range(y_pred.shape[0] // batch_size))
+        fab = engine.run(data, max_epochs=1).metrics["fab"]
 
-    np_y = y.numpy().ravel()
-    np_y_pred = y_pred.numpy().ravel()
+        np_sum = (2 * np.abs((np_y_pred - np_y)) / (np.abs(np_y_pred) + np.abs(np_y))).sum()
+        np_len = len(y_pred)
+        np_ans = np_sum / np_len
 
-    data = list(range(y_pred.shape[0] // batch_size))
-    gmrae = engine.run(data, max_epochs=1).metrics["gmrae"]
+        assert np_ans == pytest.approx(fab)
 
-    sum_errors = np.log(np.abs(np_y - np_y_pred) / np.abs(np_y - np_y.mean())).sum()
-    np_len = len(y_pred)
-    np_ans = np.exp(sum_errors / np_len)
+    def get_test_cases():
+        test_cases = [
+            (torch.rand(size=(100,)), torch.rand(size=(100,)), 10),
+            (torch.rand(size=(100, 1)), torch.rand(size=(100, 1)), 20),
+        ]
+        return test_cases
 
-    assert np_ans == pytest.approx(gmrae)
+    for _ in range(5):
+        # check multiple random inputs as random exact occurencies are rare
+        test_cases = get_test_cases()
+        for y_pred, y, batch_size in test_cases:
+            _test(y_pred, y, batch_size)
 
 
 def _test_distrib_compute(device):
@@ -80,25 +106,28 @@ def _test_distrib_compute(device):
 
     def _test(metric_device):
         metric_device = torch.device(metric_device)
-        m = GeometricMeanRelativeAbsoluteError(device=metric_device)
+        m = FractionalAbsoluteError(device=metric_device)
 
         y_pred = torch.rand(size=(100,), device=device)
         y = torch.rand(size=(100,), device=device)
 
         m.update((y_pred, y))
 
+        # gather y_pred, y
         y_pred = idist.all_gather(y_pred)
         y = idist.all_gather(y)
 
         np_y = y.cpu().numpy()
         np_y_pred = y_pred.cpu().numpy()
 
-        np_gmrae = np.exp(np.log(np.abs(np_y - np_y_pred) / np.abs(np_y - np_y.mean())).mean())
+        np_sum = (2 * np.abs((np_y_pred - np_y)) / (np.abs(np_y_pred) + np.abs(np_y))).sum()
+        np_len = len(np_y_pred)
+        np_ans = np_sum / np_len
 
-        assert m.compute() == pytest.approx(np_gmrae, rel=1e-4)
+        assert m.compute() == pytest.approx(np_ans)
 
     for i in range(3):
-        torch.manual_seed(12 + rank + i)
+        torch.manual_seed(10 + rank + i)
         _test("cpu")
         if device.type != "xla":
             _test(idist.device())
@@ -106,7 +135,6 @@ def _test_distrib_compute(device):
 
 def _test_distrib_integration(device):
     rank = idist.get_rank()
-    torch.manual_seed(12)
 
     def _test(n_epochs, metric_device):
         metric_device = torch.device(metric_device)
@@ -124,8 +152,8 @@ def _test_distrib_integration(device):
 
         engine = Engine(update)
 
-        gmrae = GeometricMeanRelativeAbsoluteError(device=metric_device)
-        gmrae.attach(engine, "gmrae")
+        fae = FractionalAbsoluteError(device=metric_device)
+        fae.attach(engine, "fae")
 
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=n_epochs)
@@ -133,16 +161,20 @@ def _test_distrib_integration(device):
         y_preds = idist.all_gather(y_preds)
         y_true = idist.all_gather(y_true)
 
-        assert "gmrae" in engine.state.metrics
+        assert "fae" in engine.state.metrics
 
-        res = engine.state.metrics["gmrae"]
+        res = engine.state.metrics["fae"]
+        if isinstance(res, torch.Tensor):
+            res = res.cpu().numpy()
 
         np_y = y_true.cpu().numpy()
         np_y_pred = y_preds.cpu().numpy()
 
-        np_gmrae = np.exp(np.log(np.abs(np_y - np_y_pred) / np.abs(np_y - np_y.mean())).mean())
+        np_sum = (2 * np.abs((np_y_pred - np_y)) / (np.abs(np_y_pred) + np.abs(np_y))).sum()
+        np_len = len(np_y_pred)
+        np_ans = np_sum / np_len
 
-        assert pytest.approx(res, rel=1e-4) == np_gmrae
+        assert pytest.approx(res) == np_ans
 
     metric_devices = ["cpu"]
     if device.type != "xla":

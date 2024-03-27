@@ -3,23 +3,15 @@ import os
 import numpy as np
 import pytest
 import torch
+from sklearn.metrics import DistanceMetric
 
 import ignite.distributed as idist
-from ignite.contrib.metrics.regression import FractionalAbsoluteError
 from ignite.engine import Engine
-from ignite.exceptions import NotComputableError
-
-
-def test_zero_sample():
-    m = FractionalAbsoluteError()
-    with pytest.raises(
-        NotComputableError, match=r"FractionalAbsoluteError must have at least one example before it can be computed"
-    ):
-        m.compute()
+from ignite.metrics.regression import CanberraMetric
 
 
 def test_wrong_input_shapes():
-    m = FractionalAbsoluteError()
+    m = CanberraMetric()
 
     with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
         m.update((torch.rand(4), torch.rand(4, 1)))
@@ -35,31 +27,35 @@ def test_compute():
     d = np.random.randn(4)
     ground_truth = np.random.randn(4)
 
-    m = FractionalAbsoluteError()
+    m = CanberraMetric()
+
+    canberra = DistanceMetric.get_metric("canberra")
 
     m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
-    np_sum = (2 * np.abs((a - ground_truth)) / (np.abs(a) + np.abs(ground_truth))).sum()
-    np_len = len(a)
-    np_ans = np_sum / np_len
-    assert m.compute() == pytest.approx(np_ans)
+    np_sum = (np.abs(ground_truth - a) / (np.abs(a) + np.abs(ground_truth))).sum()
+    assert m.compute() == pytest.approx(np_sum)
+    assert canberra.pairwise([a, ground_truth])[0][1] == pytest.approx(np_sum)
 
     m.update((torch.from_numpy(b), torch.from_numpy(ground_truth)))
-    np_sum += (2 * np.abs((b - ground_truth)) / (np.abs(b) + np.abs(ground_truth))).sum()
-    np_len += len(b)
-    np_ans = np_sum / np_len
-    assert m.compute() == pytest.approx(np_ans)
+    np_sum += ((np.abs(ground_truth - b)) / (np.abs(b) + np.abs(ground_truth))).sum()
+    assert m.compute() == pytest.approx(np_sum)
+    v1 = np.hstack([a, b])
+    v2 = np.hstack([ground_truth, ground_truth])
+    assert canberra.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
 
     m.update((torch.from_numpy(c), torch.from_numpy(ground_truth)))
-    np_sum += (2 * np.abs((c - ground_truth)) / (np.abs(c) + np.abs(ground_truth))).sum()
-    np_len += len(c)
-    np_ans = np_sum / np_len
-    assert m.compute() == pytest.approx(np_ans)
+    np_sum += ((np.abs(ground_truth - c)) / (np.abs(c) + np.abs(ground_truth))).sum()
+    assert m.compute() == pytest.approx(np_sum)
+    v1 = np.hstack([v1, c])
+    v2 = np.hstack([v2, ground_truth])
+    assert canberra.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
 
     m.update((torch.from_numpy(d), torch.from_numpy(ground_truth)))
-    np_sum += (2 * np.abs((d - ground_truth)) / (np.abs(d) + np.abs(ground_truth))).sum()
-    np_len += len(d)
-    np_ans = np_sum / np_len
-    assert m.compute() == pytest.approx(np_ans)
+    np_sum += (np.abs(ground_truth - d) / (np.abs(d) + np.abs(ground_truth))).sum()
+    assert m.compute() == pytest.approx(np_sum)
+    v1 = np.hstack([v1, d])
+    v2 = np.hstack([v2, ground_truth])
+    assert canberra.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
 
 
 def test_integration():
@@ -72,20 +68,18 @@ def test_integration():
 
         engine = Engine(update_fn)
 
-        m = FractionalAbsoluteError()
-        m.attach(engine, "fab")
+        m = CanberraMetric()
+        m.attach(engine, "cm")
 
         np_y = y.numpy().ravel()
         np_y_pred = y_pred.numpy().ravel()
 
+        canberra = DistanceMetric.get_metric("canberra")
+
         data = list(range(y_pred.shape[0] // batch_size))
-        fab = engine.run(data, max_epochs=1).metrics["fab"]
+        cm = engine.run(data, max_epochs=1).metrics["cm"]
 
-        np_sum = (2 * np.abs((np_y_pred - np_y)) / (np.abs(np_y_pred) + np.abs(np_y))).sum()
-        np_len = len(y_pred)
-        np_ans = np_sum / np_len
-
-        assert np_ans == pytest.approx(fab)
+        assert canberra.pairwise([np_y_pred, np_y])[0][1] == pytest.approx(cm)
 
     def get_test_cases():
         test_cases = [
@@ -101,15 +95,23 @@ def test_integration():
             _test(y_pred, y, batch_size)
 
 
+def test_error_is_not_nan():
+    m = CanberraMetric()
+    m.update((torch.zeros(4), torch.zeros(4)))
+    assert not (torch.isnan(m._sum_of_errors).any() or torch.isinf(m._sum_of_errors).any()), m._sum_of_errors
+
+
 def _test_distrib_compute(device):
     rank = idist.get_rank()
 
+    canberra = DistanceMetric.get_metric("canberra")
+
     def _test(metric_device):
         metric_device = torch.device(metric_device)
-        m = FractionalAbsoluteError(device=metric_device)
+        m = CanberraMetric(device=metric_device)
 
-        y_pred = torch.rand(size=(100,), device=device)
-        y = torch.rand(size=(100,), device=device)
+        y_pred = torch.randint(0, 10, size=(10,), device=device).float()
+        y = torch.randint(0, 10, size=(10,), device=device).float()
 
         m.update((y_pred, y))
 
@@ -117,14 +119,10 @@ def _test_distrib_compute(device):
         y_pred = idist.all_gather(y_pred)
         y = idist.all_gather(y)
 
-        np_y = y.cpu().numpy()
         np_y_pred = y_pred.cpu().numpy()
-
-        np_sum = (2 * np.abs((np_y_pred - np_y)) / (np.abs(np_y_pred) + np.abs(np_y))).sum()
-        np_len = len(np_y_pred)
-        np_ans = np_sum / np_len
-
-        assert m.compute() == pytest.approx(np_ans)
+        np_y = y.cpu().numpy()
+        res = m.compute()
+        assert canberra.pairwise([np_y_pred, np_y])[0][1] == pytest.approx(res)
 
     for i in range(3):
         torch.manual_seed(10 + rank + i)
@@ -135,6 +133,7 @@ def _test_distrib_compute(device):
 
 def _test_distrib_integration(device):
     rank = idist.get_rank()
+    canberra = DistanceMetric.get_metric("canberra")
 
     def _test(n_epochs, metric_device):
         metric_device = torch.device(metric_device)
@@ -152,8 +151,8 @@ def _test_distrib_integration(device):
 
         engine = Engine(update)
 
-        fae = FractionalAbsoluteError(device=metric_device)
-        fae.attach(engine, "fae")
+        m = CanberraMetric(device=metric_device)
+        m.attach(engine, "cm")
 
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=n_epochs)
@@ -161,20 +160,16 @@ def _test_distrib_integration(device):
         y_preds = idist.all_gather(y_preds)
         y_true = idist.all_gather(y_true)
 
-        assert "fae" in engine.state.metrics
+        assert "cm" in engine.state.metrics
 
-        res = engine.state.metrics["fae"]
+        res = engine.state.metrics["cm"]
         if isinstance(res, torch.Tensor):
             res = res.cpu().numpy()
 
-        np_y = y_true.cpu().numpy()
-        np_y_pred = y_preds.cpu().numpy()
+        np_y_true = y_true.cpu().numpy()
+        np_y_preds = y_preds.cpu().numpy()
 
-        np_sum = (2 * np.abs((np_y_pred - np_y)) / (np.abs(np_y_pred) + np.abs(np_y))).sum()
-        np_len = len(np_y_pred)
-        np_ans = np_sum / np_len
-
-        assert pytest.approx(res) == np_ans
+        assert pytest.approx(res) == canberra.pairwise([np_y_preds, np_y_true])[0][1]
 
     metric_devices = ["cpu"]
     if device.type != "xla":
@@ -229,6 +224,7 @@ def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
 def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
     device = idist.device()
     _test_distrib_compute(device)
+    _test_distrib_integration(device)
 
 
 @pytest.mark.tpu

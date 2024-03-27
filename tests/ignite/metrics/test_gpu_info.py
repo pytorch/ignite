@@ -3,8 +3,9 @@ from unittest.mock import Mock, patch
 import pytest
 import torch
 
-from ignite.contrib.metrics import GpuInfo
 from ignite.engine import Engine, State
+
+from ignite.metrics import GpuInfo
 
 
 def test_no_pynvml_package():

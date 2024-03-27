@@ -4,12 +4,13 @@ from unittest.mock import patch
 import pytest
 import sklearn
 import torch
-from sklearn.metrics import average_precision_score
+from sklearn.metrics import roc_auc_score
 
 import ignite.distributed as idist
-from ignite.contrib.metrics import AveragePrecision
 from ignite.engine import Engine
 from ignite.exceptions import NotComputableError
+from ignite.metrics import ROC_AUC
+from ignite.metrics.epoch_metric import EpochMetricWarning
 
 torch.manual_seed(12)
 
@@ -22,48 +23,48 @@ def mock_no_sklearn():
 
 def test_no_sklearn(mock_no_sklearn):
     with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires scikit-learn to be installed."):
-        AveragePrecision()
+        ROC_AUC()
 
 
 def test_no_update():
-    ap = AveragePrecision()
+    roc_auc = ROC_AUC()
 
     with pytest.raises(
         NotComputableError, match=r"EpochMetric must have at least one example before it can be computed"
     ):
-        ap.compute()
+        roc_auc.compute()
 
 
 def test_input_types():
-    ap = AveragePrecision()
-    ap.reset()
+    roc_auc = ROC_AUC()
+    roc_auc.reset()
     output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
-    ap.update(output1)
+    roc_auc.update(output1)
 
     with pytest.raises(ValueError, match=r"Incoherent types between input y_pred and stored predictions"):
-        ap.update((torch.randint(0, 5, size=(4, 3)), torch.randint(0, 2, size=(4, 3))))
+        roc_auc.update((torch.randint(0, 5, size=(4, 3)), torch.randint(0, 2, size=(4, 3))))
 
     with pytest.raises(ValueError, match=r"Incoherent types between input y and stored targets"):
-        ap.update((torch.rand(4, 3), torch.randint(0, 2, size=(4, 3)).to(torch.int32)))
+        roc_auc.update((torch.rand(4, 3), torch.randint(0, 2, size=(4, 3)).to(torch.int32)))
 
     with pytest.raises(ValueError, match=r"Incoherent types between input y_pred and stored predictions"):
-        ap.update((torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10, 5)).long()))
+        roc_auc.update((torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10, 5)).long()))
 
 
 def test_check_shape():
-    ap = AveragePrecision()
+    roc_auc = ROC_AUC()
 
     with pytest.raises(ValueError, match=r"Predictions should be of shape"):
-        ap._check_shape((torch.tensor(0), torch.tensor(0)))
+        roc_auc._check_shape((torch.tensor(0), torch.tensor(0)))
 
     with pytest.raises(ValueError, match=r"Predictions should be of shape"):
-        ap._check_shape((torch.rand(4, 3, 1), torch.rand(4, 3)))
+        roc_auc._check_shape((torch.rand(4, 3, 1), torch.rand(4, 3)))
 
     with pytest.raises(ValueError, match=r"Targets should be of shape"):
-        ap._check_shape((torch.rand(4, 3), torch.rand(4, 3, 1)))
+        roc_auc._check_shape((torch.rand(4, 3), torch.rand(4, 3, 1)))
 
 
-@pytest.fixture(params=[item for item in range(8)])
+@pytest.fixture(params=range(8))
 def test_data_binary_and_multilabel(request):
     return [
         # Binary input data of shape (N,) or (N, 1)
@@ -84,25 +85,41 @@ def test_data_binary_and_multilabel(request):
 @pytest.mark.parametrize("n_times", range(5))
 def test_binary_and_multilabel_inputs(n_times, test_data_binary_and_multilabel):
     y_pred, y, batch_size = test_data_binary_and_multilabel
-    ap = AveragePrecision()
-    ap.reset()
+    roc_auc = ROC_AUC()
+    roc_auc.reset()
     if batch_size > 1:
         n_iters = y.shape[0] // batch_size + 1
         for i in range(n_iters):
             idx = i * batch_size
-            ap.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+            roc_auc.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
     else:
-        ap.update((y_pred, y))
+        roc_auc.update((y_pred, y))
 
     np_y = y.numpy()
     np_y_pred = y_pred.numpy()
 
-    res = ap.compute()
+    res = roc_auc.compute()
     assert isinstance(res, float)
-    assert average_precision_score(np_y, np_y_pred) == pytest.approx(res)
+    assert roc_auc_score(np_y, np_y_pred) == pytest.approx(res)
 
 
-@pytest.fixture(params=[item for item in range(4)])
+def test_check_compute_fn():
+    y_pred = torch.zeros((8, 13))
+    y_pred[:, 1] = 1
+    y_true = torch.zeros_like(y_pred)
+    output = (y_pred, y_true)
+
+    em = ROC_AUC(check_compute_fn=True)
+
+    em.reset()
+    with pytest.warns(EpochMetricWarning, match=r"Probably, there can be a problem with `compute_fn`"):
+        em.update(output)
+
+    em = ROC_AUC(check_compute_fn=False)
+    em.update(output)
+
+
+@pytest.fixture(params=range(4))
 def test_data_integration_binary_and_multilabel(request):
     return [
         # Binary input data of shape (N,) or (N, 1)
@@ -115,7 +132,7 @@ def test_data_integration_binary_and_multilabel(request):
 
 
 @pytest.mark.parametrize("n_times", range(5))
-def test_integration_binary_and_mulitlabel_inputs(n_times, test_data_integration_binary_and_multilabel):
+def test_integration_binary_and_multilabel_inputs(n_times, test_data_integration_binary_and_multilabel):
     y_pred, y, batch_size = test_data_integration_binary_and_multilabel
 
     def update_fn(engine, batch):
@@ -126,39 +143,36 @@ def test_integration_binary_and_mulitlabel_inputs(n_times, test_data_integration
 
     engine = Engine(update_fn)
 
-    ap_metric = AveragePrecision()
-    ap_metric.attach(engine, "ap")
+    roc_auc_metric = ROC_AUC()
+    roc_auc_metric.attach(engine, "roc_auc")
 
     np_y = y.numpy()
     np_y_pred = y_pred.numpy()
 
-    np_ap = average_precision_score(np_y, np_y_pred)
+    np_roc_auc = roc_auc_score(np_y, np_y_pred)
 
     data = list(range(y_pred.shape[0] // batch_size))
-    ap = engine.run(data, max_epochs=1).metrics["ap"]
+    roc_auc = engine.run(data, max_epochs=1).metrics["roc_auc"]
 
-    assert isinstance(ap, float)
-    assert np_ap == pytest.approx(ap)
+    assert isinstance(roc_auc, float)
+    assert np_roc_auc == pytest.approx(roc_auc)
 
 
 def _test_distrib_binary_and_multilabel_inputs(device):
     rank = idist.get_rank()
-    torch.manual_seed(12)
 
     def _test(y_pred, y, batch_size, metric_device):
         metric_device = torch.device(metric_device)
-        ap = AveragePrecision(device=metric_device)
-        torch.manual_seed(10 + rank)
+        roc_auc = ROC_AUC(device=metric_device)
 
-        ap.reset()
-
+        roc_auc.reset()
         if batch_size > 1:
             n_iters = y.shape[0] // batch_size + 1
             for i in range(n_iters):
                 idx = i * batch_size
-                ap.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+                roc_auc.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
         else:
-            ap.update((y_pred, y))
+            roc_auc.update((y_pred, y))
 
         # gather y_pred, y
         y_pred = idist.all_gather(y_pred)
@@ -167,9 +181,9 @@ def _test_distrib_binary_and_multilabel_inputs(device):
         np_y = y.cpu().numpy()
         np_y_pred = y_pred.cpu().numpy()
 
-        res = ap.compute()
+        res = roc_auc.compute()
         assert isinstance(res, float)
-        assert average_precision_score(np_y, np_y_pred) == pytest.approx(res)
+        assert roc_auc_score(np_y, np_y_pred) == pytest.approx(res)
 
     def get_test_cases():
         test_cases = [
@@ -188,11 +202,10 @@ def _test_distrib_binary_and_multilabel_inputs(device):
         ]
         return test_cases
 
-    for _ in range(3):
+    for i in range(5):
+        torch.manual_seed(12 + rank + i)
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
-            y_pred = y_pred.to(device)
-            y = y.to(device)
             _test(y_pred, y, batch_size, "cpu")
             if device.type != "xla":
                 _test(y_pred, y, batch_size, idist.device())
@@ -209,24 +222,23 @@ def _test_distrib_integration_binary_input(device):
 
         engine = Engine(update_fn)
 
-        ap = AveragePrecision(device=metric_device)
-        ap.attach(engine, "ap")
+        roc_auc = ROC_AUC(device=metric_device)
+        roc_auc.attach(engine, "roc_auc")
 
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=n_epochs)
 
-        y_true = idist.all_gather(y_true)
         y_preds = idist.all_gather(y_preds)
+        y_true = idist.all_gather(y_true)
 
-        assert "ap" in engine.state.metrics
+        assert "roc_auc" in engine.state.metrics
 
-        res = engine.state.metrics["ap"]
+        res = engine.state.metrics["roc_auc"]
 
-        true_res = average_precision_score(y_true.cpu().numpy(), y_preds.cpu().numpy())
+        true_res = roc_auc_score(y_true.cpu().numpy(), y_preds.cpu().numpy())
         assert pytest.approx(res) == true_res
 
     def get_tests(is_N):
-        torch.manual_seed(12 + rank)
         if is_N:
             y_true = torch.randint(0, n_classes, size=(n_iters * batch_size,)).to(device)
             y_preds = torch.rand(n_iters * batch_size).to(device)
@@ -239,12 +251,12 @@ def _test_distrib_integration_binary_input(device):
 
         else:
             y_true = torch.randint(0, n_classes, size=(n_iters * batch_size, 10)).to(device)
-            y_preds = torch.randint(0, n_classes, size=(n_iters * batch_size, 10)).to(device)
+            y_preds = torch.rand(n_iters * batch_size, 10).to(device)
 
             def update_fn(engine, i):
                 return (
-                    y_preds[i * batch_size : (i + 1) * batch_size, :],
-                    y_true[i * batch_size : (i + 1) * batch_size, :],
+                    y_preds[i * batch_size : (i + 1) * batch_size],
+                    y_true[i * batch_size : (i + 1) * batch_size],
                 )
 
         return y_preds, y_true, update_fn
@@ -253,7 +265,8 @@ def _test_distrib_integration_binary_input(device):
     if device.type != "xla":
         metric_devices.append(idist.device())
     for metric_device in metric_devices:
-        for _ in range(2):
+        for i in range(2):
+            torch.manual_seed(12 + rank + i)
             # Binary input data of shape (N,)
             y_preds, y_true, update_fn = get_tests(is_N=True)
             _test(y_preds, y_true, n_epochs=1, metric_device=metric_device, update_fn=update_fn)

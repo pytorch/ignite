@@ -3,15 +3,14 @@ import os
 import numpy as np
 import pytest
 import torch
-from sklearn.metrics import DistanceMetric
 
 import ignite.distributed as idist
-from ignite.contrib.metrics.regression import ManhattanDistance
 from ignite.engine import Engine
+from ignite.metrics.regression import WaveHedgesDistance
 
 
 def test_wrong_input_shapes():
-    m = ManhattanDistance()
+    m = WaveHedgesDistance()
 
     with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
         m.update((torch.rand(4), torch.rand(4, 1)))
@@ -20,42 +19,30 @@ def test_wrong_input_shapes():
         m.update((torch.rand(4, 1), torch.rand(4)))
 
 
-def test_mahattan_distance():
+def test_compute():
     a = np.random.randn(4)
     b = np.random.randn(4)
     c = np.random.randn(4)
     d = np.random.randn(4)
     ground_truth = np.random.randn(4)
 
-    m = ManhattanDistance()
-
-    manhattan = DistanceMetric.get_metric("manhattan")
+    m = WaveHedgesDistance()
 
     m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
-    np_sum = np.abs(ground_truth - a).sum()
+    np_sum = (np.abs(ground_truth - a) / np.maximum.reduce([a, ground_truth])).sum()
     assert m.compute() == pytest.approx(np_sum)
-    assert manhattan.pairwise([a, ground_truth])[0][1] == pytest.approx(np_sum)
 
     m.update((torch.from_numpy(b), torch.from_numpy(ground_truth)))
-    np_sum += np.abs(ground_truth - b).sum()
+    np_sum += (np.abs(ground_truth - b) / np.maximum.reduce([b, ground_truth])).sum()
     assert m.compute() == pytest.approx(np_sum)
-    v1 = np.hstack([a, b])
-    v2 = np.hstack([ground_truth, ground_truth])
-    assert manhattan.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
 
     m.update((torch.from_numpy(c), torch.from_numpy(ground_truth)))
-    np_sum += np.abs(ground_truth - c).sum()
+    np_sum += (np.abs(ground_truth - c) / np.maximum.reduce([c, ground_truth])).sum()
     assert m.compute() == pytest.approx(np_sum)
-    v1 = np.hstack([v1, c])
-    v2 = np.hstack([v2, ground_truth])
-    assert manhattan.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
 
     m.update((torch.from_numpy(d), torch.from_numpy(ground_truth)))
-    np_sum += np.abs(ground_truth - d).sum()
+    np_sum += (np.abs(ground_truth - d) / np.maximum.reduce([d, ground_truth])).sum()
     assert m.compute() == pytest.approx(np_sum)
-    v1 = np.hstack([v1, d])
-    v2 = np.hstack([v2, ground_truth])
-    assert manhattan.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
 
 
 def test_integration():
@@ -68,18 +55,18 @@ def test_integration():
 
         engine = Engine(update_fn)
 
-        m = ManhattanDistance()
-        m.attach(engine, "md")
+        m = WaveHedgesDistance()
+        m.attach(engine, "whd")
 
         np_y = y.numpy().ravel()
         np_y_pred = y_pred.numpy().ravel()
 
-        manhattan = DistanceMetric.get_metric("manhattan")
-
         data = list(range(y_pred.shape[0] // batch_size))
-        md = engine.run(data, max_epochs=1).metrics["md"]
+        whd = engine.run(data, max_epochs=1).metrics["whd"]
 
-        assert manhattan.pairwise([np_y_pred, np_y])[0][1] == pytest.approx(md)
+        np_sum = (np.abs(np_y - np_y_pred) / np.maximum.reduce([np_y_pred, np_y])).sum()
+
+        assert np_sum == pytest.approx(whd)
 
     def get_test_cases():
         test_cases = [
@@ -95,20 +82,12 @@ def test_integration():
             _test(y_pred, y, batch_size)
 
 
-def test_error_is_not_nan():
-    m = ManhattanDistance()
-    m.update((torch.zeros(4), torch.zeros(4)))
-    assert not (torch.isnan(m._sum_of_errors).any() or torch.isinf(m._sum_of_errors).any()), m._sum_of_errors
-
-
 def _test_distrib_compute(device):
     rank = idist.get_rank()
 
-    manhattan = DistanceMetric.get_metric("manhattan")
-
     def _test(metric_device):
         metric_device = torch.device(metric_device)
-        m = ManhattanDistance(device=metric_device)
+        m = WaveHedgesDistance(device=metric_device)
 
         y_pred = torch.randint(0, 10, size=(10,), device=device).float()
         y = torch.randint(0, 10, size=(10,), device=device).float()
@@ -121,8 +100,12 @@ def _test_distrib_compute(device):
 
         np_y_pred = y_pred.cpu().numpy()
         np_y = y.cpu().numpy()
+
         res = m.compute()
-        assert manhattan.pairwise([np_y_pred, np_y])[0][1] == pytest.approx(res)
+
+        np_sum = (np.abs(np_y - np_y_pred) / (np.maximum.reduce([np_y_pred, np_y]) + 1e-30)).sum()
+
+        assert np_sum == pytest.approx(res)
 
     for i in range(3):
         torch.manual_seed(10 + rank + i)
@@ -133,8 +116,6 @@ def _test_distrib_compute(device):
 
 def _test_distrib_integration(device):
     rank = idist.get_rank()
-
-    manhattan = DistanceMetric.get_metric("manhattan")
 
     def _test(n_epochs, metric_device):
         metric_device = torch.device(metric_device)
@@ -152,8 +133,8 @@ def _test_distrib_integration(device):
 
         engine = Engine(update)
 
-        m = ManhattanDistance(device=metric_device)
-        m.attach(engine, "md")
+        m = WaveHedgesDistance(device=metric_device)
+        m.attach(engine, "whm")
 
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=n_epochs)
@@ -161,16 +142,16 @@ def _test_distrib_integration(device):
         y_preds = idist.all_gather(y_preds)
         y_true = idist.all_gather(y_true)
 
-        assert "md" in engine.state.metrics
+        assert "whm" in engine.state.metrics
 
-        res = engine.state.metrics["md"]
-        if isinstance(res, torch.Tensor):
-            res = res.cpu().numpy()
+        res = engine.state.metrics["whm"]
 
         np_y_true = y_true.cpu().numpy()
         np_y_preds = y_preds.cpu().numpy()
 
-        assert pytest.approx(res) == manhattan.pairwise([np_y_preds, np_y_true])[0][1]
+        np_sum = (np.abs(np_y_true - np_y_preds) / (np.maximum.reduce([np_y_preds, np_y_true]) + 1e-30)).sum()
+
+        assert pytest.approx(res) == np_sum
 
     metric_devices = ["cpu"]
     if device.type != "xla":

@@ -7,9 +7,9 @@ import torch
 from sklearn.metrics import cohen_kappa_score
 
 import ignite.distributed as idist
-from ignite.contrib.metrics import CohenKappa
 from ignite.engine import Engine
 from ignite.exceptions import NotComputableError
+from ignite.metrics import CohenKappa
 
 torch.manual_seed(12)
 

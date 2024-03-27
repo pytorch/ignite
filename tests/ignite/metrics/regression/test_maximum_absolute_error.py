@@ -5,21 +5,21 @@ import pytest
 import torch
 
 import ignite.distributed as idist
-from ignite.contrib.metrics.regression import GeometricMeanAbsoluteError
 from ignite.engine import Engine
 from ignite.exceptions import NotComputableError
+from ignite.metrics.regression import MaximumAbsoluteError
 
 
 def test_zero_sample():
-    m = GeometricMeanAbsoluteError()
+    m = MaximumAbsoluteError()
     with pytest.raises(
-        NotComputableError, match=r"GeometricMeanAbsoluteError must have at least one example before it can be computed"
+        NotComputableError, match=r"MaximumAbsoluteError must have at least one example before it can be computed"
     ):
         m.compute()
 
 
 def test_wrong_input_shapes():
-    m = GeometricMeanAbsoluteError()
+    m = MaximumAbsoluteError()
 
     with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
         m.update((torch.rand(4), torch.rand(4, 1)))
@@ -28,42 +28,35 @@ def test_wrong_input_shapes():
         m.update((torch.rand(4, 1), torch.rand(4)))
 
 
-def test_compute():
+def test_maximum_absolute_error():
     a = np.random.randn(4)
     b = np.random.randn(4)
     c = np.random.randn(4)
     d = np.random.randn(4)
     ground_truth = np.random.randn(4)
-    np_prod = 1.0
 
-    m = GeometricMeanAbsoluteError()
+    m = MaximumAbsoluteError()
+
+    np_ans = -1
+
     m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
-
-    errors = np.abs(ground_truth - a)
-    np_prod = np.multiply.reduce(errors) * np_prod
-    np_len = len(a)
-    np_ans = np.power(np_prod, 1.0 / np_len)
+    np_max = np.max(np.abs((a - ground_truth)))
+    np_ans = np_max if np_max > np_ans else np_ans
     assert m.compute() == pytest.approx(np_ans)
 
     m.update((torch.from_numpy(b), torch.from_numpy(ground_truth)))
-    errors = np.abs(ground_truth - b)
-    np_prod = np.multiply.reduce(errors) * np_prod
-    np_len += len(b)
-    np_ans = np.power(np_prod, 1.0 / np_len)
+    np_max = np.max(np.abs((b - ground_truth)))
+    np_ans = np_max if np_max > np_ans else np_ans
     assert m.compute() == pytest.approx(np_ans)
 
     m.update((torch.from_numpy(c), torch.from_numpy(ground_truth)))
-    errors = np.abs(ground_truth - c)
-    np_prod = np.multiply.reduce(errors) * np_prod
-    np_len += len(c)
-    np_ans = np.power(np_prod, 1.0 / np_len)
+    np_max = np.max(np.abs((c - ground_truth)))
+    np_ans = np_max if np_max > np_ans else np_ans
     assert m.compute() == pytest.approx(np_ans)
 
     m.update((torch.from_numpy(d), torch.from_numpy(ground_truth)))
-    errors = np.abs(ground_truth - d)
-    np_prod = np.multiply.reduce(errors) * np_prod
-    np_len += len(d)
-    np_ans = np.power(np_prod, 1.0 / np_len)
+    np_max = np.max(np.abs((d - ground_truth)))
+    np_ans = np_max if np_max > np_ans else np_ans
     assert m.compute() == pytest.approx(np_ans)
 
 
@@ -77,20 +70,18 @@ def test_integration():
 
         engine = Engine(update_fn)
 
-        m = GeometricMeanAbsoluteError()
-        m.attach(engine, "gmae")
+        m = MaximumAbsoluteError()
+        m.attach(engine, "mae")
 
         np_y = y.numpy().ravel()
         np_y_pred = y_pred.numpy().ravel()
 
         data = list(range(y_pred.shape[0] // batch_size))
-        gmae = engine.run(data, max_epochs=1).metrics["gmae"]
+        mae = engine.run(data, max_epochs=1).metrics["mae"]
 
-        sum_errors = (np.log(np.abs(np_y - np_y_pred))).sum()
-        np_len = len(y_pred)
-        np_ans = np.exp(sum_errors / np_len)
+        np_max = np.max(np.abs((np_y_pred - np_y)))
 
-        assert np_ans == pytest.approx(gmae)
+        assert np_max == pytest.approx(mae)
 
     def get_test_cases():
         test_cases = [
@@ -99,9 +90,8 @@ def test_integration():
         ]
         return test_cases
 
-    for i in range(5):
+    for _ in range(5):
         # check multiple random inputs as random exact occurencies are rare
-        torch.manual_seed(12 + i)
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
             _test(y_pred, y, batch_size)
@@ -112,8 +102,7 @@ def _test_distrib_compute(device):
 
     def _test(metric_device):
         metric_device = torch.device(metric_device)
-        m = GeometricMeanAbsoluteError(device=metric_device)
-        torch.manual_seed(10 + rank)
+        m = MaximumAbsoluteError(device=metric_device)
 
         y_pred = torch.randint(0, 10, size=(10,), device=device).float()
         y = torch.randint(0, 10, size=(10,), device=device).float()
@@ -129,13 +118,12 @@ def _test_distrib_compute(device):
 
         res = m.compute()
 
-        sum_errors = (np.log(np.abs(np_y - np_y_pred))).sum()
-        np_len = len(y_pred)
-        np_ans = np.exp(sum_errors / np_len)
+        np_max = np.max(np.abs((np_y_pred - np_y)))
 
-        assert np_ans == pytest.approx(res)
+        assert np_max == pytest.approx(res)
 
-    for _ in range(3):
+    for i in range(3):
+        torch.manual_seed(10 + rank + i)
         _test("cpu")
         if device.type != "xla":
             _test(idist.device())
@@ -160,8 +148,8 @@ def _test_distrib_integration(device):
 
         engine = Engine(update)
 
-        m = GeometricMeanAbsoluteError(device=metric_device)
-        m.attach(engine, "gmae")
+        m = MaximumAbsoluteError(device=metric_device)
+        m.attach(engine, "mae")
 
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=n_epochs)
@@ -169,25 +157,23 @@ def _test_distrib_integration(device):
         y_preds = idist.all_gather(y_preds)
         y_true = idist.all_gather(y_true)
 
-        assert "gmae" in engine.state.metrics
+        assert "mae" in engine.state.metrics
 
-        res = engine.state.metrics["gmae"]
+        res = engine.state.metrics["mae"]
 
         np_y_true = y_true.cpu().numpy()
         np_y_preds = y_preds.cpu().numpy()
 
-        sum_errors = (np.log(np.abs(np_y_true - np_y_preds))).sum()
-        np_len = len(y_preds)
-        np_ans = np.exp(sum_errors / np_len)
+        np_max = np.max(np.abs((np_y_preds - np_y_true)))
 
-        assert pytest.approx(res) == np_ans
+        assert pytest.approx(res) == np_max
 
     metric_devices = ["cpu"]
     if device.type != "xla":
         metric_devices.append(idist.device())
     for metric_device in metric_devices:
         for i in range(2):
-            torch.manual_seed(11 + rank + i)
+            torch.manual_seed(12 + rank + i)
             _test(n_epochs=1, metric_device=metric_device)
             _test(n_epochs=2, metric_device=metric_device)
 
@@ -224,7 +210,7 @@ def test_distrib_hvd(gloo_hvd_executor):
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif("MULTINODE_DISTRIB" not in os.environ, reason="Skip if not multi-node distributed")
 def test_multinode_distrib_gloo_cpu_or_gpu(distributed_context_multi_node_gloo):
-    device = torch.device("cpu" if not torch.cuda.is_available() else "cuda")
+    device = idist.device()
     _test_distrib_compute(device)
     _test_distrib_integration(device)
 

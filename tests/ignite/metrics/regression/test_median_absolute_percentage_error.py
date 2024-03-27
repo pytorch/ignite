@@ -5,107 +5,114 @@ import pytest
 import torch
 
 import ignite.distributed as idist
-from ignite.contrib.metrics.regression import MaximumAbsoluteError
 from ignite.engine import Engine
 from ignite.exceptions import NotComputableError
+from ignite.metrics.regression import MedianAbsolutePercentageError
 
 
 def test_zero_sample():
-    m = MaximumAbsoluteError()
+    m = MedianAbsolutePercentageError()
     with pytest.raises(
-        NotComputableError, match=r"MaximumAbsoluteError must have at least one example before it can be computed"
+        NotComputableError, match=r"EpochMetric must have at least one example before it can be computed"
     ):
         m.compute()
 
 
 def test_wrong_input_shapes():
-    m = MaximumAbsoluteError()
+    m = MedianAbsolutePercentageError()
 
-    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
-        m.update((torch.rand(4), torch.rand(4, 1)))
+    with pytest.raises(ValueError, match=r"Predictions should be of shape"):
+        m.update((torch.rand(4, 1, 2), torch.rand(4, 1)))
 
-    with pytest.raises(ValueError, match=r"Input data shapes should be the same, but given"):
-        m.update((torch.rand(4, 1), torch.rand(4)))
+    with pytest.raises(ValueError, match=r"Targets should be of shape"):
+        m.update((torch.rand(4, 1), torch.rand(4, 1, 2)))
 
+    with pytest.raises(ValueError, match=r"Predictions should be of shape"):
+        m.update((torch.rand(4, 1, 2), torch.rand(4)))
 
-def test_maximum_absolute_error():
-    a = np.random.randn(4)
-    b = np.random.randn(4)
-    c = np.random.randn(4)
-    d = np.random.randn(4)
-    ground_truth = np.random.randn(4)
-
-    m = MaximumAbsoluteError()
-
-    np_ans = -1
-
-    m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
-    np_max = np.max(np.abs((a - ground_truth)))
-    np_ans = np_max if np_max > np_ans else np_ans
-    assert m.compute() == pytest.approx(np_ans)
-
-    m.update((torch.from_numpy(b), torch.from_numpy(ground_truth)))
-    np_max = np.max(np.abs((b - ground_truth)))
-    np_ans = np_max if np_max > np_ans else np_ans
-    assert m.compute() == pytest.approx(np_ans)
-
-    m.update((torch.from_numpy(c), torch.from_numpy(ground_truth)))
-    np_max = np.max(np.abs((c - ground_truth)))
-    np_ans = np_max if np_max > np_ans else np_ans
-    assert m.compute() == pytest.approx(np_ans)
-
-    m.update((torch.from_numpy(d), torch.from_numpy(ground_truth)))
-    np_max = np.max(np.abs((d - ground_truth)))
-    np_ans = np_max if np_max > np_ans else np_ans
-    assert m.compute() == pytest.approx(np_ans)
+    with pytest.raises(ValueError, match=r"Targets should be of shape"):
+        m.update((torch.rand(4), torch.rand(4, 1, 2)))
 
 
-def test_integration():
-    def _test(y_pred, y, batch_size):
-        def update_fn(engine, batch):
-            idx = (engine.state.iteration - 1) * batch_size
-            y_true_batch = np_y[idx : idx + batch_size]
-            y_pred_batch = np_y_pred[idx : idx + batch_size]
-            return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+def test_median_absolute_percentage_error():
+    # See https://github.com/torch/torch7/pull/182
+    # For even number of elements, PyTorch returns middle element
+    # NumPy returns average of middle elements
+    # Size of dataset will be odd for these tests
 
-        engine = Engine(update_fn)
+    size = 51
+    np_y_pred = np.random.rand(size)
+    np_y = np.random.rand(size)
+    np_median_absolute_percentage_error = 100.0 * np.median(np.abs(np_y - np_y_pred) / np.abs(np_y))
 
-        m = MaximumAbsoluteError()
-        m.attach(engine, "mae")
+    m = MedianAbsolutePercentageError()
+    y_pred = torch.from_numpy(np_y_pred)
+    y = torch.from_numpy(np_y)
 
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().ravel()
+    m.reset()
+    m.update((y_pred, y))
 
-        data = list(range(y_pred.shape[0] // batch_size))
-        mae = engine.run(data, max_epochs=1).metrics["mae"]
+    assert np_median_absolute_percentage_error == pytest.approx(m.compute())
 
-        np_max = np.max(np.abs((np_y_pred - np_y)))
 
-        assert np_max == pytest.approx(mae)
+def test_median_absolute_percentage_error_2():
+    np.random.seed(1)
+    size = 105
+    np_y_pred = np.random.rand(size, 1)
+    np_y = np.random.rand(size, 1)
+    np.random.shuffle(np_y)
+    np_median_absolute_percentage_error = 100.0 * np.median(np.abs(np_y - np_y_pred) / np.abs(np_y))
 
-    def get_test_cases():
-        test_cases = [
-            (torch.rand(size=(100,)), torch.rand(size=(100,)), 10),
-            (torch.rand(size=(100, 1)), torch.rand(size=(100, 1)), 20),
-        ]
-        return test_cases
+    m = MedianAbsolutePercentageError()
+    y_pred = torch.from_numpy(np_y_pred)
+    y = torch.from_numpy(np_y)
 
-    for _ in range(5):
-        # check multiple random inputs as random exact occurencies are rare
-        test_cases = get_test_cases()
-        for y_pred, y, batch_size in test_cases:
-            _test(y_pred, y, batch_size)
+    m.reset()
+    batch_size = 16
+    n_iters = size // batch_size + 1
+    for i in range(n_iters):
+        idx = i * batch_size
+        m.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+
+    assert np_median_absolute_percentage_error == pytest.approx(m.compute())
+
+
+def test_integration_median_absolute_percentage_error():
+    np.random.seed(1)
+    size = 105
+    np_y_pred = np.random.rand(size, 1)
+    np_y = np.random.rand(size, 1)
+    np.random.shuffle(np_y)
+    np_median_absolute_percentage_error = 100.0 * np.median(np.abs(np_y - np_y_pred) / np.abs(np_y))
+
+    batch_size = 15
+
+    def update_fn(engine, batch):
+        idx = (engine.state.iteration - 1) * batch_size
+        y_true_batch = np_y[idx : idx + batch_size]
+        y_pred_batch = np_y_pred[idx : idx + batch_size]
+        return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+
+    engine = Engine(update_fn)
+
+    m = MedianAbsolutePercentageError()
+    m.attach(engine, "median_absolute_percentage_error")
+
+    data = list(range(size // batch_size))
+    median_absolute_percentage_error = engine.run(data, max_epochs=1).metrics["median_absolute_percentage_error"]
+
+    assert np_median_absolute_percentage_error == pytest.approx(median_absolute_percentage_error)
 
 
 def _test_distrib_compute(device):
-    rank = idist.get_rank()
-
     def _test(metric_device):
         metric_device = torch.device(metric_device)
-        m = MaximumAbsoluteError(device=metric_device)
+        m = MedianAbsolutePercentageError(device=metric_device)
 
-        y_pred = torch.randint(0, 10, size=(10,), device=device).float()
-        y = torch.randint(0, 10, size=(10,), device=device).float()
+        size = 105
+
+        y_pred = torch.randint(1, 10, size=(size, 1), dtype=torch.double, device=device)
+        y = torch.randint(1, 10, size=(size, 1), dtype=torch.double, device=device)
 
         m.update((y_pred, y))
 
@@ -113,15 +120,17 @@ def _test_distrib_compute(device):
         y_pred = idist.all_gather(y_pred)
         y = idist.all_gather(y)
 
-        np_y_pred = y_pred.cpu().numpy()
-        np_y = y.cpu().numpy()
+        np_y_pred = y_pred.cpu().numpy().ravel()
+        np_y = y.cpu().numpy().ravel()
 
         res = m.compute()
 
-        np_max = np.max(np.abs((np_y_pred - np_y)))
+        e = np.abs(np_y - np_y_pred) / np.abs(np_y)
 
-        assert np_max == pytest.approx(res)
+        np_res = 100.0 * np.median(e)
+        assert pytest.approx(res) == np_res
 
+    rank = idist.get_rank()
     for i in range(3):
         torch.manual_seed(10 + rank + i)
         _test("cpu")
@@ -130,26 +139,23 @@ def _test_distrib_compute(device):
 
 
 def _test_distrib_integration(device):
-    rank = idist.get_rank()
-
     def _test(n_epochs, metric_device):
         metric_device = torch.device(metric_device)
         n_iters = 80
-        batch_size = 16
-
-        y_true = torch.rand(size=(n_iters * batch_size,)).to(device)
-        y_preds = torch.rand(size=(n_iters * batch_size,)).to(device)
+        size = 105
+        y_true = torch.rand(size=(n_iters * size,)).to(device)
+        y_preds = torch.rand(size=(n_iters * size,)).to(device)
 
         def update(engine, i):
             return (
-                y_preds[i * batch_size : (i + 1) * batch_size],
-                y_true[i * batch_size : (i + 1) * batch_size],
+                y_preds[i * size : (i + 1) * size],
+                y_true[i * size : (i + 1) * size],
             )
 
         engine = Engine(update)
 
-        m = MaximumAbsoluteError(device=metric_device)
-        m.attach(engine, "mae")
+        m = MedianAbsolutePercentageError(device=metric_device)
+        m.attach(engine, "mape")
 
         data = list(range(n_iters))
         engine.run(data=data, max_epochs=n_epochs)
@@ -157,21 +163,23 @@ def _test_distrib_integration(device):
         y_preds = idist.all_gather(y_preds)
         y_true = idist.all_gather(y_true)
 
-        assert "mae" in engine.state.metrics
+        assert "mape" in engine.state.metrics
 
-        res = engine.state.metrics["mae"]
+        res = engine.state.metrics["mape"]
 
-        np_y_true = y_true.cpu().numpy()
-        np_y_preds = y_preds.cpu().numpy()
+        np_y_true = y_true.cpu().numpy().ravel()
+        np_y_preds = y_preds.cpu().numpy().ravel()
 
-        np_max = np.max(np.abs((np_y_preds - np_y_true)))
+        e = np.abs(np_y_true - np_y_preds) / np.abs(np_y_true)
+        np_res = 100.0 * np.median(e)
 
-        assert pytest.approx(res) == np_max
+        assert pytest.approx(res) == np_res
 
     metric_devices = ["cpu"]
     if device.type != "xla":
         metric_devices.append(idist.device())
     for metric_device in metric_devices:
+        rank = idist.get_rank()
         for i in range(2):
             torch.manual_seed(12 + rank + i)
             _test(n_epochs=1, metric_device=metric_device)

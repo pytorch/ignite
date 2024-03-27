@@ -7,10 +7,10 @@ import torch
 from sklearn.metrics import roc_curve
 
 from ignite import distributed as idist
-from ignite.contrib.metrics.roc_auc import RocCurve
 from ignite.engine import Engine
 from ignite.exceptions import NotComputableError
 from ignite.metrics.epoch_metric import EpochMetricWarning
+from ignite.metrics.roc_auc import RocCurve
 
 
 def test_wrong_setup():
