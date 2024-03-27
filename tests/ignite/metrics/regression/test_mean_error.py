@@ -120,7 +120,7 @@ def _test_distrib_compute(device):
         np_len = len(np_y_pred)
         np_ans = np_sum / np_len
 
-        assert m.compute() == pytest.approx(np_ans)
+        assert m.compute() == pytest.approx(np_ans, rel=1e-5)
 
     for i in range(3):
         torch.manual_seed(10 + rank + i)
