@@ -94,7 +94,7 @@ def mock_pynvml_module():
 
 @pytest.fixture
 def mock_gpu_is_available():
-    with patch("ignite.contrib.metrics.gpu_info.torch.cuda") as mock_cuda:
+    with patch("ignite.metrics.gpu_info.torch.cuda") as mock_cuda:
         mock_cuda.is_available.return_value = True
         yield mock_cuda
 

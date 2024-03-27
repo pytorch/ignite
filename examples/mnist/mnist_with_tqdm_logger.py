@@ -64,7 +64,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, display_gpu_info
     RunningAverage(output_transform=lambda x: x).attach(trainer, "loss")
 
     if display_gpu_info:
-        from ignite.contrib.metrics import GpuInfo
+        from ignite.metrics import GpuInfo
 
         GpuInfo().attach(trainer, name="gpu")
 
