@@ -2,7 +2,7 @@ from typing import Callable, Optional, Union
 
 import torch
 
-from ignite.metrics import EpochMetric
+from ignite.metrics.epoch_metric import EpochMetric
 
 
 class CohenKappa(EpochMetric):

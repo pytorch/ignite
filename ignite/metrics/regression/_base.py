@@ -3,8 +3,7 @@ from typing import Tuple
 
 import torch
 
-from ignite.metrics import Metric
-from ignite.metrics.metric import reinit__is_reduced
+from ignite.metrics.metric import Metric, reinit__is_reduced
 
 
 def _check_output_shapes(output: Tuple[torch.Tensor, torch.Tensor]) -> None:

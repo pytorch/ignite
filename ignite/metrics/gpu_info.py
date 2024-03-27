@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Tuple, Union
 import torch
 
 from ignite.engine import Engine, EventEnum, Events
-from ignite.metrics import Metric
+from ignite.metrics.metric import Metric
 
 
 class GpuInfo(Metric):

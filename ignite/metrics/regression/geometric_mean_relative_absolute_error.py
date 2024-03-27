@@ -3,9 +3,9 @@ from typing import cast, List, Tuple
 import torch
 
 import ignite.distributed as idist
-from ignite.contrib.metrics.regression._base import _BaseRegression
 from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import reinit__is_reduced
+from ignite.metrics.regression._base import _BaseRegression
 
 
 class GeometricMeanRelativeAbsoluteError(_BaseRegression):

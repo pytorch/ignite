@@ -4,7 +4,7 @@ import torch
 
 import ignite.distributed as idist
 from ignite.exceptions import NotComputableError
-from ignite.metrics import EpochMetric
+from ignite.metrics.epoch_metric import EpochMetric
 
 
 def precision_recall_curve_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor) -> Tuple[Any, Any, Any]:
@@ -88,7 +88,7 @@ class PrecisionRecallCurve(EpochMetric):
         if len(self._predictions) < 1 or len(self._targets) < 1:
             raise NotComputableError("PrecisionRecallCurve must have at least one example before it can be computed.")
 
-        if self._result is None:
+        if self._result is None:  # type: ignore
             _prediction_tensor = torch.cat(self._predictions, dim=0)
             _target_tensor = torch.cat(self._targets, dim=0)
 
@@ -117,4 +117,4 @@ class PrecisionRecallCurve(EpochMetric):
 
             self._result = (precision, recall, thresholds)  # type: ignore[assignment]
 
-        return cast(Tuple[torch.Tensor, torch.Tensor, torch.Tensor], self._result)
+        return cast(Tuple[torch.Tensor, torch.Tensor, torch.Tensor], self._result)  # type: ignore

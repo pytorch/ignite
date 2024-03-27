@@ -2,7 +2,7 @@ from typing import Callable, Union
 
 import torch
 
-from ignite.metrics import EpochMetric
+from ignite.metrics.epoch_metric import EpochMetric
 
 
 def average_precision_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor) -> float:

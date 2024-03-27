@@ -2,9 +2,9 @@ from typing import Callable, Union
 
 import torch
 
-from ignite.contrib.metrics.regression._base import _torch_median
+from ignite.metrics.epoch_metric import EpochMetric
 
-from ignite.metrics import EpochMetric
+from ignite.metrics.regression._base import _torch_median
 
 
 def median_relative_absolute_error_compute_fn(y_pred: torch.Tensor, y: torch.Tensor) -> float:

@@ -4,7 +4,7 @@ import torch
 
 from ignite import distributed as idist
 from ignite.exceptions import NotComputableError
-from ignite.metrics import EpochMetric
+from ignite.metrics.epoch_metric import EpochMetric
 
 
 def roc_auc_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor) -> float:

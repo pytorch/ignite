@@ -2,8 +2,9 @@ from typing import Tuple
 
 import torch
 
-from ignite.contrib.metrics.regression._base import _BaseRegression
 from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
+
+from ignite.metrics.regression._base import _BaseRegression
 
 
 class ManhattanDistance(_BaseRegression):
