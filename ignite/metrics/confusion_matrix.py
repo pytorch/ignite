@@ -80,9 +80,10 @@ class ConfusionMatrix(Metric):
         .. testcode:: 2
 
             def binary_one_hot_output_transform(output):
+                from ignite import utils
                 y_pred, y = output
                 y_pred = torch.sigmoid(y_pred).round().long()
-                y_pred = ignite.utils.to_onehot(y_pred, 2)
+                y_pred = utils.to_onehot(y_pred, 2)
                 y = y.long()
                 return y_pred, y
 
