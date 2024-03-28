@@ -5,10 +5,9 @@ from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple, Unio
 import torch
 
 from ignite.exceptions import NotComputableError
-from ignite.metrics import Metric
 
 # These decorators helps with distributed settings
-from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
+from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 from ignite.metrics.nlp.utils import lcs, ngrams
 
 __all__ = ["Rouge", "RougeN", "RougeL"]

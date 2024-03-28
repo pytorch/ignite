@@ -15,7 +15,6 @@ except ImportError:
     from torch.optim.lr_scheduler import _LRScheduler as PyTorchLRScheduler
 
 import ignite.distributed as idist
-from ignite.contrib.metrics import GpuInfo
 from ignite.engine import Engine, Events
 from ignite.handlers import (
     Checkpoint,
@@ -35,7 +34,7 @@ from ignite.handlers import (
 from ignite.handlers.base_logger import BaseLogger
 from ignite.handlers.checkpoint import BaseSaveHandler
 from ignite.handlers.param_scheduler import ParamScheduler
-from ignite.metrics import RunningAverage
+from ignite.metrics import GpuInfo, RunningAverage
 from ignite.metrics.metric import RunningBatchWise
 from ignite.utils import deprecated
 
@@ -78,14 +77,14 @@ def setup_common_training_handlers(
             exclusive with ``save_handler``.
         lr_scheduler: learning rate scheduler
             as native torch LRScheduler or ignite's parameter scheduler.
-        with_gpu_stats: if True, :class:`~ignite.contrib.metrics.GpuInfo` is attached to the
+        with_gpu_stats: if True, :class:`~ignite.metrics.GpuInfo` is attached to the
             trainer. This requires `pynvml` package to be installed.
         output_names: list of names associated with `update_function` output dictionary.
         with_pbars: if True, two progress bars on epochs and optionally on iterations are attached.
             Default, True.
         with_pbar_on_iters: if True, a progress bar on iterations is attached to the trainer.
             Default, True.
-        log_every_iters: logging interval for :class:`~ignite.contrib.metrics.GpuInfo` and for
+        log_every_iters: logging interval for :class:`~ignite.metrics.GpuInfo` and for
             epoch-wise progress bar. Default, 100.
         stop_on_nan: if True, :class:`~ignite.handlers.terminate_on_nan.TerminateOnNan` handler is added to the trainer.
             Default, True.

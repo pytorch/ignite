@@ -241,7 +241,7 @@ def function_before_backprop(engine):
 ## Out-of-the-box metrics
 
 - [Metrics](https://pytorch.org/ignite/metrics.html#complete-list-of-metrics) for various tasks:
-  Precision, Recall, Accuracy, Confusion Matrix, IoU etc, ~20 [regression metrics](https://pytorch.org/ignite/contrib/metrics.html#regression-metrics).
+  Precision, Recall, Accuracy, Confusion Matrix, IoU etc, ~20 [regression metrics](https://pytorch.org/ignite/metrics.html#complete-list-of-metrics).
 
 - Users can also [compose their metrics](https://pytorch.org/ignite/metrics.html#metric-arithmetics) with ease from
   existing ones using arithmetic operations or torch methods.
@@ -315,13 +315,15 @@ List of available pre-built images
 </summary>
 
 Base
-- `pytorchignite/base:latest` 
+
+- `pytorchignite/base:latest`
 - `pytorchignite/apex:latest`
 - `pytorchignite/hvd-base:latest`
-- `pytorchignite/hvd-apex:latest` 
+- `pytorchignite/hvd-apex:latest`
 - `pytorchignite/msdp-apex:latest`
 
 Vision:
+
 - `pytorchignite/vision:latest`
 - `pytorchignite/hvd-vision:latest`
 - `pytorchignite/apex-vision:latest`
@@ -329,10 +331,11 @@ Vision:
 - `pytorchignite/msdp-apex-vision:latest`
 
 NLP:
+
 - `pytorchignite/nlp:latest`
 - `pytorchignite/hvd-nlp:latest`
-- `pytorchignite/apex-nlp:latest` 
-- `pytorchignite/hvd-apex-nlp:latest` 
+- `pytorchignite/apex-nlp:latest`
+- `pytorchignite/hvd-apex-nlp:latest`
 - `pytorchignite/msdp-apex-nlp:latest`
 
 </details>
@@ -416,8 +419,8 @@ Features:
 ## Code-Generator application
 
 The easiest way to create your training scripts with PyTorch-Ignite:
-- https://code-generator.pytorch-ignite.ai/
 
+- https://code-generator.pytorch-ignite.ai/
 
 <!-- ############################################################################################################### -->
 
@@ -502,7 +505,7 @@ Blog articles, tutorials, books
 - [The Hero Rises: Build Your Own SSD](https://allegro.ai/blog/the-hero-rises-build-your-own-ssd/)
 - [Using Optuna to Optimize PyTorch Ignite Hyperparameters](https://medium.com/pytorch/using-optuna-to-optimize-pytorch-ignite-hyperparameters-626ffe6d4783)
 - [PyTorch Ignite - Classifying Tiny ImageNet with EfficientNet](https://towardsdatascience.com/pytorch-ignite-classifying-tiny-imagenet-with-efficientnet-e5b1768e5e8f)
- 
+
 </details>
 
 <details>
@@ -516,7 +519,7 @@ Toolkits
 - [Nussl - a flexible, object-oriented Python audio source separation library](https://github.com/nussl/nussl)
 - [PyTorch Adapt - A fully featured and modular domain adaptation library](https://github.com/KevinMusgrave/pytorch-adapt)
 - [gnina-torch: PyTorch implementation of GNINA scoring function](https://github.com/RMeli/gnina-torch)
- 
+
 </details>
 
 <details>
