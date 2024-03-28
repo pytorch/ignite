@@ -1,0 +1,47 @@
+﻿GpuInfo
+=======
+
+.. currentmodule:: ignite.contrib.metrics
+
+.. autoclass:: GpuInfo
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+      ~GpuInfo.attach
+   
+   
+   
+      ~GpuInfo.completed
+   
+   
+   
+      ~GpuInfo.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~GpuInfo.reset
+   
+   
+   
+   
+   
+      ~GpuInfo.update
+   
+   
+   
+   
