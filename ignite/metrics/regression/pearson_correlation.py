@@ -9,8 +9,8 @@ from ignite.metrics.regression._base import _BaseRegression
 
 
 class PearsonCorrelation(_BaseRegression):
-    r"""Calculates the `Pearson correlation coefficient
-        <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_.
+    r"""Calculates the 
+    `Pearson correlation coefficient <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_.
 
     .. math::
         r = \frac{\sum_{j=1}^n (P_j-\bar{P})(A_j-\bar{A})}
