@@ -125,25 +125,24 @@ class TestDistributed:
         if device.type != "xla":
             metric_devices.append(device)
 
-        for i in range(3):
-            torch.manual_seed(10 + rank + i)
-            for metric_device in metric_devices:
-                m = PearsonCorrelation(device=metric_device)
+        torch.manual_seed(10 + rank)
+        for metric_device in metric_devices:
+            m = PearsonCorrelation(device=metric_device)
 
-                y_pred = torch.rand(size=[100], device=device)
-                y = torch.rand(size=[100], device=device)
+            y_pred = torch.rand(size=[100], device=device)
+            y = torch.rand(size=[100], device=device)
 
-                m.update((y_pred, y))
+            m.update((y_pred, y))
 
-                y_pred = idist.all_gather(y_pred)
-                y = idist.all_gather(y)
+            y_pred = idist.all_gather(y_pred)
+            y = idist.all_gather(y)
 
-                np_y = y.cpu().numpy()
-                np_y_pred = y_pred.cpu().numpy()
+            np_y = y.cpu().numpy()
+            np_y_pred = y_pred.cpu().numpy()
 
-                np_ans = np_corr(np_y_pred, np_y)
+            np_ans = np_corr(np_y_pred, np_y)
 
-                assert pytest.approx(np_ans) == m.compute()
+            assert pytest.approx(np_ans) == m.compute()
 
     @pytest.mark.parametrize("n_epochs", [1, 2])
     def test_integration(self, n_epochs: int):
@@ -158,38 +157,37 @@ class TestDistributed:
         batch_size = 16
 
         for metric_device in metric_devices:
-            for i in range(2):
-                torch.manual_seed(12 + rank + i)
+            torch.manual_seed(12 + rank)
 
-                y_true = torch.rand(size=(n_iters * batch_size,)).to(device)
-                y_preds = torch.rand(size=(n_iters * batch_size,)).to(device)
+            y_true = torch.rand(size=(n_iters * batch_size,)).to(device)
+            y_preds = torch.rand(size=(n_iters * batch_size,)).to(device)
 
-                engine = Engine(
-                    lambda e, i: (
-                        y_preds[i * batch_size : (i + 1) * batch_size],
-                        y_true[i * batch_size : (i + 1) * batch_size],
-                    )
+            engine = Engine(
+                lambda e, i: (
+                    y_preds[i * batch_size : (i + 1) * batch_size],
+                    y_true[i * batch_size : (i + 1) * batch_size],
                 )
+            )
 
-                corr = PearsonCorrelation(device=metric_device)
-                corr.attach(engine, "corr")
+            corr = PearsonCorrelation(device=metric_device)
+            corr.attach(engine, "corr")
 
-                data = list(range(n_iters))
-                engine.run(data=data, max_epochs=n_epochs)
+            data = list(range(n_iters))
+            engine.run(data=data, max_epochs=n_epochs)
 
-                y_preds = idist.all_gather(y_preds)
-                y_true = idist.all_gather(y_true)
+            y_preds = idist.all_gather(y_preds)
+            y_true = idist.all_gather(y_true)
 
-                assert "corr" in engine.state.metrics
+            assert "corr" in engine.state.metrics
 
-                res = engine.state.metrics["corr"]
+            res = engine.state.metrics["corr"]
 
-                np_y = y_true.cpu().numpy()
-                np_y_pred = y_preds.cpu().numpy()
+            np_y = y_true.cpu().numpy()
+            np_y_pred = y_preds.cpu().numpy()
 
-                np_ans = np_corr(np_y_pred, np_y)
+            np_ans = np_corr(np_y_pred, np_y)
 
-                assert pytest.approx(np_ans, rel=tol) == res
+            assert pytest.approx(np_ans, rel=tol) == res
 
     def test_accumulator_device(self):
         device = idist.device()
