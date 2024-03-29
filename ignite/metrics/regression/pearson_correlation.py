@@ -9,7 +9,7 @@ from ignite.metrics.regression._base import _BaseRegression
 
 
 class PearsonCorrelation(_BaseRegression):
-    r"""Calculates the 
+    r"""Calculates the
     `Pearson correlation coefficient <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_.
 
     .. math::
