@@ -9,10 +9,12 @@ from ignite.metrics.regression._base import _BaseRegression
 
 
 class PearsonCorrelation(_BaseRegression):
-    r"""Calculates the `Pearson correlation coefficient <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_.
+    r"""Calculates the `Pearson correlation coefficient
+        <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_.
 
     .. math::
-        r = \frac{\sum_{j=1}^n (P_j-\bar{P})(A_j-\bar{A})}{\max (\sqrt{\sum_{j=1}^n (P_j-\bar{P})^2 \sum_{j=1}^n (A_j-\bar{A})^2}, \epsilon)},
+        r = \frac{\sum_{j=1}^n (P_j-\bar{P})(A_j-\bar{A})}
+        {\max (\sqrt{\sum_{j=1}^n (P_j-\bar{P})^2 \sum_{j=1}^n (A_j-\bar{A})^2}, \epsilon)},
         \quad \bar{P}=\frac{1}{n}\sum_{j=1}^n P_j, \quad \bar{A}=\frac{1}{n}\sum_{j=1}^n A_j
 
     where :math:`A_j` is the ground truth and :math:`P_j` is the predicted value.
