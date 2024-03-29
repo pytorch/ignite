@@ -3,6 +3,7 @@ from typing import Tuple
 import numpy as np
 import pytest
 import torch
+from scipy.stats import pearsonr
 from torch import Tensor
 
 import ignite.distributed as idist
@@ -11,12 +12,17 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics.regression import PearsonCorrelation
 
 
-def np_corr(np_y_pred: np.ndarray, np_y: np.ndarray, eps: float = 1e-8):
+def np_corr_eps(np_y_pred: np.ndarray, np_y: np.ndarray, eps: float = 1e-8):
     cov = np.cov(np_y_pred, np_y, ddof=0)[0, 1]
     std_y_pred = np.std(np_y_pred, ddof=0)
     std_y = np.std(np_y, ddof=0)
     corr = cov / np.clip(std_y_pred * std_y, eps, None)
     return corr
+
+
+def scipy_corr(np_y_pred: np.ndarray, np_y: np.ndarray):
+    corr = pearsonr(np_y_pred, np_y)
+    return corr.statistic
 
 
 def test_zero_sample():
@@ -37,6 +43,30 @@ def test_wrong_input_shapes():
         m.update((torch.rand(4, 1), torch.rand(4)))
 
 
+def test_degenerated_sample():
+    # one sample
+    m = PearsonCorrelation()
+    y_pred = torch.tensor([1.0])
+    y = torch.tensor([1.0])
+    m.update((y_pred, y))
+
+    np_y_pred = y_pred.numpy()
+    np_y = y_pred.numpy()
+    np_res = np_corr_eps(np_y_pred, np_y)
+    assert pytest.approx(np_res) == m.compute()
+
+    # constant samples
+    m.reset()
+    y_pred = torch.ones(10).float()
+    y = torch.zeros(10).float()
+    m.update((y_pred, y))
+
+    np_y_pred = y_pred.numpy()
+    np_y = y_pred.numpy()
+    np_res = np_corr_eps(np_y_pred, np_y)
+    assert pytest.approx(np_res) == m.compute()
+
+
 def test_pearson_correlation():
     a = np.random.randn(4).astype(np.float32)
     b = np.random.randn(4).astype(np.float32)
@@ -47,33 +77,37 @@ def test_pearson_correlation():
     m = PearsonCorrelation()
 
     m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
-    np_ans = np_corr(a, ground_truth)
+    np_ans = scipy_corr(a, ground_truth)
     assert m.compute() == pytest.approx(np_ans, rel=1e-4)
 
     m.update((torch.from_numpy(b), torch.from_numpy(ground_truth)))
-    np_ans = np_corr(np.concatenate([a, b]), np.concatenate([ground_truth] * 2))
+    np_ans = scipy_corr(np.concatenate([a, b]), np.concatenate([ground_truth] * 2))
     assert m.compute() == pytest.approx(np_ans, rel=1e-4)
 
     m.update((torch.from_numpy(c), torch.from_numpy(ground_truth)))
-    np_ans = np_corr(np.concatenate([a, b, c]), np.concatenate([ground_truth] * 3))
+    np_ans = scipy_corr(np.concatenate([a, b, c]), np.concatenate([ground_truth] * 3))
     assert m.compute() == pytest.approx(np_ans, rel=1e-4)
 
     m.update((torch.from_numpy(d), torch.from_numpy(ground_truth)))
-    np_ans = np_corr(np.concatenate([a, b, c, d]), np.concatenate([ground_truth] * 4))
+    np_ans = scipy_corr(np.concatenate([a, b, c, d]), np.concatenate([ground_truth] * 4))
     assert m.compute() == pytest.approx(np_ans, rel=1e-4)
 
 
 @pytest.fixture(params=list(range(2)))
 def test_case(request):
+    # correlated sample
+    x = torch.randn(size=[50]).float()
+    y = x + torch.randn_like(x) * 0.1
+
     return [
-        (torch.rand(size=(50,)).float(), torch.rand(size=(50,)).float(), 10 ** np.random.uniform(-8, 0), 1),
-        (torch.rand(size=(50, 1)).float(), torch.rand(size=(50, 1)).float(), 10 ** np.random.uniform(-8, 0), 10),
+        (x, y, 1),
+        (torch.rand(size=(50, 1)).float(), torch.rand(size=(50, 1)).float(), 10),
     ][request.param]
 
 
 @pytest.mark.parametrize("n_times", range(5))
-def test_integration(n_times, test_case: Tuple[Tensor, Tensor, float, int]):
-    y_pred, y, eps, batch_size = test_case
+def test_integration(n_times, test_case: Tuple[Tensor, Tensor, int]):
+    y_pred, y, batch_size = test_case
 
     def update_fn(engine: Engine, batch):
         idx = (engine.state.iteration - 1) * batch_size
@@ -83,7 +117,7 @@ def test_integration(n_times, test_case: Tuple[Tensor, Tensor, float, int]):
 
     engine = Engine(update_fn)
 
-    m = PearsonCorrelation(eps=eps)
+    m = PearsonCorrelation()
     m.attach(engine, "corr")
 
     np_y = y.ravel().numpy()
@@ -92,7 +126,7 @@ def test_integration(n_times, test_case: Tuple[Tensor, Tensor, float, int]):
     data = list(range(y_pred.shape[0] // batch_size))
     corr = engine.run(data, max_epochs=1).metrics["corr"]
 
-    np_ans = np_corr(np_y_pred, np_y, eps=eps)
+    np_ans = scipy_corr(np_y_pred, np_y)
 
     assert pytest.approx(np_ans, rel=2e-4) == corr
 
@@ -140,7 +174,7 @@ class TestDistributed:
             np_y = y.cpu().numpy()
             np_y_pred = y_pred.cpu().numpy()
 
-            np_ans = np_corr(np_y_pred, np_y)
+            np_ans = scipy_corr(np_y_pred, np_y)
 
             assert pytest.approx(np_ans) == m.compute()
 
@@ -185,7 +219,7 @@ class TestDistributed:
             np_y = y_true.cpu().numpy()
             np_y_pred = y_preds.cpu().numpy()
 
-            np_ans = np_corr(np_y_pred, np_y)
+            np_ans = scipy_corr(np_y_pred, np_y)
 
             assert pytest.approx(np_ans, rel=tol) == res
 
