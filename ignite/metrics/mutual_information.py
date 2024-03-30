@@ -22,6 +22,8 @@ class MutualInformation(Metric):
     where :math:`\hat{\mathbf{p}}_i` is the prediction probability vector for :math:`i`-th input,
     and :math:`H(\mathbf{p})` is the entropy of :math:`\mathbf{p}`.
 
+    Intuitively, this metric measures how well input data are clustered by classes in the feature space.
+
     - ``update`` must receive output of the form ``(y_pred, y)`` while ``y`` is not used in this metric.
     - ``y_pred`` is expected to be the unnormalized logits for each class. :math:`(B, C)` (classification)
       or :math:`(B, C, ...)` (e.g., image segmentation) shapes are allowed.
