@@ -91,7 +91,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, log_dir):
     trainer.logger = setup_logger("Trainer")
 
     if sys.version_info > (3,):
-        from ignite.contrib.metrics.gpu_info import GpuInfo
+        from ignite.metrics.gpu_info import GpuInfo
 
         try:
             GpuInfo().attach(trainer)

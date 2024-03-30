@@ -7,7 +7,7 @@ dill
 setuptools
 # Test contrib dependencies
 scipy
-pytorch_fid==0.1.1
+pytorch_fid
 tqdm
 scikit-learn
 matplotlib
@@ -23,7 +23,9 @@ pynvml
 clearml
 scikit-image
 py-rouge
-nltk
+# temporary fix for python=3.12 and v3.8.1
+# nltk
+git+https://github.com/nltk/nltk
 # Examples dependencies
 pandas
 gymnasium

@@ -28,5 +28,5 @@ Time profilers [deprecated]
 Loggers [deprecated]
 --------------------
 
-.. deprecated:: 0.4.14
+.. deprecated:: 0.5.1
     Loggers moved to :ref:`Loggers`.
