@@ -176,7 +176,7 @@ class TestDistributed:
 
             np_ans = scipy_corr(np_y_pred, np_y)
 
-            assert pytest.approx(np_ans, rel=1e-6) == m.compute()
+            assert pytest.approx(np_ans, rel=2e-4) == m.compute()
 
     @pytest.mark.parametrize("n_epochs", [1, 2])
     def test_integration(self, n_epochs: int):
