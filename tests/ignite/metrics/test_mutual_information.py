@@ -80,9 +80,8 @@ def test_accumulator_detached():
     y = torch.zeros(2)
     mi.update((y_pred, y))
 
-    assert all(
-        (not accumulator.requires_grad) for accumulator in (mi._sum_of_conditional_entropies, mi._sum_of_probabilities)
-    )
+    accumulators = (mi._sum_of_conditional_entropies, mi._sum_of_probabilities)
+    assert all((not accumulator.requires_grad) for accumulator in accumulators)
 
 
 @pytest.mark.usefixtures("distributed")
