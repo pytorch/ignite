@@ -371,6 +371,7 @@ Complete list of metrics
     regression.MedianAbsoluteError
     regression.MedianAbsolutePercentageError
     regression.MedianRelativeAbsoluteError
+    regression.PearsonCorrelation
     regression.R2Score
     regression.WaveHedgesDistance
 
