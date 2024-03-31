@@ -109,7 +109,6 @@ class FastaiLRFinder:
             max_iter = trainer.state.epoch_length * trainer.state.max_epochs
             if max_iter < num_iter:
                 max_iter = num_iter
-                trainer.state.max_iters = num_iter
                 trainer.state.max_epochs = ceil(num_iter / trainer.state.epoch_length)
 
         if not trainer.has_event_handler(self._reached_num_iterations):

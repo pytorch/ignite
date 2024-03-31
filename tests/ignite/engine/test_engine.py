@@ -1,4 +1,3 @@
-import math
 import os
 import time
 from unittest.mock import call, MagicMock, Mock
@@ -1079,47 +1078,6 @@ class TestEngine:
 
         trainer.run(data1, max_epochs=10)
 
-    def test_run_with_max_iters(self):
-        max_iters = 8
-        engine = Engine(lambda e, b: 1)
-        engine.run([0] * 20, max_iters=max_iters)
-        assert engine.state.iteration == max_iters
-        assert engine.state.max_iters == max_iters
-
-    def test_run_with_max_iters_greater_than_epoch_length(self):
-        max_iters = 73
-        engine = Engine(lambda e, b: 1)
-        engine.run([0] * 20, max_iters=max_iters)
-        assert engine.state.iteration == max_iters
-
-    def test_run_with_invalid_max_iters_and_max_epoch(self):
-        max_iters = 12
-        max_epochs = 2
-        engine = Engine(lambda e, b: 1)
-        with pytest.raises(
-            ValueError,
-            match=r"Arguments max_iters and max_epochs are mutually exclusive."
-            "Please provide only max_epochs or max_iters.",
-        ):
-            engine.run([0] * 20, max_iters=max_iters, max_epochs=max_epochs)
-
-    def test_epoch_events_fired_max_iters(self):
-        max_iters = 32
-        engine = Engine(lambda e, b: 1)
-
-        @engine.on(Events.EPOCH_COMPLETED)
-        def fired_event(engine):
-            assert engine.state.iteration % engine.state.epoch_length == 0
-
-        engine.run([0] * 10, max_iters=max_iters)
-
-    def test_is_done_with_max_iters(self):
-        state = State(iteration=100, epoch=1, max_epochs=3, epoch_length=100, max_iters=250)
-        assert not Engine._is_done(state)
-
-        state = State(iteration=250, epoch=1, max_epochs=3, epoch_length=100, max_iters=250)
-        assert Engine._is_done(state)
-
     @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
     def test_batch_is_released_before_new_one_is_loaded_on_cuda(self):
         torch.cuda.empty_cache()
@@ -1345,24 +1303,6 @@ class TestEngine:
         assert state.epoch == 1
         assert state.iteration == 3
         assert state.epoch_length == 3
-
-    def test_max_epochs_calculated_from_max_iters_unknown_epoch_length(self):
-        # covers: max_epochs auto-calculated as ceil(max_iters / epoch_length)
-        # when data is an iterator of unknown length and max_iters is provided
-
-        def data_iter():
-            for i in range(5):
-                yield i
-
-        engine = Engine(lambda e, b: None)
-
-        @engine.on(Events.DATALOADER_STOP_ITERATION)
-        def restart():
-            engine.state.dataloader = data_iter()
-
-        engine.run(data_iter(), max_iters=7)
-        assert engine.state.max_epochs == math.ceil(7 / engine.state.epoch_length)
-        assert engine.state.iteration == 7
 
     def test_run_resume_raises_on_epoch_length_mismatch(self):
         # covers: ValueError raised when resuming with a different epoch_length than the one stored in state
