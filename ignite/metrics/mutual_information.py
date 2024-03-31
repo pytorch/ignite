@@ -90,8 +90,8 @@ class MutualInformation(Metric):
         log_prob = F.log_softmax(y_pred, dim=1)
         ent_sum = -(prob * log_prob).sum()
 
-        self._sum_of_probabilities = self._sum_of_probabilities + prob.sum(dim=0)
-        self._sum_of_conditional_entropies += ent_sum
+        self._sum_of_probabilities = self._sum_of_probabilities + prob.sum(dim=0).to(self._device)
+        self._sum_of_conditional_entropies += ent_sum.to(self._device)
         self._num_examples += y_pred.shape[0]
 
     @sync_all_reduce("_sum_of_probabilities", "_sum_of_conditional_entropies", "_num_examples")
