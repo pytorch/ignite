@@ -65,14 +65,16 @@ jobs:
       - name: Install Torch XLA and others
         run: |
 
-          ## Install mkl
-          sudo apt-get update && sudo apt-get install -y libopenblas-dev libomp5
-          pip install mkl
+          ## Install mkl (alternative approach to https://github.com/pytorch/xla/blob/b0ba29f98a695671972d4a4cc07441014dba2892/.kokoro/common.sh#L31-L32)
+          pip install mkl==2021.4.0
 
           ## Install torch & xla and torchvision
           pip install --pre  https://storage.googleapis.com/tpu-pytorch/wheels/colab/torch-nightly-cp39-cp39-linux_x86_64.whl
           pip install --pre  https://storage.googleapis.com/tpu-pytorch/wheels/colab/torch_xla-nightly-cp39-cp39-linux_x86_64.whl
           pip install --pre  https://storage.googleapis.com/tpu-pytorch/wheels/colab/torchvision-nightly-cp39-cp39-linux_x86_64.whl
+
+          # Check installation
+          python -c "import torch"
 
           ## Install test deps and Ignite
           pip install -r requirements-dev.txt
