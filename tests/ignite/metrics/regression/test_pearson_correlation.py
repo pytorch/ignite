@@ -120,8 +120,8 @@ def test_integration(n_times, test_case: Tuple[Tensor, Tensor, int]):
     m = PearsonCorrelation()
     m.attach(engine, "corr")
 
-    np_y = y.ravel().numpy()
-    np_y_pred = y_pred.ravel().numpy()
+    np_y = y.numpy().ravel()
+    np_y_pred = y_pred.numpy().ravel()
 
     data = list(range(y_pred.shape[0] // batch_size))
     corr = engine.run(data, max_epochs=1).metrics["corr"]
