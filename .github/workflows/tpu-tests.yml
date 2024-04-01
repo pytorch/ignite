@@ -66,6 +66,7 @@ jobs:
         run: |
 
           ## Install mkl (alternative approach to https://github.com/pytorch/xla/blob/b0ba29f98a695671972d4a4cc07441014dba2892/.kokoro/common.sh#L31-L32)
+          sudo apt-get update && sudo apt-get install -y libopenblas-dev libomp5
           pip install mkl==2021.4.0
 
           ## Install torch & xla and torchvision
