@@ -8,12 +8,16 @@ on:
       - "ignite/**"
       - "tests/ignite/**"
       - "tests/run_tpu_tests.sh"
+      - "tests/run_code_style.sh"
+      - "requirements-dev.txt"
       - ".github/workflows/tpu-tests.yml"
   pull_request:
     paths:
       - "ignite/**"
       - "tests/ignite/**"
       - "tests/run_tpu_tests.sh"
+      - "tests/run_code_style.sh"
+      - "requirements-dev.txt"
       - ".github/workflows/tpu-tests.yml"
   workflow_dispatch:
 
@@ -32,10 +36,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python 3.8
+      - name: Set up Python 3.9
         uses: actions/setup-python@v4
         with:
-          python-version: "3.8"
+          python-version: "3.9"
           architecture: "x64"
 
       - name: Get year & week number
@@ -61,15 +65,17 @@ jobs:
       - name: Install Torch XLA and others
         run: |
 
-          ## Install openblas, mkl, gsutil
+          ## Install mkl (alternative approach to https://github.com/pytorch/xla/blob/b0ba29f98a695671972d4a4cc07441014dba2892/.kokoro/common.sh#L31-L32)
           sudo apt-get update && sudo apt-get install -y libopenblas-dev libomp5
-          # mkl version fixed due to https://github.com/pytorch/ignite/issues/2350
-          pip install mkl==2021.4.0 requests gsutil
+          pip install mkl==2021.4.0
 
           ## Install torch & xla and torchvision
-          pip install --pre  https://storage.googleapis.com/tpu-pytorch/wheels/colab/torch-nightly-cp38-cp38-linux_x86_64.whl
-          pip install --pre  https://storage.googleapis.com/tpu-pytorch/wheels/colab/torch_xla-nightly-cp38-cp38-linux_x86_64.whl
-          pip install --pre  https://storage.googleapis.com/tpu-pytorch/wheels/colab/torchvision-nightly-cp38-cp38-linux_x86_64.whl
+          pip install --pre  https://storage.googleapis.com/tpu-pytorch/wheels/colab/torch-nightly-cp39-cp39-linux_x86_64.whl
+          pip install --pre  https://storage.googleapis.com/tpu-pytorch/wheels/colab/torch_xla-nightly-cp39-cp39-linux_x86_64.whl
+          pip install --pre  https://storage.googleapis.com/tpu-pytorch/wheels/colab/torchvision-nightly-cp39-cp39-linux_x86_64.whl
+
+          # Check installation
+          python -c "import torch"
 
           ## Install test deps and Ignite
           pip install -r requirements-dev.txt
