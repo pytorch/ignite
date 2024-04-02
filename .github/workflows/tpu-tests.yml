@@ -97,6 +97,7 @@ jobs:
           command: |
             python -c "import torch_xla; print('torch xla version:', torch_xla.__version__)"
             bash tests/run_tpu_tests.sh
+          new_command_on_retry: USE_LAST_FAILED=1  bash tests/run_tpu_tests.sh
         env:
           LD_LIBRARY_PATH: ${{ env.LD_LIBRARY_PATH }}:${{ env.Python_ROOT_DIR }}/lib
           XRT_DEVICE_MAP: "CPU:0;/job:localservice/replica:0/task:0/device:XLA_CPU:0"

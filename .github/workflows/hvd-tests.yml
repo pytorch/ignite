@@ -81,6 +81,7 @@ jobs:
           timeout_minutes: 25
           shell: bash
           command: bash tests/run_cpu_tests.sh
+          new_command_on_retry: USE_LAST_FAILED=1   bash tests/run_cpu_tests.sh
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
