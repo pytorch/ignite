@@ -96,7 +96,7 @@ def supervised_training_step(
         Added `model_transform` to transform model's output
     .. versionchanged:: 0.4.13
         Added `model_fn` to customize model's application on the sample
-    .. versionchanged:: 0.5.1
+    .. versionchanged:: 0.5.0
         Added support for ``mps`` device
     """
 
@@ -551,7 +551,7 @@ def create_supervised_trainer(
         Added ``model_transform`` to transform model's output
     .. versionchanged:: 0.4.13
         Added `model_fn` to customize model's application on the sample
-    .. versionchanged:: 0.5.1
+    .. versionchanged:: 0.5.0
         Added support for ``mps`` device
     """
 
@@ -799,7 +799,7 @@ def create_supervised_evaluator(
         Added ``model_transform`` to transform model's output
     .. versionchanged:: 0.4.13
         Added `model_fn` to customize model's application on the sample
-    .. versionchanged:: 0.5.1
+    .. versionchanged:: 0.5.0
         Added support for ``mps`` device
     """
     device_type = device.type if isinstance(device, torch.device) else device
