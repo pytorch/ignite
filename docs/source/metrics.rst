@@ -337,6 +337,7 @@ Complete list of metrics
     metric.Metric
     metrics_lambda.MetricsLambda
     MultiLabelConfusionMatrix
+    MutualInformation
     precision.Precision
     PSNR
     recall.Recall
