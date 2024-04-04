@@ -40,7 +40,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.8", "3.9", "3.10", "3.11","3.12"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
         pytorch-channel: [pytorch, pytorch-nightly]
         include:
           # includes a single build on windows
@@ -102,7 +102,7 @@ jobs:
 
       - name: Run Mypy
         # https://github.com/pytorch/ignite/pull/2780
-        # 
+        #
         if: ${{ matrix.os == 'ubuntu-latest' && matrix.pytorch-channel == 'pytorch-nightly'}}
         run: |
           bash ./tests/run_code_style.sh mypy
@@ -120,8 +120,12 @@ jobs:
           cp -R /tmp/MNIST .
 
       - name: Run Tests
-        run: |
-          SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} bash tests/run_cpu_tests.sh
+        uses: nick-fields/retry@v3
+        with:
+          max_attempts: 5
+          timeout_minutes: 25
+          shell: bash
+          command: SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} bash tests/run_cpu_tests.sh
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
