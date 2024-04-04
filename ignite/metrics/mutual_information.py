@@ -14,10 +14,11 @@ class MutualInformation(Metric):
     between input :math:`X` and prediction :math:`Y`.
 
     .. math::
-       I(X;Y) &= H(Y) - H(Y|X)
-       = H \left( \frac{1}{N}\sum_{i=1}^N \hat{\mathbf{p}}_i \right)
-       - \frac{1}{N}\sum_{i=1}^N H(\hat{\mathbf{p}}_i), \\
-       H(\mathbf{p}) &= -\sum_{c=1}^C p_c \log p_c.
+       \begin{align*}
+            I(X;Y) &= H(Y) - H(Y|X) = H \left( \frac{1}{N}\sum_{i=1}^N \hat{\mathbf{p}}_i \right)
+            - \frac{1}{N}\sum_{i=1}^N H(\hat{\mathbf{p}}_i), \\
+            H(\mathbf{p}) &= -\sum_{c=1}^C p_c \log p_c.
+       \end{align*}
 
     where :math:`\hat{\mathbf{p}}_i` is the prediction probability vector for :math:`i`-th input,
     and :math:`H(\mathbf{p})` is the entropy of :math:`\mathbf{p}`.
