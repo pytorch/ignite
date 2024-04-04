@@ -126,6 +126,7 @@ jobs:
           timeout_minutes: 25
           shell: bash
           command: SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} bash tests/run_cpu_tests.sh
+          new_command_on_retry: EXTRA_PYTEST_ARGS="--last-failed --last-failed-no-failures none"  SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} bash tests/run_cpu_tests.sh
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3

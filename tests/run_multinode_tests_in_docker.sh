@@ -36,7 +36,7 @@ RUN pip install --no-cache-dir mock pytest pytest-xdist scikit-learn scikit-imag
 EOF
 
 docker_python_version=`docker run --rm -i $docker_image python -c "import sys; print(str(sys.version_info[0]) + \".\" + str(sys.version_info[1]), end=\"\")"`
-cmd="pytest --dist=each --tx $nproc_per_node*popen//python${docker_python_version} -m multinode_distributed -vvv ${EXTRA_PYTEST_ARGS} tests"
+cmd="pytest --dist=each --tx $nproc_per_node*popen//python${docker_python_version} -m multinode_distributed -vvv ${EXTRA_PYTEST_ARGS:-} tests"
 
 export MASTER_ADDR=node0
 export MASTER_PORT=9999

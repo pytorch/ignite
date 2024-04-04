@@ -15,21 +15,21 @@ else
 fi
 
 set -xeu
-
-pytest --cov ignite --cov-report term-missing --cov-report xml -vvv tests/ "${EXTRA_PYTEST_ARGS:-}" -k "$cuda_pattern"
+# Catch exit code 5 when tests are deselected from previous passing run
+pytest ${EXTRA_PYTEST_ARGS:-} --cov ignite --cov-report term-missing --cov-report xml -vvv tests/ -k "$cuda_pattern" || { exit_code=$?; if [ "$exit_code" -eq 5 ]; then echo "All tests deselected"; else exit $exit_code; fi;}
 
 # https://pubs.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html#tag_02_06_02
 if [ "${SKIP_DISTRIB_TESTS:-0}" -eq "1" ]; then
     exit 0
 fi
 
-pytest --cov ignite --cov-append --cov-report term-missing --cov-report xml -vvv tests/ -m distributed "${EXTRA_PYTEST_ARGS:-}" -k "$MATCH_TESTS_EXPRESSION"
+pytest ${EXTRA_PYTEST_ARGS:-} --cov ignite --cov-append --cov-report term-missing --cov-report xml -vvv tests/ -m distributed -k "$MATCH_TESTS_EXPRESSION"
 
 
 if [ ${ngpus} -gt 1 ]; then
 
     export WORLD_SIZE=${ngpus}
-    pytest --cov ignite --cov-append --cov-report term-missing --cov-report xml --dist=each --tx ${WORLD_SIZE}*popen//python=python tests -m distributed -vvv "${EXTRA_PYTEST_ARGS:-}" -k "$MATCH_TESTS_EXPRESSION"
+    pytest ${EXTRA_PYTEST_ARGS:-} --cov ignite --cov-append --cov-report term-missing --cov-report xml --dist=each --tx ${WORLD_SIZE}*popen//python=python tests -m distributed -vvv -k "$MATCH_TESTS_EXPRESSION"
     unset WORLD_SIZE
 
 fi
