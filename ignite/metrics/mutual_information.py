@@ -14,7 +14,6 @@ class MutualInformation(Metric):
     between input :math:`X` and prediction :math:`Y`.
 
     .. math::
-
        I(X;Y) &= H(Y) - H(Y|X)
        = H \left( \frac{1}{N}\sum_{i=1}^N \hat{\mathbf{p}}_i \right)
        - \frac{1}{N}\sum_{i=1}^N H(\hat{\mathbf{p}}_i), \\
