@@ -79,8 +79,7 @@ def test_accumulator_detached():
     y = torch.zeros(2)
     mi.update((y_pred, y))
 
-    accumulators = (mi._sum_of_conditional_entropies, mi._sum_of_probabilities)
-    assert all((not accumulator.requires_grad) for accumulator in accumulators)
+    assert not mi._sum_of_probabilities.requires_grad
 
 
 @pytest.mark.usefixtures("distributed")
@@ -133,7 +132,7 @@ class TestDistributed:
         for metric_device in metric_devices:
             mi = MutualInformation(device=metric_device)
 
-            devices = (mi._device, mi._sum_of_conditional_entropies.device, mi._sum_of_probabilities.device)
+            devices = (mi._device, mi._sum_of_probabilities.device)
             for dev in devices:
                 assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
 
@@ -141,6 +140,6 @@ class TestDistributed:
             y = torch.zeros(2)
             mi.update((y_pred, y))
 
-            devices = (mi._device, mi._sum_of_conditional_entropies.device, mi._sum_of_probabilities.device)
+            devices = (mi._device, mi._sum_of_probabilities.device)
             for dev in devices:
                 assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"

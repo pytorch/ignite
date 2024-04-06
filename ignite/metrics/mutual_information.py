@@ -1,15 +1,13 @@
-from typing import Sequence
-
 import torch
-import torch.nn.functional as F
 
 from ignite.exceptions import NotComputableError
-from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
+from ignite.metrics import Entropy
+from ignite.metrics.metric import reinit__is_reduced, sync_all_reduce
 
 __all__ = ["MutualInformation"]
 
 
-class MutualInformation(Metric):
+class MutualInformation(Entropy):
     r"""Calculates the `mutual information <https://en.wikipedia.org/wiki/Mutual_information>`_
     between input :math:`X` and prediction :math:`Y`.
 
@@ -70,34 +68,19 @@ class MutualInformation(Metric):
            0.18599730730056763
     """
 
-    _state_dict_all_req_keys = ("_sum_of_probabilities", "_sum_of_conditional_entropies", "_num_examples")
+    _state_dict_all_req_keys = ("_sum_of_probabilities",)
 
     @reinit__is_reduced
     def reset(self) -> None:
+        super().reset()
         self._sum_of_probabilities = torch.tensor(0.0, device=self._device)
-        self._sum_of_conditional_entropies = torch.tensor(0.0, device=self._device)
-        self._num_examples = 0
 
     @reinit__is_reduced
-    def update(self, output: Sequence[torch.Tensor]) -> None:
-        y_pred = output[0].detach()
-        if y_pred.ndim >= 3:
-            num_classes = y_pred.shape[1]
-            # (B, C, ...) -> (B, ..., C) -> (B*..., C)
-            # regarding as B*... predictions
-            y_pred = y_pred.movedim(1, -1).reshape(-1, num_classes)
-        elif y_pred.ndim == 1:
-            raise ValueError(f"y_pred must be in the shape of (B, C) or (B, C, ...), got {y_pred.shape}.")
-
-        prob = F.softmax(y_pred, dim=1)
-        log_prob = F.log_softmax(y_pred, dim=1)
-        ent_sum = -(prob * log_prob).sum()
-
+    def _update(self, prob: torch.Tensor, log_prob: torch.Tensor) -> None:
+        super()._update(prob, log_prob)
         self._sum_of_probabilities = self._sum_of_probabilities + prob.sum(dim=0).to(self._device)
-        self._sum_of_conditional_entropies += ent_sum.to(self._device)
-        self._num_examples += y_pred.shape[0]
 
-    @sync_all_reduce("_sum_of_probabilities", "_sum_of_conditional_entropies", "_num_examples")
+    @sync_all_reduce("_sum_of_probabilities")
     def compute(self) -> float:
         n = self._num_examples
         if n == 0:
@@ -105,7 +88,7 @@ class MutualInformation(Metric):
 
         marginal_prob = self._sum_of_probabilities / n
         marginal_ent = -(marginal_prob * torch.log(marginal_prob)).sum()
-        conditional_ent = self._sum_of_conditional_entropies / n
+        conditional_ent = self._sum_of_entropies / n
         mi = marginal_ent - conditional_ent
         mi = torch.clamp(mi, min=0.0)  # mutual information cannot be negative
         return float(mi.item())
