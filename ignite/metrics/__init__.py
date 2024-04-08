@@ -21,6 +21,7 @@ from ignite.metrics.mean_squared_error import MeanSquaredError
 from ignite.metrics.metric import BatchFiltered, BatchWise, EpochWise, Metric, MetricUsage
 from ignite.metrics.metrics_lambda import MetricsLambda
 from ignite.metrics.multilabel_confusion_matrix import MultiLabelConfusionMatrix
+from ignite.metrics.mutual_information import MutualInformation
 from ignite.metrics.nlp.bleu import Bleu
 from ignite.metrics.nlp.rouge import Rouge, RougeL, RougeN
 from ignite.metrics.precision import Precision
@@ -57,6 +58,7 @@ __all__ = [
     "mIoU",
     "JaccardIndex",
     "MultiLabelConfusionMatrix",
+    "MutualInformation",
     "Precision",
     "PSNR",
     "Recall",

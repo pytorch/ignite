@@ -80,9 +80,13 @@ class Entropy(Metric):
 
         prob = F.softmax(y_pred, dim=1)
         log_prob = F.log_softmax(y_pred, dim=1)
+
+        self._update(prob, log_prob)
+
+    def _update(self, prob: torch.Tensor, log_prob: torch.Tensor) -> None:
         entropy_sum = -torch.sum(prob * log_prob)
         self._sum_of_entropies += entropy_sum.to(self._device)
-        self._num_examples += y_pred.shape[0]
+        self._num_examples += prob.shape[0]
 
     @sync_all_reduce("_sum_of_entropies", "_num_examples")
     def compute(self) -> float:
