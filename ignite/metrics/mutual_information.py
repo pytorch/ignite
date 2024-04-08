@@ -75,7 +75,6 @@ class MutualInformation(Entropy):
         super().reset()
         self._sum_of_probabilities = torch.tensor(0.0, device=self._device)
 
-    @reinit__is_reduced
     def _update(self, prob: torch.Tensor, log_prob: torch.Tensor) -> None:
         super()._update(prob, log_prob)
         self._sum_of_probabilities = self._sum_of_probabilities + prob.sum(dim=0).to(self._device)
