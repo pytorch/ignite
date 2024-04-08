@@ -80,7 +80,7 @@ class MutualInformation(Entropy):
         # We can't use += below as _sum_of_probabilities can be a scalar and prob.sum(dim=0) is a vector
         self._sum_of_probabilities = self._sum_of_probabilities + prob.sum(dim=0).to(self._device)
 
-    @sync_all_reduce("_sum_of_probabilities")
+    @sync_all_reduce("_sum_of_probabilities", "_sum_of_entropies", "_num_examples")
     def compute(self) -> float:
         n = self._num_examples
         if n == 0:
