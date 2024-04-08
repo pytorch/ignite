@@ -77,6 +77,7 @@ class MutualInformation(Entropy):
 
     def _update(self, prob: torch.Tensor, log_prob: torch.Tensor) -> None:
         super()._update(prob, log_prob)
+        # We can't use += below as _sum_of_probabilities can be a scalar and prob.sum(dim=0) is a vector
         self._sum_of_probabilities = self._sum_of_probabilities + prob.sum(dim=0).to(self._device)
 
     @sync_all_reduce("_sum_of_probabilities")
