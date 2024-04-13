@@ -353,6 +353,7 @@ Complete list of metrics
     FID
     CosineSimilarity
     Entropy
+    KLDivergence
     AveragePrecision
     CohenKappa
     GpuInfo
