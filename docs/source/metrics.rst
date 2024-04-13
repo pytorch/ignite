@@ -354,6 +354,7 @@ Complete list of metrics
     CosineSimilarity
     Entropy
     KLDivergence
+    JSDivergence
     AveragePrecision
     CohenKappa
     GpuInfo
