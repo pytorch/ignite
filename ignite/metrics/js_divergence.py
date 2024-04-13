@@ -17,7 +17,7 @@ class JSDivergence(KLDivergence):
            D_\text{JS}(\mathbf{p}_i \| \mathbf{q}_i) &= \frac{1}{2} D_\text{KL}(\mathbf{p}_i \| \mathbf{m}_i)
            + \frac{1}{2} D_\text{KL}(\mathbf{q}_i \| \mathbf{m}_i), \\
            \mathbf{m}_i &= \frac{1}{2}(\mathbf{p}_i + \mathbf{q}_i), \\
-           D_\text{KL}(\mathbf{p}_i, \mathbf{q}_i) &= \sum_{c=1}^C p_{i,c} \log \frac{p_{i,c}}{q_{i,c}}.
+           D_\text{KL}(\mathbf{p}_i \| \mathbf{q}_i) &= \sum_{c=1}^C p_{i,c} \log \frac{p_{i,c}}{q_{i,c}}.
        \end{align*}
 
     where :math:`\mathbf{p}_i` and :math:`\mathbf{q}_i` are the prediction and ground true probability tensors,
