@@ -146,14 +146,14 @@ class TestDistributed:
         if device.type != "xla":
             metric_devices.append(device)
         for metric_device in metric_devices:
-            kl_div = JSDivergence(device=metric_device)
+            js_div = JSDivergence(device=metric_device)
 
-            for dev in (kl_div._device, kl_div._sum_of_kl.device):
+            for dev in (js_div._device, js_div._sum_of_kl.device):
                 assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
 
             y_pred = torch.tensor([[2.0, 3.0], [-2.0, 1.0]]).float()
             y = torch.ones(2, 2).float()
-            kl_div.update((y_pred, y))
+            js_div.update((y_pred, y))
 
-            for dev in (kl_div._device, kl_div._sum_of_kl.device):
+            for dev in (js_div._device, js_div._sum_of_kl.device):
                 assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
