@@ -20,7 +20,7 @@ class JSDivergence(KLDivergence):
            D_\text{KL}(\mathbf{p}_i \| \mathbf{q}_i) &= \sum_{c=1}^C p_{i,c} \log \frac{p_{i,c}}{q_{i,c}}.
        \end{align*}
 
-    where :math:`\mathbf{p}_i` and :math:`\mathbf{q}_i` are the prediction and ground true probability tensors,
+    where :math:`\mathbf{p}_i` and :math:`\mathbf{q}_i` are the prediction and ground truth probability tensors,
     and :math:`D_\text{KL}` is the KL-divergence.
 
     - ``update`` must receive output of the form ``(y_pred, y)``.
