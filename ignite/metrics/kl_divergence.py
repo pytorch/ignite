@@ -15,7 +15,7 @@ class KLDivergence(Metric):
 
     .. math:: D_\text{KL}(\mathbf{p}_i \| \mathbf{q}_i) = \sum_{c=1}^C p_{i,c} \log \frac{p_{i,c}}{q_{i,c}}
 
-    where :math:`\mathbf{p}_i` and :math:`\mathbf{q}_i` are the prediction and ground true probability tensors.
+    where :math:`\mathbf{p}_i` and :math:`\mathbf{q}_i` are the prediction and ground truth probability tensors.
 
     - ``update`` must receive output of the form ``(y_pred, y)``.
     - ``y_pred`` and ``y`` are expected to be the unnormalized logits for each class. :math:`(B, C)` (classification)
