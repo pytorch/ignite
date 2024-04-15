@@ -16,7 +16,7 @@ from ignite.metrics import KLDivergence
 def scipy_kl_div(np_y_pred: np.ndarray, np_y: np.ndarray) -> float:
     y_pred_prob = softmax(np_y_pred, axis=1)
     y_prob = softmax(np_y, axis=1)
-    kl_mean = entropy(y_pred_prob, y_prob, axis=1).mean()
+    kl_mean = entropy(y_prob, y_pred_prob, axis=1).mean()
     return kl_mean
 
 

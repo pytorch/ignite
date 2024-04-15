@@ -15,7 +15,7 @@ class KLDivergence(Metric):
 
     .. math:: D_\text{KL}(\mathbf{p}_i \| \mathbf{q}_i) = \sum_{c=1}^C p_{i,c} \log \frac{p_{i,c}}{q_{i,c}}
 
-    where :math:`\mathbf{p}_i` and :math:`\mathbf{q}_i` are the prediction and ground truth probability tensors.
+    where :math:`\mathbf{p}_i` and :math:`\mathbf{q}_i` are the ground truth and prediction probability tensors.
 
     - ``update`` must receive output of the form ``(y_pred, y)``.
     - ``y_pred`` and ``y`` are expected to be the unnormalized logits for each class. :math:`(B, C)` (classification)
@@ -92,7 +92,7 @@ class KLDivergence(Metric):
     def _update(self, y_pred: torch.Tensor, y: torch.Tensor) -> None:
         y_pred = F.log_softmax(y_pred, dim=1)
         y = F.log_softmax(y, dim=1)
-        kl_sum = F.kl_div(y, y_pred, log_target=True, reduction="sum")
+        kl_sum = F.kl_div(y_pred, y, log_target=True, reduction="sum")
         self._sum_of_kl += kl_sum.to(self._device)
 
     @sync_all_reduce("_sum_of_kl", "_num_examples")
