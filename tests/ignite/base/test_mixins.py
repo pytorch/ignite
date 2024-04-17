@@ -13,6 +13,7 @@ def test_state_dict():
     with pytest.raises(NotImplementedError):
         s.state_dict()
 
+
 def test_load_state_dict():
 
     s = ExampleSerializable()
