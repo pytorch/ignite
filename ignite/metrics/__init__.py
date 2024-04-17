@@ -14,6 +14,8 @@ from ignite.metrics.frequency import Frequency
 from ignite.metrics.gan.fid import FID
 from ignite.metrics.gan.inception_score import InceptionScore
 from ignite.metrics.gpu_info import GpuInfo
+from ignite.metrics.js_divergence import JSDivergence
+from ignite.metrics.kl_divergence import KLDivergence
 from ignite.metrics.loss import Loss
 from ignite.metrics.mean_absolute_error import MeanAbsoluteError
 from ignite.metrics.mean_pairwise_distance import MeanPairwiseDistance
@@ -57,6 +59,8 @@ __all__ = [
     "InceptionScore",
     "mIoU",
     "JaccardIndex",
+    "JSDivergence",
+    "KLDivergence",
     "MultiLabelConfusionMatrix",
     "MutualInformation",
     "Precision",
