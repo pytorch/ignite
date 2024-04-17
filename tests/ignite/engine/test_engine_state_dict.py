@@ -58,7 +58,6 @@ def test_state_dict_with_user_keys():
     _test(State(iteration=500, epoch_length=1000, max_iters=2000, alpha=0.01, beta="Good"))
 
 
-
 def test_state_dict_integration():
     def _test(max_epochs, max_iters):
         engine = Engine(lambda e, b: 1)
@@ -81,6 +80,7 @@ def test_state_dict_integration():
     _test(max_epochs=10, max_iters=None)
     _test(max_epochs=None, max_iters=None)
     _test(max_epochs=None, max_iters=10 * 100)
+
 
 def test_load_state_dict_asserts():
     engine = Engine(lambda e, b: 1)

@@ -11,7 +11,7 @@ import ignite.distributed as idist
 from ignite.engine import Engine, Events, State
 from ignite.engine.deterministic import keep_random_state
 from ignite.metrics import Average
-from tests.ignite.engine import BatchChecker, EpochCounter, IterationCounter, get_iterable_dataset
+from tests.ignite.engine import BatchChecker, EpochCounter, get_iterable_dataset, IterationCounter
 
 
 class RecordedEngine(Engine):
@@ -653,7 +653,6 @@ class TestEngine:
         if n_terminate is None:
             n_terminate = int(n_epoch_started != n_epoch_completed) if max_iters is not None else 0
 
-
         expected_num_calls = {
             Events.STARTED: 1,
             Events.COMPLETED: 1,
@@ -784,7 +783,6 @@ class TestEngine:
             )
             self._test_check_triggered_events(limited_data_iterator(), max_iters=21, epoch_length=12, **kwargs)
 
-
     def test_run_check_triggered_events_on_iterator(self):
         self._test_run_check_triggered_events_on_iterator()
 
@@ -892,10 +890,11 @@ class TestEngine:
             assert train_batches[i] == train_only_batches[i]
 
     @pytest.mark.parametrize(
-        "kwargs", [
+        "kwargs",
+        [
             {"max_epochs": None, "epoch_length": 10, "max_iters": 25},
             {"max_epochs": 5, "epoch_length": 10, "max_iters": None},
-            ]
+        ],
     )
     def test_engine_with_dataloader_no_auto_batching(self, kwargs):
         # tests https://github.com/pytorch/ignite/issues/941
@@ -964,8 +963,6 @@ class TestEngine:
         with pytest.warns(UserWarning, match=r"Data iterator can not provide data anymore"):
             _test(max_iters=unknown_size * 2)
 
-
-
     def test_run_finite_iterator_no_epoch_length(self):
         # FR: https://github.com/pytorch/ignite/issues/871
         unknown_size = 11
@@ -987,7 +984,6 @@ class TestEngine:
 
         assert engine.state.epoch == 5
         assert engine.state.iteration == unknown_size * 5
-
 
     def test_run_finite_iterator_no_epoch_length_2(self):
         # FR: https://github.com/pytorch/ignite/issues/871
@@ -1023,7 +1019,6 @@ class TestEngine:
         _test(max_iters=known_size)
         _test(max_iters=known_size // 2)
 
-
     def test_faq_inf_iterator_with_epoch_length():
         def _test(max_epochs, max_iters):
             # Code snippet from FAQ
@@ -1050,7 +1045,6 @@ class TestEngine:
 
         _test(max_epochs=3, max_iters=None)
         _test(max_epochs=None, max_iters=3 * 5)
-
 
     def test_faq_inf_iterator_no_epoch_length(self):
         def _test(max_epochs, max_iters):
@@ -1082,7 +1076,6 @@ class TestEngine:
 
         _test(max_epochs=None, max_iters=None)
         _test(max_epochs=None, max_iters=100)
-
 
     def test_faq_fin_iterator_unknw_size(self):
         def _test(max_epochs, max_iters):
@@ -1138,7 +1131,6 @@ class TestEngine:
             assert evaluator.state.iteration == 1 * 11
 
         _test(max_epochs=None, max_iters=None)
-
 
     def test_faq_fin_iterator(self):
         # Code snippet from FAQ
@@ -1247,7 +1239,6 @@ class TestEngine:
 
         assert evaluator.state.epoch == 1
         assert evaluator.state.iteration == size
-
 
     def test_set_data(self):
         # tests FR https://github.com/pytorch/ignite/issues/833
@@ -1478,7 +1469,6 @@ class TestEngine:
         assert engine.state.epoch == 10
         assert engine.state.iteration == 10 * real_epoch_length
 
-
     def test_restart_training(self):
         data = range(10)
         engine = Engine(lambda e, b: 1)
@@ -1492,7 +1482,6 @@ class TestEngine:
             engine.run(data, max_epochs=2)
         state.max_epochs = None
         engine.run(data, max_epochs=2)
-
 
     def test_engine_multiple_runs(self):
         engine = Engine(lambda e, b: 1)
@@ -1538,7 +1527,6 @@ class TestEngine:
         assert engine.state.epoch == 6
         assert engine.state.iteration == 6 * epoch_length
 
-
     def test_engine_multiple_runs_2(self):
 
         e = Engine(lambda _, b: None)
@@ -1555,7 +1543,6 @@ class TestEngine:
         assert e.state.iteration == 100
         # should be 1 and if 3 this is a bug : https://github.com/pytorch/ignite/issues/1386
         assert e.state.epoch == 3
-
 
 
 @pytest.mark.parametrize(
