@@ -71,13 +71,13 @@ class JSDivergence(KLDivergence):
     """
 
     def _update(self, y_pred: torch.Tensor, y: torch.Tensor) -> None:
-        m_prob = (F.softmax(y_pred, dim=1) + F.softmax(y, dim=1)) / 2
+        y_pred_prob = F.softmax(y_pred, dim=1)
+        y_prob = F.softmax(y, dim=1)
+        m_prob = (y_pred_prob + y_prob) / 2
         m_log = m_prob.log()
-        y_pred = F.log_softmax(y_pred, dim=1)
-        y = F.log_softmax(y, dim=1)
+        # y_pred and y are expected to be probabilities
         self._sum_of_kl += (
-            F.kl_div(m_log, y_pred, log_target=True, reduction="sum")
-            + F.kl_div(m_log, y, log_target=True, reduction="sum")
+            F.kl_div(m_log, y_pred_prob, reduction="sum") + F.kl_div(m_log, y_prob, reduction="sum")
         ).to(self._device)
 
     @sync_all_reduce("_sum_of_kl", "_num_examples")

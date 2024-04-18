@@ -91,8 +91,9 @@ class KLDivergence(Metric):
 
     def _update(self, y_pred: torch.Tensor, y: torch.Tensor) -> None:
         y_pred = F.log_softmax(y_pred, dim=1)
-        y = F.log_softmax(y, dim=1)
-        kl_sum = F.kl_div(y_pred, y, log_target=True, reduction="sum")
+        y = F.softmax(y, dim=1)
+        # y_pred and y are expected to be log probabilities and probabilities, respectively.
+        kl_sum = F.kl_div(y_pred, y, reduction="sum")
         self._sum_of_kl += kl_sum.to(self._device)
 
     @sync_all_reduce("_sum_of_kl", "_num_examples")
