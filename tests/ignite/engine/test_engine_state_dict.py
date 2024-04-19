@@ -125,19 +125,19 @@ def test_load_state_dict():
     _test({"max_epochs": 100, "epoch_length": 120, "iteration": 123})
     _test({"max_epochs": 100, "epoch_length": 120, "epoch": 5})
 
-    with pytest.raises(ValueError, match=r"Argument max_epochs should be larger than"):
+    with pytest.raises(ValueError, match=r"Argument max_epochs should be greater than the current"):
         _test({"max_epochs": 10, "epoch_length": 120, "epoch": 50})
 
-    with pytest.raises(ValueError, match=r"Argument max_epochs should be larger than"):
+    with pytest.raises(ValueError, match=r"Argument max_epochs should be greater than the current"):
         _test({"max_epochs": 10, "epoch_length": 120, "iteration": 5000})
 
     _test({"max_iters": 500, "epoch_length": 120, "iteration": 123})
     _test({"max_iters": 500, "epoch_length": 120, "epoch": 3})
 
-    with pytest.raises(ValueError, match=r"Argument max_iters should be larger than"):
+    with pytest.raises(ValueError, match=r"Argument max_iters should be greater than"):
         _test({"max_iters": 500, "epoch_length": 120, "epoch": 5})
 
-    with pytest.raises(ValueError, match=r"Argument max_iters should be larger than"):
+    with pytest.raises(ValueError, match=r"Argument max_iters should be greater than"):
         _test({"max_iters": 500, "epoch_length": 120, "iteration": 501})
 
 
@@ -184,7 +184,7 @@ def test_load_state_dict_with_params_overriding_integration():
     assert state.max_epochs == new_max_epochs
     assert state.iteration == state_dict["epoch_length"] * new_max_epochs
     assert state.epoch == new_max_epochs
-    with pytest.raises(ValueError, match=r"Argument max_epochs should be larger than the current epoch"):
+    with pytest.raises(ValueError, match=r"Argument max_epochs should be greater than the current epoch"):
         engine.load_state_dict(state_dict)
         engine.run(data, max_epochs=3)
 

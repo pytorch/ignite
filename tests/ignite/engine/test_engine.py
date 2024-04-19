@@ -536,7 +536,7 @@ class TestEngine:
             engine.state.epoch = 5
             engine.run([0, 1], max_epochs=3)
 
-        with pytest.raises(ValueError, match=r"Argument max_iters should be larger than"):
+        with pytest.raises(ValueError, match=r"Argument max_iters should be greater than the current"):
             engine.state.max_iters = 100
             engine.state.iteration = 100
             engine.run([0, 1], max_iters=50)

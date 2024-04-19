@@ -905,7 +905,7 @@ class Engine(Serializable):
                     raise ValueError("Argument max_iters is invalid. Please, set a correct max_iters positive value")
                 if (self.state.max_iters is not None) and max_iters <= self.state.iteration:
                     raise ValueError(
-                        "Argument max_iters should be larger than the current iteration "
+                        "Argument max_iters should be greater than the current iteration "
                         f"defined in the state: {max_iters} vs {self.state.iteration}. "
                         "Please, set engine.state.max_iters = None "
                         "before calling engine.run() in order to restart the training from the beginning."
@@ -979,7 +979,7 @@ class Engine(Serializable):
                 raise ValueError("Argument max_epochs is invalid. Please, set a correct max_epochs positive value")
             if self.state.max_epochs is not None and max_epochs <= self.state.epoch:
                 raise ValueError(
-                    "Argument max_epochs should be larger than the current epoch "
+                    "Argument max_epochs should be greater than the current epoch "
                     f"defined in the state: {max_epochs} vs {self.state.epoch}. "
                     "Please, set engine.state.max_epochs = None "
                     "before calling engine.run() in order to restart the training from the beginning."
@@ -992,7 +992,7 @@ class Engine(Serializable):
                 raise ValueError("Argument max_iters is invalid. Please, set a correct max_iters positive value")
             if (self.state.max_iters is not None) and max_iters <= self.state.iteration:
                 raise ValueError(
-                    "Argument max_iters should be larger than the current iteration "
+                    "Argument max_iters should be greater than the current iteration "
                     f"defined in the state: {max_iters} vs {self.state.iteration}. "
                     "Please, set engine.state.max_iters = None "
                     "before calling engine.run() in order to restart the training from the beginning."
