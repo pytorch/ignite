@@ -645,10 +645,16 @@ class TestEngine:
             n_iter_completed = max_epochs * epoch_length if max_epochs is not None else max_iters
 
         if n_batch_started is None:
-            n_batch_started = max_epochs * epoch_length if max_epochs is not None else max_iters
+            if data is None:
+                n_batch_started = 0
+            else:
+                n_batch_started = max_epochs * epoch_length if max_epochs is not None else max_iters
 
         if n_batch_completed is None:
-            n_batch_completed = max_epochs * epoch_length if max_epochs is not None else max_iters
+            if data is None:
+                n_batch_completed = 0
+            else:
+                n_batch_completed = max_epochs * epoch_length if max_epochs is not None else max_iters
 
         if n_terminate is None:
             n_terminate = int(n_epoch_started != n_epoch_completed) if max_iters is not None else 0
