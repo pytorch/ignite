@@ -3,9 +3,13 @@ import re
 from unittest.mock import MagicMock
 
 import pytest
+import torch
+import torch.nn as nn
+import torch.optim as optim
 
-from ignite.engine import Engine, Events
-from ignite.handlers.fbresearch_logger import FBResearchLogger  # Adjust the import path as necessary
+from ignite.engine import create_supervised_trainer, Engine, Events
+from ignite.handlers.fbresearch_logger import FBResearchLogger
+from ignite.utils import setup_logger
 
 
 @pytest.fixture
@@ -56,3 +60,47 @@ def test_output_formatting(mock_engine, fb_research_logger, output, expected_pat
 
     actual_output = fb_research_logger.logger.info.call_args_list[0].args[0]
     assert re.search(expected_pattern, actual_output)
+
+
+def test_logger_type_support():
+    model = nn.Linear(10, 5)
+    opt = optim.SGD(model.parameters(), lr=0.001)
+    criterion = nn.CrossEntropyLoss()
+
+    data = [(torch.rand(4, 10), torch.randint(0, 5, size=(4,))) for _ in range(100)]
+
+    trainer = create_supervised_trainer(model, opt, criterion)
+
+    logger = setup_logger("trainer", level=logging.INFO)
+    logger = FBResearchLogger(logger=logger, show_output=True)
+    logger.attach(trainer, name="Train", every=20, optimizer=opt)
+
+    trainer.run(data, max_epochs=4)
+    trainer.state.output = {"loss": 4.2}
+    trainer.fire_event(Events.ITERATION_COMPLETED)
+    trainer.state.output = "4.2"
+    trainer.fire_event(Events.ITERATION_COMPLETED)
+    trainer.state.output = [4.2, 4.2]
+    trainer.fire_event(Events.ITERATION_COMPLETED)
+    trainer.state.output = (4.2, 4.2)
+    trainer.fire_event(Events.ITERATION_COMPLETED)
+
+
+def test_fbrlogger_with_output_transform(mock_logger):
+    trainer = Engine(lambda e, b: 42)
+    fbr = FBResearchLogger(logger=mock_logger, show_output=True)
+    fbr.attach(trainer, "Training", output_transform=lambda x: {"loss": x})
+    trainer.run(data=[10], epoch_length=1, max_epochs=1)
+    assert "loss: 42.0000" in fbr.logger.info.call_args_list[-2].args[0]
+
+
+def test_fbrlogger_with_state_attrs(mock_logger):
+    trainer = Engine(lambda e, b: 42)
+    fbr = FBResearchLogger(logger=mock_logger, show_output=True)
+    fbr.attach(trainer, "Training", state_attributes=["alpha", "beta", "gamma"])
+    trainer.state.alpha = 3.899
+    trainer.state.beta = torch.tensor(12.21)
+    trainer.state.gamma = torch.tensor([21.0, 6.0])
+    trainer.run(data=[10], epoch_length=1, max_epochs=1)
+    attrs = "alpha: 3.8990 beta: 12.2100 gamma: [21.0000, 6.0000]"
+    assert attrs in fbr.logger.info.call_args_list[-2].args[0]

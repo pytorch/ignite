@@ -1,17 +1,19 @@
 """FBResearch logger and its helper handlers."""
 
 import datetime
-from typing import Any, Optional
-
-# from typing import Any, Dict, Optional, Union
+from typing import Any, Callable, List, Optional
 
 import torch
 
+from ignite import utils
 from ignite.engine import Engine, Events
 from ignite.handlers import Timer
+from ignite.handlers.utils import global_step_from_engine  # noqa
 
 
 MB = 1024.0 * 1024.0
+
+__all__ = ["FBResearchLogger", "global_step_from_engine"]
 
 
 class FBResearchLogger:
@@ -98,7 +100,13 @@ class FBResearchLogger:
         self.show_output: bool = show_output
 
     def attach(
-        self, engine: Engine, name: str, every: int = 1, optimizer: Optional[torch.optim.Optimizer] = None
+        self,
+        engine: Engine,
+        name: str,
+        every: int = 1,
+        output_transform: Optional[Callable] = None,
+        state_attributes: Optional[List[str]] = None,
+        optimizer: Optional[torch.optim.Optimizer] = None,
     ) -> None:
         """Attaches all the logging handlers to the given engine.
 
@@ -106,8 +114,13 @@ class FBResearchLogger:
             engine: The engine to attach the logging handlers to.
             name: The name of the engine (e.g., "Train", "Validate") to include in log messages.
             every: Frequency of iterations to log information. Logs are generated every 'every' iterations.
+            output_transform: A function to select the value to log.
+            state_attributes: A list of attributes to log.
             optimizer: The optimizer used during training to log current learning rates.
         """
+        self.name = name
+        self.output_transform = output_transform
+        self.state_attributes = state_attributes
         engine.add_event_handler(Events.EPOCH_STARTED, self.log_epoch_started, engine, name)
         engine.add_event_handler(Events.ITERATION_COMPLETED(every=every), self.log_every, engine, optimizer=optimizer)
         engine.add_event_handler(Events.EPOCH_COMPLETED, self.log_epoch_completed, engine, name)
@@ -151,10 +164,9 @@ class FBResearchLogger:
         outputs = []
         if self.show_output and engine.state.output is not None:
             output = engine.state.output
-            if isinstance(output, dict):
-                outputs += [f"{k}: {v:.4f}" for k, v in output.items()]
-            else:
-                outputs += [f"{v:.4f}" if isinstance(v, float) else f"{v}" for v in output]  # type: ignore
+            if self.output_transform is not None:
+                output = self.output_transform(output)
+            outputs = utils._to_str_list(output)
 
         lrs = ""
         if optimizer is not None:
@@ -164,6 +176,11 @@ class FBResearchLogger:
                 for i, g in enumerate(optimizer.param_groups):
                     lrs += f"lr [g{i}]: {g['lr']:.5f}"
 
+        state_attrs = []
+        if self.state_attributes is not None:
+            state_attrs = utils._to_str_list(
+                {name: getattr(engine.state, name, None) for name in self.state_attributes}
+            )
         msg = self.delimiter.join(
             [
                 f"Epoch [{engine.state.epoch}/{engine.state.max_epochs}]",
@@ -172,6 +189,7 @@ class FBResearchLogger:
                 f"{lrs}",
             ]
             + outputs
+            + [" ".join(state_attrs)]
             + [
                 f"Iter time: {iter_avg_time:.4f} s",
                 f"Data prep time: {self.data_timer.value():.4f} s",
