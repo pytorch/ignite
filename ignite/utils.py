@@ -163,6 +163,7 @@ def setup_logger(
     filepath: Optional[str] = None,
     distributed_rank: Optional[int] = None,
     reset: bool = False,
+    encoding: Optional[str] = "utf-8",
 ) -> logging.Logger:
     """Setups logger: name, level, format etc.
 
@@ -175,6 +176,7 @@ def setup_logger(
         distributed_rank: Optional, rank in distributed configuration to avoid logger setup for workers.
             If None, distributed_rank is initialized to the rank of process.
         reset: if True, reset an existing logger rather than keep format, handlers, and level.
+        encoding: open the file with the encoding. By default, 'utf-8'.
 
     Returns:
         logging.Logger
@@ -265,7 +267,7 @@ def setup_logger(
         logger.addHandler(ch)
 
         if filepath is not None:
-            fh = logging.FileHandler(filepath)
+            fh = logging.FileHandler(filepath, encoding=encoding)
             fh.setLevel(level)
             fh.setFormatter(formatter)
             logger.addHandler(fh)
