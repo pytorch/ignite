@@ -230,6 +230,9 @@ def setup_logger(
 
     .. versionchanged:: 0.4.5
         Added ``reset`` parameter.
+
+    .. versionchanged:: 0.5.1
+        Argument ``encoding`` added to correctly handle special characters in the file, default "utf-8".
     """
     # check if the logger already exists
     existing = name is None or name in logging.root.manager.loggerDict

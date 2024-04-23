@@ -174,6 +174,30 @@ def test_override_setup_logger(capsys):
     logging.shutdown()
 
 
+@pytest.mark.parametrize("encoding", [None, "utf-8"])
+def test_setup_logger_encoding(encoding, dirname):
+
+    fp = dirname / "log"
+    logger = setup_logger(name="logger", filepath=fp, encoding=encoding, reset=True)
+    test_words = ["hello", "你好", "привет"]
+    for w in test_words:
+        logger.info(w)
+    logging.shutdown()
+
+    with open(fp, "r") as h:
+        data = h.readlines()
+
+    if encoding == "utf-8":
+        assert len(data) == len(test_words)
+        for expected, output in zip(test_words, data):
+            assert expected in output
+    else:
+        # TODO: let's which OS will fail here
+        assert len(data) == len(test_words)
+        for expected, output in zip(test_words, data):
+            assert expected in output
+
+
 def test_deprecated():
     # Test on function without docs, @deprecated without reasons
     @deprecated("0.4.2", "0.6.0")
