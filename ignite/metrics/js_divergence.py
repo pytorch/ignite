@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+from packaging.version import Version
 
 from ignite.exceptions import NotComputableError
 from ignite.metrics.kl_divergence import KLDivergence
@@ -75,10 +76,20 @@ class JSDivergence(KLDivergence):
         y_prob = F.softmax(y, dim=1)
         m_prob = (y_pred_prob + y_prob) / 2
         m_log = m_prob.log()
-        # y_pred and y are expected to be probabilities
-        self._sum_of_kl += (
-            F.kl_div(m_log, y_pred_prob, reduction="sum") + F.kl_div(m_log, y_prob, reduction="sum")
-        ).to(self._device)
+
+        if Version(torch.__version__) >= Version("1.6.0"):
+            # log_target option can be used from 1.6.0
+            y_pred_log = F.log_softmax(y_pred, dim=1)
+            y_log = F.log_softmax(y, dim=1)
+            self._sum_of_kl += (
+                F.kl_div(m_log, y_pred_log, log_target=True, reduction="sum")
+                + F.kl_div(m_log, y_log, log_target=True, reduction="sum")
+            ).to(self._device)
+        else:
+            # y_pred and y are expected to be probabilities
+            self._sum_of_kl += (
+                F.kl_div(m_log, y_pred_prob, reduction="sum") + F.kl_div(m_log, y_prob, reduction="sum")
+            ).to(self._device)
 
     @sync_all_reduce("_sum_of_kl", "_num_examples")
     def compute(self) -> float:
