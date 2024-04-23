@@ -8,6 +8,8 @@ from ignite.metrics.metric import sync_all_reduce
 
 __all__ = ["JSDivergence"]
 
+TORCH_VERSION_GE_160 = Version(torch.__version__) >= Version("1.6.0")
+
 
 class JSDivergence(KLDivergence):
     r"""Calculates the mean of `Jensen-Shannon (JS) divergence
@@ -77,7 +79,7 @@ class JSDivergence(KLDivergence):
         m_prob = (y_pred_prob + y_prob) / 2
         m_log = m_prob.log()
 
-        if Version(torch.__version__) >= Version("1.6.0"):
+        if TORCH_VERSION_GE_160:
             # log_target option can be used from 1.6.0
             y_pred_log = F.log_softmax(y_pred, dim=1)
             y_log = F.log_softmax(y, dim=1)

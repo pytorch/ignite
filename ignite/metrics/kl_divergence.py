@@ -9,6 +9,8 @@ from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
 __all__ = ["KLDivergence"]
 
+TORCH_VERSION_GE_160 = Version(torch.__version__) >= Version("1.6.0")
+
 
 class KLDivergence(Metric):
     r"""Calculates the mean of `Kullback-Leibler (KL) divergence
@@ -93,7 +95,7 @@ class KLDivergence(Metric):
     def _update(self, y_pred: torch.Tensor, y: torch.Tensor) -> None:
         y_pred = F.log_softmax(y_pred, dim=1)
 
-        if Version(torch.__version__) >= Version("1.6.0"):
+        if TORCH_VERSION_GE_160:
             # log_target option can be used from 1.6.0
             y = F.log_softmax(y, dim=1)
             kl_sum = F.kl_div(y_pred, y, log_target=True, reduction="sum")
