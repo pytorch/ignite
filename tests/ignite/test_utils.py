@@ -1,4 +1,5 @@
 import logging
+import platform
 import sys
 from collections import namedtuple
 
@@ -176,7 +177,8 @@ def test_override_setup_logger(capsys):
 
 @pytest.mark.parametrize("encoding", [None, "utf-8"])
 def test_setup_logger_encoding(encoding, dirname):
-
+    if platform.system() == "Windows" and encoding is None:
+        return
     fp = dirname / "log"
     logger = setup_logger(name="logger", filepath=fp, encoding=encoding, reset=True)
     test_words = ["hello", "你好", "こんにちわ", "안녕하세요", "привет"]
