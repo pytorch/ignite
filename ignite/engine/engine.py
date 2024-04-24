@@ -1064,16 +1064,18 @@ class Engine(Serializable):
                     self.state.times[Events.EPOCH_COMPLETED.name] = epoch_time_taken
 
                     handlers_start_time = time.time()
-                    self._fire_event(Events.EPOCH_COMPLETED)
-                    epoch_time_taken += time.time() - handlers_start_time
-                    # update time wrt handlers
-                    self.state.times[Events.EPOCH_COMPLETED.name] = epoch_time_taken
-                    yield from self._maybe_terminate_or_interrupt()
+                    if self.state.epoch_length is not None and self.state.iteration % self.state.epoch_length == 0:
+                        # max_iters can cause training to complete without an epoch ending
+                        self._fire_event(Events.EPOCH_COMPLETED)
+                        epoch_time_taken += time.time() - handlers_start_time
+                        # update time wrt handlers
+                        self.state.times[Events.EPOCH_COMPLETED.name] = epoch_time_taken
 
-                    hours, mins, secs = _to_hours_mins_secs(epoch_time_taken)
-                    self.logger.info(
-                        f"Epoch[{self.state.epoch}] Complete. Time taken: {hours:02d}:{mins:02d}:{secs:06.3f}"
-                    )
+                        hours, mins, secs = _to_hours_mins_secs(epoch_time_taken)
+                        self.logger.info(
+                            f"Epoch[{self.state.epoch}] Complete. Time taken: {hours:02d}:{mins:02d}:{secs:06.3f}"
+                        )
+                    yield from self._maybe_terminate_or_interrupt()
 
             except _EngineTerminateException:
                 self._fire_event(Events.TERMINATE)
