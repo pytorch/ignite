@@ -195,7 +195,7 @@ def distributed_context_single_node_gloo(local_rank, world_size):
         "world_size": world_size,
         "rank": local_rank,
         "init_method": init_method,
-        "timeout": timedelta(seconds=60),
+        "timeout": timedelta(seconds=30),
     }
     yield _create_dist_context(dist_info, local_rank)
     _destroy_dist_context()
@@ -423,7 +423,7 @@ def distributed(request, local_rank, world_size):
             dist_info["backend"] = "gloo"
             from datetime import timedelta
 
-            dist_info["timeout"] = timedelta(seconds=60)
+            dist_info["timeout"] = timedelta(seconds=30)
         yield _create_dist_context(dist_info, local_rank)
         _destroy_dist_context()
         if temp_file:
