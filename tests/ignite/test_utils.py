@@ -179,7 +179,7 @@ def test_setup_logger_encoding(encoding, dirname):
 
     fp = dirname / "log"
     logger = setup_logger(name="logger", filepath=fp, encoding=encoding, reset=True)
-    test_words = ["hello", "你好", "привет"]
+    test_words = ["hello", "你好", "こんにちわ", "안녕하세요", "привет"]
     for w in test_words:
         logger.info(w)
     logging.shutdown()
