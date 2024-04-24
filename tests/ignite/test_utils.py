@@ -184,18 +184,12 @@ def test_setup_logger_encoding(encoding, dirname):
         logger.info(w)
     logging.shutdown()
 
-    with open(fp, "r") as h:
+    with open(fp, "r", encoding=encoding) as h:
         data = h.readlines()
 
-    if encoding == "utf-8":
-        assert len(data) == len(test_words)
-        for expected, output in zip(test_words, data):
-            assert expected in output
-    else:
-        # TODO: let's which OS will fail here
-        assert len(data) == len(test_words)
-        for expected, output in zip(test_words, data):
-            assert expected in output
+    assert len(data) == len(test_words)
+    for expected, output in zip(test_words, data):
+        assert expected in output
 
 
 def test_deprecated():
