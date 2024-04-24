@@ -3,6 +3,7 @@ numpy
 pytest
 pytest-cov
 pytest-xdist
+pytest-timeout
 dill
 setuptools
 # Test contrib dependencies
