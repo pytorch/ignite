@@ -106,7 +106,7 @@ class InceptionScore(_BaseInceptionMetric):
         self._prob_total = torch.zeros(self._num_features, dtype=torch.float64, device=self._device)
         self._total_kl_d = torch.zeros(self._num_features, dtype=torch.float64, device=self._device)
 
-        super(InceptionScore, self).reset()
+        super(InceptionScore, self).reset()  # type: ignore
 
     @reinit__is_reduced
     def update(self, output: torch.Tensor) -> None:
