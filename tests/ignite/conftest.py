@@ -13,6 +13,12 @@ import torch.distributed as dist
 import ignite.distributed as idist
 
 
+def pytest_configure(config):
+    config.addinivalue_line("markers", "distributed: run distributed")
+    config.addinivalue_line("markers", "multinode_distributed: distributed")
+    config.addinivalue_line("markers", "tpu: run on tpu")
+
+
 @pytest.fixture(
     params=[
         "cpu",
