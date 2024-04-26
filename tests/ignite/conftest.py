@@ -492,3 +492,9 @@ def pytest_pyfunc_call(pyfuncitem: pytest.Function) -> None:
                 assert ex_.code == 0, "Didn't successfully exit in XLA test"
 
         pyfuncitem.obj = functools.partial(testfunc_wrapper, pyfuncitem.obj)
+
+
+def pytest_collection_modifyitems(items):
+    for item in items:
+        if "distributed" in item.fixturenames:
+            item.add_marker(pytest.mark.xdist_group("distributed"))

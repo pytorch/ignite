@@ -419,6 +419,7 @@ def test_incorrect_y_classes(average):
 
 
 @pytest.mark.usefixtures("distributed")
+@pytest.mark.xdist_group(name="distributed")
 class TestDistributed:
     @pytest.mark.parametrize("average", [False, "macro", "weighted", "micro"])
     @pytest.mark.parametrize("n_epochs", [1, 2])
