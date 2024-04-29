@@ -16,6 +16,8 @@ from ignite.handlers.visdom_logger import (
     WeightsScalarHandler,
 )
 
+# Run tests on a single worker to avoid issues with connecting to the visdom
+# server This requires that the --dist=loadgroup option be passed to pytest.
 pytestmark = [pytest.mark.timeout(30), pytest.mark.xdist_group(name="visdom")]
 
 

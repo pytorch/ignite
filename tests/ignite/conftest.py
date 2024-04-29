@@ -503,4 +503,6 @@ def pytest_pyfunc_call(pyfuncitem: pytest.Function) -> None:
 def pytest_collection_modifyitems(items):
     for item in items:
         if "distributed" in item.fixturenames:
+            # Run distributed tests on a single worker to avoid RACE conditions
+            # This requires that the --dist=loadgroup option be passed to pytest.
             item.add_marker(pytest.mark.xdist_group("distributed"))
