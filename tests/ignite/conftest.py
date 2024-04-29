@@ -506,3 +506,6 @@ def pytest_collection_modifyitems(items):
             # Run distributed tests on a single worker to avoid RACE conditions
             # This requires that the --dist=loadgroup option be passed to pytest.
             item.add_marker(pytest.mark.xdist_group("distributed"))
+            item.add_marker(pytest.mark.timeout(45))
+        if "multinode_distributed" in item.fixturenames:
+            item.add_marker(pytest.mark.timeout(45))

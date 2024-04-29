@@ -11,8 +11,6 @@ if not has_native_dist_support:
 else:
     from ignite.distributed.comp_models.native import _expand_hostlist, _NativeDistModel, _setup_ddp_vars_from_slurm_env
 
-pytestmark = pytest.mark.timeout(60)
-
 
 # tests from https://github.com/LLNL/py-hostlist/blob/master/hostlist/unittest_hostlist.py
 @pytest.mark.parametrize(
