@@ -12,7 +12,12 @@ from ignite.metrics.nlp.rouge import compute_ngram_scores, RougeL, RougeN
 
 from . import CorpusForTest
 
-nltk.download("punkt")
+
+@pytest.fixture(scope="session", autouse=True)
+def download_nltk_punkt():
+    if not nltk.data.find("tokenizers/punkt"):
+        nltk.download("punkt")
+
 
 corpus = CorpusForTest()
 
