@@ -33,8 +33,9 @@ def visdom_server():
 
     assert vis and vis.check_connection()
     yield (vd_hostname, vd_port)
-    vis.close()
-    vd_server_process.kill()
+    # Trying to clean up slows things down and sometimes causes hangs.
+    # vis.close()
+    # vd_server_process.kill()
 
 
 @pytest.fixture
@@ -98,9 +99,3 @@ def dummy_model_factory():
         return model
 
     return get_dummy_model
-
-
-def pytest_collection_modifyitems(items):
-    for item in items:
-        if "visdom_server" in item.fixturenames:
-            item.add_marker(pytest.mark.timeout(30))

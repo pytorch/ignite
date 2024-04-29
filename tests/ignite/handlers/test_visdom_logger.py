@@ -16,7 +16,7 @@ from ignite.handlers.visdom_logger import (
     WeightsScalarHandler,
 )
 
-pytestmark = pytest.mark.xdist_group(name="visdom")
+pytestmark = [pytest.mark.timeout(30), pytest.mark.xdist_group(name="visdom")]
 
 
 def test_optimizer_params_handler_wrong_setup():
