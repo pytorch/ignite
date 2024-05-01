@@ -10,7 +10,7 @@ __all__ = ["MaximumMeanDiscrepancy"]
 
 class MaximumMeanDiscrepancy(Metric):
     r"""Calculates the mean of `maximum mean discrepancy (MMD)
-    <https://www.onurtunali.com/ml/2019/03/08/maximum-mean-discrepancy-in-machine-learning.html#references>`_.
+    <https://www.onurtunali.com/ml/2019/03/08/maximum-mean-discrepancy-in-machine-learning.html>`_.
 
     .. math::
        \begin{align*}
