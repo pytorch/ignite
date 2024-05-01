@@ -355,6 +355,7 @@ Complete list of metrics
     Entropy
     KLDivergence
     JSDivergence
+    MaximumMeanDiscrepancy
     AveragePrecision
     CohenKappa
     GpuInfo
