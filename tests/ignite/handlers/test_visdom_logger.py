@@ -16,6 +16,10 @@ from ignite.handlers.visdom_logger import (
     WeightsScalarHandler,
 )
 
+# Run tests on a single worker to avoid issues with connecting to the visdom
+# server This requires that the --dist=loadgroup option be passed to pytest.
+pytestmark = [pytest.mark.timeout(30), pytest.mark.xdist_group(name="visdom")]
+
 
 def test_optimizer_params_handler_wrong_setup():
     with pytest.raises(TypeError):
@@ -948,7 +952,7 @@ def test_integration_with_executor(visdom_server):
 
 
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
-def test_integration_with_executor_as_context_manager(visdom_server, visdom_server_stop):
+def test_integration_with_executor_as_context_manager(visdom_server):
     n_epochs = 5
     data = list(range(50))
 

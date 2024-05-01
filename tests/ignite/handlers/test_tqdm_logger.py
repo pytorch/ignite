@@ -33,9 +33,9 @@ def update_fn(engine, batch):
 def test_pbar_errors():
     with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires tqdm to be installed"):
         with patch.dict("sys.modules", {"tqdm.autonotebook": None}):
-            ProgressBar()
+            ProgressBar(ncols=80)
 
-    pbar = ProgressBar()
+    pbar = ProgressBar(ncols=80)
     with pytest.raises(ValueError, match=r"Logging event abc is not in allowed"):
         pbar.attach(Engine(lambda e, b: None), event_name=Namespace(name="abc"))
 
@@ -45,7 +45,7 @@ def test_pbar(capsys):
     loader = [1, 2]
     engine = Engine(update_fn)
 
-    pbar = ProgressBar()
+    pbar = ProgressBar(ncols=80)
     pbar.attach(engine, ["a"])
 
     engine.run(loader, max_epochs=n_epochs)
@@ -55,9 +55,9 @@ def test_pbar(capsys):
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     if get_tqdm_version() < Version("4.49.0"):
-        expected = "Epoch [2/2]: [1/2]  50%|█████     , a=1 [00:00<00:00]"
+        expected = "Epoch 8 -*-     , a=1 [00:00<00:00]"
     else:
-        expected = "Epoch [2/2]: [1/2]  50%|█████     , a=1 [00:00<?]"
+        expected = "Epoch [2/2]: [1/2]  50%|████████████████████▌                    , a=1 [00:00<?]"
     assert err[-1] == expected
 
 
@@ -69,7 +69,7 @@ def test_pbar_file(tmp_path):
     file_path = tmp_path / "temp.txt"
     file = open(str(file_path), "w+")
 
-    pbar = ProgressBar(file=file)
+    pbar = ProgressBar(file=file, ncols=80)
     pbar.attach(engine, ["a"])
     engine.run(loader, max_epochs=n_epochs)
 
@@ -81,12 +81,12 @@ def test_pbar_file(tmp_path):
     if get_tqdm_version() < Version("4.49.0"):
         expected = "Epoch [2/2]: [1/2]  50%|█████     , a=1 [00:00<00:00]\n"
     else:
-        expected = "Epoch [2/2]: [1/2]  50%|█████     , a=1 [00:00<?]\n"
+        expected = "Epoch [2/2]: [1/2]  50%|████████████████████▌                    , a=1 [00:00<?]\n"
     assert lines[-2] == expected
 
 
 def test_pbar_log_message(capsys):
-    pbar = ProgressBar()
+    pbar = ProgressBar(ncols=80)
 
     pbar.log_message("test")
 
@@ -102,7 +102,7 @@ def test_pbar_log_message_file(tmp_path):
     file_path = tmp_path / "temp.txt"
     file = open(str(file_path), "w+")
 
-    pbar = ProgressBar(file=file)
+    pbar = ProgressBar(file=file, ncols=80)
     pbar.log_message("test")
 
     file.close()  # Force a flush of the buffer. file.flush() does not work.
@@ -116,7 +116,7 @@ def test_pbar_log_message_file(tmp_path):
 
 def test_attach_fail_with_string():
     engine = Engine(update_fn)
-    pbar = ProgressBar()
+    pbar = ProgressBar(ncols=80)
 
     with pytest.raises(TypeError):
         pbar.attach(engine, "a")
@@ -129,7 +129,7 @@ def test_pbar_batch_indeces(capsys):
     def print_iter(_):
         print("iteration: ", engine.state.iteration)
 
-    ProgressBar(persist=True).attach(engine)
+    ProgressBar(persist=True, ncols=80).attach(engine)
     engine.run(list(range(4)), max_epochs=1)
 
     captured = capsys.readouterr()
@@ -154,7 +154,7 @@ def test_pbar_with_metric(capsys):
 
     RunningAverage(alpha=0.5, output_transform=lambda x: x).attach(trainer, "batchloss")
 
-    pbar = ProgressBar()
+    pbar = ProgressBar(ncols=80)
     pbar.attach(trainer, metric_names=["batchloss"])
 
     trainer.run(data=data, max_epochs=1)
@@ -165,9 +165,9 @@ def test_pbar_with_metric(capsys):
     err = list(filter(None, err))
     actual = err[-1]
     if get_tqdm_version() < Version("4.49.0"):
-        expected = "Iteration: [1/2]  50%|█████     , batchloss=0.5 [00:00<00:00]"
+        expected = "Iteration: [1/2]  50%|██████     , batchloss=0.5 [00:00<00:00]"
     else:
-        expected = "Iteration: [1/2]  50%|█████     , batchloss=0.5 [00:00<?]"
+        expected = "Iteration: [1/2]  50%|████████████████▌                , batchloss=0.5 [00:00<?]"
     assert actual == expected
 
 
@@ -187,7 +187,7 @@ def test_pbar_with_all_metric(capsys):
     RunningAverage(alpha=0.5, output_transform=lambda x: x[0]).attach(trainer, "batchloss")
     RunningAverage(alpha=0.5, output_transform=lambda x: x[1]).attach(trainer, "another batchloss")
 
-    pbar = ProgressBar()
+    pbar = ProgressBar(ncols=80)
     pbar.attach(trainer, metric_names="all")
 
     trainer.run(data=data, max_epochs=1)
@@ -198,7 +198,7 @@ def test_pbar_with_all_metric(capsys):
     err = list(filter(None, err))
     actual = err[-1]
     if get_tqdm_version() < Version("4.49.0"):
-        expected = "Iteration: [1/2]  50%|█████     , batchloss=0.5, another batchloss=1.5 [00:00<00:00]"
+        expected = "Iteration: [1/2]  50%|███   , batchloss=0.5, another batchloss=1.5 [00:00<00:00]"
     else:
         expected = "Iteration: [1/2]  50%|█████     , batchloss=0.5, another batchloss=1.5 [00:00<?]"
     assert actual == expected
@@ -220,7 +220,7 @@ def test_pbar_with_state_attrs(capsys):
 
     RunningAverage(alpha=0.5, output_transform=lambda x: x).attach(trainer, "batchloss")
 
-    pbar = ProgressBar()
+    pbar = ProgressBar(ncols=80)
     pbar.attach(trainer, metric_names=["batchloss"], state_attributes=["alpha", "beta", "gamma"])
 
     trainer.run(data=data, max_epochs=1)
@@ -235,9 +235,7 @@ def test_pbar_with_state_attrs(capsys):
             "Iteration: [1/2]  50%|█████     , batchloss=0.5, alpha=3.9, beta=12.2, gamma_0=21, gamma_1=6 [00:00<00:00]"
         )
     else:
-        expected = (
-            "Iteration: [1/2]  50%|█████     , batchloss=0.5, alpha=3.9, beta=12.2, gamma_0=21, gamma_1=6 [00:00<?]"
-        )
+        expected = "Iteration: [1/2]  50%|▌, batchloss=0.5, alpha=3.9, beta=12.2, gamma_0=21, gamma_"
     assert actual == expected
 
 
@@ -246,7 +244,7 @@ def test_pbar_no_metric_names(capsys):
     loader = [1, 2]
     engine = Engine(update_fn)
 
-    pbar = ProgressBar()
+    pbar = ProgressBar(ncols=80)
     pbar.attach(engine)
 
     engine.run(loader, max_epochs=n_epochs)
@@ -257,9 +255,9 @@ def test_pbar_no_metric_names(capsys):
     err = list(filter(None, err))
     actual = err[-1]
     if get_tqdm_version() < Version("4.49.0"):
-        expected = "Epoch [2/2]: [1/2]  50%|█████      [00:00<00:00]"
+        expected = "Epoch [2/2]: [1/2]  50%|██████████            [00:00<00:00]"
     else:
-        expected = "Epoch [2/2]: [1/2]  50%|█████      [00:00<?]"
+        expected = "Epoch [2/2]: [1/2]  50%|███████████████████████                        [00:00<?]"
     assert actual == expected
 
 
@@ -268,7 +266,7 @@ def test_pbar_with_output(capsys):
     loader = [1, 2]
     engine = Engine(update_fn)
 
-    pbar = ProgressBar()
+    pbar = ProgressBar(ncols=80)
     pbar.attach(engine, output_transform=lambda x: {"a": x})
 
     engine.run(loader, max_epochs=n_epochs)
@@ -280,13 +278,13 @@ def test_pbar_with_output(capsys):
     if get_tqdm_version() < Version("4.49.0"):
         expected = "Epoch [2/2]: [1/2]  50%|█████     , a=1 [00:00<00:00]"
     else:
-        expected = "Epoch [2/2]: [1/2]  50%|█████     , a=1 [00:00<?]"
+        expected = "Epoch [2/2]: [1/2]  50%|████████████████████▌                    , a=1 [00:00<?]"
     assert err[-1] == expected
 
 
 def test_pbar_fail_with_non_callable_transform():
     engine = Engine(update_fn)
-    pbar = ProgressBar()
+    pbar = ProgressBar(ncols=80)
 
     with pytest.raises(TypeError):
         pbar.attach(engine, output_transform=1)
@@ -297,7 +295,7 @@ def test_pbar_with_scalar_output(capsys):
     loader = [1, 2]
     engine = Engine(update_fn)
 
-    pbar = ProgressBar()
+    pbar = ProgressBar(ncols=80)
     pbar.attach(engine, output_transform=lambda x: x)
 
     engine.run(loader, max_epochs=n_epochs)
@@ -309,7 +307,7 @@ def test_pbar_with_scalar_output(capsys):
     if get_tqdm_version() < Version("4.49.0"):
         expected = "Epoch [2/2]: [1/2]  50%|█████     , output=1 [00:00<00:00]"
     else:
-        expected = "Epoch [2/2]: [1/2]  50%|█████     , output=1 [00:00<?]"
+        expected = "Epoch [2/2]: [1/2]  50%|██████████████████                  , output=1 [00:00<?]"
     assert err[-1] == expected
 
 
@@ -318,7 +316,7 @@ def test_pbar_with_str_output(capsys):
     loader = [1, 2]
     engine = Engine(update_fn)
 
-    pbar = ProgressBar()
+    pbar = ProgressBar(ncols=80)
     pbar.attach(engine, output_transform=lambda x: "red")
 
     engine.run(loader, max_epochs=n_epochs)
@@ -330,7 +328,7 @@ def test_pbar_with_str_output(capsys):
     if get_tqdm_version() < Version("4.49.0"):
         expected = "Epoch [2/2]: [1/2]  50%|█████     , output=red [00:00<00:00]"
     else:
-        expected = "Epoch [2/2]: [1/2]  50%|█████     , output=red [00:00<?]"
+        expected = "Epoch [2/2]: [1/2]  50%|█████████████████                 , output=red [00:00<?]"
     assert err[-1] == expected
 
 
@@ -339,7 +337,7 @@ def test_pbar_with_tqdm_kwargs(capsys):
     loader = [1, 2, 3, 4, 5]
     engine = Engine(update_fn)
 
-    pbar = ProgressBar(desc="My description: ")
+    pbar = ProgressBar(desc="My description: ", ncols=80)
     pbar.attach(engine, output_transform=lambda x: x)
     engine.run(loader, max_epochs=n_epochs)
 
@@ -347,7 +345,7 @@ def test_pbar_with_tqdm_kwargs(capsys):
     err = captured.err.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
-    expected = "My description:  [10/10]: [4/5]  80%|████████  , output=1 [00:00<00:00]"
+    expected = "My description:  [10/10]: [4/5]  80%|███████████████▏   , output=1 [00:00<00:00]"
     assert err[-1] == expected
 
 
@@ -355,7 +353,7 @@ def test_pbar_for_validation(capsys):
     loader = [1, 2, 3, 4, 5]
     engine = Engine(update_fn)
 
-    pbar = ProgressBar(desc="Validation")
+    pbar = ProgressBar(desc="Validation", ncols=80)
     pbar.attach(engine)
     engine.run(loader, max_epochs=1)
 
@@ -363,7 +361,7 @@ def test_pbar_for_validation(capsys):
     err = captured.err.split("\r")
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
-    expected = "Validation: [4/5]  80%|████████   [00:00<00:00]"
+    expected = "Validation: [4/5]  80%|██████████████████████████████████▍         [00:00<00:00]"
     assert err[-1] == expected
 
 
@@ -376,7 +374,7 @@ def test_pbar_output_tensor(capsys):
 
         engine = Engine(update_fn)
 
-        pbar = ProgressBar(desc="Output tensor")
+        pbar = ProgressBar(desc="Output tensor", ncols=80)
         pbar.attach(engine, output_transform=lambda x: x)
         engine.run(loader, max_epochs=1)
 
@@ -384,12 +382,12 @@ def test_pbar_output_tensor(capsys):
         err = captured.err.split("\r")
         err = list(map(lambda x: x.strip(), err))
         err = list(filter(None, err))
-        expected = f"Output tensor: [4/5]  80%|████████  , {out_msg} [00:00<00:00]"
+        expected = f"Output tensor: [4/5]  {out_msg} [00:00<00:00]"
         assert err[-1] == expected
 
-    _test(out_tensor=torch.tensor([5, 0]), out_msg="output_0=5, output_1=0")
-    _test(out_tensor=torch.tensor(123), out_msg="output=123")
-    _test(out_tensor=torch.tensor(1.234), out_msg="output=1.23")
+    _test(out_tensor=torch.tensor([5, 0]), out_msg="80%|████████████▊   , output_0=5, output_1=0")
+    _test(out_tensor=torch.tensor(123), out_msg="80%|██████████████████████▍     , output=123")
+    _test(out_tensor=torch.tensor(1.234), out_msg="80%|█████████████████████▌     , output=1.23")
 
 
 def test_pbar_output_warning(capsys):
@@ -400,7 +398,7 @@ def test_pbar_output_warning(capsys):
 
     engine = Engine(update_fn)
 
-    pbar = ProgressBar(desc="Output tensor")
+    pbar = ProgressBar(desc="Output tensor", ncols=80)
     pbar.attach(engine, output_transform=lambda x: x)
     with pytest.warns(UserWarning):
         engine.run(loader, max_epochs=1)
@@ -411,7 +409,7 @@ def test_pbar_on_epochs(capsys):
     loader = [1, 2, 3, 4, 5]
     engine = Engine(update_fn)
 
-    pbar = ProgressBar()
+    pbar = ProgressBar(ncols=80)
     pbar.attach(engine, event_name=Events.EPOCH_STARTED, closing_event_name=Events.COMPLETED)
     engine.run(loader, max_epochs=n_epochs)
 
@@ -420,7 +418,7 @@ def test_pbar_on_epochs(capsys):
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     actual = err[-1]
-    expected = "Epoch: [9/10]  90%|█████████  [00:00<00:00]"
+    expected = "Epoch: [9/10]  90%|██████████████████████████████████████████▎     [00:00<00:00]"
     assert actual == expected
 
 
@@ -429,7 +427,7 @@ def test_pbar_with_max_epochs_set_to_one(capsys):
     loader = [1, 2]
     engine = Engine(update_fn)
 
-    pbar = ProgressBar()
+    pbar = ProgressBar(ncols=80)
     pbar.attach(engine, ["a"])
 
     engine.run(loader, max_epochs=n_epochs)
@@ -441,13 +439,13 @@ def test_pbar_with_max_epochs_set_to_one(capsys):
     if get_tqdm_version() < Version("4.49.0"):
         expected = "Iteration: [1/2]  50%|█████     , a=1 [00:00<00:00]"
     else:
-        expected = "Iteration: [1/2]  50%|█████     , a=1 [00:00<?]"
+        expected = "Iteration: [1/2]  50%|█████████████████████▌                     , a=1 [00:00<?]"
     assert err[-1] == expected
 
 
 def test_pbar_wrong_events_order():
     engine = Engine(update_fn)
-    pbar = ProgressBar()
+    pbar = ProgressBar(ncols=80)
 
     with pytest.raises(ValueError, match="should be called before closing event"):
         pbar.attach(engine, event_name=Events.COMPLETED, closing_event_name=Events.COMPLETED)
@@ -475,7 +473,7 @@ def test_pbar_with_nan_input():
 
     def create_engine():
         engine = Engine(update)
-        pbar = ProgressBar()
+        pbar = ProgressBar(ncols=80)
 
         engine.add_event_handler(Events.ITERATION_COMPLETED, TerminateOnNan())
         pbar.attach(engine, event_name=Events.EPOCH_COMPLETED, closing_event_name=Events.COMPLETED)
@@ -501,7 +499,7 @@ def test_pbar_on_callable_events(capsys):
     loader = list(range(100))
     engine = Engine(update_fn)
 
-    pbar = ProgressBar()
+    pbar = ProgressBar(ncols=80)
     pbar.attach(engine, event_name=Events.ITERATION_STARTED(every=10), closing_event_name=Events.EPOCH_COMPLETED)
     engine.run(loader, max_epochs=n_epochs)
 
@@ -510,14 +508,14 @@ def test_pbar_on_callable_events(capsys):
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     actual = err[-1]
-    expected = "Iteration: [90/100]  90%|█████████  [00:00<00:00]"
+    expected = "Iteration: [90/100]  90%|████████████████████████████████████▉     [00:00<00:00]"
     assert actual == expected
 
 
 def test_tqdm_logger_epoch_length(capsys):
     loader = list(range(100))
     engine = Engine(update_fn)
-    pbar = ProgressBar(persist=True)
+    pbar = ProgressBar(persist=True, ncols=80)
     pbar.attach(engine)
     engine.run(loader, epoch_length=50)
 
@@ -526,7 +524,7 @@ def test_tqdm_logger_epoch_length(capsys):
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     actual = err[-1]
-    expected = "Iteration: [50/50] 100%|██████████ [00:00<00:00]"
+    expected = "Iteration: [50/50] 100%|██████████████████████████████████████████ [00:00<00:00]"
     assert actual == expected
 
 
@@ -546,7 +544,7 @@ def test_tqdm_logger_iter_without_epoch_length(capsys):
     def restart_iter():
         trainer.state.dataloader = finite_size_data_iter(size)
 
-    pbar = ProgressBar(persist=True)
+    pbar = ProgressBar(persist=True, ncols=80)
     pbar.attach(trainer)
 
     data_iter = finite_size_data_iter(size)
@@ -557,5 +555,5 @@ def test_tqdm_logger_iter_without_epoch_length(capsys):
     err = list(map(lambda x: x.strip(), err))
     err = list(filter(None, err))
     actual = err[-1]
-    expected = "Epoch [5/5]: [11/11] 100%|██████████ [00:00<00:00]"
+    expected = "Epoch [5/5]: [11/11] 100%|████████████████████████████████████████ [00:00<00:00]"
     assert actual == expected

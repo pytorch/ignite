@@ -1,5 +1,7 @@
 import os
 
+import filelock
+
 import nltk
 import pytest
 import rouge as pyrouge
@@ -12,7 +14,20 @@ from ignite.metrics.nlp.rouge import compute_ngram_scores, RougeL, RougeN
 
 from . import CorpusForTest
 
-nltk.download("punkt")
+
+@pytest.fixture(scope="session", autouse=True)
+def download_nltk_punkt(worker_id, tmp_path_factory):
+    root_tmp_dir = tmp_path_factory.getbasetemp().parent
+    while True:
+        try:
+            with filelock.FileLock(root_tmp_dir / "nltk_download.lock", timeout=0.2) as fn:
+                fn.acquire()
+                nltk.download("punkt")
+                fn.release()
+                break
+        except filelock._error.Timeout:
+            pass
+
 
 corpus = CorpusForTest()
 
