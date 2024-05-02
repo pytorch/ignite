@@ -49,7 +49,7 @@ class Frequency(Metric):
         self._acc = 0
         self._n = 0
         self._elapsed = 0.0
-        super(Frequency, self).reset()
+        super(Frequency, self).reset()  # type: ignore
 
     @reinit__is_reduced
     def update(self, output: int) -> None:
