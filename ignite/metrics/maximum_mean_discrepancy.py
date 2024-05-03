@@ -16,9 +16,9 @@ class MaximumMeanDiscrepancy(Metric):
        \begin{align*}
            \text{MMD}^2 (P,Q) &= \underset{\| f \| \leq 1}{\text{sup}} | \mathbb{E}_{X\sim P}[f(X)]
            - \mathbb{E}_{Y\sim Q}[f(Y)] |^2 \\
-           &\approx \frac{1}{B(B-1)} \sum_{i} \sum_{j\neq i}k(\mathbf{x}_i,\mathbf{x}_j)
-           -\frac{2}{B^2}\sum_{i} \sum_{j} k(\mathbf{x}_i,\mathbf{y}_j)
-           + \frac{1}{B(B-1)} \sum_{i} \sum_{j\neq i}k(\mathbf{y}_i,\mathbf{y}_j)
+           &\approx \frac{1}{B(B-1)} \sum_{i=1}^B \sum_{\substack{j=1 \\ j\neq i}}^B k(\mathbf{x}_i,\mathbf{x}_j)
+           -\frac{2}{B^2}\sum_{i=1}^B \sum_{j=1}^B k(\mathbf{x}_i,\mathbf{y}_j)
+           + \frac{1}{B(B-1)} \sum_{i=1}^B \sum_{\substack{j=1 \\ j\neq i}}^B k(\mathbf{y}_i,\mathbf{y}_j)
        \end{align*}
 
     where :math:`B` is the batch size, and :math:`\mathbf{x}_i` and :math:`\mathbf{y}_j` are
