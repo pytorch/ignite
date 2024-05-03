@@ -11,7 +11,7 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics import MaximumMeanDiscrepancy
 
 
-def np_mmd(x: np.ndarray, y: np.ndarray, var: float):
+def np_mmd(x: np.ndarray, y: np.ndarray, var: float = 1.0):
     n = x.shape[0]
     x = x.reshape(n, -1)
     y = y.reshape(n, -1)
