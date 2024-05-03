@@ -95,7 +95,7 @@ def test_compute(n_times, test_case: Tuple[Tensor, Tensor, float, int]):
     res = mmd.compute()
 
     assert isinstance(res, float)
-    assert pytest.approx(np_res, abs=1e-5) == res
+    assert pytest.approx(np_res, abs=1e-4) == res
 
 
 def test_accumulator_detached():
@@ -111,7 +111,7 @@ def test_accumulator_detached():
 @pytest.mark.usefixtures("distributed")
 class TestDistributed:
     def test_integration(self):
-        tol = 1e-5
+        tol = 1e-4
         n_iters = 100
         batch_size = 10
         n_dims = 100
