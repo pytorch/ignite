@@ -74,7 +74,7 @@ class MaximumMeanDiscrepancy(Metric):
            1.0726975202560425
     """
 
-    _state_dict_all_req_keys = ("_sum_of_mmd", "_num_batches")
+    _state_dict_all_req_keys = ("_sum_of_mmd2", "_num_batches")
 
     def __init__(
         self, var: float = 1.0, output_transform: Callable = lambda x: x, device: torch.device = torch.device("cpu")
@@ -84,7 +84,7 @@ class MaximumMeanDiscrepancy(Metric):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._sum_of_mmd = torch.tensor(0.0, device=self._device)
+        self._sum_of_mmd2 = torch.tensor(0.0, device=self._device)
         self._num_batches = 0
 
     @reinit__is_reduced
@@ -121,11 +121,11 @@ class MaximumMeanDiscrepancy(Metric):
         # mmd cannot be negative
         mmd2 = (XX - 2.0 * XY + YY).clamp(min=0.0)
 
-        self._sum_of_mmd += mmd2.sqrt().to(self._device)
+        self._sum_of_mmd2 += mmd2.to(self._device)
         self._num_batches += 1
 
-    @sync_all_reduce("_sum_of_mmd", "_num_batches")
+    @sync_all_reduce("_sum_of_mmd2", "_num_batches")
     def compute(self) -> float:
         if self._num_batches == 0:
             raise NotComputableError("MaximumMeanDiscrepacy must have at least one batch before it can be computed.")
-        return self._sum_of_mmd.item() / self._num_batches
+        return (self._sum_of_mmd2 / self._num_batches).sqrt().item()

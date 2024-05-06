@@ -11,7 +11,7 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics import MaximumMeanDiscrepancy
 
 
-def np_mmd(x: np.ndarray, y: np.ndarray, var: float = 1.0):
+def np_mmd2(x: np.ndarray, y: np.ndarray, var: float = 1.0):
     n = x.shape[0]
     x = x.reshape(n, -1)
     y = y.reshape(n, -1)
@@ -28,8 +28,7 @@ def np_mmd(x: np.ndarray, y: np.ndarray, var: float = 1.0):
     YY = (np.sum(YY) - n) / (n * (n - 1))
 
     mmd2 = np.clip(XX + YY - XY * 2, 0.0, None)
-
-    return np.sqrt(mmd2)
+    return mmd2
 
 
 def test_zero_sample():
@@ -78,19 +77,19 @@ def test_compute(n_times, test_case: Tuple[Tensor, Tensor, float, int]):
     mmd.reset()
 
     if batch_size > 1:
-        np_mmd_sum = 0.0
+        np_mmd2_sum = 0.0
         n_iters = y.shape[0] // batch_size + 1
         for i in range(n_iters):
             idx = i * batch_size
             x_batch, y_batch = x[idx : idx + batch_size], y[idx : idx + batch_size]
             mmd.update((x_batch, y_batch))
 
-            np_mmd_sum += np_mmd(x_batch.cpu().numpy(), y_batch.cpu().numpy(), var)
+            np_mmd2_sum += np_mmd2(x_batch.cpu().numpy(), y_batch.cpu().numpy(), var)
 
-        np_res = np_mmd_sum / n_iters
+        np_res = np.sqrt(np_mmd2_sum / n_iters)
     else:
         mmd.update((x, y))
-        np_res = np_mmd(x.cpu().numpy(), y.cpu().numpy(), var)
+        np_res = np.sqrt(np_mmd2(x.cpu().numpy(), y.cpu().numpy(), var))
 
     res = mmd.compute()
 
@@ -105,7 +104,7 @@ def test_accumulator_detached():
     y = torch.tensor([[-2.0, 1.0], [2.0, 3.0]], dtype=torch.float)
     mmd.update((x, y))
 
-    assert not mmd._sum_of_mmd.requires_grad
+    assert not mmd._sum_of_mmd2.requires_grad
 
 
 @pytest.mark.usefixtures("distributed")
@@ -151,9 +150,9 @@ class TestDistributed:
                 x_batch, y_batch = data_loader(i)
                 x_np = x_batch.cpu().numpy()
                 y_np = y_batch.cpu().numpy()
-                true_res += np_mmd(x_np, y_np)
+                true_res += np_mmd2(x_np, y_np)
 
-            true_res /= n_iters
+            true_res = np.sqrt(true_res / n_iters)
             assert pytest.approx(true_res, abs=tol) == res
 
     def test_accumulator_device(self):
@@ -164,12 +163,12 @@ class TestDistributed:
         for metric_device in metric_devices:
             mmd = MaximumMeanDiscrepancy(device=metric_device)
 
-            for dev in (mmd._device, mmd._sum_of_mmd.device):
+            for dev in (mmd._device, mmd._sum_of_mmd2.device):
                 assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
 
             x = torch.tensor([[2.0, 3.0], [-2.0, 1.0]]).float()
             y = torch.ones(2, 2).float()
             mmd.update((x, y))
 
-            for dev in (mmd._device, mmd._sum_of_mmd.device):
+            for dev in (mmd._device, mmd._sum_of_mmd2.device):
                 assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
