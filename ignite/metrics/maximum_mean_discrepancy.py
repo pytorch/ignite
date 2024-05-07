@@ -27,6 +27,10 @@ class MaximumMeanDiscrepancy(Metric):
 
     This metric computes the MMD for each batch and takes the average.
 
+    More details can be found in `Gretton et al. 2012`__.
+
+    __ https://jmlr.csail.mit.edu/papers/v13/gretton12a.html
+
     - ``update`` must receive output of the form ``(x, y)``.
     - ``x`` and ``y`` are expected to be in the same shape :math:`(B, \ldots)`.
 
