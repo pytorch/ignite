@@ -104,7 +104,7 @@ def test_accumulator_detached():
     y = torch.tensor([[-2.0, 1.0], [2.0, 3.0]], dtype=torch.float)
     mmd.update((x, y))
 
-    assert not mmd._sum_of_mmd2.requires_grad
+    assert not any(acc.requires_grad for acc in (mmd._xx_sum, mmd._yy_sum, mmd._xy_sum))
 
 
 @pytest.mark.usefixtures("distributed")
@@ -163,12 +163,14 @@ class TestDistributed:
         for metric_device in metric_devices:
             mmd = MaximumMeanDiscrepancy(device=metric_device)
 
-            for dev in (mmd._device, mmd._sum_of_mmd2.device):
+            devices = (mmd._device, mmd._xx_sum, mmd._yy_sum, mmd._xy_sum)
+            for dev in devices:
                 assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
 
             x = torch.tensor([[2.0, 3.0], [-2.0, 1.0]]).float()
             y = torch.ones(2, 2).float()
             mmd.update((x, y))
 
-            for dev in (mmd._device, mmd._sum_of_mmd2.device):
+            devices = (mmd._device, mmd._xx_sum, mmd._yy_sum, mmd._xy_sum)
+            for dev in devices:
                 assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
