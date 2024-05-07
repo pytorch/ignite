@@ -163,7 +163,7 @@ class TestDistributed:
         for metric_device in metric_devices:
             mmd = MaximumMeanDiscrepancy(device=metric_device)
 
-            devices = (mmd._device, mmd._xx_sum, mmd._yy_sum, mmd._xy_sum)
+            devices = (mmd._device, mmd._xx_sum.device, mmd._yy_sum.device, mmd._xy_sum.device)
             for dev in devices:
                 assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
 
@@ -171,6 +171,6 @@ class TestDistributed:
             y = torch.ones(2, 2).float()
             mmd.update((x, y))
 
-            devices = (mmd._device, mmd._xx_sum, mmd._yy_sum, mmd._xy_sum)
+            devices = (mmd._device, mmd._xx_sum.device, mmd._yy_sum.device, mmd._xy_sum.device)
             for dev in devices:
                 assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
