@@ -17,6 +17,7 @@ from ignite.metrics.gpu_info import GpuInfo
 from ignite.metrics.js_divergence import JSDivergence
 from ignite.metrics.kl_divergence import KLDivergence
 from ignite.metrics.loss import Loss
+from ignite.metrics.maximum_mean_discrepancy import MaximumMeanDiscrepancy
 from ignite.metrics.mean_absolute_error import MeanAbsoluteError
 from ignite.metrics.mean_pairwise_distance import MeanPairwiseDistance
 from ignite.metrics.mean_squared_error import MeanSquaredError
@@ -61,6 +62,7 @@ __all__ = [
     "JaccardIndex",
     "JSDivergence",
     "KLDivergence",
+    "MaximumMeanDiscrepancy",
     "MultiLabelConfusionMatrix",
     "MutualInformation",
     "Precision",
