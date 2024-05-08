@@ -8,7 +8,7 @@ match_tests_expression=${1:-""}
 
 
 run_tests \
-    --core-args "--tx 4*popen//python=python -vvv tests" \
+    --core_args "--tx 4*popen//python=python -vvv tests" \
     --cache_dir ".cpu-not-distrib" \
     --skip_distrib_tests "${skip_distrib_tests}" \
     --use_coverage 1 \
@@ -22,7 +22,7 @@ fi
 
 # Run 2 processes with --dist=each
 run_tests \
-    --core-args "--dist=each --tx 2*popen//python=python -m distributed -vvv tests" \
+    --core_args "--dist=each --tx 2*popen//python=python -m distributed -vvv tests" \
     --cache_dir ".cpu-distrib" \
     --skip_distrib_tests 0 \
     --use_coverage 1 \

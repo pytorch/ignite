@@ -14,7 +14,7 @@ else
 fi
 
 run_tests \
-    --core-args "-vvv tests" \
+    --core_args "-vvv tests" \
     --cache_dir ".gpu-cuda" \
     --skip_distrib_tests "${skip_distrib_tests}" \
     --use_coverage 1 \
@@ -27,7 +27,7 @@ if [ "${skip_distrib_tests}" -eq "1" ]; then
 fi
 
 run_tests \
-    --core-args "-vvv -m distributed tests" \
+    --core_args "-vvv -m distributed tests" \
     --cache_dir ".gpu-distrib" \
     --skip_distrib_tests 0 \
     --use_coverage 1 \
@@ -37,7 +37,7 @@ run_tests \
 
 if [ ${ngpus} -gt 1 ]; then
     run_tests \
-        --core-args "--tx ${ngpus}*popen//python=python --dist=each -vvv -m distributed tests" \
+        --core_args "--tx ${ngpus}*popen//python=python --dist=each -vvv -m distributed tests" \
         --cache_dir ".gpu-distrib-multi" \
         --skip_distrib_tests 0 \
         --use_coverage 1 \
