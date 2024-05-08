@@ -75,7 +75,7 @@ class MaximumMeanDiscrepancy(Metric):
 
         .. testoutput::
 
-           1.0726975202560425
+           1.072697639465332
     """
 
     _state_dict_all_req_keys = ("_xx_sum", "_yy_sum", "_xy_sum", "_num_batches")
