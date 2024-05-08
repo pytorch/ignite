@@ -1,4 +1,5 @@
 import logging
+import platform
 import sys
 from collections import namedtuple
 
@@ -172,6 +173,29 @@ def test_override_setup_logger(capsys):
 
     # Needed by windows to release FileHandler in the loggers
     logging.shutdown()
+
+
+@pytest.mark.parametrize("encoding", [None, "utf-8"])
+def test_setup_logger_encoding(encoding, dirname):
+    fp = dirname / "log.txt"
+    logger = setup_logger(name="logger", filepath=fp, encoding=encoding, reset=True)
+    test_words = ["say hello", "say 你好", "say こんにちわ", "say 안녕하세요", "say привет"]
+    for w in test_words:
+        logger.info(w)
+    logging.shutdown()
+
+    with open(fp, "r", encoding=encoding) as h:
+        data = h.readlines()
+
+    if platform.system() == "Windows" and encoding is None:
+        flatten_data = "\n".join(data)
+        assert test_words[0] in flatten_data
+        for word in test_words[1:]:
+            assert word not in flatten_data
+    else:
+        assert len(data) == len(test_words)
+        for expected, output in zip(test_words, data):
+            assert expected in output
 
 
 def test_deprecated():
