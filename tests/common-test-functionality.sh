@@ -14,6 +14,7 @@ run_tests() {
     local trap_deselected_exit_code=1
     local use_last_failed=0
     local use_coverage=0
+    local world_size=0
     # Always clean up pytest.ini
     trap 'rm -f pytest.ini' RETURN
     # Parse arguments
@@ -56,6 +57,11 @@ run_tests() {
             shift
             shift
             ;;
+            --world_size)
+            world_size="$2"
+            shift
+            shift
+            ;;
             *)
             echo "Error: Unknown argument $key"
             exit 1
@@ -81,6 +87,10 @@ run_tests() {
     fi
     if [ "${use_coverage}" -eq "1" ]; then
         pytest_args="--cov ignite --cov-append --cov-report term-missing --cov-report xml ${pytest_args}"
+    fi
+    if [ ! "${world_size}" -eq "0" ]; then
+        export WORLD_SIZE="${world_size}"
+        pytest_args="--dist=each --tx ${WORLD_SIZE}*popen//python=python ${pytest_args}"
     fi
 
     # Run the command

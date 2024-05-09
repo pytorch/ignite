@@ -22,7 +22,8 @@ fi
 
 # Run 2 processes with --dist=each
 run_tests \
-    --core_args "--dist=each --tx 2*popen//python=python -m distributed -vvv tests" \
+    --core_args "-m distributed -vvv tests" \
+    --world_size 2 \
     --cache_dir ".cpu-distrib" \
     --skip_distrib_tests 0 \
     --use_coverage 1 \

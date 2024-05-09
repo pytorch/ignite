@@ -37,7 +37,8 @@ run_tests \
 
 if [ ${ngpus} -gt 1 ]; then
     run_tests \
-        --core_args "--tx ${ngpus}*popen//python=python --dist=each -vvv -m distributed tests" \
+        --core_args "-vvv -m distributed tests" \
+        --world_size "${ngpus}" \
         --cache_dir ".gpu-distrib-multi" \
         --skip_distrib_tests 0 \
         --use_coverage 1 \
