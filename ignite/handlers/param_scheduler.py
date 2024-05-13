@@ -7,7 +7,7 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from copy import copy
 from pathlib import Path
-from typing import Any, cast, Dict, List, Mapping, Optional, Sequence, Tuple, Type, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Type, Union
 
 import torch
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ReduceLROnPlateau
@@ -992,7 +992,7 @@ class LRScheduler(ParamScheduler):
         """Method to get current optimizer's parameter value"""
         # Emulate context manager for pytorch>=1.4
         self.lr_scheduler._get_lr_called_within_step = True  # type: ignore[union-attr]
-        lr_list = cast(List[float], self.lr_scheduler.get_lr())
+        lr_list = self.lr_scheduler.get_lr()
         self.lr_scheduler._get_lr_called_within_step = False  # type: ignore[union-attr]
         if len(lr_list) == 1:
             return lr_list[0]
@@ -1670,7 +1670,7 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
             _scheduler_kwargs["verbose"] = False
 
         self.scheduler = ReduceLROnPlateau(optimizer, **_scheduler_kwargs)
-        self.scheduler._reduce_lr = self._reduce_lr  # type: ignore[attr-defined]
+        self.scheduler._reduce_lr = self._reduce_lr  # type: ignore[method-assign]
 
         self._state_attrs += ["metric_name", "scheduler"]
 

@@ -542,7 +542,7 @@ class _ExponentialLR(_LRScheduler):
         # override base_lrs
         self.base_lrs = start_lrs
 
-    def get_lr(self) -> List[float]:  # type: ignore[override]
+    def get_lr(self) -> List[float]:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
         return [base_lr * (end_lr / base_lr) ** r for end_lr, base_lr in zip(self.end_lrs, self.base_lrs)]
