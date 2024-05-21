@@ -25,6 +25,8 @@ from ignite.engine import (
 )
 from ignite.metrics import MeanSquaredError
 
+from tests.ignite import is_mps_available_and_functional
+
 
 class DummyModel(torch.nn.Module):
     def __init__(self, output_as_list=False):
@@ -485,7 +487,7 @@ def test_create_supervised_trainer_on_cuda():
     _test_create_mocked_supervised_trainer(model_device=model_device, trainer_device=trainer_device)
 
 
-@pytest.mark.skipif(not (_torch_version_le_112 and torch.backends.mps.is_available()), reason="Skip if no MPS")
+@pytest.mark.skipif(not (_torch_version_le_112 and is_mps_available_and_functional()), reason="Skip if no MPS")
 def test_create_supervised_trainer_on_mps():
     model_device = trainer_device = "mps"
     _test_create_supervised_trainer_wrong_accumulation(model_device=model_device, trainer_device=trainer_device)
@@ -666,14 +668,14 @@ def test_create_supervised_evaluator_on_cuda_with_model_on_cpu():
     _test_mocked_supervised_evaluator(evaluator_device="cuda")
 
 
-@pytest.mark.skipif(not (_torch_version_le_112 and torch.backends.mps.is_available()), reason="Skip if no MPS")
+@pytest.mark.skipif(not (_torch_version_le_112 and is_mps_available_and_functional()), reason="Skip if no MPS")
 def test_create_supervised_evaluator_on_mps():
     model_device = evaluator_device = "mps"
     _test_create_supervised_evaluator(model_device=model_device, evaluator_device=evaluator_device)
     _test_mocked_supervised_evaluator(model_device=model_device, evaluator_device=evaluator_device)
 
 
-@pytest.mark.skipif(not (_torch_version_le_112 and torch.backends.mps.is_available()), reason="Skip if no MPS")
+@pytest.mark.skipif(not (_torch_version_le_112 and is_mps_available_and_functional()), reason="Skip if no MPS")
 def test_create_supervised_evaluator_on_mps_with_model_on_cpu():
     _test_create_supervised_evaluator(evaluator_device="mps")
     _test_mocked_supervised_evaluator(evaluator_device="mps")

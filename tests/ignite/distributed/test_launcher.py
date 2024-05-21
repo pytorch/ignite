@@ -9,6 +9,7 @@ from packaging.version import Version
 
 import ignite.distributed as idist
 from ignite.distributed.utils import has_hvd_support, has_native_dist_support, has_xla_support
+from tests.ignite import is_mps_available_and_functional
 
 
 def test_parallel_wrong_inputs():
@@ -54,6 +55,9 @@ def execute(cmd, env=None):
     return str(process.stdout.read()) + str(process.stderr.read())
 
 
+@pytest.mark.skipif(
+    torch.backends.mps.is_available() and not is_mps_available_and_functional(), reason="Skip if MPS not functional"
+)
 def test_check_idist_parallel_no_dist(exec_filepath):
     cmd = [sys.executable, "-u", exec_filepath]
     out = execute(cmd)

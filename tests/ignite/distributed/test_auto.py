@@ -12,6 +12,7 @@ from torch.utils.data.sampler import BatchSampler, RandomSampler, Sampler, Seque
 
 import ignite.distributed as idist
 from ignite.distributed.auto import auto_dataloader, auto_model, auto_optim, DistributedProxySampler
+from tests.ignite import is_mps_available_and_functional
 
 
 class DummyDS(Dataset):
@@ -179,6 +180,9 @@ def _test_auto_model_optimizer(ws, device):
         assert optimizer.backward_passes_per_step == backward_passes_per_step
 
 
+@pytest.mark.skipif(
+    torch.backends.mps.is_available() and not is_mps_available_and_functional(), reason="Skip if MPS not functional"
+)
 def test_auto_methods_no_dist():
     _test_auto_dataloader(1, 1, batch_size=1)
     _test_auto_dataloader(1, 1, batch_size=10, num_workers=2)
