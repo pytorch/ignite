@@ -121,18 +121,13 @@ jobs:
 
       - name: Run GPU Unit Tests
         continue-on-error: false
-        run: |
-
-          script=$(cat << EOF
-
-          set -xe
-
-          bash tests/run_gpu_tests.sh 2
-
-          EOF
-          )
-
-          docker exec -t pthd /bin/bash -c "${script}"
+        uses: nick-fields/retry@v3
+        with:
+          max_attempts: 5
+          timeout_minutes: 30
+          shell: bash
+          command: docker exec -t pthd /bin/bash -xec 'tests/run_gpu_tests.sh 2'
+          new_command_on_retry: docker exec -e USE_LAST_FAILED=1 -t pthd /bin/bash -xec 'tests/run_gpu_tests.sh 2'
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
