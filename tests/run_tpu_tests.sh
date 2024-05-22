@@ -4,7 +4,7 @@ set -xeu
 use_last_failed=${USE_LAST_FAILED:-0}
 
 run_tests \
-    --core_args "-vvv -m tpu tests" \
+    --core_args "-vvv -m tpu tests/ignite" \
     --cache_dir ".tpu" \
     --use_coverage 1 \
     --use_last_failed ${use_last_failed}
@@ -13,7 +13,7 @@ run_tests \
 if [ -z ${NUM_TPU_WORKERS+x} ]; then
     export NUM_TPU_WORKERS=1
     run_tests \
-        --core_args "-vvv -m tpu tests" \
+        --core_args "-vvv -m tpu tests/ignite" \
         --cache_dir ".tpu-multi" \
         --use_coverage 1 \
         --use_last_failed ${use_last_failed}

@@ -1,8 +1,10 @@
 import functools
 import os
 import shutil
+import signal
 import sys
 import tempfile
+import threading
 import time
 from pathlib import Path
 
@@ -32,6 +34,20 @@ def pytest_addoption(parser):
         skipped.
         """,
     )
+
+
+@pytest.fixture(scope="session", autouse=True)
+def term_handler():
+    # This allows the pytest session to be terminated upon retries on CI. It may
+    # be worth using this fixture solely in that context. For a discussion on
+    # whether sigterm should be ignored see:
+    # https://github.com/pytest-dev/pytest/issues/5243
+    if threading.current_thread() is threading.main_thread() and hasattr(signal, "SIGTERM"):
+        orig = signal.signal(signal.SIGTERM, signal.getsignal(signal.SIGINT))
+        yield
+        signal.signal(signal.SIGTERM, orig)
+    else:
+        yield  # Just pass through if SIGTERM isn't supported or we are not in the main thread
 
 
 @pytest.fixture(

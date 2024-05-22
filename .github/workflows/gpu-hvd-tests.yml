@@ -152,7 +152,7 @@ jobs:
           set -xe
 
           bash tests/run_gpu_tests.sh 2 hvd
-          CUDA_VISIBLE_DEVICES="" pytest --cov ignite --cov-append --cov-report term-missing --cov-report xml -vvv tests/ignite/ignite/ -m distributed -k hvd
+          CUDA_VISIBLE_DEVICES="" pytest --cov ignite --cov-append --cov-report term-missing --cov-report xml -vvv tests/ignite -m distributed -k hvd
 
           EOF
           )

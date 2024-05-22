@@ -27,7 +27,7 @@ if [ "${skip_distrib_tests}" -eq "1" ]; then
 fi
 
 run_tests \
-    --core_args "-vvv -m distributed tests" \
+    --core_args "-vvv -m distributed tests/ignite" \
     --cache_dir ".gpu-distrib" \
     --skip_distrib_tests 0 \
     --use_coverage 1 \
@@ -37,7 +37,7 @@ run_tests \
 
 if [ ${ngpus} -gt 1 ]; then
     run_tests \
-        --core_args "-vvv -m distributed tests" \
+        --core_args "-vvv -m distributed tests/ignite" \
         --world_size "${ngpus}" \
         --cache_dir ".gpu-distrib-multi" \
         --skip_distrib_tests 0 \
