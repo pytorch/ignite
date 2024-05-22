@@ -81,7 +81,7 @@ run_tests() {
     echo [pytest] > pytest.ini ; echo "cache_dir=${cache_dir}" >> pytest.ini
 
     # Assemble options for the pytest command
-    pytest_args="${skip_distrib_opt} ${core_args} -k '${match_tests_expression}'"
+    pytest_args="${skip_distrib_opt} ${core_args} --treat-unrun-as-failed -k '${match_tests_expression}'"
     if [ "${use_last_failed:-0}" -eq "1" ] && [ -d "${cache_dir}" ]; then
         pytest_args="--last-failed --last-failed-no-failures none ${pytest_args}"
     fi

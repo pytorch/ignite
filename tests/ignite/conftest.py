@@ -17,6 +17,21 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "distributed: run distributed")
     config.addinivalue_line("markers", "multinode_distributed: distributed")
     config.addinivalue_line("markers", "tpu: run on tpu")
+    if config.option.treat_unrun_as_failed:
+        unrun_tracker = UnrunTracker()
+        config.pluginmanager.register(unrun_tracker, "unrun_tracker_plugin")
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--treat-unrun-as-failed",
+        action="store_true",
+        help="""
+        If a session is interrupted treat the unrun tests as failed so that a
+        rerun with --last-failed runs any tests that have not passed or been
+        skipped.
+        """,
+    )
 
 
 @pytest.fixture(
@@ -447,6 +462,37 @@ def distributed(request, local_rank, world_size):
         raise RuntimeError(f"Invalid parameter value for `distributed` fixture, given {request.param}")
 
 
+class UnrunTracker:
+    """
+    Keeps track of unrun tests to improve the user experience when a test
+    session is interrupted. This is particularly useful on CI when rerunning
+    "failing" tests where the failure was due to a deadlock and many tests
+    weren't actually run so they didn't actually fail.
+    """
+
+    def __init__(self):
+        self.unrun_tests = []
+
+    def pytest_collection_finish(self, session):
+        # At the end of the collection, add all items to the unrun_tests list
+        self.unrun_tests.extend(session.items)
+
+    def pytest_runtest_teardown(self, item):
+        if item in self.unrun_tests:
+            self.unrun_tests.remove(item)
+
+    def record_unrun_as_failed(self, session, exitstatus):
+        # Get current lastfailed entries (if any)
+        lastfailed = session.config.cache.get("cache/lastfailed", {})
+
+        # Add unrun tests to lastfailed
+        for test in self.unrun_tests:
+            lastfailed[test.nodeid] = True
+
+        # Update the cache with the new lastfailed
+        session.config.cache.set("cache/lastfailed", lastfailed)
+
+
 @pytest.hookimpl
 def pytest_pyfunc_call(pyfuncitem: pytest.Function) -> None:
     if any(fx in pyfuncitem.fixturenames for fx in ["distributed", "multinode_distributed"]):
@@ -508,3 +554,9 @@ def pytest_pyfunc_call(pyfuncitem: pytest.Function) -> None:
                 assert ex_.code == 0, "Didn't successfully exit in XLA test"
 
         pyfuncitem.obj = functools.partial(testfunc_wrapper, pyfuncitem.obj)
+
+
+def pytest_sessionfinish(session, exitstatus):
+    if session.config.option.treat_unrun_as_failed:
+        unrun_tracker = session.config.pluginmanager.get_plugin("unrun_tracker_plugin")
+        unrun_tracker.record_unrun_as_failed(session, exitstatus)
