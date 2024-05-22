@@ -22,7 +22,7 @@ jobs:
   gpu-hvd-tests:
     strategy:
       matrix:
-        pytorch-channel: [pytorch, ]
+        pytorch-channel: [pytorch]
       fail-fast: false
     env:
       DOCKER_IMAGE: "pytorch/conda-builder:cuda12.1"
@@ -128,8 +128,8 @@ jobs:
           # Can't build Horovod with recent pytorch due to pytorch required C++17 standard
           # and horovod is still using C++14
           # HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_WITH_PYTORCH=1 pip install horovod[pytorch]
-          # Using a similar hack as described here: 
-          # https://github.com/horovod/horovod/issues/3941#issuecomment-1732505345 
+          # Using a similar hack as described here:
+          # https://github.com/horovod/horovod/issues/3941#issuecomment-1732505345
           git clone --recursive https://github.com/horovod/horovod.git /horovod
           cd /horovod
           sed -i "s/CMAKE_CXX_STANDARD 14/CMAKE_CXX_STANDARD 17/g" CMakeLists.txt
@@ -152,7 +152,7 @@ jobs:
           set -xe
 
           bash tests/run_gpu_tests.sh 2 hvd
-          CUDA_VISIBLE_DEVICES="" pytest --cov ignite --cov-append --cov-report term-missing --cov-report xml -vvv tests/ -m distributed -k hvd
+          CUDA_VISIBLE_DEVICES="" pytest --cov ignite --cov-append --cov-report term-missing --cov-report xml -vvv tests/ignite/ignite/ -m distributed -k hvd
 
           EOF
           )

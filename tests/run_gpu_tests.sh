@@ -14,7 +14,7 @@ else
 fi
 
 run_tests \
-    --core_args "-vvv tests" \
+    --core_args "-vvv tests/ignite" \
     --cache_dir ".gpu-cuda" \
     --skip_distrib_tests "${skip_distrib_tests}" \
     --use_coverage 1 \

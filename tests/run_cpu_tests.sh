@@ -8,7 +8,7 @@ match_tests_expression=${1:-""}
 
 
 run_tests \
-    --core_args "--tx 4*popen//python=python -vvv tests" \
+    --core_args "--tx 4*popen//python=python -vvv tests/ignite" \
     --cache_dir ".cpu-not-distrib" \
     --skip_distrib_tests "${skip_distrib_tests}" \
     --use_coverage 1 \
@@ -22,7 +22,7 @@ fi
 
 # Run 2 processes with --dist=each
 run_tests \
-    --core_args "-m distributed -vvv tests" \
+    --core_args "-m distributed -vvv tests/ignite" \
     --world_size 2 \
     --cache_dir ".cpu-distrib" \
     --skip_distrib_tests 0 \

@@ -7,7 +7,7 @@ last_failed_no_failures_code=5
 #  functions shared across test files
 run_tests() {
     # Set defaults
-    local core_args="-vvv tests"
+    local core_args="-vvv tests/ignite"
     local cache_dir=".unknown-cache"
     local skip_distrib_tests=1
     local match_tests_expression=""
