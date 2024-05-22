@@ -10,7 +10,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 85
     strategy:
       max-parallel: 5
       fail-fast: false
@@ -95,7 +95,7 @@ jobs:
         uses: nick-fields/retry@v3
         with:
           max_attempts: 5
-          timeout_minutes: 25
+          timeout_minutes: 15
           shell: bash
           command: bash tests/run_cpu_tests.sh "not test_time_profilers"
           new_command_on_retry: USE_LAST_FAILED=1  bash tests/run_cpu_tests.sh "not test_time_profilers"
