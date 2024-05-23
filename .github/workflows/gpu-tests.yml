@@ -127,7 +127,7 @@ jobs:
           timeout_minutes: 25
           shell: bash
           command: docker exec -t pthd /bin/bash -xec 'bash tests/run_gpu_tests.sh 2'
-          new_command_on_retry: docker exec -e USE_LAST_FAILED=1 -t pthd /bin/bash -xec 'tests/run_gpu_tests.sh 2'
+          new_command_on_retry: docker exec -e USE_LAST_FAILED=1 -t pthd /bin/bash -xec 'bash tests/run_gpu_tests.sh 2'
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
