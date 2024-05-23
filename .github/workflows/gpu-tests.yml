@@ -121,7 +121,7 @@ jobs:
 
       - name: Run GPU Unit Tests
         continue-on-error: false
-        uses: nick-fields/retry@2.9.0
+        uses: nick-fields/retry@v2.9.0
         with:
           max_attempts: 5
           timeout_minutes: 25
