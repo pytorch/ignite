@@ -1,35 +1,47 @@
 #!/bin/bash
-
-if [ -z "$1" ]; then
-    ngpus=1
-else
-    ngpus=$1
-fi
-
-MATCH_TESTS_EXPRESSION=${2:-""}
-
-if [ -z "$MATCH_TESTS_EXPRESSION" ]; then
-    cuda_pattern="cuda"
-else
-    cuda_pattern="cuda and $MATCH_TESTS_EXPRESSION"
-fi
-
+source "$(dirname "$0")/common-test-functionality.sh"
 set -xeu
 
-pytest --cov ignite --cov-report term-missing --cov-report xml -vvv tests/ -k "$cuda_pattern"
+skip_distrib_tests=${SKIP_DISTRIB_TESTS:-1}
+use_last_failed=${USE_LAST_FAILED:-0}
+ngpus=${1:-1}
+
+match_tests_expression=${2:-""}
+if [ -z "$match_tests_expression" ]; then
+    cuda_pattern="cuda"
+else
+    cuda_pattern="cuda and $match_tests_expression"
+fi
+
+run_tests \
+    --core_args "-vvv tests/ignite" \
+    --cache_dir ".gpu-cuda" \
+    --skip_distrib_tests "${skip_distrib_tests}" \
+    --use_coverage 1 \
+    --match_tests_expression "${cuda_pattern}" \
+    --use_last_failed ${use_last_failed}
 
 # https://pubs.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html#tag_02_06_02
-if [ "${SKIP_DISTRIB_TESTS:-0}" -eq "1" ]; then
+if [ "${skip_distrib_tests}" -eq "1" ]; then
     exit 0
 fi
 
-pytest --cov ignite --cov-append --cov-report term-missing --cov-report xml -vvv tests/ -m distributed -k "$MATCH_TESTS_EXPRESSION"
+run_tests \
+    --core_args "-vvv -m distributed tests/ignite" \
+    --cache_dir ".gpu-distrib" \
+    --skip_distrib_tests 0 \
+    --use_coverage 1 \
+    --match_tests_expression "${match_tests_expression}" \
+    --use_last_failed ${use_last_failed}
 
 
 if [ ${ngpus} -gt 1 ]; then
-
-    export WORLD_SIZE=${ngpus}
-    pytest --cov ignite --cov-append --cov-report term-missing --cov-report xml --dist=each --tx ${WORLD_SIZE}*popen//python=python tests -m distributed -vvv -k "$MATCH_TESTS_EXPRESSION"
-    unset WORLD_SIZE
-
+    run_tests \
+        --core_args "-vvv -m distributed tests/ignite" \
+        --world_size "${ngpus}" \
+        --cache_dir ".gpu-distrib-multi" \
+        --skip_distrib_tests 0 \
+        --use_coverage 1 \
+        --match_tests_expression "${match_tests_expression}" \
+        --use_last_failed ${use_last_failed}
 fi

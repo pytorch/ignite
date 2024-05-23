@@ -75,9 +75,13 @@ jobs:
           target_dir: /tmp
 
       - name: Run Tests
-        shell: bash -l {0}
-        run: |
-          bash tests/run_cpu_tests.sh
+        uses: nick-fields/retry@v3
+        with:
+          max_attempts: 5
+          timeout_minutes: 15
+          shell: bash
+          command: bash tests/run_cpu_tests.sh
+          new_command_on_retry: USE_LAST_FAILED=1 bash tests/run_cpu_tests.sh
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3

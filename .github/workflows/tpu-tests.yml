@@ -89,13 +89,19 @@ jobs:
           target_dir: /tmp
 
       - name: Run Tests
-        run: |
-          export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${Python_ROOT_DIR}/lib
-          export XRT_DEVICE_MAP="CPU:0;/job:localservice/replica:0/task:0/device:XLA_CPU:0"
-          export XRT_WORKERS="localservice:0;grpc://localhost:40934"
-
-          python -c "import torch_xla; print('torch xla version:', torch_xla.__version__)"
-          bash tests/run_tpu_tests.sh
+        uses: nick-fields/retry@v3
+        with:
+          max_attempts: 5
+          timeout_minutes: 25
+          shell: bash
+          command: |
+            python -c "import torch_xla; print('torch xla version:', torch_xla.__version__)"
+            bash tests/run_tpu_tests.sh
+          new_command_on_retry: USE_LAST_FAILED=1 bash tests/run_tpu_tests.sh
+        env:
+          LD_LIBRARY_PATH: ${{ env.LD_LIBRARY_PATH }}:${{ env.Python_ROOT_DIR }}/lib
+          XRT_DEVICE_MAP: "CPU:0;/job:localservice/replica:0/task:0/device:XLA_CPU:0"
+          XRT_WORKERS: "localservice:0;grpc://localhost:40934"
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3

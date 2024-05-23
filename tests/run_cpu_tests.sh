@@ -1,22 +1,31 @@
 #!/bin/bash
-
+source "$(dirname "$0")/common-test-functionality.sh"
 set -xeu
 
-if [ "${SKIP_DISTRIB_TESTS:-0}" -eq "1" ]; then
-    skip_distrib_opt=(-m "not distributed and not tpu and not multinode_distributed")
-else
-    skip_distrib_opt=(-m "")
-fi
+skip_distrib_tests=${SKIP_DISTRIB_TESTS:-0}
+use_last_failed=${USE_LAST_FAILED:-0}
+match_tests_expression=${1:-""}
 
-MATCH_TESTS_EXPRESSION=${1:-""}
 
-CUDA_VISIBLE_DEVICES="" pytest --tx 4*popen//python=python --cov ignite --cov-report term-missing --cov-report xml -vvv tests "${skip_distrib_opt[@]}" -k "$MATCH_TESTS_EXPRESSION"
+run_tests \
+    --core_args "--tx 4*popen//python=python -vvv tests/ignite" \
+    --cache_dir ".cpu-not-distrib" \
+    --skip_distrib_tests "${skip_distrib_tests}" \
+    --use_coverage 1 \
+    --match_tests_expression "${match_tests_expression}" \
+    --use_last_failed ${use_last_failed}
 
 # https://pubs.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html#tag_02_06_02
-if [ "${SKIP_DISTRIB_TESTS:-0}" -eq "1" ]; then
+if [ "${skip_distrib_tests}" -eq "1" ]; then
     exit 0
 fi
 
-export WORLD_SIZE=2
-CUDA_VISIBLE_DEVICES="" pytest --cov ignite --cov-append --cov-report term-missing --cov-report xml --dist=each --tx $WORLD_SIZE*popen//python=python tests -m distributed -vvv -k "$MATCH_TESTS_EXPRESSION"
-unset WORLD_SIZE
+# Run 2 processes with --dist=each
+run_tests \
+    --core_args "-m distributed -vvv tests/ignite" \
+    --world_size 2 \
+    --cache_dir ".cpu-distrib" \
+    --skip_distrib_tests 0 \
+    --use_coverage 1 \
+    --match_tests_expression "${match_tests_expression}" \
+    --use_last_failed ${use_last_failed}
