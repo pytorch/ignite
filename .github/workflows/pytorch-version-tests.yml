@@ -96,7 +96,7 @@ jobs:
         with:
           max_attempts: 5
           timeout_minutes: 15
-          shell: bash
+          shell: bash -l {0}
           command: bash tests/run_cpu_tests.sh "not test_time_profilers"
           new_command_on_retry: USE_LAST_FAILED=1 bash tests/run_cpu_tests.sh "not test_time_profilers"
 
