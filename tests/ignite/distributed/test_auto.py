@@ -12,7 +12,7 @@ from torch.utils.data.sampler import BatchSampler, RandomSampler, Sampler, Seque
 
 import ignite.distributed as idist
 from ignite.distributed.auto import auto_dataloader, auto_model, auto_optim, DistributedProxySampler
-from ignite.distributed.comp_models.base import _torch_version_le_112
+from ignite.distributed.comp_models.base import _torch_version_ge_112
 from tests.ignite import is_mps_available_and_functional
 
 
@@ -182,7 +182,7 @@ def _test_auto_model_optimizer(ws, device):
 
 
 @pytest.mark.skipif(
-    _torch_version_le_112 or (torch.backends.mps.is_available() and not is_mps_available_and_functional()),
+    (not _torch_version_ge_112) or (torch.backends.mps.is_available() and not is_mps_available_and_functional()),
     reason="Skip if MPS not functional",
 )
 def test_auto_methods_no_dist():
