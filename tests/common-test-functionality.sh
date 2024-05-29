@@ -70,6 +70,14 @@ run_tests() {
         esac
     done
 
+    if ! command -v pytest &> /dev/null
+    then
+        echo "pytest could not be found"
+        echo "The path is: ${PATH}"
+        exit 1
+    fi
+
+
     if [ "${skip_distrib_tests}" -eq "1" ]; then
         # can be overwritten by core_args
         skip_distrib_opt="-m 'not distributed and not tpu and not multinode_distributed'"
