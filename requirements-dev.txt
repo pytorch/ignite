@@ -5,6 +5,7 @@ pytest-cov
 pytest-xdist
 pytest-timeout
 dill
+filelock
 setuptools
 # Test contrib dependencies
 scipy
