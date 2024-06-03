@@ -1,5 +1,5 @@
 #!/bin/bash
-source "$(dirname "$0")/common-test-functionality.sh"
+source "$(dirname "$0")/common_test_functionality.sh"
 set -xeu
 
 skip_distrib_tests=${SKIP_DISTRIB_TESTS:-0}
