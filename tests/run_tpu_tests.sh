@@ -1,5 +1,5 @@
 #!/bin/bash
-source "$(dirname "$0")/common-test-functionality.sh"
+source "$(dirname "$0")/common_test_functionality.sh"
 set -xeu
 use_last_failed=${USE_LAST_FAILED:-0}
 
