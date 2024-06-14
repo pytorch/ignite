@@ -30,10 +30,64 @@ class FBResearchLogger:
         .. code-block:: python
 
             import logging
-            from ignite.handlers.fbresearch_logger import *
 
-            logger = FBResearchLogger(logger=logging.Logger(__name__), show_output=True)
-            logger.attach(trainer, name="Train", every=10, optimizer=my_optimizer)
+            import torch
+            import torch.nn as nn
+            import torch.optim as optim
+
+            from ignite.engine import create_supervised_trainer, Events
+            from ignite.handlers.fbresearch_logger import FBResearchLogger
+            from ignite.utils import setup_logger
+
+            model = nn.Linear(10, 5)
+            opt = optim.SGD(model.parameters(), lr=0.001)
+            criterion = nn.CrossEntropyLoss()
+
+            data = [(torch.rand(4, 10), torch.randint(0, 5, size=(4, ))) for _ in range(100)]
+
+            trainer = create_supervised_trainer(
+                model, opt, criterion, output_transform=lambda x, y, y_pred, loss: {"total_loss": loss.item()}
+            )
+
+            logger = setup_logger("trainer", level=logging.INFO)
+            logger = FBResearchLogger(logger=logger, show_output=True)
+            logger.attach(trainer, name="Train", every=20, optimizer=opt)
+
+            trainer.run(data, max_epochs=4)
+
+        Output:
+
+        .. code-block:: text
+
+            2024-04-22 12:05:47,843 trainer INFO: Train: start epoch [1/4]
+            ... Epoch [1/4]  [20/100]:  ETA: 0:00:00  lr: 0.00100  total_loss: 1.5999  Iter time: 0.0008 s  Data prep ..
+            ... Epoch [1/4]  [40/100]:  ETA: 0:00:00  lr: 0.00100  total_loss: 1.9297  Iter time: 0.0008 s  Data prep ..
+            ... Epoch [1/4]  [60/100]:  ETA: 0:00:00  lr: 0.00100  total_loss: 1.9985  Iter time: 0.0008 s  Data prep ..
+            ... Epoch [1/4]  [80/100]:  ETA: 0:00:00  lr: 0.00100  total_loss: 1.9785  Iter time: 0.0008 s  Data prep ..
+            ... Epoch [1/4]  [100/100]:  ETA: 0:00:00  lr: 0.00100  total_loss: 1.6211  Iter time: 0.0008 s  Data prep .
+            ... Train: Epoch [1/4]  Total time: 0:00:00  (0.0008 s / it)
+            ... Train: start epoch [2/4]
+            ... Epoch [2/4]  [19/100]:  ETA: 0:00:00  lr: 0.00100  total_loss: 1.5981  Iter time: 0.0009 s  Data prep ..
+            ... Epoch [2/4]  [39/100]:  ETA: 0:00:00  lr: 0.00100  total_loss: 1.9013  Iter time: 0.0008 s  Data prep ..
+            ... Epoch [2/4]  [59/100]:  ETA: 0:00:00  lr: 0.00100  total_loss: 1.9811  Iter time: 0.0008 s  Data prep ..
+            ... Epoch [2/4]  [79/100]:  ETA: 0:00:00  lr: 0.00100  total_loss: 1.9434  Iter time: 0.0008 s  Data prep ..
+            ... Epoch [2/4]  [99/100]:  ETA: 0:00:00  lr: 0.00100  total_loss: 1.6116  Iter time: 0.0008 s  Data prep ..
+            ... Train: Epoch [2/4]  Total time: 0:00:00  (0.0009 s / it)
+            ... Train: start epoch [3/4]
+            ... Epoch [3/4]  [18/100]:  ETA: 0:00:00  lr: 0.00100  total_loss: 1.5972  Iter time: 0.0008 s  Data prep ..
+            ... Epoch [3/4]  [38/100]:  ETA: 0:00:00  lr: 0.00100  total_loss: 1.8753  Iter time: 0.0008 s  Data prep ..
+            ... Epoch [3/4]  [58/100]:  ETA: 0:00:00  lr: 0.00100  total_loss: 1.9657  Iter time: 0.0009 s  Data prep ..
+            ... Epoch [3/4]  [78/100]:  ETA: 0:00:00  lr: 0.00100  total_loss: 1.9112  Iter time: 0.0008 s  Data prep ..
+            ... Epoch [3/4]  [98/100]:  ETA: 0:00:00  lr: 0.00100  total_loss: 1.6035  Iter time: 0.0008 s  Data prep ..
+            ... Train: Epoch [3/4]  Total time: 0:00:00  (0.0009 s / it)
+            ... Train: start epoch [4/4]
+            ... Epoch [4/4]  [17/100]:  ETA: 0:00:00  lr: 0.00100  total_loss: 1.5969  Iter time: 0.0008 s  Data prep ..
+            ... Epoch [4/4]  [37/100]:  ETA: 0:00:00  lr: 0.00100  total_loss: 1.8516  Iter time: 0.0008 s  Data prep ..
+            ... Epoch [4/4]  [57/100]:  ETA: 0:00:00  lr: 0.00100  total_loss: 1.9521  Iter time: 0.0008 s  Data prep ..
+            ... Epoch [4/4]  [77/100]:  ETA: 0:00:00  lr: 0.00100  total_loss: 1.8816  Iter time: 0.0008 s  Data prep ..
+            ... Epoch [4/4]  [97/100]:  ETA: 0:00:00  lr: 0.00100  total_loss: 1.5966  Iter time: 0.0009 s  Data prep ..
+            ... Train: Epoch [4/4]  Total time: 0:00:00  (0.0009 s / it)
+            ... Train: run completed  Total time: 0:00:00
     """
 
     def __init__(self, logger: Any, delimiter: str = "  ", show_output: bool = False):
