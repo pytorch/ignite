@@ -300,7 +300,7 @@ class Metric(Serializable, metaclass=ABCMeta):
     _required_output_keys = required_output_keys
 
     def __init__(
-        self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu")
+        self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu"), skip_unrolling : bool =False
     ):
         self._output_transform = output_transform
 
@@ -309,6 +309,7 @@ class Metric(Serializable, metaclass=ABCMeta):
             raise ValueError("Cannot create metric on an XLA device. Use device='cpu' instead.")
 
         self._device = torch.device(device)
+        self._skip_unrolling = skip_unrolling
         self.reset()
 
     @abstractmethod
@@ -377,30 +378,33 @@ class Metric(Serializable, metaclass=ABCMeta):
         """
 
         output = self._output_transform(engine.state.output)
-        if isinstance(output, Mapping):
-            if self.required_output_keys is None:
-                raise TypeError(
-                    f"Transformed engine output for {self.__class__.__name__} metric should be a tuple/list, "
-                    f"but given {type(output)}"
-                )
-            if not all([k in output for k in self.required_output_keys]):
-                raise ValueError(
-                    "When transformed engine's output is a mapping, "
-                    f"it should contain {self.required_output_keys} keys, but given {list(output.keys())}"
-                )
-            output = tuple(output[k] for k in self.required_output_keys)
+        if self._skip_unrolling is False:
+            if isinstance(output, Mapping):
+                if self.required_output_keys is None:
+                    raise TypeError(
+                        f"Transformed engine output for {self.__class__.__name__} metric should be a tuple/list, "
+                        f"but given {type(output)}"
+                    )
+                if not all([k in output for k in self.required_output_keys]):
+                    raise ValueError(
+                        "When transformed engine's output is a mapping, "
+                        f"it should contain {self.required_output_keys} keys, but given {list(output.keys())}"
+                    )
+                output = tuple(output[k] for k in self.required_output_keys)
 
-        if isinstance(output, Sequence) and all([_is_list_of_tensors_or_numbers(o) for o in output]):
-            if not (len(output) == 2 and len(output[0]) == len(output[1])):
-                raise ValueError(
-                    f"Output should have 2 items of the same length, "
-                    f"got {len(output)} and {len(output[0])}, {len(output[1])}"
-                )
-            for o1, o2 in zip(output[0], output[1]):
-                # o1 and o2 are list of tensors or numbers
-                tensor_o1 = _to_batched_tensor(o1)
-                tensor_o2 = _to_batched_tensor(o2, device=tensor_o1.device)
-                self.update((tensor_o1, tensor_o2))
+            if isinstance(output, Sequence) and all([_is_list_of_tensors_or_numbers(o) for o in output]):
+                if not (len(output) == 2 and len(output[0]) == len(output[1])):
+                    raise ValueError(
+                        f"Output should have 2 items of the same length, "
+                        f"got {len(output)} and {len(output[0])}, {len(output[1])}"
+                    )
+                for o1, o2 in zip(output[0], output[1]):
+                    # o1 and o2 are list of tensors or numbers
+                    tensor_o1 = _to_batched_tensor(o1)
+                    tensor_o2 = _to_batched_tensor(o2, device=tensor_o1.device)
+                    self.update((tensor_o1, tensor_o2))
+            else:
+                self.update(output)
         else:
             self.update(output)
 
