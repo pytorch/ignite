@@ -140,7 +140,7 @@ def _to_str_list(data: Any) -> List[str]:
             elif item.dim() == 1:
                 return f"{prefix}[" + ", ".join(f"{x.item():.4f}" for x in item) + "]"
             else:
-                return f"{prefix}Shape: {list(item.shape)}"
+                return f"{prefix}Shape{list(item.shape)}"
         elif isinstance(item, dict):
             for key, value in item.items():
                 formatted_value = format_item(value, f"{key}: ")
