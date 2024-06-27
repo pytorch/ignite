@@ -293,6 +293,9 @@ class Metric(Serializable, metaclass=ABCMeta):
 
             res = evaluator.run(data)
 
+    .. versionchanged:: 0.4.2
+        ``required_output_keys`` became public attribute.
+
     .. versionchanged:: 0.5.1
         ``skip_unrolling`` attribute is added.
     """
