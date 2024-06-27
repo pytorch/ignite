@@ -7,6 +7,7 @@ Module with helper methods
 
 .. autosummary::
     :nosignatures:
+    :autolist:
 
 .. automodule:: ignite.utils
     :members:
