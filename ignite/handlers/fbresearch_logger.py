@@ -8,12 +8,10 @@ import torch
 from ignite import utils
 from ignite.engine import Engine, Events
 from ignite.handlers import Timer
-from ignite.handlers.utils import global_step_from_engine  # noqa
-
 
 MB = 1024.0 * 1024.0
 
-__all__ = ["FBResearchLogger", "global_step_from_engine"]
+__all__ = ["FBResearchLogger"]
 
 
 class FBResearchLogger:
