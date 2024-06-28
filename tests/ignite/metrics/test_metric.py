@@ -1416,3 +1416,33 @@ def test_load_state_dict():
             assert (output == expected).all(), (output, expected)
         else:
             assert output == expected, (output, expected)
+
+
+class DummyMetric5(Metric):
+    def __init__(self, true_output, output_transform=lambda x: x, skip_unrolling=False):
+        super(DummyMetric5, self).__init__(output_transform=output_transform, skip_unrolling=skip_unrolling)
+        self.true_output = true_output
+
+    def reset(self):
+        pass
+
+    def compute(self):
+        pass
+
+    def update(self, output):
+        assert output == self.true_output
+
+
+def test_skip_unrolling():
+    # y_pred and y are ouputs recieved from a multi_output model
+    a_pred = torch.rand(8, 1)
+    b_pred = torch.rand(8, 1)
+    y_pred = [a_pred, b_pred]
+    a_true = torch.rand(8, 1)
+    b_true = torch.rand(8, 1)
+    y_true = [a_true, b_true]
+
+    metric = DummyMetric5(true_output=(y_pred, y_true), skip_unrolling=True)
+    state = State(output=(y_pred, y_true))
+    engine = MagicMock(state=state)
+    metric.iteration_completed(engine)
