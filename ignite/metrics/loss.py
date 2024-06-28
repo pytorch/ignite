@@ -66,7 +66,7 @@ class Loss(Metric):
             -0.3499999...
 
     .. versionchanged:: 0.5.1
-        ``skip_unrolling`` attribute is added.
+        ``skip_unrolling`` argument is added.
     """
 
     required_output_keys = ("y_pred", "y", "criterion_kwargs")

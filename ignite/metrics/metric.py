@@ -236,7 +236,7 @@ class Metric(Serializable, metaclass=ABCMeta):
         skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
             true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
 
-            Example usage:
+            Example:
                 The following example shows a custom loss metric that expects input from a multi-output model.
 
                 .. code-block:: python
@@ -348,7 +348,7 @@ class Metric(Serializable, metaclass=ABCMeta):
         ``required_output_keys`` became public attribute.
 
     .. versionchanged:: 0.5.1
-        ``skip_unrolling`` attribute is added.
+        ``skip_unrolling`` argument is added.
     """
 
     # public class attribute
