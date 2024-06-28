@@ -18,7 +18,7 @@ from torch.distributions.geometric import Geometric
 import ignite.distributed as idist
 from ignite.engine import Engine
 from ignite.metrics import ObjectDetectionMAP
-from ignite.metrics.vision.object_detection_map import tensor_list_to_dict_list
+from ignite.metrics.vision.object_detection_average_precision_recall import tensor_list_to_dict_list
 from ignite.utils import manual_seed
 
 torch.set_printoptions(linewidth=200)

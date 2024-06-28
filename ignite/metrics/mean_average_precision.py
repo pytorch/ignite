@@ -7,23 +7,24 @@ from typing_extensions import Literal
 import ignite.distributed as idist
 from ignite.distributed.utils import all_gather_tensors_with_shapes
 from ignite.metrics.metric import reinit__is_reduced
-from ignite.metrics.recall import _BasePrecisionRecall
+from ignite.metrics.precision import _BaseClassification
+from ignite.metrics import Metric
 from ignite.utils import to_onehot
 
 
-class _BaseMeanAveragePrecision(_BasePrecisionRecall):
+class _BaseAveragePrecision:
     def __init__(
         self,
         rec_thresholds: Optional[Union[Sequence[float], torch.Tensor]] = None,
-        average: Optional[Literal["precision", "max-precision"]] = "precision",
-        class_mean: Optional[Literal["micro", "macro", "weighted", "with_other_dims"]] = "macro",
-        is_multilabel: bool = False,
-        output_transform: Callable = lambda x: x,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        class_mean: Optional[Literal["micro", "macro", "weighted"]] = "macro",
     ) -> None:
-        r"""Base class for Mean Average Precision in classification and detection tasks.
+        r"""Base class for Average Precision & Recall in classification and detection tasks.
 
-        Mean average precision is computed by taking the mean of the average precision over different classes
+        This class contains the methods for setting up the thresholds and computing AP & AR.
+
+        # Average precision is computed by averaging precision over increasing levels of recall thresholds as following:
+
+
         and possibly some additional dimensions in the detection task. ``class_mean`` determines how to take this mean.
         In the detection tasks, it's possible to take the mean in other respects as well e.g. IoU threshold in an
         object detection task.
@@ -32,22 +33,6 @@ class _BaseMeanAveragePrecision(_BasePrecisionRecall):
             rec_thresholds: recall thresholds (sensivity levels) to be considered for computing Mean Average Precision.
                 It could be a 1-dim tensor or a sequence of floats. Its values should be between 0 and 1 and don't need
                 to be sorted. If missing, thresholds are considered automatically using the data.
-            average: one of values "precision" or "max-precision". In the former case, the precision at a
-                recall threshold is used for that threshold:
-
-                .. math::
-                    \text{Average Precision} = \sum_{k=1}^{\#rec\_thresholds} (r_k - r_{k-1}) P_k
-
-                :math:`r` stands for recall thresholds and :math:`P` for precision values. :math:`r_0` is set to zero.
-
-                In the latter case, the maximum precision across thresholds greater or equal a recall threshold is
-                considered as the summation operand; In other words, the precision peek across lower or equal
-                sensivity levels is used for a recall threshold:
-
-                .. math::
-                    \text{Average Precision} = \sum_{k=1}^{\#rec\_thresholds} (r_k - r_{k-1}) max(P_{k:})
-
-                Default is "precision".
             class_mean: how to compute mean of the average precision across classes or incorporate class
                 dimension into computing precision. It's ignored in binary classification. Available options are
 
@@ -78,38 +63,18 @@ class _BaseMeanAveragePrecision(_BasePrecisionRecall):
                 'macro'
                   computes macro precision which is unweighted mean of AP computed across classes/labels. Default.
 
-                'with_other_dims'
-                  Mean over class dimension is taken with additional mean dimensions all at once, despite macro and
-                  weighted in which mean over additional dimensions is taken beforehand. Only available in detection.
-
                 Note:
                     Please note that classes with no ground truth are not considered into the mean in detection.
-
-            is_multilabel: Used in classification task and determines if the data
-                is multilabel or not. Default False.
-            output_transform: a callable that is used to transform the
-                :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
-                form expected by the metric. This can be useful if, for example, you have a multi-output model and
-                you want to compute the metric with respect to one of the outputs. This metric requires the output
-                as ``(y_pred, y)``.
-            device: specifies which device updates are accumulated on. Setting the
-                metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
-                non-blocking. By default, CPU.
         """
         if rec_thresholds is not None:
             self.rec_thresholds: Optional[torch.Tensor] = self._setup_thresholds(rec_thresholds, "rec_thresholds")
         else:
             self.rec_thresholds = None
 
-        if average not in ("precision", "max-precision"):
-            raise ValueError(f"Wrong `average` parameter, given {average}")
-        self.average = average
-
         if class_mean is not None and class_mean not in ("micro", "macro", "weighted", "with_other_dims"):
             raise ValueError(f"Wrong `class_mean` parameter, given {class_mean}")
         self.class_mean = class_mean
 
-        super().__init__(output_transform=output_transform, is_multilabel=is_multilabel, device=device)
 
     def _setup_thresholds(self, thresholds: Union[Sequence[float], torch.Tensor], threshold_type: str) -> torch.Tensor:
         if isinstance(thresholds, Sequence):
@@ -134,44 +99,58 @@ class _BaseMeanAveragePrecision(_BasePrecisionRecall):
         """Measuring average precision which is the common operation among different settings of the metric.
 
         Args:
-            recall: n-dimensional tensor whose last dimension is the dimension of the samples. Should be ordered in
-                ascending order in its last dimension.
+            recall: n-dimensional tensor whose last dimension represents confidence thresholds as much as #samples.
+            Should be ordered in ascending order in its last dimension.
             precision: like ``recall`` in the shape.
 
         Returns:
             average_precision: (n-1)-dimensional tensor containing the average precision for mean dimensions.
         """
-        precision_integrand = (
-            precision.flip(-1).cummax(dim=-1).values.flip(-1) if self.average == "max-precision" else precision
-        )
         if self.rec_thresholds is not None:
             rec_thresholds = self.rec_thresholds.repeat((*recall.shape[:-1], 1))
             rec_thresh_indices = torch.searchsorted(recall, rec_thresholds)
-            precision_integrand = precision_integrand.take_along_dim(
+            precision = precision.take_along_dim(
                 rec_thresh_indices.where(rec_thresh_indices != recall.size(-1), 0), dim=-1
             ).where(rec_thresh_indices != recall.size(-1), 0)
             recall = rec_thresholds
         recall_differential = recall.diff(
             dim=-1, prepend=torch.zeros((*recall.shape[:-1], 1), device=self._device, dtype=torch.double)
         )
-        return torch.sum(recall_differential * precision_integrand, dim=-1)
+        return torch.sum(recall_differential * precision, dim=-1)
 
 
-class MeanAveragePrecision(_BaseMeanAveragePrecision):
+def _cat_and_agg_tensors(tensors: List[torch.Tensor], tensor_shape: Tuple[int], num_preds: List[int], dtype: torch.dtype, device: Union[str, torch.device]) -> torch.Tensor:
+    tensor = torch.cat(tensors, dim=-1) if tensors else torch.empty((*tensor_shape, 0), dtype=dtype, device=device)
+    shape_across_ranks = [
+        (*tensor_shape, num_pred_in_rank) for num_pred_in_rank in num_preds
+    ]
+    return torch.cat(
+        all_gather_tensors_with_shapes(
+            tensor,
+            shape_across_ranks,
+        ),
+        dim=-1,
+    )
+
+
+class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
+
     _scores: List[torch.Tensor]
     _P: List[torch.Tensor]
 
     def __init__(
         self,
         rec_thresholds: Optional[Union[Sequence[float], torch.Tensor]] = None,
-        average: Optional["Literal['precision', 'max-precision']"] = "precision",
         class_mean: Optional["Literal['micro', 'macro', 'weighted']"] = "macro",
         is_multilabel: bool = False,
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
         r"""Calculate the mean average precision metric i.e. mean of the averaged-over-recall precision for
-        classification task.
+        classification task:
+
+        .. math::
+            \text{Average Precision} = \sum_{k=1}^{\#rec\_thresholds} (r_k - r_{k-1}) P_k
 
         Mean average precision attempts to give a measure of detector or classifier precision at various
         sensivity levels a.k.a recall thresholds. This is done by summing precisions at different recall
@@ -190,27 +169,11 @@ class MeanAveragePrecision(_BaseMeanAveragePrecision):
             rec_thresholds: recall thresholds (sensivity levels) to be considered for computing Mean Average Precision.
                 It could be a 1-dim tensor or a sequence of floats. Its values should be between 0 and 1 and don't need
                 to be sorted. If missing, thresholds are considered automatically using the data.
-            average: one of values "precision" or "max-precision". In the former case, the precision at a
-                recall threshold is used for that threshold:
-
-                .. math::
-                    \text{Average Precision} = \sum_{k=1}^{\#rec\_thresholds} (r_k - r_{k-1}) P_k
-
-                :math:`r` stands for recall thresholds and :math:`P` for precision values. :math:`r_0` is set to zero.
-
-                In the latter case, the maximum precision across thresholds greater or equal a recall threshold is
-                considered as the summation operand; In other words, the precision peek across lower or equal
-                sensivity levels is used for a recall threshold:
-
-                .. math::
-                    \text{Average Precision} = \sum_{k=1}^{\#rec\_thresholds} (r_k - r_{k-1}) max(P_{k:})
-
-                Default is "precision".
             class_mean: how to compute mean of the average precision across classes or incorporate class
                 dimension into computing precision. It's ignored in binary classification. Available options are
 
                 None
-                  An 1-dimensional tensor of mean (taken across additional mean dimensions) average precision per class
+                  A 1-dimensional tensor of mean (taken across additional mean dimensions) average precision per class
                   is returned. If there's no ground truth sample for a class, ``0`` is returned for that.
 
                 'micro'
@@ -247,24 +210,19 @@ class MeanAveragePrecision(_BaseMeanAveragePrecision):
                 non-blocking. By default, CPU.
         """
 
-        super().__init__(
-            rec_thresholds=rec_thresholds,
-            average=average,
-            class_mean=class_mean,
+        super(MeanAveragePrecision, self).__init__(
             output_transform=output_transform,
             is_multilabel=is_multilabel,
             device=device,
         )
-
-        if self.class_mean == "with_other_dims":
-            raise ValueError("class_mean 'with_other_dims' is not compatible with this class.")
+        super(Metric, self).__init__(rec_thresholds=rec_thresholds, class_mean=class_mean)
 
     @reinit__is_reduced
     def reset(self) -> None:
         """
         Reset method of the metric
         """
-        super(_BasePrecisionRecall, self).reset()
+        super().reset()
         self._scores = []
         self._P = []
 
@@ -275,7 +233,7 @@ class MeanAveragePrecision(_BaseMeanAveragePrecision):
             raise ValueError("For binary cases, y must be comprised of 0's and 1's.")
 
     def _check_type(self, output: Sequence[torch.Tensor]) -> None:
-        super(_BasePrecisionRecall, self)._check_type(output)
+        super()._check_type(output)
         y_pred, y = output
         if y_pred.dtype in (torch.int, torch.long):
             raise TypeError(f"`y_pred` should be a float tensor, given {y_pred.dtype}")
@@ -393,33 +351,27 @@ class MeanAveragePrecision(_BaseMeanAveragePrecision):
             raise RuntimeError("Metric could not be computed without any update method call")
         num_classes = self._num_classes
 
-        rank_P = (
-            torch.cat(self._P, dim=-1)
-            if self._P
-            else (
-                torch.empty((num_classes, 0), dtype=torch.uint8, device=self._device)
-                if self._type == "multilabel"
-                else torch.tensor(
-                    [], dtype=torch.long if self._type == "multiclass" else torch.uint8, device=self._device
-                )
-            )
+        num_samples = torch.tensor(
+            [sum([p.shape[-1] for p in self._P]) if self._P else 0],
+            device=self._device,
         )
-        rank_P_shapes = cast(torch.Tensor, idist.all_gather(torch.tensor(rank_P.shape))).view(-1, len(rank_P.shape))
-        P = torch.cat(all_gather_tensors_with_shapes(rank_P, rank_P_shapes.tolist()), dim=-1)
+        num_samples_across_ranks = cast(torch.Tensor, idist.all_gather(num_samples)).tolist()
 
-        rank_scores = (
-            torch.cat(self._scores, dim=-1)
-            if self._scores
-            else (
-                torch.tensor([], device=self._device)
-                if self._type == "binary"
-                else torch.empty((num_classes, 0), dtype=torch.double, device=self._device)
-            )
+        P = _cat_and_agg_tensors(
+            self._P, 
+            (num_classes,) if self._type == "multiabel" else (),
+            num_samples_across_ranks,
+            torch.long if self._type == "multiclass" else torch.uint8,
+            self._device
         )
-        rank_scores_shapes = cast(torch.Tensor, idist.all_gather(torch.tensor(rank_scores.shape))).view(
-            -1, len(rank_scores.shape)
+
+        scores = _cat_and_agg_tensors(
+            self._scores, 
+            (num_classes,) if self._type != "binary" else (),
+            num_samples_across_ranks,
+            torch.double,
+            self._device
         )
-        scores = torch.cat(all_gather_tensors_with_shapes(rank_scores, rank_scores_shapes.tolist()), dim=-1)
 
         if self._type == "multiclass":
             P = to_onehot(P, num_classes=num_classes).T

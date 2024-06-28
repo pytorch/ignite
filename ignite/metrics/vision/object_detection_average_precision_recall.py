@@ -1,14 +1,13 @@
 from collections import defaultdict
-from typing import Callable, cast, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Callable, cast, Dict, List, Optional, Sequence, Tuple, Union, override
 
 import torch
 from typing_extensions import Literal
 
 import ignite.distributed as idist
-from ignite.distributed.utils import all_gather_tensors_with_shapes
-from ignite.metrics.mean_average_precision import _BaseMeanAveragePrecision
+from ignite.metrics.mean_average_precision import _BaseAveragePrecision, _cat_and_agg_tensors
 
-from ignite.metrics.metric import reinit__is_reduced
+from ignite.metrics.metric import Metric, reinit__is_reduced
 from ignite.metrics.recall import _BasePrecisionRecall
 
 
@@ -43,11 +42,13 @@ def tensor_list_to_dict_list(
     return cast(Tuple[List[Dict[str, torch.Tensor]], List[Dict[str, torch.Tensor]]], (y_pred, y))
 
 
-class ObjectDetectionMAP(_BaseMeanAveragePrecision):
+class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
+
     _tp: Dict[int, List[torch.Tensor]]
     _fp: Dict[int, List[torch.Tensor]]
     _scores: Dict[int, List[torch.Tensor]]
     _P: Dict[int, int]
+    _num_classes: int
 
     def __init__(
         self,
@@ -58,13 +59,22 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
-        """Calculate the mean average precision for evaluating an object detector.
+        """Calculate the mean average precision & recall for evaluating an object detector.
+
+        In average precision, the maximum precision across thresholds greater or equal a recall threshold is
+        considered as the summation operand; In other words, the precision peek across lower or equal
+        sensivity levels is used for a recall threshold:
+
+        .. math::
+            \text{Average Precision} = \sum_{k=1}^{\#rec\_thresholds} (r_k - r_{k-1}) max(P_{k:})
 
         Args:
-            iou_thresholds: sequence of IoU thresholds to be considered for computing mean average precision.
+            iou_thresholds: sequence of IoU thresholds to be considered for computing mean average precision & recall.
                 Values should be between 0 and 1. If not given, COCO's default (.5, .55, ..., .95) would be used.
             rec_thresholds: sequence of recall thresholds to be considered for computing mean average precision.
                 Values should be between 0 and 1. If not given, COCO's default (.0, .01, .02, ..., 1.) would be used.
+            max_detections_per_image: Max number of detections in each image to consider for evaluation. The most
+                confident ones are selected.
             output_transform: a callable that is used to transform the :class:`~ignite.engine.engine.Engine`'s
                 ``process_function``'s output into the form expected by the metric. An already
                 provided example is :func:`~ignite.metrics.vision.object_detection_map.tensor_list_to_dict_list`
@@ -99,21 +109,17 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
         self.area_range = area_range
         self.max_detections_per_image = max_detections_per_image
 
-        super().__init__(
-            rec_thresholds=rec_thresholds,
-            average="max-precision",
-            class_mean="with_other_dims",
+        super(ObjectDetectionAvgPrecisionRecall, self).__init__(
             output_transform=output_transform,
             device=device,
+        )
+        super(Metric, self).__init__(
+            rec_thresholds=rec_thresholds,
+            class_mean=None,
         )
 
     @reinit__is_reduced
     def reset(self) -> None:
-        """
-        Reset method of the metric
-        """
-        super(_BasePrecisionRecall, self).reset()
-
         self._tp = defaultdict(lambda: [])
         self._fp = defaultdict(lambda: [])
         self._scores = defaultdict(lambda: [])
@@ -166,10 +172,10 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         r"""Measuring recall & precision
 
-        This method is overriden since in the pycocotools reference implementation, when there are predictions with the
-        same scores, they're considered associated with different thresholds in the course of measuring recall
-        values, although it's not logically correct as those predictions are really associated with a single threshold,
-        thus outputing a single recall value.
+        This method is different from that of MeanAveragePrecision since in the pycocotools reference implementation,
+        when there are predictions with the same scores, they're considered associated with different thresholds in the
+        course of measuring recall values, although it's not logically correct as those predictions are really
+        associated with a single threshold, thus outputing a single recall value.
 
         Shape of function inputs and return values follow the table below. N\ :sub:`pred` is the number of detections
         or predictions. ``...`` stands for the possible additional dimensions. Finally, \#unique scores represents
@@ -201,6 +207,7 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
 
         return recall, precision
 
+    @override
     def _compute_average_precision(self, recall: torch.Tensor, precision: torch.Tensor) -> torch.Tensor:
         """Measuring average precision.
         This method is overriden since :math:`1/#recall_thresholds` is used instead of :math:`r_k - r_{k-1}`
@@ -214,9 +221,7 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
         Returns:
             average_precision: (n-1)-dimensional tensor containing the average precision for mean dimensions.
         """
-        precision_integrand = (
-            precision.flip(-1).cummax(dim=-1).values.flip(-1) if self.average == "max-precision" else precision
-        )
+        precision_integrand = precision.flip(-1).cummax(dim=-1).values.flip(-1)
         rec_thresholds = cast(torch.Tensor, self.rec_thresholds).repeat((*recall.shape[:-1], 1))
         rec_thresh_indices = torch.searchsorted(recall, rec_thresholds)
         precision_integrand = precision_integrand.take_along_dim(
@@ -228,7 +233,7 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
         self, pred: Dict[str, torch.Tensor], target: Dict[str, torch.Tensor]
     ) -> Tuple[Dict[int, torch.Tensor], Dict[int, torch.Tensor], Dict[int, int], Dict[int, torch.Tensor]]:
         r"""
-        Matching logic of object detection mAP.
+        Matching logic of object detection mAP, according to COCO reference implementation.
 
         The method returns a quadrople of dictionaries containing TP, FP, P (actual positive) counts and scores for
         each class respectively. Please note that class numbers start from zero.
@@ -268,6 +273,7 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
         pred_scores = pred["scores"][best_detections_index]
         pred_labels = pred["labels"][best_detections_index]
         pred_boxes = pred["bbox"][best_detections_index]
+        pred_match_area_range = self._match_area_range(pred_boxes)
 
         categories = list(set(labels.int().tolist() + pred_labels.int().tolist()))
 
@@ -276,6 +282,23 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
         P: Dict[int, int] = {}
         scores: Dict[int, torch.Tensor] = {}
 
+        ious = self.box_iou(pred_boxes, gt_boxes, cast(torch.BoolTensor, category_is_crowd))
+        
+        NO_MATCH = -3
+        ious[:, gt_ignore] -= 2
+        category_no_match = labels.expand(len(pred_labels), -1) != labels.view(-1, 1)
+        ious[category_no_match] = NO_MATCH
+        ious.unsqueeze(-1).repeat((1, 1, len(self.iou_thresholds)))
+        ious[ious < self.iou_thresholds] = NO_MATCH
+        for i in range(len(pred_labels)):
+            # Flip is done to give priority to the last item with maximal value, as torch.max selects the first one.
+            match_gts = ious[i].flip(0).max(0)
+            match_gts_indices = ious.size(1) -1 - match_gts.indices
+            for t in range(len(self.iou_thresholds)):
+                if match_gts.values[t] != NO_MATCH and not gt_is_crowd[match_gts_indices[t]]:
+                    ious[:, match_gts_indices[t], t] = NO_MATCH
+                    ious[i, match_gts_indices[t], t] = match_gts.values[t]
+
         for category in categories:
             category_index_gt = labels == category
             num_category_gt = category_index_gt.sum()
@@ -283,59 +306,15 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
             category_gt_ignore = gt_ignore[category_index_gt]
             if num_category_gt:  # what if P[c] becomes 0 ?
                 P[category] = num_category_gt - category_gt_ignore.sum()
-
+            
             category_index_dt = pred_labels == category
             if not category_index_dt.any():
                 continue
 
             scores[category] = pred_scores[category_index_dt]
-            pred_match_area_range = self._match_area_range(pred_boxes[category_index_dt])
-            num_category_dt = category_index_dt.sum().item()
-            category_tp = torch.zeros(
-                (len(self.iou_thresholds), num_category_dt), dtype=torch.uint8, device=self._device
-            )
-            category_fp = torch.zeros(
-                (len(self.iou_thresholds), num_category_dt), dtype=torch.uint8, device=self._device
-            )
-            if num_category_gt:
-                category_iou = self.box_iou(
-                    pred_boxes[category_index_dt],
-                    gt_boxes[category_index_gt],
-                    cast(torch.BoolTensor, category_is_crowd),
-                )
-                category_maximum_iou = category_iou.max()
-                for thres_idx, iou_thres in enumerate(self.iou_thresholds):
-                    if iou_thres <= category_maximum_iou:
-                        matched_gt_indices = set()
-                        for pred_idx in range(num_category_dt):
-                            match_iou, match_idx = min(iou_thres, 1 - 1e-10), -1
-                            for gt_idx in range(num_category_gt):
-                                if (category_iou[pred_idx, gt_idx] < iou_thres) or (
-                                    gt_idx in matched_gt_indices and ~category_is_crowd[gt_idx]
-                                ):
-                                    continue
-                                if (
-                                    match_idx == -1
-                                    or (category_gt_ignore[match_idx] & ~category_gt_ignore[gt_idx])
-                                    or (
-                                        (category_gt_ignore[match_idx] | ~category_gt_ignore[gt_idx])
-                                        and category_iou[pred_idx][gt_idx] >= match_iou
-                                    )
-                                ):
-                                    match_iou = category_iou[pred_idx][gt_idx]
-                                    match_idx = gt_idx
-                            if match_idx != -1:
-                                matched_gt_indices.add(match_idx)
-                                category_tp[thres_idx][pred_idx] = ~category_gt_ignore[match_idx]
-                            else:
-                                category_fp[thres_idx][pred_idx] = pred_match_area_range[pred_idx]
-                    else:
-                        category_fp[thres_idx] = pred_match_area_range
-            else:
-                category_fp[:, :] = pred_match_area_range
-
-            tp[category] = category_tp
-            fp[category] = category_fp
+            category_max_ious = ious[category_index_dt].max(1).values
+            tp[category] = (category_max_ious >= 0).T.to(dtype=torch.uint8, device=self._device)
+            fp[category] = ((category_max_ious == NO_MATCH).T and pred_match_area_range[category_index_dt]).to(dtype=torch.uint8, device=self._device)
 
         return tp, fp, P, scores
 
@@ -385,10 +364,7 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
             if classes:
                 self._num_classes = max(max(classes) + 1, self._num_classes)
 
-    def compute(self) -> float:
-        """
-        Compute method of the metric
-        """
+    def _compute(self) -> torch.Tensor:
         num_classes = int(idist.all_reduce(self._num_classes or 0, "MAX"))
         if num_classes < 1:
             return 0.0
@@ -423,8 +399,8 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
             ),
         ).tolist()
 
-        average_precisions = -torch.ones(
-            (num_classes, *mean_dimensions_shape),
+        average_precisions_recalls = -torch.ones(
+            (2, num_classes, *mean_dimensions_shape),
             device=self._device,
             dtype=torch.double,
         )
@@ -432,41 +408,47 @@ class ObjectDetectionMAP(_BaseMeanAveragePrecision):
             if P[cls] == 0:
                 continue
 
-            num_preds_across_ranks = num_preds_per_class_across_ranks[:, [cls]]
-            if num_preds_across_ranks.sum() == 0:
-                average_precisions[cls] = 0
+            num_preds_across_ranks = num_preds_per_class_across_ranks[:, cls].tolist()
+            if sum(num_preds_across_ranks) == 0:
+                average_precisions_recalls[0, cls] = 0
                 continue
-            shape_across_ranks = [
-                (*mean_dimensions_shape, num_pred_in_rank.item()) for num_pred_in_rank in num_preds_across_ranks
-            ]
-            TP = torch.cat(
-                all_gather_tensors_with_shapes(
-                    torch.cat(self._tp[cls], dim=-1)
-                    if self._tp[cls]
-                    else torch.empty((*mean_dimensions_shape, 0), dtype=torch.uint8, device=self._device),
-                    shape_across_ranks,
-                ),
-                dim=-1,
-            )
-            FP = torch.cat(
-                all_gather_tensors_with_shapes(
-                    torch.cat(self._fp[cls], dim=-1)
-                    if self._fp[cls]
-                    else torch.empty((*mean_dimensions_shape, 0), dtype=torch.uint8, device=self._device),
-                    shape_across_ranks,
-                ),
-                dim=-1,
-            )
-            scores = torch.cat(
-                all_gather_tensors_with_shapes(
-                    torch.cat(self._scores[cls])
-                    if self._scores[cls]
-                    else torch.tensor([], dtype=torch.double, device=self._device),
-                    num_preds_across_ranks.tolist(),
-                )
-            )
+            TP = _cat_and_agg_tensors(self._tp[cls], mean_dimensions_shape, num_preds_across_ranks, torch.uint8, self._device)
+            FP = _cat_and_agg_tensors(self._fp[cls], mean_dimensions_shape, num_preds_across_ranks, torch.uint8, self._device)
+            scores = _cat_and_agg_tensors(self._scores[cls], (), num_preds_across_ranks, torch.double, self._device)
+            
             recall, precision = self._compute_recall_and_precision(TP, FP, scores, P[cls])
             average_precision_for_cls_across_other_dims = self._compute_average_precision(recall, precision)
-            average_precisions[cls] = average_precision_for_cls_across_other_dims
+            average_precisions_recalls[0, cls] = average_precision_for_cls_across_other_dims
 
-        return average_precisions[average_precisions > -1].mean().item()
+            average_precisions_recalls[1, cls] = recall[..., -1]
+
+        return average_precisions_recalls
+    
+    def compute(self) -> Tuple[float, float]:
+        average_precisions_recalls = self._compute()
+        ap = average_precisions_recalls[0][average_precisions_recalls[0] > -1].mean().item()
+        ar = average_precisions_recalls[1][average_precisions_recalls[1] > -1].mean().item()
+
+        return ap, ar
+
+
+# class ObjDetCommonAPandAR(Metric):
+#     """
+#     Computes following common variants of average precision (AP) and recall (AR).
+
+#     ============== ======================
+#     Metric variant Description
+#     ============== ======================
+#     AP@.5...95      (..., N\ :sub:`pred`)
+#     AP@.5          (N\ :sub:`pred`,)
+#     AP@.75              () (A single float,
+#     AP-S                greater than zero)
+#     AP-M
+#     AP-L           (..., \#unique scores)
+#     AR-S
+#     AR-M
+#     AR-L           (..., \#unique scores)
+#     ============== ======================
+#     """
+#     def __init__(self, output_transform: Callable = lambda x:x, device: Union[str, torch.device] = torch.device("cpu")):
+#         super().__init__(output_transform, device)
