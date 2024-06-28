@@ -238,7 +238,9 @@ class Metric(Serializable, metaclass=ABCMeta):
 
             Example usage:
                 The following example shows a custom loss metric that expects input from a multi-output model.
+
                 .. code-block:: python
+
                     import torch
                     import torch.nn as nn
                     import torch.nn.functional as F
