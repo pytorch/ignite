@@ -2,6 +2,7 @@ import collections.abc as collections
 import functools
 import hashlib
 import logging
+import numbers
 import random
 import shutil
 import warnings
@@ -14,6 +15,7 @@ __all__ = [
     "convert_tensor",
     "apply_to_tensor",
     "apply_to_type",
+    "_to_str_list",
     "to_onehot",
     "setup_logger",
     "manual_seed",
@@ -88,6 +90,82 @@ def _tree_map(
     if isinstance(x, collections.Sequence):
         return cast(Callable, type(x))([_tree_map(func, sample, key=i) for i, sample in enumerate(x)])
     return func(x, key=key)
+
+
+def _to_str_list(data: Any) -> List[str]:
+    """
+    Recursively flattens and formats complex data structures, including keys for
+    dictionaries, into a list of human-readable strings.
+
+    This function processes nested dictionaries, lists, tuples, numbers, and
+    PyTorch tensors, formatting numbers to four decimal places and handling
+    tensors with special formatting rules. It's particularly useful for logging,
+    debugging, or any scenario where a human-readable representation of complex,
+    nested data structures is required.
+
+    The function handles the following types:
+
+    - Numbers: Formatted to four decimal places.
+    - PyTorch tensors:
+        - Scalars are formatted to four decimal places.
+        - 1D tensors with more than 10 elements show the first 10 elements
+          followed by an ellipsis.
+        - 1D tensors with 10 or fewer elements are fully listed.
+        - Multi-dimensional tensors display their shape.
+    - Dictionaries: Each key-value pair is included in the output with the key
+      as a prefix.
+    - Lists and tuples: Flattened and included in the output. Empty lists/tuples are represented
+      by an empty string.
+    - None values: Represented by an empty string.
+
+    Args:
+        data: The input data to be flattened and formatted. It can be a nested
+            combination of dictionaries, lists, tuples, numbers, and PyTorch
+            tensors.
+
+    Returns:
+        A list of formatted strings, each representing a part of the input data
+        structure.
+    """
+    formatted_items: List[str] = []
+
+    def format_item(item: Any, prefix: str = "") -> Optional[str]:
+        if isinstance(item, numbers.Number):
+            return f"{prefix}{item:.4f}"
+        elif torch.is_tensor(item):
+            if item.dim() == 0:
+                return f"{prefix}{item.item():.4f}"  # Format scalar tensor without brackets
+            elif item.dim() == 1 and item.size(0) > 10:
+                return f"{prefix}[" + ", ".join(f"{x.item():.4f}" for x in item[:10]) + ", ...]"
+            elif item.dim() == 1:
+                return f"{prefix}[" + ", ".join(f"{x.item():.4f}" for x in item) + "]"
+            else:
+                return f"{prefix}Shape{list(item.shape)}"
+        elif isinstance(item, dict):
+            for key, value in item.items():
+                formatted_value = format_item(value, f"{key}: ")
+                if formatted_value is not None:
+                    formatted_items.append(formatted_value)
+        elif isinstance(item, (list, tuple)):
+            if not item:
+                if prefix:
+                    formatted_items.append(f"{prefix}")
+            else:
+                values = [format_item(x) for x in item]
+                values_str = [v for v in values if v is not None]
+                if values_str:
+                    formatted_items.append(f"{prefix}" + ", ".join(values_str))
+        elif item is None:
+            if prefix:
+                formatted_items.append(f"{prefix}")
+        return None
+
+    # Directly handle single numeric values
+    if isinstance(data, numbers.Number):
+        return [f"{data:.4f}"]
+
+    format_item(data)
+    return formatted_items
 
 
 class _CollectionItem:

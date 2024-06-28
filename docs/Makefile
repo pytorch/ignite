@@ -22,6 +22,13 @@ docset: html
 rebuild:
 	rm -rf source/generated && make clean && make html
 
+clean:
+	@echo "Cleaning up..."
+	python -c "import shutil; shutil.rmtree('$(BUILDDIR)', ignore_errors=True)"
+	python -c "import shutil; shutil.rmtree('$(SOURCEDIR)/generated', ignore_errors=True)"
+	python -c "import os; [os.remove(f) for f in os.listdir('.') if f.endswith('.pyc')]"
+	python -c "import shutil; import os; [shutil.rmtree(f) for f in os.listdir('.') if f == '__pycache__' and os.path.isdir(f)]"
+
 .PHONY: help Makefile docset
 
 # Catch-all target: route all unknown targets to Sphinx using the new
