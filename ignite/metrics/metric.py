@@ -235,6 +235,7 @@ class Metric(Serializable, metaclass=ABCMeta):
             non-blocking. By default, CPU.
         skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
             true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            Alternatively, ``output_transform`` can be used to handle this.
 
             Examples:
                 The following example shows a custom loss metric that expects input from a multi-output model.
@@ -285,8 +286,6 @@ class Metric(Serializable, metaclass=ABCMeta):
                     data = range(10)
                     train_evaluator.run(data)
                     train_evaluator.state.metrics["Loss"]
-
-            Alternatively, ``output_transform`` can be used to handle this.
 
     Attributes:
         required_output_keys: dictionary defines required keys to be found in ``engine.state.output`` if the
