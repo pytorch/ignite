@@ -29,7 +29,7 @@ class MaximumMeanDiscrepancy(Metric):
 
     More details can be found in `Gretton et al. 2012`__.
 
-    __ https://jmlr.csail.mit.edu/papers/v13/gretton12a.html
+    __ https://www.jmlr.org/papers/volume13/gretton12a/gretton12a.pdf
 
     - ``update`` must receive output of the form ``(x, y)``.
     - ``x`` and ``y`` are expected to be in the same shape :math:`(B, \ldots)`.
