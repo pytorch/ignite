@@ -235,6 +235,55 @@ class Metric(Serializable, metaclass=ABCMeta):
             non-blocking. By default, CPU.
         skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
             true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+
+            Example usage:
+                The following example shows a custom loss metric that expects input from a multi-output model.
+                .. code-block:: python
+                    import torch
+                    import torch.nn as nn
+                    import torch.nn.functional as F
+
+                    from ignite.engine import create_supervised_evaluator
+                    from ignite.metrics import Loss
+
+                    class MyLoss(nn.Module):
+                        def __init__(self, ca: float = 1.0, cb: float = 1.0) -> None:
+                            super().__init__()
+                            self.ca = ca
+                            self.cb = cb
+
+                        def forward(self,
+                                    y_pred: Tuple[torch.Tensor, torch.Tensor],
+                                    y_true: Tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
+                            a_true, b_true = y_true
+                            a_pred, b_pred = y_pred
+                            return self.ca * F.mse_loss(a_pred, a_true) + self.cb * F.cross_entropy(b_pred, b_true)
+
+
+                    def prepare_batch(batch, device, non_blocking):
+                        return torch.rand(4, 1), (torch.rand(4, 1), torch.rand(4, 2))
+
+
+                    class MyModel(nn.Module):
+
+                        def forward(self, x):
+                            return torch.rand(4, 1), torch.rand(4, 2)
+
+
+                    model = MyModel()
+
+                    device = "cpu"
+                    loss = MyLoss(0.5, 1.0)
+                    metrics = {
+                        "Loss": Loss(loss, skip_unrolling=True)
+                    }
+                    train_evaluator = create_supervised_evaluator(model, metrics, device, prepare_batch=prepare_batch)
+
+
+                    data = range(10)
+                    train_evaluator.run(data)
+                    train_evaluator.state.metrics["Loss"]
+
             Alternatively, ``output_transform`` can be used to handle this.
 
     Attributes:
