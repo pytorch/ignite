@@ -233,6 +233,59 @@ class Metric(Serializable, metaclass=ABCMeta):
         device: specifies which device updates are accumulated on. Setting the
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
+        skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
+            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            Alternatively, ``output_transform`` can be used to handle this.
+
+            Examples:
+                The following example shows a custom loss metric that expects input from a multi-output model.
+
+                .. code-block:: python
+
+                    import torch
+                    import torch.nn as nn
+                    import torch.nn.functional as F
+
+                    from ignite.engine import create_supervised_evaluator
+                    from ignite.metrics import Loss
+
+                    class MyLoss(nn.Module):
+                        def __init__(self, ca: float = 1.0, cb: float = 1.0) -> None:
+                            super().__init__()
+                            self.ca = ca
+                            self.cb = cb
+
+                        def forward(self,
+                                    y_pred: Tuple[torch.Tensor, torch.Tensor],
+                                    y_true: Tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
+                            a_true, b_true = y_true
+                            a_pred, b_pred = y_pred
+                            return self.ca * F.mse_loss(a_pred, a_true) + self.cb * F.cross_entropy(b_pred, b_true)
+
+
+                    def prepare_batch(batch, device, non_blocking):
+                        return torch.rand(4, 1), (torch.rand(4, 1), torch.rand(4, 2))
+
+
+                    class MyModel(nn.Module):
+
+                        def forward(self, x):
+                            return torch.rand(4, 1), torch.rand(4, 2)
+
+
+                    model = MyModel()
+
+                    device = "cpu"
+                    loss = MyLoss(0.5, 1.0)
+                    metrics = {
+                        "Loss": Loss(loss, skip_unrolling=True)
+                    }
+                    train_evaluator = create_supervised_evaluator(model, metrics, device, prepare_batch=prepare_batch)
+
+
+                    data = range(10)
+                    train_evaluator.run(data)
+                    train_evaluator.state.metrics["Loss"]
 
     Attributes:
         required_output_keys: dictionary defines required keys to be found in ``engine.state.output`` if the
@@ -292,6 +345,9 @@ class Metric(Serializable, metaclass=ABCMeta):
 
     .. versionchanged:: 0.4.2
         ``required_output_keys`` became public attribute.
+
+    .. versionchanged:: 0.5.1
+        ``skip_unrolling`` argument is added.
     """
 
     # public class attribute
@@ -300,7 +356,10 @@ class Metric(Serializable, metaclass=ABCMeta):
     _required_output_keys = required_output_keys
 
     def __init__(
-        self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu")
+        self,
+        output_transform: Callable = lambda x: x,
+        device: Union[str, torch.device] = torch.device("cpu"),
+        skip_unrolling: bool = False,
     ):
         self._output_transform = output_transform
 
@@ -309,6 +368,7 @@ class Metric(Serializable, metaclass=ABCMeta):
             raise ValueError("Cannot create metric on an XLA device. Use device='cpu' instead.")
 
         self._device = torch.device(device)
+        self._skip_unrolling = skip_unrolling
         self.reset()
 
     @abstractmethod
@@ -390,7 +450,11 @@ class Metric(Serializable, metaclass=ABCMeta):
                 )
             output = tuple(output[k] for k in self.required_output_keys)
 
-        if isinstance(output, Sequence) and all([_is_list_of_tensors_or_numbers(o) for o in output]):
+        if (
+            (not self._skip_unrolling)
+            and isinstance(output, Sequence)
+            and all([_is_list_of_tensors_or_numbers(o) for o in output])
+        ):
             if not (len(output) == 2 and len(output[0]) == len(output[1])):
                 raise ValueError(
                     f"Output should have 2 items of the same length, "

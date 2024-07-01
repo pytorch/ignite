@@ -29,6 +29,9 @@ class Loss(Metric):
         device: specifies which device updates are accumulated on. Setting the
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
+        skip_unrolling: specifies whether input should be unrolled or not before it is passed to to loss_fn.
+            Should be true for multi-output model, for example, if ``y_pred`` contains multi-ouput as
+            ``(y_pred_a, y_pred_b)``
 
     Attributes:
         required_output_keys: dictionary defines required keys to be found in ``engine.state.output`` if the
@@ -62,6 +65,8 @@ class Loss(Metric):
 
             -0.3499999...
 
+    .. versionchanged:: 0.5.1
+        ``skip_unrolling`` argument is added.
     """
 
     required_output_keys = ("y_pred", "y", "criterion_kwargs")
@@ -73,8 +78,9 @@ class Loss(Metric):
         output_transform: Callable = lambda x: x,
         batch_size: Callable = len,
         device: Union[str, torch.device] = torch.device("cpu"),
+        skip_unrolling: bool = False,
     ):
-        super(Loss, self).__init__(output_transform, device=device)
+        super(Loss, self).__init__(output_transform, device=device, skip_unrolling=skip_unrolling)
         self._loss_fn = loss_fn
         self._batch_size = batch_size
 
