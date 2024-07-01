@@ -1,3 +1,4 @@
+import math
 import os
 import time
 from unittest.mock import call, MagicMock, Mock
@@ -503,6 +504,15 @@ class TestEngine:
         state = State(iteration=1000, max_epochs=10, epoch_length=100)
         assert Engine._is_done(state)
 
+        state = State(iteration=11, epoch=2, max_epochs=None, epoch_length=11, max_iters=22)
+        assert not Engine._is_done(state)
+
+        state = State(iteration=100, epoch=1, max_epochs=None, epoch_length=100, max_iters=250)
+        assert not Engine._is_done(state)
+
+        state = State(iteration=250, epoch=1, max_epochs=None, epoch_length=100, max_iters=250)
+        assert Engine._is_done(state)
+
     def test__setup_engine(self):
         engine = Engine(lambda e, b: 1)
         engine.state = State(iteration=10, epoch=1, max_epochs=100, epoch_length=100)
@@ -515,8 +525,21 @@ class TestEngine:
     def test_run_asserts(self):
         engine = Engine(lambda e, b: 1)
 
-        with pytest.raises(ValueError, match=r"Input data has zero size. Please provide non-empty data"):
+        with pytest.raises(
+            ValueError,
+            match=r"Argument epoch_length is invalid. Please, either set a correct epoch_length "
+            r"value or check if input data has non-zero size.",
+        ):
             engine.run([])
+        with pytest.raises(ValueError, match=r"Argument max_epochs should be greater than or equal to the start epoch"):
+            engine.state.max_epochs = 5
+            engine.state.epoch = 5
+            engine.run([0, 1], max_epochs=3)
+
+        with pytest.raises(ValueError, match=r"Argument max_iters should be greater than the current"):
+            engine.state.max_iters = 100
+            engine.state.iteration = 100
+            engine.run([0, 1], max_iters=50)
 
     def test_state_get_event_attrib_value(self):
         state = State()
@@ -573,7 +596,21 @@ class TestEngine:
             >= (sleep_time * epoch_length + extra_sleep_time) * max_epochs + extra_sleep_time
         )
 
-    def _test_check_triggered_events(self, data, max_epochs, epoch_length, exp_iter_stops=None):
+    def _test_check_triggered_events(
+        self,
+        data,
+        max_epochs=None,
+        epoch_length=None,
+        max_iters=None,
+        n_epoch_started=None,
+        n_epoch_completed=None,
+        n_iter_started=None,
+        n_iter_completed=None,
+        n_batch_started=None,
+        n_batch_completed=None,
+        exp_iter_stops=None,
+        n_terminate=None,
+    ):
         engine = Engine(lambda e, b: 1)
         events = [
             Events.STARTED,
@@ -585,6 +622,8 @@ class TestEngine:
             Events.GET_BATCH_STARTED,
             Events.GET_BATCH_COMPLETED,
             Events.DATALOADER_STOP_ITERATION,
+            Events.TERMINATE,
+            Events.TERMINATE_SINGLE_EPOCH,
         ]
 
         handlers = {e: MagicMock() for e in events}
@@ -592,18 +631,46 @@ class TestEngine:
         for e, handler in handlers.items():
             engine.add_event_handler(e, handler)
 
-        engine.run(data, max_epochs=max_epochs, epoch_length=epoch_length)
+        engine.run(data, max_epochs=max_epochs, max_iters=max_iters, epoch_length=epoch_length)
+
+        if epoch_length is None:
+            epoch_length = engine.state.epoch_length
+
+        assert epoch_length is not None
+
+        if n_iter_started is None:
+            n_iter_started = max_epochs * epoch_length if max_epochs is not None else max_iters
+
+        if n_iter_completed is None:
+            n_iter_completed = max_epochs * epoch_length if max_epochs is not None else max_iters
+
+        if n_batch_started is None:
+            if data is None:
+                n_batch_started = 0
+            else:
+                n_batch_started = max_epochs * epoch_length if max_epochs is not None else max_iters
+
+        if n_batch_completed is None:
+            if data is None:
+                n_batch_completed = 0
+            else:
+                n_batch_completed = max_epochs * epoch_length if max_epochs is not None else max_iters
+
+        if n_terminate is None:
+            n_terminate = int(n_epoch_started != n_epoch_completed) if max_iters is not None else 0
 
         expected_num_calls = {
             Events.STARTED: 1,
             Events.COMPLETED: 1,
-            Events.EPOCH_STARTED: max_epochs,
-            Events.EPOCH_COMPLETED: max_epochs,
-            Events.ITERATION_STARTED: max_epochs * epoch_length,
-            Events.ITERATION_COMPLETED: max_epochs * epoch_length,
-            Events.GET_BATCH_STARTED: max_epochs * epoch_length if data is not None else 0,
-            Events.GET_BATCH_COMPLETED: max_epochs * epoch_length if data is not None else 0,
+            Events.EPOCH_STARTED: n_epoch_started if n_epoch_started is not None else max_epochs,
+            Events.EPOCH_COMPLETED: n_epoch_completed if n_epoch_completed is not None else max_epochs,
+            Events.ITERATION_STARTED: n_iter_started,
+            Events.ITERATION_COMPLETED: n_iter_completed,
+            Events.GET_BATCH_STARTED: n_batch_started,
+            Events.GET_BATCH_COMPLETED: n_batch_completed,
             Events.DATALOADER_STOP_ITERATION: (max_epochs - 1) if exp_iter_stops is None else exp_iter_stops,
+            Events.TERMINATE: n_terminate,
+            Events.TERMINATE_SINGLE_EPOCH: 0,
         }
 
         for n, handler in handlers.items():
@@ -619,6 +686,13 @@ class TestEngine:
         )
         self._test_check_triggered_events(None, max_epochs=5, epoch_length=150, exp_iter_stops=0)
 
+        kwargs = dict(exp_iter_stops=4, n_epoch_started=5, n_epoch_completed=5)
+        self._test_check_triggered_events(list(range(20)), max_iters=100, epoch_length=20, **kwargs)
+        kwargs = dict(exp_iter_stops=2, n_epoch_started=5, n_epoch_completed=5)
+        self._test_check_triggered_events(list(range(20)), max_iters=50, epoch_length=10, **kwargs)
+        kwargs = dict(exp_iter_stops=2, n_epoch_started=3, n_epoch_completed=2)
+        self._test_check_triggered_events(list(range(20)), max_iters=55, epoch_length=25, **kwargs)
+
     def test_run_check_triggered_events_list(self):
         self._test_run_check_triggered_events()
 
@@ -632,27 +706,88 @@ class TestEngine:
         self._test_check_triggered_events(infinite_data_iterator(), max_epochs=5, epoch_length=50, exp_iter_stops=0)
         self._test_check_triggered_events(infinite_data_iterator(), max_epochs=5, epoch_length=150, exp_iter_stops=0)
 
-        def limited_data_iterator():
-            for i in range(100):
+        kwargs = dict(exp_iter_stops=0, n_epoch_started=5, n_epoch_completed=5)
+        self._test_check_triggered_events(infinite_data_iterator(), max_iters=100, epoch_length=20, **kwargs)
+        kwargs = dict(exp_iter_stops=0, n_epoch_started=1, n_epoch_completed=0)
+        self._test_check_triggered_events(infinite_data_iterator(), max_iters=10, epoch_length=20, **kwargs)
+        kwargs = dict(exp_iter_stops=0, n_epoch_started=2, n_epoch_completed=1)
+        self._test_check_triggered_events(infinite_data_iterator(), max_iters=30, epoch_length=20, **kwargs)
+
+        def limited_data_iterator(length=100):
+            for i in range(length):
                 yield i
 
         self._test_check_triggered_events(limited_data_iterator(), max_epochs=1, epoch_length=100, exp_iter_stops=0)
         self._test_check_triggered_events(limited_data_iterator(), max_epochs=10, epoch_length=10, exp_iter_stops=0)
 
-        # These tests should fail
-        with pytest.raises(AssertionError):
-            with pytest.warns(UserWarning, match=r"Data iterator can not provide data anymore"):
-                self._test_check_triggered_events(limited_data_iterator(), max_epochs=3, epoch_length=100)
+        kwargs = dict(exp_iter_stops=0, n_epoch_started=1, n_epoch_completed=1)
+        self._test_check_triggered_events(limited_data_iterator(), max_iters=20, epoch_length=20, **kwargs)
+        kwargs = dict(exp_iter_stops=0, n_epoch_started=2, n_epoch_completed=1)
+        self._test_check_triggered_events(limited_data_iterator(), max_iters=19, epoch_length=10, **kwargs)
 
-        with pytest.raises(AssertionError):
-            with pytest.warns(UserWarning, match=r"Data iterator can not provide data anymore"):
-                self._test_check_triggered_events(limited_data_iterator(), max_epochs=3, epoch_length=75)
+        with pytest.warns(UserWarning, match=r"Data iterator can not provide data anymore"):
+            kwargs = dict(
+                exp_iter_stops=1,
+                n_epoch_started=2,
+                n_epoch_completed=1,
+                n_iter_started=20,
+                n_iter_completed=20,
+                n_batch_started=21,
+                n_batch_completed=20,
+                n_terminate=1,
+            )
+            self._test_check_triggered_events(limited_data_iterator(length=20), max_epochs=3, epoch_length=20, **kwargs)
 
-        with pytest.raises(AssertionError):
-            # Below test does not raise "Data iterator can not provide data anymore" warning as the last
-            # epoch is equal max_epochs
-            # with pytest.warns(UserWarning, match=r"Data iterator can not provide data anymore"):
-            self._test_check_triggered_events(limited_data_iterator(), max_epochs=1, epoch_length=101)
+        with pytest.warns(UserWarning, match=r"Data iterator can not provide data anymore"):
+            kwargs = dict(
+                exp_iter_stops=1,
+                n_epoch_started=2,
+                n_epoch_completed=1,
+                n_iter_started=20,
+                n_iter_completed=20,
+                n_batch_started=22,  # 22 and not 21. GET_BATCH_STARTED is called once more to epoch_length
+                n_batch_completed=20,
+                n_terminate=1,
+            )
+            self._test_check_triggered_events(limited_data_iterator(), max_epochs=3, **kwargs)
+
+        with pytest.warns(UserWarning, match=r"Data iterator can not provide data anymore"):
+            kwargs = dict(
+                exp_iter_stops=1,
+                n_epoch_started=2,
+                n_epoch_completed=1,
+                n_iter_started=20,
+                n_iter_completed=20,
+                n_batch_started=21,
+                n_batch_completed=20,
+                n_terminate=1,
+            )
+            self._test_check_triggered_events(limited_data_iterator(), max_epochs=3, epoch_length=15, **kwargs)
+
+        kwargs = dict(
+            exp_iter_stops=1,
+            n_epoch_started=1,
+            n_epoch_completed=0,
+            n_iter_started=20,
+            n_iter_completed=20,
+            n_batch_started=21,
+            n_batch_completed=20,
+            n_terminate=1,
+        )
+        self._test_check_triggered_events(limited_data_iterator(), max_epochs=1, epoch_length=21, **kwargs)
+
+        with pytest.warns(UserWarning, match=r"Data iterator can not provide data anymore"):
+            kwargs = dict(
+                exp_iter_stops=1,
+                n_epoch_started=2,
+                n_epoch_completed=1,
+                n_iter_started=20,
+                n_iter_completed=20,
+                n_batch_started=21,
+                n_batch_completed=20,
+                n_terminate=1,
+            )
+            self._test_check_triggered_events(limited_data_iterator(), max_iters=21, epoch_length=12, **kwargs)
 
     def test_run_check_triggered_events_on_iterator(self):
         self._test_run_check_triggered_events_on_iterator()
@@ -760,7 +895,14 @@ class TestEngine:
             assert train_batches[epoch_length + i] != train_batches[2 * epoch_length + i]
             assert train_batches[i] == train_only_batches[i]
 
-    def test_engine_with_dataloader_no_auto_batching(self):
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {"max_epochs": None, "epoch_length": 10, "max_iters": 25},
+            {"max_epochs": 5, "epoch_length": 10, "max_iters": None},
+        ],
+    )
+    def test_engine_with_dataloader_no_auto_batching(self, kwargs):
         # tests https://github.com/pytorch/ignite/issues/941
         from torch.utils.data import BatchSampler, DataLoader, RandomSampler
 
@@ -775,9 +917,12 @@ class TestEngine:
             counter[0] += 1
 
         engine = Engine(foo)
-        engine.run(data_loader, epoch_length=10, max_epochs=5)
+        engine.run(data_loader, **kwargs)
 
-        assert counter[0] == 50
+        if kwargs["max_epochs"]:
+            assert counter[0] == kwargs["epoch_length"] * kwargs["max_epochs"]
+        else:
+            assert counter[0] == kwargs["max_iters"]
 
     def test_run_once_finite_iterator_no_epoch_length(self):
         # FR: https://github.com/pytorch/ignite/issues/871
@@ -788,19 +933,41 @@ class TestEngine:
             for i in range(unknown_size):
                 yield i
 
-        bc = BatchChecker(data=list(range(unknown_size)))
+        def _test(**kwargs):
+            bc = BatchChecker(data=list(range(unknown_size)))
 
-        engine = Engine(lambda e, b: bc.check(b))
+            engine = Engine(lambda e, b: bc.check(b))
 
-        completed_handler = MagicMock()
-        engine.add_event_handler(Events.COMPLETED, completed_handler)
+            epoch_completed_handler = MagicMock()
+            engine.add_event_handler(Events.EPOCH_COMPLETED, epoch_completed_handler)
 
-        data_iter = finite_unk_size_data_iter()
-        engine.run(data_iter)
+            completed_handler = MagicMock()
+            engine.add_event_handler(Events.COMPLETED, completed_handler)
 
-        assert engine.state.epoch == 1
-        assert engine.state.iteration == unknown_size
-        assert completed_handler.call_count == 1
+            data_iter = finite_unk_size_data_iter()
+            engine.run(data_iter, **kwargs)
+
+            assert bc.counter == engine.state.iteration
+            if len(kwargs) == 0:
+                assert engine.state.epoch == 1
+                assert engine.state.iteration == unknown_size
+                assert epoch_completed_handler.call_count == 1
+            else:
+                max_iters = kwargs["max_iters"]
+                if max_iters <= unknown_size:
+                    assert engine.state.epoch == 1
+                    assert engine.state.iteration == max_iters
+                else:
+                    assert engine.state.epoch == 2
+                    assert engine.state.iteration == unknown_size
+
+            assert completed_handler.call_count == 1
+
+        _test()
+        _test(max_iters=unknown_size)
+        _test(max_iters=unknown_size // 2)
+        with pytest.warns(UserWarning, match=r"Data iterator can not provide data anymore"):
+            _test(max_iters=unknown_size * 2)
 
     def test_run_finite_iterator_no_epoch_length(self):
         # FR: https://github.com/pytorch/ignite/issues/871
@@ -832,153 +999,181 @@ class TestEngine:
             for i in range(size):
                 yield i
 
-        bc = BatchChecker(data=list(range(known_size)))
+        def _test(**kwargs):
+            bc = BatchChecker(data=list(range(known_size)))
 
-        engine = Engine(lambda e, b: bc.check(b))
+            engine = Engine(lambda e, b: bc.check(b))
 
-        @engine.on(Events.ITERATION_COMPLETED(every=known_size))
-        def restart_iter():
-            engine.state.dataloader = finite_size_data_iter(known_size)
+            @engine.on(Events.ITERATION_COMPLETED(every=known_size))
+            def restart_iter():
+                engine.state.dataloader = finite_size_data_iter(known_size)
 
-        data_iter = finite_size_data_iter(known_size)
-        engine.run(data_iter, max_epochs=5)
+            data_iter = finite_size_data_iter(known_size)
+            engine.run(data_iter, **kwargs)
 
-        assert engine.state.epoch == 5
-        assert engine.state.iteration == known_size * 5
+            assert bc.counter == engine.state.iteration
+            if "max_epochs" in kwargs:
+                assert engine.state.epoch == kwargs["max_epochs"]
+                assert engine.state.iteration == known_size * kwargs["max_epochs"]
+            else:
+                max_iters = kwargs["max_iters"]
+                if max_iters <= known_size:
+                    assert engine.state.epoch == math.ceil(max_iters / known_size)
+                    assert engine.state.iteration == max_iters
+
+        _test(max_epochs=5)
+        _test(max_iters=known_size)
+        _test(max_iters=known_size // 2)
 
     def test_faq_inf_iterator_with_epoch_length(self):
-        # Code snippet from FAQ
-        # import torch
+        def _test(max_epochs, max_iters):
+            # Code snippet from FAQ
+            # import torch
 
-        torch.manual_seed(12)
+            torch.manual_seed(12)
 
-        def infinite_iterator(batch_size):
-            while True:
-                batch = torch.rand(batch_size, 3, 32, 32)
-                yield batch
+            def infinite_iterator(batch_size):
+                while True:
+                    batch = torch.rand(batch_size, 3, 32, 32)
+                    yield batch
 
-        def train_step(trainer, batch):
-            # ...
-            s = trainer.state
-            print(f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch.norm():.3f}")
+            def train_step(trainer, batch):
+                # ...
+                s = trainer.state
+                print(f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch.norm():.3f}")
 
-        trainer = Engine(train_step)
-        # We need to specify epoch_length to define the epoch
-        trainer.run(infinite_iterator(4), epoch_length=5, max_epochs=3)
+            trainer = Engine(train_step)
+            # We need to specify epoch_length to define the epoch
+            trainer.run(infinite_iterator(4), epoch_length=5, max_epochs=max_epochs, max_iters=max_iters)
 
-        assert trainer.state.epoch == 3
-        assert trainer.state.iteration == 3 * 5
+            assert trainer.state.epoch == 3
+            assert trainer.state.iteration == 3 * 5
+
+        _test(max_epochs=3, max_iters=None)
+        _test(max_epochs=None, max_iters=3 * 5)
 
     def test_faq_inf_iterator_no_epoch_length(self):
-        # Code snippet from FAQ
-        # import torch
+        def _test(max_epochs, max_iters):
+            # Code snippet from FAQ
+            # import torch
 
-        torch.manual_seed(12)
+            torch.manual_seed(12)
 
-        def infinite_iterator(batch_size):
-            while True:
-                batch = torch.rand(batch_size, 3, 32, 32)
-                yield batch
+            def infinite_iterator(batch_size):
+                while True:
+                    batch = torch.rand(batch_size, 3, 32, 32)
+                    yield batch
 
-        def train_step(trainer, batch):
-            # ...
-            s = trainer.state
-            print(f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch.norm():.3f}")
+            def train_step(trainer, batch):
+                # ...
+                s = trainer.state
+                print(f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch.norm():.3f}")
 
-        trainer = Engine(train_step)
+            trainer = Engine(train_step)
 
-        @trainer.on(Events.ITERATION_COMPLETED(once=15))
-        def stop_training():
-            trainer.terminate()
+            @trainer.on(Events.ITERATION_COMPLETED(once=15))
+            def stop_training():
+                trainer.terminate()
 
-        trainer.run(infinite_iterator(4))
+            trainer.run(infinite_iterator(4), max_epochs=max_epochs, max_iters=max_iters)
 
-        assert trainer.state.epoch == 1
-        assert trainer.state.iteration == 15
+            assert trainer.state.epoch == 1
+            assert trainer.state.iteration == 15
+
+        _test(max_epochs=None, max_iters=None)
+        _test(max_epochs=None, max_iters=100)
 
     def test_faq_fin_iterator_unknw_size(self):
-        # Code snippet from FAQ
-        # import torch
+        def _test(max_epochs, max_iters):
+            # Code snippet from FAQ
+            # import torch
+            torch.manual_seed(12)
 
-        torch.manual_seed(12)
+            def finite_unk_size_data_iter():
+                for i in range(11):
+                    yield i
 
-        def finite_unk_size_data_iter():
-            for i in range(11):
-                yield i
+            def train_step(trainer, batch):
+                # ...
+                s = trainer.state
+                print(f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch:.3f}")
 
-        def train_step(trainer, batch):
-            # ...
-            s = trainer.state
-            print(f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch:.3f}")
+            trainer = Engine(train_step)
 
-        trainer = Engine(train_step)
+            @trainer.on(Events.DATALOADER_STOP_ITERATION)
+            def restart_iter():
+                trainer.state.dataloader = finite_unk_size_data_iter()
 
-        @trainer.on(Events.DATALOADER_STOP_ITERATION)
-        def restart_iter():
-            trainer.state.dataloader = finite_unk_size_data_iter()
+            data_iter = finite_unk_size_data_iter()
+            trainer.run(data_iter, max_epochs=max_epochs, max_iters=max_iters)
 
-        data_iter = finite_unk_size_data_iter()
-        trainer.run(data_iter, max_epochs=5)
+            assert trainer.state.epoch == 5 if max_iters is None else math.ceil(max_iters // 11)
+            assert trainer.state.iteration == 5 * 11 if max_iters is None else max_iters
 
-        assert trainer.state.epoch == 5
-        assert trainer.state.iteration == 5 * 11
+        _test(max_epochs=5, max_iters=None)
+        _test(max_epochs=None, max_iters=60)
 
-        # Code snippet from FAQ
-        # import torch
+        # # # # #
 
-        torch.manual_seed(12)
+        def _test(max_epochs, max_iters):
+            # import torch
+            torch.manual_seed(12)
 
-        def finite_unk_size_data_iter():
-            for i in range(11):
-                yield i
+            def finite_unk_size_data_iter():
+                for i in range(11):
+                    yield i
 
-        def val_step(evaluator, batch):
-            # ...
-            s = evaluator.state
-            print(f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch:.3f}")
+            def val_step(evaluator, batch):
+                # ...
+                s = evaluator.state
+                print(f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch:.3f}")
 
-        evaluator = Engine(val_step)
+            evaluator = Engine(val_step)
 
-        data_iter = finite_unk_size_data_iter()
-        evaluator.run(data_iter)
+            data_iter = finite_unk_size_data_iter()
+            evaluator.run(data_iter, max_epochs=max_epochs, max_iters=max_iters)
 
-        assert evaluator.state.epoch == 1
-        assert evaluator.state.iteration == 1 * 11
+            assert evaluator.state.epoch == 1
+            assert evaluator.state.iteration == 1 * 11
+
+        _test(max_epochs=None, max_iters=None)
 
     def test_faq_fin_iterator(self):
-        # Code snippet from FAQ
+        def _test(max_epochs, max_iters):
+            # Code snippet from FAQ
+
+            # import torch
+            torch.manual_seed(12)
+            size = 11
+
+            def finite_size_data_iter(size):
+                for i in range(size):
+                    yield i
+
+            def train_step(trainer, batch):
+                # ...
+                s = trainer.state
+                print(f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch:.3f}")
+
+            trainer = Engine(train_step)
+
+            @trainer.on(Events.ITERATION_COMPLETED(every=size))
+            def restart_iter():
+                trainer.state.dataloader = finite_size_data_iter(size)
+
+            data_iter = finite_size_data_iter(size)
+            trainer.run(data_iter, max_epochs=max_epochs, max_iters=max_iters)
+
+            assert trainer.state.epoch == 5
+            assert trainer.state.iteration == 5 * size
+
+        _test(max_epochs=5, max_iters=None)
+        _test(max_epochs=None, max_iters=5 * 11)
+
+        # # # # #
+
         # import torch
-
         torch.manual_seed(12)
-
-        size = 11
-
-        def finite_size_data_iter(size):
-            for i in range(size):
-                yield i
-
-        def train_step(trainer, batch):
-            # ...
-            s = trainer.state
-            print(f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch:.3f}")
-
-        trainer = Engine(train_step)
-
-        @trainer.on(Events.ITERATION_COMPLETED(every=size))
-        def restart_iter():
-            trainer.state.dataloader = finite_size_data_iter(size)
-
-        data_iter = finite_size_data_iter(size)
-        trainer.run(data_iter, max_epochs=5)
-
-        assert trainer.state.epoch == 5
-        assert trainer.state.iteration == 5 * size
-
-        # Code snippet from FAQ
-        # import torch
-
-        torch.manual_seed(12)
-
         size = 11
 
         def finite_size_data_iter(size):
@@ -1226,6 +1421,82 @@ class TestEngine:
         engine.run(data, max_epochs=10, epoch_length=epoch_length)
         assert engine.state.epoch == 10
         assert engine.state.iteration == 10 * real_epoch_length
+
+    def test_restart_training(self):
+        data = range(10)
+        engine = Engine(lambda e, b: 1)
+        state = engine.run(data, max_epochs=5)
+        with pytest.raises(
+            ValueError,
+            match=r"Argument max_epochs should be greater than or equal to the start epoch"
+            " defined in the state: 2 vs 5. "
+            r"Please, .+ "
+            r"before calling engine.run\(\) in order to restart the training from the beginning.",
+        ):
+            engine.run(data, max_epochs=2)
+        state.max_epochs = None
+        engine.run(data, max_epochs=2)
+
+    def test_engine_multiple_runs(self):
+        engine = Engine(lambda e, b: 1)
+        engine.debug()
+
+        init_epoch = 0
+        init_iter = 0
+        epoch_length = None
+
+        @engine.on(Events.STARTED)
+        def assert_resume():
+            assert engine.state.epoch == init_epoch
+            assert engine.state.iteration == init_iter
+            assert engine.state.epoch_length == epoch_length
+
+        data = range(10)
+        epoch_length = len(data)
+        engine.run(data, max_epochs=2)
+        assert engine.state.epoch == 2
+        assert engine.state.iteration == 2 * epoch_length
+
+        engine.debug(False)
+
+        # Continue run with max_epochs
+        data = range(15)
+        init_epoch = 2
+        init_iter = 2 * epoch_length
+        engine.run(data, max_epochs=5)
+
+        assert engine.state.epoch == 5
+        assert engine.state.iteration == 5 * epoch_length
+
+        # Continue run with max_iters
+        data = range(15)
+        init_epoch = 5
+        init_iter = 5 * epoch_length
+        with pytest.raises(ValueError, match=r"State attributes max_iters and max_epochs are mutually exclusive"):
+            engine.run(data, max_iters=6 * epoch_length)
+
+        engine.state.max_epochs = None
+        engine.run(data, max_iters=6 * epoch_length)
+
+        assert engine.state.epoch == 6
+        assert engine.state.iteration == 6 * epoch_length
+
+    def test_engine_multiple_runs_2(self):
+
+        e = Engine(lambda _, b: None)
+        data = iter(range(100))
+
+        e.run(data, max_iters=50)
+        assert e.state.iteration == 50
+        assert e.state.epoch == 1
+        e.run(data, max_iters=52)
+        assert e.state.iteration == 52
+        # should be 1 and if 2 this is a bug : https://github.com/pytorch/ignite/issues/1386
+        assert e.state.epoch == 2
+        e.run(data, max_iters=100)
+        assert e.state.iteration == 100
+        # should be 1 and if 3 this is a bug : https://github.com/pytorch/ignite/issues/1386
+        assert e.state.epoch == 3
 
 
 @pytest.mark.parametrize(
