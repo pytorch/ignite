@@ -658,7 +658,7 @@ def test_skip_unrolling():
             self.true_output = true_output
 
         def update(self, output):
-            assert torch.all(output == self.true_output)
+            assert output == self.true_output
 
     a_pred = torch.randint(0, 2, size=(8, 1))
     b_pred = torch.randint(0, 2, size=(8, 1))
