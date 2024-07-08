@@ -14,11 +14,14 @@ class _BaseClassification(Metric):
         output_transform: Callable = lambda x: x,
         is_multilabel: bool = False,
         device: Union[str, torch.device] = torch.device("cpu"),
+        skip_unrolling: bool = False,
     ):
         self._is_multilabel = is_multilabel
         self._type: Optional[str] = None
         self._num_classes: Optional[int] = None
-        super(_BaseClassification, self).__init__(output_transform=output_transform, device=device)
+        super(_BaseClassification, self).__init__(
+            output_transform=output_transform, device=device, skip_unrolling=skip_unrolling
+        )
 
     def reset(self) -> None:
         self._type = None
@@ -114,6 +117,9 @@ class Accuracy(_BaseClassification):
         device: specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
+        skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
+            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            Alternatively, ``output_transform`` can be used to handle this.
 
     Examples:
 
@@ -206,6 +212,9 @@ class Accuracy(_BaseClassification):
         .. testoutput:: 4
 
             0.6666...
+
+    .. versionchanged:: 0.5.1
+        ``skip_unrolling`` argument is added.
     """
 
     _state_dict_all_req_keys = ("_num_correct", "_num_examples")
@@ -215,8 +224,11 @@ class Accuracy(_BaseClassification):
         output_transform: Callable = lambda x: x,
         is_multilabel: bool = False,
         device: Union[str, torch.device] = torch.device("cpu"),
+        skip_unrolling: bool = False,
     ):
-        super(Accuracy, self).__init__(output_transform=output_transform, is_multilabel=is_multilabel, device=device)
+        super(Accuracy, self).__init__(
+            output_transform=output_transform, is_multilabel=is_multilabel, device=device, skip_unrolling=skip_unrolling
+        )
 
     @reinit__is_reduced
     def reset(self) -> None:

@@ -1,4 +1,6 @@
 import os
+from typing import Callable, Union
+from unittest.mock import MagicMock
 
 import pytest
 import torch
@@ -6,7 +8,7 @@ from packaging.version import Version
 from sklearn.metrics import accuracy_score
 
 import ignite.distributed as idist
-from ignite.engine import Engine
+from ignite.engine import Engine, State
 from ignite.exceptions import NotComputableError
 from ignite.metrics import Accuracy
 
@@ -638,3 +640,34 @@ def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
     _test_distrib_integration_multilabel(device)
     _test_distrib_accumulator_device(device)
     _test_distrib_integration_list_of_tensors_or_numbers(device)
+
+
+def test_skip_unrolling():
+    class DummyAcc(Accuracy):
+        def __init__(
+            self,
+            true_output,
+            output_transform: Callable = lambda x: x,
+            is_multilabel: bool = False,
+            device: Union[str, torch.device] = torch.device("cpu"),
+            skip_unrolling: bool = False,
+        ):
+            super(DummyAcc, self).__init__(
+                output_transform=output_transform, is_multilabel=False, device=device, skip_unrolling=skip_unrolling
+            )
+            self.true_output = true_output
+
+        def update(self, output):
+            assert torch.all(output == self.true_output)
+
+    a_pred = torch.randint(0, 2, size=(8, 1))
+    b_pred = torch.randint(0, 2, size=(8, 1))
+    y_pred = [a_pred, b_pred]
+    a_true = torch.randint(0, 2, size=(8, 1))
+    b_true = torch.randint(0, 2, size=(8, 1))
+    y_true = [a_true, b_true]
+
+    acc = DummyAcc(true_output=(y_pred, y_true), skip_unrolling=True)
+    state = State(output=(y_pred, y_true))
+    engine = MagicMock(state=state)
+    acc.iteration_completed(engine)
