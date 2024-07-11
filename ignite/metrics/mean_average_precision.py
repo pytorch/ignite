@@ -8,7 +8,7 @@ import ignite.distributed as idist
 from ignite.distributed.utils import all_gather_tensors_with_shapes
 from ignite.metrics.metric import reinit__is_reduced
 from ignite.metrics.precision import _BaseClassification
-from ignite.metrics import Metric
+from ignite.metrics.metric import Metric
 from ignite.utils import to_onehot
 
 
@@ -119,10 +119,15 @@ class _BaseAveragePrecision:
         return torch.sum(recall_differential * precision, dim=-1)
 
 
-def _cat_and_agg_tensors(tensors: List[torch.Tensor], tensor_shape: Tuple[int], num_preds: List[int], dtype: torch.dtype, device: Union[str, torch.device]) -> torch.Tensor:
-    tensor = torch.cat(tensors, dim=-1) if tensors else torch.empty((*tensor_shape, 0), dtype=dtype, device=device)
+def _cat_and_agg_tensors(tensors: List[torch.Tensor], tensor_shape_except_last_dim: Tuple[int], dtype: torch.dtype, device: Union[str, torch.device]) -> torch.Tensor:
+    num_preds = torch.tensor(
+        [sum([tensor.shape[-1] for tensor in tensors]) if tensors else 0],
+        device=device,
+    )
+    num_preds = cast(torch.Tensor, idist.all_gather(num_preds)).tolist()
+    tensor = torch.cat(tensors, dim=-1) if tensors else torch.empty((*tensor_shape_except_last_dim, 0), dtype=dtype, device=device)
     shape_across_ranks = [
-        (*tensor_shape, num_pred_in_rank) for num_pred_in_rank in num_preds
+        (*tensor_shape_except_last_dim, num_pred_in_rank) for num_pred_in_rank in num_preds
     ]
     return torch.cat(
         all_gather_tensors_with_shapes(
@@ -351,16 +356,9 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
             raise RuntimeError("Metric could not be computed without any update method call")
         num_classes = self._num_classes
 
-        num_samples = torch.tensor(
-            [sum([p.shape[-1] for p in self._P]) if self._P else 0],
-            device=self._device,
-        )
-        num_samples_across_ranks = cast(torch.Tensor, idist.all_gather(num_samples)).tolist()
-
         P = _cat_and_agg_tensors(
             self._P, 
             (num_classes,) if self._type == "multiabel" else (),
-            num_samples_across_ranks,
             torch.long if self._type == "multiclass" else torch.uint8,
             self._device
         )
@@ -368,7 +366,6 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
         scores = _cat_and_agg_tensors(
             self._scores, 
             (num_classes,) if self._type != "binary" else (),
-            num_samples_across_ranks,
             torch.double,
             self._device
         )

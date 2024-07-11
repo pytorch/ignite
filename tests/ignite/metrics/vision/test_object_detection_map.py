@@ -17,7 +17,7 @@ from torch.distributions.geometric import Geometric
 
 import ignite.distributed as idist
 from ignite.engine import Engine
-from ignite.metrics import ObjectDetectionMAP
+from ignite.metrics import ObjectDetectionAvgPrecisionRecall
 from ignite.metrics.vision.object_detection_average_precision_recall import tensor_list_to_dict_list
 from ignite.utils import manual_seed
 
@@ -533,14 +533,14 @@ def create_coco_api(
 
 def pycoco_mAP(predictions: List[Dict[str, torch.Tensor]], targets: List[Dict[str, torch.Tensor]]) -> np.array:
     """
-    Returned values are AP@.5...95, AP@.5, AP@.75, AP-S, AP-M, AP-L
+    Returned values are AP@.5...95, AP@.5, AP@.75, AP-S, AP-M, AP-L, AR-1, AR-10, AR-100, AR-S, AR-M, AR-L
     """
     coco_dt, coco_gt = create_coco_api(predictions, targets)
     eval = COCOeval(coco_gt, coco_dt, iouType="bbox")
     eval.evaluate()
     eval.accumulate()
     eval.summarize()
-    return eval.stats[:6]
+    return eval.stats
 
 
 Sample = namedtuple("Sample", ["data", "mAP", "length"])
@@ -623,7 +623,7 @@ def sample(request) -> Sample:
 
 
 def test_wrong_input():
-    m = ObjectDetectionMAP()
+    m = ObjectDetectionAvgPrecisionRecall()
 
     with pytest.raises(ValueError, match="y_pred and y should have the same number of samples"):
         m.update(([{"bbox": None, "scores": None}], []))
@@ -640,15 +640,15 @@ def test_empty_data():
     Note that PyCOCO returns -1 when threre's no ground truth data.
     """
 
-    metric = ObjectDetectionMAP()
+    metric = ObjectDetectionAvgPrecisionRecall()
     metric.update(
         (
             [{"bbox": torch.zeros((0, 4)), "scores": torch.zeros((0,)), "labels": torch.zeros((0))}],
             [{"bbox": torch.zeros((0, 4)), "iscrowd": torch.zeros((0,)), "labels": torch.zeros((0))}],
         )
     )
-    assert len(metric._tp) == 0
-    assert len(metric._fp) == 0
+    assert len(metric._tps) == 0
+    assert len(metric._fps) == 0
     assert len(metric._P) == 0
     assert metric._num_classes == 0
     assert metric.compute() == 0
@@ -666,7 +666,7 @@ def test_empty_data():
     )
     assert metric.compute() == -1
 
-    metric = ObjectDetectionMAP()
+    metric = ObjectDetectionAvgPrecisionRecall()
     metric.update(
         (
             [{"bbox": torch.zeros((0, 4)), "scores": torch.zeros((0,)), "labels": torch.zeros((0))}],
@@ -679,13 +679,13 @@ def test_empty_data():
             ],
         )
     )
-    assert len(metric._tp) == 0
-    assert len(metric._fp) == 0
+    assert len(metric._tps) == 0
+    assert len(metric._fps) == 0
     assert len(metric._P) == 1 and metric._P[1] == 1
     assert metric._num_classes == 2
     assert metric.compute() == 0
 
-    metric = ObjectDetectionMAP()
+    metric = ObjectDetectionAvgPrecisionRecall()
     pred = {
         "bbox": torch.tensor([[0.0, 0.0, 100.0, 100.0]]),
         "scores": torch.tensor([0.9]),
@@ -693,8 +693,7 @@ def test_empty_data():
     }
     target = {"bbox": torch.zeros((0, 4)), "iscrowd": torch.zeros((0,)), "labels": torch.zeros((0))}
     metric.update(([pred], [target]))
-    assert (5 in metric._tp) and metric._tp[5][0].shape[1] == 1
-    assert (5 in metric._fp) and metric._fp[5][0].shape[1] == 1
+    assert len(metric._tps) == len(metric._fps) == 1
     assert len(metric._P) == 0
     assert metric._num_classes == 6
     assert metric.compute() == pycoco_mAP([pred], [target])[0]
@@ -703,11 +702,11 @@ def test_empty_data():
 def test_no_torchvision():
     with patch.dict(sys.modules, {"torchvision.ops.boxes": None}):
         with pytest.raises(ModuleNotFoundError, match=r"This metric requires torchvision to be installed."):
-            ObjectDetectionMAP()
+            ObjectDetectionAvgPrecisionRecall()
 
 
 def test_iou(sample):
-    m = ObjectDetectionMAP()
+    m = ObjectDetectionAvgPrecisionRecall()
     from pycocotools.mask import iou as pycoco_iou
 
     for pred, tgt in zip(*sample.data):
@@ -728,7 +727,7 @@ def test_iou(sample):
 
 
 def test_iou_thresholding():
-    metric = ObjectDetectionMAP(iou_thresholds=[0.0, 0.3, 0.5, 0.75])
+    metric = ObjectDetectionAvgPrecisionRecall(iou_thresholds=[0.0, 0.3, 0.5, 0.75])
 
     pred = {
         "bbox": torch.tensor([[0.0, 0.0, 100.0, 100.0]]),
@@ -750,7 +749,7 @@ def test_iou_thresholding():
 
 
 def test__do_matching_output(sample):
-    metric = ObjectDetectionMAP()
+    metric = ObjectDetectionAvgPrecisionRecall()
 
     for pred, target in zip(*sample.data):
         tps, fps, _, scores = metric._do_matching(pred, target)
@@ -776,7 +775,7 @@ def test__do_matching_output(sample):
                 assert metric_tp_or_fp[cls][-1].shape[:-1] == new_tp_or_fp[cls].shape[:-1]
 
 
-class Dummy_mAP(ObjectDetectionMAP):
+class Dummy_mAP(ObjectDetectionAvgPrecisionRecall):
     def _do_matching(self, tup1: Tuple, tup2: Tuple):
         tp, fp = tup1
         p, score = tup2
@@ -819,7 +818,7 @@ def test_matching():
             matched with a prediction in the sense that even if the crowd ground truth
             has a higher IOU, the non-crowd one gets matched if its IOU is viable.
     """
-    metric = ObjectDetectionMAP(iou_thresholds=[0.2])
+    metric = ObjectDetectionAvgPrecisionRecall(iou_thresholds=[0.2])
 
     pred = {
         "bbox": torch.tensor([[0.0, 0.0, 100.0, 100.0], [0.0, 0.0, 100.0, 100.0]]),
@@ -891,7 +890,7 @@ def test__compute_recall_and_precision():
     # The case in which detector detects all gt objects but also produces some wrong predictions.
     scores = torch.rand((50,))
     y_true = torch.randint(0, 2, (50,))
-    m = ObjectDetectionMAP()
+    m = ObjectDetectionAvgPrecisionRecall()
 
     ignite_recall, ignite_precision = m._compute_recall_and_precision(
         y_true.bool(), ~(y_true.bool()), scores, y_true.sum()
@@ -925,12 +924,12 @@ def test__compute_recall_and_precision():
 
 def test_compute(sample):
     device = idist.device()
-    metric_50_95 = ObjectDetectionMAP(device=device)
-    metric_50 = ObjectDetectionMAP(iou_thresholds=[0.5], device=device)
-    metric_75 = ObjectDetectionMAP(iou_thresholds=[0.75], device=device)
-    metric_S = ObjectDetectionMAP(device=device, area_range="small")
-    metric_M = ObjectDetectionMAP(device=device, area_range="medium")
-    metric_L = ObjectDetectionMAP(device=device, area_range="large")
+    metric_50_95 = ObjectDetectionAvgPrecisionRecall(device=device)
+    metric_50 = ObjectDetectionAvgPrecisionRecall(iou_thresholds=[0.5], device=device)
+    metric_75 = ObjectDetectionAvgPrecisionRecall(iou_thresholds=[0.75], device=device)
+    metric_S = ObjectDetectionAvgPrecisionRecall(device=device, area_range="small")
+    metric_M = ObjectDetectionAvgPrecisionRecall(device=device, area_range="medium")
+    metric_L = ObjectDetectionAvgPrecisionRecall(device=device, area_range="large")
 
     metrics = [metric_50_95, metric_50, metric_75, metric_S, metric_M, metric_L]
 
@@ -956,7 +955,7 @@ def test_integration(sample):
 
     device = idist.device()
     metric_device = "cpu" if device.type == "xla" else device
-    metric_50_95 = ObjectDetectionMAP(device=metric_device)
+    metric_50_95 = ObjectDetectionAvgPrecisionRecall(device=metric_device)
     metric_50_95.attach(engine, name="mAP[50-95]")
 
     n_iter = ceil(sample.length / bs)
@@ -1017,12 +1016,12 @@ def test_distrib_update_compute(distributed, sample):
 
     device = idist.device()
     metric_device = "cpu" if device.type == "xla" else device
-    metric_50_95 = ObjectDetectionMAP(device=metric_device)
-    metric_50 = ObjectDetectionMAP(iou_thresholds=[0.5], device=metric_device)
-    metric_75 = ObjectDetectionMAP(iou_thresholds=[0.75], device=metric_device)
-    metric_S = ObjectDetectionMAP(device=metric_device, area_range="small")
-    metric_M = ObjectDetectionMAP(device=metric_device, area_range="medium")
-    metric_L = ObjectDetectionMAP(device=metric_device, area_range="large")
+    metric_50_95 = ObjectDetectionAvgPrecisionRecall(device=metric_device)
+    metric_50 = ObjectDetectionAvgPrecisionRecall(iou_thresholds=[0.5], device=metric_device)
+    metric_75 = ObjectDetectionAvgPrecisionRecall(iou_thresholds=[0.75], device=metric_device)
+    metric_S = ObjectDetectionAvgPrecisionRecall(device=metric_device, area_range="small")
+    metric_M = ObjectDetectionAvgPrecisionRecall(device=metric_device, area_range="medium")
+    metric_L = ObjectDetectionAvgPrecisionRecall(device=metric_device, area_range="large")
 
     metrics = [metric_50_95, metric_50, metric_75, metric_S, metric_M, metric_L]
 

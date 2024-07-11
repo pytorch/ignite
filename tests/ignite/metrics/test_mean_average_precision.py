@@ -18,17 +18,11 @@ def test_wrong_input():
     with pytest.raises(TypeError, match="rec_thresholds should be a sequence of floats or a tensor"):
         MeanAveragePrecision(rec_thresholds={0, 0.2, 0.4, 0.6, 0.8})
 
-    with pytest.raises(ValueError, match="Wrong `average` parameter"):
-        MeanAveragePrecision(average=1)
-
     with pytest.raises(ValueError, match="Wrong `class_mean` parameter"):
         MeanAveragePrecision(class_mean="samples")
 
     with pytest.raises(ValueError, match="rec_thresholds values should be between 0 and 1"):
         MeanAveragePrecision(rec_thresholds=(0.0, 0.5, 1.0, 1.5))
-
-    with pytest.raises(ValueError, match="class_mean 'with_other_dims' is not compatible with this class"):
-        MeanAveragePrecision(class_mean="with_other_dims")
 
     metric = MeanAveragePrecision()
     with pytest.raises(RuntimeError, match="Metric could not be computed without any update method call"):
