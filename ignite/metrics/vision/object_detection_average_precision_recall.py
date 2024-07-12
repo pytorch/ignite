@@ -1,4 +1,3 @@
-from collections import defaultdict
 from typing import Callable, cast, Dict, List, Optional, Sequence, Tuple, Union, override
 
 import torch
@@ -8,7 +7,6 @@ import ignite.distributed as idist
 from ignite.metrics.mean_average_precision import _BaseAveragePrecision, _cat_and_agg_tensors
 
 from ignite.metrics.metric import Metric, reinit__is_reduced
-from ignite.metrics.recall import _BasePrecisionRecall
 
 
 def tensor_list_to_dict_list(
@@ -48,13 +46,14 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
     _fps: List[torch.Tensor]
     _scores: List[torch.Tensor]
     _pred_labels: List[torch.Tensor]
-    _P: Dict[int, int]
+    _P: torch.Tensor
     _num_classes: int
 
     def __init__(
         self,
         iou_thresholds: Optional[Union[Sequence[float], torch.Tensor]] = None,
         rec_thresholds: Optional[Union[Sequence[float], torch.Tensor]] = None,
+        num_classes: Optional[int] = 91,
         max_detections_per_image: Optional[int] = 100,
         area_range: Optional[Literal["small", "medium", "large", "all"]] = "all",
         output_transform: Callable = lambda x: x,
@@ -102,13 +101,14 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
         if iou_thresholds is None:
             iou_thresholds = torch.linspace(0.5, 0.95, 10, dtype=torch.double)
 
-        self.iou_thresholds = self._setup_thresholds(iou_thresholds, "iou_thresholds")
+        self._iou_thresholds = self._setup_thresholds(iou_thresholds, "iou_thresholds")
 
         if rec_thresholds is None:
             rec_thresholds = torch.linspace(0, 1, 101, device=device, dtype=torch.double)
 
-        self.area_range = area_range
-        self.max_detections_per_image = max_detections_per_image
+        self._num_classes = num_classes
+        self._area_range = area_range
+        self._max_detections_per_image = max_detections_per_image
 
         super(ObjectDetectionAvgPrecisionRecall, self).__init__(
             output_transform=output_transform,
@@ -125,23 +125,22 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
         self._fps = []
         self._scores = []
         self._pred_labels = []
-        self._P = defaultdict(lambda: 0)
-        self._num_classes: int = 0
+        self._P = torch.zeros((self._num_classes,), device=self._device)
 
     def _match_area_range(self, bboxes: torch.Tensor) -> torch.Tensor:
         from torchvision.ops.boxes import box_area
 
         areas = box_area(bboxes)
-        if self.area_range == "all":
+        if self._area_range == "all":
             min_area = 0
             max_area = 1e10
-        elif self.area_range == "small":
+        elif self._area_range == "small":
             min_area = 0
             max_area = 1024
-        elif self.area_range == "medium":
+        elif self._area_range == "medium":
             min_area = 1024
             max_area = 9216
-        elif self.area_range == "large":
+        elif self._area_range == "large":
             min_area = 9216
             max_area = 1e10
         return torch.logical_and(areas >= min_area, areas <= max_area)
@@ -225,92 +224,11 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
         """
         precision_integrand = precision.flip(-1).cummax(dim=-1).values.flip(-1)
         rec_thresholds = cast(torch.Tensor, self.rec_thresholds).repeat((*recall.shape[:-1], 1))
-        rec_thresh_indices = torch.searchsorted(recall, rec_thresholds)
+        rec_thresh_indices = torch.searchsorted(recall, rec_thresholds) if recall.size(-1) != 0 else torch.LongTensor([], device=self._device)
         precision_integrand = precision_integrand.take_along_dim(
             rec_thresh_indices.where(rec_thresh_indices != recall.size(-1), 0), dim=-1
         ).where(rec_thresh_indices != recall.size(-1), 0)
         return torch.sum(precision_integrand, dim=-1) / len(cast(torch.Tensor, self.rec_thresholds))
-
-    def _do_matching(
-        self, pred: Dict[str, torch.Tensor], target: Dict[str, torch.Tensor]
-    ) -> Tuple[Union[torch.Tensor,None], Union[torch.Tensor,None], Dict[int, int], torch.Tensor, torch.Tensor]:
-        r"""
-        Matching logic of object detection mAP, according to COCO reference implementation.
-
-        The method returns a quadrople of dictionaries containing TP, FP, P (actual positive) counts and scores for
-        each class respectively. Please note that class numbers start from zero.
-
-        Values in TP and FP are (m+1)-dimensional tensors of type ``uint8`` and shape
-        (D\ :sub:`1`, D\ :sub:`2`, ..., D\ :sub:`m`, n\ :sub:`cls`) in which D\ :sub:`i`\ 's are possible additional
-        dimensions (excluding the class dimension) mean of the average precision is taken over. n\ :sub:`cls` is the
-        number of predictions for class `cls` which is the same for TP and FP.
-
-        Note:
-            TP and FP values are stored as uint8 tensors internally to avoid bool-to-uint8 copies before collective
-            operations, as PyTorch colective operations `do not <https://github.com/pytorch/pytorch/issues/89197>`_
-            support boolean tensors, at least on Gloo backend.
-
-        P counts contains the number of ground truth samples for each class. Finally, the values in scores are 1-dim
-        tensors of shape (n\ :sub:`cls`,) containing score or confidence of the predictions (doesn't need to be in
-        [0,1]). If there is no prediction or ground truth for a class, it is absent from (TP, FP, scores) and P
-        dictionaries respectively.
-
-        Args:
-            pred: First member of :meth:`update`'s input is given as this argument.
-            target: Second member of :meth:`update`'s input is given as this argument.
-
-        Returns:
-            `(TP, FP, P, scores)` A quadrople of true positives, false positives, number of actual positives and scores.
-        """
-        labels = target["labels"]
-        gt_boxes = target["bbox"]
-        gt_is_crowd = (
-            target["iscrowd"].bool() if "iscrowd" in target else torch.zeros_like(target["labels"], dtype=torch.bool)
-        )
-        gt_ignore = ~self._match_area_range(gt_boxes) | gt_is_crowd
-
-        best_detections_index = torch.argsort(pred["scores"], stable=True, descending=True)[
-            : self.max_detections_per_image
-        ]
-        pred_scores = pred["scores"][best_detections_index]
-        pred_labels = pred["labels"][best_detections_index]
-        pred_boxes = pred["bbox"][best_detections_index]
-        pred_match_area_range = self._match_area_range(pred_boxes)
-
-        categories = list(set(labels.int().tolist() + pred_labels.int().tolist()))
-
-        P: Dict[int, int] = {}
-        for category in categories:
-            category_index_gt = labels == category
-            num_category_gt = category_index_gt.sum()
-            category_gt_ignore = gt_ignore[category_index_gt]
-            if num_category_gt:  # what if P[c] becomes 0 ?
-                P[category] = num_category_gt - category_gt_ignore.sum()
-        
-        if len(pred_labels):
-            ious = self.box_iou(pred_boxes, gt_boxes, cast(torch.BoolTensor, gt_is_crowd))
-            NO_MATCH = -3
-            ious[:, gt_ignore] -= 2
-            category_no_match = labels.expand(len(pred_labels), -1) != pred_labels.view(-1, 1)
-            ious[category_no_match] = NO_MATCH
-            ious.unsqueeze(-1).repeat((1, 1, len(self.iou_thresholds)))
-            ious[ious < self.iou_thresholds] = NO_MATCH
-            for i in range(len(pred_labels)):
-                # Flip is done to give priority to the last item with maximal value, as torch.max selects the first one.
-                match_gts = ious[i].flip(0).max(0)
-                match_gts_indices = ious.size(1) -1 - match_gts.indices
-                for t in range(len(self.iou_thresholds)):
-                    if match_gts.values[t] != NO_MATCH and not gt_is_crowd[match_gts_indices[t]]:
-                        ious[:, match_gts_indices[t], t] = NO_MATCH
-                        ious[i, match_gts_indices[t], t] = match_gts.values[t]
-
-            max_ious = ious.max(1).values
-            tp = (max_ious >= 0).T.to(dtype=torch.uint8, device=self._device)
-            fp = ((max_ious == NO_MATCH).T and pred_match_area_range).to(dtype=torch.uint8, device=self._device)
-        else:
-            tp = fp = None            
-
-        return tp, fp, P, pred_scores, pred_labels
 
     @reinit__is_reduced
     def update(self, output: Tuple[List[Dict[str, torch.Tensor]], List[Dict[str, torch.Tensor]]]) -> None:
@@ -346,62 +264,86 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
                 ========= ================= =================================================
         """
         self._check_matching_input(output)
-        for y_pred, y in zip(*output):
-            tp, fp, ps, scores, pred_labels = self._do_matching(y_pred, y)
-            if tp is not None:
-                self._tps.append(tp.to(device=self._device, dtype=torch.uint8))
-                self._fps.append(fp.to(device=self._device, dtype=torch.uint8))
-                self._scores.append(scores.to(self._device))
+        for pred, target in zip(*output):
+            labels = target["labels"]
+            gt_boxes = target["bbox"]
+            gt_is_crowd = (
+                target["iscrowd"].bool() if "iscrowd" in target else torch.zeros_like(labels, dtype=torch.bool)
+            )
+            gt_ignore = ~self._match_area_range(gt_boxes) | gt_is_crowd
+            self._P += torch.bincount(labels[~gt_ignore], minlength=self._num_classes).to(device=self._device)
+
+            best_detections_index = torch.argsort(pred["scores"], stable=True, descending=True)[
+                : self._max_detections_per_image
+            ]
+            print(best_detections_index)
+            pred_scores = pred["scores"][best_detections_index]
+            pred_labels = pred["labels"][best_detections_index]
+            pred_boxes = pred["bbox"][best_detections_index]
+            # Matching logic of object detection mAP, according to COCO reference implementation.
+            if len(pred_labels):
+                if not len(labels):
+                    tp = torch.zeros((len(self._iou_thresholds), len(pred_labels)), dtype=torch.uint8, device=self._device)
+                    self._tps.append(tp)
+                    self._fps.append(~tp & self._match_area_range(pred_boxes))
+                else:
+                    ious = self.box_iou(pred_boxes, gt_boxes, cast(torch.BoolTensor, gt_is_crowd))
+                    category_no_match = labels.expand(len(pred_labels), -1) != pred_labels.view(-1, 1)
+                    NO_MATCH = -3
+                    ious[category_no_match] = NO_MATCH
+                    ious = ious.unsqueeze(-1).repeat((1, 1, len(self._iou_thresholds)))
+                    ious[ious < self._iou_thresholds] = NO_MATCH
+                    IGNORANCE = -2
+                    ious[:, gt_ignore] += IGNORANCE
+                    for i in range(len(pred_labels)):
+                        # Flip is done to give priority to the last item with maximal value, as torch.max selects the first one.
+                        match_gts = ious[i].flip(0).max(0)
+                        match_gts_indices = ious.size(1) -1 - match_gts.indices
+                        for t in range(len(self._iou_thresholds)):
+                            if match_gts.values[t] > NO_MATCH and not gt_is_crowd[match_gts_indices[t]]:
+                                ious[:, match_gts_indices[t], t] = NO_MATCH
+                                ious[i, match_gts_indices[t], t] = match_gts.values[t]
+
+                    max_ious = ious.max(1).values
+                    self._tps.append((max_ious >= 0).T.to(dtype=torch.uint8, device=self._device))
+                    self._fps.append(((max_ious <= NO_MATCH).T & self._match_area_range(pred_boxes)).to(dtype=torch.uint8, device=self._device))
+            
+                self._scores.append(pred_scores.to(self._device))
                 self._pred_labels.append(pred_labels.to(device=self._device))
-            for cls in ps:
-                self._P[cls] += ps[cls]
-            classes = set(pred_labels.tolist()) | ps.keys()
-            if classes:
-                self._num_classes = max(max(classes) + 1, self._num_classes)
 
-    def _compute(self) -> Union[torch.Tensor, float]:
-        num_classes = int(idist.all_reduce(self._num_classes or 0, "MAX"))
-        if num_classes < 1:
-            return 0.0
-
-        P = cast(
-            torch.Tensor,
-            idist.all_reduce(torch.tensor(list(map(self._P.__getitem__, range(num_classes))), device=self._device)),
-        )
-        if P.sum() < 1:
-            return -1.
-
+    def _compute(self) -> torch.Tensor:
+        P = idist.all_reduce(self._P)
         pred_labels = _cat_and_agg_tensors(self._pred_labels, (), torch.long, self._device)
-        TP = _cat_and_agg_tensors(self._tps, (len(self.iou_thresholds),), torch.uint8, self._device)
-        FP = _cat_and_agg_tensors(self._fps, (len(self.iou_thresholds),), torch.uint8, self._device)
+        TP = _cat_and_agg_tensors(self._tps, (len(self._iou_thresholds),), torch.uint8, self._device)
+        FP = _cat_and_agg_tensors(self._fps, (len(self._iou_thresholds),), torch.uint8, self._device)
         scores = _cat_and_agg_tensors(self._scores, (), torch.double, self._device)
 
         average_precisions_recalls = -torch.ones(
-            (2, num_classes, len(self.iou_thresholds)),
+            (2, self._num_classes, len(self._iou_thresholds)),
             device=self._device,
             dtype=torch.double,
         )
-        for cls in range(num_classes):
+        for cls in range(self._num_classes):
             if P[cls] == 0:
                 continue
             
             cls_labels = pred_labels == cls
             if sum(cls_labels) == 0:
-                average_precisions_recalls[0, cls] = 0.
+                average_precisions_recalls[:, cls] = 0.
                 continue
             
             recall, precision = self._compute_recall_and_precision(TP[..., cls_labels], FP[..., cls_labels], scores[cls_labels], P[cls])
-            average_precision_for_cls_across_other_dims = self._compute_average_precision(recall, precision)
-            average_precisions_recalls[0, cls] = average_precision_for_cls_across_other_dims
-
+            average_precision_for_cls_per_iou_threshold = self._compute_average_precision(recall, precision)
+            average_precisions_recalls[0, cls] = average_precision_for_cls_per_iou_threshold
             average_precisions_recalls[1, cls] = recall[..., -1]
         return average_precisions_recalls
     
     def compute(self) -> Tuple[float, float]:
         average_precisions_recalls = self._compute()
+        if (average_precisions_recalls == -1).all():
+            return -1., -1.
         ap = average_precisions_recalls[0][average_precisions_recalls[0] > -1].mean().item()
         ar = average_precisions_recalls[1][average_precisions_recalls[1] > -1].mean().item()
-
         return ap, ar
 
 

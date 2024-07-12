@@ -71,7 +71,7 @@ class _BaseAveragePrecision:
         else:
             self.rec_thresholds = None
 
-        if class_mean is not None and class_mean not in ("micro", "macro", "weighted", "with_other_dims"):
+        if class_mean is not None and class_mean not in ("micro", "macro", "weighted"):
             raise ValueError(f"Wrong `class_mean` parameter, given {class_mean}")
         self.class_mean = class_mean
 

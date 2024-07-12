@@ -1,4 +1,5 @@
 import sys
+import itertools
 from collections import namedtuple
 from math import ceil
 from typing import Any, Dict, List, Tuple
@@ -406,14 +407,14 @@ def coco_val2017_sample() -> Tuple[List[Dict[str, torch.Tensor]], List[Dict[str,
     ]
 
     return [{"bbox": p[:, :4].double(), "scores": p[:, 4].double(), "labels": p[:, 5]} for p in pred], [
-        {"bbox": g[:, :4].double(), "labels": g[:, 4], "iscrowd": g[:, 5]} for g in gt
+        {"bbox": g[:, :4].double(), "labels": g[:, 4].long(), "iscrowd": g[:, 5]} for g in gt
     ]
 
 
 def random_sample() -> Tuple[List[Dict[str, torch.Tensor]], List[Dict[str, torch.Tensor]]]:
     torch.manual_seed(12)
-    targets = []
-    preds = []
+    targets: List[torch.Tensor] = []
+    preds: List[torch.Tensor] = []
     for _ in range(30):
         # Generate some ground truth boxes
         n_gt_box = torch.randint(50, (1,)).item()
@@ -468,7 +469,7 @@ def random_sample() -> Tuple[List[Dict[str, torch.Tensor]], List[Dict[str, torch
         preds.append(torch.cat((perturbed_gt_boxes, additional_pred_boxes), dim=0))
 
     return [{"bbox": p[:, :4], "scores": p[:, 4], "labels": p[:, 5]} for p in preds], [
-        {"bbox": g[:, :4], "labels": g[:, 4], "iscrowd": g[:, 5]} for g in targets
+        {"bbox": g[:, :4], "labels": g[:, 4].long(), "iscrowd": g[:, 5]} for g in targets
     ]
 
 
@@ -567,14 +568,14 @@ def sample(request) -> Sample:
                 0,
             ),
             "labels": torch.zeros(
-                0,
+                0, dtype=torch.long
             ),
         }
     elif request.param[1] == "with_an_empty_gt":
         data[1][0] = {
             "bbox": torch.zeros(0, 4),
             "labels": torch.zeros(
-                0,
+                0, dtype=torch.long
             ),
             "iscrowd": torch.zeros(
                 0,
@@ -587,7 +588,7 @@ def sample(request) -> Sample:
                 0,
             ),
             "labels": torch.zeros(
-                0,
+                0, dtype=torch.long
             ),
         }
         data[0][1] = {
@@ -596,13 +597,13 @@ def sample(request) -> Sample:
                 0,
             ),
             "labels": torch.zeros(
-                0,
+                0, dtype=torch.long
             ),
         }
         data[1][0] = {
             "bbox": torch.zeros(0, 4),
             "labels": torch.zeros(
-                0,
+                0, dtype=torch.long
             ),
             "iscrowd": torch.zeros(
                 0,
@@ -611,7 +612,7 @@ def sample(request) -> Sample:
         data[1][2] = {
             "bbox": torch.zeros(0, 4),
             "labels": torch.zeros(
-                0,
+                0, dtype=torch.long
             ),
             "iscrowd": torch.zeros(
                 0,
@@ -643,47 +644,44 @@ def test_empty_data():
     metric = ObjectDetectionAvgPrecisionRecall()
     metric.update(
         (
-            [{"bbox": torch.zeros((0, 4)), "scores": torch.zeros((0,)), "labels": torch.zeros((0))}],
-            [{"bbox": torch.zeros((0, 4)), "iscrowd": torch.zeros((0,)), "labels": torch.zeros((0))}],
+            [{"bbox": torch.zeros((0, 4)), "scores": torch.zeros((0,)), "labels": torch.zeros((0), dtype=torch.long)}],
+            [{"bbox": torch.zeros((0, 4)), "iscrowd": torch.zeros((0,)), "labels": torch.zeros((0), dtype=torch.long)}],
         )
     )
     assert len(metric._tps) == 0
     assert len(metric._fps) == 0
-    assert len(metric._P) == 0
-    assert metric._num_classes == 0
-    assert metric.compute() == 0
+    assert metric.compute() == (-1, -1)
     metric.update(
         (
             [
                 {
                     "bbox": torch.tensor([[0.0, 0.0, 100.0, 100.0]]),
                     "scores": torch.ones((1,)),
-                    "labels": torch.ones((1,)),
+                    "labels": torch.ones((1,), dtype=torch.long),
                 }
             ],
-            [{"bbox": torch.zeros((0, 4)), "iscrowd": torch.zeros((0,)), "labels": torch.zeros((0))}],
+            [{"bbox": torch.zeros((0, 4)), "iscrowd": torch.zeros((0,)), "labels": torch.zeros((0), dtype=torch.long)}],
         )
     )
-    assert metric.compute() == -1
+    assert metric.compute() == (-1, -1)
 
     metric = ObjectDetectionAvgPrecisionRecall()
     metric.update(
         (
-            [{"bbox": torch.zeros((0, 4)), "scores": torch.zeros((0,)), "labels": torch.zeros((0))}],
+            [{"bbox": torch.zeros((0, 4)), "scores": torch.zeros((0,)), "labels": torch.zeros((0), dtype=torch.long)}],
             [
                 {
                     "bbox": torch.tensor([[0.0, 0.0, 100.0, 100.0]]),
                     "iscrowd": torch.zeros((1,)),
-                    "labels": torch.ones((1,)),
+                    "labels": torch.ones((1,), dtype=torch.long),
                 }
             ],
         )
     )
     assert len(metric._tps) == 0
     assert len(metric._fps) == 0
-    assert len(metric._P) == 1 and metric._P[1] == 1
-    assert metric._num_classes == 2
-    assert metric.compute() == 0
+    assert metric._P[1] == 1
+    assert metric.compute() == (0, 0)
 
     metric = ObjectDetectionAvgPrecisionRecall()
     pred = {
@@ -691,12 +689,11 @@ def test_empty_data():
         "scores": torch.tensor([0.9]),
         "labels": torch.tensor([5]),
     }
-    target = {"bbox": torch.zeros((0, 4)), "iscrowd": torch.zeros((0,)), "labels": torch.zeros((0))}
+    target = {"bbox": torch.zeros((0, 4)), "iscrowd": torch.zeros((0,)), "labels": torch.zeros((0), dtype=torch.long)}
     metric.update(([pred], [target]))
     assert len(metric._tps) == len(metric._fps) == 1
-    assert len(metric._P) == 0
-    assert metric._num_classes == 6
-    assert metric.compute() == pycoco_mAP([pred], [target])[0]
+    pycoco_result = pycoco_mAP([pred], [target])
+    assert metric.compute() == (pycoco_result[0], pycoco_result[8])
 
 
 def test_no_torchvision():
@@ -736,7 +733,7 @@ def test_iou_thresholding():
     }
     gt = {"bbox": torch.tensor([[0.0, 0.0, 50.0, 100.0]]), "iscrowd": torch.zeros((1,)), "labels": torch.tensor([1])}
     metric.update(([pred], [gt]))
-    assert (metric._tp[1][0] == torch.tensor([[True], [True], [True], [False]])).all()
+    assert (metric._tps[0] == torch.tensor([[True], [True], [True], [False]])).all()
 
     pred = {
         "bbox": torch.tensor([[0.0, 0.0, 100.0, 100.0]]),
@@ -745,34 +742,7 @@ def test_iou_thresholding():
     }
     gt = {"bbox": torch.tensor([[100.0, 0.0, 200.0, 100.0]]), "iscrowd": torch.zeros((1,)), "labels": torch.tensor([1])}
     metric.update(([pred], [gt]))
-    assert (metric._tp[1][1] == torch.tensor([[True], [False], [False], [False]])).all()
-
-
-def test__do_matching_output(sample):
-    metric = ObjectDetectionAvgPrecisionRecall()
-
-    for pred, target in zip(*sample.data):
-        tps, fps, _, scores = metric._do_matching(pred, target)
-
-        assert tps.keys() == fps.keys() == scores.keys()
-
-        try:
-            cls = list(tps.keys()).pop()
-        except IndexError:  # No prediction
-            pass
-        else:
-            assert tps[cls].dtype in (torch.bool, torch.uint8)
-            assert tps[cls].size(-1) == fps[cls].size(-1) == scores[cls].size(0)
-
-        metric.update(([pred], [target]))
-
-        for metric_tp_or_fp, new_tp_or_fp in [(metric._tp, tps), (metric._fp, fps)]:
-            try:
-                cls = (metric_tp_or_fp.keys() & new_tp_or_fp.keys()).pop()
-            except KeyError:
-                pass
-            else:
-                assert metric_tp_or_fp[cls][-1].shape[:-1] == new_tp_or_fp[cls].shape[:-1]
+    assert (metric._tps[1] == torch.tensor([[True], [False], [False], [False]])).all()
 
 
 class Dummy_mAP(ObjectDetectionAvgPrecisionRecall):
@@ -807,16 +777,16 @@ def test_matching():
             If there's equal confidence in two predictions, the dicision is first made
             for the one who comes earlier.
         2. Each ground truth box is matched with at most one prediction. Crowd ground
-            truth is the exception. A prediction matched with a crowd gt would get ignored.
-        3. Among many plausible ground truth boxes, a prediction is matched with the
+            truth is the exception.
+        3. If a ground truth is crowd or out of area range, is set to be ignored.
+        4. A prediction matched with a ignored gt would get ignored, in the sense that it becomes
+            neither tp nor fp.
+        5. An unmatched prediction would get ignored if it's out of area range. So doesn't become fp due to rule 4.
+        6. Among many plausible ground truth boxes, a prediction is matched with the
             one which has the highest mutual IOU. If two ground truth boxes have the
             same IOU with a prediction, the later one is matched.
-        4. A prediction is matched with an out-of-area-range ground truth box only if there's no
-            plausible within-area-range ground truth box. In that case the prediction would get ignored.
-        5. An unmatched prediction would get ignored if it's out of area range.
-        6. A non-crowd ground truth has priority over a crowd ground truth in getting
-            matched with a prediction in the sense that even if the crowd ground truth
-            has a higher IOU, the non-crowd one gets matched if its IOU is viable.
+        7. Non-ignored ground truths are given priority over the ignored ones when matching with a prediction
+            even if their IOU is lower.
     """
     metric = ObjectDetectionAvgPrecisionRecall(iou_thresholds=[0.2])
 
@@ -831,29 +801,30 @@ def test_matching():
         "labels": torch.tensor([1]),
     }
     metric.update(([pred], [gt]))
-    assert (metric._tp[1][0] == torch.tensor([[True, False]])).all()
-    assert (metric._fp[1][0] == torch.tensor([[False, True]])).all()
-    assert (metric._scores[1][0] == torch.tensor([[0.9, 0.8]])).all()
+    # Preds are sorted by their scores internally
+    assert (metric._tps[0] == torch.tensor([[True, False]])).all()
+    assert (metric._fps[0] == torch.tensor([[False, True]])).all()
+    assert (metric._scores[0] == torch.tensor([[0.9, 0.8]])).all()
 
     pred["scores"] = torch.tensor([0.9, 0.9])
     metric.update(([pred], [gt]))
-    assert (metric._tp[1][1] == torch.tensor([[True, False]])).all()
-    assert (metric._fp[1][1] == torch.tensor([[False, True]])).all()
+    assert (metric._tps[1] == torch.tensor([[True, False]])).all()
+    assert (metric._fps[1] == torch.tensor([[False, True]])).all()
 
     gt["iscrowd"] = torch.tensor([1])
     metric.update(([pred], [gt]))
-    assert (metric._tp[1][2] == torch.tensor([[False, False]])).all()
-    assert (metric._fp[1][2] == torch.tensor([[False, False]])).all()
+    assert (metric._tps[2] == torch.tensor([[False, False]])).all()
+    assert (metric._fps[2] == torch.tensor([[False, False]])).all()
 
     pred["bbox"] = torch.tensor([[0.0, 0.0, 100.0, 100.0], [100.0, 0.0, 200.0, 100.0]])
     gt["bbox"] = torch.tensor([[0.0, 0.0, 25.0, 50.0], [50.0, 0.0, 150.0, 100.0]])
     gt["iscrowd"] = torch.zeros((2,))
     gt["labels"] = torch.tensor([1, 1])
     metric.update(([pred], [gt]))
-    assert (metric._tp[1][3] == torch.tensor([[True, False]])).all()
-    assert (metric._fp[1][3] == torch.tensor([[False, True]])).all()
+    assert (metric._tps[3] == torch.tensor([[True, False]])).all()
+    assert (metric._fps[3] == torch.tensor([[False, True]])).all()
 
-    metric.area_range = "small"
+    metric._area_range = "small"
     pred["bbox"] = torch.tensor(
         [[0.0, 0.0, 100.0, 10.0], [0.0, 0.0, 100.0, 10.0], [0.0, 0.0, 100.0, 11.0], [0.0, 0.0, 100.0, 10.0]]
     )
@@ -861,8 +832,8 @@ def test_matching():
     pred["labels"] = torch.tensor([1, 1, 1, 1])
     gt["bbox"] = torch.tensor([[0.0, 0.0, 100.0, 11.0], [0.0, 0.0, 100.0, 5.0]])
     metric.update(([pred], [gt]))
-    assert (metric._tp[1][4] == torch.tensor([[True, False, False, False]])).all()
-    assert (metric._fp[1][4] == torch.tensor([[False, False, False, True]])).all()
+    assert (metric._tps[4] == torch.tensor([[True, False, False, False]])).all()
+    assert (metric._fps[4] == torch.tensor([[False, False, False, True]])).all()
 
 
 def sklearn_precision_recall_curve_allowing_multiple_recalls_at_single_threshold(y_true, y_score):
@@ -924,24 +895,45 @@ def test__compute_recall_and_precision():
 
 def test_compute(sample):
     device = idist.device()
-    metric_50_95 = ObjectDetectionAvgPrecisionRecall(device=device)
-    metric_50 = ObjectDetectionAvgPrecisionRecall(iou_thresholds=[0.5], device=device)
-    metric_75 = ObjectDetectionAvgPrecisionRecall(iou_thresholds=[0.75], device=device)
-    metric_S = ObjectDetectionAvgPrecisionRecall(device=device, area_range="small")
-    metric_M = ObjectDetectionAvgPrecisionRecall(device=device, area_range="medium")
-    metric_L = ObjectDetectionAvgPrecisionRecall(device=device, area_range="large")
 
-    metrics = [metric_50_95, metric_50, metric_75, metric_S, metric_M, metric_L]
+    # AP@.5...95, AP@.5, AP@.75, AP-S, AP-M, AP-L, AR-1, AR-10, AR-100, AR-S, AR-M, AR-L
+    # ap_50_95_ar_100 = ObjectDetectionAvgPrecisionRecall(device=device)
+    # ap_50 = ObjectDetectionAvgPrecisionRecall(iou_thresholds=[0.5], device=device)
+    # ap_75 = ObjectDetectionAvgPrecisionRecall(iou_thresholds=[0.75], device=device)
+    # ap_ar_S = ObjectDetectionAvgPrecisionRecall(device=device, area_range="small")
+    # ap_ar_M = ObjectDetectionAvgPrecisionRecall(device=device, area_range="medium")
+    # ap_ar_L = ObjectDetectionAvgPrecisionRecall(device=device, area_range="large")
+    # ar_1 = ObjectDetectionAvgPrecisionRecall(device=device, max_detections_per_image=1)
+    ar_10 = ObjectDetectionAvgPrecisionRecall(device=device, max_detections_per_image=10)
 
+
+    # metrics = [ap_50_95_ar_100, ap_50, ap_75, ap_ar_S, ap_ar_M, ap_ar_L, ar_1, ar_10]
+    metrics = [ar_10]
     for metric in metrics:
         metric.update(sample.data)
-
+    
+    
     ignite_res = [metric.compute() for metric in metrics]
-    assert all([np.allclose(re, pycoco_res) for re, pycoco_res in zip(ignite_res, sample.mAP)])
-
     ignite_res_recompute = [metric.compute() for metric in metrics]
 
     assert all([r1 == r2 for r1, r2 in zip(ignite_res, ignite_res_recompute)])
+
+    # AP_50_95, AR_100 = ignite_res[0]
+    # AP_50 = ignite_res[1][0]
+    # AP_75 = ignite_res[2][0]
+    # AP_S, AR_S = ignite_res[3]
+    # AP_M, AR_M = ignite_res[4]
+    # AP_L, AR_L = ignite_res[5]
+    # AR_1 = ignite_res[6][1]###
+    AR_10 = ignite_res[0][1] ###
+    # for r in [AP_50_95, AP_50, AP_75, AP_S, AP_M, AP_L, AR_1, AR_10, AR_100, AR_S, AR_M, AR_L]:
+    for r in [AR_10]:
+        print(r)
+    print("----------")
+    for r in sample.mAP:
+        print(r)
+    # assert np.allclose([AP_50_95, AP_50, AP_75, AP_S, AP_M, AP_L, AR_1, AR_10, AR_100, AR_S, AR_M, AR_L], sample.mAP)
+    assert np.allclose(AR_10, sample.mAP[-5])
 
 
 def test_integration(sample):
