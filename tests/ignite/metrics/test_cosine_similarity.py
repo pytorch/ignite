@@ -1,4 +1,5 @@
 from typing import Tuple
+from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
@@ -6,7 +7,7 @@ import torch
 from torch import Tensor
 
 import ignite.distributed as idist
-from ignite.engine import Engine
+from ignite.engine import Engine, State
 from ignite.exceptions import NotComputableError
 from ignite.metrics import CosineSimilarity
 
@@ -142,3 +143,14 @@ class TestDistributed:
 
             for dev in (cos._device, cos._sum_of_cos_similarities.device):
                 assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
+
+
+def test_skip_unrolling():
+    cos_sim = CosineSimilarity(skip_unrolling=True)
+    y_pred = torch.rand(8, 1)
+    y_true = torch.rand(8, 1)
+    state = State(output=(y_pred, y_true))
+    engine = MagicMock(state=state)
+    cos_sim.iteration_completed(engine)
+    res = cos_sim.compute()
+    assert isinstance(res, float)
