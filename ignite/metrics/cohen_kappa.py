@@ -23,6 +23,9 @@ class CohenKappa(EpochMetric):
             is run on the first batch of data to ensure there are
             no issues. User will be warned in case there are any issues computing the function.
         device: optional device specification for internal storage.
+        skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
+            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            Alternatively, ``output_transform`` can be used to handle this.
 
     Examples:
         To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
@@ -46,6 +49,8 @@ class CohenKappa(EpochMetric):
 
             0.4285...
 
+    .. versionchanged:: 0.5.1
+        ``skip_unrolling`` argument is added.
     """
 
     def __init__(
@@ -54,6 +59,7 @@ class CohenKappa(EpochMetric):
         weights: Optional[str] = None,
         check_compute_fn: bool = False,
         device: Union[str, torch.device] = torch.device("cpu"),
+        skip_unrolling: bool = False,
     ):
         try:
             from sklearn.metrics import cohen_kappa_score  # noqa: F401
@@ -72,6 +78,7 @@ class CohenKappa(EpochMetric):
             output_transform=output_transform,
             check_compute_fn=check_compute_fn,
             device=device,
+            skip_unrolling=skip_unrolling,
         )
 
     def get_cohen_kappa_fn(self) -> Callable[[torch.Tensor, torch.Tensor], float]:

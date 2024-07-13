@@ -1,5 +1,5 @@
 import os
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import sklearn
@@ -7,7 +7,7 @@ import torch
 from sklearn.metrics import cohen_kappa_score
 
 import ignite.distributed as idist
-from ignite.engine import Engine
+from ignite.engine import Engine, State
 from ignite.exceptions import NotComputableError
 from ignite.metrics import CohenKappa
 
@@ -325,3 +325,14 @@ def _test_distrib_xla_nprocs(index):
 def test_distrib_xla_nprocs(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
     xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)
+
+
+def test_skip_unrolling():
+    y_pred = torch.randint(0, 2, size=(8, 1))
+    y_true = torch.randint(0, 2, size=(8, 1))
+    ck = CohenKappa(skip_unrolling=True)
+    state = State(output=(y_pred, y_true))
+    engine = MagicMock(state=state)
+    ck.iteration_completed(engine)
+    res = ck.compute()
+    assert isinstance(res, float)
