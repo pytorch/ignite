@@ -60,6 +60,8 @@ class AveragePrecision(EpochMetric):
 
             0.9166...
 
+    .. versionchanged:: 0.5.1
+        ``skip_unrolling`` argument is added.
     """
 
     def __init__(
@@ -67,6 +69,7 @@ class AveragePrecision(EpochMetric):
         output_transform: Callable = lambda x: x,
         check_compute_fn: bool = False,
         device: Union[str, torch.device] = torch.device("cpu"),
+        skip_unrolling: bool = False,
     ):
         try:
             from sklearn.metrics import average_precision_score  # noqa: F401
@@ -78,4 +81,5 @@ class AveragePrecision(EpochMetric):
             output_transform=output_transform,
             check_compute_fn=check_compute_fn,
             device=device,
+            skip_unrolling=skip_unrolling,
         )

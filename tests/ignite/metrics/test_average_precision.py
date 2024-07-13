@@ -331,3 +331,11 @@ def _test_distrib_xla_nprocs(index):
 def test_distrib_xla_nprocs(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
     xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)
+
+
+def test_skip_unrolling():
+    ap = AveragePrecision(skip_unrolling=True)
+    ap.reset()
+    output1 = (torch.rand(4, 2), torch.randint(0, 2, size=(4, 2), dtype=torch.long))
+    ap.update(output1)
+    res = ap.compute()
