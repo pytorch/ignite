@@ -39,6 +39,9 @@ class JSDivergence(KLDivergence):
         device: specifies which device updates are accumulated on. Setting the
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
+        skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
+            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            Alternatively, ``output_transform`` can be used to handle this.
 
     Examples:
         To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
@@ -71,6 +74,9 @@ class JSDivergence(KLDivergence):
         .. testoutput::
 
            0.16266516844431558
+
+    .. versionchanged:: 0.5.1
+        ``skip_unrolling`` argument is added.
     """
 
     def _update(self, y_pred: torch.Tensor, y: torch.Tensor) -> None:
