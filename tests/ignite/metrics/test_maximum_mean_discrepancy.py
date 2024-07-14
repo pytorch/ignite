@@ -178,8 +178,8 @@ class TestDistributed:
 
 
 def test_skip_unrolling():
-    x = torch.randint(0, 2, size=(8, 1))
-    y = torch.randint(0, 2, size=(8, 1))
+    x = torch.rand(8, 1)
+    y = torch.rand(8, 1)
     mmd = MaximumMeanDiscrepancy(skip_unrolling=True)
     state = State(output=(x, y))
     engine = MagicMock(state=state)

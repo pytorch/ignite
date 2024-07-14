@@ -1,10 +1,13 @@
 import os
+from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
 import torch
 
 import ignite.distributed as idist
+
+from ignite.engine import State
 from ignite.exceptions import NotComputableError
 from ignite.metrics import MeanPairwiseDistance
 
@@ -198,3 +201,14 @@ def _test_distrib_xla_nprocs(index):
 def test_distrib_xla_nprocs(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
     xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)
+
+
+def test_skip_unrolling():
+    y_pred = torch.rand(8, 3)
+    y_true = torch.rand(8, 3)
+    mpd = MeanPairwiseDistance(skip_unrolling=True)
+    state = State(output=(y_pred, y_true))
+    engine = MagicMock(state=state)
+    mpd.iteration_completed(engine)
+    res = mpd.compute()
+    assert isinstance(res, float)
