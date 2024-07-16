@@ -94,6 +94,9 @@ class Recall(_BasePrecisionRecall):
         device: specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
+        skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
+            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            Alternatively, ``output_transform`` can be used to handle this.
 
     Examples:
 
@@ -212,6 +215,9 @@ class Recall(_BasePrecisionRecall):
 
     .. versionchanged:: 0.4.10
             Some new options were added to `average` parameter.
+
+    .. versionchanged:: 0.5.1
+        ``skip_unrolling`` argument is added.
     """
 
     @reinit__is_reduced
