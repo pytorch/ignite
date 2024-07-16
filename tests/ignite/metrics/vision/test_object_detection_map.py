@@ -871,8 +871,8 @@ def test_compute(sample):
     ap_ar_S = ObjectDetectionAvgPrecisionRecall(device=device, area_range="small")
     ap_ar_M = ObjectDetectionAvgPrecisionRecall(device=device, area_range="medium")
     ap_ar_L = ObjectDetectionAvgPrecisionRecall(device=device, area_range="large")
-    ar_1 = ObjectDetectionAvgPrecisionRecall(device=device, max_detections_per_image=1)
-    ar_10 = ObjectDetectionAvgPrecisionRecall(device=device, max_detections_per_image=10)
+    ar_1 = ObjectDetectionAvgPrecisionRecall(device=device, max_detections_per_image_per_class=1)
+    ar_10 = ObjectDetectionAvgPrecisionRecall(device=device, max_detections_per_image_per_class=10)
 
     metrics = [ap_50_95_ar_100, ap_50, ap_75, ap_ar_S, ap_ar_M, ap_ar_L, ar_1, ar_10]
     for metric in metrics:
@@ -973,8 +973,8 @@ def test_distrib_update_compute(distributed, sample):
     ap_ar_S = ObjectDetectionAvgPrecisionRecall(device=metric_device, area_range="small")
     ap_ar_M = ObjectDetectionAvgPrecisionRecall(device=metric_device, area_range="medium")
     ap_ar_L = ObjectDetectionAvgPrecisionRecall(device=metric_device, area_range="large")
-    ar_1 = ObjectDetectionAvgPrecisionRecall(device=metric_device, max_detections_per_image=1)
-    ar_10 = ObjectDetectionAvgPrecisionRecall(device=metric_device, max_detections_per_image=10)
+    ar_1 = ObjectDetectionAvgPrecisionRecall(device=metric_device, max_detections_per_image_per_class=1)
+    ar_10 = ObjectDetectionAvgPrecisionRecall(device=metric_device, max_detections_per_image_per_class=10)
 
     metrics = [ap_50_95_ar_100, ap_50, ap_75, ap_ar_S, ap_ar_M, ap_ar_L, ar_1, ar_10]
 
