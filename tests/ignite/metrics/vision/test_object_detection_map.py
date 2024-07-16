@@ -667,7 +667,7 @@ def test_empty_data():
     )
     assert len(metric._tps) == 0
     assert len(metric._fps) == 0
-    assert metric._P[1] == 1
+    assert metric._y_true_count[1] == 1
     assert metric.compute() == (0, 0)
 
     metric = ObjectDetectionAvgPrecisionRecall()
@@ -798,7 +798,7 @@ def test_matching():
     assert (metric._fps[4] == torch.tensor([[False, False, False, True]])).all()
 
     pred["scores"] = torch.tensor([0.9, 1.0, 0.9, 0.9])
-    metric._max_detections_per_image = 1
+    metric._max_detections_per_image_per_class = 1
     metric.update(([pred], [gt]))
     assert (metric._tps[5] == torch.tensor([[True]])).all()
     assert (metric._fps[5] == torch.tensor([[False]])).all()
