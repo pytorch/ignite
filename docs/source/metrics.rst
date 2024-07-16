@@ -338,7 +338,7 @@ Complete list of metrics
     metric.Metric
     metrics_lambda.MetricsLambda
     MultiLabelConfusionMatrix
-    ObjectDetectionMAP
+    ObjectDetectionAvgPrecisionRecall
     precision.Precision
     PSNR
     recall.Recall
