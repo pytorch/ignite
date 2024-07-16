@@ -81,7 +81,7 @@ class _BaseAveragePrecision:
         if min(thresholds) < 0 or max(thresholds) > 1:
             raise ValueError(f"{threshold_type} values should be between 0 and 1, given {thresholds}")
 
-        return cast(torch.Tensor, thresholds)
+        return thresholds
 
     def _compute_average_precision(self, recall: torch.Tensor, precision: torch.Tensor) -> torch.Tensor:
         """Measuring average precision.
@@ -102,7 +102,7 @@ class _BaseAveragePrecision:
             ).where(rec_thresh_indices != recall.size(-1), 0)
             recall = rec_thresholds
         recall_differential = recall.diff(
-            dim=-1, prepend=torch.zeros((*recall.shape[:-1], 1), device=self._device, dtype=torch.double)
+            dim=-1, prepend=torch.zeros((*recall.shape[:-1], 1), device=recall.device, dtype=torch.double)
         )
         return torch.sum(recall_differential * precision, dim=-1)
 
@@ -122,13 +122,13 @@ def _cat_and_agg_tensors(
         [sum([tensor.shape[-1] for tensor in tensors]) if tensors else 0],
         device=device,
     )
-    num_preds = cast(torch.Tensor, idist.all_gather(num_preds)).tolist()
+    all_num_preds = cast(torch.Tensor, idist.all_gather(num_preds)).tolist()
     tensor = (
         torch.cat(tensors, dim=-1)
         if tensors
         else torch.empty((*tensor_shape_except_last_dim, 0), dtype=dtype, device=device)
     )
-    shape_across_ranks = [(*tensor_shape_except_last_dim, num_pred_in_rank) for num_pred_in_rank in num_preds]
+    shape_across_ranks = [(*tensor_shape_except_last_dim, num_pred_in_rank) for num_pred_in_rank in all_num_preds]
     return torch.cat(
         all_gather_tensors_with_shapes(
             tensor,
@@ -356,7 +356,7 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
 
         y_true = _cat_and_agg_tensors(
             self._y_true,
-            () if self._type == "multiclass" else (num_classes,),
+            cast(Tuple[int], ()) if self._type == "multiclass" else (num_classes,),
             torch.long if self._type == "multiclass" else torch.uint8,
             self._device,
         )

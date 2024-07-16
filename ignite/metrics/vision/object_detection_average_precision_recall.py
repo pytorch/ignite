@@ -51,9 +51,9 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
         self,
         iou_thresholds: Optional[Union[Sequence[float], torch.Tensor]] = None,
         rec_thresholds: Optional[Union[Sequence[float], torch.Tensor]] = None,
-        num_classes: Optional[int] = 91,
-        max_detections_per_image_per_class: Optional[int] = 100,
-        area_range: Optional[Literal["small", "medium", "large", "all"]] = "all",
+        num_classes: int = 91,
+        max_detections_per_image_per_class: int = 100,
+        area_range: Literal["small", "medium", "large", "all"] = "all",
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
@@ -338,10 +338,10 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
 
     @sync_all_reduce("_y_true_count")
     def _compute(self) -> torch.Tensor:
-        pred_labels = _cat_and_agg_tensors(self._y_pred_labels, (), torch.long, self._device)
+        pred_labels = _cat_and_agg_tensors(self._y_pred_labels, cast(Tuple[int], ()), torch.long, self._device)
         TP = _cat_and_agg_tensors(self._tps, (len(self._iou_thresholds),), torch.uint8, self._device)
         FP = _cat_and_agg_tensors(self._fps, (len(self._iou_thresholds),), torch.uint8, self._device)
-        scores = _cat_and_agg_tensors(self._scores, (), torch.double, self._device)
+        scores = _cat_and_agg_tensors(self._scores, cast(Tuple[int], ()), torch.double, self._device)
 
         average_precisions_recalls = -torch.ones(
             (2, self._num_classes, len(self._iou_thresholds)),
