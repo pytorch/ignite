@@ -6,9 +6,8 @@ from typing_extensions import Literal
 
 import ignite.distributed as idist
 from ignite.distributed.utils import all_gather_tensors_with_shapes
-from ignite.metrics.metric import reinit__is_reduced
+from ignite.metrics.metric import Metric, reinit__is_reduced
 from ignite.metrics.precision import _BaseClassification
-from ignite.metrics.metric import Metric
 from ignite.utils import to_onehot
 
 
@@ -18,16 +17,9 @@ class _BaseAveragePrecision:
         rec_thresholds: Optional[Union[Sequence[float], torch.Tensor]] = None,
         class_mean: Optional[Literal["micro", "macro", "weighted"]] = "macro",
     ) -> None:
-        r"""Base class for Average Precision & Recall in classification and detection tasks.
+        r"""Base class for Average Precision metric.
 
         This class contains the methods for setting up the thresholds and computing AP & AR.
-
-        # Average precision is computed by averaging precision over increasing levels of recall thresholds as following:
-
-
-        and possibly some additional dimensions in the detection task. ``class_mean`` determines how to take this mean.
-        In the detection tasks, it's possible to take the mean in other respects as well e.g. IoU threshold in an
-        object detection task.
 
         Args:
             rec_thresholds: recall thresholds (sensivity levels) to be considered for computing Mean Average Precision.
@@ -40,7 +32,7 @@ class _BaseAveragePrecision:
                   An 1-dimensional tensor of mean (taken across additional mean dimensions) average precision per class
                   is returned. If there's no ground truth sample for a class, ``0`` is returned for that.
 
-                micro
+                'micro'
                   Precision is computed counting stats of classes/labels altogether. This option
                   incorporates class in the very precision measurement.
 
@@ -53,7 +45,7 @@ class _BaseAveragePrecision:
 
                   For multiclass inputs, this is equivalent with mean average accuracy.
 
-                weighted
+                'weighted'
                   like macro but considers class/label imbalance. For multiclass input,
                   it computes AP for each class then returns mean of them weighted by
                   support of classes (number of actual samples in each class). For multilabel input,
@@ -62,9 +54,6 @@ class _BaseAveragePrecision:
 
                 'macro'
                   computes macro precision which is unweighted mean of AP computed across classes/labels. Default.
-
-                Note:
-                    Please note that classes with no ground truth are not considered into the mean in detection.
         """
         if rec_thresholds is not None:
             self.rec_thresholds: Optional[torch.Tensor] = self._setup_thresholds(rec_thresholds, "rec_thresholds")
@@ -74,7 +63,6 @@ class _BaseAveragePrecision:
         if class_mean is not None and class_mean not in ("micro", "macro", "weighted"):
             raise ValueError(f"Wrong `class_mean` parameter, given {class_mean}")
         self.class_mean = class_mean
-
 
     def _setup_thresholds(self, thresholds: Union[Sequence[float], torch.Tensor], threshold_type: str) -> torch.Tensor:
         if isinstance(thresholds, Sequence):
@@ -96,7 +84,7 @@ class _BaseAveragePrecision:
         return cast(torch.Tensor, thresholds)
 
     def _compute_average_precision(self, recall: torch.Tensor, precision: torch.Tensor) -> torch.Tensor:
-        """Measuring average precision which is the common operation among different settings of the metric.
+        """Measuring average precision.
 
         Args:
             recall: n-dimensional tensor whose last dimension represents confidence thresholds as much as #samples.
@@ -104,7 +92,7 @@ class _BaseAveragePrecision:
             precision: like ``recall`` in the shape.
 
         Returns:
-            average_precision: (n-1)-dimensional tensor containing the average precision for mean dimensions.
+            average_precision: (n-1)-dimensional tensor containing the average precisions.
         """
         if self.rec_thresholds is not None:
             rec_thresholds = self.rec_thresholds.repeat((*recall.shape[:-1], 1))
@@ -119,16 +107,28 @@ class _BaseAveragePrecision:
         return torch.sum(recall_differential * precision, dim=-1)
 
 
-def _cat_and_agg_tensors(tensors: List[torch.Tensor], tensor_shape_except_last_dim: Tuple[int], dtype: torch.dtype, device: Union[str, torch.device]) -> torch.Tensor:
+def _cat_and_agg_tensors(
+    tensors: List[torch.Tensor],
+    tensor_shape_except_last_dim: Tuple[int],
+    dtype: torch.dtype,
+    device: Union[str, torch.device],
+) -> torch.Tensor:
+    """
+    Concatenate tensors in ``tensors`` at their last dimension and gather all tensors from across all processes.
+    All tensors should have the same shape (denoted by ``tensor_shape_except_last_dim``) except at their
+    last dimension.
+    """
     num_preds = torch.tensor(
         [sum([tensor.shape[-1] for tensor in tensors]) if tensors else 0],
         device=device,
     )
     num_preds = cast(torch.Tensor, idist.all_gather(num_preds)).tolist()
-    tensor = torch.cat(tensors, dim=-1) if tensors else torch.empty((*tensor_shape_except_last_dim, 0), dtype=dtype, device=device)
-    shape_across_ranks = [
-        (*tensor_shape_except_last_dim, num_pred_in_rank) for num_pred_in_rank in num_preds
-    ]
+    tensor = (
+        torch.cat(tensors, dim=-1)
+        if tensors
+        else torch.empty((*tensor_shape_except_last_dim, 0), dtype=dtype, device=device)
+    )
+    shape_across_ranks = [(*tensor_shape_except_last_dim, num_pred_in_rank) for num_pred_in_rank in num_preds]
     return torch.cat(
         all_gather_tensors_with_shapes(
             tensor,
@@ -139,9 +139,8 @@ def _cat_and_agg_tensors(tensors: List[torch.Tensor], tensor_shape_except_last_d
 
 
 class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
-
-    _scores: List[torch.Tensor]
-    _P: List[torch.Tensor]
+    _y_pred: List[torch.Tensor]
+    _y_true: List[torch.Tensor]
 
     def __init__(
         self,
@@ -162,10 +161,8 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
         thresholds weighted by the change in recall, as if the area under precision-recall curve is being computed.
         Mean average precision is then computed by taking the mean of this average precision over different classes.
 
-        For detection tasks, user should use downstream metrics like
-        :class:`~ignite.metrics.vision.object_detection_map.ObjectDetectionMAP`. For classification, all the binary,
-        multiclass and multilabel data are supported. In the latter case, ``classification_is_multilabel`` should be
-        set to true.
+        All the binary, multiclass and multilabel data are supported. In the latter case,
+        ``is_multilabel`` should be set to true.
 
         `mean` in the mean average precision accounts for mean of the average precision across classes. ``class_mean``
         determines how to take this mean.
@@ -228,8 +225,8 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
         Reset method of the metric
         """
         super().reset()
-        self._scores = []
-        self._P = []
+        self._y_pred = []
+        self._y_true = []
 
     def _check_binary_multilabel_cases(self, output: Sequence[torch.Tensor]) -> None:
         # Ignore the check in `_BaseClassification` since `y_pred` consists of probabilities here.
@@ -246,7 +243,8 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
             warnings.warn("`y` should be of dtype long when entry type is multiclass", RuntimeWarning)
 
     def _prepare_output(self, output: Sequence[torch.Tensor]) -> Sequence[torch.Tensor]:
-        """Prepares and returns scores and P tensor. Input and output shapes of the method is as follows.
+        """Prepares and returns ``y_pred`` and ``y`` tensors. Input and output shapes of the method is as follows.
+        ``C`` and ``L`` denote the number of classes and labels in multiclass and multilabel inputs respectively.
 
         ========== =========== ============
         ``y_pred``
@@ -254,7 +252,7 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
         Data type  Input shape Output shape
         ========== =========== ============
         Binary     (N, ...)    (1, N * ...)
-        Multilabel (N, C, ...) (C, N * ...)
+        Multilabel (N, L, ...) (L, N * ...)
         Multiclass (N, C, ...) (C, N * ...)
         ========== =========== ============
 
@@ -264,7 +262,7 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
         Data type  Input shape Output shape
         ========== =========== ============
         Binary     (N, ...)    (1, N * ...)
-        Multilabel (N, C, ...) (C, N * ...)
+        Multilabel (N, L, ...) (L, N * ...)
         Multiclass (N, ...)    (N * ...)
         ========== =========== ============
         """
@@ -272,11 +270,11 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
 
         if self._type == "multilabel":
             num_classes = y_pred.size(1)
-            scores = torch.transpose(y_pred, 1, 0).reshape(num_classes, -1)
-            P = torch.transpose(y, 1, 0).reshape(num_classes, -1)
+            yp = torch.transpose(y_pred, 1, 0).reshape(num_classes, -1)
+            yt = torch.transpose(y, 1, 0).reshape(num_classes, -1)
         elif self._type == "binary":
-            P = y.view(1, -1)
-            scores = y_pred.view(1, -1)
+            yp = y_pred.view(1, -1)
+            yt = y.view(1, -1)
         else:  # Multiclass
             num_classes = y_pred.size(1)
             if y.max() + 1 > num_classes:
@@ -284,10 +282,10 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
                     f"y_pred contains fewer classes than y. Number of classes in prediction is {num_classes}"
                     f" and an element in y has invalid class = {y.max().item() + 1}."
                 )
-            P = y.view(-1)
-            scores = torch.transpose(y_pred, 1, 0).reshape(num_classes, -1)
+            yt = y.view(-1)
+            yp = torch.transpose(y_pred, 1, 0).reshape(num_classes, -1)
 
-        return scores, P
+        return yp, yt
 
     @reinit__is_reduced
     def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
@@ -302,47 +300,47 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
         """
         self._check_shape(output)
         self._check_type(output)
-        scores, P = self._prepare_output(output)
-        self._scores.append(scores.to(self._device))
-        self._P.append(P.to(self._device, dtype=torch.uint8 if self._type != "multiclass" else torch.long))
+        yp, yt = self._prepare_output(output)
+        self._y_pred.append(yp.to(self._device))
+        self._y_true.append(yt.to(self._device, dtype=torch.uint8 if self._type != "multiclass" else torch.long))
 
     def _compute_recall_and_precision(
-        self, TP: torch.Tensor, scores: torch.Tensor, P: torch.Tensor
+        self, y_true: torch.Tensor, y_pred: torch.Tensor, y_true_positive_count: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         r"""Measuring recall & precision.
 
-        Shape of function inputs and return values follow the table below. C is the number of classes, 1 for binary
-        data. N is the number of samples. Finally, \#unique scores represents number of unique scores in ``scores``
-        which is actually the number of thresholds.
+        Shape of function inputs and return values follow the table below.
+        N is the number of samples. \#unique scores represents number of
+        unique scores in ``scores`` which is actually the number of thresholds.
 
-        =================== =======================================
-        **Object**          **Shape**
-        =================== =======================================
-        TP                  (N,)
-        scores              (N,)
-        P                   () (A single float)
-        recall              (\#unique scores,)
-        precision           (\#unique scores,)
-        =================== =======================================
+        ===================== =======================================
+        **Object**            **Shape**
+        ===================== =======================================
+        y_true                (N,)
+        y_pred                (N,)
+        y_true_positive_count () (A single float)
+        recall                (\#unique scores,)
+        precision             (\#unique scores,)
+        ===================== =======================================
 
         Returns:
             `(recall, precision)`
         """
-        indices = torch.argsort(scores, dim=-1, stable=True, descending=True)
-        tp_summation = TP[..., indices].cumsum(dim=-1).double()
+        indices = torch.argsort(y_pred, stable=True, descending=True)
+        tp_summation = y_true[indices].cumsum(dim=0).double()
 
         # Adopted from Scikit-learn's implementation
         unique_scores_indices = torch.nonzero(
-            scores.take_along_dim(indices).diff(append=(scores.max() + 1).unsqueeze(dim=0)), as_tuple=True
+            y_pred[indices].diff(append=(y_pred.max() + 1).unsqueeze(dim=0)), as_tuple=True
         )[0]
         tp_summation = tp_summation[..., unique_scores_indices]
         fp_summation = (unique_scores_indices + 1) - tp_summation
 
-        if P == 0:
+        if y_true_positive_count == 0:
             # To be aligned with Scikit-Learn
             recall = torch.ones_like(tp_summation, device=self._device, dtype=torch.float)
         else:
-            recall = tp_summation / P
+            recall = tp_summation / y_true_positive_count
 
         predicted_positive = tp_summation + fp_summation
         precision = tp_summation / torch.where(predicted_positive == 0, 1, predicted_positive)
@@ -356,35 +354,30 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
             raise RuntimeError("Metric could not be computed without any update method call")
         num_classes = self._num_classes
 
-        P = _cat_and_agg_tensors(
-            self._P, 
-            (num_classes,) if self._type == "multiabel" else (),
+        y_true = _cat_and_agg_tensors(
+            self._y_true,
+            () if self._type == "multiclass" else (num_classes,),
             torch.long if self._type == "multiclass" else torch.uint8,
-            self._device
+            self._device,
         )
 
-        scores = _cat_and_agg_tensors(
-            self._scores, 
-            (num_classes,) if self._type != "binary" else (),
-            torch.double,
-            self._device
-        )
+        y_pred = _cat_and_agg_tensors(self._y_pred, (num_classes,), torch.double, self._device)
 
         if self._type == "multiclass":
-            P = to_onehot(P, num_classes=num_classes).T
+            y_true = to_onehot(y_true, num_classes=num_classes).T
         if self.class_mean == "micro":
-            P = P.reshape(1, -1)
-            scores = scores.view(1, -1)
-        P_count = P.sum(dim=-1)
-        average_precisions = torch.zeros_like(P_count, device=self._device, dtype=torch.double)
-        for cls in range(len(P_count)):
-            recall, precision = self._compute_recall_and_precision(P[cls], scores[cls], P_count[cls])
+            y_true = y_true.reshape(1, -1)
+            y_pred = y_pred.view(1, -1)
+        y_true_positive_count = y_true.sum(dim=-1)
+        average_precisions = torch.zeros_like(y_true_positive_count, device=self._device, dtype=torch.double)
+        for cls in range(y_true_positive_count.size(0)):
+            recall, precision = self._compute_recall_and_precision(y_true[cls], y_pred[cls], y_true_positive_count[cls])
             average_precisions[cls] = self._compute_average_precision(recall, precision)
         if self._type == "binary":
             return average_precisions.item()
         if self.class_mean is None:
             return average_precisions
         elif self.class_mean == "weighted":
-            return torch.sum(P_count * average_precisions) / P_count.sum()
+            return torch.sum(y_true_positive_count * average_precisions) / y_true_positive_count.sum()
         else:
             return average_precisions.mean()

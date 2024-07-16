@@ -1,8 +1,7 @@
 import sys
-import itertools
 from collections import namedtuple
 from math import ceil
-from typing import Any, Dict, List, Tuple
+from typing import Dict, List, Tuple
 from unittest.mock import patch
 
 import numpy as np
@@ -567,16 +566,12 @@ def sample(request) -> Sample:
             "scores": torch.zeros(
                 0,
             ),
-            "labels": torch.zeros(
-                0, dtype=torch.long
-            ),
+            "labels": torch.zeros(0, dtype=torch.long),
         }
     elif request.param[1] == "with_an_empty_gt":
         data[1][0] = {
             "bbox": torch.zeros(0, 4),
-            "labels": torch.zeros(
-                0, dtype=torch.long
-            ),
+            "labels": torch.zeros(0, dtype=torch.long),
             "iscrowd": torch.zeros(
                 0,
             ),
@@ -587,33 +582,25 @@ def sample(request) -> Sample:
             "scores": torch.zeros(
                 0,
             ),
-            "labels": torch.zeros(
-                0, dtype=torch.long
-            ),
+            "labels": torch.zeros(0, dtype=torch.long),
         }
         data[0][1] = {
             "bbox": torch.zeros(0, 4),
             "scores": torch.zeros(
                 0,
             ),
-            "labels": torch.zeros(
-                0, dtype=torch.long
-            ),
+            "labels": torch.zeros(0, dtype=torch.long),
         }
         data[1][0] = {
             "bbox": torch.zeros(0, 4),
-            "labels": torch.zeros(
-                0, dtype=torch.long
-            ),
+            "labels": torch.zeros(0, dtype=torch.long),
             "iscrowd": torch.zeros(
                 0,
             ),
         }
         data[1][2] = {
             "bbox": torch.zeros(0, 4),
-            "labels": torch.zeros(
-                0, dtype=torch.long
-            ),
+            "labels": torch.zeros(0, dtype=torch.long),
             "iscrowd": torch.zeros(
                 0,
             ),
@@ -745,31 +732,6 @@ def test_iou_thresholding():
     assert (metric._tps[1] == torch.tensor([[True], [False], [False], [False]])).all()
 
 
-class Dummy_mAP(ObjectDetectionAvgPrecisionRecall):
-    def _do_matching(self, tup1: Tuple, tup2: Tuple):
-        tp, fp = tup1
-        p, score = tup2
-        return tp, fp, p, score
-
-    def _check_matching_input(self, output: Any):
-        pass
-
-
-def test_update():
-    metric = Dummy_mAP()
-    assert len(metric._tp) == len(metric._fp) == len(metric._scores) == len(metric._P) == metric._num_classes == 0
-
-    metric.update(
-        ([({1: torch.tensor([True])}, {1: torch.tensor([False])})], [({1: 1, 2: 1}, {1: torch.tensor([0.8])})])
-    )
-    assert len(metric._tp[1]) == len(metric._fp[1]) == len(metric._scores[1]) == 1
-    assert len(metric._P) == 2 and metric._P[2] == 1
-    assert metric._num_classes == 3
-
-    metric.update(([({}, {})], [({2: 2}, {})]))
-    assert metric._P[2] == 3
-
-
 def test_matching():
     """
     PyCOCO matching rules:
@@ -835,6 +797,12 @@ def test_matching():
     assert (metric._tps[4] == torch.tensor([[True, False, False, False]])).all()
     assert (metric._fps[4] == torch.tensor([[False, False, False, True]])).all()
 
+    pred["scores"] = torch.tensor([0.9, 1.0, 0.9, 0.9])
+    metric._max_detections_per_image = 1
+    metric.update(([pred], [gt]))
+    assert (metric._tps[5] == torch.tensor([[True]])).all()
+    assert (metric._fps[5] == torch.tensor([[False]])).all()
+
 
 def sklearn_precision_recall_curve_allowing_multiple_recalls_at_single_threshold(y_true, y_score):
     y_true = y_true == 1
@@ -897,43 +865,33 @@ def test_compute(sample):
     device = idist.device()
 
     # AP@.5...95, AP@.5, AP@.75, AP-S, AP-M, AP-L, AR-1, AR-10, AR-100, AR-S, AR-M, AR-L
-    # ap_50_95_ar_100 = ObjectDetectionAvgPrecisionRecall(device=device)
-    # ap_50 = ObjectDetectionAvgPrecisionRecall(iou_thresholds=[0.5], device=device)
-    # ap_75 = ObjectDetectionAvgPrecisionRecall(iou_thresholds=[0.75], device=device)
-    # ap_ar_S = ObjectDetectionAvgPrecisionRecall(device=device, area_range="small")
-    # ap_ar_M = ObjectDetectionAvgPrecisionRecall(device=device, area_range="medium")
-    # ap_ar_L = ObjectDetectionAvgPrecisionRecall(device=device, area_range="large")
-    # ar_1 = ObjectDetectionAvgPrecisionRecall(device=device, max_detections_per_image=1)
+    ap_50_95_ar_100 = ObjectDetectionAvgPrecisionRecall(device=device)
+    ap_50 = ObjectDetectionAvgPrecisionRecall(iou_thresholds=[0.5], device=device)
+    ap_75 = ObjectDetectionAvgPrecisionRecall(iou_thresholds=[0.75], device=device)
+    ap_ar_S = ObjectDetectionAvgPrecisionRecall(device=device, area_range="small")
+    ap_ar_M = ObjectDetectionAvgPrecisionRecall(device=device, area_range="medium")
+    ap_ar_L = ObjectDetectionAvgPrecisionRecall(device=device, area_range="large")
+    ar_1 = ObjectDetectionAvgPrecisionRecall(device=device, max_detections_per_image=1)
     ar_10 = ObjectDetectionAvgPrecisionRecall(device=device, max_detections_per_image=10)
 
-
-    # metrics = [ap_50_95_ar_100, ap_50, ap_75, ap_ar_S, ap_ar_M, ap_ar_L, ar_1, ar_10]
-    metrics = [ar_10]
+    metrics = [ap_50_95_ar_100, ap_50, ap_75, ap_ar_S, ap_ar_M, ap_ar_L, ar_1, ar_10]
     for metric in metrics:
         metric.update(sample.data)
-    
-    
+
     ignite_res = [metric.compute() for metric in metrics]
     ignite_res_recompute = [metric.compute() for metric in metrics]
 
     assert all([r1 == r2 for r1, r2 in zip(ignite_res, ignite_res_recompute)])
 
-    # AP_50_95, AR_100 = ignite_res[0]
-    # AP_50 = ignite_res[1][0]
-    # AP_75 = ignite_res[2][0]
-    # AP_S, AR_S = ignite_res[3]
-    # AP_M, AR_M = ignite_res[4]
-    # AP_L, AR_L = ignite_res[5]
-    # AR_1 = ignite_res[6][1]###
-    AR_10 = ignite_res[0][1] ###
-    # for r in [AP_50_95, AP_50, AP_75, AP_S, AP_M, AP_L, AR_1, AR_10, AR_100, AR_S, AR_M, AR_L]:
-    for r in [AR_10]:
-        print(r)
-    print("----------")
-    for r in sample.mAP:
-        print(r)
-    # assert np.allclose([AP_50_95, AP_50, AP_75, AP_S, AP_M, AP_L, AR_1, AR_10, AR_100, AR_S, AR_M, AR_L], sample.mAP)
-    assert np.allclose(AR_10, sample.mAP[-5])
+    AP_50_95, AR_100 = ignite_res[0]
+    AP_50 = ignite_res[1][0]
+    AP_75 = ignite_res[2][0]
+    AP_S, AR_S = ignite_res[3]
+    AP_M, AR_M = ignite_res[4]
+    AP_L, AR_L = ignite_res[5]
+    AR_1 = ignite_res[6][1]
+    AR_10 = ignite_res[7][1]
+    assert np.allclose([AP_50_95, AP_50, AP_75, AP_S, AP_M, AP_L, AR_1, AR_10, AR_100, AR_S, AR_M, AR_L], sample.mAP)
 
 
 def test_integration(sample):
@@ -953,7 +911,7 @@ def test_integration(sample):
     n_iter = ceil(sample.length / bs)
     engine.run(range(n_iter), max_epochs=1)
 
-    res_50_95 = engine.state.metrics["mAP[50-95]"]
+    res_50_95 = engine.state.metrics["mAP[50-95]"][0]
     pycoco_res_50_95 = sample.mAP[0]
 
     assert np.allclose(res_50_95, pycoco_res_50_95)
@@ -1008,14 +966,17 @@ def test_distrib_update_compute(distributed, sample):
 
     device = idist.device()
     metric_device = "cpu" if device.type == "xla" else device
-    metric_50_95 = ObjectDetectionAvgPrecisionRecall(device=metric_device)
-    metric_50 = ObjectDetectionAvgPrecisionRecall(iou_thresholds=[0.5], device=metric_device)
-    metric_75 = ObjectDetectionAvgPrecisionRecall(iou_thresholds=[0.75], device=metric_device)
-    metric_S = ObjectDetectionAvgPrecisionRecall(device=metric_device, area_range="small")
-    metric_M = ObjectDetectionAvgPrecisionRecall(device=metric_device, area_range="medium")
-    metric_L = ObjectDetectionAvgPrecisionRecall(device=metric_device, area_range="large")
+    # AP@.5...95, AP@.5, AP@.75, AP-S, AP-M, AP-L, AR-1, AR-10, AR-100, AR-S, AR-M, AR-L
+    ap_50_95_ar_100 = ObjectDetectionAvgPrecisionRecall(device=metric_device)
+    ap_50 = ObjectDetectionAvgPrecisionRecall(iou_thresholds=[0.5], device=metric_device)
+    ap_75 = ObjectDetectionAvgPrecisionRecall(iou_thresholds=[0.75], device=metric_device)
+    ap_ar_S = ObjectDetectionAvgPrecisionRecall(device=metric_device, area_range="small")
+    ap_ar_M = ObjectDetectionAvgPrecisionRecall(device=metric_device, area_range="medium")
+    ap_ar_L = ObjectDetectionAvgPrecisionRecall(device=metric_device, area_range="large")
+    ar_1 = ObjectDetectionAvgPrecisionRecall(device=metric_device, max_detections_per_image=1)
+    ar_10 = ObjectDetectionAvgPrecisionRecall(device=metric_device, max_detections_per_image=10)
 
-    metrics = [metric_50_95, metric_50, metric_75, metric_S, metric_M, metric_L]
+    metrics = [ap_50_95_ar_100, ap_50, ap_75, ap_ar_S, ap_ar_M, ap_ar_L, ar_1, ar_10]
 
     y_pred_rank = sample.data[0][rank_samples_range]
     y_rank = sample.data[1][rank_samples_range]
@@ -1023,7 +984,15 @@ def test_distrib_update_compute(distributed, sample):
         metric.update((y_pred_rank, y_rank))
 
     ignite_res = [metric.compute() for metric in metrics]
-    assert all([np.allclose(re, pycoco_res) for re, pycoco_res in zip(ignite_res, sample.mAP)])
-
     ignite_res_recompute = [metric.compute() for metric in metrics]
     assert all([r1 == r2 for r1, r2 in zip(ignite_res, ignite_res_recompute)])
+
+    AP_50_95, AR_100 = ignite_res[0]
+    AP_50 = ignite_res[1][0]
+    AP_75 = ignite_res[2][0]
+    AP_S, AR_S = ignite_res[3]
+    AP_M, AR_M = ignite_res[4]
+    AP_L, AR_L = ignite_res[5]
+    AR_1 = ignite_res[6][1]
+    AR_10 = ignite_res[7][1]
+    assert np.allclose([AP_50_95, AP_50, AP_75, AP_S, AP_M, AP_L, AR_1, AR_10, AR_100, AR_S, AR_M, AR_L], sample.mAP)

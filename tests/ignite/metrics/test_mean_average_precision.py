@@ -61,9 +61,9 @@ def test__prepare_output():
 
 def test_update():
     metric = MeanAveragePrecision()
-    assert len(metric._scores) == len(metric._P) == 0
+    assert len(metric._y_pred) == len(metric._y_true) == 0
     metric.update((torch.rand((5, 4)), torch.randint(0, 2, (5, 4)).bool()))
-    assert len(metric._scores) == len(metric._P) == 1
+    assert len(metric._y_pred) == len(metric._y_true) == 1
 
 
 def test__compute_recall_and_precision():
