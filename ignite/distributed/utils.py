@@ -356,6 +356,7 @@ def all_reduce(
 def all_gather_tensors_with_shapes(
     tensor: torch.Tensor, shapes: Sequence[Sequence[int]], group: Optional[Union[Any, List[int]]] = None
 ) -> List[torch.Tensor]:
+    """Gather tensors with different shapes but with the same number of dimensions from across processes."""
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
 

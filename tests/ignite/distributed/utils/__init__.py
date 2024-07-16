@@ -195,7 +195,7 @@ def _test_distrib_all_gather(device):
         true_res[i * 4 : (i + 1) * 4, ...] = torch.arange(100, device=device).reshape(4, 25) * (i + 1)
     assert (res == true_res).all()
 
-    ts = [torch.randn(tuple(torch.randint(1, 10, (3,))), device=device) for _ in range(ws)]
+    ts = [torch.randn((r + 1, r + 2, r + 3), device=device) for r in range(ws)]
     ts_gathered = all_gather_tensors_with_shapes(ts[rank], [list(t.shape) for t in ts])
     for t, t_gathered in zip(ts, ts_gathered):
         assert (t == t_gathered).all()
@@ -226,7 +226,7 @@ def _test_distrib_all_gather(device):
 
 def _test_distrib_all_gather_group(device):
     if idist.get_world_size() > 1:
-        ranks = list(range(idist.get_world_size() - 1, 0, -1))  # [0, 1, 2, 3] -> [3, 2, 1]
+        ranks = list(range(1, idist.get_world_size()))
         rank = idist.get_rank()
         bnd = idist.backend()
 
@@ -253,8 +253,9 @@ def _test_distrib_all_gather_group(device):
             else:
                 assert res == t
 
-        ts = [torch.randn(tuple(torch.randint(1, 10, (3,))), device=device) for _ in range(idist.get_world_size())]
-        ts_gathered = all_gather_tensors_with_shapes(ts[rank], [list(t.shape) for t in ts], ranks)
+        ts = [torch.randn((i + 1, i + 2, i + 3), device=device) for i in range(idist.get_world_size())]
+        shapes = [list(t.shape) for r, t in enumerate(ts) if r in ranks]
+        ts_gathered = all_gather_tensors_with_shapes(ts[rank], shapes, ranks)
         if rank in ranks:
             for i, r in enumerate(ranks):
                 assert (ts[r] == ts_gathered[i]).all()
