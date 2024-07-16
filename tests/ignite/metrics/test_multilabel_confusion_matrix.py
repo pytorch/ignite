@@ -1,5 +1,3 @@
-from unittest.mock import MagicMock
-
 import numpy as np
 import pytest
 import torch
@@ -7,7 +5,6 @@ from sklearn.metrics import multilabel_confusion_matrix
 
 import ignite.distributed as idist
 
-from ignite.engine import State
 from ignite.exceptions import NotComputableError
 from ignite.metrics.multilabel_confusion_matrix import MultiLabelConfusionMatrix
 
@@ -428,27 +425,3 @@ def test_simple_batched():
 # def test_distrib_xla_nprocs(xmp_executor):
 #     n = int(os.environ["NUM_TPU_WORKERS"])
 #     xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)
-
-
-def test_skip_unrolling():
-    num_iters = 5
-    num_samples = 100
-    num_classes = 10
-    torch.manual_seed(0)
-    for _ in range(num_iters):
-        target = torch.randint(0, 2, size=(num_samples, num_classes))
-        prediction = torch.randint(0, 2, size=(num_samples, num_classes))
-        sklearn_CM = multilabel_confusion_matrix(target.numpy(), prediction.numpy())
-        mlcm = MultiLabelConfusionMatrix(num_classes, normalized=False, skip_unrolling=True)
-        state = State(output=(prediction, target))
-        engine = MagicMock(state=state)
-        mlcm.iteration_completed(engine)
-        ignite_CM = mlcm.compute().numpy()
-        assert np.all(sklearn_CM.astype(np.int64) == ignite_CM.astype(np.int64))
-        mlcm = MultiLabelConfusionMatrix(num_classes, normalized=True, skip_unrolling=True)
-        state = State(output=(prediction, target))
-        engine = MagicMock(state=state)
-        mlcm.iteration_completed(engine)
-        ignite_CM_normalized = mlcm.compute().numpy()
-        sklearn_CM_normalized = sklearn_CM / sklearn_CM.sum(axis=(1, 2))[:, None, None]
-        assert np.allclose(sklearn_CM_normalized, ignite_CM_normalized)

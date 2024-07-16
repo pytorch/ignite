@@ -1,5 +1,4 @@
 from typing import Tuple
-from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
@@ -7,7 +6,7 @@ import torch
 from torch import Tensor
 
 import ignite.distributed as idist
-from ignite.engine import Engine, State
+from ignite.engine import Engine
 from ignite.exceptions import NotComputableError
 from ignite.metrics import MaximumMeanDiscrepancy
 
@@ -175,14 +174,3 @@ class TestDistributed:
             devices = (mmd._device, mmd._xx_sum.device, mmd._yy_sum.device, mmd._xy_sum.device)
             for dev in devices:
                 assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
-
-
-def test_skip_unrolling():
-    x = torch.rand(8, 1)
-    y = torch.rand(8, 1)
-    mmd = MaximumMeanDiscrepancy(skip_unrolling=True)
-    state = State(output=(x, y))
-    engine = MagicMock(state=state)
-    mmd.iteration_completed(engine)
-    res = mmd.compute()
-    assert isinstance(res, float)

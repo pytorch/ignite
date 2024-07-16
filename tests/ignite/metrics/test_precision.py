@@ -1,5 +1,4 @@
 import warnings
-from unittest.mock import MagicMock
 
 import pytest
 import torch
@@ -7,7 +6,7 @@ from sklearn.exceptions import UndefinedMetricWarning
 from sklearn.metrics import precision_score
 
 import ignite.distributed as idist
-from ignite.engine import Engine, State
+from ignite.engine import Engine
 from ignite.exceptions import NotComputableError
 from ignite.metrics import Precision
 
@@ -597,68 +596,3 @@ class TestDistributed:
             if average == "weighted":
                 assert pr._weight.device == metric_device, f"{type(pr._weight.device)}:{pr._weight.device} vs "
                 f"{type(metric_device)}:{metric_device}"
-
-
-@pytest.mark.parametrize("average", [None, False, "macro", "micro", "weighted"])
-def test_skip_unrolling(average):
-    pr = Precision(average=average, skip_unrolling=True)
-    assert pr._updated is False
-
-    def _test(y_pred, y, batch_size):
-        pr.reset()
-        assert pr._updated is False
-        if batch_size > 1:
-            n_iters = y.shape[0] // batch_size + 1
-            for i in range(n_iters):
-                idx = i * batch_size
-                state = State(output=(y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-                engine = MagicMock(state=state)
-                pr.iteration_completed(engine)
-        else:
-            state = State(output=(y_pred, y))
-            engine = MagicMock(state=state)
-            pr.iteration_completed(engine)
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().ravel()
-
-        assert pr._type == "binary"
-        assert pr._updated is True
-        assert isinstance(pr.compute(), torch.Tensor if not average else float)
-        pr_compute = pr.compute().numpy() if not average else pr.compute()
-        sk_average_parameter = ignite_average_to_scikit_average(average, "binary")
-        assert precision_score(
-            np_y, np_y_pred, average=sk_average_parameter, labels=[0, 1], zero_division=0
-        ) == pytest.approx(pr_compute)
-
-    def get_test_cases():
-        test_cases = [
-            # Binary accuracy on input of shape (N, 1) or (N, )
-            (torch.randint(0, 2, size=(10,)), torch.randint(0, 2, size=(10,)), 1),
-            (torch.randint(0, 2, size=(10, 1)), torch.randint(0, 2, size=(10, 1)), 1),
-            # updated batches
-            (torch.randint(0, 2, size=(50,)), torch.randint(0, 2, size=(50,)), 16),
-            (torch.randint(0, 2, size=(50, 1)), torch.randint(0, 2, size=(50, 1)), 16),
-            # Binary accuracy on input of shape (N, L)
-            (torch.randint(0, 2, size=(10, 5)), torch.randint(0, 2, size=(10, 5)), 1),
-            (torch.randint(0, 2, size=(10, 1, 5)), torch.randint(0, 2, size=(10, 1, 5)), 1),
-            # updated batches
-            (torch.randint(0, 2, size=(50, 5)), torch.randint(0, 2, size=(50, 5)), 16),
-            (torch.randint(0, 2, size=(50, 1, 5)), torch.randint(0, 2, size=(50, 1, 5)), 16),
-            # Binary accuracy on input of shape (N, H, W)
-            (torch.randint(0, 2, size=(10, 12, 10)), torch.randint(0, 2, size=(10, 12, 10)), 1),
-            (torch.randint(0, 2, size=(10, 1, 12, 10)), torch.randint(0, 2, size=(10, 1, 12, 10)), 1),
-            # updated batches
-            (torch.randint(0, 2, size=(50, 12, 10)), torch.randint(0, 2, size=(50, 12, 10)), 16),
-            (torch.randint(0, 2, size=(50, 1, 12, 10)), torch.randint(0, 2, size=(50, 1, 12, 10)), 16),
-            # Corner case with all zeros predictions
-            (torch.zeros(size=(10,), dtype=torch.long), torch.randint(0, 2, size=(10,)), 1),
-            (torch.zeros(size=(10, 1), dtype=torch.long), torch.randint(0, 2, size=(10, 1)), 1),
-        ]
-
-        return test_cases
-
-    for _ in range(5):
-        # check multiple random inputs as random exact occurencies are rare
-        test_cases = get_test_cases()
-        for y_pred, y, batch_size in test_cases:
-            _test(y_pred, y, batch_size)

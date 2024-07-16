@@ -28,6 +28,9 @@ class AveragePrecision(EpochMetric):
             #sklearn.metrics.average_precision_score>`_ is run on the first batch of data to ensure there are
             no issues. User will be warned in case there are any issues computing the function.
         device: optional device specification for internal storage.
+        skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
+            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            Alternatively, ``output_transform`` can be used to handle this.
 
     Note:
         AveragePrecision expects y to be comprised of 0's and 1's. y_pred must either be probability estimates or

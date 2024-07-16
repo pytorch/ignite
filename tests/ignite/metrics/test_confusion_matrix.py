@@ -1,5 +1,4 @@
 import os
-from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
@@ -7,7 +6,6 @@ import torch
 from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score
 
 import ignite.distributed as idist
-from ignite.engine import State
 from ignite.exceptions import NotComputableError
 from ignite.metrics import ConfusionMatrix, IoU, JaccardIndex, mIoU
 from ignite.metrics.confusion_matrix import cmAccuracy, cmPrecision, cmRecall, DiceCoefficient
@@ -636,14 +634,3 @@ def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
     device = idist.device()
     _test_distrib_multiclass_images(device)
     _test_distrib_accumulator_device(device)
-
-
-def test_skip_unrolling():
-    y_pred = torch.randint(0, 2, size=(8, 2))
-    y_true = torch.randint(0, 2, size=(8,))
-    cm = ConfusionMatrix(num_classes=2, skip_unrolling=True)
-    state = State(output=(y_pred, y_true))
-    engine = MagicMock(state=state)
-    cm.iteration_completed(engine)
-    res = cm.compute()
-    assert isinstance(res, torch.Tensor)

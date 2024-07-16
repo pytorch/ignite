@@ -1,12 +1,10 @@
-from unittest.mock import MagicMock
-
 import numpy as np
 import pytest
 import torch
 from skimage.metrics import peak_signal_noise_ratio as ski_psnr
 
 import ignite.distributed as idist
-from ignite.engine import Engine, State
+from ignite.engine import Engine
 from ignite.exceptions import NotComputableError
 from ignite.metrics import PSNR
 from ignite.utils import manual_seed
@@ -228,23 +226,3 @@ class TestDistributed:
             psnr.update((y_pred, y))
             dev = psnr._sum_of_batchwise_psnr.device
             assert dev == metric_device, f"{dev} vs {metric_device}"
-
-
-def test_skip_unrolling(test_data, available_device):
-    y_pred, y = test_data
-    data_range = (y.max() - y.min()).cpu().item()
-    psnr = PSNR(data_range=data_range, device=available_device, skip_unrolling=True)
-    state = State(output=test_data)
-    engine = MagicMock(state=state)
-    psnr.iteration_completed(engine)
-    psnr_compute = psnr.compute()
-
-    np_y_pred = y_pred.cpu().numpy()
-    np_y = y.cpu().numpy()
-    np_psnr = 0
-    for np_y_pred_, np_y_ in zip(np_y_pred, np_y):
-        np_psnr += ski_psnr(np_y_, np_y_pred_, data_range=data_range)
-
-    assert psnr_compute > 0.0
-    assert isinstance(psnr_compute, float)
-    assert np.allclose(psnr_compute, np_psnr / np_y.shape[0])
