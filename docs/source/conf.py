@@ -301,7 +301,15 @@ class AutolistAutosummary(Autosummary):
                         names = [name[0] for name in getmembers(module)]
 
                 # Filter out members w/o doc strings
-                names = [name for name in names if getattr(module, name).__doc__ is not None]
+                filtered_names = []
+                for name in names:
+                    try:
+                        if not name.startswith("_") and getattr(module, name).__doc__ is not None:
+                            filtered_names.append(name)
+                    except AttributeError:
+                        continue
+
+                names = filtered_names
 
                 if auto == "autolist":
                     # Get list of all classes and functions inside module
@@ -350,6 +358,7 @@ linkcheck_ignore = [
     "https://github.com/fossasia/visdom#visdom-arguments-python-only",
     "https://github.com/pytorch/ignite/tree/master/examples/cifar10#check-resume-training",
     "https://github.com/pytorch/ignite/tree/master/examples/mnist#training-save--resume",
+    "https://machinelearningmastery.com/gentle-introduction-backpropagation-time/",
 ]
 
 

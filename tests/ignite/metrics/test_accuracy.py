@@ -1,11 +1,14 @@
 import os
+from typing import Callable, Union
+from unittest.mock import MagicMock
 
 import pytest
 import torch
+from packaging.version import Version
 from sklearn.metrics import accuracy_score
 
 import ignite.distributed as idist
-from ignite.engine import Engine
+from ignite.engine import Engine, State
 from ignite.exceptions import NotComputableError
 from ignite.metrics import Accuracy
 
@@ -405,6 +408,14 @@ def _test_distrib_integration_multiclass(device):
 
         assert pytest.approx(res) == true_res
 
+        metric_state = acc.state_dict()
+        saved__num_correct = acc._num_correct
+        saved__num_examples = acc._num_examples
+        acc.reset()
+        acc.load_state_dict(metric_state)
+        assert acc._num_examples == saved__num_examples
+        assert (acc._num_correct == saved__num_correct).all()
+
     metric_devices = ["cpu"]
     if device.type != "xla":
         metric_devices.append(idist.device())
@@ -542,6 +553,7 @@ def _test_distrib_integration_list_of_tensors_or_numbers(device):
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
+@pytest.mark.skipif(Version(torch.__version__) < Version("1.7.0"), reason="Skip if < 1.7.0")
 def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
     device = idist.device()
     _test_distrib_multilabel_input_NHW(device)
@@ -553,6 +565,7 @@ def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif(Version(torch.__version__) < Version("1.7.0"), reason="Skip if < 1.7.0")
 def test_distrib_gloo_cpu_or_gpu(distributed_context_single_node_gloo):
     device = idist.device()
     _test_distrib_multilabel_input_NHW(device)
@@ -627,3 +640,34 @@ def test_multinode_distrib_nccl_gpu(distributed_context_multi_node_nccl):
     _test_distrib_integration_multilabel(device)
     _test_distrib_accumulator_device(device)
     _test_distrib_integration_list_of_tensors_or_numbers(device)
+
+
+def test_skip_unrolling():
+    class DummyAcc(Accuracy):
+        def __init__(
+            self,
+            true_output,
+            output_transform: Callable = lambda x: x,
+            is_multilabel: bool = False,
+            device: Union[str, torch.device] = torch.device("cpu"),
+            skip_unrolling: bool = False,
+        ):
+            super(DummyAcc, self).__init__(
+                output_transform=output_transform, is_multilabel=False, device=device, skip_unrolling=skip_unrolling
+            )
+            self.true_output = true_output
+
+        def update(self, output):
+            assert output == self.true_output
+
+    a_pred = torch.randint(0, 2, size=(8, 1))
+    b_pred = torch.randint(0, 2, size=(8, 1))
+    y_pred = [a_pred, b_pred]
+    a_true = torch.randint(0, 2, size=(8, 1))
+    b_true = torch.randint(0, 2, size=(8, 1))
+    y_true = [a_true, b_true]
+
+    acc = DummyAcc(true_output=(y_pred, y_true), skip_unrolling=True)
+    state = State(output=(y_pred, y_true))
+    engine = MagicMock(state=state)
+    acc.iteration_completed(engine)

@@ -1,4 +1,5 @@
 import logging
+import platform
 import sys
 from collections import namedtuple
 
@@ -7,7 +8,7 @@ import torch
 from packaging.version import Version
 
 from ignite.engine import Engine, Events
-from ignite.utils import convert_tensor, deprecated, hash_checkpoint, setup_logger, to_onehot
+from ignite.utils import _to_str_list, convert_tensor, deprecated, hash_checkpoint, setup_logger, to_onehot
 
 
 def test_convert_tensor():
@@ -52,6 +53,29 @@ def test_convert_tensor():
 
     with pytest.raises(TypeError):
         convert_tensor(12345)
+
+
+@pytest.mark.parametrize(
+    "input_data,expected",
+    [
+        (42, ["42.0000"]),
+        ([{"a": 15, "b": torch.tensor([2.0])}], ["a: 15.0000", "b: [2.0000]"]),
+        ({"a": 10, "b": 2.33333}, ["a: 10.0000", "b: 2.3333"]),
+        ({"x": torch.tensor(0.1234), "y": [1, 2.3567]}, ["x: 0.1234", "y: 1.0000, 2.3567"]),
+        (({"nested": [3.1415, torch.tensor(0.0001)]},), ["nested: 3.1415, 0.0001"]),
+        (
+            {"large_vector": torch.tensor(range(20))},
+            ["large_vector: [0.0000, 1.0000, 2.0000, 3.0000, 4.0000, 5.0000, 6.0000, 7.0000, 8.0000, 9.0000, ...]"],
+        ),
+        ({"large_matrix": torch.randn(5, 5)}, ["large_matrix: Shape[5, 5]"]),
+        ({"empty": []}, ["empty: "]),
+        ([], []),
+        ({"none": None}, ["none: "]),
+        ({1: 100, 2: 200}, ["1: 100.0000", "2: 200.0000"]),
+    ],
+)
+def test__to_str_list(input_data, expected):
+    assert _to_str_list(input_data) == expected
 
 
 def test_to_onehot():
@@ -172,6 +196,29 @@ def test_override_setup_logger(capsys):
 
     # Needed by windows to release FileHandler in the loggers
     logging.shutdown()
+
+
+@pytest.mark.parametrize("encoding", [None, "utf-8"])
+def test_setup_logger_encoding(encoding, dirname):
+    fp = dirname / "log.txt"
+    logger = setup_logger(name="logger", filepath=fp, encoding=encoding, reset=True)
+    test_words = ["say hello", "say 你好", "say こんにちわ", "say 안녕하세요", "say привет"]
+    for w in test_words:
+        logger.info(w)
+    logging.shutdown()
+
+    with open(fp, "r", encoding=encoding) as h:
+        data = h.readlines()
+
+    if platform.system() == "Windows" and encoding is None:
+        flatten_data = "\n".join(data)
+        assert test_words[0] in flatten_data
+        for word in test_words[1:]:
+            assert word not in flatten_data
+    else:
+        assert len(data) == len(test_words)
+        for expected, output in zip(test_words, data):
+            assert expected in output
 
 
 def test_deprecated():

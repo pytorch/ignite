@@ -8,7 +8,9 @@ import torch
 from packaging.version import Version
 
 import ignite.distributed as idist
+from ignite.distributed.comp_models.base import _torch_version_gt_112
 from ignite.distributed.utils import has_hvd_support, has_native_dist_support, has_xla_support
+from tests.ignite import is_mps_available_and_functional
 
 
 def test_parallel_wrong_inputs():
@@ -54,6 +56,10 @@ def execute(cmd, env=None):
     return str(process.stdout.read()) + str(process.stderr.read())
 
 
+@pytest.mark.skipif(
+    (not _torch_version_gt_112) or (torch.backends.mps.is_available() and not is_mps_available_and_functional()),
+    reason="Skip if MPS not functional",
+)
 def test_check_idist_parallel_no_dist(exec_filepath):
     cmd = [sys.executable, "-u", exec_filepath]
     out = execute(cmd)
@@ -258,7 +264,7 @@ def test_idist_parallel_n_procs_native(init_method, backend, get_fixed_dirname, 
 
 @pytest.mark.skipif("WORLD_SIZE" in os.environ, reason="Skip if launched as multiproc")
 def test_idist_parallel_no_dist():
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = idist.device()
     with idist.Parallel(backend=None) as parallel:
         parallel.run(_test_func, ws=1, device=device, backend=None, true_init_method=None)
 

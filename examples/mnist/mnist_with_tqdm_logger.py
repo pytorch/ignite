@@ -8,8 +8,9 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, Normalize, ToTensor
 
-from ignite.contrib.handlers import ProgressBar
 from ignite.engine import create_supervised_evaluator, create_supervised_trainer, Events
+
+from ignite.handlers import ProgressBar
 from ignite.metrics import Accuracy, Loss, RunningAverage
 
 
@@ -63,7 +64,7 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, display_gpu_info
     RunningAverage(output_transform=lambda x: x).attach(trainer, "loss")
 
     if display_gpu_info:
-        from ignite.contrib.metrics import GpuInfo
+        from ignite.metrics import GpuInfo
 
         GpuInfo().attach(trainer, name="gpu")
 

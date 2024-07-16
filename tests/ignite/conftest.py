@@ -1,8 +1,10 @@
 import functools
 import os
 import shutil
+import signal
 import sys
 import tempfile
+import threading
 import time
 from pathlib import Path
 
@@ -11,6 +13,59 @@ import torch
 import torch.distributed as dist
 
 import ignite.distributed as idist
+
+
+def pytest_addoption(parser):
+    """
+    Add custom command line options for the ignite test suite here.
+    See:
+    This function is a pytest hook (due to its name) and is *"automatically"
+    executed at the start of a test run
+    https://docs.pytest.org/en/latest/reference/reference.html#initialization-hooks
+
+    * "automatically" is true provided this conftest.py file is the
+    root directory. See:
+    https://docs.pytest.org/en/latest/reference/customize.html#initialization-determining-rootdir-and-configfile
+    """
+    parser.addoption(
+        "--treat-unrun-as-failed",
+        action="store_true",
+        help="""
+        If a session is interrupted, treat the unrun tests as failed so that a
+        rerun with --last-failed runs any tests that have not passed or been
+        skipped. Note that if all tests in a module have been skipped, the
+        module will be skipped for all subsequent runs.
+        """,
+    )
+
+
+def pytest_configure(config):
+    """
+    This function is a pytest hook (due to its name) and is run after command
+    line parsing is complete in order to configure the test session.
+    """
+    config.addinivalue_line("markers", "distributed: run distributed")
+    config.addinivalue_line("markers", "multinode_distributed: distributed")
+    config.addinivalue_line("markers", "tpu: run on tpu")
+    if config.option.treat_unrun_as_failed:
+        unrun_tracker = UnrunTracker()
+        config.pluginmanager.register(unrun_tracker, "unrun_tracker_plugin")
+
+
+@pytest.fixture(scope="session", autouse=True)
+def term_handler():
+    """
+    This allows the pytest session to be terminated upon retries on CI. It may
+    be worth using this fixture solely in that context. For a discussion on
+    whether sigterm should be ignored and why pytest usually ignores it see:
+    https://github.com/pytest-dev/pytest/issues/5243
+    """
+    if threading.current_thread() is threading.main_thread() and hasattr(signal, "SIGTERM"):
+        orig = signal.signal(signal.SIGTERM, signal.getsignal(signal.SIGINT))
+        yield
+        signal.signal(signal.SIGTERM, orig)
+    else:
+        yield  # Just pass through if SIGTERM isn't supported or we are not in the main thread
 
 
 @pytest.fixture(
@@ -195,7 +250,7 @@ def distributed_context_single_node_gloo(local_rank, world_size):
         "world_size": world_size,
         "rank": local_rank,
         "init_method": init_method,
-        "timeout": timedelta(seconds=60),
+        "timeout": timedelta(seconds=30),
     }
     yield _create_dist_context(dist_info, local_rank)
     _destroy_dist_context()
@@ -397,6 +452,7 @@ is_xla_single_device_stash_key = pytest.StashKey[bool]()
             ],
         ),
     ],
+    scope="class",
 )
 def distributed(request, local_rank, world_size):
     if request.param in ("nccl", "gloo_cpu", "gloo"):
@@ -422,7 +478,7 @@ def distributed(request, local_rank, world_size):
             dist_info["backend"] = "gloo"
             from datetime import timedelta
 
-            dist_info["timeout"] = timedelta(seconds=60)
+            dist_info["timeout"] = timedelta(seconds=30)
         yield _create_dist_context(dist_info, local_rank)
         _destroy_dist_context()
         if temp_file:
@@ -440,8 +496,52 @@ def distributed(request, local_rank, world_size):
         raise RuntimeError(f"Invalid parameter value for `distributed` fixture, given {request.param}")
 
 
+class UnrunTracker:
+    """
+    Keeps track of unrun tests to improve the user experience when using the
+    "--last-failed" pytest option and a test session is interrupted. This is
+    particularly useful on CI when rerunning "failing" tests where the failure
+    was due to a deadlock and many tests weren't actually run so they didn't
+    actually fail. This is a pytest plugin that implements some standard hooks
+    to modify the test session. Its functionality can be added to a test session
+    by registering it with the pytest plugin manager.
+    """
+
+    def __init__(self):
+        self.unrun_tests = []
+
+    def pytest_collection_finish(self, session):
+        # At the end of the collection, add all items to the unrun_tests list
+        self.unrun_tests.extend(session.items)
+
+    def pytest_runtest_teardown(self, item):
+        if item in self.unrun_tests:
+            self.unrun_tests.remove(item)
+
+    def record_unrun_as_failed(self, session, exitstatus):
+        # Get current lastfailed entries (if any)
+        lastfailed = session.config.cache.get("cache/lastfailed", {})
+
+        # Add unrun tests to lastfailed
+        for test in self.unrun_tests:
+            lastfailed[test.nodeid] = True
+
+        # Update the cache with the new lastfailed
+        session.config.cache.set("cache/lastfailed", lastfailed)
+
+
 @pytest.hookimpl
 def pytest_pyfunc_call(pyfuncitem: pytest.Function) -> None:
+    if any(fx in pyfuncitem.fixturenames for fx in ["distributed", "multinode_distributed"]):
+        # Run distributed tests on a single worker to avoid RACE conditions
+        # This requires that the --dist=loadgroup option be passed to pytest.
+        pyfuncitem.add_marker(pytest.mark.xdist_group("distributed"))
+        # Add timeouts to prevent hanging
+        if "tpu" in pyfuncitem.fixturenames:
+            pyfuncitem.add_marker(pytest.mark.timeout(60))
+        else:
+            pyfuncitem.add_marker(pytest.mark.timeout(45))
+
     if pyfuncitem.stash.get(is_horovod_stash_key, False):
 
         def testfunc_wrapper(test_func, **kwargs):
@@ -491,3 +591,16 @@ def pytest_pyfunc_call(pyfuncitem: pytest.Function) -> None:
                 assert ex_.code == 0, "Didn't successfully exit in XLA test"
 
         pyfuncitem.obj = functools.partial(testfunc_wrapper, pyfuncitem.obj)
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """
+    Any functionality that should be run at the end of the session should be
+    added here.
+    This is a pytest hook (due to its name) and is called after the whole test
+    run finished, right before returning the exit status to the system.
+    """
+    # If requested by the user, track all unrun tests and add them to the lastfailed cache
+    if session.config.option.treat_unrun_as_failed:
+        unrun_tracker = session.config.pluginmanager.get_plugin("unrun_tracker_plugin")
+        unrun_tracker.record_unrun_as_failed(session, exitstatus)

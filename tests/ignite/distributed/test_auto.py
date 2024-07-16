@@ -12,6 +12,8 @@ from torch.utils.data.sampler import BatchSampler, RandomSampler, Sampler, Seque
 
 import ignite.distributed as idist
 from ignite.distributed.auto import auto_dataloader, auto_model, auto_optim, DistributedProxySampler
+from ignite.distributed.comp_models.base import _torch_version_gt_112
+from tests.ignite import is_mps_available_and_functional
 
 
 class DummyDS(Dataset):
@@ -179,13 +181,17 @@ def _test_auto_model_optimizer(ws, device):
         assert optimizer.backward_passes_per_step == backward_passes_per_step
 
 
+@pytest.mark.skipif(
+    (not _torch_version_gt_112) or (torch.backends.mps.is_available() and not is_mps_available_and_functional()),
+    reason="Skip if MPS not functional",
+)
 def test_auto_methods_no_dist():
     _test_auto_dataloader(1, 1, batch_size=1)
     _test_auto_dataloader(1, 1, batch_size=10, num_workers=2)
     _test_auto_dataloader(1, 1, batch_size=10, sampler_name="WeightedRandomSampler")
     _test_auto_dataloader(1, 1, batch_size=10, sampler_name="DistributedSampler")
-
-    _test_auto_model_optimizer(1, "cuda" if torch.cuda.is_available() else "cpu")
+    device = idist.device()
+    _test_auto_model_optimizer(1, device)
 
 
 @pytest.mark.distributed

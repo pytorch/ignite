@@ -13,7 +13,7 @@ __all__ = ["Precision"]
 
 
 class _BasePrecisionRecall(_BaseClassification):
-    _state_dict_all_req_keys = ("_numerator", "_denominator", "_weight")
+    _state_dict_all_req_keys = ("_numerator", "_denominator", "_weight", "_updated")
 
     def __init__(
         self,
@@ -21,6 +21,7 @@ class _BasePrecisionRecall(_BaseClassification):
         average: Optional[Union[bool, str]] = False,
         is_multilabel: bool = False,
         device: Union[str, torch.device] = torch.device("cpu"),
+        skip_unrolling: bool = False,
     ):
         if not (average is None or isinstance(average, bool) or average in ["macro", "micro", "weighted", "samples"]):
             raise ValueError(
@@ -35,7 +36,7 @@ class _BasePrecisionRecall(_BaseClassification):
         self.eps = 1e-20
         self._updated = False
         super(_BasePrecisionRecall, self).__init__(
-            output_transform=output_transform, is_multilabel=is_multilabel, device=device
+            output_transform=output_transform, is_multilabel=is_multilabel, device=device, skip_unrolling=skip_unrolling
         )
 
     def _check_type(self, output: Sequence[torch.Tensor]) -> None:
@@ -241,6 +242,9 @@ class Precision(_BasePrecisionRecall):
         device: specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
+        skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
+            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            Alternatively, ``output_transform`` can be used to handle this.
 
     Examples:
 
@@ -371,6 +375,9 @@ class Precision(_BasePrecisionRecall):
 
     .. versionchanged:: 0.4.10
             Some new options were added to `average` parameter.
+
+    .. versionchanged:: 0.5.1
+        ``skip_unrolling`` argument is added.
     """
 
     @reinit__is_reduced

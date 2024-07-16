@@ -51,7 +51,7 @@ def log_metrics(logger, epoch, elapsed, tag, metrics):
 
 def get_save_handler(output_path, with_clearml):
     if with_clearml:
-        from ignite.contrib.handlers.clearml_logger import ClearMLSaver
+        from ignite.handlers.clearml_logger import ClearMLSaver
 
         return ClearMLSaver(dirname=output_path)
 

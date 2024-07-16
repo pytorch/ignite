@@ -62,11 +62,11 @@ class FID(_BaseInceptionMetric):
     where :math:`\mu_1` and :math:`\sigma_1` refer to the mean and covariance of the train data and
     :math:`\mu_2` and :math:`\sigma_2` refer to the mean and covariance of the test data.
 
-    More details can be found in `Heusel et al. 2002`__
+    More details can be found in `Heusel et al. 2017`__
 
     __ https://arxiv.org/pdf/1706.08500.pdf
 
-    In addition, a faster and online computation approach can be found in `Chen et al. 2014`__
+    In addition, a faster and online computation approach can be found in `Mathiasen et al. 2020`__
 
     __ https://arxiv.org/pdf/2009.14075.pdf
 
@@ -82,12 +82,13 @@ class FID(_BaseInceptionMetric):
 
     Args:
         num_features: number of features predicted by the model or the reduced feature vector of the image.
-            Default value is 2048.
+            Default value is 1000.
         feature_extractor: a torch Module for extracting the features from the input data.
             It returns a tensor of shape (batch_size, num_features).
             If neither ``num_features`` nor ``feature_extractor`` are defined, by default we use an ImageNet
-            pretrained Inception Model. If only ``num_features`` is defined but ``feature_extractor`` is not
-            defined, ``feature_extractor`` is assigned Identity Function.
+            pretrained Inception Model and use model's output logits as features.
+            If only ``num_features`` is defined but ``feature_extractor`` is not defined,
+            ``feature_extractor`` is assigned Identity Function.
             Please note that the model will be implicitly converted to device mentioned in the ``device``
             argument.
         output_transform: a callable that is used to transform the
@@ -225,7 +226,7 @@ class FID(_BaseInceptionMetric):
         self._test_total = torch.zeros(self._num_features, dtype=torch.float64, device=self._device)
         self._num_examples: int = 0
 
-        super(FID, self).reset()
+        super(FID, self).reset()  # type: ignore
 
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:

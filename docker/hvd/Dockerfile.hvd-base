@@ -12,6 +12,9 @@ RUN apt-get update && apt-get install -y git && \
         git clone --recursive --depth 1 --branch ${HVD_VERSION} https://github.com/horovod/horovod.git /horovod && \
         conda install -y cmake nccl -c conda-forge && \
         cd /horovod && \
+        # temporary -std=c++17 fix
+        sed -i "s/CMAKE_CXX_STANDARD 14/CMAKE_CXX_STANDARD 17/g" CMakeLists.txt && \
+        sed -i "s/CMAKE_CXX_STANDARD 14/CMAKE_CXX_STANDARD 17/g" horovod/torch/CMakeLists.txt && \
         HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_NCCL_LINK=SHARED HOROVOD_WITHOUT_MPI=1 HOROVOD_WITH_PYTORCH=1 pip wheel --no-cache-dir . && \
         rm -rf /var/lib/apt/lists/*
 

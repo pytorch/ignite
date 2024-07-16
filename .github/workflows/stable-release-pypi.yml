@@ -8,36 +8,28 @@ jobs:
   build-publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v2
         with:
           miniconda-version: "latest"
-          python-version: 3.8
+          python-version: "3.10"
 
       - name: Install dependencies
         shell: bash -l {0}
         run: |
           conda install -y pytorch torchvision cpuonly -c pytorch
           pip install -r requirements-dev.txt
-          pip install --upgrade --no-cache-dir twine
-          python setup.py install
 
       - name: Build and Publish PyPI binaries
         shell: bash -l {0}
         run: |
+          # workaround to fix https://github.com/pytorch/ignite/issues/2373
+          pip uninstall -y twine pkginfo
+          pip install --upgrade --no-cache-dir twine 'pkginfo>=1.8.2'
           python setup.py sdist bdist_wheel
+          twine --version
           twine check dist/*
           TWINE_USERNAME="${{ secrets.PYPI_USER }}" TWINE_PASSWORD="${{ secrets.PYPI_TOKEN }}" twine upload --verbose dist/*
 
-  # docker-build-publish:
-  #   name: Trigger Build and Push Docker images to Docker Hub
-  #   needs: build-publish
-  #   runs-on: ubuntu-latest
-
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - uses: actions/setup-python@v4
-  #       with:
-  #         python-version: 3.8

@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from ignite.distributed.comp_models.base import _SerialModel, ComputationModel
+from ignite.distributed.comp_models.base import _SerialModel, _torch_version_gt_112, ComputationModel
 
 
 def test_serial_model():
@@ -16,6 +16,8 @@ def test_serial_model():
     assert model.get_node_rank() == 0
     if torch.cuda.is_available():
         assert model.device().type == "cuda"
+    elif _torch_version_gt_112 and torch.backends.mps.is_available():
+        assert model.device().type == "mps"
     else:
         assert model.device().type == "cpu"
     assert model.backend() is None

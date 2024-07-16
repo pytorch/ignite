@@ -6,8 +6,6 @@ ARG PTH_VERSION
 # 1/Building apex with pytorch:*-devel
 FROM pytorch/pytorch:${PTH_VERSION}-devel AS apex-hvd-builder
 
-ARG ARG_TORCH_CUDA_ARCH_LIST="3.5 5.2 6.0 6.1 7.0+PTX 8.0 8.6"
-ENV TORCH_CUDA_ARCH_LIST=$ARG_TORCH_CUDA_ARCH_LIST
 ENV CUDA_HOME=/usr/local/cuda
 
 # Install git
@@ -21,7 +19,7 @@ RUN echo "Setup NVIDIA Apex" && \
     git clone https://github.com/NVIDIA/apex $tmp_apex_path && \
     cd $tmp_apex_path && \
     pip install packaging && \
-    pip wheel -v --disable-pip-version-check --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" .
+    pip wheel -v --disable-pip-version-check --no-cache-dir --no-build-isolation --config-settings "--build-option=--cpp_ext" --config-settings "--build-option=--cuda_ext" .
 
 ARG HVD_VERSION
 
@@ -30,6 +28,9 @@ RUN apt-get update && apt-get install -y git && \
         git clone --recursive --depth 1 --branch ${HVD_VERSION} https://github.com/horovod/horovod.git /horovod && \
         conda install -y cmake nccl -c conda-forge && \
         cd /horovod && \
+        # temporary -std=c++17 fix
+        sed -i "s/CMAKE_CXX_STANDARD 14/CMAKE_CXX_STANDARD 17/g" CMakeLists.txt && \
+        sed -i "s/CMAKE_CXX_STANDARD 14/CMAKE_CXX_STANDARD 17/g" horovod/torch/CMakeLists.txt && \
         HOROVOD_GPU_OPERATIONS=NCCL HOROVOD_NCCL_LINK=SHARED HOROVOD_WITHOUT_MPI=1 HOROVOD_WITH_PYTORCH=1 pip wheel --no-cache-dir . && \
         rm -rf /var/lib/apt/lists/*
 

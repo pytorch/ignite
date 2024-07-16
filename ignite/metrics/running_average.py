@@ -27,6 +27,9 @@ class RunningAverage(Metric):
             None when ``src`` is an instance of :class:`~ignite.metrics.metric.Metric`, as the running average will
             use the ``src``'s device. Otherwise, defaults to CPU. Only applicable when the computed value
             from the metric is a tensor.
+        skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
+            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            Alternatively, ``output_transform`` can be used to handle this.
 
     Examples:
 
@@ -84,12 +87,13 @@ class RunningAverage(Metric):
             0.039208...
             0.038423...
             0.057655...
+
+    .. versionchanged:: 0.5.1
+        ``skip_unrolling`` argument is added.
     """
 
     required_output_keys = None
-    # TODO Shall we put `src` here? Then we should add a new branch for metric-typed attributes in `state_dict`
-    # and `load_state_dict`. Examples; This class; `Rouge` which has a `List[_BaseRouge]`.
-    _state_dict_all_req_keys = ("_value",)
+    _state_dict_all_req_keys = ("_value", "src")
 
     def __init__(
         self,
@@ -98,6 +102,7 @@ class RunningAverage(Metric):
         output_transform: Optional[Callable] = None,
         epoch_bound: Optional[bool] = None,
         device: Optional[Union[str, torch.device]] = None,
+        skip_unrolling: bool = False,
     ):
         if not (isinstance(src, Metric) or src is None):
             raise TypeError("Argument src should be a Metric or None.")
@@ -133,7 +138,9 @@ class RunningAverage(Metric):
             )
         self.epoch_bound = epoch_bound
         self.alpha = alpha
-        super(RunningAverage, self).__init__(output_transform=output_transform, device=device)
+        super(RunningAverage, self).__init__(
+            output_transform=output_transform, device=device, skip_unrolling=skip_unrolling
+        )
 
     @reinit__is_reduced
     def reset(self) -> None:

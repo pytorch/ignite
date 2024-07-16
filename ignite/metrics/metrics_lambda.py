@@ -90,9 +90,11 @@ class MetricsLambda(Metric):
             assert not precision.is_attached(engine)
     """
 
+    _state_dict_all_req_keys = ("_updated", "args", "kwargs")
+
     def __init__(self, f: Callable, *args: Any, **kwargs: Any) -> None:
         self.function = f
-        self.args = args
+        self.args = list(args)  # we need args to be a list instead of a tuple for state_dict/load_state_dict feature
         self.kwargs = kwargs
         self.engine: Optional[Engine] = None
         self._updated = False

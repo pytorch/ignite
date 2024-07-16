@@ -338,6 +338,7 @@ Complete list of metrics
     metric.Metric
     metrics_lambda.MetricsLambda
     MultiLabelConfusionMatrix
+    MutualInformation
     ObjectDetectionAvgPrecisionRecall
     precision.Precision
     PSNR
@@ -352,6 +353,41 @@ Complete list of metrics
     RougeN
     InceptionScore
     FID
+    CosineSimilarity
+    Entropy
+    KLDivergence
+    JSDivergence
+    MaximumMeanDiscrepancy
+    AveragePrecision
+    CohenKappa
+    GpuInfo
+    PrecisionRecallCurve
+    RocCurve
+    ROC_AUC
+    regression.CanberraMetric
+    regression.FractionalAbsoluteError
+    regression.FractionalBias
+    regression.GeometricMeanAbsoluteError
+    regression.GeometricMeanRelativeAbsoluteError
+    regression.ManhattanDistance
+    regression.MaximumAbsoluteError
+    regression.MeanAbsoluteRelativeError
+    regression.MeanError
+    regression.MeanNormalizedBias
+    regression.MedianAbsoluteError
+    regression.MedianAbsolutePercentageError
+    regression.MedianRelativeAbsoluteError
+    regression.PearsonCorrelation
+    regression.R2Score
+    regression.WaveHedgesDistance
+
+
+.. note::
+
+    Module ignite.metrics.regression provides implementations of metrics useful
+    for regression tasks. Definitions of metrics are based on
+    `Botchkarev 2018`_, page 30 "Appendix 2. Metrics mathematical definitions".
+
 
 Helpers for customizing metrics
 -------------------------------
@@ -393,3 +429,6 @@ reinit__is_reduced
 sync_all_reduce
 ~~~~~~~~~~~~~~~
 .. autofunction:: sync_all_reduce
+
+.. _`Botchkarev 2018`:
+        https://arxiv.org/abs/1809.03006

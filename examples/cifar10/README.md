@@ -33,7 +33,7 @@ Run the example on a single GPU:
 python main.py run
 ```
 
-For details on accepted arguments:
+For more details on accepted arguments:
 
 ```bash
 python main.py run -- --help

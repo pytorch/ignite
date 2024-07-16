@@ -3,6 +3,9 @@ from numbers import Number
 from typing import Any, Callable, cast, List, Optional, Union
 
 import torch
+from packaging.version import Version
+
+_torch_version_gt_112 = Version(torch.__version__) > Version("1.12.0")
 
 
 class ComputationModel(metaclass=ABCMeta):
@@ -199,10 +202,7 @@ class ComputationModel(metaclass=ABCMeta):
         tensor = self._apply_op(tensor, device, fn, *args, **kwargs)
 
         if tensor_to_number:
-            if tensor.numel() == 1:
-                return tensor.item()
-            else:
-                return tensor.tolist()
+            return tensor.tolist()
         elif tensor_to_str:
             return self._decode_str(tensor)
         return tensor
@@ -217,7 +217,7 @@ class ComputationModel(metaclass=ABCMeta):
 
     def all_gather(
         self, tensor: Union[torch.Tensor, float, str, Any], group: Optional[Any] = None
-    ) -> Union[torch.Tensor, float, List[float], List[str]]:
+    ) -> Union[torch.Tensor, float, List[float], List[str], List[Any]]:
         if not isinstance(tensor, (torch.Tensor, Number, str)):
             return self._do_all_gather_object(tensor, group=group)
 
@@ -329,6 +329,8 @@ class _SerialModel(ComputationModel):
     def device(self) -> torch.device:
         if torch.cuda.is_available():
             return torch.device("cuda")
+        if _torch_version_gt_112 and torch.backends.mps.is_available():
+            return torch.device("mps")
         return torch.device("cpu")
 
     def backend(self) -> Optional[str]:
@@ -358,11 +360,11 @@ class _SerialModel(ComputationModel):
         return tensor
 
     def all_gather(
-        self, tensor: Union[torch.Tensor, float, str], group: Optional[Any] = None
-    ) -> Union[torch.Tensor, float, List[float], List[str]]:
+        self, tensor: Union[torch.Tensor, float, str, Any], group: Optional[Any] = None
+    ) -> Union[torch.Tensor, float, List[float], List[str], List[Any]]:
         if isinstance(tensor, torch.Tensor):
             return tensor
-        return cast(Union[List[float], List[str]], [tensor])
+        return cast(Union[List[float], List[str], List[Any]], [tensor])
 
     def broadcast(
         self, tensor: Union[torch.Tensor, float, str, None], src: int = 0, safe_mode: bool = False

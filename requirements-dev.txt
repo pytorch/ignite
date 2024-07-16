@@ -3,21 +3,19 @@ numpy
 pytest
 pytest-cov
 pytest-xdist
+pytest-timeout
 dill
+filelock
 setuptools
 # Test contrib dependencies
 scipy
-pytorch_fid==0.1.1
+pytorch_fid
 tqdm
 scikit-learn
 matplotlib
 tensorboardX
-visdom==0.2.3
-# temporary fix for
-# ImportError: cannot import name 'soft_unicode' from 'markupsafe'
-markupsafe==2.0.1
+visdom
 polyaxon
-polyaxon-client
 wandb
 mlflow
 neptune-client>=0.16.17
@@ -27,9 +25,12 @@ pynvml
 clearml
 scikit-image
 py-rouge
-nltk
+pycocotools
+# temporary fix for python=3.12 and v3.8.1
+# nltk
+git+https://github.com/nltk/nltk
 # Examples dependencies
 pandas
 gymnasium
-pycocotools
-mkl;platform_machine=="x86_64"
+# temporary fix: E   AttributeError: module 'mpmath' has no attribute 'rational'
+mpmath<1.4

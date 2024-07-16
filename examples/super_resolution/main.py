@@ -8,10 +8,9 @@ from model import Net
 from torch.utils.data import DataLoader
 from torchvision.transforms.functional import center_crop, resize, to_tensor
 
-from ignite.contrib.handlers import ProgressBar
-
 from ignite.engine import Engine, Events
-from ignite.handlers import BasicTimeProfiler
+
+from ignite.handlers import BasicTimeProfiler, ProgressBar
 from ignite.metrics import PSNR
 
 # Training settings
@@ -73,8 +72,12 @@ class SRDataset(torch.utils.data.Dataset):
         return len(self.dataset)
 
 
-trainset = torchvision.datasets.Caltech101(root="./data", download=True)
-testset = torchvision.datasets.Caltech101(root="./data", download=False)
+try:
+    trainset = torchvision.datasets.Caltech101(root="./data", download=True)
+    testset = torchvision.datasets.Caltech101(root="./data", download=False)
+except RuntimeError:
+    print("Dataset download problem, exiting without error code")
+    exit(0)
 
 trainset_sr = SRDataset(trainset, scale_factor=opt.upscale_factor, crop_size=opt.crop_size)
 testset_sr = SRDataset(testset, scale_factor=opt.upscale_factor, crop_size=opt.crop_size)

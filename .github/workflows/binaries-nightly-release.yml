@@ -10,13 +10,13 @@ jobs:
   build-publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Miniconda
         uses: conda-incubator/setup-miniconda@v2
         with:
           miniconda-version: "latest"
-          python-version: 3.8
+          python-version: "3.10"
 
       - name: Setup nightly version
         run: |
@@ -38,7 +38,7 @@ jobs:
           chmod +x ./conda.recipe/build_and_upload.sh
           ./conda.recipe/build_and_upload.sh
 
-      - name: Build and Publish PyPi binaries
+      - name: Build and Publish PyPI binaries
         shell: bash -l {0}
         run: |
           # workaround to fix https://github.com/pytorch/ignite/issues/2373

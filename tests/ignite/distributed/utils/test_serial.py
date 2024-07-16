@@ -1,6 +1,7 @@
 import torch
 
 import ignite.distributed as idist
+from ignite.distributed.comp_models.base import _torch_version_gt_112
 from tests.ignite.distributed.utils import (
     _sanity_check,
     _test_distrib__get_max_length,
@@ -17,6 +18,8 @@ def test_no_distrib(capsys):
     assert idist.backend() is None
     if torch.cuda.is_available():
         assert idist.device().type == "cuda"
+    elif _torch_version_gt_112 and torch.backends.mps.is_available():
+        assert idist.device().type == "mps"
     else:
         assert idist.device().type == "cpu"
     assert idist.get_rank() == 0
@@ -38,6 +41,8 @@ def test_no_distrib(capsys):
     assert "ignite.distributed.utils INFO: backend: None" in out[-1]
     if torch.cuda.is_available():
         assert "ignite.distributed.utils INFO: device: cuda" in out[-1]
+    elif _torch_version_gt_112 and torch.backends.mps.is_available():
+        assert "ignite.distributed.utils INFO: device: mps" in out[-1]
     else:
         assert "ignite.distributed.utils INFO: device: cpu" in out[-1]
     assert "ignite.distributed.utils INFO: rank: 0" in out[-1]

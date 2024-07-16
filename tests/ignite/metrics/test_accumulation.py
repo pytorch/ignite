@@ -152,6 +152,16 @@ def test_integration(metric_cls, true_result_fn, shape):
         np.array(state.metrics["agg_custom_var"]), true_result_fn(custom_variable), decimal=5
     )
 
+    metric_state = custom_var_mean.state_dict()
+    saved_num_examples = custom_var_mean.num_examples
+    saved_accumulator = custom_var_mean.accumulator
+    custom_var_mean.reset()
+    assert custom_var_mean.num_examples == 0
+    assert custom_var_mean.accumulator == 0
+    custom_var_mean.load_state_dict(metric_state)
+    assert custom_var_mean.num_examples == saved_num_examples
+    assert (custom_var_mean.accumulator == saved_accumulator).all()
+
 
 def test_compute_mean_std():
     n = 8

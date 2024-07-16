@@ -34,6 +34,9 @@ class ConfusionMatrix(Metric):
         device: specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
+        skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
+            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            Alternatively, ``output_transform`` can be used to handle this.
 
     Note:
         The confusion matrix is formatted such that columns are predictions and rows are targets.
@@ -80,9 +83,10 @@ class ConfusionMatrix(Metric):
         .. testcode:: 2
 
             def binary_one_hot_output_transform(output):
+                from ignite import utils
                 y_pred, y = output
                 y_pred = torch.sigmoid(y_pred).round().long()
-                y_pred = ignite.utils.to_onehot(y_pred, 2)
+                y_pred = utils.to_onehot(y_pred, 2)
                 y = y.long()
                 return y_pred, y
 
@@ -97,6 +101,9 @@ class ConfusionMatrix(Metric):
 
             tensor([[2, 1],
                     [1, 1]])
+
+    .. versionchanged:: 0.5.1
+        ``skip_unrolling`` argument is added.
     """
 
     _state_dict_all_req_keys = ("confusion_matrix", "_num_examples")
@@ -107,6 +114,7 @@ class ConfusionMatrix(Metric):
         average: Optional[str] = None,
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
+        skip_unrolling: bool = True,
     ):
         if average is not None and average not in ("samples", "recall", "precision"):
             raise ValueError("Argument average can None or one of 'samples', 'recall', 'precision'")
@@ -117,7 +125,9 @@ class ConfusionMatrix(Metric):
         self.num_classes = num_classes
         self._num_examples = 0
         self.average = average
-        super(ConfusionMatrix, self).__init__(output_transform=output_transform, device=device)
+        super(ConfusionMatrix, self).__init__(
+            output_transform=output_transform, device=device, skip_unrolling=skip_unrolling
+        )
 
     @reinit__is_reduced
     def reset(self) -> None:

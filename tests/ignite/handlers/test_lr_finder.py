@@ -3,6 +3,8 @@ import os
 from pathlib import Path
 from unittest.mock import MagicMock
 
+import filelock
+
 import matplotlib
 import pytest
 import torch
@@ -11,8 +13,8 @@ from torch import nn
 from torch.optim import SGD
 
 import ignite.distributed as idist
-from ignite.contrib.handlers import FastaiLRFinder
 from ignite.engine import create_supervised_trainer, Engine, Events
+from ignite.handlers import FastaiLRFinder
 
 matplotlib.use("agg")
 
@@ -144,16 +146,27 @@ def dataloader_plot():
 
 
 @pytest.fixture
-def mnist_dataloader():
+def mnist_dataloader(tmp_path_factory):
     from torch.utils.data import DataLoader
     from torchvision.datasets import MNIST
     from torchvision.transforms import Compose, Normalize, ToTensor
 
     data_transform = Compose([ToTensor(), Normalize((0.1307,), (0.3081,))])
 
-    train_loader = DataLoader(
-        MNIST(download=True, root="/tmp", transform=data_transform, train=True), batch_size=256, shuffle=True
-    )
+    root_tmp_dir = tmp_path_factory.getbasetemp().parent
+    while True:
+        try:
+            with filelock.FileLock(root_tmp_dir / "mnist_download.lock", timeout=0.2) as fn:
+                fn.acquire()
+                train_loader = DataLoader(
+                    MNIST(download=True, root="/tmp", transform=data_transform, train=True),
+                    batch_size=256,
+                    shuffle=True,
+                )
+                fn.release()
+                break
+        except filelock._error.Timeout:
+            pass
 
     yield train_loader
 

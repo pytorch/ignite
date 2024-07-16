@@ -307,7 +307,7 @@ def spawn(
             idist.spawn("xla-tpu", train_fn, args=(a, b, c), kwargs_dict={"d": 23}, nproc_per_node=8)
 
     .. _dist.init_process_group: https://pytorch.org/docs/stable/distributed.html#torch.distributed.init_process_group
-    .. _mp.start_processes: https://pytorch.org/docs/stable/multiprocessing.html#torch.multiprocessing.spawn
+    .. _mp.start_processes: https://pytorch.org/docs/stable/multiprocessing.html#torch.multiprocessing.spawn.spawn
     .. _xmp.spawn: https://pytorch.org/xla/release/1.6/index.html#torch_xla.distributed.xla_multiprocessing.spawn
     .. _hvd_run: https://horovod.readthedocs.io/en/latest/api.html#module-horovod.run
 
@@ -383,8 +383,8 @@ def all_gather_tensors_with_shapes(
 
 
 def all_gather(
-    tensor: Union[torch.Tensor, float, str], group: Optional[Union[Any, List[int]]] = None
-) -> Union[torch.Tensor, float, List[float], List[str]]:
+    tensor: Union[torch.Tensor, float, str, Any], group: Optional[Union[Any, List[int]]] = None
+) -> Union[torch.Tensor, float, List[float], List[str], List[Any]]:
     """Helper method to perform all gather operation.
 
     Args:
@@ -696,7 +696,7 @@ def one_rank_first(rank: int = 0, local: bool = False) -> Any:
 
             dp = ds[0]
 
-    .. versionadded:: 0.5.0
+    .. versionadded:: 0.4.13
     """
 
     current_rank = get_local_rank() if local else get_rank()
