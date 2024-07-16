@@ -1,6 +1,6 @@
 import os
 from typing import Tuple
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
@@ -9,7 +9,7 @@ import torch
 from sklearn.metrics import precision_recall_curve
 
 import ignite.distributed as idist
-from ignite.engine import Engine
+from ignite.engine import Engine, State
 from ignite.metrics.epoch_metric import EpochMetricWarning
 from ignite.metrics.precision_recall_curve import PrecisionRecallCurve
 
@@ -310,3 +310,29 @@ def _test_distrib_xla_nprocs(index):
 def test_distrib_xla_nprocs(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
     xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)
+
+
+def test_skip_unrolling():
+
+    size = 100
+    np_y_pred = np.random.rand(size, 1)
+    np_y = np.zeros((size,))
+    np_y[size // 2 :] = 1
+    sk_precision, sk_recall, sk_thresholds = precision_recall_curve(np_y, np_y_pred)
+
+    precision_recall_curve_metric = PrecisionRecallCurve(skip_unrolling=True)
+    y_pred = torch.from_numpy(np_y_pred)
+    y = torch.from_numpy(np_y)
+
+    state = State(output=(y_pred, y))
+    engine = MagicMock(state=state)
+    precision_recall_curve_metric.iteration_completed(engine)
+    precision, recall, thresholds = precision_recall_curve_metric.compute()
+    precision = precision.numpy()
+    recall = recall.numpy()
+    thresholds = thresholds.numpy()
+
+    assert pytest.approx(precision) == sk_precision
+    assert pytest.approx(recall) == sk_recall
+    # assert thresholds almost equal, due to numpy->torch->numpy conversion
+    np.testing.assert_array_almost_equal(thresholds, sk_thresholds)
