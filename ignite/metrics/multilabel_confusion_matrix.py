@@ -37,6 +37,9 @@ class MultiLabelConfusionMatrix(Metric):
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
         normalized: whether to normalize confusion matrix by its sum or not.
+        skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
+            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            Alternatively, ``output_transform`` can be used to handle this.
 
     Example:
 
@@ -79,6 +82,8 @@ class MultiLabelConfusionMatrix(Metric):
 
     .. versionadded:: 0.4.5
 
+    .. versionchanged:: 0.5.1
+        ``skip_unrolling`` argument is added.
     """
 
     _state_dict_all_req_keys = ("confusion_matrix", "_num_examples")
@@ -89,6 +94,7 @@ class MultiLabelConfusionMatrix(Metric):
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
         normalized: bool = False,
+        skip_unrolling: bool = False,
     ):
         if num_classes <= 1:
             raise ValueError("Argument num_classes needs to be > 1")
@@ -96,7 +102,9 @@ class MultiLabelConfusionMatrix(Metric):
         self.num_classes = num_classes
         self._num_examples = 0
         self.normalized = normalized
-        super(MultiLabelConfusionMatrix, self).__init__(output_transform=output_transform, device=device)
+        super(MultiLabelConfusionMatrix, self).__init__(
+            output_transform=output_transform, device=device, skip_unrolling=skip_unrolling
+        )
 
     @reinit__is_reduced
     def reset(self) -> None:

@@ -186,3 +186,23 @@ def test_distrib_integration(distributed):
 
     assert engine.state.metrics["epm"] == ep_metric_true
     assert ep_metric.compute() == ep_metric_true
+
+
+def test_skip_unrolling():
+    def compute_fn(y_preds, y_targets):
+        return 0.0
+
+    em = EpochMetric(compute_fn, skip_unrolling=True)
+
+    em.reset()
+    output1 = (torch.rand(4, 2), torch.randint(0, 2, size=(4, 2), dtype=torch.long))
+    em.update(output1)
+    output2 = (torch.rand(4, 2), torch.randint(0, 2, size=(4, 2), dtype=torch.long))
+    em.update(output2)
+
+    assert all([t.device.type == "cpu" for t in em._predictions + em._targets])
+    assert torch.equal(em._predictions[0], output1[0])
+    assert torch.equal(em._predictions[1], output2[0])
+    assert torch.equal(em._targets[0], output1[1])
+    assert torch.equal(em._targets[1], output2[1])
+    assert em.compute() == 0.0

@@ -65,6 +65,9 @@ class EpochMetric(Metric):
     Warnings:
         EpochMetricWarning: User is warned that there are issues with ``compute_fn`` on a batch of data processed.
         To disable the warning, set ``check_compute_fn=False``.
+
+    .. versionchanged:: 0.5.1
+        ``skip_unrolling`` argument is added.
     """
 
     _state_dict_all_req_keys = ("_predictions", "_targets")
@@ -75,6 +78,7 @@ class EpochMetric(Metric):
         output_transform: Callable = lambda x: x,
         check_compute_fn: bool = True,
         device: Union[str, torch.device] = torch.device("cpu"),
+        skip_unrolling: bool = False,
     ) -> None:
         if not callable(compute_fn):
             raise TypeError("Argument compute_fn should be callable.")
@@ -82,7 +86,9 @@ class EpochMetric(Metric):
         self.compute_fn = compute_fn
         self._check_compute_fn = check_compute_fn
 
-        super(EpochMetric, self).__init__(output_transform=output_transform, device=device)
+        super(EpochMetric, self).__init__(
+            output_transform=output_transform, device=device, skip_unrolling=skip_unrolling
+        )
 
     @reinit__is_reduced
     def reset(self) -> None:

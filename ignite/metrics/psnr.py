@@ -30,6 +30,9 @@ class PSNR(Metric):
         device: specifies which device updates are accumulated on.
             Setting the metric’s device to be the same as your update arguments ensures
             the update method is non-blocking. By default, CPU.
+        skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
+            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            Alternatively, ``output_transform`` can be used to handle this.
 
     Examples:
         To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
@@ -79,6 +82,9 @@ class PSNR(Metric):
             16.7027966...
 
     .. versionadded:: 0.4.3
+
+    .. versionchanged:: 0.5.1
+        ``skip_unrolling`` argument is added.
     """
 
     _state_dict_all_req_keys = ("_sum_of_batchwise_psnr", "_num_examples")
@@ -88,8 +94,9 @@ class PSNR(Metric):
         data_range: Union[int, float],
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
+        skip_unrolling: bool = False,
     ):
-        super().__init__(output_transform=output_transform, device=device)
+        super().__init__(output_transform=output_transform, device=device, skip_unrolling=skip_unrolling)
         self.data_range = data_range
 
     def _check_shape_dtype(self, output: Sequence[torch.Tensor]) -> None:

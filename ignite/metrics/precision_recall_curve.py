@@ -33,6 +33,9 @@ class PrecisionRecallCurve(EpochMetric):
             <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.precision_recall_curve.html
             #sklearn.metrics.precision_recall_curve>`_ is run on the first batch of data to ensure there are
             no issues. User will be warned in case there are any issues computing the function.
+        skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
+            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            Alternatively, ``output_transform`` can be used to handle this.
 
     Note:
         PrecisionRecallCurve expects y to be comprised of 0's and 1's. y_pred must either be probability estimates
@@ -69,6 +72,8 @@ class PrecisionRecallCurve(EpochMetric):
             Recall [1.0, 1.0, 1.0, 0.5, 0.0]
             Thresholds [0.0474, 0.5987, 0.7109, 0.9997]
 
+    .. versionchanged:: 0.5.1
+        ``skip_unrolling`` argument is added.
     """
 
     def __init__(
@@ -76,12 +81,14 @@ class PrecisionRecallCurve(EpochMetric):
         output_transform: Callable = lambda x: x,
         check_compute_fn: bool = False,
         device: Union[str, torch.device] = torch.device("cpu"),
+        skip_unrolling: bool = False,
     ) -> None:
         super(PrecisionRecallCurve, self).__init__(
             precision_recall_curve_compute_fn,  # type: ignore[arg-type]
             output_transform=output_transform,
             check_compute_fn=check_compute_fn,
             device=device,
+            skip_unrolling=skip_unrolling,
         )
 
     def compute(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:  # type: ignore[override]
