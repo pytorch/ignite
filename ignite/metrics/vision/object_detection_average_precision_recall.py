@@ -1,4 +1,4 @@
-from typing import Callable, cast, Dict, List, Optional, override, Sequence, Tuple, Union
+from typing import Callable, cast, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 from typing_extensions import Literal
@@ -213,7 +213,6 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
 
         return recall, precision
 
-    @override
     def _compute_average_precision(self, recall: torch.Tensor, precision: torch.Tensor) -> torch.Tensor:
         """Measuring average precision.
         This method is overriden since :math:`1/#recall_thresholds` is used instead of :math:`r_k - r_{k-1}`
