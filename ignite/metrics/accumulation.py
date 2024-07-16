@@ -34,7 +34,12 @@ class VariableAccumulation(Metric):
         device: specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
+        skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
+            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            Alternatively, ``output_transform`` can be used to handle this.
 
+    .. versionchanged:: 0.5.1
+        ``skip_unrolling`` argument is added.
     """
 
     required_output_keys = None
@@ -45,13 +50,16 @@ class VariableAccumulation(Metric):
         op: Callable,
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
+        skip_unrolling: bool = False,
     ):
         if not callable(op):
             raise TypeError(f"Argument op should be a callable, but given {type(op)}")
 
         self._op = op
 
-        super(VariableAccumulation, self).__init__(output_transform=output_transform, device=device)
+        super(VariableAccumulation, self).__init__(
+            output_transform=output_transform, device=device, skip_unrolling=skip_unrolling
+        )
 
     @reinit__is_reduced
     def reset(self) -> None:
@@ -110,6 +118,9 @@ class Average(VariableAccumulation):
         device: specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
+        skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
+            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            Alternatively, ``output_transform`` can be used to handle this.
 
     Examples:
 
@@ -164,17 +175,25 @@ class Average(VariableAccumulation):
         .. testoutput::
 
             tensor([1.5000, 1.5000, 1.5000], dtype=torch.float64)
+
+    .. versionchanged:: 0.5.1
+        ``skip_unrolling`` argument is added.
     """
 
     def __init__(
-        self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu")
+        self,
+        output_transform: Callable = lambda x: x,
+        device: Union[str, torch.device] = torch.device("cpu"),
+        skip_unrolling: bool = False,
     ):
         def _mean_op(a: Union[float, torch.Tensor], x: Union[float, torch.Tensor]) -> Union[float, torch.Tensor]:
             if isinstance(x, torch.Tensor) and x.ndim > 1:
                 x = x.sum(dim=0)
             return a + x
 
-        super(Average, self).__init__(op=_mean_op, output_transform=output_transform, device=device)
+        super(Average, self).__init__(
+            op=_mean_op, output_transform=output_transform, device=device, skip_unrolling=skip_unrolling
+        )
 
     @sync_all_reduce("accumulator", "num_examples")
     def compute(self) -> Union[float, torch.Tensor]:
@@ -200,6 +219,9 @@ class GeometricAverage(VariableAccumulation):
         device: specifies which device updates are accumulated on. Setting the metric's
             device to be the same as your ``update`` arguments ensures the ``update`` method is non-blocking. By
             default, CPU.
+        skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
+            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            Alternatively, ``output_transform`` can be used to handle this.
 
     Note:
 
@@ -267,10 +289,16 @@ class GeometricAverage(VariableAccumulation):
         .. testoutput::
 
             tensor([2.2134, 2.2134, 2.2134], dtype=torch.float64)
+
+    .. versionchanged:: 0.5.1
+        ``skip_unrolling`` argument is added.
     """
 
     def __init__(
-        self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu")
+        self,
+        output_transform: Callable = lambda x: x,
+        device: Union[str, torch.device] = torch.device("cpu"),
+        skip_unrolling: bool = False,
     ):
         def _geom_op(a: torch.Tensor, x: Union[float, torch.Tensor]) -> torch.Tensor:
             if not isinstance(x, torch.Tensor):
@@ -280,7 +308,9 @@ class GeometricAverage(VariableAccumulation):
                 x = x.sum(dim=0)
             return a + x
 
-        super(GeometricAverage, self).__init__(op=_geom_op, output_transform=output_transform, device=device)
+        super(GeometricAverage, self).__init__(
+            op=_geom_op, output_transform=output_transform, device=device, skip_unrolling=skip_unrolling
+        )
 
     @sync_all_reduce("accumulator", "num_examples")
     def compute(self) -> Union[float, torch.Tensor]:
