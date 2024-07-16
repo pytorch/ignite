@@ -4,7 +4,6 @@ import torch
 from sklearn.metrics import multilabel_confusion_matrix
 
 import ignite.distributed as idist
-
 from ignite.exceptions import NotComputableError
 from ignite.metrics.multilabel_confusion_matrix import MultiLabelConfusionMatrix
 
