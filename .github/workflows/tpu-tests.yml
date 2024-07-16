@@ -36,10 +36,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python 3.9
+      - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
-          python-version: "3.9"
+          python-version: "3.10"
           architecture: "x64"
 
       - name: Get year & week number
@@ -70,10 +70,9 @@ jobs:
           pip install mkl==2021.4.0
 
           ## Install torch & xla and torchvision
-          pip install --pre  https://storage.googleapis.com/tpu-pytorch/wheels/colab/torch-nightly-cp39-cp39-linux_x86_64.whl
-          pip install --pre  https://storage.googleapis.com/tpu-pytorch/wheels/colab/torch_xla-nightly-cp39-cp39-linux_x86_64.whl
-          pip install --pre  https://storage.googleapis.com/tpu-pytorch/wheels/colab/torchvision-nightly-cp39-cp39-linux_x86_64.whl
-
+          pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cpu
+          pip install https://storage.googleapis.com/pytorch-xla-releases/wheels/tpuvm/torch_xla-nightly-cp310-cp310-linux_x86_64.whl
+          
           # Check installation
           python -c "import torch"
 
