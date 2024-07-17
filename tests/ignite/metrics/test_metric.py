@@ -1446,3 +1446,25 @@ def test_skip_unrolling():
     state = State(output=(y_pred, y_true))
     engine = MagicMock(state=state)
     metric.iteration_completed(engine)
+
+
+class DummyMetric6(Metric):
+    def reset(self):
+        pass
+
+    def compute(self):
+        pass
+
+    def update(self, output):
+        pass
+
+    def __call__(self, value):
+        pass
+
+
+def test_access_to_metric_dunder_attributes():
+    metric = DummyMetric6()
+    import inspect
+
+    # `inspect.signature` accesses `__signature__` attribute of the metric.
+    assert "value" in inspect.signature(metric).parameters.keys()
