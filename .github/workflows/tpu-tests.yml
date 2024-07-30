@@ -50,7 +50,7 @@ jobs:
       - name: Get pip cache dir
         id: pip-cache
         run: |
-          pip3 install -U pip
+          pip3 install -U "pip<24"
           echo "pip_cache=$(pip cache dir)" >> $GITHUB_OUTPUT
         shell: bash -l {0}
 
