@@ -56,7 +56,7 @@ jobs:
     env:
       REPOSITORY: ${{ github.repository }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
-    runs-on: linux.4xlarge
+    runs-on: amz2023.linux.4xlarge
     steps:
       - name: Clean workspace
         run: |
@@ -116,7 +116,7 @@ jobs:
     env:
       REPOSITORY: ${{ github.repository }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
-    runs-on: linux.12xlarge
+    runs-on: amz2023.linux.12xlarge
     steps:
       - name: Clean workspace
         run: |
@@ -176,7 +176,7 @@ jobs:
     env:
       REPOSITORY: ${{ github.repository }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
-    runs-on: linux.4xlarge
+    runs-on: amz2023.linux.4xlarge
     steps:
       - name: Clean workspace
         run: |
@@ -236,7 +236,7 @@ jobs:
     env:
       REPOSITORY: ${{ github.repository }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
-    runs-on: linux.12xlarge
+    runs-on: amz2023.linux.12xlarge
     steps:
       - name: Clean workspace
         run: |
