@@ -27,7 +27,8 @@ scikit-image
 py-rouge
 # temporary fix for python=3.12 and v3.8.1
 # nltk
-git+https://github.com/nltk/nltk
+# git+https://github.com/nltk/nltk
+nltk
 # Examples dependencies
 pandas
 gymnasium
