@@ -24,6 +24,9 @@ class TopKCategoricalAccuracy(Metric):
         device: specifies which device updates are accumulated on. Setting the
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
+        skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
+            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            Alternatively, ``output_transform`` can be used to handle this.
 
     Examples:
         To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
@@ -71,6 +74,9 @@ class TopKCategoricalAccuracy(Metric):
         .. testoutput::
 
             0.75
+
+    .. versionchanged:: 0.5.1
+        ``skip_unrolling`` argument is added.
     """
 
     _state_dict_all_req_keys = ("_num_correct", "_num_examples")
@@ -80,8 +86,9 @@ class TopKCategoricalAccuracy(Metric):
         k: int = 5,
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
+        skip_unrolling: bool = False,
     ) -> None:
-        super(TopKCategoricalAccuracy, self).__init__(output_transform, device=device)
+        super(TopKCategoricalAccuracy, self).__init__(output_transform, device=device, skip_unrolling=skip_unrolling)
         self._k = k
 
     @reinit__is_reduced
