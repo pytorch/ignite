@@ -39,11 +39,11 @@ class MetricGroup(Metric):
         self.metrics = metrics
         super(MetricGroup, self).__init__(output_transform=output_transform)
 
-    def reset(self):
+    def reset(self) -> None:
         for m in self.metrics.values():
             m.reset()
 
-    def update(self, output: Sequence[torch.Tensor]):
+    def update(self, output: Sequence[torch.Tensor]) -> None:
         for m in self.metrics.values():
             m.update(m._output_transform(output))
 
