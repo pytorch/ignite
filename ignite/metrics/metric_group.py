@@ -20,6 +20,7 @@ class MetricGroup(Metric):
         We construct a group of metrics, attach them to the engine at once and retrieve their result.
 
         .. code-block:: python
+
            import torch
 
            metric_group = MetricGroup({'acc': Accuracy(), 'precision': Precision(), 'loss': Loss(nn.NLLLoss())})
@@ -32,7 +33,7 @@ class MetricGroup(Metric):
            state.metrics["acc"], state.metrics["precision"], state.metrics["loss"]
 
            # And also altogether
-           state.metrics["eval_metrics]
+           state.metrics["eval_metrics"]
     """
 
     _state_dict_all_req_keys = ("metrics",)
