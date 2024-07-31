@@ -157,7 +157,7 @@ class Engine(Serializable):
         _check_signature(process_function, "process_function", self, None)
 
         # generator provided by self._internal_run_as_gen
-        self._internal_run_generator: Optional[Generator] = None
+        self._internal_run_generator: Optional[Generator[Any, None, State]] = None
 
     def register_events(
         self, *event_names: Union[List[str], List[EventEnum]], event_to_attr: Optional[dict] = None
@@ -951,7 +951,7 @@ class Engine(Serializable):
             self._internal_run_generator = None
             return out.value
 
-    def _internal_run_as_gen(self) -> Generator:
+    def _internal_run_as_gen(self) -> Generator[Any, None, State]:
         self.should_terminate = self.should_terminate_single_epoch = self.should_interrupt = False
         self._init_timers(self.state)
         try:
