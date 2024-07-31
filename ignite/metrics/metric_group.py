@@ -20,17 +20,19 @@ class MetricGroup(Metric):
         We construct a group of metrics, attach them to the engine at once and retrieve their result.
 
         .. code-block:: python
-            metric_group = MetricGroup({'acc': Accuracy(), 'precision': Precision(), 'loss': Loss(nn.NLLLoss())})
-            metric_group.attach(default_evaluator, "eval_metrics")
-            y_true = torch.tensor([1, 0, 1, 1, 0, 1])
-            y_pred = torch.tensor([1, 0, 1, 0, 1, 1])
-            state = default_evaluator.run([[y_pred, y_true]])
+           import torch
 
-            # Metrics individually available in `state.metrics`
-            state.metrics["acc"], state.metrics["precision"], state.metrics["loss"]
+           metric_group = MetricGroup({'acc': Accuracy(), 'precision': Precision(), 'loss': Loss(nn.NLLLoss())})
+           metric_group.attach(default_evaluator, "eval_metrics")
+           y_true = torch.tensor([1, 0, 1, 1, 0, 1])
+           y_pred = torch.tensor([1, 0, 1, 0, 1, 1])
+           state = default_evaluator.run([[y_pred, y_true]])
 
-            # And also altogether
-            state.metrics["eval_metrics]
+           # Metrics individually available in `state.metrics`
+           state.metrics["acc"], state.metrics["precision"], state.metrics["loss"]
+
+           # And also altogether
+           state.metrics["eval_metrics]
     """
 
     _state_dict_all_req_keys = ("metrics",)
