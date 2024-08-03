@@ -134,7 +134,7 @@ class WandBLogger(BaseLogger):
                 "You man install wandb with the command:\n pip install wandb\n"
             )
         if kwargs.get("init", True):
-            kwargs.pop('init')
+            kwargs.pop('init', None)
             wandb.init(*args, **kwargs)
 
     def __getattr__(self, attr: Any) -> Any:
