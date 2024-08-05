@@ -335,6 +335,7 @@ Complete list of metrics
     MeanPairwiseDistance
     MeanSquaredError
     metric.Metric
+    metric_group.MetricGroup
     metrics_lambda.MetricsLambda
     MultiLabelConfusionMatrix
     MutualInformation
