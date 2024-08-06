@@ -3,8 +3,10 @@ import torch
 import torch.distributed as dist
 
 import ignite.distributed as idist
-from ignite.distributed.utils import sync
+from ignite.distributed.utils import all_gather_tensors_with_shapes, sync
 from ignite.engine import Engine, Events
+
+torch.manual_seed(41)
 
 
 def _sanity_check():
@@ -193,6 +195,11 @@ def _test_distrib_all_gather(device):
         true_res[i * 4 : (i + 1) * 4, ...] = torch.arange(100, device=device).reshape(4, 25) * (i + 1)
     assert (res == true_res).all()
 
+    ts = [torch.randn((r + 1, r + 2, r + 3), device=device) for r in range(ws)]
+    ts_gathered = all_gather_tensors_with_shapes(ts[rank], [list(t.shape) for t in ts])
+    for t, t_gathered in zip(ts, ts_gathered):
+        assert (t == t_gathered).all()
+
     if ws > 1 and idist.backend() != "xla-tpu":
         t = {
             "a": [rank + 1, rank + 2, torch.tensor(rank + 3, device=device)],
@@ -219,7 +226,7 @@ def _test_distrib_all_gather(device):
 
 def _test_distrib_all_gather_group(device):
     if idist.get_world_size() > 1:
-        ranks = list(range(idist.get_world_size() - 1, 0, -1))  # [0, 1, 2, 3] -> [3, 2, 1]
+        ranks = list(range(1, idist.get_world_size()))
         rank = idist.get_rank()
         bnd = idist.backend()
 
@@ -245,6 +252,15 @@ def _test_distrib_all_gather_group(device):
                 assert torch.equal(res, torch.tensor(ranks, device=device))
             else:
                 assert res == t
+
+        ts = [torch.randn((i + 1, i + 2, i + 3), device=device) for i in range(idist.get_world_size())]
+        shapes = [list(t.shape) for r, t in enumerate(ts) if r in ranks]
+        ts_gathered = all_gather_tensors_with_shapes(ts[rank], shapes, ranks)
+        if rank in ranks:
+            for i, r in enumerate(ranks):
+                assert (ts[r] == ts_gathered[i]).all()
+        else:
+            assert ts_gathered == [ts[rank]]
 
         t = {
             "a": [rank + 1, rank + 2, torch.tensor(rank + 3, device=device)],
@@ -367,7 +383,7 @@ def _test_distrib_new_group(device):
             if rank in ranks:
                 assert g1.rank() == g2.rank()
         elif idist.has_xla_support and bnd in ("xla-tpu"):
-            assert idist.new_group(ranks) == [ranks]
+            assert idist.new_group(ranks) == ranks
         elif idist.has_hvd_support and bnd in ("horovod"):
             from horovod.common.process_sets import ProcessSet
 
