@@ -378,6 +378,7 @@ Complete list of metrics
     regression.MedianRelativeAbsoluteError
     regression.PearsonCorrelation
     regression.SpearmanRankCorrelation
+    regression.KendallRankCorrelation
     regression.R2Score
     regression.WaveHedgesDistance
 
