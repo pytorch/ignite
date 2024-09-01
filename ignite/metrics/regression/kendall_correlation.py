@@ -2,7 +2,6 @@ from typing import Any, Callable, Tuple
 
 import torch
 
-from scipy.stats import kendalltau
 from torch import Tensor
 
 from ignite.exceptions import NotComputableError
@@ -10,7 +9,9 @@ from ignite.metrics.epoch_metric import EpochMetric
 from ignite.metrics.regression._base import _check_output_shapes, _check_output_types
 
 
-def _compute_kendall_tau(variant: str = "b") -> Callable[[Tensor, Tensor], float]:
+def _get_kendall_tau(variant: str = "b") -> Callable[[Tensor, Tensor], float]:
+    from scipy.stats import kendalltau
+
     if variant not in ("b", "c"):
         raise ValueError(f"variant accepts 'b' or 'c', got {variant!r}.")
 
@@ -88,7 +89,12 @@ class KendallRankCorrelation(EpochMetric):
         device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
     ) -> None:
-        super().__init__(_compute_kendall_tau(variant), output_transform, check_compute_fn, device, skip_unrolling)
+        try:
+            from scipy.stats import kendalltau  # noqa: F401
+        except ImportError:
+            raise ModuleNotFoundError("This module requires scipy to be installed.")
+
+        super().__init__(_get_kendall_tau(variant), output_transform, check_compute_fn, device, skip_unrolling)
 
     def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output[0].detach(), output[1].detach()
