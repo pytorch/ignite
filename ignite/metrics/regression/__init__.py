@@ -13,4 +13,5 @@ from ignite.metrics.regression.median_absolute_percentage_error import MedianAbs
 from ignite.metrics.regression.median_relative_absolute_error import MedianRelativeAbsoluteError
 from ignite.metrics.regression.pearson_correlation import PearsonCorrelation
 from ignite.metrics.regression.r2_score import R2Score
+from ignite.metrics.regression.spearman_correlation import SpearmanRankCorrelation
 from ignite.metrics.regression.wave_hedges_distance import WaveHedgesDistance
