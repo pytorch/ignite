@@ -23,6 +23,7 @@ from ignite.metrics.mean_average_precision import MeanAveragePrecision
 from ignite.metrics.mean_pairwise_distance import MeanPairwiseDistance
 from ignite.metrics.mean_squared_error import MeanSquaredError
 from ignite.metrics.metric import BatchFiltered, BatchWise, EpochWise, Metric, MetricUsage
+from ignite.metrics.metric_group import MetricGroup
 from ignite.metrics.metrics_lambda import MetricsLambda
 from ignite.metrics.multilabel_confusion_matrix import MultiLabelConfusionMatrix
 from ignite.metrics.mutual_information import MutualInformation
@@ -43,6 +44,7 @@ __all__ = [
     "Metric",
     "Accuracy",
     "Loss",
+    "MetricGroup",
     "MetricsLambda",
     "MeanAbsoluteError",
     "MeanPairwiseDistance",

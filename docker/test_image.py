@@ -54,7 +54,6 @@ if __name__ == "__main__":
         check_package("cv2")
 
     if "nlp" in image_type:
-        check_package("torchtext")
         check_package("transformers")
 
     if "apex" in image_type:
