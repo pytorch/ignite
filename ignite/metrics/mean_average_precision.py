@@ -102,7 +102,7 @@ class _BaseAveragePrecision:
             ).where(rec_thresh_indices != recall.size(-1), 0)
             recall = rec_thresholds
         recall_differential = recall.diff(
-            dim=-1, prepend=torch.zeros((*recall.shape[:-1], 1), device=recall.device, dtype=torch.double)
+            dim=-1, prepend=torch.zeros((*recall.shape[:-1], 1), device=recall.device, dtype=recall.dtype)
         )
         return torch.sum(recall_differential * precision, dim=-1)
 
@@ -327,7 +327,9 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
             `(recall, precision)`
         """
         indices = torch.argsort(y_pred, stable=True, descending=True)
-        tp_summation = y_true[indices].cumsum(dim=0).double()
+        tp_summation = y_true[indices].cumsum(dim=0)
+        if tp_summation.device != torch.device("mps"):
+            tp_summation = tp_summation.double()
 
         # Adopted from Scikit-learn's implementation
         unique_scores_indices = torch.nonzero(
@@ -360,8 +362,8 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
             torch.long if self._type == "multiclass" else torch.uint8,
             self._device,
         )
-
-        y_pred = _cat_and_agg_tensors(self._y_pred, (num_classes,), torch.double, self._device)
+        fp_precision = torch.double if self._device != torch.device("mps") else torch.float32
+        y_pred = _cat_and_agg_tensors(self._y_pred, (num_classes,), fp_precision, self._device)
 
         if self._type == "multiclass":
             y_true = to_onehot(y_true, num_classes=num_classes).T
@@ -369,7 +371,7 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
             y_true = y_true.reshape(1, -1)
             y_pred = y_pred.view(1, -1)
         y_true_positive_count = y_true.sum(dim=-1)
-        average_precisions = torch.zeros_like(y_true_positive_count, device=self._device, dtype=torch.double)
+        average_precisions = torch.zeros_like(y_true_positive_count, device=self._device, dtype=fp_precision)
         for cls in range(y_true_positive_count.size(0)):
             recall, precision = self._compute_recall_and_precision(y_true[cls], y_pred[cls], y_true_positive_count[cls])
             average_precisions[cls] = self._compute_average_precision(recall, precision)

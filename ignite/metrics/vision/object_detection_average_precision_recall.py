@@ -104,13 +104,19 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
         except ImportError:
             raise ModuleNotFoundError("This metric requires torchvision to be installed.")
 
+        precision = torch.double if not torch.device(device) != torch.device("mps") else torch.float32
+
         if iou_thresholds is None:
-            iou_thresholds = torch.linspace(0.5, 0.95, 10, dtype=torch.double)
+            iou_thresholds = torch.linspace(0.5, 0.95, 10, device=device, dtype=precision)
 
         self._iou_thresholds = self._setup_thresholds(iou_thresholds, "iou_thresholds")
+        self._iou_thresholds = self._iou_thresholds.to(device=device, dtype=precision)
 
         if rec_thresholds is None:
-            rec_thresholds = torch.linspace(0, 1, 101, device=device, dtype=torch.double)
+            rec_thresholds = torch.linspace(0, 1, 101, device=device, dtype=precision)
+
+        self._rec_thresholds = self._setup_thresholds(rec_thresholds, "rec_thresholds")
+        self._rec_thresholds = self._rec_thresholds.to(device=device, dtype=precision)
 
         self._num_classes = num_classes
         self._area_range = area_range
@@ -204,9 +210,14 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
         """
         indices = torch.argsort(scores, dim=-1, stable=True, descending=True)
         tp = TP[..., indices]
-        tp_summation = tp.cumsum(dim=-1).double()
+        tp_summation = tp.cumsum(dim=-1)
+        if tp_summation.device != torch.device("mps"):
+            tp_summation = tp_summation.double()
+
         fp = FP[..., indices]
-        fp_summation = fp.cumsum(dim=-1).double()
+        fp_summation = fp.cumsum(dim=-1)
+        if fp_summation.device != torch.device("mps"):
+            fp_summation = fp_summation.double()
 
         recall = tp_summation / y_true_count
         predicted_positive = tp_summation + fp_summation
@@ -342,12 +353,13 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
         pred_labels = _cat_and_agg_tensors(self._y_pred_labels, cast(Tuple[int], ()), torch.long, self._device)
         TP = _cat_and_agg_tensors(self._tps, (len(self._iou_thresholds),), torch.uint8, self._device)
         FP = _cat_and_agg_tensors(self._fps, (len(self._iou_thresholds),), torch.uint8, self._device)
-        scores = _cat_and_agg_tensors(self._scores, cast(Tuple[int], ()), torch.double, self._device)
+        fp_precision = torch.double if self._device != torch.device("mps") else torch.float32
+        scores = _cat_and_agg_tensors(self._scores, cast(Tuple[int], ()), fp_precision, self._device)
 
         average_precisions_recalls = -torch.ones(
             (2, self._num_classes, len(self._iou_thresholds)),
             device=self._device,
-            dtype=torch.double,
+            dtype=fp_precision,
         )
         for cls in range(self._num_classes):
             if self._y_true_count[cls] == 0:
