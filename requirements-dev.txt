@@ -17,7 +17,7 @@ tensorboardX
 visdom
 polyaxon
 wandb
-mlflow
+mlflow<2.16.0  # https://github.com/pytorch/ignite/issues/3277
 neptune-client>=0.16.17
 tensorboard
 torchvision
