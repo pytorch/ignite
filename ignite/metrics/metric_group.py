@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Sequence
+from typing import Any, Callable, Dict, Sequence, Tuple
 
 import torch
 
@@ -36,7 +36,7 @@ class MetricGroup(Metric):
            state.metrics["eval_metrics"]
     """
 
-    _state_dict_all_req_keys: tuple[str, ...] = ("metrics",)
+    _state_dict_all_req_keys: Tuple[str, ...] = ("metrics",)
 
     def __init__(self, metrics: Dict[str, Metric], output_transform: Callable = lambda x: x):
         self.metrics = metrics
