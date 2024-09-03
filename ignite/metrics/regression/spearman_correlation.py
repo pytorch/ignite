@@ -29,7 +29,8 @@ class SpearmanRankCorrelation(EpochMetric):
     .. math::
         r_\text{s} = \text{Corr}[R[P], R[A]] = \frac{\text{Cov}[R[P], R[A]]}{\sigma_{R[P]} \sigma_{R[A]}}
 
-    where :math:`A` and :math:`P` are the ground truth and predicted value, and R[X] is the ranking value of X.
+    where :math:`A` and :math:`P` are the ground truth and predicted value,
+    and :math:`R[X]` is the ranking value of :math:`X`.
 
     The computation of this metric is implemented with
     `scipy.stats.spearmanr <https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.spearmanr.html>`_.

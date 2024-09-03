@@ -35,7 +35,7 @@ class KendallRankCorrelation(EpochMetric):
     are said to be concordant when both :math:`P_i<P_j` and :math:`A_i<A_j` holds
     or both :math:`P_i>P_j` and :math:`A_i>A_j`.
 
-    The ``number of discordant pairs`` counts the number of pairs that are not concordant.
+    The `number of discordant pairs` counts the number of pairs that are not concordant.
 
     The computation of this metric is implemented with
     `scipy.stats.kendalltau <https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.kendalltau.html>`_.
