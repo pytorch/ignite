@@ -135,13 +135,13 @@ class WandBLogger(BaseLogger):
             )
         if kwargs.get("init", True):
             kwargs.pop("init", None)
-            wandb.init(*args, **kwargs)
+            self._wandb.init(*args, **kwargs)
 
     def __getattr__(self, attr: Any) -> Any:
         return getattr(self._wandb, attr)
 
     def close(self) -> None:
-        self._wandb.finish()
+        self._wandb.finish()  # type: ignore[attr-defined]
 
     def _create_output_handler(self, *args: Any, **kwargs: Any) -> "OutputHandler":
         return OutputHandler(*args, **kwargs)
