@@ -23,7 +23,8 @@ def _get_spearman_r() -> Callable[[Tensor, Tensor], float]:
 
 class SpearmanRankCorrelation(EpochMetric):
     r"""Calculates the
-    `Spearman's rank correlation coefficient <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_.
+    `Spearman's rank correlation coefficient
+    <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_.
 
     .. math::
         r_\text{s} = \text{Corr}[R[P], R[A]] = \frac{\text{Cov}[R[P], R[A]]}{\sigma_{R[P]} \sigma_{R[A]}}
