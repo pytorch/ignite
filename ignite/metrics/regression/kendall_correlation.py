@@ -1,4 +1,4 @@
-from typing import Any, Callable, Tuple
+from typing import Any, Callable, Tuple, Union
 
 import torch
 
@@ -86,7 +86,7 @@ class KendallRankCorrelation(EpochMetric):
         variant: str = "b",
         output_transform: Callable[..., Any] = lambda x: x,
         check_compute_fn: bool = True,
-        device: str | torch.device = torch.device("cpu"),
+        device: Union[str, torch.device] = torch.device("cpu"),
         skip_unrolling: bool = False,
     ) -> None:
         try:
