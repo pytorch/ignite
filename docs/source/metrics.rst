@@ -341,6 +341,7 @@ Complete list of metrics
     MultiLabelConfusionMatrix
     MutualInformation
     ObjectDetectionAvgPrecisionRecall
+    CommonObjDetectionMetrics
     precision.Precision
     PSNR
     recall.Recall

@@ -17,7 +17,7 @@ from torch.distributions.geometric import Geometric
 
 import ignite.distributed as idist
 from ignite.engine import Engine
-from ignite.metrics import ObjectDetectionAvgPrecisionRecall
+from ignite.metrics import CommonObjDetectionMetrics, ObjectDetectionAvgPrecisionRecall
 from ignite.metrics.vision.object_detection_average_precision_recall import tensor_list_to_dict_list
 from ignite.utils import manual_seed
 
@@ -891,7 +891,30 @@ def test_compute(sample):
     AP_L, AR_L = ignite_res[5]
     AR_1 = ignite_res[6][1]
     AR_10 = ignite_res[7][1]
-    assert np.allclose([AP_50_95, AP_50, AP_75, AP_S, AP_M, AP_L, AR_1, AR_10, AR_100, AR_S, AR_M, AR_L], sample.mAP)
+    all_res = [AP_50_95, AP_50, AP_75, AP_S, AP_M, AP_L, AR_1, AR_10, AR_100, AR_S, AR_M, AR_L]
+    print(all_res)
+    assert np.allclose(all_res, sample.mAP)
+
+    common_metrics = CommonObjDetectionMetrics(device=device)
+    common_metrics.update(sample.data)
+    res = common_metrics.compute()
+    common_metrics_res = [
+        res["AP@50..95"],
+        res["AP@50"],
+        res["AP@75"],
+        res["AP-S"],
+        res["AP-M"],
+        res["AP-L"],
+        res["AR-1"],
+        res["AR-10"],
+        res["AR-100"],
+        res["AR-S"],
+        res["AR-M"],
+        res["AR-L"],
+    ]
+    print(common_metrics_res)
+    assert all_res == common_metrics_res
+    assert np.allclose(common_metrics_res, sample.mAP)
 
 
 def test_integration(sample):
@@ -995,4 +1018,25 @@ def test_distrib_update_compute(distributed, sample):
     AP_L, AR_L = ignite_res[5]
     AR_1 = ignite_res[6][1]
     AR_10 = ignite_res[7][1]
-    assert np.allclose([AP_50_95, AP_50, AP_75, AP_S, AP_M, AP_L, AR_1, AR_10, AR_100, AR_S, AR_M, AR_L], sample.mAP)
+    all_res = [AP_50_95, AP_50, AP_75, AP_S, AP_M, AP_L, AR_1, AR_10, AR_100, AR_S, AR_M, AR_L]
+    assert np.allclose(all_res, sample.mAP)
+
+    common_metrics = CommonObjDetectionMetrics(device=device)
+    common_metrics.update((y_pred_rank, y_rank))
+    res = common_metrics.compute()
+    common_metrics_res = [
+        res["AP@50..95"],
+        res["AP@50"],
+        res["AP@75"],
+        res["AP-S"],
+        res["AP-M"],
+        res["AP-L"],
+        res["AR-1"],
+        res["AR-10"],
+        res["AR-100"],
+        res["AR-S"],
+        res["AR-M"],
+        res["AR-L"],
+    ]
+    assert all_res == common_metrics_res
+    assert np.allclose(common_metrics_res, sample.mAP)

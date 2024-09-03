@@ -3,8 +3,9 @@ from typing import Callable, cast, Dict, List, Optional, Sequence, Tuple, Union
 import torch
 from typing_extensions import Literal
 
-from ignite.metrics.mean_average_precision import _BaseAveragePrecision, _cat_and_agg_tensors
+from ignite.metrics import MetricGroup
 
+from ignite.metrics.mean_average_precision import _BaseAveragePrecision, _cat_and_agg_tensors
 from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
 
@@ -372,3 +373,91 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
         ap = average_precisions_recalls[0][average_precisions_recalls[0] > -1].mean().item()
         ar = average_precisions_recalls[1][average_precisions_recalls[1] > -1].mean().item()
         return ap, ar
+
+
+class CommonObjDetectionMetrics(MetricGroup):
+    """
+    Common Object detection metrics. Included metrics are as follows:
+
+    =============== ==========================================
+    **Metric name**    **Description**
+    =============== ==========================================
+    AP@50..95       Average precision averaged over
+                    .50 to.95 IOU thresholds
+    AR-100          Average recall with maximum 100 detections
+    AP@50           Average precision with IOU threshold=.50
+    AP@75           Average precision with IOU threshold=.75
+    AP-S            Average precision over small objects
+                    (< 32px * 32px)
+    AR-S            Average recall over small objects
+    AP-M            Average precision over medium objects
+                    (S < . < 96px * 96px)
+    AR-M            Average recall over medium objects
+    AP-L            Average precision over large objects
+                    (M < . < 1e5px * 1e5px)
+    AR-L            Average recall over large objects
+                    greater than zero)
+    AR-1            Average recall with maximum 1 detection
+    AR-10           Average recall with maximum 10 detections
+    =============== ==========================================
+
+    """
+
+    _state_dict_all_req_keys = ("metrics", "ap_50_95")
+
+    ap_50_95: ObjectDetectionAvgPrecisionRecall
+
+    def __init__(
+        self,
+        output_transform: Callable = lambda x: x,
+        device: Union[str, torch.device] = torch.device("cpu"),
+    ):
+        self.ap_50_95 = ObjectDetectionAvgPrecisionRecall(device=device)
+
+        super().__init__(
+            {
+                "S": ObjectDetectionAvgPrecisionRecall(device=device, area_range="small"),
+                "M": ObjectDetectionAvgPrecisionRecall(device=device, area_range="medium"),
+                "L": ObjectDetectionAvgPrecisionRecall(device=device, area_range="large"),
+                "1": ObjectDetectionAvgPrecisionRecall(device=device, max_detections_per_image_per_class=1),
+                "10": ObjectDetectionAvgPrecisionRecall(device=device, max_detections_per_image_per_class=10),
+            },
+            output_transform,
+        )
+
+    def reset(self) -> None:
+        super().reset()
+        self.ap_50_95.reset()
+
+    def update(self, output: Sequence[torch.Tensor]) -> None:
+        super().update(output)
+        self.ap_50_95.update(output)
+
+    def compute(self) -> Dict[str, float]:
+        average_precisions_recalls = self.ap_50_95._compute()
+
+        average_precisions_50 = average_precisions_recalls[0, :, 0]
+        average_precisions_75 = average_precisions_recalls[0, :, 5]
+        if (average_precisions_50 == -1).all():
+            AP_50 = AP_75 = AP_50_95 = AR_100 = -1.0
+        else:
+            AP_50 = average_precisions_50[average_precisions_50 > -1].mean().item()
+            AP_75 = average_precisions_75[average_precisions_75 > -1].mean().item()
+            AP_50_95 = average_precisions_recalls[0][average_precisions_recalls[0] > -1].mean().item()
+            AR_100 = average_precisions_recalls[1][average_precisions_recalls[1] > -1].mean().item()
+
+        result = super().compute()
+        return {
+            "AP@50..95": AP_50_95,
+            "AR-100": AR_100,
+            "AP@50": AP_50,
+            "AP@75": AP_75,
+            "AP-S": result["S"][0],
+            "AR-S": result["S"][1],
+            "AP-M": result["M"][0],
+            "AR-M": result["M"][1],
+            "AP-L": result["L"][0],
+            "AR-L": result["L"][1],
+            "AR-1": result["1"][1],
+            "AR-10": result["10"][1],
+        }

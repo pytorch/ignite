@@ -36,7 +36,7 @@ class MetricGroup(Metric):
            state.metrics["eval_metrics"]
     """
 
-    _state_dict_all_req_keys = ("metrics",)
+    _state_dict_all_req_keys: tuple[str, ...] = ("metrics",)
 
     def __init__(self, metrics: Dict[str, Metric], output_transform: Callable = lambda x: x):
         self.metrics = metrics

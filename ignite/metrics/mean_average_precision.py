@@ -66,7 +66,7 @@ class _BaseAveragePrecision:
 
     def _setup_thresholds(self, thresholds: Union[Sequence[float], torch.Tensor], threshold_type: str) -> torch.Tensor:
         if isinstance(thresholds, Sequence):
-            thresholds = torch.tensor(thresholds)
+            thresholds = torch.tensor(thresholds, dtype=torch.double)
 
         if isinstance(thresholds, torch.Tensor):
             if thresholds.ndim != 1:
