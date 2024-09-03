@@ -3,6 +3,7 @@ from ignite.metrics.regression.fractional_absolute_error import FractionalAbsolu
 from ignite.metrics.regression.fractional_bias import FractionalBias
 from ignite.metrics.regression.geometric_mean_absolute_error import GeometricMeanAbsoluteError
 from ignite.metrics.regression.geometric_mean_relative_absolute_error import GeometricMeanRelativeAbsoluteError
+from ignite.metrics.regression.kendall_correlation import KendallRankCorrelation
 from ignite.metrics.regression.manhattan_distance import ManhattanDistance
 from ignite.metrics.regression.maximum_absolute_error import MaximumAbsoluteError
 from ignite.metrics.regression.mean_absolute_relative_error import MeanAbsoluteRelativeError
@@ -13,4 +14,5 @@ from ignite.metrics.regression.median_absolute_percentage_error import MedianAbs
 from ignite.metrics.regression.median_relative_absolute_error import MedianRelativeAbsoluteError
 from ignite.metrics.regression.pearson_correlation import PearsonCorrelation
 from ignite.metrics.regression.r2_score import R2Score
+from ignite.metrics.regression.spearman_correlation import SpearmanRankCorrelation
 from ignite.metrics.regression.wave_hedges_distance import WaveHedgesDistance
