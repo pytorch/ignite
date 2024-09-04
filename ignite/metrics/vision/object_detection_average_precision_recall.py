@@ -1,4 +1,3 @@
-import os
 from typing import Callable, cast, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
@@ -10,7 +9,7 @@ from ignite.metrics.mean_average_precision import _BaseAveragePrecision, _cat_an
 from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
 
-def tensor_list_to_dict_list(
+def coco_tensor_list_to_dict_list(
     output: Tuple[
         Union[List[torch.Tensor], List[Dict[str, torch.Tensor]]],
         Union[List[torch.Tensor], List[Dict[str, torch.Tensor]]],
@@ -83,8 +82,8 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
             max_detections_per_image_per_class: maximum number of detections per class in each image to consider
                 for evaluation. The most confident ones are selected.
             output_transform: a callable that is used to transform the :class:`~ignite.engine.engine.Engine`'s
-                ``process_function``'s output into the form expected by the metric. An already provided example
-                is :func:`~ignite.metrics.vision.object_detection_average_precision_recall.tensor_list_to_dict_list`
+                ``process_function``'s output into the form expected by the metric. An already provided example is
+                :func:`~ignite.metrics.vision.object_detection_average_precision_recall.coco_tensor_list_to_dict_list`
                 which accepts `y_pred` and `y` as lists of tensors and transforms them to the expected format.
                 Default is the identity function.
             device: specifies which device updates are accumulated on. Setting the
@@ -235,10 +234,7 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
         Returns:
             average_precision: (n-1)-dimensional tensor containing the average precision for mean dimensions.
         """
-        mps_cpu_fallback = os.environ.get("PYTORCH_ENABLE_MPS_FALLBACK", "0")
-        os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
         precision_integrand = precision.flip(-1).cummax(dim=-1).values.flip(-1)
-        os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = mps_cpu_fallback
         rec_thresholds = cast(torch.Tensor, self.rec_thresholds).repeat((*recall.shape[:-1], 1))
         rec_thresh_indices = (
             torch.searchsorted(recall, rec_thresholds)

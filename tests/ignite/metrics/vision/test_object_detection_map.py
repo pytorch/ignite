@@ -18,7 +18,7 @@ from torch.distributions.geometric import Geometric
 import ignite.distributed as idist
 from ignite.engine import Engine
 from ignite.metrics import CommonObjDetectionMetrics, ObjectDetectionAvgPrecisionRecall
-from ignite.metrics.vision.object_detection_average_precision_recall import tensor_list_to_dict_list
+from ignite.metrics.vision.object_detection_average_precision_recall import coco_tensor_list_to_dict_list
 from ignite.utils import manual_seed
 
 torch.set_printoptions(linewidth=200)
@@ -957,7 +957,7 @@ def test_tensor_list_to_dict_list():
     ]
     for y_pred in y_preds:
         for y in ys:
-            y_pred_new, y_new = tensor_list_to_dict_list((y_pred, y))
+            y_pred_new, y_new = coco_tensor_list_to_dict_list((y_pred, y))
             if isinstance(y_pred[0], dict):
                 assert y_pred_new is y_pred
             else:

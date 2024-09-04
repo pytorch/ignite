@@ -342,6 +342,7 @@ Complete list of metrics
     MutualInformation
     ObjectDetectionAvgPrecisionRecall
     CommonObjDetectionMetrics
+    vision.object_detection_average_precision_recall.coco_tensor_list_to_dict_list
     precision.Precision
     PSNR
     recall.Recall
