@@ -10,7 +10,7 @@ from tests.ignite.distributed.utils import (
     _test_distrib_barrier,
     _test_distrib_broadcast,
     _test_distrib_new_group,
-    _test_idist_all_gather_tensors_with_different_shapes,
+    _test_idist_all_gather_tensors_with_shapes,
     _test_sync,
 )
 
@@ -71,7 +71,7 @@ def test_idist__model_methods_no_dist():
 def test_idist_collective_ops_no_dist():
     _test_distrib_all_reduce("cpu")
     _test_distrib_all_gather("cpu")
-    _test_idist_all_gather_tensors_with_different_shapes("cpu")
+    _test_idist_all_gather_tensors_with_shapes("cpu")
     _test_distrib_barrier("cpu")
     _test_distrib_broadcast("cpu")
     _test_distrib_new_group("cpu")
@@ -79,7 +79,7 @@ def test_idist_collective_ops_no_dist():
     if torch.cuda.device_count() > 1:
         _test_distrib_all_reduce("cuda")
         _test_distrib_all_gather("cuda")
-        _test_idist_all_gather_tensors_with_different_shapes("cuda")
+        _test_idist_all_gather_tensors_with_shapes("cuda")
         _test_distrib_barrier("cuda")
         _test_distrib_broadcast("cuda")
         _test_distrib_new_group("cuda")

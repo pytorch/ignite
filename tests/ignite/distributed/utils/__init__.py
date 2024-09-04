@@ -291,7 +291,7 @@ def _test_distrib_all_gather_group(device):
                 res = idist.all_gather(t, group="abc")
 
 
-def _test_idist_all_gather_tensors_with_different_shapes(device):
+def _test_idist_all_gather_tensors_with_shapes(device):
     torch.manual_seed(41)
     rank = idist.get_rank()
     ws = idist.get_world_size()
@@ -311,7 +311,7 @@ def _test_idist_all_gather_tensors_with_different_shapes(device):
         assert (r_tensor == tensors[r]).all()
 
 
-def _test_idist_all_gather_tensors_with_different_shapes_group(device):
+def _test_idist_all_gather_tensors_with_shapes_group(device):
     torch.manual_seed(41)
 
     rank = idist.get_rank()
@@ -332,16 +332,16 @@ def _test_idist_all_gather_tensors_with_different_shapes_group(device):
             tensors = all_gather_tensors_with_shapes(rank_tensor, [[r + 1, r + 2, r + 3] for r in ranks], ranks)
     else:
         tensors = all_gather_tensors_with_shapes(rank_tensor, [[r + 1, r + 2, r + 3] for r in ranks], ranks)
-        for r in range(ws):
-            if r in ranks:
+        if rank in ranks:
+            for r in ranks:
                 r_tensor = reference[
                     r * (r + 1) // 2 : r * (r + 1) // 2 + r + 1,
                     r * (r + 3) // 2 : r * (r + 3) // 2 + r + 2,
                     r * (r + 5) // 2 : r * (r + 5) // 2 + r + 3,
                 ]
-                assert (r_tensor == tensors[r]).all()
-            else:
-                assert tensors == rank_tensor
+                assert (r_tensor == tensors[r - 1]).all()
+        else:
+            assert [rank_tensor] == tensors
 
 
 def _test_distrib_broadcast(device):

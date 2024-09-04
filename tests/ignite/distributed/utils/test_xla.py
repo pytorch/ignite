@@ -15,8 +15,8 @@ from tests.ignite.distributed.utils import (
     _test_distrib_new_group,
     _test_distrib_one_rank_only,
     _test_distrib_one_rank_only_with_engine,
-    _test_idist_all_gather_tensors_with_different_shapes,
-    _test_idist_all_gather_tensors_with_different_shapes_group,
+    _test_idist_all_gather_tensors_with_shapes,
+    _test_idist_all_gather_tensors_with_shapes_group,
     _test_sync,
 )
 
@@ -153,8 +153,8 @@ def test_idist_all_gather_xla():
     device = idist.device()
     _test_distrib_all_gather(device)
     _test_distrib_all_gather_group(device)
-    _test_idist_all_gather_tensors_with_different_shapes(device)
-    _test_idist_all_gather_tensors_with_different_shapes_group(device)
+    _test_idist_all_gather_tensors_with_shapes(device)
+    _test_idist_all_gather_tensors_with_shapes_group(device)
 
 
 def _test_idist_all_gather_xla_in_child_proc(index):
