@@ -356,11 +356,12 @@ def all_reduce(
 def all_gather_tensors_with_shapes(
     tensor: torch.Tensor, shapes: Sequence[Sequence[int]], group: Optional[Union[Any, List[int]]] = None
 ) -> List[torch.Tensor]:
-    """Gather tensors of possibly different shapes but with the same number of dimensions from across processes.
+    """Helper method to gather tensors of possibly different shapes but with the same number of dimensions
+    across processes.
 
     This function gets the shapes of participating tensors as input so you should know them beforehand. If your tensors
     are of different number of dimensions or you don't know their shapes beforehand, you could use
-    `torch.distributed.all_gather_object()`, otherwise this method is quite faster.
+    ``torch.distributed.all_gather_object()``, otherwise this method is quite faster.
 
     Examples:
 
@@ -373,17 +374,20 @@ def all_gather_tensors_with_shapes(
             tensor = torch.randn(rank+1, rank+2)
             tensors = all_gather_tensors_with_shapes(tensor, [[r+1, r+2] for r in range(ws)], )
 
-            # To exclude rank zero:
+            # To gather from a group of processes:
 
-            tensors = all_gather_tensors_with_shapes(tensor, [[r+1, r+2] for r in range(1, ws)], list(range(1, ws)))
+            group = list(range(1, ws)) # Process #0 excluded
+
+            tensors = all_gather_tensors_with_shapes(tensor, [[r+1, r+2] for r in group], group)
             if rank == 0:
-                assert tensors == tensor
+                # For processes not in the group, the sole tensor of the process is returned in a list.
+                assert tensors == [tensor]
             else:
                 assert (tensors[rank-1] == tensor).all()
 
     Args:
         tensor: tensor to collect across participating processes.
-        shapes: A sequence containing the shape of participating processes' `tensor`s.
+        shapes: A sequence containing the shape of participating processes' ``tensor``s.
         group: list of integer or the process group for each backend. If None, the default process group will be used.
 
     Returns:
