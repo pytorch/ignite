@@ -17,6 +17,8 @@ from tests.ignite.distributed.utils import (
     _test_distrib_new_group,
     _test_distrib_one_rank_only,
     _test_distrib_one_rank_only_with_engine,
+    _test_idist_all_gather_tensors_with_different_shapes,
+    _test_idist_all_gather_tensors_with_different_shapes_group,
     _test_sync,
 )
 
@@ -163,6 +165,8 @@ def test_idist_all_gather_hvd(gloo_hvd_executor):
     np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
     gloo_hvd_executor(_test_distrib_all_gather, (device,), np=np, do_init=True)
     gloo_hvd_executor(_test_distrib_all_gather_group, (device,), np=np, do_init=True)
+    gloo_hvd_executor(_test_idist_all_gather_tensors_with_different_shapes, (device,), np=np, do_init=True)
+    gloo_hvd_executor(_test_idist_all_gather_tensors_with_different_shapes_group, (device,), np=np, do_init=True)
 
 
 @pytest.mark.distributed
