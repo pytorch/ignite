@@ -9,6 +9,7 @@ from ignite.engine import Engine, Events
 
 from ignite.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler
 from ignite.handlers.utils import global_step_from_engine  # noqa
+import re
 
 __all__ = ["MLflowLogger", "OutputHandler", "OptimizerParamsHandler", "global_step_from_engine"]
 
@@ -245,7 +246,7 @@ class OutputHandler(BaseOutputHandler):
             )
 
         # Additionally recheck metric names as MLflow rejects non-valid names with MLflowException
-        from mlflow.utils.validation import _VALID_PARAM_AND_METRIC_NAMES
+        _VALID_PARAM_AND_METRIC_NAMES = re.compile(r"^[/\w.\- ]*$")
 
         metrics = {}
         for keys, value in rendered_metrics.items():
