@@ -104,7 +104,7 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
         except ImportError:
             raise ModuleNotFoundError("This metric requires torchvision to be installed.")
 
-        precision = torch.double if not torch.device(device) != torch.device("mps") else torch.float32
+        precision = torch.double if torch.device(device) != torch.device("mps") else torch.float32
 
         if iou_thresholds is None:
             iou_thresholds = torch.linspace(0.5, 0.95, 10, device=device, dtype=precision)
