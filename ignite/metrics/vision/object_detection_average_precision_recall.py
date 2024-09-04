@@ -317,7 +317,7 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
                         device=self._device,
                     )
                     self._tps.append(tp)
-                    self._fps.append(~tp & self._match_area_range(pred_boxes))
+                    self._fps.append(~tp & self._match_area_range(pred_boxes).to(self._device))
                 else:
                     ious = self.box_iou(pred_boxes, gt_boxes, cast(torch.BoolTensor, gt_is_crowd))
                     category_no_match = labels.expand(len(pred_labels), -1) != pred_labels.view(-1, 1)
