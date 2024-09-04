@@ -292,6 +292,7 @@ def _test_distrib_all_gather_group(device):
 
 
 def _test_idist_all_gather_tensors_with_different_shapes(device):
+    torch.manual_seed(41)
     rank = idist.get_rank()
     ws = idist.get_world_size()
     reference = torch.randn(ws * (ws + 1) // 2, ws * (ws + 3) // 2, ws * (ws + 5) // 2, device=device)
@@ -311,8 +312,10 @@ def _test_idist_all_gather_tensors_with_different_shapes(device):
 
 
 def _test_idist_all_gather_tensors_with_different_shapes_group(device):
+    torch.manual_seed(41)
+
     rank = idist.get_rank()
-    ranks = list(range(idist.get_world_size() - 1, 0, -1))  # [0, 1, 2, 3] -> [3, 2, 1]
+    ranks = list(range(1, idist.get_world_size()))
     ws = idist.get_world_size()
     bnd = idist.backend()
     if rank in ranks:
@@ -326,9 +329,9 @@ def _test_idist_all_gather_tensors_with_different_shapes_group(device):
         rank_tensor = torch.tensor([rank], device=device)
     if bnd in ("horovod"):
         with pytest.raises(NotImplementedError, match=r"all_gather with group for horovod is not implemented"):
-            tensors = all_gather_tensors_with_shapes(rank_tensor, [[r + 1, r + 2, r + 3] for r in range(ws)], ranks)
+            tensors = all_gather_tensors_with_shapes(rank_tensor, [[r + 1, r + 2, r + 3] for r in ranks], ranks)
     else:
-        tensors = all_gather_tensors_with_shapes(rank_tensor, [[r + 1, r + 2, r + 3] for r in range(ws)], ranks)
+        tensors = all_gather_tensors_with_shapes(rank_tensor, [[r + 1, r + 2, r + 3] for r in ranks], ranks)
         for r in range(ws):
             if r in ranks:
                 r_tensor = reference[
