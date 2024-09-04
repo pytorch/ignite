@@ -1,6 +1,5 @@
 """MLflow logger and its helper handlers."""
 
-import re
 import warnings
 from typing import Any, Callable, List, Optional, Union
 
