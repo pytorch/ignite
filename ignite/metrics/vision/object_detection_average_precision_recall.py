@@ -234,7 +234,15 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
         Returns:
             average_precision: (n-1)-dimensional tensor containing the average precision for mean dimensions.
         """
-        precision_integrand = precision.flip(-1).cummax(dim=-1).values.flip(-1)
+        if precision.device.type == "mps":
+            # Manual fallback to CPU if precision is on MPS due to the error:
+            # NotImplementedError: The operator 'aten::_cummax_helper' is not currently implemented for the MPS device
+            device = precision.device
+            precision_integrand = precision.flip(-1).cpu()
+            precision_integrand = precision_integrand.cummax(dim=-1).values
+            precision_integrand = precision_integrand.to(device=device).flip(-1)
+        else:
+            precision_integrand = precision.flip(-1).cummax(dim=-1).values.flip(-1)
         rec_thresholds = cast(torch.Tensor, self.rec_thresholds).repeat((*recall.shape[:-1], 1))
         rec_thresh_indices = (
             torch.searchsorted(recall, rec_thresholds)
@@ -386,9 +394,9 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
         return ap, ar
 
 
-class CommonObjDetectionMetrics(MetricGroup):
+class CommonObjectDetectionMetrics(MetricGroup):
     """
-    Common Object detection metrics. Included metrics are as follows:
+    Common Object Detection metrics. Included metrics are as follows:
 
     =============== ==========================================
     **Metric name**    **Description**

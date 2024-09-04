@@ -17,7 +17,7 @@ from torch.distributions.geometric import Geometric
 
 import ignite.distributed as idist
 from ignite.engine import Engine
-from ignite.metrics import CommonObjDetectionMetrics, ObjectDetectionAvgPrecisionRecall
+from ignite.metrics import CommonObjectDetectionMetrics, ObjectDetectionAvgPrecisionRecall
 from ignite.metrics.vision.object_detection_average_precision_recall import coco_tensor_list_to_dict_list
 from ignite.utils import manual_seed
 
@@ -895,7 +895,7 @@ def test_compute(sample):
     print(all_res)
     assert np.allclose(all_res, sample.mAP)
 
-    common_metrics = CommonObjDetectionMetrics(device=device)
+    common_metrics = CommonObjectDetectionMetrics(device=device)
     common_metrics.update(sample.data)
     res = common_metrics.compute()
     common_metrics_res = [
@@ -1021,7 +1021,7 @@ def test_distrib_update_compute(distributed, sample):
     all_res = [AP_50_95, AP_50, AP_75, AP_S, AP_M, AP_L, AR_1, AR_10, AR_100, AR_S, AR_M, AR_L]
     assert np.allclose(all_res, sample.mAP)
 
-    common_metrics = CommonObjDetectionMetrics(device=device)
+    common_metrics = CommonObjectDetectionMetrics(device=device)
     common_metrics.update((y_pred_rank, y_rank))
     res = common_metrics.compute()
     common_metrics_res = [

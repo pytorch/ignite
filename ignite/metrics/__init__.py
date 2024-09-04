@@ -40,7 +40,7 @@ from ignite.metrics.ssim import SSIM
 from ignite.metrics.top_k_categorical_accuracy import TopKCategoricalAccuracy
 from ignite.metrics.vision.object_detection_average_precision_recall import (
     coco_tensor_list_to_dict_list,
-    CommonObjDetectionMetrics,
+    CommonObjectDetectionMetrics,
     ObjectDetectionAvgPrecisionRecall,
 )
 
@@ -94,6 +94,6 @@ __all__ = [
     "ROC_AUC",
     "MeanAveragePrecision",
     "ObjectDetectionAvgPrecisionRecall",
-    "CommonObjDetectionMetrics",
+    "CommonObjectDetectionMetrics",
     "coco_tensor_list_to_dict_list",
 ]

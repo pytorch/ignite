@@ -341,7 +341,7 @@ Complete list of metrics
     MultiLabelConfusionMatrix
     MutualInformation
     ObjectDetectionAvgPrecisionRecall
-    CommonObjDetectionMetrics
+    CommonObjectDetectionMetrics
     vision.object_detection_average_precision_recall.coco_tensor_list_to_dict_list
     precision.Precision
     PSNR
