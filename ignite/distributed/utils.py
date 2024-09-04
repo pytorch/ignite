@@ -371,18 +371,7 @@ def all_gather_tensors_with_shapes(
             rank = idist.get_rank()
             ws = idist.get_world_size()
             tensor = torch.randn(rank+1, rank+2)
-            tensors = all_gather_tensors_with_shapes(tensor, [[r+1, r+2] for r in range(ws)], )
-
-            # To gather from a group of processes:
-
-            group = list(range(1, ws)) # Process #0 excluded
-
-            tensors = all_gather_tensors_with_shapes(tensor, [[r+1, r+2] for r in group], group)
-            if rank == 0:
-                # For processes not in the group, the sole tensor of the process is returned in a list.
-                assert tensors == [tensor]
-            else:
-                assert (tensors[rank-1] == tensor).all()
+            tensors = idist.all_gather_tensors_with_shapes(tensor, [[r+1, r+2] for r in range(ws)])
 
     Args:
         tensor: tensor to collect across participating processes.
