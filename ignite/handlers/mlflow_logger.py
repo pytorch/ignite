@@ -1,5 +1,6 @@
 """MLflow logger and its helper handlers."""
 
+import re
 import warnings
 from typing import Any, Callable, List, Optional, Union
 
@@ -9,7 +10,6 @@ from ignite.engine import Engine, Events
 
 from ignite.handlers.base_logger import BaseLogger, BaseOptimizerParamsHandler, BaseOutputHandler
 from ignite.handlers.utils import global_step_from_engine  # noqa
-import re
 
 __all__ = ["MLflowLogger", "OutputHandler", "OptimizerParamsHandler", "global_step_from_engine"]
 
