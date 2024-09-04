@@ -359,12 +359,11 @@ def all_gather_tensors_with_shapes(
     """Helper method to gather tensors of possibly different shapes but with the same number of dimensions
     across processes.
 
-    This function gets the shapes of participating tensors as input so you should know them beforehand. If your tensors
-    are of different number of dimensions or you don't know their shapes beforehand, you could use
-    ``torch.distributed.all_gather_object()``, otherwise this method is quite faster.
+    This function gets the shapes of participating tensors as input so you should know them beforehand. If your
+    tensors are of different number of dimensions or you don't know their shapes beforehand, you can use
+    ``torch.distributed.all_gather_object``, otherwise this method is quite faster.
 
     Examples:
-
         .. code-block:: python
 
             import ignite.distributed as idist
@@ -387,7 +386,7 @@ def all_gather_tensors_with_shapes(
 
     Args:
         tensor: tensor to collect across participating processes.
-        shapes: A sequence containing the shape of participating processes' ``tensor``s.
+        shapes: A sequence containing the shape of participating processes' ``tensor`` s.
         group: list of integer or the process group for each backend. If None, the default process group will be used.
 
     Returns:
