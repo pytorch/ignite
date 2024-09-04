@@ -356,10 +356,10 @@ def all_reduce(
 def all_gather_tensors_with_shapes(
     tensor: torch.Tensor, shapes: Sequence[Sequence[int]], group: Optional[Union[Any, List[int]]] = None
 ) -> List[torch.Tensor]:
-    """Gather tensors of possibly different shapes but with the same number of dimensions from across processes.
+    """Gather tensors of possibly different shapes but with the same number of dimensions across processes.
 
     This function gets the shapes of participating tensors as input so you should know them beforehand. If your tensors
-    are of different number of dimensions or you don't know their shapes beforehand, you could use
+    are of different number of dimensions or you don't know their shapes beforehand, you can use
     `torch.distributed.all_gather_object()`, otherwise this method is quite faster.
 
     Examples:
