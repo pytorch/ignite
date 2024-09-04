@@ -246,7 +246,7 @@ class OutputHandler(BaseOutputHandler):
             )
 
         # Additionally recheck metric names as MLflow rejects non-valid names with MLflowException
-        _VALID_PARAM_AND_METRIC_NAMES = re.compile(r"^[/\w.\- ]*$")
+        from mlflow.utils.validation import validate_param_and_metric_name
 
         metrics = {}
         for keys, value in rendered_metrics.items():
@@ -254,7 +254,7 @@ class OutputHandler(BaseOutputHandler):
             metrics[key] = value
 
         for key in list(metrics.keys()):
-            if not _VALID_PARAM_AND_METRIC_NAMES.match(key):
+            if not validate_param_and_metric_name(key):
                 warnings.warn(
                     f"MLflowLogger output_handler encountered an invalid metric name '{key}' that "
                     "will be ignored and not logged to MLflow"
