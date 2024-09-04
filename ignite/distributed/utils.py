@@ -371,7 +371,7 @@ def all_gather_tensors_with_shapes(
     padded_tensor = torch.nn.functional.pad(
         tensor, tuple(itertools.chain.from_iterable(map(lambda dim_size: (0, dim_size), reversed(padding_sizes))))
     )
-    all_padded_tensors: torch.Tensor = _model.all_gather(padded_tensor, group=group)  # .split(max_shape[0], dim=0)
+    all_padded_tensors: torch.Tensor = _model.all_gather(padded_tensor, group=group)
     return [
         all_padded_tensors[
             [
