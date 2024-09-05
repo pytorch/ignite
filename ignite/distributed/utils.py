@@ -356,7 +356,31 @@ def all_reduce(
 def all_gather_tensors_with_shapes(
     tensor: torch.Tensor, shapes: Sequence[Sequence[int]], group: Optional[Union[Any, List[int]]] = None
 ) -> List[torch.Tensor]:
-    """Gather tensors with different shapes but with the same number of dimensions from across processes."""
+    """Helper method to gather tensors of possibly different shapes but with the same number of dimensions
+    across processes.
+
+    This function gets the shapes of participating tensors as input so you should know them beforehand. If your
+    tensors are of different number of dimensions or you don't know their shapes beforehand, you can use
+    ``torch.distributed.all_gather_object``, otherwise this method is quite faster.
+
+    Examples:
+        .. code-block:: python
+
+            import ignite.distributed as idist
+
+            rank = idist.get_rank()
+            ws = idist.get_world_size()
+            tensor = torch.randn(rank+1, rank+2)
+            tensors = idist.all_gather_tensors_with_shapes(tensor, [[r+1, r+2] for r in range(ws)])
+
+    Args:
+        tensor: tensor to collect across participating processes.
+        shapes: A sequence containing the shape of participating processes' ``tensor`` s.
+        group: list of integer or the process group for each backend. If None, the default process group will be used.
+
+    Returns:
+        List[torch.Tensor]
+    """
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
 
@@ -371,7 +395,7 @@ def all_gather_tensors_with_shapes(
     padded_tensor = torch.nn.functional.pad(
         tensor, tuple(itertools.chain.from_iterable(map(lambda dim_size: (0, dim_size), reversed(padding_sizes))))
     )
-    all_padded_tensors: torch.Tensor = _model.all_gather(padded_tensor, group=group)  # .split(max_shape[0], dim=0)
+    all_padded_tensors: torch.Tensor = _model.all_gather(padded_tensor, group=group)
     return [
         all_padded_tensors[
             [
