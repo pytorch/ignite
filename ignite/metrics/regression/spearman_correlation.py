@@ -80,7 +80,6 @@ class SpearmanRankCorrelation(EpochMetric):
     def __init__(
         self,
         output_transform: Callable[..., Any] = lambda x: x,
-        check_compute_fn: bool = True,
         device: Union[str, torch.device] = torch.device("cpu"),
         skip_unrolling: bool = False,
     ) -> None:
@@ -89,7 +88,7 @@ class SpearmanRankCorrelation(EpochMetric):
         except ImportError:
             raise ModuleNotFoundError("This module requires scipy to be installed.")
 
-        super().__init__(_get_spearman_r(), output_transform, check_compute_fn, device, skip_unrolling)
+        super().__init__(_get_spearman_r(), output_transform, True, device, skip_unrolling)
 
     def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output[0].detach(), output[1].detach()
