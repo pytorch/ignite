@@ -79,6 +79,8 @@ class KendallRankCorrelation(EpochMetric):
         .. testoutput::
 
             0.4666666666666666
+
+    .. versionadded:: 0.5.2
     """
 
     def __init__(

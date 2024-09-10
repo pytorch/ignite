@@ -70,6 +70,8 @@ class SpearmanRankCorrelation(EpochMetric):
         .. testoutput::
 
             0.7142857142857143
+
+    .. versionadded:: 0.5.2
     """
 
     def __init__(
