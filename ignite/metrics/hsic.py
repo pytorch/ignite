@@ -18,7 +18,8 @@ class HSIC(Metric):
          + \frac{\mathbf{1}^\top \tilde{\mathbf{K}} \mathbf{11}^\top \tilde{\mathbf{L}} \mathbf{1}}{(B-1)(B-2)}
          -\frac{2}{B-2}\mathbf{1}^\top \tilde{\mathbf{K}}\tilde{\mathbf{L}} \mathbf{1}  \right]
 
-    where :math:`B` is the batch size, and :math:`\tilde{\mathbf{K}}` and :math:`\tilde{\mathbf{L}}` are the Gram matrices of
+    where :math:`B` is the batch size, and :math:`\tilde{\mathbf{K}}`
+    and :math:`\tilde{\mathbf{L}}` are the Gram matrices of
     the Gaussian RBF kernel with their diagonal entries being set to zero.
 
     HSIC measures non-linear statistical independence between features :math:`X` and :math:`Y`.
