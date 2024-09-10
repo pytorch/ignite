@@ -25,8 +25,8 @@ class HSIC(Metric):
     HSIC becomes zero if and only if :math:`X` and :math:`Y` are independent.
 
     This metric computes the unbiased estimator of HSIC proposed in
-    `Song et al. (2012) <https://jmlr.csail.mit.edu/papers/v13/song12a.html>`_
-    for each batch and accumulates the average.
+    `Song et al. (2012) <https://jmlr.csail.mit.edu/papers/v13/song12a.html>`_.
+    The HSIC is estimated using Eq. (5) of the paper for each batch and the average is accumulated.
 
     Each batch must contain at least four samples.
 
