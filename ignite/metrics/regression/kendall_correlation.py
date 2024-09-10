@@ -46,10 +46,10 @@ class KendallRankCorrelation(EpochMetric):
     Parameters are inherited from ``Metric.__init__``.
 
     Args:
-        variant: variant of kendall rank correlation. ``b`` or ``c`` is accepted.
+        variant: variant of kendall rank correlation. ``'b'`` or ``'c'`` is accepted.
             Details can be found
             `here <https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient#Accounting_for_ties>`_.
-            Default: ``b``
+            Default: ``'b'``
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
