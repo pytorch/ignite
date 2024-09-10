@@ -141,7 +141,7 @@ class WandBLogger(BaseLogger):
         return getattr(self._wandb, attr)
 
     def close(self) -> None:
-        self._wandb.finish()  # type: ignore[attr-defined]
+        self._wandb.finish()
 
     def _create_output_handler(self, *args: Any, **kwargs: Any) -> "OutputHandler":
         return OutputHandler(*args, **kwargs)
