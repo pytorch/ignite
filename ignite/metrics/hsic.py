@@ -88,8 +88,7 @@ class HSIC(Metric):
 
             0.0922664999961853
 
-    .. versionchanged:: 0.5.1
-        ``skip_unrolling`` argument is added.
+    .. versionadded:: 0.5.2
     """
 
     def __init__(
