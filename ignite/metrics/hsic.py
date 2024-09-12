@@ -133,6 +133,8 @@ class HSIC(Metric):
         xx = X @ X.T
         rx = xx.diag().unsqueeze(0).expand_as(xx)
         dxx = rx.T + rx - xx * 2
+
+        vx: Union[Tensor, float]
         if self.sigma_x < 0:
             vx = torch.quantile(dxx, 0.5)
         else:
@@ -142,6 +144,8 @@ class HSIC(Metric):
         yy = Y @ Y.T
         ry = yy.diag().unsqueeze(0).expand_as(yy)
         dyy = ry.T + ry - yy * 2
+
+        vy: Union[Tensor, float]
         if self.sigma_y < 0:
             vy = torch.quantile(dyy, 0.5)
         else:
