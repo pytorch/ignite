@@ -28,7 +28,7 @@ jobs:
       DOCKER_IMAGE: "pytorch/conda-builder:cuda12.1"
       REPOSITORY: ${{ github.repository }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
-    runs-on: amz2023.linux.8xlarge.nvidia.gpu
+    runs-on: linux.8xlarge.nvidia.gpu
     timeout-minutes: 85
 
     steps:
