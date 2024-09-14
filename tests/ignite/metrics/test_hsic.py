@@ -38,6 +38,7 @@ def np_hsic(x: Tensor, y: Tensor, sigma_x: float = -1, sigma_y: float = -1) -> f
     ones = np.ones(b)
     hsic = np.trace(KL) + (ones @ K @ ones) * (ones @ L @ ones) / ((b - 1) * (b - 2)) - ones @ KL @ ones * 2 / (b - 2)
     hsic /= b * (b - 3)
+    hsic = np.clip(hsic, 0.0, None)
     return hsic
 
 
@@ -101,7 +102,7 @@ def test_compute(n_times, sigma_x: float, sigma_y: float, test_case: Tuple[Tenso
 
         hsic.update((x_batch, y_batch))
         np_hsic_sum += np_hsic(x_batch, y_batch, sigma_x, sigma_y)
-    np_res = np.clip(np_hsic_sum, 0.0, None) / n_iters
+    np_res = np_hsic_sum / n_iters
 
     assert isinstance(hsic.compute(), float)
     assert pytest.approx(np_res, abs=2e-5) == hsic.compute()
@@ -160,7 +161,7 @@ class TestDistributed:
             for i in range(n_iters):
                 x_batch, y_batch = data_loader(i)
                 np_res += np_hsic(x_batch, y_batch)
-            np_res = np.clip(np_res, 0.0, None) / n_iters
+            np_res = np_res / n_iters
 
             assert pytest.approx(np_res, abs=tol) == res
 
