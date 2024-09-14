@@ -87,7 +87,7 @@ class HSIC(Metric):
 
         .. testoutput::
 
-            0.0922664999961853
+            0.09226646274328232
 
     .. versionadded:: 0.5.2
     """
@@ -107,13 +107,11 @@ class HSIC(Metric):
         self.sigma_y = sigma_y
         self.ignore_invalid_batch = ignore_invalid_batch
 
-    _state_dict_all_req_keys = ("_sum_of_trace", "_sum_of_second_term", "_sum_of_third_term", "_num_batches")
+    _state_dict_all_req_keys = ("_sum_of_hsic", "_num_batches")
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._sum_of_trace = torch.tensor(0.0, device=self._device)
-        self._sum_of_second_term = torch.tensor(0.0, device=self._device)
-        self._sum_of_third_term = torch.tensor(0.0, device=self._device)
+        self._sum_of_hsic = torch.tensor(0.0, device=self._device)
         self._num_batches = 0
 
     @reinit__is_reduced
@@ -153,21 +151,20 @@ class HSIC(Metric):
         L = torch.exp(-0.5 * dyy / vy) * mask
 
         KL = K @ L
-        trace = KL.trace() / (b * (b - 3))
-        second_term = K.sum() * L.sum() / (b * (b - 1) * (b - 2) * (b - 3))
-        third_term = KL.sum() / (b * (b - 2) * (b - 3))
+        trace = KL.trace()
+        second_term = K.sum() * L.sum() / ((b - 1) * (b - 2))
+        third_term = KL.sum() / (b - 2)
 
-        self._sum_of_trace += trace.to(self._device)
-        self._sum_of_second_term += second_term.to(self._device)
-        self._sum_of_third_term += third_term.to(self._device)
+        hsic = trace + second_term - third_term * 2.0
+        hsic /= b * (b - 3)
+        hsic = torch.clamp(hsic, min=0.0)  # HSIC must not be negative
+        self._sum_of_hsic += hsic.to(self._device)
 
         self._num_batches += 1
 
-    @sync_all_reduce("_sum_of_trace", "_sum_of_second_term", "_sum_of_third_term", "_num_batches")
+    @sync_all_reduce("_sum_of_hsic", "_num_batches")
     def compute(self) -> float:
         if self._num_batches == 0:
             raise NotComputableError("HSIC must have at least one batch before it can be computed.")
 
-        hsic = self._sum_of_trace + self._sum_of_second_term - self._sum_of_third_term * 2.0
-        hsic = hsic.clamp(min=0.0)  # HSIC must not be negative
-        return hsic.item() / self._num_batches
+        return self._sum_of_hsic.item() / self._num_batches

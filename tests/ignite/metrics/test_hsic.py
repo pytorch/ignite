@@ -114,7 +114,7 @@ def test_accumulator_detached():
     y = torch.rand(10, 10, dtype=torch.float)
     hsic.update((x, y))
 
-    assert not any(a.requires_grad for a in (hsic._sum_of_trace, hsic._sum_of_second_term, hsic._sum_of_third_term))
+    assert not hsic._sum_of_hsic.requires_grad
 
 
 @pytest.mark.usefixtures("distributed")
@@ -172,12 +172,12 @@ class TestDistributed:
         for metric_device in metric_devices:
             hsic = HSIC(device=metric_device)
 
-            for dev in (hsic._device, hsic._sum_of_trace, hsic._sum_of_second_term, hsic._sum_of_third_term):
+            for dev in (hsic._device, hsic._sum_of_hsic):
                 assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
 
             x = torch.zeros(10, 10).float()
             y = torch.ones(10, 10).float()
             hsic.update((x, y))
 
-            for dev in (hsic._device, hsic._sum_of_trace, hsic._sum_of_second_term, hsic._sum_of_third_term):
+            for dev in (hsic._device, hsic._sum_of_hsic):
                 assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
