@@ -173,12 +173,12 @@ class TestDistributed:
         for metric_device in metric_devices:
             hsic = HSIC(device=metric_device)
 
-            for dev in (hsic._device, hsic._sum_of_hsic):
+            for dev in (hsic._device, hsic._sum_of_hsic.device):
                 assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
 
             x = torch.zeros(10, 10).float()
             y = torch.ones(10, 10).float()
             hsic.update((x, y))
 
-            for dev in (hsic._device, hsic._sum_of_hsic):
+            for dev in (hsic._device, hsic._sum_of_hsic.device):
                 assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
