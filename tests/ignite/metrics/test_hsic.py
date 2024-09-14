@@ -140,8 +140,8 @@ class TestDistributed:
         for metric_device in metric_devices:
             x = torch.randn((n_iters * batch_size, n_dims_x)).float().to(device)
 
-            lin = nn.Linear(n_dims_x, n_dims_y).to(device) * 100
-            y = torch.sin(lin(x)) + torch.randn(n_iters * batch_size, n_dims_y) * 1e-4
+            lin = nn.Linear(n_dims_x, n_dims_y).to(device)
+            y = torch.sin(lin(x) * 100) + torch.randn(n_iters * batch_size, n_dims_y) * 1e-4
 
             def data_loader(i):
                 return x[i * batch_size : (i + 1) * batch_size], y[i * batch_size : (i + 1) * batch_size]
