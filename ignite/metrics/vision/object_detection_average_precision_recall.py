@@ -52,11 +52,12 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
         self,
         iou_thresholds: Optional[Union[Sequence[float], torch.Tensor]] = None,
         rec_thresholds: Optional[Union[Sequence[float], torch.Tensor]] = None,
-        num_classes: int = 91,
+        num_classes: int = 80,
         max_detections_per_image_per_class: int = 100,
         area_range: Literal["small", "medium", "large", "all"] = "all",
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
+        skip_unrolling: bool = False,
     ) -> None:
         r"""Calculate mean average precision & recall for evaluating an object detector in the COCO way.
 
@@ -77,7 +78,7 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
                 Values should be between 0 and 1. If not given, COCO's default (.5, .55, ..., .95) would be used.
             rec_thresholds: sequence of recall thresholds to be considered for computing mean average precision.
                 Values should be between 0 and 1. If not given, COCO's default (.0, .01, .02, ..., 1.) would be used.
-            num_classes: number of categories. Default is 91, that of the COCO.
+            num_classes: number of categories. Default is 80, that of the COCO dataset.
             area_range: area range which only objects therein are considered in evaluation. By default, 'all'.
             max_detections_per_image_per_class: maximum number of detections per class in each image to consider
                 for evaluation. The most confident ones are selected.
@@ -89,6 +90,13 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
             device: specifies which device updates are accumulated on. Setting the
                 metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
                 non-blocking. By default, CPU.
+            skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
+                true for multi-output model, for example, if ``y_pred`` and ``y`` contain multi-ouput as
+                ``(y_pred_a, y_pred_b)`` and ``(y_a, y_b)``, in which case the update method is called for
+                ``(y_pred_a, y_a)`` and ``(y_pred_b, y_b)``.Alternatively, ``output_transform`` can be used to handle
+                this.
+
+        .. versionadded:: 0.5.2
         """
         try:
             from torchvision.ops.boxes import _box_inter_union, box_area
@@ -119,6 +127,7 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
         super(ObjectDetectionAvgPrecisionRecall, self).__init__(
             output_transform=output_transform,
             device=device,
+            skip_unrolling=skip_unrolling,
         )
         super(Metric, self).__init__(
             rec_thresholds=rec_thresholds,
@@ -420,6 +429,7 @@ class CommonObjectDetectionMetrics(MetricGroup):
     AR-10           Average recall with maximum 10 detections
     =============== ==========================================
 
+    .. versionadded:: 0.5.2
     """
 
     _state_dict_all_req_keys = ("metrics", "ap_50_95")
@@ -428,20 +438,27 @@ class CommonObjectDetectionMetrics(MetricGroup):
 
     def __init__(
         self,
+        num_classes: int = 80,
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
+        skip_unrolling: bool = True,
     ):
-        self.ap_50_95 = ObjectDetectionAvgPrecisionRecall(device=device)
+        self.ap_50_95 = ObjectDetectionAvgPrecisionRecall(num_classes=num_classes, device=device)
 
         super().__init__(
             {
-                "S": ObjectDetectionAvgPrecisionRecall(device=device, area_range="small"),
-                "M": ObjectDetectionAvgPrecisionRecall(device=device, area_range="medium"),
-                "L": ObjectDetectionAvgPrecisionRecall(device=device, area_range="large"),
-                "1": ObjectDetectionAvgPrecisionRecall(device=device, max_detections_per_image_per_class=1),
-                "10": ObjectDetectionAvgPrecisionRecall(device=device, max_detections_per_image_per_class=10),
+                "S": ObjectDetectionAvgPrecisionRecall(num_classes=num_classes, device=device, area_range="small"),
+                "M": ObjectDetectionAvgPrecisionRecall(num_classes=num_classes, device=device, area_range="medium"),
+                "L": ObjectDetectionAvgPrecisionRecall(num_classes=num_classes, device=device, area_range="large"),
+                "1": ObjectDetectionAvgPrecisionRecall(
+                    num_classes=num_classes, device=device, max_detections_per_image_per_class=1
+                ),
+                "10": ObjectDetectionAvgPrecisionRecall(
+                    num_classes=num_classes, device=device, max_detections_per_image_per_class=10
+                ),
             },
             output_transform,
+            skip_unrolling=skip_unrolling,
         )
 
     def reset(self) -> None:

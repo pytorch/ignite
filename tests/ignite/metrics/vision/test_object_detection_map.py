@@ -423,7 +423,7 @@ def random_sample() -> Tuple[List[Dict[str, torch.Tensor]], List[Dict[str, torch
         h = 640 * torch.rand((n_gt_box, 1))
         x2 = (x1 + w).clip(max=640)
         y2 = (y1 + h).clip(max=640)
-        category = torch.randint(91, (n_gt_box, 1))
+        category = torch.randint(0, 80, (n_gt_box, 1))
         iscrowd = torch.randint(2, (n_gt_box, 1))
         targets.append(torch.cat((x1, y1, x2, y2, category, iscrowd), dim=1))
 
@@ -449,7 +449,7 @@ def random_sample() -> Tuple[List[Dict[str, torch.Tensor]], List[Dict[str, torch
         h = (h + perturb_h).clip(min=0, max=640)
         x2 = (x1 + w).clip(max=640)
         y2 = (y1 + h).clip(max=640)
-        category = (category + perturb_category) % 100
+        category = (category + perturb_category) % 80
         confidence = torch.rand_like(category, dtype=torch.double)
         perturbed_gt_boxes = torch.cat((x1, y1, x2, y2, confidence, category), dim=1)
 
@@ -461,7 +461,7 @@ def random_sample() -> Tuple[List[Dict[str, torch.Tensor]], List[Dict[str, torch
         h = 640 * torch.rand((n_additional_pred_boxes, 1))
         x2 = (x1 + w).clip(max=640)
         y2 = (y1 + h).clip(max=640)
-        category = torch.randint(100, (n_additional_pred_boxes, 1))
+        category = torch.randint(0, 80, (n_additional_pred_boxes, 1))
         confidence = torch.rand_like(category, dtype=torch.double)
         additional_pred_boxes = torch.cat((x1, y1, x2, y2, confidence, category), dim=1)
 
@@ -690,7 +690,7 @@ def test_no_torchvision():
 
 
 def test_iou(sample):
-    m = ObjectDetectionAvgPrecisionRecall()
+    m = ObjectDetectionAvgPrecisionRecall(num_classes=91)
     from pycocotools.mask import iou as pycoco_iou
 
     for pred, tgt in zip(*sample.data):
@@ -864,15 +864,18 @@ def test__compute_recall_and_precision():
 def test_compute(sample):
     device = idist.device()
 
+    if device == torch.device("mps"):
+        pytest.skip("Due to MPS backend out of memory")
+
     # AP@.5...95, AP@.5, AP@.75, AP-S, AP-M, AP-L, AR-1, AR-10, AR-100, AR-S, AR-M, AR-L
-    ap_50_95_ar_100 = ObjectDetectionAvgPrecisionRecall(device=device)
-    ap_50 = ObjectDetectionAvgPrecisionRecall(iou_thresholds=[0.5], device=device)
-    ap_75 = ObjectDetectionAvgPrecisionRecall(iou_thresholds=[0.75], device=device)
-    ap_ar_S = ObjectDetectionAvgPrecisionRecall(device=device, area_range="small")
-    ap_ar_M = ObjectDetectionAvgPrecisionRecall(device=device, area_range="medium")
-    ap_ar_L = ObjectDetectionAvgPrecisionRecall(device=device, area_range="large")
-    ar_1 = ObjectDetectionAvgPrecisionRecall(device=device, max_detections_per_image_per_class=1)
-    ar_10 = ObjectDetectionAvgPrecisionRecall(device=device, max_detections_per_image_per_class=10)
+    ap_50_95_ar_100 = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=device)
+    ap_50 = ObjectDetectionAvgPrecisionRecall(num_classes=91, iou_thresholds=[0.5], device=device)
+    ap_75 = ObjectDetectionAvgPrecisionRecall(num_classes=91, iou_thresholds=[0.75], device=device)
+    ap_ar_S = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=device, area_range="small")
+    ap_ar_M = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=device, area_range="medium")
+    ap_ar_L = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=device, area_range="large")
+    ar_1 = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=device, max_detections_per_image_per_class=1)
+    ar_10 = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=device, max_detections_per_image_per_class=10)
 
     metrics = [ap_50_95_ar_100, ap_50, ap_75, ap_ar_S, ap_ar_M, ap_ar_L, ar_1, ar_10]
     for metric in metrics:
@@ -895,7 +898,7 @@ def test_compute(sample):
     print(all_res)
     assert np.allclose(all_res, sample.mAP)
 
-    common_metrics = CommonObjectDetectionMetrics(device=device)
+    common_metrics = CommonObjectDetectionMetrics(num_classes=91, device=device)
     common_metrics.update(sample.data)
     res = common_metrics.compute()
     common_metrics_res = [
@@ -928,7 +931,7 @@ def test_integration(sample):
 
     device = idist.device()
     metric_device = "cpu" if device.type == "xla" else device
-    metric_50_95 = ObjectDetectionAvgPrecisionRecall(device=metric_device)
+    metric_50_95 = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=metric_device)
     metric_50_95.attach(engine, name="mAP[50-95]")
 
     n_iter = ceil(sample.length / bs)
@@ -988,16 +991,22 @@ def test_distrib_update_compute(distributed, sample):
     rank_samples_range = slice(rank_samples_cnt * rank, rank_samples_cnt * (rank + 1))
 
     device = idist.device()
+
+    if device == torch.device("mps"):
+        pytest.skip("Due to MPS backend out of memory")
+
     metric_device = "cpu" if device.type == "xla" else device
     # AP@.5...95, AP@.5, AP@.75, AP-S, AP-M, AP-L, AR-1, AR-10, AR-100, AR-S, AR-M, AR-L
-    ap_50_95_ar_100 = ObjectDetectionAvgPrecisionRecall(device=metric_device)
-    ap_50 = ObjectDetectionAvgPrecisionRecall(iou_thresholds=[0.5], device=metric_device)
-    ap_75 = ObjectDetectionAvgPrecisionRecall(iou_thresholds=[0.75], device=metric_device)
-    ap_ar_S = ObjectDetectionAvgPrecisionRecall(device=metric_device, area_range="small")
-    ap_ar_M = ObjectDetectionAvgPrecisionRecall(device=metric_device, area_range="medium")
-    ap_ar_L = ObjectDetectionAvgPrecisionRecall(device=metric_device, area_range="large")
-    ar_1 = ObjectDetectionAvgPrecisionRecall(device=metric_device, max_detections_per_image_per_class=1)
-    ar_10 = ObjectDetectionAvgPrecisionRecall(device=metric_device, max_detections_per_image_per_class=10)
+    ap_50_95_ar_100 = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=metric_device)
+    ap_50 = ObjectDetectionAvgPrecisionRecall(num_classes=91, iou_thresholds=[0.5], device=metric_device)
+    ap_75 = ObjectDetectionAvgPrecisionRecall(num_classes=91, iou_thresholds=[0.75], device=metric_device)
+    ap_ar_S = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=metric_device, area_range="small")
+    ap_ar_M = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=metric_device, area_range="medium")
+    ap_ar_L = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=metric_device, area_range="large")
+    ar_1 = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=metric_device, max_detections_per_image_per_class=1)
+    ar_10 = ObjectDetectionAvgPrecisionRecall(
+        num_classes=91, device=metric_device, max_detections_per_image_per_class=10
+    )
 
     metrics = [ap_50_95_ar_100, ap_50, ap_75, ap_ar_S, ap_ar_M, ap_ar_L, ar_1, ar_10]
 
@@ -1021,7 +1030,7 @@ def test_distrib_update_compute(distributed, sample):
     all_res = [AP_50_95, AP_50, AP_75, AP_S, AP_M, AP_L, AR_1, AR_10, AR_100, AR_S, AR_M, AR_L]
     assert np.allclose(all_res, sample.mAP)
 
-    common_metrics = CommonObjectDetectionMetrics(device=device)
+    common_metrics = CommonObjectDetectionMetrics(num_classes=91, device=device)
     common_metrics.update((y_pred_rank, y_rank))
     res = common_metrics.compute()
     common_metrics_res = [

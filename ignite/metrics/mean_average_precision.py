@@ -149,6 +149,7 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
         is_multilabel: bool = False,
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
+        skip_unrolling: bool = False,
     ) -> None:
         r"""Calculate the mean average precision metric i.e. mean of the averaged-over-recall precision for
         classification task:
@@ -210,12 +211,20 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
             device: specifies which device updates are accumulated on. Setting the
                 metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
                 non-blocking. By default, CPU.
+            skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
+                true for multi-output model, for example, if ``y_pred`` and ``y`` contain multi-ouput as
+                ``(y_pred_a, y_pred_b)`` and ``(y_a, y_b)``, in which case the update method is called for
+                ``(y_pred_a, y_a)`` and ``(y_pred_b, y_b)``.Alternatively, ``output_transform`` can be used to handle
+                this.
+
+        .. versionadded:: 0.5.2
         """
 
         super(MeanAveragePrecision, self).__init__(
             output_transform=output_transform,
             is_multilabel=is_multilabel,
             device=device,
+            skip_unrolling=skip_unrolling,
         )
         super(Metric, self).__init__(rec_thresholds=rec_thresholds, class_mean=class_mean)
 
