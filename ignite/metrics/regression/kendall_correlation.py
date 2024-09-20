@@ -46,10 +46,10 @@ class KendallRankCorrelation(EpochMetric):
     Parameters are inherited from ``Metric.__init__``.
 
     Args:
-        variant: variant of kendall rank correlation. ``b`` or ``c`` is accepted.
+        variant: variant of kendall rank correlation. ``'b'`` or ``'c'`` is accepted.
             Details can be found
             `here <https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient#Accounting_for_ties>`_.
-            Default: ``b``
+            Default: ``'b'``
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
@@ -58,6 +58,9 @@ class KendallRankCorrelation(EpochMetric):
         device: specifies which device updates are accumulated on. Setting the
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
+        skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
+            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            Alternatively, ``output_transform`` can be used to handle this.
 
     Examples:
         To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
@@ -79,6 +82,8 @@ class KendallRankCorrelation(EpochMetric):
         .. testoutput::
 
             0.4666666666666666
+
+    .. versionadded:: 0.5.2
     """
 
     def __init__(
