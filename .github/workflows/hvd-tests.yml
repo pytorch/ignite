@@ -35,7 +35,7 @@ jobs:
         # Extension horovod.torch has not been built: /opt/hostedtoolcache/Python/3.11.10/x64/lib/python3.11/site-packages/horovod/torch/mpi_lib_v2.cpython-311-x86_64-linux-gnu.so not found
         # If this is not expected, reinstall Horovod with HOROVOD_WITH_PYTORCH=1 to debug the build error.
         # Warning! MPI libs are missing, but python applications are still available.
-        python-version: [3.10]
+        python-version: ["3.10"]
         pytorch-channel: [pytorch]
 
     steps:
