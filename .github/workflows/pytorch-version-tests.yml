@@ -15,6 +15,8 @@ jobs:
       max-parallel: 5
       fail-fast: false
       matrix:
+        # Here we keep python 3.8 tests until the end of the 2024 and 
+        # will drop python version and related pytorch versions
         python-version: [3.8, 3.9, "3.10"]
         pytorch-version:
           [2.3.1, 2.2.2, 2.1.2, 2.0.1, 1.13.1, 1.12.1, 1.10.0, 1.8.1, 1.5.1]
