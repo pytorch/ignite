@@ -357,6 +357,7 @@ Complete list of metrics
     KLDivergence
     JSDivergence
     MaximumMeanDiscrepancy
+    HSIC
     AveragePrecision
     CohenKappa
     GpuInfo
