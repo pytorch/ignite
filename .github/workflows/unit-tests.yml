@@ -83,11 +83,11 @@ jobs:
 
       - name: Install PyTorch
         if: ${{ matrix.pytorch-channel == 'pytorch' }}
-        run: pip install torch torchvision -f https://download.pytorch.org/whl/cpu/torch_stable.html
+        run: pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
       - name: Install PyTorch (nightly)
         if: ${{ matrix.pytorch-channel == 'pytorch-nightly' }}
-        run: pip install torch torchvision -f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html --pre
+        run: pip install torch torchvision --index-url https://download.pytorch.org/whl/nightly/cpu --pre
 
       - name: Install dependencies
         run: |
