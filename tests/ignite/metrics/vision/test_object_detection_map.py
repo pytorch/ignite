@@ -923,13 +923,16 @@ def test_compute(sample):
 def test_integration(sample):
     bs = 3
 
+    device = idist.device()
+    if device == torch.device("mps"):
+        pytest.skip("Due to MPS backend out of memory")
+
     def update(engine, i):
         b = slice(i * bs, (i + 1) * bs)
         return sample.data[0][b], sample.data[1][b]
 
     engine = Engine(update)
 
-    device = idist.device()
     metric_device = "cpu" if device.type == "xla" else device
     metric_50_95 = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=metric_device)
     metric_50_95.attach(engine, name="mAP[50-95]")
