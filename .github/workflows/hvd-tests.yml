@@ -28,14 +28,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        # Horovod installed on python 3.11, 3.10 fails with error: 
-        # ignite/distributed/comp_models/horovod.py:159: in _HorovodDistModel
-        #     "SUM": hvd.mpi_ops.Sum,
-        # E   AttributeError: module 'horovod.torch' has no attribute 'mpi_ops'
-        # Extension horovod.torch has not been built: /opt/hostedtoolcache/Python/3.11.10/x64/lib/python3.11/site-packages/horovod/torch/mpi_lib_v2.cpython-311-x86_64-linux-gnu.so not found
-        # If this is not expected, reinstall Horovod with HOROVOD_WITH_PYTORCH=1 to debug the build error.
-        # Warning! MPI libs are missing, but python applications are still available.
-        python-version: ["3.9"]
+        python-version: ["3.11"]
         pytorch-channel: [pytorch]
 
     steps:
@@ -71,7 +64,7 @@ jobs:
           #install other dependencies
           pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements-dev.txt
-          pip install horovod
+          pip install git+https://github.com/horovod/horovod.git
           python setup.py install
 
       # Download MNIST: https://github.com/pytorch/ignite/issues/1737
