@@ -33,8 +33,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
 
       - name: Get year & week number
         id: get-date
@@ -59,6 +57,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
   
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+
       - name: Install dependencies
         shell: bash -l {0}
         run: |
