@@ -134,6 +134,7 @@ class HSIC(Metric):
 
         vx: Union[Tensor, float]
         if self.sigma_x < 0:
+            # vx = torch.quantile(dxx, 0.5)
             vx = torch.quantile(dxx, 0.5)
         else:
             vx = self.sigma_x**2
