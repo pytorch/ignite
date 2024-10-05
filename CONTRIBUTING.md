@@ -61,7 +61,7 @@ into the following categories:
 - Create an isolated conda environment for pytorch-ignite:
 
 ```bash
-conda create -n pytorch-ignite-dev python=3.8
+conda create -n pytorch-ignite-dev python=3.11
 ```
 
 - Activate the newly created environment:

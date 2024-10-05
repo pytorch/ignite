@@ -28,7 +28,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        python-version: [3.8]
+        python-version: ["3.11"]
         pytorch-channel: [pytorch]
 
     steps:
@@ -64,7 +64,20 @@ jobs:
           #install other dependencies
           pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements-dev.txt
-          pip install horovod
+          
+          # Install Horovod from source and apply a patch to build with recent pytorch
+          # We can't use pip install <whatever> as build-env can't find pytorch and 
+          # `--no-build-isolation` does not work with horovod setup.py
+          git clone --recursive https://github.com/horovod/horovod.git /tmp/horovod
+          cd /tmp/horovod
+          sed -i "s/CMAKE_CXX_STANDARD 14/CMAKE_CXX_STANDARD 17/g" CMakeLists.txt
+          sed -i "s/CMAKE_CXX_STANDARD 14/CMAKE_CXX_STANDARD 17/g" horovod/torch/CMakeLists.txt          
+          HOROVOD_WITH_PYTORCH=1 python setup.py install                
+          cd -
+          # test the installation:
+          python -c "import horovod.torch as hvd; hvd.mpi_ops.Sum"
+
+          # Install ignite
           python setup.py install
 
       # Download MNIST: https://github.com/pytorch/ignite/issues/1737
