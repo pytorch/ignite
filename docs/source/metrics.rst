@@ -383,6 +383,7 @@ Complete list of metrics
     regression.R2Score
     regression.WaveHedgesDistance
     clustering.SilhouetteScore
+    clustering.DaviesBouldinScore
 
 
 .. note::
