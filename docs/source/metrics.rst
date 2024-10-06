@@ -384,6 +384,7 @@ Complete list of metrics
     regression.WaveHedgesDistance
     clustering.SilhouetteScore
     clustering.DaviesBouldinScore
+    clustering.CalinskiHarabaszScore
 
 
 .. note::
