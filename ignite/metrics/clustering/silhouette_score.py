@@ -28,6 +28,7 @@ class SilhouetteScore(_ClusteringMetricBase):
         s = \frac{b-a}{\max(a,b)}
 
     where:
+
     - :math:`a` is the mean distance between a sample and all other points in the same cluster.
     - :math:`b` is the mean distance between a sample and all other points in the next nearest cluster.
 
