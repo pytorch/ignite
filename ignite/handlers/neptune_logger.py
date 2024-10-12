@@ -166,15 +166,7 @@ class NeptuneLogger(BaseLogger):
 
     def __init__(self, api_token: Optional[str] = None, project: Optional[str] = None, **kwargs: Any) -> None:
         try:
-            try:
-                # neptune-client<1.0.0 package structure
-                with warnings.catch_warnings():
-                    # ignore the deprecation warnings
-                    warnings.simplefilter("ignore")
-                    import neptune.new as neptune
-            except ImportError:
-                # neptune>=1.0.0 package structure
-                import neptune
+            import neptune
         except ImportError:
             raise ModuleNotFoundError(
                 "This contrib module requires the Neptune client library to be installed. "
