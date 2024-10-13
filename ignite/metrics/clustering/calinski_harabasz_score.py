@@ -6,16 +6,13 @@ from torch import Tensor
 from ignite.metrics.clustering._base import _ClusteringMetricBase
 
 
-def _get_calinski_harabasz_score() -> Callable[[Tensor, Tensor], float]:
+def _calinski_harabasz_score(features: Tensor, labels: Tensor) -> float:
     from sklearn.metrics import calinski_harabasz_score
 
-    def _calinski_harabasz_score(features: Tensor, labels: Tensor) -> float:
-        np_features = features.numpy()
-        np_labels = labels.numpy()
-        score = calinski_harabasz_score(np_features, np_labels)
-        return score
-
-    return _calinski_harabasz_score
+    np_features = features.numpy()
+    np_labels = labels.numpy()
+    score = calinski_harabasz_score(np_features, np_labels)
+    return score
 
 
 class CalinskiHarabaszScore(_ClusteringMetricBase):
@@ -104,4 +101,4 @@ class CalinskiHarabaszScore(_ClusteringMetricBase):
         except ImportError:
             raise ModuleNotFoundError("This module requires scikit-learn to be installed.")
 
-        super().__init__(_get_calinski_harabasz_score(), output_transform, check_compute_fn, device, skip_unrolling)
+        super().__init__(_calinski_harabasz_score, output_transform, check_compute_fn, device, skip_unrolling)

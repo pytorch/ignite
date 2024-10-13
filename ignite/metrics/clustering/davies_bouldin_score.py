@@ -6,16 +6,13 @@ from torch import Tensor
 from ignite.metrics.clustering._base import _ClusteringMetricBase
 
 
-def _get_davies_bouldin_score() -> Callable[[Tensor, Tensor], float]:
+def _davies_bouldin_score(features: Tensor, labels: Tensor) -> float:
     from sklearn.metrics import davies_bouldin_score
 
-    def _davies_bouldin_score(features: Tensor, labels: Tensor) -> float:
-        np_features = features.numpy()
-        np_labels = labels.numpy()
-        score = davies_bouldin_score(np_features, np_labels)
-        return score
-
-    return _davies_bouldin_score
+    np_features = features.numpy()
+    np_labels = labels.numpy()
+    score = davies_bouldin_score(np_features, np_labels)
+    return score
 
 
 class DaviesBouldinScore(_ClusteringMetricBase):
@@ -104,4 +101,4 @@ class DaviesBouldinScore(_ClusteringMetricBase):
         except ImportError:
             raise ModuleNotFoundError("This module requires scikit-learn to be installed.")
 
-        super().__init__(_get_davies_bouldin_score(), output_transform, check_compute_fn, device, skip_unrolling)
+        super().__init__(_davies_bouldin_score, output_transform, check_compute_fn, device, skip_unrolling)
