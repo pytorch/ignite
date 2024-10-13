@@ -9,16 +9,13 @@ from ignite.metrics.epoch_metric import EpochMetric
 from ignite.metrics.regression._base import _check_output_shapes, _check_output_types
 
 
-def _get_spearman_r() -> Callable[[Tensor, Tensor], float]:
+def _spearman_r(predictions: Tensor, targets: Tensor) -> float:
     from scipy.stats import spearmanr
 
-    def _compute_spearman_r(predictions: Tensor, targets: Tensor) -> float:
-        np_preds = predictions.flatten().numpy()
-        np_targets = targets.flatten().numpy()
-        r = spearmanr(np_preds, np_targets).statistic
-        return r
-
-    return _compute_spearman_r
+    np_preds = predictions.flatten().numpy()
+    np_targets = targets.flatten().numpy()
+    r = spearmanr(np_preds, np_targets).statistic
+    return r
 
 
 class SpearmanRankCorrelation(EpochMetric):
@@ -92,7 +89,7 @@ class SpearmanRankCorrelation(EpochMetric):
         except ImportError:
             raise ModuleNotFoundError("This module requires scipy to be installed.")
 
-        super().__init__(_get_spearman_r(), output_transform, check_compute_fn, device, skip_unrolling)
+        super().__init__(_spearman_r, output_transform, check_compute_fn, device, skip_unrolling)
 
     def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output[0].detach(), output[1].detach()
