@@ -6,13 +6,13 @@ from torch import Tensor
 from ignite.metrics.clustering._base import _ClusteringMetricBase
 
 
-def _get_calinski_harabasz_score(**kwargs: Any) -> Callable[[Tensor, Tensor], float]:
+def _get_calinski_harabasz_score() -> Callable[[Tensor, Tensor], float]:
     from sklearn.metrics import calinski_harabasz_score
 
     def _calinski_harabasz_score(features: Tensor, labels: Tensor) -> float:
         np_features = features.numpy()
         np_labels = labels.numpy()
-        score = calinski_harabasz_score(np_features, np_labels, **kwargs)
+        score = calinski_harabasz_score(np_features, np_labels)
         return score
 
     return _calinski_harabasz_score
