@@ -5,6 +5,8 @@ from torch import Tensor
 
 from ignite.metrics.clustering._base import _ClusteringMetricBase
 
+__all__ = ["CalinskiHarabaszScore"]
+
 
 def _calinski_harabasz_score(features: Tensor, labels: Tensor) -> float:
     from sklearn.metrics import calinski_harabasz_score

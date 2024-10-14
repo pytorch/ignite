@@ -5,6 +5,8 @@ from torch import Tensor
 
 from ignite.metrics.clustering._base import _ClusteringMetricBase
 
+__all__ = ["DaviesBouldinScore"]
+
 
 def _davies_bouldin_score(features: Tensor, labels: Tensor) -> float:
     from sklearn.metrics import davies_bouldin_score

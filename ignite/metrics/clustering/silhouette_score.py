@@ -5,6 +5,8 @@ from torch import Tensor
 
 from ignite.metrics.clustering._base import _ClusteringMetricBase
 
+__all__ = ["SilhouetteScore"]
+
 
 def _get_silhouette_score(**kwargs: Any) -> Callable[[Tensor, Tensor], float]:
     from sklearn.metrics import silhouette_score
