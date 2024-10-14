@@ -1,4 +1,4 @@
-from typing import Any, Callable, Union
+from typing import Any, Callable, Union, Optional
 
 import torch
 from torch import Tensor
@@ -97,7 +97,7 @@ class SilhouetteScore(_ClusteringMetricBase):
         check_compute_fn: bool = True,
         device: Union[str, torch.device] = torch.device("cpu"),
         skip_unrolling: bool = False,
-        silhouette_kwargs: dict | None = None,
+        silhouette_kwargs: Optional[dict] = None,
     ) -> None:
         try:
             from sklearn.metrics import silhouette_score  # noqa: F401
