@@ -25,6 +25,7 @@ pynvml
 clearml
 scikit-image
 py-rouge
+pycocotools
 # temporary fix for python=3.12 and v3.8.1
 # nltk
 git+https://github.com/nltk/nltk@aba99c8
