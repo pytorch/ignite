@@ -151,7 +151,7 @@ def Fbeta(
 
     if precision is None:
         precision = Precision(
-            output_transform=(lambda x: x) if output_transform is None else output_transform,  # type: ignore[arg-type]
+            output_transform=(lambda x: x) if output_transform is None else output_transform,
             average=False,
             device=device,
         )
@@ -160,7 +160,7 @@ def Fbeta(
 
     if recall is None:
         recall = Recall(
-            output_transform=(lambda x: x) if output_transform is None else output_transform,  # type: ignore[arg-type]
+            output_transform=(lambda x: x) if output_transform is None else output_transform,
             average=False,
             device=device,
         )
