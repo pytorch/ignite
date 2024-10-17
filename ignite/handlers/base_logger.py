@@ -161,11 +161,20 @@ class BaseOutputHandler(BaseHandler):
             elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
                 for i, v in enumerate(value):
                     metrics_state_attrs_dict[key_tf(self.tag, name, str(i))] = v.item()
+            elif isinstance(value, Mapping):
+                for key, sub_value in value.items():
+                    if isinstance(value, numbers.Number):
+                        metrics_state_attrs_dict[key_tf(self.tag, name, key)] = value
+                    elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
+                        metrics_state_attrs_dict[key_tf(self.tag, name, key)] = value.item()
+                    elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
+                        for i, v in enumerate(value):
+                            metrics_state_attrs_dict[
+                                key_tf(self.tag, name, key, str(i))] = v.item()
+            elif isinstance(value, str) and log_text:
+                metrics_state_attrs_dict[key_tf(self.tag, name)] = value
             else:
-                if isinstance(value, str) and log_text:
-                    metrics_state_attrs_dict[key_tf(self.tag, name)] = value
-                else:
-                    warnings.warn(f"Logger output_handler can not log metrics value type {type(value)}")
+                warnings.warn(f"Logger output_handler can not log metrics value type {type(value)}")
         return metrics_state_attrs_dict
 
 
