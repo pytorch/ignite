@@ -400,7 +400,7 @@ class BasicTimeProfiler:
 
         """
 
-        def to_str(v: Union[str, tuple]) -> str:
+        def to_str(v: Union[str, tuple, int, float]) -> str:
             if isinstance(v, str):
                 return v
             elif isinstance(v, tuple):
@@ -412,12 +412,14 @@ class BasicTimeProfiler:
             return out
 
         others = {
-            k: odict_to_str(v) if isinstance(v, OrderedDict) else v for k, v in results["event_handlers_stats"].items()
+            k: odict_to_str(v) if isinstance(v, OrderedDict) else to_str(v)
+            for k, v in results["event_handlers_stats"].items()
         }
 
         others.update(results["event_handlers_names"])
 
-        output_message = """
+        output_message: str = (
+            """
  ----------------------------------------------------
 | Time profiling stats (in seconds):                 |
  ----------------------------------------------------
@@ -430,7 +432,7 @@ Dataflow:
 {dataflow_stats}
 
 Event handlers:
-{total_time:.5f}
+{total_time}
 
 - Events.STARTED: {STARTED_names}
 {STARTED}
@@ -450,9 +452,10 @@ Event handlers:
 - Events.COMPLETED: {COMPLETED_names}
 {COMPLETED}
 """.format(
-            processing_stats=odict_to_str(results["processing_stats"]),
-            dataflow_stats=odict_to_str(results["dataflow_stats"]),
-            **others,
+                processing_stats=odict_to_str(results["processing_stats"]),
+                dataflow_stats=odict_to_str(results["dataflow_stats"]),
+                **others,
+            )
         )
         print(output_message)
         return output_message
