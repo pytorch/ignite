@@ -1,0 +1,45 @@
+﻿MaximumAbsoluteError
+====================
+
+.. currentmodule:: ignite.contrib.metrics.regression
+
+.. autoclass:: MaximumAbsoluteError
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~MaximumAbsoluteError.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~MaximumAbsoluteError.reset
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
