@@ -125,7 +125,7 @@ class WandBLogger(BaseLogger):
 
     def __init__(self, *args: Any, **kwargs: Any):
         try:
-            import wandb
+            import wandb  # type: ignore[import-not-found]
 
             self._wandb = wandb
         except ImportError:

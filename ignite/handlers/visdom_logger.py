@@ -150,7 +150,7 @@ class VisdomLogger(BaseLogger):
         **kwargs: Any,
     ):
         try:
-            import visdom
+            import visdom  # type: ignore[import-not-found]
         except ImportError:
             raise ModuleNotFoundError(
                 "This contrib module requires visdom package. "
@@ -187,7 +187,7 @@ class VisdomLogger(BaseLogger):
 
         self.vis = visdom.Visdom(server=server, port=port, raise_exceptions=raise_exceptions, **kwargs)
 
-        if not self.vis.offline and not self.vis.check_connection():  # type: ignore[attr-defined]
+        if not self.vis.offline and not self.vis.check_connection():
             raise RuntimeError(f"Failed to connect to Visdom server at {server}. Did you run python -m visdom.server ?")
 
         self.executor: Union[_DummyExecutor, "ThreadPoolExecutor"] = _DummyExecutor()
@@ -195,7 +195,7 @@ class VisdomLogger(BaseLogger):
             self.executor = ThreadPoolExecutor(max_workers=num_workers)
 
     def _save(self) -> None:
-        self.vis.save([self.vis.env])  # type: ignore[attr-defined]
+        self.vis.save([self.vis.env])
 
     def close(self) -> None:
         self.executor.shutdown()
@@ -240,7 +240,7 @@ class _BaseVisDrawer:
         kwargs = {
             "X": [global_step],
             "Y": [v],
-            "env": logger.vis.env,  # type: ignore[attr-defined]
+            "env": logger.vis.env,
             "win": self.windows[k]["win"],
             "update": update,
             "opts": self.windows[k]["opts"],
