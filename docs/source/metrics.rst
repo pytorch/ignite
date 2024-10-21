@@ -382,6 +382,9 @@ Complete list of metrics
     regression.KendallRankCorrelation
     regression.R2Score
     regression.WaveHedgesDistance
+    clustering.SilhouetteScore
+    clustering.DaviesBouldinScore
+    clustering.CalinskiHarabaszScore
 
 
 .. note::
