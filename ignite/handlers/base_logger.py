@@ -4,7 +4,9 @@ import numbers
 import warnings
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from collections.abc import Mapping, Collection
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union, TypeVar, \
+    Iterable
 
 import torch
 import torch.nn as nn
@@ -118,10 +120,10 @@ class BaseOutputHandler(BaseHandler):
         self, engine: Engine, log_text: Optional[bool] = False, key_tuple: Optional[bool] = True
     ) -> Dict[Any, Any]:
         """Helper method to setup metrics and state attributes to log"""
-        metrics_state_attrs = OrderedDict()
+        state_metrics = OrderedDict()
         if self.metric_names is not None:
             if isinstance(self.metric_names, str) and self.metric_names == "all":
-                metrics_state_attrs = OrderedDict(engine.state.metrics)
+                state_metrics = OrderedDict(engine.state.metrics)
             else:
                 for name in self.metric_names:
                     if name not in engine.state.metrics:
@@ -130,7 +132,7 @@ class BaseOutputHandler(BaseHandler):
                             f"in engine's state metrics: {list(engine.state.metrics.keys())}"
                         )
                         continue
-                    metrics_state_attrs[name] = engine.state.metrics[name]
+                    state_metrics[name] = engine.state.metrics[name]
 
         if self.output_transform is not None:
             output_dict = self.output_transform(engine.state.output)
@@ -138,44 +140,64 @@ class BaseOutputHandler(BaseHandler):
             if not isinstance(output_dict, dict):
                 output_dict = {"output": output_dict}
 
-            metrics_state_attrs.update(output_dict)
+            state_metrics.update(output_dict)
 
         if self.state_attributes is not None:
-            metrics_state_attrs.update({name: getattr(engine.state, name, None) for name in self.state_attributes})
+            state_metrics.update({name: getattr(engine.state, name, None) for name in self.state_attributes})
 
-        metrics_state_attrs_dict: Dict[Any, Union[str, float, numbers.Number]] = OrderedDict()
+        metrics: Dict[Any, Union[str, float, numbers.Number]] = OrderedDict()
 
-        def key_tuple_tf(tag: str, name: str, *args: str) -> Tuple[str, ...]:
-            return (tag, name) + args
+        def concat_tuple(parent_tag: Tuple[str], name: str, *args: str) -> Tuple[str, ...]:
+            return parent_tag + (name, *args)
 
-        def key_str_tf(tag: str, name: str, *args: str) -> str:
-            return "/".join((tag, name) + args)
+        def concat_str(parent_tag: str, name: str, *args: str) -> str:
+            return "/".join((parent_tag, name) + args)
 
-        key_tf = key_tuple_tf if key_tuple else key_str_tf
+        concat_tf = concat_tuple if key_tuple else concat_str
 
-        for name, value in metrics_state_attrs.items():
+        self._compute_tags(
+            concat_tf,
+            log_text,
+            node=state_metrics.items(),
+            parent_tag=(self.tag, ) if key_tuple else self.tag,
+            dest_dict=metrics)
+        return metrics
+
+    @classmethod
+    def _compute_tags(
+            cls,
+            concat_tf: Callable[..., Union[str, Tuple[str, ...]]],
+            log_text: bool, node: Iterable[Tuple[str, Any]],
+            parent_tag: Union[str, Tuple[str, ...]],
+            dest_dict: Dict[Any, Union[str, float, numbers.Number]]
+    ):
+        for name, value in node:
             if isinstance(value, numbers.Number):
-                metrics_state_attrs_dict[key_tf(self.tag, name)] = value
+                dest_dict[concat_tf(parent_tag, name)] = value
             elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                metrics_state_attrs_dict[key_tf(self.tag, name)] = value.item()
+                dest_dict[concat_tf(parent_tag, name)] = value.item()
             elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
                 for i, v in enumerate(value):
-                    metrics_state_attrs_dict[key_tf(self.tag, name, str(i))] = v.item()
-            elif isinstance(value, Mapping):
-                for key, sub_value in value.items():
-                    if isinstance(value, numbers.Number):
-                        metrics_state_attrs_dict[key_tf(self.tag, name, key)] = value
-                    elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                        metrics_state_attrs_dict[key_tf(self.tag, name, key)] = value.item()
-                    elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
-                        for i, v in enumerate(value):
-                            metrics_state_attrs_dict[
-                                key_tf(self.tag, name, key, str(i))] = v.item()
+                    dest_dict[concat_tf(parent_tag, name, str(i))] = v.item()
             elif isinstance(value, str) and log_text:
-                metrics_state_attrs_dict[key_tf(self.tag, name)] = value
+                dest_dict[concat_tf(parent_tag, name)] = value
+            elif isinstance(value, Mapping):
+                cls._compute_tags(
+                    concat_tf,
+                    log_text,
+                    node=value.items(),
+                    parent_tag=concat_tf(parent_tag, name),
+                    dest_dict=dest_dict)
+            elif isinstance(value, Collection):
+                cls._compute_tags(
+                    concat_tf,
+                    log_text,
+                    node=iter(enumerate(value)),
+                    parent_tag=concat_tf(parent_tag, name),
+                    dest_dict=dest_dict)
             else:
-                warnings.warn(f"Logger output_handler can not log metrics value type {type(value)}")
-        return metrics_state_attrs_dict
+                warnings.warn(
+                    f"Logger output_handler can not log metrics value type {type(value)}")
 
 
 class BaseWeightsScalarHandler(BaseWeightsHandler):
