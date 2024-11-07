@@ -80,7 +80,7 @@ echo "opt_build_args: ${opt_build_args}"
 
 retry "docker build --build-arg PTH_VERSION=${pth_version} ${opt_build_args} -t pytorchignite/${image_name}:latest -f Dockerfile.${image_name} ." "\nBuild failed: ${image_name}"
 if [ -z $image_tag ]; then
-    image_tag=`docker run --rm -i pytorchignite/${image_name}:latest python -c "import torch; import ignite; print(torch.__version__ + \"-\" + ignite.__version__, end=\"\")"`
+    image_tag=`docker run --rm -i pytorchignite/${image_name}:latest python -c "import torch; import ignite; print(torch.__version__.split('+')[0] + \"-\" + ignite.__version__, end=\"\")"`
 fi
 docker tag pytorchignite/${image_name}:latest pytorchignite/${image_name}:${image_tag}
 
