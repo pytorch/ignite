@@ -85,7 +85,6 @@ run_tests() {
         skip_distrib_opt=""
     fi
 
-
     echo [pytest] > pytest.ini ; echo "cache_dir=${cache_dir}" >> pytest.ini
 
     # Assemble options for the pytest command
@@ -103,8 +102,8 @@ run_tests() {
 
     # Run the command
     if [ "$trap_deselected_exit_code" -eq "1" ]; then
-        CUDA_VISIBLE_DEVICES="" eval "pytest ${pytest_args}" || { exit_code=$?; if [ "$exit_code" -eq ${last_failed_no_failures_code} ]; then echo "All tests deselected"; else exit $exit_code; fi; }
+        eval "pytest ${pytest_args}" || { exit_code=$?; if [ "$exit_code" -eq ${last_failed_no_failures_code} ]; then echo "All tests deselected"; else exit $exit_code; fi; }
     else
-        CUDA_VISIBLE_DEVICES="" eval "pytest ${pytest_args}"
+        eval "pytest ${pytest_args}"
     fi
 }
