@@ -295,7 +295,11 @@ def test_torch_save_load(dirname):
 
     filepath = Path(dirname) / "dummy_lambda_state_parameter_scheduler.pt"
     torch.save(lambda_state_parameter_scheduler, filepath)
-    loaded_lambda_state_parameter_scheduler = torch.load(filepath)
+    if Version(torch.__version__) >= Version("1.13.0"):
+        kwargs = {"weights_only": False}
+    else:
+        kwargs = {}
+    loaded_lambda_state_parameter_scheduler = torch.load(filepath, **kwargs)
 
     engine1 = Engine(lambda e, b: None)
     lambda_state_parameter_scheduler.attach(engine1, Events.EPOCH_COMPLETED)

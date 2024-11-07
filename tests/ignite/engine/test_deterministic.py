@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 import torch
 import torch.nn as nn
+from packaging.version import Version
 from torch.optim import SGD
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler
 
@@ -737,7 +738,11 @@ def _test_gradients_on_resume(
             grad_norms.append([i, total[1]] + out2)
 
         if sd is not None:
-            sd = torch.load(sd)
+            if Version(torch.__version__) >= Version("1.13.0"):
+                kwargs = {"weights_only": False}
+            else:
+                kwargs = {}
+            sd = torch.load(sd, **kwargs)
             model.load_state_dict(sd[0])
             opt.load_state_dict(sd[1])
             from ignite.engine.deterministic import _repr_rng_state
