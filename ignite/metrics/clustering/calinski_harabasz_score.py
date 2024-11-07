@@ -11,8 +11,8 @@ __all__ = ["CalinskiHarabaszScore"]
 def _calinski_harabasz_score(features: Tensor, labels: Tensor) -> float:
     from sklearn.metrics import calinski_harabasz_score
 
-    np_features = features.numpy()
-    np_labels = labels.numpy()
+    np_features = features.cpu().numpy()
+    np_labels = labels.cpu().numpy()
     score = calinski_harabasz_score(np_features, np_labels)
     return score
 

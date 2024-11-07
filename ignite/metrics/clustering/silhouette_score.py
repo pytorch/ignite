@@ -111,7 +111,7 @@ class SilhouetteScore(_ClusteringMetricBase):
     def _silhouette_score(self, features: Tensor, labels: Tensor) -> float:
         from sklearn.metrics import silhouette_score
 
-        np_features = features.numpy()
-        np_labels = labels.numpy()
+        np_features = features.cpu().numpy()
+        np_labels = labels.cpu().numpy()
         score = silhouette_score(np_features, np_labels, **self._silhouette_kwargs)
         return score

@@ -11,8 +11,8 @@ __all__ = ["DaviesBouldinScore"]
 def _davies_bouldin_score(features: Tensor, labels: Tensor) -> float:
     from sklearn.metrics import davies_bouldin_score
 
-    np_features = features.numpy()
-    np_labels = labels.numpy()
+    np_features = features.cpu().numpy()
+    np_labels = labels.cpu().numpy()
     score = davies_bouldin_score(np_features, np_labels)
     return score
 
