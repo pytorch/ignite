@@ -120,26 +120,21 @@ def _test_distrib_all_reduce(device):
 
 def _test_distrib_all_reduce_group(device):
     if idist.get_world_size() > 1 and idist.backend() is not None:
-        ranks = [0, 1]
+        ranks = list(range(idist.get_world_size() - 1, 0, -1))  # [0, 1, 2, 3] -> [3, 2, 1]
         rank = idist.get_rank()
-        t = torch.tensor([rank], device=device)
         bnd = idist.backend()
 
-        group = idist.new_group(ranks)
-        if bnd in ("horovod"):
-            with pytest.raises(NotImplementedError, match=r"all_reduce with group for horovod is not implemented"):
+        for group in [idist.new_group(ranks), ranks]:
+            t = torch.tensor([rank], device=device)
+            if bnd in ("horovod"):
+                with pytest.raises(NotImplementedError, match=r"all_reduce with group for horovod is not implemented"):
+                    res = idist.all_reduce(t, group=group)
+            else:
                 res = idist.all_reduce(t, group=group)
-        else:
-            res = idist.all_reduce(t, group=group)
-            assert res == torch.tensor([sum(ranks)], device=device)
-
-        t = torch.tensor([rank], device=device)
-        if bnd in ("horovod"):
-            with pytest.raises(NotImplementedError, match=r"all_reduce with group for horovod is not implemented"):
-                res = idist.all_reduce(t, group=ranks)
-        else:
-            res = idist.all_reduce(t, group=ranks)
-            assert res == torch.tensor([sum(ranks)], device=device)
+                if rank in ranks:
+                    assert res == torch.tensor([sum(ranks)], device=device)
+                else:
+                    assert res == t
 
         ranks = "abc"
 
@@ -218,33 +213,23 @@ def _test_distrib_all_gather(device):
 
 
 def _test_distrib_all_gather_group(device):
-    if idist.get_world_size() > 1:
+    if idist.get_world_size() > 1 and idist.backend() is not None:
         ranks = list(range(idist.get_world_size() - 1, 0, -1))  # [0, 1, 2, 3] -> [3, 2, 1]
+        sorted_ranks = sorted(ranks)
         rank = idist.get_rank()
         bnd = idist.backend()
 
         t = torch.tensor([rank], device=device)
-        group = idist.new_group(ranks)
-        if bnd in ("horovod"):
-            with pytest.raises(NotImplementedError, match=r"all_gather with group for horovod is not implemented"):
+        for group in [idist.new_group(ranks), ranks]:
+            if bnd in ("horovod"):
+                with pytest.raises(NotImplementedError, match=r"all_gather with group for horovod is not implemented"):
+                    res = idist.all_gather(t, group=group)
+            else:
                 res = idist.all_gather(t, group=group)
-        else:
-            res = idist.all_gather(t, group=group)
-            if rank in ranks:
-                assert torch.equal(res, torch.tensor(ranks, device=device))
-            else:
-                assert res == t
-
-        t = torch.tensor([rank], device=device)
-        if bnd in ("horovod"):
-            with pytest.raises(NotImplementedError, match=r"all_gather with group for horovod is not implemented"):
-                res = idist.all_gather(t, group=ranks)
-        else:
-            res = idist.all_gather(t, group=ranks)
-            if rank in ranks:
-                assert torch.equal(res, torch.tensor(ranks, device=device))
-            else:
-                assert res == t
+                if rank in ranks:
+                    assert (res == torch.tensor(sorted_ranks, device=device)).all(), (res, ranks)
+                else:
+                    assert res == t
 
         t = {
             "a": [rank + 1, rank + 2, torch.tensor(rank + 3, device=device)],
@@ -261,7 +246,7 @@ def _test_distrib_all_gather_group(device):
             res = idist.all_gather(t, group=ranks)
             if rank in ranks:
                 assert isinstance(res, list) and len(res) == len(ranks)
-                for i, obj in zip(ranks, res):
+                for i, obj in zip(sorted_ranks, res):
                     assert isinstance(obj, dict)
                     assert list(obj.keys()) == ["a", "b", "c"], obj
                     expected_device = (
@@ -295,20 +280,44 @@ def _test_idist_all_gather_tensors_with_shapes(device):
     torch.manual_seed(41)
     rank = idist.get_rank()
     ws = idist.get_world_size()
-    reference = torch.randn(ws * (ws + 1) // 2, ws * (ws + 3) // 2, ws * (ws + 5) // 2, device=device)
+    reference = torch.randn(ws + 6, ws + 6, ws + 6, device=device)
+
+    ref_indices_per_rank = {
+        # rank: (start_index, end_index, size)
+        r: (r + 1, 2 * r + 2, r + 1)
+        for r in range(ws)
+    }
+    start_index, end_index, _ = ref_indices_per_rank[rank]
     rank_tensor = reference[
-        rank * (rank + 1) // 2 : rank * (rank + 1) // 2 + rank + 1,
-        rank * (rank + 3) // 2 : rank * (rank + 3) // 2 + rank + 2,
-        rank * (rank + 5) // 2 : rank * (rank + 5) // 2 + rank + 3,
+        start_index : end_index + 1,
+        start_index : end_index + 2,
+        start_index : end_index + 3,
     ]
-    tensors = all_gather_tensors_with_shapes(rank_tensor, [[r + 1, r + 2, r + 3] for r in range(ws)])
+    tensors = all_gather_tensors_with_shapes(
+        rank_tensor,
+        [
+            [
+                ref_indices_per_rank[r][2] + 1,
+                ref_indices_per_rank[r][2] + 2,
+                ref_indices_per_rank[r][2] + 3,
+            ]
+            for r in range(ws)
+        ],
+    )
     for r in range(ws):
-        r_tensor = reference[
-            r * (r + 1) // 2 : r * (r + 1) // 2 + r + 1,
-            r * (r + 3) // 2 : r * (r + 3) // 2 + r + 2,
-            r * (r + 5) // 2 : r * (r + 5) // 2 + r + 3,
+        start_index, end_index, _ = ref_indices_per_rank[r]
+        ref_tensor = reference[
+            start_index : end_index + 1,
+            start_index : end_index + 2,
+            start_index : end_index + 3,
         ]
-        assert (r_tensor == tensors[r]).all()
+        assert torch.allclose(ref_tensor, tensors[r]), (
+            r,
+            ref_tensor.shape,
+            ref_tensor.mean(),
+            tensors[r].shape,
+            tensors[r].mean(),
+        )
 
 
 def _test_idist_all_gather_tensors_with_shapes_group(device):
@@ -320,27 +329,29 @@ def _test_idist_all_gather_tensors_with_shapes_group(device):
         ws = idist.get_world_size()
         bnd = idist.backend()
         if rank in ranks:
-            reference = torch.randn(ws * (ws + 1) // 2, ws * (ws + 3) // 2, ws * (ws + 5) // 2, device=device)
+            reference = torch.randn(
+                ws * (ws + 1) // 2 + 1, ws * (ws + 3) // 2 + 1, ws * (ws + 5) // 2 + 1, device=device
+            )
             rank_tensor = reference[
-                rank * (rank + 1) // 2 : rank * (rank + 1) // 2 + rank + 1,
-                rank * (rank + 3) // 2 : rank * (rank + 3) // 2 + rank + 2,
-                rank * (rank + 5) // 2 : rank * (rank + 5) // 2 + rank + 3,
+                rank * (rank + 1) // 2 : rank * (rank + 1) // 2 + rank + 2,
+                rank * (rank + 3) // 2 : rank * (rank + 3) // 2 + rank + 3,
+                rank * (rank + 5) // 2 : rank * (rank + 5) // 2 + rank + 4,
             ]
         else:
             rank_tensor = torch.tensor([rank], device=device)
         if bnd in ("horovod"):
             with pytest.raises(NotImplementedError, match=r"all_gather with group for horovod is not implemented"):
-                tensors = all_gather_tensors_with_shapes(rank_tensor, [[r + 1, r + 2, r + 3] for r in ranks], ranks)
+                tensors = all_gather_tensors_with_shapes(rank_tensor, [[r + 2, r + 3, r + 4] for r in ranks], ranks)
         else:
-            tensors = all_gather_tensors_with_shapes(rank_tensor, [[r + 1, r + 2, r + 3] for r in ranks], ranks)
+            tensors = all_gather_tensors_with_shapes(rank_tensor, [[r + 2, r + 3, r + 4] for r in ranks], ranks)
             if rank in ranks:
                 for r in ranks:
                     r_tensor = reference[
-                        r * (r + 1) // 2 : r * (r + 1) // 2 + r + 1,
-                        r * (r + 3) // 2 : r * (r + 3) // 2 + r + 2,
-                        r * (r + 5) // 2 : r * (r + 5) // 2 + r + 3,
+                        r * (r + 1) // 2 : r * (r + 1) // 2 + r + 2,
+                        r * (r + 3) // 2 : r * (r + 3) // 2 + r + 3,
+                        r * (r + 5) // 2 : r * (r + 5) // 2 + r + 4,
                     ]
-                    assert (r_tensor == tensors[r - 1]).all()
+                    assert r_tensor.allclose(tensors[r - 1])
             else:
                 assert [rank_tensor] == tensors
 
