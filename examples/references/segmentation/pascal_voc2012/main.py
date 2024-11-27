@@ -6,7 +6,8 @@ import fire
 import torch
 
 try:
-    from torch.cuda.amp import autocast, GradScaler
+    from torch.cuda.amp import GradScaler
+    from torch.amp import autocast
 except ImportError:
     raise RuntimeError("Please, use recent PyTorch version, e.g. >=1.6.0")
 
@@ -191,7 +192,7 @@ def create_trainer(model, optimizer, criterion, train_sampler, config, logger, w
     def forward_pass(batch):
         model.train()
         x, y = prepare_batch(batch, device=device, non_blocking=True)
-        with autocast(enabled=with_amp):
+        with autocast("cuda", enabled=with_amp):
             y_pred = model(x)
             y_pred = model_output_transform(y_pred)
             loss = criterion(y_pred, y) / accumulation_steps
@@ -272,7 +273,7 @@ def create_evaluator(model, metrics, config, with_clearml, tag="val"):
     @torch.no_grad()
     def evaluate_step(engine, batch):
         model.eval()
-        with autocast(enabled=with_amp):
+        with autocast("cuda", enabled=with_amp):
             x, y = prepare_batch(batch, device=config.device, non_blocking=True)
             y_pred = model(x)
             y_pred = model_output_transform(y_pred)

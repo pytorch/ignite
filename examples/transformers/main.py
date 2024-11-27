@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import utils
-from torch.cuda.amp import autocast, GradScaler
+from torch.amp import autocast, GradScaler
 
 import ignite
 import ignite.distributed as idist
@@ -309,7 +309,7 @@ def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, con
 
         model.train()
 
-        with autocast(enabled=with_amp):
+        with autocast("cuda", enabled=with_amp):
             y_pred = model(input_batch)
             loss = criterion(y_pred, labels)
 
@@ -373,7 +373,7 @@ def create_evaluator(model, metrics, config, tag="val"):
             input_batch = {k: v.to(device, non_blocking=True, dtype=torch.long) for k, v in batch[0].items()}
             labels = labels.to(device, non_blocking=True, dtype=torch.float)
 
-        with autocast(enabled=with_amp):
+        with autocast("cuda", enabled=with_amp):
             output = model(input_batch)
         return output, labels
 

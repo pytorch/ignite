@@ -6,7 +6,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import utils
-from torch.cuda.amp import autocast, GradScaler
+from torch.cuda.amp import GradScaler
+from torch.amp import autocast
 
 import ignite
 import ignite.distributed as idist
@@ -283,7 +284,7 @@ def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, con
 
         model.train()
 
-        with autocast(enabled=with_amp):
+        with autocast("cuda", enabled=with_amp):
             y_pred = model(x)
             loss = criterion(y_pred, y)
 

@@ -447,7 +447,7 @@ def test_create_supervised_trainer_apex_error():
 def mock_torch_cuda_amp_module():
     with patch.dict(
         "sys.modules",
-        {"torch.cuda.amp": None, "torch.cuda.amp.grad_scaler": None, "torch.cuda.amp.autocast_mode": None},
+        {"torch.cuda.amp": None, "torch.cuda.amp.grad_scaler": None, "torch.amp.autocast_mode": None},
     ):
         yield torch
 
@@ -631,7 +631,7 @@ def test_create_supervised_evaluator():
 
     # older versions didn't have the autocast method so we skip the test for older builds
     if Version(torch.__version__) >= Version("1.6.0"):
-        with mock.patch("torch.cuda.amp.autocast") as mock_torch_cuda_amp_module:
+        with mock.patch("torch.amp.autocast") as mock_torch_cuda_amp_module:
             _test_create_evaluation_step_amp(mock_torch_cuda_amp_module)
 
 
@@ -641,7 +641,7 @@ def test_create_supervised_evaluator_on_cpu():
 
     # older versions didn't have the autocast method so we skip the test for older builds
     if Version(torch.__version__) >= Version("1.6.0"):
-        with mock.patch("torch.cuda.amp.autocast") as mock_torch_cuda_amp_module:
+        with mock.patch("torch.amp.autocast") as mock_torch_cuda_amp_module:
             _test_create_evaluation_step(mock_torch_cuda_amp_module, evaluator_device="cpu")
             _test_create_evaluation_step_amp(mock_torch_cuda_amp_module, evaluator_device="cpu")
 
@@ -652,7 +652,7 @@ def test_create_supervised_evaluator_traced_on_cpu():
 
     # older versions didn't have the autocast method so we skip the test for older builds
     if Version(torch.__version__) >= Version("1.6.0"):
-        with mock.patch("torch.cuda.amp.autocast") as mock_torch_cuda_amp_module:
+        with mock.patch("torch.amp.autocast") as mock_torch_cuda_amp_module:
             _test_create_evaluation_step(mock_torch_cuda_amp_module, evaluator_device="cpu", trace=True)
 
 
