@@ -447,7 +447,7 @@ def test_create_supervised_trainer_apex_error():
 def mock_torch_cuda_amp_module():
     with patch.dict(
         "sys.modules",
-        {"torch.cuda.amp": None, "torch.cuda.amp.grad_scaler": None, "torch.amp.autocast_mode": None},
+        {"torch.amp": None, "torch.cuda.amp.grad_scaler": None, "torch.amp.autocast_mode": None},
     ):
         yield torch
 
@@ -461,7 +461,7 @@ def test_create_supervised_trainer_amp_error(mock_torch_cuda_amp_module):
         _test_create_supervised_trainer(amp_mode="amp", scaler=True)
 
 
-@pytest.mark.skipif(Version(torch.__version__) < Version("1.12.0"), reason="Skip if < 1.5.0")
+@pytest.mark.skipif(Version(torch.__version__) < Version("1.12.0"), reason="Skip if < 1.12.0")
 def test_create_supervised_trainer_scaler_not_amp():
     scaler = torch.cuda.amp.GradScaler(enabled=torch.cuda.is_available())
 

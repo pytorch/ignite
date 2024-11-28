@@ -412,7 +412,7 @@ def _check_arg(
             try:
                 from torch.cuda.amp import GradScaler
             except ImportError:
-                raise ImportError("Please install torch>=1.12.0 to use scaler argument.")
+                raise ImportError("Please install torch>=1.6.0 to use scaler argument.")
             scaler = GradScaler(enabled=True)
 
     if on_tpu:

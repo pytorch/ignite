@@ -9,7 +9,7 @@ from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
 __all__ = ["KLDivergence"]
 
-TORCH_VERSION_GE_160 = Version(torch.__version__) >= Version("1.12.0")
+TORCH_VERSION_GE_160 = Version(torch.__version__) >= Version("1.6.0")
 
 
 class KLDivergence(Metric):
