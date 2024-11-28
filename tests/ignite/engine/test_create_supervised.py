@@ -168,7 +168,7 @@ def _test_create_supervised_trainer(
                 trainer.run(data)
 
 
-@pytest.mark.skipif(Version(torch.__version__) < Version("1.6.0"), reason="Skip if < 1.6.0")
+@pytest.mark.skipif(Version(torch.__version__) < Version("1.12.0"), reason="Skip if < 1.12.0")
 def test_create_supervised_training_scalar_assignment():
     with mock.patch("ignite.engine._check_arg") as check_arg_mock:
         check_arg_mock.return_value = None, torch.cuda.amp.GradScaler(enabled=False)
@@ -453,15 +453,15 @@ def mock_torch_cuda_amp_module():
 
 
 def test_create_supervised_trainer_amp_error(mock_torch_cuda_amp_module):
-    with pytest.raises(ImportError, match="Please install torch>=1.6.0 to use amp_mode='amp'."):
+    with pytest.raises(ImportError, match="Please install torch>=1.12.0 to use amp_mode='amp'."):
         _test_create_supervised_trainer_wrong_accumulation(trainer_device="cpu", amp_mode="amp")
-    with pytest.raises(ImportError, match="Please install torch>=1.6.0 to use amp_mode='amp'."):
+    with pytest.raises(ImportError, match="Please install torch>=1.12.0 to use amp_mode='amp'."):
         _test_create_supervised_trainer(amp_mode="amp")
-    with pytest.raises(ImportError, match="Please install torch>=1.6.0 to use scaler argument."):
+    with pytest.raises(ImportError, match="Please install torch>=1.12.0 to use scaler argument."):
         _test_create_supervised_trainer(amp_mode="amp", scaler=True)
 
 
-@pytest.mark.skipif(Version(torch.__version__) < Version("1.5.0"), reason="Skip if < 1.5.0")
+@pytest.mark.skipif(Version(torch.__version__) < Version("1.12.0"), reason="Skip if < 1.5.0")
 def test_create_supervised_trainer_scaler_not_amp():
     scaler = torch.cuda.amp.GradScaler(enabled=torch.cuda.is_available())
 
@@ -501,7 +501,7 @@ def test_create_supervised_trainer_on_mps():
     _test_create_mocked_supervised_trainer(model_device=model_device, trainer_device=trainer_device)
 
 
-@pytest.mark.skipif(Version(torch.__version__) < Version("1.6.0"), reason="Skip if < 1.6.0")
+@pytest.mark.skipif(Version(torch.__version__) < Version("1.12.0"), reason="Skip if < 1.12.0")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_create_supervised_trainer_on_cuda_amp():
     model_device = trainer_device = "cuda"
@@ -517,7 +517,7 @@ def test_create_supervised_trainer_on_cuda_amp():
     _test_create_mocked_supervised_trainer(model_device=model_device, trainer_device=trainer_device, amp_mode="amp")
 
 
-@pytest.mark.skipif(Version(torch.__version__) < Version("1.6.0"), reason="Skip if < 1.6.0")
+@pytest.mark.skipif(Version(torch.__version__) < Version("1.12.0"), reason="Skip if < 1.12.0")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_create_supervised_trainer_on_cuda_amp_scaler():
     model_device = trainer_device = "cuda"
@@ -630,7 +630,7 @@ def test_create_supervised_evaluator():
     _test_mocked_supervised_evaluator()
 
     # older versions didn't have the autocast method so we skip the test for older builds
-    if Version(torch.__version__) >= Version("1.6.0"):
+    if Version(torch.__version__) >= Version("1.12.0"):
         with mock.patch("torch.amp.autocast") as mock_torch_cuda_amp_module:
             _test_create_evaluation_step_amp(mock_torch_cuda_amp_module)
 
@@ -640,7 +640,7 @@ def test_create_supervised_evaluator_on_cpu():
     _test_mocked_supervised_evaluator(evaluator_device="cpu")
 
     # older versions didn't have the autocast method so we skip the test for older builds
-    if Version(torch.__version__) >= Version("1.6.0"):
+    if Version(torch.__version__) >= Version("1.12.0"):
         with mock.patch("torch.amp.autocast") as mock_torch_cuda_amp_module:
             _test_create_evaluation_step(mock_torch_cuda_amp_module, evaluator_device="cpu")
             _test_create_evaluation_step_amp(mock_torch_cuda_amp_module, evaluator_device="cpu")
@@ -651,7 +651,7 @@ def test_create_supervised_evaluator_traced_on_cpu():
     _test_mocked_supervised_evaluator(evaluator_device="cpu", trace=True)
 
     # older versions didn't have the autocast method so we skip the test for older builds
-    if Version(torch.__version__) >= Version("1.6.0"):
+    if Version(torch.__version__) >= Version("1.12.0"):
         with mock.patch("torch.amp.autocast") as mock_torch_cuda_amp_module:
             _test_create_evaluation_step(mock_torch_cuda_amp_module, evaluator_device="cpu", trace=True)
 
@@ -682,7 +682,7 @@ def test_create_supervised_evaluator_on_mps_with_model_on_cpu():
     _test_mocked_supervised_evaluator(evaluator_device="mps")
 
 
-@pytest.mark.skipif(Version(torch.__version__) < Version("1.6.0"), reason="Skip if < 1.6.0")
+@pytest.mark.skipif(Version(torch.__version__) < Version("1.12.0"), reason="Skip if < 1.12.0")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no GPU")
 def test_create_supervised_evaluator_on_cuda_amp():
     model_device = evaluator_device = "cuda"
@@ -691,7 +691,7 @@ def test_create_supervised_evaluator_on_cuda_amp():
 
 
 def test_create_supervised_evaluator_amp_error(mock_torch_cuda_amp_module):
-    with pytest.raises(ImportError, match="Please install torch>=1.6.0 to use amp_mode='amp'."):
+    with pytest.raises(ImportError, match="Please install torch>=1.12.0 to use amp_mode='amp'."):
         _test_create_supervised_evaluator(amp_mode="amp")
 
 

@@ -187,7 +187,7 @@ def supervised_training_step_amp(
     try:
         from torch.amp import autocast
     except ImportError:
-        raise ImportError("Please install torch>=1.6.0 to use amp_mode='amp'.")
+        raise ImportError("Please install torch>=1.12.0 to use amp_mode='amp'.")
 
     if gradient_accumulation_steps <= 0:
         raise ValueError(
@@ -412,7 +412,7 @@ def _check_arg(
             try:
                 from torch.cuda.amp import GradScaler
             except ImportError:
-                raise ImportError("Please install torch>=1.6.0 to use scaler argument.")
+                raise ImportError("Please install torch>=1.12.0 to use scaler argument.")
             scaler = GradScaler(enabled=True)
 
     if on_tpu:
@@ -461,7 +461,7 @@ def create_supervised_trainer(
         amp_mode: can be ``amp`` or ``apex``, model and optimizer will be casted to float16 using
             `torch.cuda.amp <https://pytorch.org/docs/stable/amp.html>`_ for ``amp`` and
             using `apex <https://nvidia.github.io/apex>`_ for ``apex``. (default: None)
-        scaler: GradScaler instance for gradient scaling if `torch>=1.6.0`
+        scaler: GradScaler instance for gradient scaling if `torch>=1.12.0`
             and ``amp_mode`` is ``amp``. If ``amp_mode`` is ``apex``, this argument will be ignored.
             If True, will create default GradScaler. If GradScaler instance is passed, it will be used instead.
             (default: False)
@@ -728,7 +728,7 @@ def supervised_evaluation_step_amp(
     try:
         from torch.amp import autocast
     except ImportError:
-        raise ImportError("Please install torch>=1.6.0 to use amp_mode='amp'.")
+        raise ImportError("Please install torch>=1.12.0 to use amp_mode='amp'.")
 
     def evaluate_step(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
         model.eval()

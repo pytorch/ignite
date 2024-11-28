@@ -8,7 +8,7 @@ from ignite.metrics.metric import sync_all_reduce
 
 __all__ = ["JSDivergence"]
 
-TORCH_VERSION_GE_160 = Version(torch.__version__) >= Version("1.6.0")
+TORCH_VERSION_GE_160 = Version(torch.__version__) >= Version("1.12.0")
 
 
 class JSDivergence(KLDivergence):
