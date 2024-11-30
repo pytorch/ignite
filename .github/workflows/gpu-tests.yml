@@ -119,6 +119,9 @@ jobs:
 
           docker exec -t pthd /bin/bash -c "${script}"
 
+      - name: Debug with tmate
+        uses: mxschmitt/action-tmate@v3
+
       - name: Run GPU Unit Tests
         continue-on-error: false
         uses: nick-fields/retry@v2.9.0
