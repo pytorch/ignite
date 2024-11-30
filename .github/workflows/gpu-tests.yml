@@ -121,6 +121,8 @@ jobs:
 
       - name: Debug with tmate
         uses: mxschmitt/action-tmate@v3
+        with:
+          sudo: false
 
       - name: Run GPU Unit Tests
         continue-on-error: false
