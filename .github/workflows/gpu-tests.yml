@@ -28,6 +28,7 @@ jobs:
       DOCKER_IMAGE: "pytorch/almalinux-builder:cuda12.4"
       REPOSITORY: ${{ github.repository }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
+      ACTIONS_STEP_DEBUG: true
     runs-on: linux.8xlarge.nvidia.gpu
     timeout-minutes: 85
 
