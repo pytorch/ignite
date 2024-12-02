@@ -550,7 +550,7 @@ class Engine(Serializable):
 
         Args:
             skip_event_completed: if True, the event `~ignite.engine.events.Events.COMPLETED` is not fired after
-            `~ignite.engine.events.Events.COMPLETED`. Default is False.
+            `~ignite.engine.events.Events.TERMINATE`. Default is False.
 
         Examples:
             .. testcode::
