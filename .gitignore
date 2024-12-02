@@ -44,3 +44,5 @@ coverage.xml
 # Virtualenv
 .venv/
 .python-version
+.neptune/
+.vscode/

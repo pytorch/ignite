@@ -1001,18 +1001,16 @@ class Engine(Serializable):
             # time is available for handlers but must be updated after fire
             self.state.times[Events.COMPLETED.name] = time_taken
 
-            if self.should_terminate and self.skip_completed_after_termination:
-                # do not fire Events.COMPLETED if we terminated the run with flag `skip_completed_after_termination=True`
-                hours, mins, secs = _to_hours_mins_secs(time_taken)
-                self.logger.info(f"Engine run terminated. Time taken: {hours:02d}:{mins:02d}:{secs:06.3f}")
-            else:
+            # do not fire Events.COMPLETED if we terminated the run with flag `skip_completed=True`
+            if not (self.should_terminate and self.skip_completed_after_termination):
                 handlers_start_time = time.time()
                 self._fire_event(Events.COMPLETED)
                 time_taken += time.time() - handlers_start_time
                 # update time wrt handlers
                 self.state.times[Events.COMPLETED.name] = time_taken
-                hours, mins, secs = _to_hours_mins_secs(time_taken)
-                self.logger.info(f"Engine run completed. Time taken: {hours:02d}:{mins:02d}:{secs:06.3f}")
+
+            hours, mins, secs = _to_hours_mins_secs(time_taken)
+            self.logger.info(f"Engine run finished. Time taken: {hours:02d}:{mins:02d}:{secs:06.3f}")
 
         except BaseException as e:
             self._dataloader_iter = None
@@ -1187,17 +1185,17 @@ class Engine(Serializable):
             time_taken = time.time() - start_time
             # time is available for handlers but must be updated after fire
             self.state.times[Events.COMPLETED.name] = time_taken
-            handlers_start_time = time.time()
 
-            # do not fire Events.COMPLETED if we terminated the run with flag `skip_completed_after_termination=True`
-            if self.should_terminate and not self.skip_completed_after_termination or not self.should_terminate:
+            # do not fire Events.COMPLETED if we terminated the run with flag `skip_completed=True`
+            if not (self.should_terminate and self.skip_completed_after_termination):
+                handlers_start_time = time.time()
                 self._fire_event(Events.COMPLETED)
+                time_taken += time.time() - handlers_start_time
+                # update time wrt handlers
+                self.state.times[Events.COMPLETED.name] = time_taken
 
-            time_taken += time.time() - handlers_start_time
-            # update time wrt handlers
-            self.state.times[Events.COMPLETED.name] = time_taken
             hours, mins, secs = _to_hours_mins_secs(time_taken)
-            self.logger.info(f"Engine run complete. Time taken: {hours:02d}:{mins:02d}:{secs:06.3f}")
+            self.logger.info(f"Engine run finished. Time taken: {hours:02d}:{mins:02d}:{secs:06.3f}")
 
         except BaseException as e:
             self._dataloader_iter = None
