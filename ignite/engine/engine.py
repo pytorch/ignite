@@ -626,7 +626,7 @@ class Engine(Serializable):
         """
         self.logger.info("Terminate signaled. Engine will stop after current iteration is finished.")
         self.should_terminate = True
-        self.skip_completed_after_termination = skip_event_completed
+        self.skip_completed_after_termination = skip_completed
 
     def terminate_epoch(self) -> None:
         """Sends terminate signal to the engine, so that it terminates the current epoch. The run
