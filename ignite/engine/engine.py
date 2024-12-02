@@ -549,7 +549,7 @@ class Engine(Serializable):
         - :attr:`~ignite.engine.events.Events.COMPLETED`
 
         Args:
-            skip_event_completed: if True, the event `~ignite.engine.events.Events.COMPLETED` is not fired after
+            skip_completed: if True, the event `~ignite.engine.events.Events.COMPLETED` is not fired after
             `~ignite.engine.events.Events.TERMINATE`. Default is False.
 
         Examples:
@@ -622,7 +622,7 @@ class Engine(Serializable):
             Behaviour changed, for details see https://github.com/pytorch/ignite/issues/2669
 
         .. versionchanged:: 0.5.2
-            Added `skip_event_completed` flag
+            Added `skip_completed` flag
         """
         self.logger.info("Terminate signaled. Engine will stop after current iteration is finished.")
         self.should_terminate = True
