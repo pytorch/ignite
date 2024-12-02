@@ -618,7 +618,11 @@ class Engine(Serializable):
                     4 34  |  9
                     2 Engine ended the run at  4 34
 
-        .. versionchanged:: 0.5.1
+        .. versionchanged:: 0.4.10
+            Behaviour changed, for details see https://github.com/pytorch/ignite/issues/2669
+
+        .. versionchanged:: 0.5.2
+            Added `skip_event_completed` flag
         """
         self.logger.info("Terminate signaled. Engine will stop after current iteration is finished.")
         self.should_terminate = True
