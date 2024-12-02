@@ -539,7 +539,7 @@ class Engine(Serializable):
         self.logger.info("interrupt signaled. Engine will interrupt the run after current iteration is finished.")
         self.should_interrupt = True
 
-    def terminate(self, skip_event_completed: bool = False) -> None:
+    def terminate(self, skip_completed: bool = False) -> None:
         """Sends terminate signal to the engine, so that it terminates completely the run. The run is
         terminated after the event on which ``terminate`` method was called. The following events are triggered:
 
