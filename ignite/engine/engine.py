@@ -4,7 +4,7 @@ import math
 import time
 import warnings
 import weakref
-from collections import OrderedDict, defaultdict
+from collections import defaultdict, OrderedDict
 from collections.abc import Mapping
 from typing import Any, Callable, Dict, Generator, Iterable, Iterator, List, Optional, Tuple, Union
 
@@ -549,8 +549,8 @@ class Engine(Serializable):
         - :attr:`~ignite.engine.events.Events.COMPLETED`
 
         Args:
-            skip_completed: if True, the event `~ignite.engine.events.Events.COMPLETED` is not fired after
-            `~ignite.engine.events.Events.TERMINATE`. Default is False.
+            skip_completed: if True, the event :attr:`~ignite.engine.events.Events.COMPLETED` is not fired after
+            :attr:`~ignite.engine.events.Events.TERMINATE`. Default is False.
 
         Examples:
             .. testcode::
@@ -905,8 +905,6 @@ class Engine(Serializable):
                 # If engine was terminated and now is resuming from terminated state
                 # we need to initialize iter_counter as 0
                 self._init_iter = 0
-                # And we reset the skip_completed_after_termination to its default value
-                self.skip_completed_after_termination = False
 
         if self._dataloader_iter is None:
             self.state.dataloader = data
@@ -1002,17 +1000,19 @@ class Engine(Serializable):
             time_taken = time.time() - start_time
             # time is available for handlers but must be updated after fire
             self.state.times[Events.COMPLETED.name] = time_taken
-            handlers_start_time = time.time()
 
-            # do not fire Events.COMPLETED if we terminated the run with flag `skip_completed_after_termination=True`
-            if self.should_terminate and not self.skip_completed_after_termination or not self.should_terminate:
+            if self.should_terminate and self.skip_completed_after_termination:
+                # do not fire Events.COMPLETED if we terminated the run with flag `skip_completed_after_termination=True`
+                hours, mins, secs = _to_hours_mins_secs(time_taken)
+                self.logger.info(f"Engine run terminated. Time taken: {hours:02d}:{mins:02d}:{secs:06.3f}")
+            else:
+                handlers_start_time = time.time()
                 self._fire_event(Events.COMPLETED)
-
-            time_taken += time.time() - handlers_start_time
-            # update time wrt handlers
-            self.state.times[Events.COMPLETED.name] = time_taken
-            hours, mins, secs = _to_hours_mins_secs(time_taken)
-            self.logger.info(f"Engine run complete. Time taken: {hours:02d}:{mins:02d}:{secs:06.3f}")
+                time_taken += time.time() - handlers_start_time
+                # update time wrt handlers
+                self.state.times[Events.COMPLETED.name] = time_taken
+                hours, mins, secs = _to_hours_mins_secs(time_taken)
+                self.logger.info(f"Engine run completed. Time taken: {hours:02d}:{mins:02d}:{secs:06.3f}")
 
         except BaseException as e:
             self._dataloader_iter = None
@@ -1192,7 +1192,7 @@ class Engine(Serializable):
             # do not fire Events.COMPLETED if we terminated the run with flag `skip_completed_after_termination=True`
             if self.should_terminate and not self.skip_completed_after_termination or not self.should_terminate:
                 self._fire_event(Events.COMPLETED)
-                
+
             time_taken += time.time() - handlers_start_time
             # update time wrt handlers
             self.state.times[Events.COMPLETED.name] = time_taken

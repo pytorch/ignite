@@ -1,6 +1,6 @@
 import os
 import time
-from unittest.mock import MagicMock, Mock, call
+from unittest.mock import call, MagicMock, Mock
 
 import numpy as np
 import pytest
@@ -49,7 +49,7 @@ class TestEngine:
     def test_terminate_and_not_complete(self):
         engine = Engine(lambda e, b: 1)
         assert not engine.should_terminate and not engine.skip_completed_after_termination
-        engine.terminate(skip_event_completed=True)
+        engine.terminate(skip_completed=True)
         assert engine.should_terminate and engine.skip_completed_after_termination
 
     def test_invalid_process_raises_with_invalid_signature(self):
@@ -260,14 +260,14 @@ class TestEngine:
             (Events.ITERATION_COMPLETED(once=14), None, 14, False),
         ],
     )
-    def test_terminate_events_sequence(self, terminate_event, e, i, skip_event_completed):
+    def test_terminate_events_sequence(self, terminate_event, e, i, skip_completed):
         engine = RecordedEngine(MagicMock(return_value=1))
         data = range(10)
         max_epochs = 5
 
         @engine.on(terminate_event)
         def call_terminate():
-            engine.terminate(skip_event_completed)
+            engine.terminate(skip_completed)
 
         @engine.on(Events.EXCEPTION_RAISED)
         def assert_no_exceptions(ee):
@@ -284,7 +284,7 @@ class TestEngine:
         if e is None:
             e = i // len(data) + 1
 
-        if skip_event_completed:
+        if skip_completed:
             assert engine.called_events[-1] == (e, i, Events.TERMINATE)
             assert engine.called_events[-2] == (e, i, terminate_event)
         else:
@@ -1425,4 +1425,3 @@ def test_engine_interrupt_restart():
     state = engine.run(data, max_epochs=max_epochs)
     assert state.iteration == max_epochs * len(data) and state.epoch == max_epochs
     assert num_calls_check_iter_epoch == 1
-
