@@ -265,7 +265,8 @@ class Events(EventEnum):
 
     - EPOCH_COMPLETED : triggered when the epoch is ended. Note that this is triggered even
       when :meth:`~ignite.engine.engine.Engine.terminate_epoch()` is called.
-    - COMPLETED : triggered when engine's run is completed
+    - COMPLETED : triggered when engine's run is completed or terminated :meth:`~ignite.engine.engine.Engine.terminate()`,
+      unless the flag `skip_event_completed` is set to True.
 
     The table below illustrates which events are triggered when various termination methods are called.
 
@@ -286,7 +287,7 @@ class Events(EventEnum):
          - ✔
          - ✗
        * - :meth:`~ignite.engine.engine.Engine.terminate()`
-         - ✗
+         - (✔)
          - ✔
          - ✔
 
@@ -357,7 +358,7 @@ class Events(EventEnum):
     STARTED = "started"
     """triggered when engine's run is started."""
     COMPLETED = "completed"
-    """triggered when engine's run is completed"""
+    """triggered when engine's run is completed, or after receiving terminate() call."""
 
     ITERATION_STARTED = "iteration_started"
     """triggered when an iteration is started."""

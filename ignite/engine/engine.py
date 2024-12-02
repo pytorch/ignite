@@ -4,7 +4,7 @@ import math
 import time
 import warnings
 import weakref
-from collections import defaultdict, OrderedDict
+from collections import OrderedDict, defaultdict
 from collections.abc import Mapping
 from typing import Any, Callable, Dict, Generator, Iterable, Iterator, List, Optional, Tuple, Union
 
@@ -140,6 +140,7 @@ class Engine(Serializable):
         self._process_function = process_function
         self.last_event_name: Optional[Events] = None
         self.should_terminate = False
+        self.skip_completed_after_termination = False
         self.should_terminate_single_epoch = False
         self.should_interrupt = False
         self.state = State()
@@ -538,7 +539,7 @@ class Engine(Serializable):
         self.logger.info("interrupt signaled. Engine will interrupt the run after current iteration is finished.")
         self.should_interrupt = True
 
-    def terminate(self) -> None:
+    def terminate(self, skip_event_completed: bool = False) -> None:
         """Sends terminate signal to the engine, so that it terminates completely the run. The run is
         terminated after the event on which ``terminate`` method was called. The following events are triggered:
 
@@ -547,6 +548,9 @@ class Engine(Serializable):
         - :attr:`~ignite.engine.events.Events.TERMINATE`
         - :attr:`~ignite.engine.events.Events.COMPLETED`
 
+        Args:
+            skip_event_completed: if True, the event `~ignite.engine.events.Events.COMPLETED` is not fired after
+            `~ignite.engine.events.Events.COMPLETED`. Default is False.
 
         Examples:
             .. testcode::
@@ -614,12 +618,11 @@ class Engine(Serializable):
                     4 34  |  9
                     2 Engine ended the run at  4 34
 
-        .. versionchanged:: 0.4.10
-            Behaviour changed, for details see https://github.com/pytorch/ignite/issues/2669
-
+        .. versionchanged:: 0.5.1
         """
         self.logger.info("Terminate signaled. Engine will stop after current iteration is finished.")
         self.should_terminate = True
+        self.skip_completed_after_termination = skip_event_completed
 
     def terminate_epoch(self) -> None:
         """Sends terminate signal to the engine, so that it terminates the current epoch. The run
@@ -898,6 +901,8 @@ class Engine(Serializable):
                 # If engine was terminated and now is resuming from terminated state
                 # we need to initialize iter_counter as 0
                 self._init_iter = 0
+                # And we reset the skip_completed_after_termination to its default value
+                self.skip_completed_after_termination = False
 
         if self._dataloader_iter is None:
             self.state.dataloader = data
@@ -994,7 +999,11 @@ class Engine(Serializable):
             # time is available for handlers but must be updated after fire
             self.state.times[Events.COMPLETED.name] = time_taken
             handlers_start_time = time.time()
-            self._fire_event(Events.COMPLETED)
+
+            # do not fire Events.COMPLETED if we terminated the run with flag `skip_completed_after_termination=True`
+            if self.should_terminate and not self.skip_completed_after_termination or not self.should_terminate:
+                self._fire_event(Events.COMPLETED)
+
             time_taken += time.time() - handlers_start_time
             # update time wrt handlers
             self.state.times[Events.COMPLETED.name] = time_taken
@@ -1175,7 +1184,11 @@ class Engine(Serializable):
             # time is available for handlers but must be updated after fire
             self.state.times[Events.COMPLETED.name] = time_taken
             handlers_start_time = time.time()
-            self._fire_event(Events.COMPLETED)
+
+            # do not fire Events.COMPLETED if we terminated the run with flag `skip_completed_after_termination=True`
+            if self.should_terminate and not self.skip_completed_after_termination or not self.should_terminate:
+                self._fire_event(Events.COMPLETED)
+                
             time_taken += time.time() - handlers_start_time
             # update time wrt handlers
             self.state.times[Events.COMPLETED.name] = time_taken
