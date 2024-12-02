@@ -121,7 +121,6 @@ jobs:
 
       - name: Debug with tmate
         uses: mxschmitt/action-tmate@v3
-        shell: bash
         with:
           sudo: false
 
