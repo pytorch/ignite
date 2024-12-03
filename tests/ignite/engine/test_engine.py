@@ -40,17 +40,14 @@ class TestEngine:
     def set_interrupt_resume_enabled(self, interrupt_resume_enabled):
         Engine.interrupt_resume_enabled = interrupt_resume_enabled
 
-    def test_terminate(self):
+    @pytest.mark.parametrize("skip_completed", [True, False])
+    def test_terminate(self, skip_completed):
         engine = Engine(lambda e, b: 1)
-        assert not engine.should_terminate and not engine.skip_completed_after_termination
-        engine.terminate()
-        assert engine.should_terminate and not engine.skip_completed_after_termination
-
-    def test_terminate_and_not_complete(self):
-        engine = Engine(lambda e, b: 1)
-        assert not engine.should_terminate and not engine.skip_completed_after_termination
-        engine.terminate(skip_completed=True)
-        assert engine.should_terminate and engine.skip_completed_after_termination
+        assert not engine.should_terminate
+        assert not engine.skip_completed_after_termination
+        engine.terminate(skip_completed)
+        assert engine.should_terminate
+        assert engine.skip_completed_after_termination == skip_completed
 
     def test_invalid_process_raises_with_invalid_signature(self):
         with pytest.raises(ValueError, match=r"Engine must be given a processing function in order to run"):
