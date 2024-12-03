@@ -1,0 +1,6 @@
+﻿update\_dataloader
+==================
+
+.. currentmodule:: ignite.engine.deterministic
+
+.. autofunction:: update_dataloader
