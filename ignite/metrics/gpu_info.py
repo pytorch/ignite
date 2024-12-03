@@ -10,7 +10,7 @@ from ignite.metrics.metric import Metric
 
 class GpuInfo(Metric):
     """Provides GPU information: a) used memory percentage, b) gpu utilization percentage values as Metric
-    on each iterations.
+    on each iterations. This metric requires `pynvml <https://pypi.org/project/pynvml/>`_ package of version `<12`.
 
     .. Note ::
 
@@ -39,7 +39,7 @@ class GpuInfo(Metric):
         except ImportError:
             raise ModuleNotFoundError(
                 "This contrib module requires pynvml to be installed. "
-                "Please install it with command: \n pip install pynvml"
+                "Please install it with command: \n pip install 'pynvml<12'"
             )
             # Let's check available devices
         if not torch.cuda.is_available():
