@@ -40,11 +40,14 @@ class TestEngine:
     def set_interrupt_resume_enabled(self, interrupt_resume_enabled):
         Engine.interrupt_resume_enabled = interrupt_resume_enabled
 
-    def test_terminate(self):
+    @pytest.mark.parametrize("skip_completed", [True, False])
+    def test_terminate(self, skip_completed):
         engine = Engine(lambda e, b: 1)
         assert not engine.should_terminate
-        engine.terminate()
+        assert not engine.skip_completed_after_termination
+        engine.terminate(skip_completed)
         assert engine.should_terminate
+        assert engine.skip_completed_after_termination == skip_completed
 
     def test_invalid_process_raises_with_invalid_signature(self):
         with pytest.raises(ValueError, match=r"Engine must be given a processing function in order to run"):
@@ -236,25 +239,32 @@ class TestEngine:
         assert num_calls_check_iter_epoch == 1
 
     @pytest.mark.parametrize(
-        "terminate_event, e, i",
+        "terminate_event, e, i, skip_completed",
         [
-            (Events.STARTED, 0, 0),
-            (Events.EPOCH_STARTED(once=2), 2, None),
-            (Events.EPOCH_COMPLETED(once=2), 2, None),
-            (Events.GET_BATCH_STARTED(once=12), None, 12),
-            (Events.GET_BATCH_COMPLETED(once=12), None, 12),
-            (Events.ITERATION_STARTED(once=14), None, 14),
-            (Events.ITERATION_COMPLETED(once=14), None, 14),
+            (Events.STARTED, 0, 0, True),
+            (Events.EPOCH_STARTED(once=2), 2, None, True),
+            (Events.EPOCH_COMPLETED(once=2), 2, None, True),
+            (Events.GET_BATCH_STARTED(once=12), None, 12, True),
+            (Events.GET_BATCH_COMPLETED(once=12), None, 12, False),
+            (Events.ITERATION_STARTED(once=14), None, 14, True),
+            (Events.ITERATION_COMPLETED(once=14), None, 14, True),
+            (Events.STARTED, 0, 0, False),
+            (Events.EPOCH_STARTED(once=2), 2, None, False),
+            (Events.EPOCH_COMPLETED(once=2), 2, None, False),
+            (Events.GET_BATCH_STARTED(once=12), None, 12, False),
+            (Events.GET_BATCH_COMPLETED(once=12), None, 12, False),
+            (Events.ITERATION_STARTED(once=14), None, 14, False),
+            (Events.ITERATION_COMPLETED(once=14), None, 14, False),
         ],
     )
-    def test_terminate_events_sequence(self, terminate_event, e, i):
+    def test_terminate_events_sequence(self, terminate_event, e, i, skip_completed):
         engine = RecordedEngine(MagicMock(return_value=1))
         data = range(10)
         max_epochs = 5
 
         @engine.on(terminate_event)
         def call_terminate():
-            engine.terminate()
+            engine.terminate(skip_completed)
 
         @engine.on(Events.EXCEPTION_RAISED)
         def assert_no_exceptions(ee):
@@ -271,10 +281,15 @@ class TestEngine:
         if e is None:
             e = i // len(data) + 1
 
+        if skip_completed:
+            assert engine.called_events[-1] == (e, i, Events.TERMINATE)
+            assert engine.called_events[-2] == (e, i, terminate_event)
+        else:
+            assert engine.called_events[-1] == (e, i, Events.COMPLETED)
+            assert engine.called_events[-2] == (e, i, Events.TERMINATE)
+            assert engine.called_events[-3] == (e, i, terminate_event)
+
         assert engine.called_events[0] == (0, 0, Events.STARTED)
-        assert engine.called_events[-1] == (e, i, Events.COMPLETED)
-        assert engine.called_events[-2] == (e, i, Events.TERMINATE)
-        assert engine.called_events[-3] == (e, i, terminate_event)
         assert engine._dataloader_iter is None
 
     @pytest.mark.parametrize("data, epoch_length", [(None, 10), (range(10), None)])
