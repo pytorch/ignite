@@ -272,7 +272,7 @@ class Events(EventEnum):
     The table below illustrates which events are triggered when various termination methods are called.
 
     .. list-table::
-       :widths: 38 33 28 20 20
+       :widths: 35 38 28 20 20
        :header-rows: 1
 
        * - Method
@@ -295,7 +295,7 @@ class Events(EventEnum):
          - ✔
          - ✔
          - ✔
-       * - :meth:`~ignite.engine.engine.Engine.terminate(skip_completed=True)`
+       * - :meth:`~ignite.engine.engine.Engine.terminate()` with `skip_completed=True`
          - ✗
          - ✔
          - ✔
