@@ -181,7 +181,6 @@ def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
     #   File "<string>", line 341 in run
     #   File "<string>", line 411 in _perform_spawn
 
-
     device = idist.device()
     _test_integration_multiclass(device, True)
     _test_integration_multiclass(device, False)
