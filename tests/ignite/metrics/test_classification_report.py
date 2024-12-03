@@ -164,6 +164,23 @@ def _test_integration_multilabel(device, output_dict):
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 @pytest.mark.skipif(Version(torch.__version__) < Version("1.7.0"), reason="Skip if < 1.7.0")
 def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
+
+    pytest.skip("Temporarily skip failing test. See https://github.com/pytorch/ignite/pull/3301")
+    # When run with 2 devices:
+    #  tests/ignite/metrics/test_classification_report.py::test_distrib_nccl_gpu Fatal Python error: Aborted
+    # Thread 0x00007fac95c95700 (most recent call first):
+    #   <no Python frame>
+
+    # Thread 0x00007facbb89b700 (most recent call first):
+    #   <no Python frame>
+
+    # Thread 0x00007fae637f4700 (most recent call first):
+    #   File "<string>", line 534 in read
+    #   File "<string>", line 567 in from_io
+    #   File "<string>", line 1160 in _thread_receiver
+    #   File "<string>", line 341 in run
+    #   File "<string>", line 411 in _perform_spawn
+
     device = idist.device()
     _test_integration_multiclass(device, True)
     _test_integration_multiclass(device, False)

@@ -6,8 +6,7 @@ skip_distrib_tests=${SKIP_DISTRIB_TESTS:-0}
 use_last_failed=${USE_LAST_FAILED:-0}
 match_tests_expression=${1:-""}
 
-
-run_tests \
+CUDA_VISIBLE_DEVICES="" run_tests \
     --core_args "--tx 4*popen//python=python -vvv tests/ignite" \
     --cache_dir ".cpu-not-distrib" \
     --skip_distrib_tests "${skip_distrib_tests}" \
@@ -21,7 +20,7 @@ if [ "${skip_distrib_tests}" -eq "1" ]; then
 fi
 
 # Run 2 processes with --dist=each
-run_tests \
+CUDA_VISIBLE_DEVICES="" run_tests \
     --core_args "-m distributed -vvv tests/ignite" \
     --world_size 2 \
     --cache_dir ".cpu-distrib" \

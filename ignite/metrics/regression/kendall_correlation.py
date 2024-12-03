@@ -16,8 +16,8 @@ def _get_kendall_tau(variant: str = "b") -> Callable[[Tensor, Tensor], float]:
         raise ValueError(f"variant accepts 'b' or 'c', got {variant!r}.")
 
     def _tau(predictions: Tensor, targets: Tensor) -> float:
-        np_preds = predictions.flatten().numpy()
-        np_targets = targets.flatten().numpy()
+        np_preds = predictions.flatten().cpu().numpy()
+        np_targets = targets.flatten().cpu().numpy()
         r = kendalltau(np_preds, np_targets, variant=variant).statistic
         return r
 
