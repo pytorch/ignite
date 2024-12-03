@@ -242,7 +242,7 @@ class TestEngine:
         assert num_calls_check_iter_epoch == 1
 
     @pytest.mark.parametrize(
-        "terminate_event, e, i, skip_event_completed",
+        "terminate_event, e, i, skip_completed",
         [
             (Events.STARTED, 0, 0, True),
             (Events.EPOCH_STARTED(once=2), 2, None, True),

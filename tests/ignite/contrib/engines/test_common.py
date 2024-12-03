@@ -1,6 +1,6 @@
 import os
 import sys
-from unittest.mock import call, MagicMock
+from unittest.mock import MagicMock, call
 
 import pytest
 import torch
