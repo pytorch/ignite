@@ -2,26 +2,26 @@
 source "$(dirname "$0")/common_test_functionality.sh"
 set -xeu
 
-skip_distrib_tests=${SKIP_DISTRIB_TESTS:-1}
+# https://pubs.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html#tag_02_06_02
+skip_distrib_tests=${SKIP_DISTRIB_TESTS:-0}
 use_last_failed=${USE_LAST_FAILED:-0}
 ngpus=${1:-1}
 
 match_tests_expression=${2:-""}
 if [ -z "$match_tests_expression" ]; then
-    cuda_pattern="cuda"
+    cuda_pattern="cuda or nccl or gloo"
 else
-    cuda_pattern="cuda and $match_tests_expression"
+    cuda_pattern="(cuda or nccl or gloo) and $match_tests_expression"
 fi
 
 run_tests \
-    --core_args "-vvv tests/ignite" \
+    --core_args "-vvv tests/ignite -m 'not distributed'" \
     --cache_dir ".gpu-cuda" \
     --skip_distrib_tests "${skip_distrib_tests}" \
     --use_coverage 1 \
     --match_tests_expression "${cuda_pattern}" \
     --use_last_failed ${use_last_failed}
 
-# https://pubs.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html#tag_02_06_02
 if [ "${skip_distrib_tests}" -eq "1" ]; then
     exit 0
 fi
