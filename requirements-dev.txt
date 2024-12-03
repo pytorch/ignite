@@ -21,7 +21,7 @@ mlflow
 neptune-client>=0.16.17
 tensorboard
 torchvision
-pynvml
+pynvml<12  # pynvml module was removed in 12.X, is not developed or maintained. We should replace pynvml with something else.
 clearml
 scikit-image
 py-rouge
