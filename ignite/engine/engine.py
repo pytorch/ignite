@@ -547,7 +547,7 @@ class Engine(Serializable):
         - ...
         - Terminating event
         - :attr:`~ignite.engine.events.Events.TERMINATE`
-        - :attr:`~ignite.engine.events.Events.COMPLETED`
+        - :attr:`~ignite.engine.events.Events.COMPLETED` (unless `skip_completed=True`)
 
         Args:
             skip_completed: if True, the event :attr:`~ignite.engine.events.Events.COMPLETED` is not fired after
@@ -636,13 +636,16 @@ class Engine(Serializable):
         - ...
         - Event on which ``terminate_epoch`` method is called
         - :attr:`~ignite.engine.events.Events.TERMINATE_SINGLE_EPOCH`
-        - :attr:`~ignite.engine.events.Events.EPOCH_COMPLETED`
+        - :attr:`~ignite.engine.events.Events.EPOCH_COMPLETED` (unless `skip_epoch_completed=True`)
         - :attr:`~ignite.engine.events.Events.EPOCH_STARTED`
         - ...
 
         Args:
             skip_epoch_completed: if True, the event :attr:`~ignite.engine.events.Events.EPOCH_COMPLETED`
                 is not fired after :attr:`~ignite.engine.events.Events.TERMINATE_SINGLE_EPOCH`. Default is False.
+
+        .. versionchanged:: 0.5.2
+            Added `skip_epoch_completed` flag
         """
         self.logger.info(
             "Terminate current epoch is signaled. "
