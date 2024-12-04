@@ -139,10 +139,10 @@ class TestDistributed:
             metric_devices.append(device)
 
         for metric_device in metric_devices:
-            x = torch.randn((n_iters * batch_size, n_dims_x)).float().to(device)
+            x = torch.randn((n_iters * batch_size, n_dims_x), device=device).float()
 
             lin = nn.Linear(n_dims_x, n_dims_y).to(device)
-            y = torch.sin(lin(x) * 100) + torch.randn(n_iters * batch_size, n_dims_y) * 1e-4
+            y = torch.sin(lin(x) * 100) + torch.randn(n_iters * batch_size, n_dims_y, device=x.device) * 1e-4
 
             def data_loader(i, input_x, input_y):
                 return input_x[i * batch_size : (i + 1) * batch_size], input_y[i * batch_size : (i + 1) * batch_size]

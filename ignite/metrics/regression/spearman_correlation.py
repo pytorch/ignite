@@ -12,8 +12,8 @@ from ignite.metrics.regression._base import _check_output_shapes, _check_output_
 def _spearman_r(predictions: Tensor, targets: Tensor) -> float:
     from scipy.stats import spearmanr
 
-    np_preds = predictions.flatten().numpy()
-    np_targets = targets.flatten().numpy()
+    np_preds = predictions.flatten().cpu().numpy()
+    np_targets = targets.flatten().cpu().numpy()
     r = spearmanr(np_preds, np_targets).statistic
     return r
 
