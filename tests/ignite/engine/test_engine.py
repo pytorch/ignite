@@ -44,10 +44,10 @@ class TestEngine:
     def test_terminate(self, skip_completed):
         engine = Engine(lambda e, b: 1)
         assert not engine.should_terminate
-        assert not engine.skip_completed_after_termination
+        assert not engine._skip_completed_after_termination
         engine.terminate(skip_completed)
         assert engine.should_terminate
-        assert engine.skip_completed_after_termination == skip_completed
+        assert engine._skip_completed_after_termination == skip_completed
 
     def test_invalid_process_raises_with_invalid_signature(self):
         with pytest.raises(ValueError, match=r"Engine must be given a processing function in order to run"):
