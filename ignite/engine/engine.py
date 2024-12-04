@@ -142,6 +142,7 @@ class Engine(Serializable):
         self.should_terminate = False
         self.skip_completed_after_termination = False
         self.should_terminate_single_epoch = False
+        self._skip_epoch_completed_after_termination = False
         self.should_interrupt = False
         self.state = State()
         self._state_dict_user_keys: List[str] = []
@@ -628,7 +629,7 @@ class Engine(Serializable):
         self.should_terminate = True
         self.skip_completed_after_termination = skip_completed
 
-    def terminate_epoch(self) -> None:
+    def terminate_epoch(self, skip_epoch_completed: bool = False) -> None:
         """Sends terminate signal to the engine, so that it terminates the current epoch. The run
         continues from the next epoch. The following events are triggered:
 
@@ -638,12 +639,17 @@ class Engine(Serializable):
         - :attr:`~ignite.engine.events.Events.EPOCH_COMPLETED`
         - :attr:`~ignite.engine.events.Events.EPOCH_STARTED`
         - ...
+
+        Args:
+            skip_epoch_completed: if True, the event :attr:`~ignite.engine.events.Events.EPOCH_COMPLETED`
+                is not fired after :attr:`~ignite.engine.events.Events.TERMINATE_SINGLE_EPOCH`. Default is False.
         """
         self.logger.info(
             "Terminate current epoch is signaled. "
             "Current epoch iteration will stop after current iteration is finished."
         )
         self.should_terminate_single_epoch = True
+        self._skip_epoch_completed_after_termination = skip_epoch_completed
 
     def _handle_exception(self, e: BaseException) -> None:
         if Events.EXCEPTION_RAISED in self._event_handlers:
@@ -982,11 +988,15 @@ class Engine(Serializable):
                     # time is available for handlers but must be updated after fire
                     self.state.times[Events.EPOCH_COMPLETED.name] = epoch_time_taken
 
-                    handlers_start_time = time.time()
-                    self._fire_event(Events.EPOCH_COMPLETED)
-                    epoch_time_taken += time.time() - handlers_start_time
-                    # update time wrt handlers
-                    self.state.times[Events.EPOCH_COMPLETED.name] = epoch_time_taken
+                    if not self._skip_epoch_completed_after_termination:
+                        handlers_start_time = time.time()
+                        self._fire_event(Events.EPOCH_COMPLETED)
+                        epoch_time_taken += time.time() - handlers_start_time
+                        # update time wrt handlers
+                        self.state.times[Events.EPOCH_COMPLETED.name] = epoch_time_taken
+                    else:
+                        self._skip_epoch_completed_after_termination = False
+
                     yield from self._maybe_terminate_or_interrupt()
 
                     hours, mins, secs = _to_hours_mins_secs(epoch_time_taken)
@@ -1167,11 +1177,15 @@ class Engine(Serializable):
                     # time is available for handlers but must be updated after fire
                     self.state.times[Events.EPOCH_COMPLETED.name] = epoch_time_taken
 
-                    handlers_start_time = time.time()
-                    self._fire_event(Events.EPOCH_COMPLETED)
-                    epoch_time_taken += time.time() - handlers_start_time
-                    # update time wrt handlers
-                    self.state.times[Events.EPOCH_COMPLETED.name] = epoch_time_taken
+                    if not self._skip_epoch_completed_after_termination:
+                        handlers_start_time = time.time()
+                        self._fire_event(Events.EPOCH_COMPLETED)
+                        epoch_time_taken += time.time() - handlers_start_time
+                        # update time wrt handlers
+                        self.state.times[Events.EPOCH_COMPLETED.name] = epoch_time_taken
+                    else:
+                        self._skip_epoch_completed_after_termination = False
+
                     self._maybe_terminate_legacy()
 
                     hours, mins, secs = _to_hours_mins_secs(epoch_time_taken)
