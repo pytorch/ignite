@@ -461,7 +461,7 @@ def create_supervised_trainer(
         amp_mode: can be ``amp`` or ``apex``, model and optimizer will be casted to float16 using
             `torch.cuda.amp <https://pytorch.org/docs/stable/amp.html>`_ for ``amp`` and
             using `apex <https://nvidia.github.io/apex>`_ for ``apex``. (default: None)
-        scaler: GradScaler instance for gradient scaling if `torch>=1.12.0`
+        scaler: GradScaler instance for gradient scaling if `torch>=1.6.0`
             and ``amp_mode`` is ``amp``. If ``amp_mode`` is ``apex``, this argument will be ignored.
             If True, will create default GradScaler. If GradScaler instance is passed, it will be used instead.
             (default: False)
