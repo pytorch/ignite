@@ -457,7 +457,7 @@ def test_create_supervised_trainer_amp_error(mock_torch_cuda_amp_module):
         _test_create_supervised_trainer_wrong_accumulation(trainer_device="cpu", amp_mode="amp")
     with pytest.raises(ImportError, match="Please install torch>=1.12.0 to use amp_mode='amp'."):
         _test_create_supervised_trainer(amp_mode="amp")
-    with pytest.raises(ImportError, match="Please install torch>=1.12.0 to use scaler argument."):
+    with pytest.raises(ImportError, match="Please install torch>=1.12.0 to use amp_mode='amp'."):
         _test_create_supervised_trainer(amp_mode="amp", scaler=True)
 
 
