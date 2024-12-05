@@ -118,6 +118,10 @@ jobs:
           )
 
           docker exec -t pthd /bin/bash -c "${script}"
+      - name: Who am I ?
+        run: whoami
+      - name: Fix os-release
+        run: sed -i s/amzn/fedora/ /etc/os-release
       - name: Figure out OS release
         run: cat /etc/os-release
       - name: Debug with tmate
