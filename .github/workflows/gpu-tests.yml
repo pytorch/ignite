@@ -118,6 +118,8 @@ jobs:
           )
 
           docker exec -t pthd /bin/bash -c "${script}"
+      - name: Figure out OS release
+        run: cat /etc/os-release | echo
       - name: Debug with tmate
         uses: mxschmitt/action-tmate@v3
         with:
