@@ -998,7 +998,10 @@ class Engine(Serializable):
                         # update time wrt handlers
                         self.state.times[Events.EPOCH_COMPLETED.name] = epoch_time_taken
 
-                    self.should_terminate_single_epoch = False
+                    if self.should_terminate_single_epoch:
+                        # We skip raising _EngineTerminateSingleEpochException exception on Events.EPOCH_COMPLETED
+                        # as epoch is already completed and nothing to terminate 
+                        self.should_terminate_single_epoch = False
                     yield from self._maybe_terminate_or_interrupt()
 
                     hours, mins, secs = _to_hours_mins_secs(epoch_time_taken)
@@ -1192,7 +1195,10 @@ class Engine(Serializable):
                         # update time wrt handlers
                         self.state.times[Events.EPOCH_COMPLETED.name] = epoch_time_taken
 
-                    self.should_terminate_single_epoch = False
+                    if self.should_terminate_single_epoch:
+                        # We skip raising _EngineTerminateSingleEpochException exception on Events.EPOCH_COMPLETED
+                        # as epoch is already completed and nothing to terminate 
+                        self.should_terminate_single_epoch = False
                     self._maybe_terminate_legacy()
 
                     hours, mins, secs = _to_hours_mins_secs(epoch_time_taken)
