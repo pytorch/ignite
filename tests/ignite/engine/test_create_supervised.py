@@ -447,7 +447,7 @@ def test_create_supervised_trainer_apex_error():
 def mock_torch_cuda_amp_module():
     with patch.dict(
         "sys.modules",
-        {"torch.amp": None, "torch.cuda.amp.grad_scaler": None, "torch.amp.autocast_mode": None},
+        {"torch.amp": None, "torch.cuda.amp": None, "torch.amp.autocast_mode": None},
     ):
         yield torch
 
