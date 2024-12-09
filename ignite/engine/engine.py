@@ -141,10 +141,10 @@ class Engine(Serializable):
         self.last_event_name: Optional[Events] = None
         # should_terminate flag: False - don't terminate, True - terminate,
         # "skip_completed" - terminate and skip the event "COMPLETED"
-        self.should_terminate: bool | str = False
+        self.should_terminate: Union[bool, str] = False
         # should_terminate_single_epoch flag: False - don't terminate, True - terminate,
         # "skip_epoch_completed" - terminate and skip the event "EPOCH_COMPLETED"
-        self.should_terminate_single_epoch: bool | str = False
+        self.should_terminate_single_epoch: Union[bool, str] = False
         self.should_interrupt = False
         self.state = State()
         self._state_dict_user_keys: List[str] = []
