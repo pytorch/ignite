@@ -259,8 +259,9 @@ class Events(EventEnum):
     - TERMINATE_SINGLE_EPOCH : triggered when the run is about to end the current epoch,
       after receiving a :meth:`~ignite.engine.engine.Engine.terminate_epoch()` or
       :meth:`~ignite.engine.engine.Engine.terminate()` call.
-    - EPOCH_COMPLETED : triggered when the epoch is ended. Note that this is triggered even
-      when :meth:`~ignite.engine.engine.Engine.terminate_epoch()` is called.
+    - EPOCH_COMPLETED : triggered when the epoch is ended. This is triggered even
+      when :meth:`~ignite.engine.engine.Engine.terminate_epoch()` is called,
+      unless the flag `skip_epoch_completed` is set to True.
 
     - TERMINATE : triggered when the run is about to end completely,
       after receiving :meth:`~ignite.engine.engine.Engine.terminate()` call.
@@ -272,7 +273,7 @@ class Events(EventEnum):
     The table below illustrates which events are triggered when various termination methods are called.
 
     .. list-table::
-       :widths: 35 38 28 20 20
+       :widths: 38 38 28 20 20
        :header-rows: 1
 
        * - Method
@@ -288,6 +289,11 @@ class Events(EventEnum):
        * - :meth:`~ignite.engine.engine.Engine.terminate_epoch()`
          - ✔
          - ✔
+         - ✗
+         - ✔
+       * - :meth:`~ignite.engine.engine.Engine.terminate_epoch()` with `skip_epoch_completed=True`
+         - ✔
+         - ✗
          - ✗
          - ✔
        * - :meth:`~ignite.engine.engine.Engine.terminate()`
