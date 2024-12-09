@@ -1000,7 +1000,7 @@ class Engine(Serializable):
 
                     if self.should_terminate_single_epoch:
                         # We skip raising _EngineTerminateSingleEpochException exception on Events.EPOCH_COMPLETED
-                        # as epoch is already completed and nothing to terminate 
+                        # as epoch is already completed and nothing to terminate
                         self.should_terminate_single_epoch = False
                     yield from self._maybe_terminate_or_interrupt()
 
@@ -1197,7 +1197,7 @@ class Engine(Serializable):
 
                     if self.should_terminate_single_epoch:
                         # We skip raising _EngineTerminateSingleEpochException exception on Events.EPOCH_COMPLETED
-                        # as epoch is already completed and nothing to terminate 
+                        # as epoch is already completed and nothing to terminate
                         self.should_terminate_single_epoch = False
                     self._maybe_terminate_legacy()
 
