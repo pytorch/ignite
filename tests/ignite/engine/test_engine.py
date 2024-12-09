@@ -328,6 +328,10 @@ class TestEngine:
             (Events.GET_BATCH_COMPLETED(once=12), 12, True),
             (Events.ITERATION_STARTED(once=14), 14, True),
             (Events.ITERATION_COMPLETED(once=14), 14, True),
+            (Events.STARTED, 30, False),
+            (Events.STARTED, 30, True),
+            (Events.EPOCH_STARTED(once=2), 10, False),
+            (Events.EPOCH_STARTED(once=2), 10, True),
         ],
     )
     def test_terminate_epoch_events_sequence(self, terminate_epoch_event, i, skip_epoch_completed):
@@ -354,7 +358,8 @@ class TestEngine:
 
         @engine.on(Events.EPOCH_STARTED)
         def check_skip_reset():
-            assert engine.should_terminate_single_epoch == False  # noqa: E712
+            if terminate_epoch_event != Events.EPOCH_STARTED:
+                assert engine.should_terminate_single_epoch == False  # noqa: E712
 
         @engine.on(Events.TERMINATE_SINGLE_EPOCH)
         def check_previous_events(iter_counter):
@@ -377,13 +382,17 @@ class TestEngine:
                 assert engine.called_events[-2] == (e, i, Events.TERMINATE_SINGLE_EPOCH)
                 assert engine.called_events[-1] == (e, i, Events.EPOCH_COMPLETED)
 
-        engine.run(data, max_epochs=max_epochs)
+        if terminate_epoch_event in [Events.STARTED, Events.EPOCH_STARTED]:
+            with pytest.raises(RuntimeError):
+                engine.run(data, max_epochs=max_epochs)
+        else:
+            engine.run(data, max_epochs=max_epochs)
 
-        assert engine.state.epoch == max_epochs
-        assert (max_epochs - 1) * len(data) < engine.state.iteration < max_epochs * len(data)
+            assert engine.state.epoch == max_epochs
+            assert (max_epochs - 1) * len(data) < engine.state.iteration < max_epochs * len(data)
 
-        epoch_completed_events = [e for e in engine.called_events if e[2] == Events.EPOCH_COMPLETED.name]
-        assert len(epoch_completed_events) == max_epochs - skip_epoch_completed
+            epoch_completed_events = [e for e in engine.called_events if e[2] == Events.EPOCH_COMPLETED.name]
+            assert len(epoch_completed_events) == max_epochs - skip_epoch_completed
 
     @pytest.mark.parametrize("data", [None, "mock_data_loader"])
     def test_iteration_events_are_fired(self, data):

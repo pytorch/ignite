@@ -1009,6 +1009,13 @@ class Engine(Serializable):
             except _EngineTerminateException:
                 self._fire_event(Events.TERMINATE)
 
+            except _EngineTerminateSingleEpochException:
+                raise RuntimeError(
+                    "The method terminate_epoch() should not be called on Event.STARTED or Event.EPOCH_STARTED."
+                    "If this is a desired behaviour, please open a feature request on"
+                    "https://github.com/pytorch/ignite/issues/new/choose"
+                )
+
             time_taken = time.time() - start_time
             # time is available for handlers but must be updated after fire
             self.state.times[Events.COMPLETED.name] = time_taken
@@ -1195,6 +1202,13 @@ class Engine(Serializable):
 
             except _EngineTerminateException:
                 self._fire_event(Events.TERMINATE)
+
+            except _EngineTerminateSingleEpochException:
+                raise RuntimeError(
+                    "The method terminate_epoch() should not be called on Event.STARTED or Event.EPOCH_STARTED."
+                    "If this is a desired behaviour, please open a feature request on"
+                    "https://github.com/pytorch/ignite/issues/new/choose"
+                )
 
             time_taken = time.time() - start_time
             # time is available for handlers but must be updated after fire
