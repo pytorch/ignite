@@ -44,10 +44,13 @@ class TestEngine:
     def test_terminate(self, skip_completed):
         engine = Engine(lambda e, b: 1)
         assert not engine.should_terminate
-        assert not engine._skip_completed_after_termination
+
         engine.terminate(skip_completed)
-        assert engine.should_terminate
-        assert engine._skip_completed_after_termination == skip_completed
+
+        if skip_completed:
+            assert engine.should_terminate == "skip_completed"
+        else:
+            assert engine.should_terminate == True  # noqa: E712
 
     def test_invalid_process_raises_with_invalid_signature(self):
         with pytest.raises(ValueError, match=r"Engine must be given a processing function in order to run"):
@@ -338,13 +341,20 @@ class TestEngine:
 
         @engine.on(terminate_epoch_event)
         def call_terminate_epoch():
-            assert not engine._skip_epoch_completed_after_termination
+            assert not engine.should_terminate_single_epoch
             nonlocal call_count
             if call_count < 1:
                 engine.terminate_epoch(skip_epoch_completed)
-                assert engine._skip_epoch_completed_after_termination == skip_epoch_completed
+                if skip_epoch_completed:
+                    assert engine.should_terminate_single_epoch == "skip_epoch_completed"
+                else:
+                    assert engine.should_terminate_single_epoch == True  # noqa: E712
 
             call_count += 1
+
+        @engine.on(Events.EPOCH_STARTED)
+        def check_skip_reset():
+            assert engine.should_terminate_single_epoch == False  # noqa: E712
 
         @engine.on(Events.TERMINATE_SINGLE_EPOCH)
         def check_previous_events(iter_counter):
@@ -352,13 +362,17 @@ class TestEngine:
             assert engine.called_events[0] == (0, 0, Events.STARTED)
             assert engine.called_events[-2] == (e, i, terminate_epoch_event)
             assert engine.called_events[-1] == (e, i, Events.TERMINATE_SINGLE_EPOCH)
-            assert engine._skip_epoch_completed_after_termination == skip_epoch_completed
+            if skip_epoch_completed:
+                assert engine.should_terminate_single_epoch == "skip_epoch_completed"
+            else:
+                assert engine.should_terminate_single_epoch == True  # noqa: E712
 
         @engine.on(Events.EPOCH_COMPLETED)
         def check_previous_events2():
             e = i // len(data) + 1
             if e == engine.state.epoch and i == engine.state.iteration:
                 assert not skip_epoch_completed
+                assert isinstance(engine.should_terminate_single_epoch, bool)
                 assert engine.called_events[-3] == (e, i, terminate_epoch_event)
                 assert engine.called_events[-2] == (e, i, Events.TERMINATE_SINGLE_EPOCH)
                 assert engine.called_events[-1] == (e, i, Events.EPOCH_COMPLETED)
