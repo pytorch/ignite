@@ -44,10 +44,13 @@ class TestEngine:
     def test_terminate(self, skip_completed):
         engine = Engine(lambda e, b: 1)
         assert not engine.should_terminate
-        assert not engine.skip_completed_after_termination
+
         engine.terminate(skip_completed)
-        assert engine.should_terminate
-        assert engine.skip_completed_after_termination == skip_completed
+
+        if skip_completed:
+            assert engine.should_terminate == "skip_completed"
+        else:
+            assert engine.should_terminate == True  # noqa: E712
 
     def test_invalid_process_raises_with_invalid_signature(self):
         with pytest.raises(ValueError, match=r"Engine must be given a processing function in order to run"):
@@ -292,8 +295,11 @@ class TestEngine:
         assert engine.called_events[0] == (0, 0, Events.STARTED)
         assert engine._dataloader_iter is None
 
-    @pytest.mark.parametrize("data, epoch_length", [(None, 10), (range(10), None)])
-    def test_terminate_epoch_stops_mid_epoch(self, data, epoch_length):
+    @pytest.mark.parametrize(
+        "data, epoch_length, skip_epoch_completed",
+        [(None, 10, False), (range(10), None, False), (None, 10, True), (range(10), None, True)],
+    )
+    def test_terminate_epoch_stops_mid_epoch(self, data, epoch_length, skip_epoch_completed):
         real_epoch_length = epoch_length if data is None else len(data)
         iteration_to_stop = real_epoch_length + 4
 
@@ -301,7 +307,7 @@ class TestEngine:
 
         def start_of_iteration_handler(engine):
             if engine.state.iteration == iteration_to_stop:
-                engine.terminate_epoch()
+                engine.terminate_epoch(skip_epoch_completed)
 
         max_epochs = 3
         engine.add_event_handler(Events.ITERATION_STARTED, start_of_iteration_handler)
@@ -312,15 +318,23 @@ class TestEngine:
         assert state.epoch == max_epochs
 
     @pytest.mark.parametrize(
-        "terminate_epoch_event, i",
+        "terminate_epoch_event, i, skip_epoch_completed",
         [
-            (Events.GET_BATCH_STARTED(once=12), 12),
-            (Events.GET_BATCH_COMPLETED(once=12), 12),
-            (Events.ITERATION_STARTED(once=14), 14),
-            (Events.ITERATION_COMPLETED(once=14), 14),
+            (Events.GET_BATCH_STARTED(once=12), 12, False),
+            (Events.GET_BATCH_COMPLETED(once=12), 12, False),
+            (Events.ITERATION_STARTED(once=14), 14, False),
+            (Events.ITERATION_COMPLETED(once=14), 14, False),
+            (Events.GET_BATCH_STARTED(once=12), 12, True),
+            (Events.GET_BATCH_COMPLETED(once=12), 12, True),
+            (Events.ITERATION_STARTED(once=14), 14, True),
+            (Events.ITERATION_COMPLETED(once=14), 14, True),
+            (Events.STARTED, 30, False),
+            (Events.STARTED, 30, True),
+            (Events.EPOCH_STARTED(once=2), 10, False),
+            (Events.EPOCH_STARTED(once=2), 10, True),
         ],
     )
-    def test_terminate_epoch_events_sequence(self, terminate_epoch_event, i):
+    def test_terminate_epoch_events_sequence(self, terminate_epoch_event, i, skip_epoch_completed):
         engine = RecordedEngine(MagicMock(return_value=1))
         data = range(10)
         max_epochs = 3
@@ -331,31 +345,54 @@ class TestEngine:
 
         @engine.on(terminate_epoch_event)
         def call_terminate_epoch():
+            assert not engine.should_terminate_single_epoch
             nonlocal call_count
             if call_count < 1:
-                engine.terminate_epoch()
+                engine.terminate_epoch(skip_epoch_completed)
+                if skip_epoch_completed:
+                    assert engine.should_terminate_single_epoch == "skip_epoch_completed"
+                else:
+                    assert engine.should_terminate_single_epoch == True  # noqa: E712
+
             call_count += 1
+
+        @engine.on(Events.EPOCH_STARTED)
+        def check_skip_reset():
+            if terminate_epoch_event != Events.EPOCH_STARTED:
+                assert engine.should_terminate_single_epoch == False  # noqa: E712
 
         @engine.on(Events.TERMINATE_SINGLE_EPOCH)
         def check_previous_events(iter_counter):
             e = i // len(data) + 1
-
             assert engine.called_events[0] == (0, 0, Events.STARTED)
             assert engine.called_events[-2] == (e, i, terminate_epoch_event)
             assert engine.called_events[-1] == (e, i, Events.TERMINATE_SINGLE_EPOCH)
+            if skip_epoch_completed:
+                assert engine.should_terminate_single_epoch == "skip_epoch_completed"
+            else:
+                assert engine.should_terminate_single_epoch == True  # noqa: E712
 
         @engine.on(Events.EPOCH_COMPLETED)
         def check_previous_events2():
             e = i // len(data) + 1
             if e == engine.state.epoch and i == engine.state.iteration:
+                assert not skip_epoch_completed
+                assert isinstance(engine.should_terminate_single_epoch, bool)
                 assert engine.called_events[-3] == (e, i, terminate_epoch_event)
                 assert engine.called_events[-2] == (e, i, Events.TERMINATE_SINGLE_EPOCH)
                 assert engine.called_events[-1] == (e, i, Events.EPOCH_COMPLETED)
 
-        engine.run(data, max_epochs=max_epochs)
+        if terminate_epoch_event in [Events.STARTED, Events.EPOCH_STARTED]:
+            with pytest.raises(RuntimeError):
+                engine.run(data, max_epochs=max_epochs)
+        else:
+            engine.run(data, max_epochs=max_epochs)
 
-        assert engine.state.epoch == max_epochs
-        assert (max_epochs - 1) * len(data) < engine.state.iteration < max_epochs * len(data)
+            assert engine.state.epoch == max_epochs
+            assert (max_epochs - 1) * len(data) < engine.state.iteration < max_epochs * len(data)
+
+            epoch_completed_events = [e for e in engine.called_events if e[2] == Events.EPOCH_COMPLETED.name]
+            assert len(epoch_completed_events) == max_epochs - skip_epoch_completed
 
     @pytest.mark.parametrize("data", [None, "mock_data_loader"])
     def test_iteration_events_are_fired(self, data):
