@@ -1,0 +1,41 @@
+﻿ROC\_AUC
+========
+
+.. currentmodule:: ignite.contrib.metrics
+
+.. autoclass:: ROC_AUC
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
