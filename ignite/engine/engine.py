@@ -991,7 +991,7 @@ class Engine(Serializable):
                     # time is available for handlers but must be updated after fire
                     self.state.times[Events.EPOCH_COMPLETED.name] = epoch_time_taken
 
-                    if self.should_terminate_single_epoch != "skip_epoch_completed":
+                    if self.should_terminate_single_epoch != "skip_epoch_completed":  # type: ignore[comparison-overlap]
                         handlers_start_time = time.time()
                         self._fire_event(Events.EPOCH_COMPLETED)
                         epoch_time_taken += time.time() - handlers_start_time
@@ -1021,7 +1021,7 @@ class Engine(Serializable):
             self.state.times[Events.COMPLETED.name] = time_taken
 
             # do not fire Events.COMPLETED if we terminated the run with flag `skip_completed=True`
-            if self.should_terminate != "skip_completed":
+            if self.should_terminate != "skip_completed":  # type: ignore[comparison-overlap]
                 handlers_start_time = time.time()
                 self._fire_event(Events.COMPLETED)
                 time_taken += time.time() - handlers_start_time
@@ -1185,7 +1185,7 @@ class Engine(Serializable):
                     # time is available for handlers but must be updated after fire
                     self.state.times[Events.EPOCH_COMPLETED.name] = epoch_time_taken
 
-                    if self.should_terminate_single_epoch != "skip_epoch_completed":
+                    if self.should_terminate_single_epoch != "skip_epoch_completed":  # type: ignore[comparison-overlap]
                         handlers_start_time = time.time()
                         self._fire_event(Events.EPOCH_COMPLETED)
                         epoch_time_taken += time.time() - handlers_start_time
@@ -1215,7 +1215,7 @@ class Engine(Serializable):
             self.state.times[Events.COMPLETED.name] = time_taken
 
             # do not fire Events.COMPLETED if we terminated the run with flag `skip_completed=True`
-            if self.should_terminate != "skip_completed":
+            if self.should_terminate != "skip_completed":  # type: ignore[comparison-overlap]
                 handlers_start_time = time.time()
                 self._fire_event(Events.COMPLETED)
                 time_taken += time.time() - handlers_start_time
