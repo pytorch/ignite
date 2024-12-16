@@ -30,6 +30,10 @@ jobs:
             python-version: "3.11"
           - pytorch-version: 1.12.1
             python-version: "3.11"
+          # Conda fails to install cpuonly version and few cpu distributed tests are
+          # failing with unrelated errors
+          - pytorch-version: 1.13.1
+            python-version: "3.11"
 
     steps:
       - uses: actions/checkout@v4
