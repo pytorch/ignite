@@ -16,7 +16,7 @@ concurrency:
   group: gpu-tests-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
   cancel-in-progress: true
 
-# Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job.yml
+# Cherry-picked from https://github.com/pytorch/test-infra/blob/main/.github/workflows/linux_job_v2.yml
 
 jobs:
   gpu-tests:
@@ -25,7 +25,7 @@ jobs:
         pytorch-channel: [pytorch, pytorch-nightly]
       fail-fast: false
     env:
-      DOCKER_IMAGE: "pytorch/conda-builder:cuda12.1"
+      DOCKER_IMAGE: "pytorch/almalinux-builder:cuda12.4"
       REPOSITORY: ${{ github.repository }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
     runs-on: linux.8xlarge.nvidia.gpu
@@ -40,7 +40,7 @@ jobs:
           echo "::endgroup::"
 
       - name: Checkout repository (pytorch/test-infra)
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           # Support the use case where we need to checkout someone's fork
           repository: pytorch/test-infra
@@ -55,7 +55,7 @@ jobs:
           docker-image: ${{ env.DOCKER_IMAGE }}
 
       - name: Checkout repository (${{ github.repository }})
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           # Support the use case where we need to checkout someone's fork
           repository: ${{ github.repository }}
@@ -102,9 +102,9 @@ jobs:
 
           # Install PyTorch
           if [ "${{ matrix.pytorch-channel }}" == "pytorch" ]; then
-            pip install --upgrade torch torchvision --index-url https://download.pytorch.org/whl/cu121
+            pip install --upgrade torch torchvision --index-url https://download.pytorch.org/whl/cu124
           else
-            pip install --upgrade --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu121
+            pip install --upgrade --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu124
           fi
 
           python -c "import torch; print(torch.__version__, ', CUDA is available: ', torch.cuda.is_available()); exit(not torch.cuda.is_available())"
@@ -124,7 +124,7 @@ jobs:
         uses: nick-fields/retry@v2.9.0
         with:
           max_attempts: 5
-          timeout_minutes: 25
+          timeout_minutes: 45
           shell: bash
           command: docker exec -t pthd /bin/bash -xec 'bash tests/run_gpu_tests.sh 2'
           new_command_on_retry: docker exec -e USE_LAST_FAILED=1 -t pthd /bin/bash -xec 'bash tests/run_gpu_tests.sh 2'
@@ -139,7 +139,7 @@ jobs:
       - name: Run examples in container
         continue-on-error: false
         run: |
-          SCRIPT=$(cat << EOF
+          script=$(cat << EOF
 
           set -xe
 

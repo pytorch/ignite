@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pytest
 import sklearn
 import torch
+from sklearn.exceptions import UndefinedMetricWarning
 from sklearn.metrics import roc_auc_score
 
 import ignite.distributed as idist
@@ -112,7 +113,7 @@ def test_check_compute_fn():
     em = ROC_AUC(check_compute_fn=True)
 
     em.reset()
-    with pytest.warns(EpochMetricWarning, match=r"Probably, there can be a problem with `compute_fn`"):
+    with pytest.warns((UndefinedMetricWarning, EpochMetricWarning), match=r"Only one class.+present in y_true"):
         em.update(output)
 
     em = ROC_AUC(check_compute_fn=False)

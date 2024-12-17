@@ -78,7 +78,7 @@ def setup_common_training_handlers(
         lr_scheduler: learning rate scheduler
             as native torch LRScheduler or ignite's parameter scheduler.
         with_gpu_stats: if True, :class:`~ignite.metrics.GpuInfo` is attached to the
-            trainer. This requires `pynvml` package to be installed.
+            trainer. This requires `pynvml<12` package to be installed.
         output_names: list of names associated with `update_function` output dictionary.
         with_pbars: if True, two progress bars on epochs and optionally on iterations are attached.
             Default, True.
