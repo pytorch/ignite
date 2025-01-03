@@ -1,0 +1,71 @@
+﻿Engine
+======
+
+.. currentmodule:: ignite.engine.engine
+
+.. autoclass:: Engine
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+      ~Engine.add_event_handler
+   
+   
+   
+      ~Engine.fire_event
+   
+   
+   
+      ~Engine.has_event_handler
+   
+   
+   
+      ~Engine.interrupt
+   
+   
+   
+      ~Engine.load_state_dict
+   
+   
+   
+      ~Engine.on
+   
+   
+   
+      ~Engine.register_events
+   
+   
+   
+      ~Engine.remove_event_handler
+   
+   
+   
+      ~Engine.run
+   
+   
+   
+      ~Engine.set_data
+   
+   
+   
+      ~Engine.state_dict
+   
+   
+   
+      ~Engine.terminate
+   
+   
+   
+      ~Engine.terminate_epoch
+   
+   
+   
+   
