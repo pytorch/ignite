@@ -6,4 +6,4 @@ import ignite.handlers
 import ignite.metrics
 import ignite.utils
 
-__version__ = "0.6.0"
+__version__ = "0.5.2"
