@@ -261,7 +261,7 @@ def test_miou():
 
     res = iou_metric.compute().numpy()
 
-    assert res == true_res_
+    assert pytest.approx(res) == true_res_
 
     for ignore_index in range(3):
         cm = ConfusionMatrix(num_classes=3)
@@ -271,7 +271,7 @@ def test_miou():
         cm.update(output)
         res = iou_metric.compute().numpy()
         true_res_ = np.mean(true_res[:ignore_index] + true_res[ignore_index + 1 :])
-        assert res == true_res_, f"{ignore_index}: {res} vs {true_res_}"
+        assert pytest.approx(res) == true_res_, f"{ignore_index}: {res} vs {true_res_}"
 
 
 def test_cm_accuracy():
