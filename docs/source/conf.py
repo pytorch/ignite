@@ -359,6 +359,8 @@ linkcheck_ignore = [
     "https://github.com/pytorch/ignite/tree/master/examples/cifar10#check-resume-training",
     "https://github.com/pytorch/ignite/tree/master/examples/mnist#training-save--resume",
     "https://machinelearningmastery.com/gentle-introduction-backpropagation-time/",
+    "https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840",
+    "https://github.com/pytorch/pytorch/issues/23430#issuecomment-562350407",
 ]
 
 
