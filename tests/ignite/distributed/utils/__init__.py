@@ -280,36 +280,39 @@ def _test_idist_all_gather_tensors_with_shapes(device):
     torch.manual_seed(41)
     rank = idist.get_rank()
     ws = idist.get_world_size()
-    reference = torch.randn(ws + 6, ws + 6, ws + 6, device=device)
+    reference = torch.randn(ws * 5, ws * 5, ws * 5, device=device)
+
+    def compute_ref_indices(start_index, size):
+        return {"start": start_index, "end": start_index + size, "size": size}
 
     ref_indices_per_rank = {
         # rank: (start_index, end_index, size)
-        r: (r + 1, 2 * r + 2, r + 1)
+        r: compute_ref_indices(r + 1, 2 * r + 1)
         for r in range(ws)
     }
-    start_index, end_index, _ = ref_indices_per_rank[rank]
+    ref_indices = ref_indices_per_rank[rank]
     rank_tensor = reference[
-        start_index : end_index + 1,
-        start_index : end_index + 2,
-        start_index : end_index + 3,
+        ref_indices["start"] : ref_indices["end"] + 1,
+        ref_indices["start"] : ref_indices["end"] + 2,
+        ref_indices["start"] : ref_indices["end"] + 3,
     ]
     tensors = all_gather_tensors_with_shapes(
         rank_tensor,
         [
             [
-                ref_indices_per_rank[r][2] + 1,
-                ref_indices_per_rank[r][2] + 2,
-                ref_indices_per_rank[r][2] + 3,
+                ref_indices_per_rank[r]["size"] + 1,
+                ref_indices_per_rank[r]["size"] + 2,
+                ref_indices_per_rank[r]["size"] + 3,
             ]
             for r in range(ws)
         ],
     )
     for r in range(ws):
-        start_index, end_index, _ = ref_indices_per_rank[r]
+        ref_indices = ref_indices_per_rank[r]
         ref_tensor = reference[
-            start_index : end_index + 1,
-            start_index : end_index + 2,
-            start_index : end_index + 3,
+            ref_indices["start"] : ref_indices["end"] + 1,
+            ref_indices["start"] : ref_indices["end"] + 2,
+            ref_indices["start"] : ref_indices["end"] + 3,
         ]
         assert torch.allclose(ref_tensor, tensors[r]), (
             r,
