@@ -13,7 +13,7 @@ from ignite.utils import apply_to_tensor
 class Tbptt_Events(EventEnum):
     """Aditional tbptt events.
 
-    Additional events for truncated backpropagation throught time dedicated
+    Additional events for truncated backpropagation through time dedicated
     trainer.
     """
 
