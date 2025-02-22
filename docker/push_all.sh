@@ -26,11 +26,9 @@ echo $DOCKER_TOKEN | docker login --username=$DOCKER_USER --password-stdin
 
 set -xeu
 
-
 if [ ${push_selected_image} == "all" ]; then
-
     image_name="base"
-    image_tag=`docker run --rm -i pytorchignite/${image_name}:latest python -c "import torch; import ignite; print(torch.__version__ + \"-\" + ignite.__version__, end=\"\")"`
+    image_tag=`docker run --rm -i pytorchignite/${image_name}:latest python -c "import torch; import ignite; print(torch.__version__.split('+')[0] + \"-\" + ignite.__version__, end=\"\")"`
 
     for image_name in "base" "vision" "nlp" "apex" "apex-vision" "apex-nlp"
     do
@@ -39,9 +37,6 @@ if [ ${push_selected_image} == "all" ]; then
         docker push pytorchignite/${image_name}:${image_tag}
 
     done
-
-    image_name="hvd-base"
-    image_tag=`docker run --rm -i pytorchignite/${image_name}:latest python -c "import torch; import ignite; print(torch.__version__ + \"-\" + ignite.__version__, end=\"\")"`
 
     for image_name in "hvd-base" "hvd-vision" "hvd-nlp" "hvd-apex" "hvd-apex-vision" "hvd-apex-nlp"
     do
@@ -52,9 +47,6 @@ if [ ${push_selected_image} == "all" ]; then
     done
 
     # DEPRECATED due to no activity
-    # image_name="msdp-apex"
-    # image_tag=`docker run --rm -i pytorchignite/${image_name}:latest python -c "import torch; import ignite; print(torch.__version__ + \"-\" + ignite.__version__, end=\"\")"`
-
     # for image_name in "msdp-apex" "msdp-apex-vision" "msdp-apex-nlp"
     # do
 
@@ -66,7 +58,7 @@ if [ ${push_selected_image} == "all" ]; then
 else
 
     image_name=${push_selected_image}
-    image_tag=`docker run --rm -i pytorchignite/${image_name}:latest python -c "import torch; import ignite; print(torch.__version__ + \"-\" + ignite.__version__, end=\"\")"`
+    image_tag=`docker run --rm -i pytorchignite/${image_name}:latest python -c "import torch; import ignite; print(torch.__version__.split('+')[0] + \"-\" + ignite.__version__, end=\"\")"`
 
     docker push pytorchignite/${image_name}:latest
     docker push pytorchignite/${image_name}:${image_tag}

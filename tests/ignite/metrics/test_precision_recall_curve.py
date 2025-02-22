@@ -21,7 +21,7 @@ def mock_no_sklearn():
 
 
 def test_no_sklearn(mock_no_sklearn):
-    with pytest.raises(ModuleNotFoundError, match=r"This contrib module requires scikit-learn to be installed."):
+    with pytest.raises(ModuleNotFoundError, match=r"This module requires scikit-learn to be installed."):
         y = torch.tensor([1, 1])
         pr_curve = PrecisionRecallCurve()
         pr_curve.update((y, y))

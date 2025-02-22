@@ -19,7 +19,7 @@ ignite.contrib.engines.common
     :nosignatures:
     :autolist:
 
-Truncated Backpropagation Throught Time
+Truncated Backpropagation Through Time
 ---------------------------------------
 
 .. automodule:: ignite.contrib.engines.tbptt

@@ -8,10 +8,7 @@ from ignite.metrics.epoch_metric import EpochMetric
 
 
 def precision_recall_curve_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor) -> Tuple[Any, Any, Any]:
-    try:
-        from sklearn.metrics import precision_recall_curve
-    except ImportError:
-        raise ModuleNotFoundError("This contrib module requires scikit-learn to be installed.")
+    from sklearn.metrics import precision_recall_curve
 
     y_true = y_targets.cpu().numpy()
     y_pred = y_preds.cpu().numpy()
@@ -83,6 +80,11 @@ class PrecisionRecallCurve(EpochMetric):
         device: Union[str, torch.device] = torch.device("cpu"),
         skip_unrolling: bool = False,
     ) -> None:
+        try:
+            from sklearn.metrics import precision_recall_curve  # noqa: F401
+        except ImportError:
+            raise ModuleNotFoundError("This module requires scikit-learn to be installed.")
+
         super(PrecisionRecallCurve, self).__init__(
             precision_recall_curve_compute_fn,  # type: ignore[arg-type]
             output_transform=output_transform,

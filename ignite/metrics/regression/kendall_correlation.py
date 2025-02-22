@@ -16,8 +16,8 @@ def _get_kendall_tau(variant: str = "b") -> Callable[[Tensor, Tensor], float]:
         raise ValueError(f"variant accepts 'b' or 'c', got {variant!r}.")
 
     def _tau(predictions: Tensor, targets: Tensor) -> float:
-        np_preds = predictions.flatten().numpy()
-        np_targets = targets.flatten().numpy()
+        np_preds = predictions.flatten().cpu().numpy()
+        np_targets = targets.flatten().cpu().numpy()
         r = kendalltau(np_preds, np_targets, variant=variant).statistic
         return r
 
@@ -55,6 +55,9 @@ class KendallRankCorrelation(EpochMetric):
             form expected by the metric. This can be useful if, for example, you have a multi-output model and
             you want to compute the metric with respect to one of the outputs.
             By default, metrics require the output as ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
+        check_compute_fn: if True, ``compute_fn`` is run on the first batch of data to ensure there are no
+            issues. If issues exist, user is warned that there might be an issue with the ``compute_fn``.
+            Default, True.
         device: specifies which device updates are accumulated on. Setting the
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.

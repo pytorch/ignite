@@ -15,24 +15,25 @@ jobs:
       max-parallel: 5
       fail-fast: false
       matrix:
-        # Here we keep python 3.8 tests until the end of the 2024 and 
-        # will drop python version and related pytorch versions
-        python-version: [3.8, 3.9, "3.10"]
+        python-version: [3.9, "3.10", "3.11"]
         pytorch-version:
-          [2.3.1, 2.2.2, 2.1.2, 2.0.1, 1.13.1, 1.12.1, 1.10.0, 1.8.1]
+          [2.5.1, 2.4.1, 2.3.1, 2.2.2, 1.13.1, 1.12.1, 1.10.0]
         exclude:
-          # disabling python 3.9 support with PyTorch 1.7.1 and 1.8.1, to stop repeated pytorch-version test fail.
-          # https://github.com/pytorch/ignite/issues/2383
-          - pytorch-version: 1.8.1
-            python-version: 3.9
-          - pytorch-version: 1.8.1
-            python-version: "3.10"
-
           - pytorch-version: 1.10.0
             python-version: "3.10"
+          - pytorch-version: 1.10.0
+            python-version: "3.11"
 
           - pytorch-version: 1.11.0
             python-version: "3.10"
+          - pytorch-version: 1.11.0
+            python-version: "3.11"
+          - pytorch-version: 1.12.1
+            python-version: "3.11"
+          # Conda fails to install cpuonly version and few cpu distributed tests are
+          # failing with unrelated errors
+          - pytorch-version: 1.13.1
+            python-version: "3.11"
 
     steps:
       - uses: actions/checkout@v4
@@ -69,7 +70,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda install pytorch=${{ matrix.pytorch-version }} torchvision cpuonly python=${{ matrix.python-version }} -c pytorch
-          
+
           # We should install numpy<2.0 for pytorch<2.3
           numpy_one_pth_version=$(python -c "import torch; print(float('.'.join(torch.__version__.split('.')[:2])) < 2.3)")
           if [ "${numpy_one_pth_version}" == "True" ]; then

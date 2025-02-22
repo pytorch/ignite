@@ -259,36 +259,53 @@ class Events(EventEnum):
     - TERMINATE_SINGLE_EPOCH : triggered when the run is about to end the current epoch,
       after receiving a :meth:`~ignite.engine.engine.Engine.terminate_epoch()` or
       :meth:`~ignite.engine.engine.Engine.terminate()` call.
+    - EPOCH_COMPLETED : triggered when the epoch is ended. This is triggered even
+      when :meth:`~ignite.engine.engine.Engine.terminate_epoch()` is called,
+      unless the flag `skip_epoch_completed` is set to True.
 
     - TERMINATE : triggered when the run is about to end completely,
       after receiving :meth:`~ignite.engine.engine.Engine.terminate()` call.
 
-    - EPOCH_COMPLETED : triggered when the epoch is ended. Note that this is triggered even
-      when :meth:`~ignite.engine.engine.Engine.terminate_epoch()` is called.
-    - COMPLETED : triggered when engine's run is completed
+    - COMPLETED : triggered when engine's run is completed or terminated with
+      :meth:`~ignite.engine.engine.Engine.terminate()`, unless the flag
+      `skip_completed` is set to True.
 
     The table below illustrates which events are triggered when various termination methods are called.
 
     .. list-table::
-       :widths: 24 25 33 18
+       :widths: 38 38 28 20 20
        :header-rows: 1
 
        * - Method
-         - EVENT_COMPLETED
          - TERMINATE_SINGLE_EPOCH
+         - EPOCH_COMPLETED
          - TERMINATE
+         - COMPLETED
        * - no termination
+         - ✗
          - ✔
          - ✗
-         - ✗
+         - ✔
        * - :meth:`~ignite.engine.engine.Engine.terminate_epoch()`
          - ✔
          - ✔
          - ✗
+         - ✔
+       * - :meth:`~ignite.engine.engine.Engine.terminate_epoch()` with `skip_epoch_completed=True`
+         - ✔
+         - ✗
+         - ✗
+         - ✔
        * - :meth:`~ignite.engine.engine.Engine.terminate()`
          - ✗
          - ✔
          - ✔
+         - ✔
+       * - :meth:`~ignite.engine.engine.Engine.terminate()` with `skip_completed=True`
+         - ✗
+         - ✔
+         - ✔
+         - ✗
 
     Since v0.3.0, Events become more flexible and allow to pass an event filter to the Engine:
 
@@ -357,7 +374,7 @@ class Events(EventEnum):
     STARTED = "started"
     """triggered when engine's run is started."""
     COMPLETED = "completed"
-    """triggered when engine's run is completed"""
+    """triggered when engine's run is completed, or after receiving terminate() call."""
 
     ITERATION_STARTED = "iteration_started"
     """triggered when an iteration is started."""

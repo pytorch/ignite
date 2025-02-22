@@ -12,6 +12,7 @@
         from ignite.engine import *
         from ignite.handlers import *
         from ignite.metrics import *
+        from ignite.metrics.clustering import *
         from ignite.metrics.regression import *
         from ignite.utils import *
 
