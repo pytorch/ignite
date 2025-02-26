@@ -136,7 +136,11 @@ class MultiLabelConfusionMatrix(Metric):
             raise NotComputableError("Confusion matrix must have at least one example before it can be computed.")
 
         if self.normalized:
-            conf = self.confusion_matrix.to(dtype=torch.float64)
+            # MPS framework doesn't support float64, should use float32
+            double_dtype = torch.float64
+            if self.confusion_matrix.device.type == "mps":
+                double_dtype = torch.float32
+            conf = self.confusion_matrix.to(dtype=double_dtype)
             sums = conf.sum(dim=(1, 2))
             return conf / sums[:, None, None]
 

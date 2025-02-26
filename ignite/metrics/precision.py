@@ -38,6 +38,10 @@ class _BasePrecisionRecall(_BaseClassification):
         super(_BasePrecisionRecall, self).__init__(
             output_transform=output_transform, is_multilabel=is_multilabel, device=device, skip_unrolling=skip_unrolling
         )
+        # MPS framework doesn't support float64, should use float32
+        self._double_dtype = torch.float64
+        if self._device.type == "mps":
+            self._double_dtype = torch.float32
 
     def _check_type(self, output: Sequence[torch.Tensor]) -> None:
         super()._check_type(output)
@@ -81,8 +85,8 @@ class _BasePrecisionRecall(_BaseClassification):
             y = torch.transpose(y, 1, -1).reshape(-1, num_labels)
 
         # Convert from int cuda/cpu to double on self._device
-        y_pred = y_pred.to(dtype=torch.float64, device=self._device)
-        y = y.to(dtype=torch.float64, device=self._device)
+        y_pred = y_pred.to(dtype=self._double_dtype, device=self._device)
+        y = y.to(dtype=self._double_dtype, device=self._device)
         correct = y * y_pred
 
         return y_pred, y, correct
