@@ -873,7 +873,7 @@ def _is_list_of_tensors_or_numbers(x: Sequence[Union[torch.Tensor, float]]) -> b
     return isinstance(x, Sequence) and all([isinstance(t, (torch.Tensor, Number)) for t in x])
 
 
-def _to_batched_tensor(x: Union[torch.Tensor, float], device: Optional[torch.device] = None) -> torch.Tensor:
+def _to_batched_tensor(x: Union[torch.Tensor, Number], device: Optional[torch.device] = None) -> torch.Tensor:
     if isinstance(x, torch.Tensor):
         return x.unsqueeze(dim=0)
     return torch.tensor([x], device=device)
