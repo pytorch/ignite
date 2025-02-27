@@ -13,6 +13,7 @@ import torch
 import torch.distributed as dist
 
 import ignite.distributed as idist
+from tests.ignite import is_mps_available_and_functional
 
 
 def pytest_addoption(parser):
@@ -72,6 +73,9 @@ def term_handler():
     params=[
         "cpu",
         pytest.param("cuda", marks=pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no CUDA support")),
+        pytest.param(
+            "mps", marks=pytest.mark.skipif(not is_mps_available_and_functional(), reason="Skip if no MPS support")
+        ),
     ]
 )
 def available_device(request):
