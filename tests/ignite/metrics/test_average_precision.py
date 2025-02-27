@@ -34,8 +34,8 @@ def test_no_update():
         ap.compute()
 
 
-def test_input_types(available_device):
-    ap = AveragePrecision(device=available_device)
+def test_input_types():
+    ap = AveragePrecision()
     ap.reset()
     output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
     ap.update(output1)
@@ -50,8 +50,8 @@ def test_input_types(available_device):
         ap.update((torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10, 5)).long()))
 
 
-def test_check_shape(available_device):
-    ap = AveragePrecision(device=available_device)
+def test_check_shape():
+    ap = AveragePrecision()
 
     with pytest.raises(ValueError, match=r"Predictions should be of shape"):
         ap._check_shape((torch.tensor(0), torch.tensor(0)))
