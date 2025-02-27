@@ -332,6 +332,7 @@ Complete list of metrics
     Frequency
     Loss
     MeanAbsoluteError
+    MeanAveragePrecision
     MeanPairwiseDistance
     MeanSquaredError
     metric.Metric
@@ -339,6 +340,9 @@ Complete list of metrics
     metrics_lambda.MetricsLambda
     MultiLabelConfusionMatrix
     MutualInformation
+    ObjectDetectionAvgPrecisionRecall
+    CommonObjectDetectionMetrics
+    vision.object_detection_average_precision_recall.coco_tensor_list_to_dict_list
     precision.Precision
     PSNR
     recall.Recall
