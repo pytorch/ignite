@@ -53,10 +53,14 @@ def test_fid_function():
     )
 
 
-def test_compute_fid_from_features():
+def test_compute_fid_from_features(available_device):
     train_samples, test_samples = torch.rand(10, 10), torch.rand(10, 10)
 
-    fid_scorer = FID(num_features=10, feature_extractor=torch.nn.Identity())
+    fid_scorer = FID(
+        num_features=10,
+        feature_extractor=torch.nn.Identity(),
+        device=available_device,
+    )
     fid_scorer.update([train_samples[:5], test_samples[:5]])
     fid_scorer.update([train_samples[5:], test_samples[5:]])
 
@@ -128,9 +132,13 @@ def test_wrong_inputs():
         FID(feature_extractor=torch.nn.Identity())
 
 
-def test_statistics():
+def test_statistics(available_device):
     train_samples, test_samples = torch.rand(10, 10), torch.rand(10, 10)
-    fid_scorer = FID(num_features=10, feature_extractor=torch.nn.Identity())
+    fid_scorer = FID(
+        num_features=10,
+        feature_extractor=torch.nn.Identity(),
+        device=available_device,
+    )
     fid_scorer.update([train_samples[:5], test_samples[:5]])
     fid_scorer.update([train_samples[5:], test_samples[5:]])
 
@@ -143,13 +151,13 @@ def test_statistics():
     fid_mu2 = fid_scorer._test_total / fid_scorer._num_examples
     fid_sigma2 = fid_scorer._get_covariance(fid_scorer._test_sigma, fid_scorer._test_total)
 
-    assert torch.isclose(mu1.double(), fid_mu1).all()
+    assert torch.isclose(mu1.double(), fid_mu1.cpu()).all()
     for cov1, cov2 in zip(sigma1, fid_sigma1):
-        assert torch.isclose(cov1.double(), cov2, rtol=1e-04, atol=1e-04).all()
+        assert torch.isclose(cov1.double(), cov2.cpu(), rtol=1e-04, atol=1e-04).all()
 
-    assert torch.isclose(mu2.double(), fid_mu2).all()
+    assert torch.isclose(mu2.double(), fid_mu2.cpu()).all()
     for cov1, cov2 in zip(sigma2, fid_sigma2):
-        assert torch.isclose(cov1.double(), cov2, rtol=1e-04, atol=1e-04).all()
+        assert torch.isclose(cov1.double(), cov2.cpu(), rtol=1e-04, atol=1e-04).all()
 
 
 def _test_distrib_integration(device):

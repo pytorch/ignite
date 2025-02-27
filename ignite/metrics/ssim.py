@@ -116,7 +116,7 @@ class SSIM(Metric):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._sum_of_ssim = torch.tensor(0.0, dtype=torch.float64, device=self._device)
+        self._sum_of_ssim = torch.tensor(0.0, dtype=self._double_dtype, device=self._device)
         self._num_examples = 0
 
     def _uniform(self, kernel_size: int) -> torch.Tensor:
@@ -213,7 +213,7 @@ class SSIM(Metric):
         b2 = sigma_pred_sq + sigma_target_sq + self.c2
 
         ssim_idx = (a1 * a2) / (b1 * b2)
-        self._sum_of_ssim += torch.mean(ssim_idx, (1, 2, 3), dtype=torch.float64).sum().to(device=self._device)
+        self._sum_of_ssim += torch.mean(ssim_idx, (1, 2, 3), dtype=self._double_dtype).sum().to(device=self._device)
 
         self._num_examples += y.shape[0]
 

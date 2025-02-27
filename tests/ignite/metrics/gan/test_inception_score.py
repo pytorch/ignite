@@ -20,14 +20,18 @@ def calculate_inception_score(p_yx):
     return is_score
 
 
-def test_inception_score():
+def test_inception_score(available_device):
     p_yx = torch.rand(20, 10)
-    m = InceptionScore(num_features=10, feature_extractor=torch.nn.Identity())
+    m = InceptionScore(
+        num_features=10,
+        feature_extractor=torch.nn.Identity(),
+        device=available_device,
+    )
     m.update(p_yx)
     assert pytest.approx(calculate_inception_score(p_yx)) == m.compute()
 
     p_yx = torch.rand(20, 3, 299, 299)
-    m = InceptionScore()
+    m = InceptionScore(device=available_device)
     m.update(p_yx)
     assert isinstance(m.compute(), float)
 

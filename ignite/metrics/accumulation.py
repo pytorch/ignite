@@ -63,7 +63,7 @@ class VariableAccumulation(Metric):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self.accumulator = torch.tensor(0.0, dtype=torch.float64, device=self._device)
+        self.accumulator = torch.tensor(0.0, dtype=self._double_dtype, device=self._device)
         self.num_examples = 0
 
     def _check_output_type(self, output: Union[float, torch.Tensor]) -> None:
