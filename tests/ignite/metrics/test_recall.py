@@ -104,65 +104,34 @@ def ignite_average_to_scikit_average(average, data_type: str):
         raise ValueError(f"Wrong average parameter `{average}`")
 
 
+@pytest.mark.parametrize("n_times", range(3))
 @pytest.mark.parametrize("average", [None, False, "macro", "micro", "weighted"])
-def test_binary_input(average):
-    re = Recall(average=average)
+def test_binary_input(n_times, available_device, average, test_data_binary):
+    re = Recall(average=average, device=available_device)
     assert re._updated is False
 
-    def _test(y_pred, y, batch_size):
-        re.reset()
-        assert re._updated is False
+    y_pred, y, batch_size = test_data_binary
 
-        if batch_size > 1:
-            n_iters = y.shape[0] // batch_size + 1
-            for i in range(n_iters):
-                idx = i * batch_size
-                re.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-        else:
-            re.update((y_pred, y))
+    re.reset()
+    assert re._updated is False
 
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().ravel()
+    if batch_size > 1:
+        n_iters = y.shape[0] // batch_size + 1
+        for i in range(n_iters):
+            idx = i * batch_size
+            re.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+    else:
+        re.update((y_pred, y))
 
-        assert re._type == "binary"
-        assert re._updated is True
-        assert isinstance(re.compute(), torch.Tensor if not average else float)
-        re_compute = re.compute().numpy() if not average else re.compute()
-        sk_average_parameter = ignite_average_to_scikit_average(average, "binary")
-        assert recall_score(np_y, np_y_pred, average=sk_average_parameter, labels=[0, 1]) == pytest.approx(re_compute)
+    np_y = y.numpy().ravel()
+    np_y_pred = y_pred.numpy().ravel()
 
-    def get_test_cases():
-        test_cases = [
-            # Binary accuracy on input of shape (N, 1) or (N, )
-            (torch.randint(0, 2, size=(10,)), torch.randint(0, 2, size=(10,)), 1),
-            (torch.randint(0, 2, size=(10, 1)), torch.randint(0, 2, size=(10, 1)), 1),
-            # updated batches
-            (torch.randint(0, 2, size=(50,)), torch.randint(0, 2, size=(50,)), 16),
-            (torch.randint(0, 2, size=(50, 1)), torch.randint(0, 2, size=(50, 1)), 16),
-            # Binary accuracy on input of shape (N, L)
-            (torch.randint(0, 2, size=(10, 5)), torch.randint(0, 2, size=(10, 5)), 1),
-            (torch.randint(0, 2, size=(10, 1, 5)), torch.randint(0, 2, size=(10, 1, 5)), 1),
-            # updated batches
-            (torch.randint(0, 2, size=(50, 5)), torch.randint(0, 2, size=(50, 5)), 16),
-            (torch.randint(0, 2, size=(50, 1, 5)), torch.randint(0, 2, size=(50, 1, 5)), 16),
-            # Binary accuracy on input of shape (N, H, W)
-            (torch.randint(0, 2, size=(10, 12, 10)), torch.randint(0, 2, size=(10, 12, 10)), 1),
-            (torch.randint(0, 2, size=(10, 1, 12, 10)), torch.randint(0, 2, size=(10, 1, 12, 10)), 1),
-            # updated batches
-            (torch.randint(0, 2, size=(50, 12, 10)), torch.randint(0, 2, size=(50, 12, 10)), 16),
-            (torch.randint(0, 2, size=(50, 1, 12, 10)), torch.randint(0, 2, size=(50, 1, 12, 10)), 16),
-            # Corner case with all zeros predictions
-            (torch.zeros(size=(10,), dtype=torch.long), torch.randint(0, 2, size=(10,)), 1),
-            (torch.zeros(size=(10, 1), dtype=torch.long), torch.randint(0, 2, size=(10, 1)), 1),
-        ]
-
-        return test_cases
-
-    for _ in range(5):
-        # check multiple random inputs as random exact occurencies are rare
-        test_cases = get_test_cases()
-        for y_pred, y, batch_size in test_cases:
-            _test(y_pred, y, batch_size)
+    assert re._type == "binary"
+    assert re._updated is True
+    assert isinstance(re.compute(), torch.Tensor if not average else float)
+    re_compute = re.compute().cpu().numpy() if not average else re.compute()
+    sk_average_parameter = ignite_average_to_scikit_average(average, "binary")
+    assert recall_score(np_y, np_y_pred, average=sk_average_parameter, labels=[0, 1]) == pytest.approx(re_compute)
 
 
 def test_multiclass_wrong_inputs():
@@ -222,69 +191,37 @@ def test_multiclass_wrong_inputs():
         re.update((torch.rand(10, 5), torch.randint(0, 5, size=(10,)).float()))
 
 
+@pytest.mark.parametrize("n_times", range(3))
 @pytest.mark.parametrize("average", [None, False, "macro", "micro", "weighted"])
-def test_multiclass_input(average):
-    re = Recall(average=average)
+def test_multiclass_input(n_times, available_device, average, test_data_multiclass):
+    re = Recall(average=average, device=available_device)
     assert re._updated is False
 
-    def _test(y_pred, y, batch_size):
-        re.reset()
-        assert re._updated is False
+    y_pred, y, batch_size = test_data_multiclass
+    re.reset()
+    assert re._updated is False
 
-        if batch_size > 1:
-            n_iters = y.shape[0] // batch_size + 1
-            for i in range(n_iters):
-                idx = i * batch_size
-                re.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-        else:
-            re.update((y_pred, y))
+    if batch_size > 1:
+        n_iters = y.shape[0] // batch_size + 1
+        for i in range(n_iters):
+            idx = i * batch_size
+            re.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+    else:
+        re.update((y_pred, y))
 
-        num_classes = y_pred.shape[1]
-        np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
-        np_y = y.numpy().ravel()
+    num_classes = y_pred.shape[1]
+    np_y_pred = y_pred.argmax(dim=1).numpy().ravel()
+    np_y = y.numpy().ravel()
 
-        assert re._type == "multiclass"
-        assert re._updated is True
-        assert isinstance(re.compute(), torch.Tensor if not average else float)
-        re_compute = re.compute().numpy() if not average else re.compute()
-        sk_average_parameter = ignite_average_to_scikit_average(average, "multiclass")
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            sk_compute = recall_score(np_y, np_y_pred, labels=range(0, num_classes), average=sk_average_parameter)
-            assert sk_compute == pytest.approx(re_compute)
-
-    def get_test_cases():
-        test_cases = [
-            # Multiclass input data of shape (N, ) and (N, C)
-            (torch.rand(10, 6), torch.randint(0, 6, size=(10,)), 1),
-            (torch.rand(10, 4), torch.randint(0, 4, size=(10,)), 1),
-            # updated batches
-            (torch.rand(50, 6), torch.randint(0, 6, size=(50,)), 16),
-            (torch.rand(50, 4), torch.randint(0, 4, size=(50,)), 16),
-            # Multiclass input data of shape (N, L) and (N, C, L)
-            (torch.rand(10, 5, 8), torch.randint(0, 5, size=(10, 8)), 1),
-            (torch.rand(10, 8, 12), torch.randint(0, 8, size=(10, 12)), 1),
-            # updated batches
-            (torch.rand(50, 5, 8), torch.randint(0, 5, size=(50, 8)), 16),
-            (torch.rand(50, 8, 12), torch.randint(0, 8, size=(50, 12)), 16),
-            # Multiclass input data of shape (N, H, W, ...) and (N, C, H, W, ...)
-            (torch.rand(10, 5, 18, 16), torch.randint(0, 5, size=(10, 18, 16)), 1),
-            (torch.rand(10, 7, 20, 12), torch.randint(0, 7, size=(10, 20, 12)), 1),
-            # updated batches
-            (torch.rand(50, 5, 18, 16), torch.randint(0, 5, size=(50, 18, 16)), 16),
-            (torch.rand(50, 7, 20, 12), torch.randint(0, 7, size=(50, 20, 12)), 16),
-            # Corner case with all zeros predictions
-            (torch.zeros(size=(10, 6)), torch.randint(0, 6, size=(10,)), 1),
-            (torch.zeros(size=(10, 4)), torch.randint(0, 4, size=(10,)), 1),
-        ]
-
-        return test_cases
-
-    for _ in range(5):
-        # check multiple random inputs as random exact occurencies are rare
-        test_cases = get_test_cases()
-        for y_pred, y, batch_size in test_cases:
-            _test(y_pred, y, batch_size)
+    assert re._type == "multiclass"
+    assert re._updated is True
+    assert isinstance(re.compute(), torch.Tensor if not average else float)
+    re_compute = re.compute().cpu().numpy() if not average else re.compute()
+    sk_average_parameter = ignite_average_to_scikit_average(average, "multiclass")
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=UndefinedMetricWarning)
+        sk_compute = recall_score(np_y, np_y_pred, labels=range(0, num_classes), average=sk_average_parameter)
+        assert sk_compute == pytest.approx(re_compute)
 
 
 def test_multilabel_wrong_inputs():
@@ -321,66 +258,35 @@ def to_numpy_multilabel(y):
     return y
 
 
-@pytest.mark.parametrize("average", [None, False, "macro", "micro", "samples"])
-def test_multilabel_input(average):
-    re = Recall(average=average, is_multilabel=True)
+@pytest.mark.parametrize("n_times", range(3))
+@pytest.mark.parametrize("average", [None, False, "macro", "micro", "weighted", "samples"])
+def test_multilabel_input(n_times, available_device, average, test_data_multilabel):
+
+    re = Recall(average=average, is_multilabel=True, device=available_device)
     assert re._updated is False
 
-    def _test(y_pred, y, batch_size):
-        re.reset()
-        assert re._updated is False
+    y_pred, y, batch_size = test_data_multilabel
+    re.reset()
+    assert re._updated is False
 
-        if batch_size > 1:
-            n_iters = y.shape[0] // batch_size + 1
-            for i in range(n_iters):
-                idx = i * batch_size
-                re.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
-        else:
-            re.update((y_pred, y))
+    if batch_size > 1:
+        n_iters = y.shape[0] // batch_size + 1
+        for i in range(n_iters):
+            idx = i * batch_size
+            re.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
+    else:
+        re.update((y_pred, y))
 
-        np_y_pred = to_numpy_multilabel(y_pred)
-        np_y = to_numpy_multilabel(y)
+    np_y_pred = to_numpy_multilabel(y_pred)
+    np_y = to_numpy_multilabel(y)
 
-        assert re._type == "multilabel"
-        assert re._updated is True
-        re_compute = re.compute().numpy() if not average else re.compute()
-        sk_average_parameter = ignite_average_to_scikit_average(average, "multilabel")
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=UndefinedMetricWarning)
-            assert recall_score(np_y, np_y_pred, average=sk_average_parameter) == pytest.approx(re_compute)
-
-    def get_test_cases():
-        test_cases = [
-            # Multilabel input data of shape (N, C)
-            (torch.randint(0, 2, size=(10, 5)), torch.randint(0, 2, size=(10, 5)), 1),
-            (torch.randint(0, 2, size=(10, 4)), torch.randint(0, 2, size=(10, 4)), 1),
-            # updated batches
-            (torch.randint(0, 2, size=(50, 5)), torch.randint(0, 2, size=(50, 5)), 16),
-            (torch.randint(0, 2, size=(50, 4)), torch.randint(0, 2, size=(50, 4)), 16),
-            # Multilabel input data of shape (N, H, W)
-            (torch.randint(0, 2, size=(10, 5, 10)), torch.randint(0, 2, size=(10, 5, 10)), 1),
-            (torch.randint(0, 2, size=(10, 4, 10)), torch.randint(0, 2, size=(10, 4, 10)), 1),
-            # updated batches
-            (torch.randint(0, 2, size=(50, 5, 10)), torch.randint(0, 2, size=(50, 5, 10)), 16),
-            (torch.randint(0, 2, size=(50, 4, 10)), torch.randint(0, 2, size=(50, 4, 10)), 16),
-            # Multilabel input data of shape (N, C, H, W, ...)
-            (torch.randint(0, 2, size=(10, 5, 18, 16)), torch.randint(0, 2, size=(10, 5, 18, 16)), 1),
-            (torch.randint(0, 2, size=(10, 4, 20, 23)), torch.randint(0, 2, size=(10, 4, 20, 23)), 1),
-            # updated batches
-            (torch.randint(0, 2, size=(50, 5, 18, 16)), torch.randint(0, 2, size=(50, 5, 18, 16)), 16),
-            (torch.randint(0, 2, size=(50, 4, 20, 23)), torch.randint(0, 2, size=(50, 4, 20, 23)), 16),
-            # Corner case with all zeros predictions
-            (torch.zeros(size=(10, 5)), torch.randint(0, 2, size=(10, 5)), 1),
-            (torch.zeros(size=(10, 4)), torch.randint(0, 2, size=(10, 4)), 1),
-        ]
-
-        return test_cases
-
-    for _ in range(5):
-        # check multiple random inputs as random exact occurencies are rare
-        test_cases = get_test_cases()
-        for y_pred, y, batch_size in test_cases:
-            _test(y_pred, y, batch_size)
+    assert re._type == "multilabel"
+    assert re._updated is True
+    re_compute = re.compute().cpu().numpy() if not average else re.compute()
+    sk_average_parameter = ignite_average_to_scikit_average(average, "multilabel")
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=UndefinedMetricWarning)
+        assert recall_score(np_y, np_y_pred, average=sk_average_parameter) == pytest.approx(re_compute)
 
 
 @pytest.mark.parametrize("average", [None, False, "macro", "micro", "weighted"])

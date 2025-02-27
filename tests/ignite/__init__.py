@@ -1,11 +1,12 @@
 import torch
 
-
-def cpu_and_maybe_cuda():
-    return ("cpu",) + (("cuda",) if torch.cuda.is_available() else ())
+from ignite.distributed.comp_models.base import _torch_version_gt_112
 
 
 def is_mps_available_and_functional():
+    if not _torch_version_gt_112:
+        return False
+
     if not torch.backends.mps.is_available():
         return False
     try:
