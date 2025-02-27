@@ -34,8 +34,8 @@ def test_no_update():
         ap.compute()
 
 
-def test_input_types():
-    ap = AveragePrecision()
+def test_input_types(available_device):
+    ap = AveragePrecision(device=available_device)
     ap.reset()
     output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
     ap.update(output1)
@@ -50,8 +50,8 @@ def test_input_types():
         ap.update((torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10, 5)).long()))
 
 
-def test_check_shape():
-    ap = AveragePrecision()
+def test_check_shape(available_device):
+    ap = AveragePrecision(device=available_device)
 
     with pytest.raises(ValueError, match=r"Predictions should be of shape"):
         ap._check_shape((torch.tensor(0), torch.tensor(0)))
@@ -82,9 +82,9 @@ def test_data_binary_and_multilabel(request):
 
 
 @pytest.mark.parametrize("n_times", range(5))
-def test_binary_and_multilabel_inputs(n_times, test_data_binary_and_multilabel):
+def test_binary_and_multilabel_inputs(n_times, available_device, test_data_binary_and_multilabel):
     y_pred, y, batch_size = test_data_binary_and_multilabel
-    ap = AveragePrecision()
+    ap = AveragePrecision(device=available_device)
     ap.reset()
     if batch_size > 1:
         n_iters = y.shape[0] // batch_size + 1
@@ -115,7 +115,9 @@ def test_data_integration_binary_and_multilabel(request):
 
 
 @pytest.mark.parametrize("n_times", range(5))
-def test_integration_binary_and_mulitlabel_inputs(n_times, test_data_integration_binary_and_multilabel):
+def test_integration_binary_and_mulitlabel_inputs(
+    n_times, available_device, test_data_integration_binary_and_multilabel
+):
     y_pred, y, batch_size = test_data_integration_binary_and_multilabel
 
     def update_fn(engine, batch):
@@ -126,7 +128,7 @@ def test_integration_binary_and_mulitlabel_inputs(n_times, test_data_integration
 
     engine = Engine(update_fn)
 
-    ap_metric = AveragePrecision()
+    ap_metric = AveragePrecision(device=available_device)
     ap_metric.attach(engine, "ap")
 
     np_y = y.numpy()
