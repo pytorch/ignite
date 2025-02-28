@@ -69,16 +69,22 @@ def term_handler():
         yield  # Just pass through if SIGTERM isn't supported or we are not in the main thread
 
 
-@pytest.fixture(
-    params=[
-        "cpu",
-        pytest.param("cuda", marks=pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no CUDA support")),
-        pytest.param(
-            "mps", marks=pytest.mark.skipif(not is_mps_available_and_functional(), reason="Skip if no MPS support")
-        ),
-    ]
-)
+available_devices_list = [
+    "cpu",
+    pytest.param("cuda", marks=pytest.mark.skipif(not torch.cuda.is_available(), reason="Skip if no CUDA support")),
+    pytest.param(
+        "mps", marks=pytest.mark.skipif(not is_mps_available_and_functional(), reason="Skip if no MPS support")
+    ),
+]
+
+
+@pytest.fixture(params=available_devices_list)
 def available_device(request):
+    return request.param
+
+
+@pytest.fixture(params=available_devices_list)
+def available_device2(request):
     return request.param
 
 

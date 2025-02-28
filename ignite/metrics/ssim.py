@@ -116,11 +116,11 @@ class SSIM(Metric):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._sum_of_ssim = torch.tensor(0.0, dtype=torch.float64, device=self._device)
+        self._sum_of_ssim = torch.tensor(0.0, dtype=self._double_dtype, device=self._device)
         self._num_examples = 0
 
     def _uniform(self, kernel_size: int) -> torch.Tensor:
-        kernel = torch.zeros(kernel_size)
+        kernel = torch.zeros(kernel_size, device=self._device)
 
         start_uniform_index = max(kernel_size // 2 - 2, 0)
         end_uniform_index = min(kernel_size // 2 + 3, kernel_size)
@@ -146,10 +146,7 @@ class SSIM(Metric):
 
         return torch.matmul(kernel_x.t(), kernel_y)  # (kernel_size, 1) * (1, kernel_size)
 
-    @reinit__is_reduced
-    def update(self, output: Sequence[torch.Tensor]) -> None:
-        y_pred, y = output[0].detach(), output[1].detach()
-
+    def _check_type_and_shape(self, y_pred: torch.Tensor, y: torch.Tensor) -> None:
         if y_pred.dtype != y.dtype:
             raise TypeError(
                 f"Expected y_pred and y to have the same data type. Got y_pred: {y_pred.dtype} and y: {y.dtype}."
@@ -164,6 +161,12 @@ class SSIM(Metric):
             raise ValueError(
                 f"Expected y_pred and y to have BxCxHxW shape. Got y_pred: {y_pred.shape} and y: {y.shape}."
             )
+
+    @reinit__is_reduced
+    def update(self, output: Sequence[torch.Tensor]) -> None:
+        y_pred, y = output[0].detach(), output[1].detach()
+
+        self._check_type_and_shape(y_pred, y)
 
         # converts potential integer tensor to fp
         if not y.is_floating_point():
@@ -213,7 +216,15 @@ class SSIM(Metric):
         b2 = sigma_pred_sq + sigma_target_sq + self.c2
 
         ssim_idx = (a1 * a2) / (b1 * b2)
-        self._sum_of_ssim += torch.mean(ssim_idx, (1, 2, 3), dtype=torch.float64).sum().to(device=self._device)
+
+        # In case when ssim_idx can be MPS tensor and self._device is not MPS
+        # self._double_dtype is float64.
+        # As MPS does not support float64 we should set dtype to float32
+        double_dtype = self._double_dtype
+        if ssim_idx.device.type == "mps" and self._double_dtype == torch.float64:
+            double_dtype = torch.float32
+
+        self._sum_of_ssim += torch.mean(ssim_idx, (1, 2, 3), dtype=double_dtype).sum().to(device=self._device)
 
         self._num_examples += y.shape[0]
 
