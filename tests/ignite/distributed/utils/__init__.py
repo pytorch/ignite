@@ -3,7 +3,7 @@ import torch
 import torch.distributed as dist
 
 import ignite.distributed as idist
-from ignite.distributed.utils import all_gather_tensors_with_shapes, sync
+from ignite.distributed.utils import _rank_not_in_group, all_gather_tensors_with_shapes, sync
 from ignite.engine import Engine, Events
 
 
@@ -417,26 +417,35 @@ def _test_distrib_new_group(device):
     if idist.get_world_size() > 1 and idist.backend() is not None:
         bnd = idist.backend()
         ranks = [0, 1]
+        rank = idist.get_rank()
         if idist.has_native_dist_support and bnd in ("nccl", "gloo", "mpi"):
             g1 = idist.new_group(ranks)
             g2 = dist.new_group(ranks)
 
-            rank = idist.get_rank()
             if rank in ranks:
                 assert g1.rank() == g2.rank()
+                assert not _rank_not_in_group(g1)
+            else:
+                assert _rank_not_in_group(g1)
+
         elif idist.has_xla_support and bnd in ("xla-tpu"):
             assert idist.new_group(ranks) == [ranks]
+            # Shouldn't the returned group be [0,1] instead of [[0,1]]?
+            assert False
         elif idist.has_hvd_support and bnd in ("horovod"):
             from horovod.common.process_sets import ProcessSet
 
             g1 = idist.new_group(ranks)
             g2 = ProcessSet(ranks)
 
-            rank = idist.get_rank()
             if rank in ranks:
                 assert g1.ranks == g2.ranks
+                assert not _rank_not_in_group(g1)
+            else:
+                assert _rank_not_in_group(g1)
 
     elif idist.backend() is None:
+        # What should I do in this case? How is to return True if `0` in group?
         ranks = [0, 1]
         assert idist.new_group(ranks) == ranks
 
