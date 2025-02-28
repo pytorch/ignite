@@ -387,7 +387,7 @@ def all_gather_tensors_with_shapes(
     if isinstance(group, list) and all(isinstance(item, int) for item in group):
         group = _model.new_group(group)
 
-    if isinstance(_model, _SerialModel) or group == dist.GroupMember.NON_GROUP_MEMBER:
+    if isinstance(_model, _SerialModel) or _rank_not_in_group(group):
         return [tensor]
 
     max_shape = torch.tensor(shapes).amax(dim=0)
@@ -738,9 +738,7 @@ def one_rank_first(rank: int = 0, local: bool = False) -> Any:
 
 def _rank_not_in_group(group: Optional[dist.ProcessGroup | "hvd.ProcessSet"]) -> bool:
     """Check if the current process's rank is not in a given group."""
-    if group is None or group == dist.GroupMember.NON_GROUP_MEMBER:
-        return False
-    elif has_hvd_support and isinstance(group, hvd.common.process_sets.ProcessSet):
+    if has_hvd_support and isinstance(group, hvd.common.process_sets.ProcessSet):
         return group.included()
     else:
-        return False
+        return dist._rank_not_in_group(group)

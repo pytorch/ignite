@@ -413,7 +413,7 @@ def _test_distrib_barrier(device):
     assert tt.item() == true_res + 10.0
 
 
-def _test_distrib_new_group(device):
+def _test_distrib_group(device):
     if idist.get_world_size() > 1 and idist.backend() is not None:
         bnd = idist.backend()
         ranks = [0, 1]
@@ -445,7 +445,6 @@ def _test_distrib_new_group(device):
                 assert _rank_not_in_group(g1)
 
     elif idist.backend() is None:
-        # What should I do in this case? How is to return True if `0` in group?
         ranks = [0, 1]
         assert idist.new_group(ranks) == ranks
 
