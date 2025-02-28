@@ -244,6 +244,8 @@ def test_idist_all_gather_nccl(distributed_context_single_node_nccl):
     device = idist.device()
     _test_distrib_all_gather(device)
     _test_distrib_all_gather_group(device)
+    _test_idist_all_gather_tensors_with_shapes(device)
+    _test_idist_all_gather_tensors_with_shapes_group(device)
 
 
 @pytest.mark.distributed
@@ -253,21 +255,6 @@ def test_idist_all_gather_gloo(distributed_context_single_node_gloo):
     device = idist.device()
     _test_distrib_all_gather(device)
     _test_distrib_all_gather_group(device)
-
-
-@pytest.mark.distributed
-@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
-@pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
-def test_idist_all_gather_tensors_with_shapes_nccl(distributed_context_single_node_nccl):
-    device = idist.device()
-    _test_idist_all_gather_tensors_with_shapes(device)
-    _test_idist_all_gather_tensors_with_shapes_group(device)
-
-
-@pytest.mark.distributed
-@pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
-def test_idist_all_gather_tensors_with_shapes_gloo(distributed_context_single_node_gloo):
-    device = idist.device()
     _test_idist_all_gather_tensors_with_shapes(device)
     _test_idist_all_gather_tensors_with_shapes_group(device)
 
