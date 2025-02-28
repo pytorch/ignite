@@ -16,8 +16,6 @@ from ignite.distributed.comp_models import (
 )
 from ignite.utils import setup_logger
 
-if has_hvd_support:
-    import horovod as hvd
 
 __all__ = [
     "backend",
@@ -738,7 +736,11 @@ def one_rank_first(rank: int = 0, local: bool = False) -> Any:
 
 def _rank_not_in_group(group: Optional[Union[Any, List[int]]]) -> bool:
     """Check if the current process's rank is not in a given group."""
-    if has_hvd_support and isinstance(group, hvd.common.process_sets.ProcessSet):
-        return group.included()
-    else:
-        return dist._rank_not_in_group(group)
+    if group is None:
+        return False
+    elif has_hvd_support:
+        from hvd.common.process_sets import ProcessSet
+
+        if isinstance(group, ProcessSet):
+            return group.included()
+    return dist._rank_not_in_group(group)
