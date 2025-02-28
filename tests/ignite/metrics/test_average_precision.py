@@ -63,7 +63,7 @@ def test_check_shape():
         ap._check_shape((torch.rand(4, 3), torch.rand(4, 3, 1)))
 
 
-@pytest.fixture(params=[item for item in range(8)])
+@pytest.fixture(params=range(8))
 def test_data_binary_and_multilabel(request):
     return [
         # Binary input data of shape (N,) or (N, 1)
@@ -102,7 +102,7 @@ def test_binary_and_multilabel_inputs(n_times, test_data_binary_and_multilabel):
     assert average_precision_score(np_y, np_y_pred) == pytest.approx(res)
 
 
-@pytest.fixture(params=[item for item in range(4)])
+@pytest.fixture(params=range(4))
 def test_data_integration_binary_and_multilabel(request):
     return [
         # Binary input data of shape (N,) or (N, 1)

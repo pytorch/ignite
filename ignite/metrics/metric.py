@@ -369,6 +369,12 @@ class Metric(Serializable, metaclass=ABCMeta):
 
         self._device = torch.device(device)
         self._skip_unrolling = skip_unrolling
+
+        # MPS framework doesn't support float64, should use float32
+        self._double_dtype = torch.float64
+        if self._device.type == "mps":
+            self._double_dtype = torch.float32
+
         self.reset()
 
     @abstractmethod
