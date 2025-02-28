@@ -736,7 +736,7 @@ def one_rank_first(rank: int = 0, local: bool = False) -> Any:
         barrier()
 
 
-def _rank_not_in_group(group: Optional[dist.ProcessGroup | "hvd.ProcessSet"]) -> bool:
+def _rank_not_in_group(group: Optional[Union[Any, List[int]]]) -> bool:
     """Check if the current process's rank is not in a given group."""
     if has_hvd_support and isinstance(group, hvd.common.process_sets.ProcessSet):
         return group.included()
