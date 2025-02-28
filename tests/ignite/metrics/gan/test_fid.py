@@ -154,11 +154,11 @@ def test_statistics(available_device):
     fid_mu2 = fid_scorer._test_total / fid_scorer._num_examples
     fid_sigma2 = fid_scorer._get_covariance(fid_scorer._test_sigma, fid_scorer._test_total)
 
-    assert torch.allclose(mu1, fid_mu1.to(mu1))
-    assert torch.allclose(sigma1, fid_sigma1.to(sigma1), rtol=1e-04, atol=1e-04)
+    assert torch.allclose(mu1, fid_mu1.cpu().to(dtype=mu1.dtype))
+    assert torch.allclose(sigma1, fid_sigma1.cpu().to(dtype=sigma1.dtype), rtol=1e-04, atol=1e-04)
 
-    assert torch.allclose(mu2, fid_mu2.to(mu2))
-    assert torch.allclose(sigma2, fid_sigma2.to(sigma2), rtol=1e-04, atol=1e-04)
+    assert torch.allclose(mu2, fid_mu2.cpu().to(dtype=mu2.dtype))
+    assert torch.allclose(sigma2, fid_sigma2.cpu().to(dtype=mu2.dtype), rtol=1e-04, atol=1e-04)
 
 
 def _test_distrib_integration(device):
