@@ -738,7 +738,9 @@ def _rank_not_in_group(group: Optional[Union[Any, List[int]]]) -> bool:
     """Check if the current process's rank is not in a given group."""
     if group is None:
         return False
-    elif has_hvd_support:
+    if isinstance(group, list) and all(isinstance(item, int) for item in group):
+        group = new_group(group)
+    if has_hvd_support:
         from hvd.common.process_sets import ProcessSet
 
         if isinstance(group, ProcessSet):
