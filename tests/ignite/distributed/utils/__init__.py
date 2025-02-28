@@ -427,6 +427,7 @@ def _test_distrib_group(device):
                 assert not _rank_not_in_group(g1)
             else:
                 assert _rank_not_in_group(g1)
+                assert _rank_not_in_group(ranks)
 
         elif idist.has_xla_support and bnd in ("xla-tpu"):
             assert idist.new_group(ranks) == [ranks]
