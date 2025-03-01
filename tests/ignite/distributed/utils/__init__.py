@@ -332,10 +332,6 @@ def _test_idist_all_gather_tensors_with_shapes_group(device):
         ]
     else:
         rank_tensor = torch.tensor([rank], device=device)
-    if bnd in ("horovod"):
-        with pytest.raises(NotImplementedError, match=r"all_gather with group for horovod is not implemented"):
-            tensors = all_gather_tensors_with_shapes(rank_tensor, [[r + 1, r + 2, r + 3] for r in ranks], ranks)
-    else:
         tensors = all_gather_tensors_with_shapes(rank_tensor, [[r + 1, r + 2, r + 3] for r in ranks], ranks)
         if rank in ranks:
             for r in ranks:

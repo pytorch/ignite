@@ -384,7 +384,7 @@ def all_gather_tensors_with_shapes(
     if isinstance(group, list) and all(isinstance(item, int) for item in group):
         group = _model.new_group(group)
 
-    if isinstance(_model, _SerialModel) or _rank_not_in_group(group):
+    if _rank_not_in_group(group):
         return [tensor]
 
     max_shape = torch.tensor(shapes).amax(dim=0)
