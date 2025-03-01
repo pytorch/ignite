@@ -7,7 +7,6 @@ from ignite.distributed.comp_models.base import ComputationModel
 
 try:
     import horovod.torch as hvd
-    from horovod.common.process_sets import global_process_set
 
     try:
         # old API
@@ -189,7 +188,10 @@ if has_hvd_support:
         def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None) -> torch.Tensor:
             if tensor.ndimension() == 0:
                 tensor = tensor.unsqueeze(0)
-            return hvd.allgather(tensor, process_set=group or global_process_set)
+            if group is None:
+                return hvd.allgather(tensor)
+            else:
+                return hvd.allgather(tensor, process_set=group)
 
         def _do_all_gather_object(self, tensor: Any, group: Optional[Any] = None) -> List[Any]:
             if group is not None:
