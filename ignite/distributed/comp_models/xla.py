@@ -176,5 +176,5 @@ if has_xla_support:
                 return True
             return False
 
-        def _rank_not_in_group(self, group: Any):
+        def _rank_not_in_group(self, group: Any) -> bool:
             return self.get_rank() in group
