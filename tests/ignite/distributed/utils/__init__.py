@@ -328,21 +328,17 @@ def _test_idist_all_gather_tensors_with_shapes_group(device):
             ]
         else:
             rank_tensor = torch.tensor([rank], device=device)
-        if bnd in ("horovod"):
-            with pytest.raises(NotImplementedError, match=r"all_gather with group for horovod is not implemented"):
-                tensors = all_gather_tensors_with_shapes(rank_tensor, [[r + 1, r + 2, r + 3] for r in ranks], ranks)
+        tensors = all_gather_tensors_with_shapes(rank_tensor, [[r + 1, r + 2, r + 3] for r in ranks], ranks)
+        if rank in ranks:
+            for r in ranks:
+                r_tensor = reference[
+                    r * (r + 1) // 2 : r * (r + 1) // 2 + r + 1,
+                    r * (r + 3) // 2 : r * (r + 3) // 2 + r + 2,
+                    r * (r + 5) // 2 : r * (r + 5) // 2 + r + 3,
+                ]
+                assert (r_tensor == tensors[r - 1]).all()
         else:
-            tensors = all_gather_tensors_with_shapes(rank_tensor, [[r + 1, r + 2, r + 3] for r in ranks], ranks)
-            if rank in ranks:
-                for r in ranks:
-                    r_tensor = reference[
-                        r * (r + 1) // 2 : r * (r + 1) // 2 + r + 1,
-                        r * (r + 3) // 2 : r * (r + 3) // 2 + r + 2,
-                        r * (r + 5) // 2 : r * (r + 5) // 2 + r + 3,
-                    ]
-                    assert (r_tensor == tensors[r - 1]).all()
-            else:
-                assert [rank_tensor] == tensors
+            assert [rank_tensor] == tensors
 
 
 def _test_distrib_broadcast(device):
