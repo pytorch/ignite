@@ -209,5 +209,5 @@ if has_hvd_support:
             # hvd.allreduce(torch.tensor(0, device=self.device()), name="barrier")
             hvd.allreduce(torch.tensor(0, device="cpu"), name="barrier")
 
-        def _rank_not_in_group(self, group: Any):
+        def _rank_not_in_group(self, group: Any) -> bool:
             return group.included()
