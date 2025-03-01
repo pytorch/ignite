@@ -491,6 +491,9 @@ if has_native_dist_support:
         def barrier(self) -> None:
             dist.barrier()
 
+        def _rank_not_in_group(self, group: Any) -> bool:
+            return dist._rank_not_in_group(group)
+
     def _expand_hostlist(nodelist: str) -> List[str]:
         """Expand a compressed hostlist string and returns all hosts listed.
 
