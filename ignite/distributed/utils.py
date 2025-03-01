@@ -5,7 +5,6 @@ from functools import wraps
 from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple, Union
 
 import torch
-from torch import distributed as dist
 
 from ignite.distributed.comp_models import (
     _SerialModel,
@@ -740,9 +739,4 @@ def _rank_not_in_group(group: Optional[Union[Any, List[int]]]) -> bool:
         return False
     if isinstance(group, list) and all(isinstance(item, int) for item in group):
         group = new_group(group)
-    if has_hvd_support:
-        from horovod.common.process_sets import ProcessSet
-
-        if isinstance(group, ProcessSet):
-            return group.included()
-    return dist._rank_not_in_group(group)
+    return _model._rank_not_in_group(group)

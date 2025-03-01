@@ -414,39 +414,36 @@ def _test_distrib_barrier(device):
 
 
 def _test_distrib_group(device):
+    ranks = [0, 1]
     if idist.get_world_size() > 1 and idist.backend() is not None:
         bnd = idist.backend()
-        ranks = [0, 1]
         rank = idist.get_rank()
         if idist.has_native_dist_support and bnd in ("nccl", "gloo", "mpi"):
-            g1 = idist.new_group(ranks)
+            g = idist.new_group(ranks)
             g2 = dist.new_group(ranks)
 
             if rank in ranks:
-                assert g1.rank() == g2.rank()
-                assert not _rank_not_in_group(g1)
-            else:
-                assert _rank_not_in_group(g1)
-                assert _rank_not_in_group(ranks)
+                assert g.rank() == g2.rank()
 
         elif idist.has_xla_support and bnd in ("xla-tpu"):
-            assert idist.new_group(ranks) == [ranks]
-            # Shouldn't the returned group be [0,1] instead of [[0,1]]?
-            assert False
+            g = idist.new_group(ranks)
+            assert g == [ranks]
         elif idist.has_hvd_support and bnd in ("horovod"):
             from horovod.common.process_sets import ProcessSet
 
-            g1 = idist.new_group(ranks)
+            g = idist.new_group(ranks)
             g2 = ProcessSet(ranks)
 
             if rank in ranks:
-                assert g1.ranks == g2.ranks
-                assert not _rank_not_in_group(g1)
-            else:
-                assert _rank_not_in_group(g1)
+                assert g.ranks == g2.ranks
+
+        if rank in ranks:
+            assert not _rank_not_in_group(g)
+        else:
+            assert _rank_not_in_group(g)
+            assert _rank_not_in_group(ranks)
 
     elif idist.backend() is None:
-        ranks = [0, 1]
         assert idist.new_group(ranks) == ranks
 
     with pytest.raises(ValueError, match="Argument ranks should be list of int"):

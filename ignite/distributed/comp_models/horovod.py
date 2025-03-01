@@ -208,3 +208,6 @@ if has_hvd_support:
             # https://github.com/horovod/horovod/issues/159#issuecomment-424834603
             # hvd.allreduce(torch.tensor(0, device=self.device()), name="barrier")
             hvd.allreduce(torch.tensor(0, device="cpu"), name="barrier")
+
+        def _rank_not_in_group(self, group: Any):
+            return group.included()
