@@ -2,7 +2,7 @@ import itertools
 import socket
 from contextlib import contextmanager
 from functools import wraps
-from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, cast, List, Mapping, Optional, Sequence, Tuple, Union
 
 import torch
 
@@ -392,7 +392,7 @@ def all_gather_tensors_with_shapes(
     padded_tensor = torch.nn.functional.pad(
         tensor, tuple(itertools.chain.from_iterable(map(lambda dim_size: (0, dim_size), reversed(padding_sizes))))
     )
-    all_padded_tensors: torch.Tensor = _model.all_gather(padded_tensor, group=group)
+    all_padded_tensors: torch.Tensor = cast(torch.Tensor, _model.all_gather(padded_tensor, group=group))
     return [
         all_padded_tensors[
             [
