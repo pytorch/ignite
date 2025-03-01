@@ -231,26 +231,18 @@ def _test_distrib_all_gather_group(device):
 
     t = torch.tensor([rank], device=device)
     group = idist.new_group(ranks)
-    if bnd in ("horovod"):
-        with pytest.raises(NotImplementedError, match=r"all_gather with group for horovod is not implemented"):
-            res = idist.all_gather(t, group=group)
+    res = idist.all_gather(t, group=group)
+    if rank in ranks:
+        assert torch.equal(res, torch.tensor(sorted(ranks), device=device))
     else:
-        res = idist.all_gather(t, group=group)
-        if rank in ranks:
-            assert torch.equal(res, torch.tensor(sorted(ranks), device=device)), res
-        else:
-            assert res == t
+        assert res == t
 
     t = torch.tensor([rank], device=device)
-    if bnd in ("horovod"):
-        with pytest.raises(NotImplementedError, match=r"all_gather with group for horovod is not implemented"):
-            res = idist.all_gather(t, group=ranks)
+    res = idist.all_gather(t, group=ranks)
+    if rank in ranks:
+        assert torch.equal(res, torch.tensor(sorted(ranks), device=device))
     else:
-        res = idist.all_gather(t, group=ranks)
-        if rank in ranks:
-            assert torch.equal(res, torch.tensor(sorted(ranks), device=device))
-        else:
-            assert res == t
+        assert res == t
 
     t = {
         "a": [rank + 1, rank + 2, torch.tensor(rank + 3, device=device)],
@@ -259,9 +251,6 @@ def _test_distrib_all_gather_group(device):
     }
     if bnd in ("xla-tpu"):
         with pytest.raises(NotImplementedError, match=r"all_gather on object is not implemented for xla"):
-            res = idist.all_gather(t, group=ranks)
-    elif bnd in ("horovod"):
-        with pytest.raises(NotImplementedError, match=r"all_gather with group for horovod is not implemented"):
             res = idist.all_gather(t, group=ranks)
     else:
         res = idist.all_gather(t, group=ranks)
@@ -284,7 +273,7 @@ def _test_distrib_all_gather_group(device):
         else:
             assert res == t
 
-    if bnd in ("nccl", "gloo", "mpi"):
+    if bnd in ("nccl", "gloo", "mpi", "horovod"):
         with pytest.raises(ValueError, match=r"Argument group should be list of int or ProcessGroup"):
             res = idist.all_gather(t, group="abc")
     elif bnd in ("xla-tpu"):
