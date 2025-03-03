@@ -347,9 +347,6 @@ def all_reduce(
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
 
-    if isinstance(group, list) and all(isinstance(item, int) for item in group):
-        group = _model.new_group(group)
-
     return _model.all_reduce(tensor, op, group=group)
 
 
@@ -428,9 +425,6 @@ def all_gather(
     """
     if _need_to_sync and isinstance(_model, _SerialModel):
         sync(temporary=True)
-
-    if isinstance(group, list) and all(isinstance(item, int) for item in group):
-        group = _model.new_group(group)
 
     return _model.all_gather(tensor, group=group)
 
