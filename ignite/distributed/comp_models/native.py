@@ -408,6 +408,15 @@ if has_native_dist_support:
                 **spawn_kwargs,
             )
 
+        def _setup_group(self, group: Optional[Any]) -> dist.ProcessGroup:
+            if isinstance(group, list) and all(isinstance(item, int) for item in group):
+                group = self._do_new_group(group)
+            if not (isinstance(group, dist.ProcessGroup) or group == dist.GroupMember.NON_GROUP_MEMBER):
+                raise ValueError(
+                    f"Argument group should be list of int or ProcessGroup, got {type(group)}, group={group}"
+                )
+            return group
+
         _reduce_op_map = {
             "SUM": dist.ReduceOp.SUM,
             "PRODUCT": dist.ReduceOp.PRODUCT,
@@ -420,8 +429,8 @@ if has_native_dist_support:
         def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Any] = None) -> torch.Tensor:
             if op not in self._reduce_op_map:
                 raise ValueError(f"Unsupported reduction operation: '{op}'")
-            if group is not None and not isinstance(group, dist.ProcessGroup):
-                raise ValueError("Argument group should be list of int or ProcessGroup")
+            if group is not None:
+                group = self._setup_group(group)
             reduce_op = self._reduce_op_map[op]
             # We do if/else here for compatibility with older pytorch versions
             if group is not None:
@@ -431,15 +440,14 @@ if has_native_dist_support:
             return tensor
 
         def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None) -> torch.Tensor:
+            if group is not None:
+                group = self._setup_group(group)
             if group == dist.GroupMember.NON_GROUP_MEMBER:
                 return tensor
-
             if group is None:
                 group_size = self.get_world_size()
-            elif isinstance(group, dist.ProcessGroup):
-                group_size = group.size()
             else:
-                raise ValueError("Argument group should be list of int or ProcessGroup")
+                group_size = group.size()
             if tensor.ndimension() == 0:
                 tensor = tensor.unsqueeze(0)
             output = [torch.zeros_like(tensor) for _ in range(group_size)]
@@ -456,16 +464,14 @@ if has_native_dist_support:
                     "Current torch version does not implement dist.all_gather_object. "
                     "Required version should be >=1.7.0"
                 )
-
+            if group is not None:
+                group = self._setup_group(group)
             if group == dist.GroupMember.NON_GROUP_MEMBER:
                 return tensor
-
             if group is None:
                 group_size = self.get_world_size()
-            elif isinstance(group, dist.ProcessGroup):
-                group_size = group.size()
             else:
-                raise ValueError("Argument group should be list of int or ProcessGroup")
+                group_size = group.size()
             output = [None for _ in range(group_size)]
             # We do if/else here for compatibility with older pytorch versions
             if group is not None:

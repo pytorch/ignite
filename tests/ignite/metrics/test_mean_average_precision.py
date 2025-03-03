@@ -6,9 +6,7 @@ from sklearn.metrics import average_precision_score, precision_recall_curve
 from ignite import distributed as idist
 from ignite.engine import Engine
 from ignite.metrics import MeanAveragePrecision
-from ignite.utils import manual_seed, to_onehot
-
-manual_seed(41)
+from ignite.utils import to_onehot
 
 
 def test_wrong_input():
@@ -161,10 +159,15 @@ def test_compute_nonbinary_data(class_mean):
 
 
 @pytest.mark.parametrize("data_type", ["binary", "multiclass", "multilabel"])
-def test_distrib_integration(distributed, data_type):
+@pytest.mark.parametrize("n_epochs", [1, 2])
+def test_distrib_integration(distributed, data_type, n_epochs):
     rank = idist.get_rank()
-    world_size = idist.get_world_size()
     device = idist.device()
+    torch.manual_seed(12 + rank)
+
+    n_iters = 60
+    batch_size = 16
+    n_classes = 7
 
     metric_devices = [torch.device("cpu")]
     if device.type != "xla":
@@ -172,33 +175,41 @@ def test_distrib_integration(distributed, data_type):
 
     for metric_device in metric_devices:
 
+        y_true_size = (
+            (n_iters * batch_size, 3, 2) if data_type != "multilabel" else (n_iters * batch_size, n_classes, 3, 2)
+        )
+        y_true = torch.randint(0, n_classes if data_type == "multiclass" else 2, size=y_true_size, device=device)
+        y_preds_size = (
+            (n_iters * batch_size, n_classes, 3, 2) if data_type != "binary" else (n_iters * batch_size, 3, 2)
+        )
+        y_preds = torch.rand(y_preds_size, device=device)
+
         def update(_, i):
             return (
-                y_preds[(2 * rank + i) * 10 : (2 * rank + i + 1) * 10],
-                y_true[(2 * rank + i) * 10 : (2 * rank + i + 1) * 10],
+                y_preds[i * batch_size : (i + 1) * batch_size, ...],
+                y_true[i * batch_size : (i + 1) * batch_size, ...],
             )
 
         engine = Engine(update)
         mAP = MeanAveragePrecision(is_multilabel=data_type == "multilabel", device=metric_device)
         mAP.attach(engine, "mAP")
 
-        y_true_size = (10 * 2 * world_size, 3, 2) if data_type != "multilabel" else (10 * 2 * world_size, 4, 3, 2)
-        y_true = torch.randint(0, 4 if data_type == "multiclass" else 2, size=y_true_size).to(device)
-        y_preds_size = (10 * 2 * world_size, 4, 3, 2) if data_type != "binary" else (10 * 2 * world_size, 3, 2)
-        y_preds = torch.rand(y_preds_size).to(device)
+        engine.run(range(n_iters), max_epochs=n_epochs)
 
-        engine.run(range(2), max_epochs=1)
+        y_preds = idist.all_gather(y_preds)
+        y_true = idist.all_gather(y_true)
+
         assert "mAP" in engine.state.metrics
 
         if data_type == "multiclass":
-            y_true = to_onehot(y_true, 4)
+            y_true = to_onehot(y_true, n_classes)
 
         if data_type == "binary":
             y_true = y_true.view(-1)
             y_preds = y_preds.view(-1)
         else:
-            y_true = y_true.transpose(1, -1).reshape(-1, 4)
-            y_preds = y_preds.transpose(1, -1).reshape(-1, 4)
+            y_true = y_true.transpose(1, -1).reshape(-1, n_classes)
+            y_preds = y_preds.transpose(1, -1).reshape(-1, n_classes)
 
         sklearn_mAP = average_precision_score(y_true.cpu().numpy(), y_preds.cpu().numpy())
         assert np.allclose(sklearn_mAP, engine.state.metrics["mAP"])

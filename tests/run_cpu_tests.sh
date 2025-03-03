@@ -22,7 +22,7 @@ fi
 # Run 2 processes with --dist=each
 CUDA_VISIBLE_DEVICES="" run_tests \
     --core_args "-m distributed -vvv tests/ignite" \
-    --world_size 2 \
+    --world_size 4 \
     --cache_dir ".cpu-distrib" \
     --skip_distrib_tests 0 \
     --use_coverage 1 \
