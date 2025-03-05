@@ -15,7 +15,6 @@ from ignite.distributed.comp_models import (
 )
 from ignite.utils import setup_logger
 
-
 __all__ = [
     "backend",
     "broadcast",
