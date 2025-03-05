@@ -1,3 +1,4 @@
+import os
 import warnings
 from typing import Any, Callable, cast, List, Mapping, Optional, Tuple
 
@@ -22,6 +23,9 @@ except ImportError:
 
 if has_hvd_support:
     HOROVOD = "horovod"
+
+    # Enables dynamic process sets: new_group methods and passing group into collective ops
+    os.environ["HOROVOD_DYNAMIC_PROCESS_SETS"] = "1"
 
     class _HorovodDistModel(ComputationModel):
         """Private class for `Horovod <https://horovod.readthedocs.io/en/stable/>`_ distributed computation model."""
@@ -155,6 +159,15 @@ if has_hvd_support:
                 **kwargs,
             )
 
+        def _setup_group(self, group: Any) -> hvd.ProcessSet:
+            if isinstance(group, list) and all(isinstance(item, int) for item in group):
+                group = self._do_new_group(group)
+            if not isinstance(group, hvd.ProcessSet):
+                raise ValueError(
+                    f"Argument group should be list of int or hvd.ProcessSet, got {type(group)}, group={group}"
+                )
+            return group
+
         _reduce_op_map = {
             "SUM": hvd.mpi_ops.Sum,
             "AVERAGE": hvd.mpi_ops.Average,
@@ -186,12 +199,16 @@ if has_hvd_support:
             return reduced_res[0]
 
         def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None) -> torch.Tensor:
+            if group is not None:
+                group = self._setup_group(group)
+            if self._rank_not_in_group(group):
+                return tensor
             if tensor.ndimension() == 0:
                 tensor = tensor.unsqueeze(0)
-            if group is None:
-                return hvd.allgather(tensor)
-            else:
+            if group is not None:
                 return hvd.allgather(tensor, process_set=group)
+            else:
+                return hvd.allgather(tensor)
 
         def _do_all_gather_object(self, tensor: Any, group: Optional[Any] = None) -> List[Any]:
             if group is not None:
@@ -199,8 +216,8 @@ if has_hvd_support:
 
             return hvd.allgather_object(tensor)
 
-        def _do_new_group(self, ranks: List[int], **kwargs: Any) -> Any:
-            return hvd.ProcessSet(ranks)
+        def _do_new_group(self, ranks: List[int], **kwargs: Any) -> hvd.ProcessSet:
+            return hvd.add_process_set(ranks)
 
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
             return hvd.broadcast(tensor, root_rank=src)
@@ -210,5 +227,7 @@ if has_hvd_support:
             # hvd.allreduce(torch.tensor(0, device=self.device()), name="barrier")
             hvd.allreduce(torch.tensor(0, device="cpu"), name="barrier")
 
-        def _rank_not_in_group(self, group: Any) -> bool:
+        def _rank_not_in_group(self, group: Optional[Any]) -> bool:
+            if group is None:
+                return False
             return not group.included()

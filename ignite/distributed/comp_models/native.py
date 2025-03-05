@@ -408,7 +408,7 @@ if has_native_dist_support:
                 **spawn_kwargs,
             )
 
-        def _setup_group(self, group: Optional[Any]) -> dist.ProcessGroup:
+        def _setup_group(self, group: Any) -> dist.ProcessGroup:
             if isinstance(group, list) and all(isinstance(item, int) for item in group):
                 group = self._do_new_group(group)
             if not (isinstance(group, dist.ProcessGroup) or group == dist.GroupMember.NON_GROUP_MEMBER):
@@ -442,7 +442,7 @@ if has_native_dist_support:
         def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None) -> torch.Tensor:
             if group is not None:
                 group = self._setup_group(group)
-            if group == dist.GroupMember.NON_GROUP_MEMBER:
+            if self._rank_not_in_group(group):
                 return tensor
             if group is None:
                 group_size = self.get_world_size()
@@ -466,7 +466,7 @@ if has_native_dist_support:
                 )
             if group is not None:
                 group = self._setup_group(group)
-            if group == dist.GroupMember.NON_GROUP_MEMBER:
+            if self._rank_not_in_group(group):
                 return tensor
             if group is None:
                 group_size = self.get_world_size()
@@ -491,7 +491,7 @@ if has_native_dist_support:
         def barrier(self) -> None:
             dist.barrier()
 
-        def _rank_not_in_group(self, group: Any) -> bool:
+        def _rank_not_in_group(self, group: Optional[Any]) -> bool:
             return dist._rank_not_in_group(group)
 
     def _expand_hostlist(nodelist: str) -> List[str]:
