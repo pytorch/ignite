@@ -29,8 +29,8 @@ def test_case(request):
 
 
 @pytest.mark.parametrize("n_times", range(5))
-def test_compute(n_times, test_case):
-    mse = MeanSquaredError()
+def test_compute(n_times, available_device, test_case):
+    mse = MeanSquaredError(available_device)
 
     y_pred, y, batch_size = test_case
 
