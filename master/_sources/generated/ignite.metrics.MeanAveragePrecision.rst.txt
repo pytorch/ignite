@@ -1,0 +1,47 @@
+﻿MeanAveragePrecision
+====================
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: MeanAveragePrecision
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~MeanAveragePrecision.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~MeanAveragePrecision.reset
+   
+   
+   
+   
+   
+   
+   
+      ~MeanAveragePrecision.update
+   
+   
+   
+   
