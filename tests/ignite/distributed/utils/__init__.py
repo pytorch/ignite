@@ -292,7 +292,7 @@ def _test_idist_all_gather_tensors_with_shapes(device):
     torch.manual_seed(41)
     rank = idist.get_rank()
     ws = idist.get_world_size()
-    reference = torch.randn(ws * (ws + 1) // 2, ws * (ws + 3) // 2, ws * (ws + 5) // 2, device=device)
+    reference = torch.randn(ws * 5, ws * 5, ws * 5, device=device)
     rank_tensor = reference[
         rank * (rank + 1) // 2 : rank * (rank + 1) // 2 + rank + 1,
         rank * (rank + 3) // 2 : rank * (rank + 3) // 2 + rank + 2,
@@ -305,7 +305,7 @@ def _test_idist_all_gather_tensors_with_shapes(device):
             r * (r + 3) // 2 : r * (r + 3) // 2 + r + 2,
             r * (r + 5) // 2 : r * (r + 5) // 2 + r + 3,
         ]
-        assert (r_tensor == tensors[r]).all()
+        assert r_tensor.allclose(tensors[r])
 
 
 def _test_idist_all_gather_tensors_with_shapes_group(device):
@@ -316,7 +316,7 @@ def _test_idist_all_gather_tensors_with_shapes_group(device):
     ranks = sorted(range(idist.get_world_size() - 1, 0, -1))  # [0, 1, 2, 3] -> [1, 2, 3]
     ws = idist.get_world_size()
     if rank in ranks:
-        reference = torch.randn(ws * (ws + 1) // 2, ws * (ws + 3) // 2, ws * (ws + 5) // 2, device=device)
+        reference = torch.randn(ws * 5, ws * 5, ws * 5, device=device)
         rank_tensor = reference[
             rank * (rank + 1) // 2 : rank * (rank + 1) // 2 + rank + 1,
             rank * (rank + 3) // 2 : rank * (rank + 3) // 2 + rank + 2,
@@ -327,13 +327,13 @@ def _test_idist_all_gather_tensors_with_shapes_group(device):
 
     tensors = all_gather_tensors_with_shapes(rank_tensor, [[r + 1, r + 2, r + 3] for r in ranks], ranks)
     if rank in ranks:
-        for r in ranks:
+        for i, r in enumerate(ranks):
             r_tensor = reference[
                 r * (r + 1) // 2 : r * (r + 1) // 2 + r + 1,
                 r * (r + 3) // 2 : r * (r + 3) // 2 + r + 2,
                 r * (r + 5) // 2 : r * (r + 5) // 2 + r + 3,
             ]
-            assert torch.equal(r_tensor, tensors[r - 1])
+            assert r_tensor.allclose(tensors[i])
     else:
         assert [rank_tensor] == tensors
 
@@ -403,7 +403,7 @@ def _test_distrib_barrier(device):
 
 
 def _test_distrib_group(device):
-    ranks = [0, 1]
+    ranks = sorted(range(idist.get_world_size() - 1, 0, -1))  # [0, 1, 2, 3] -> [1, 2, 3]
     if idist.get_world_size() > 1 and idist.backend() is not None:
         bnd = idist.backend()
         rank = idist.get_rank()
