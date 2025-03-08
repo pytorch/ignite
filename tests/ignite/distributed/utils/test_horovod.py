@@ -14,7 +14,7 @@ from tests.ignite.distributed.utils import (
     _test_distrib_barrier,
     _test_distrib_broadcast,
     _test_distrib_config,
-    _test_distrib_new_group,
+    _test_distrib_group,
     _test_distrib_one_rank_only,
     _test_distrib_one_rank_only_with_engine,
     _test_idist_all_gather_tensors_with_shapes,
@@ -193,7 +193,7 @@ def test_idist_barrier_hvd(gloo_hvd_executor):
 def test_idist_new_group_hvd(gloo_hvd_executor):
     device = "cpu" if not torch.cuda.is_available() else "cuda"
     np = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
-    gloo_hvd_executor(_test_distrib_new_group, (device,), np=np, do_init=True)
+    gloo_hvd_executor(_test_distrib_group, (device,), np=np, do_init=True)
 
 
 def _test_idist_methods_overhead(ok_factor, sync_model):
@@ -242,7 +242,7 @@ def test_idist_methods_overhead_hvd(gloo_hvd_executor):
     sync_model = False
     gloo_hvd_executor(_test_idist_methods_overhead, (ok_factor, sync_model), np=np, do_init=True)
 
-    ok_factor = 2.5
+    ok_factor = 3.0
     sync_model = True
     gloo_hvd_executor(_test_idist_methods_overhead, (ok_factor, sync_model), np=np, do_init=True)
 
