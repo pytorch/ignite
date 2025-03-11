@@ -159,6 +159,158 @@ def _test_integration_multilabel(device, output_dict):
             _test(metric_device, 2, ["0", "1", "2", "3", "4", "5", "6"])
 
 
+@pytest.mark.parametrize("n_times", range(5))
+def test_compute_multiclass(n_times, available_device):
+
+    def _test(metric_device, n_classes, output_dict, labels=None):
+        classification_report = ClassificationReport(device=metric_device, output_dict=output_dict, labels=labels)
+        n_iters = 80
+        batch_size = 16
+
+        y_true = torch.randint(0, n_classes, size=(n_iters * batch_size,)).to(metric_device)
+        y_preds = torch.rand(n_iters * batch_size, n_classes).to(metric_device)
+
+        def update(engine, i):
+            return (
+                y_preds[i * batch_size : (i + 1) * batch_size, :],
+                y_true[i * batch_size : (i + 1) * batch_size],
+            )
+
+        engine = Engine(update)
+
+        classification_report.attach(engine, "cr")
+
+        data = list(range(n_iters))
+        engine.run(data=data)
+
+        y_preds = idist.all_gather(y_preds)
+        y_true = idist.all_gather(y_true)
+
+        assert "cr" in engine.state.metrics
+        res = engine.state.metrics["cr"]
+        res2 = classification_report.compute()
+        assert res == res2
+
+        assert isinstance(res, dict if output_dict else str)
+        if not output_dict:
+            res = json.loads(res)
+
+        from sklearn.metrics import classification_report as sklearn_classification_report
+
+        sklearn_result = sklearn_classification_report(
+            y_true.cpu().numpy(), torch.argmax(y_preds, dim=1).cpu().numpy(), output_dict=True, zero_division=1
+        )
+
+        for i in range(n_classes):
+            label_i = labels[i] if labels else str(i)
+            assert sklearn_result[str(i)]["precision"] == pytest.approx(res[label_i]["precision"])
+            assert sklearn_result[str(i)]["f1-score"] == pytest.approx(res[label_i]["f1-score"])
+            assert sklearn_result[str(i)]["recall"] == pytest.approx(res[label_i]["recall"])
+        assert sklearn_result["macro avg"]["precision"] == pytest.approx(res["macro avg"]["precision"])
+        assert sklearn_result["macro avg"]["recall"] == pytest.approx(res["macro avg"]["recall"])
+        assert sklearn_result["macro avg"]["f1-score"] == pytest.approx(res["macro avg"]["f1-score"])
+
+        metric_state = classification_report.state_dict()
+        classification_report.reset()
+        classification_report.load_state_dict(metric_state)
+        print(metric_state)
+        res2 = classification_report.compute()
+        if not output_dict:
+            res2 = json.loads(res2)
+
+        for i in range(n_classes):
+            label_i = labels[i] if labels else str(i)
+            assert res2[label_i]["precision"] == res[label_i]["precision"]
+            assert res2[label_i]["f1-score"] == res[label_i]["f1-score"]
+            assert res2[label_i]["recall"] == res[label_i]["recall"]
+        assert res2["macro avg"]["precision"] == res["macro avg"]["precision"]
+        assert res2["macro avg"]["recall"] == res["macro avg"]["recall"]
+        assert res2["macro avg"]["f1-score"] == res["macro avg"]["f1-score"]
+
+    labels = ["label0", "label1", "label2", "label3"]
+    for n_classes in range(2, len(labels) + 1):
+        for output_dict in [False, True]:
+            _test(available_device, n_classes, output_dict)
+            _test(available_device, n_classes, output_dict, labels[:n_classes])
+
+
+@pytest.mark.parametrize("n_times", range(5))
+def test_compute_multilabel(n_times, available_device):
+
+    def _test(metric_device, n_epochs, output_dict, labels=None):
+        classification_report = ClassificationReport(device=metric_device, output_dict=output_dict, is_multilabel=True)
+
+        n_iters = 10
+        batch_size = 16
+        n_classes = 7
+
+        y_true = torch.randint(0, 2, size=(n_iters * batch_size, n_classes, 6, 8)).to(metric_device)
+        y_preds = torch.randint(0, 2, size=(n_iters * batch_size, n_classes, 6, 8)).to(metric_device)
+
+        def update(engine, i):
+            return (
+                y_preds[i * batch_size : (i + 1) * batch_size, ...],
+                y_true[i * batch_size : (i + 1) * batch_size, ...],
+            )
+
+        engine = Engine(update)
+
+        classification_report.attach(engine, "cr")
+
+        data = list(range(n_iters))
+        engine.run(data=data, max_epochs=n_epochs)
+
+        y_preds = idist.all_gather(y_preds)
+        y_true = idist.all_gather(y_true)
+
+        assert "cr" in engine.state.metrics
+        res = engine.state.metrics["cr"]
+        res2 = classification_report.compute()
+        assert res == res2
+
+        assert isinstance(res, dict if output_dict else str)
+        if not output_dict:
+            res = json.loads(res)
+
+        np_y_preds = to_numpy_multilabel(y_preds)
+        np_y_true = to_numpy_multilabel(y_true)
+
+        from sklearn.metrics import classification_report as sklearn_classification_report
+
+        sklearn_result = sklearn_classification_report(np_y_true, np_y_preds, output_dict=True, zero_division=1)
+
+        for i in range(n_classes):
+            label_i = labels[i] if labels else str(i)
+            assert sklearn_result[str(i)]["precision"] == pytest.approx(res[label_i]["precision"])
+            assert sklearn_result[str(i)]["f1-score"] == pytest.approx(res[label_i]["f1-score"])
+            assert sklearn_result[str(i)]["recall"] == pytest.approx(res[label_i]["recall"])
+        assert sklearn_result["macro avg"]["precision"] == pytest.approx(res["macro avg"]["precision"])
+        assert sklearn_result["macro avg"]["recall"] == pytest.approx(res["macro avg"]["recall"])
+        assert sklearn_result["macro avg"]["f1-score"] == pytest.approx(res["macro avg"]["f1-score"])
+
+        metric_state = classification_report.state_dict()
+        classification_report.reset()
+        classification_report.load_state_dict(metric_state)
+        print(metric_state)
+        res2 = classification_report.compute()
+        if not output_dict:
+            res2 = json.loads(res2)
+
+        for i in range(n_classes):
+            label_i = labels[i] if labels else str(i)
+            assert res2[label_i]["precision"] == res[label_i]["precision"]
+            assert res2[label_i]["f1-score"] == res[label_i]["f1-score"]
+            assert res2[label_i]["recall"] == res[label_i]["recall"]
+        assert res2["macro avg"]["precision"] == res["macro avg"]["precision"]
+        assert res2["macro avg"]["recall"] == res["macro avg"]["recall"]
+        assert res2["macro avg"]["f1-score"] == res["macro avg"]["f1-score"]
+
+    for n_epochs in [1, 2]:
+        for output_dict in [False, True]:
+            _test(available_device, n_epochs, output_dict)
+            _test(available_device, n_epochs, output_dict, ["0", "1", "2", "3", "4", "5", "6"])
+
+
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
