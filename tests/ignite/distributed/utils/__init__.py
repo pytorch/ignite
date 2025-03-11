@@ -410,7 +410,9 @@ def _test_distrib_group(device):
         g = idist.new_group(ranks)
         if idist.has_native_dist_support and bnd in ("nccl", "gloo", "mpi"):
             if rank in ranks:
-                assert g.rank() == rank
+                # mapping between group ranks and global ranks
+                global_to_group = {r: i for i, r in enumerate(ranks)}
+                assert g.rank() == global_to_group[rank], (g.rank(), global_to_group, rank)
 
         elif idist.has_xla_support and bnd in ("xla-tpu"):
             assert g == [ranks]
