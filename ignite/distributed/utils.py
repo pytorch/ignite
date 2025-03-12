@@ -2,10 +2,9 @@ import itertools
 import socket
 from contextlib import contextmanager
 from functools import wraps
-from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, cast, List, Mapping, Optional, Sequence, Tuple, Union
 
 import torch
-from torch import distributed as dist
 
 from ignite.distributed.comp_models import (
     _SerialModel,
@@ -384,7 +383,7 @@ def all_gather_tensors_with_shapes(
     if isinstance(group, list) and all(isinstance(item, int) for item in group):
         group = _model.new_group(group)
 
-    if isinstance(_model, _SerialModel) or group == dist.GroupMember.NON_GROUP_MEMBER:
+    if _rank_not_in_group(group):
         return [tensor]
 
     max_shape = torch.tensor(shapes).amax(dim=0)
@@ -392,7 +391,7 @@ def all_gather_tensors_with_shapes(
     padded_tensor = torch.nn.functional.pad(
         tensor, tuple(itertools.chain.from_iterable(map(lambda dim_size: (0, dim_size), reversed(padding_sizes))))
     )
-    all_padded_tensors: torch.Tensor = _model.all_gather(padded_tensor, group=group)
+    all_padded_tensors: torch.Tensor = cast(torch.Tensor, _model.all_gather(padded_tensor, group=group))
     return [
         all_padded_tensors[
             [
@@ -731,3 +730,12 @@ def one_rank_first(rank: int = 0, local: bool = False) -> Any:
 
     if current_rank == rank:
         barrier()
+
+
+def _rank_not_in_group(group: Optional[Union[Any, List[int]]]) -> bool:
+    """Check if the current process's rank is not in a given group."""
+    if group is None:
+        return False
+    if isinstance(group, list) and all(isinstance(item, int) for item in group):
+        group = new_group(group)
+    return _model._rank_not_in_group(group)

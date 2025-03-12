@@ -12,7 +12,7 @@ from tests.ignite.distributed.utils import (
     _test_distrib_barrier,
     _test_distrib_broadcast,
     _test_distrib_config,
-    _test_distrib_new_group,
+    _test_distrib_group,
     _test_distrib_one_rank_only,
     _test_distrib_one_rank_only_with_engine,
     _test_idist_all_gather_tensors_with_shapes,
@@ -143,7 +143,7 @@ def test_idist_all_reduce_xla_in_child_proc(xmp_executor):
 @pytest.mark.skipif(not has_xla_support, reason="Skip if no PyTorch XLA package")
 def test_idist_new_group_xla():
     device = idist.device()
-    _test_distrib_new_group(device)
+    _test_distrib_group(device)
 
 
 @pytest.mark.tpu
