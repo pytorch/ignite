@@ -1,0 +1,41 @@
+﻿WaveHedgesDistance
+==================
+
+.. currentmodule:: ignite.contrib.metrics.regression
+
+.. autoclass:: WaveHedgesDistance
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~WaveHedgesDistance.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~WaveHedgesDistance.reset
+   
+   
+   
+   
+   
+   
+   
+   
