@@ -128,18 +128,9 @@ def compare_ssim_ignite_skiimg(
     assert np.allclose(ignite_ssim, skimg_ssim, atol=precision)
 
 
-@pytest.mark.parametrize(
-    "metric_device, y_pred_device",
-    [
-        [torch.device("cpu"), torch.device("cpu")],
-        [torch.device("cpu"), torch.device("cuda")],
-        [torch.device("cuda"), torch.device("cpu")],
-        [torch.device("cuda"), torch.device("cuda")],
-    ],
-)
-def test_ssim_device(available_device, metric_device, y_pred_device):
-    if available_device == "cpu":
-        pytest.skip("This test requires a cuda device.")
+def test_ssim_device(available_device, available_device2):
+    metric_device = available_device
+    y_pred_device = available_device2
 
     data_range = 1.0
     sigma = 1.5
@@ -150,26 +141,28 @@ def test_ssim_device(available_device, metric_device, y_pred_device):
     y_pred = torch.rand(shape, device=y_pred_device)
     y = y_pred * 0.8
 
-    if metric_device == torch.device("cuda") and y_pred_device == torch.device("cpu"):
-        with pytest.warns(UserWarning):
+    if metric_device != y_pred_device and y_pred_device == "cpu":
+        with pytest.warns(
+            UserWarning,
+            match=r"y_pred tensor is on cpu device but previous computation was on another device",
+        ):
             ssim.update((y_pred, y))
     else:
         ssim.update((y_pred, y))
 
-    if metric_device == torch.device("cuda") or y_pred_device == torch.device("cuda"):
-        # A tensor will always have the device index set
-        excepted_device = torch.device("cuda:0")
+    if y_pred_device != "cpu" and metric_device == "cpu":
+        excepted_device = y_pred_device
     else:
-        excepted_device = torch.device("cpu")
+        excepted_device = metric_device
 
-    assert ssim._kernel.device == excepted_device
+    assert ssim._kernel.device.type == excepted_device
 
 
 def test_ssim_variable_batchsize(available_device):
     # Checks https://github.com/pytorch/ignite/issues/2532
     sigma = 1.5
     data_range = 1.0
-    ssim = SSIM(data_range=data_range, sigma=sigma)
+    ssim = SSIM(data_range=data_range, sigma=sigma, device=available_device)
 
     y_preds = [
         torch.rand(12, 3, 28, 28, device=available_device),
@@ -209,10 +202,13 @@ def test_ssim_variable_channel(available_device):
 @pytest.mark.parametrize(
     "dtype, precision", [(torch.bfloat16, 2e-3), (torch.float16, 4e-4), (torch.float32, 2e-5), (torch.float64, 2e-5)]
 )
-def test_cuda_ssim_dtypes(available_device, dtype, precision):
+def test_ssim_dtypes(available_device, dtype, precision):
     # Checks https://github.com/pytorch/ignite/pull/3034
     if available_device == "cpu" and dtype in [torch.float16, torch.bfloat16]:
         pytest.skip(reason=f"Unsupported dtype {dtype} on CPU device")
+
+    if available_device == "mps" and dtype in [torch.float64]:
+        pytest.skip(reason=f"Unsupported dtype {dtype} on MPS device")
 
     shape = (12, 3, 28, 28)
 

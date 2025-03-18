@@ -136,7 +136,7 @@ class MultiLabelConfusionMatrix(Metric):
             raise NotComputableError("Confusion matrix must have at least one example before it can be computed.")
 
         if self.normalized:
-            conf = self.confusion_matrix.to(dtype=torch.float64)
+            conf = self.confusion_matrix.to(dtype=self._double_dtype)
             sums = conf.sum(dim=(1, 2))
             return conf / sums[:, None, None]
 

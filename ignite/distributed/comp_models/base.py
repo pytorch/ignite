@@ -298,6 +298,10 @@ class ComputationModel(metaclass=ABCMeta):
     def _do_new_group(self, ranks: List[int], **kwargs: Any) -> Any:
         pass
 
+    @abstractmethod
+    def _rank_not_in_group(self, group: Any) -> bool:
+        pass
+
 
 class _SerialModel(ComputationModel):
     """Private class defines non-distributed computation model for code compatibility with other distributed models."""
@@ -396,3 +400,6 @@ class _SerialModel(ComputationModel):
             return self._do_new_group(ranks, **kwargs)
         else:
             raise ValueError("Argument ranks should be list of int")
+
+    def _rank_not_in_group(self, group: Any) -> bool:
+        return False

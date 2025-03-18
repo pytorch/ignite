@@ -53,18 +53,23 @@ def test_fid_function():
     )
 
 
-def test_compute_fid_from_features():
+def test_compute_fid_from_features(available_device):
     train_samples, test_samples = torch.rand(10, 10), torch.rand(10, 10)
 
-    fid_scorer = FID(num_features=10, feature_extractor=torch.nn.Identity())
+    fid_scorer = FID(
+        num_features=10,
+        feature_extractor=torch.nn.Identity(),
+        device=available_device,
+    )
     fid_scorer.update([train_samples[:5], test_samples[:5]])
     fid_scorer.update([train_samples[5:], test_samples[5:]])
 
     mu1, sigma1 = train_samples.mean(axis=0), cov(train_samples, rowvar=False)
     mu2, sigma2 = test_samples.mean(axis=0), cov(test_samples, rowvar=False)
 
+    tol = 1e-4 if available_device == "mps" else 1e-5
     assert (
-        pytest.approx(pytorch_fid_score.calculate_frechet_distance(mu1, sigma1, mu2, sigma2), rel=1e-5)
+        pytest.approx(pytorch_fid_score.calculate_frechet_distance(mu1, sigma1, mu2, sigma2), rel=tol)
         == fid_scorer.compute()
     )
 
@@ -128,14 +133,20 @@ def test_wrong_inputs():
         FID(feature_extractor=torch.nn.Identity())
 
 
-def test_statistics():
+def test_statistics(available_device):
     train_samples, test_samples = torch.rand(10, 10), torch.rand(10, 10)
-    fid_scorer = FID(num_features=10, feature_extractor=torch.nn.Identity())
+    fid_scorer = FID(
+        num_features=10,
+        feature_extractor=torch.nn.Identity(),
+        device=available_device,
+    )
     fid_scorer.update([train_samples[:5], test_samples[:5]])
     fid_scorer.update([train_samples[5:], test_samples[5:]])
 
-    mu1, sigma1 = train_samples.mean(axis=0), torch.tensor(cov(train_samples, rowvar=False))
-    mu2, sigma2 = test_samples.mean(axis=0), torch.tensor(cov(test_samples, rowvar=False))
+    mu1 = train_samples.mean(axis=0, dtype=torch.float64)
+    sigma1 = torch.tensor(cov(train_samples, rowvar=False), dtype=torch.float64)
+    mu2 = test_samples.mean(axis=0, dtype=torch.float64)
+    sigma2 = torch.tensor(cov(test_samples, rowvar=False), dtype=torch.float64)
 
     fid_mu1 = fid_scorer._train_total / fid_scorer._num_examples
     fid_sigma1 = fid_scorer._get_covariance(fid_scorer._train_sigma, fid_scorer._train_total)
@@ -143,13 +154,11 @@ def test_statistics():
     fid_mu2 = fid_scorer._test_total / fid_scorer._num_examples
     fid_sigma2 = fid_scorer._get_covariance(fid_scorer._test_sigma, fid_scorer._test_total)
 
-    assert torch.isclose(mu1.double(), fid_mu1).all()
-    for cov1, cov2 in zip(sigma1, fid_sigma1):
-        assert torch.isclose(cov1.double(), cov2, rtol=1e-04, atol=1e-04).all()
+    assert torch.allclose(mu1, fid_mu1.cpu().to(dtype=mu1.dtype))
+    assert torch.allclose(sigma1, fid_sigma1.cpu().to(dtype=sigma1.dtype), rtol=1e-04, atol=1e-04)
 
-    assert torch.isclose(mu2.double(), fid_mu2).all()
-    for cov1, cov2 in zip(sigma2, fid_sigma2):
-        assert torch.isclose(cov1.double(), cov2, rtol=1e-04, atol=1e-04).all()
+    assert torch.allclose(mu2, fid_mu2.cpu().to(dtype=mu2.dtype))
+    assert torch.allclose(sigma2, fid_sigma2.cpu().to(dtype=mu2.dtype), rtol=1e-04, atol=1e-04)
 
 
 def _test_distrib_integration(device):

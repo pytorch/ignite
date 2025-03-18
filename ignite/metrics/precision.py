@@ -81,8 +81,8 @@ class _BasePrecisionRecall(_BaseClassification):
             y = torch.transpose(y, 1, -1).reshape(-1, num_labels)
 
         # Convert from int cuda/cpu to double on self._device
-        y_pred = y_pred.to(dtype=torch.float64, device=self._device)
-        y = y.to(dtype=torch.float64, device=self._device)
+        y_pred = y_pred.to(dtype=self._double_dtype, device=self._device)
+        y = y.to(dtype=self._double_dtype, device=self._device)
         correct = y * y_pred
 
         return y_pred, y, correct
