@@ -12,7 +12,7 @@ __all__ = ["SSIM3D"]
 
 class SSIM3D(Metric):
     """
-    Computes Structural Similarity Index Measure
+    Computes Structural Similarity Index Measure for 3D data
 
     - ``update`` must receive output of the form ``(y_pred, y)``. They have to be of the same type.
         Valid :class:`torch.dtype` are the following:
@@ -21,9 +21,9 @@ class SSIM3D(Metric):
 
     Args:
         data_range: Range of the image. Typically, ``1.0`` or ``255``.
-        kernel_size: Size of the kernel. Default: (11, 11)
+        kernel_size: Size of the kernel. Default: (11, 11, 11)
         sigma: Standard deviation of the gaussian kernel.
-            Argument is used if ``gaussian=True``. Default: (1.5, 1.5)
+            Argument is used if ``gaussian=True``. Default: (1.5, 1.5, 1.5)
         k1: Parameter of SSIM. Default: 0.01
         k2: Parameter of SSIM. Default: 0.03
         gaussian: ``True`` to use gaussian kernel, ``False`` to use uniform kernel
@@ -53,9 +53,9 @@ class SSIM3D(Metric):
 
         .. testcode::
 
-            metric = SSIM(data_range=1.0)
+            metric = SSIM3D(data_range=1.0)
             metric.attach(default_evaluator, 'ssim')
-            preds = torch.rand([4, 3, 16, 16])
+            preds = torch.rand([4, 3, 16, 16, 16])
             target = preds * 0.75
             state = default_evaluator.run([[preds, target]])
             print(state.metrics['ssim'])
@@ -64,10 +64,7 @@ class SSIM3D(Metric):
 
             0.9218971...
 
-    .. versionadded:: 0.4.2
-
-    .. versionchanged:: 0.5.1
-        ``skip_unrolling`` argument is added.
+    .. versionadded:: 0.5.2
     """
 
     _state_dict_all_req_keys = ("_sum_of_ssim", "_num_examples", "_kernel")
