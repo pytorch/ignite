@@ -6,8 +6,14 @@ skip_distrib_tests=${SKIP_DISTRIB_TESTS:-0}
 use_last_failed=${USE_LAST_FAILED:-0}
 match_tests_expression=${1:-""}
 
+use_xdist=${USE_XDIST:-0}
+core_args="-vvv tests/ignite"
+if [ "${use_xdist}" -eq "1" ]; then
+    core_args="${core_args} --tx 4*popen//python=python"
+fi
+
 CUDA_VISIBLE_DEVICES="" run_tests \
-    --core_args "--tx 4*popen//python=python -vvv tests/ignite" \
+    --core_args "${core_args}" \
     --cache_dir ".cpu-not-distrib" \
     --skip_distrib_tests "${skip_distrib_tests}" \
     --use_coverage 1 \

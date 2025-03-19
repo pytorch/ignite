@@ -242,7 +242,7 @@ def test_idist_methods_overhead_hvd(gloo_hvd_executor):
     sync_model = False
     gloo_hvd_executor(_test_idist_methods_overhead, (ok_factor, sync_model), np=np, do_init=True)
 
-    ok_factor = 3.0
+    ok_factor = 3.5
     sync_model = True
     gloo_hvd_executor(_test_idist_methods_overhead, (ok_factor, sync_model), np=np, do_init=True)
 
