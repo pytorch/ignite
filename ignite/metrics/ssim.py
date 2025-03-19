@@ -21,9 +21,9 @@ class SSIM(Metric):
 
     Args:
         data_range: Range of the image. Typically, ``1.0`` or ``255``.
-        kernel_size: Size of the kernel. Default: (11, 11)
+        kernel_size: Size of the kernel. Default: 11
         sigma: Standard deviation of the gaussian kernel.
-            Argument is used if ``gaussian=True``. Default: (1.5, 1.5)
+            Argument is used if ``gaussian=True``. Default: 1.5
         k1: Parameter of SSIM. Default: 0.01
         k2: Parameter of SSIM. Default: 0.03
         gaussian: ``True`` to use gaussian kernel, ``False`` to use uniform kernel
@@ -36,6 +36,7 @@ class SSIM(Metric):
         skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
             true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
             Alternatively, ``output_transform`` can be used to handle this.
+        ndims: Number of dimensions of the input image. Default: 2
 
     Examples:
         To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
@@ -68,6 +69,8 @@ class SSIM(Metric):
 
     .. versionchanged:: 0.5.1
         ``skip_unrolling`` argument is added.
+    .. versionchanged:: 0.5.2
+        ``ndims`` argument is added.
     """
 
     _state_dict_all_req_keys = ("_sum_of_ssim", "_num_examples", "_kernel")
@@ -75,28 +78,36 @@ class SSIM(Metric):
     def __init__(
         self,
         data_range: Union[int, float],
-        kernel_size: Union[int, Sequence[int]] = (11, 11),
-        sigma: Union[float, Sequence[float]] = (1.5, 1.5),
+        kernel_size: Union[int, Sequence[int]] = 11,
+        sigma: Union[float, Sequence[float]] = 1.5,
         k1: float = 0.01,
         k2: float = 0.03,
         gaussian: bool = True,
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
         skip_unrolling: bool = False,
+        ndims: int = 2,
     ):
+        if ndims not in (2, 3):
+            raise ValueError("Expected ndims to be 2 or 3. Got {ndims}.")
+
         if isinstance(kernel_size, int):
-            self.kernel_size: Sequence[int] = [kernel_size, kernel_size]
+            self.kernel_size: Sequence[int] = [kernel_size for _ in range(ndims)]
         elif isinstance(kernel_size, Sequence):
+            if len(kernel_size) != ndims:
+                raise ValueError(f"Expected kernel_size to have length of {ndims}. Got {len(kernel_size)}.")
             self.kernel_size = kernel_size
         else:
-            raise ValueError("Argument kernel_size should be either int or a sequence of int.")
+            raise ValueError(f"Argument kernel_size should be either int or a sequence of int of length {ndims}.")
 
         if isinstance(sigma, float):
-            self.sigma: Sequence[float] = [sigma, sigma]
+            self.sigma: Sequence[float] = [sigma for _ in range(ndims)]
         elif isinstance(sigma, Sequence):
+            if len(sigma) != ndims:
+                raise ValueError(f"Expected sigma to have length of {ndims}. Got {len(sigma)}.")
             self.sigma = sigma
         else:
-            raise ValueError("Argument sigma should be either float or a sequence of float.")
+            raise ValueError("Argument sigma should be either float or a sequence of float of length {ndims}.")
 
         if any(x % 2 == 0 or x <= 0 for x in self.kernel_size):
             raise ValueError(f"Expected kernel_size to have odd positive number. Got {kernel_size}.")
@@ -111,7 +122,12 @@ class SSIM(Metric):
         self.c2 = (k2 * data_range) ** 2
         self.pad_h = (self.kernel_size[0] - 1) // 2
         self.pad_w = (self.kernel_size[1] - 1) // 2
-        self._kernel_2d = self._gaussian_or_uniform_kernel(kernel_size=self.kernel_size, sigma=self.sigma)
+        self.ndims = ndims
+        if self.ndims == 3:
+            self.pad_d = (self.kernel_size[2] - 1) // 2
+        self._kernel_nd = self._gaussian_or_uniform_kernel(
+            kernel_size=self.kernel_size, sigma=self.sigma, ndims=self.ndims
+        )
         self._kernel: Optional[torch.Tensor] = None
 
     @reinit__is_reduced
@@ -128,23 +144,32 @@ class SSIM(Metric):
         min_, max_ = -2.5, 2.5
         kernel[start_uniform_index:end_uniform_index] = 1 / (max_ - min_)
 
-        return kernel.unsqueeze(dim=0)  # (1, kernel_size)
+        return kernel  # (kernel_size)
 
     def _gaussian(self, kernel_size: int, sigma: float) -> torch.Tensor:
         ksize_half = (kernel_size - 1) * 0.5
         kernel = torch.linspace(-ksize_half, ksize_half, steps=kernel_size, device=self._device)
         gauss = torch.exp(-0.5 * (kernel / sigma).pow(2))
-        return (gauss / gauss.sum()).unsqueeze(dim=0)  # (1, kernel_size)
+        return gauss / gauss.sum()  # (kernel_size)
 
-    def _gaussian_or_uniform_kernel(self, kernel_size: Sequence[int], sigma: Sequence[float]) -> torch.Tensor:
+    def _gaussian_or_uniform_kernel(
+        self, kernel_size: Sequence[int], sigma: Sequence[float], ndims: int
+    ) -> torch.Tensor:
         if self.gaussian:
             kernel_x = self._gaussian(kernel_size[0], sigma[0])
             kernel_y = self._gaussian(kernel_size[1], sigma[1])
+            if ndims == 3:
+                kernel_z = self._gaussian(kernel_size[2], sigma[2])
         else:
             kernel_x = self._uniform(kernel_size[0])
             kernel_y = self._uniform(kernel_size[1])
+            if ndims == 3:
+                kernel_z = self._uniform(kernel_size[2])
 
-        return torch.matmul(kernel_x.t(), kernel_y)  # (kernel_size, 1) * (1, kernel_size)
+        if ndims == 2:
+            return torch.einsum("i,j->ij", kernel_x, kernel_y)
+        elif ndims == 3:
+            return torch.einsum("i,j,k->ijk", kernel_x, kernel_y, kernel_z)
 
     def _check_type_and_shape(self, y_pred: torch.Tensor, y: torch.Tensor) -> None:
         if y_pred.dtype != y.dtype:
@@ -157,9 +182,11 @@ class SSIM(Metric):
                 f"Expected y_pred and y to have the same shape. Got y_pred: {y_pred.shape} and y: {y.shape}."
             )
 
-        if len(y_pred.shape) != 4 or len(y.shape) != 4:
+        # 2 dimensions are reserved for batch and channel
+        if len(y_pred.shape) - 2 != self.ndims or len(y.shape) - 2 != self.ndims:
             raise ValueError(
-                f"Expected y_pred and y to have BxCxHxW shape. Got y_pred: {y_pred.shape} and y: {y.shape}."
+                f"""Expected y_pred and y to have BxCxHxW or BxCxDxHxW shape.
+                Got y_pred: {y_pred.shape} and y: {y.shape}."""
             )
 
     @reinit__is_reduced
@@ -176,7 +203,7 @@ class SSIM(Metric):
 
         nb_channel = y_pred.size(1)
         if self._kernel is None or self._kernel.shape[0] != nb_channel:
-            self._kernel = self._kernel_2d.expand(nb_channel, 1, -1, -1)
+            self._kernel = self._kernel_nd.expand(nb_channel, 1, *[-1 for _ in range(self.ndims)])
 
         if y_pred.device != self._kernel.device:
             if self._kernel.device == torch.device("cpu"):
@@ -191,14 +218,19 @@ class SSIM(Metric):
                 y_pred = y_pred.to(device=self._kernel.device)
                 y = y.to(device=self._kernel.device)
 
-        y_pred = F.pad(y_pred, [self.pad_w, self.pad_w, self.pad_h, self.pad_h], mode="reflect")
-        y = F.pad(y, [self.pad_w, self.pad_w, self.pad_h, self.pad_h], mode="reflect")
+        padding_shape = [self.pad_w, self.pad_w, self.pad_h, self.pad_h]
+        if self.ndims == 3:
+            padding_shape.extend([self.pad_d, self.pad_d])
+
+        y_pred = F.pad(y_pred, padding_shape, mode="reflect")
+        y = F.pad(y, padding_shape, mode="reflect")
 
         if y_pred.dtype != self._kernel.dtype:
             self._kernel = self._kernel.to(dtype=y_pred.dtype)
 
         input_list = [y_pred, y, y_pred * y_pred, y * y, y_pred * y]
-        outputs = F.conv2d(torch.cat(input_list), self._kernel, groups=nb_channel)
+        conv_op = F.conv3d if self.ndims == 3 else F.conv2d
+        outputs = conv_op(torch.cat(input_list), self._kernel, groups=nb_channel)
         batch_size = y_pred.size(0)
         output_list = [outputs[x * batch_size : (x + 1) * batch_size] for x in range(len(input_list))]
 
@@ -224,7 +256,10 @@ class SSIM(Metric):
         if ssim_idx.device.type == "mps" and self._double_dtype == torch.float64:
             double_dtype = torch.float32
 
-        self._sum_of_ssim += torch.mean(ssim_idx, (1, 2, 3), dtype=double_dtype).sum().to(device=self._device)
+        # mean from all dimensions except batch
+        self._sum_of_ssim += (
+            torch.mean(ssim_idx, list(range(1, 2 + self.ndims)), dtype=double_dtype).sum().to(device=self._device)
+        )
 
         self._num_examples += y.shape[0]
 

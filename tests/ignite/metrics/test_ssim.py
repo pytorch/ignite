@@ -55,9 +55,20 @@ def test_invalid_ssim():
         ssim.update((y_pred, y))
         ssim.compute()
 
-    with pytest.raises(ValueError, match=r"Expected y_pred and y to have BxCxHxW shape."):
+    with pytest.raises(ValueError, match=r"Expected y_pred and y to have either BxCxHxW or BxCxDxHxW shape."):
         y = y.squeeze(dim=0)
         ssim = SSIM(data_range=1.0)
+        ssim.update((y, y))
+        ssim.compute()
+
+    with pytest.raises(ValueError, match=r"Expected y_pred and y to have BxCxHxW or BxCxDxHxW shape."):
+        y = y.unsqueeze(dim=0)
+        ssim = SSIM(data_range=1.0)
+        ssim.update((y, y))
+        ssim.compute()
+
+    with pytest.raises(ValueError, match=r"Expected y_pred and y to have either BxCxHxW or BxCxDxHxW shape."):
+        ssim = SSIM(data_range=1.0, ndims=3)
         ssim.update((y, y))
         ssim.compute()
 
@@ -69,10 +80,15 @@ def test_invalid_ssim():
 
 
 @pytest.mark.parametrize(
-    "shape, kernel_size, gaussian, use_sample_covariance",
-    [[(8, 3, 224, 224), 7, False, True], [(12, 3, 28, 28), 11, True, False]],
+    "shape, kernel_size, ndims, gaussian, use_sample_covariance",
+    [
+        [(8, 3, 224, 224), 7, 2, False, True],
+        [(12, 3, 28, 28), 11, 2, True, False],
+        [(8, 3, 35, 35, 35), 7, 3, False, True],
+        [(12, 3, 14, 14, 14), 11, 3, True, False],
+    ],
 )
-def test_ssim(available_device, shape, kernel_size, gaussian, use_sample_covariance):
+def test_ssim(available_device, shape, kernel_size, ndims, gaussian, use_sample_covariance):
     y_pred = torch.rand(shape, device=available_device)
     y = y_pred * 0.8
 
@@ -80,6 +96,7 @@ def test_ssim(available_device, shape, kernel_size, gaussian, use_sample_covaria
         y_pred,
         y,
         available_device,
+        ndims=ndims,
         kernel_size=kernel_size,
         gaussian=gaussian,
         use_sample_covariance=use_sample_covariance,
@@ -91,6 +108,7 @@ def compare_ssim_ignite_skiimg(
     y: torch.Tensor,
     device: torch.device,
     precision: float = 2e-5,  # default to float32 expected precision
+    ndims: int = 2,
     *,
     skimg_y_pred: Union[np.ndarray, None] = None,
     skimg_y: Union[np.ndarray, None] = None,
@@ -101,7 +119,7 @@ def compare_ssim_ignite_skiimg(
 ):
     sigma = 1.5
 
-    ssim = SSIM(data_range=data_range, sigma=sigma, device=device)
+    ssim = SSIM(data_range=data_range, sigma=sigma, device=device, ndims=ndims)
     ssim.update((y_pred, y))
     ignite_ssim = ssim.compute()
 
@@ -325,9 +343,9 @@ class TestDistributed:
         ssim = SSIM(data_range=1.0, device=metric_device)
 
         assert ssim._kernel is None
-        assert isinstance(ssim._kernel_2d, torch.Tensor)
+        assert isinstance(ssim._kernel_nd, torch.Tensor)
 
-        for dev in [ssim._device, ssim._kernel_2d.device]:
+        for dev in [ssim._device, ssim._kernel_nd.device]:
             assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
 
         y_pred = torch.rand(2, 3, 28, 28, dtype=torch.float, device=device)

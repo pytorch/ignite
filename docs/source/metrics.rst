@@ -349,7 +349,6 @@ Complete list of metrics
     RootMeanSquaredError
     RunningAverage
     SSIM
-    SSIM3D
     TopKCategoricalAccuracy
     Bleu
     Rouge
