@@ -36,7 +36,7 @@ class SSIM(Metric):
         skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
             true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
             Alternatively, ``output_transform`` can be used to handle this.
-        ndims: Number of dimensions of the input image. Default: 2
+        ndims: Number of dimensions of the input image: 2d or 3d. Accepted values: 2, 3. Default: 2
 
     Examples:
         To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
@@ -89,7 +89,7 @@ class SSIM(Metric):
         ndims: int = 2,
     ):
         if ndims not in (2, 3):
-            raise ValueError("Expected ndims to be 2 or 3. Got {ndims}.")
+            raise ValueError(f"Expected ndims to be 2 or 3. Got {ndims}.")
 
         if isinstance(kernel_size, int):
             self.kernel_size: Sequence[int] = [kernel_size for _ in range(ndims)]
@@ -107,7 +107,7 @@ class SSIM(Metric):
                 raise ValueError(f"Expected sigma to have length of {ndims}. Got {len(sigma)}.")
             self.sigma = sigma
         else:
-            raise ValueError("Argument sigma should be either float or a sequence of float of length {ndims}.")
+            raise ValueError(f"Argument sigma should be either float or a sequence of float of length {ndims}.")
 
         if any(x % 2 == 0 or x <= 0 for x in self.kernel_size):
             raise ValueError(f"Expected kernel_size to have odd positive number. Got {kernel_size}.")
@@ -122,6 +122,7 @@ class SSIM(Metric):
         self.c2 = (k2 * data_range) ** 2
         self.pad_h = (self.kernel_size[0] - 1) // 2
         self.pad_w = (self.kernel_size[1] - 1) // 2
+        self.pad_d = None
         self.ndims = ndims
         if self.ndims == 3:
             self.pad_d = (self.kernel_size[2] - 1) // 2
@@ -185,8 +186,8 @@ class SSIM(Metric):
         # 2 dimensions are reserved for batch and channel
         if len(y_pred.shape) - 2 != self.ndims or len(y.shape) - 2 != self.ndims:
             raise ValueError(
-                f"""Expected y_pred and y to have BxCxHxW or BxCxDxHxW shape.
-                Got y_pred: {y_pred.shape} and y: {y.shape}."""
+                "Expected y_pred and y to have BxCxHxW or BxCxDxHxW shape. "
+                f"Got y_pred: {y_pred.shape} and y: {y.shape}."
             )
 
     @reinit__is_reduced

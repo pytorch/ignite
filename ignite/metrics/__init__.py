@@ -84,7 +84,6 @@ __all__ = [
     "VariableAccumulation",
     "Frequency",
     "SSIM",
-    "SSIM3D",
     "Bleu",
     "Rouge",
     "RougeN",
