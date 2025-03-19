@@ -9,7 +9,7 @@ __all__ = ["NDCG"]
 
 
 class NDCG(Metric):
-    """Computes ndcg
+    r"""Computes ndcg
     `Normalized DCG(DCG) <https://en.wikipedia.org/wiki/Discounted_cumulative_gain>`_.
     .. math::
         \text{nDCG}_\text{p} = \frac{\text{DCG}_p}{\text{nDCG}_p}
@@ -18,15 +18,16 @@ class NDCG(Metric):
             :math: \text{$rel_i \in \{0, 1\}$ : graded relevance of the result at position $i$}
     - ``update`` must receive output of the form ``(y_pred, y)``.
     Args:
-        output_transform: A callable that is used to transform the Engine’s
-            process_function’s output into the form expected by the metric.
+        output_transform: A callable that is used to transform the Engine's
+            process_function's output into the form expected by the metric.
         device: specifies which device updates are accumulated on.
-            Setting the metric’s device to be the same as your update arguments ensures
+            Setting the metric's device to be the same as your update arguments ensures
             the update method is non-blocking. By default, CPU.
         k: Only consider the highest k scores in the ranking. If None, use all outputs.
         log_base: Base of logarithm used in  computation
         exponential: If True, computes exponential gain
-        ignore_ties: Assume that there are no ties in y_score (which is likely to be the case if y_score is continuous) for efficiency gains.
+        ignore_ties: Assume that there are no ties in y_score (which is likely to be the
+            case if y_score is continuous) for efficiency gains.
     Examples:
     """
 
@@ -74,23 +75,27 @@ class NDCG(Metric):
         return (self.ndcg / self.num_examples).item()
 
 
-def _tie_averaged_dcg(
-    y_pred: torch.Tensor,
-    y_true: torch.Tensor,
-    discount_cumsum: torch.Tensor,
-    device: Union[str, torch.device] = torch.device("cpu"),
-) -> torch.Tensor:
+def _tie_averaged_dcg_batched(y_pred_batch, y_true_batch, discount_cumsum, device):
+    batch_size = y_pred_batch.shape[0]
+    results = torch.zeros(batch_size, device=device)
 
-    _, inv, counts = torch.unique(-y_pred, return_inverse=True, return_counts=True)
-    ranked = torch.zeros(counts.shape[0]).to(device)
-    ranked.index_put_([inv], y_true, accumulate=True)
-    ranked /= counts
-    groups = torch.cumsum(counts, dim=-1) - 1
-    discount_sums = torch.empty(counts.shape[0]).to(device)
-    discount_sums[0] = discount_cumsum[groups[0]]
-    discount_sums[1:] = torch.diff(discount_cumsum[groups])
+    for i in range(batch_size):
+        y_pred = y_pred_batch[i]
+        y_true = y_true_batch[i]
 
-    return torch.sum(torch.mul(ranked, discount_sums))
+        _, inv, counts = torch.unique(-y_pred, return_inverse=True, return_counts=True)
+        ranked = torch.zeros(counts.shape[0], device=device)
+        ranked.index_add_(0, inv, y_true)
+        ranked /= counts
+        groups = torch.cumsum(counts, dim=-1) - 1
+        discount_sums = torch.zeros(counts.shape[0], device=device)
+        discount_sums[0] = discount_cumsum[groups[0]]
+        if counts.shape[0] > 1:
+            discount_sums[1:] = torch.diff(discount_cumsum[groups])
+
+        results[i] = torch.sum(torch.mul(ranked, discount_sums))
+
+    return results
 
 
 def _dcg_sample_scores(
@@ -112,12 +117,9 @@ def _dcg_sample_scores(
         ranking = torch.argsort(y_pred, descending=True)
         ranked = y_true[torch.arange(ranking.shape[0]).reshape(-1, 1), ranking].to(device)
         discounted_gains = torch.mm(ranked, discount.reshape(-1, 1))
-
     else:
         discount_cumsum = torch.cumsum(discount, dim=-1)
-        discounted_gains = torch.tensor(
-            [_tie_averaged_dcg(y_p, y_t, discount_cumsum, device) for y_p, y_t in zip(y_pred, y_true)], device=device
-        )
+        discounted_gains = _tie_averaged_dcg_batched(y_pred, y_true, discount_cumsum, device)
 
     return discounted_gains
 
