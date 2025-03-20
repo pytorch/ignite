@@ -167,10 +167,12 @@ class SSIM(Metric):
             if ndims == 3:
                 kernel_z = self._uniform(kernel_size[2])
 
-        if ndims == 2:
-            return torch.einsum("i,j->ij", kernel_x, kernel_y)
-        elif ndims == 3:
-            return torch.einsum("i,j,k->ijk", kernel_x, kernel_y, kernel_z)
+        result = (
+            torch.einsum("i,j->ij", kernel_x, kernel_y)
+            if ndims == 2
+            else torch.einsum("i,j,k->ijk", kernel_x, kernel_y, kernel_z)
+        )
+        return result
 
     def _check_type_and_shape(self, y_pred: torch.Tensor, y: torch.Tensor) -> None:
         if y_pred.dtype != y.dtype:
@@ -220,7 +222,7 @@ class SSIM(Metric):
                 y = y.to(device=self._kernel.device)
 
         padding_shape = [self.pad_w, self.pad_w, self.pad_h, self.pad_h]
-        if self.ndims == 3:
+        if self.ndims == 3 and self.pad_d is not None:
             padding_shape.extend([self.pad_d, self.pad_d])
 
         y_pred = F.pad(y_pred, padding_shape, mode="reflect")

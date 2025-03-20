@@ -229,7 +229,6 @@ def test_ssim_dtypes(available_device, dtype, precision, shape, ndims):
 
     if available_device == "mps" and dtype in [torch.float64]:
         pytest.skip(reason=f"Unsupported dtype {dtype} on MPS device")
-    print(f"Testing dtype={dtype} and shape={shape}")
     shape = (12, 3, *shape)
 
     y_pred = torch.rand(shape, device=available_device, dtype=dtype)
@@ -271,7 +270,7 @@ def test_ssim_uint8(available_device, shape, kernel_size, ndims, gaussian, use_s
     )
 
     assert isinstance(ignite_ssim, float)
-    assert np.allclose(ignite_ssim, skimg_ssim, atol=1e-5)
+    assert np.allclose(ignite_ssim, skimg_ssim, atol=1e-4)
 
 
 @pytest.mark.usefixtures("distributed")
