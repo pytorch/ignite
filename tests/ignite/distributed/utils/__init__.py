@@ -122,31 +122,22 @@ def _test_distrib_all_reduce_group(device):
     assert idist.get_world_size() > 1, idist.get_world_size()
     assert idist.backend() is not None, idist.backend()
 
-    ranks = sorted(range(idist.get_world_size() - 1, 0, -1))  # [0, 1, 2, 3] -> [3, 2, 1]
+    ranks = sorted(range(idist.get_world_size() - 1, 0, -1))  # [0, 1, 2, 3] -> [1, 2, 3]
     rank = idist.get_rank()
-    t = torch.tensor([rank], device=device)
     bnd = idist.backend()
 
-    group = idist.new_group(ranks)
-    if bnd in ("horovod"):
-        with pytest.raises(NotImplementedError, match=r"all_reduce with group for horovod is not implemented"):
-            res = idist.all_reduce(t, group=group)
-    else:
-        if rank in ranks:
-            # we should call all_reduce with group on the participating ranks only
-            # otherwise a warning is raised:
-            # UserWarning: Running all_reduce on global rank 2 which does not belong to the given group.
-            res = idist.all_reduce(t, group=group)
-            assert res == torch.tensor([sum(ranks)], device=device)
-
-    t = torch.tensor([rank], device=device)
-    if bnd in ("horovod"):
-        with pytest.raises(NotImplementedError, match=r"all_reduce with group for horovod is not implemented"):
-            res = idist.all_reduce(t, group=ranks)
-    else:
-        if rank in ranks:
-            res = idist.all_reduce(t, group=ranks)
-            assert res == torch.tensor([sum(ranks)], device=device)
+    for group in [idist.new_group(ranks), ranks]:
+        t = torch.tensor([rank], device=device)
+        if bnd in ("horovod"):
+            with pytest.raises(NotImplementedError, match=r"all_reduce with group for horovod is not implemented"):
+                res = idist.all_reduce(t, group=group)
+        else:
+            if rank in ranks:
+                # we should call all_reduce with group on the participating ranks only
+                # otherwise a warning is raised:
+                # UserWarning: Running all_reduce on global rank 2 which does not belong to the given group.
+                res = idist.all_reduce(t, group=group)
+                assert res == torch.tensor([sum(ranks)], device=device), (res, sum(ranks))
 
     if bnd in ("nccl", "gloo", "mpi"):
         with pytest.raises(ValueError, match=r"Argument group should be list of int or ProcessGroup"):
@@ -229,23 +220,22 @@ def _test_distrib_all_gather_group(device):
     rank = idist.get_rank()
     bnd = idist.backend()
 
-    t = torch.tensor([rank], device=device)
     group = idist.new_group(ranks)
+    t = torch.tensor([rank], device=device)
     res = idist.all_gather(t, group=group)
     if rank in ranks:
         assert torch.equal(res, torch.tensor(ranks, device=device))
     else:
         assert res == t
 
-    t = torch.tensor([rank], device=device)
-    if bnd == "horovod":
-        res = idist.all_gather(t, group=group)
-    else:
+    # Somehow horovod can't handle all_gather with 2 different groups
+    # and can't recreate the same group twice, so we skip this subtest
+    if bnd not in ("horovod"):
         res = idist.all_gather(t, group=ranks)
-    if rank in ranks:
-        assert torch.equal(res, torch.tensor(ranks, device=device))
-    else:
-        assert res == t
+        if rank in ranks:
+            assert torch.equal(res, torch.tensor(ranks, device=device))
+        else:
+            assert res == t
 
     t = {
         "a": [rank + 1, rank + 2, torch.tensor(rank + 3, device=device)],
@@ -293,47 +283,90 @@ def _test_idist_all_gather_tensors_with_shapes(device):
     rank = idist.get_rank()
     ws = idist.get_world_size()
     reference = torch.randn(ws * 5, ws * 5, ws * 5, device=device)
+
+    def compute_ref_indices(start_index, size):
+        return {"start": start_index, "end": start_index + size, "size": size}
+
+    ref_indices_per_rank = {
+        # rank: (start_index, end_index, size)
+        r: compute_ref_indices(r + 1, 2 * r + 1)
+        for r in range(ws)
+    }
+    ref_indices = ref_indices_per_rank[rank]
     rank_tensor = reference[
-        rank * (rank + 1) // 2 : rank * (rank + 1) // 2 + rank + 1,
-        rank * (rank + 3) // 2 : rank * (rank + 3) // 2 + rank + 2,
-        rank * (rank + 5) // 2 : rank * (rank + 5) // 2 + rank + 3,
+        ref_indices["start"] : ref_indices["end"] + 1,
+        ref_indices["start"] : ref_indices["end"] + 2,
+        ref_indices["start"] : ref_indices["end"] + 3,
     ]
-    tensors = all_gather_tensors_with_shapes(rank_tensor, [[r + 1, r + 2, r + 3] for r in range(ws)])
+    tensors = all_gather_tensors_with_shapes(
+        rank_tensor,
+        [
+            [
+                ref_indices_per_rank[r]["size"] + 1,
+                ref_indices_per_rank[r]["size"] + 2,
+                ref_indices_per_rank[r]["size"] + 3,
+            ]
+            for r in range(ws)
+        ],
+    )
     for r in range(ws):
-        r_tensor = reference[
-            r * (r + 1) // 2 : r * (r + 1) // 2 + r + 1,
-            r * (r + 3) // 2 : r * (r + 3) // 2 + r + 2,
-            r * (r + 5) // 2 : r * (r + 5) // 2 + r + 3,
+        ref_indices = ref_indices_per_rank[r]
+        ref_tensor = reference[
+            ref_indices["start"] : ref_indices["end"] + 1,
+            ref_indices["start"] : ref_indices["end"] + 2,
+            ref_indices["start"] : ref_indices["end"] + 3,
         ]
-        assert r_tensor.allclose(tensors[r])
+        assert ref_tensor.allclose(tensors[r])
 
 
 def _test_idist_all_gather_tensors_with_shapes_group(device):
-    assert idist.get_world_size(), idist.get_world_size()
+    assert idist.get_world_size() > 1, idist.get_world_size()
     torch.manual_seed(41)
-
     rank = idist.get_rank()
-    ranks = sorted(range(idist.get_world_size() - 1, 0, -1))  # [0, 1, 2, 3] -> [1, 2, 3]
     ws = idist.get_world_size()
+    ranks = sorted(range(idist.get_world_size() - 1, 0, -1))  # [0, 1, 2, 3] -> [1, 2, 3]
+
+    def compute_ref_indices(start_index, size):
+        return {"start": start_index, "end": start_index + size, "size": size}
+
+    ref_indices_per_rank = {
+        # rank: (start_index, end_index, size)
+        r: compute_ref_indices(r + 1, 2 * r + 1)
+        for r in range(ws)
+    }
+
     if rank in ranks:
         reference = torch.randn(ws * 5, ws * 5, ws * 5, device=device)
+        ref_indices = ref_indices_per_rank[rank]
         rank_tensor = reference[
-            rank * (rank + 1) // 2 : rank * (rank + 1) // 2 + rank + 1,
-            rank * (rank + 3) // 2 : rank * (rank + 3) // 2 + rank + 2,
-            rank * (rank + 5) // 2 : rank * (rank + 5) // 2 + rank + 3,
+            ref_indices["start"] : ref_indices["end"] + 1,
+            ref_indices["start"] : ref_indices["end"] + 2,
+            ref_indices["start"] : ref_indices["end"] + 3,
         ]
     else:
         rank_tensor = torch.tensor([rank], device=device)
 
-    tensors = all_gather_tensors_with_shapes(rank_tensor, [[r + 1, r + 2, r + 3] for r in ranks], ranks)
+    tensors = all_gather_tensors_with_shapes(
+        rank_tensor,
+        [
+            [
+                ref_indices_per_rank[r]["size"] + 1,
+                ref_indices_per_rank[r]["size"] + 2,
+                ref_indices_per_rank[r]["size"] + 3,
+            ]
+            for r in ranks
+        ],
+        ranks,
+    )
     if rank in ranks:
         for i, r in enumerate(ranks):
-            r_tensor = reference[
-                r * (r + 1) // 2 : r * (r + 1) // 2 + r + 1,
-                r * (r + 3) // 2 : r * (r + 3) // 2 + r + 2,
-                r * (r + 5) // 2 : r * (r + 5) // 2 + r + 3,
+            ref_indices = ref_indices_per_rank[r]
+            ref_tensor = reference[
+                ref_indices["start"] : ref_indices["end"] + 1,
+                ref_indices["start"] : ref_indices["end"] + 2,
+                ref_indices["start"] : ref_indices["end"] + 3,
             ]
-            assert r_tensor.allclose(tensors[i])
+            assert ref_tensor.allclose(tensors[i])
     else:
         assert [rank_tensor] == tensors
 
