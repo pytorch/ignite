@@ -270,7 +270,7 @@ def test_ssim_uint8(available_device, shape, kernel_size, ndims, gaussian, use_s
     )
 
     assert isinstance(ignite_ssim, float)
-    assert np.allclose(ignite_ssim, skimg_ssim, atol=1e-4)
+    assert np.allclose(ignite_ssim, skimg_ssim, atol=1e-4 if available_device == "mps" else 1e-5)
 
 
 @pytest.mark.usefixtures("distributed")
