@@ -11,8 +11,8 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics import CosineSimilarity
 
 
-def test_zero_sample():
-    cos_sim = CosineSimilarity()
+def test_zero_sample(available_device):
+    cos_sim = CosineSimilarity(device=available_device)
     with pytest.raises(
         NotComputableError, match=r"CosineSimilarity must have at least one example before it can be computed"
     ):
@@ -41,10 +41,10 @@ def test_case(request):
 
 
 @pytest.mark.parametrize("n_times", range(5))
-def test_compute(n_times, test_case: Tuple[Tensor, Tensor, float, int]):
+def test_compute(n_times, test_case: Tuple[Tensor, Tensor, float, int], available_device):
     y_pred, y, eps, batch_size = test_case
 
-    cos = CosineSimilarity(eps=eps)
+    cos = CosineSimilarity(eps=eps, device=available_device)
 
     cos.reset()
     if batch_size > 1:
@@ -67,8 +67,8 @@ def test_compute(n_times, test_case: Tuple[Tensor, Tensor, float, int]):
     assert pytest.approx(np_res, rel=2e-5) == cos.compute()
 
 
-def test_accumulator_detached():
-    cos = CosineSimilarity()
+def test_accumulator_detached(available_device):
+    cos = CosineSimilarity(device=available_device)
 
     y_pred = torch.tensor([[2.0, 3.0], [-2.0, 1.0]], dtype=torch.float)
     y = torch.ones(2, 2, dtype=torch.float)
