@@ -11,8 +11,8 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics import CosineSimilarity
 
 
-def test_zero_sample(available_device):
-    cos_sim = CosineSimilarity(device=available_device)
+def test_zero_sample():
+    cos_sim = CosineSimilarity()
     with pytest.raises(
         NotComputableError, match=r"CosineSimilarity must have at least one example before it can be computed"
     ):
