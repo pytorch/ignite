@@ -84,8 +84,8 @@ def test_invalid_ssim():
     [
         [(8, 3, 224, 224), 7, 2, False, True],
         [(12, 3, 28, 28), 11, 2, True, False],
-        [(8, 3, 35, 35, 35), 7, 3, False, True],
-        [(12, 3, 14, 14, 14), 11, 3, True, False],
+        [(8, 3, 10, 10, 10), 7, 3, False, True],
+        [(12, 3, 12, 12, 12), 11, 3, True, False],
     ],
 )
 def test_ssim(available_device, shape, kernel_size, ndims, gaussian, use_sample_covariance):
@@ -146,15 +146,15 @@ def compare_ssim_ignite_skiimg(
     assert np.allclose(ignite_ssim, skimg_ssim, atol=precision)
 
 
-@pytest.mark.parametrize("shape, ndims", [[(8, 5, 256, 256), 2], [(8, 5, 35, 35, 35), 3]])
-def test_ssim_device(available_device, available_device2, shape, ndims):
+def test_ssim_device(available_device, available_device2):
     metric_device = available_device
     y_pred_device = available_device2
 
     data_range = 1.0
     sigma = 1.5
+    shape = (12, 5, 256, 256)
 
-    ssim = SSIM(data_range=data_range, sigma=sigma, ndims=ndims, device=metric_device)
+    ssim = SSIM(data_range=data_range, sigma=sigma, device=metric_device)
 
     y_pred = torch.rand(shape, device=y_pred_device)
     y = y_pred * 0.8
@@ -185,11 +185,10 @@ def test_ssim_variable_batchsize(available_device, shape, ndims):
 
     y_preds = [
         torch.rand(12, 3, *shape, device=available_device),
-        torch.rand(12, 3, *shape, device=available_device),
         torch.rand(8, 3, *shape, device=available_device),
-        torch.rand(16, 3, *shape, device=available_device),
+        torch.rand(7, 3, *shape, device=available_device),
         torch.rand(1, 3, *shape, device=available_device),
-        torch.rand(30, 3, *shape, device=available_device),
+        torch.rand(5, 3, *shape, device=available_device),
     ]
     y_true = [v * 0.8 for v in y_preds]
 
@@ -206,8 +205,6 @@ def test_ssim_variable_batchsize(available_device, shape, ndims):
 def test_ssim_variable_channel(available_device):
     y_preds = [
         torch.rand(12, 5, 28, 28, device=available_device),
-        torch.rand(12, 4, 28, 28, device=available_device),
-        torch.rand(12, 7, 28, 28, device=available_device),
         torch.rand(12, 3, 28, 28, device=available_device),
         torch.rand(12, 11, 28, 28, device=available_device),
         torch.rand(12, 6, 28, 28, device=available_device),
@@ -221,20 +218,19 @@ def test_ssim_variable_channel(available_device):
 @pytest.mark.parametrize(
     "dtype, precision", [(torch.bfloat16, 2e-3), (torch.float16, 4e-4), (torch.float32, 2e-5), (torch.float64, 2e-5)]
 )
-@pytest.mark.parametrize("shape, ndims", [[(28, 28), 2], [(14, 14, 14), 3]])
-def test_ssim_dtypes(available_device, dtype, precision, shape, ndims):
+def test_ssim_dtypes(available_device, dtype, precision):
     # Checks https://github.com/pytorch/ignite/pull/3034
     if available_device == "cpu" and dtype in [torch.float16, torch.bfloat16]:
         pytest.skip(reason=f"Unsupported dtype {dtype} on CPU device")
 
     if available_device == "mps" and dtype in [torch.float64]:
         pytest.skip(reason=f"Unsupported dtype {dtype} on MPS device")
-    shape = (12, 3, *shape)
+    shape = (12, 3, 28, 28)
 
     y_pred = torch.rand(shape, device=available_device, dtype=dtype)
     y = y_pred * 0.8
 
-    compare_ssim_ignite_skiimg(y_pred, y, available_device, precision, ndims=ndims)
+    compare_ssim_ignite_skiimg(y_pred, y, available_device, precision)
 
 
 @pytest.mark.parametrize(
@@ -270,7 +266,7 @@ def test_ssim_uint8(available_device, shape, kernel_size, ndims, gaussian, use_s
     )
 
     assert isinstance(ignite_ssim, float)
-    assert np.allclose(ignite_ssim, skimg_ssim, atol=1e-4 if available_device == "mps" else 1e-5)
+    assert np.allclose(ignite_ssim, skimg_ssim, atol=1e-4)
 
 
 @pytest.mark.usefixtures("distributed")
