@@ -84,8 +84,8 @@ def test_invalid_ssim():
     [
         [(8, 3, 224, 224), 7, 2, False, True],
         [(12, 3, 28, 28), 11, 2, True, False],
-        [(8, 3, 10, 10, 10), 7, 3, False, True],
-        [(12, 3, 12, 12, 12), 11, 3, True, False],
+        [(2, 3, 10, 10, 10), 7, 3, False, True],
+        [(4, 3, 12, 12, 12), 11, 3, True, False],
     ],
 )
 def test_ssim(available_device, shape, kernel_size, ndims, gaussian, use_sample_covariance):
@@ -186,7 +186,7 @@ def test_ssim_variable_batchsize(available_device, shape, ndims):
     y_preds = [
         torch.rand(12, 3, *shape, device=available_device),
         torch.rand(8, 3, *shape, device=available_device),
-        torch.rand(7, 3, *shape, device=available_device),
+        torch.rand(16, 3, *shape, device=available_device),
         torch.rand(1, 3, *shape, device=available_device),
         torch.rand(5, 3, *shape, device=available_device),
     ]
@@ -238,8 +238,8 @@ def test_ssim_dtypes(available_device, dtype, precision):
     [
         [(8, 3, 224, 224), 7, 2, False, True],
         [(12, 3, 28, 28), 11, 2, True, False],
-        [(8, 3, 35, 35, 35), 7, 3, False, True],
-        [(12, 3, 14, 14, 14), 11, 3, True, False],
+        [(2, 3, 35, 35, 35), 7, 3, False, True],
+        [(4, 3, 14, 14, 14), 11, 3, True, False],
     ],
 )
 def test_ssim_uint8(available_device, shape, kernel_size, ndims, gaussian, use_sample_covariance):
