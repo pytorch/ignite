@@ -45,6 +45,7 @@ def test_compute(n_times, test_case: Tuple[Tensor, Tensor, float, int], availabl
     y_pred, y, eps, batch_size = test_case
 
     cos = CosineSimilarity(eps=eps, device=available_device)
+    assert cos._device == torch.device(available_device)
 
     cos.reset()
     if batch_size > 1:
@@ -69,6 +70,7 @@ def test_compute(n_times, test_case: Tuple[Tensor, Tensor, float, int], availabl
 
 def test_accumulator_detached(available_device):
     cos = CosineSimilarity(device=available_device)
+    assert cos._device == torch.device(available_device)
 
     y_pred = torch.tensor([[2.0, 3.0], [-2.0, 1.0]], dtype=torch.float)
     y = torch.ones(2, 2, dtype=torch.float)
