@@ -48,6 +48,7 @@ def test_compute(n_times, available_device, test_case):
 
     np_res = np.power((np_y - np_y_pred), 2.0).sum() / np_y.shape[0]
 
+    assert mse._device == torch.device(available_device)
     assert isinstance(mse.compute(), float)
     assert mse.compute() == np_res
 
