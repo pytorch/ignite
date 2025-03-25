@@ -28,7 +28,7 @@ jobs:
       DOCKER_IMAGE: "pytorch/almalinux-builder:cuda12.4"
       REPOSITORY: ${{ github.repository }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
-    runs-on: linux.8xlarge.nvidia.gpu
+    runs-on: linux.g4dn.12xlarge.nvidia.gpu
     timeout-minutes: 85
 
     steps:
@@ -126,8 +126,8 @@ jobs:
           max_attempts: 5
           timeout_minutes: 45
           shell: bash
-          command: docker exec -t pthd /bin/bash -xec 'bash tests/run_gpu_tests.sh 2'
-          new_command_on_retry: docker exec -e USE_LAST_FAILED=1 -t pthd /bin/bash -xec 'bash tests/run_gpu_tests.sh 2'
+          command: docker exec -t pthd /bin/bash -xec 'bash tests/run_gpu_tests.sh 4'
+          new_command_on_retry: docker exec -e USE_LAST_FAILED=1 -t pthd /bin/bash -xec 'bash tests/run_gpu_tests.sh 4'
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
@@ -154,15 +154,15 @@ jobs:
 
           # Check training on cifar10, run with NCCL backend using torchrun
           ## initial run
-          CI=1 torchrun --nproc_per_node=2 examples/cifar10/main.py run --backend=nccl --checkpoint_every=200 --stop_iteration=500
+          CI=1 torchrun --nproc_per_node=4 examples/cifar10/main.py run --backend=nccl --checkpoint_every=200 --stop_iteration=500
           ## resume
-          CI=1 torchrun --nproc_per_node=2 examples/cifar10/main.py run --backend=nccl --checkpoint_every=200 --num_epochs=7 --resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt
+          CI=1 torchrun --nproc_per_node=4 examples/cifar10/main.py run --backend=nccl --checkpoint_every=200 --num_epochs=7 --resume-from=/tmp/output-cifar10/resnet18_backend-nccl-4_stop-on-500/training_checkpoint_400.pt
 
           # Check training on cifar10, run with NCCL backend using spawn
           ## initial run
-          CI=1 python -u examples/cifar10/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200 --stop_iteration=500
+          CI=1 python -u examples/cifar10/main.py run --backend=nccl --nproc_per_node=4 --checkpoint_every=200 --stop_iteration=500
           ## resume
-          CI=1 python -u examples/cifar10/main.py run --backend=nccl --nproc_per_node=2 --checkpoint_every=200 --num_epochs=7 --resume-from=/tmp/output-cifar10/resnet18_backend-nccl-2_stop-on-500/training_checkpoint_400.pt
+          CI=1 python -u examples/cifar10/main.py run --backend=nccl --nproc_per_node=4 --checkpoint_every=200 --num_epochs=7 --resume-from=/tmp/output-cifar10/resnet18_backend-nccl-4_stop-on-500/training_checkpoint_400.pt
 
           EOF
           )
