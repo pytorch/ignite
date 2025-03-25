@@ -31,6 +31,7 @@ def test_case(request):
 @pytest.mark.parametrize("n_times", range(5))
 def test_compute(n_times, available_device, test_case):
     mse = MeanSquaredError(device=available_device)
+    assert mse._device == torch.device(available_device)
 
     y_pred, y, batch_size = test_case
 
@@ -48,7 +49,6 @@ def test_compute(n_times, available_device, test_case):
 
     np_res = np.power((np_y - np_y_pred), 2.0).sum() / np_y.shape[0]
 
-    assert mse._device == torch.device(available_device)
     assert isinstance(mse.compute(), float)
     assert mse.compute() == np_res
 
