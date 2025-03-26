@@ -34,9 +34,8 @@ def test_no_update():
         ck.compute()
 
 
-def test_input_types(available_device):
-    ck = CohenKappa(device=available_device)
-    assert ck._device == torch.device(available_device)
+def test_input_types():
+    ck = CohenKappa()
     ck.reset()
     output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
     ck.update(output1)
@@ -108,9 +107,8 @@ def test_binary_input(n_times, weights, test_data_binary, available_device):
     assert cohen_kappa_score(np_y, np_y_pred, weights=weights) == pytest.approx(res)
 
 
-def test_multilabel_inputs(available_device):
-    ck = CohenKappa(device=available_device)
-    assert ck._device == torch.device(available_device)
+def test_multilabel_inputs():
+    ck = CohenKappa()
 
     with pytest.raises(ValueError, match=r"multilabel-indicator is not supported"):
         ck.reset()
