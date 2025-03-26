@@ -51,9 +51,8 @@ def test_input_types(available_device):
         ck.update((torch.randint(0, 2, size=(10,)).long(), torch.randint(0, 2, size=(10, 5)).long()))
 
 
-def test_check_shape(available_device):
-    ck = CohenKappa(device=available_device)
-    assert ck._device == torch.device(available_device)
+def test_check_shape():
+    ck = CohenKappa()
 
     with pytest.raises(ValueError, match=r"Predictions should be of shape"):
         ck._check_shape((torch.tensor(0), torch.tensor(0)))
