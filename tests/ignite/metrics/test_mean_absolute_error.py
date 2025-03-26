@@ -29,8 +29,9 @@ def test_case(request):
 
 
 @pytest.mark.parametrize("n_times", range(5))
-def test_compute(n_times, test_case):
-    mae = MeanAbsoluteError()
+def test_compute(n_times, test_case, available_device):
+    mae = MeanAbsoluteError(device=available_device)
+    assert mae._device == torch.device(available_device)
 
     y_pred, y, batch_size = test_case
 
