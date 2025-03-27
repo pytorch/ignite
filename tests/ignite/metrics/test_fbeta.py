@@ -48,7 +48,7 @@ def _output_transform(output):
         (Precision(average=False), Recall(average=False), True, None),
     ],
 )
-def test_integration(p, r, average, output_transform):
+def test_integration(p, r, average, output_transform, available_device):
     np.random.seed(1)
 
     n_iters = 10
@@ -76,7 +76,11 @@ def test_integration(p, r, average, output_transform):
 
     evaluator = Engine(update_fn)
 
-    f2 = Fbeta(beta=2.0, average=average, precision=p, recall=r, output_transform=output_transform)
+    f2 = Fbeta(
+        beta=2.0, average=average, precision=p, recall=r, output_transform=output_transform, device=available_device
+    )
+    assert f2._device == torch.device(available_device)
+
     f2.attach(evaluator, "f2")
 
     data = list(range(n_iters))
