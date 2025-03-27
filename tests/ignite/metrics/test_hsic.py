@@ -77,7 +77,7 @@ def test_case(request) -> Tuple[Tensor, Tensor, int]:
         x = torch.randn(N, 5)
         y = x @ torch.normal(0.0, math.pi, size=(5, 3))
         y = (
-            torch.stack([torch.sin(y[:, 0]), torch.cos(y[:, 1]), torch.exp(y[:, 2])], dim=1)
+            torch.stack([torch.sin(y[:, 0]), torch.cos(y[:, 1]), torch.exp(y[:, 2]) / 10], dim=1)
             + torch.randn_like(y) * 1e-4
         )
 
