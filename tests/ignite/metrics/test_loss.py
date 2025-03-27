@@ -130,9 +130,8 @@ def test_kwargs_loss(available_device):
     assert_almost_equal(loss.compute(), expected_value)
 
 
-def test_reset(available_device):
-    loss = Loss(nll_loss, device=available_device)
-    assert loss._device == torch.device(available_device)
+def test_reset():
+    loss = Loss(nll_loss)
 
     y_pred, y = y_test_3()
     loss.update((y_pred, y))
@@ -198,9 +197,8 @@ def _test_distrib_accumulator_device(device, y_test_1):
         ), f"{type(loss._sum.device)}:{loss._sum.device} vs {type(metric_device)}:{metric_device}"
 
 
-def test_sum_detached(available_device):
-    loss = Loss(nll_loss, device=available_device)
-    assert loss._device == torch.device(available_device)
+def test_sum_detached():
+    loss = Loss(nll_loss)
 
     y_pred, y, _ = y_test_1(requires_grad=True)
     loss.update((y_pred, y))
