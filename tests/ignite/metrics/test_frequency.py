@@ -14,12 +14,13 @@ if sys.platform.startswith("darwin"):
 
 
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
-def test_nondistributed_average():
+def test_nondistributed_average(available_device):
     artificial_time = 1  # seconds
     num_tokens = 100
     average_upper_bound = num_tokens / artificial_time
     average_lower_bound = average_upper_bound * 0.9
-    freq_metric = Frequency()
+    freq_metric = Frequency(device=available_device)
+    assert freq_metric._device == torch.device(available_device)
     freq_metric.reset()
     time.sleep(artificial_time)
     freq_metric.update(num_tokens)
@@ -27,7 +28,7 @@ def test_nondistributed_average():
     assert average_lower_bound < average < average_upper_bound
 
 
-def _test_frequency_with_engine(workers=None, lower_bound_factor=0.8, upper_bound_factor=1.1, every=1):
+def _test_frequency_with_engine(workers=None, lower_bound_factor=0.8, upper_bound_factor=1.1, every=1, device="cpu"):
     if workers is None:
         workers = idist.get_world_size()
 
@@ -42,7 +43,9 @@ def _test_frequency_with_engine(workers=None, lower_bound_factor=0.8, upper_boun
         return {"ntokens": len(batch)}
 
     engine = Engine(update_fn)
-    wps_metric = Frequency(output_transform=lambda x: x["ntokens"])
+    wps_metric = Frequency(output_transform=lambda x: x["ntokens"], device=device)
+    assert wps_metric._device == torch.device(device)
+
     event = Events.ITERATION_COMPLETED(every=every)
     wps_metric.attach(engine, "wps", event_name=event)
 
@@ -63,8 +66,8 @@ def _test_frequency_with_engine(workers=None, lower_bound_factor=0.8, upper_boun
 
 
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
-def test_frequency_with_engine():
-    _test_frequency_with_engine(workers=1)
+def test_frequency_with_engine(available_device):
+    _test_frequency_with_engine(workers=1, device=available_device)
 
 
 @pytest.mark.distributed
@@ -73,9 +76,9 @@ def test_frequency_with_engine_distributed(distributed_context_single_node_gloo)
     _test_frequency_with_engine(workers=idist.get_world_size())
 
 
-def test_frequency_with_engine_with_every():
-    _test_frequency_with_engine(workers=1, every=1)
-    _test_frequency_with_engine(workers=1, every=10)
+def test_frequency_with_engine_with_every(available_device):
+    _test_frequency_with_engine(workers=1, every=1, device=available_device)
+    _test_frequency_with_engine(workers=1, every=10, device=available_device)
 
 
 @pytest.mark.distributed
