@@ -45,8 +45,9 @@ def test_case(request):
 
 
 @pytest.mark.parametrize("n_times", range(5))
-def test_compute(n_times, test_case):
-    ent = Entropy()
+def test_compute(n_times, test_case, available_device):
+    ent = Entropy(device=available_device)
+    assert ent._device == torch.device(available_device)
 
     y_pred, y, batch_size = test_case
 
@@ -59,14 +60,15 @@ def test_compute(n_times, test_case):
     else:
         ent.update((y_pred, y))
 
-    np_res = np_entropy(y_pred.numpy())
+    np_res = np_entropy(y_pred.cpu().numpy())
 
     assert isinstance(ent.compute(), float)
     assert pytest.approx(ent.compute()) == np_res
 
 
-def test_accumulator_detached():
-    ent = Entropy()
+def test_accumulator_detached(available_device):
+    ent = Entropy(device=available_device)
+    assert ent._device == torch.device(available_device)
 
     y_pred = torch.tensor([[2.0, 3.0], [-2.0, -1.0]], requires_grad=True)
     y = torch.zeros(2)
