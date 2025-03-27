@@ -45,7 +45,7 @@ def test__prepare_output():
     metric = MeanAveragePrecision()
 
     metric._type = "binary"
-    scores, y = metric._prepare_output((torch.rand((5, 4, 3, 2)), torch.randint(0, 2, (5, 4, 3, 2)).bool()))
+    scores, y = metric._prepare_output((torch.rand((5, 4, 3, 2)), torch.randint(0, 2, (5, 4, 3, 2))))
     assert scores.shape == y.shape == (1, 120)
 
     metric._type = "multiclass"
@@ -53,14 +53,14 @@ def test__prepare_output():
     assert scores.shape == (4, 30) and y.shape == (30,)
 
     metric._type = "multilabel"
-    scores, y = metric._prepare_output((torch.rand((5, 4, 3, 2)), torch.randint(0, 2, (5, 4, 3, 2)).bool()))
+    scores, y = metric._prepare_output((torch.rand((5, 4, 3, 2)), torch.randint(0, 2, (5, 4, 3, 2))))
     assert scores.shape == y.shape == (4, 30)
 
 
 def test_update():
     metric = MeanAveragePrecision()
     assert len(metric._y_pred) == len(metric._y_true) == 0
-    metric.update((torch.rand((5, 4)), torch.randint(0, 2, (5, 4)).bool()))
+    metric.update((torch.rand((5, 4)), torch.randint(0, 2, (5, 4))))
     assert len(metric._y_pred) == len(metric._y_true) == 1
 
 
@@ -68,7 +68,7 @@ def test__compute_recall_and_precision():
     m = MeanAveragePrecision()
 
     scores = torch.rand((50,))
-    y_true = torch.randint(0, 2, (50,)).bool()
+    y_true = torch.randint(0, 2, (50,))
     precision, recall, _ = precision_recall_curve(y_true.numpy(), scores.numpy())
     P = y_true.sum(dim=-1)
     ignite_recall, ignite_precision = m._compute_recall_and_precision(y_true, scores, P)
@@ -77,7 +77,7 @@ def test__compute_recall_and_precision():
 
     # When there's no actual positive. Numpy expectedly raises warning.
     scores = torch.rand((50,))
-    y_true = torch.zeros((50,)).bool()
+    y_true = torch.zeros((50,))
     precision, recall, _ = precision_recall_curve(y_true.numpy(), scores.numpy())
     P = torch.tensor(0)
     ignite_recall, ignite_precision = m._compute_recall_and_precision(y_true, scores, P)
@@ -147,7 +147,7 @@ def test_compute_nonbinary_data(class_mean):
 
     # Multilabel
     m = MeanAveragePrecision(is_multilabel=True, class_mean=class_mean)
-    y_true = torch.randint(0, 2, (130, 5, 2, 2)).bool()
+    y_true = torch.randint(0, 2, (130, 5, 2, 2))
     m.update((scores[:50], y_true[:50]))
     m.update((scores[50:], y_true[50:]))
     ignite_map = m.compute().numpy()
