@@ -53,6 +53,7 @@ def test_psnr(test_data, available_device):
     data_range = (y.max() - y.min()).cpu().item()
 
     psnr = PSNR(data_range=data_range, device=available_device)
+    assert psnr._device == torch.device(available_device)
     psnr.update(test_data)
     psnr_compute = psnr.compute()
 

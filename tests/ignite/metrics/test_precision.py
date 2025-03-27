@@ -105,6 +105,7 @@ def ignite_average_to_scikit_average(average, data_type: str):
 @pytest.mark.parametrize("average", [None, False, "macro", "micro", "weighted"])
 def test_binary_input(n_times, available_device, average, test_data_binary):
     pr = Precision(average=average, device=available_device)
+    assert pr._device == torch.device(available_device)
     assert pr._updated is False
     y_pred, y, batch_size = test_data_binary
 
@@ -193,6 +194,7 @@ def test_multiclass_wrong_inputs():
 @pytest.mark.parametrize("average", [None, False, "macro", "micro", "weighted"])
 def test_multiclass_input(n_times, available_device, average, test_data_multiclass):
     pr = Precision(average=average, device=available_device)
+    assert pr._device == torch.device(available_device)
     assert pr._updated is False
 
     y_pred, y, batch_size = test_data_multiclass
@@ -260,6 +262,7 @@ def to_numpy_multilabel(y):
 @pytest.mark.parametrize("average", [None, False, "macro", "micro", "weighted", "samples"])
 def test_multilabel_input(n_times, available_device, average, test_data_multilabel):
     pr = Precision(average=average, is_multilabel=True, device=available_device)
+    assert pr._device == torch.device(available_device)
     assert pr._updated is False
 
     y_pred, y, batch_size = test_data_multilabel

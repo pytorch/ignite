@@ -182,7 +182,7 @@ def test_ssim_variable_batchsize(available_device, shape, ndims):
     sigma = 1.5
     data_range = 1.0
     ssim = SSIM(data_range=data_range, sigma=sigma, ndims=ndims, device=available_device)
-
+    assert ssim._device == torch.device(available_device)
     y_preds = [
         torch.rand(12, 3, *shape, device=available_device),
         torch.rand(8, 3, *shape, device=available_device),
@@ -249,6 +249,7 @@ def test_ssim_uint8(available_device, shape, kernel_size, ndims, gaussian, use_s
     sigma = 1.5
     data_range = 255
     ssim = SSIM(data_range=data_range, sigma=sigma, ndims=ndims, device=available_device)
+    assert ssim._device == torch.device(available_device)
     ssim.update((y_pred, y))
     ignite_ssim = ssim.compute()
 

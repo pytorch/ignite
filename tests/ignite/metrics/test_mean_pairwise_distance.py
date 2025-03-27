@@ -29,8 +29,9 @@ def test_case(request):
 
 
 @pytest.mark.parametrize("n_times", range(5))
-def test_compute(n_times, test_case):
-    mpd = MeanPairwiseDistance()
+def test_compute(n_times, test_case, available_device):
+    mpd = MeanPairwiseDistance(device=available_device)
+    assert mpd._device == torch.device(available_device)
 
     y_pred, y, batch_size = test_case
 
