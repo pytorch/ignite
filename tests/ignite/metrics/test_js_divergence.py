@@ -60,10 +60,11 @@ def test_case(request):
 
 
 @pytest.mark.parametrize("n_times", range(5))
-def test_compute(n_times, test_case: Tuple[Tensor, Tensor, int]):
+def test_compute(n_times, test_case: Tuple[Tensor, Tensor, int], available_device):
     y_pred, y, batch_size = test_case
 
-    js_div = JSDivergence()
+    js_div = JSDivergence(device=available_device)
+    assert js_div._device == torch.device(available_device)
 
     js_div.reset()
     if batch_size > 1:
@@ -85,8 +86,9 @@ def test_compute(n_times, test_case: Tuple[Tensor, Tensor, int]):
     assert pytest.approx(np_res, rel=1e-4) == res
 
 
-def test_accumulator_detached():
-    js_div = JSDivergence()
+def test_accumulator_detached(available_device):
+    js_div = JSDivergence(device=available_device)
+    assert js_div._device == torch.device(available_device)
 
     y_pred = torch.tensor([[2.0, 3.0], [-2.0, 1.0]], dtype=torch.float)
     y = torch.tensor([[-2.0, 1.0], [2.0, 3.0]], dtype=torch.float)
