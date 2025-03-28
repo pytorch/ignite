@@ -70,10 +70,11 @@ def test_case(request):
 
 
 @pytest.mark.parametrize("n_times", range(5))
-def test_compute(n_times, test_case: Tuple[Tensor, Tensor, float, int]):
+def test_compute(n_times, test_case: Tuple[Tensor, Tensor, float, int], available_device):
     x, y, var, batch_size = test_case
 
-    mmd = MaximumMeanDiscrepancy(var=var)
+    mmd = MaximumMeanDiscrepancy(var=var, device=available_device)
+    assert mmd._device == torch.device(available_device)
     mmd.reset()
 
     if batch_size > 1:
@@ -97,8 +98,9 @@ def test_compute(n_times, test_case: Tuple[Tensor, Tensor, float, int]):
     assert pytest.approx(np_res, abs=1e-4) == res
 
 
-def test_accumulator_detached():
-    mmd = MaximumMeanDiscrepancy()
+def test_accumulator_detached(available_device):
+    mmd = MaximumMeanDiscrepancy(device=available_device)
+    assert mmd._device == torch.device(available_device)
 
     x = torch.tensor([[2.0, 3.0], [-2.0, 1.0]], dtype=torch.float)
     y = torch.tensor([[-2.0, 1.0], [2.0, 3.0]], dtype=torch.float)
