@@ -74,8 +74,8 @@ def test_integration(precision_cls, recall_cls, average, output_transform, avail
     batch_size = 10
     n_classes = 10
 
-    y_true = torch.arange(n_iters * batch_size, dtype=torch.long).to(available_device) % n_classes
-    y_pred = 0.2 * torch.rand(n_iters * batch_size, n_classes).to(available_device)
+    y_true = torch.arange(n_iters * batch_size, dtype=torch.long, device=available_device) % n_classes
+    y_pred = 0.2 * torch.rand(n_iters * batch_size, n_classes, device=available_device)
     for i in range(n_iters * batch_size):
         if np.random.rand() > 0.4:
             y_pred[i, y_true[i]] = 1.0
