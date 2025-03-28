@@ -37,18 +37,33 @@ def _output_transform(output):
     return output["y_pred"], output["y"]
 
 
+@pytest.fixture
+def precision_and_recall(request, available_device):
+    name = request.param
+    if name == "none":
+        return None, None
+    elif name == "custom":
+        return (
+            Precision(average=False, device=available_device),
+            Recall(average=False, device=available_device),
+        )
+    raise ValueError(f"Unknown param: {name}")
+
+
 @pytest.mark.parametrize(
-    "p, r, average, output_transform",
+    "precision_and_recall, average, output_transform",
     [
-        (None, None, False, None),
-        (None, None, True, None),
-        (None, None, False, _output_transform),
-        (None, None, True, _output_transform),
-        (Precision(average=False), Recall(average=False), False, None),
-        (Precision(average=False), Recall(average=False), True, None),
+        ("none", False, None),
+        ("none", True, None),
+        ("none", False, _output_transform),
+        ("none", True, _output_transform),
+        ("custom", False, None),
+        ("custom", True, None),
     ],
+    indirect=["precision_and_recall"],
 )
-def test_integration(p, r, average, output_transform, available_device):
+def test_integration(precision_and_recall, average, output_transform, available_device):
+    p, r = precision_and_recall
     np.random.seed(1)
 
     n_iters = 10
