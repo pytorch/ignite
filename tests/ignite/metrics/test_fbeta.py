@@ -64,14 +64,13 @@ def precision_and_recall(request, available_device):
 )
 def test_integration(precision_and_recall, average, output_transform, available_device):
     p, r = precision_and_recall
-    np.random.seed(1)
 
     n_iters = 10
     batch_size = 10
     n_classes = 10
 
-    y_true = np.arange(0, n_iters * batch_size, dtype="int64") % n_classes
-    y_pred = 0.2 * np.random.rand(n_iters * batch_size, n_classes)
+    y_true = torch.arange(n_iters * batch_size, dtype=torch.long).to(available_device) % n_classes
+    y_pred = 0.2 * torch.rand(n_iters * batch_size, n_classes).to(available_device)
     for i in range(n_iters * batch_size):
         if np.random.rand() > 0.4:
             y_pred[i, y_true[i]] = 1.0
@@ -86,8 +85,8 @@ def test_integration(precision_and_recall, average, output_transform, available_
         y_true_batch = next(y_true_batch_values)
         y_pred_batch = next(y_pred_batch_values)
         if output_transform is not None:
-            return {"y_pred": torch.from_numpy(y_pred_batch), "y": torch.from_numpy(y_true_batch)}
-        return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+            return {"y_pred": y_pred_batch, "y": y_true_batch}
+        return y_pred_batch, y_true_batch
 
     evaluator = Engine(update_fn)
 
