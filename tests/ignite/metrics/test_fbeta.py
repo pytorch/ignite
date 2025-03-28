@@ -37,33 +37,38 @@ def _output_transform(output):
     return output["y_pred"], output["y"]
 
 
-@pytest.fixture
-def precision_and_recall(request, available_device):
-    name = request.param
-    if name == "none":
-        return None, None
-    elif name == "custom":
-        return (
-            Precision(average=False, device=available_device),
-            Recall(average=False, device=available_device),
-        )
-    raise ValueError(f"Unknown param: {name}")
-
-
 @pytest.mark.parametrize(
-    "precision_and_recall, average, output_transform",
+    "precision_cls, recall_cls, average, output_transform",
     [
-        ("none", False, None),
-        ("none", True, None),
-        ("none", False, _output_transform),
-        ("none", True, _output_transform),
-        ("custom", False, None),
-        ("custom", True, None),
+        (None, None, False, None),
+        (None, None, True, None),
+        (None, None, False, _output_transform),
+        (None, None, True, _output_transform),
+        (
+            lambda device: Precision(average=False, device=device),
+            lambda device: Recall(average=False, device=device),
+            False,
+            None,
+        ),
+        (
+            lambda device: Precision(average=False, device=device),
+            lambda device: Recall(average=False, device=device),
+            True,
+            None,
+        ),
     ],
-    indirect=["precision_and_recall"],
 )
-def test_integration(precision_and_recall, average, output_transform, available_device):
-    p, r = precision_and_recall
+def test_integration(precision_cls, recall_cls, average, output_transform, available_device):
+    if precision_cls is None:
+        p = None
+    else:
+        p = precision_cls(available_device)
+        assert p._device == torch.device(available_device)
+    if recall_cls is None:
+        r = None
+    else:
+        r = recall_cls(available_device)
+        assert r._device == torch.device(available_device)
 
     n_iters = 10
     batch_size = 10
