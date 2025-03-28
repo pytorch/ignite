@@ -87,9 +87,10 @@ def get_y_true_y_pred():
     return y_true, y_pred
 
 
-def test_multiclass_images():
+def test_multiclass_images(available_device):
     num_classes = 3
-    cm = MultiLabelConfusionMatrix(num_classes=num_classes)
+    cm = MultiLabelConfusionMatrix(num_classes=num_classes, device=available_device)
+    assert cm._device == torch.device(available_device)
 
     y_true, y_pred = get_y_true_y_pred()
 
@@ -107,7 +108,8 @@ def test_multiclass_images():
     assert np.all(ignite_CM == sklearn_CM)
 
     # Another test on batch of 2 images
-    cm = MultiLabelConfusionMatrix(num_classes=num_classes)
+    cm = MultiLabelConfusionMatrix(num_classes=num_classes, device=available_device)
+    assert cm._device == torch.device(available_device)
 
     # Create a batch of two images:
     th_y_true1 = torch.tensor(y_true)
@@ -208,7 +210,7 @@ def _test_distrib_accumulator_device(device):
         ), f"{type(cm.confusion_matrix.device)}:{cm._num_correct.device} vs {type(metric_device)}:{metric_device}"
 
 
-def test_simple_2D_input():
+def test_simple_2D_input(available_device):
     # Tests for 2D inputs with normalized = True and False
 
     num_iters = 5
@@ -219,18 +221,20 @@ def test_simple_2D_input():
         target = torch.randint(0, 2, size=(num_samples, num_classes))
         prediction = torch.randint(0, 2, size=(num_samples, num_classes))
         sklearn_CM = multilabel_confusion_matrix(target.numpy(), prediction.numpy())
-        mlcm = MultiLabelConfusionMatrix(num_classes, normalized=False)
+        mlcm = MultiLabelConfusionMatrix(num_classes, normalized=False, device=available_device)
+        assert mlcm._device == torch.device(available_device)
         mlcm.update([prediction, target])
         ignite_CM = mlcm.compute().numpy()
         assert np.all(sklearn_CM.astype(np.int64) == ignite_CM.astype(np.int64))
-        mlcm = MultiLabelConfusionMatrix(num_classes, normalized=True)
+        mlcm = MultiLabelConfusionMatrix(num_classes, normalized=True, device=available_device)
+        assert mlcm._device == torch.device(available_device)
         mlcm.update([prediction, target])
         ignite_CM_normalized = mlcm.compute().numpy()
         sklearn_CM_normalized = sklearn_CM / sklearn_CM.sum(axis=(1, 2))[:, None, None]
         assert np.allclose(sklearn_CM_normalized, ignite_CM_normalized)
 
 
-def test_simple_ND_input():
+def test_simple_ND_input(available_device):
     num_iters = 5
     num_samples = 100
     num_classes = 10
@@ -240,7 +244,8 @@ def test_simple_ND_input():
     for _ in range(num_iters):  # 3D tests
         target = torch.randint(0, 2, size=(num_samples, num_classes, size_3d))
         prediction = torch.randint(0, 2, size=(num_samples, num_classes, size_3d))
-        mlcm = MultiLabelConfusionMatrix(num_classes, normalized=False)
+        mlcm = MultiLabelConfusionMatrix(num_classes, normalized=False, device=available_device)
+        assert mlcm._device == torch.device(available_device)
         mlcm.update([prediction, target])
         ignite_CM = mlcm.compute().numpy()
         target_reshaped = target.permute(0, 2, 1).reshape(size_3d * num_samples, num_classes)
@@ -252,7 +257,8 @@ def test_simple_ND_input():
     for _ in range(num_iters):  # 4D tests
         target = torch.randint(0, 2, size=(num_samples, num_classes, size_3d, size_4d))
         prediction = torch.randint(0, 2, size=(num_samples, num_classes, size_3d, size_4d))
-        mlcm = MultiLabelConfusionMatrix(num_classes, normalized=False)
+        mlcm = MultiLabelConfusionMatrix(num_classes, normalized=False, device=available_device)
+        assert mlcm._device == torch.device(available_device)
         mlcm.update([prediction, target])
         ignite_CM = mlcm.compute().numpy()
         target_reshaped = target.permute(0, 2, 3, 1).reshape(size_3d * size_4d * num_samples, num_classes)
@@ -264,7 +270,8 @@ def test_simple_ND_input():
     for _ in range(num_iters):  # 5D tests
         target = torch.randint(0, 2, size=(num_samples, num_classes, size_3d, size_4d, size_5d))
         prediction = torch.randint(0, 2, size=(num_samples, num_classes, size_3d, size_4d, size_5d))
-        mlcm = MultiLabelConfusionMatrix(num_classes, normalized=False)
+        mlcm = MultiLabelConfusionMatrix(num_classes, normalized=False, device=available_device)
+        assert mlcm._device == torch.device(available_device)
         mlcm.update([prediction, target])
         ignite_CM = mlcm.compute().numpy()
         target_reshaped = target.permute(0, 2, 3, 4, 1).reshape(size_3d * size_4d * size_5d * num_samples, num_classes)
@@ -275,7 +282,7 @@ def test_simple_ND_input():
         assert np.all(sklearn_CM.astype(np.int64) == ignite_CM.astype(np.int64))
 
 
-def test_simple_batched():
+def test_simple_batched(available_device):
     num_iters = 5
     num_samples = 100
     num_classes = 10
@@ -283,7 +290,8 @@ def test_simple_batched():
     torch.manual_seed(0)
 
     for _ in range(num_iters):  # 2D tests
-        mlcm = MultiLabelConfusionMatrix(num_classes, normalized=False)
+        mlcm = MultiLabelConfusionMatrix(num_classes, normalized=False, device=available_device)
+        assert mlcm._device == torch.device(available_device)
         targets = torch.randint(0, 2, size=(int(num_samples / batch_size), batch_size, num_classes))
         predictions = torch.randint(0, 2, size=(int(num_samples / batch_size), batch_size, num_classes))
         for i in range(int(num_samples / batch_size)):
@@ -299,7 +307,8 @@ def test_simple_batched():
 
     size_3d = 4
     for _ in range(num_iters):  # 3D tests
-        mlcm = MultiLabelConfusionMatrix(num_classes, normalized=False)
+        mlcm = MultiLabelConfusionMatrix(num_classes, normalized=False, device=available_device)
+        assert mlcm._device == torch.device(available_device)
         targets = torch.randint(0, 2, size=(int(num_samples / batch_size), batch_size, num_classes, size_3d))
         predictions = torch.randint(0, 2, size=(int(num_samples / batch_size), batch_size, num_classes, size_3d))
         for i in range(int(num_samples / batch_size)):
@@ -315,7 +324,8 @@ def test_simple_batched():
 
     size_4d = 4
     for _ in range(num_iters):  # 4D tests
-        mlcm = MultiLabelConfusionMatrix(num_classes, normalized=False)
+        mlcm = MultiLabelConfusionMatrix(num_classes, normalized=False, device=available_device)
+        assert mlcm._device == torch.device(available_device)
         targets = torch.randint(0, 2, size=(int(num_samples / batch_size), batch_size, num_classes, size_3d, size_4d))
         predictions = torch.randint(
             0, 2, size=(int(num_samples / batch_size), batch_size, num_classes, size_3d, size_4d)
@@ -333,7 +343,8 @@ def test_simple_batched():
 
     size_5d = 4
     for _ in range(num_iters):  # 5D tests
-        mlcm = MultiLabelConfusionMatrix(num_classes, normalized=False)
+        mlcm = MultiLabelConfusionMatrix(num_classes, normalized=False, device=available_device)
+        assert mlcm._device == torch.device(available_device)
         targets = torch.randint(
             0, 2, size=(int(num_samples / batch_size), batch_size, num_classes, size_3d, size_4d, size_5d)
         )
