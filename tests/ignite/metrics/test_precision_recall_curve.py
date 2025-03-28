@@ -28,14 +28,15 @@ def test_no_sklearn(mock_no_sklearn):
         pr_curve.compute()
 
 
-def test_precision_recall_curve():
+def test_precision_recall_curve(available_device):
     size = 100
     np_y_pred = np.random.rand(size, 1)
     np_y = np.zeros((size,))
     np_y[size // 2 :] = 1
     sk_precision, sk_recall, sk_thresholds = precision_recall_curve(np_y, np_y_pred)
 
-    precision_recall_curve_metric = PrecisionRecallCurve()
+    precision_recall_curve_metric = PrecisionRecallCurve(device=available_device)
+    assert precision_recall_curve_metric._device == torch.device(available_device)
     y_pred = torch.from_numpy(np_y_pred)
     y = torch.from_numpy(np_y)
 
@@ -51,7 +52,7 @@ def test_precision_recall_curve():
     np.testing.assert_array_almost_equal(thresholds, sk_thresholds)
 
 
-def test_integration_precision_recall_curve_with_output_transform():
+def test_integration_precision_recall_curve_with_output_transform(available_device):
     np.random.seed(1)
     size = 100
     np_y_pred = np.random.rand(size, 1)
@@ -71,7 +72,10 @@ def test_integration_precision_recall_curve_with_output_transform():
 
     engine = Engine(update_fn)
 
-    precision_recall_curve_metric = PrecisionRecallCurve(output_transform=lambda x: (x[1], x[2]))
+    precision_recall_curve_metric = PrecisionRecallCurve(
+        output_transform=lambda x: (x[1], x[2]), device=available_device
+    )
+    assert precision_recall_curve_metric._device == torch.device(available_device)
     precision_recall_curve_metric.attach(engine, "precision_recall_curve")
 
     data = list(range(size // batch_size))
@@ -85,7 +89,7 @@ def test_integration_precision_recall_curve_with_output_transform():
     np.testing.assert_array_almost_equal(thresholds, sk_thresholds)
 
 
-def test_integration_precision_recall_curve_with_activated_output_transform():
+def test_integration_precision_recall_curve_with_activated_output_transform(available_device):
     np.random.seed(1)
     size = 100
     np_y_pred = np.random.rand(size, 1)
@@ -106,7 +110,10 @@ def test_integration_precision_recall_curve_with_activated_output_transform():
 
     engine = Engine(update_fn)
 
-    precision_recall_curve_metric = PrecisionRecallCurve(output_transform=lambda x: (torch.sigmoid(x[1]), x[2]))
+    precision_recall_curve_metric = PrecisionRecallCurve(
+        output_transform=lambda x: (torch.sigmoid(x[1]), x[2]), device=available_device
+    )
+    assert precision_recall_curve_metric._device == torch.device(available_device)
     precision_recall_curve_metric.attach(engine, "precision_recall_curve")
 
     data = list(range(size // batch_size))
@@ -121,19 +128,21 @@ def test_integration_precision_recall_curve_with_activated_output_transform():
     np.testing.assert_array_almost_equal(thresholds, sk_thresholds)
 
 
-def test_check_compute_fn():
+def test_check_compute_fn(available_device):
     y_pred = torch.zeros((8, 13))
     y_pred[:, 1] = 1
     y_true = torch.zeros_like(y_pred)
     output = (y_pred, y_true)
 
-    em = PrecisionRecallCurve(check_compute_fn=True)
+    em = PrecisionRecallCurve(check_compute_fn=True, device=available_device)
+    assert em._device == torch.device(available_device)
 
     em.reset()
     with pytest.warns(EpochMetricWarning, match=r"Probably, there can be a problem with `compute_fn`"):
         em.update(output)
 
-    em = PrecisionRecallCurve(check_compute_fn=False)
+    em = PrecisionRecallCurve(check_compute_fn=False, device=available_device)
+    assert em._device == torch.device(available_device)
     em.update(output)
 
 
