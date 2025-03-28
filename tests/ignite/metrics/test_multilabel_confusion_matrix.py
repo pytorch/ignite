@@ -220,16 +220,16 @@ def test_simple_2D_input(available_device):
     for _ in range(num_iters):
         target = torch.randint(0, 2, size=(num_samples, num_classes))
         prediction = torch.randint(0, 2, size=(num_samples, num_classes))
-        sklearn_CM = multilabel_confusion_matrix(target.numpy(), prediction.numpy())
+        sklearn_CM = multilabel_confusion_matrix(target.cpu().numpy(), prediction.cpu().numpy())
         mlcm = MultiLabelConfusionMatrix(num_classes, normalized=False, device=available_device)
         assert mlcm._device == torch.device(available_device)
         mlcm.update([prediction, target])
-        ignite_CM = mlcm.compute().numpy()
+        ignite_CM = mlcm.compute().cpu().numpy()
         assert np.all(sklearn_CM.astype(np.int64) == ignite_CM.astype(np.int64))
         mlcm = MultiLabelConfusionMatrix(num_classes, normalized=True, device=available_device)
         assert mlcm._device == torch.device(available_device)
         mlcm.update([prediction, target])
-        ignite_CM_normalized = mlcm.compute().numpy()
+        ignite_CM_normalized = mlcm.compute().cpu().numpy()
         sklearn_CM_normalized = sklearn_CM / sklearn_CM.sum(axis=(1, 2))[:, None, None]
         assert np.allclose(sklearn_CM_normalized, ignite_CM_normalized)
 
@@ -247,10 +247,10 @@ def test_simple_ND_input(available_device):
         mlcm = MultiLabelConfusionMatrix(num_classes, normalized=False, device=available_device)
         assert mlcm._device == torch.device(available_device)
         mlcm.update([prediction, target])
-        ignite_CM = mlcm.compute().numpy()
+        ignite_CM = mlcm.compute().cpu().numpy()
         target_reshaped = target.permute(0, 2, 1).reshape(size_3d * num_samples, num_classes)
         prediction_reshaped = prediction.permute(0, 2, 1).reshape(size_3d * num_samples, num_classes)
-        sklearn_CM = multilabel_confusion_matrix(target_reshaped.numpy(), prediction_reshaped.numpy())
+        sklearn_CM = multilabel_confusion_matrix(target_reshaped.cpu().numpy(), prediction_reshaped.cpu().numpy())
         assert np.all(sklearn_CM.astype(np.int64) == ignite_CM.astype(np.int64))
 
     size_4d = 4
@@ -260,10 +260,10 @@ def test_simple_ND_input(available_device):
         mlcm = MultiLabelConfusionMatrix(num_classes, normalized=False, device=available_device)
         assert mlcm._device == torch.device(available_device)
         mlcm.update([prediction, target])
-        ignite_CM = mlcm.compute().numpy()
+        ignite_CM = mlcm.compute().cpu().numpy()
         target_reshaped = target.permute(0, 2, 3, 1).reshape(size_3d * size_4d * num_samples, num_classes)
         prediction_reshaped = prediction.permute(0, 2, 3, 1).reshape(size_3d * size_4d * num_samples, num_classes)
-        sklearn_CM = multilabel_confusion_matrix(target_reshaped.numpy(), prediction_reshaped.numpy())
+        sklearn_CM = multilabel_confusion_matrix(target_reshaped.cpu().numpy(), prediction_reshaped.cpu().numpy())
         assert np.all(sklearn_CM.astype(np.int64) == ignite_CM.astype(np.int64))
 
     size_5d = 4
@@ -273,12 +273,12 @@ def test_simple_ND_input(available_device):
         mlcm = MultiLabelConfusionMatrix(num_classes, normalized=False, device=available_device)
         assert mlcm._device == torch.device(available_device)
         mlcm.update([prediction, target])
-        ignite_CM = mlcm.compute().numpy()
+        ignite_CM = mlcm.compute().cpu().numpy()
         target_reshaped = target.permute(0, 2, 3, 4, 1).reshape(size_3d * size_4d * size_5d * num_samples, num_classes)
         prediction_reshaped = prediction.permute(0, 2, 3, 4, 1).reshape(
             size_3d * size_4d * size_5d * num_samples, num_classes
         )
-        sklearn_CM = multilabel_confusion_matrix(target_reshaped.numpy(), prediction_reshaped.numpy())
+        sklearn_CM = multilabel_confusion_matrix(target_reshaped.cpu().numpy(), prediction_reshaped.cpu().numpy())
         assert np.all(sklearn_CM.astype(np.int64) == ignite_CM.astype(np.int64))
 
 
@@ -299,10 +299,10 @@ def test_simple_batched(available_device):
             prediction_sample = predictions[i]
             mlcm.update([prediction_sample, target_sample])
 
-        ignite_CM = mlcm.compute().numpy()
+        ignite_CM = mlcm.compute().cpu().numpy()
         targets_reshaped = targets.reshape(-1, num_classes)
         predictions_reshaped = predictions.reshape(-1, num_classes)
-        sklearn_CM = multilabel_confusion_matrix(targets_reshaped.numpy(), predictions_reshaped.numpy())
+        sklearn_CM = multilabel_confusion_matrix(targets_reshaped.cpu().numpy(), predictions_reshaped.cpu().numpy())
         assert np.all(sklearn_CM.astype(np.int64) == ignite_CM.astype(np.int64))
 
     size_3d = 4
@@ -316,10 +316,10 @@ def test_simple_batched(available_device):
             prediction_sample = predictions[i]
             mlcm.update([prediction_sample, target_sample])
 
-        ignite_CM = mlcm.compute().numpy()
+        ignite_CM = mlcm.compute().cpu().numpy()
         targets_reshaped = targets.permute(0, 1, 3, 2).reshape(-1, num_classes)
         predictions_reshaped = predictions.permute(0, 1, 3, 2).reshape(-1, num_classes)
-        sklearn_CM = multilabel_confusion_matrix(targets_reshaped.numpy(), predictions_reshaped.numpy())
+        sklearn_CM = multilabel_confusion_matrix(targets_reshaped.cpu().numpy(), predictions_reshaped.cpu().numpy())
         assert np.all(sklearn_CM.astype(np.int64) == ignite_CM.astype(np.int64))
 
     size_4d = 4
@@ -335,10 +335,10 @@ def test_simple_batched(available_device):
             prediction_sample = predictions[i]
             mlcm.update([prediction_sample, target_sample])
 
-        ignite_CM = mlcm.compute().numpy()
+        ignite_CM = mlcm.compute().cpu().numpy()
         targets_reshaped = targets.permute(0, 1, 3, 4, 2).reshape(-1, num_classes)
         predictions_reshaped = predictions.permute(0, 1, 3, 4, 2).reshape(-1, num_classes)
-        sklearn_CM = multilabel_confusion_matrix(targets_reshaped.numpy(), predictions_reshaped.numpy())
+        sklearn_CM = multilabel_confusion_matrix(targets_reshaped.cpu().numpy(), predictions_reshaped.cpu().numpy())
         assert np.all(sklearn_CM.astype(np.int64) == ignite_CM.astype(np.int64))
 
     size_5d = 4
@@ -356,10 +356,10 @@ def test_simple_batched(available_device):
             prediction_sample = predictions[i]
             mlcm.update([prediction_sample, target_sample])
 
-        ignite_CM = mlcm.compute().numpy()
+        ignite_CM = mlcm.compute().cpu().numpy()
         targets_reshaped = targets.permute(0, 1, 3, 4, 5, 2).reshape(-1, num_classes)
         predictions_reshaped = predictions.permute(0, 1, 3, 4, 5, 2).reshape(-1, num_classes)
-        sklearn_CM = multilabel_confusion_matrix(targets_reshaped.numpy(), predictions_reshaped.numpy())
+        sklearn_CM = multilabel_confusion_matrix(targets_reshaped.cpu().numpy(), predictions_reshaped.cpu().numpy())
         assert np.all(sklearn_CM.astype(np.int64) == ignite_CM.astype(np.int64))
 
 
