@@ -14,6 +14,13 @@ from ignite.metrics.epoch_metric import EpochMetricWarning
 from ignite.metrics.precision_recall_curve import PrecisionRecallCurve
 
 
+def to_tensor(x, device):
+    t = torch.from_numpy(x)
+    if device == torch.device("mps"):
+        t = t.float()
+    return t.to(device)
+
+
 @pytest.fixture()
 def mock_no_sklearn():
     with patch.dict("sys.modules", {"sklearn.metrics": None}):
@@ -37,8 +44,8 @@ def test_precision_recall_curve(available_device):
 
     precision_recall_curve_metric = PrecisionRecallCurve(device=available_device)
     assert precision_recall_curve_metric._device == torch.device(available_device)
-    y_pred = torch.from_numpy(np_y_pred)
-    y = torch.from_numpy(np_y)
+    y_pred = to_tensor(np_y_pred, available_device)
+    y = to_tensor(np_y, available_device)
 
     precision_recall_curve_metric.update((y_pred, y))
     precision, recall, thresholds = precision_recall_curve_metric.compute()
@@ -68,7 +75,7 @@ def test_integration_precision_recall_curve_with_output_transform(available_devi
         idx = (engine.state.iteration - 1) * batch_size
         y_true_batch = np_y[idx : idx + batch_size]
         y_pred_batch = np_y_pred[idx : idx + batch_size]
-        return idx, torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+        return idx, to_tensor(y_pred_batch, available_device), to_tensor(y_true_batch, available_device)
 
     engine = Engine(update_fn)
 
@@ -93,7 +100,7 @@ def test_integration_precision_recall_curve_with_activated_output_transform(avai
     np.random.seed(1)
     size = 100
     np_y_pred = np.random.rand(size, 1)
-    np_y_pred_sigmoid = torch.sigmoid(torch.from_numpy(np_y_pred)).numpy()
+    np_y_pred_sigmoid = torch.sigmoid(to_tensor(np_y_pred, available_device)).numpy()
     np_y = np.zeros((size,))
     np_y[size // 2 :] = 1
     np.random.shuffle(np_y)
@@ -106,7 +113,7 @@ def test_integration_precision_recall_curve_with_activated_output_transform(avai
         idx = (engine.state.iteration - 1) * batch_size
         y_true_batch = np_y[idx : idx + batch_size]
         y_pred_batch = np_y_pred[idx : idx + batch_size]
-        return idx, torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+        return idx, to_tensor(y_pred_batch, available_device), to_tensor(y_true_batch, available_device)
 
     engine = Engine(update_fn)
 
