@@ -40,6 +40,7 @@ def test_precision_recall_curve(available_device):
 
     precision_recall_curve_metric.update((y_pred, y_true))
     precision, recall, thresholds = precision_recall_curve_metric.compute()
+    # float32 ensures compatibility with MPS
     precision = precision.cpu().float().numpy()
     recall = recall.cpu().float().numpy()
     thresholds = thresholds.cpu().float().numpy()
@@ -80,6 +81,7 @@ def test_integration_precision_recall_curve_with_output_transform(available_devi
 
     data = list(range(size // batch_size))
     precision, recall, thresholds = engine.run(data, max_epochs=1).metrics["precision_recall_curve"]
+    # float32 ensures compatibility with MPS
     precision = precision.cpu().float().numpy()
     recall = recall.cpu().float().numpy()
     thresholds = thresholds.cpu().float().numpy()
@@ -120,6 +122,7 @@ def test_integration_precision_recall_curve_with_activated_output_transform(avai
 
     data = list(range(size // batch_size))
     precision, recall, thresholds = engine.run(data, max_epochs=1).metrics["precision_recall_curve"]
+    # float32 ensures compatibility with MPS
     precision = precision.cpu().float().numpy()
     recall = recall.cpu().float().numpy()
     thresholds = thresholds.cpu().float().numpy()
