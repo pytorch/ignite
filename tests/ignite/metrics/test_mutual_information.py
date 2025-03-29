@@ -51,8 +51,9 @@ def test_case(request):
 
 
 @pytest.mark.parametrize("n_times", range(5))
-def test_compute(n_times, test_case: Tuple[Tensor, Tensor, int]):
-    mi = MutualInformation()
+def test_compute(n_times, test_case: Tuple[Tensor, Tensor, int], available_device):
+    mi = MutualInformation(device=available_device)
+    assert mi._device == torch.device(available_device)
 
     y_pred, y, batch_size = test_case
 
@@ -72,8 +73,9 @@ def test_compute(n_times, test_case: Tuple[Tensor, Tensor, int]):
     assert pytest.approx(np_res, rel=1e-4) == res
 
 
-def test_accumulator_detached():
-    mi = MutualInformation()
+def test_accumulator_detached(available_device):
+    mi = MutualInformation(device=available_device)
+    assert mi._device == torch.device(available_device)
 
     y_pred = torch.tensor([[2.0, 3.0], [-2.0, -1.0]], requires_grad=True)
     y = torch.zeros(2)
