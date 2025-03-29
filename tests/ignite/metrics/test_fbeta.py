@@ -22,7 +22,7 @@ def test_wrong_inputs():
 
     with pytest.raises(ValueError, match=r"Input recall metric should have average=False"):
         r = Recall(average="samples")
-        Fbeta(1.0, recall=r)
+        Fbeta(1.0, recall=r, device=torch.device("cpu"))
 
     with pytest.raises(ValueError, match=r"If precision argument is provided, output_transform should be None"):
         p = Precision(average=False)
@@ -95,9 +95,8 @@ def test_integration(precision_cls, recall_cls, average, output_transform, avail
 
     evaluator = Engine(update_fn)
 
-    f2 = Fbeta(
-        beta=2.0, average=average, precision=p, recall=r, output_transform=output_transform, device=available_device
-    )
+    device = None if p is not None and r is not None else available_device
+    f2 = Fbeta(beta=2.0, average=average, precision=p, recall=r, output_transform=output_transform, device=device)
 
     f2.attach(evaluator, "f2")
 

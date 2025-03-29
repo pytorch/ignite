@@ -15,7 +15,7 @@ def Fbeta(
     precision: Optional[Precision] = None,
     recall: Optional[Recall] = None,
     output_transform: Optional[Callable] = None,
-    device: Union[str, torch.device] = torch.device("cpu"),
+    device: Union[str, torch.device] = None,
 ) -> MetricsLambda:
     r"""Calculates F-beta score.
 
@@ -148,6 +148,9 @@ def Fbeta(
 
     if recall is not None and output_transform is not None:
         raise ValueError("If recall argument is provided, output_transform should be None")
+
+    if recall is not None and precision is not None and device is not None:
+        raise ValueError("If recall and precision arguments are provided, device should be None")
 
     if precision is None:
         precision = Precision(
