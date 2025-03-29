@@ -20,9 +20,9 @@ def test_wrong_inputs():
         p = Precision(average="micro")
         Fbeta(1.0, precision=p)
 
-    with pytest.raises(ValueError, match=r"Input recall metric should have average=False"):
+    with pytest.raises(TypeError, match=r"device\(\) received an invalid combination of arguments"):
         r = Recall(average="samples")
-        Fbeta(1.0, recall=r, device=torch.device("cpu"))
+        Fbeta(1.0, recall=r)
 
     with pytest.raises(ValueError, match=r"If precision argument is provided, output_transform should be None"):
         p = Precision(average=False)
