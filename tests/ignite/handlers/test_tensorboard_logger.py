@@ -170,6 +170,36 @@ def test_output_handler_metric_names():
         [call("tag/a", torch.tensor(12.23).item(), 5), call("tag/b", torch.tensor(23.45).item(), 5)], any_order=True
     )
 
+    wrapper = OutputHandler("tag", metric_names="all")
+    mock_logger = MagicMock(spec=TensorboardLogger)
+    mock_logger.writer = MagicMock()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State(
+        metrics={
+            "a": 123,
+            "b": {"c": [2.34, {"d": 1}]},
+            "c": (22, [33, -5.5], {"e": 32.1}),
+        }
+    )
+    mock_engine.state.iteration = 5
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+    assert mock_logger.writer.add_scalar.call_count == 7
+    mock_logger.writer.add_scalar.assert_has_calls(
+        [
+            call("tag/a", 123, 5),
+            call("tag/b/c/0", 2.34, 5),
+            call("tag/b/c/1/d", 1, 5),
+            call("tag/c/0", 22, 5),
+            call("tag/c/1/0", 33, 5),
+            call("tag/c/1/1", -5.5, 5),
+            call("tag/c/2/e", 32.1, 5),
+        ],
+        any_order=True,
+    )
+
 
 def test_output_handler_both():
     wrapper = OutputHandler("tag", metric_names=["a", "b"], output_transform=lambda x: {"loss": x})
