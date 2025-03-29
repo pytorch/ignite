@@ -1,5 +1,6 @@
 """Base logger and its helper handlers."""
 
+import collections.abc as collections
 import numbers
 import warnings
 from abc import ABCMeta, abstractmethod
@@ -145,28 +146,62 @@ class BaseOutputHandler(BaseHandler):
 
         metrics_state_attrs_dict: Dict[Any, Union[str, float, numbers.Number]] = OrderedDict()
 
-        def key_tuple_tf(tag: str, name: str, *args: str) -> Tuple[str, ...]:
-            return (tag, name) + args
+        def key_tuple_fn(parent_key: Union[str, Tuple[str, ...]], *args: str) -> Tuple[str, ...]:
+            if parent_key is None or isinstance(parent_key, str):
+                return (parent_key,) + args
+            return parent_key + args
 
-        def key_str_tf(tag: str, name: str, *args: str) -> str:
-            return "/".join((tag, name) + args)
+        def key_str_fn(parent_key: str, *args: str) -> str:
+            args_str = "/".join(args)
+            return f"{parent_key}/{args_str}"
 
-        key_tf = key_tuple_tf if key_tuple else key_str_tf
+        key_fn = key_tuple_fn if key_tuple else key_str_fn
 
-        for name, value in metrics_state_attrs.items():
+        def handle_value_fn(
+            value: Union[str, int, float, numbers.Number, torch.Tensor]
+        ) -> Union[None, str, float, numbers.Number]:
             if isinstance(value, numbers.Number):
-                metrics_state_attrs_dict[key_tf(self.tag, name)] = value
+                return value
             elif isinstance(value, torch.Tensor) and value.ndimension() == 0:
-                metrics_state_attrs_dict[key_tf(self.tag, name)] = value.item()
-            elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
-                for i, v in enumerate(value):
-                    metrics_state_attrs_dict[key_tf(self.tag, name, str(i))] = v.item()
+                return value.item()
             else:
                 if isinstance(value, str) and log_text:
-                    metrics_state_attrs_dict[key_tf(self.tag, name)] = value
+                    return value
                 else:
                     warnings.warn(f"Logger output_handler can not log metrics value type {type(value)}")
+            return None
+
+        metrics_state_attrs_dict = _flatten_dict(metrics_state_attrs, key_fn, handle_value_fn, parent_key=self.tag)
         return metrics_state_attrs_dict
+
+
+def _flatten_dict(
+    in_dict: collections.Mapping,
+    key_fn: Callable,
+    value_fn: Callable,
+    parent_key: Optional[Union[str, Tuple[str, ...]]] = None,
+) -> Dict:
+    items = {}
+    for key, value in in_dict.items():
+        new_key = key_fn(parent_key, key)
+        if isinstance(value, collections.Mapping):
+            items.update(_flatten_dict(value, key_fn, value_fn, new_key))
+        elif any(
+            [
+                isinstance(value, tuple) and hasattr(value, "_fields"),  # namedtuple
+                not isinstance(value, str) and isinstance(value, collections.Sequence),
+            ]
+        ):
+            for i, item in enumerate(value):
+                items.update(_flatten_dict({str(i): item}, key_fn, value_fn, new_key))
+        elif isinstance(value, torch.Tensor) and value.ndimension() == 1:
+            for i, item in enumerate(value):
+                items.update(_flatten_dict({str(i): item.item()}, key_fn, value_fn, new_key))
+        else:
+            new_value = value_fn(value)
+            if new_value is not None:
+                items[new_key] = new_value
+    return items
 
 
 class BaseWeightsScalarHandler(BaseWeightsHandler):

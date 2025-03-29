@@ -109,6 +109,13 @@ class ClearMLLogger(BaseLogger):
                 log_handler=WeightsScalarHandler(model)
             )
 
+    Note:
+        :class:`~ignite.handlers.clearml_logger.OutputHandler` can handle
+        metrics, state attributes and engine output values of the following format:
+        - scalar values (i.e. int, float)
+        - 0d and 1d pytorch tensors
+        - dicts and list/tuples of previous types
+
     """
 
     def __init__(self, **kwargs: Any):
@@ -342,9 +349,10 @@ class OutputHandler(BaseOutputHandler):
         for key, value in metrics.items():
             if len(key) == 2:
                 logger.clearml_logger.report_scalar(title=key[0], series=key[1], iteration=global_step, value=value)
-            elif len(key) == 3:
+            elif len(key) >= 3:
+                series = "/".join(key[2:])
                 logger.clearml_logger.report_scalar(
-                    title=f"{key[0]}/{key[1]}", series=key[2], iteration=global_step, value=value
+                    title=f"{key[0]}/{key[1]}", series=series, iteration=global_step, value=value
                 )
 
 

@@ -137,6 +137,13 @@ class VisdomLogger(BaseLogger):
                     output_transform=lambda loss: {"loss": loss}
                 )
 
+    Note:
+        :class:`~ignite.handlers.visdom_logger.OutputHandler` can handle
+        metrics, state attributes and engine output values of the following format:
+        - scalar values (i.e. int, float)
+        - 0d and 1d pytorch tensors
+        - dicts and list/tuples of previous types
+
     .. versionchanged:: 0.4.7
         accepts an optional list of `state_attributes`
     """

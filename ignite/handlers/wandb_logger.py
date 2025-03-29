@@ -120,6 +120,12 @@ class WandBLogger(BaseLogger):
             )
             evaluator.add_event_handler(Events.COMPLETED, model_checkpoint, {'model': model})
 
+    Note:
+        :class:`~ignite.handlers.wandb_logger.OutputHandler` can handle
+        metrics, state attributes and engine output values of the following format:
+        - scalar values (i.e. int, float)
+        - 0d and 1d pytorch tensors
+        - dicts and list/tuples of previous types
 
     """
 
