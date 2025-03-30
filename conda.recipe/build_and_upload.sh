@@ -20,11 +20,12 @@ fi
 
 set -xeu
 
-conda install -y conda-build conda-verify anaconda-client
+conda install -y conda-build conda-verify anaconda-client conda-package-handling
 conda config --set anaconda_upload no
 
-conda build --no-test --output-folder conda_build conda.recipe -c pytorch
+conda build --no-test --output-folder conda_build conda.recipe -c pytorch --package-format 1
+cph transmute $(ls conda_build/*/*.tar.bz2) .conda
 
 # Upload to Anaconda
 conda config --set anaconda_upload yes
-ls conda_build/*/*.tar.bz2 | xargs -I {} anaconda -v -t $ANACONDA_TOKEN upload -u $UPLOAD_USER {}
+ls conda_build/*/*.{conda,tar.bz2} | xargs -I {} anaconda -v -t $ANACONDA_TOKEN upload -u $UPLOAD_USER {}
