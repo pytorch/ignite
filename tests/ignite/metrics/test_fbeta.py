@@ -20,7 +20,7 @@ def test_wrong_inputs():
         p = Precision(average="micro")
         Fbeta(1.0, precision=p)
 
-    with pytest.raises(TypeError, match=r"device\(\) received an invalid combination of arguments"):
+    with pytest.raises(ValueError, match=r"Input recall metric should have average=False"):
         r = Recall(average="samples")
         Fbeta(1.0, recall=r)
 

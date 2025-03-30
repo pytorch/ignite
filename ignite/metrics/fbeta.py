@@ -155,11 +155,14 @@ def Fbeta(
         if device is not None:
             raise ValueError("If recall argument is provided, device should be None")
 
+    if precision is None and recall is None and device is None:
+        device = torch.device("cpu")
+
     if precision is None:
         precision = Precision(
             output_transform=(lambda x: x) if output_transform is None else output_transform,
             average=False,
-            device=device,
+            device=recall._device if recall else device,
         )
     elif precision._average:
         raise ValueError("Input precision metric should have average=False")
@@ -168,7 +171,7 @@ def Fbeta(
         recall = Recall(
             output_transform=(lambda x: x) if output_transform is None else output_transform,
             average=False,
-            device=device,
+            device=precision._device if precision else device,
         )
     elif recall._average:
         raise ValueError("Input recall metric should have average=False")
