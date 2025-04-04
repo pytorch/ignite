@@ -362,7 +362,7 @@ class Metric(Serializable, metaclass=ABCMeta):
         skip_unrolling: bool = False,
     ):
         if not callable(output_transform):
-            raise TypeError("Argument output_transform should be callable, " f"got {type(output_transform)}")
+            raise TypeError(f"Argument output_transform should be callable, got {type(output_transform)}")
         self._output_transform = output_transform
 
         # Some metrics have a large performance regression when run on XLA devices, so for now, we disallow it.
