@@ -1279,6 +1279,44 @@ class TestEngine:
         assert engine.state.epoch == 10
         assert engine.state.iteration == 10 * real_epoch_length
 
+    def test_iterator_state_output(self):
+        torch.manual_seed(12)
+
+        def finite_iterator(length, batch_size):
+            for _ in range(length):
+                batch = torch.rand(batch_size, 3, 32, 32)
+                yield batch
+
+        def train_step(trainer, batch):
+            s = trainer.state
+            print(f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch.norm():.3f}")
+            return "flag_value"
+
+        trainer = Engine(train_step)
+        trainer.run(finite_iterator(4, 4), max_epochs=2)
+
+        assert trainer.state.output == "flag_value"
+        assert trainer.state.epoch == 2
+        # assert trainer.state.iteration == 2*4
+
+    def test_map_state_output(self):
+        torch.manual_seed(12)
+
+        batch_size = 4
+        finite_map = [torch.rand(batch_size, 3, 32, 32) for _ in range(4)]
+
+        def train_step(trainer, batch):
+            s = trainer.state
+            print(f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch.norm():.3f}")
+            return "flag_value"
+
+        trainer = Engine(train_step)
+        trainer.run(finite_map, max_epochs=2)
+
+        assert trainer.state.output == "flag_value"
+        assert trainer.state.epoch == 2
+        assert trainer.state.iteration == 2 * 4
+
 
 @pytest.mark.parametrize(
     "interrupt_event, e, i",
