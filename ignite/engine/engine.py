@@ -1069,7 +1069,7 @@ class Engine(Serializable):
                 )
 
             while True:
-                self.state.batch = self.state.output = None
+                self.state.batch = None
 
                 try:
                     # Avoid Events.GET_BATCH_STARTED triggered twice when data iter is restarted
@@ -1254,7 +1254,7 @@ class Engine(Serializable):
                 )
 
             while True:
-                self.state.batch = self.state.output = None
+                self.state.batch = None
                 try:
                     # Avoid Events.GET_BATCH_STARTED triggered twice when data iter is restarted
                     if self.last_event_name != Events.DATALOADER_STOP_ITERATION:
