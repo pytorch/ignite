@@ -1468,3 +1468,20 @@ def test_access_to_metric_dunder_attributes():
 
     # `inspect.signature` accesses `__signature__` attribute of the metric.
     assert "value" in inspect.signature(metric).parameters.keys()
+
+class DummyMetric7(Metric):
+    def reset(self):
+        pass
+
+    def compute(self):
+        pass
+
+    def update(self, output):
+        pass
+
+    def __call__(self, value):
+        pass
+
+def test_output_transform():
+    with pytest.raises(TypeError, match="Argument output_transform should be callable"):
+        DummyMetric7(output_transform=1)

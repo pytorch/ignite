@@ -42,5 +42,6 @@ coverage.xml
 /docs/source/generated/
 
 # Virtualenv
+venv/
 .venv/
 .python-version
