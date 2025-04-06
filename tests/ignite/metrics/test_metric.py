@@ -1468,3 +1468,10 @@ def test_access_to_metric_dunder_attributes():
 
     # `inspect.signature` accesses `__signature__` attribute of the metric.
     assert "value" in inspect.signature(metric).parameters.keys()
+
+
+def test_output_transform_type_check():
+    y_pred = torch.tensor([[2.0], [-2.0]])
+    y = torch.zeros(2)
+    with pytest.raises(TypeError, match="Argument output_transform should be callable"):
+        DummyMetric1(true_output=(y_pred, y), output_transform=1)
