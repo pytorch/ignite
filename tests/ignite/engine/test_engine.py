@@ -1282,10 +1282,8 @@ class TestEngine:
     def test_iterator_state_output(self):
         torch.manual_seed(12)
 
-        def finite_iterator(length, batch_size):
-            for _ in range(length):
-                batch = torch.rand(batch_size, 3, 32, 32)
-                yield batch
+        batch_size = 4
+        finite_map = [torch.rand(batch_size, 3, 32, 32) for _ in range(4)]
 
         def train_step(trainer, batch):
             s = trainer.state
@@ -1293,11 +1291,12 @@ class TestEngine:
             return "flag_value"
 
         trainer = Engine(train_step)
-        trainer.run(finite_iterator(4, 4), max_epochs=2)
+        trainer.run(iter(finite_map), max_epochs=2)
 
         assert trainer.state.output == "flag_value"
         assert trainer.state.epoch == 2
-        # assert trainer.state.iteration == 2*4
+        # We don't reset the iterator so only 1 epoch runs
+        assert trainer.state.iteration == 1 * 4
 
     def test_map_state_output(self):
         torch.manual_seed(12)
