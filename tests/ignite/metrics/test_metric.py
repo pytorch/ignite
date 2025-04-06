@@ -1470,17 +1470,8 @@ def test_access_to_metric_dunder_attributes():
     assert "value" in inspect.signature(metric).parameters.keys()
 
 
-class DummyMetric7(Metric):
-    def reset(self):
-        pass
-
-    def update(self):
-        pass
-
-    def compute(self):
-        pass
-
-
 def test_output_transform_type_check():
+    y_pred = torch.tensor([[2.0], [-2.0]])
+    y = torch.zeros(2)
     with pytest.raises(TypeError, match="Argument output_transform should be callable"):
-        DummyMetric7(output_transform=1)
+        DummyMetric1(true_output=(y_pred, y), output_transform=1)
