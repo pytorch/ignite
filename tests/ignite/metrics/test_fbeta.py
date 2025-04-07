@@ -38,25 +38,44 @@ def _output_transform(output):
 
 
 @pytest.mark.parametrize(
-    "p, r, average, output_transform",
+    "precision_cls, recall_cls, average, output_transform",
     [
         (None, None, False, None),
         (None, None, True, None),
         (None, None, False, _output_transform),
         (None, None, True, _output_transform),
-        (Precision(average=False), Recall(average=False), False, None),
-        (Precision(average=False), Recall(average=False), True, None),
+        (
+            lambda device: Precision(average=False, device=device),
+            lambda device: Recall(average=False, device=device),
+            False,
+            None,
+        ),
+        (
+            lambda device: Precision(average=False, device=device),
+            lambda device: Recall(average=False, device=device),
+            True,
+            None,
+        ),
     ],
 )
-def test_integration(p, r, average, output_transform):
-    np.random.seed(1)
+def test_integration(precision_cls, recall_cls, average, output_transform, available_device):
+    if precision_cls is None:
+        p = None
+    else:
+        p = precision_cls(available_device)
+        assert p._device == torch.device(available_device)
+    if recall_cls is None:
+        r = None
+    else:
+        r = recall_cls(available_device)
+        assert r._device == torch.device(available_device)
 
     n_iters = 10
     batch_size = 10
     n_classes = 10
 
-    y_true = np.arange(0, n_iters * batch_size, dtype="int64") % n_classes
-    y_pred = 0.2 * np.random.rand(n_iters * batch_size, n_classes)
+    y_true = torch.arange(n_iters * batch_size, dtype=torch.long, device=available_device) % n_classes
+    y_pred = 0.2 * torch.rand(n_iters * batch_size, n_classes, device=available_device)
     for i in range(n_iters * batch_size):
         if np.random.rand() > 0.4:
             y_pred[i, y_true[i]] = 1.0
@@ -71,12 +90,14 @@ def test_integration(p, r, average, output_transform):
         y_true_batch = next(y_true_batch_values)
         y_pred_batch = next(y_pred_batch_values)
         if output_transform is not None:
-            return {"y_pred": torch.from_numpy(y_pred_batch), "y": torch.from_numpy(y_true_batch)}
-        return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+            return {"y_pred": y_pred_batch, "y": y_true_batch}
+        return y_pred_batch, y_true_batch
 
     evaluator = Engine(update_fn)
 
-    f2 = Fbeta(beta=2.0, average=average, precision=p, recall=r, output_transform=output_transform)
+    device = None if p is not None and r is not None else available_device
+    f2 = Fbeta(beta=2.0, average=average, precision=p, recall=r, output_transform=output_transform, device=device)
+
     f2.attach(evaluator, "f2")
 
     data = list(range(n_iters))
