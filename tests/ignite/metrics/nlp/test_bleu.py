@@ -107,8 +107,9 @@ def test_micro_bleu_smooth2(candidates, references):
     _test(candidates, references, "micro", "smooth2", SmoothingFunction().method2, 3)
 
 
-def test_accumulation_macro_bleu():
-    bleu = Bleu(ngram=4, smooth="smooth2")
+def test_accumulation_macro_bleu(available_device):
+    bleu = Bleu(ngram=4, smooth="smooth2", device=available_device)
+    assert bleu._device == torch.device(available_device)
     bleu.update(([corpus.cand_1], [corpus.references_1]))
     bleu.update(([corpus.cand_2a], [corpus.references_2]))
     bleu.update(([corpus.cand_2b], [corpus.references_2]))
@@ -120,8 +121,9 @@ def test_accumulation_macro_bleu():
     assert bleu.compute() == value / 4
 
 
-def test_accumulation_micro_bleu():
-    bleu = Bleu(ngram=4, smooth="smooth2", average="micro")
+def test_accumulation_micro_bleu(available_device):
+    bleu = Bleu(ngram=4, smooth="smooth2", average="micro", device=available_device)
+    assert bleu._device == torch.device(available_device)
     bleu.update(([corpus.cand_1], [corpus.references_1]))
     bleu.update(([corpus.cand_2a], [corpus.references_2]))
     bleu.update(([corpus.cand_2b], [corpus.references_2]))
@@ -133,8 +135,9 @@ def test_accumulation_micro_bleu():
     assert bleu.compute() == value
 
 
-def test_bleu_batch_macro():
-    bleu = Bleu(ngram=4)
+def test_bleu_batch_macro(available_device):
+    bleu = Bleu(ngram=4, device=available_device)
+    assert bleu._device == torch.device(available_device)
 
     # Batch size 3
     hypotheses = [corpus.cand_1, corpus.cand_2a, corpus.cand_2b]
@@ -162,8 +165,9 @@ def test_bleu_batch_macro():
     assert pytest.approx(ref_2) == reference_bleu_score
 
 
-def test_bleu_batch_micro():
-    bleu = Bleu(ngram=4, average="micro")
+def test_bleu_batch_micro(available_device):
+    bleu = Bleu(ngram=4, average="micro", device=available_device)
+    assert bleu._device == torch.device(available_device)
 
     # Batch size 3
     hypotheses = [corpus.cand_1, corpus.cand_2a, corpus.cand_2b]
@@ -187,8 +191,10 @@ def test_bleu_batch_micro():
         (corpus.cand_1, corpus.references_1),
     ],
 )
-def test_n_gram_counter(candidates, references):
-    bleu = Bleu(ngram=4)
+def test_n_gram_counter(candidates, references, available_device):
+    bleu = Bleu(ngram=4, device=available_device)
+    assert bleu._device == torch.device(available_device)
+
     hyp_length, ref_length = bleu._n_gram_counter([references], [candidates], Counter(), Counter())
     assert hyp_length == len(candidates)
 
@@ -212,9 +218,9 @@ def _test_macro_distrib_integration(device):
     def update(_, i):
         return data[i + size * rank]
 
-    def _test(metric_device):
+    def _test(device):
         engine = Engine(update)
-        m = Bleu(ngram=4, smooth="smooth2")
+        m = Bleu(ngram=4, smooth="smooth2", device=device)
         m.attach(engine, "bleu")
 
         engine.run(data=list(range(size)), max_epochs=1)
@@ -256,7 +262,7 @@ def _test_micro_distrib_integration(device):
 
     def _test(metric_device):
         engine = Engine(update)
-        m = Bleu(ngram=4, smooth="smooth2", average="micro")
+        m = Bleu(ngram=4, smooth="smooth2", average="micro", device=metric_device)
         m.attach(engine, "bleu")
 
         engine.run(data=list(range(size)), max_epochs=1)
