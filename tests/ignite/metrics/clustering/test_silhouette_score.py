@@ -87,7 +87,7 @@ def test_case(request):
 
 
 @pytest.mark.parametrize("n_times", range(5))
-def test_integration(n_times: int, test_case: Tuple[Tensor, Tensor, Tensor]):
+def test_integration(n_times: int, test_case: Tuple[Tensor, Tensor, Tensor], available_device):
     features, labels, batch_size = test_case
 
     np_features = features.numpy()
@@ -101,7 +101,9 @@ def test_integration(n_times: int, test_case: Tuple[Tensor, Tensor, Tensor]):
 
     engine = Engine(update_fn)
 
-    m = SilhouetteScore()
+    m = SilhouetteScore(device=available_device)
+    assert m._device == torch.device(available_device)
+
     m.attach(engine, "silhouette")
 
     data = list(range(np_features.shape[0] // batch_size))
