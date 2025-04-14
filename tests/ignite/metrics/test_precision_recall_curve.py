@@ -45,6 +45,10 @@ def test_precision_recall_curve(available_device):
     recall = recall.cpu().float().numpy()
     thresholds = thresholds.cpu().float().numpy()
 
+    sk_precision = sk_precision.astype(np.float32)
+    sk_recall = sk_recall.astype(np.float32)
+    sk_thresholds = sk_thresholds.astype(np.float32)
+
     assert pytest.approx(precision) == sk_precision
     assert pytest.approx(recall) == sk_recall
     # assert thresholds almost equal, due to numpy->torch->numpy conversion
@@ -85,6 +89,11 @@ def test_integration_precision_recall_curve_with_output_transform(available_devi
     precision = precision.cpu().float().numpy()
     recall = recall.cpu().float().numpy()
     thresholds = thresholds.cpu().float().numpy()
+
+    sk_precision = sk_precision.astype(np.float32)
+    sk_recall = sk_recall.astype(np.float32)
+    sk_thresholds = sk_thresholds.astype(np.float32)
+
     assert pytest.approx(precision) == sk_precision
     assert pytest.approx(recall) == sk_recall
     # assert thresholds almost equal, due to numpy->torch->numpy conversion
@@ -126,6 +135,10 @@ def test_integration_precision_recall_curve_with_activated_output_transform(avai
     precision = precision.cpu().float().numpy()
     recall = recall.cpu().float().numpy()
     thresholds = thresholds.cpu().float().numpy()
+
+    sk_precision = sk_precision.astype(np.float32)
+    sk_recall = sk_recall.astype(np.float32)
+    sk_thresholds = sk_thresholds.astype(np.float32)
 
     assert pytest.approx(precision) == sk_precision
     assert pytest.approx(recall) == sk_recall
@@ -240,6 +253,10 @@ def _test_distrib_integration(device):
         np_y_preds = y_preds.cpu().numpy().ravel()
 
         sk_precision, sk_recall, sk_thresholds = precision_recall_curve(np_y_true, np_y_preds)
+
+        sk_precision = sk_precision.astype(np.float32)
+        sk_recall = sk_recall.astype(np.float32)
+        sk_thresholds = sk_thresholds.astype(np.float32)
 
         assert precision.shape == sk_precision.shape
         assert recall.shape == sk_recall.shape
