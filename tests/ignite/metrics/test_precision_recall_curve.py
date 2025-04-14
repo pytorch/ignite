@@ -40,10 +40,14 @@ def test_precision_recall_curve(available_device):
 
     precision_recall_curve_metric.update((y_pred, y_true))
     precision, recall, thresholds = precision_recall_curve_metric.compute()
-    # float32 ensures compatibility with MPS
-    precision = precision.cpu().float().numpy()
-    recall = recall.cpu().float().numpy()
-    thresholds = thresholds.cpu().float().numpy()
+
+    # Ensure compatibility with MPS by converting to float32 NumPy arrays
+    if isinstance(precision, torch.Tensor):
+        precision = precision.cpu().float().numpy()
+    if isinstance(recall, torch.Tensor):
+        recall = recall.cpu().float().numpy()
+    if isinstance(thresholds, torch.Tensor):
+        thresholds = thresholds.cpu().float().numpy()
 
     sk_precision = sk_precision.astype(np.float32)
     sk_recall = sk_recall.astype(np.float32)
@@ -85,10 +89,13 @@ def test_integration_precision_recall_curve_with_output_transform(available_devi
 
     data = list(range(size // batch_size))
     precision, recall, thresholds = engine.run(data, max_epochs=1).metrics["precision_recall_curve"]
-    # float32 ensures compatibility with MPS
-    precision = precision.cpu().float().numpy()
-    recall = recall.cpu().float().numpy()
-    thresholds = thresholds.cpu().float().numpy()
+    # Ensure compatibility with MPS by converting to float32 NumPy arrays
+    if isinstance(precision, torch.Tensor):
+        precision = precision.cpu().float().numpy()
+    if isinstance(recall, torch.Tensor):
+        recall = recall.cpu().float().numpy()
+    if isinstance(thresholds, torch.Tensor):
+        thresholds = thresholds.cpu().float().numpy()
 
     sk_precision = sk_precision.astype(np.float32)
     sk_recall = sk_recall.astype(np.float32)
@@ -131,10 +138,13 @@ def test_integration_precision_recall_curve_with_activated_output_transform(avai
 
     data = list(range(size // batch_size))
     precision, recall, thresholds = engine.run(data, max_epochs=1).metrics["precision_recall_curve"]
-    # float32 ensures compatibility with MPS
-    precision = precision.cpu().float().numpy()
-    recall = recall.cpu().float().numpy()
-    thresholds = thresholds.cpu().float().numpy()
+    # Ensure compatibility with MPS by converting to float32 NumPy arrays
+    if isinstance(precision, torch.Tensor):
+        precision = precision.cpu().float().numpy()
+    if isinstance(recall, torch.Tensor):
+        recall = recall.cpu().float().numpy()
+    if isinstance(thresholds, torch.Tensor):
+        thresholds = thresholds.cpu().float().numpy()
 
     sk_precision = sk_precision.astype(np.float32)
     sk_recall = sk_recall.astype(np.float32)
