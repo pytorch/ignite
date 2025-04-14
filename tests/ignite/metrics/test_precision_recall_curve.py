@@ -49,8 +49,8 @@ def test_precision_recall_curve(available_device):
     sk_recall = sk_recall.astype(np.float32)
     sk_thresholds = sk_thresholds.astype(np.float32)
 
-    assert pytest.approx(precision) == sk_precision
-    assert pytest.approx(recall) == sk_recall
+    assert np.allclose(precision, sk_precision, rtol=1e-6)
+    assert np.allclose(recall, sk_recall, rtol=1e-6)
     # assert thresholds almost equal, due to numpy->torch->numpy conversion
     np.testing.assert_array_almost_equal(thresholds, sk_thresholds)
 
@@ -94,8 +94,8 @@ def test_integration_precision_recall_curve_with_output_transform(available_devi
     sk_recall = sk_recall.astype(np.float32)
     sk_thresholds = sk_thresholds.astype(np.float32)
 
-    assert pytest.approx(precision) == sk_precision
-    assert pytest.approx(recall) == sk_recall
+    assert np.allclose(precision, sk_precision, rtol=1e-6)
+    assert np.allclose(recall, sk_recall, rtol=1e-6)
     # assert thresholds almost equal, due to numpy->torch->numpy conversion
     np.testing.assert_array_almost_equal(thresholds, sk_thresholds)
 
@@ -140,8 +140,8 @@ def test_integration_precision_recall_curve_with_activated_output_transform(avai
     sk_recall = sk_recall.astype(np.float32)
     sk_thresholds = sk_thresholds.astype(np.float32)
 
-    assert pytest.approx(precision) == sk_precision
-    assert pytest.approx(recall) == sk_recall
+    assert np.allclose(precision, sk_precision, rtol=1e-6)
+    assert np.allclose(recall, sk_recall, rtol=1e-6)
     # assert thresholds almost equal, due to numpy->torch->numpy conversion
     np.testing.assert_array_almost_equal(thresholds, sk_thresholds)
 
