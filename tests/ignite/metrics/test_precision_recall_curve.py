@@ -262,13 +262,13 @@ def _test_distrib_integration(device):
         sk_recall = sk_recall.astype(np.float32)
         sk_thresholds = sk_thresholds.astype(np.float32)
 
-        assert precision.shape == sk_precision.shape
-        assert recall.shape == sk_recall.shape
-        assert thresholds.shape == sk_thresholds.shape
-
         precision = to_numpy_float32(precision)
         recall = to_numpy_float32(recall)
         thresholds = to_numpy_float32(thresholds)
+
+        assert precision.shape == sk_precision.shape
+        assert recall.shape == sk_recall.shape
+        assert thresholds.shape == sk_thresholds.shape
 
         assert np.allclose(precision, sk_precision, rtol=1e-6)
         assert np.allclose(recall, sk_recall, rtol=1e-6)
