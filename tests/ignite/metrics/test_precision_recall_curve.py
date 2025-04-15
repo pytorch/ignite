@@ -42,7 +42,7 @@ def test_precision_recall_curve(available_device):
     y_pred = torch.rand(size, 1, dtype=torch.float32, device=available_device)
     y_true = torch.zeros(size, dtype=torch.float32, device=available_device)
     y_true[size // 2 :] = 1.0
-    sk_precision, sk_recall, sk_thresholds = precision_recall_curve(y_true.cpu().numpy(), y_pred.cpu().numpy())
+    sk_precision, sk_recall, sk_thresholds = precision_recall_curve(to_numpy_float32(y_true), to_numpy_float32(y_pred))
 
     sk_precision = to_numpy_float32(sk_precision)
     sk_recall = to_numpy_float32(sk_recall)
@@ -78,7 +78,7 @@ def test_integration_precision_recall_curve_with_output_transform(available_devi
     y_pred = y_pred[perm]
     y_true = y_true[perm]
 
-    sk_precision, sk_recall, sk_thresholds = precision_recall_curve(y_true.cpu().numpy(), y_pred.cpu().numpy())
+    sk_precision, sk_recall, sk_thresholds = precision_recall_curve(to_numpy_float32(y_true), to_numpy_float32(y_pred))
 
     batch_size = 10
 
@@ -124,7 +124,9 @@ def test_integration_precision_recall_curve_with_activated_output_transform(avai
     y_true = y_true[perm]
 
     sigmoid_y_pred = torch.sigmoid(y_pred).cpu().numpy()
-    sk_precision, sk_recall, sk_thresholds = precision_recall_curve(y_true.cpu().numpy(), sigmoid_y_pred)
+    sk_precision, sk_recall, sk_thresholds = precision_recall_curve(
+        to_numpy_float32(y_true), to_numpy_float32(sigmoid_y_pred)
+    )
 
     batch_size = 10
 
