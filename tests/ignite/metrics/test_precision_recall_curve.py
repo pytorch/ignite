@@ -14,6 +14,11 @@ from ignite.metrics.epoch_metric import EpochMetricWarning
 from ignite.metrics.precision_recall_curve import PrecisionRecallCurve
 
 
+def to_numpy_float32(x):
+    # Ensure compatibility with MPS by converting to float32 NumPy arrays
+    return x.detach().cpu().to(dtype=torch.float32).numpy() if isinstance(x, torch.Tensor) else x
+
+
 @pytest.fixture()
 def mock_no_sklearn():
     with patch.dict("sys.modules", {"sklearn.metrics": None}):
@@ -41,13 +46,9 @@ def test_precision_recall_curve(available_device):
     precision_recall_curve_metric.update((y_pred, y_true))
     precision, recall, thresholds = precision_recall_curve_metric.compute()
 
-    # Ensure compatibility with MPS by converting to float32 NumPy arrays
-    if isinstance(precision, torch.Tensor):
-        precision = precision.cpu().float().numpy()
-    if isinstance(recall, torch.Tensor):
-        recall = recall.cpu().float().numpy()
-    if isinstance(thresholds, torch.Tensor):
-        thresholds = thresholds.cpu().float().numpy()
+    precision = to_numpy_float32(precision)
+    recall = to_numpy_float32(recall)
+    thresholds = to_numpy_float32(thresholds)
 
     sk_precision = sk_precision.astype(np.float32)
     sk_recall = sk_recall.astype(np.float32)
@@ -89,13 +90,10 @@ def test_integration_precision_recall_curve_with_output_transform(available_devi
 
     data = list(range(size // batch_size))
     precision, recall, thresholds = engine.run(data, max_epochs=1).metrics["precision_recall_curve"]
-    # Ensure compatibility with MPS by converting to float32 NumPy arrays
-    if isinstance(precision, torch.Tensor):
-        precision = precision.cpu().float().numpy()
-    if isinstance(recall, torch.Tensor):
-        recall = recall.cpu().float().numpy()
-    if isinstance(thresholds, torch.Tensor):
-        thresholds = thresholds.cpu().float().numpy()
+
+    precision = to_numpy_float32(precision)
+    recall = to_numpy_float32(recall)
+    thresholds = to_numpy_float32(thresholds)
 
     sk_precision = sk_precision.astype(np.float32)
     sk_recall = sk_recall.astype(np.float32)
@@ -138,13 +136,9 @@ def test_integration_precision_recall_curve_with_activated_output_transform(avai
 
     data = list(range(size // batch_size))
     precision, recall, thresholds = engine.run(data, max_epochs=1).metrics["precision_recall_curve"]
-    # Ensure compatibility with MPS by converting to float32 NumPy arrays
-    if isinstance(precision, torch.Tensor):
-        precision = precision.cpu().float().numpy()
-    if isinstance(recall, torch.Tensor):
-        recall = recall.cpu().float().numpy()
-    if isinstance(thresholds, torch.Tensor):
-        thresholds = thresholds.cpu().float().numpy()
+    precision = to_numpy_float32(precision)
+    recall = to_numpy_float32(recall)
+    thresholds = to_numpy_float32(thresholds)
 
     sk_precision = sk_precision.astype(np.float32)
     sk_recall = sk_recall.astype(np.float32)
