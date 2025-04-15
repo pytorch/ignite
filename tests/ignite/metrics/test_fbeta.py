@@ -33,6 +33,10 @@ def test_wrong_inputs():
         r = Recall(average="samples")
         Fbeta(1.0, recall=r)
 
+    with pytest.raises(ValueError, match=r"If precision argument is provided, device should be None"):
+        p = Precision(average=False)
+        Fbeta(1.0, precision=p, device="cpu")
+
     with pytest.raises(ValueError, match=r"If precision argument is provided, output_transform should be None"):
         p = Precision(average=False)
         Fbeta(1.0, precision=p, output_transform=lambda x: x)
