@@ -15,7 +15,7 @@ def Fbeta(
     precision: Optional[Precision] = None,
     recall: Optional[Recall] = None,
     output_transform: Optional[Callable] = None,
-    device: Union[str, torch.device] = None,
+    device: Optional[Union[str, torch.device]] = None,
 ) -> MetricsLambda:
     r"""Calculates F-beta score.
 
