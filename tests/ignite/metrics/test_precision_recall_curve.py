@@ -15,9 +15,10 @@ from ignite.metrics.precision_recall_curve import PrecisionRecallCurve
 
 
 def to_numpy_float32(x):
-    # Ensure compatibility with MPS by converting to float32 NumPy arrays
     if isinstance(x, torch.Tensor):
-        return x.detach().cpu().to(dtype=torch.float32).numpy()
+        if x.device.type == "mps":
+            x = x.to("cpu")  # Explicitly move from MPS to CPU
+        return x.detach().to(dtype=torch.float32).numpy()
     elif isinstance(x, np.ndarray):
         return x.astype(np.float32)
     return x
