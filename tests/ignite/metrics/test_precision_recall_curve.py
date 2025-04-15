@@ -198,25 +198,27 @@ def _test_distrib_compute(device):
         y_pred = idist.all_gather(y_pred)
         y = idist.all_gather(y)
 
-        np_y = y.cpu().numpy()
-        np_y_pred = y_pred.cpu().numpy()
+        np_y = to_numpy_float32(y)
+        np_y_pred = to_numpy_float32(y_pred)
 
         res = prc.compute()
 
         assert isinstance(res, Tuple)
+        sk_precision, sk_recall, sk_thresholds = precision_recall_curve(np_y, np_y_pred)
+
         assert np.allclose(
             to_numpy_float32(res[0]),
-            precision_recall_curve(np_y, np_y_pred)[0].astype(np.float32),
+            to_numpy_float32(sk_precision),
             rtol=1e-6,
         )
         assert np.allclose(
             to_numpy_float32(res[1]),
-            precision_recall_curve(np_y, np_y_pred)[1].astype(np.float32),
+            to_numpy_float32(sk_recall),
             rtol=1e-6,
         )
         assert np.allclose(
             to_numpy_float32(res[2]),
-            precision_recall_curve(np_y, np_y_pred)[2].astype(np.float32),
+            to_numpy_float32(sk_thresholds),
             rtol=1e-6,
         )
 
@@ -275,8 +277,8 @@ def _test_distrib_integration(device):
 
         precision, recall, thresholds = engine.state.metrics["prc"]
 
-        np_y_true = y_true.cpu().numpy().ravel()
-        np_y_preds = y_preds.cpu().numpy().ravel()
+        np_y_true = to_numpy_float32(y_true).ravel()
+        np_y_preds = to_numpy_float32(y_preds).ravel()
 
         sk_precision, sk_recall, sk_thresholds = precision_recall_curve(np_y_true, np_y_preds)
 
