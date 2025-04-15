@@ -16,7 +16,11 @@ from ignite.metrics.precision_recall_curve import PrecisionRecallCurve
 
 def to_numpy_float32(x):
     # Ensure compatibility with MPS by converting to float32 NumPy arrays
-    return x.detach().cpu().to(dtype=torch.float32).numpy() if isinstance(x, torch.Tensor) else x
+    if isinstance(x, torch.Tensor):
+        return x.detach().cpu().to(dtype=torch.float32).numpy()
+    elif isinstance(x, np.ndarray):
+        return x.astype(np.float32)
+    return x
 
 
 @pytest.fixture()
@@ -194,9 +198,21 @@ def _test_distrib_compute(device):
         res = prc.compute()
 
         assert isinstance(res, Tuple)
-        assert precision_recall_curve(np_y, np_y_pred)[0] == pytest.approx(res[0].cpu().numpy())
-        assert precision_recall_curve(np_y, np_y_pred)[1] == pytest.approx(res[1].cpu().numpy())
-        assert precision_recall_curve(np_y, np_y_pred)[2] == pytest.approx(res[2].cpu().numpy())
+        assert np.allclose(
+            to_numpy_float32(res[0]),
+            precision_recall_curve(np_y, np_y_pred)[0].astype(np.float32),
+            rtol=1e-6,
+        )
+        assert np.allclose(
+            to_numpy_float32(res[1]),
+            precision_recall_curve(np_y, np_y_pred)[1].astype(np.float32),
+            rtol=1e-6,
+        )
+        assert np.allclose(
+            to_numpy_float32(res[2]),
+            precision_recall_curve(np_y, np_y_pred)[2].astype(np.float32),
+            rtol=1e-6,
+        )
 
     def get_test_cases():
         test_cases = [
