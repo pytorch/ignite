@@ -1,4 +1,5 @@
 import os
+from typing import Union
 
 import numpy as np
 import pytest
@@ -10,6 +11,14 @@ from ignite.engine import Engine
 from ignite.metrics import Fbeta, Precision, Recall
 
 torch.manual_seed(12)
+
+
+def to_numpy_float32(x: Union[torch.Tensor, np.ndarray]) -> np.ndarray:
+    return (
+        x.detach().cpu().to(dtype=torch.float32).numpy()
+        if isinstance(x, torch.Tensor)
+        else np.array(x, dtype=np.float32)
+    )
 
 
 def test_wrong_inputs():
@@ -103,8 +112,18 @@ def test_integration(precision_cls, recall_cls, average, output_transform, avail
     data = list(range(n_iters))
     state = evaluator.run(data, max_epochs=1)
 
-    f2_true = fbeta_score(y_true, np.argmax(y_pred, axis=-1), average="macro" if average else None, beta=2.0)
-    np.testing.assert_allclose(np.array(f2_true), np.array(state.metrics["f2"]))
+    f2_pred = to_numpy_float32(state.metrics["f2"])
+    f2_true = fbeta_score(
+        y_true.cpu().numpy(),
+        np.argmax(y_pred.cpu().numpy(), axis=-1),
+        average="macro" if average else None,
+        beta=2.0,
+    )
+    # Ensure both sides are NumPy float32 for comparison
+    if isinstance(f2_true, float):
+        f2_true = np.float32(f2_true)
+
+    np.testing.assert_allclose(f2_pred, f2_true, rtol=1e-6)
 
 
 def _test_distrib_integration(device):
