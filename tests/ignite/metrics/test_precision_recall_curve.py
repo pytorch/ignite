@@ -44,6 +44,10 @@ def test_precision_recall_curve(available_device):
     y_true[size // 2 :] = 1.0
     sk_precision, sk_recall, sk_thresholds = precision_recall_curve(y_true.cpu().numpy(), y_pred.cpu().numpy())
 
+    sk_precision = to_numpy_float32(sk_precision)
+    sk_recall = to_numpy_float32(sk_recall)
+    sk_thresholds = to_numpy_float32(sk_thresholds)
+
     precision_recall_curve_metric = PrecisionRecallCurve(device=available_device)
     assert precision_recall_curve_metric._device == torch.device(available_device)
 
@@ -54,9 +58,9 @@ def test_precision_recall_curve(available_device):
     recall = to_numpy_float32(recall)
     thresholds = to_numpy_float32(thresholds)
 
-    sk_precision = sk_precision.astype(np.float32)
-    sk_recall = sk_recall.astype(np.float32)
-    sk_thresholds = sk_thresholds.astype(np.float32)
+    sk_precision = to_numpy_float32(sk_precision)
+    sk_recall = to_numpy_float32(sk_recall)
+    sk_thresholds = to_numpy_float32(sk_thresholds)
 
     assert np.allclose(precision, sk_precision, rtol=1e-6)
     assert np.allclose(recall, sk_recall, rtol=1e-6)
@@ -99,9 +103,9 @@ def test_integration_precision_recall_curve_with_output_transform(available_devi
     recall = to_numpy_float32(recall)
     thresholds = to_numpy_float32(thresholds)
 
-    sk_precision = sk_precision.astype(np.float32)
-    sk_recall = sk_recall.astype(np.float32)
-    sk_thresholds = sk_thresholds.astype(np.float32)
+    sk_precision = to_numpy_float32(sk_precision)
+    sk_recall = to_numpy_float32(sk_recall)
+    sk_thresholds = to_numpy_float32(sk_thresholds)
 
     assert np.allclose(precision, sk_precision, rtol=1e-6)
     assert np.allclose(recall, sk_recall, rtol=1e-6)
@@ -144,9 +148,9 @@ def test_integration_precision_recall_curve_with_activated_output_transform(avai
     recall = to_numpy_float32(recall)
     thresholds = to_numpy_float32(thresholds)
 
-    sk_precision = sk_precision.astype(np.float32)
-    sk_recall = sk_recall.astype(np.float32)
-    sk_thresholds = sk_thresholds.astype(np.float32)
+    sk_precision = to_numpy_float32(sk_precision)
+    sk_recall = to_numpy_float32(sk_recall)
+    sk_thresholds = to_numpy_float32(sk_thresholds)
 
     assert np.allclose(precision, sk_precision, rtol=1e-6)
     assert np.allclose(recall, sk_recall, rtol=1e-6)
