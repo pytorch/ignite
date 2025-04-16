@@ -1,6 +1,5 @@
 import os
 
-import numpy as np
 import pytest
 import torch
 from sklearn.metrics import fbeta_score
@@ -107,8 +106,10 @@ def test_integration(precision_cls, recall_cls, average, output_transform, avail
     data = list(range(n_iters))
     state = evaluator.run(data, max_epochs=1)
 
-    f2_true = fbeta_score(y_true, torch.argmax(y_pred, dim=-1), average="macro" if average else None, beta=2.0)
-    f2_true = np.float32(f2_true) if available_device == "mps" else f2_true
+    y_true_np = y_true.detach().cpu().numpy()
+    y_pred_np = torch.argmax(y_pred, dim=-1).detach().cpu().numpy()
+    f2_true = fbeta_score(y_true_np, y_pred_np, average="macro" if average else None, beta=2.0)
+
     assert f2_true == pytest.approx(state.metrics["f2"])
 
 
