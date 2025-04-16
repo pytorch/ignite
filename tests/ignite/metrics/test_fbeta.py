@@ -106,8 +106,8 @@ def test_integration(precision_cls, recall_cls, average, output_transform, avail
     data = list(range(n_iters))
     state = evaluator.run(data, max_epochs=1)
 
-    y_true_np = y_true.detach().cpu().numpy()
-    y_pred_np = torch.argmax(y_pred, dim=-1).detach().cpu().numpy()
+    y_true_np = y_true.cpu().numpy()
+    y_pred_np = torch.argmax(y_pred, dim=-1).cpu().numpy()
     f2_true = fbeta_score(y_true_np, y_pred_np, average="macro" if average else None, beta=2.0)
 
     assert f2_true == pytest.approx(state.metrics["f2"])
