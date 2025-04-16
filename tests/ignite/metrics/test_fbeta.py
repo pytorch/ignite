@@ -1,5 +1,4 @@
 import os
-from typing import Union
 
 import numpy as np
 import pytest
@@ -11,14 +10,6 @@ from ignite.engine import Engine
 from ignite.metrics import Fbeta, Precision, Recall
 
 torch.manual_seed(12)
-
-
-def to_numpy_float32(x: Union[torch.Tensor, np.ndarray]) -> np.ndarray:
-    return (
-        x.detach().cpu().to(dtype=torch.float32).numpy()
-        if isinstance(x, torch.Tensor)
-        else np.array(x, dtype=np.float32)
-    )
 
 
 def test_wrong_inputs():
@@ -90,10 +81,10 @@ def test_integration(precision_cls, recall_cls, average, output_transform, avail
     y_true = torch.arange(n_iters * batch_size, dtype=torch.long, device=available_device) % n_classes
     y_pred = 0.2 * torch.rand(n_iters * batch_size, n_classes, device=available_device)
     for i in range(n_iters * batch_size):
-        if np.random.rand() > 0.4:
+        if torch.rand(1) > 0.4:
             y_pred[i, y_true[i]] = 1.0
         else:
-            j = np.random.randint(0, n_classes)
+            j = torch.randint(0, n_classes, size=(1,))
             y_pred[i, j] = 0.7
 
     y_true_batch_values = iter(y_true.reshape(n_iters, batch_size))
@@ -116,18 +107,9 @@ def test_integration(precision_cls, recall_cls, average, output_transform, avail
     data = list(range(n_iters))
     state = evaluator.run(data, max_epochs=1)
 
-    f2_pred = to_numpy_float32(state.metrics["f2"])
-    f2_true = fbeta_score(
-        y_true.cpu().numpy(),
-        np.argmax(y_pred.cpu().numpy(), axis=-1),
-        average="macro" if average else None,
-        beta=2.0,
-    )
-    # Ensure both sides are NumPy float32 for comparison
-    if isinstance(f2_true, float):
-        f2_true = np.float32(f2_true)
-
-    np.testing.assert_allclose(f2_pred, f2_true, rtol=1e-6)
+    f2_true = fbeta_score(y_true, torch.argmax(y_pred, dim=-1), average="macro" if average else None, beta=2.0)
+    f2_true = np.float32(f2_true) if available_device == "mps" else f2_true
+    assert f2_true == pytest.approx(state.metrics["f2"])
 
 
 def _test_distrib_integration(device):
