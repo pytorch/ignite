@@ -80,6 +80,9 @@ jobs:
           restore-keys: |
             ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-
 
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+
       - run: pip install pip wheel setuptools -Uqq
 
       - name: Install PyTorch
