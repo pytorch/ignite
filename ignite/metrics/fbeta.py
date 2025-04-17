@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Union
+from typing import Callable, cast, Optional, Union
 
 import torch
 
@@ -15,7 +15,7 @@ def Fbeta(
     precision: Optional[Precision] = None,
     recall: Optional[Recall] = None,
     output_transform: Optional[Callable] = None,
-    device: Union[str, torch.device] = torch.device("cpu"),
+    device: Optional[Union[str, torch.device]] = None,
 ) -> MetricsLambda:
     r"""Calculates F-beta score.
 
@@ -143,17 +143,26 @@ def Fbeta(
     if not (beta > 0):
         raise ValueError(f"Beta should be a positive integer, but given {beta}")
 
-    if precision is not None and output_transform is not None:
-        raise ValueError("If precision argument is provided, output_transform should be None")
+    if precision is not None:
+        if output_transform is not None:
+            raise ValueError("If precision argument is provided, output_transform should be None")
+        if device is not None:
+            raise ValueError("If precision argument is provided, device should be None")
 
-    if recall is not None and output_transform is not None:
-        raise ValueError("If recall argument is provided, output_transform should be None")
+    if recall is not None:
+        if output_transform is not None:
+            raise ValueError("If recall argument is provided, output_transform should be None")
+        if device is not None:
+            raise ValueError("If recall argument is provided, device should be None")
+
+    if precision is None and recall is None and device is None:
+        device = torch.device("cpu")
 
     if precision is None:
         precision = Precision(
             output_transform=(lambda x: x) if output_transform is None else output_transform,
             average=False,
-            device=device,
+            device=cast(Union[str, torch.device], recall._device if recall else device),
         )
     elif precision._average:
         raise ValueError("Input precision metric should have average=False")
@@ -162,7 +171,7 @@ def Fbeta(
         recall = Recall(
             output_transform=(lambda x: x) if output_transform is None else output_transform,
             average=False,
-            device=device,
+            device=cast(Union[str, torch.device], precision._device if precision else device),
         )
     elif recall._average:
         raise ValueError("Input recall metric should have average=False")
