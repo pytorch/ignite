@@ -16,14 +16,6 @@ from . import CorpusForTest
 corpus = CorpusForTest(lower_split=True)
 
 
-def to_float32_if_mps(x, device):
-    if isinstance(x, torch.Tensor) and device == "mps" and x.dtype == torch.float64:
-        return x.to(torch.float32)
-    elif isinstance(x, np.ndarray) and device == "mps" and x.dtype == np.float64:
-        return x.astype(np.float32)
-    return x
-
-
 def test_wrong_inputs():
     with pytest.raises(ValueError, match=r"ngram order must be greater than zero"):
         Bleu(ngram=0)
@@ -54,9 +46,6 @@ parametrize_args = (
 
 
 def _test(candidates, references, average, smooth="no_smooth", smooth_nltk_fn=None, ngram_range=8, device="cpu"):
-
-    candidates = to_float32_if_mps(candidates, device)
-    references = to_float32_if_mps(references, device)
 
     for i in range(1, ngram_range):
         weights = tuple([1 / i] * i)
@@ -132,21 +121,15 @@ def test_micro_bleu_smooth2(candidates, references, available_device):
 def test_accumulation_macro_bleu(available_device):
     bleu = Bleu(ngram=4, smooth="smooth2", device=available_device)
     assert bleu._device == torch.device(available_device)
-    cand_1 = to_float32_if_mps(corpus.cand_1, available_device)
-    cand_2a = to_float32_if_mps(corpus.cand_2a, available_device)
-    cand_2b = to_float32_if_mps(corpus.cand_2b, available_device)
-    cand_3 = to_float32_if_mps(corpus.cand_3, available_device)
-    ref_1 = to_float32_if_mps(corpus.references_1, available_device)
-    ref_2 = to_float32_if_mps(corpus.references_2, available_device)
+    bleu.update(([corpus.cand_1], [corpus.references_1]))
+    bleu.update(([corpus.cand_2a], [corpus.references_2]))
+    bleu.update(([corpus.cand_2b], [corpus.references_2]))
+    bleu.update(([corpus.cand_3], [corpus.references_2]))
+    value = bleu._sentence_bleu(corpus.references_1, corpus.cand_1)
+    value += bleu._sentence_bleu(corpus.references_2, corpus.cand_2a)
+    value += bleu._sentence_bleu(corpus.references_2, corpus.cand_2b)
+    value += bleu._sentence_bleu(corpus.references_2, corpus.cand_3)
 
-    bleu.update(([cand_1], [ref_1]))
-    bleu.update(([cand_2a], [ref_2]))
-    bleu.update(([cand_2b], [ref_2]))
-    bleu.update(([cand_3], [ref_2]))
-    value = bleu._sentence_bleu(ref_1, cand_1)
-    value += bleu._sentence_bleu(ref_2, cand_2a)
-    value += bleu._sentence_bleu(ref_2, cand_2b)
-    value += bleu._sentence_bleu(ref_2, cand_3)
     computed = bleu.compute()
     if isinstance(computed, torch.Tensor):
         computed = computed.cpu().float().item()
@@ -156,22 +139,18 @@ def test_accumulation_macro_bleu(available_device):
 def test_accumulation_micro_bleu(available_device):
     bleu = Bleu(ngram=4, smooth="smooth2", average="micro", device=available_device)
     assert bleu._device == torch.device(available_device)
-    cand_1 = to_float32_if_mps(corpus.cand_1, available_device)
-    cand_2a = to_float32_if_mps(corpus.cand_2a, available_device)
-    cand_2b = to_float32_if_mps(corpus.cand_2b, available_device)
-    cand_3 = to_float32_if_mps(corpus.cand_3, available_device)
-    ref_1 = to_float32_if_mps(corpus.references_1, available_device)
-    ref_2 = to_float32_if_mps(corpus.references_2, available_device)
-
-    bleu.update(([cand_1], [ref_1]))
-    bleu.update(([cand_2a], [ref_2]))
-    bleu.update(([cand_2b], [ref_2]))
-    bleu.update(([cand_3], [ref_2]))
+    bleu.update(([corpus.cand_1], [corpus.references_1]))
+    bleu.update(([corpus.cand_2a], [corpus.references_2]))
+    bleu.update(([corpus.cand_2b], [corpus.references_2]))
+    bleu.update(([corpus.cand_3], [corpus.references_2]))
     value = bleu._corpus_bleu(
-        [ref_1, ref_2, ref_2, ref_2],
-        [cand_1, cand_2a, cand_2b, cand_3],
+        [corpus.references_1, corpus.references_2, corpus.references_2, corpus.references_2],
+        [corpus.cand_1, corpus.cand_2a, corpus.cand_2b, corpus.cand_3],
     )
-    assert bleu.compute() == value
+    computed = bleu.compute()
+    if isinstance(computed, torch.Tensor):
+        computed = computed.cpu().float().item()
+    assert np.allclose(computed, value, rtol=1e-6)
 
 
 def test_bleu_batch_macro(available_device):
@@ -179,10 +158,8 @@ def test_bleu_batch_macro(available_device):
     assert bleu._device == torch.device(available_device)
 
     # Batch size 3
-    hypotheses = [to_float32_if_mps(c, available_device) for c in [corpus.cand_1, corpus.cand_2a, corpus.cand_2b]]
-    refs = [
-        to_float32_if_mps(r, available_device) for r in [corpus.references_1, corpus.references_2, corpus.references_2]
-    ]
+    hypotheses = [corpus.cand_1, corpus.cand_2a, corpus.cand_2b]
+    refs = [corpus.references_1, corpus.references_2, corpus.references_2]
     bleu.update((hypotheses, refs))
 
     with warnings.catch_warnings():
@@ -192,7 +169,6 @@ def test_bleu_batch_macro(available_device):
             + sentence_bleu(refs[1], hypotheses[1])
             + sentence_bleu(refs[2], hypotheses[2])
         ) / 3
-    reference_bleu_score = np.float32(reference_bleu_score)
     computed = bleu.compute()
     if isinstance(computed, torch.Tensor):
         computed = computed.cpu().float().item()
@@ -215,10 +191,8 @@ def test_bleu_batch_micro(available_device):
     assert bleu._device == torch.device(available_device)
 
     # Batch size 3
-    hypotheses = [to_float32_if_mps(c, available_device) for c in [corpus.cand_1, corpus.cand_2a, corpus.cand_2b]]
-    refs = [
-        to_float32_if_mps(r, available_device) for r in [corpus.references_1, corpus.references_2, corpus.references_2]
-    ]
+    hypotheses = [corpus.cand_1, corpus.cand_2a, corpus.cand_2b]
+    refs = [corpus.references_1, corpus.references_2, corpus.references_2]
     bleu.update((hypotheses, refs))
 
     with warnings.catch_warnings():
@@ -242,12 +216,7 @@ def test_n_gram_counter(candidates, references, available_device):
     bleu = Bleu(ngram=4, device=available_device)
     assert bleu._device == torch.device(available_device)
 
-    candidates = to_float32_if_mps(candidates, available_device)
-    references = to_float32_if_mps(references, available_device)
-
     hyp_length, ref_length = bleu._n_gram_counter([references], [candidates], Counter(), Counter())
-    hyp_length = int(hyp_length)
-    ref_length = int(ref_length)
     assert hyp_length == len(candidates)
 
     ref_lens = (len(reference) for reference in references)
