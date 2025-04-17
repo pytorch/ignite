@@ -1,4 +1,5 @@
 import math
+from collections import Counter
 from typing import Any, Callable, Sequence, Tuple, Union
 
 import torch
@@ -158,8 +159,8 @@ class Bleu(Metric):
         self,
         references: Sequence[Sequence[Sequence[Any]]],
         candidates: Sequence[Sequence[Any]],
-        p_numerators: torch.Tensor,
-        p_denominators: torch.Tensor,
+        p_numerators: Union[torch.Tensor, Counter],
+        p_denominators: Union[torch.Tensor, Counter],
     ) -> Tuple[int, int]:
         if len(references) != len(candidates):
             raise ValueError(

@@ -16,6 +16,14 @@ from . import CorpusForTest
 corpus = CorpusForTest(lower_split=True)
 
 
+def to_float32_if_mps(x, device):
+    if isinstance(x, torch.Tensor) and device == "mps" and x.dtype == torch.float64:
+        return x.to(torch.float32)
+    elif isinstance(x, np.ndarray) and device == "mps" and x.dtype == np.float64:
+        return x.astype(np.float32)
+    return x
+
+
 def test_wrong_inputs():
     with pytest.raises(ValueError, match=r"ngram order must be greater than zero"):
         Bleu(ngram=0)
@@ -46,6 +54,9 @@ parametrize_args = (
 
 
 def _test(candidates, references, average, smooth="no_smooth", smooth_nltk_fn=None, ngram_range=8, device="cpu"):
+
+    candidates = to_float32_if_mps(candidates, device)
+    references = to_float32_if_mps(references, device)
 
     for i in range(1, ngram_range):
         weights = tuple([1 / i] * i)
@@ -169,6 +180,7 @@ def test_bleu_batch_macro(available_device):
             + sentence_bleu(refs[1], hypotheses[1])
             + sentence_bleu(refs[2], hypotheses[2])
         ) / 3
+    reference_bleu_score = to_float32_if_mps(reference_bleu_score)
     computed = bleu.compute()
     if isinstance(computed, torch.Tensor):
         computed = computed.cpu().float().item()
