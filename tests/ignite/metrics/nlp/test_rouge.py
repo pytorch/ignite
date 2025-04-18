@@ -84,9 +84,9 @@ def test_wrong_inputs():
         (2, "abcdef", "zbdfz", (0, 0)),
     ],
 )
-def test_rouge_n_alpha(ngram, candidate, reference, expected):
+def test_rouge_n_alpha(ngram, candidate, reference, expected, available_device):
     for alpha in [0, 1, 0.3, 0.5, 0.8]:
-        rouge = RougeN(ngram=ngram, alpha=alpha)
+        rouge = RougeN(ngram=ngram, alpha=alpha, device=available_device)
         rouge.update(([candidate], [[reference]]))
         results = rouge.compute()
         assert results[f"Rouge-{ngram}-P"] == expected[0]
@@ -101,7 +101,7 @@ def test_rouge_n_alpha(ngram, candidate, reference, expected):
 @pytest.mark.parametrize(
     "candidates, references", [corpus.sample_1, corpus.sample_2, corpus.sample_3, corpus.sample_4, corpus.sample_5]
 )
-def test_rouge_metrics(candidates, references):
+def test_rouge_metrics(candidates, references, available_device):
     for multiref in ["average", "best"]:
         # PERL 1.5.5 reference
         apply_avg = multiref == "average"
@@ -123,7 +123,8 @@ def test_rouge_metrics(candidates, references):
 
         lower_split_candidates = [candidate.lower().split() for candidate in candidates]
 
-        m = Rouge(variants=[1, 2, 4, "L"], multiref=multiref, alpha=0.5)
+        m = Rouge(variants=[1, 2, 4, "L"], multiref=multiref, alpha=0.5, device=available_device)
+        assert m._device == torch.device(available_device)
         m.update((lower_split_candidates, lower_split_references))
         results = m.compute()
 
