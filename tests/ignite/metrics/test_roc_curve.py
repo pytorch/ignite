@@ -168,7 +168,7 @@ def test_distrib_integration(distributed):
 
     y = idist.all_gather(y)
     y_pred = idist.all_gather(y_pred)
-    expected_fpr, expected_tpr, expected_thresholds = roc_curve(y.cpu().numpy(), y_pred.cpu().numpy())
+    expected_fpr, expected_tpr, expected_thresholds = roc_curve(y, y_pred)
 
     assert expected_fpr == pytest.approx(fpr)
     assert expected_tpr == pytest.approx(tpr)
