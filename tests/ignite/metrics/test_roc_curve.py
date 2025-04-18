@@ -1,6 +1,5 @@
 from unittest.mock import patch
 
-import numpy as np
 import pytest
 import sklearn
 import torch
@@ -56,12 +55,9 @@ def test_roc_curve(available_device):
 
 
 def test_integration_roc_curve_with_output_transform(available_device):
-    np.random.seed(1)
     size = 100
     y_pred = torch.rand(size, 1)
-    y = torch.zeros(size)
-    y[size // 2 :] = 1
-    np.random.shuffle(y)
+    y = torch.randint(0, 2, size=(size,))
 
     expected_fpr, expected_tpr, expected_thresholds = roc_curve(y, y_pred)
 
@@ -91,13 +87,10 @@ def test_integration_roc_curve_with_output_transform(available_device):
 
 
 def test_integration_roc_curve_with_activated_output_transform(available_device):
-    np.random.seed(1)
     size = 100
     y_pred = torch.rand(size, 1)
     np_y_pred_sigmoid = torch.sigmoid(y_pred).cpu().numpy()
-    y = torch.zeros(size)
-    y[size // 2 :] = 1
-    np.random.shuffle(y)
+    y = torch.randint(0, 2, size=(size,))
 
     expected_fpr, expected_tpr, expected_thresholds = roc_curve(y, np_y_pred_sigmoid)
 
