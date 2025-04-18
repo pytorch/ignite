@@ -236,7 +236,8 @@ class Bleu(Metric):
     @reinit__is_reduced
     def reset(self) -> None:
         if self.average == "macro":
-            self._sum_of_bleu = torch.tensor(0.0, dtype=torch.double, device=self._device)
+            dtype = torch.get_default_dtype() if self._device.type == "mps" else torch.double
+            self._sum_of_bleu = torch.tensor(0.0, dtype=dtype, device=self._device)
             self._num_sentences = 0
 
         if self.average == "micro":
