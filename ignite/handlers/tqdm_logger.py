@@ -298,8 +298,7 @@ class _OutputHandler(BaseOutputHandler):
         rendered_metrics = self._setup_output_metrics_state_attrs(engine, log_text=True)
         metrics = OrderedDict()
         for key, value in rendered_metrics.items():
-            key = "_".join(key[1:])  # tqdm has tag as description
-
+            key = "_".join(key[1:])  # skip tag as tqdm has tag as description
             metrics[key] = value
 
         if metrics:

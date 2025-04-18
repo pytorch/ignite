@@ -22,6 +22,7 @@ on:
       - "requirements-dev.txt"
       - ".github/workflows/unit-tests.yml"
   workflow_dispatch:
+  merge_group:
 
 concurrency:
   # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>
