@@ -35,8 +35,7 @@ def test_no_sklearn(mock_no_sklearn):
 def test_roc_curve(available_device):
     size = 100
     y_pred = torch.rand(size, 1)
-    y = torch.zeros(size)
-    y[size // 2 :] = 1
+    y = torch.randint(0, 2, size=(size,))
 
     expected_fpr, expected_tpr, expected_thresholds = roc_curve(y, y_pred)
 
