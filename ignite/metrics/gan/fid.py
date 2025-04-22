@@ -187,7 +187,7 @@ class FID(_BaseInceptionMetric):
             num_features = 1000
             feature_extractor = InceptionModel(return_features=False, device=device)
 
-        self._eps = 1e-6
+        self._eps = 1e-7
 
         super(FID, self).__init__(
             num_features=num_features,
