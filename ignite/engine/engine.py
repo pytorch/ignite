@@ -1069,7 +1069,7 @@ class Engine(Serializable):
                 )
 
             while True:
-                self.state.batch = self.state.output = None
+                self.state.batch = None
 
                 try:
                     # Avoid Events.GET_BATCH_STARTED triggered twice when data iter is restarted
@@ -1081,6 +1081,9 @@ class Engine(Serializable):
                             yield from self._maybe_terminate_or_interrupt()
 
                     self.state.batch = next(self._dataloader_iter)
+                    # We on purpose reset state.output here as for iterable dataloaders
+                    # we accidentally can remove it when one epoch is completed.
+                    self.state.output = None
 
                     # We should not trigger GET_BATCH_STARTED, GET_BATCH_COMPLETED, DATALOADER_STOP_ITERATION events
                     # if no data was provided to engine.run(data=None, ...)
@@ -1254,7 +1257,7 @@ class Engine(Serializable):
                 )
 
             while True:
-                self.state.batch = self.state.output = None
+                self.state.batch = None
                 try:
                     # Avoid Events.GET_BATCH_STARTED triggered twice when data iter is restarted
                     if self.last_event_name != Events.DATALOADER_STOP_ITERATION:
@@ -1265,6 +1268,10 @@ class Engine(Serializable):
                             self._maybe_terminate_legacy()
 
                     self.state.batch = next(self._dataloader_iter)
+                    # We on purpose reset state.output here as for iterable dataloaders
+                    # we accidentally can remove it when one epoch is completed.
+                    self.state.output = None
+
                     # We should not trigger GET_BATCH_STARTED, GET_BATCH_COMPLETED, DATALOADER_STOP_ITERATION events
                     # if no data was provided to engine.run(data=None, ...)
                     if self.state.dataloader is not None:

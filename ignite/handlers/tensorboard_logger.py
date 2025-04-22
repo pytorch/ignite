@@ -145,6 +145,49 @@ class TensorboardLogger(BaseLogger):
                     output_transform=lambda loss: {"loss": loss}
                 )
 
+    Note:
+        :class:`~ignite.handlers.tensorboard_logger.OutputHandler` can handle
+        metrics, state attributes and engine output values of the following format:
+        - scalar values (i.e. int, float)
+        - 0d and 1d pytorch tensors
+        - dicts and list/tuples of previous types
+
+        .. code-block:: python
+
+            # !!! This is not a runnable code !!!
+            evalutator.state.metrics = {
+                "a": 0,
+                "dict_value": {
+                    "a": 111,
+                    "c": {"d": 23, "e": [123, 234]},
+                },
+                "list_value": [12, 13, {"aa": 33, "bb": 44}],
+                "tuple_value": (112, 113, {"aaa": 33, "bbb": 44}),
+            }
+
+            handler = OutputHandler(
+                tag="tag",
+                metric_names="all",
+            )
+
+            handler(evaluator, tb_logger, event_name=Events.EPOCH_COMPLETED)
+            # Behind it would call `tb_logger.writer.add_scalar` on
+            # {
+            #     "tag/a": 0,
+            #     "tag/dict_value/a": 111,
+            #     "tag/dict_value/c/d": 23,
+            #     "tag/dict_value/c/e/0": 123,
+            #     "tag/dict_value/c/e/1": 234,
+            #     "tag/list_value/0": 12,
+            #     "tag/list_value/1": 13,
+            #     "tag/list_value/2/aa": 33,
+            #     "tag/list_value/2/bb": 44,
+            #     "tag/tuple_value/0": 112,
+            #     "tag/tuple_value/1": 113,
+            #     "tag/tuple_value/2/aaa": 33,
+            #     "tag/tuple_value/2/bbb": 44,
+            # }
+
     """
 
     def __init__(self, *args: Any, **kwargs: Any):

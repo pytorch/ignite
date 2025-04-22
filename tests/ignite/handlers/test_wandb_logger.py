@@ -141,17 +141,46 @@ def test_output_handler_metric_names():
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
     mock_logger.log.assert_called_once_with({f"tag/a/{i}": vector[i].item() for i in range(5)}, step=5, sync=None)
 
-    # log warning
     wrapper = OutputHandler("tag", metric_names=["a"])
     mock_engine = MagicMock()
-    mock_engine.state = State(metrics={"a": [1, 2, 3, 4]})
+    data = [1, 2, 3, 4]
+    mock_engine.state = State(metrics={"a": data})
     mock_engine.state.iteration = 7
 
     mock_logger = MagicMock(spec=WandBLogger)
     mock_logger.log = MagicMock()
 
-    with pytest.warns(UserWarning, match=r"Logger output_handler can not log metrics value type"):
-        wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+    mock_logger.log.assert_called_once_with({f"tag/a/{i}": v for i, v in enumerate(data)}, step=7, sync=None)
+
+    wrapper = OutputHandler("tag", metric_names="all")
+    mock_engine = MagicMock()
+    mock_engine.state = State(
+        metrics={
+            "a": 123,
+            "b": {"c": [2.34, {"d": 1}]},
+            "c": (22, [33, -5.5], {"e": 32.1}),
+        }
+    )
+    mock_engine.state.iteration = 7
+
+    mock_logger = MagicMock(spec=WandBLogger)
+    mock_logger.log = MagicMock()
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+    mock_logger.log.assert_called_once_with(
+        {
+            "tag/a": 123,
+            "tag/b/c/0": 2.34,
+            "tag/b/c/1/d": 1,
+            "tag/c/0": 22,
+            "tag/c/1/0": 33,
+            "tag/c/1/1": -5.5,
+            "tag/c/2/e": 32.1,
+        },
+        step=7,
+        sync=None,
+    )
 
 
 def test_output_handler_both():

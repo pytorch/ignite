@@ -66,6 +66,7 @@ def test_binary_wrong_inputs():
 @pytest.mark.parametrize("n_times", range(3))
 def test_binary_input(n_times, available_device, test_data_binary):
     acc = Accuracy(device=available_device)
+    assert acc._device == torch.device(available_device)
 
     y_pred, y, batch_size = test_data_binary
     acc.reset()
@@ -104,6 +105,7 @@ def test_multiclass_wrong_inputs():
 @pytest.mark.parametrize("n_times", range(3))
 def test_multiclass_input(n_times, available_device, test_data_multiclass):
     acc = Accuracy(device=available_device)
+    assert acc._device == torch.device(available_device)
 
     y_pred, y, batch_size = test_data_multiclass
     acc.reset()
@@ -155,6 +157,7 @@ def test_multilabel_wrong_inputs():
 @pytest.mark.parametrize("n_times", range(3))
 def test_multilabel_input(n_times, available_device, test_data_multilabel):
     acc = Accuracy(is_multilabel=True, device=available_device)
+    assert acc._device == torch.device(available_device)
 
     y_pred, y, batch_size = test_data_multilabel
     if batch_size > 1:

@@ -183,6 +183,33 @@ def test_output_handler_metric_names():
     assert_logger_called_once_with(logger, "tag/b", 23.45)
     logger.stop()
 
+    wrapper = OutputHandler("tag", metric_names="all")
+    logger = NeptuneLogger(
+        project="tests/dry-run",
+        mode="debug",
+    )
+    mock_engine = MagicMock()
+    mock_engine.state = State(
+        metrics={
+            "a": 123,
+            "b": {"c": [2.34, {"d": 1}]},
+            "c": (22, [33, -5.5], {"e": 32.1}),
+        }
+    )
+    mock_engine.state.iteration = 5
+
+    wrapper(mock_engine, logger, Events.ITERATION_STARTED)
+
+    assert_logger_called_once_with(logger, "tag/a", 123),
+    assert_logger_called_once_with(logger, "tag/b/c/0", 2.34),
+    assert_logger_called_once_with(logger, "tag/b/c/1/d", 1),
+    assert_logger_called_once_with(logger, "tag/c/0", 22),
+    assert_logger_called_once_with(logger, "tag/c/1/0", 33),
+    assert_logger_called_once_with(logger, "tag/c/1/1", -5.5),
+    assert_logger_called_once_with(logger, "tag/c/2/e", 32.1),
+
+    logger.stop()
+
 
 def test_output_handler_both():
     wrapper = OutputHandler("tag", metric_names=["a", "b"], output_transform=lambda x: {"loss": x})
