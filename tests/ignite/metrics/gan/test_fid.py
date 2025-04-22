@@ -69,7 +69,7 @@ def test_compute_fid_from_features(available_device):
 
     tol = 1e-4 if available_device == "mps" else 1e-5
     assert (
-        pytest.approx(pytorch_fid_score.calculate_frechet_distance(mu1, sigma1, mu2, sigma2), rel=tol)
+        pytest.approx(pytorch_fid_score.calculate_frechet_distance(mu1, sigma1, mu2, sigma2), abs=tol)
         == fid_scorer.compute()
     )
 
