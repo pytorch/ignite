@@ -279,7 +279,7 @@ class Bleu(Metric):
         )
         return bleu_score
 
-    def compute(self) -> None | Tensor | float:
+    def compute(self) -> Union[None, Tensor, float]:
         if self.average == "macro":
             return self._compute_macro()
         elif self.average == "micro":
