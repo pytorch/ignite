@@ -64,7 +64,10 @@ def _test(candidates, references, average, smooth="no_smooth", smooth_nltk_fn=No
             assert pytest.approx(reference) == bleu._corpus_bleu(references, candidates)
 
         bleu.update((candidates, references))
-        assert pytest.approx(reference) == bleu.compute()
+        computed = bleu.compute()
+        if isinstance(computed, torch.Tensor):
+            computed = computed.cpu().item()
+        assert pytest.approx(reference) == computed
 
 
 @pytest.mark.parametrize(*parametrize_args)
@@ -153,7 +156,11 @@ def test_bleu_batch_macro(available_device):
             + sentence_bleu(refs[1], hypotheses[1])
             + sentence_bleu(refs[2], hypotheses[2])
         ) / 3
-    assert pytest.approx(bleu.compute()) == reference_bleu_score
+    computed = bleu.compute()
+    if isinstance(computed, torch.Tensor):
+        computed = computed.cpu().item()
+
+    assert pytest.approx(computed) == reference_bleu_score
 
     value = 0
     for _hypotheses, _refs in zip(hypotheses, refs):
@@ -161,10 +168,12 @@ def test_bleu_batch_macro(available_device):
         bleu.update(([_hypotheses], [_refs]))
 
     ref_1 = value / len(refs)
-    ref_2 = bleu.compute()
+    computed = bleu.compute()
+    if isinstance(computed, torch.Tensor):
+        computed = computed.cpu().item()
 
     assert pytest.approx(ref_1) == reference_bleu_score
-    assert pytest.approx(ref_2) == reference_bleu_score
+    assert pytest.approx(computed) == reference_bleu_score
 
 
 def test_bleu_batch_micro(available_device):
