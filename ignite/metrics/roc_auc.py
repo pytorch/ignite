@@ -198,9 +198,9 @@ class RocCurve(EpochMetric):
         if idist.get_rank() == 0:
             # Run compute_fn on zero rank only
             fpr, tpr, thresholds = cast(Tuple, self.compute_fn(_prediction_tensor, _target_tensor))
-            fpr = torch.tensor(fpr, device=_prediction_tensor.device)
-            tpr = torch.tensor(tpr, device=_prediction_tensor.device)
-            thresholds = torch.tensor(thresholds, device=_prediction_tensor.device)
+            fpr = torch.tensor(fpr, dtype=self._double_dtype, device=_prediction_tensor.device)
+            tpr = torch.tensor(tpr, dtype=self._double_dtype, device=_prediction_tensor.device)
+            thresholds = torch.tensor(thresholds, dtype=self._double_dtype, device=_prediction_tensor.device)
         else:
             fpr, tpr, thresholds = None, None, None
 
