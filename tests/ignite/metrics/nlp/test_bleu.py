@@ -119,10 +119,7 @@ def test_accumulation_macro_bleu(available_device):
     value += bleu._sentence_bleu(corpus.references_2, corpus.cand_2a)
     value += bleu._sentence_bleu(corpus.references_2, corpus.cand_2b)
     value += bleu._sentence_bleu(corpus.references_2, corpus.cand_3)
-    computed = bleu.compute()
-    if isinstance(computed, torch.Tensor):
-        computed = computed.cpu().float().item()
-    assert computed == value / 4
+    assert bleu.compute() == value / 4
 
 
 def test_accumulation_micro_bleu(available_device):
@@ -156,8 +153,7 @@ def test_bleu_batch_macro(available_device):
             + sentence_bleu(refs[1], hypotheses[1])
             + sentence_bleu(refs[2], hypotheses[2])
         ) / 3
-    computed = bleu.compute()
-    assert pytest.approx(computed) == reference_bleu_score
+    assert pytest.approx(bleu.compute()) == reference_bleu_score
 
     value = 0
     for _hypotheses, _refs in zip(hypotheses, refs):
@@ -165,7 +161,7 @@ def test_bleu_batch_macro(available_device):
         bleu.update(([_hypotheses], [_refs]))
 
     ref_1 = value / len(refs)
-    ref_2 = bleu.compute().cpu().numpy()
+    ref_2 = bleu.compute()
 
     assert pytest.approx(ref_1) == reference_bleu_score
     assert pytest.approx(ref_2) == reference_bleu_score
