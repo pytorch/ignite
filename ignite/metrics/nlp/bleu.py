@@ -284,3 +284,4 @@ class Bleu(Metric):
             return self._compute_macro()
         elif self.average == "micro":
             return self._compute_micro()
+        return None
