@@ -236,13 +236,12 @@ class Bleu(Metric):
     @reinit__is_reduced
     def reset(self) -> None:
         if self.average == "macro":
-            dtype = torch.get_default_dtype() if self._device.type == "mps" else torch.double
-            self._sum_of_bleu = torch.tensor(0.0, dtype=dtype, device=self._device)
+            self._sum_of_bleu = torch.tensor(0.0, dtype=self._double_dtype, device=self._device)
             self._num_sentences = 0
 
         if self.average == "micro":
-            self.p_numerators = torch.zeros(self.ngrams_order + 1)
-            self.p_denominators = torch.zeros(self.ngrams_order + 1)
+            self.p_numerators = torch.zeros(self.ngrams_order + 1, dtype=self._double_dtype)
+            self.p_denominators = torch.zeros(self.ngrams_order + 1, dtype=self._double_dtype)
             self.hyp_length_sum = 0
             self.ref_length_sum = 0
 
@@ -279,7 +278,7 @@ class Bleu(Metric):
         )
         return bleu_score
 
-    def compute(self) -> None:
+    def compute(self):
         if self.average == "macro":
             return self._compute_macro()
         elif self.average == "micro":
