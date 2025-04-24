@@ -20,14 +20,15 @@ def test_wrong_input_shapes():
         m.update((torch.rand(4, 1), torch.rand(4)))
 
 
-def test_mahattan_distance():
+def test_mahattan_distance(available_device):
     a = np.random.randn(4)
     b = np.random.randn(4)
     c = np.random.randn(4)
     d = np.random.randn(4)
     ground_truth = np.random.randn(4)
 
-    m = ManhattanDistance()
+    m = ManhattanDistance(device=available_device)
+    assert m._device == torch.device(available_device)
 
     manhattan = DistanceMetric.get_metric("manhattan")
 
@@ -58,8 +59,8 @@ def test_mahattan_distance():
     assert manhattan.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
 
 
-def test_integration():
-    def _test(y_pred, y, batch_size):
+def test_integration(available_device):
+    def _test(y_pred, y, batch_size, device="cpu"):
         def update_fn(engine, batch):
             idx = (engine.state.iteration - 1) * batch_size
             y_true_batch = np_y[idx : idx + batch_size]
@@ -68,7 +69,8 @@ def test_integration():
 
         engine = Engine(update_fn)
 
-        m = ManhattanDistance()
+        m = ManhattanDistance(device=device)
+        assert m._device == torch.device(device)
         m.attach(engine, "md")
 
         np_y = y.numpy().ravel()
@@ -92,11 +94,12 @@ def test_integration():
         # check multiple random inputs as random exact occurencies are rare
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
-            _test(y_pred, y, batch_size)
+            _test(y_pred, y, batch_size, device=available_device)
 
 
-def test_error_is_not_nan():
-    m = ManhattanDistance()
+def test_error_is_not_nan(available_device):
+    m = ManhattanDistance(device=available_device)
+    assert m._device == torch.device(available_device)
     m.update((torch.zeros(4), torch.zeros(4)))
     assert not (torch.isnan(m._sum_of_errors).any() or torch.isinf(m._sum_of_errors).any()), m._sum_of_errors
 

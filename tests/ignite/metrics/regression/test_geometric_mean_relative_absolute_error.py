@@ -29,13 +29,14 @@ def test_wrong_input_shapes():
         m.update((torch.rand(4, 1), torch.rand(4)))
 
 
-def test_compute():
+def test_compute(available_device):
     size = 51
     np_y_pred = np.random.rand(size)
     np_y = np.random.rand(size)
     np_gmrae = np.exp(np.log(np.abs(np_y - np_y_pred) / np.abs(np_y - np_y.mean())).mean())
 
-    m = GeometricMeanRelativeAbsoluteError()
+    m = GeometricMeanRelativeAbsoluteError(device=available_device)
+    assert m._device == torch.device(available_device)
     y_pred = torch.from_numpy(np_y_pred)
     y = torch.from_numpy(np_y)
 
@@ -45,7 +46,7 @@ def test_compute():
     assert np_gmrae == pytest.approx(m.compute())
 
 
-def test_integration():
+def test_integration(available_device):
     y_pred = torch.rand(size=(100,))
     y = torch.rand(size=(100,))
 
@@ -59,7 +60,8 @@ def test_integration():
 
     engine = Engine(update_fn)
 
-    m = GeometricMeanRelativeAbsoluteError()
+    m = GeometricMeanRelativeAbsoluteError(device=available_device)
+    assert m._device == torch.device(available_device)
     m.attach(engine, "gmrae")
 
     np_y = y.numpy().ravel()

@@ -38,14 +38,15 @@ def test_wrong_input_shapes():
         m.update((torch.rand(4, 1), torch.rand(4)))
 
 
-def test_mean_error():
+def test_mean_error(available_device):
     a = np.random.randn(4)
     b = np.random.randn(4)
     c = np.random.randn(4)
     d = np.random.randn(4)
     ground_truth = np.random.randn(4)
 
-    m = MeanNormalizedBias()
+    m = MeanNormalizedBias(device=available_device)
+    assert m._device == torch.device(available_device)
 
     m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
     np_sum = ((ground_truth - a) / ground_truth).sum()
@@ -72,8 +73,8 @@ def test_mean_error():
     assert m.compute() == pytest.approx(np_ans)
 
 
-def test_integration():
-    def _test(y_pred, y, batch_size):
+def test_integration(available_device):
+    def _test(y_pred, y, batch_size, device="cpu"):
         def update_fn(engine, batch):
             idx = (engine.state.iteration - 1) * batch_size
             y_true_batch = np_y[idx : idx + batch_size]
@@ -82,7 +83,8 @@ def test_integration():
 
         engine = Engine(update_fn)
 
-        m = MeanNormalizedBias()
+        m = MeanNormalizedBias(device=device)
+        assert m._device == torch.device(device)
         m.attach(engine, "mnb")
 
         np_y = y.numpy().ravel()

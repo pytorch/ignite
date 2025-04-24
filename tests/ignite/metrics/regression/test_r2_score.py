@@ -27,12 +27,13 @@ def test_wrong_input_shapes():
         m.update((torch.rand(4, 1), torch.rand(4)))
 
 
-def test_r2_score():
+def test_r2_score(available_device):
     size = 51
     np_y_pred = np.random.rand(size)
     np_y = np.random.rand(size)
 
-    m = R2Score()
+    m = R2Score(device=available_device)
+    assert m._device == torch.device(available_device)
     y_pred = torch.from_numpy(np_y_pred)
     y = torch.from_numpy(np_y)
 
@@ -42,14 +43,15 @@ def test_r2_score():
     assert r2_score(np_y, np_y_pred) == pytest.approx(m.compute())
 
 
-def test_r2_score_2():
+def test_r2_score_2(available_device):
     np.random.seed(1)
     size = 105
     np_y_pred = np.random.rand(size, 1)
     np_y = np.random.rand(size, 1)
     np.random.shuffle(np_y)
 
-    m = R2Score()
+    m = R2Score(device=available_device)
+    assert m._device == torch.device(available_device)
     y_pred = torch.from_numpy(np_y_pred)
     y = torch.from_numpy(np_y)
 
@@ -63,7 +65,7 @@ def test_r2_score_2():
     assert r2_score(np_y, np_y_pred) == pytest.approx(m.compute())
 
 
-def test_integration_r2_score():
+def test_integration_r2_score(available_device):
     np.random.seed(1)
     size = 105
     np_y_pred = np.random.rand(size, 1)
@@ -80,7 +82,8 @@ def test_integration_r2_score():
 
     engine = Engine(update_fn)
 
-    m = R2Score()
+    m = R2Score(device=available_device)
+    assert m._device == torch.device(available_device)
     m.attach(engine, "r2_score")
 
     data = list(range(size // batch_size))

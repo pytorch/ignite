@@ -19,14 +19,15 @@ def test_wrong_input_shapes():
         m.update((torch.rand(4, 1), torch.rand(4)))
 
 
-def test_compute():
+def test_compute(available_device):
     a = np.random.randn(4)
     b = np.random.randn(4)
     c = np.random.randn(4)
     d = np.random.randn(4)
     ground_truth = np.random.randn(4)
 
-    m = WaveHedgesDistance()
+    m = WaveHedgesDistance(device=available_device)
+    assert m._device == torch.device(available_device)
 
     m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
     np_sum = (np.abs(ground_truth - a) / np.maximum.reduce([a, ground_truth])).sum()
@@ -45,7 +46,7 @@ def test_compute():
     assert m.compute() == pytest.approx(np_sum)
 
 
-def test_integration():
+def test_integration(available_device):
     def _test(y_pred, y, batch_size):
         def update_fn(engine, batch):
             idx = (engine.state.iteration - 1) * batch_size
@@ -55,7 +56,8 @@ def test_integration():
 
         engine = Engine(update_fn)
 
-        m = WaveHedgesDistance()
+        m = WaveHedgesDistance(device=available_device)
+        assert m._device == torch.device(available_device)
         m.attach(engine, "whd")
 
         np_y = y.numpy().ravel()

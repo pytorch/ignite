@@ -34,7 +34,7 @@ def test_wrong_input_shapes():
         m.update((torch.rand(4), torch.rand(4, 1, 2)))
 
 
-def test_median_absolute_percentage_error():
+def test_median_absolute_percentage_error(available_device):
     # See https://github.com/torch/torch7/pull/182
     # For even number of elements, PyTorch returns middle element
     # NumPy returns average of middle elements
@@ -45,7 +45,8 @@ def test_median_absolute_percentage_error():
     np_y = np.random.rand(size)
     np_median_absolute_percentage_error = 100.0 * np.median(np.abs(np_y - np_y_pred) / np.abs(np_y))
 
-    m = MedianAbsolutePercentageError()
+    m = MedianAbsolutePercentageError(device=available_device)
+    assert m._device == torch.device(available_device)
     y_pred = torch.from_numpy(np_y_pred)
     y = torch.from_numpy(np_y)
 
@@ -55,7 +56,7 @@ def test_median_absolute_percentage_error():
     assert np_median_absolute_percentage_error == pytest.approx(m.compute())
 
 
-def test_median_absolute_percentage_error_2():
+def test_median_absolute_percentage_error_2(available_device):
     np.random.seed(1)
     size = 105
     np_y_pred = np.random.rand(size, 1)
@@ -63,7 +64,8 @@ def test_median_absolute_percentage_error_2():
     np.random.shuffle(np_y)
     np_median_absolute_percentage_error = 100.0 * np.median(np.abs(np_y - np_y_pred) / np.abs(np_y))
 
-    m = MedianAbsolutePercentageError()
+    m = MedianAbsolutePercentageError(device=available_device)
+    assert m._device == torch.device(available_device)
     y_pred = torch.from_numpy(np_y_pred)
     y = torch.from_numpy(np_y)
 
@@ -77,7 +79,7 @@ def test_median_absolute_percentage_error_2():
     assert np_median_absolute_percentage_error == pytest.approx(m.compute())
 
 
-def test_integration_median_absolute_percentage_error():
+def test_integration_median_absolute_percentage_error(available_device):
     np.random.seed(1)
     size = 105
     np_y_pred = np.random.rand(size, 1)
@@ -95,7 +97,8 @@ def test_integration_median_absolute_percentage_error():
 
     engine = Engine(update_fn)
 
-    m = MedianAbsolutePercentageError()
+    m = MedianAbsolutePercentageError(device=available_device)
+    assert m._device == torch.device(available_device)
     m.attach(engine, "median_absolute_percentage_error")
 
     data = list(range(size // batch_size))

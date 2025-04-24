@@ -43,9 +43,10 @@ def test_wrong_input_shapes():
         m.update((torch.rand(4, 1), torch.rand(4)))
 
 
-def test_degenerated_sample():
+def test_degenerated_sample(available_device):
     # one sample
-    m = PearsonCorrelation()
+    m = PearsonCorrelation(device=available_device)
+    assert m._device == torch.device(available_device)
     y_pred = torch.tensor([1.0])
     y = torch.tensor([1.0])
     m.update((y_pred, y))
@@ -67,14 +68,15 @@ def test_degenerated_sample():
     assert pytest.approx(np_res) == m.compute()
 
 
-def test_pearson_correlation():
+def test_pearson_correlation(available_device):
     a = np.random.randn(4).astype(np.float32)
     b = np.random.randn(4).astype(np.float32)
     c = np.random.randn(4).astype(np.float32)
     d = np.random.randn(4).astype(np.float32)
     ground_truth = np.random.randn(4).astype(np.float32)
 
-    m = PearsonCorrelation()
+    m = PearsonCorrelation(device=available_device)
+    assert m._device == torch.device(available_device)
 
     m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
     np_ans = scipy_corr(a, ground_truth)
@@ -106,7 +108,7 @@ def test_case(request):
 
 
 @pytest.mark.parametrize("n_times", range(5))
-def test_integration(n_times, test_case: Tuple[Tensor, Tensor, int]):
+def test_integration(n_times, test_case: Tuple[Tensor, Tensor, int], available_device):
     y_pred, y, batch_size = test_case
 
     def update_fn(engine: Engine, batch):
@@ -117,7 +119,8 @@ def test_integration(n_times, test_case: Tuple[Tensor, Tensor, int]):
 
     engine = Engine(update_fn)
 
-    m = PearsonCorrelation()
+    m = PearsonCorrelation(device=available_device)
+    assert m._device == torch.device(available_device)
     m.attach(engine, "corr")
 
     np_y = y.numpy().ravel()
@@ -131,8 +134,9 @@ def test_integration(n_times, test_case: Tuple[Tensor, Tensor, int]):
     assert pytest.approx(np_ans, rel=2e-4) == corr
 
 
-def test_accumulator_detached():
-    corr = PearsonCorrelation()
+def test_accumulator_detached(available_device):
+    corr = PearsonCorrelation(device=available_device)
+    assert corr._device == torch.device(available_device)
 
     y_pred = torch.tensor([2.0, 3.0], requires_grad=True)
     y = torch.tensor([-2.0, -1.0])
