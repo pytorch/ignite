@@ -14,16 +14,6 @@ from ignite.metrics.epoch_metric import EpochMetricWarning
 from ignite.metrics.precision_recall_curve import PrecisionRecallCurve
 
 
-def to_numpy_float32(x):
-    if isinstance(x, torch.Tensor):
-        if x.device.type == "mps":
-            x = x.to("cpu")  # Explicitly move from MPS to CPU
-        return x.detach().to(dtype=torch.float32).numpy()
-    elif isinstance(x, np.ndarray):
-        return x.astype(np.float32)
-    return x
-
-
 @pytest.fixture()
 def mock_no_sklearn():
     with patch.dict("sys.modules", {"sklearn.metrics": None}):
@@ -43,11 +33,7 @@ def test_precision_recall_curve(available_device):
     y_pred = torch.rand(size, 1, dtype=torch.float32, device=available_device)
     y_true = torch.zeros(size, dtype=torch.float32, device=available_device)
     y_true[size // 2 :] = 1.0
-    sk_precision, sk_recall, sk_thresholds = precision_recall_curve(to_numpy_float32(y_true), to_numpy_float32(y_pred))
-
-    sk_precision = to_numpy_float32(sk_precision)
-    sk_recall = to_numpy_float32(sk_recall)
-    sk_thresholds = to_numpy_float32(sk_thresholds)
+    expected_precision, expected_recall, expected_thresholds = precision_recall_curve(y_true, y_pred)
 
     precision_recall_curve_metric = PrecisionRecallCurve(device=available_device)
     assert precision_recall_curve_metric._device == torch.device(available_device)
@@ -55,18 +41,14 @@ def test_precision_recall_curve(available_device):
     precision_recall_curve_metric.update((y_pred, y_true))
     precision, recall, thresholds = precision_recall_curve_metric.compute()
 
-    precision = to_numpy_float32(precision)
-    recall = to_numpy_float32(recall)
-    thresholds = to_numpy_float32(thresholds)
+    precision = precision.cpu().numpy()
+    recall = recall.cpu().numpy()
+    thresholds = thresholds.cpu().numpy()
 
-    sk_precision = to_numpy_float32(sk_precision)
-    sk_recall = to_numpy_float32(sk_recall)
-    sk_thresholds = to_numpy_float32(sk_thresholds)
-
-    assert np.allclose(precision, sk_precision, rtol=1e-6)
-    assert np.allclose(recall, sk_recall, rtol=1e-6)
+    assert pytest.approx(precision) == expected_precision
+    assert pytest.approx(recall) == expected_recall
     # assert thresholds almost equal, due to numpy->torch->numpy conversion
-    np.testing.assert_array_almost_equal(thresholds, sk_thresholds)
+    np.testing.assert_array_almost_equal(thresholds, expected_thresholds)
 
 
 def test_integration_precision_recall_curve_with_output_transform(available_device):
@@ -79,7 +61,7 @@ def test_integration_precision_recall_curve_with_output_transform(available_devi
     y_pred = y_pred[perm]
     y_true = y_true[perm]
 
-    sk_precision, sk_recall, sk_thresholds = precision_recall_curve(to_numpy_float32(y_true), to_numpy_float32(y_pred))
+    expected_precision, expected_recall, expected_thresholds = precision_recall_curve(y_true, y_pred)
 
     batch_size = 10
 
@@ -99,19 +81,13 @@ def test_integration_precision_recall_curve_with_output_transform(available_devi
 
     data = list(range(size // batch_size))
     precision, recall, thresholds = engine.run(data, max_epochs=1).metrics["precision_recall_curve"]
-
-    precision = to_numpy_float32(precision)
-    recall = to_numpy_float32(recall)
-    thresholds = to_numpy_float32(thresholds)
-
-    sk_precision = to_numpy_float32(sk_precision)
-    sk_recall = to_numpy_float32(sk_recall)
-    sk_thresholds = to_numpy_float32(sk_thresholds)
-
-    assert np.allclose(precision, sk_precision, rtol=1e-6)
-    assert np.allclose(recall, sk_recall, rtol=1e-6)
+    precision = precision.cpu().numpy()
+    recall = recall.cpu().numpy()
+    thresholds = thresholds.cpu().numpy()
+    assert pytest.approx(precision) == expected_precision
+    assert pytest.approx(recall) == expected_recall
     # assert thresholds almost equal, due to numpy->torch->numpy conversion
-    np.testing.assert_array_almost_equal(thresholds, sk_thresholds)
+    np.testing.assert_array_almost_equal(thresholds, expected_thresholds)
 
 
 def test_integration_precision_recall_curve_with_activated_output_transform(available_device):
@@ -125,9 +101,7 @@ def test_integration_precision_recall_curve_with_activated_output_transform(avai
     y_true = y_true[perm]
 
     sigmoid_y_pred = torch.sigmoid(y_pred).cpu().numpy()
-    sk_precision, sk_recall, sk_thresholds = precision_recall_curve(
-        to_numpy_float32(y_true), to_numpy_float32(sigmoid_y_pred)
-    )
+    expected_precision, expected_recall, expected_thresholds = precision_recall_curve(y_true, sigmoid_y_pred)
 
     batch_size = 10
 
@@ -147,18 +121,14 @@ def test_integration_precision_recall_curve_with_activated_output_transform(avai
 
     data = list(range(size // batch_size))
     precision, recall, thresholds = engine.run(data, max_epochs=1).metrics["precision_recall_curve"]
-    precision = to_numpy_float32(precision)
-    recall = to_numpy_float32(recall)
-    thresholds = to_numpy_float32(thresholds)
+    precision = precision.cpu().numpy()
+    recall = recall.cpu().numpy()
+    thresholds = thresholds.cpu().numpy()
 
-    sk_precision = to_numpy_float32(sk_precision)
-    sk_recall = to_numpy_float32(sk_recall)
-    sk_thresholds = to_numpy_float32(sk_thresholds)
-
-    assert np.allclose(precision, sk_precision, rtol=1e-6)
-    assert np.allclose(recall, sk_recall, rtol=1e-6)
+    assert pytest.approx(precision) == expected_precision
+    assert pytest.approx(recall) == expected_recall
     # assert thresholds almost equal, due to numpy->torch->numpy conversion
-    np.testing.assert_array_almost_equal(thresholds, sk_thresholds)
+    np.testing.assert_array_almost_equal(thresholds, expected_thresholds)
 
 
 def test_check_compute_fn(available_device):
@@ -199,29 +169,15 @@ def _test_distrib_compute(device):
         y_pred = idist.all_gather(y_pred)
         y = idist.all_gather(y)
 
-        np_y = to_numpy_float32(y)
-        np_y_pred = to_numpy_float32(y_pred)
+        np_y = y.cpu().numpy()
+        np_y_pred = y_pred.cpu().numpy()
 
         res = prc.compute()
 
         assert isinstance(res, Tuple)
-        sk_precision, sk_recall, sk_thresholds = precision_recall_curve(np_y, np_y_pred)
-
-        assert np.allclose(
-            to_numpy_float32(res[0]),
-            to_numpy_float32(sk_precision),
-            rtol=1e-6,
-        )
-        assert np.allclose(
-            to_numpy_float32(res[1]),
-            to_numpy_float32(sk_recall),
-            rtol=1e-6,
-        )
-        assert np.allclose(
-            to_numpy_float32(res[2]),
-            to_numpy_float32(sk_thresholds),
-            rtol=1e-6,
-        )
+        assert precision_recall_curve(np_y, np_y_pred)[0] == pytest.approx(res[0].cpu().numpy())
+        assert precision_recall_curve(np_y, np_y_pred)[1] == pytest.approx(res[1].cpu().numpy())
+        assert precision_recall_curve(np_y, np_y_pred)[2] == pytest.approx(res[2].cpu().numpy())
 
     def get_test_cases():
         test_cases = [
@@ -278,26 +234,17 @@ def _test_distrib_integration(device):
 
         precision, recall, thresholds = engine.state.metrics["prc"]
 
-        np_y_true = to_numpy_float32(y_true).ravel()
-        np_y_preds = to_numpy_float32(y_preds).ravel()
+        np_y_true = y_true.cpu().numpy().ravel()
+        np_y_preds = y_preds.cpu().numpy().ravel()
 
-        sk_precision, sk_recall, sk_thresholds = precision_recall_curve(np_y_true, np_y_preds)
+        expected_precision, expected_recall, expected_thresholds = precision_recall_curve(np_y_true, np_y_preds)
 
-        sk_precision = sk_precision.astype(np.float32)
-        sk_recall = sk_recall.astype(np.float32)
-        sk_thresholds = sk_thresholds.astype(np.float32)
-
-        precision = to_numpy_float32(precision)
-        recall = to_numpy_float32(recall)
-        thresholds = to_numpy_float32(thresholds)
-
-        assert precision.shape == sk_precision.shape
-        assert recall.shape == sk_recall.shape
-        assert thresholds.shape == sk_thresholds.shape
-
-        assert np.allclose(precision, sk_precision, rtol=1e-6)
-        assert np.allclose(recall, sk_recall, rtol=1e-6)
-        np.testing.assert_array_almost_equal(thresholds, sk_thresholds)
+        assert precision.shape == expected_precision.shape
+        assert recall.shape == expected_recall.shape
+        assert thresholds.shape == expected_thresholds.shape
+        assert pytest.approx(precision.cpu().numpy()) == expected_precision
+        assert pytest.approx(recall.cpu().numpy()) == expected_recall
+        assert pytest.approx(thresholds.cpu().numpy()) == expected_thresholds
 
     metric_devices = ["cpu"]
     if device.type != "xla":
