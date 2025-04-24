@@ -69,6 +69,8 @@ def test_compute(available_device):
 )
 def test_integration(n_times, test_cases, available_device):
     y_pred, y, batch_size = test_cases
+    assert y_pred.dtype == torch.float32
+    assert y.dtype == torch.float32
 
     def update_fn(engine, batch):
         idx = (engine.state.iteration - 1) * batch_size
@@ -79,9 +81,11 @@ def test_integration(n_times, test_cases, available_device):
     engine = Engine(update_fn)
 
     m = CanberraMetric(device=available_device)
+    print(f"m's dtype: {m._double_dtype}")
     assert m._device == torch.device(available_device)
 
     m.attach(engine, "cm")
+    print(f"m's dtype again: {m._double_dtype}")
 
     canberra = DistanceMetric.get_metric("canberra")
 

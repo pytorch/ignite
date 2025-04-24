@@ -73,7 +73,8 @@ class CanberraMetric(_BaseRegression):
 
     def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output[0].detach(), output[1].detach()
-        errors = torch.abs(y - y_pred) / (torch.abs(y_pred) + torch.abs(y) + 1e-15)
+        eps = torch.tensor(1e-15, dtype=self._double_dtype, device=y.device)
+        errors = torch.abs(y - y_pred) / (torch.abs(y_pred) + torch.abs(y) + eps)
         self._sum_of_errors += torch.sum(errors).to(dtype=self._double_dtype, device=self._device)
 
     @sync_all_reduce("_sum_of_errors")
