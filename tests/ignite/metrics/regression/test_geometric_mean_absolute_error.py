@@ -28,7 +28,7 @@ def test_wrong_input_shapes():
         m.update((torch.rand(4, 1), torch.rand(4)))
 
 
-def test_compute():
+def test_compute(available_device):
     a = np.random.randn(4)
     b = np.random.randn(4)
     c = np.random.randn(4)
@@ -36,7 +36,8 @@ def test_compute():
     ground_truth = np.random.randn(4)
     np_prod = 1.0
 
-    m = GeometricMeanAbsoluteError()
+    m = GeometricMeanAbsoluteError(device=available_device)
+    assert m._device == torch.device(available_device)
     m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
 
     errors = np.abs(ground_truth - a)
@@ -67,8 +68,8 @@ def test_compute():
     assert m.compute() == pytest.approx(np_ans)
 
 
-def test_integration():
-    def _test(y_pred, y, batch_size):
+def test_integration(available_device):
+    def _test(y_pred, y, batch_size, device="cpu"):
         def update_fn(engine, batch):
             idx = (engine.state.iteration - 1) * batch_size
             y_true_batch = np_y[idx : idx + batch_size]
@@ -77,7 +78,9 @@ def test_integration():
 
         engine = Engine(update_fn)
 
-        m = GeometricMeanAbsoluteError()
+        m = GeometricMeanAbsoluteError(device=device)
+        assert m._device == torch.device(device)
+
         m.attach(engine, "gmae")
 
         np_y = y.numpy().ravel()

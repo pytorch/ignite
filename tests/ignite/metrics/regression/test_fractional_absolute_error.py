@@ -28,14 +28,15 @@ def test_wrong_input_shapes():
         m.update((torch.rand(4, 1), torch.rand(4)))
 
 
-def test_compute():
+def test_compute(available_device):
     a = np.random.randn(4)
     b = np.random.randn(4)
     c = np.random.randn(4)
     d = np.random.randn(4)
     ground_truth = np.random.randn(4)
 
-    m = FractionalAbsoluteError()
+    m = FractionalAbsoluteError(device=available_device)
+    assert m._device == torch.device(available_device)
 
     m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
     np_sum = (2 * np.abs((a - ground_truth)) / (np.abs(a) + np.abs(ground_truth))).sum()
@@ -62,8 +63,8 @@ def test_compute():
     assert m.compute() == pytest.approx(np_ans)
 
 
-def test_integration():
-    def _test(y_pred, y, batch_size):
+def test_integration(available_device):
+    def _test(y_pred, y, batch_size, device="cpu"):
         def update_fn(engine, batch):
             idx = (engine.state.iteration - 1) * batch_size
             y_true_batch = np_y[idx : idx + batch_size]
@@ -72,7 +73,8 @@ def test_integration():
 
         engine = Engine(update_fn)
 
-        m = FractionalAbsoluteError()
+        m = FractionalAbsoluteError(device=device)
+        assert m._device == torch.device(device)
         m.attach(engine, "fab")
 
         np_y = y.numpy().ravel()
@@ -98,7 +100,7 @@ def test_integration():
         # check multiple random inputs as random exact occurencies are rare
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
-            _test(y_pred, y, batch_size)
+            _test(y_pred, y, batch_size, device=available_device)
 
 
 def _test_distrib_compute(device):
