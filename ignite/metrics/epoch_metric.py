@@ -129,8 +129,8 @@ class EpochMetric(Metric):
         if y.ndimension() == 2 and y.shape[1] == 1:
             y = y.squeeze(dim=-1)
 
-        y_pred = y_pred.clone().to(dtype=self._double_dtype, device=self._device)
-        y = y.clone().to(dtype=self._double_dtype, device=self._device)
+        y_pred = y_pred.clone().to(self._device)
+        y = y.clone().to(self._device)
 
         self._check_type((y_pred, y))
         self._predictions.append(y_pred)

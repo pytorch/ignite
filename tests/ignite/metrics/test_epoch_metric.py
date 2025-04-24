@@ -36,6 +36,14 @@ def test_epoch_metric_wrong_setup_or_input():
     output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
     em.update(output1)
 
+    with pytest.raises(ValueError, match=r"Incoherent types between input y_pred and stored predictions"):
+        output2 = (torch.randint(0, 5, size=(4, 3)), torch.randint(0, 2, size=(4, 3)))
+        em.update(output2)
+
+    with pytest.raises(ValueError, match=r"Incoherent types between input y and stored targets"):
+        output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3)).to(torch.int32))
+        em.update(output2)
+
     with pytest.raises(
         NotComputableError, match="EpochMetric must have at least one example before it can be computed"
     ):
