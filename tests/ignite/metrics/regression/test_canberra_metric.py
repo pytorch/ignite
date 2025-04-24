@@ -59,43 +59,38 @@ def test_compute(available_device):
     assert canberra.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
 
 
-def test_integration(available_device):
-    def _test(y_pred, y, batch_size, device="cpu"):
-        def update_fn(engine, batch):
-            idx = (engine.state.iteration - 1) * batch_size
-            y_true_batch = np_y[idx : idx + batch_size]
-            y_pred_batch = np_y_pred[idx : idx + batch_size]
-            return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+@pytest.mark.parametrize(
+    "test_cases",
+    [
+        (torch.rand(size=(100,)), torch.rand(size=(100,)), 10),
+        (torch.rand(size=(100, 1)), torch.rand(size=(100, 1)), 20),
+    ],
+)
+def test_integration(test_cases, available_device):
+    y_pred, y, batch_size = test_cases
 
-        engine = Engine(update_fn)
+    def update_fn(engine, batch):
+        idx = (engine.state.iteration - 1) * batch_size
+        y_true_batch = y[idx : idx + batch_size]
+        y_pred_batch = y_pred[idx : idx + batch_size]
+        return y_pred_batch, y_true_batch
 
-        m = CanberraMetric(device=device)
-        assert m._device == torch.device(device)
+    engine = Engine(update_fn)
 
-        m.attach(engine, "cm")
+    m = CanberraMetric(device=available_device)
+    assert m._device == torch.device(available_device)
 
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().ravel()
+    m.attach(engine, "cm")
 
-        canberra = DistanceMetric.get_metric("canberra")
+    canberra = DistanceMetric.get_metric("canberra")
 
-        data = list(range(y_pred.shape[0] // batch_size))
-        cm = engine.run(data, max_epochs=1).metrics["cm"]
+    data = list(range(y_pred.shape[0] // batch_size))
+    cm = engine.run(data, max_epochs=1).metrics["cm"]
 
-        assert canberra.pairwise([np_y_pred, np_y])[0][1] == pytest.approx(cm)
-
-    def get_test_cases():
-        test_cases = [
-            (torch.rand(size=(100,)), torch.rand(size=(100,)), 10),
-            (torch.rand(size=(100, 1)), torch.rand(size=(100, 1)), 20),
-        ]
-        return test_cases
-
-    for _ in range(5):
-        # check multiple random inputs as random exact occurencies are rare
-        test_cases = get_test_cases()
-        for y_pred, y, batch_size in test_cases:
-            _test(y_pred, y, batch_size, device=available_device)
+    X = y_pred.cpu().numpy().reshape(len(y_pred), -1)
+    Y = y.cpu().numpy().reshape(len(y), -1)
+    expected = np.sum(canberra.pairwise(X, Y).diagonal())
+    assert expected == pytest.approx(cm)
 
 
 def test_error_is_not_nan(available_device):
