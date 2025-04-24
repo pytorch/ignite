@@ -80,8 +80,8 @@ class GeometricMeanRelativeAbsoluteError(_BaseRegression):
     def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output[0].detach(), output[1].detach()
 
-        y_pred = y_pred.clone().to(self._device)
-        y = y.clone().to(self._device)
+        y_pred = y_pred.clone().to(dtype=self._double_dtype, device=self._device)
+        y = y.clone().to(dtype=self._double_dtype, device=self._device)
 
         self._predictions.append(y_pred)
         self._targets.append(y)

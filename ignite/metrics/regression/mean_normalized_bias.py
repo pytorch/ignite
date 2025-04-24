@@ -74,7 +74,7 @@ class MeanNormalizedBias(_BaseRegression):
             raise NotComputableError("The ground truth has 0.")
 
         errors = (y.view_as(y_pred) - y_pred) / y
-        self._sum_of_errors += torch.sum(errors).to(self._device)
+        self._sum_of_errors += torch.sum(errors).to(dtype=self._double_dtype, device=self._device)
         self._num_examples += y.shape[0]
 
     @sync_all_reduce("_sum_of_errors", "_num_examples")

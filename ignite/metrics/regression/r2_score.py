@@ -70,10 +70,10 @@ class R2Score(_BaseRegression):
     def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output
         self._num_examples += y.shape[0]
-        self._sum_of_errors += torch.sum(torch.pow(y_pred - y, 2)).to(self._device)
+        self._sum_of_errors += torch.sum(torch.pow(y_pred - y, 2)).to(dtype=self._double_dtype, device=self._device)
 
-        self._y_sum += torch.sum(y).to(self._device)
-        self._y_sq_sum += torch.sum(torch.pow(y, 2)).to(self._device)
+        self._y_sum += torch.sum(y).to(dtype=self._double_dtype, device=self._device)
+        self._y_sq_sum += torch.sum(torch.pow(y, 2)).to(dtype=self._double_dtype, device=self._device)
 
     @sync_all_reduce("_num_examples", "_sum_of_errors", "_y_sq_sum", "_y_sum")
     def compute(self) -> float:

@@ -70,7 +70,7 @@ class ManhattanDistance(_BaseRegression):
     def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output
         errors = torch.abs(y - y_pred)
-        self._sum_of_errors += torch.sum(errors).to(self._device)
+        self._sum_of_errors += torch.sum(errors).to(dtype=self._double_dtype, device=self._device)
 
     @sync_all_reduce("_sum_of_errors")
     def compute(self) -> float:

@@ -87,11 +87,11 @@ class PearsonCorrelation(_BaseRegression):
 
     def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output[0].detach(), output[1].detach()
-        self._sum_of_y_preds += y_pred.sum().to(self._device)
-        self._sum_of_ys += y.sum().to(self._device)
-        self._sum_of_y_pred_squares += y_pred.square().sum().to(self._device)
-        self._sum_of_y_squares += y.square().sum().to(self._device)
-        self._sum_of_products += (y_pred * y).sum().to(self._device)
+        self._sum_of_y_preds += y_pred.sum().to(dtype=self._double_dtype, device=self._device)
+        self._sum_of_ys += y.sum().to(dtype=self._double_dtype, device=self._device)
+        self._sum_of_y_pred_squares += y_pred.square().sum().to(dtype=self._double_dtype, device=self._device)
+        self._sum_of_y_squares += y.square().sum().to(dtype=self._double_dtype, device=self._device)
+        self._sum_of_products += (y_pred * y).sum().to(dtype=self._double_dtype, device=self._device)
         self._num_examples += y.shape[0]
 
     @sync_all_reduce(
