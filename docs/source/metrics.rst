@@ -283,7 +283,7 @@ By default, `Metrics` are epoch-wise, it means
 - :meth:`~ignite.metrics.metric.Metric.update()` is triggered every ``ITERATION_COMPLETED``.
 - :meth:`~ignite.metrics.metric.Metric.compute()` is triggered every ``EPOCH_COMPLETED``.
 
-Usages can be user defined by creating a class inheriting for :class:`~ignite.metrics.metric.MetricUsage`. See the list below of usages.
+Usages can be user defined by creating a class inheriting from :class:`~ignite.metrics.metric.MetricUsage`. See the list below of usages.
 
 Complete list of usages
 ~~~~~~~~~~~~~~~~~~~~~~~

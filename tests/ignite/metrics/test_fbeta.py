@@ -1,6 +1,5 @@
 import os
 
-import numpy as np
 import pytest
 import torch
 from sklearn.metrics import fbeta_score
@@ -24,9 +23,17 @@ def test_wrong_inputs():
         r = Recall(average="samples")
         Fbeta(1.0, recall=r)
 
+    with pytest.raises(ValueError, match=r"If precision argument is provided, device should be None"):
+        p = Precision(average=False)
+        Fbeta(1.0, precision=p, device="cpu")
+
     with pytest.raises(ValueError, match=r"If precision argument is provided, output_transform should be None"):
         p = Precision(average=False)
         Fbeta(1.0, precision=p, output_transform=lambda x: x)
+
+    with pytest.raises(ValueError, match=r"If recall argument is provided, device should be None"):
+        r = Recall(average=False)
+        Fbeta(1.0, recall=r, device="cpu")
 
     with pytest.raises(ValueError, match=r"If recall argument is provided, output_transform should be None"):
         r = Recall(average=False)
@@ -38,30 +45,49 @@ def _output_transform(output):
 
 
 @pytest.mark.parametrize(
-    "p, r, average, output_transform",
+    "precision_cls, recall_cls, average, output_transform",
     [
         (None, None, False, None),
         (None, None, True, None),
         (None, None, False, _output_transform),
         (None, None, True, _output_transform),
-        (Precision(average=False), Recall(average=False), False, None),
-        (Precision(average=False), Recall(average=False), True, None),
+        (
+            lambda device: Precision(average=False, device=device),
+            lambda device: Recall(average=False, device=device),
+            False,
+            None,
+        ),
+        (
+            lambda device: Precision(average=False, device=device),
+            lambda device: Recall(average=False, device=device),
+            True,
+            None,
+        ),
     ],
 )
-def test_integration(p, r, average, output_transform):
-    np.random.seed(1)
+def test_integration(precision_cls, recall_cls, average, output_transform, available_device):
+    if precision_cls is None:
+        p = None
+    else:
+        p = precision_cls(available_device)
+        assert p._device == torch.device(available_device)
+    if recall_cls is None:
+        r = None
+    else:
+        r = recall_cls(available_device)
+        assert r._device == torch.device(available_device)
 
     n_iters = 10
     batch_size = 10
     n_classes = 10
 
-    y_true = np.arange(0, n_iters * batch_size, dtype="int64") % n_classes
-    y_pred = 0.2 * np.random.rand(n_iters * batch_size, n_classes)
+    y_true = torch.arange(n_iters * batch_size, dtype=torch.long, device=available_device) % n_classes
+    y_pred = 0.2 * torch.rand(n_iters * batch_size, n_classes, device=available_device)
     for i in range(n_iters * batch_size):
-        if np.random.rand() > 0.4:
+        if torch.rand(1) > 0.4:
             y_pred[i, y_true[i]] = 1.0
         else:
-            j = np.random.randint(0, n_classes)
+            j = torch.randint(0, n_classes, size=(1,))
             y_pred[i, j] = 0.7
 
     y_true_batch_values = iter(y_true.reshape(n_iters, batch_size))
@@ -71,19 +97,24 @@ def test_integration(p, r, average, output_transform):
         y_true_batch = next(y_true_batch_values)
         y_pred_batch = next(y_pred_batch_values)
         if output_transform is not None:
-            return {"y_pred": torch.from_numpy(y_pred_batch), "y": torch.from_numpy(y_true_batch)}
-        return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+            return {"y_pred": y_pred_batch, "y": y_true_batch}
+        return y_pred_batch, y_true_batch
 
     evaluator = Engine(update_fn)
 
-    f2 = Fbeta(beta=2.0, average=average, precision=p, recall=r, output_transform=output_transform)
+    device = None if p is not None and r is not None else available_device
+    f2 = Fbeta(beta=2.0, average=average, precision=p, recall=r, output_transform=output_transform, device=device)
+
     f2.attach(evaluator, "f2")
 
     data = list(range(n_iters))
     state = evaluator.run(data, max_epochs=1)
 
-    f2_true = fbeta_score(y_true, np.argmax(y_pred, axis=-1), average="macro" if average else None, beta=2.0)
-    np.testing.assert_allclose(np.array(f2_true), np.array(state.metrics["f2"]))
+    y_true_np = y_true.cpu().numpy()
+    y_pred_np = torch.argmax(y_pred, dim=-1).cpu().numpy()
+    f2_true = fbeta_score(y_true_np, y_pred_np, average="macro" if average else None, beta=2.0)
+
+    assert f2_true == pytest.approx(state.metrics["f2"])
 
 
 def _test_distrib_integration(device):
