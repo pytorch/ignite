@@ -59,6 +59,7 @@ def test_compute(available_device):
     assert canberra.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
 
 
+@pytest.mark.parametrize("n_times", range(5))
 @pytest.mark.parametrize(
     "test_cases",
     [
@@ -66,13 +67,13 @@ def test_compute(available_device):
         (torch.rand(size=(100, 1)), torch.rand(size=(100, 1)), 20),
     ],
 )
-def test_integration(test_cases, available_device):
+def test_integration(n_times, test_cases, available_device):
     y_pred, y, batch_size = test_cases
 
     def update_fn(engine, batch):
         idx = (engine.state.iteration - 1) * batch_size
-        y_true_batch = y[idx : idx + batch_size]
-        y_pred_batch = y_pred[idx : idx + batch_size]
+        y_true_batch = y[idx : idx + batch_size].to(dtype=torch.float32)
+        y_pred_batch = y_pred[idx : idx + batch_size].to(dtype=torch.float32)
         return y_pred_batch, y_true_batch
 
     engine = Engine(update_fn)
