@@ -103,7 +103,7 @@ def test_mse_epoch_metric():
     targets = torch.cat([output1[1], output2[1], output3[1]], dim=0)
 
     result = em.compute()
-    assert result == pytest.approx(compute_fn(preds, targets), rel=1e-6)
+    assert result == compute_fn(preds, targets)
 
     em.reset()
     output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
@@ -117,7 +117,7 @@ def test_mse_epoch_metric():
     targets = torch.cat([output1[1], output2[1], output3[1]], dim=0)
 
     result = em.compute()
-    assert result == pytest.approx(compute_fn(preds, targets), rel=1e-6)
+    assert result == compute_fn(preds, targets)
 
 
 def test_bad_compute_fn():
