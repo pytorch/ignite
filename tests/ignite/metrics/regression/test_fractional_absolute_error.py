@@ -29,38 +29,28 @@ def test_wrong_input_shapes():
 
 
 def test_compute(available_device):
-    a = np.random.randn(4)
-    b = np.random.randn(4)
-    c = np.random.randn(4)
-    d = np.random.randn(4)
-    ground_truth = np.random.randn(4)
+    a = torch.randn(4)
+    b = torch.randn(4)
+    c = torch.randn(4)
+    d = torch.randn(4)
+    ground_truth = torch.randn(4)
 
     m = FractionalAbsoluteError(device=available_device)
     assert m._device == torch.device(available_device)
 
-    m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
-    np_sum = (2 * np.abs((a - ground_truth)) / (np.abs(a) + np.abs(ground_truth))).sum()
-    np_len = len(a)
-    np_ans = np_sum / np_len
-    assert m.compute() == pytest.approx(np_ans)
+    total_error = 0.0
+    total_len = 0
 
-    m.update((torch.from_numpy(b), torch.from_numpy(ground_truth)))
-    np_sum += (2 * np.abs((b - ground_truth)) / (np.abs(b) + np.abs(ground_truth))).sum()
-    np_len += len(b)
-    np_ans = np_sum / np_len
-    assert m.compute() == pytest.approx(np_ans)
+    for pred in [a, b, c, d]:
+        m.update((pred, ground_truth))
 
-    m.update((torch.from_numpy(c), torch.from_numpy(ground_truth)))
-    np_sum += (2 * np.abs((c - ground_truth)) / (np.abs(c) + np.abs(ground_truth))).sum()
-    np_len += len(c)
-    np_ans = np_sum / np_len
-    assert m.compute() == pytest.approx(np_ans)
+        # Compute fractional absolute error in PyTorch
+        error = 2 * torch.abs(pred - ground_truth) / (torch.abs(pred) + torch.abs(ground_truth))
+        total_error += error.sum().item()
+        total_len += len(pred)
 
-    m.update((torch.from_numpy(d), torch.from_numpy(ground_truth)))
-    np_sum += (2 * np.abs((d - ground_truth)) / (np.abs(d) + np.abs(ground_truth))).sum()
-    np_len += len(d)
-    np_ans = np_sum / np_len
-    assert m.compute() == pytest.approx(np_ans)
+        expected = total_error / total_len
+        assert m.compute() == pytest.approx(expected)
 
 
 def test_integration(available_device):
