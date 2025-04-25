@@ -30,6 +30,9 @@ def _check_output_types(output: Tuple[torch.Tensor, torch.Tensor]) -> None:
 
 
 def _torch_median(output: torch.Tensor) -> float:
+    if output.device.type == "mps":
+        output = output.cpu()
+
     output = output.view(-1)
     len_ = len(output)
 
