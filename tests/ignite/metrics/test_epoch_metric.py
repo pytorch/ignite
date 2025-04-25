@@ -223,9 +223,15 @@ def test_skip_unrolling(available_device):
     assert em._device == torch.device(available_device)
 
     em.reset()
-    output1 = (torch.rand(4, 2), torch.randint(0, 2, size=(4, 2), dtype=torch.long))
+    output1 = (
+        torch.rand(4, 2, device=available_device),
+        torch.randint(0, 2, size=(4, 2), dtype=torch.long, device=available_device),
+    )
     em.update(output1)
-    output2 = (torch.rand(4, 2), torch.randint(0, 2, size=(4, 2), dtype=torch.long))
+    output2 = (
+        torch.rand(4, 2, device=available_device),
+        torch.randint(0, 2, size=(4, 2), dtype=torch.long, device=available_device),
+    )
     em.update(output2)
 
     if available_device == "cpu":
