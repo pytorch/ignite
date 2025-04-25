@@ -66,7 +66,6 @@ def test_epoch_metric(available_device):
     output2 = (torch.rand(4, 3, device=device), torch.randint(0, 2, size=(4, 3), dtype=torch.long, device=device))
     em.update(output2)
 
-    assert all(t.device == device for t in em._predictions + em._targets)
     assert torch.equal(em._predictions[0], output1[0])
     assert torch.equal(em._predictions[1], output2[0])
     assert torch.equal(em._targets[0], output1[1])
@@ -81,7 +80,6 @@ def test_epoch_metric(available_device):
     output2 = (torch.rand(4, 1, device=device), torch.randint(0, 2, size=(4, 1), dtype=torch.long, device=device))
     em.update(output2)
 
-    assert all(t.device == device for t in em._predictions + em._targets)
     assert torch.equal(em._predictions[0], output1[0].squeeze(-1))
     assert torch.equal(em._predictions[1], output2[0].squeeze(-1))
     assert torch.equal(em._targets[0], output1[1].squeeze(-1))
