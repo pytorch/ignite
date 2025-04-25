@@ -55,34 +55,37 @@ def test_epoch_metric(available_device):
     def compute_fn(y_preds, y_targets):
         return 0.0
 
-    em = EpochMetric(compute_fn, device=available_device)
-    assert em._device == torch.device(available_device)
+    device = torch.device(available_device)
+    em = EpochMetric(compute_fn, device=device)
+    assert em._device == device
 
     em.reset()
-    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    output1 = (torch.rand(4, 3, device=device), torch.randint(0, 2, size=(4, 3), dtype=torch.long, device=device))
     em.update(output1)
-    output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+
+    output2 = (torch.rand(4, 3, device=device), torch.randint(0, 2, size=(4, 3), dtype=torch.long, device=device))
     em.update(output2)
 
-    assert all([t.device.type == available_device for t in em._predictions + em._targets])
+    assert all(t.device == device for t in em._predictions + em._targets)
     assert torch.equal(em._predictions[0], output1[0])
     assert torch.equal(em._predictions[1], output2[0])
     assert torch.equal(em._targets[0], output1[1])
     assert torch.equal(em._targets[1], output2[1])
     assert em.compute() == 0.0
 
-    # test when y and y_pred are (batch_size, 1) that are squeezed to (batch_size, )
+    # test when y and y_pred are (batch_size, 1) that are squeezed to (batch_size,)
     em.reset()
-    output1 = (torch.rand(4, 1), torch.randint(0, 2, size=(4, 1), dtype=torch.long))
+    output1 = (torch.rand(4, 1, device=device), torch.randint(0, 2, size=(4, 1), dtype=torch.long, device=device))
     em.update(output1)
-    output2 = (torch.rand(4, 1), torch.randint(0, 2, size=(4, 1), dtype=torch.long))
+
+    output2 = (torch.rand(4, 1, device=device), torch.randint(0, 2, size=(4, 1), dtype=torch.long, device=device))
     em.update(output2)
 
-    assert all([t.device.type == "cpu" for t in em._predictions + em._targets])
-    assert torch.equal(em._predictions[0], output1[0][:, 0])
-    assert torch.equal(em._predictions[1], output2[0][:, 0])
-    assert torch.equal(em._targets[0], output1[1][:, 0])
-    assert torch.equal(em._targets[1], output2[1][:, 0])
+    assert all(t.device == device for t in em._predictions + em._targets)
+    assert torch.equal(em._predictions[0], output1[0].squeeze(-1))
+    assert torch.equal(em._predictions[1], output2[0].squeeze(-1))
+    assert torch.equal(em._targets[0], output1[1].squeeze(-1))
+    assert torch.equal(em._targets[1], output2[1].squeeze(-1))
     assert em.compute() == 0.0
 
 
