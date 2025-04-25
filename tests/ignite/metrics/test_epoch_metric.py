@@ -95,11 +95,20 @@ def test_mse_epoch_metric(available_device):
     assert em._device == torch.device(available_device)
 
     em.reset()
-    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    output1 = (
+        torch.rand(4, 3, device=available_device),
+        torch.randint(0, 2, size=(4, 3), dtype=torch.long, device=available_device),
+    )
     em.update(output1)
-    output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    output2 = (
+        torch.rand(4, 3, device=available_device),
+        torch.randint(0, 2, size=(4, 3), dtype=torch.long, device=available_device),
+    )
     em.update(output2)
-    output3 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    output3 = (
+        torch.rand(4, 3, device=available_device),
+        torch.randint(0, 2, size=(4, 3), dtype=torch.long, device=available_device),
+    )
     em.update(output3)
 
     preds = torch.cat([output1[0], output2[0], output3[0]], dim=0)
@@ -109,11 +118,20 @@ def test_mse_epoch_metric(available_device):
     assert result == pytest.approx(compute_fn(preds, targets), rel=1e-6)
 
     em.reset()
-    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    output1 = (
+        torch.rand(4, 3, device=available_device),
+        torch.randint(0, 2, size=(4, 3), dtype=torch.long, device=available_device),
+    )
     em.update(output1)
-    output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    output2 = (
+        torch.rand(4, 3, device=available_device),
+        torch.randint(0, 2, size=(4, 3), dtype=torch.long, device=available_device),
+    )
     em.update(output2)
-    output3 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
+    output3 = (
+        torch.rand(4, 3, device=available_device),
+        torch.randint(0, 2, size=(4, 3), dtype=torch.long, device=available_device),
+    )
     em.update(output3)
 
     preds = torch.cat([output1[0], output2[0], output3[0]], dim=0)
