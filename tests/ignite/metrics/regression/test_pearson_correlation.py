@@ -20,25 +20,6 @@ def np_corr_eps(np_y_pred: np.ndarray, np_y: np.ndarray, eps: float = 1e-8):
     return corr
 
 
-def torch_corr_eps(y_pred: torch.Tensor, y: torch.Tensor, eps: float = 1e-8) -> torch.Tensor:
-    y_pred = y_pred.to(dtype=torch.float32)
-    y = y.to(dtype=torch.float32)
-
-    y_pred_mean = y_pred.mean()
-    y_mean = y.mean()
-
-    pred_centered = y_pred - y_pred_mean
-    y_centered = y - y_mean
-
-    cov = torch.mean(pred_centered * y_centered)
-    std_pred = pred_centered.std(unbiased=False)
-    std_y = y_centered.std(unbiased=False)
-
-    denom = torch.clamp(std_pred * std_y, min=eps)
-    corr = cov / denom
-    return corr
-
-
 def scipy_corr(np_y_pred: np.ndarray, np_y: np.ndarray):
     corr = pearsonr(np_y_pred, np_y)
     return corr.statistic
@@ -70,8 +51,12 @@ def test_degenerated_sample(available_device):
     y = torch.tensor([1.0])
     m.update((y_pred, y))
 
-    res = torch_corr_eps(y_pred, y)
-    assert pytest.approx(res) == m.compute()
+    np_y_pred = y_pred.cpu().numpy()
+    np_y = y_pred.cpu().numpy()
+    expected = np_corr_eps(np_y_pred, np_y)
+    actual = m.compute()
+
+    assert pytest.approx(expected) == actual
 
     # constant samples
     m.reset()
@@ -79,8 +64,12 @@ def test_degenerated_sample(available_device):
     y = torch.zeros(10).float()
     m.update((y_pred, y))
 
-    res = torch_corr_eps(y_pred, y)
-    assert pytest.approx(res) == m.compute()
+    np_y_pred = y_pred.cpu().numpy()
+    np_y = y_pred.cpu().numpy()
+    expected = np_corr_eps(np_y_pred, np_y)
+    actual = m.compute()
+
+    assert pytest.approx(expected) == actual
 
 
 def test_pearson_correlation(available_device):
