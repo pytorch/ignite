@@ -92,9 +92,9 @@ def test_integration(n_times, test_cases, available_device):
     data = list(range(y_pred.shape[0] // batch_size))
     cm = engine.run(data, max_epochs=1).metrics["cm"]
 
-    X = y_pred.cpu().numpy().reshape(len(y_pred), -1)
-    Y = y.cpu().numpy().reshape(len(y), -1)
-    expected = np.sum(canberra.pairwise(X, Y).diagonal())
+    pred_np = y_pred.cpu().numpy().reshape(len(y_pred), -1)
+    true_np = y.cpu().numpy().reshape(len(y), -1)
+    expected = np.sum(canberra.pairwise(pred_np, true_np).diagonal())
     assert expected == pytest.approx(cm)
 
 
