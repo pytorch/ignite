@@ -30,6 +30,7 @@ def _check_output_types(output: Tuple[torch.Tensor, torch.Tensor]) -> None:
 
 
 def _torch_median(output: torch.Tensor) -> float:
+    # torch.kthvalue used later is not supported on MPS
     if output.device.type == "mps":
         output = output.cpu()
 

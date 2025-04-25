@@ -119,6 +119,12 @@ class PearsonCorrelation(_BaseRegression):
         y_var = self._sum_of_y_squares / n - y_mean * y_mean
         y_var = torch.clamp(y_var, min=0.0)
 
-        denom = torch.sqrt(torch.clamp(y_pred_var * y_var, min=self.eps))
+        denom = y_pred_var * y_var
+        denom = torch.clamp(denom, min=self.eps)
+        denom = torch.sqrt(denom)
         r = cov / denom
+
+        if torch.isnan(r):
+            return 0.0
+
         return float(r.item())
