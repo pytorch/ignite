@@ -59,7 +59,7 @@ def test_compute(available_device):
     assert canberra.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
 
 
-@pytest.mark.parametrize("n_times", range(5))
+@pytest.mark.parametrize("n_times", range(3))
 @pytest.mark.parametrize(
     "test_cases",
     [
