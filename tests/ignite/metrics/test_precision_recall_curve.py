@@ -106,7 +106,7 @@ def test_integration_precision_recall_curve_with_activated_output_transform(avai
 
     sigmoid_y_pred = torch.sigmoid(y_pred).cpu().numpy()
     expected_precision, expected_recall, expected_thresholds = precision_recall_curve(
-        y_true.cpu().numpy(), sigmoid_y_pred.cpu().numpy()
+        y_true.cpu().numpy(), sigmoid_y_pred
     )
 
     batch_size = 10
