@@ -33,7 +33,9 @@ def test_precision_recall_curve(available_device):
     y_pred = torch.rand(size, 1, dtype=torch.float32, device=available_device)
     y_true = torch.zeros(size, dtype=torch.float32, device=available_device)
     y_true[size // 2 :] = 1.0
-    expected_precision, expected_recall, expected_thresholds = precision_recall_curve(y_true, y_pred)
+    expected_precision, expected_recall, expected_thresholds = precision_recall_curve(
+        y_true.cpu().numpy(), y_pred.cpu().numpy()
+    )
 
     precision_recall_curve_metric = PrecisionRecallCurve(device=available_device)
     assert precision_recall_curve_metric._device == torch.device(available_device)
@@ -61,7 +63,9 @@ def test_integration_precision_recall_curve_with_output_transform(available_devi
     y_pred = y_pred[perm]
     y_true = y_true[perm]
 
-    expected_precision, expected_recall, expected_thresholds = precision_recall_curve(y_true, y_pred)
+    expected_precision, expected_recall, expected_thresholds = precision_recall_curve(
+        y_true.cpu().numpy(), y_pred.cpu().numpy()
+    )
 
     batch_size = 10
 
