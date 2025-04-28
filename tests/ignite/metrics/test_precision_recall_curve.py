@@ -52,7 +52,6 @@ def test_precision_recall_curve(available_device):
 
 
 def test_integration_precision_recall_curve_with_output_transform(available_device):
-    torch.manual_seed(1)
     size = 100
     y_pred = torch.rand(size, 1, dtype=torch.float32, device=available_device)
     y_true = torch.zeros(size, dtype=torch.float32, device=available_device)
@@ -92,7 +91,6 @@ def test_integration_precision_recall_curve_with_output_transform(available_devi
 
 
 def test_integration_precision_recall_curve_with_activated_output_transform(available_device):
-    torch.manual_seed(1)
     size = 100
     y_pred = torch.rand(size, 1, dtype=torch.float32, device=available_device)
     y_true = torch.zeros(size, dtype=torch.float32, device=available_device)
