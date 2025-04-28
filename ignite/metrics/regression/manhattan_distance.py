@@ -65,7 +65,7 @@ class ManhattanDistance(_BaseRegression):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._sum_of_errors = torch.tensor(0.0, device=self._device)
+        self._sum_of_errors = torch.tensor(0.0, dtype=self._double_dtype, device=self._device)
 
     def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output
