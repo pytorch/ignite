@@ -2,7 +2,6 @@ import os
 from typing import Tuple
 from unittest.mock import patch
 
-import numpy as np
 import pytest
 import sklearn
 import torch
@@ -49,8 +48,7 @@ def test_precision_recall_curve(available_device):
 
     assert pytest.approx(precision) == expected_precision
     assert pytest.approx(recall) == expected_recall
-    # assert thresholds almost equal, due to numpy->torch->numpy conversion
-    np.testing.assert_array_almost_equal(thresholds, expected_thresholds)
+    assert thresholds == pytest.approx(expected_thresholds, rel=1e-6)
 
 
 def test_integration_precision_recall_curve_with_output_transform(available_device):
@@ -90,12 +88,11 @@ def test_integration_precision_recall_curve_with_output_transform(available_devi
     thresholds = thresholds.cpu().numpy()
     assert pytest.approx(precision) == expected_precision
     assert pytest.approx(recall) == expected_recall
-    # assert thresholds almost equal, due to numpy->torch->numpy conversion
-    np.testing.assert_array_almost_equal(thresholds, expected_thresholds)
+    assert thresholds == pytest.approx(expected_thresholds, rel=1e-6)
 
 
 def test_integration_precision_recall_curve_with_activated_output_transform(available_device):
-    np.random.seed(1)
+    torch.manual_seed(1)
     size = 100
     y_pred = torch.rand(size, 1, dtype=torch.float32, device=available_device)
     y_true = torch.zeros(size, dtype=torch.float32, device=available_device)
@@ -133,8 +130,7 @@ def test_integration_precision_recall_curve_with_activated_output_transform(avai
 
     assert pytest.approx(precision) == expected_precision
     assert pytest.approx(recall) == expected_recall
-    # assert thresholds almost equal, due to numpy->torch->numpy conversion
-    np.testing.assert_array_almost_equal(thresholds, expected_thresholds)
+    assert thresholds == pytest.approx(expected_thresholds, rel=1e-6)
 
 
 def test_check_compute_fn(available_device):
