@@ -57,7 +57,9 @@ def test_integration(available_device):
             idx = (engine.state.iteration - 1) * batch_size
             y_true_batch = np_y[idx : idx + batch_size]
             y_pred_batch = np_y_pred[idx : idx + batch_size]
-            return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+            return torch.from_numpy(y_pred_batch).to(dtype=torch.float32), torch.from_numpy(y_true_batch).to(
+                dtype=torch.float32
+            )
 
         engine = Engine(update_fn)
 
