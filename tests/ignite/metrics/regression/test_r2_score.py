@@ -34,8 +34,12 @@ def test_r2_score(available_device):
 
     m = R2Score(device=available_device)
     assert m._device == torch.device(available_device)
-    y_pred = torch.from_numpy(np_y_pred)
-    y = torch.from_numpy(np_y)
+    y_pred = (
+        torch.from_numpy(np_y_pred).to(dtype=torch.float32)
+        if available_device == "mps"
+        else torch.from_numpy(np_y_pred)
+    )
+    y = torch.from_numpy(np_y).to(dtype=torch.float32) if available_device == "mps" else torch.from_numpy(np_y)
 
     m.reset()
     m.update((y_pred, y))
@@ -52,8 +56,12 @@ def test_r2_score_2(available_device):
 
     m = R2Score(device=available_device)
     assert m._device == torch.device(available_device)
-    y_pred = torch.from_numpy(np_y_pred)
-    y = torch.from_numpy(np_y)
+    y_pred = (
+        torch.from_numpy(np_y_pred).to(dtype=torch.float32)
+        if available_device == "mps"
+        else torch.from_numpy(np_y_pred)
+    )
+    y = torch.from_numpy(np_y).to(dtype=torch.float32) if available_device == "mps" else torch.from_numpy(np_y)
 
     m.reset()
     batch_size = 16
@@ -78,7 +86,17 @@ def test_integration_r2_score(available_device):
         idx = (engine.state.iteration - 1) * batch_size
         y_true_batch = np_y[idx : idx + batch_size]
         y_pred_batch = np_y_pred[idx : idx + batch_size]
-        return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+        torch_y_pred_batch = (
+            torch.from_numpy(y_pred_batch).to(dtype=torch.float32)
+            if available_device == "mps"
+            else torch.from_numpy(y_pred_batch)
+        )
+        torch_y_true_batch = (
+            torch.from_numpy(y_true_batch).to(dtype=torch.float32)
+            if available_device == "mps"
+            else torch.from_numpy(y_true_batch)
+        )
+        return torch_y_pred_batch, torch_y_true_batch
 
     engine = Engine(update_fn)
 

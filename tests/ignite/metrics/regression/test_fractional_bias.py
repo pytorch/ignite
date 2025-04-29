@@ -57,7 +57,17 @@ def test_integration(available_device):
             idx = (engine.state.iteration - 1) * batch_size
             y_true_batch = np_y[idx : idx + batch_size]
             y_pred_batch = np_y_pred[idx : idx + batch_size]
-            return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+            torch_y_pred_batch = (
+                torch.from_numpy(y_pred_batch).to(dtype=torch.float32)
+                if device == "mps"
+                else torch.from_numpy(y_pred_batch)
+            )
+            torch_y_true_batch = (
+                torch.from_numpy(y_true_batch).to(dtype=torch.float32)
+                if device == "mps"
+                else torch.from_numpy(y_true_batch)
+            )
+            return torch_y_pred_batch, torch_y_true_batch
 
         engine = Engine(update_fn)
 
@@ -76,7 +86,10 @@ def test_integration(available_device):
         np_len = len(y_pred)
         np_ans = np_sum / np_len
 
-        assert np_ans == pytest.approx(fb)
+        if available_device == "mps":
+            assert np_ans == pytest.approx(fb, rel=1e-5)
+        else:
+            assert np_ans == pytest.approx(fb)
 
     def get_test_cases():
         test_cases = [
