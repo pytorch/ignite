@@ -78,7 +78,7 @@ def test_integration(available_device):
         np_len = len(y_pred)
         np_ans = np_sum / np_len
 
-        assert np_ans == pytest.approx(fb)
+        assert np_ans == pytest.approx(fb, rel=1e-6)
 
     def get_test_cases():
         test_cases = [
