@@ -36,25 +36,25 @@ def test_mean_error(available_device):
     m = MeanError(device=available_device)
     assert m._device == torch.device(available_device)
 
-    m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
+    m.update((torch.from_numpy(a).to(dtype=torch.float32), torch.from_numpy(ground_truth).to(dtype=torch.float32)))
     np_sum = (ground_truth - a).sum()
     np_len = len(a)
     np_ans = np_sum / np_len
     assert m.compute() == pytest.approx(np_ans)
 
-    m.update((torch.from_numpy(b), torch.from_numpy(ground_truth)))
+    m.update((torch.from_numpy(b).to(dtype=torch.float32), torch.from_numpy(ground_truth).to(dtype=torch.float32)))
     np_sum += (ground_truth - b).sum()
     np_len += len(b)
     np_ans = np_sum / np_len
     assert m.compute() == pytest.approx(np_ans)
 
-    m.update((torch.from_numpy(c), torch.from_numpy(ground_truth)))
+    m.update((torch.from_numpy(c).to(dtype=torch.float32), torch.from_numpy(ground_truth).to(dtype=torch.float32)))
     np_sum += (ground_truth - c).sum()
     np_len += len(c)
     np_ans = np_sum / np_len
     assert m.compute() == pytest.approx(np_ans)
 
-    m.update((torch.from_numpy(d), torch.from_numpy(ground_truth)))
+    m.update((torch.from_numpy(d).to(dtype=torch.float32), torch.from_numpy(ground_truth).to(dtype=torch.float32)))
     np_sum += (ground_truth - d).sum()
     np_len += len(d)
     np_ans = np_sum / np_len

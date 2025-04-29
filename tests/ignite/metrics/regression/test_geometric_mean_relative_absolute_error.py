@@ -37,8 +37,8 @@ def test_compute(available_device):
 
     m = GeometricMeanRelativeAbsoluteError(device=available_device)
     assert m._device == torch.device(available_device)
-    y_pred = torch.from_numpy(np_y_pred)
-    y = torch.from_numpy(np_y)
+    y_pred = torch.from_numpy(np_y_pred).to(dtype=torch.float32)
+    y = torch.from_numpy(np_y).to(dtype=torch.float32)
 
     m.reset()
     m.update((y_pred, y))

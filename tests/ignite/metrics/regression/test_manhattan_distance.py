@@ -32,26 +32,26 @@ def test_mahattan_distance(available_device):
 
     manhattan = DistanceMetric.get_metric("manhattan")
 
-    m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
+    m.update((torch.from_numpy(a).to(dtype=torch.float32), torch.from_numpy(ground_truth).to(dtype=torch.float32)))
     np_sum = np.abs(ground_truth - a).sum()
     assert m.compute() == pytest.approx(np_sum)
     assert manhattan.pairwise([a, ground_truth])[0][1] == pytest.approx(np_sum)
 
-    m.update((torch.from_numpy(b), torch.from_numpy(ground_truth)))
+    m.update((torch.from_numpy(b).to(dtype=torch.float32), torch.from_numpy(ground_truth).to(dtype=torch.float32)))
     np_sum += np.abs(ground_truth - b).sum()
     assert m.compute() == pytest.approx(np_sum)
     v1 = np.hstack([a, b])
     v2 = np.hstack([ground_truth, ground_truth])
     assert manhattan.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
 
-    m.update((torch.from_numpy(c), torch.from_numpy(ground_truth)))
+    m.update((torch.from_numpy(c).to(dtype=torch.float32), torch.from_numpy(ground_truth).to(dtype=torch.float32)))
     np_sum += np.abs(ground_truth - c).sum()
     assert m.compute() == pytest.approx(np_sum)
     v1 = np.hstack([v1, c])
     v2 = np.hstack([v2, ground_truth])
     assert manhattan.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
 
-    m.update((torch.from_numpy(d), torch.from_numpy(ground_truth)))
+    m.update((torch.from_numpy(d).to(dtype=torch.float32), torch.from_numpy(ground_truth).to(dtype=torch.float32)))
     np_sum += np.abs(ground_truth - d).sum()
     assert m.compute() == pytest.approx(np_sum)
     v1 = np.hstack([v1, d])

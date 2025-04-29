@@ -38,7 +38,7 @@ def test_compute(available_device):
 
     m = GeometricMeanAbsoluteError(device=available_device)
     assert m._device == torch.device(available_device)
-    m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
+    m.update((torch.from_numpy(a).to(dtype=torch.float32), torch.from_numpy(ground_truth).to(dtype=torch.float32)))
 
     errors = np.abs(ground_truth - a)
     np_prod = np.multiply.reduce(errors) * np_prod
@@ -46,21 +46,21 @@ def test_compute(available_device):
     np_ans = np.power(np_prod, 1.0 / np_len)
     assert m.compute() == pytest.approx(np_ans)
 
-    m.update((torch.from_numpy(b), torch.from_numpy(ground_truth)))
+    m.update((torch.from_numpy(b).to(dtype=torch.float32), torch.from_numpy(ground_truth).to(dtype=torch.float32)))
     errors = np.abs(ground_truth - b)
     np_prod = np.multiply.reduce(errors) * np_prod
     np_len += len(b)
     np_ans = np.power(np_prod, 1.0 / np_len)
     assert m.compute() == pytest.approx(np_ans)
 
-    m.update((torch.from_numpy(c), torch.from_numpy(ground_truth)))
+    m.update((torch.from_numpy(c).to(dtype=torch.float32), torch.from_numpy(ground_truth).to(dtype=torch.float32)))
     errors = np.abs(ground_truth - c)
     np_prod = np.multiply.reduce(errors) * np_prod
     np_len += len(c)
     np_ans = np.power(np_prod, 1.0 / np_len)
     assert m.compute() == pytest.approx(np_ans)
 
-    m.update((torch.from_numpy(d), torch.from_numpy(ground_truth)))
+    m.update((torch.from_numpy(d).to(dtype=torch.float32), torch.from_numpy(ground_truth).to(dtype=torch.float32)))
     errors = np.abs(ground_truth - d)
     np_prod = np.multiply.reduce(errors) * np_prod
     np_len += len(d)

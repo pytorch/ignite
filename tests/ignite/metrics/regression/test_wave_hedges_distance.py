@@ -29,19 +29,19 @@ def test_compute(available_device):
     m = WaveHedgesDistance(device=available_device)
     assert m._device == torch.device(available_device)
 
-    m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
+    m.update((torch.from_numpy(a).to(dtype=torch.float32), torch.from_numpy(ground_truth).to(dtype=torch.float32)))
     np_sum = (np.abs(ground_truth - a) / np.maximum.reduce([a, ground_truth])).sum()
     assert m.compute() == pytest.approx(np_sum)
 
-    m.update((torch.from_numpy(b), torch.from_numpy(ground_truth)))
+    m.update((torch.from_numpy(b).to(dtype=torch.float32), torch.from_numpy(ground_truth).to(dtype=torch.float32)))
     np_sum += (np.abs(ground_truth - b) / np.maximum.reduce([b, ground_truth])).sum()
     assert m.compute() == pytest.approx(np_sum)
 
-    m.update((torch.from_numpy(c), torch.from_numpy(ground_truth)))
+    m.update((torch.from_numpy(c).to(dtype=torch.float32), torch.from_numpy(ground_truth).to(dtype=torch.float32)))
     np_sum += (np.abs(ground_truth - c) / np.maximum.reduce([c, ground_truth])).sum()
     assert m.compute() == pytest.approx(np_sum)
 
-    m.update((torch.from_numpy(d), torch.from_numpy(ground_truth)))
+    m.update((torch.from_numpy(d).to(dtype=torch.float32), torch.from_numpy(ground_truth).to(dtype=torch.float32)))
     np_sum += (np.abs(ground_truth - d) / np.maximum.reduce([d, ground_truth])).sum()
     assert m.compute() == pytest.approx(np_sum)
 
