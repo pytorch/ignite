@@ -22,87 +22,41 @@ on:
   workflow_dispatch:
 
 concurrency:
-  # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>
   group: mps-tests-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
   cancel-in-progress: true
 
-# Cherry-picked from
-# - https://github.com/pytorch/vision/blob/main/.github/workflows/tests.yml
-# - https://github.com/pytorch/test-infra/blob/main/.github/workflows/macos_job.yml
-
 jobs:
   mps-tests:
+    runs-on: macos-14
     strategy:
       matrix:
         python-version: [3.11]
         pytorch-channel: ["pytorch"]
         skip-distrib-tests: [1]
       fail-fast: false
-    runs-on: ["macos-m1-stable"]
     timeout-minutes: 60
 
     steps:
-      - name: Clean workspace
-        run: |
-          echo "::group::Cleanup debug output"
-          sudo rm -rfv "${GITHUB_WORKSPACE}"
-          mkdir -p "${GITHUB_WORKSPACE}"
-          echo "::endgroup::"
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Checkout repository (pytorch/test-infra)
-        uses: actions/checkout@v3
-        with:
-          # Support the use case where we need to checkout someone's fork
-          repository: pytorch/test-infra
-          path: test-infra
-
-      - name: Checkout repository (${{ github.repository }})
-        uses: actions/checkout@v3
-        with:
-          # Support the use case where we need to checkout someone's fork
-          repository: ${{ github.repository }}
-          ref: ${{ github.ref }}
-          path: ${{ github.repository }}
-          fetch-depth: 1
-
-      - name: Setup miniconda
-        uses: ./test-infra/.github/actions/setup-miniconda
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          cache: "pip"
 
-      - name: Install PyTorch
-        if: ${{ matrix.pytorch-channel == 'pytorch' }}
-        shell: bash -l {0}
+      - name: Install uv
         run: |
-          conda shell.bash hook
-          conda activate $CONDA_ENV
-          pip install -U torch torchvision
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
-      - name: Install PyTorch (nightly)
-        if: ${{ matrix.pytorch-channel == 'pytorch-nightly' }}
-        shell: bash -l {0}
+      - name: Install dependencies with uv
         run: |
-          conda shell.bash hook
-          conda activate $CONDA_ENV
-          pip install --pre -U torch torchvision --index-url https://download.pytorch.org/whl/nightly/cpu
-
-      - name: Install dependencies
-        shell: bash -l {0}
-        working-directory: ${{ github.repository }}
-        run: |
-          conda activate $CONDA_ENV
-          # TODO: We add set -xe to explicitly fail the CI if one of the commands is failing.
-          # Somehow the step is passing even if a subcommand failed
-          set -xe
-          pip install -r requirements-dev.txt
-          echo "1 returned code: $?"
-          pip install -e .
-          echo "2 returned code: $?"
+          uv pip install -r requirements-dev.txt
+          uv pip install -e .
           pip list
-          echo "3 returned code: $?"
 
-      # Download MNIST: https://github.com/pytorch/ignite/issues/1737
-      # to "/tmp" for unit tests
       - name: Download MNIST
         uses: pytorch-ignite/download-mnist-github-action@master
         with:
@@ -114,22 +68,16 @@ jobs:
           cp -R /tmp/MNIST .
 
       - name: Run Tests
-        shell: bash -l {0}
-        working-directory: ${{ github.repository }}
         run: |
-          conda activate $CONDA_ENV
           SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} bash tests/run_cpu_tests.sh
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
-          file: ${{ github.repository }}/coverage.xml
+          file: coverage.xml
           flags: mps
           fail_ci_if_error: false
 
       - name: Run MNIST Examples
-        shell: bash -l {0}
-        working-directory: ${{ github.repository }}
         run: |
-          conda activate $CONDA_ENV
           python examples/mnist/mnist.py --epochs=1
