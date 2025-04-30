@@ -55,15 +55,14 @@ def test_epoch_metric(available_device):
     def compute_fn(y_preds, y_targets):
         return 0.0
 
-    device = torch.device(available_device)
-    em = EpochMetric(compute_fn, device=device)
-    assert em._device == device
+    em = EpochMetric(compute_fn, device=available_device)
+    assert em._device == torch.device(available_device)
 
     em.reset()
-    output1 = (torch.rand(4, 3, device=device), torch.randint(0, 2, size=(4, 3), dtype=torch.long, device=device))
+    output1 = (torch.rand(4, 3, device="cpu"), torch.randint(0, 2, size=(4, 3), dtype=torch.long, device="cpu"))
     em.update(output1)
 
-    output2 = (torch.rand(4, 3, device=device), torch.randint(0, 2, size=(4, 3), dtype=torch.long, device=device))
+    output2 = (torch.rand(4, 3, device="cpu"), torch.randint(0, 2, size=(4, 3), dtype=torch.long, device="cpu"))
     em.update(output2)
 
     if available_device == "cpu":
@@ -74,12 +73,12 @@ def test_epoch_metric(available_device):
     assert torch.equal(em._targets[1], output2[1])
     assert em.compute() == 0.0
 
-    # test when y and y_pred are (batch_size, 1) that are squeezed to (batch_size,)
+    # test when y and y_pred are (batch_size, 1) that are squeezed to (batch_size, )
     em.reset()
-    output1 = (torch.rand(4, 1, device=device), torch.randint(0, 2, size=(4, 1), dtype=torch.long, device=device))
+    output1 = (torch.rand(4, 1, device="cpu"), torch.randint(0, 2, size=(4, 1), dtype=torch.long, device="cpu"))
     em.update(output1)
 
-    output2 = (torch.rand(4, 1, device=device), torch.randint(0, 2, size=(4, 1), dtype=torch.long, device=device))
+    output2 = (torch.rand(4, 1, device="cpu"), torch.randint(0, 2, size=(4, 1), dtype=torch.long, device="cpu"))
     em.update(output2)
 
     if available_device == "cpu":
