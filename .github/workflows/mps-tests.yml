@@ -38,27 +38,28 @@ jobs:
         pytorch-channel: ["pytorch"]
         skip-distrib-tests: [1]
       fail-fast: false
-    runs-on: macos-14
+    runs-on: ["macos-m1-stable"]
     timeout-minutes: 60
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
+      - name: Check system Python
+        run: |
+          which python3
+          python3 --version
 
       - name: Install uv
         run: |
           curl -LsSf https://astral.sh/uv/install.sh | sh
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          export PATH="$HOME/.cargo/bin:$PATH"
+          uv --version
 
       - name: Set up virtual environment and install dependencies
         run: |
-          python -m venv .venv
+          python3 -m venv .venv
           source .venv/bin/activate
           python -m pip install --upgrade pip
           uv pip install -r requirements-dev.txt
