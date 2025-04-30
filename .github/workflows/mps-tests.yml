@@ -38,7 +38,7 @@ jobs:
         pytorch-channel: ["pytorch"]
         skip-distrib-tests: [1]
       fail-fast: false
-    runs-on: ["macos-m1-stable"]
+    runs-on: macos-14
     timeout-minutes: 60
 
     steps:
