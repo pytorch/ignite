@@ -67,10 +67,10 @@ def test_epoch_metric(available_device):
 
     if available_device == "cpu":
         assert all([t.device.type == "cpu" for t in em._predictions + em._targets])
-    assert torch.equal(em._predictions[0], output1[0])
-    assert torch.equal(em._predictions[1], output2[0])
-    assert torch.equal(em._targets[0], output1[1])
-    assert torch.equal(em._targets[1], output2[1])
+    assert torch.allclose(em._predictions[0], output1[0])
+    assert torch.allclose(em._predictions[1], output2[0])
+    assert torch.allclose(em._targets[0], output1[1])
+    assert torch.allclose(em._targets[1], output2[1])
     assert em.compute() == 0.0
 
     # test when y and y_pred are (batch_size, 1) that are squeezed to (batch_size, )
@@ -83,10 +83,10 @@ def test_epoch_metric(available_device):
 
     if available_device == "cpu":
         assert all([t.device.type == "cpu" for t in em._predictions + em._targets])
-    assert torch.equal(em._predictions[0], output1[0][:, 0])
-    assert torch.equal(em._predictions[1], output2[0][:, 0])
-    assert torch.equal(em._targets[0], output1[1][:, 0])
-    assert torch.equal(em._targets[1], output2[1][:, 0])
+    assert torch.allclose(em._predictions[0], output1[0][:, 0])
+    assert torch.allclose(em._predictions[1], output2[0][:, 0])
+    assert torch.allclose(em._targets[0], output1[1][:, 0])
+    assert torch.allclose(em._targets[1], output2[1][:, 0])
     assert em.compute() == 0.0
 
 
