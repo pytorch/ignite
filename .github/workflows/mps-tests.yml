@@ -45,21 +45,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Check system Python
-        run: |
-          which python3
-          python3 --version
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
 
-      - name: Install uv
-        run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-          export PATH="$HOME/.local/bin:$PATH"
-          uv --version
+      - name: Install uv using GitHub Action
+        uses: astral-sh/setup-uv@v1
 
       - name: Set up virtual environment and install dependencies
         run: |
-          python3 -m venv .venv
+          python -m venv .venv
           source .venv/bin/activate
           python -m pip install --upgrade pip
           uv pip install -r requirements-dev.txt
