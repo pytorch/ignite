@@ -45,23 +45,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install pyenv and Python ${{ matrix.python-version }}
-        run: |
-          brew update
-          brew install pyenv
-          pyenv install ${{ matrix.python-version }}
-          pyenv global ${{ matrix.python-version }}
-          echo "$HOME/.pyenv/bin" >> $GITHUB_PATH
-          echo "$HOME/.pyenv/shims" >> $GITHUB_PATH
-          python --version
+      - name: Install uv and set the python version
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ matrix.python-version }}
 
-      - name: Install uv using GitHub Action
-        uses: astral-sh/setup-uv@v1
-
-      - name: Set up virtual environment and install dependencies
+      - name: Install dependencies
         run: |
-          python -m venv .venv
-          source .venv/bin/activate
           uv pip install -r requirements-dev.txt
           uv pip install -e .
           pip list
@@ -79,9 +69,7 @@ jobs:
           cp -R /tmp/MNIST .
 
       - name: Run Tests
-        run: |
-          source .venv/bin/activate
-          SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} bash tests/run_cpu_tests.sh
+        run: SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} bash tests/run_cpu_tests.sh
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
@@ -91,6 +79,4 @@ jobs:
           fail_ci_if_error: false
 
       - name: Run MNIST Examples
-        run: |
-          source .venv/bin/activate
-          python examples/mnist/mnist.py --epochs=1
+        run: python examples/mnist/mnist.py --epochs=1
