@@ -27,13 +27,13 @@ concurrency:
 
 jobs:
   mps-tests:
-    runs-on: macos-14
     strategy:
       matrix:
         python-version: [3.11]
         pytorch-channel: ["pytorch"]
         skip-distrib-tests: [1]
       fail-fast: false
+    runs-on: ["macos-m1-stable"]
     timeout-minutes: 60
 
     steps:
@@ -53,10 +53,12 @@ jobs:
 
       - name: Install dependencies with uv
         run: |
-          uv pip install -r requirements-dev.txt
-          uv pip install -e .
+          uv pip install --system -r requirements-dev.txt
+          uv pip install --system -e .
           pip list
 
+      # Download MNIST: https://github.com/pytorch/ignite/issues/1737
+      # to "/tmp" for unit tests
       - name: Download MNIST
         uses: pytorch-ignite/download-mnist-github-action@master
         with:
