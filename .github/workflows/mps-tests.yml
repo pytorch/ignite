@@ -22,8 +22,13 @@ on:
   workflow_dispatch:
 
 concurrency:
+  # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>
   group: mps-tests-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
   cancel-in-progress: true
+
+# Cherry-picked from
+# - https://github.com/pytorch/vision/blob/main/.github/workflows/tests.yml
+# - https://github.com/pytorch/test-infra/blob/main/.github/workflows/macos_job.yml
 
 jobs:
   mps-tests:
@@ -37,24 +42,27 @@ jobs:
     timeout-minutes: 60
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Python ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: "pip"
+          cache: pip
 
       - name: Install uv
         run: |
           curl -LsSf https://astral.sh/uv/install.sh | sh
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
-      - name: Install dependencies with uv
+      - name: Set up virtual environment and install dependencies
         run: |
-          uv pip install --system -r requirements-dev.txt
-          uv pip install --system -e .
+          python -m venv .venv
+          source .venv/bin/activate
+          python -m pip install --upgrade pip
+          uv pip install -r requirements-dev.txt
+          uv pip install -e .
           pip list
 
       # Download MNIST: https://github.com/pytorch/ignite/issues/1737
@@ -71,6 +79,7 @@ jobs:
 
       - name: Run Tests
         run: |
+          source .venv/bin/activate
           SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} bash tests/run_cpu_tests.sh
 
       - name: Upload coverage to Codecov
@@ -82,4 +91,5 @@ jobs:
 
       - name: Run MNIST Examples
         run: |
+          source .venv/bin/activate
           python examples/mnist/mnist.py --epochs=1
