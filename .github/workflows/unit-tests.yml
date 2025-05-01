@@ -35,6 +35,9 @@ jobs:
     env:
       UV_SYSTEM_PIP: 1
       CLEARML_NO_DEFAULT_SERVER: 1
+      CLEARML_API_HOST: "http://localhost"
+      CLEARML_WEB_HOST: "http://localhost"
+      CLEARML_FILES_HOST: "http://localhost"
     timeout-minutes: 85
     defaults:
       run:
