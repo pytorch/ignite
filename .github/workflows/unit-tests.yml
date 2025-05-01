@@ -85,12 +85,12 @@ jobs:
           bash ./tests/run_code_style.sh install
           bash ./tests/run_code_style.sh lint
 
+      - name: Ensure mypy is installed in uv environment
+        run: uv pip install mypy
       - name: Run Mypy
-        # https://github.com/pytorch/ignite/pull/2780
         if: ${{ matrix.os == 'ubuntu-latest' && matrix.pytorch-channel == 'pytorch-nightly'}}
         run: |
           bash ./tests/run_code_style.sh mypy
-
       # Download MNIST: https://github.com/pytorch/ignite/issues/1737
       # to "/tmp" for unit tests
       - name: Download MNIST
