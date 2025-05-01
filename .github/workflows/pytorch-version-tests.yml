@@ -37,29 +37,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: pip
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-
+          cache: true
       - name: Install PyTorch ${{ matrix.pytorch-version }}
         run: |
           # Use appropriate install index
           if [[ "${{ matrix.pytorch-version }}" == 2.* || "${{ matrix.pytorch-version }}" == 1.13* || "${{ matrix.pytorch-version }}" == 1.12* || "${{ matrix.pytorch-version }}" == 1.10* ]]; then
-            pip install torch==${{ matrix.pytorch-version }} torchvision --extra-index-url https://download.pytorch.org/whl/cpu
+            uv pip install --system torch==${{ matrix.pytorch-version }} torchvision --extra-index-url https://download.pytorch.org/whl/cpu
           else
-            pip install torch==${{ matrix.pytorch-version }} torchvision
+            uv pip install --system torch==${{ matrix.pytorch-version }} torchvision
           fi
 
       - name: Install numpy conditionally for PyTorch < 2.3
         run: |
           version=$(python -c "import torch; print(float('.'.join(torch.__version__.split('.')[:2])))")
           if (( $(echo "$version < 2.3" | bc -l) )); then
-            pip install "numpy<2.0"
+            uv pip install --system "numpy<2.0"
           fi
 
       - name: Install Ignite dependencies
@@ -86,7 +82,7 @@ jobs:
           timeout_minutes: 15
           shell: bash
           command: bash tests/run_cpu_tests.sh "not test_time_profilers"
-          new_command_on_retry: USE_LAST_FAILED=1 bash -l tests/run_cpu_tests.sh "not test_time_profilers"
+          new_command_on_retry: USE_LAST_FAILED=1 bash tests/run_cpu_tests.sh "not test_time_profilers"
 
   create-issue:
     runs-on: ubuntu-latest
