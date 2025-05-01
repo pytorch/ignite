@@ -76,16 +76,16 @@ jobs:
 
       - name: Install PyTorch
         if: ${{ matrix.pytorch-channel == 'pytorch' }}
-        run: uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+        run: uv pip install --system torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
       - name: Install PyTorch (nightly)
         if: ${{ matrix.pytorch-channel == 'pytorch-nightly' }}
-        run: uv pip install torch torchvision --index-url https://download.pytorch.org/whl/nightly/cpu --pre
+        run: uv pip install --system torch torchvision --index-url https://download.pytorch.org/whl/nightly/cpu --pre
 
       - name: Install dependencies
         run: |
-          uv pip install -r requirements-dev.txt
-          uv pip install -e .
+          uv pip install --system -r requirements-dev.txt
+          uv pip install --system -e .
           pip list
 
       - name: Check code formatting
