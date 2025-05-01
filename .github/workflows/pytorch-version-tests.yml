@@ -38,12 +38,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
+      - uses: actions/cache@v3
+        with:
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('requirements-dev.txt') }}
       - name: Install uv and Python
         uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: true
       - name: Install PyTorch ${{ matrix.pytorch-version }}
         run: |
           # Use appropriate install index
