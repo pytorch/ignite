@@ -13,6 +13,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      UV_SYSTEM_PIP: 1
     timeout-minutes: 85
     strategy:
       max-parallel: 5
@@ -46,16 +48,16 @@ jobs:
         run: |
           # Use appropriate install index
           if [[ "${{ matrix.pytorch-version }}" == 2.* || "${{ matrix.pytorch-version }}" == 1.13* || "${{ matrix.pytorch-version }}" == 1.12* || "${{ matrix.pytorch-version }}" == 1.10* ]]; then
-            uv pip install --system torch==${{ matrix.pytorch-version }} torchvision --extra-index-url https://download.pytorch.org/whl/cpu
+            uv pip install torch==${{ matrix.pytorch-version }} torchvision --extra-index-url https://download.pytorch.org/whl/cpu
           else
-            uv pip install --system torch==${{ matrix.pytorch-version }} torchvision
+            uv pip install torch==${{ matrix.pytorch-version }} torchvision
           fi
 
       - name: Install numpy conditionally for PyTorch < 2.3
         run: |
           version=$(python -c "import torch; print(float('.'.join(torch.__version__.split('.')[:2])))")
           if (( $(echo "$version < 2.3" | bc -l) )); then
-            uv pip install --system "numpy<2.0"
+            uv pip install "numpy<2.0"
           fi
 
       - name: Install Ignite dependencies
