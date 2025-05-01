@@ -63,15 +63,7 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{ matrix.python-version }}
-
-      - name: Cache pip/uv dependencies
-        id: pip-cache
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-${{ hashFiles('requirements-dev.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-
+          cache: true
 
       - name: Install PyTorch
         if: ${{ matrix.pytorch-channel == 'pytorch' }}
