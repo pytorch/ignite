@@ -57,43 +57,35 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          cache: pip
 
-      - name: Get year & week number
-        id: get-date
-        run: |
-          echo "date=$(/bin/date "+%Y-%U")" >> $GITHUB_OUTPUT
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
 
-      - name: Get pip cache dir
+      - name: Cache pip/uv dependencies
         id: pip-cache
-        run: |
-          pip install -U pip || python -m pip install -U pip
-          echo "pip_cache=$(pip cache dir)" >> $GITHUB_OUTPUT
-
-      - uses: actions/cache@v3
+        uses: actions/cache@v3
         with:
-          path: |
-            ${{ steps.pip-cache.outputs.pip_cache }}
-          key: ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-${{ hashFiles('requirements-dev.txt') }}
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-${{ hashFiles('requirements-dev.txt') }}
           restore-keys: |
-            ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-
-
-      - run: pip install pip wheel setuptools -Uqq
+            ${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-
 
       - name: Install PyTorch
         if: ${{ matrix.pytorch-channel == 'pytorch' }}
-        run: pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+        run: uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
       - name: Install PyTorch (nightly)
         if: ${{ matrix.pytorch-channel == 'pytorch-nightly' }}
-        run: pip install torch torchvision --index-url https://download.pytorch.org/whl/nightly/cpu --pre
+        run: uv pip install torch torchvision --index-url https://download.pytorch.org/whl/nightly/cpu --pre
 
       - name: Install dependencies
         run: |
-          pip install -r requirements-dev.txt
-          pip install .
+          uv pip install -r requirements-dev.txt
+          uv pip install -e .
           pip list
 
       - name: Check code formatting
@@ -103,7 +95,6 @@ jobs:
 
       - name: Run Mypy
         # https://github.com/pytorch/ignite/pull/2780
-        #
         if: ${{ matrix.os == 'ubuntu-latest' && matrix.pytorch-channel == 'pytorch-nightly'}}
         run: |
           bash ./tests/run_code_style.sh mypy
