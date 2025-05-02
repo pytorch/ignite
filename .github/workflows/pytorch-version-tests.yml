@@ -74,8 +74,7 @@ jobs:
           # Patch setuptools for old PyTorch versions
           version=$(python -c "import torch; print('.'.join(torch.__version__.split('.')[:2]))")
           if [[ "$version" == "1.9" || "$version" == "1.10" ]]; then
-            pip install "setuptools<59"
-            python -c "from setuptools import distutils; distutils.version.LooseVersion"
+            pip install "setuptools<59" "distutils==0.3"
           fi
 
       - name: Download MNIST
