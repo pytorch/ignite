@@ -15,10 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       UV_SYSTEM_PIP: 1
-      CLEARML_NO_DEFAULT_SERVER: 1
-      CLEARML_API_HOST: "http://localhost"
-      CLEARML_WEB_HOST: "http://localhost"
-      CLEARML_FILES_HOST: "http://localhost"
+      CLEARML_OFFLINE_MODE: 1
     timeout-minutes: 85
     strategy:
       max-parallel: 5
@@ -52,12 +49,12 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install PyTorch ${{ matrix.pytorch-version }}
         run: |
-          # Use appropriate install index
           if [[ "${{ matrix.pytorch-version }}" == 2.* || "${{ matrix.pytorch-version }}" == 1.13* || "${{ matrix.pytorch-version }}" == 1.12* || "${{ matrix.pytorch-version }}" == 1.10* ]]; then
             uv pip install torch==${{ matrix.pytorch-version }} torchvision --extra-index-url https://download.pytorch.org/whl/cpu
           else
             uv pip install torch==${{ matrix.pytorch-version }} torchvision
           fi
+          uv pip install setuptools
 
       - name: Install numpy conditionally for PyTorch < 2.3
         run: |
