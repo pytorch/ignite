@@ -64,8 +64,7 @@ def test_epoch_metric(available_device):
     output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
     em.update(output2)
 
-    if available_device == "cpu":
-        assert all([t.device.type == "cpu" for t in em._predictions + em._targets])
+    assert all([t.device.type == available_device for t in em._predictions + em._targets])
     assert torch.equal(em._predictions[0].cpu(), output1[0].cpu())
     assert torch.equal(em._predictions[1].cpu(), output2[0].cpu())
     assert torch.equal(em._targets[0].cpu(), output1[1].cpu())
@@ -76,12 +75,10 @@ def test_epoch_metric(available_device):
     em.reset()
     output1 = (torch.rand(4, 1), torch.randint(0, 2, size=(4, 1), dtype=torch.long))
     em.update(output1)
-
     output2 = (torch.rand(4, 1), torch.randint(0, 2, size=(4, 1), dtype=torch.long))
     em.update(output2)
 
-    if available_device == "cpu":
-        assert all([t.device.type == "cpu" for t in em._predictions + em._targets])
+    assert all([t.device.type == available_device for t in em._predictions + em._targets])
     assert torch.equal(em._predictions[0].cpu(), output1[0][:, 0].cpu())
     assert torch.equal(em._predictions[1].cpu(), output2[0][:, 0].cpu())
     assert torch.equal(em._targets[0].cpu(), output1[1][:, 0].cpu())
@@ -95,52 +92,35 @@ def test_mse_epoch_metric(available_device):
 
     em = EpochMetric(compute_fn, device=available_device)
     assert em._device == torch.device(available_device)
+    dtype = torch.int32 if available_device == "mps" else torch.long
 
     em.reset()
-    output1 = (
-        torch.rand(4, 3, device=available_device),
-        torch.randint(0, 2, size=(4, 3), dtype=torch.long, device=available_device),
-    )
+    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=dtype))
     em.update(output1)
-    output2 = (
-        torch.rand(4, 3, device=available_device),
-        torch.randint(0, 2, size=(4, 3), dtype=torch.long, device=available_device),
-    )
+    output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=dtype))
     em.update(output2)
-    output3 = (
-        torch.rand(4, 3, device=available_device),
-        torch.randint(0, 2, size=(4, 3), dtype=torch.long, device=available_device),
-    )
+    output3 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=dtype))
     em.update(output3)
 
     preds = torch.cat([output1[0], output2[0], output3[0]], dim=0)
     targets = torch.cat([output1[1], output2[1], output3[1]], dim=0)
 
     result = em.compute()
-    assert result == pytest.approx(compute_fn(preds, targets), rel=1e-6)
+    assert result == compute_fn(preds, targets)
 
     em.reset()
-    output1 = (
-        torch.rand(4, 3, device=available_device),
-        torch.randint(0, 2, size=(4, 3), dtype=torch.long, device=available_device),
-    )
+    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=dtype))
     em.update(output1)
-    output2 = (
-        torch.rand(4, 3, device=available_device),
-        torch.randint(0, 2, size=(4, 3), dtype=torch.long, device=available_device),
-    )
+    output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=dtype))
     em.update(output2)
-    output3 = (
-        torch.rand(4, 3, device=available_device),
-        torch.randint(0, 2, size=(4, 3), dtype=torch.long, device=available_device),
-    )
+    output3 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=dtype))
     em.update(output3)
 
     preds = torch.cat([output1[0], output2[0], output3[0]], dim=0)
     targets = torch.cat([output1[1], output2[1], output3[1]], dim=0)
 
     result = em.compute()
-    assert result == pytest.approx(compute_fn(preds, targets), rel=1e-6)
+    assert result == compute_fn(preds, targets)
 
 
 def test_bad_compute_fn():
@@ -221,21 +201,14 @@ def test_skip_unrolling(available_device):
     assert em._device == torch.device(available_device)
 
     em.reset()
-    output1 = (
-        torch.rand(4, 2, device=available_device),
-        torch.randint(0, 2, size=(4, 2), dtype=torch.long, device=available_device),
-    )
+    output1 = (torch.rand(4, 2), torch.randint(0, 2, size=(4, 2), dtype=torch.long))
     em.update(output1)
-    output2 = (
-        torch.rand(4, 2, device=available_device),
-        torch.randint(0, 2, size=(4, 2), dtype=torch.long, device=available_device),
-    )
+    output2 = (torch.rand(4, 2), torch.randint(0, 2, size=(4, 2), dtype=torch.long))
     em.update(output2)
 
-    if available_device == "cpu":
-        assert all([t.device.type == "cpu" for t in em._predictions + em._targets])
-    assert torch.equal(em._predictions[0], output1[0])
-    assert torch.equal(em._predictions[1], output2[0])
-    assert torch.equal(em._targets[0], output1[1])
-    assert torch.equal(em._targets[1], output2[1])
+    assert all([t.device.type == available_device for t in em._predictions + em._targets])
+    assert torch.equal(em._predictions[0].cpu(), output1[0].cpu())
+    assert torch.equal(em._predictions[1].cpu(), output2[0].cpu())
+    assert torch.equal(em._targets[0].cpu(), output1[1].cpu())
+    assert torch.equal(em._targets[1].cpu(), output2[1].cpu())
     assert em.compute() == 0.0
