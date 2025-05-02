@@ -92,14 +92,13 @@ def test_mse_epoch_metric(available_device):
 
     em = EpochMetric(compute_fn, device=available_device)
     assert em._device == torch.device(available_device)
-    dtype = torch.int32 if available_device == "mps" else torch.long
 
     em.reset()
-    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=dtype))
+    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
     em.update(output1)
-    output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=dtype))
+    output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
     em.update(output2)
-    output3 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=dtype))
+    output3 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
     em.update(output3)
 
     preds = torch.cat([output1[0], output2[0], output3[0]], dim=0)
@@ -109,11 +108,11 @@ def test_mse_epoch_metric(available_device):
     assert result == pytest.approx(compute_fn(preds, targets), rel=1e-6)
 
     em.reset()
-    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=dtype))
+    output1 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
     em.update(output1)
-    output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=dtype))
+    output2 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
     em.update(output2)
-    output3 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=dtype))
+    output3 = (torch.rand(4, 3), torch.randint(0, 2, size=(4, 3), dtype=torch.long))
     em.update(output3)
 
     preds = torch.cat([output1[0], output2[0], output3[0]], dim=0)
