@@ -53,44 +53,41 @@ def test_compute(available_device):
         assert m.compute() == pytest.approx(expected)
 
 
-def test_integration(available_device):
-    def _test(y_pred, y, batch_size, device="cpu"):
-        def update_fn(engine, batch):
-            idx = (engine.state.iteration - 1) * batch_size
-            y_true_batch = np_y[idx : idx + batch_size]
-            y_pred_batch = np_y_pred[idx : idx + batch_size]
-            return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+@pytest.mark.parametrize("n_times", range(5))
+@pytest.mark.parametrize(
+    "test_cases",
+    [
+        (torch.rand(size=(100,)), torch.rand(size=(100,)), 10),
+        (torch.rand(size=(100, 1)), torch.rand(size=(100, 1)), 20),
+    ],
+)
+def test_integration_fractional_absolute_error(n_times, test_cases, available_device):
+    y_pred, y, batch_size = test_cases
 
-        engine = Engine(update_fn)
+    np_y = y.numpy().ravel()
+    np_y_pred = y_pred.numpy().ravel()
 
-        m = FractionalAbsoluteError(device=device)
-        assert m._device == torch.device(device)
-        m.attach(engine, "fab")
+    def update_fn(engine, batch):
+        idx = (engine.state.iteration - 1) * batch_size
+        y_true_batch = y[idx : idx + batch_size]
+        y_pred_batch = y_pred[idx : idx + batch_size]
+        return y_pred_batch, y_true_batch
 
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().ravel()
+    engine = Engine(update_fn)
 
-        data = list(range(y_pred.shape[0] // batch_size))
-        fab = engine.run(data, max_epochs=1).metrics["fab"]
+    metric = FractionalAbsoluteError(device=available_device)
+    assert metric._device == torch.device(available_device)
 
-        np_sum = (2 * np.abs((np_y_pred - np_y)) / (np.abs(np_y_pred) + np.abs(np_y))).sum()
-        np_len = len(y_pred)
-        np_ans = np_sum / np_len
+    metric.attach(engine, "fab")
 
-        assert np_ans == pytest.approx(fab)
+    data = list(range(y_pred.shape[0] // batch_size))
+    fab = engine.run(data, max_epochs=1).metrics["fab"]
 
-    def get_test_cases():
-        test_cases = [
-            (torch.rand(size=(100,)), torch.rand(size=(100,)), 10),
-            (torch.rand(size=(100, 1)), torch.rand(size=(100, 1)), 20),
-        ]
-        return test_cases
+    # Expected result using NumPy
+    np_sum = (2 * np.abs(np_y_pred - np_y) / (np.abs(np_y_pred) + np.abs(np_y))).sum()
+    expected = np_sum / len(np_y)
 
-    for _ in range(5):
-        # check multiple random inputs as random exact occurencies are rare
-        test_cases = get_test_cases()
-        for y_pred, y, batch_size in test_cases:
-            _test(y_pred, y, batch_size, device=available_device)
+    assert expected == pytest.approx(fab)
 
 
 def _test_distrib_compute(device):

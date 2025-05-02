@@ -51,58 +51,54 @@ def test_fractional_bias(available_device):
         assert m.compute() == pytest.approx(expected)
 
 
-def test_integration(available_device):
-    def _test(y_pred, y, batch_size, device="cpu"):
-        def update_fn(engine, batch):
-            idx = (engine.state.iteration - 1) * batch_size
-            y_true_batch = np_y[idx : idx + batch_size]
-            y_pred_batch = np_y_pred[idx : idx + batch_size]
-            torch_y_pred_batch = (
-                torch.from_numpy(y_pred_batch).to(dtype=torch.float32)
-                if device == "mps"
-                else torch.from_numpy(y_pred_batch)
-            )
-            torch_y_true_batch = (
-                torch.from_numpy(y_true_batch).to(dtype=torch.float32)
-                if device == "mps"
-                else torch.from_numpy(y_true_batch)
-            )
-            return torch_y_pred_batch, torch_y_true_batch
+@pytest.mark.parametrize("n_times", range(5))
+@pytest.mark.parametrize(
+    "test_case",
+    [
+        (torch.rand(size=(100,)), torch.rand(size=(100,)), 10),
+        (torch.rand(size=(100, 1)), torch.rand(size=(100, 1)), 20),
+    ],
+)
+def test_integration_fractional_bias(n_times, test_case, available_device):
+    y_pred, y, batch_size = test_case
 
-        engine = Engine(update_fn)
+    np_y = y.double().numpy().ravel()
+    np_y_pred = y_pred.double().numpy().ravel()
 
-        m = FractionalBias(device=device)
-        assert m._device == torch.device(device)
+    def update_fn(engine, batch):
+        idx = (engine.state.iteration - 1) * batch_size
+        y_true_batch = np_y[idx : idx + batch_size]
+        y_pred_batch = np_y_pred[idx : idx + batch_size]
 
-        m.attach(engine, "fb")
+        torch_y_pred_batch = (
+            torch.from_numpy(y_pred_batch).to(dtype=torch.float32)
+            if available_device == "mps"
+            else torch.from_numpy(y_pred_batch)
+        )
+        torch_y_true_batch = (
+            torch.from_numpy(y_true_batch).to(dtype=torch.float32)
+            if available_device == "mps"
+            else torch.from_numpy(y_true_batch)
+        )
 
-        np_y = y.double().numpy().ravel()
-        np_y_pred = y_pred.double().numpy().ravel()
+        return torch_y_pred_batch, torch_y_true_batch
 
-        data = list(range(y_pred.shape[0] // batch_size))
-        fb = engine.run(data, max_epochs=1).metrics["fb"]
+    engine = Engine(update_fn)
 
-        np_sum = (2 * (np_y - np_y_pred) / (np_y_pred + np_y)).sum()
-        np_len = len(y_pred)
-        np_ans = np_sum / np_len
+    metric = FractionalBias(device=available_device)
+    assert metric._device == torch.device(available_device)
 
-        if available_device == "mps":
-            assert np_ans == pytest.approx(fb, rel=1e-5)
-        else:
-            assert np_ans == pytest.approx(fb)
+    metric.attach(engine, "fb")
 
-    def get_test_cases():
-        test_cases = [
-            (torch.rand(size=(100,)), torch.rand(size=(100,)), 10),
-            (torch.rand(size=(100, 1)), torch.rand(size=(100, 1)), 20),
-        ]
-        return test_cases
+    data = list(range(y_pred.shape[0] // batch_size))
+    fb = engine.run(data, max_epochs=1).metrics["fb"]
 
-    for _ in range(5):
-        # check multiple random inputs as random exact occurencies are rare
-        test_cases = get_test_cases()
-        for y_pred, y, batch_size in test_cases:
-            _test(y_pred, y, batch_size, device=available_device)
+    expected = (2 * (np_y - np_y_pred) / (np_y_pred + np_y)).sum() / len(np_y)
+
+    if available_device == "mps":
+        assert expected == pytest.approx(fb, rel=1e-5)
+    else:
+        assert expected == pytest.approx(fb)
 
 
 def test_error_is_not_nan(available_device):
