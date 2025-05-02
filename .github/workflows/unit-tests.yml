@@ -34,10 +34,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       UV_SYSTEM_PIP: 1
-      CLEARML_NO_DEFAULT_SERVER: 1
-      CLEARML_API_HOST: "http://localhost"
-      CLEARML_WEB_HOST: "http://localhost"
-      CLEARML_FILES_HOST: "http://localhost"
+      CLEARML_OFFLINE_MODE: 1
     timeout-minutes: 85
     defaults:
       run:
@@ -85,11 +82,8 @@ jobs:
 
       - name: Check code formatting
         run: |
-          bash ./tests/run_code_style.sh install
+          uv pip install --upgrade flake8 "black==24.10.0" "usort==1.0.8.post1" "ufmt==2.7.3" "mypy"
           bash ./tests/run_code_style.sh lint
-
-      - name: Ensure mypy is installed in uv environment
-        run: uv pip install mypy
       - name: Run Mypy
         if: ${{ matrix.os == 'ubuntu-latest' && matrix.pytorch-channel == 'pytorch-nightly'}}
         run: |
