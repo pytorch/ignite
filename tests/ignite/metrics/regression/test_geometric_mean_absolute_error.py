@@ -29,51 +29,42 @@ def test_wrong_input_shapes():
 
 
 def test_compute(available_device):
-    a = np.random.randn(4)
-    b = np.random.randn(4)
-    c = np.random.randn(4)
-    d = np.random.randn(4)
-    ground_truth = np.random.randn(4)
+    a = torch.randn(4)
+    b = torch.randn(4)
+    c = torch.randn(4)
+    d = torch.randn(4)
+    ground_truth = torch.randn(4)
     np_prod = 1.0
 
     m = GeometricMeanAbsoluteError(device=available_device)
     assert m._device == torch.device(available_device)
-    torch_a = torch.from_numpy(a).to(dtype=torch.float32) if available_device == "mps" else torch.from_numpy(a)
-    torch_ground_truth = (
-        torch.from_numpy(ground_truth).to(dtype=torch.float32)
-        if available_device == "mps"
-        else torch.from_numpy(ground_truth)
-    )
-    m.update((torch_a, torch_ground_truth))
+    m.update((a, ground_truth))
 
-    errors = np.abs(ground_truth - a)
-    np_prod = np.multiply.reduce(errors) * np_prod
+    errors = torch.abs(ground_truth - a)
+    np_prod = torch.prod(errors) * np_prod
     np_len = len(a)
-    np_ans = np.power(np_prod, 1.0 / np_len)
+    np_ans = torch.pow(np_prod, 1.0 / np_len)
     assert m.compute() == pytest.approx(np_ans)
 
-    torch_b = torch.from_numpy(b).to(dtype=torch.float32) if available_device == "mps" else torch.from_numpy(b)
-    m.update((torch_b, torch_ground_truth))
-    errors = np.abs(ground_truth - b)
-    np_prod = np.multiply.reduce(errors) * np_prod
+    m.update((b, ground_truth))
+    errors = torch.abs(ground_truth - b)
+    np_prod = torch.prod(errors) * np_prod
     np_len += len(b)
-    np_ans = np.power(np_prod, 1.0 / np_len)
+    np_ans = torch.pow(np_prod, 1.0 / np_len)
     assert m.compute() == pytest.approx(np_ans)
 
-    torch_c = torch.from_numpy(c).to(dtype=torch.float32) if available_device == "mps" else torch.from_numpy(c)
-    m.update((torch_c, torch_ground_truth))
-    errors = np.abs(ground_truth - c)
-    np_prod = np.multiply.reduce(errors) * np_prod
+    m.update((c, ground_truth))
+    errors = torch.abs(ground_truth - c)
+    np_prod = torch.prod(errors) * np_prod
     np_len += len(c)
-    np_ans = np.power(np_prod, 1.0 / np_len)
+    np_ans = torch.pow(np_prod, 1.0 / np_len)
     assert m.compute() == pytest.approx(np_ans)
 
-    torch_d = torch.from_numpy(d).to(dtype=torch.float32) if available_device == "mps" else torch.from_numpy(d)
-    m.update((torch_d, torch_ground_truth))
-    errors = np.abs(ground_truth - d)
-    np_prod = np.multiply.reduce(errors) * np_prod
+    m.update((d, ground_truth))
+    errors = torch.abs(ground_truth - d)
+    np_prod = torch.prod(errors) * np_prod
     np_len += len(d)
-    np_ans = np.power(np_prod, 1.0 / np_len)
+    np_ans = torch.pow(np_prod, 1.0 / np_len)
     assert m.compute() == pytest.approx(np_ans)
 
 
