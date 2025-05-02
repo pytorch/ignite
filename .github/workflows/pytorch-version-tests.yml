@@ -16,6 +16,9 @@ jobs:
     env:
       UV_SYSTEM_PIP: 1
       CLEARML_OFFLINE_MODE: 1
+      CLEARML_API_HOST: http://localhost
+      CLEARML_WEB_HOST: http://localhost
+      CLEARML_FILES_HOST: http://localhost
     timeout-minutes: 85
     strategy:
       max-parallel: 5
