@@ -53,15 +53,14 @@ def test_wrong_y_dtype():
         metric.update((y_pred, y))
 
 
-def test_spearman_correlation(available_device):
+def test_spearman_correlation():
     a = np.random.randn(4).astype(np.float32)
     b = np.random.randn(4).astype(np.float32)
     c = np.random.randn(4).astype(np.float32)
     d = np.random.randn(4).astype(np.float32)
     ground_truth = np.random.randn(4).astype(np.float32)
 
-    m = SpearmanRankCorrelation(device=available_device)
-    assert m._device == torch.device(available_device)
+    m = SpearmanRankCorrelation()
 
     m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
     np_ans = spearmanr(a, ground_truth).statistic
@@ -93,7 +92,7 @@ def test_case(request):
 
 
 @pytest.mark.parametrize("n_times", range(5))
-def test_integration(n_times, test_case: Tuple[Tensor, Tensor, int], available_device):
+def test_integration(n_times, test_case: Tuple[Tensor, Tensor, int]):
     y_pred, y, batch_size = test_case
 
     np_y = y.numpy().ravel()
@@ -107,8 +106,7 @@ def test_integration(n_times, test_case: Tuple[Tensor, Tensor, int], available_d
 
     engine = Engine(update_fn)
 
-    m = SpearmanRankCorrelation(device=available_device)
-    assert m._device == torch.device(available_device)
+    m = SpearmanRankCorrelation()
     m.attach(engine, "spearman_corr")
 
     data = list(range(y_pred.shape[0] // batch_size))

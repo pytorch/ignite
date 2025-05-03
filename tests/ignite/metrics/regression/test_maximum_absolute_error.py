@@ -28,15 +28,14 @@ def test_wrong_input_shapes():
         m.update((torch.rand(4, 1), torch.rand(4)))
 
 
-def test_maximum_absolute_error(available_device):
+def test_maximum_absolute_error():
     a = np.random.randn(4)
     b = np.random.randn(4)
     c = np.random.randn(4)
     d = np.random.randn(4)
     ground_truth = np.random.randn(4)
 
-    m = MaximumAbsoluteError(device=available_device)
-    assert m._device == torch.device(available_device)
+    m = MaximumAbsoluteError()
 
     np_ans = -1
 
@@ -61,8 +60,8 @@ def test_maximum_absolute_error(available_device):
     assert m.compute() == pytest.approx(np_ans)
 
 
-def test_integration(available_device):
-    def _test(y_pred, y, batch_size, device="cpu"):
+def test_integration():
+    def _test(y_pred, y, batch_size):
         def update_fn(engine, batch):
             idx = (engine.state.iteration - 1) * batch_size
             y_true_batch = np_y[idx : idx + batch_size]
@@ -71,8 +70,7 @@ def test_integration(available_device):
 
         engine = Engine(update_fn)
 
-        m = MaximumAbsoluteError(device=device)
-        assert m._device == torch.device(device)
+        m = MaximumAbsoluteError()
         m.attach(engine, "mae")
 
         np_y = y.numpy().ravel()
@@ -96,7 +94,7 @@ def test_integration(available_device):
         # check multiple random inputs as random exact occurencies are rare
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
-            _test(y_pred, y, batch_size, device=available_device)
+            _test(y_pred, y, batch_size)
 
 
 def _test_distrib_compute(device):

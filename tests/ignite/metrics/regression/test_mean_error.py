@@ -26,52 +26,42 @@ def test_wrong_input_shapes():
         m.update((torch.rand(4, 1), torch.rand(4)))
 
 
-def test_mean_error(available_device):
+def test_mean_error():
     a = np.random.randn(4)
     b = np.random.randn(4)
     c = np.random.randn(4)
     d = np.random.randn(4)
     ground_truth = np.random.randn(4)
 
-    m = MeanError(device=available_device)
-    assert m._device == torch.device(available_device)
+    m = MeanError()
 
-    torch_a = torch.from_numpy(a).to(dtype=torch.float32) if available_device == "mps" else torch.from_numpy(a)
-    torch_ground_truth = (
-        torch.from_numpy(ground_truth).to(dtype=torch.float32)
-        if available_device == "mps"
-        else torch.from_numpy(ground_truth)
-    )
-    m.update((torch_a, torch_ground_truth))
+    m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
     np_sum = (ground_truth - a).sum()
     np_len = len(a)
     np_ans = np_sum / np_len
     assert m.compute() == pytest.approx(np_ans)
 
-    torch_b = torch.from_numpy(b).to(dtype=torch.float32) if available_device == "mps" else torch.from_numpy(b)
-    m.update((torch_b, torch_ground_truth))
+    m.update((torch.from_numpy(b), torch.from_numpy(ground_truth)))
     np_sum += (ground_truth - b).sum()
     np_len += len(b)
     np_ans = np_sum / np_len
     assert m.compute() == pytest.approx(np_ans)
 
-    torch_c = torch.from_numpy(c).to(dtype=torch.float32) if available_device == "mps" else torch.from_numpy(c)
-    m.update((torch_c, torch_ground_truth))
+    m.update((torch.from_numpy(c), torch.from_numpy(ground_truth)))
     np_sum += (ground_truth - c).sum()
     np_len += len(c)
     np_ans = np_sum / np_len
     assert m.compute() == pytest.approx(np_ans)
 
-    torch_d = torch.from_numpy(d).to(dtype=torch.float32) if available_device == "mps" else torch.from_numpy(d)
-    m.update((torch_d, torch_ground_truth))
+    m.update((torch.from_numpy(d), torch.from_numpy(ground_truth)))
     np_sum += (ground_truth - d).sum()
     np_len += len(d)
     np_ans = np_sum / np_len
     assert m.compute() == pytest.approx(np_ans)
 
 
-def test_integration(available_device):
-    def _test(y_pred, y, batch_size, device="cpu"):
+def test_integration():
+    def _test(y_pred, y, batch_size):
         def update_fn(engine, batch):
             idx = (engine.state.iteration - 1) * batch_size
             y_true_batch = np_y[idx : idx + batch_size]
@@ -80,8 +70,7 @@ def test_integration(available_device):
 
         engine = Engine(update_fn)
 
-        m = MeanError(device=device)
-        assert m._device == torch.device(device)
+        m = MeanError()
         m.attach(engine, "me")
 
         np_y = y.numpy().ravel()
@@ -106,7 +95,7 @@ def test_integration(available_device):
     for _ in range(5):
         test_cases = get_test_cases()
         for y_pred, y, batch_size in test_cases:
-            _test(y_pred, y, batch_size, device=available_device)
+            _test(y_pred, y, batch_size)
 
 
 def _test_distrib_compute(device):

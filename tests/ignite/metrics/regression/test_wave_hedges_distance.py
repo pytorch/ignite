@@ -19,43 +19,33 @@ def test_wrong_input_shapes():
         m.update((torch.rand(4, 1), torch.rand(4)))
 
 
-def test_compute(available_device):
+def test_compute():
     a = np.random.randn(4)
     b = np.random.randn(4)
     c = np.random.randn(4)
     d = np.random.randn(4)
     ground_truth = np.random.randn(4)
 
-    m = WaveHedgesDistance(device=available_device)
-    assert m._device == torch.device(available_device)
+    m = WaveHedgesDistance()
 
-    torch_a = torch.from_numpy(a).to(dtype=torch.float32) if available_device == "mps" else torch.from_numpy(a)
-    torch_ground_truth = (
-        torch.from_numpy(ground_truth).to(dtype=torch.float32)
-        if available_device == "mps"
-        else torch.from_numpy(ground_truth)
-    )
-    m.update((torch_a, torch_ground_truth))
+    m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
     np_sum = (np.abs(ground_truth - a) / np.maximum.reduce([a, ground_truth])).sum()
     assert m.compute() == pytest.approx(np_sum)
 
-    torch_b = torch.from_numpy(b).to(dtype=torch.float32) if available_device == "mps" else torch.from_numpy(b)
-    m.update((torch_b, torch_ground_truth))
+    m.update((torch.from_numpy(b), torch.from_numpy(ground_truth)))
     np_sum += (np.abs(ground_truth - b) / np.maximum.reduce([b, ground_truth])).sum()
     assert m.compute() == pytest.approx(np_sum)
 
-    torch_c = torch.from_numpy(c).to(dtype=torch.float32) if available_device == "mps" else torch.from_numpy(c)
-    m.update((torch_c, torch_ground_truth))
+    m.update((torch.from_numpy(c), torch.from_numpy(ground_truth)))
     np_sum += (np.abs(ground_truth - c) / np.maximum.reduce([c, ground_truth])).sum()
     assert m.compute() == pytest.approx(np_sum)
 
-    torch_d = torch.from_numpy(d).to(dtype=torch.float32) if available_device == "mps" else torch.from_numpy(d)
-    m.update((torch_d, torch_ground_truth))
+    m.update((torch.from_numpy(d), torch.from_numpy(ground_truth)))
     np_sum += (np.abs(ground_truth - d) / np.maximum.reduce([d, ground_truth])).sum()
     assert m.compute() == pytest.approx(np_sum)
 
 
-def test_integration(available_device):
+def test_integration():
     def _test(y_pred, y, batch_size):
         def update_fn(engine, batch):
             idx = (engine.state.iteration - 1) * batch_size
@@ -65,8 +55,7 @@ def test_integration(available_device):
 
         engine = Engine(update_fn)
 
-        m = WaveHedgesDistance(device=available_device)
-        assert m._device == torch.device(available_device)
+        m = WaveHedgesDistance()
         m.attach(engine, "whd")
 
         np_y = y.numpy().ravel()

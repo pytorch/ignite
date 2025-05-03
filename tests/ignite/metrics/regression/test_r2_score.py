@@ -27,19 +27,14 @@ def test_wrong_input_shapes():
         m.update((torch.rand(4, 1), torch.rand(4)))
 
 
-def test_r2_score(available_device):
+def test_r2_score():
     size = 51
     np_y_pred = np.random.rand(size)
     np_y = np.random.rand(size)
 
-    m = R2Score(device=available_device)
-    assert m._device == torch.device(available_device)
-    y_pred = (
-        torch.from_numpy(np_y_pred).to(dtype=torch.float32)
-        if available_device == "mps"
-        else torch.from_numpy(np_y_pred)
-    )
-    y = torch.from_numpy(np_y).to(dtype=torch.float32) if available_device == "mps" else torch.from_numpy(np_y)
+    m = R2Score()
+    y_pred = torch.from_numpy(np_y_pred)
+    y = torch.from_numpy(np_y)
 
     m.reset()
     m.update((y_pred, y))
@@ -47,21 +42,16 @@ def test_r2_score(available_device):
     assert r2_score(np_y, np_y_pred) == pytest.approx(m.compute())
 
 
-def test_r2_score_2(available_device):
+def test_r2_score_2():
     np.random.seed(1)
     size = 105
     np_y_pred = np.random.rand(size, 1)
     np_y = np.random.rand(size, 1)
     np.random.shuffle(np_y)
 
-    m = R2Score(device=available_device)
-    assert m._device == torch.device(available_device)
-    y_pred = (
-        torch.from_numpy(np_y_pred).to(dtype=torch.float32)
-        if available_device == "mps"
-        else torch.from_numpy(np_y_pred)
-    )
-    y = torch.from_numpy(np_y).to(dtype=torch.float32) if available_device == "mps" else torch.from_numpy(np_y)
+    m = R2Score()
+    y_pred = torch.from_numpy(np_y_pred)
+    y = torch.from_numpy(np_y)
 
     m.reset()
     batch_size = 16
@@ -73,7 +63,7 @@ def test_r2_score_2(available_device):
     assert r2_score(np_y, np_y_pred) == pytest.approx(m.compute())
 
 
-def test_integration_r2_score(available_device):
+def test_integration_r2_score():
     np.random.seed(1)
     size = 105
     np_y_pred = np.random.rand(size, 1)
@@ -86,22 +76,11 @@ def test_integration_r2_score(available_device):
         idx = (engine.state.iteration - 1) * batch_size
         y_true_batch = np_y[idx : idx + batch_size]
         y_pred_batch = np_y_pred[idx : idx + batch_size]
-        torch_y_pred_batch = (
-            torch.from_numpy(y_pred_batch).to(dtype=torch.float32)
-            if available_device == "mps"
-            else torch.from_numpy(y_pred_batch)
-        )
-        torch_y_true_batch = (
-            torch.from_numpy(y_true_batch).to(dtype=torch.float32)
-            if available_device == "mps"
-            else torch.from_numpy(y_true_batch)
-        )
-        return torch_y_pred_batch, torch_y_true_batch
+        return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
 
     engine = Engine(update_fn)
 
-    m = R2Score(device=available_device)
-    assert m._device == torch.device(available_device)
+    m = R2Score()
     m.attach(engine, "r2_score")
 
     data = list(range(size // batch_size))

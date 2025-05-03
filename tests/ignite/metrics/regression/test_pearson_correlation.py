@@ -43,20 +43,17 @@ def test_wrong_input_shapes():
         m.update((torch.rand(4, 1), torch.rand(4)))
 
 
-def test_degenerated_sample(available_device):
+def test_degenerated_sample():
     # one sample
-    m = PearsonCorrelation(device=available_device)
-    assert m._device == torch.device(available_device)
+    m = PearsonCorrelation()
     y_pred = torch.tensor([1.0])
     y = torch.tensor([1.0])
     m.update((y_pred, y))
 
-    np_y_pred = y_pred.cpu().numpy()
-    np_y = y_pred.cpu().numpy()
-    expected = np_corr_eps(np_y_pred, np_y)
-    actual = m.compute()
-
-    assert pytest.approx(expected) == actual
+    np_y_pred = y_pred.numpy()
+    np_y = y_pred.numpy()
+    np_res = np_corr_eps(np_y_pred, np_y)
+    assert pytest.approx(np_res) == m.compute()
 
     # constant samples
     m.reset()
@@ -64,23 +61,20 @@ def test_degenerated_sample(available_device):
     y = torch.zeros(10).float()
     m.update((y_pred, y))
 
-    np_y_pred = y_pred.cpu().numpy()
-    np_y = y_pred.cpu().numpy()
-    expected = np_corr_eps(np_y_pred, np_y)
-    actual = m.compute()
-
-    assert pytest.approx(expected) == actual
+    np_y_pred = y_pred.numpy()
+    np_y = y_pred.numpy()
+    np_res = np_corr_eps(np_y_pred, np_y)
+    assert pytest.approx(np_res) == m.compute()
 
 
-def test_pearson_correlation(available_device):
+def test_pearson_correlation():
     a = np.random.randn(4).astype(np.float32)
     b = np.random.randn(4).astype(np.float32)
     c = np.random.randn(4).astype(np.float32)
     d = np.random.randn(4).astype(np.float32)
     ground_truth = np.random.randn(4).astype(np.float32)
 
-    m = PearsonCorrelation(device=available_device)
-    assert m._device == torch.device(available_device)
+    m = PearsonCorrelation()
 
     m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
     np_ans = scipy_corr(a, ground_truth)
@@ -112,7 +106,7 @@ def test_case(request):
 
 
 @pytest.mark.parametrize("n_times", range(5))
-def test_integration(n_times, test_case: Tuple[Tensor, Tensor, int], available_device):
+def test_integration(n_times, test_case: Tuple[Tensor, Tensor, int]):
     y_pred, y, batch_size = test_case
 
     def update_fn(engine: Engine, batch):
@@ -123,8 +117,7 @@ def test_integration(n_times, test_case: Tuple[Tensor, Tensor, int], available_d
 
     engine = Engine(update_fn)
 
-    m = PearsonCorrelation(device=available_device)
-    assert m._device == torch.device(available_device)
+    m = PearsonCorrelation()
     m.attach(engine, "corr")
 
     np_y = y.numpy().ravel()
@@ -138,9 +131,8 @@ def test_integration(n_times, test_case: Tuple[Tensor, Tensor, int], available_d
     assert pytest.approx(np_ans, rel=2e-4) == corr
 
 
-def test_accumulator_detached(available_device):
-    corr = PearsonCorrelation(device=available_device)
-    assert corr._device == torch.device(available_device)
+def test_accumulator_detached():
+    corr = PearsonCorrelation()
 
     y_pred = torch.tensor([2.0, 3.0], requires_grad=True)
     y = torch.tensor([-2.0, -1.0])
