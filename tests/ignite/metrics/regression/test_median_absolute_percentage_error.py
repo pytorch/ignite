@@ -34,38 +34,43 @@ def test_wrong_input_shapes():
         m.update((torch.rand(4), torch.rand(4, 1, 2)))
 
 
-def test_median_absolute_percentage_error():
+def test_median_absolute_percentage_error(available_device):
     # See https://github.com/torch/torch7/pull/182
     # For even number of elements, PyTorch returns middle element
     # NumPy returns average of middle elements
     # Size of dataset will be odd for these tests
 
     size = 51
-    np_y_pred = np.random.rand(size)
-    np_y = np.random.rand(size)
-    np_median_absolute_percentage_error = 100.0 * np.median(np.abs(np_y - np_y_pred) / np.abs(np_y))
+    y_pred = torch.rand(size)
+    y = torch.rand(size)
 
-    m = MedianAbsolutePercentageError()
-    y_pred = torch.from_numpy(np_y_pred)
-    y = torch.from_numpy(np_y)
+    epsilon = 1e-8
+    safe_y = torch.where(y == 0, torch.full_like(y, epsilon), y)
+    expected = torch.median(torch.abs((y - y_pred) / safe_y).cpu()).item() * 100.0
+
+    m = MedianAbsolutePercentageError(device=available_device)
+    assert m._device == torch.device(available_device)
 
     m.reset()
     m.update((y_pred, y))
 
-    assert np_median_absolute_percentage_error == pytest.approx(m.compute())
+    assert expected == pytest.approx(m.compute())
 
 
-def test_median_absolute_percentage_error_2():
-    np.random.seed(1)
+def test_median_absolute_percentage_error_2(available_device):
     size = 105
-    np_y_pred = np.random.rand(size, 1)
-    np_y = np.random.rand(size, 1)
-    np.random.shuffle(np_y)
-    np_median_absolute_percentage_error = 100.0 * np.median(np.abs(np_y - np_y_pred) / np.abs(np_y))
+    y_pred = torch.rand(size, 1)
+    y = torch.rand(size, 1)
 
-    m = MedianAbsolutePercentageError()
-    y_pred = torch.from_numpy(np_y_pred)
-    y = torch.from_numpy(np_y)
+    indices = torch.randperm(size)
+    y = y[indices]
+
+    epsilon = 1e-8
+    safe_y = torch.where(y == 0, torch.full_like(y, epsilon), y)
+    expected = torch.median(torch.abs((y - y_pred) / safe_y).cpu()).item() * 100.0
+
+    m = MedianAbsolutePercentageError(device=available_device)
+    assert m._device == torch.device(available_device)
 
     m.reset()
     batch_size = 16
@@ -74,34 +79,37 @@ def test_median_absolute_percentage_error_2():
         idx = i * batch_size
         m.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
 
-    assert np_median_absolute_percentage_error == pytest.approx(m.compute())
+    assert expected == pytest.approx(m.compute())
 
 
-def test_integration_median_absolute_percentage_error():
-    np.random.seed(1)
+def test_integration_median_absolute_percentage_error(available_device):
     size = 105
-    np_y_pred = np.random.rand(size, 1)
-    np_y = np.random.rand(size, 1)
-    np.random.shuffle(np_y)
-    np_median_absolute_percentage_error = 100.0 * np.median(np.abs(np_y - np_y_pred) / np.abs(np_y))
+    y_pred = torch.rand(size, 1)
+    y = torch.rand(size, 1)
+
+    indices = torch.randperm(size)
+    y = y[indices]
+
+    epsilon = 1e-8
+    safe_y = torch.where(y == 0, torch.full_like(y, epsilon), y)
+    expected = torch.median(torch.abs((y - y_pred) / safe_y).cpu()).item() * 100.0
 
     batch_size = 15
 
     def update_fn(engine, batch):
         idx = (engine.state.iteration - 1) * batch_size
-        y_true_batch = np_y[idx : idx + batch_size]
-        y_pred_batch = np_y_pred[idx : idx + batch_size]
-        return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+        return y_pred[idx : idx + batch_size], y[idx : idx + batch_size]
 
     engine = Engine(update_fn)
 
-    m = MedianAbsolutePercentageError()
+    m = MedianAbsolutePercentageError(device=available_device)
+    assert m._device == torch.device(available_device)
     m.attach(engine, "median_absolute_percentage_error")
 
     data = list(range(size // batch_size))
     median_absolute_percentage_error = engine.run(data, max_epochs=1).metrics["median_absolute_percentage_error"]
 
-    assert np_median_absolute_percentage_error == pytest.approx(median_absolute_percentage_error)
+    assert expected == pytest.approx(median_absolute_percentage_error)
 
 
 def _test_distrib_compute(device):
