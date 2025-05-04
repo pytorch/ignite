@@ -64,9 +64,6 @@ def test_compute(available_device):
 def test_integration_fractional_absolute_error(n_times, test_cases, available_device):
     y_pred, y, batch_size = test_cases
 
-    np_y = y.numpy().ravel()
-    np_y_pred = y_pred.numpy().ravel()
-
     def update_fn(engine, batch):
         idx = (engine.state.iteration - 1) * batch_size
         y_true_batch = y[idx : idx + batch_size]
@@ -83,10 +80,11 @@ def test_integration_fractional_absolute_error(n_times, test_cases, available_de
     data = list(range(y_pred.shape[0] // batch_size))
     fab = engine.run(data, max_epochs=1).metrics["fab"]
 
-    np_sum = (2 * np.abs(np_y_pred - np_y) / (np.abs(np_y_pred) + np.abs(np_y))).sum()
-    expected = np_sum / len(np_y)
+    abs_diff = torch.abs(y_pred - y)
+    denom = torch.abs(y_pred) + torch.abs(y)
+    expected = (2 * abs_diff / denom).sum().item() / y.numel()
 
-    assert expected == pytest.approx(fab)
+    assert pytest.approx(expected) == fab
 
 
 def _test_distrib_compute(device):
