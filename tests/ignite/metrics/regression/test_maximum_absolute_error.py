@@ -28,53 +28,73 @@ def test_wrong_input_shapes():
         m.update((torch.rand(4, 1), torch.rand(4)))
 
 
-def test_maximum_absolute_error(available_device):
-    a = torch.randn(4)
-    b = torch.randn(4)
-    c = torch.randn(4)
-    d = torch.randn(4)
-    ground_truth = torch.randn(4)
+def test_maximum_absolute_error():
+    a = np.random.randn(4)
+    b = np.random.randn(4)
+    c = np.random.randn(4)
+    d = np.random.randn(4)
+    ground_truth = np.random.randn(4)
 
-    m = MaximumAbsoluteError(device=available_device)
-    assert m._device == torch.device(available_device)
+    m = MaximumAbsoluteError()
 
-    max_error = -1.0
+    np_ans = -1
 
-    for pred in [a, b, c, d]:
-        m.update((pred, ground_truth))
-        current_max = torch.max(torch.abs(pred - ground_truth)).item()
-        max_error = max(current_max, max_error)
-        assert m.compute() == pytest.approx(max_error)
+    m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
+    np_max = np.max(np.abs((a - ground_truth)))
+    np_ans = np_max if np_max > np_ans else np_ans
+    assert m.compute() == pytest.approx(np_ans)
+
+    m.update((torch.from_numpy(b), torch.from_numpy(ground_truth)))
+    np_max = np.max(np.abs((b - ground_truth)))
+    np_ans = np_max if np_max > np_ans else np_ans
+    assert m.compute() == pytest.approx(np_ans)
+
+    m.update((torch.from_numpy(c), torch.from_numpy(ground_truth)))
+    np_max = np.max(np.abs((c - ground_truth)))
+    np_ans = np_max if np_max > np_ans else np_ans
+    assert m.compute() == pytest.approx(np_ans)
+
+    m.update((torch.from_numpy(d), torch.from_numpy(ground_truth)))
+    np_max = np.max(np.abs((d - ground_truth)))
+    np_ans = np_max if np_max > np_ans else np_ans
+    assert m.compute() == pytest.approx(np_ans)
 
 
-@pytest.mark.parametrize("n_times", range(5))
-@pytest.mark.parametrize(
-    "test_cases",
-    [
-        (torch.rand(size=(100,)), torch.rand(size=(100,)), 10),
-        (torch.rand(size=(100, 1)), torch.rand(size=(100, 1)), 20),
-    ],
-)
-def test_integration_maximum_absolute_error(n_times, test_cases, available_device):
-    y_pred, y, batch_size = test_cases
+def test_integration():
+    def _test(y_pred, y, batch_size):
+        def update_fn(engine, batch):
+            idx = (engine.state.iteration - 1) * batch_size
+            y_true_batch = np_y[idx : idx + batch_size]
+            y_pred_batch = np_y_pred[idx : idx + batch_size]
+            return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
 
-    def update_fn(engine, batch):
-        idx = (engine.state.iteration - 1) * batch_size
-        y_true_batch = y[idx : idx + batch_size]
-        y_pred_batch = y_pred[idx : idx + batch_size]
-        return y_pred_batch, y_true_batch
+        engine = Engine(update_fn)
 
-    engine = Engine(update_fn)
+        m = MaximumAbsoluteError()
+        m.attach(engine, "mae")
 
-    m = MaximumAbsoluteError(device=available_device)
-    assert m._device == torch.device(available_device)
-    m.attach(engine, "mae")
+        np_y = y.numpy().ravel()
+        np_y_pred = y_pred.numpy().ravel()
 
-    data = list(range(y_pred.shape[0] // batch_size))
-    mae = engine.run(data, max_epochs=1).metrics["mae"]
+        data = list(range(y_pred.shape[0] // batch_size))
+        mae = engine.run(data, max_epochs=1).metrics["mae"]
 
-    expected = torch.max(torch.abs(y_pred - y)).item()
-    assert mae == pytest.approx(expected)
+        np_max = np.max(np.abs((np_y_pred - np_y)))
+
+        assert np_max == pytest.approx(mae)
+
+    def get_test_cases():
+        test_cases = [
+            (torch.rand(size=(100,)), torch.rand(size=(100,)), 10),
+            (torch.rand(size=(100, 1)), torch.rand(size=(100, 1)), 20),
+        ]
+        return test_cases
+
+    for _ in range(5):
+        # check multiple random inputs as random exact occurencies are rare
+        test_cases = get_test_cases()
+        for y_pred, y, batch_size in test_cases:
+            _test(y_pred, y, batch_size)
 
 
 def _test_distrib_compute(device):

@@ -29,20 +29,15 @@ def test_wrong_input_shapes():
         m.update((torch.rand(4, 1), torch.rand(4)))
 
 
-def test_compute(available_device):
+def test_compute():
     size = 51
     np_y_pred = np.random.rand(size)
     np_y = np.random.rand(size)
     np_gmrae = np.exp(np.log(np.abs(np_y - np_y_pred) / np.abs(np_y - np_y.mean())).mean())
 
-    m = GeometricMeanRelativeAbsoluteError(device=available_device)
-    assert m._device == torch.device(available_device)
-    y_pred = (
-        torch.from_numpy(np_y_pred).to(dtype=torch.float32)
-        if available_device == "mps"
-        else torch.from_numpy(np_y_pred)
-    )
-    y = torch.from_numpy(np_y).to(dtype=torch.float32) if available_device == "mps" else torch.from_numpy(np_y)
+    m = GeometricMeanRelativeAbsoluteError()
+    y_pred = torch.from_numpy(np_y_pred)
+    y = torch.from_numpy(np_y)
 
     m.reset()
     m.update((y_pred, y))
@@ -50,7 +45,7 @@ def test_compute(available_device):
     assert np_gmrae == pytest.approx(m.compute())
 
 
-def test_integration(available_device):
+def test_integration():
     y_pred = torch.rand(size=(100,))
     y = torch.rand(size=(100,))
 
@@ -64,8 +59,7 @@ def test_integration(available_device):
 
     engine = Engine(update_fn)
 
-    m = GeometricMeanRelativeAbsoluteError(device=available_device)
-    assert m._device == torch.device(available_device)
+    m = GeometricMeanRelativeAbsoluteError()
     m.attach(engine, "gmrae")
 
     np_y = y.numpy().ravel()

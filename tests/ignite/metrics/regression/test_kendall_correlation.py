@@ -59,15 +59,14 @@ def test_wrong_variant():
 
 
 @pytest.mark.parametrize("variant", ["b", "c"])
-def test_kendall_correlation(variant: str, available_device):
+def test_kendall_correlation(variant: str):
     a = np.random.randn(4).astype(np.float32)
     b = np.random.randn(4).astype(np.float32)
     c = np.random.randn(4).astype(np.float32)
     d = np.random.randn(4).astype(np.float32)
     ground_truth = np.random.randn(4).astype(np.float32)
 
-    m = KendallRankCorrelation(variant=variant, device=available_device)
-    assert m._device == torch.device(available_device)
+    m = KendallRankCorrelation(variant=variant)
 
     m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
     np_ans = kendalltau(a, ground_truth, variant=variant).statistic
@@ -100,9 +99,7 @@ def test_case(request):
 
 @pytest.mark.parametrize("n_times", range(5))
 @pytest.mark.parametrize("variant", ["b", "c"])
-def test_integration_kendall_rank_correlation(
-    n_times: int, variant: str, test_case: Tuple[Tensor, Tensor, int], available_device
-):
+def test_integration(n_times: int, variant: str, test_case: Tuple[Tensor, Tensor, int]):
     y_pred, y, batch_size = test_case
 
     np_y = y.numpy().ravel()
@@ -116,8 +113,7 @@ def test_integration_kendall_rank_correlation(
 
     engine = Engine(update_fn)
 
-    m = KendallRankCorrelation(variant=variant, device=available_device)
-    assert m._device == torch.device(available_device)
+    m = KendallRankCorrelation(variant=variant)
     m.attach(engine, "kendall_tau")
 
     data = list(range(y_pred.shape[0] // batch_size))

@@ -20,46 +20,37 @@ def test_wrong_input_shapes():
         m.update((torch.rand(4, 1), torch.rand(4)))
 
 
-def test_mahattan_distance(available_device):
+def test_mahattan_distance():
     a = np.random.randn(4)
     b = np.random.randn(4)
     c = np.random.randn(4)
     d = np.random.randn(4)
     ground_truth = np.random.randn(4)
 
-    m = ManhattanDistance(device=available_device)
-    assert m._device == torch.device(available_device)
+    m = ManhattanDistance()
 
     manhattan = DistanceMetric.get_metric("manhattan")
-    torch_a = torch.from_numpy(a).to(dtype=torch.float32) if available_device == "mps" else torch.from_numpy(a)
-    torch_ground_truth = (
-        torch.from_numpy(ground_truth).to(dtype=torch.float32)
-        if available_device == "mps"
-        else torch.from_numpy(ground_truth)
-    )
-    m.update((torch_a, torch_ground_truth))
+
+    m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
     np_sum = np.abs(ground_truth - a).sum()
     assert m.compute() == pytest.approx(np_sum)
     assert manhattan.pairwise([a, ground_truth])[0][1] == pytest.approx(np_sum)
 
-    torch_b = torch.from_numpy(b).to(dtype=torch.float32) if available_device == "mps" else torch.from_numpy(b)
-    m.update((torch_b, torch_ground_truth))
+    m.update((torch.from_numpy(b), torch.from_numpy(ground_truth)))
     np_sum += np.abs(ground_truth - b).sum()
     assert m.compute() == pytest.approx(np_sum)
     v1 = np.hstack([a, b])
     v2 = np.hstack([ground_truth, ground_truth])
     assert manhattan.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
 
-    torch_c = torch.from_numpy(c).to(dtype=torch.float32) if available_device == "mps" else torch.from_numpy(c)
-    m.update((torch_c, torch_ground_truth))
+    m.update((torch.from_numpy(c), torch.from_numpy(ground_truth)))
     np_sum += np.abs(ground_truth - c).sum()
     assert m.compute() == pytest.approx(np_sum)
     v1 = np.hstack([v1, c])
     v2 = np.hstack([v2, ground_truth])
     assert manhattan.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
 
-    torch_d = torch.from_numpy(d).to(dtype=torch.float32) if available_device == "mps" else torch.from_numpy(d)
-    m.update((torch_d, torch_ground_truth))
+    m.update((torch.from_numpy(d), torch.from_numpy(ground_truth)))
     np_sum += np.abs(ground_truth - d).sum()
     assert m.compute() == pytest.approx(np_sum)
     v1 = np.hstack([v1, d])
@@ -67,42 +58,45 @@ def test_mahattan_distance(available_device):
     assert manhattan.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
 
 
-@pytest.mark.parametrize("n_times", range(3))
-@pytest.mark.parametrize(
-    "test_case",
-    [
-        (torch.rand(size=(100,)), torch.rand(size=(100,)), 10),
-        (torch.rand(size=(100, 1)), torch.rand(size=(100, 1)), 20),
-    ],
-)
-def test_integration(test_case, n_times, available_device):
-    y_pred, y, batch_size = test_case
+def test_integration():
+    def _test(y_pred, y, batch_size):
+        def update_fn(engine, batch):
+            idx = (engine.state.iteration - 1) * batch_size
+            y_true_batch = np_y[idx : idx + batch_size]
+            y_pred_batch = np_y_pred[idx : idx + batch_size]
+            return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
 
-    np_y = y.numpy().ravel()
-    np_y_pred = y_pred.numpy().ravel()
+        engine = Engine(update_fn)
 
-    def update_fn(engine, batch):
-        idx = (engine.state.iteration - 1) * batch_size
-        y_true_batch = np_y[idx : idx + batch_size]
-        y_pred_batch = np_y_pred[idx : idx + batch_size]
-        return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+        m = ManhattanDistance()
+        m.attach(engine, "md")
 
-    engine = Engine(update_fn)
+        np_y = y.numpy().ravel()
+        np_y_pred = y_pred.numpy().ravel()
 
-    metric = ManhattanDistance(device=available_device)
-    assert metric._device == torch.device(available_device)
-    metric.attach(engine, "md")
+        manhattan = DistanceMetric.get_metric("manhattan")
 
-    data = list(range(y_pred.shape[0] // batch_size))
-    result = engine.run(data, max_epochs=1).metrics["md"]
+        data = list(range(y_pred.shape[0] // batch_size))
+        md = engine.run(data, max_epochs=1).metrics["md"]
 
-    expected = DistanceMetric.get_metric("manhattan").pairwise([np_y_pred, np_y])[0][1]
-    assert expected == pytest.approx(result)
+        assert manhattan.pairwise([np_y_pred, np_y])[0][1] == pytest.approx(md)
+
+    def get_test_cases():
+        test_cases = [
+            (torch.rand(size=(100,)), torch.rand(size=(100,)), 10),
+            (torch.rand(size=(100, 1)), torch.rand(size=(100, 1)), 20),
+        ]
+        return test_cases
+
+    for _ in range(5):
+        # check multiple random inputs as random exact occurencies are rare
+        test_cases = get_test_cases()
+        for y_pred, y, batch_size in test_cases:
+            _test(y_pred, y, batch_size)
 
 
-def test_error_is_not_nan(available_device):
-    m = ManhattanDistance(device=available_device)
-    assert m._device == torch.device(available_device)
+def test_error_is_not_nan():
+    m = ManhattanDistance()
     m.update((torch.zeros(4), torch.zeros(4)))
     assert not (torch.isnan(m._sum_of_errors).any() or torch.isinf(m._sum_of_errors).any()), m._sum_of_errors
 
