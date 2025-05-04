@@ -21,42 +21,32 @@ def test_wrong_input_shapes():
 
 
 def test_compute(available_device):
-    a = torch.randn(4)
-    b = torch.randn(4)
-    c = torch.randn(4)
-    d = torch.randn(4)
     ground_truth = torch.randn(4)
+    preds = [torch.randn(4) for _ in range(4)]
 
     m = CanberraMetric(device=available_device)
     assert m._device == torch.device(available_device)
 
     canberra = DistanceMetric.get_metric("canberra")
 
-    m.update((a, ground_truth))
-    np_sum = (torch.abs(ground_truth - a) / (torch.abs(a) + torch.abs(ground_truth))).sum()
-    assert m.compute() == pytest.approx(np_sum)
-    assert canberra.pairwise([a.cpu().numpy(), ground_truth.cpu().numpy()])[0][1] == pytest.approx(np_sum)
+    total_sum = 0.0
+    v1 = []
+    v2 = []
 
-    m.update((b, ground_truth))
-    np_sum += ((torch.abs(ground_truth - b)) / (torch.abs(b) + torch.abs(ground_truth))).sum()
-    assert m.compute() == pytest.approx(np_sum)
-    v1 = np.hstack([a, b])
-    v2 = np.hstack([ground_truth, ground_truth])
-    assert canberra.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
+    for pred in preds:
+        m.update((pred, ground_truth))
+        diff = torch.abs(ground_truth - pred)
+        denom = torch.abs(pred) + torch.abs(ground_truth)
+        batch_sum = (diff / denom).sum()
+        total_sum += batch_sum
 
-    m.update((c, ground_truth))
-    np_sum += ((torch.abs(ground_truth - c)) / (torch.abs(c) + torch.abs(ground_truth))).sum()
-    assert m.compute() == pytest.approx(np_sum)
-    v1 = np.hstack([v1, c])
-    v2 = np.hstack([v2, ground_truth])
-    assert canberra.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
+        assert m.compute() == pytest.approx(total_sum)
 
-    m.update((d, ground_truth))
-    np_sum += (torch.abs(ground_truth - d) / (torch.abs(d) + torch.abs(ground_truth))).sum()
-    assert m.compute() == pytest.approx(np_sum)
-    v1 = np.hstack([v1, d])
-    v2 = np.hstack([v2, ground_truth])
-    assert canberra.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
+        v1.append(pred.cpu().numpy())
+        v2.append(ground_truth.cpu().numpy())
+        v1_cat = np.hstack(v1)
+        v2_cat = np.hstack(v2)
+        assert canberra.pairwise([v1_cat, v2_cat])[0][1] == pytest.approx(total_sum)
 
 
 @pytest.mark.parametrize("n_times", range(3))
