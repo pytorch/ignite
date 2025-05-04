@@ -29,43 +29,22 @@ def test_wrong_input_shapes():
 
 
 def test_compute(available_device):
-    a = torch.randn(4)
-    b = torch.randn(4)
-    c = torch.randn(4)
-    d = torch.randn(4)
+    inputs = [torch.randn(4) for _ in range(4)]
     ground_truth = torch.randn(4)
-    np_prod = 1.0
 
     m = GeometricMeanAbsoluteError(device=available_device)
     assert m._device == torch.device(available_device)
-    m.update((a, ground_truth))
 
-    errors = torch.abs(ground_truth - a)
-    np_prod = torch.prod(errors) * np_prod
-    np_len = len(a)
-    np_ans = torch.pow(np_prod, 1.0 / np_len)
-    assert m.compute() == pytest.approx(np_ans)
+    total_prod = 1.0
+    total_len = 0
 
-    m.update((b, ground_truth))
-    errors = torch.abs(ground_truth - b)
-    np_prod = torch.prod(errors) * np_prod
-    np_len += len(b)
-    np_ans = torch.pow(np_prod, 1.0 / np_len)
-    assert m.compute() == pytest.approx(np_ans)
-
-    m.update((c, ground_truth))
-    errors = torch.abs(ground_truth - c)
-    np_prod = torch.prod(errors) * np_prod
-    np_len += len(c)
-    np_ans = torch.pow(np_prod, 1.0 / np_len)
-    assert m.compute() == pytest.approx(np_ans)
-
-    m.update((d, ground_truth))
-    errors = torch.abs(ground_truth - d)
-    np_prod = torch.prod(errors) * np_prod
-    np_len += len(d)
-    np_ans = torch.pow(np_prod, 1.0 / np_len)
-    assert m.compute() == pytest.approx(np_ans)
+    for pred in inputs:
+        m.update((pred, ground_truth))
+        errors = torch.abs(ground_truth - pred)
+        total_prod *= torch.prod(errors).item()
+        total_len += pred.numel()
+        expected = torch.pow(torch.tensor(total_prod), 1.0 / total_len)
+        assert m.compute() == pytest.approx(expected.item())
 
 
 def test_integration(available_device):
