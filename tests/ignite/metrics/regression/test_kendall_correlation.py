@@ -1,11 +1,9 @@
 from typing import Tuple
 
-import numpy as np
 import pytest
 
 import torch
 from scipy.stats import kendalltau
-from torch import Tensor
 
 from ignite import distributed as idist
 from ignite.engine import Engine
@@ -59,30 +57,26 @@ def test_wrong_variant():
 
 
 @pytest.mark.parametrize("variant", ["b", "c"])
-def test_kendall_correlation(variant: str):
-    a = np.random.randn(4).astype(np.float32)
-    b = np.random.randn(4).astype(np.float32)
-    c = np.random.randn(4).astype(np.float32)
-    d = np.random.randn(4).astype(np.float32)
-    ground_truth = np.random.randn(4).astype(np.float32)
+def test_kendall_correlation(variant: str, available_device):
+    inputs = [torch.randn(4) for _ in range(4)]
+    ground_truth = torch.randn(4)
 
-    m = KendallRankCorrelation(variant=variant)
+    m = KendallRankCorrelation(variant=variant, device=available_device)
+    assert m._device == torch.device(available_device)
 
-    m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
-    np_ans = kendalltau(a, ground_truth, variant=variant).statistic
-    assert m.compute() == pytest.approx(np_ans, rel=1e-4)
+    all_preds = []
+    all_targets = []
 
-    m.update((torch.from_numpy(b), torch.from_numpy(ground_truth)))
-    np_ans = kendalltau(np.concatenate([a, b]), np.concatenate([ground_truth] * 2), variant=variant).statistic
-    assert m.compute() == pytest.approx(np_ans, rel=1e-4)
+    for pred in inputs:
+        m.update((pred.to(device=available_device), ground_truth.to(device=available_device)))
+        all_preds.append(pred)
+        all_targets.append(ground_truth)
 
-    m.update((torch.from_numpy(c), torch.from_numpy(ground_truth)))
-    np_ans = kendalltau(np.concatenate([a, b, c]), np.concatenate([ground_truth] * 3), variant=variant).statistic
-    assert m.compute() == pytest.approx(np_ans, rel=1e-4)
+        concat_preds = torch.cat(all_preds).numpy()
+        concat_targets = torch.cat(all_targets).numpy()
 
-    m.update((torch.from_numpy(d), torch.from_numpy(ground_truth)))
-    np_ans = kendalltau(np.concatenate([a, b, c, d]), np.concatenate([ground_truth] * 4), variant=variant).statistic
-    assert m.compute() == pytest.approx(np_ans, rel=1e-4)
+        expected = kendalltau(concat_preds, concat_targets, variant=variant).statistic
+        assert m.compute() == pytest.approx(expected, rel=1e-4)
 
 
 @pytest.fixture(params=list(range(2)))
@@ -99,29 +93,34 @@ def test_case(request):
 
 @pytest.mark.parametrize("n_times", range(5))
 @pytest.mark.parametrize("variant", ["b", "c"])
-def test_integration(n_times: int, variant: str, test_case: Tuple[Tensor, Tensor, int]):
+@pytest.mark.parametrize(
+    "test_case",
+    [
+        (torch.rand(size=(100,)), torch.rand(size=(100,)), 10),
+        (torch.rand(size=(100, 1)), torch.rand(size=(100, 1)), 20),
+    ],
+)
+def test_integration_kendall_rank_correlation(
+    n_times: int, variant: str, test_case: Tuple[torch.Tensor, torch.Tensor, int], available_device
+):
     y_pred, y, batch_size = test_case
-
-    np_y = y.numpy().ravel()
-    np_y_pred = y_pred.numpy().ravel()
 
     def update_fn(engine: Engine, batch):
         idx = (engine.state.iteration - 1) * batch_size
-        y_true_batch = np_y[idx : idx + batch_size]
-        y_pred_batch = np_y_pred[idx : idx + batch_size]
-        return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+        return y_pred[idx : idx + batch_size], y[idx : idx + batch_size]
 
     engine = Engine(update_fn)
 
-    m = KendallRankCorrelation(variant=variant)
+    m = KendallRankCorrelation(variant=variant, device=available_device)
+    assert m._device == torch.device(available_device)
     m.attach(engine, "kendall_tau")
 
     data = list(range(y_pred.shape[0] // batch_size))
-    corr = engine.run(data, max_epochs=1).metrics["kendall_tau"]
+    result = engine.run(data, max_epochs=1).metrics["kendall_tau"]
 
-    np_ans = kendalltau(np_y_pred, np_y, variant=variant).statistic
+    expected = kendalltau(y_pred.cpu().view(-1).numpy(), y.cpu().view(-1).numpy(), variant=variant).statistic
 
-    assert pytest.approx(np_ans, rel=2e-4) == corr
+    assert result == pytest.approx(expected, rel=2e-4)
 
 
 @pytest.mark.usefixtures("distributed")
