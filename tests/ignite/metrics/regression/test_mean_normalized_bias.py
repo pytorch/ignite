@@ -42,7 +42,6 @@ def test_mean_error(available_device):
     preds = [torch.randn(4) for _ in range(4)]
     target = torch.randn(4)
 
-
     m = MeanNormalizedBias(device=available_device)
     assert m._device == torch.device(available_device)
 
