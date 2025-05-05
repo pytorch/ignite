@@ -26,34 +26,21 @@ def test_wrong_input_shapes():
 
 
 def test_mean_error(available_device):
-    a = torch.randn(4)
-    b = torch.randn(4)
-    c = torch.randn(4)
-    d = torch.randn(4)
+    preds = [torch.randn(4) for _ in range(4)]
     ground_truth = torch.randn(4)
 
     m = MeanError(device=available_device)
     assert m._device == torch.device(available_device)
 
-    total_error = torch.sum(ground_truth - a)
-    total_count = a.numel()
-    m.update((a, ground_truth))
-    assert m.compute() == pytest.approx((total_error / total_count).item())
+    total_error = 0.0
+    total_count = 0
 
-    total_error += torch.sum(ground_truth - b)
-    total_count += b.numel()
-    m.update((b, ground_truth))
-    assert m.compute() == pytest.approx((total_error / total_count).item())
-
-    total_error += torch.sum(ground_truth - c)
-    total_count += c.numel()
-    m.update((c, ground_truth))
-    assert m.compute() == pytest.approx((total_error / total_count).item())
-
-    total_error += torch.sum(ground_truth - d)
-    total_count += d.numel()
-    m.update((d, ground_truth))
-    assert m.compute() == pytest.approx((total_error / total_count).item())
+    for pred in preds:
+        m.update((pred, ground_truth))
+        total_error += torch.sum(ground_truth - pred).item()
+        total_count += pred.numel()
+        expected = total_error / total_count
+        assert m.compute() == pytest.approx(expected)
 
 
 @pytest.mark.parametrize("n_times", range(5))
