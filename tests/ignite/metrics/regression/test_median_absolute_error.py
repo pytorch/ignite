@@ -76,7 +76,6 @@ def test_median_absolute_error_2(available_device):
 
 
 def test_integration_median_absolute_error(available_device):
-    np.random.seed(1)
     size = 105
     y_pred = torch.rand(size, 1)
     y = torch.rand(size, 1)
