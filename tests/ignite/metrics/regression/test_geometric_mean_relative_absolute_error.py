@@ -31,23 +31,20 @@ def test_wrong_input_shapes():
 
 def test_compute(available_device):
     size = 51
-    np_y_pred = np.random.rand(size)
-    np_y = np.random.rand(size)
-    np_gmrae = np.exp(np.log(np.abs(np_y - np_y_pred) / np.abs(np_y - np_y.mean())).mean())
+    y_pred = torch.rand(size)
+    y = torch.rand(size)
 
     m = GeometricMeanRelativeAbsoluteError(device=available_device)
     assert m._device == torch.device(available_device)
-    y_pred = (
-        torch.from_numpy(np_y_pred).to(dtype=torch.float32)
-        if available_device == "mps"
-        else torch.from_numpy(np_y_pred)
-    )
-    y = torch.from_numpy(np_y).to(dtype=torch.float32) if available_device == "mps" else torch.from_numpy(np_y)
 
     m.reset()
     m.update((y_pred, y))
 
-    assert np_gmrae == pytest.approx(m.compute())
+    abs_error = torch.abs(y - y_pred)
+    denom = torch.abs(y - torch.mean(y))
+    gmrae = torch.exp(torch.mean(torch.log(abs_error / denom)))
+
+    assert gmrae.item() == pytest.approx(m.compute())
 
 
 def test_integration(available_device):
