@@ -45,8 +45,7 @@ def test_median_absolute_percentage_error(available_device):
     y = torch.rand(size)
 
     epsilon = 1e-8
-    safe_y = torch.where(y == 0, torch.full_like(y, epsilon), y)
-    expected = torch.median(torch.abs((y - y_pred) / safe_y).cpu()).item() * 100.0
+    expected = torch.median(torch.abs((y - y_pred) / (y + epsilon)).cpu()).item() * 100.0
 
     m = MedianAbsolutePercentageError(device=available_device)
     assert m._device == torch.device(available_device)
