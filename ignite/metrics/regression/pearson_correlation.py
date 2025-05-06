@@ -119,5 +119,6 @@ class PearsonCorrelation(_BaseRegression):
         y_var = self._sum_of_y_squares / n - y_mean * y_mean
         y_var = torch.clamp(y_var, min=0.0)
 
-        r = cov / torch.clamp(torch.sqrt(y_pred_var * y_var), min=self.eps)
+        # torch.sqrt(0) produces NaN on MPS, that's why + self.eps**2
+        r = cov / torch.clamp(torch.sqrt(y_pred_var * y_var + self.eps**2), min=self.eps)
         return float(r.item())
