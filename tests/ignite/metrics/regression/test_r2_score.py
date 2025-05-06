@@ -30,8 +30,8 @@ def test_r2_score(available_device):
     torch.manual_seed(42)
     size = 51
 
-    y_pred = torch.rand(size, dtype=torch.float32)
-    y = torch.rand(size, dtype=torch.float32)
+    y_pred = torch.rand(size)
+    y = torch.rand(size)
 
     m = R2Score(device=available_device)
     assert m._device == torch.device(available_device)
@@ -46,8 +46,8 @@ def test_r2_score(available_device):
 def test_r2_score_2(available_device):
     torch.manual_seed(1)
     size = 105
-    y_pred = torch.rand(size, 1, dtype=torch.float32)
-    y = torch.rand(size, 1, dtype=torch.float32)
+    y_pred = torch.rand(size, 1)
+    y = torch.rand(size, 1)
 
     y = y[torch.randperm(size)]
 
@@ -68,8 +68,8 @@ def test_r2_score_2(available_device):
 def test_integration_r2_score(available_device):
     torch.manual_seed(1)
     size = 105
-    y_pred = torch.rand(size, 1, dtype=torch.float32)
-    y = torch.rand(size, 1, dtype=torch.float32)
+    y_pred = torch.rand(size, 1)
+    y = torch.rand(size, 1)
 
     # Shuffle targets
     y = y[torch.randperm(size)]
