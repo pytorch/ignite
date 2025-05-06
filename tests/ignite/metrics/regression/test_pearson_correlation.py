@@ -1,3 +1,4 @@
+import math
 from typing import Tuple
 
 import numpy as np
@@ -261,3 +262,15 @@ class TestDistributed:
             )
             for dev in devices:
                 assert dev == metric_device, f"{type(dev)}:{dev} vs {type(metric_device)}:{metric_device}"
+
+
+def test_sqrt_nan_on_mps(available_device):
+    result = torch.tensor(0.0, device=available_device).sqrt()
+    assert not math.isnan(result)
+
+
+def test_clamp_nan_on_mps(available_device):
+    eps = 1e-8
+    x = torch.tensor(float("nan"), device=available_device)
+    result = torch.clamp(x, min=eps)
+    assert math.isnan(result)
