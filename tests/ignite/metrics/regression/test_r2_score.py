@@ -33,10 +33,6 @@ def test_r2_score(available_device):
     y_pred = torch.rand(size, dtype=torch.float32)
     y = torch.rand(size, dtype=torch.float32)
 
-    if available_device == "mps":
-        y_pred = y_pred.to("mps")
-        y = y.to("mps")
-
     m = R2Score(device=available_device)
     assert m._device == torch.device(available_device)
 
@@ -54,10 +50,6 @@ def test_r2_score_2(available_device):
     y = torch.rand(size, 1, dtype=torch.float32)
 
     y = y[torch.randperm(size)]
-
-    if available_device == "mps":
-        y_pred = y_pred.to("mps")
-        y = y.to("mps")
 
     m = R2Score(device=available_device)
     assert m._device == torch.device(available_device)
@@ -81,10 +73,6 @@ def test_integration_r2_score(available_device):
 
     # Shuffle targets
     y = y[torch.randperm(size)]
-
-    if available_device == "mps":
-        y_pred = y_pred.to("mps")
-        y = y.to("mps")
 
     batch_size = 15
 
