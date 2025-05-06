@@ -265,12 +265,15 @@ class TestDistributed:
 
 
 def test_sqrt_nan_on_mps(available_device):
-    result = torch.tensor(0.0, device=available_device).sqrt()
-    assert not math.isnan(result)
+    result = torch.sqrt(torch.tensor(0.0, device=available_device))
+    assert not math.isnan(result.item())
+
+    result = torch.sqrt(torch.tensor(0, device=available_device))
+    assert not math.isnan(result.item())
 
 
 def test_clamp_nan_on_mps(available_device):
     eps = 1e-8
     x = torch.tensor(float("nan"), device=available_device)
     result = torch.clamp(x, min=eps)
-    assert math.isnan(result)
+    assert math.isnan(result.item())
