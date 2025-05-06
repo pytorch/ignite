@@ -20,10 +20,7 @@ def test_wrong_input_shapes():
 
 
 def test_compute(available_device):
-    a = torch.randn(4)
-    b = torch.randn(4)
-    c = torch.randn(4)
-    d = torch.randn(4)
+    inputs = [torch.randn(4) for _ in range(4)]
     ground_truth = torch.randn(4)
 
     m = WaveHedgesDistance(device=available_device)
@@ -32,21 +29,11 @@ def test_compute(available_device):
     def compute_sum(x):
         return torch.sum(torch.abs(ground_truth - x) / torch.maximum(ground_truth, x))
 
-    m.update((a, ground_truth))
-    torch_sum = compute_sum(a)
-    assert m.compute() == pytest.approx(torch_sum.item())
-
-    m.update((b, ground_truth))
-    torch_sum += compute_sum(b)
-    assert m.compute() == pytest.approx(torch_sum.item())
-
-    m.update((c, ground_truth))
-    torch_sum += compute_sum(c)
-    assert m.compute() == pytest.approx(torch_sum.item())
-
-    m.update((d, ground_truth))
-    torch_sum += compute_sum(d)
-    assert m.compute() == pytest.approx(torch_sum.item())
+    total = 0.0
+    for x in inputs:
+        m.update((x, ground_truth))
+        total += compute_sum(x).item()
+        assert m.compute() == pytest.approx(total)
 
 
 @pytest.mark.parametrize("n_times", range(5))
@@ -74,7 +61,6 @@ def test_integration_wave_hedges_distance(n_times, y_pred, y, batch_size, availa
     data = list(range(y_pred.shape[0] // batch_size))
     whd = engine.run(data, max_epochs=1).metrics["whd"]
 
-    # Flatten for comparison if needed
     flat_pred = y_pred.view(-1).cpu()
     flat_true = y.view(-1).cpu()
     expected = torch.sum(torch.abs(flat_true - flat_pred) / torch.maximum(flat_true, flat_pred))

@@ -55,39 +55,24 @@ def test_wrong_y_dtype():
 def test_spearman_correlation(available_device):
     torch.manual_seed(0)
 
-    a = torch.randn(4)
-    b = torch.randn(4)
-    c = torch.randn(4)
-    d = torch.randn(4)
+    inputs = [torch.randn(4) for _ in range(4)]
     ground_truth = torch.randn(4)
 
     m = SpearmanRankCorrelation(device=available_device)
     assert m._device == torch.device(available_device)
 
-    m.update((a, ground_truth))
-    expected = spearmanr(a.numpy(), ground_truth.numpy()).statistic
-    assert m.compute() == pytest.approx(expected, rel=1e-4)
+    all_preds = []
+    all_targets = []
 
-    m.update((b, ground_truth))
-    expected = spearmanr(
-        torch.cat([a, b]).numpy(),
-        torch.cat([ground_truth, ground_truth]).numpy(),
-    ).statistic
-    assert m.compute() == pytest.approx(expected, rel=1e-4)
+    for x in inputs:
+        m.update((x, ground_truth))
+        all_preds.append(x)
+        all_targets.append(ground_truth)
 
-    m.update((c, ground_truth))
-    expected = spearmanr(
-        torch.cat([a, b, c]).numpy(),
-        torch.cat([ground_truth] * 3).numpy(),
-    ).statistic
-    assert m.compute() == pytest.approx(expected, rel=1e-4)
-
-    m.update((d, ground_truth))
-    expected = spearmanr(
-        torch.cat([a, b, c, d]).numpy(),
-        torch.cat([ground_truth] * 4).numpy(),
-    ).statistic
-    assert m.compute() == pytest.approx(expected, rel=1e-4)
+        pred_cat = torch.cat(all_preds).numpy()
+        target_cat = torch.cat(all_targets).numpy()
+        expected = spearmanr(pred_cat, target_cat).statistic
+        assert m.compute() == pytest.approx(expected, rel=1e-4)
 
 
 @pytest.fixture(params=list(range(2)))
