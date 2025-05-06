@@ -40,13 +40,10 @@ def test_median_absolute_percentage_error(available_device):
     # NumPy returns average of middle elements
     # Size of dataset will be odd for these tests
 
-    size = 51
+    size = 51  # odd size ensures consistent median behavior
+
     y_pred = torch.rand(size)
     y = torch.rand(size)
-
-    epsilon = 1e-8
-    safe_y = torch.where(y == 0, torch.full_like(y, epsilon), y)
-    expected = torch.median(torch.abs((y - y_pred) / safe_y).cpu()).item() * 100.0
 
     m = MedianAbsolutePercentageError(device=available_device)
     assert m._device == torch.device(available_device)
@@ -54,20 +51,28 @@ def test_median_absolute_percentage_error(available_device):
     m.reset()
     m.update((y_pred, y))
 
-    assert expected == pytest.approx(m.compute())
+    # Compute expected result with torch
+    abs_perc_errors = 100.0 * torch.abs(y - y_pred) / torch.abs(y)
+    sorted_errors, _ = torch.sort(abs_perc_errors)
+    expected = sorted_errors[size // 2].item()  # Median for odd-sized tensor
+
+    assert pytest.approx(expected) == m.compute()
 
 
 def test_median_absolute_percentage_error_2(available_device):
+    torch.manual_seed(1)
     size = 105
     y_pred = torch.rand(size, 1)
     y = torch.rand(size, 1)
 
+    # Shuffle y (like np.random.shuffle)
     indices = torch.randperm(size)
     y = y[indices]
 
-    epsilon = 1e-8
-    safe_y = torch.where(y == 0, torch.full_like(y, epsilon), y)
-    expected = torch.median(torch.abs((y - y_pred) / safe_y).cpu()).item() * 100.0
+    # Compute expected result using torch
+    abs_perc_errors = 100.0 * torch.abs(y - y_pred) / torch.abs(y)
+    sorted_errors, _ = torch.sort(abs_perc_errors.view(-1))
+    expected = sorted_errors[size // 2].item()  # Median for odd-sized set
 
     m = MedianAbsolutePercentageError(device=available_device)
     assert m._device == torch.device(available_device)
@@ -79,20 +84,22 @@ def test_median_absolute_percentage_error_2(available_device):
         idx = i * batch_size
         m.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
 
-    assert expected == pytest.approx(m.compute())
+    assert pytest.approx(expected) == m.compute()
 
 
 def test_integration_median_absolute_percentage_error(available_device):
+    torch.manual_seed(1)
     size = 105
     y_pred = torch.rand(size, 1)
     y = torch.rand(size, 1)
 
+    # Shuffle y (similar to np.random.shuffle)
     indices = torch.randperm(size)
     y = y[indices]
 
-    epsilon = 1e-8
-    safe_y = torch.where(y == 0, torch.full_like(y, epsilon), y)
-    expected = torch.median(torch.abs((y - y_pred) / safe_y).cpu()).item() * 100.0
+    # Compute expected median absolute percentage error using torch
+    abs_perc_errors = 100.0 * torch.abs(y - y_pred) / torch.abs(y)
+    expected = torch.median(abs_perc_errors).item()
 
     batch_size = 15
 
@@ -104,12 +111,13 @@ def test_integration_median_absolute_percentage_error(available_device):
 
     m = MedianAbsolutePercentageError(device=available_device)
     assert m._device == torch.device(available_device)
+
     m.attach(engine, "median_absolute_percentage_error")
 
     data = list(range(size // batch_size))
-    median_absolute_percentage_error = engine.run(data, max_epochs=1).metrics["median_absolute_percentage_error"]
+    result = engine.run(data, max_epochs=1).metrics["median_absolute_percentage_error"]
 
-    assert expected == pytest.approx(median_absolute_percentage_error)
+    assert pytest.approx(expected) == result
 
 
 def _test_distrib_compute(device):
