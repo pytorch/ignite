@@ -52,9 +52,6 @@ def test_mean_error(available_device):
     ],
 )
 def test_integration_mean_error(n_times, y_pred, y, batch_size, available_device):
-    y_pred = y_pred.to(available_device)
-    y = y.to(available_device)
-
     def update_fn(engine, batch):
         idx = (engine.state.iteration - 1) * batch_size
         return y_pred[idx : idx + batch_size], y[idx : idx + batch_size]
