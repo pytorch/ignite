@@ -1,5 +1,6 @@
 import os
 
+import numpy as np
 import pytest
 import torch
 from sklearn.metrics import r2_score
@@ -26,41 +27,31 @@ def test_wrong_input_shapes():
         m.update((torch.rand(4, 1), torch.rand(4)))
 
 
-def test_r2_score(available_device):
-    torch.manual_seed(42)
+def test_r2_score():
     size = 51
+    np_y_pred = np.random.rand(size)
+    np_y = np.random.rand(size)
 
-    y_pred = torch.rand(size, dtype=torch.float32)
-    y = torch.rand(size, dtype=torch.float32)
-
-    if available_device == "mps":
-        y_pred = y_pred.to("mps")
-        y = y.to("mps")
-
-    m = R2Score(device=available_device)
-    assert m._device == torch.device(available_device)
+    m = R2Score()
+    y_pred = torch.from_numpy(np_y_pred)
+    y = torch.from_numpy(np_y)
 
     m.reset()
     m.update((y_pred, y))
 
-    expected = r2_score(y.cpu().numpy(), y_pred.cpu().numpy())
-    assert m.compute() == pytest.approx(expected)
+    assert r2_score(np_y, np_y_pred) == pytest.approx(m.compute())
 
 
-def test_r2_score_2(available_device):
-    torch.manual_seed(1)
+def test_r2_score_2():
+    np.random.seed(1)
     size = 105
-    y_pred = torch.rand(size, 1, dtype=torch.float32)
-    y = torch.rand(size, 1, dtype=torch.float32)
+    np_y_pred = np.random.rand(size, 1)
+    np_y = np.random.rand(size, 1)
+    np.random.shuffle(np_y)
 
-    y = y[torch.randperm(size)]
-
-    if available_device == "mps":
-        y_pred = y_pred.to("mps")
-        y = y.to("mps")
-
-    m = R2Score(device=available_device)
-    assert m._device == torch.device(available_device)
+    m = R2Score()
+    y_pred = torch.from_numpy(np_y_pred)
+    y = torch.from_numpy(np_y)
 
     m.reset()
     batch_size = 16
@@ -69,40 +60,33 @@ def test_r2_score_2(available_device):
         idx = i * batch_size
         m.update((y_pred[idx : idx + batch_size], y[idx : idx + batch_size]))
 
-    expected = r2_score(y.cpu().numpy(), y_pred.cpu().numpy())
-    assert m.compute() == pytest.approx(expected)
+    assert r2_score(np_y, np_y_pred) == pytest.approx(m.compute())
 
 
-def test_integration_r2_score(available_device):
-    torch.manual_seed(1)
+def test_integration_r2_score():
+    np.random.seed(1)
     size = 105
-    y_pred = torch.rand(size, 1, dtype=torch.float32)
-    y = torch.rand(size, 1, dtype=torch.float32)
-
-    # Shuffle targets
-    y = y[torch.randperm(size)]
-
-    if available_device == "mps":
-        y_pred = y_pred.to("mps")
-        y = y.to("mps")
+    np_y_pred = np.random.rand(size, 1)
+    np_y = np.random.rand(size, 1)
+    np.random.shuffle(np_y)
 
     batch_size = 15
 
     def update_fn(engine, batch):
         idx = (engine.state.iteration - 1) * batch_size
-        return y_pred[idx : idx + batch_size], y[idx : idx + batch_size]
+        y_true_batch = np_y[idx : idx + batch_size]
+        y_pred_batch = np_y_pred[idx : idx + batch_size]
+        return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
 
     engine = Engine(update_fn)
 
-    m = R2Score(device=available_device)
-    assert m._device == torch.device(available_device)
+    m = R2Score()
     m.attach(engine, "r2_score")
 
     data = list(range(size // batch_size))
     r_squared = engine.run(data, max_epochs=1).metrics["r2_score"]
 
-    expected = r2_score(y.cpu().numpy(), y_pred.cpu().numpy())
-    assert r_squared == pytest.approx(expected)
+    assert r2_score(np_y, np_y_pred) == pytest.approx(r_squared)
 
 
 def _test_distrib_compute(device, tol=1e-6):
