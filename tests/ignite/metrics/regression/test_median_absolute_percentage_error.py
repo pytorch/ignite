@@ -53,8 +53,7 @@ def test_median_absolute_percentage_error(available_device):
 
     # Compute expected result with torch
     abs_perc_errors = 100.0 * torch.abs(y - y_pred) / torch.abs(y)
-    sorted_errors, _ = torch.sort(abs_perc_errors)
-    expected = sorted_errors[size // 2].item()  # Median for odd-sized tensor
+    expected = torch.median(abs_perc_errors).item()
 
     assert pytest.approx(expected) == m.compute()
 
@@ -71,8 +70,7 @@ def test_median_absolute_percentage_error_2(available_device):
 
     # Compute expected result using torch
     abs_perc_errors = 100.0 * torch.abs(y - y_pred) / torch.abs(y)
-    sorted_errors, _ = torch.sort(abs_perc_errors.view(-1))
-    expected = sorted_errors[size // 2].item()  # Median for odd-sized set
+    expected = torch.median(abs_perc_errors).item()
 
     m = MedianAbsolutePercentageError(device=available_device)
     assert m._device == torch.device(available_device)
