@@ -45,7 +45,7 @@ def test_median_relative_absolute_error(available_device):
     y = torch.rand(size)
 
     baseline = torch.abs(y - y.mean())
-    expected = torch.median((torch.abs(y - y_pred) / baseline).cpu()).item()
+    expected = torch.median((torch.abs(y - y_pred) / baseline)).item()
 
     m = MedianRelativeAbsoluteError(device=available_device)
     assert m._device == torch.device(available_device)
@@ -63,7 +63,7 @@ def test_median_relative_absolute_error_2(available_device):
     y = y[torch.randperm(size)]
 
     baseline = torch.abs(y - y.mean())
-    expected = torch.median((torch.abs(y - y_pred) / baseline).cpu()).item()
+    expected = torch.median((torch.abs(y - y_pred) / baseline)).item()
 
     m = MedianRelativeAbsoluteError(device=available_device)
     assert m._device == torch.device(available_device)
@@ -85,7 +85,7 @@ def test_integration_median_relative_absolute_error_with_output_transform(availa
     y = y[torch.randperm(size)]  # shuffle y
 
     baseline = torch.abs(y - y.mean())
-    expected = torch.median((torch.abs(y - y_pred) / baseline.cpu()).cpu()).item()
+    expected = torch.median((torch.abs(y - y_pred) / baseline)).item()
 
     batch_size = 15
 
