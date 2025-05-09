@@ -84,8 +84,14 @@ jobs:
           uv pip install pre-commit
           uv pip list
 
-      - name: Run pre-commit checks
-        run: pre-commit run --all-files
+      - name: Lint only changed files
+        run: |
+          # fetch the target branch so origin/${{ github.event.pull_request.base.ref }} exists
+          git fetch origin ${{ github.event.pull_request.base.ref }}
+          # run hooks in “diff” mode
+          pre-commit run --show-diff-on-failure \
+                         --from-ref origin/${{ github.event.pull_request.base.ref }} \
+                         --to-ref ${{ github.event.pull_request.head.sha }}
 
       # Download MNIST: https://github.com/pytorch/ignite/issues/1737
       # to "/tmp" for unit tests
