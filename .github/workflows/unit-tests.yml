@@ -86,12 +86,13 @@ jobs:
 
       - name: Lint only changed files
         run: |
-          # fetch the target branch so origin/${{ github.event.pull_request.base.ref }} exists
-          git fetch origin ${{ github.event.pull_request.base.ref }}
-          # run hooks in “diff” mode
+          BASE=${{ github.event.pull_request.base.ref }}
+          # fetch that branch’s tip
+          git fetch origin $BASE
+          # diff from base → HEAD
           pre-commit run --show-diff-on-failure \
-                         --from-ref origin/${{ github.event.pull_request.base.ref }} \
-                         --to-ref ${{ github.event.pull_request.head.sha }}
+                         --from-ref origin/$BASE \
+                         --to-ref HEAD
 
       # Download MNIST: https://github.com/pytorch/ignite/issues/1737
       # to "/tmp" for unit tests
