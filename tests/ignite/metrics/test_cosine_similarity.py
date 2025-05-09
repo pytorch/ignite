@@ -21,22 +21,15 @@ def test_zero_sample():
 
 @pytest.fixture(params=list(range(4)))
 def test_case(request):
+    torch.manual_seed(0)  # For reproducibility
+
+    eps = float(torch.empty(1).uniform_(-8, 0).exp())  # 10 ** uniform(-8, 0)
+
     return [
-        (torch.randn((100, 50)), torch.randn((100, 50)), 10 ** np.random.uniform(-8, 0), 1),
-        (
-            torch.normal(1.0, 2.0, size=(100, 10)),
-            torch.normal(3.0, 4.0, size=(100, 10)),
-            10 ** np.random.uniform(-8, 0),
-            1,
-        ),
-        # updated batches
-        (torch.rand((100, 128)), torch.rand((100, 128)), 10 ** np.random.uniform(-8, 0), 16),
-        (
-            torch.normal(0.0, 5.0, size=(100, 30)),
-            torch.normal(5.0, 1.0, size=(100, 30)),
-            10 ** np.random.uniform(-8, 0),
-            16,
-        ),
+        (torch.randn((100, 50)), torch.randn((100, 50)), eps, 1),
+        (torch.normal(1.0, 2.0, size=(100, 10)), torch.normal(3.0, 4.0, size=(100, 10)), eps, 1),
+        (torch.rand((100, 128)), torch.rand((100, 128)), eps, 16),
+        (torch.normal(0.0, 5.0, size=(100, 30)), torch.normal(5.0, 1.0, size=(100, 30)), eps, 16),
     ][request.param]
 
 
@@ -56,16 +49,16 @@ def test_compute(n_times, test_case: Tuple[Tensor, Tensor, float, int], availabl
     else:
         cos.update((y_pred, y))
 
-    np_y = y.numpy()
-    np_y_pred = y_pred.numpy()
+    y_norm = torch.clamp(torch.norm(y, dim=1, keepdim=True), min=eps)
+    y_pred_norm = torch.clamp(torch.norm(y_pred, dim=1, keepdim=True), min=eps)
 
-    np_y_norm = np.clip(np.linalg.norm(np_y, axis=1, keepdims=True), eps, None)
-    np_y_pred_norm = np.clip(np.linalg.norm(np_y_pred, axis=1, keepdims=True), eps, None)
-    np_res = np.sum((np_y / np_y_norm) * (np_y_pred / np_y_pred_norm), axis=1)
-    np_res = np.mean(np_res)
+    cosine_sim = torch.sum((y / y_norm) * (y_pred / y_pred_norm), dim=1)
+    expected = cosine_sim.mean().item()
 
-    assert isinstance(cos.compute(), float)
-    assert pytest.approx(np_res, rel=2e-5) == cos.compute()
+    result = cos.compute()
+
+    assert isinstance(result, float)
+    assert pytest.approx(expected, rel=2e-5) == result
 
 
 def test_accumulator_detached(available_device):

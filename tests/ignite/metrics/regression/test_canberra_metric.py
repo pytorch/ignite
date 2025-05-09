@@ -20,83 +20,73 @@ def test_wrong_input_shapes():
         m.update((torch.rand(4, 1), torch.rand(4)))
 
 
-def test_compute():
-    a = np.random.randn(4)
-    b = np.random.randn(4)
-    c = np.random.randn(4)
-    d = np.random.randn(4)
-    ground_truth = np.random.randn(4)
+def test_compute(available_device):
+    ground_truth = torch.randn(4)
+    preds = [torch.randn(4) for _ in range(4)]
 
-    m = CanberraMetric()
+    m = CanberraMetric(device=available_device)
+    assert m._device == torch.device(available_device)
 
     canberra = DistanceMetric.get_metric("canberra")
 
-    m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
-    np_sum = (np.abs(ground_truth - a) / (np.abs(a) + np.abs(ground_truth))).sum()
-    assert m.compute() == pytest.approx(np_sum)
-    assert canberra.pairwise([a, ground_truth])[0][1] == pytest.approx(np_sum)
+    total_sum = 0.0
+    v1 = []
+    v2 = []
 
-    m.update((torch.from_numpy(b), torch.from_numpy(ground_truth)))
-    np_sum += ((np.abs(ground_truth - b)) / (np.abs(b) + np.abs(ground_truth))).sum()
-    assert m.compute() == pytest.approx(np_sum)
-    v1 = np.hstack([a, b])
-    v2 = np.hstack([ground_truth, ground_truth])
-    assert canberra.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
+    for pred in preds:
+        m.update((pred, ground_truth))
+        diff = torch.abs(ground_truth - pred)
+        denom = torch.abs(pred) + torch.abs(ground_truth)
+        batch_sum = (diff / denom).sum()
+        total_sum += batch_sum
 
-    m.update((torch.from_numpy(c), torch.from_numpy(ground_truth)))
-    np_sum += ((np.abs(ground_truth - c)) / (np.abs(c) + np.abs(ground_truth))).sum()
-    assert m.compute() == pytest.approx(np_sum)
-    v1 = np.hstack([v1, c])
-    v2 = np.hstack([v2, ground_truth])
-    assert canberra.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
+        assert m.compute() == pytest.approx(total_sum)
 
-    m.update((torch.from_numpy(d), torch.from_numpy(ground_truth)))
-    np_sum += (np.abs(ground_truth - d) / (np.abs(d) + np.abs(ground_truth))).sum()
-    assert m.compute() == pytest.approx(np_sum)
-    v1 = np.hstack([v1, d])
-    v2 = np.hstack([v2, ground_truth])
-    assert canberra.pairwise([v1, v2])[0][1] == pytest.approx(np_sum)
+        v1.append(pred.cpu().numpy())
+        v2.append(ground_truth.cpu().numpy())
+        v1_cat = np.hstack(v1)
+        v2_cat = np.hstack(v2)
+        assert canberra.pairwise([v1_cat, v2_cat])[0][1] == pytest.approx(total_sum)
 
 
-def test_integration():
-    def _test(y_pred, y, batch_size):
-        def update_fn(engine, batch):
-            idx = (engine.state.iteration - 1) * batch_size
-            y_true_batch = np_y[idx : idx + batch_size]
-            y_pred_batch = np_y_pred[idx : idx + batch_size]
-            return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+@pytest.mark.parametrize("n_times", range(3))
+@pytest.mark.parametrize(
+    "test_cases",
+    [
+        (torch.rand(size=(100,)), torch.rand(size=(100,)), 10),
+        (torch.rand(size=(100, 1)), torch.rand(size=(100, 1)), 20),
+    ],
+)
+def test_integration(n_times, test_cases, available_device):
+    y_pred, y, batch_size = test_cases
 
-        engine = Engine(update_fn)
+    def update_fn(engine, batch):
+        idx = (engine.state.iteration - 1) * batch_size
+        y_true_batch = y[idx : idx + batch_size]
+        y_pred_batch = y_pred[idx : idx + batch_size]
+        return y_pred_batch, y_true_batch
 
-        m = CanberraMetric()
-        m.attach(engine, "cm")
+    engine = Engine(update_fn)
 
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().ravel()
+    m = CanberraMetric(device=available_device)
+    assert m._device == torch.device(available_device)
 
-        canberra = DistanceMetric.get_metric("canberra")
+    m.attach(engine, "cm")
 
-        data = list(range(y_pred.shape[0] // batch_size))
-        cm = engine.run(data, max_epochs=1).metrics["cm"]
+    canberra = DistanceMetric.get_metric("canberra")
 
-        assert canberra.pairwise([np_y_pred, np_y])[0][1] == pytest.approx(cm)
+    data = list(range(y_pred.shape[0] // batch_size))
+    cm = engine.run(data, max_epochs=1).metrics["cm"]
 
-    def get_test_cases():
-        test_cases = [
-            (torch.rand(size=(100,)), torch.rand(size=(100,)), 10),
-            (torch.rand(size=(100, 1)), torch.rand(size=(100, 1)), 20),
-        ]
-        return test_cases
-
-    for _ in range(5):
-        # check multiple random inputs as random exact occurencies are rare
-        test_cases = get_test_cases()
-        for y_pred, y, batch_size in test_cases:
-            _test(y_pred, y, batch_size)
+    pred_np = y_pred.cpu().numpy().reshape(len(y_pred), -1)
+    true_np = y.cpu().numpy().reshape(len(y), -1)
+    expected = np.sum(canberra.pairwise(pred_np, true_np).diagonal())
+    assert expected == pytest.approx(cm)
 
 
-def test_error_is_not_nan():
-    m = CanberraMetric()
+def test_error_is_not_nan(available_device):
+    m = CanberraMetric(device=available_device)
+    assert m._device == torch.device(available_device)
     m.update((torch.zeros(4), torch.zeros(4)))
     assert not (torch.isnan(m._sum_of_errors).any() or torch.isinf(m._sum_of_errors).any()), m._sum_of_errors
 
