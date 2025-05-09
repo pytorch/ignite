@@ -81,16 +81,12 @@ jobs:
         run: |
           uv pip install -r requirements-dev.txt
           uv pip install -e .
+          uv pip install pre-commit
           uv pip list
 
-      - name: Check code formatting
-        run: |
-          uv pip install --upgrade flake8 "black==24.10.0" "usort==1.0.8.post1" "ufmt==2.7.3" "mypy"
-          bash ./tests/run_code_style.sh lint
-      - name: Run Mypy
-        if: ${{ matrix.os == 'ubuntu-latest' && matrix.pytorch-channel == 'pytorch-nightly'}}
-        run: |
-          bash ./tests/run_code_style.sh mypy
+      - name: Run pre-commit checks
+        run: pre-commit run --all-files
+
       # Download MNIST: https://github.com/pytorch/ignite/issues/1737
       # to "/tmp" for unit tests
       - name: Download MNIST
