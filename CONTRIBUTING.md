@@ -104,7 +104,6 @@ upstream        https://github.com/pytorch/ignite (push)
 git pull upstream master
 pip install -e .
 pip install -r requirements-dev.txt
-bash ./tests/run_code_style.sh install
 ```
 
 ### Code development
@@ -149,15 +148,11 @@ black manually to format files and commit them.
 
 To install `flake8`, `ufmt` and `mypy`, please run
 
-```bash
-bash ./tests/run_code_style.sh install
-```
-
 To format files and commit changes:
 
 ```bash
 # This should autoformat the files
-bash ./tests/run_code_style.sh fmt
+bash pre-committ -a
 # If everything is OK, then commit
 git add .
 git commit -m "Added awesome feature"
@@ -226,7 +221,7 @@ CUDA_VISIBLE_DEVICES="" pytest --dist=each --tx $WORLD_SIZE*popen//python=python
 To run mypy to check the optional static type:
 
 ```bash
-bash ./tests/run_code_style.sh mypy
+mypy
 ```
 
 To change any config for specif folder, please see the file mypy.ini

@@ -8,7 +8,6 @@ on:
       - "ignite/**"
       - "tests/ignite/**"
       - "tests/run_tpu_tests.sh"
-      - "tests/run_code_style.sh"
       - "requirements-dev.txt"
       - ".github/workflows/tpu-tests.yml"
   pull_request:
@@ -16,7 +15,6 @@ on:
       - "ignite/**"
       - "tests/ignite/**"
       - "tests/run_tpu_tests.sh"
-      - "tests/run_code_style.sh"
       - "requirements-dev.txt"
       - ".github/workflows/tpu-tests.yml"
   workflow_dispatch:

@@ -7,7 +7,6 @@ on:
       - "setup.cfg"
       - "requirements-dev.txt"
       - "pyproject.toml"
-      - "tests/run_code_style.sh"
       - ".github/workflows/code-style.yml"
       - "!assets/**"
       - "!docker/**"
@@ -25,8 +24,8 @@ jobs:
         with:
           python-version: "3.11"
       - run: |
-          bash ./tests/run_code_style.sh install
-          bash ./tests/run_code_style.sh fmt
+          pip install -r requirements-check.txt
+          pre-commit run -a
 
       - name: Commit and push changes
         uses: stefanzweifel/git-auto-commit-action@v6
