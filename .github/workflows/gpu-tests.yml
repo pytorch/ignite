@@ -5,7 +5,6 @@ on:
       - "ignite/**"
       - "tests/ignite/**"
       - "tests/run_gpu_tests.sh"
-      - "tests/run_code_style.sh"
       - "examples/**.py"
       - "requirements-dev.txt"
       - ".github/workflows/gpu-tests.yml"

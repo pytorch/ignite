@@ -1,7 +1,7 @@
-exclude: "^conda.recipe"
+exclude: "^conda.recipe|assets"
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.4.0
+    rev: v3.4.0 # latest is 5.0.0
     hooks:
       - id: check-toml
       - id: check-yaml
@@ -14,16 +14,17 @@ repos:
       - id: prettier
         exclude_types: ["python", "jupyter", "shell", "gitignore"]
 
-  - repo: https://github.com/omnilib/ufmt
-    rev: v2.7.3
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.11.13
     hooks:
-      - id: ufmt
-        additional_dependencies:
-          - black == 24.10.0
-          - usort == 1.0.8.post1
+      # Run the linter
+      - id: ruff-check
+        types_or: [python, pyi]
+      # Run the formatter
+      # - id: ruff-format
+      #   types_or: [python, pyi]
 
-  - repo: https://github.com/pycqa/flake8
-    rev: 7.1.1
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
     hooks:
-      - id: flake8
-        args: ["--config", "setup.cfg"]
+      - id: black
