@@ -152,7 +152,7 @@ To format files and commit changes:
 
 ```bash
 # This should autoformat the files
-bash pre-committ -a
+pre-commit -a
 # If everything is OK, then commit
 git add .
 git commit -m "Added awesome feature"
