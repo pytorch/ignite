@@ -80,7 +80,7 @@ conda activate pytorch-ignite-dev
 
 ### Installation
 
-1) Make a fork of the repository on the GitHub (see [here](https://github.com/firstcontributions/first-contributions#fork-this-repository) for details). 
+1) Make a fork of the repository on the GitHub (see [here](https://github.com/firstcontributions/first-contributions#fork-this-repository) for details).
 As a result, for example your username is `happy-ignite-developer`, then you should be able to see your fork on the GitHub, e.g https://github.com/happy-ignite-developer/ignite.git
 
 2) Clone your fork locally and setup `upstream`. Assuming your username is `happy-ignite-developer`:
