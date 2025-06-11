@@ -1,7 +1,7 @@
 exclude: "^conda.recipe|assets"
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.4.0 # latest is 5.0.0
+    rev: v5.0.0
     hooks:
       - id: check-toml
       - id: check-yaml
