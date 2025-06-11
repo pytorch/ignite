@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       pull_request_number:
-        description: 'Pull request number'
+        description: "Pull request number"
         required: true
 
 permissions:

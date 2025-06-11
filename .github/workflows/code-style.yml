@@ -13,7 +13,6 @@ on:
       - "!docs/**"
       - "!conda.recipe"
 
-
 jobs:
   code-style:
     runs-on: ubuntu-latest
