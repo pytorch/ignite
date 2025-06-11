@@ -508,6 +508,7 @@ def create_coco_api(
             dataset["annotations"].append(ann)
             ann_id += 1
     dataset["categories"] = [{"id": i} for i in range(0, 91)]
+    dataset["info"] = {}
     coco_gt.dataset = dataset
     coco_gt.createIndex()
 
