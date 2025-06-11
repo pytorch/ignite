@@ -2,7 +2,7 @@
 
 <!-- ![Ignite Logo](assets/logo/ignite_logo_mixed.svg) -->
 
-<img src="assets/logo/ignite_logo_mixed.svg" width=512>
+<img src="https://raw.githubusercontent.com/pytorch/ignite/master/assets/logo/ignite_logo_mixed.svg" width=512>
 
 <!-- [![image](https://travis-ci.com/pytorch/ignite.svg?branch=master)](https://travis-ci.com/pytorch/ignite) -->
 
@@ -23,7 +23,7 @@ Ignite is a high-level library to help with training and evaluating neural netwo
 
 <a href="https://colab.research.google.com/github/pytorch/ignite/blob/master/assets/tldr/teaser.ipynb">
  <img alt="PyTorch-Ignite teaser"
-      src="assets/tldr/pytorch-ignite-teaser.gif"
+      src="https://raw.githubusercontent.com/pytorch/ignite/master/assets/tldr/pytorch-ignite-teaser.gif"
       width=532>
 </a>
 
