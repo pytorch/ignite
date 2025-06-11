@@ -32,6 +32,12 @@ concurrency:
 jobs:
   cpu-tests:
     runs-on: ${{ matrix.os }}
+    env:
+      UV_SYSTEM_PIP: 1
+      CLEARML_OFFLINE_MODE: 1
+      CLEARML_API_HOST: http://localhost
+      CLEARML_WEB_HOST: http://localhost
+      CLEARML_FILES_HOST: http://localhost
     timeout-minutes: 85
     defaults:
       run:
@@ -57,56 +63,36 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{ matrix.python-version }}
-
-      - name: Get year & week number
-        id: get-date
-        run: |
-          echo "date=$(/bin/date "+%Y-%U")" >> $GITHUB_OUTPUT
-
-      - name: Get pip cache dir
-        id: pip-cache
-        run: |
-          pip install -U pip || python -m pip install -U pip
-          echo "pip_cache=$(pip cache dir)" >> $GITHUB_OUTPUT
-
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ${{ steps.pip-cache.outputs.pip_cache }}
-          key: ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-${{ hashFiles('requirements-dev.txt') }}
-          restore-keys: |
-            ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-
-
-      - run: pip install pip wheel setuptools -Uqq
+          cache: true
 
       - name: Install PyTorch
         if: ${{ matrix.pytorch-channel == 'pytorch' }}
-        run: pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+        run: uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
       - name: Install PyTorch (nightly)
         if: ${{ matrix.pytorch-channel == 'pytorch-nightly' }}
-        run: pip install torch torchvision --index-url https://download.pytorch.org/whl/nightly/cpu --pre
+        run: uv pip install torch torchvision --index-url https://download.pytorch.org/whl/nightly/cpu --pre
 
       - name: Install dependencies
         run: |
-          pip install -r requirements-dev.txt
-          pip install .
-          pip list
+          uv pip install -r requirements-dev.txt
+          uv pip install -e .
+          uv pip install pre-commit
+          uv pip list
 
-      - name: Check code formatting
+      - name: Lint only changed files
         run: |
-          bash ./tests/run_code_style.sh install
-          bash ./tests/run_code_style.sh lint
-
-      - name: Run Mypy
-        # https://github.com/pytorch/ignite/pull/2780
-        #
-        if: ${{ matrix.os == 'ubuntu-latest' && matrix.pytorch-channel == 'pytorch-nightly'}}
-        run: |
-          bash ./tests/run_code_style.sh mypy
+          BASE=${{ github.event.pull_request.base.ref }}
+          # fetch that branch’s tip
+          git fetch origin $BASE
+          # diff from base → HEAD
+          pre-commit run --show-diff-on-failure \
+                         --from-ref origin/$BASE \
+                         --to-ref HEAD
 
       # Download MNIST: https://github.com/pytorch/ignite/issues/1737
       # to "/tmp" for unit tests
