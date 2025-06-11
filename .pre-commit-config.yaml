@@ -1,4 +1,4 @@
-exclude: "^conda.recipe|assets"
+exclude: "^conda.recipe|assets|docs"
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
@@ -20,6 +20,7 @@ repos:
       # Run the linter
       - id: ruff-check
         types_or: [python, pyi]
+      # TODO: Enable when black and ruff format converge
       # Run the formatter
       # - id: ruff-format
       #   types_or: [python, pyi]

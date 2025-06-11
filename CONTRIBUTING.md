@@ -80,10 +80,10 @@ conda activate pytorch-ignite-dev
 
 ### Installation
 
-1) Make a fork of the repository on the GitHub (see [here](https://github.com/firstcontributions/first-contributions#fork-this-repository) for details).
-As a result, for example your username is `happy-ignite-developer`, then you should be able to see your fork on the GitHub, e.g https://github.com/happy-ignite-developer/ignite.git
+1. Make a fork of the repository on the GitHub (see [here](https://github.com/firstcontributions/first-contributions#fork-this-repository) for details).
+   As a result, for example your username is `happy-ignite-developer`, then you should be able to see your fork on the GitHub, e.g https://github.com/happy-ignite-developer/ignite.git
 
-2) Clone your fork locally and setup `upstream`. Assuming your username is `happy-ignite-developer`:
+2. Clone your fork locally and setup `upstream`. Assuming your username is `happy-ignite-developer`:
 
 ```bash
 git clone https://github.com/happy-ignite-developer/ignite.git
@@ -91,14 +91,17 @@ cd ignite
 git remote add upstream https://github.com/pytorch/ignite.git
 git remote -v
 ```
+
 You might see the following output:
+
 ```
 origin  https://github.com/happy-ignite-developer/ignite.git (fetch)
 origin  https://github.com/happy-ignite-developer/ignite.git (push)
 upstream        https://github.com/pytorch/ignite (fetch)
 upstream        https://github.com/pytorch/ignite (push)
 ```
-3) Sync and install all necessary dependencies:
+
+3. Sync and install all necessary dependencies:
 
 ```bash
 git pull upstream master
@@ -287,9 +290,7 @@ for formatting docstrings, specially from an example of `Google style with Pytho
 - [`.. versionchanged::`] directive for adding new arguments, changing internal behaviours, fixing bugs and
 - [`.. deprecated::`] directive for deprecations.
 
-Examples: ``versionadded`` usage [link](https://github.com/pytorch/ignite/blob/52c69251dd9d97c32da1df0477ec3854e5702029/ignite/handlers/state_param_scheduler.py#L24), ``versionchanged`` usage [link](https://github.com/pytorch/ignite/blob/d2020e4e253ac1455a757c2db895c68ccfd2b958/ignite/metrics/metric.py#L281-L282)
-
-
+Examples: `versionadded` usage [link](https://github.com/pytorch/ignite/blob/52c69251dd9d97c32da1df0477ec3854e5702029/ignite/handlers/state_param_scheduler.py#L24), `versionchanged` usage [link](https://github.com/pytorch/ignite/blob/d2020e4e253ac1455a757c2db895c68ccfd2b958/ignite/metrics/metric.py#L281-L282)
 
 Length of line inside docstrings block must be limited to 120 characters.
 
