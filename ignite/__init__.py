@@ -9,4 +9,4 @@ import ignite.metrics
 import ignite.utils
 
 
-__version__ = version('pytorch-ignite')
+__version__ = version("pytorch-ignite")
