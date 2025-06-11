@@ -86,7 +86,7 @@ class CalinskiHarabaszScore(_ClusteringMetricBase):
 
         .. testoutput::
 
-            5.733936
+            5.733935832977295
 
     .. versionadded:: 0.5.2
     """
