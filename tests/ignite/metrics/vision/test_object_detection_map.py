@@ -872,7 +872,7 @@ def test__compute_recall_and_precision(available_device):
 def test_compute(sample):
     device = idist.device()
 
-    if device == torch.device("mps"):
+    if device.type == "mps":
         pytest.skip("Due to MPS backend out of memory")
 
     # AP@.5...95, AP@.5, AP@.75, AP-S, AP-M, AP-L, AR-1, AR-10, AR-100, AR-S, AR-M, AR-L
@@ -932,7 +932,7 @@ def test_integration(sample):
     bs = 3
 
     device = idist.device()
-    if device == torch.device("mps"):
+    if device.type == "mps":
         pytest.skip("Due to MPS backend out of memory")
 
     def update(engine, i):
@@ -1003,7 +1003,7 @@ def test_distrib_update_compute(distributed, sample):
 
     device = idist.device()
 
-    if device == torch.device("mps"):
+    if device.type == "mps":
         pytest.skip("Due to MPS backend out of memory")
 
     metric_device = "cpu" if device.type == "xla" else device
