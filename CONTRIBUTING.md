@@ -102,7 +102,7 @@ upstream        https://github.com/pytorch/ignite (push)
 
 ```bash
 git pull upstream master
-pip install .
+pip install -e .
 pip install -r requirements-dev.txt
 bash ./tests/run_code_style.sh install
 ```
