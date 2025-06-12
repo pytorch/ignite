@@ -1,6 +1,8 @@
 name: Nightly Releases
 
 on:
+  # Allows manual triggering of the workflow
+  workflow_dispatch:
   # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions#onschedule
   schedule:
     # Run at 00:00 UTC Every Day
