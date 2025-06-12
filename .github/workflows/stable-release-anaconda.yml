@@ -20,7 +20,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda install -y pytorch torchvision cpuonly -c pytorch
-          python setup.py install
+          pip install .
 
       - name: Build and Publish Conda binaries
         shell: bash -l {0}
