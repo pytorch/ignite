@@ -46,14 +46,14 @@ jobs:
           echo "pip_cache=$(python3 -m pip cache dir)" >> $GITHUB_OUTPUT
         shell: bash -l {0}
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: |
             ~/conda_pkgs_dir
             ${{ steps.pip-cache.outputs.pip_cache }}
           key: ${{ steps.get-date.outputs.date }}-horovod-${{ hashFiles('requirements-dev.txt') }}
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -88,7 +88,7 @@ jobs:
           target_dir: /tmp
 
       - name: Run Tests
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v3.0.2
         with:
           max_attempts: 3
           timeout_minutes: 40
@@ -97,7 +97,7 @@ jobs:
           new_command_on_retry: USE_LAST_FAILED=1 USE_XDIST=0 bash tests/run_cpu_tests.sh
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           file: ./coverage.xml
           flags: hvd-cpu

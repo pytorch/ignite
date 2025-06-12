@@ -57,7 +57,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -72,7 +72,7 @@ jobs:
           pip install -U pip || python -m pip install -U pip
           echo "pip_cache=$(pip cache dir)" >> $GITHUB_OUTPUT
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: |
             ${{ steps.pip-cache.outputs.pip_cache }}
@@ -121,7 +121,7 @@ jobs:
           cp -R /tmp/MNIST .
 
       - name: Run Tests
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v3.0.2
         with:
           max_attempts: 5
           timeout_minutes: 15
@@ -130,7 +130,7 @@ jobs:
           new_command_on_retry: USE_LAST_FAILED=1 SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} bash tests/run_cpu_tests.sh
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           file: ./coverage.xml
           flags: cpu
