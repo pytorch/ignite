@@ -44,7 +44,7 @@ loaders to existing configuration:
     backend = "nccl"  # torch native distributed configuration on multiple GPUs
     # backend = "xla-tpu"  # XLA TPUs distributed configuration
     # backend = None  # no distributed configuration
-    # 
+    #
     # dist_configs = {'nproc_per_node': 4}  # Use specified distributed configuration if launch as python main.py
     # dist_configs["start_method"] = "fork"  # Add start_method as "fork" if using Jupyter Notebook
     with idist.Parallel(backend=backend, **dist_configs) as parallel:
