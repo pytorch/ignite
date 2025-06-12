@@ -15,9 +15,10 @@ build:
 # https://conda.io/docs/user-guide/tasks/build-packages/define-metadata.html#export-runtime-requirements
 requirements:
   build:
+    - pip
     - python>=3.9
-    - setuptools
     - pytorch>=1.10
+    - setuptools
 
   run:
     - python>=3.9
