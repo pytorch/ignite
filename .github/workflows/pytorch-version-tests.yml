@@ -50,7 +50,7 @@ jobs:
           echo "pip_cache=$(python3 -m pip cache dir)" >> $GITHUB_OUTPUT
         shell: bash -l {0}
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: |
             ~/conda_pkgs_dir
@@ -60,7 +60,7 @@ jobs:
             ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v2
+        uses: conda-incubator/setup-miniconda@v3
         with:
           miniconda-version: "latest"
           python-version: ${{ matrix.python-version }}
@@ -94,7 +94,7 @@ jobs:
           target_dir: /tmp
 
       - name: Run Tests
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v3.0.2
         with:
           max_attempts: 5
           timeout_minutes: 15
