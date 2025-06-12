@@ -28,7 +28,7 @@ jobs:
           # workaround to fix https://github.com/pytorch/ignite/issues/2373
           pip uninstall -y twine pkginfo
           pip install --upgrade --no-cache-dir twine 'pkginfo>=1.8.2'
-          python setup.py sdist bdist_wheel
+          hatch build
           twine --version
           twine check dist/*
           TWINE_USERNAME="${{ secrets.PYPI_USER }}" TWINE_PASSWORD="${{ secrets.PYPI_TOKEN }}" twine upload --verbose dist/*

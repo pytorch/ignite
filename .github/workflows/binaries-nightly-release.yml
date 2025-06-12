@@ -1,8 +1,6 @@
 name: Nightly Releases
 
 on:
-  # Allows manual triggering of the workflow
-  workflow_dispatch:
   # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions#onschedule
   schedule:
     # Run at 00:00 UTC Every Day
@@ -46,7 +44,7 @@ jobs:
           # workaround to fix https://github.com/pytorch/ignite/issues/2373
           pip uninstall -y twine pkginfo
           pip install --upgrade --no-cache-dir twine 'pkginfo>=1.8.2'
-          python setup.py sdist bdist_wheel
+          hatch build
           twine --version
           twine check dist/*
           TWINE_USERNAME="${{ secrets.PYPI_USER }}" TWINE_PASSWORD="${{ secrets.PYPI_TOKEN }}" twine upload --verbose dist/*

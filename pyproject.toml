@@ -28,7 +28,11 @@ Repository = "https://github.com/pytorch/ignite"
 path = "ignite/__init__.py"
 
 [tool.hatch.build.targets.wheel]
+packages = ["ignite"]
 only-include = ["ignite"]
+artifacts = [
+  "*.typed",
+]
 
 [tool.black]
 line-length = 120
