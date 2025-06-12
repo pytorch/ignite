@@ -2,4 +2,3 @@
 # git config blame.ignoreRevsFile .git-blame-ignore-revs
 
 # Run pre-commit to fix end-of-file-fixer and trailing-whitespace
-01be914697c14733a5dac539e47325a4749ef07c
