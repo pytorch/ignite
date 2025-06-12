@@ -1,10 +1,14 @@
 [build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling>=1.24.2"]
+build-backend = "hatchling.build"
+
+# [build-system]
+# requires = ["setuptools"]
+# build-backend = "setuptools.build_meta"
 
 [project]
 name = "pytorch-ignite"
-version = "0.6.0"
+# version = "0.6.0"
 authors = [
     {name = "PyTorch-Ignite Team", email = "contact@pytorch-ignite.ai"},
 ]
@@ -19,13 +23,20 @@ dependencies = [
     "torch>=1.3,<3",
     "packaging"
 ]
+dynamic = ["version"]
 
 [project.urls]
 Homepage = "https://pytorch-ignite.ai"
 Repository = "https://github.com/pytorch/ignite"
 
-[tool.setuptools]
-packages = ["ignite"]
+[tool.hatch.version]
+path = "ignite/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+only-include = ["ignite"]
+
+# [tool.setuptools]
+# packages = ["ignite"]
 
 [tool.black]
 line-length = 120

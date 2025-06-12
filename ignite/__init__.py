@@ -1,5 +1,3 @@
-from importlib.metadata import version
-
 import ignite.contrib
 import ignite.distributed
 import ignite.engine
@@ -9,4 +7,4 @@ import ignite.metrics
 import ignite.utils
 
 
-__version__ = version("pytorch-ignite")
+__version__ = "0.6.0"
