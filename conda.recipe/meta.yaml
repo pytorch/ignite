@@ -10,7 +10,7 @@ source:
 build:
   number: 0
   noarch: python
-  script: python setup.py install --single-version-externally-managed --record=record.txt
+  script: pip install . --single-version-externally-managed --record=record.txt
 
 # https://conda.io/docs/user-guide/tasks/build-packages/define-metadata.html#export-runtime-requirements
 requirements:

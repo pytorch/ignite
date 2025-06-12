@@ -78,7 +78,7 @@ jobs:
           fi
 
           pip install -r requirements-dev.txt
-          python setup.py install
+          pip install .
 
           # pytorch>=1.9.0,<1.11.0 is using "from setuptools import distutils; distutils.version.LooseVersion" anti-pattern
           # which raises the error: AttributeError: module 'distutils' has no attribute 'version' for setuptools>59
