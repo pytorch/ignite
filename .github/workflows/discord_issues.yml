@@ -26,5 +26,5 @@ jobs:
           issue_number: ${{ github.event.inputs.issue_number || github.event.issue.number }}
           issue_comment: Hey 👋, I've just created a [thread]($THREAD_LINK$) for this issue on [PyTorch-Ignite Discord](https://pytorch-ignite.ai/chat) where you can quickly talk to the community on the topic.
           discord_message: New issue created in `${{ github.repository }}`:<https://github.com/${{ github.repository }}/issues/${{ github.event.issue.number }}>
-          
-      
+
+

@@ -44,8 +44,6 @@ This example trains a super-resolution network on the [Caltech101 dataset](https
 ![Cifar input image](./images/input_cifar.png)
 
 #### Output Images
-| Output image from Model | Output from bicubic sampling | 
+| Output image from Model | Output from bicubic sampling |
 |-------------------------------|------------------------------------|
 | ![Cifar output image](./images/out_cifar.png) | ![Cifar output from bicubic sampling](./images/bicubic_image_cifar.png)|
-
-

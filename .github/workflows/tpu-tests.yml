@@ -72,7 +72,7 @@ jobs:
           ## Install torch & xla and torchvision
           pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cpu
           pip install https://storage.googleapis.com/pytorch-xla-releases/wheels/tpuvm/torch_xla-nightly-cp310-cp310-linux_x86_64.whl
-          
+
           # Check installation
           python -c "import torch"
 
