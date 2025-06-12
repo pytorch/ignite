@@ -104,7 +104,7 @@ jobs:
       - name: Run Mypy
         # https://github.com/pytorch/ignite/pull/2780
         #
-        if: ${{ matrix.os == 'ubuntu-latest' && matrix.pytorch-channel == 'pytorch-nightly'}}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
           bash ./tests/run_code_style.sh mypy
 

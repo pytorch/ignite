@@ -200,7 +200,7 @@ class ProgressBar(BaseLogger):
             Accepted output value types are numbers, 0d and 1d torch tensors and strings.
 
         """
-        desc = self.tqdm_kwargs.get("desc", None)
+        desc = self.tqdm_kwargs.get("desc", "")
 
         if event_name not in engine._allowed_events:
             raise ValueError(f"Logging event {event_name.name} is not in allowed events for this engine")
