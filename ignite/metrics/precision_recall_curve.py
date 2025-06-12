@@ -97,7 +97,7 @@ class PrecisionRecallCurve(EpochMetric):
         if len(self._predictions) < 1 or len(self._targets) < 1:
             raise NotComputableError("PrecisionRecallCurve must have at least one example before it can be computed.")
 
-        if self._result is None:  # type: ignore
+        if self._result is None:
             _prediction_tensor = torch.cat(self._predictions, dim=0)
             _target_tensor = torch.cat(self._targets, dim=0)
 
@@ -126,4 +126,4 @@ class PrecisionRecallCurve(EpochMetric):
 
             self._result = (precision, recall, thresholds)  # type: ignore[assignment]
 
-        return cast(Tuple[torch.Tensor, torch.Tensor, torch.Tensor], self._result)  # type: ignore
+        return cast(Tuple[torch.Tensor, torch.Tensor, torch.Tensor], self._result)
