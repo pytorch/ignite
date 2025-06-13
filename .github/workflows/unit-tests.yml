@@ -65,6 +65,11 @@ jobs:
           activate-environment: true
           enable-cache: true
 
+      - name: Check lock
+        id: check-lock
+        run: |
+          uv lock --check
+
       - name: Get year & week number
         id: get-date
         run: |
