@@ -12,9 +12,9 @@ Features:
 | --------- | ----------------------- | ----------------------- | ------------------- | ------------------- |
 | ResNet-50 | 78%                     | 92%                     | 77%                 | 94%                 |
 
-Experiment | Model | Training Top-1 Accuracy | Training Top-5 Accuracy | Test Top-1 Accuracy | Test Top-5 Accuracy | ClearML Link
----|---|---|---|---|---|---
-configs/???.py |
+| Experiment     | Model | Training Top-1 Accuracy | Training Top-5 Accuracy | Test Top-1 Accuracy | Test Top-5 Accuracy | ClearML Link |
+| -------------- | ----- | ----------------------- | ----------------------- | ------------------- | ------------------- | ------------ |
+| configs/???.py |
 
 ## Setup
 
@@ -25,6 +25,7 @@ pip install -r requirements.txt
 ### Docker
 
 For docker users, you can use the following images to run the example:
+
 ```bash
 docker pull pytorchignite/vision:latest
 ```
@@ -47,9 +48,11 @@ export DATASET_PATH=/path/to/imagenet
 - Adjust batch size for your GPU type in the configuration file: `configs/baseline_resnet50.py` or `configs/baseline_resnet50.py`
 
 Run the following command:
+
 ```bash
 CUDA_VISIBLE_DEVICES=0 python -u main.py training configs/baseline_resnet50.py
 ```
+
 #### Multiple GPUs
 
 - Adjust total batch size for your GPUs in the configuration file: `configs/baseline_resnet50.py` or `configs/baseline_resnet50.py`
@@ -57,7 +60,6 @@ CUDA_VISIBLE_DEVICES=0 python -u main.py training configs/baseline_resnet50.py
 ```bash
 OMP_NUM_THREADS=1 torchrun --nproc_per_node=2 main.py training configs/baseline_resnet50.py
 ```
-
 
 ## Acknowledgements
 

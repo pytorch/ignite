@@ -17,7 +17,6 @@ python mnist.py
 
 Same example with logging using TQDM progress bar
 
-
 ```bash
 python mnist_with_tqdm_logger.py
 ```
@@ -29,7 +28,6 @@ MNIST example with training and validation monitoring using Tensorboard
 #### Additional requirements:
 
 - Tensorboard: `pip install tensorboard`
-
 
 Run the example:
 
