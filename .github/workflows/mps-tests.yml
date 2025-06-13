@@ -7,7 +7,6 @@ on:
     paths:
       - "ignite/**"
       - "tests/ignite/**"
-      - "tests/run_code_style.sh"
       - "examples/**.py"
       - "requirements-dev.txt"
       - ".github/workflows/mps-tests.yml"
@@ -15,7 +14,6 @@ on:
     paths:
       - "ignite/**"
       - "tests/ignite/**"
-      - "tests/run_code_style.sh"
       - "examples/**.py"
       - "requirements-dev.txt"
       - ".github/workflows/mps-tests.yml"
