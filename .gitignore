@@ -44,3 +44,4 @@ coverage.xml
 # Virtualenv
 .venv/
 .python-version
+conda_build/

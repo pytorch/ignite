@@ -1,8 +1,8 @@
-{% set data = load_setup_py_data() %}
+{% set __version__ = "0.6.0" %}
 
 package:
   name: ignite
-  version: {{ data['version'] }}
+  version: {{ __version__ }}
 
 source:
   path: ..
@@ -34,6 +34,10 @@ test:
     - ignite.contrib
 
 about:
-  home: {{ data['url'] }}
-  license: {{ data['license'] }}
-  summary: {{ data['description'] }}
+  home: https://pytorch-ignite.ai
+  summary: "A lightweight library to help with training neural networks in PyTorch."
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  doc_url: https://docs.pytorch.org/ignite/
+  dev_url: https://github.com/pytorch/ignite
