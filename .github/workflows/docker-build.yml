@@ -9,14 +9,12 @@ on:
     types: [published]
   workflow_dispatch:
 
-
 concurrency:
   # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>
   group: docker-build-publish-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
   cancel-in-progress: true
 
 jobs:
-
   setup:
     name: Setup
     runs-on: ubuntu-latest
@@ -45,7 +43,6 @@ jobs:
         run: |
           echo "pth_version=$(python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_pytorch_version'))")" >> $GITHUB_OUTPUT
           echo "hvd_version=$(python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_hvd_version'))")" >> $GITHUB_OUTPUT
-
 
   build-hvd:
     name: Build all Horovod flavoured PyTorch-Ignite images
@@ -106,7 +103,6 @@ jobs:
           bash push_all.sh hvd-vision
           bash push_all.sh hvd-nlp
 
-
   build-hvd-apex:
     name: Build all Horovod + Apex flavoured PyTorch-Ignite images
     needs: setup
@@ -166,7 +162,6 @@ jobs:
           bash push_all.sh hvd-apex-vision
           bash push_all.sh hvd-apex-nlp
 
-
   build-main:
     name: Build all PyTorch-Ignite images
     needs: setup
@@ -225,7 +220,6 @@ jobs:
           bash push_all.sh base
           bash push_all.sh vision
           bash push_all.sh nlp
-
 
   build-main-apex:
     name: Build all PyTorch-Ignite images with Apex

@@ -50,6 +50,7 @@ Available Tensor Operations:
   - `docker pull pytorchignite/hvd-apex-nlp:latest`
 
 **Deprecated images** (no version updates)
+
 - [msdp/Dockerfile.msdp-apex-base](msdp/Dockerfile.msdp-apex): multi-stage MSDeepSpeed build with latest Pytorch, Ignite image with minimal dependencies
   - `docker pull pytorchignite/msdp-apex:latest`
 - [msdp/Dockerfile.msdp-apex-vision](msdp/Dockerfile.msdp-apex-vision): base MSDeepSpeed build with useful computer vision libraries
