@@ -78,7 +78,7 @@ jobs:
 
           ## Install test deps and Ignite
           pip install -r requirements-dev.txt
-          python setup.py install
+          pip install .
 
       # Download MNIST: https://github.com/pytorch/ignite/issues/1737
       # to "/tmp" for tpu tests

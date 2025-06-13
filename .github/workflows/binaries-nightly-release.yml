@@ -22,6 +22,8 @@ jobs:
         run: |
           sed -i "s/__version__ = \"\(.*\)\"/__version__ = \"\1.dev$(date -u +%Y%m%d)\"/g" ignite/__init__.py
           cat ignite/__init__.py
+          sed -i "s/__version__ = \"\(.*\)\"/__version__ = \"\1.dev$(date -u +%Y%m%d)\"/g" conda.recipe/meta.yaml
+          cat conda.recipe/meta.yaml
 
       - name: Install dependencies
         shell: bash -l {0}
@@ -35,6 +37,7 @@ jobs:
           ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
           UPLOAD_USER: "pytorch-nightly"
         run: |
+          # Update version
           chmod +x ./conda.recipe/build_and_upload.sh
           ./conda.recipe/build_and_upload.sh
 
@@ -43,8 +46,8 @@ jobs:
         run: |
           # workaround to fix https://github.com/pytorch/ignite/issues/2373
           pip uninstall -y twine pkginfo
-          pip install --upgrade --no-cache-dir twine 'pkginfo>=1.8.2'
-          python setup.py sdist bdist_wheel
+          pip install --upgrade --no-cache-dir hatch twine 'pkginfo>=1.8.2'
+          hatch build
           twine --version
           twine check dist/*
           TWINE_USERNAME="${{ secrets.PYPI_USER }}" TWINE_PASSWORD="${{ secrets.PYPI_TOKEN }}" twine upload --verbose dist/*
