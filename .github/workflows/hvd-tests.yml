@@ -41,29 +41,36 @@ jobs:
 
       - name: Get pip cache dir
         id: pip-cache
-        run: |
-          python3 -m pip install -U pip
-          echo "pip_cache=$(python3 -m pip cache dir)" >> $GITHUB_OUTPUT
         shell: bash -l {0}
+        run: |
+          uv pip install -U pip
+          echo "pip_cache=$(python3 -m pip cache dir)" >> $GITHUB_OUTPUT
 
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/conda_pkgs_dir
-            ${{ steps.pip-cache.outputs.pip_cache }}
-          key: ${{ steps.get-date.outputs.date }}-horovod-${{ hashFiles('requirements-dev.txt') }}
+      # - uses: actions/cache@v4
+      #   with:
+      #     path: |
+      #       ~/conda_pkgs_dir
+      #       ${{ steps.pip-cache.outputs.pip_cache }}
+      #     key: ${{ steps.get-date.outputs.date }}-horovod-${{ hashFiles('requirements-dev.txt') }}
 
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python-version }}
+          activate-environment: true
+          enable-cache: true
 
+      - name: Check lock
+        id: check-lock
+        run: |
+          uv lock --check
+      
       - name: Install dependencies
         shell: bash -l {0}
         run: |
 
-          #install other dependencies
-          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-          pip install -r requirements-dev.txt
+          # install other dependencies
+          uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          uv pip install -r requirements-dev.txt
 
           # Install Horovod from source and apply a patch to build with recent pytorch
           # We can't use pip install <whatever> as build-env can't find pytorch and
@@ -78,7 +85,7 @@ jobs:
           python -c "import horovod.torch as hvd; hvd.mpi_ops.Sum"
 
           # Install ignite
-          pip install .
+          uv pip install .
 
       # Download MNIST: https://github.com/pytorch/ignite/issues/1737
       # to "/tmp" for cpu tests

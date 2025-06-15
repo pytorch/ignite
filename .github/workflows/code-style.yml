@@ -21,9 +21,15 @@ jobs:
     steps:
       - if: github.event_name == 'push'
         uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.11"
+          activate-environment: true
+          enable-cache: true
+      - name: Check lock
+        id: check-lock
+        run: |
+          uv lock --check
       - run: |
           bash ./tests/run_code_style.sh install
           bash ./tests/run_code_style.sh fmt
