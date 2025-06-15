@@ -36,49 +36,51 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up Python 3.10
-        uses: actions/setup-python@v5
+        uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.10"
-          architecture: "x64"
+          activate-environment: true
+          enable-cache: true
+
+      - name: Check lock
+        id: check-lock
+        run: |
+          uv lock --check
 
       - name: Get year & week number
         id: get-date
-        run: echo "date=$(/bin/date "+%Y-%U")" >> $GITHUB_OUTPUT
         shell: bash -l {0}
+        run: echo "date=$(/bin/date "+%Y-%U")" >> $GITHUB_OUTPUT
 
       - name: Get pip cache dir
         id: pip-cache
-        run: |
-          pip3 install -U "pip<24"
-          echo "pip_cache=$(pip cache dir)" >> $GITHUB_OUTPUT
         shell: bash -l {0}
-
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ${{ steps.pip-cache.outputs.pip_cache }}
-          key: ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.xla-version }}-${{ hashFiles('requirements-dev.txt') }}
-          restore-keys: |
-            ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.xla-version }}-
+        run: |
+          uv pip install -U "pip<24"
+          echo "pip_cache=$(pip cache dir)" >> $GITHUB_OUTPUT
 
       - name: Install Torch XLA and others
         run: |
 
           ## Install mkl (alternative approach to https://github.com/pytorch/xla/blob/b0ba29f98a695671972d4a4cc07441014dba2892/.kokoro/common.sh#L31-L32)
           sudo apt-get update && sudo apt-get install -y libopenblas-dev libomp5
-          pip install mkl==2021.4.0
+          uv pip install mkl==2021.4.0
 
           ## Install torch & xla and torchvision
-          pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cpu
-          pip install https://storage.googleapis.com/pytorch-xla-releases/wheels/tpuvm/torch_xla-nightly-cp310-cp310-linux_x86_64.whl
+          uv pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cpu
+          ## TODO: download file and rename as valid file with version
+          curl -o torch_xla-2.5.0+gitf0bbaeb-cp310-cp310-linux_x86_64.whl https://storage.googleapis.com/pytorch-xla-releases/wheels/tpuvm/torch_xla-nightly-cp310-cp310-linux_x86_64.whl
+          uv pip install torch_xla-2.5.0+gitf0bbaeb-cp310-cp310-linux_x86_64.whl
+          # uv pip install https://storage.googleapis.com/pytorch-xla-releases/wheels/tpuvm/torch_xla-nightly-cp310-cp310-linux_x86_64.whl
 
           # Check installation
           python -c "import torch"
 
           ## Install test deps and Ignite
-          pip install -r requirements-dev.txt
-          pip install .
+          uv pip install -r requirements-dev.txt
+          uv pip install .
 
       # Download MNIST: https://github.com/pytorch/ignite/issues/1737
       # to "/tmp" for tpu tests
