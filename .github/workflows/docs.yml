@@ -20,15 +20,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.10"
+          activate-environment: true
+          enable-cache: true
 
       - run: sudo npm install katex -g
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: pip-${{ hashFiles('requirements-dev.txt') }}-${{ hashFiles('docs/requirements.txt') }}
+      # - uses: actions/cache@v4
+      #   with:
+      #     path: ~/.cache/pip
+      #     key: pip-${{ hashFiles('requirements-dev.txt') }}-${{ hashFiles('docs/requirements.txt') }}
 
       - name: Install docs deps
         run: bash .github/workflows/install_docs_deps.sh
@@ -51,14 +53,16 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.10"
+          activate-environment: true
+          enable-cache: true
 
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: pip-${{ hashFiles('requirements-dev.txt') }}-${{ hashFiles('docs/requirements.txt') }}
+      # - uses: actions/cache@v4
+      #   with:
+      #     path: ~/.cache/pip
+      #     key: pip-${{ hashFiles('requirements-dev.txt') }}-${{ hashFiles('docs/requirements.txt') }}
 
       - name: Install docs deps
         run: bash .github/workflows/install_docs_deps.sh
@@ -72,15 +76,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+
+      - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.10"
+          activate-environment: true
+          enable-cache: true
+
+      - name: Check lock
+        id: check-lock
+        run: |
+          uv lock --check
 
       - run: sudo npm install katex -g
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: pip-${{ hashFiles('requirements-dev.txt') }}-${{ hashFiles('docs/requirements.txt') }}
+      # - uses: actions/cache@v4
+      #   with:
+      #     path: ~/.cache/pip
+      #     key: pip-${{ hashFiles('requirements-dev.txt') }}-${{ hashFiles('docs/requirements.txt') }}
 
       - name: Install docs deps
         run: bash .github/workflows/install_docs_deps.sh

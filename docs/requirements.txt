@@ -1,5 +1,5 @@
 sphinx<6
--e git+https://github.com/pytorch/pytorch_sphinx_theme.git#egg=pytorch_sphinx_theme
+git+https://github.com/pytorch/pytorch_sphinx_theme.git#egg=pytorch_sphinx_theme
 sphinxcontrib-katex
 sphinx-copybutton==0.4.0
 docutils<0.18
