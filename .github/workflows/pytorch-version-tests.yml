@@ -16,8 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [3.9, "3.10", "3.11"]
-        pytorch-version:
-          [2.5.1, 2.4.1, 2.3.1, 2.2.2, 1.13.1, 1.12.1, 1.10.0]
+        pytorch-version: [2.5.1, 2.4.1, 2.3.1, 2.2.2, 1.13.1, 1.12.1, 1.10.0]
         exclude:
           - pytorch-version: 1.10.0
             python-version: "3.10"
