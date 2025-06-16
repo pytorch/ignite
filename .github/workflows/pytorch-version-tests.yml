@@ -6,6 +6,14 @@ on:
     # Run at 00:00 UTC Every Day
     - cron: "0 0 * * *"
   workflow_dispatch:
+  push:
+    branches:
+      - master
+      - "*.*.*"
+  pull_request:
+    branches:
+      - master
+      - "*.*.*"
 
 jobs:
   build:
