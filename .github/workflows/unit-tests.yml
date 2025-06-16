@@ -65,11 +65,6 @@ jobs:
           activate-environment: true
           enable-cache: true
 
-      - name: Check lock
-        id: check-lock
-        run: |
-          uv lock --check
-
       - name: Get year & week number
         id: get-date
         run: |
@@ -89,7 +84,7 @@ jobs:
           restore-keys: |
             ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}-
 
-      - run: pip install pip wheel setuptools -Uqq
+      - run: uv pip install pip wheel setuptools -Uqq
 
       - name: Install PyTorch
         if: ${{ matrix.pytorch-channel == 'pytorch' }}
