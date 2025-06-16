@@ -3,6 +3,7 @@ environments:
   default:
     channels:
     - url: https://conda.anaconda.org/conda-forge/
+    - url: https://conda.anaconda.org/pytorch/
     indexes:
     - https://pypi.org/simple
     packages:
@@ -880,7 +881,7 @@ packages:
 - pypi: ./
   name: pytorch-ignite
   version: 0.6.0
-  sha256: 028cfd33493ad2015156d04d566046333cc9e943e518c267e0d3a5dee6b13f0e
+  sha256: 0b97ef226756523b65818870be8d1ed7f2bf6c8b7bce7260021c9467f4632820
   requires_dist:
   - packaging
   - torch>=1.3,<3

@@ -84,7 +84,7 @@ jobs:
       - name: Install dependencies
         shell: bash -l {0}
         run: |
-          pixi add pytorch=${{ matrix.pytorch-version }} torchvision cpuonly python=${{ matrix.python-version }} -c pytorch
+          pixi add pytorch=${{ matrix.pytorch-version }} torchvision cpuonly python=${{ matrix.python-version }}
 
           # We should install numpy<2.0 for pytorch<2.3
           numpy_one_pth_version=$(python -c "import torch; print(float('.'.join(torch.__version__.split('.')[:2])) < 2.3)")
