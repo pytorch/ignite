@@ -2,8 +2,9 @@
 numpy
 pytest
 pytest-cov
-pytest-xdist
+pytest-order
 pytest-timeout
+pytest-xdist
 dill
 filelock
 setuptools
