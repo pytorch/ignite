@@ -45,3 +45,7 @@ coverage.xml
 .venv/
 .python-version
 conda_build/
+
+# pixi environments
+.pixi
+*.egg-info

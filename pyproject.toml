@@ -83,3 +83,12 @@ third_party = [
 excludes = [
     "assets/",
 ]
+
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["osx-arm64"]
+
+[tool.pixi.pypi-dependencies]
+pytorch-ignite = { path = ".", editable = true }
+
+[tool.pixi.tasks]
