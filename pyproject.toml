@@ -146,3 +146,11 @@ exclude = '''
                      # the root of the project
 )
 '''
+
+[tool.pytest.ini_options]
+markers = [
+    "distributed: mark a test with distributed option",
+    "multinode_distributed: mark a test with multi-node distributed option",
+    "tpu: mark a test as requiring XLA",
+]
+addopts = "--color=yes"
