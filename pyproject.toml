@@ -92,3 +92,6 @@ platforms = ["osx-arm64"]
 pytorch-ignite = { path = ".", editable = true }
 
 [tool.pixi.tasks]
+
+[tool.pixi.dependencies]
+python = "*"
