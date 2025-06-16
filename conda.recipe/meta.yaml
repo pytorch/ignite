@@ -15,7 +15,7 @@ build:
 # https://conda.io/docs/user-guide/tasks/build-packages/define-metadata.html#export-runtime-requirements
 requirements:
   build:
-    - hatch
+    - hatchling
     - pip
     - python >=3.9
     - pytorch >=1.10
