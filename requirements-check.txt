@@ -1,3 +1,0 @@
-# Local development
-mypy
-pre-commit

@@ -100,7 +100,6 @@ jobs:
 
       - name: Check code formatting
         run: |
-          pip install -r requirements-check.txt
           pre-commit run -a
 
       - name: Run Mypy

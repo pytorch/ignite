@@ -35,9 +35,9 @@ into the following categories:
   - [Installation](#installation)
   - [Code development](#code-development)
     - [Codebase structure](#codebase-structure)
-    - [Formatting Code](#formatting-code)
-      - [Formatting without pre-commit](#formatting-without-pre-commit)
-      - [Formatting with pre-commit](#formatting-with-pre-commit)
+    - [Checking Code Style](#checking-code-style)
+      - [Formatting the code](#formatting-the-code)
+      - [Formatting the code with a pre-commit hook](#formatting-the-code-with-a-pre-commit-hook)
     - [Run tests](#run-tests)
       - [Run distributed tests only on CPU](#run-distributed-tests-only-on-cpu)
     - [Run Mypy checks](#run-mypy-checks)
@@ -138,44 +138,39 @@ If you modify the code, you will most probably also need to code some tests to e
 New code should be compatible with Python 3.X versions. Once you finish implementing a feature or bugfix and tests,
 please run lint checking and tests:
 
-#### Formatting Code
+#### Checking Code Style
 
-To ensure the codebase complies with a style guide, we use [flake8](https://flake8.pycqa.org/en/latest/)
-and [ufmt](https://ufmt.omnilib.dev/) ([black](https://black.readthedocs.io/en/stable/) and
-[usort](https://usort.readthedocs.io/en/stable/)) to format and check codebase for compliance with PEP8.
+To ensure the codebase complies with the PEP8 style guide, we use [ruff](https://docs.astral.sh/ruff/)
+and [black](https://black.readthedocs.io/en/stable/) to lint and format the codebase respectively.
 
-##### Formatting without pre-commit
+##### Formatting the code
 
-If you choose not to use pre-commit, you can take advantage of IDE extensions configured to black format or invoke
-black manually to format files and commit them.
-
-To install `flake8`, `ufmt` and `mypy`, please run
+To automate the process, we have configured the repo with [pre-commit](https://pre-commit.com/).
 
 To format files and commit changes:
 
 ```bash
-# This should autoformat the files
+# This should lint and autoformat the files
 pre-commit -a
 # If everything is OK, then commit
 git add .
 git commit -m "Added awesome feature"
 ```
 
-##### Formatting with pre-commit
+##### Formatting the code with a pre-commit hook
 
-To automate the process, we have configured the repo with [pre-commit hooks](https://pre-commit.com/) to use µfmt to autoformat the staged files to ensure every commit complies with a style guide. This requires some setup, which is described below:
+To enable the `pre-commit` hooks follow the steps described below:
 
-1. Install pre-commit in your python environment.
-2. Run pre-commit install that configures a virtual environment to invoke ufmt and flake8 on commits.
+1. Run `pre-commit install` to configures a virtual environment to invoke linters and formatters on commits.
 
 ```bash
 pip install pre-commit
 pre-commit install
 ```
 
-3. When files are committed:
-   - If the stages files are not compliant with black or µsort, µfmt will autoformat the staged files. If this were to happen, files should be staged and committed again. See example code below.
-   - If the staged files are not compliant with flake8, errors will be raised. These errors should be fixed and the files should be committed again. See example code below.
+2. When files are committed:
+   - If the stages files are not compliant, the tools autoformat the staged files. If this were to happen, files should be staged and committed again. See example code below.
+   - If the staged files are not compliant errors will be raised. These errors should be fixed and the files should be committed again. See example code below.
 
 ```bash
 git add .

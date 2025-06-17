@@ -23,7 +23,7 @@ jobs:
         with:
           python-version: "3.11"
       - run: |
-          pip install -r requirements-check.txt
+          pip install -r requirements-dev.txt
           pre-commit run -a
 
       - name: Commit and push changes
