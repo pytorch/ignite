@@ -100,15 +100,14 @@ jobs:
 
       - name: Check code formatting
         run: |
-          bash ./tests/run_code_style.sh install
-          bash ./tests/run_code_style.sh lint
+          pre-commit run -a
 
       - name: Run Mypy
         # https://github.com/pytorch/ignite/pull/2780
         #
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
-          bash ./tests/run_code_style.sh mypy
+          mypy
 
       # Download MNIST: https://github.com/pytorch/ignite/issues/1737
       # to "/tmp" for unit tests
