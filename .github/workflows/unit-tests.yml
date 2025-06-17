@@ -94,6 +94,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          # Install dependencies
           pip install -r requirements-dev.txt
           pip install .
           pip list
