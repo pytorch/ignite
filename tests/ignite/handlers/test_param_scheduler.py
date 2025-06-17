@@ -667,8 +667,8 @@ def test_lr_scheduler_asserts():
         LRScheduler.simulate_values(1, None)
 
 
-@pytest.mark.order(1)
 @pytest.mark.xfail
+@pytest.mark.order(1)
 @pytest.mark.parametrize(
     "torch_lr_scheduler_cls, kwargs",
     [
@@ -682,7 +682,7 @@ def test_lr_scheduler(torch_lr_scheduler_cls, kwargs):
         return
 
     if TORCH_GE28 and torch_lr_scheduler_cls in [ExponentialLR, MultiplicativeLR]:
-        pytest.skip("lr scheduler issues with nightly torch builds")
+        pytest.xfail("lr scheduler issues with nightly torch builds")
 
     tensor = torch.zeros([1], requires_grad=True)
     optimizer1 = torch.optim.SGD([tensor], lr=0.01)
