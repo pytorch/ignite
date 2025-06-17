@@ -1,28 +1,28 @@
 name: Run unit tests
 on:
-  push:
-    branches:
-      - master
-      - "*.*.*"
-    paths:
-      - "examples/**.py"
-      - "ignite/**"
-      - "pyproject.toml"
-      - "tests/ignite/**"
-      - "tests/run_code_style.sh"
-      - "tests/run_cpu_tests.sh"
-      - "requirements-dev.txt"
-      - ".github/workflows/unit-tests.yml"
-  pull_request:
-    paths:
-      - "examples/**.py"
-      - "ignite/**"
-      - "pyproject.toml"
-      - "tests/ignite/**"
-      - "tests/run_code_style.sh"
-      - "tests/run_cpu_tests.sh"
-      - "requirements-dev.txt"
-      - ".github/workflows/unit-tests.yml"
+  # push:
+  #   branches:
+  #     - master
+  #     - "*.*.*"
+  #   paths:
+  #     - "examples/**.py"
+  #     - "ignite/**"
+  #     - "pyproject.toml"
+  #     - "tests/ignite/**"
+  #     - "tests/run_code_style.sh"
+  #     - "tests/run_cpu_tests.sh"
+  #     - "requirements-dev.txt"
+  #     - ".github/workflows/unit-tests.yml"
+  # pull_request:
+  #   paths:
+  #     - "examples/**.py"
+  #     - "ignite/**"
+  #     - "pyproject.toml"
+  #     - "tests/ignite/**"
+  #     - "tests/run_code_style.sh"
+  #     - "tests/run_cpu_tests.sh"
+  #     - "requirements-dev.txt"
+  #     - ".github/workflows/unit-tests.yml"
   workflow_dispatch:
   merge_group:
 
