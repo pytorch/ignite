@@ -17,6 +17,7 @@ jobs:
         with:
           miniconda-version: "latest"
           python-version: "3.10"
+          channels: defaults,pytorch-nightly
 
       - name: Setup nightly version
         run: |
