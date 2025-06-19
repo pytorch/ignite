@@ -1,0 +1,6 @@
+﻿ClassificationReport
+====================
+
+.. currentmodule:: ignite.metrics
+
+.. autofunction:: ClassificationReport
