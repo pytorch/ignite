@@ -19,9 +19,15 @@ jobs:
     steps:
       - if: github.event_name == 'push'
         uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v6
         with:
+          version: "latest"
           python-version: "3.11"
+          activate-environment: true
+          enable-cache: true
+          cache-dependency-glob: |
+            **/requirements-dev.txt
+            **/pyproject.toml
       - run: |
           pip install -r requirements-dev.txt
           pre-commit run -a

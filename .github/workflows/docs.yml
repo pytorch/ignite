@@ -17,18 +17,28 @@ jobs:
     permissions:
       contents: write
     if: (github.ref == 'refs/heads/master' && github.event_name == 'push') || github.event_name == 'release'
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      max-parallel: 10
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest"]
+        python-version: ["3.10"]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v6
         with:
-          python-version: "3.10"
+          version: "latest"
+          python-version: "${{ matrix.python-version }}"
+          activate-environment: true
+          enable-cache: true
+          cache-suffix: "${{ hashFiles('requirements-dev.txt') }}-${{ hashFiles('docs/requirements.txt') }}"
+          cache-dependency-glob: |
+            **/docs/requirements.txt
+            **/requirements-dev.txt
+            **/pyproject.toml
 
       - run: sudo npm install katex -g
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: pip-${{ hashFiles('requirements-dev.txt') }}-${{ hashFiles('docs/requirements.txt') }}
 
       - name: Install docs deps
         run: bash .github/workflows/install_docs_deps.sh
@@ -47,18 +57,27 @@ jobs:
 
   linkcheck:
     if: github.event_name == 'pull_request' || github.event_name == 'push'
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 10
+    strategy:
+      max-parallel: 10
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest"]
+        python-version: ["3.10"]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v6
         with:
-          python-version: "3.10"
-
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: pip-${{ hashFiles('requirements-dev.txt') }}-${{ hashFiles('docs/requirements.txt') }}
+          version: "latest"
+          python-version: ${{ matrix.python-version }}
+          activate-environment: true
+          enable-cache: true
+          cache-suffix: "${{ hashFiles('requirements-dev.txt') }}-${{ hashFiles('docs/requirements.txt') }}"
+          cache-dependency-glob: |
+            **/docs/requirements.txt
+            **/requirements-dev.txt
+            **/pyproject.toml
 
       - name: Install docs deps
         run: bash .github/workflows/install_docs_deps.sh
@@ -69,18 +88,28 @@ jobs:
 
   doctest:
     if: github.event_name == 'pull_request' || github.event_name == 'push'
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      max-parallel: 10
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest"]
+        python-version: ["3.10"]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v6
         with:
-          python-version: "3.10"
+          version: "latest"
+          python-version: "${{ matrix.python-version }}"
+          activate-environment: true
+          enable-cache: true
+          cache-suffix: "${{ hashFiles('requirements-dev.txt') }}-${{ hashFiles('docs/requirements.txt') }}"
+          cache-dependency-glob: |
+            **/docs/requirements.txt
+            **/requirements-dev.txt
+            **/pyproject.toml
 
       - run: sudo npm install katex -g
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: pip-${{ hashFiles('requirements-dev.txt') }}-${{ hashFiles('docs/requirements.txt') }}
 
       - name: Install docs deps
         run: bash .github/workflows/install_docs_deps.sh

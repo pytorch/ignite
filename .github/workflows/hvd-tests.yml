@@ -39,31 +39,24 @@ jobs:
         run: echo "date=$(/bin/date "+%Y-%U")" >> $GITHUB_OUTPUT
         shell: bash -l {0}
 
-      - name: Get pip cache dir
-        id: pip-cache
-        run: |
-          python3 -m pip install -U pip
-          echo "pip_cache=$(python3 -m pip cache dir)" >> $GITHUB_OUTPUT
-        shell: bash -l {0}
-
-      - uses: actions/cache@v4
+      - uses: astral-sh/setup-uv@v6
         with:
-          path: |
-            ~/conda_pkgs_dir
-            ${{ steps.pip-cache.outputs.pip_cache }}
-          key: ${{ steps.get-date.outputs.date }}-horovod-${{ hashFiles('requirements-dev.txt') }}
-
-      - uses: actions/setup-python@v5
-        with:
+          version: "latest"
           python-version: ${{ matrix.python-version }}
+          activate-environment: true
+          enable-cache: true
+          cache-suffix: "${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}"
+          cache-dependency-glob: |
+            **/requirements-dev.txt
+            **/pyproject.toml
 
       - name: Install dependencies
         shell: bash -l {0}
         run: |
 
-          #install other dependencies
-          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-          pip install -r requirements-dev.txt
+          # Install other dependencies
+          uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          uv pip install -r requirements-dev.txt
 
           # Install Horovod from source and apply a patch to build with recent pytorch
           # We can't use pip install <whatever> as build-env can't find pytorch and
@@ -78,7 +71,9 @@ jobs:
           python -c "import horovod.torch as hvd; hvd.mpi_ops.Sum"
 
           # Install ignite
-          pip install .
+          uv pip install .
+
+          uv pip list
 
       # Download MNIST: https://github.com/pytorch/ignite/issues/1737
       # to "/tmp" for cpu tests
