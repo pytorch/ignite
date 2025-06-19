@@ -72,11 +72,11 @@ class Bleu(Metric):
 
     More details can be found in `Papineni et al. 2002`__.
 
-    __ https://www.aclweb.org/anthology/P02-1040
+    __ https://aclanthology.org/P02-1040/
 
     In addition, a review of smoothing techniques can be found in `Chen et al. 2014`__
 
-    __ https://aclanthology.org/W14-3346.pdf
+    __ https://aclanthology.org/W14-3346/
 
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     - `y_pred` (list(list(str))) - a list of hypotheses sentences.
