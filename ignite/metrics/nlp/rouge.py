@@ -191,7 +191,7 @@ class RougeN(_BaseRouge):
 
     More details can be found in `Lin 2004`__.
 
-    __ https://www.aclweb.org/anthology/W04-1013.pdf
+    __ https://aclanthology.org/W04-1013
 
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     - `y_pred` (list(list(str))) must be a sequence of tokens.
@@ -265,7 +265,7 @@ class RougeL(_BaseRouge):
 
     More details can be found in `Lin 2004`__.
 
-    __ https://www.aclweb.org/anthology/W04-1013.pdf
+    __ https://aclanthology.org/W04-1013
 
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     - `y_pred` (list(list(str))) must be a sequence of tokens.
@@ -331,7 +331,7 @@ class Rouge(Metric):
 
     More details can be found in `Lin 2004`__.
 
-    __ https://www.aclweb.org/anthology/W04-1013.pdf
+    __ https://aclanthology.org/W04-1013
 
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     - `y_pred` (list(list(str))) must be a sequence of tokens.
