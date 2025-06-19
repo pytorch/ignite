@@ -17,13 +17,13 @@ requirements:
   build:
     - hatchling
     - pip
-    - python >=3.9
-    - pytorch >=1.10
+    - python >=3.9,<=3.13
+    - pytorch >=1.10,<3
     - setuptools
 
   run:
-    - python >=3.9
-    - pytorch >=1.10
+    - python >=3.9,<=3.13
+    - pytorch >=1.10,<3
 
 test:
   imports:
