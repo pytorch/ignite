@@ -2,6 +2,7 @@ import warnings
 from typing import Callable, cast, List, Optional, Sequence, Tuple, Union
 
 import torch
+from packaging.version import Version
 from typing_extensions import Literal
 
 import ignite.distributed as idist
@@ -9,6 +10,9 @@ from ignite.distributed.utils import all_gather_tensors_with_shapes
 from ignite.metrics.metric import Metric, reinit__is_reduced
 from ignite.metrics.precision import _BaseClassification
 from ignite.utils import to_onehot
+
+
+_torch_version_lt_113 = Version(torch.__version__) < Version("1.13.0")
 
 
 class _BaseAveragePrecision:
@@ -97,9 +101,12 @@ class _BaseAveragePrecision:
         if self.rec_thresholds is not None:
             rec_thresholds = self.rec_thresholds.repeat((*recall.shape[:-1], 1))
             rec_thresh_indices = torch.searchsorted(recall, rec_thresholds)
-            precision = precision.take_along_dim(
-                rec_thresh_indices.where(rec_thresh_indices != recall.size(-1), 0), dim=-1
-            ).where(rec_thresh_indices != recall.size(-1), 0)
+            rec_mask = rec_thresh_indices != recall.size(-1)
+            precision = torch.where(
+                rec_mask,
+                precision.take_along_dim(torch.where(rec_mask, rec_thresh_indices, 0), dim=-1),
+                0.0,
+            )
             recall = rec_thresholds
         recall_differential = recall.diff(
             dim=-1, prepend=torch.zeros((*recall.shape[:-1], 1), device=recall.device, dtype=recall.dtype)
@@ -335,9 +342,10 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
         Returns:
             `(recall, precision)`
         """
-        indices = torch.argsort(y_pred, stable=True, descending=True)
+        kwargs = {} if _torch_version_lt_113 else {"stable": True}
+        indices = torch.argsort(y_pred, descending=True, **kwargs)
         tp_summation = y_true[indices].cumsum(dim=0)
-        if tp_summation.device != torch.device("mps"):
+        if tp_summation.device.type != "mps":
             tp_summation = tp_summation.double()
 
         # Adopted from Scikit-learn's implementation
@@ -354,7 +362,7 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
             recall = tp_summation / y_true_positive_count
 
         predicted_positive = tp_summation + fp_summation
-        precision = tp_summation / torch.where(predicted_positive == 0, 1, predicted_positive)
+        precision = tp_summation / torch.where(predicted_positive == 0, 1.0, predicted_positive)
         return recall, precision
 
     def compute(self) -> Union[torch.Tensor, float]:
@@ -371,7 +379,7 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
             torch.long if self._type == "multiclass" else torch.uint8,
             self._device,
         )
-        fp_precision = torch.double if self._device != torch.device("mps") else torch.float32
+        fp_precision = torch.double if self._device.type != "mps" else torch.float32
         y_pred = _cat_and_agg_tensors(self._y_pred, (num_classes,), fp_precision, self._device)
 
         if self._type == "multiclass":

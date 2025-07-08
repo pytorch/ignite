@@ -1,12 +1,16 @@
 from typing import Callable, cast, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
+from packaging.version import Version
 from typing_extensions import Literal
 
 from ignite.metrics import MetricGroup
 
 from ignite.metrics.mean_average_precision import _BaseAveragePrecision, _cat_and_agg_tensors
 from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
+
+
+_torch_version_lt_113 = Version(torch.__version__) < Version("1.13.0")
 
 
 def coco_tensor_list_to_dict_list(
@@ -213,7 +217,8 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
         Returns:
             `(recall, precision)`
         """
-        indices = torch.argsort(scores, dim=-1, stable=True, descending=True)
+        kwargs = {} if _torch_version_lt_113 else {"stable": True}
+        indices = torch.argsort(scores, descending=True, **kwargs)
         tp = TP[..., indices]
         tp_summation = tp.cumsum(dim=-1)
         if tp_summation.device.type != "mps":
@@ -226,7 +231,7 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
 
         recall = tp_summation / y_true_count
         predicted_positive = tp_summation + fp_summation
-        precision = tp_summation / torch.where(predicted_positive == 0, 1, predicted_positive)
+        precision = tp_summation / torch.where(predicted_positive == 0, 1.0, predicted_positive)
 
         return recall, precision
 
@@ -258,9 +263,12 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
             if recall.size(-1) != 0
             else torch.LongTensor([], device=self._device)
         )
-        precision_integrand = precision_integrand.take_along_dim(
-            rec_thresh_indices.where(rec_thresh_indices != recall.size(-1), 0), dim=-1
-        ).where(rec_thresh_indices != recall.size(-1), 0)
+        recall_mask = rec_thresh_indices != recall.size(-1)
+        precision_integrand = torch.where(
+            recall_mask,
+            precision_integrand.take_along_dim(torch.where(recall_mask, rec_thresh_indices, 0), dim=-1),
+            0.0,
+        )
         return torch.sum(precision_integrand, dim=-1) / len(cast(torch.Tensor, self.rec_thresholds))
 
     @reinit__is_reduced
@@ -298,6 +306,7 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
                                             This key is optional.
                 ========= ================= =================================================
         """
+        kwargs = {} if _torch_version_lt_113 else {"stable": True}
         self._check_matching_input(output)
         for pred, target in zip(*output):
             labels = target["labels"]
@@ -312,7 +321,7 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
 
             # Matching logic of object detection mAP, according to COCO reference implementation.
             if len(pred["labels"]):
-                best_detections_index = torch.argsort(pred["scores"], stable=True, descending=True)
+                best_detections_index = torch.argsort(pred["scores"], descending=True, **kwargs)
                 max_best_detections_index = torch.cat(
                     [
                         best_detections_index[pred["labels"][best_detections_index] == c][

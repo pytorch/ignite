@@ -37,7 +37,7 @@ def fid_score(
     diff = mu1 - mu2
 
     # Product might be almost singular
-    covmean, _ = scipy.linalg.sqrtm(sigma1.mm(sigma2), disp=False)
+    covmean, _ = scipy.linalg.sqrtm(sigma1.mm(sigma2).numpy(), disp=False)
     # Numerical error might give slight imaginary component
     if np.iscomplexobj(covmean):
         if not np.allclose(np.diagonal(covmean).imag, 0, atol=1e-3):
@@ -48,7 +48,7 @@ def fid_score(
     tr_covmean = np.trace(covmean)
 
     if not np.isfinite(covmean).all():
-        tr_covmean = np.sum(np.sqrt(((np.diag(sigma1) * eps) * (np.diag(sigma2) * eps)) / (eps * eps)))
+        tr_covmean = np.sum(np.sqrt(((np.diag(sigma1.numpy()) * eps) * (np.diag(sigma2.numpy()) * eps)) / (eps * eps)))
 
     return float(diff.dot(diff).item() + torch.trace(sigma1) + torch.trace(sigma2) - 2 * tr_covmean)
 
