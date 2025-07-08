@@ -102,8 +102,8 @@ jobs:
       - name: Run Tests
         uses: nick-fields/retry@v3.0.2
         with:
-          max_attempts: 5
-          timeout_minutes: 15
+          max_attempts: 1
+          timeout_minutes: 20
           shell: bash
           command: bash -l tests/run_cpu_tests.sh "not test_time_profilers"
           new_command_on_retry: USE_LAST_FAILED=1 bash -l tests/run_cpu_tests.sh "not test_time_profilers"

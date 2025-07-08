@@ -1,0 +1,123 @@
+FROM python:3.9.23-bookworm
+
+RUN python -m pip install torch==1.10.0 pytest pytest-xdist "numpy<2.0" visdom clearml matplotlib torchvision scikit-learn
+
+
+RUN git clone https://github.com/pytorch/ignite.git \ignite && \
+    cd \ignite && \
+    python -m pip install hatch && \
+    python -m pip install . && \
+    ls
+
+RUN cd \ignite && \
+    python -m pip list && \
+    python -m pytest tests/ignite/distributed/utils/test_native.py::test_idist_all_gather_tensors_with_shapes_gloo && \
+    python -m pytest tests/ignite/distributed/utils/test_native.py::test_idist_all_gather_gloo && \
+    python -m pytest tests/ignite/distributed/utils/test_native.py::test_idist_all_gather_tensors_with_shapes_gloo && \
+    python -m pytest tests/ignite/distributed/utils/test_native.py::test_idist_all_reduce_gloo && \
+    python -m pytest tests/ignite/distributed/utils/test_native.py::test_idist_barrier_gloo && \
+    python -m pytest tests/ignite/distributed/utils/test_native.py::test_idist_broadcast_gloo && \
+    python -m pytest tests/ignite/distributed/utils/test_native.py::test_idist_one_rank_only_gloo && \
+    python -m pytest tests/ignite/distributed/utils/test_native.py::test_one_rank_first && \
+    python -m pytest tests/ignite/engine/test_custom_events.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/engine/test_deterministic.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/engine/test_engine.py::TestEngine::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/handlers/test_checkpoint.py::test_disksaver_distrib && \
+    python -m pytest tests/ignite/handlers/test_checkpoint.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/handlers/test_clearml_logger.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/handlers/test_early_stopping.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/handlers/test_ema_handler.py::test_ema_final_weight_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/handlers/test_lr_finder.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/clustering/test_calinski_harabasz_score.py::TestDistributed::test_compute && \
+    python -m pytest tests/ignite/metrics/clustering/test_calinski_harabasz_score.py::TestDistributed::test_integration && \
+    python -m pytest tests/ignite/metrics/clustering/test_davies_bouldin_score.py::TestDistributed::test_compute && \
+    python -m pytest tests/ignite/metrics/clustering/test_davies_bouldin_score.py::TestDistributed::test_integration && \
+    python -m pytest tests/ignite/metrics/clustering/test_silhouette_score.py::TestDistributed::test_compute && \
+    python -m pytest tests/ignite/metrics/clustering/test_silhouette_score.py::TestDistributed::test_integration && \
+    python -m pytest tests/ignite/metrics/gan/test_fid.py::test_distrib_cpu && \
+    python -m pytest tests/ignite/metrics/gan/test_inception_score.py::test_distrib_cpu && \
+    python -m pytest tests/ignite/metrics/nlp/test_bleu.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/nlp/test_rouge.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/regression/test_canberra_metric.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/regression/test_fractional_absolute_error.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/regression/test_fractional_bias.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/regression/test_geometric_mean_absolute_error.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/regression/test_geometric_mean_relative_absolute_error.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/regression/test_kendall_correlation.py::TestDistributed::test_compute && \
+    python -m pytest tests/ignite/metrics/regression/test_kendall_correlation.py::TestDistributed::test_integration && \
+    python -m pytest tests/ignite/metrics/regression/test_manhattan_distance.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/regression/test_maximum_absolute_error.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/regression/test_mean_error.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/regression/test_mean_normalized_bias.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/regression/test_median_absolute_error.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/regression/test_median_absolute_percentage_error.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/regression/test_median_relative_absolute_error.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/regression/test_pearson_correlation.py::TestDistributed::test_accumulator_device && \
+    python -m pytest tests/ignite/metrics/regression/test_pearson_correlation.py::TestDistributed::test_compute && \
+    python -m pytest tests/ignite/metrics/regression/test_pearson_correlation.py::TestDistributed::test_integration && \
+    python -m pytest tests/ignite/metrics/regression/test_r2_score.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/regression/test_spearman_correlation.py::TestDistributed::test_compute && \
+    python -m pytest tests/ignite/metrics/regression/test_spearman_correlation.py::TestDistributed::test_integration && \
+    python -m pytest tests/ignite/metrics/regression/test_wave_hedges_distance.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/test_accumulation.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/test_accuracy.py::TestDistributed::test_accumulator_device && \
+    python -m pytest tests/ignite/metrics/test_accuracy.py::TestDistributed::test_integration_list_of_tensors_or_numbers && \
+    python -m pytest tests/ignite/metrics/test_accuracy.py::TestDistributed::test_integration_multiclass && \
+    python -m pytest tests/ignite/metrics/test_accuracy.py::TestDistributed::test_integration_multilabel && \
+    python -m pytest tests/ignite/metrics/test_accuracy.py::TestDistributed::test_multilabel_input_NHW && \
+    python -m pytest tests/ignite/metrics/test_average_precision.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/test_classification_report.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/test_cohen_kappa.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/test_confusion_matrix.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/test_cosine_similarity.py::TestDistributed::test_accumulator_device && \
+    python -m pytest tests/ignite/metrics/test_cosine_similarity.py::TestDistributed::test_integration && \
+    python -m pytest tests/ignite/metrics/test_entropy.py::TestDistributed::test_accumulator_device && \
+    python -m pytest tests/ignite/metrics/test_entropy.py::TestDistributed::test_integration && \
+    python -m pytest tests/ignite/metrics/test_epoch_metric.py::test_distrib_integration && \
+    python -m pytest tests/ignite/metrics/test_fbeta.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/test_frequency.py::test_frequency_with_engine_distributed && \
+    python -m pytest tests/ignite/metrics/test_frequency.py::test_frequency_with_engine_distributed_with_every && \
+    python -m pytest tests/ignite/metrics/test_hsic.py::TestDistributed::test_accumulator_device && \
+    python -m pytest tests/ignite/metrics/test_hsic.py::TestDistributed::test_integration && \
+    python -m pytest tests/ignite/metrics/test_js_divergence.py::TestDistributed::test_accumulator_device && \
+    python -m pytest tests/ignite/metrics/test_js_divergence.py::TestDistributed::test_integration && \
+    python -m pytest tests/ignite/metrics/test_kl_divergence.py::TestDistributed::test_accumulator_device && \
+    python -m pytest tests/ignite/metrics/test_kl_divergence.py::TestDistributed::test_integration && \
+    python -m pytest tests/ignite/metrics/test_loss.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/test_maximum_mean_discrepancy.py::TestDistributed::test_accumulator_device && \
+    python -m pytest tests/ignite/metrics/test_maximum_mean_discrepancy.py::TestDistributed::test_integration && \
+    python -m pytest tests/ignite/metrics/test_mean_absolute_error.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/test_mean_average_precision.py::test_distrib_integration && \
+    python -m pytest tests/ignite/metrics/test_mean_pairwise_distance.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/test_mean_squared_error.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/test_metric.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/test_metric_group.py::TestDistributed::test_integration && \
+    python -m pytest tests/ignite/metrics/test_metrics_lambda.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/test_mutual_information.py::TestDistributed::test_accumulator_device && \
+    python -m pytest tests/ignite/metrics/test_mutual_information.py::TestDistributed::test_integration && \
+    python -m pytest tests/ignite/metrics/test_precision.py::TestDistributed::test_accumulator_device && \
+    python -m pytest tests/ignite/metrics/test_precision.py::TestDistributed::test_integration_multiclass && \
+    python -m pytest tests/ignite/metrics/test_precision.py::TestDistributed::test_integration_multilabel && \
+    python -m pytest tests/ignite/metrics/test_precision.py::TestDistributed::test_multilabel_accumulator_device && \
+    python -m pytest tests/ignite/metrics/test_precision_recall_curve.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/test_psnr.py::TestDistributed::test_accumulator_device && \
+    python -m pytest tests/ignite/metrics/test_psnr.py::TestDistributed::test_input_float && \
+    python -m pytest tests/ignite/metrics/test_psnr.py::TestDistributed::test_multilabel_input_NHW && \
+    python -m pytest tests/ignite/metrics/test_psnr.py::TestDistributed::test_multilabel_input_YCbCr && \
+    python -m pytest tests/ignite/metrics/test_psnr.py::TestDistributed::test_multilabel_input_uint8 && \
+    python -m pytest tests/ignite/metrics/test_recall.py::TestDistributed::test_accumulator_device && \
+    python -m pytest tests/ignite/metrics/test_recall.py::TestDistributed::test_integration_multiclass && \
+    python -m pytest tests/ignite/metrics/test_recall.py::TestDistributed::test_integration_multilabel && \
+    python -m pytest tests/ignite/metrics/test_recall.py::TestDistributed::test_multilabel_accumulator_device && \
+    python -m pytest tests/ignite/metrics/test_roc_auc.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/test_roc_curve.py::test_distrib_integration && \
+    python -m pytest tests/ignite/metrics/test_root_mean_squared_error.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/test_running_average.py::TestDistributed::test_accumulator_device && \
+    python -m pytest tests/ignite/metrics/test_running_average.py::TestDistributed::test_src_is_metric && \
+    python -m pytest tests/ignite/metrics/test_running_average.py::TestDistributed::test_src_is_output && \
+    python -m pytest tests/ignite/metrics/test_ssim.py::TestDistributed::test_accumulator_device && \
+    python -m pytest tests/ignite/metrics/test_ssim.py::TestDistributed::test_integration && \
+    python -m pytest tests/ignite/metrics/test_top_k_categorical_accuracy.py::test_distrib_gloo_cpu_or_gpu && \
+    python -m pytest tests/ignite/metrics/vision/test_object_detection_map.py::test_distrib_update_compute
+
+# docker build  - platform linux/amd64 -f Dockerfile.tests .
