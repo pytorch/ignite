@@ -186,7 +186,9 @@ def _destroy_dist_context():
 
     dist.barrier()
 
+    print("before destroy")
     dist.destroy_process_group()
+    print("after destroy")
 
     from ignite.distributed.utils import _SerialModel, _set_model
 
@@ -243,6 +245,7 @@ def distributed_context_single_node_nccl(local_rank, world_size):
 
 @pytest.fixture()
 def distributed_context_single_node_gloo(local_rank, world_size):
+    print("INFO:", local_rank, world_size)
     from datetime import timedelta
 
     if sys.platform.startswith("win"):
@@ -251,6 +254,7 @@ def distributed_context_single_node_gloo(local_rank, world_size):
         backslash = "\\"
         init_method = f'file:///{temp_file.name.replace(backslash, "/")}'
     else:
+        print("Setting up free port for Gloo backend")
         free_port = _setup_free_port(local_rank)
         init_method = f"tcp://localhost:{free_port}"
         temp_file = None
@@ -262,7 +266,9 @@ def distributed_context_single_node_gloo(local_rank, world_size):
         "init_method": init_method,
         "timeout": timedelta(seconds=30),
     }
+    print("Before yield")
     yield _create_dist_context(dist_info, local_rank)
+    print("After yield")
     _destroy_dist_context()
     if temp_file:
         temp_file.close()
