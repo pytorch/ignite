@@ -348,7 +348,7 @@ nitpick_ignore = [
     ("py:class", "torch.optim.optimizer.Optimizer"),
     ("py:class", "torch.utils.data.dataset.Dataset"),
     ("py:class", "torch.utils.data.sampler.BatchSampler"),
-    ("py:class", "torch.cuda.amp.grad_scaler.GradScaler"),
+    ("py:class", "torch.amp.grad_scaler.GradScaler"),
     ("py:class", "torch.optim.lr_scheduler._LRScheduler"),
     ("py:class", "torch.optim.lr_scheduler.LRScheduler"),
     ("py:class", "torch.utils.data.dataloader.DataLoader"),
