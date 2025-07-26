@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.optim as optim
 import utils
 from torch.amp import autocast
-from torch.cuda.amp import GradScaler
+from torch.amp import GradScaler
 
 import ignite
 import ignite.distributed as idist

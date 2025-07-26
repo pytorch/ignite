@@ -48,7 +48,7 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "distributed: run distributed")
     config.addinivalue_line("markers", "multinode_distributed: distributed")
     config.addinivalue_line("markers", "tpu: run on tpu")
-    if config.option.treat_unrun_as_failed:
+    if getattr(config.option, "treat_unrun_as_failed", False):
         unrun_tracker = UnrunTracker()
         config.pluginmanager.register(unrun_tracker, "unrun_tracker_plugin")
 
@@ -611,6 +611,6 @@ def pytest_sessionfinish(session, exitstatus):
     run finished, right before returning the exit status to the system.
     """
     # If requested by the user, track all unrun tests and add them to the lastfailed cache
-    if session.config.option.treat_unrun_as_failed:
+    if getattr(session.config.option, "treat_unrun_as_failed", False):
         unrun_tracker = session.config.pluginmanager.get_plugin("unrun_tracker_plugin")
         unrun_tracker.record_unrun_as_failed(session, exitstatus)

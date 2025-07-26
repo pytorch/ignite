@@ -2,7 +2,7 @@ from collections.abc import Mapping
 from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 
 import torch
-
+from torch.amp import GradScaler 
 import ignite.distributed as idist
 from ignite.engine.deterministic import DeterministicEngine
 from ignite.engine.engine import Engine
@@ -133,7 +133,7 @@ def supervised_training_step_amp(
     prepare_batch: Callable = _prepare_batch,
     model_transform: Callable[[Any], Any] = lambda output: output,
     output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
-    scaler: Optional["torch.cuda.amp.GradScaler"] = None,
+    scaler: Optional["torch.amp.GradScaler"] = None,
     gradient_accumulation_steps: int = 1,
     model_fn: Callable[[torch.nn.Module, Any], Any] = lambda model, x: model(x),
 ) -> Callable:
@@ -393,8 +393,8 @@ def supervised_training_step_tpu(
 
 
 def _check_arg(
-    on_tpu: bool, on_mps: bool, amp_mode: Optional[str], scaler: Optional[Union[bool, "torch.cuda.amp.GradScaler"]]
-) -> Tuple[Optional[str], Optional["torch.cuda.amp.GradScaler"]]:
+    on_tpu: bool, on_mps: bool, amp_mode: Optional[str], scaler: Optional[Union[bool, "torch.amp.GradScaler"]]
+) -> Tuple[Optional[str], Optional["torch.amp.GradScaler"]]:
     """Checking tpu, mps, amp and GradScaler instance combinations."""
     if on_mps and amp_mode:
         raise ValueError("amp_mode cannot be used with mps device. Consider using amp_mode=None or device='cuda'.")
@@ -410,7 +410,7 @@ def _check_arg(
             raise ValueError(f"scaler argument is {scaler}, but amp_mode is {amp_mode}. Consider using amp_mode='amp'.")
         elif amp_mode == "amp" and isinstance(scaler, bool):
             try:
-                from torch.cuda.amp import GradScaler
+                from torch.amp import GradScaler
             except ImportError:
                 raise ImportError("Please install torch>=1.6.0 to use scaler argument.")
             scaler = GradScaler(enabled=True)
@@ -434,7 +434,7 @@ def create_supervised_trainer(
     output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
     deterministic: bool = False,
     amp_mode: Optional[str] = None,
-    scaler: Union[bool, "torch.cuda.amp.GradScaler"] = False,
+    scaler: Union[bool, "torch.amp.GradScaler"] = False,
     gradient_accumulation_steps: int = 1,
     model_fn: Callable[[torch.nn.Module, Any], Any] = lambda model, x: model(x),
 ) -> Engine:
