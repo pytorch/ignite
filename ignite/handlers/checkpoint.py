@@ -72,7 +72,6 @@ class BaseSaveHandler(metaclass=ABCMeta):
 
 
 class Checkpoint(Serializable):
-    SAVED_CHECKPOINT = "saved_checkpoint"
     """Checkpoint handler can be used to periodically save and load objects which have attribute
     ``state_dict/load_state_dict``. This class can use specific save handlers to store on the disk or a cloud
     storage, etc. The Checkpoint handler (if used with :class:`~ignite.handlers.DiskSaver`) also handles automatically
@@ -466,7 +465,11 @@ class Checkpoint(Serializable):
                 self.save_handler(checkpoint, filename, metadata)
             except TypeError:
                 self.save_handler(checkpoint, filename)
-            engine.fire_event(Checkpoint.SAVED_CHECKPOINT)    
+            # Register and fire the saved checkpoint event
+            if not hasattr(engine, '_saved_checkpoint_registered'):
+                engine.register_events("saved_checkpoint")
+                engine._saved_checkpoint_registered = True
+            engine.fire_event("saved_checkpoint")    
 
     def _setup_checkpoint(self) -> Dict[str, Any]:
         if self.to_save is not None:
