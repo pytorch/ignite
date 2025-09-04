@@ -12,6 +12,8 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
+import doctest
+
 import os
 import shutil
 import sys
@@ -106,6 +108,10 @@ exclude_patterns = []
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = "sphinx"
 
+# -- Options for doctest ------------------------------------------------------
+
+# Enable ellipsis for floating-point comparisons
+doctest_default_flags = doctest.ELLIPSIS | doctest.NORMALIZE_WHITESPACE
 
 # -- Options for HTML output -------------------------------------------------
 
