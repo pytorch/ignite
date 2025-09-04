@@ -75,6 +75,12 @@ jobs:
           conda activate $CONDA_ENV
           pip install uv
 
+      - name: Install GPG for Codecov
+        shell: bash -l {0}
+        run: |
+          # Install GPG which is required by codecov-action@v5
+          brew install gnupg
+
       - name: Install PyTorch
         if: ${{ matrix.pytorch-channel == 'pytorch' }}
         shell: bash -l {0}
@@ -130,7 +136,7 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
-          file: ${{ github.repository }}/coverage.xml
+          files: ${{ github.repository }}/coverage.xml
           flags: mps
           fail_ci_if_error: false
 

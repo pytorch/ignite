@@ -131,7 +131,7 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
-          file: ${{ github.repository }}/coverage.xml
+          files: ${{ github.repository }}/coverage.xml
           flags: gpu-2
           fail_ci_if_error: false
 
