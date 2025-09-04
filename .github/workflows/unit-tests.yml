@@ -93,17 +93,6 @@ jobs:
           uv pip install .
           uv pip list
 
-      - name: Check code formatting
-        run: |
-          pre-commit run -a
-
-      - name: Run Mypy
-        # https://github.com/pytorch/ignite/pull/2780
-        #
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: |
-          mypy
-
       # Download MNIST: https://github.com/pytorch/ignite/issues/1737
       # to "/tmp" for unit tests
       - name: Download MNIST

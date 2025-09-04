@@ -1,0 +1,69 @@
+name: Type Checking
+
+on:
+  push:
+    branches:
+      - master
+      - "*.*.*"
+    paths:
+      - "ignite/**"
+      - "examples/**.py"
+      - "tests/ignite/**"
+      - "requirements-dev.txt"
+      - "pyproject.toml"
+      - "mypy.ini"
+      - ".github/workflows/typing-checks.yml"
+  pull_request:
+    paths:
+      - "ignite/**"
+      - "examples/**.py"
+      - "tests/ignite/**"
+      - "requirements-dev.txt"
+      - "pyproject.toml"
+      - "mypy.ini"
+      - ".github/workflows/typing-checks.yml"
+  workflow_dispatch:
+
+concurrency:
+  # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>
+  group: typing-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  mypy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.13"]
+        pytorch-channel: [pytorch]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get year & week number
+        id: get-date
+        run: |
+          echo "date=$(/bin/date "+%Y-%U")" >> $GITHUB_OUTPUT
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "latest"
+          python-version: ${{ matrix.python-version }}
+          activate-environment: true
+          enable-cache: true
+          cache-suffix: "${{ steps.get-date.outputs.date }}-typing-${{ runner.os }}-${{ matrix.python-version }}"
+          cache-dependency-glob: |
+            **/requirements-dev.txt
+            **/pyproject.toml
+
+      - name: Install PyTorch
+        run: uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Install dependencies
+        run: |
+          uv pip install -r requirements-dev.txt
+          uv pip install .
+          uv pip install mypy
+
+      - name: Run MyPy type checking
+        run: mypy
