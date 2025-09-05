@@ -48,7 +48,7 @@ def fid_score(
     tr_covmean = np.trace(covmean)
 
     if not np.isfinite(covmean).all():
-        tr_covmean = np.sum(np.sqrt(((np.diag(sigma1) * eps) * (np.diag(sigma2) * eps)) / (eps * eps)))
+        tr_covmean = np.sum(np.sqrt(((np.diag(sigma1.numpy()) * eps) * (np.diag(sigma2.numpy()) * eps)) / (eps * eps)))
 
     return float(diff.dot(diff).item() + torch.trace(sigma1) + torch.trace(sigma2) - 2 * tr_covmean)
 

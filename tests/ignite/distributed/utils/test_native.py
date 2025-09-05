@@ -25,6 +25,9 @@ from tests.ignite.distributed.utils import (
 )
 
 
+_torch_version_lt_1132 = Version(torch.__version__) < Version("1.13.2")
+
+
 def _test_native_distrib_single_node_launch_tool(backend, device, local_rank, world_size, init_method=None, **kwargs):
     import os
 
@@ -230,7 +233,9 @@ def test_idist_all_reduce_nccl(distributed_context_single_node_nccl):
 
 
 @pytest.mark.distributed
+@pytest.mark.order(-1)
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.skipif(_torch_version_lt_1132, reason="Skip if older pytorch version")
 def test_idist_all_reduce_gloo(distributed_context_single_node_gloo):
     device = idist.device()
     _test_distrib_all_reduce(device)
@@ -252,6 +257,7 @@ def test_idist_all_gather_nccl(distributed_context_single_node_nccl):
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.skipif(Version(torch.__version__) < Version("1.7.0"), reason="dist.all_gather_object is not implemented")
+@pytest.mark.order(-3)
 def test_idist_all_gather_gloo(distributed_context_single_node_gloo):
     device = idist.device()
     _test_distrib_all_gather(device)
@@ -271,6 +277,7 @@ def test_idist_all_gather_tensors_with_shapes_nccl(distributed_context_single_no
 
 @pytest.mark.distributed
 @pytest.mark.skipif(not has_native_dist_support, reason="Skip if no native dist support")
+@pytest.mark.order(-2)
 def test_idist_all_gather_tensors_with_shapes_gloo(distributed_context_single_node_gloo):
     device = idist.device()
     _test_idist_all_gather_tensors_with_shapes(device)
