@@ -58,7 +58,7 @@ jobs:
             skip-distrib-tests: 1
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Get year & week number
         id: get-date
