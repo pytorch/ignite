@@ -118,6 +118,8 @@ class ClearMLLogger(BaseLogger):
 
     """
 
+    _task: Any
+
     def __init__(self, **kwargs: Any):
         try:
             from clearml import Task
@@ -823,6 +825,8 @@ class ClearMLSaver(DiskSaver):
 
     """
 
+    _task: Any
+
     def __init__(
         self,
         logger: Optional[ClearMLLogger] = None,
@@ -858,7 +862,7 @@ class ClearMLSaver(DiskSaver):
         except ImportError:
             try:
                 # Backwards-compatibility for legacy Trains SDK
-                from trains import Task
+                from trains import Task  # type: ignore[no-redef]
             except ImportError:
                 raise ModuleNotFoundError(
                     "This contrib module requires clearml to be installed. "
@@ -933,7 +937,7 @@ class ClearMLSaver(DiskSaver):
         except ImportError:
             try:
                 # Backwards-compatibility for legacy Trains SDK
-                from trains.binding.frameworks import WeightsFileHandler
+                from trains.binding.frameworks import WeightsFileHandler  # type: ignore[no-redef]
             except ImportError:
                 raise ModuleNotFoundError(
                     "This contrib module requires clearml to be installed. "
@@ -957,8 +961,8 @@ class ClearMLSaver(DiskSaver):
             metadata=metadata,
         )
 
-        pre_cb_id = WeightsFileHandler.add_pre_callback(cb_context.pre_callback)
-        post_cb_id = WeightsFileHandler.add_post_callback(cb_context.post_callback)
+        pre_cb_id = WeightsFileHandler.add_pre_callback(cb_context.pre_callback)  # type: ignore[arg-type]
+        post_cb_id = WeightsFileHandler.add_post_callback(cb_context.post_callback)  # type: ignore[arg-type]
 
         try:
             super(ClearMLSaver, self).__call__(checkpoint, filename, metadata)

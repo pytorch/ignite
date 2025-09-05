@@ -1,0 +1,65 @@
+name: Code Style Checks
+
+on:
+  push:
+    branches:
+      - master
+      - "*.*.*"
+    paths:
+      - "**.py"
+      - "setup.cfg"
+      - "requirements-dev.txt"
+      - "pyproject.toml"
+      - ".pre-commit-config.yaml"
+      - ".github/workflows/code-style-checks.yml"
+      - "!assets/**"
+      - "!docker/**"
+      - "!docs/**"
+      - "!conda.recipe"
+  pull_request:
+    paths:
+      - "**.py"
+      - "setup.cfg"
+      - "requirements-dev.txt"
+      - "pyproject.toml"
+      - ".pre-commit-config.yaml"
+      - ".github/workflows/code-style-checks.yml"
+      - "!assets/**"
+      - "!docker/**"
+      - "!docs/**"
+      - "!conda.recipe"
+  workflow_dispatch:
+
+concurrency:
+  # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>
+  group: code-style-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  code-style:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "latest"
+          python-version: ${{ matrix.python-version }}
+          activate-environment: true
+          enable-cache: true
+          cache-dependency-glob: |
+            **/requirements-dev.txt
+            **/pyproject.toml
+
+      - name: Install dependencies
+        run: |
+          uv pip install pre-commit
+          uv pip install -r requirements-dev.txt
+          uv pip install -e .
+
+      - name: Run pre-commit checks
+        run: pre-commit run --all-files --show-diff-on-failure
