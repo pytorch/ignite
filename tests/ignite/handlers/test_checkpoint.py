@@ -1850,6 +1850,7 @@ def test_load_single_object(obj_to_save, dirname):
     Checkpoint.load_objects(to_load=to_save, checkpoint=str(checkpoint_fp))
 
 
+
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.parametrize("atomic", [False, True])
