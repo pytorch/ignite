@@ -35,7 +35,7 @@ jobs:
             python-version: "3.11"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Get year & week number
         id: get-date
@@ -107,7 +107,7 @@ jobs:
     needs: build
     if: always() && needs.build.result == 'failure'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: JasonEtco/create-an-issue@v2
         name: Create issue if pytorch version tests failed
         with:
