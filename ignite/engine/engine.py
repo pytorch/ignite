@@ -328,7 +328,6 @@ class Engine(Serializable):
 
         try:
             _check_signature(handler, "handler", self, *(event_args + args), **kwargs)
-            # Use weak reference to break circular reference
             self._event_handlers[event_name].append((handler, (weakref.ref(self),) + args, kwargs))
         except ValueError:
             _check_signature(handler, "handler", *(event_args + args), **kwargs)
@@ -433,15 +432,14 @@ class Engine(Serializable):
         self.last_event_name = event_name
         for func, args, kwargs in self._event_handlers[event_name]:
             kwargs.update(event_kwargs)
-            # Resolve weak references if present
             if args and isinstance(args[0], weakref.ref):
                 resolved_engine = args[0]()
                 if resolved_engine is None:
-                    # Engine was garbage collected, skip this handler
-                    continue
+                    raise RuntimeError("Engine reference not resolved. Cannot execute event handler.")
                 first, others = ((resolved_engine,), args[1:])
             else:
-                first, others = ((args[0],), args[1:]) if (args and args[0] == self) else (tuple(), args)
+                raise ValueError("Invalid event handler.")
+
             func(*first, *(event_args + others), **kwargs)
 
     def fire_event(self, event_name: Any) -> None:
