@@ -133,11 +133,11 @@ def supervised_training_step_amp(
     prepare_batch: Callable = _prepare_batch,
     model_transform: Callable[[Any], Any] = lambda output: output,
     output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
-    scaler: Optional["torch.cuda.amp.GradScaler"] = None,
+    scaler: Optional["torch.amp.GradScaler"] = None,
     gradient_accumulation_steps: int = 1,
     model_fn: Callable[[torch.nn.Module, Any], Any] = lambda model, x: model(x),
 ) -> Callable:
-    """Factory function for supervised training using ``torch.cuda.amp``.
+    """Factory function for supervised training using ``torch.amp``.
 
     Args:
         model: the model to train.
@@ -170,7 +170,7 @@ def supervised_training_step_amp(
             model = ...
             optimizer = ...
             loss_fn = ...
-            scaler = torch.cuda.amp.GradScaler(2**10)
+            scaler = torch.amp.GradScaler(device='cuda', init_scale=2**10)
 
             update_fn = supervised_training_step_amp(model, optimizer, loss_fn, 'cuda', scaler=scaler)
             trainer = Engine(update_fn)
@@ -393,8 +393,8 @@ def supervised_training_step_tpu(
 
 
 def _check_arg(
-    on_tpu: bool, on_mps: bool, amp_mode: Optional[str], scaler: Optional[Union[bool, "torch.cuda.amp.GradScaler"]]
-) -> Tuple[Optional[str], Optional["torch.cuda.amp.GradScaler"]]:
+    on_tpu: bool, on_mps: bool, amp_mode: Optional[str], scaler: Optional[Union[bool, "torch.amp.GradScaler"]]
+) -> Tuple[Optional[str], Optional["torch.amp.GradScaler"]]:
     """Checking tpu, mps, amp and GradScaler instance combinations."""
     if on_mps and amp_mode:
         raise ValueError("amp_mode cannot be used with mps device. Consider using amp_mode=None or device='cuda'.")
@@ -410,10 +410,10 @@ def _check_arg(
             raise ValueError(f"scaler argument is {scaler}, but amp_mode is {amp_mode}. Consider using amp_mode='amp'.")
         elif amp_mode == "amp" and isinstance(scaler, bool):
             try:
-                from torch.cuda.amp import GradScaler
+                from torch.amp import GradScaler
             except ImportError:
                 raise ImportError("Please install torch>=1.6.0 to use scaler argument.")
-            scaler = GradScaler(enabled=True)
+            scaler = GradScaler(device='cuda', enabled=True)
 
     if on_tpu:
         return "tpu", None
@@ -434,7 +434,7 @@ def create_supervised_trainer(
     output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
     deterministic: bool = False,
     amp_mode: Optional[str] = None,
-    scaler: Union[bool, "torch.cuda.amp.GradScaler"] = False,
+    scaler: Union[bool, "torch.amp.GradScaler"] = False,
     gradient_accumulation_steps: int = 1,
     model_fn: Callable[[torch.nn.Module, Any], Any] = lambda model, x: model(x),
 ) -> Engine:
@@ -459,7 +459,7 @@ def create_supervised_trainer(
             :class:`~ignite.engine.deterministic.DeterministicEngine`, otherwise :class:`~ignite.engine.engine.Engine`
             (default: False).
         amp_mode: can be ``amp`` or ``apex``, model and optimizer will be casted to float16 using
-            `torch.cuda.amp <https://pytorch.org/docs/stable/amp.html>`_ for ``amp`` and
+            `torch.amp <https://pytorch.org/docs/stable/amp.html>`_ for ``amp`` and
             using `apex <https://nvidia.github.io/apex>`_ for ``apex``. (default: None)
         scaler: GradScaler instance for gradient scaling if `torch>=1.6.0`
             and ``amp_mode`` is ``amp``. If ``amp_mode`` is ``apex``, this argument will be ignored.
@@ -689,7 +689,7 @@ def supervised_evaluation_step_amp(
     model_fn: Callable[[torch.nn.Module, Any], Any] = lambda model, x: model(x),
 ) -> Callable:
     """
-    Factory function for supervised evaluation using ``torch.cuda.amp``.
+    Factory function for supervised evaluation using ``torch.amp``.
 
     Args:
         model: the model to train.
@@ -771,7 +771,7 @@ def create_supervised_evaluator(
             to be assigned to engine's state.output after each iteration. Default is returning `(y_pred, y,)` which fits
             output expected by metrics. If you change it you should use `output_transform` in metrics.
         amp_mode: can be ``amp``, model will be casted to float16 using
-            `torch.cuda.amp <https://pytorch.org/docs/stable/amp.html>`_
+            `torch.amp <https://pytorch.org/docs/stable/amp.html>`_
         model_fn: the model function that receives `model` and `x`, and returns `y_pred`.
 
     Returns:
