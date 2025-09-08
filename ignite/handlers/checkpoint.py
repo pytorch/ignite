@@ -25,8 +25,11 @@ from ignite.engine import Engine, Events, EventEnum
 from ignite.utils import _tree_apply2, _tree_map
 
 __all__ = ["Checkpoint", "DiskSaver", "ModelCheckpoint", "BaseSaveHandler", "CheckpointEvents"]
+
+
 class CheckpointEvents(EventEnum):
     """Events fired by Checkpoint handler"""
+
     SAVED_CHECKPOINT = "saved_checkpoint"
 
 
@@ -75,7 +78,6 @@ class BaseSaveHandler(metaclass=ABCMeta):
 
 
 class Checkpoint(Serializable):
-    
     """Checkpoint handler can be used to periodically save and load objects which have attribute
     ``state_dict/load_state_dict``. This class can use specific save handlers to store on the disk or a cloud
     storage, etc. The Checkpoint handler (if used with :class:`~ignite.handlers.DiskSaver`) also handles automatically
@@ -279,8 +281,8 @@ class Checkpoint(Serializable):
         - `save_handler` automatically saves to disk if path to directory is provided.
         - `save_on_rank` saves objects on this rank in a distributed configuration.
     """
-    SAVED_CHECKPOINT = CheckpointEvents.SAVED_CHECKPOINT
 
+    SAVED_CHECKPOINT = CheckpointEvents.SAVED_CHECKPOINT
     Item = NamedTuple("Item", [("priority", int), ("filename", str)])
     _state_dict_all_req_keys = ("_saved",)
 
@@ -405,9 +407,8 @@ class Checkpoint(Serializable):
             return new > self._saved[0].priority
 
     def __call__(self, engine: Engine) -> None:
-        # Register the custom event if not already registered 
-        if not hasattr(engine, '_checkpoint_events_registered'):
-            
+        # Register the custom event if not already registered
+        if not hasattr(engine, "_checkpoint_events_registered"):
             engine.register_events(CheckpointEvents.SAVED_CHECKPOINT)
             engine._checkpoint_events_registered = True
         global_step = None
@@ -470,15 +471,13 @@ class Checkpoint(Serializable):
             if self.include_self:
                 # Now that we've updated _saved, we can add our own state_dict.
                 checkpoint["checkpointer"] = self.state_dict()
-            # Store reference to self in engine for event handlers to access    
+            # Store reference to self in engine for event handlers to access
             engine._current_checkpoint_handler = self
             try:
                 self.save_handler(checkpoint, filename, metadata)
             except TypeError:
                 self.save_handler(checkpoint, filename)
-                
             engine.fire_event(CheckpointEvents.SAVED_CHECKPOINT)
-                
 
     def _setup_checkpoint(self) -> Dict[str, Any]:
         if self.to_save is not None:
