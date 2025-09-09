@@ -25,7 +25,7 @@ jobs:
         os: ["ubuntu-latest"]
         python-version: ["3.10"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
         with:
           version: "latest"
@@ -66,7 +66,7 @@ jobs:
         os: ["ubuntu-latest"]
         python-version: ["3.10"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
         with:
           version: "latest"
@@ -96,7 +96,7 @@ jobs:
         os: ["ubuntu-latest"]
         python-version: ["3.10"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
         with:
           version: "latest"
