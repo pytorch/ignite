@@ -71,7 +71,6 @@ jobs:
       - name: Install uv
         shell: bash -l {0}
         run: |
-          conda shell.bash hook
           conda activate $CONDA_ENV
           pip install uv
 
@@ -85,7 +84,6 @@ jobs:
         if: ${{ matrix.pytorch-channel == 'pytorch' }}
         shell: bash -l {0}
         run: |
-          conda shell.bash hook
           conda activate $CONDA_ENV
           uv pip install torch torchvision
 
@@ -93,7 +91,6 @@ jobs:
         if: ${{ matrix.pytorch-channel == 'pytorch-nightly' }}
         shell: bash -l {0}
         run: |
-          conda shell.bash hook
           conda activate $CONDA_ENV
           uv pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cpu
 
@@ -101,7 +98,6 @@ jobs:
         shell: bash -l {0}
         working-directory: ${{ github.repository }}
         run: |
-          conda shell.bash hook
           conda activate $CONDA_ENV
           # TODO: We add set -xe to explicitly fail the CI if one of the commands is failing.
           # Somehow the step is passing even if a subcommand failed
@@ -129,7 +125,6 @@ jobs:
         shell: bash -l {0}
         working-directory: ${{ github.repository }}
         run: |
-          conda shell.bash hook
           conda activate $CONDA_ENV
           SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} bash tests/run_cpu_tests.sh
 
@@ -144,6 +139,5 @@ jobs:
         shell: bash -l {0}
         working-directory: ${{ github.repository }}
         run: |
-          conda shell.bash hook
           conda activate $CONDA_ENV
           python examples/mnist/mnist.py --epochs=1
