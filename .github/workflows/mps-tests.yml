@@ -129,7 +129,7 @@ jobs:
         shell: bash -l {0}
         working-directory: ${{ github.repository }}
         run: |
-          conda shell.bash hook
+          eval "$($conda shell.bash hook)"
           conda activate $CONDA_ENV
           SKIP_DISTRIB_TESTS=${{ matrix.skip-distrib-tests }} bash tests/run_cpu_tests.sh
 
