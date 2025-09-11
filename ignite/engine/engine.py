@@ -249,6 +249,17 @@ class Engine(Serializable):
         # we need to update state attributes associated with new custom events
         self.state._update_attrs()
 
+    def has_registered_events(self, event: Any) -> bool:
+        """Check whether engine has a registered event.
+
+        Args:
+            event: Event to check for registration.
+
+        Returns:
+            bool: True if the event is registered, False otherwise.
+        """
+        return event in self._allowed_events
+
     def _handler_wrapper(self, handler: Callable, event_name: Any, event_filter: Callable) -> Callable:
         # signature of the following wrapper will be inspected during registering to check if engine is necessary
         # we have to build a wrapper with relevant signature : solution is functools.wraps
