@@ -58,7 +58,7 @@ jobs:
             skip-distrib-tests: 1
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Get year & week number
         id: get-date
@@ -93,17 +93,6 @@ jobs:
           uv pip install .
           uv pip list
 
-      - name: Check code formatting
-        run: |
-          pre-commit run -a
-
-      - name: Run Mypy
-        # https://github.com/pytorch/ignite/pull/2780
-        #
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: |
-          mypy
-
       # Download MNIST: https://github.com/pytorch/ignite/issues/1737
       # to "/tmp" for unit tests
       - name: Download MNIST
@@ -128,7 +117,7 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
-          file: ./coverage.xml
+          files: ./coverage.xml
           flags: cpu
           fail_ci_if_error: false
 

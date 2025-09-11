@@ -48,3 +48,5 @@ conda_build/
 
 .neptune/
 pytest.ini
+
+.vscode/*

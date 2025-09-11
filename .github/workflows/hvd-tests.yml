@@ -32,7 +32,7 @@ jobs:
         pytorch-channel: [pytorch]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Get year & week number
         id: get-date
@@ -94,6 +94,6 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
-          file: ./coverage.xml
+          files: ./coverage.xml
           flags: hvd-cpu
           fail_ci_if_error: false

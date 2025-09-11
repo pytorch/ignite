@@ -48,14 +48,14 @@ jobs:
           echo "::endgroup::"
 
       - name: Checkout repository (pytorch/test-infra)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           # Support the use case where we need to checkout someone's fork
           repository: pytorch/test-infra
           path: test-infra
 
       - name: Checkout repository (${{ github.repository }})
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           # Support the use case where we need to checkout someone's fork
           repository: ${{ github.repository }}
@@ -74,6 +74,12 @@ jobs:
           conda shell.bash hook
           conda activate $CONDA_ENV
           pip install uv
+
+      - name: Install GPG for Codecov
+        shell: bash -l {0}
+        run: |
+          # Install GPG which is required by codecov-action@v5
+          brew install gnupg
 
       - name: Install PyTorch
         if: ${{ matrix.pytorch-channel == 'pytorch' }}
@@ -130,7 +136,7 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
-          file: ${{ github.repository }}/coverage.xml
+          files: ${{ github.repository }}/coverage.xml
           flags: mps
           fail_ci_if_error: false
 

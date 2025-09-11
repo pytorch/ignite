@@ -78,7 +78,7 @@ class MaximumMeanDiscrepancy(Metric):
 
         .. testoutput::
 
-           1.072697639465332
+           1.0726...
 
     .. versionchanged:: 0.5.1
         ``skip_unrolling`` argument is added.

@@ -39,7 +39,7 @@ jobs:
           echo "::endgroup::"
 
       - name: Checkout repository (pytorch/test-infra)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           # Support the use case where we need to checkout someone's fork
           repository: pytorch/test-infra
@@ -54,7 +54,7 @@ jobs:
           docker-image: ${{ env.DOCKER_IMAGE }}
 
       - name: Checkout repository (${{ github.repository }})
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           # Support the use case where we need to checkout someone's fork
           repository: ${{ github.repository }}
@@ -131,7 +131,7 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
-          file: ${{ github.repository }}/coverage.xml
+          files: ${{ github.repository }}/coverage.xml
           flags: gpu-2
           fail_ci_if_error: false
 
