@@ -48,20 +48,21 @@ def test_custom_events():
 
 def test_has_registered_events_custom():
     """Test has_registered_events with custom events."""
-    
+
     class TestEvents(EventEnum):
         CUSTOM_EVENT = "custom_event"
-    
+
     engine = Engine(lambda e, b: None)
-    
+
     # Custom event not registered yet
     assert not engine.has_registered_events(TestEvents.CUSTOM_EVENT)
-    
+
     # Register custom event
     engine.register_events(TestEvents.CUSTOM_EVENT)
-    
+
     # Now should return True
     assert engine.has_registered_events(TestEvents.CUSTOM_EVENT)
+
 
 def test_custom_events_asserts():
     # Dummy engine
