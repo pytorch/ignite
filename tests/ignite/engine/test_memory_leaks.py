@@ -22,13 +22,7 @@ class TestEngineMemoryLeak:
         engine.run(range(5), max_epochs=5)
         self.ENGINE_WEAK_REFS.add(weakref.ref(engine))
 
-    @pytest.mark.parametrize(
-        "with_handler",
-        [
-            (True,),
-            (False,),
-        ],
-    )
+    @pytest.mark.parametrize("with_handler", [True, False])
     def test_memory_leak(self, with_handler):
         num_iters = 5
         counter = 0
