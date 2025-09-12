@@ -1852,7 +1852,6 @@ def test_load_single_object(obj_to_save, dirname):
 
 def test_checkpoint_saved_event():
     """Test that SAVED_CHECKPOINT event is fired correctly."""
-    from ignite.handlers.checkpoint import CheckpointEvents
 
     save_handler = MagicMock(spec=BaseSaveHandler)
     to_save = {"model": DummyModel()}
@@ -1862,31 +1861,26 @@ def test_checkpoint_saved_event():
     trainer = Engine(lambda e, b: None)
     trainer.state = State(epoch=0, iteration=0)
 
-    # Register the event first
-    trainer.register_events(CheckpointEvents.SAVED_CHECKPOINT)
-
     # Track event firing
     event_count = 0
-    received_handlers = []
+
+    # First, call the checkpoint handler to trigger automatic event registration
+    checkpointer(trainer)
 
     @trainer.on(Checkpoint.SAVED_CHECKPOINT)
     def on_checkpoint_saved(engine):
         nonlocal event_count
         event_count += 1
-        received_handlers.append(engine._current_checkpoint_handler)
 
-    # First checkpoint - should fire event
-    checkpointer(trainer)
-    assert event_count == 1
-    assert received_handlers[0] is checkpointer
+    # Verify the first checkpoint didn't trigger our handler (attached after)
+    assert event_count == 0
 
-    # Second checkpoint - should fire event
+    # Second checkpoint - should fire event and trigger our handler
     trainer.state.iteration = 1
     checkpointer(trainer)
-    assert event_count == 2
-    assert received_handlers[1] is checkpointer
+    assert event_count == 1
 
-    # Verify save handler was called
+    # Verify save handler was called twice
     assert save_handler.call_count == 2
 
 

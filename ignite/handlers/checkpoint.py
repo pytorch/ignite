@@ -407,10 +407,8 @@ class Checkpoint(Serializable):
             return new > self._saved[0].priority
 
     def __call__(self, engine: Engine) -> None:
-        # Register the custom event if not already registered
-        if not hasattr(engine, "_checkpoint_events_registered"):
+        if not engine.has_registered_events(CheckpointEvents.SAVED_CHECKPOINT):
             engine.register_events(CheckpointEvents.SAVED_CHECKPOINT)
-            engine._checkpoint_events_registered = True
         global_step = None
         if self.global_step_transform is not None:
             global_step = self.global_step_transform(engine, engine.last_event_name)
