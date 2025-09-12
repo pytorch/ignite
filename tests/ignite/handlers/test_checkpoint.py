@@ -1852,7 +1852,6 @@ def test_load_single_object(obj_to_save, dirname):
 
 def test_checkpoint_saved_event():
     """Test that SAVED_CHECKPOINT event is fired correctly."""
-
     save_handler = MagicMock(spec=BaseSaveHandler)
     to_save = {"model": DummyModel()}
 
