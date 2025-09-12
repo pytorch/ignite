@@ -1,0 +1,47 @@
+﻿MeanAbsoluteError
+=================
+
+.. currentmodule:: ignite.metrics
+
+.. autoclass:: MeanAbsoluteError
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~MeanAbsoluteError.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~MeanAbsoluteError.reset
+   
+   
+   
+   
+   
+   
+   
+      ~MeanAbsoluteError.update
+   
+   
+   
+   
