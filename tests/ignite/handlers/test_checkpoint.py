@@ -1850,6 +1850,39 @@ def test_load_single_object(obj_to_save, dirname):
     Checkpoint.load_objects(to_load=to_save, checkpoint=str(checkpoint_fp))
 
 
+def test_checkpoint_saved_event():
+    """Test that SAVED_CHECKPOINT event is fired correctly."""
+    save_handler = MagicMock(spec=BaseSaveHandler)
+    to_save = {"model": DummyModel()}
+
+    checkpointer = Checkpoint(to_save, save_handler=save_handler, n_saved=2)
+
+    trainer = Engine(lambda e, b: None)
+    trainer.state = State(epoch=0, iteration=0)
+
+    # Track event firing
+    event_count = 0
+
+    # First, call the checkpoint handler to trigger automatic event registration
+    checkpointer(trainer)
+
+    @trainer.on(Checkpoint.SAVED_CHECKPOINT)
+    def on_checkpoint_saved(engine):
+        nonlocal event_count
+        event_count += 1
+
+    # Verify the first checkpoint didn't trigger our handler (attached after)
+    assert event_count == 0
+
+    # Second checkpoint - should fire event and trigger our handler
+    trainer.state.iteration = 1
+    checkpointer(trainer)
+    assert event_count == 1
+
+    # Verify save handler was called twice
+    assert save_handler.call_count == 2
+
+
 @pytest.mark.distributed
 @pytest.mark.skipif(not idist.has_native_dist_support, reason="Skip if no native dist support")
 @pytest.mark.parametrize("atomic", [False, True])

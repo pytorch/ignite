@@ -33,6 +33,31 @@ Complete list of generic handlers
     param_scheduler.ParamScheduler
     state_param_scheduler.StateParamScheduler
 
+**Checkpoint Events**
+The Checkpoint handler provides a `SAVED_CHECKPOINT` event that fires after successful checkpoint saves.
+
+**Usage:**
+
+```python
+from ignite.handlers import Checkpoint
+
+# Setup checkpoint handler
+checkpoint_handler = Checkpoint(
+    {'model': model, 'optimizer': optimizer},
+    save_dir,
+    n_saved=2
+)
+
+# Attach handler to the checkpoint event (no manual registration needed)
+@trainer.on(Checkpoint.SAVED_CHECKPOINT)
+def on_checkpoint_saved(engine):
+    # Access checkpoint handler via engine attribute
+    checkpoint_handler = engine._current_checkpoint_handler
+    print(f"Checkpoint saved: {checkpoint_handler.last_checkpoint}")
+    # Add custom logic: notifications, logging, etc.
+
+trainer.add_event_handler(Events.EPOCH_COMPLETED, checkpoint_handler)
+
 
 Loggers
 --------
