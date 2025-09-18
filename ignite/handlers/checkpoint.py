@@ -21,10 +21,16 @@ else:
 
 import ignite.distributed as idist
 from ignite.base import Serializable
-from ignite.engine import Engine, Events
+from ignite.engine import Engine, Events, EventEnum
 from ignite.utils import _tree_apply2, _tree_map
 
-__all__ = ["Checkpoint", "DiskSaver", "ModelCheckpoint", "BaseSaveHandler"]
+__all__ = ["Checkpoint", "DiskSaver", "ModelCheckpoint", "BaseSaveHandler", "CheckpointEvents"]
+
+
+class CheckpointEvents(EventEnum):
+    """Events fired by Checkpoint handler"""
+
+    SAVED_CHECKPOINT = "saved_checkpoint"
 
 
 class BaseSaveHandler(metaclass=ABCMeta):
@@ -276,6 +282,7 @@ class Checkpoint(Serializable):
         - `save_on_rank` saves objects on this rank in a distributed configuration.
     """
 
+    SAVED_CHECKPOINT = CheckpointEvents.SAVED_CHECKPOINT
     Item = NamedTuple("Item", [("priority", int), ("filename", str)])
     _state_dict_all_req_keys = ("_saved",)
 
@@ -400,6 +407,8 @@ class Checkpoint(Serializable):
             return new > self._saved[0].priority
 
     def __call__(self, engine: Engine) -> None:
+        if not engine.has_registered_events(CheckpointEvents.SAVED_CHECKPOINT):
+            engine.register_events(CheckpointEvents.SAVED_CHECKPOINT)
         global_step = None
         if self.global_step_transform is not None:
             global_step = self.global_step_transform(engine, engine.last_event_name)
@@ -460,11 +469,11 @@ class Checkpoint(Serializable):
             if self.include_self:
                 # Now that we've updated _saved, we can add our own state_dict.
                 checkpoint["checkpointer"] = self.state_dict()
-
             try:
                 self.save_handler(checkpoint, filename, metadata)
             except TypeError:
                 self.save_handler(checkpoint, filename)
+            engine.fire_event(CheckpointEvents.SAVED_CHECKPOINT)
 
     def _setup_checkpoint(self) -> Dict[str, Any]:
         if self.to_save is not None:
