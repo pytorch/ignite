@@ -1,7 +1,7 @@
 """Visdom logger and its helper handlers."""
 
 import os
-from typing import Any, Callable, cast, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 import torch.nn as nn
