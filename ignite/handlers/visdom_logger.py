@@ -179,7 +179,7 @@ class VisdomLogger(BaseLogger):
                 )
 
         if server is None:
-            server = cast(str, os.environ.get("VISDOM_SERVER_URL", "localhost"))
+            server = os.environ.get("VISDOM_SERVER_URL", "localhost")
 
         if port is None:
             port = int(os.environ.get("VISDOM_PORT", 8097))
