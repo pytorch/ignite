@@ -39,12 +39,6 @@ class TestEngineMemoryLeak:
                 engine = weak_engine_ref()
                 assert engine is None
 
-            if with_handler:
-                assert counter == i + 1
-            else:
-                assert counter == 0
-
-        if with_handler:
             assert counter == i + 1
-        else:
-            assert counter == 0
+
+        assert counter == i + 1
