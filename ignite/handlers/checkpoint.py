@@ -28,7 +28,10 @@ __all__ = ["Checkpoint", "DiskSaver", "ModelCheckpoint", "BaseSaveHandler", "Che
 
 
 class CheckpointEvents(EventEnum):
-    """Events fired by Checkpoint handler"""
+    """Events fired by Checkpoint handler
+
+    .. versionadded:: 0.5.3
+    """
 
     SAVED_CHECKPOINT = "saved_checkpoint"
 

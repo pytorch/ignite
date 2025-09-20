@@ -37,7 +37,6 @@ Complete list of generic handlers
 Checkpoint Events
 -----------------
 
-.. versionadded:: 0.5.0
 
 The Checkpoint handler provides a ``SAVED_CHECKPOINT`` event that fires after successful checkpoint saves.
 This allows users to attach custom handlers that react to checkpoint operations without manual event registration.
