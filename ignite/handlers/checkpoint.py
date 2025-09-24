@@ -28,8 +28,10 @@ __all__ = ["Checkpoint", "DiskSaver", "ModelCheckpoint", "BaseSaveHandler", "Che
 
 
 class CheckpointEvents(EventEnum):
-    """Events fired by Checkpoint handler
-
+    """Events fired by :class:`~ignite.handlers.checkpoint.Checkpoint`
+    
+    - SAVED_CHECKPOINT : triggered when checkpoint handler has saved objects
+    
     .. versionadded:: 0.5.3
     """
 
