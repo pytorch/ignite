@@ -11,6 +11,7 @@ Complete list of generic handlers
     :toctree: generated
 
     checkpoint.Checkpoint
+    checkpoint.CheckpointEvents
     DiskSaver
     checkpoint.ModelCheckpoint
     ema_handler.EMAHandler
