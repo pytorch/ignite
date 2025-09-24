@@ -411,7 +411,7 @@ class Checkpoint(Serializable):
 
     def __call__(self, engine: Engine) -> None:
         if not engine.has_registered_events(CheckpointEvents.SAVED_CHECKPOINT):
-            engine.register_events(CheckpointEvents.SAVED_CHECKPOINT)
+            engine.register_events(*CheckpointEvents)
         global_step = None
         if self.global_step_transform is not None:
             global_step = self.global_step_transform(engine, engine.last_event_name)
