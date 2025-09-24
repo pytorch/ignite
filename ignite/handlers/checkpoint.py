@@ -29,9 +29,9 @@ __all__ = ["Checkpoint", "DiskSaver", "ModelCheckpoint", "BaseSaveHandler", "Che
 
 class CheckpointEvents(EventEnum):
     """Events fired by :class:`~ignite.handlers.checkpoint.Checkpoint`
-    
+
     - SAVED_CHECKPOINT : triggered when checkpoint handler has saved objects
-    
+
     .. versionadded:: 0.5.3
     """
 
@@ -285,6 +285,8 @@ class Checkpoint(Serializable):
         - `score_name` can be used to define `score_function` automatically without providing `score_function`.
         - `save_handler` automatically saves to disk if path to directory is provided.
         - `save_on_rank` saves objects on this rank in a distributed configuration.
+
+    .. 
     """
 
     SAVED_CHECKPOINT = CheckpointEvents.SAVED_CHECKPOINT
