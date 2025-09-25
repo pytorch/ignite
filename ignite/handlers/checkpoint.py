@@ -309,7 +309,9 @@ class Checkpoint(Serializable):
         - `save_handler` automatically saves to disk if path to directory is provided.
         - `save_on_rank` saves objects on this rank in a distributed configuration.
 
-    ..
+    .. versionchanged:: 0.5.3
+
+        - Added ``SAVED_CHECKPOINT`` class attribute.
     """
 
     SAVED_CHECKPOINT = CheckpointEvents.SAVED_CHECKPOINT
