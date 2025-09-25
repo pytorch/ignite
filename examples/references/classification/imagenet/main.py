@@ -7,7 +7,7 @@ import torch
 
 try:
     from torch.amp import autocast
-    from torch.cuda.amp import GradScaler
+    from torch.amp import GradScaler
 except ImportError:
     raise RuntimeError("Please, use recent PyTorch version, e.g. >=1.12.0")
 
