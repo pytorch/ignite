@@ -24,7 +24,7 @@ jobs:
         pytorch-channel: [pytorch, pytorch-nightly]
       fail-fast: false
     env:
-      DOCKER_IMAGE: "pytorch/almalinux-builder:cuda12.4"
+      DOCKER_IMAGE: "pytorch/almalinux-builder:cuda12.8"
       REPOSITORY: ${{ github.repository }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
     runs-on: linux.g4dn.12xlarge.nvidia.gpu
@@ -112,6 +112,10 @@ jobs:
           # Install dependencies
           pip install -r requirements-dev.txt
           pip install -e .
+
+          # Upgrade pyOpenSSL to avoid issue:
+          # AttributeError: module 'lib' has no attribute 'X509_V_FLAG_NOTIFY_POLICY'. Did you mean: 'X509_V_FLAG_EXPLICIT_POLICY'?
+          pip install -U pyOpenSSL
 
           EOF
           )
