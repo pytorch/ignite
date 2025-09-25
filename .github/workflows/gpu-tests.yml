@@ -24,7 +24,7 @@ jobs:
         pytorch-channel: [pytorch, pytorch-nightly]
       fail-fast: false
     env:
-      DOCKER_IMAGE: "pytorch/almalinux-builder:cuda12.4"
+      DOCKER_IMAGE: "pytorch/almalinux-builder:cuda12.8"
       REPOSITORY: ${{ github.repository }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
     runs-on: linux.g4dn.12xlarge.nvidia.gpu
