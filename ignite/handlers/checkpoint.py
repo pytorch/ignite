@@ -275,6 +275,29 @@ class Checkpoint(Serializable):
                 to_save, save_handler=DiskSaver('/tmp/models', create_dir=True, **kwargs), n_saved=2
             )
 
+        Respond to checkpoint events:
+
+        .. code-block:: python
+
+            from ignite.handlers import Checkpoint
+            from ignite.engine import Engine, Events
+
+            checkpoint_handler = Checkpoint(
+                {'model': model, 'optimizer': optimizer},
+                save_dir,
+                n_saved=2
+            )
+
+            @trainer.on(Checkpoint.SAVED_CHECKPOINT)
+            def on_checkpoint_saved(engine):
+                print(f"Checkpoint saved at epoch {engine.state.epoch}")
+
+            trainer.add_event_handler(Events.EPOCH_COMPLETED, checkpoint_handler)
+
+    Attributes:
+        SAVED_CHECKPOINT: Alias of ``SAVED_CHECKPOINT`` from
+            :class:`~ignite.handlers.checkpoint.CheckpointEvents`.
+
     .. versionchanged:: 0.4.3
 
         - Checkpoint can save model with same filename.
@@ -286,7 +309,7 @@ class Checkpoint(Serializable):
         - `save_handler` automatically saves to disk if path to directory is provided.
         - `save_on_rank` saves objects on this rank in a distributed configuration.
 
-    .. 
+    ..
     """
 
     SAVED_CHECKPOINT = CheckpointEvents.SAVED_CHECKPOINT
