@@ -1,7 +1,7 @@
 """Visdom logger and its helper handlers."""
 
 import os
-from typing import Any, Callable, cast, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 import torch.nn as nn
@@ -137,6 +137,13 @@ class VisdomLogger(BaseLogger):
                     output_transform=lambda loss: {"loss": loss}
                 )
 
+    Note:
+        :class:`~ignite.handlers.visdom_logger.OutputHandler` can handle
+        metrics, state attributes and engine output values of the following format:
+        - scalar values (i.e. int, float)
+        - 0d and 1d pytorch tensors
+        - dicts and list/tuples of previous types
+
     .. versionchanged:: 0.4.7
         accepts an optional list of `state_attributes`
     """
@@ -172,7 +179,7 @@ class VisdomLogger(BaseLogger):
                 )
 
         if server is None:
-            server = cast(str, os.environ.get("VISDOM_SERVER_URL", "localhost"))
+            server = os.environ.get("VISDOM_SERVER_URL", "localhost")
 
         if port is None:
             port = int(os.environ.get("VISDOM_PORT", 8097))

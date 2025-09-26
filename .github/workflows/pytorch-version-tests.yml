@@ -16,8 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [3.9, "3.10", "3.11"]
-        pytorch-version:
-          [2.5.1, 2.4.1, 2.3.1, 2.2.2, 1.13.1, 1.12.1, 1.10.0]
+        pytorch-version: [2.5.1, 2.4.1, 2.3.1, 2.2.2, 1.13.1, 1.12.1, 1.10.0]
         exclude:
           - pytorch-version: 1.10.0
             python-version: "3.10"
@@ -36,7 +35,7 @@ jobs:
             python-version: "3.11"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Get year & week number
         id: get-date
@@ -50,7 +49,7 @@ jobs:
           echo "pip_cache=$(python3 -m pip cache dir)" >> $GITHUB_OUTPUT
         shell: bash -l {0}
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: |
             ~/conda_pkgs_dir
@@ -60,7 +59,7 @@ jobs:
             ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v2
+        uses: conda-incubator/setup-miniconda@v3
         with:
           miniconda-version: "latest"
           python-version: ${{ matrix.python-version }}
@@ -78,7 +77,7 @@ jobs:
           fi
 
           pip install -r requirements-dev.txt
-          python setup.py install
+          pip install .
 
           # pytorch>=1.9.0,<1.11.0 is using "from setuptools import distutils; distutils.version.LooseVersion" anti-pattern
           # which raises the error: AttributeError: module 'distutils' has no attribute 'version' for setuptools>59
@@ -94,7 +93,7 @@ jobs:
           target_dir: /tmp
 
       - name: Run Tests
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v3.0.2
         with:
           max_attempts: 5
           timeout_minutes: 15
@@ -108,7 +107,7 @@ jobs:
     needs: build
     if: always() && needs.build.result == 'failure'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: JasonEtco/create-an-issue@v2
         name: Create issue if pytorch version tests failed
         with:

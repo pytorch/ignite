@@ -85,6 +85,36 @@ def test_output_handler_metric_names():
     assert mock_logger.log_metrics.call_count == 1
     mock_logger.log_metrics.assert_has_calls([call({"tag a": 55.56}, step=7)], any_order=True)
 
+    wrapper = OutputHandler("tag", metric_names="all")
+    mock_logger = MagicMock(spec=MLflowLogger)
+    mock_logger.log_metrics = MagicMock()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State(
+        metrics={
+            "a": 123,
+            "b": {"c": [2.34, {"d": 1}]},
+            "c": (22, [33, -5.5], {"e": 32.1}),
+        }
+    )
+    mock_engine.state.iteration = 5
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+    assert mock_logger.log_metrics.call_count == 1
+    mock_logger.log_metrics.assert_called_once_with(
+        {
+            "tag a": 123,
+            "tag b c 0": 2.34,
+            "tag b c 1 d": 1,
+            "tag c 0": 22,
+            "tag c 1 0": 33,
+            "tag c 1 1": -5.5,
+            "tag c 2 e": 32.1,
+        },
+        step=5,
+    )
+
 
 def test_output_handler_both():
     wrapper = OutputHandler("tag", metric_names=["a", "b"], output_transform=lambda x: {"loss": x})

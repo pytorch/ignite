@@ -28,77 +28,63 @@ def test_wrong_input_shapes():
         m.update((torch.rand(4, 1), torch.rand(4)))
 
 
-def test_compute():
-    a = np.random.randn(4)
-    b = np.random.randn(4)
-    c = np.random.randn(4)
-    d = np.random.randn(4)
-    ground_truth = np.random.randn(4)
+def test_compute(available_device):
+    a = torch.randn(4)
+    b = torch.randn(4)
+    c = torch.randn(4)
+    d = torch.randn(4)
+    ground_truth = torch.randn(4)
 
-    m = FractionalAbsoluteError()
+    m = FractionalAbsoluteError(device=available_device)
+    assert m._device == torch.device(available_device)
 
-    m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
-    np_sum = (2 * np.abs((a - ground_truth)) / (np.abs(a) + np.abs(ground_truth))).sum()
-    np_len = len(a)
-    np_ans = np_sum / np_len
-    assert m.compute() == pytest.approx(np_ans)
+    total_error = 0.0
+    total_len = 0
 
-    m.update((torch.from_numpy(b), torch.from_numpy(ground_truth)))
-    np_sum += (2 * np.abs((b - ground_truth)) / (np.abs(b) + np.abs(ground_truth))).sum()
-    np_len += len(b)
-    np_ans = np_sum / np_len
-    assert m.compute() == pytest.approx(np_ans)
+    for pred in [a, b, c, d]:
+        m.update((pred, ground_truth))
 
-    m.update((torch.from_numpy(c), torch.from_numpy(ground_truth)))
-    np_sum += (2 * np.abs((c - ground_truth)) / (np.abs(c) + np.abs(ground_truth))).sum()
-    np_len += len(c)
-    np_ans = np_sum / np_len
-    assert m.compute() == pytest.approx(np_ans)
+        # Compute fractional absolute error in PyTorch
+        error = 2 * torch.abs(pred - ground_truth) / (torch.abs(pred) + torch.abs(ground_truth))
+        total_error += error.sum().item()
+        total_len += len(pred)
 
-    m.update((torch.from_numpy(d), torch.from_numpy(ground_truth)))
-    np_sum += (2 * np.abs((d - ground_truth)) / (np.abs(d) + np.abs(ground_truth))).sum()
-    np_len += len(d)
-    np_ans = np_sum / np_len
-    assert m.compute() == pytest.approx(np_ans)
+        expected = total_error / total_len
+        assert m.compute() == pytest.approx(expected)
 
 
-def test_integration():
-    def _test(y_pred, y, batch_size):
-        def update_fn(engine, batch):
-            idx = (engine.state.iteration - 1) * batch_size
-            y_true_batch = np_y[idx : idx + batch_size]
-            y_pred_batch = np_y_pred[idx : idx + batch_size]
-            return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+@pytest.mark.parametrize("n_times", range(5))
+@pytest.mark.parametrize(
+    "test_cases",
+    [
+        (torch.rand(size=(100,)), torch.rand(size=(100,)), 10),
+        (torch.rand(size=(100, 1)), torch.rand(size=(100, 1)), 20),
+    ],
+)
+def test_integration_fractional_absolute_error(n_times, test_cases, available_device):
+    y_pred, y, batch_size = test_cases
 
-        engine = Engine(update_fn)
+    def update_fn(engine, batch):
+        idx = (engine.state.iteration - 1) * batch_size
+        y_true_batch = y[idx : idx + batch_size]
+        y_pred_batch = y_pred[idx : idx + batch_size]
+        return y_pred_batch, y_true_batch
 
-        m = FractionalAbsoluteError()
-        m.attach(engine, "fab")
+    engine = Engine(update_fn)
 
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().ravel()
+    metric = FractionalAbsoluteError(device=available_device)
+    assert metric._device == torch.device(available_device)
 
-        data = list(range(y_pred.shape[0] // batch_size))
-        fab = engine.run(data, max_epochs=1).metrics["fab"]
+    metric.attach(engine, "fab")
 
-        np_sum = (2 * np.abs((np_y_pred - np_y)) / (np.abs(np_y_pred) + np.abs(np_y))).sum()
-        np_len = len(y_pred)
-        np_ans = np_sum / np_len
+    data = list(range(y_pred.shape[0] // batch_size))
+    fab = engine.run(data, max_epochs=1).metrics["fab"]
 
-        assert np_ans == pytest.approx(fab)
+    abs_diff = torch.abs(y_pred - y)
+    denom = torch.abs(y_pred) + torch.abs(y)
+    expected = (2 * abs_diff / denom).sum().item() / y.numel()
 
-    def get_test_cases():
-        test_cases = [
-            (torch.rand(size=(100,)), torch.rand(size=(100,)), 10),
-            (torch.rand(size=(100, 1)), torch.rand(size=(100, 1)), 20),
-        ]
-        return test_cases
-
-    for _ in range(5):
-        # check multiple random inputs as random exact occurencies are rare
-        test_cases = get_test_cases()
-        for y_pred, y, batch_size in test_cases:
-            _test(y_pred, y, batch_size)
+    assert pytest.approx(expected) == fab
 
 
 def _test_distrib_compute(device):

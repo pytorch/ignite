@@ -28,47 +28,27 @@ def test_wrong_input_shapes():
         m.update((torch.rand(4, 1), torch.rand(4)))
 
 
-def test_compute():
-    a = np.random.randn(4)
-    b = np.random.randn(4)
-    c = np.random.randn(4)
-    d = np.random.randn(4)
-    ground_truth = np.random.randn(4)
-    np_prod = 1.0
+def test_compute(available_device):
+    inputs = [torch.randn(4) for _ in range(4)]
+    ground_truth = torch.randn(4)
 
-    m = GeometricMeanAbsoluteError()
-    m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
+    m = GeometricMeanAbsoluteError(device=available_device)
+    assert m._device == torch.device(available_device)
 
-    errors = np.abs(ground_truth - a)
-    np_prod = np.multiply.reduce(errors) * np_prod
-    np_len = len(a)
-    np_ans = np.power(np_prod, 1.0 / np_len)
-    assert m.compute() == pytest.approx(np_ans)
+    total_prod = 1.0
+    total_len = 0
 
-    m.update((torch.from_numpy(b), torch.from_numpy(ground_truth)))
-    errors = np.abs(ground_truth - b)
-    np_prod = np.multiply.reduce(errors) * np_prod
-    np_len += len(b)
-    np_ans = np.power(np_prod, 1.0 / np_len)
-    assert m.compute() == pytest.approx(np_ans)
-
-    m.update((torch.from_numpy(c), torch.from_numpy(ground_truth)))
-    errors = np.abs(ground_truth - c)
-    np_prod = np.multiply.reduce(errors) * np_prod
-    np_len += len(c)
-    np_ans = np.power(np_prod, 1.0 / np_len)
-    assert m.compute() == pytest.approx(np_ans)
-
-    m.update((torch.from_numpy(d), torch.from_numpy(ground_truth)))
-    errors = np.abs(ground_truth - d)
-    np_prod = np.multiply.reduce(errors) * np_prod
-    np_len += len(d)
-    np_ans = np.power(np_prod, 1.0 / np_len)
-    assert m.compute() == pytest.approx(np_ans)
+    for pred in inputs:
+        m.update((pred, ground_truth))
+        errors = torch.abs(ground_truth - pred)
+        total_prod *= torch.prod(errors).item()
+        total_len += pred.numel()
+        expected = torch.pow(torch.tensor(total_prod), 1.0 / total_len)
+        assert m.compute() == pytest.approx(expected.item())
 
 
-def test_integration():
-    def _test(y_pred, y, batch_size):
+def test_integration(available_device):
+    def _test(y_pred, y, batch_size, device="cpu"):
         def update_fn(engine, batch):
             idx = (engine.state.iteration - 1) * batch_size
             y_true_batch = np_y[idx : idx + batch_size]
@@ -77,7 +57,9 @@ def test_integration():
 
         engine = Engine(update_fn)
 
-        m = GeometricMeanAbsoluteError()
+        m = GeometricMeanAbsoluteError(device=device)
+        assert m._device == torch.device(device)
+
         m.attach(engine, "gmae")
 
         np_y = y.numpy().ravel()

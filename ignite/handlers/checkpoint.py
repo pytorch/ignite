@@ -21,10 +21,21 @@ else:
 
 import ignite.distributed as idist
 from ignite.base import Serializable
-from ignite.engine import Engine, Events
+from ignite.engine import Engine, Events, EventEnum
 from ignite.utils import _tree_apply2, _tree_map
 
-__all__ = ["Checkpoint", "DiskSaver", "ModelCheckpoint", "BaseSaveHandler"]
+__all__ = ["Checkpoint", "DiskSaver", "ModelCheckpoint", "BaseSaveHandler", "CheckpointEvents"]
+
+
+class CheckpointEvents(EventEnum):
+    """Events fired by :class:`~ignite.handlers.checkpoint.Checkpoint`
+
+    - SAVED_CHECKPOINT : triggered when checkpoint handler has saved objects
+
+    .. versionadded:: 0.5.3
+    """
+
+    SAVED_CHECKPOINT = "saved_checkpoint"
 
 
 class BaseSaveHandler(metaclass=ABCMeta):
@@ -264,6 +275,29 @@ class Checkpoint(Serializable):
                 to_save, save_handler=DiskSaver('/tmp/models', create_dir=True, **kwargs), n_saved=2
             )
 
+        Respond to checkpoint events:
+
+        .. code-block:: python
+
+            from ignite.handlers import Checkpoint
+            from ignite.engine import Engine, Events
+
+            checkpoint_handler = Checkpoint(
+                {'model': model, 'optimizer': optimizer},
+                save_dir,
+                n_saved=2
+            )
+
+            @trainer.on(Checkpoint.SAVED_CHECKPOINT)
+            def on_checkpoint_saved(engine):
+                print(f"Checkpoint saved at epoch {engine.state.epoch}")
+
+            trainer.add_event_handler(Events.EPOCH_COMPLETED, checkpoint_handler)
+
+    Attributes:
+        SAVED_CHECKPOINT: Alias of ``SAVED_CHECKPOINT`` from
+            :class:`~ignite.handlers.checkpoint.CheckpointEvents`.
+
     .. versionchanged:: 0.4.3
 
         - Checkpoint can save model with same filename.
@@ -274,8 +308,13 @@ class Checkpoint(Serializable):
         - `score_name` can be used to define `score_function` automatically without providing `score_function`.
         - `save_handler` automatically saves to disk if path to directory is provided.
         - `save_on_rank` saves objects on this rank in a distributed configuration.
+
+    .. versionchanged:: 0.5.3
+
+        - Added ``SAVED_CHECKPOINT`` class attribute.
     """
 
+    SAVED_CHECKPOINT = CheckpointEvents.SAVED_CHECKPOINT
     Item = NamedTuple("Item", [("priority", int), ("filename", str)])
     _state_dict_all_req_keys = ("_saved",)
 
@@ -400,6 +439,8 @@ class Checkpoint(Serializable):
             return new > self._saved[0].priority
 
     def __call__(self, engine: Engine) -> None:
+        if not engine.has_registered_events(CheckpointEvents.SAVED_CHECKPOINT):
+            engine.register_events(*CheckpointEvents)
         global_step = None
         if self.global_step_transform is not None:
             global_step = self.global_step_transform(engine, engine.last_event_name)
@@ -460,11 +501,11 @@ class Checkpoint(Serializable):
             if self.include_self:
                 # Now that we've updated _saved, we can add our own state_dict.
                 checkpoint["checkpointer"] = self.state_dict()
-
             try:
                 self.save_handler(checkpoint, filename, metadata)
             except TypeError:
                 self.save_handler(checkpoint, filename)
+            engine.fire_event(CheckpointEvents.SAVED_CHECKPOINT)
 
     def _setup_checkpoint(self) -> Dict[str, Any]:
         if self.to_save is not None:

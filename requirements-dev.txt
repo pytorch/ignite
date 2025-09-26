@@ -1,11 +1,14 @@
 # Tests
-numpy
-pytest
-pytest-cov
-pytest-xdist
-pytest-timeout
 dill
 filelock
+mypy
+numpy
+pre-commit
+pytest
+pytest-cov
+pytest-order
+pytest-timeout
+pytest-xdist
 setuptools
 # Test contrib dependencies
 scipy

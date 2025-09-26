@@ -29,8 +29,9 @@ def test_data(request):
 
 
 @pytest.mark.parametrize("n_times", range(3))
-def test_compute(n_times, test_data):
-    rmse = RootMeanSquaredError()
+def test_compute(n_times, test_data, available_device):
+    rmse = RootMeanSquaredError(device=available_device)
+    assert rmse._device == torch.device(available_device)
 
     y_pred, y, batch_size = test_data
     rmse.reset()

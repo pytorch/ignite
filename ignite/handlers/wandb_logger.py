@@ -26,7 +26,7 @@ class WandBLogger(BaseLogger):
     Args:
         args: Positional arguments accepted by `wandb.init`.
         kwargs: Keyword arguments accepted by `wandb.init`.
-            Please see `wandb.init <https://docs.wandb.ai/ref/python/init>`_ for documentation of possible parameters.
+            Please see `wandb.init <https://docs.wandb.ai/ref/python/sdk/functions/init/>`_ for documentation of possible parameters.
 
     Examples:
         .. code-block:: python
@@ -120,6 +120,12 @@ class WandBLogger(BaseLogger):
             )
             evaluator.add_event_handler(Events.COMPLETED, model_checkpoint, {'model': model})
 
+    Note:
+        :class:`~ignite.handlers.wandb_logger.OutputHandler` can handle
+        metrics, state attributes and engine output values of the following format:
+        - scalar values (i.e. int, float)
+        - 0d and 1d pytorch tensors
+        - dicts and list/tuples of previous types
 
     """
 

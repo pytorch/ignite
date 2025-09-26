@@ -153,6 +153,13 @@ class NeptuneLogger(BaseLogger):
                     output_transform=lambda loss: {"loss": loss},
                 )
 
+    Note:
+        :class:`~ignite.handlers.neptune_logger.OutputHandler` can handle
+        metrics, state attributes and engine output values of the following format:
+        - scalar values (i.e. int, float)
+        - 0d and 1d pytorch tensors
+        - dicts and list/tuples of previous types
+
     """
 
     def __getattr__(self, attr: Any) -> Any:

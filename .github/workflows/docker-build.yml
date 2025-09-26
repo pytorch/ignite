@@ -9,14 +9,12 @@ on:
     types: [published]
   workflow_dispatch:
 
-
 concurrency:
   # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>
   group: docker-build-publish-${{ github.ref_name }}-${{ !(github.ref_protected) || github.sha }}
   cancel-in-progress: true
 
 jobs:
-
   setup:
     name: Setup
     runs-on: ubuntu-latest
@@ -26,11 +24,11 @@ jobs:
       hvd_version: ${{ steps.set-versions.outputs.hvd_version }}
       msdp_version: ${{ steps.set-versions.outputs.msdp_version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Changed Files Exporter
         if: github.event_name == 'pull_request'
         id: files
-        uses: umani/changed-files@v4.1.0
+        uses: umani/changed-files@v4.2.0
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Get a list of modified files
@@ -45,7 +43,6 @@ jobs:
         run: |
           echo "pth_version=$(python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_pytorch_version'))")" >> $GITHUB_OUTPUT
           echo "hvd_version=$(python -c "import configparser; cfg=configparser.ConfigParser(); cfg.read('docker.cfg'); print(cfg.get('DEFAULT', 'build_docker_image_hvd_version'))")" >> $GITHUB_OUTPUT
-
 
   build-hvd:
     name: Build all Horovod flavoured PyTorch-Ignite images
@@ -66,7 +63,7 @@ jobs:
           echo "::endgroup::"
 
       - name: Checkout repository (pytorch/test-infra)
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
         with:
           # Support the use case where we need to checkout someone's fork
           repository: pytorch/test-infra
@@ -76,7 +73,7 @@ jobs:
         uses: ./test-infra/.github/actions/setup-linux
 
       - name: Checkout repository (${{ github.repository }})
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
         with:
           # Support the use case where we need to checkout someone's fork
           repository: ${{ github.repository }}
@@ -106,7 +103,6 @@ jobs:
           bash push_all.sh hvd-vision
           bash push_all.sh hvd-nlp
 
-
   build-hvd-apex:
     name: Build all Horovod + Apex flavoured PyTorch-Ignite images
     needs: setup
@@ -126,7 +122,7 @@ jobs:
           echo "::endgroup::"
 
       - name: Checkout repository (pytorch/test-infra)
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
         with:
           # Support the use case where we need to checkout someone's fork
           repository: pytorch/test-infra
@@ -136,7 +132,7 @@ jobs:
         uses: ./test-infra/.github/actions/setup-linux
 
       - name: Checkout repository (${{ github.repository }})
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
         with:
           # Support the use case where we need to checkout someone's fork
           repository: ${{ github.repository }}
@@ -166,7 +162,6 @@ jobs:
           bash push_all.sh hvd-apex-vision
           bash push_all.sh hvd-apex-nlp
 
-
   build-main:
     name: Build all PyTorch-Ignite images
     needs: setup
@@ -186,7 +181,7 @@ jobs:
           echo "::endgroup::"
 
       - name: Checkout repository (pytorch/test-infra)
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
         with:
           # Support the use case where we need to checkout someone's fork
           repository: pytorch/test-infra
@@ -196,7 +191,7 @@ jobs:
         uses: ./test-infra/.github/actions/setup-linux
 
       - name: Checkout repository (${{ github.repository }})
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
         with:
           # Support the use case where we need to checkout someone's fork
           repository: ${{ github.repository }}
@@ -226,7 +221,6 @@ jobs:
           bash push_all.sh vision
           bash push_all.sh nlp
 
-
   build-main-apex:
     name: Build all PyTorch-Ignite images with Apex
     needs: setup
@@ -246,7 +240,7 @@ jobs:
           echo "::endgroup::"
 
       - name: Checkout repository (pytorch/test-infra)
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
         with:
           # Support the use case where we need to checkout someone's fork
           repository: pytorch/test-infra
@@ -256,7 +250,7 @@ jobs:
         uses: ./test-infra/.github/actions/setup-linux
 
       - name: Checkout repository (${{ github.repository }})
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
         with:
           # Support the use case where we need to checkout someone's fork
           repository: ${{ github.repository }}

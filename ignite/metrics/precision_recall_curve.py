@@ -97,7 +97,7 @@ class PrecisionRecallCurve(EpochMetric):
         if len(self._predictions) < 1 or len(self._targets) < 1:
             raise NotComputableError("PrecisionRecallCurve must have at least one example before it can be computed.")
 
-        if self._result is None:  # type: ignore
+        if self._result is None:
             _prediction_tensor = torch.cat(self._predictions, dim=0)
             _target_tensor = torch.cat(self._targets, dim=0)
 
@@ -110,11 +110,11 @@ class PrecisionRecallCurve(EpochMetric):
             if idist.get_rank() == 0:
                 # Run compute_fn on zero rank only
                 precision, recall, thresholds = cast(Tuple, self.compute_fn(_prediction_tensor, _target_tensor))
-                precision = torch.tensor(precision, device=_prediction_tensor.device)
-                recall = torch.tensor(recall, device=_prediction_tensor.device)
+                precision = torch.tensor(precision, device=_prediction_tensor.device, dtype=self._double_dtype)
+                recall = torch.tensor(recall, device=_prediction_tensor.device, dtype=self._double_dtype)
                 # thresholds can have negative strides, not compatible with torch tensors
                 # https://discuss.pytorch.org/t/negative-strides-in-tensor-error/134287/2
-                thresholds = torch.tensor(thresholds.copy(), device=_prediction_tensor.device)
+                thresholds = torch.tensor(thresholds.copy(), device=_prediction_tensor.device, dtype=self._double_dtype)
             else:
                 precision, recall, thresholds = None, None, None
 
@@ -126,4 +126,4 @@ class PrecisionRecallCurve(EpochMetric):
 
             self._result = (precision, recall, thresholds)  # type: ignore[assignment]
 
-        return cast(Tuple[torch.Tensor, torch.Tensor, torch.Tensor], self._result)  # type: ignore
+        return cast(Tuple[torch.Tensor, torch.Tensor, torch.Tensor], self._result)

@@ -25,60 +25,55 @@ concurrency:
 jobs:
   horovod-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     strategy:
       matrix:
         python-version: ["3.11"]
         pytorch-channel: [pytorch]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Get year & week number
         id: get-date
         run: echo "date=$(/bin/date "+%Y-%U")" >> $GITHUB_OUTPUT
         shell: bash -l {0}
 
-      - name: Get pip cache dir
-        id: pip-cache
-        run: |
-          python3 -m pip install -U pip
-          echo "pip_cache=$(python3 -m pip cache dir)" >> $GITHUB_OUTPUT
-        shell: bash -l {0}
-
-      - uses: actions/cache@v3
+      - uses: astral-sh/setup-uv@v6
         with:
-          path: |
-            ~/conda_pkgs_dir
-            ${{ steps.pip-cache.outputs.pip_cache }}
-          key: ${{ steps.get-date.outputs.date }}-horovod-${{ hashFiles('requirements-dev.txt') }}
-
-      - uses: actions/setup-python@v4
-        with:
+          version: "latest"
           python-version: ${{ matrix.python-version }}
+          activate-environment: true
+          enable-cache: true
+          cache-suffix: "${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}"
+          cache-dependency-glob: |
+            **/requirements-dev.txt
+            **/pyproject.toml
 
       - name: Install dependencies
         shell: bash -l {0}
         run: |
 
-          #install other dependencies
-          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-          pip install -r requirements-dev.txt
-          
+          # Install other dependencies
+          uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          uv pip install -r requirements-dev.txt
+
           # Install Horovod from source and apply a patch to build with recent pytorch
-          # We can't use pip install <whatever> as build-env can't find pytorch and 
+          # We can't use pip install <whatever> as build-env can't find pytorch and
           # `--no-build-isolation` does not work with horovod setup.py
           git clone --recursive https://github.com/horovod/horovod.git /tmp/horovod
           cd /tmp/horovod
           sed -i "s/CMAKE_CXX_STANDARD 14/CMAKE_CXX_STANDARD 17/g" CMakeLists.txt
-          sed -i "s/CMAKE_CXX_STANDARD 14/CMAKE_CXX_STANDARD 17/g" horovod/torch/CMakeLists.txt          
-          HOROVOD_WITH_PYTORCH=1 python setup.py install                
+          sed -i "s/CMAKE_CXX_STANDARD 14/CMAKE_CXX_STANDARD 17/g" horovod/torch/CMakeLists.txt
+          HOROVOD_WITH_PYTORCH=1 python setup.py install
           cd -
           # test the installation:
           python -c "import horovod.torch as hvd; hvd.mpi_ops.Sum"
 
           # Install ignite
-          python setup.py install
+          uv pip install .
+
+          uv pip list
 
       # Download MNIST: https://github.com/pytorch/ignite/issues/1737
       # to "/tmp" for cpu tests
@@ -88,17 +83,17 @@ jobs:
           target_dir: /tmp
 
       - name: Run Tests
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v3.0.2
         with:
-          max_attempts: 5
-          timeout_minutes: 15
+          max_attempts: 3
+          timeout_minutes: 40
           shell: bash
-          command: bash tests/run_cpu_tests.sh
-          new_command_on_retry: USE_LAST_FAILED=1 bash tests/run_cpu_tests.sh
+          command: USE_XDIST=0 bash tests/run_cpu_tests.sh
+          new_command_on_retry: USE_LAST_FAILED=1 USE_XDIST=0 bash tests/run_cpu_tests.sh
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
-          file: ./coverage.xml
+          files: ./coverage.xml
           flags: hvd-cpu
           fail_ci_if_error: false

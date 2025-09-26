@@ -32,6 +32,7 @@ def test_inception_score(available_device):
 
     p_yx = torch.rand(20, 3, 299, 299)
     m = InceptionScore(device=available_device)
+    assert m._device == torch.device(available_device)
     m.update(p_yx)
     assert isinstance(m.compute(), float)
 
