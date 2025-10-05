@@ -46,44 +46,37 @@ jobs:
         id: pip-cache
         run: |
           python3 -m pip install -U pip
-          echo "pip_cache=$(python3 -m pip cache dir)" >> $GITHUB_OUTPUT
+          echo "pip_cache=$(uv cache dir)" >> $GITHUB_OUTPUT
         shell: bash -l {0}
 
-      - uses: actions/cache@v4
+      - uses: actions/setup-python@v5
         with:
-          path: |
-            ~/conda_pkgs_dir
-            ${{ steps.pip-cache.outputs.pip_cache }}
-          key: ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('requirements-dev.txt') }}
-          restore-keys: |
-            ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-
-
-      - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          miniconda-version: "latest"
           python-version: ${{ matrix.python-version }}
-          use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
-
+        
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: "requirements-dev.txt"
+      
       - name: Install dependencies
-        shell: bash -l {0}
         run: |
-          conda install pytorch=${{ matrix.pytorch-version }} torchvision cpuonly python=${{ matrix.python-version }} -c pytorch
+          # Install PyTorch from PyPI (much faster than conda)
+          uv pip install torch==${{ matrix.pytorch-version }} torchvision --index-url https://download.pytorch.org/whl/cpu
 
           # We should install numpy<2.0 for pytorch<2.3
           numpy_one_pth_version=$(python -c "import torch; print(float('.'.join(torch.__version__.split('.')[:2])) < 2.3)")
           if [ "${numpy_one_pth_version}" == "True" ]; then
-            pip install -U "numpy<2.0"
+          uv pip install "numpy<2.0"
           fi
 
-          pip install -r requirements-dev.txt
-          pip install .
-
+          uv pip install -r requirements-dev.txt
+          uv pip install .
+      
           # pytorch>=1.9.0,<1.11.0 is using "from setuptools import distutils; distutils.version.LooseVersion" anti-pattern
           # which raises the error: AttributeError: module 'distutils' has no attribute 'version' for setuptools>59
           bad_pth_version=$(python -c "import torch; print('.'.join(torch.__version__.split('.')[:2]) in ['1.9', '1.10'])")
           if [ "${bad_pth_version}" == "True" ]; then
-            pip install --upgrade "setuptools<59"
+            uv pip install "setuptools<59"
             python -c "from setuptools import distutils; distutils.version.LooseVersion"
           fi
 
@@ -98,8 +91,8 @@ jobs:
           max_attempts: 5
           timeout_minutes: 15
           shell: bash
-          command: bash -l tests/run_cpu_tests.sh "not test_time_profilers"
-          new_command_on_retry: USE_LAST_FAILED=1 bash -l tests/run_cpu_tests.sh "not test_time_profilers"
+          command: bash tests/run_cpu_tests.sh "not test_time_profilers"
+          new_command_on_retry: USE_LAST_FAILED=1 bash tests/run_cpu_tests.sh "not test_time_profilers"
 
   create-issue:
     runs-on: ubuntu-latest
