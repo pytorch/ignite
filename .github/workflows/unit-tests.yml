@@ -59,30 +59,32 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
-
+    
       - name: Get year & week number
         id: get-date
         run: |
           echo "date=$(/bin/date "+%Y-%U")" >> $GITHUB_OUTPUT
-
+    
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+    
       - uses: astral-sh/setup-uv@v6
         with:
-          version: "latest"
-          python-version: ${{ matrix.python-version }}
           enable-cache: true
           cache-suffix: "${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}"
           cache-dependency-glob: |
             **/requirements-dev.txt
             **/pyproject.toml
-
+    
       - name: Install PyTorch
         if: ${{ matrix.pytorch-channel == 'pytorch' }}
         run: uv pip install --system torch torchvision --index-url https://download.pytorch.org/whl/cpu
-
+    
       - name: Install PyTorch (nightly)
         if: ${{ matrix.pytorch-channel == 'pytorch-nightly' }}
         run: uv pip install --system torch torchvision --index-url https://download.pytorch.org/whl/nightly/cpu --pre
-
+    
       - name: Install dependencies
         run: |
           uv pip install --system -r requirements-dev.txt
