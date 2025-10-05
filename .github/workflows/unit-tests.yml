@@ -69,28 +69,24 @@ jobs:
         with:
           version: "latest"
           python-version: ${{ matrix.python-version }}
-          activate-environment: true
           enable-cache: true
           cache-suffix: "${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-channel }}"
           cache-dependency-glob: |
             **/requirements-dev.txt
             **/pyproject.toml
 
-      - name: Install dev tools
-        run: uv pip install wheel setuptools -Uqq
-
       - name: Install PyTorch
         if: ${{ matrix.pytorch-channel == 'pytorch' }}
-        run: uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+        run: uv pip install --system torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
       - name: Install PyTorch (nightly)
         if: ${{ matrix.pytorch-channel == 'pytorch-nightly' }}
-        run: uv pip install torch torchvision --index-url https://download.pytorch.org/whl/nightly/cpu --pre
+        run: uv pip install --system torch torchvision --index-url https://download.pytorch.org/whl/nightly/cpu --pre
 
       - name: Install dependencies
         run: |
-          uv pip install -r requirements-dev.txt
-          uv pip install .
+          uv pip install --system -r requirements-dev.txt
+          uv pip install --system .
           uv pip list
 
       # Download MNIST: https://github.com/pytorch/ignite/issues/1737
@@ -139,7 +135,7 @@ jobs:
           # 3.1) mnist_with_tensorboard.py with tbX
           python examples/mnist/mnist_with_tensorboard.py --epochs=1
           # 3.2) mnist_with_tensorboard.py with native torch tb
-          uv pip uninstall tensorboardX
+          uv pip uninstall --system tensorboardX
           python examples/mnist/mnist_with_tensorboard.py --epochs=1
 
       - name: Run MNIST Example With Crash
