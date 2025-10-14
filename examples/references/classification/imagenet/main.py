@@ -8,7 +8,7 @@ import torch
 try:
     from torch.amp import autocast, GradScaler
 except ImportError:
-    raise RuntimeError("Please, use recent PyTorch version, e.g. >=2.3.1")
+    raise RuntimeError("Please, use recent PyTorch version, e.g. >=1.12.0")
 
 import dataflow as data
 import utils
