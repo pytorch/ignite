@@ -185,7 +185,7 @@ def supervised_training_step_amp(
     """
 
     try:
-        from torch.amp import autocast, GradScaler
+        from torch.amp import autocast
     except ImportError:
         raise ImportError("Please install torch>=1.12.0 to use amp_mode='amp'.")
 
@@ -412,7 +412,7 @@ def _check_arg(
             try:
                 from torch.amp import GradScaler
             except ImportError:
-                raise ImportError("Please install torch>=1.6.0 to use scaler argument.")
+                raise ImportError("Please install torch>=2.3.1 to use scaler argument.")
             scaler = GradScaler(enabled=True)
 
     if on_tpu:
