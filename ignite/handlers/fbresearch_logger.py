@@ -7,7 +7,7 @@ import torch
 
 from ignite import utils
 from ignite.engine import Engine, Events
-from ignite.handlers import Timer
+from ignite.handlers.timing import Timer
 
 MB = 1024.0 * 1024.0
 
