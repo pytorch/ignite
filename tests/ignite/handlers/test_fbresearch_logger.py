@@ -104,3 +104,28 @@ def test_fbrlogger_with_state_attrs(mock_logger):
     trainer.run(data=[10], epoch_length=1, max_epochs=1)
     attrs = "alpha: 3.8990 beta: 12.2100 gamma: [21.0000, 6.0000]"
     assert attrs in fbr.logger.info.call_args_list[-2].args[0]
+
+
+def test_fbrlogger_iters_values_bug(mock_logger):
+    max_epochs = 15
+    every = 10
+    data_size = 20
+    trainer = Engine(lambda e, b: 42)
+    fbr = FBResearchLogger(logger=mock_logger, show_output=True)
+    fbr.attach(trainer, "Training", every=every)
+    trainer.run(data=range(data_size), max_epochs=max_epochs)
+
+    expected_epoch = 1
+    expected_iters = [i for i in range(every, data_size + 1, every)]
+    n_calls_per_epoch = data_size // every
+    i = 0
+    for call_args in fbr.logger.info.call_args_list:
+        msg = call_args.args[0]
+        if msg.startswith("Epoch"):
+            expected_iter = expected_iters[i]
+            assert f"Epoch [{expected_epoch}/{max_epochs}]  [{expected_iter}/{data_size}]" in msg
+            if i == n_calls_per_epoch - 1:
+                expected_epoch += 1
+            i += 1
+            if i == n_calls_per_epoch:
+                i = 0

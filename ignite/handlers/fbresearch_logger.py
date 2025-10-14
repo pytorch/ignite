@@ -154,7 +154,7 @@ class FBResearchLogger:
         if torch.cuda.is_available():
             cuda_max_mem = f"GPU Max Mem: {torch.cuda.max_memory_allocated() / MB:.0f} MB"
 
-        current_iter = engine.state.iteration % (engine.state.epoch_length + 1)
+        current_iter = ((engine.state.iteration - 1) % engine.state.epoch_length) + 1
         iter_avg_time = self.iter_timer.value()
 
         eta_seconds = iter_avg_time * (engine.state.epoch_length - current_iter)
