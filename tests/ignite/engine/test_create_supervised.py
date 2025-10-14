@@ -167,7 +167,7 @@ def _test_create_supervised_trainer(
                 trainer.run(data)
 
 
-@pytest.mark.skipif(Version(torch.__version__) < Version("1.12.0"), reason="Skip if < 1.12.0")
+@pytest.mark.skipif(Version(torch.__version__) < Version("2.3.1"), reason="Skip if < 2.3.1")
 def test_create_supervised_training_scalar_assignment():
     with mock.patch("ignite.engine._check_arg") as check_arg_mock:
         check_arg_mock.return_value = None, torch.amp.GradScaler(enabled=False)
@@ -456,11 +456,11 @@ def test_create_supervised_trainer_amp_error(mock_torch_cuda_amp_module):
         _test_create_supervised_trainer_wrong_accumulation(trainer_device="cpu", amp_mode="amp")
     with pytest.raises(ImportError, match="Please install torch>=1.12.0 to use amp_mode='amp'."):
         _test_create_supervised_trainer(amp_mode="amp")
-    with pytest.raises(ImportError, match="Please install torch>=1.6.0 to use scaler argument."):
+    with pytest.raises(ImportError, match="Please install torch>=2.3.1 to use scaler argument."):
         _test_create_supervised_trainer(amp_mode="amp", scaler=True)
 
 
-@pytest.mark.skipif(Version(torch.__version__) < Version("1.12.0"), reason="Skip if < 1.12.0")
+@pytest.mark.skipif(Version(torch.__version__) < Version("2.3.1"), reason="Skip if < 2.3.1")
 def test_create_supervised_trainer_scaler_not_amp():
     scaler = torch.amp.GradScaler(enabled=torch.cuda.is_available())
 
