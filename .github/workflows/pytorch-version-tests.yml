@@ -15,24 +15,15 @@ jobs:
       max-parallel: 5
       fail-fast: false
       matrix:
-        python-version: [3.9, "3.10", "3.11"]
-        pytorch-version: [2.5.1, 2.4.1, 2.3.1, 2.2.2, 1.13.1, 1.12.1, 1.10.0]
+        python-version: ["3.10", "3.11", "3.12"]
+        pytorch-version: [2.7.1, 2.5.1, 2.4.1, 2.3.1, 1.13.1]
         exclude:
-          - pytorch-version: 1.10.0
-            python-version: "3.10"
-          - pytorch-version: 1.10.0
-            python-version: "3.11"
-
-          - pytorch-version: 1.11.0
-            python-version: "3.10"
-          - pytorch-version: 1.11.0
-            python-version: "3.11"
-          - pytorch-version: 1.12.1
-            python-version: "3.11"
           # Conda fails to install cpuonly version and few cpu distributed tests are
           # failing with unrelated errors
           - pytorch-version: 1.13.1
             python-version: "3.11"
+          - pytorch-version: 1.13.1
+            python-version: "3.12"
 
     steps:
       - uses: actions/checkout@v5
