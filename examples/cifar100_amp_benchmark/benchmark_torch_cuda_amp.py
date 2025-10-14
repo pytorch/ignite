@@ -1,7 +1,6 @@
 import fire
 import torch
-from torch.amp import autocast
-from torch.cuda.amp import GradScaler
+from torch.amp import autocast, GradScaler
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 from torchvision.models import wide_resnet50_2
