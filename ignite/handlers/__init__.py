@@ -6,6 +6,7 @@ from ignite.handlers.checkpoint import Checkpoint, DiskSaver, ModelCheckpoint
 from ignite.handlers.clearml_logger import ClearMLLogger
 from ignite.handlers.early_stopping import EarlyStopping
 from ignite.handlers.ema_handler import EMAHandler
+from ignite.handlers.fbresearch_logger import FBResearchLogger
 from ignite.handlers.lr_finder import FastaiLRFinder
 from ignite.handlers.mlflow_logger import MLflowLogger
 from ignite.handlers.neptune_logger import NeptuneLogger
@@ -64,6 +65,7 @@ __all__ = [
     "CyclicalScheduler",
     "create_lr_scheduler_with_warmup",
     "FastaiLRFinder",
+    "FBResearchLogger",
     "EMAHandler",
     "BasicTimeProfiler",
     "HandlersTimeProfiler",
