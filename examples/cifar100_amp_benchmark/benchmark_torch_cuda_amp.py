@@ -1,7 +1,6 @@
 import fire
 import torch
-from torch.amp import autocast
-from torch.cuda.amp import GradScaler
+from torch.amp import autocast, GradScaler
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 from torchvision.models import wide_resnet50_2
@@ -26,7 +25,7 @@ def main(dataset_path, batch_size=256, max_epochs=10):
     optimizer = SGD(model.parameters(), lr=0.01)
     criterion = CrossEntropyLoss().to(device)
 
-    scaler = GradScaler()
+    scaler = GradScaler('cuda')
 
     def train_step(engine, batch):
         x = convert_tensor(batch[0], device, non_blocking=True)

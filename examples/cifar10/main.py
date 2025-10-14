@@ -7,8 +7,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import utils
-from torch.amp import autocast
-from torch.cuda.amp import GradScaler
+from torch.amp import autocast, GradScaler
 
 import ignite
 import ignite.distributed as idist
@@ -289,7 +288,7 @@ def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, con
     #    - Two progress bars on epochs and optionally on iterations
 
     with_amp = config["with_amp"]
-    scaler = GradScaler(enabled=with_amp)
+    scaler = GradScaler('cuda', enabled=with_amp)
 
     def train_step(engine, batch):
         x, y = batch[0], batch[1]

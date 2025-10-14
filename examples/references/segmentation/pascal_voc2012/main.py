@@ -6,8 +6,7 @@ import fire
 import torch
 
 try:
-    from torch.amp import autocast
-    from torch.cuda.amp import GradScaler
+    from torch.amp import autocast, GradScaler
 except ImportError:
     raise RuntimeError("Please, use recent PyTorch version, e.g. >=1.12.0")
 
@@ -187,7 +186,7 @@ def create_trainer(model, optimizer, criterion, train_sampler, config, logger, w
     model_output_transform = config.get("model_output_transform", lambda x: x)
 
     with_amp = config.get("with_amp", True)
-    scaler = GradScaler(enabled=with_amp)
+    scaler = GradScaler('cuda', enabled=with_amp)
 
     def forward_pass(batch):
         model.train()
