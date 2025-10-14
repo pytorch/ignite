@@ -33,50 +33,30 @@ jobs:
         run: echo "date=$(/bin/date "+%Y-%U")" >> $GITHUB_OUTPUT
         shell: bash -l {0}
 
-      - name: Get pip cache dir
-        id: pip-cache
-        run: |
-          python3 -m pip install -U pip
-          echo "pip_cache=$(python3 -m pip cache dir)" >> $GITHUB_OUTPUT
-        shell: bash -l {0}
-
-      - uses: actions/cache@v4
+      - uses: astral-sh/setup-uv@v6
         with:
-          path: |
-            ~/conda_pkgs_dir
-            ${{ steps.pip-cache.outputs.pip_cache }}
-          key: ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('requirements-dev.txt') }}
-          restore-keys: |
-            ${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-
-
-      - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          miniconda-version: "latest"
+          version: "latest"
           python-version: ${{ matrix.python-version }}
-          use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
+          activate-environment: true
+          enable-cache: true
+          cache-suffix: "${{ steps.get-date.outputs.date }}-pytorch-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.pytorch-version }}"
+          cache-dependency-glob: |
+            **/requirements-dev.txt
+            **/pyproject.toml
 
       - name: Install dependencies
         shell: bash -l {0}
         run: |
-          conda install pytorch=${{ matrix.pytorch-version }} torchvision cpuonly python=${{ matrix.python-version }} -c pytorch
+          uv pip install "torch==${{ matrix.pytorch-version }}" torchvision --index-url https://download.pytorch.org/whl/cpu
 
           # We should install numpy<2.0 for pytorch<2.3
           numpy_one_pth_version=$(python -c "import torch; print(float('.'.join(torch.__version__.split('.')[:2])) < 2.3)")
           if [ "${numpy_one_pth_version}" == "True" ]; then
-            pip install -U "numpy<2.0"
+            uv pip install -U "numpy<2.0"
           fi
 
-          pip install -r requirements-dev.txt
-          pip install .
-
-          # pytorch>=1.9.0,<1.11.0 is using "from setuptools import distutils; distutils.version.LooseVersion" anti-pattern
-          # which raises the error: AttributeError: module 'distutils' has no attribute 'version' for setuptools>59
-          bad_pth_version=$(python -c "import torch; print('.'.join(torch.__version__.split('.')[:2]) in ['1.9', '1.10'])")
-          if [ "${bad_pth_version}" == "True" ]; then
-            pip install --upgrade "setuptools<59"
-            python -c "from setuptools import distutils; distutils.version.LooseVersion"
-          fi
+          uv pip install -r requirements-dev.txt
+          uv pip install .
 
       - name: Download MNIST
         uses: pytorch-ignite/download-mnist-github-action@master
