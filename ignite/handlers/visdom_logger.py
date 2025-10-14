@@ -1,7 +1,7 @@
 """Visdom logger and its helper handlers."""
 
 import os
-from typing import Any, Callable, cast, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 import torch.nn as nn
@@ -179,7 +179,7 @@ class VisdomLogger(BaseLogger):
                 )
 
         if server is None:
-            server = cast(str, os.environ.get("VISDOM_SERVER_URL", "localhost"))
+            server = os.environ.get("VISDOM_SERVER_URL", "localhost")
 
         if port is None:
             port = int(os.environ.get("VISDOM_PORT", 8097))

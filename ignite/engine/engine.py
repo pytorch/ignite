@@ -249,6 +249,17 @@ class Engine(Serializable):
         # we need to update state attributes associated with new custom events
         self.state._update_attrs()
 
+    def has_registered_events(self, event: Any) -> bool:
+        """Check whether engine has a registered event.
+
+        Args:
+            event: Event to check for registration.
+
+        Returns:
+            bool: True if the event is registered, False otherwise.
+        """
+        return event in self._allowed_events
+
     def _handler_wrapper(self, handler: Callable, event_name: Any, event_filter: Callable) -> Callable:
         # signature of the following wrapper will be inspected during registering to check if engine is necessary
         # we have to build a wrapper with relevant signature : solution is functools.wraps
@@ -328,7 +339,7 @@ class Engine(Serializable):
 
         try:
             _check_signature(handler, "handler", self, *(event_args + args), **kwargs)
-            self._event_handlers[event_name].append((handler, (self,) + args, kwargs))
+            self._event_handlers[event_name].append((handler, (weakref.ref(self),) + args, kwargs))
         except ValueError:
             _check_signature(handler, "handler", *(event_args + args), **kwargs)
             self._event_handlers[event_name].append((handler, args, kwargs))
@@ -432,7 +443,15 @@ class Engine(Serializable):
         self.last_event_name = event_name
         for func, args, kwargs in self._event_handlers[event_name]:
             kwargs.update(event_kwargs)
-            first, others = ((args[0],), args[1:]) if (args and args[0] == self) else ((), args)
+            if args and isinstance(args[0], weakref.ref):
+                resolved_engine = args[0]()
+                if resolved_engine is None:
+                    raise RuntimeError("Engine reference not resolved. Cannot execute event handler.")
+                first, others = ((resolved_engine,), args[1:])
+            else:
+                # metrics do not provide engine when registered
+                first, others = (tuple(), args)  # type: ignore[assignment]
+
             func(*first, *(event_args + others), **kwargs)
 
     def fire_event(self, event_name: Any) -> None:

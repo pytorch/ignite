@@ -1174,6 +1174,18 @@ class TestEngine:
 
         assert mem_consumption1 == mem_consumption2
 
+    def test_has_registered_events_builtin(self):
+        """Test has_registered_events with built-in events."""
+        engine = Engine(lambda e, b: None)
+
+        # Built-in events should be registered by default
+        assert engine.has_registered_events(Events.STARTED)
+        assert engine.has_registered_events(Events.COMPLETED)
+        assert engine.has_registered_events(Events.ITERATION_COMPLETED)
+
+        # Non-existent event should return False
+        assert not engine.has_registered_events("non_existent_event")
+
     def test_engine_no_data_asserts(self):
         trainer = Engine(lambda e, b: None)
 
