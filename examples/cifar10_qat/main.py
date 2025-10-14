@@ -272,7 +272,7 @@ def create_trainer(model, optimizer, criterion, lr_scheduler, train_sampler, con
     #    - Two progress bars on epochs and optionally on iterations
 
     with_amp = config["with_amp"]
-    scaler = GradScaler('cuda', enabled=with_amp)
+    scaler = GradScaler(enabled=with_amp)
 
     def train_step(engine, batch):
         x, y = batch[0], batch[1]

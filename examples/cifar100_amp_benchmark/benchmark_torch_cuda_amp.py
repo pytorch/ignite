@@ -25,7 +25,7 @@ def main(dataset_path, batch_size=256, max_epochs=10):
     optimizer = SGD(model.parameters(), lr=0.01)
     criterion = CrossEntropyLoss().to(device)
 
-    scaler = GradScaler('cuda')
+    scaler = GradScaler()
 
     def train_step(engine, batch):
         x = convert_tensor(batch[0], device, non_blocking=True)
