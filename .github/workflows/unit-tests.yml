@@ -76,9 +76,6 @@ jobs:
             **/requirements-dev.txt
             **/pyproject.toml
 
-      - name: Install dev tools
-        run: uv pip install wheel setuptools -Uqq
-
       - name: Install PyTorch
         if: ${{ matrix.pytorch-channel == 'pytorch' }}
         run: uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
