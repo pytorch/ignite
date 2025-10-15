@@ -178,7 +178,7 @@ if has_native_dist_support:
             c: Counter = Counter(hostnames)
             sizes = torch.tensor([0] + list(c.values()))
             cumsum_sizes = torch.cumsum(sizes, dim=0)
-            node_rank = (rank // cumsum_sizes[1:]).clamp(0, 1).sum().item()
+            node_rank = cast(int, (rank // cumsum_sizes[1:]).clamp(0, 1).sum().item())
             local_rank = rank - cumsum_sizes[node_rank].item()
             return int(local_rank), node_rank
 
