@@ -32,23 +32,23 @@ Run the example on a single GPU:
 ```bash
 python main.py run
 ```
+
 If needed, please, adjust the batch size to your GPU device with `--batch_size` argument.
 
 The default model is `bert-base-uncased` incase you need to change that use the `--model` argument, for details on which models can be used refer [here](https://huggingface.co/transformers/v3.0.2/model_doc/auto.html#automodelforsequenceclassification)
 
-Example: 
+Example:
+
 ```bash
 #Using DistilBERT which has 40% less parameters than bert-base-uncased
 python main.py run --model="distilbert-base-uncased"
 ```
-
 
 For details on accepted arguments:
 
 ```bash
 python main.py run -- --help
 ```
-
 
 ### Distributed training
 
@@ -93,6 +93,7 @@ python -u main.py run --backend="horovod" --nproc_per_node=2
 import os
 assert os.environ['COLAB_TPU_ADDR'], 'Make sure to select TPU from Edit > Notebook settings > Hardware accelerator'
 ```
+
 ```bash
 VERSION = "nightly"
 !curl -q https://raw.githubusercontent.com/pytorch/xla/master/contrib/scripts/env-setup.py -o pytorch-xla-env-setup.py

@@ -5,7 +5,6 @@ on:
       - "ignite/**"
       - "tests/ignite/**"
       - "tests/run_gpu_tests.sh"
-      - "tests/run_code_style.sh"
       - "examples/**.py"
       - "requirements-dev.txt"
       - ".github/workflows/gpu-tests.yml"
@@ -25,7 +24,7 @@ jobs:
         pytorch-channel: [pytorch, pytorch-nightly]
       fail-fast: false
     env:
-      DOCKER_IMAGE: "pytorch/almalinux-builder:cuda12.4"
+      DOCKER_IMAGE: "pytorch/almalinux-builder:cuda12.8"
       REPOSITORY: ${{ github.repository }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
     runs-on: linux.g4dn.12xlarge.nvidia.gpu
@@ -40,7 +39,7 @@ jobs:
           echo "::endgroup::"
 
       - name: Checkout repository (pytorch/test-infra)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           # Support the use case where we need to checkout someone's fork
           repository: pytorch/test-infra
@@ -55,7 +54,7 @@ jobs:
           docker-image: ${{ env.DOCKER_IMAGE }}
 
       - name: Checkout repository (${{ github.repository }})
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           # Support the use case where we need to checkout someone's fork
           repository: ${{ github.repository }}
@@ -114,6 +113,10 @@ jobs:
           pip install -r requirements-dev.txt
           pip install -e .
 
+          # Upgrade pyOpenSSL to avoid issue:
+          # AttributeError: module 'lib' has no attribute 'X509_V_FLAG_NOTIFY_POLICY'. Did you mean: 'X509_V_FLAG_EXPLICIT_POLICY'?
+          pip install -U pyOpenSSL
+
           EOF
           )
 
@@ -121,7 +124,7 @@ jobs:
 
       - name: Run GPU Unit Tests
         continue-on-error: false
-        uses: nick-fields/retry@v2.9.0
+        uses: nick-fields/retry@v3.0.2
         with:
           max_attempts: 5
           timeout_minutes: 45
@@ -130,9 +133,9 @@ jobs:
           new_command_on_retry: docker exec -e USE_LAST_FAILED=1 -t pthd /bin/bash -xec 'bash tests/run_gpu_tests.sh 4'
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
-          file: ${{ github.repository }}/coverage.xml
+          files: ${{ github.repository }}/coverage.xml
           flags: gpu-2
           fail_ci_if_error: false
 

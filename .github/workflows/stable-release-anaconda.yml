@@ -8,10 +8,10 @@ jobs:
   conda-build-publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v2
+        uses: conda-incubator/setup-miniconda@v3
         with:
           miniconda-version: "latest"
           python-version: "3.10"
@@ -20,7 +20,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda install -y pytorch torchvision cpuonly -c pytorch
-          python setup.py install
+          pip install .
 
       - name: Build and Publish Conda binaries
         shell: bash -l {0}

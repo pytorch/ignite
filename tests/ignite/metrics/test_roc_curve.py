@@ -1,6 +1,5 @@
 from unittest.mock import patch
 
-import numpy as np
 import pytest
 import sklearn
 import torch
@@ -33,104 +32,108 @@ def test_no_sklearn(mock_no_sklearn):
         RocCurve()
 
 
-def test_roc_curve():
+def test_roc_curve(available_device):
     size = 100
-    np_y_pred = np.random.rand(size, 1)
-    np_y = np.zeros((size,))
-    np_y[size // 2 :] = 1
-    sk_fpr, sk_tpr, sk_thresholds = roc_curve(np_y, np_y_pred)
+    y_pred = torch.rand(size, 1)
+    y = torch.randint(0, 2, size=(size,))
 
-    roc_curve_metric = RocCurve()
-    y_pred = torch.from_numpy(np_y_pred)
-    y = torch.from_numpy(np_y)
+    expected_fpr, expected_tpr, expected_thresholds = roc_curve(y, y_pred)
+
+    roc_curve_metric = RocCurve(device=available_device)
 
     roc_curve_metric.update((y_pred, y))
     fpr, tpr, thresholds = roc_curve_metric.compute()
 
-    assert np.array_equal(fpr, sk_fpr)
-    assert np.array_equal(tpr, sk_tpr)
-    # assert thresholds almost equal, due to numpy->torch->numpy conversion
-    np.testing.assert_array_almost_equal(thresholds, sk_thresholds)
+    fpr = fpr.cpu().numpy()
+    tpr = tpr.cpu().numpy()
+    thresholds = thresholds.cpu()
+
+    assert expected_fpr == pytest.approx(fpr)
+    assert expected_tpr == pytest.approx(tpr)
+    assert expected_thresholds == pytest.approx(thresholds)
 
 
-def test_integration_roc_curve_with_output_transform():
-    np.random.seed(1)
+def test_integration_roc_curve_with_output_transform(available_device):
     size = 100
-    np_y_pred = np.random.rand(size, 1)
-    np_y = np.zeros((size,))
-    np_y[size // 2 :] = 1
-    np.random.shuffle(np_y)
+    y_pred = torch.rand(size, 1)
+    y = torch.randint(0, 2, size=(size,))
 
-    sk_fpr, sk_tpr, sk_thresholds = roc_curve(np_y, np_y_pred)
+    expected_fpr, expected_tpr, expected_thresholds = roc_curve(y, y_pred)
 
     batch_size = 10
 
     def update_fn(engine, batch):
         idx = (engine.state.iteration - 1) * batch_size
-        y_true_batch = np_y[idx : idx + batch_size]
-        y_pred_batch = np_y_pred[idx : idx + batch_size]
-        return idx, torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+        y_true_batch = y[idx : idx + batch_size]
+        y_pred_batch = y_pred[idx : idx + batch_size]
+        return idx, y_pred_batch, y_true_batch
 
     engine = Engine(update_fn)
 
-    roc_curve_metric = RocCurve(output_transform=lambda x: (x[1], x[2]))
+    roc_curve_metric = RocCurve(output_transform=lambda x: (x[1], x[2]), device=available_device)
     roc_curve_metric.attach(engine, "roc_curve")
 
     data = list(range(size // batch_size))
     fpr, tpr, thresholds = engine.run(data, max_epochs=1).metrics["roc_curve"]
 
-    assert np.array_equal(fpr, sk_fpr)
-    assert np.array_equal(tpr, sk_tpr)
-    # assert thresholds almost equal, due to numpy->torch->numpy conversion
-    np.testing.assert_array_almost_equal(thresholds, sk_thresholds)
+    fpr = fpr.cpu().numpy()
+    tpr = tpr.cpu().numpy()
+    thresholds = thresholds.cpu().numpy()
+
+    assert expected_fpr == pytest.approx(fpr)
+    assert expected_tpr == pytest.approx(tpr)
+    assert expected_thresholds == pytest.approx(thresholds)
 
 
-def test_integration_roc_curve_with_activated_output_transform():
-    np.random.seed(1)
+def test_integration_roc_curve_with_activated_output_transform(available_device):
     size = 100
-    np_y_pred = np.random.rand(size, 1)
-    np_y_pred_sigmoid = torch.sigmoid(torch.from_numpy(np_y_pred)).numpy()
-    np_y = np.zeros((size,))
-    np_y[size // 2 :] = 1
-    np.random.shuffle(np_y)
+    y_pred = torch.rand(size, 1)
+    np_y_pred_sigmoid = torch.sigmoid(y_pred).cpu().numpy()
+    y = torch.randint(0, 2, size=(size,))
 
-    sk_fpr, sk_tpr, sk_thresholds = roc_curve(np_y, np_y_pred_sigmoid)
+    expected_fpr, expected_tpr, expected_thresholds = roc_curve(y, np_y_pred_sigmoid)
 
     batch_size = 10
 
     def update_fn(engine, batch):
         idx = (engine.state.iteration - 1) * batch_size
-        y_true_batch = np_y[idx : idx + batch_size]
-        y_pred_batch = np_y_pred[idx : idx + batch_size]
-        return idx, torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+        y_true_batch = y[idx : idx + batch_size]
+        y_pred_batch = y_pred[idx : idx + batch_size]
+        return idx, y_pred_batch, y_true_batch
 
     engine = Engine(update_fn)
 
-    roc_curve_metric = RocCurve(output_transform=lambda x: (torch.sigmoid(x[1]), x[2]))
+    roc_curve_metric = RocCurve(output_transform=lambda x: (torch.sigmoid(x[1]), x[2]), device=available_device)
     roc_curve_metric.attach(engine, "roc_curve")
 
     data = list(range(size // batch_size))
     fpr, tpr, thresholds = engine.run(data, max_epochs=1).metrics["roc_curve"]
 
-    assert np.array_equal(fpr, sk_fpr)
-    assert np.array_equal(tpr, sk_tpr)
-    # assert thresholds almost equal, due to numpy->torch->numpy conversion
-    np.testing.assert_array_almost_equal(thresholds, sk_thresholds)
+    fpr = fpr.cpu().numpy()
+    tpr = tpr.cpu().numpy()
+    thresholds = thresholds.cpu().numpy()
+
+    assert expected_fpr == pytest.approx(fpr)
+    assert expected_tpr == pytest.approx(tpr)
+    assert expected_thresholds == pytest.approx(thresholds)
 
 
-def test_check_compute_fn():
+def test_check_compute_fn(available_device):
     y_pred = torch.zeros((8, 13))
     y_pred[:, 1] = 1
     y_true = torch.zeros_like(y_pred)
     output = (y_pred, y_true)
 
-    em = RocCurve(check_compute_fn=True)
+    em = RocCurve(check_compute_fn=True, device=available_device)
+    assert em._device == torch.device(available_device)
 
     em.reset()
     with pytest.warns(EpochMetricWarning, match=r"Probably, there can be a problem with `compute_fn`"):
         em.update(output)
 
-    em = RocCurve(check_compute_fn=False)
+    em = RocCurve(check_compute_fn=False, device=available_device)
+    assert em._device == torch.device(available_device)
+
     em.update(output)
 
 
@@ -165,8 +168,8 @@ def test_distrib_integration(distributed):
 
     y = idist.all_gather(y)
     y_pred = idist.all_gather(y_pred)
-    sk_fpr, sk_tpr, sk_thresholds = roc_curve(y.cpu().numpy(), y_pred.cpu().numpy())
+    expected_fpr, expected_tpr, expected_thresholds = roc_curve(y.cpu().numpy(), y_pred.cpu().numpy())
 
-    np.testing.assert_array_almost_equal(fpr.cpu().numpy(), sk_fpr)
-    np.testing.assert_array_almost_equal(tpr.cpu().numpy(), sk_tpr)
-    np.testing.assert_array_almost_equal(thresholds.cpu().numpy(), sk_thresholds)
+    assert expected_fpr == pytest.approx(fpr.cpu().numpy())
+    assert expected_tpr == pytest.approx(tpr.cpu().numpy())
+    assert expected_thresholds == pytest.approx(thresholds.cpu().numpy())

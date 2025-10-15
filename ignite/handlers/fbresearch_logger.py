@@ -7,7 +7,7 @@ import torch
 
 from ignite import utils
 from ignite.engine import Engine, Events
-from ignite.handlers import Timer
+from ignite.handlers.timing import Timer
 
 MB = 1024.0 * 1024.0
 
@@ -154,7 +154,7 @@ class FBResearchLogger:
         if torch.cuda.is_available():
             cuda_max_mem = f"GPU Max Mem: {torch.cuda.max_memory_allocated() / MB:.0f} MB"
 
-        current_iter = engine.state.iteration % (engine.state.epoch_length + 1)
+        current_iter = ((engine.state.iteration - 1) % engine.state.epoch_length) + 1
         iter_avg_time = self.iter_timer.value()
 
         eta_seconds = iter_avg_time * (engine.state.epoch_length - current_iter)

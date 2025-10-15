@@ -92,6 +92,13 @@ class PolyaxonLogger(BaseLogger):
             )
             # to manually end a run
             plx_logger.close()
+
+    Note:
+        :class:`~ignite.handlers.polyaxon_logger.OutputHandler` can handle
+        metrics, state attributes and engine output values of the following format:
+        - scalar values (i.e. int, float)
+        - 0d and 1d pytorch tensors
+        - dicts and list/tuples of previous types
     """
 
     def __init__(self, *args: Any, **kwargs: Any):

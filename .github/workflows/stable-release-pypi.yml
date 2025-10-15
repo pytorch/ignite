@@ -8,10 +8,10 @@ jobs:
   build-publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Miniconda
-        uses: conda-incubator/setup-miniconda@v2
+        uses: conda-incubator/setup-miniconda@v3
         with:
           miniconda-version: "latest"
           python-version: "3.10"
@@ -27,9 +27,8 @@ jobs:
         run: |
           # workaround to fix https://github.com/pytorch/ignite/issues/2373
           pip uninstall -y twine pkginfo
-          pip install --upgrade --no-cache-dir twine 'pkginfo>=1.8.2'
-          python setup.py sdist bdist_wheel
+          pip install --upgrade --no-cache-dir hatch twine 'pkginfo>=1.8.2'
+          hatch build
           twine --version
           twine check dist/*
           TWINE_USERNAME="${{ secrets.PYPI_USER }}" TWINE_PASSWORD="${{ secrets.PYPI_TOKEN }}" twine upload --verbose dist/*
-

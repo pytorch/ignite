@@ -1174,6 +1174,18 @@ class TestEngine:
 
         assert mem_consumption1 == mem_consumption2
 
+    def test_has_registered_events_builtin(self):
+        """Test has_registered_events with built-in events."""
+        engine = Engine(lambda e, b: None)
+
+        # Built-in events should be registered by default
+        assert engine.has_registered_events(Events.STARTED)
+        assert engine.has_registered_events(Events.COMPLETED)
+        assert engine.has_registered_events(Events.ITERATION_COMPLETED)
+
+        # Non-existent event should return False
+        assert not engine.has_registered_events("non_existent_event")
+
     def test_engine_no_data_asserts(self):
         trainer = Engine(lambda e, b: None)
 
@@ -1278,6 +1290,43 @@ class TestEngine:
         engine.run(data, max_epochs=10, epoch_length=epoch_length)
         assert engine.state.epoch == 10
         assert engine.state.iteration == 10 * real_epoch_length
+
+    def test_iterator_state_output(self):
+        torch.manual_seed(12)
+
+        batch_size = 4
+        finite_map = [torch.rand(batch_size, 3, 32, 32) for _ in range(4)]
+
+        def train_step(trainer, batch):
+            s = trainer.state
+            print(f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch.norm():.3f}")
+            return "flag_value"
+
+        trainer = Engine(train_step)
+        trainer.run(iter(finite_map), max_epochs=2)
+
+        assert trainer.state.output == "flag_value"
+        assert trainer.state.epoch == 2
+        # We don't reset the iterator so only 1 epoch runs
+        assert trainer.state.iteration == 1 * 4
+
+    def test_map_state_output(self):
+        torch.manual_seed(12)
+
+        batch_size = 4
+        finite_map = [torch.rand(batch_size, 3, 32, 32) for _ in range(4)]
+
+        def train_step(trainer, batch):
+            s = trainer.state
+            print(f"{s.epoch}/{s.max_epochs} : {s.iteration} - {batch.norm():.3f}")
+            return "flag_value"
+
+        trainer = Engine(train_step)
+        trainer.run(finite_map, max_epochs=2)
+
+        assert trainer.state.output == "flag_value"
+        assert trainer.state.epoch == 2
+        assert trainer.state.iteration == 2 * 4
 
 
 @pytest.mark.parametrize(

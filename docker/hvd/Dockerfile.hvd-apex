@@ -25,9 +25,12 @@ ARG HVD_VERSION
 
 # Build Horovod
 RUN apt-get update && apt-get install -y git && \
-        git clone --recursive --depth 1 --branch ${HVD_VERSION} https://github.com/horovod/horovod.git /horovod && \
-        conda install -y cmake nccl -c conda-forge && \
+        conda install -y cmake=3.* nccl -c conda-forge && \
+        git clone --depth 1 https://github.com/horovod/horovod.git /horovod && \
         cd /horovod && \
+        git fetch --tags && \
+        git checkout ${HVD_VERSION} && \
+        git submodule update --init --recursive && \
         # temporary -std=c++17 fix
         sed -i "s/CMAKE_CXX_STANDARD 14/CMAKE_CXX_STANDARD 17/g" CMakeLists.txt && \
         sed -i "s/CMAKE_CXX_STANDARD 14/CMAKE_CXX_STANDARD 17/g" horovod/torch/CMakeLists.txt && \

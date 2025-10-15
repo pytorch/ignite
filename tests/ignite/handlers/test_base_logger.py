@@ -103,6 +103,44 @@ def test_base_output_handler_setup_output_metrics():
     metrics = handler._setup_output_metrics_state_attrs(engine=engine, key_tuple=False)
     assert metrics == {"tag/a": 0, "tag/b": 1}
 
+    # metrics with mappings, iterables
+    true_metrics = {
+        "a": 0,
+        "b": "1",
+        "dict_value": {
+            "a": 111,
+            "b": "222",
+            "c": {"d": 23, "e": [123, 234]},
+            "f": [{"g": 11, "h": (321, 432)}, 778],
+        },
+        "list_value": [12, "13", {"aa": 33, "bb": 44}],
+        "tuple_value": (112, "113", {"aaa": 33, "bbb": 44}),
+    }
+    engine.state = State(metrics=true_metrics)
+    handler = DummyOutputHandler("tag", metric_names="all", output_transform=None)
+    metrics = handler._setup_output_metrics_state_attrs(engine=engine, key_tuple=False, log_text=True)
+    assert metrics == {
+        "tag/a": 0,
+        "tag/b": "1",
+        "tag/dict_value/a": 111,
+        "tag/dict_value/b": "222",
+        "tag/dict_value/c/d": 23,
+        "tag/dict_value/c/e/0": 123,
+        "tag/dict_value/c/e/1": 234,
+        "tag/dict_value/f/0/g": 11,
+        "tag/dict_value/f/0/h/0": 321,
+        "tag/dict_value/f/0/h/1": 432,
+        "tag/dict_value/f/1": 778,
+        "tag/list_value/0": 12,
+        "tag/list_value/1": "13",
+        "tag/list_value/2/aa": 33,
+        "tag/list_value/2/bb": 44,
+        "tag/tuple_value/0": 112,
+        "tag/tuple_value/1": "113",
+        "tag/tuple_value/2/aaa": 33,
+        "tag/tuple_value/2/bbb": 44,
+    }
+
 
 def test_base_output_handler_setup_output_state_attrs():
     engine = Engine(lambda engine, batch: None)

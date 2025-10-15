@@ -8,11 +8,10 @@ Features:
 - Distributed training with native automatic mixed precision
 - Experiments tracking with [ClearML](https://github.com/allegroai/clearml)
 
-Experiment | Model | Dataset | Val Avg IoU | ClearML Link
----|---|---|---|---
-configs/baseline_dplv3_resnet101.py | DeepLabV3 Resnet101 | VOC Only | 0.659161 | [link](https://app.clear.ml/projects/0e9a3a92d3134283b7d5572d516d60c5/experiments/a7254f084a9e47ca9380dfd739f89520/output/execution)
-configs/baseline_dplv3_resnet101_sbd.py | DeepLabV3 Resnet101 | VOC+SBD | 0.6853087 | [link](https://app.clear.ml/projects/0e9a3a92d3134283b7d5572d516d60c5/experiments/dc4cee3377a74d19bc2d0e0e4d638c1f/output/execution)
-
+| Experiment                              | Model               | Dataset  | Val Avg IoU | ClearML Link                                                                                                                         |
+| --------------------------------------- | ------------------- | -------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| configs/baseline_dplv3_resnet101.py     | DeepLabV3 Resnet101 | VOC Only | 0.659161    | [link](https://app.clear.ml/projects/0e9a3a92d3134283b7d5572d516d60c5/experiments/a7254f084a9e47ca9380dfd739f89520/output/execution) |
+| configs/baseline_dplv3_resnet101_sbd.py | DeepLabV3 Resnet101 | VOC+SBD  | 0.6853087   | [link](https://app.clear.ml/projects/0e9a3a92d3134283b7d5572d516d60c5/experiments/dc4cee3377a74d19bc2d0e0e4d638c1f/output/execution) |
 
 ## Setup
 
@@ -23,10 +22,13 @@ pip install -r requirements.txt
 ### Docker
 
 For docker users, you can use the following images to run the example:
+
 ```bash
 docker pull pytorchignite/vision:latest
 ```
+
 or
+
 ```bash
 docker pull pytorchignite/hvd-vision:latest
 ```
@@ -51,7 +53,6 @@ This script will download and extract the following datasets into `/path/to/data
 - The [Pascal VOC2012](http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar) dataset
 - Optionally, the [SBD](http://www.eecs.berkeley.edu/Research/Projects/CS/vision/grouping/semantic_contours/benchmark.tgz) evaluation dataset
 
-
 ## Usage
 
 Please, export the `DATASET_PATH` environment variable for the Pascal VOC2012 dataset.
@@ -75,6 +76,7 @@ export SBD_DATASET_PATH=/path/to/SBD/
 - Adjust batch size for your GPU type in the configuration file: `configs/baseline_dplv3_resnet101_sbd.py` or `configs/baseline_dplv3_resnet101.py`
 
 Run the following command:
+
 ```bash
 CUDA_VISIBLE_DEVICES=0 python -u main.py training configs/baseline_dplv3_resnet101_sbd.py
 # or without SBD
@@ -120,7 +122,6 @@ torchrun --nproc_per_node=2 main.py eval configs/eval_baseline_dplv3_resnet101_s
 ```bash
 horovodrun -np=2 python -u main.py eval configs/eval_baseline_dplv3_resnet101_sbd.py --backend="horovod"
 ```
-
 
 ## Acknowledgements
 

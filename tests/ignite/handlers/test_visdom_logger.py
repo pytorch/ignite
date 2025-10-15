@@ -312,6 +312,55 @@ def test_output_handler_metric_names(dirname):
         any_order=True,
     )
 
+    # all metrics
+    wrapper = OutputHandler("tag", metric_names="all")
+    mock_logger = MagicMock(spec=VisdomLogger)
+    mock_logger.vis = MagicMock()
+    mock_logger.executor = _DummyExecutor()
+
+    mock_engine = MagicMock()
+    mock_engine.state = State(
+        metrics={
+            "a": 123,
+            "b": {"c": [2.34, {"d": 1}]},
+            "c": (22, [33, -5.5], {"e": 32.1}),
+        }
+    )
+    mock_engine.state.iteration = 5
+
+    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
+
+    expected_metrics = {
+        "tag/a": 123,
+        "tag/b/c/0": 2.34,
+        "tag/b/c/1/d": 1,
+        "tag/c/0": 22,
+        "tag/c/1/0": 33,
+        "tag/c/1/1": -5.5,
+        "tag/c/2/e": 32.1,
+    }
+
+    assert len(wrapper.windows) == len(expected_metrics)
+    for key in expected_metrics:
+        assert key in wrapper.windows
+        assert wrapper.windows[key]["win"] is not None
+    assert mock_logger.vis.line.call_count == len(expected_metrics)
+    mock_logger.vis.line.assert_has_calls(
+        [
+            call(
+                X=[5],
+                Y=[value],
+                env=mock_logger.vis.env,
+                win=None,
+                update=None,
+                opts=wrapper.windows[key]["opts"],
+                name=key,
+            )
+            for key, value in expected_metrics.items()
+        ],
+        any_order=True,
+    )
+
 
 def test_output_handler_both(dirname):
     wrapper = OutputHandler("tag", metric_names=["a", "b"], output_transform=lambda x: {"loss": x})

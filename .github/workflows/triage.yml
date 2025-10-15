@@ -13,13 +13,12 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Pull Request Labeler
-        uses: actions/labeler@v5
+        uses: actions/labeler@v6
         with:
           configuration-path: .github/pr-labeler-config.yml
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
-
 # Turned off due to unexpected behavior on issue opening+labeling? https://github.com/pytorch/ignite/issues/1836
 #       - name: Welcome
 #         uses: actions/first-interaction@v1

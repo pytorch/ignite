@@ -179,7 +179,7 @@ class FastaiLRFinder:
         lr = self._lr_schedule.get_param()
         self._history["lr"].append(lr)
         if trainer.state.iteration == 1:
-            self._best_loss = loss
+            self._best_loss = loss  # type: ignore[assignment]
         else:
             if smooth_f > 0:
                 loss = smooth_f * loss + (1 - smooth_f) * self._history["loss"][-1]

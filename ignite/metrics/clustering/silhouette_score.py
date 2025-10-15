@@ -86,7 +86,7 @@ class SilhouetteScore(_ClusteringMetricBase):
 
         .. testoutput::
 
-            0.12607366
+            0.1260736584663391
 
     .. versionadded:: 0.5.2
     """

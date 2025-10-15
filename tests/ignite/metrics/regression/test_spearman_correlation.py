@@ -1,6 +1,5 @@
 from typing import Tuple
 
-import numpy as np
 import pytest
 
 import torch
@@ -53,30 +52,27 @@ def test_wrong_y_dtype():
         metric.update((y_pred, y))
 
 
-def test_spearman_correlation():
-    a = np.random.randn(4).astype(np.float32)
-    b = np.random.randn(4).astype(np.float32)
-    c = np.random.randn(4).astype(np.float32)
-    d = np.random.randn(4).astype(np.float32)
-    ground_truth = np.random.randn(4).astype(np.float32)
+def test_spearman_correlation(available_device):
+    torch.manual_seed(0)
 
-    m = SpearmanRankCorrelation()
+    inputs = [torch.randn(4) for _ in range(4)]
+    ground_truth = torch.randn(4)
 
-    m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
-    np_ans = spearmanr(a, ground_truth).statistic
-    assert m.compute() == pytest.approx(np_ans, rel=1e-4)
+    m = SpearmanRankCorrelation(device=available_device)
+    assert m._device == torch.device(available_device)
 
-    m.update((torch.from_numpy(b), torch.from_numpy(ground_truth)))
-    np_ans = spearmanr(np.concatenate([a, b]), np.concatenate([ground_truth] * 2)).statistic
-    assert m.compute() == pytest.approx(np_ans, rel=1e-4)
+    all_preds = []
+    all_targets = []
 
-    m.update((torch.from_numpy(c), torch.from_numpy(ground_truth)))
-    np_ans = spearmanr(np.concatenate([a, b, c]), np.concatenate([ground_truth] * 3)).statistic
-    assert m.compute() == pytest.approx(np_ans, rel=1e-4)
+    for x in inputs:
+        m.update((x, ground_truth))
+        all_preds.append(x)
+        all_targets.append(ground_truth)
 
-    m.update((torch.from_numpy(d), torch.from_numpy(ground_truth)))
-    np_ans = spearmanr(np.concatenate([a, b, c, d]), np.concatenate([ground_truth] * 4)).statistic
-    assert m.compute() == pytest.approx(np_ans, rel=1e-4)
+        pred_cat = torch.cat(all_preds).numpy()
+        target_cat = torch.cat(all_targets).numpy()
+        expected = spearmanr(pred_cat, target_cat).statistic
+        assert m.compute() == pytest.approx(expected, rel=1e-4)
 
 
 @pytest.fixture(params=list(range(2)))
@@ -92,29 +88,28 @@ def test_case(request):
 
 
 @pytest.mark.parametrize("n_times", range(5))
-def test_integration(n_times, test_case: Tuple[Tensor, Tensor, int]):
+def test_integration_spearman_correlation(n_times, test_case: Tuple[Tensor, Tensor, int], available_device):
     y_pred, y, batch_size = test_case
-
-    np_y = y.numpy().ravel()
-    np_y_pred = y_pred.numpy().ravel()
 
     def update_fn(engine: Engine, batch):
         idx = (engine.state.iteration - 1) * batch_size
-        y_true_batch = np_y[idx : idx + batch_size]
-        y_pred_batch = np_y_pred[idx : idx + batch_size]
-        return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+        y_true_batch = y[idx : idx + batch_size]
+        y_pred_batch = y_pred[idx : idx + batch_size]
+        return y_pred_batch, y_true_batch
 
     engine = Engine(update_fn)
 
-    m = SpearmanRankCorrelation()
+    m = SpearmanRankCorrelation(device=available_device)
+    assert m._device == torch.device(available_device)
     m.attach(engine, "spearman_corr")
 
     data = list(range(y_pred.shape[0] // batch_size))
     corr = engine.run(data, max_epochs=1).metrics["spearman_corr"]
 
-    np_ans = spearmanr(np_y_pred, np_y).statistic
+    # Convert only for computing the expected value
+    expected = spearmanr(y_pred.numpy().ravel(), y.numpy().ravel()).statistic
 
-    assert pytest.approx(np_ans, rel=2e-4) == corr
+    assert pytest.approx(expected, rel=2e-4) == corr
 
 
 @pytest.mark.usefixtures("distributed")

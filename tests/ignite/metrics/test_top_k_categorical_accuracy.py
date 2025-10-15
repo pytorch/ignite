@@ -16,8 +16,9 @@ def test_zero_div():
         acc.compute()
 
 
-def test_compute():
-    acc = TopKCategoricalAccuracy(2)
+def test_compute(available_device):
+    acc = TopKCategoricalAccuracy(2, device=available_device)
+    assert acc._device == torch.device(available_device)
 
     y_pred = torch.FloatTensor([[0.2, 0.4, 0.6, 0.8], [0.8, 0.6, 0.4, 0.2]])
     y = torch.ones(2).long()

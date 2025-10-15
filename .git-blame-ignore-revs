@@ -1,0 +1,7 @@
+# Run this command to always ignore formatting commits in `git blame`
+# git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# Run pre-commit to fix end-of-file-fixer and trailing-whitespace (#3418)
+fe5a29b6942829ff2870181b6c1a68ebd2af9add
+# Fix code style (#3423)
+f9e8ca106a0d3f386f26f3a9481fd2eb341999f0

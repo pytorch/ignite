@@ -1,6 +1,5 @@
 import os
 
-import numpy as np
 import pytest
 import torch
 
@@ -26,76 +25,48 @@ def test_wrong_input_shapes():
         m.update((torch.rand(4, 1), torch.rand(4)))
 
 
-def test_mean_error():
-    a = np.random.randn(4)
-    b = np.random.randn(4)
-    c = np.random.randn(4)
-    d = np.random.randn(4)
-    ground_truth = np.random.randn(4)
+def test_mean_error(available_device):
+    preds = [torch.randn(4) for _ in range(4)]
+    ground_truth = torch.randn(4)
 
-    m = MeanError()
+    m = MeanError(device=available_device)
+    assert m._device == torch.device(available_device)
 
-    m.update((torch.from_numpy(a), torch.from_numpy(ground_truth)))
-    np_sum = (ground_truth - a).sum()
-    np_len = len(a)
-    np_ans = np_sum / np_len
-    assert m.compute() == pytest.approx(np_ans)
+    total_error = 0.0
+    total_count = 0
 
-    m.update((torch.from_numpy(b), torch.from_numpy(ground_truth)))
-    np_sum += (ground_truth - b).sum()
-    np_len += len(b)
-    np_ans = np_sum / np_len
-    assert m.compute() == pytest.approx(np_ans)
-
-    m.update((torch.from_numpy(c), torch.from_numpy(ground_truth)))
-    np_sum += (ground_truth - c).sum()
-    np_len += len(c)
-    np_ans = np_sum / np_len
-    assert m.compute() == pytest.approx(np_ans)
-
-    m.update((torch.from_numpy(d), torch.from_numpy(ground_truth)))
-    np_sum += (ground_truth - d).sum()
-    np_len += len(d)
-    np_ans = np_sum / np_len
-    assert m.compute() == pytest.approx(np_ans)
+    for pred in preds:
+        m.update((pred, ground_truth))
+        total_error += torch.sum(ground_truth - pred).item()
+        total_count += pred.numel()
+        expected = total_error / total_count
+        assert m.compute() == pytest.approx(expected)
 
 
-def test_integration():
-    def _test(y_pred, y, batch_size):
-        def update_fn(engine, batch):
-            idx = (engine.state.iteration - 1) * batch_size
-            y_true_batch = np_y[idx : idx + batch_size]
-            y_pred_batch = np_y_pred[idx : idx + batch_size]
-            return torch.from_numpy(y_pred_batch), torch.from_numpy(y_true_batch)
+@pytest.mark.parametrize("n_times", range(5))
+@pytest.mark.parametrize(
+    "y_pred, y, batch_size",
+    [
+        (torch.rand((50,)), torch.rand((50,)), 1),
+        (torch.rand((50, 1)), torch.rand((50, 1)), 10),
+    ],
+)
+def test_integration_mean_error(n_times, y_pred, y, batch_size, available_device):
+    def update_fn(engine, batch):
+        idx = (engine.state.iteration - 1) * batch_size
+        return y_pred[idx : idx + batch_size], y[idx : idx + batch_size]
 
-        engine = Engine(update_fn)
+    engine = Engine(update_fn)
 
-        m = MeanError()
-        m.attach(engine, "me")
+    metric = MeanError(device=available_device)
+    assert metric._device == torch.device(available_device)
+    metric.attach(engine, "me")
 
-        np_y = y.numpy().ravel()
-        np_y_pred = y_pred.numpy().ravel()
+    data = list(range(y_pred.shape[0] // batch_size))
+    result = engine.run(data, max_epochs=1).metrics["me"]
 
-        data = list(range(y_pred.shape[0] // batch_size))
-        me = engine.run(data, max_epochs=1).metrics["me"]
-
-        np_sum = (np_y - np_y_pred).sum()
-        np_len = len(np_y_pred)
-        np_ans = np_sum / np_len
-
-        assert np_ans == pytest.approx(me, rel=1e-4)
-
-    def get_test_cases():
-        test_cases = [
-            (torch.rand(size=(50,)), torch.rand(size=(50,)), 1),
-            (torch.rand(size=(50, 1)), torch.rand(size=(50, 1)), 10),
-        ]
-        return test_cases
-
-    for _ in range(5):
-        test_cases = get_test_cases()
-        for y_pred, y, batch_size in test_cases:
-            _test(y_pred, y, batch_size)
+    expected = torch.mean(y - y_pred).item()
+    assert result == pytest.approx(expected, rel=1e-4)
 
 
 def _test_distrib_compute(device):

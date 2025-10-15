@@ -48,7 +48,7 @@ def _default_create_supervised_trainer(
     trainer_device: Optional[str] = None,
     trace: bool = False,
     amp_mode: str = None,
-    scaler: Union[bool, "torch.cuda.amp.GradScaler"] = False,
+    scaler: Union[bool, "torch.amp.GradScaler"] = False,
     with_model_transform: bool = False,
     with_model_fn: bool = False,
 ):
@@ -104,7 +104,7 @@ def _test_create_supervised_trainer(
     trainer_device: Optional[str] = None,
     trace: bool = False,
     amp_mode: str = None,
-    scaler: Union[bool, "torch.cuda.amp.GradScaler"] = False,
+    scaler: Union[bool, "torch.amp.GradScaler"] = False,
     with_model_transform: bool = False,
     with_model_fn: bool = False,
 ):
@@ -167,13 +167,13 @@ def _test_create_supervised_trainer(
                 trainer.run(data)
 
 
-@pytest.mark.skipif(Version(torch.__version__) < Version("1.12.0"), reason="Skip if < 1.12.0")
+@pytest.mark.skipif(Version(torch.__version__) < Version("2.3.1"), reason="Skip if < 2.3.1")
 def test_create_supervised_training_scalar_assignment():
     with mock.patch("ignite.engine._check_arg") as check_arg_mock:
-        check_arg_mock.return_value = None, torch.cuda.amp.GradScaler(enabled=False)
+        check_arg_mock.return_value = None, torch.amp.GradScaler(enabled=False)
         trainer, _ = _default_create_supervised_trainer(model_device="cpu", trainer_device="cpu", scaler=True)
         assert hasattr(trainer.state, "scaler")
-        assert isinstance(trainer.state.scaler, torch.cuda.amp.GradScaler)
+        assert isinstance(trainer.state.scaler, torch.amp.GradScaler)
 
 
 def _test_create_mocked_supervised_trainer(
@@ -181,7 +181,7 @@ def _test_create_mocked_supervised_trainer(
     trainer_device: Optional[str] = None,
     trace: bool = False,
     amp_mode: str = None,
-    scaler: Union[bool, "torch.cuda.amp.GradScaler"] = False,
+    scaler: Union[bool, "torch.amp.GradScaler"] = False,
 ):
     with mock.patch("ignite.engine.supervised_training_step_amp") as training_step_amp_mock:
         with mock.patch("ignite.engine.supervised_training_step_apex") as training_step_apex_mock:
@@ -456,13 +456,13 @@ def test_create_supervised_trainer_amp_error(mock_torch_cuda_amp_module):
         _test_create_supervised_trainer_wrong_accumulation(trainer_device="cpu", amp_mode="amp")
     with pytest.raises(ImportError, match="Please install torch>=1.12.0 to use amp_mode='amp'."):
         _test_create_supervised_trainer(amp_mode="amp")
-    with pytest.raises(ImportError, match="Please install torch>=1.6.0 to use scaler argument."):
+    with pytest.raises(ImportError, match="Please install torch>=2.3.1 to use scaler argument."):
         _test_create_supervised_trainer(amp_mode="amp", scaler=True)
 
 
-@pytest.mark.skipif(Version(torch.__version__) < Version("1.12.0"), reason="Skip if < 1.12.0")
+@pytest.mark.skipif(Version(torch.__version__) < Version("2.3.1"), reason="Skip if < 2.3.1")
 def test_create_supervised_trainer_scaler_not_amp():
-    scaler = torch.cuda.amp.GradScaler(enabled=torch.cuda.is_available())
+    scaler = torch.amp.GradScaler(enabled=torch.cuda.is_available())
 
     with pytest.raises(ValueError, match=f"scaler argument is {scaler}, but amp_mode is None."):
         _test_create_supervised_trainer(amp_mode=None, scaler=scaler)
@@ -540,7 +540,7 @@ def test_create_supervised_trainer_on_cuda_amp_scaler():
     _test_create_mocked_supervised_trainer(
         model_device=model_device, trainer_device=trainer_device, amp_mode="amp", scaler=True
     )
-    scaler = torch.cuda.amp.GradScaler(enabled=torch.cuda.is_available())
+    scaler = torch.amp.GradScaler(enabled=torch.cuda.is_available())
     _test_create_supervised_trainer(
         gradient_accumulation_steps=1,
         model_device=model_device,

@@ -8,7 +8,6 @@ on:
       - "ignite/**"
       - "tests/ignite/**"
       - "tests/run_tpu_tests.sh"
-      - "tests/run_code_style.sh"
       - "requirements-dev.txt"
       - ".github/workflows/tpu-tests.yml"
   pull_request:
@@ -16,7 +15,6 @@ on:
       - "ignite/**"
       - "tests/ignite/**"
       - "tests/run_tpu_tests.sh"
-      - "tests/run_code_style.sh"
       - "requirements-dev.txt"
       - ".github/workflows/tpu-tests.yml"
   workflow_dispatch:
@@ -35,9 +33,9 @@ jobs:
         xla-version: [nightly]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Set up Python 3.10
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: "3.10"
           architecture: "x64"
@@ -54,7 +52,7 @@ jobs:
           echo "pip_cache=$(pip cache dir)" >> $GITHUB_OUTPUT
         shell: bash -l {0}
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: |
             ${{ steps.pip-cache.outputs.pip_cache }}
@@ -72,13 +70,13 @@ jobs:
           ## Install torch & xla and torchvision
           pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cpu
           pip install https://storage.googleapis.com/pytorch-xla-releases/wheels/tpuvm/torch_xla-nightly-cp310-cp310-linux_x86_64.whl
-          
+
           # Check installation
           python -c "import torch"
 
           ## Install test deps and Ignite
           pip install -r requirements-dev.txt
-          python setup.py install
+          pip install .
 
       # Download MNIST: https://github.com/pytorch/ignite/issues/1737
       # to "/tmp" for tpu tests
@@ -88,7 +86,7 @@ jobs:
           target_dir: /tmp
 
       - name: Run Tests
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v3.0.2
         with:
           max_attempts: 5
           timeout_minutes: 25
@@ -103,8 +101,8 @@ jobs:
           XRT_WORKERS: "localservice:0;grpc://localhost:40934"
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
-          file: ./coverage.xml
+          files: ./coverage.xml
           flags: tpu
           fail_ci_if_error: false

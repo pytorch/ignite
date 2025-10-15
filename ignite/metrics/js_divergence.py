@@ -73,7 +73,7 @@ class JSDivergence(KLDivergence):
 
         .. testoutput::
 
-           0.16266516844431558
+           0.1626...
 
     .. versionchanged:: 0.5.1
         ``skip_unrolling`` argument is added.

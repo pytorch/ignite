@@ -2,6 +2,7 @@ import math
 from typing import Any, Callable, Sequence, Tuple, Union
 
 import torch
+from torch import Tensor
 
 from ignite.exceptions import NotComputableError
 from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
@@ -71,11 +72,11 @@ class Bleu(Metric):
 
     More details can be found in `Papineni et al. 2002`__.
 
-    __ https://www.aclweb.org/anthology/P02-1040
+    __ https://aclanthology.org/P02-1040/
 
     In addition, a review of smoothing techniques can be found in `Chen et al. 2014`__
 
-    __ https://aclanthology.org/W14-3346.pdf
+    __ https://aclanthology.org/W14-3346/
 
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     - `y_pred` (list(list(str))) - a list of hypotheses sentences.
@@ -236,12 +237,12 @@ class Bleu(Metric):
     @reinit__is_reduced
     def reset(self) -> None:
         if self.average == "macro":
-            self._sum_of_bleu = torch.tensor(0.0, dtype=torch.double, device=self._device)
+            self._sum_of_bleu = torch.tensor(0.0, dtype=self._double_dtype, device=self._device)
             self._num_sentences = 0
 
         if self.average == "micro":
-            self.p_numerators = torch.zeros(self.ngrams_order + 1)
-            self.p_denominators = torch.zeros(self.ngrams_order + 1)
+            self.p_numerators = torch.zeros(self.ngrams_order + 1, dtype=self._double_dtype)
+            self.p_denominators = torch.zeros(self.ngrams_order + 1, dtype=self._double_dtype)
             self.hyp_length_sum = 0
             self.ref_length_sum = 0
 
@@ -278,8 +279,9 @@ class Bleu(Metric):
         )
         return bleu_score
 
-    def compute(self) -> None:
+    def compute(self) -> Union[None, Tensor, float]:
         if self.average == "macro":
             return self._compute_macro()
         elif self.average == "micro":
             return self._compute_micro()
+        return None

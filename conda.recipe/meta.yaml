@@ -1,8 +1,8 @@
-{% set data = load_setup_py_data() %}
+{% set __version__ = "0.6.0" %}
 
 package:
   name: ignite
-  version: {{ data['version'] }}
+  version: {{ __version__ }}
 
 source:
   path: ..
@@ -10,18 +10,20 @@ source:
 build:
   number: 0
   noarch: python
-  script: python setup.py install --single-version-externally-managed --record=record.txt
+  script: python -m pip install . -vv
 
 # https://conda.io/docs/user-guide/tasks/build-packages/define-metadata.html#export-runtime-requirements
 requirements:
   build:
-    - python>=3.6
+    - hatchling
+    - pip
+    - python >=3.9,<=3.13
+    - pytorch >=1.10,<3
     - setuptools
-    - pytorch>=1.3
 
   run:
-    - python>=3.6
-    - pytorch>=1.3
+    - python >=3.9,<=3.13
+    - pytorch >=1.10,<3
 
 test:
   imports:
@@ -32,6 +34,10 @@ test:
     - ignite.contrib
 
 about:
-  home: {{ data['url'] }}
-  license: {{ data['license'] }}
-  summary: {{ data['description'] }}
+  home: https://pytorch-ignite.ai
+  summary: "A lightweight library to help with training neural networks in PyTorch."
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  doc_url: https://docs.pytorch.org/ignite/
+  dev_url: https://github.com/pytorch/ignite
