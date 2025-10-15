@@ -27,6 +27,7 @@ from ignite.contrib.engines.common import (
 )
 from ignite.engine import Engine, Events
 from ignite.handlers import DiskSaver, TerminateOnNan
+from tests.ignite import _torch_version_lt_2
 
 
 class DummyModel(nn.Module):
@@ -577,6 +578,7 @@ def test_setup_wandb_logging(dirname):
         setup_wandb_logging(MagicMock())
 
 
+@pytest.mark.skipif(_torch_version_lt_2, reason="CleamML tests are failing on torch<2")
 def test_setup_clearml_logging():
     handlers.clearml_logger.ClearMLLogger.set_bypass_mode(True)
 

@@ -24,6 +24,7 @@ from ignite.handlers.clearml_logger import (
     WeightsHistHandler,
     WeightsScalarHandler,
 )
+from tests.ignite import _torch_version_lt_2
 
 
 def test_no_clearml():
@@ -716,6 +717,7 @@ def test_grads_hist_handler_whitelist(dummy_model_factory):
     assert mock_logger.grad_helper.add_histogram.call_count == 2
 
 
+@pytest.mark.skipif(_torch_version_lt_2, reason="CleamML tests are failing on torch<2")
 def test_integration(dirname):
     n_epochs = 5
     data = list(range(50))
@@ -743,6 +745,7 @@ def test_integration(dirname):
         logger.close()
 
 
+@pytest.mark.skipif(_torch_version_lt_2, reason="CleamML tests are failing on torch<2")
 def test_integration_as_context_manager(dirname):
     n_epochs = 5
     data = list(range(50))
@@ -768,6 +771,7 @@ def test_integration_as_context_manager(dirname):
             trainer.run(data, max_epochs=n_epochs)
 
 
+@pytest.mark.skipif(_torch_version_lt_2, reason="CleamML tests are failing on torch<2")
 def test_clearml_logger_getattr_method(dirname):
     with pytest.warns(UserWarning, match="ClearMLSaver: running in bypass mode"):
         ClearMLLogger.set_bypass_mode(True)
@@ -789,6 +793,7 @@ def test_clearml_logger_getattr_method(dirname):
         logger.close()
 
 
+@pytest.mark.skipif(_torch_version_lt_2, reason="CleamML tests are failing on torch<2")
 def test_clearml_logger_get_task_bypass(dirname):
     with pytest.warns(UserWarning, match="ClearMLSaver: running in bypass mode"):
         ClearMLLogger.set_bypass_mode(True)

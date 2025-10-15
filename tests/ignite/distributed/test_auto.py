@@ -12,7 +12,7 @@ from torch.utils.data.sampler import BatchSampler, RandomSampler, Sampler, Seque
 
 import ignite.distributed as idist
 from ignite.distributed.auto import auto_dataloader, auto_model, auto_optim, DistributedProxySampler
-from tests.ignite import is_mps_available_and_functional
+from tests.ignite import is_mps_available_and_functional, _torch_version_lt_2
 
 
 class DummyDS(Dataset):
@@ -310,8 +310,9 @@ def test_dist_proxy_sampler():
     with pytest.raises(TypeError, match=r"Argument sampler should be instance of torch Sampler"):
         DistributedProxySampler(None)
 
-    with pytest.raises(TypeError, match=r"Argument sampler should have length"):
-        DistributedProxySampler(Sampler())
+    if not _torch_version_lt_2:
+        with pytest.raises(TypeError, match=r"Argument sampler should have length"):
+            DistributedProxySampler(Sampler())
 
     with pytest.raises(TypeError, match=r"Argument sampler must not be a distributed sampler already"):
         DistributedProxySampler(DistributedSampler(sampler, num_replicas=num_replicas, rank=0))
