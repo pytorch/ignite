@@ -44,6 +44,13 @@ jobs:
         shell: bash -l {0}
         run: |
           uv pip install "torch==${{ matrix.pytorch-version }}" torchvision --index-url https://download.pytorch.org/whl/cpu
+
+          # We should install numpy<2.0 for pytorch<2.3
+          numpy_one_pth_version=$(python -c "import torch; print(float('.'.join(torch.__version__.split('.')[:2])) < 2.3)")
+          if [ "${numpy_one_pth_version}" == "True" ]; then
+            uv pip install -U "numpy<2.0"
+          fi
+
           uv pip install -r requirements-dev.txt
           uv pip install .
 
