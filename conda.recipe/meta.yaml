@@ -1,4 +1,4 @@
-{% set __version__ = "0.6.0" %}
+{% set __version__ = "0.5.3" %}
 
 package:
   name: ignite
