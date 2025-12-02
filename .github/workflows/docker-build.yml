@@ -24,7 +24,7 @@ jobs:
       hvd_version: ${{ steps.set-versions.outputs.hvd_version }}
       msdp_version: ${{ steps.set-versions.outputs.msdp_version }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Changed Files Exporter
         if: github.event_name == 'pull_request'
         id: files
@@ -63,7 +63,7 @@ jobs:
           echo "::endgroup::"
 
       - name: Checkout repository (pytorch/test-infra)
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           # Support the use case where we need to checkout someone's fork
           repository: pytorch/test-infra
@@ -73,7 +73,7 @@ jobs:
         uses: ./test-infra/.github/actions/setup-linux
 
       - name: Checkout repository (${{ github.repository }})
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           # Support the use case where we need to checkout someone's fork
           repository: ${{ github.repository }}
@@ -122,7 +122,7 @@ jobs:
           echo "::endgroup::"
 
       - name: Checkout repository (pytorch/test-infra)
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           # Support the use case where we need to checkout someone's fork
           repository: pytorch/test-infra
@@ -132,7 +132,7 @@ jobs:
         uses: ./test-infra/.github/actions/setup-linux
 
       - name: Checkout repository (${{ github.repository }})
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           # Support the use case where we need to checkout someone's fork
           repository: ${{ github.repository }}
@@ -181,7 +181,7 @@ jobs:
           echo "::endgroup::"
 
       - name: Checkout repository (pytorch/test-infra)
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           # Support the use case where we need to checkout someone's fork
           repository: pytorch/test-infra
@@ -191,7 +191,7 @@ jobs:
         uses: ./test-infra/.github/actions/setup-linux
 
       - name: Checkout repository (${{ github.repository }})
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           # Support the use case where we need to checkout someone's fork
           repository: ${{ github.repository }}
@@ -240,7 +240,7 @@ jobs:
           echo "::endgroup::"
 
       - name: Checkout repository (pytorch/test-infra)
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           # Support the use case where we need to checkout someone's fork
           repository: pytorch/test-infra
@@ -250,7 +250,7 @@ jobs:
         uses: ./test-infra/.github/actions/setup-linux
 
       - name: Checkout repository (${{ github.repository }})
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           # Support the use case where we need to checkout someone's fork
           repository: ${{ github.repository }}
