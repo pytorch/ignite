@@ -173,8 +173,7 @@ class OutputHandler(BaseOutputHandler):
             Default is None, global_step based on attached engine. If provided,
             uses function output as global_step. To setup global step from another engine, please use
             :meth:`~ignite.handlers.wandb_logger.global_step_from_engine`.
-        sync: If set to False, process calls to log in a seperate thread. Default (None) uses whatever
-            the default value of wandb.log.
+        sync: Deprecated, has no function. Argument is kept here for compatibility with existing code.
 
     Examples:
         .. code-block:: python
@@ -311,8 +310,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
             as a sequence.
         param_name: parameter name
         tag: common title for all produced plots. For example, "generator"
-        sync: If set to False, process calls to log in a seperate thread. Default (None) uses whatever
-            the default value of wandb.log.
+        sync: Deprecated, has no function. Argument is kept here for compatibility with existing code.
 
     Examples:
         .. code-block:: python
