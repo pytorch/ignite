@@ -348,7 +348,6 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
         super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
         if sync is not None:
             warn("The sync argument for the WandBLoggers is no longer used, and may be removed in the future")
-        
 
     def __call__(self, engine: Engine, logger: WandBLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, WandBLogger):
