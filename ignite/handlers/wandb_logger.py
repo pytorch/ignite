@@ -1,6 +1,7 @@
 """WandB logger and its helper handlers."""
 
 from typing import Any, Callable, List, Optional, Union
+from warnings import warn
 
 from torch.optim import Optimizer
 
@@ -172,8 +173,7 @@ class OutputHandler(BaseOutputHandler):
             Default is None, global_step based on attached engine. If provided,
             uses function output as global_step. To setup global step from another engine, please use
             :meth:`~ignite.handlers.wandb_logger.global_step_from_engine`.
-        sync: If set to False, process calls to log in a seperate thread. Default (None) uses whatever
-            the default value of wandb.log.
+        sync: Deprecated, has no function. Argument is kept here for compatibility with existing code.
 
     Examples:
         .. code-block:: python
@@ -284,7 +284,8 @@ class OutputHandler(BaseOutputHandler):
         state_attributes: Optional[List[str]] = None,
     ):
         super().__init__(tag, metric_names, output_transform, global_step_transform, state_attributes)
-        self.sync = sync
+        if sync is not None:
+            warn("The sync argument for the WandBLoggers is no longer used, and may be removed in the future")
 
     def __call__(self, engine: Engine, logger: WandBLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, WandBLogger):
@@ -298,7 +299,7 @@ class OutputHandler(BaseOutputHandler):
             )
 
         metrics = self._setup_output_metrics_state_attrs(engine, log_text=True, key_tuple=False)
-        logger.log(metrics, step=global_step, sync=self.sync)
+        logger.log(metrics, step=global_step)
 
 
 class OptimizerParamsHandler(BaseOptimizerParamsHandler):
@@ -309,8 +310,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
             as a sequence.
         param_name: parameter name
         tag: common title for all produced plots. For example, "generator"
-        sync: If set to False, process calls to log in a seperate thread. Default (None) uses whatever
-            the default value of wandb.log.
+        sync: Deprecated, has no function. Argument is kept here for compatibility with existing code.
 
     Examples:
         .. code-block:: python
@@ -346,7 +346,8 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
         self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None, sync: Optional[bool] = None
     ):
         super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
-        self.sync = sync
+        if sync is not None:
+            warn("The sync argument for the WandBLoggers is no longer used, and may be removed in the future")
 
     def __call__(self, engine: Engine, logger: WandBLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, WandBLogger):
@@ -358,4 +359,4 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
             f"{tag_prefix}{self.param_name}/group_{i}": float(param_group[self.param_name])
             for i, param_group in enumerate(self.optimizer.param_groups)
         }
-        logger.log(params, step=global_step, sync=self.sync)
+        logger.log(params, step=global_step)

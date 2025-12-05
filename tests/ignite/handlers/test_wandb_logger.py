@@ -31,14 +31,14 @@ def test_optimizer_params():
     mock_engine.state.iteration = 123
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
-    mock_logger.log.assert_called_once_with({"lr/group_0": 0.01}, step=123, sync=None)
+    mock_logger.log.assert_called_once_with({"lr/group_0": 0.01}, step=123)
 
     wrapper = OptimizerParamsHandler(optimizer, param_name="lr", tag="generator")
     mock_logger = MagicMock(spec=WandBLogger)
     mock_logger.log = MagicMock()
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
-    mock_logger.log.assert_called_once_with({"generator/lr/group_0": 0.01}, step=123, sync=None)
+    mock_logger.log.assert_called_once_with({"generator/lr/group_0": 0.01}, step=123)
 
 
 def test_output_handler_with_wrong_logger_type():
@@ -62,36 +62,14 @@ def test_output_handler_output_transform():
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
 
-    mock_logger.log.assert_called_once_with({"tag/output": 12345}, step=123, sync=None)
+    mock_logger.log.assert_called_once_with({"tag/output": 12345}, step=123)
 
     wrapper = OutputHandler("another_tag", output_transform=lambda x: {"loss": x})
     mock_logger = MagicMock(spec=WandBLogger)
     mock_logger.log = MagicMock()
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
-    mock_logger.log.assert_called_once_with({"another_tag/loss": 12345}, step=123, sync=None)
-
-
-def test_output_handler_output_transform_sync():
-    wrapper = OutputHandler("tag", output_transform=lambda x: x, sync=False)
-    mock_logger = MagicMock(spec=WandBLogger)
-    mock_logger.log = MagicMock()
-
-    mock_engine = MagicMock()
-    mock_engine.state = State()
-    mock_engine.state.output = 12345
-    mock_engine.state.iteration = 123
-
-    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
-
-    mock_logger.log.assert_called_once_with({"tag/output": 12345}, step=123, sync=False)
-
-    wrapper = OutputHandler("another_tag", output_transform=lambda x: {"loss": x}, sync=True)
-    mock_logger = MagicMock(spec=WandBLogger)
-    mock_logger.log = MagicMock()
-
-    wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
-    mock_logger.log.assert_called_once_with({"another_tag/loss": 12345}, step=123, sync=True)
+    mock_logger.log.assert_called_once_with({"another_tag/loss": 12345}, step=123)
 
 
 def test_output_handler_metric_names():
@@ -104,7 +82,7 @@ def test_output_handler_metric_names():
     mock_engine.state.iteration = 5
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
-    mock_logger.log.assert_called_once_with({"tag/a": 1, "tag/b": 5}, step=5, sync=None)
+    mock_logger.log.assert_called_once_with({"tag/a": 1, "tag/b": 5}, step=5)
 
     wrapper = OutputHandler("tag", metric_names=["a", "c"])
     mock_engine = MagicMock()
@@ -115,7 +93,7 @@ def test_output_handler_metric_names():
     mock_logger.log = MagicMock()
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
-    mock_logger.log.assert_called_once_with({"tag/a": 55.56, "tag/c": "Some text"}, step=7, sync=None)
+    mock_logger.log.assert_called_once_with({"tag/a": 55.56, "tag/c": "Some text"}, step=7)
 
     # all metrics
     wrapper = OutputHandler("tag", metric_names="all")
@@ -127,7 +105,7 @@ def test_output_handler_metric_names():
     mock_engine.state.iteration = 5
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
-    mock_logger.log.assert_called_once_with({"tag/a": 12.23, "tag/b": 23.45}, step=5, sync=None)
+    mock_logger.log.assert_called_once_with({"tag/a": 12.23, "tag/b": 23.45}, step=5)
 
     # log a torch vector
     wrapper = OutputHandler("tag", metric_names="all")
@@ -139,7 +117,7 @@ def test_output_handler_metric_names():
     mock_engine.state.iteration = 5
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
-    mock_logger.log.assert_called_once_with({f"tag/a/{i}": vector[i].item() for i in range(5)}, step=5, sync=None)
+    mock_logger.log.assert_called_once_with({f"tag/a/{i}": vector[i].item() for i in range(5)}, step=5)
 
     wrapper = OutputHandler("tag", metric_names=["a"])
     mock_engine = MagicMock()
@@ -151,7 +129,7 @@ def test_output_handler_metric_names():
     mock_logger.log = MagicMock()
 
     wrapper(mock_engine, mock_logger, Events.ITERATION_STARTED)
-    mock_logger.log.assert_called_once_with({f"tag/a/{i}": v for i, v in enumerate(data)}, step=7, sync=None)
+    mock_logger.log.assert_called_once_with({f"tag/a/{i}": v for i, v in enumerate(data)}, step=7)
 
     wrapper = OutputHandler("tag", metric_names="all")
     mock_engine = MagicMock()
@@ -179,7 +157,6 @@ def test_output_handler_metric_names():
             "tag/c/2/e": 32.1,
         },
         step=7,
-        sync=None,
     )
 
 
@@ -195,7 +172,7 @@ def test_output_handler_both():
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
 
-    mock_logger.log.assert_called_once_with({"tag/a": 12.23, "tag/b": 23.45, "tag/loss": 12345}, step=5, sync=None)
+    mock_logger.log.assert_called_once_with({"tag/a": 12.23, "tag/b": 23.45, "tag/loss": 12345}, step=5)
 
 
 def test_output_handler_with_wrong_global_step_transform_output():
@@ -229,7 +206,7 @@ def test_output_handler_with_global_step_transform():
     mock_engine.state.output = 12345
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
-    mock_logger.log.assert_called_once_with({"tag/loss": 12345}, step=10, sync=None)
+    mock_logger.log.assert_called_once_with({"tag/loss": 12345}, step=10)
 
 
 def test_output_handler_with_global_step_from_engine():
@@ -254,7 +231,7 @@ def test_output_handler_with_global_step_from_engine():
 
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
     mock_logger.log.assert_called_once_with(
-        {"tag/loss": mock_engine.state.output}, step=mock_another_engine.state.epoch, sync=None
+        {"tag/loss": mock_engine.state.output}, step=mock_another_engine.state.epoch
     )
 
     mock_another_engine.state.epoch = 11
@@ -263,7 +240,7 @@ def test_output_handler_with_global_step_from_engine():
     wrapper(mock_engine, mock_logger, Events.EPOCH_STARTED)
     assert mock_logger.log.call_count == 2
     mock_logger.log.assert_has_calls(
-        [call({"tag/loss": mock_engine.state.output}, step=mock_another_engine.state.epoch, sync=None)]
+        [call({"tag/loss": mock_engine.state.output}, step=mock_another_engine.state.epoch)]
     )
 
 
@@ -291,7 +268,6 @@ def test_output_handler_state_attrs():
             "tag/delta": "Some Text",
         },
         step=5,
-        sync=None,
     )
 
 
