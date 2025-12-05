@@ -64,6 +64,10 @@ jobs:
           uv pip install -r requirements-dev.txt
           uv pip install .
           uv pip install mypy
+          uv pip install pyrefly==0.44.2
 
       - name: Run MyPy type checking
         run: mypy
+
+      - name: Run Pyrefly type checking
+        run: pyrefly check

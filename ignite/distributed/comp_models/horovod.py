@@ -70,6 +70,7 @@ if has_hvd_support:
                 self._init_from_context()
 
         def _create_from_backend(self, backend: str, **kwargs: Any) -> None:
+            # pyrefly: ignore [bad-override]
             self._backend: str = backend
             comm = kwargs.get("comm", None)
             hvd.init(comm=comm)
@@ -129,6 +130,7 @@ if has_hvd_support:
             finalize()
 
         @staticmethod
+        # pyrefly: ignore [bad-override]
         def spawn(
             fn: Callable,
             args: Tuple,
@@ -169,8 +171,11 @@ if has_hvd_support:
             return group
 
         _reduce_op_map = {
+            # pyrefly: ignore [unbound-name]
             "SUM": hvd.mpi_ops.Sum,
+            # pyrefly: ignore [unbound-name]
             "AVERAGE": hvd.mpi_ops.Average,
+            # pyrefly: ignore [unbound-name]
             "ADASUM": hvd.mpi_ops.Adasum,
         }
 

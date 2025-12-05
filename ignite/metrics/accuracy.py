@@ -255,7 +255,9 @@ class Accuracy(_BaseClassification):
             y = torch.transpose(y, 1, last_dim - 1).reshape(-1, num_classes)
             correct = torch.all(y == y_pred.type_as(y), dim=-1)
 
+        # pyrefly: ignore [unbound-name]
         self._num_correct += torch.sum(correct).to(self._device)
+        # pyrefly: ignore [unbound-name]
         self._num_examples += correct.shape[0]
 
     @sync_all_reduce("_num_examples", "_num_correct")

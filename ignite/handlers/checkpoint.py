@@ -440,6 +440,7 @@ class Checkpoint(Serializable):
 
     def __call__(self, engine: Engine) -> None:
         if not engine.has_registered_events(CheckpointEvents.SAVED_CHECKPOINT):
+            # pyrefly: ignore [bad-argument-type]
             engine.register_events(*CheckpointEvents)
         global_step = None
         if self.global_step_transform is not None:
@@ -454,6 +455,7 @@ class Checkpoint(Serializable):
                 global_step = engine.state.get_event_attrib_value(Events.ITERATION_COMPLETED)
             priority = global_step
 
+        # pyrefly: ignore [bad-argument-type]
         if self._check_lt_n_saved() or self._compare_fn(priority):
             priority_str = f"{priority}" if isinstance(priority, numbers.Integral) else f"{priority:.4f}"
 
@@ -495,6 +497,7 @@ class Checkpoint(Serializable):
                 if isinstance(self.save_handler, BaseSaveHandler):
                     self.save_handler.remove(item.filename)
 
+            # pyrefly: ignore [bad-argument-type]
             self._saved.append(Checkpoint.Item(priority, filename))
             self._saved.sort(key=lambda it: it[0])
 

@@ -1154,6 +1154,7 @@ def create_lr_scheduler_with_warmup(
             init_lr = lr_scheduler.get_param()
             if init_lr == param_group_warmup_end_value:
                 if warmup_duration > 2:
+                    # pyrefly: ignore [unsupported-operation]
                     d = (param_group_warmup_end_value - warmup_start_value) / (warmup_duration - 1)
                     milestones_values[-1] = (warmup_duration - 2, param_group_warmup_end_value - d)
                 else:
@@ -1163,6 +1164,7 @@ def create_lr_scheduler_with_warmup(
             PiecewiseLinear(
                 lr_scheduler.optimizer,
                 param_name="lr",
+                # pyrefly: ignore [bad-argument-type]
                 milestones_values=milestones_values,
                 param_group_index=param_group_index,
                 save_history=save_history,
@@ -1175,7 +1177,9 @@ def create_lr_scheduler_with_warmup(
         warmup_scheduler,
         lr_scheduler,
     ]
+    # pyrefly: ignore [unbound-name, unsupported-operation]
     durations = [milestones_values[-1][0] + 1]
+    # pyrefly: ignore [bad-argument-type]
     combined_scheduler = ConcatScheduler(schedulers, durations=durations, save_history=save_history)
 
     if output_simulated_values is not None:
@@ -1185,6 +1189,7 @@ def create_lr_scheduler_with_warmup(
                 f"but given {type(output_simulated_values)}."
             )
         num_events = len(output_simulated_values)
+        # pyrefly: ignore [bad-argument-type]
         result = ConcatScheduler.simulate_values(num_events=num_events, schedulers=schedulers, durations=durations)
         for i in range(num_events):
             output_simulated_values[i] = result[i]
@@ -1656,6 +1661,7 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
                 raise TypeError(f"When param_group_index is given, min_lr should be a float, but given {type(min_lr)}")
             _min_lr = min_lr
             min_lr = [0] * len(optimizer.param_groups)
+            # pyrefly: ignore [unsupported-operation]
             min_lr[param_group_index] = _min_lr
         else:
             min_lr = 0

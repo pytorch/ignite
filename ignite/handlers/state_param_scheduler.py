@@ -193,6 +193,7 @@ class LambdaStateScheduler(StateParamScheduler):
         self._state_attrs += ["lambda_obj"]
 
     def get_param(self) -> Union[List[float], float]:
+        # pyrefly: ignore [bad-return]
         return self.lambda_obj(self.event_index)
 
 

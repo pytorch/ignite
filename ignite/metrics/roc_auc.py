@@ -210,4 +210,5 @@ class RocCurve(EpochMetric):
             tpr = idist.broadcast(tpr, src=0, safe_mode=True)
             thresholds = idist.broadcast(thresholds, src=0, safe_mode=True)
 
+        # pyrefly: ignore [bad-return]
         return fpr, tpr, thresholds

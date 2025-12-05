@@ -54,6 +54,7 @@ if has_xla_support:
         def _create_from_backend(self, backend: str, **kwargs: Any) -> None:
             xm.rendezvous("init")
 
+            # pyrefly: ignore [bad-override]
             self._backend: str = backend
             self._setup_attrs()
 
@@ -106,6 +107,7 @@ if has_xla_support:
             finalize()
 
         @staticmethod
+        # pyrefly: ignore [bad-override]
         def spawn(
             fn: Callable,
             args: Tuple,
