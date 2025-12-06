@@ -153,6 +153,7 @@ class Engine(Serializable):
         self._dataloader_iter: Optional[Iterator[Any]] = None
         self._init_iter: Optional[int] = None
 
+        # pyrefly: ignore [bad-argument-type]
         self.register_events(*Events)
 
         if self._process_function is None:
@@ -1038,6 +1039,7 @@ class Engine(Serializable):
                     "https://github.com/pytorch/ignite/issues/new/choose"
                 )
 
+            # pyrefly: ignore [unbound-name]
             time_taken = time.time() - start_time
             # time is available for handlers but must be updated after fire
             self.state.times[Events.COMPLETED.name] = time_taken
@@ -1238,6 +1240,7 @@ class Engine(Serializable):
                     "https://github.com/pytorch/ignite/issues/new/choose"
                 )
 
+            # pyrefly: ignore [unbound-name]
             time_taken = time.time() - start_time
             # time is available for handlers but must be updated after fire
             self.state.times[Events.COMPLETED.name] = time_taken

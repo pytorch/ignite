@@ -170,6 +170,7 @@ class SSIM(Metric):
         result = (
             torch.einsum("i,j->ij", kernel_x, kernel_y)
             if ndims == 2
+            # pyrefly: ignore [unbound-name]
             else torch.einsum("i,j,k->ijk", kernel_x, kernel_y, kernel_z)
         )
         return result

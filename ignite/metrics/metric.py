@@ -369,6 +369,7 @@ class Metric(Serializable, metaclass=ABCMeta):
         if torch.device(device).type == "xla":
             raise ValueError("Cannot create metric on an XLA device. Use device='cpu' instead.")
 
+        # pyrefly: ignore [read-only]
         self._device = torch.device(device)
         self._skip_unrolling = skip_unrolling
 

@@ -698,6 +698,7 @@ class NeptuneSaver(BaseSaveHandler):
             # hold onto the file stream for uploading.
             # NOTE: This won't load the whole file in memory and upload
             #       the stream in smaller chunks.
+            # pyrefly: ignore [bad-argument-type]
             self._logger[filename].upload(File.from_stream(tmp.file))
 
     @idist.one_rank_only(with_barrier=True)

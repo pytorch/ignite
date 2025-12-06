@@ -251,6 +251,7 @@ class BasicTimeProfiler:
         total_eh_time: Union[int, torch.Tensor] = sum(
             [(self.event_handlers_times[e]).sum() for e in Events if e not in self.events_to_ignore]
         )
+        # pyrefly: ignore [no-matching-overload]
         event_handlers_stats = dict(
             [
                 (str(e.name).replace(".", "_"), self._compute_basic_stats(self.event_handlers_times[e]))
@@ -334,6 +335,7 @@ class BasicTimeProfiler:
 
         results_df = pd.DataFrame(
             data=results_dump,
+            # pyrefly: ignore [bad-argument-type]
             columns=[
                 "epoch",
                 "iteration",
@@ -689,6 +691,7 @@ class HandlersTimeProfiler:
 
         results_dump = torch.stack(cols, dim=1).numpy()
 
+        # pyrefly: ignore [bad-argument-type]
         results_df = pd.DataFrame(data=results_dump, columns=headers)
         results_df.to_csv(output_path, index=False)
 

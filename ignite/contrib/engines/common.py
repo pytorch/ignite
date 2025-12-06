@@ -265,6 +265,7 @@ def _setup_common_distrib_training_handlers(
 
         @trainer.on(Events.EPOCH_STARTED)
         def distrib_set_epoch(engine: Engine) -> None:
+            # pyrefly: ignore [missing-attribute]
             train_sampler.set_epoch(engine.state.epoch - 1)
 
 

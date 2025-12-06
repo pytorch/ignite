@@ -199,6 +199,7 @@ class VisdomLogger(BaseLogger):
 
         self.executor: Union[_DummyExecutor, "ThreadPoolExecutor"] = _DummyExecutor()
         if num_workers > 0:
+            # pyrefly: ignore [unbound-name]
             self.executor = ThreadPoolExecutor(max_workers=num_workers)
 
     def _save(self) -> None:

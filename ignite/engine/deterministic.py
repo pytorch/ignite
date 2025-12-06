@@ -89,6 +89,7 @@ def _get_rng_states() -> List[Any]:
     try:
         import numpy as np
 
+        # pyrefly: ignore [bad-argument-type]
         output.append(np.random.get_state())
     except ImportError:
         pass

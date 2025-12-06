@@ -9,6 +9,7 @@ import warnings
 removed_in = "0.6.0"
 deprecation_warning = (
     f"{__file__} has been moved to /ignite/handlers/time_profilers.py"
+    # pyrefly: ignore [redundant-condition]
     + (f" and will be removed in version {removed_in}" if removed_in else "")
     + ".\n Please refer to the documentation for more details."
 )
