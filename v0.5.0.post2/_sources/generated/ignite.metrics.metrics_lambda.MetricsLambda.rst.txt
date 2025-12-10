@@ -1,0 +1,53 @@
+﻿MetricsLambda
+=============
+
+.. currentmodule:: ignite.metrics.metrics_lambda
+
+.. autoclass:: MetricsLambda
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+      ~MetricsLambda.attach
+   
+   
+   
+   
+   
+      ~MetricsLambda.compute
+   
+   
+   
+      ~MetricsLambda.detach
+   
+   
+   
+      ~MetricsLambda.is_attached
+   
+   
+   
+   
+   
+   
+   
+      ~MetricsLambda.reset
+   
+   
+   
+   
+   
+   
+   
+      ~MetricsLambda.update
+   
+   
+   
+   
