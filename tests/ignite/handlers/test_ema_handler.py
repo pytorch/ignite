@@ -97,7 +97,7 @@ def test_ema_warmup_func(get_dummy_model):
 def test_ema_invalid_model():
     with pytest.raises(ValueError, match="model should be an instance of nn.Module or its subclasses"):
         model = "Invalid Model"
-        EMAHandler(model)  # type: ignore
+        EMAHandler(model)
 
 
 @pytest.mark.distributed

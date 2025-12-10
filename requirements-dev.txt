@@ -1,7 +1,7 @@
 # Tests
 dill
 filelock
-mypy
+pyrefly
 numpy
 pre-commit
 pytest

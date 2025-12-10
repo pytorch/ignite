@@ -1122,13 +1122,14 @@ def create_lr_scheduler_with_warmup(
             f"but given {type(lr_scheduler)}"
         )
 
-    if not isinstance(warmup_duration, numbers.Integral):
+    if not isinstance(warmup_duration, int):
         raise TypeError(f"Argument warmup_duration should be integer, but given {warmup_duration}")
 
     if not (warmup_duration > 1):
         raise ValueError(f"Argument warmup_duration should be at least 2 events, but given {warmup_duration}")
 
     warmup_schedulers: List[ParamScheduler] = []
+    milestones_values: List[Tuple[int, float]] = []
 
     for param_group_index, param_group in enumerate(lr_scheduler.optimizer.param_groups):
         if warmup_end_value is None:
@@ -1154,7 +1155,6 @@ def create_lr_scheduler_with_warmup(
             init_lr = lr_scheduler.get_param()
             if init_lr == param_group_warmup_end_value:
                 if warmup_duration > 2:
-                    # pyrefly: ignore [unsupported-operation]
                     d = (param_group_warmup_end_value - warmup_start_value) / (warmup_duration - 1)
                     milestones_values[-1] = (warmup_duration - 2, param_group_warmup_end_value - d)
                 else:
@@ -1164,7 +1164,6 @@ def create_lr_scheduler_with_warmup(
             PiecewiseLinear(
                 lr_scheduler.optimizer,
                 param_name="lr",
-                # pyrefly: ignore [bad-argument-type]
                 milestones_values=milestones_values,
                 param_group_index=param_group_index,
                 save_history=save_history,
@@ -1177,7 +1176,6 @@ def create_lr_scheduler_with_warmup(
         warmup_scheduler,
         lr_scheduler,
     ]
-    # pyrefly: ignore [unbound-name, unsupported-operation]
     durations = [milestones_values[-1][0] + 1]
     # pyrefly: ignore [bad-argument-type]
     combined_scheduler = ConcatScheduler(schedulers, durations=durations, save_history=save_history)
@@ -1655,13 +1653,13 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
         self.trainer = trainer
         self.optimizer = optimizer
 
+        min_lr: Union[float, List[float]]
         if "min_lr" in scheduler_kwargs and param_group_index is not None:
             min_lr = scheduler_kwargs["min_lr"]
             if not isinstance(min_lr, float):
                 raise TypeError(f"When param_group_index is given, min_lr should be a float, but given {type(min_lr)}")
             _min_lr = min_lr
             min_lr = [0] * len(optimizer.param_groups)
-            # pyrefly: ignore [unsupported-operation]
             min_lr[param_group_index] = _min_lr
         else:
             min_lr = 0
@@ -1676,11 +1674,11 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
             _scheduler_kwargs["verbose"] = False
 
         self.scheduler = ReduceLROnPlateau(optimizer, **_scheduler_kwargs)
-        self.scheduler._reduce_lr = self._reduce_lr  # type: ignore[method-assign]
+        self.scheduler._reduce_lr = self._reduce_lr
 
         self._state_attrs += ["metric_name", "scheduler"]
 
-    def __call__(self, engine: Engine, name: Optional[str] = None) -> None:  # type: ignore[override]
+    def __call__(self, engine: Engine, name: Optional[str] = None) -> None:
         if not hasattr(engine.state, "metrics") or self.metric_name not in engine.state.metrics:
             raise ValueError(
                 "Argument engine should have in its 'state', attribute 'metrics' "

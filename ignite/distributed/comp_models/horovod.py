@@ -1,6 +1,6 @@
 import os
 import warnings
-from typing import Any, Callable, cast, List, Mapping, Optional, Tuple
+from typing import Any, Callable, cast, List, Mapping, Optional, Tuple, TYPE_CHECKING
 
 import torch
 
@@ -19,6 +19,11 @@ try:
     has_hvd_support = True
 except ImportError:
     has_hvd_support = False
+
+    if TYPE_CHECKING:
+        # Tell the type checker that hvd imports are always defined.
+        import horovod.torch as hvd
+        from horovod import run as hvd_mp_spawn
 
 
 if has_hvd_support:
@@ -171,11 +176,8 @@ if has_hvd_support:
             return group
 
         _reduce_op_map = {
-            # pyrefly: ignore [unbound-name]
             "SUM": hvd.mpi_ops.Sum,
-            # pyrefly: ignore [unbound-name]
             "AVERAGE": hvd.mpi_ops.Average,
-            # pyrefly: ignore [unbound-name]
             "ADASUM": hvd.mpi_ops.Adasum,
         }
 

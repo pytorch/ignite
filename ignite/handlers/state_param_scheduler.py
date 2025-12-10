@@ -1,7 +1,7 @@
 import numbers
 import warnings
 from bisect import bisect_right
-from typing import Any, List, Sequence, Tuple, Union
+from typing import Any, Callable, List, Sequence, Tuple, Union
 
 from ignite.engine import CallableEventWithFilter, Engine, Events, EventsList
 from ignite.handlers.param_scheduler import BaseParamScheduler
@@ -183,7 +183,13 @@ class LambdaStateScheduler(StateParamScheduler):
 
     """
 
-    def __init__(self, lambda_obj: Any, param_name: str, save_history: bool = False, create_new: bool = False):
+    def __init__(
+        self,
+        lambda_obj: Callable[[int], Union[List[float], float]],
+        param_name: str,
+        save_history: bool = False,
+        create_new: bool = False,
+    ):
         super(LambdaStateScheduler, self).__init__(param_name, save_history, create_new)
 
         if not callable(lambda_obj):
@@ -193,7 +199,6 @@ class LambdaStateScheduler(StateParamScheduler):
         self._state_attrs += ["lambda_obj"]
 
     def get_param(self) -> Union[List[float], float]:
-        # pyrefly: ignore [bad-return]
         return self.lambda_obj(self.event_index)
 
 

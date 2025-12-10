@@ -1,6 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from collections import namedtuple
-from typing import Any, Callable, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, List, Mapping, NamedTuple, Optional, Sequence, Tuple, Union
 
 import torch
 
@@ -13,24 +12,25 @@ from ignite.metrics.nlp.utils import lcs, ngrams
 __all__ = ["Rouge", "RougeN", "RougeL"]
 
 
-# pyrefly: ignore [invalid-inheritance]
-class Score(namedtuple("Score", ["match", "candidate", "reference"])):
+class Score(NamedTuple):
     r"""
     Computes precision and recall for given matches, candidate and reference lengths.
     """
+
+    match: int
+    candidate: int
+    reference: int
 
     def precision(self) -> float:
         """
         Calculates precision.
         """
-        # pyrefly: ignore [missing-attribute]
         return self.match / self.candidate if self.candidate > 0 else 0
 
     def recall(self) -> float:
         """
         Calculates recall.
         """
-        # pyrefly: ignore [missing-attribute]
         return self.match / self.reference if self.reference > 0 else 0
 
 
