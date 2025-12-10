@@ -160,6 +160,9 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
         elif self._area_range == "large":
             min_area = 9216
             max_area = 1e10
+        else:
+            min_area = 0
+            max_area = 1e10
         return torch.logical_and(areas >= min_area, areas <= max_area)
 
     def _check_matching_input(

@@ -345,6 +345,7 @@ if has_native_dist_support:
             os.environ.update(copy_env_vars)
 
         @staticmethod
+        # pyrefly: ignore [bad-override]
         def spawn(
             fn: Callable,
             args: Tuple,

@@ -1,0 +1,22 @@
+project-includes = ["ignite"]
+ignore-missing-imports = [
+    "apex.*",
+    "clearml.*",
+    "horovod.*",
+    "matplotlib.*",
+    "mlflow.*",
+    "neptune.*",
+    "numpy.*",
+    "pandas.*",
+    "sklearn.*",
+    "polyaxon.*",
+    "polyaxon_client.*",
+    "pynvml.*",
+    "tensorboardx.*",
+    "torch_xla.*",
+    "trains.*",
+    "tqdm.*",
+    "scipy.*",
+    "torchvision.*",
+]
+untyped-def-behavior = "check-and-infer-return-any"

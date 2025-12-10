@@ -161,11 +161,15 @@ class SSIM(Metric):
             kernel_y = self._gaussian(kernel_size[1], sigma[1])
             if ndims == 3:
                 kernel_z = self._gaussian(kernel_size[2], sigma[2])
+            else:
+                kernel_z = None
         else:
             kernel_x = self._uniform(kernel_size[0])
             kernel_y = self._uniform(kernel_size[1])
             if ndims == 3:
                 kernel_z = self._uniform(kernel_size[2])
+            else:
+                kernel_z = None
 
         result = (
             torch.einsum("i,j->ij", kernel_x, kernel_y)

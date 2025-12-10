@@ -336,6 +336,7 @@ if idist.has_xla_support:
         # From pytorch/xla if `torch_xla.distributed.parallel_loader.MpDeviceLoader` is not available
         def __init__(self, loader: Any, device: torch.device, **kwargs: Any) -> None:
             self._loader = loader
+            # pyrefly: ignore [read-only]
             self._device = device
             self._parallel_loader_kwargs = kwargs
 

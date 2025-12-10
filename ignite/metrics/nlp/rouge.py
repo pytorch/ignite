@@ -13,6 +13,7 @@ from ignite.metrics.nlp.utils import lcs, ngrams
 __all__ = ["Rouge", "RougeN", "RougeL"]
 
 
+# pyrefly: ignore [invalid-inheritance]
 class Score(namedtuple("Score", ["match", "candidate", "reference"])):
     r"""
     Computes precision and recall for given matches, candidate and reference lengths.
@@ -22,12 +23,14 @@ class Score(namedtuple("Score", ["match", "candidate", "reference"])):
         """
         Calculates precision.
         """
+        # pyrefly: ignore [missing-attribute]
         return self.match / self.candidate if self.candidate > 0 else 0
 
     def recall(self) -> float:
         """
         Calculates recall.
         """
+        # pyrefly: ignore [missing-attribute]
         return self.match / self.reference if self.reference > 0 else 0
 
 

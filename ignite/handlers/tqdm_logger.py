@@ -224,7 +224,12 @@ class ProgressBar(BaseLogger):
         engine.add_event_handler(closing_event_name, self._close)
 
     def attach_opt_params_handler(  # type: ignore[empty-body]
-        self, engine: Engine, event_name: Union[str, Events], *args: Any, **kwargs: Any
+        self,
+        engine: Engine,
+        event_name: Union[str, Events],
+        *args: Any,
+        **kwargs: Any,
+        # pyrefly: ignore [bad-return]
     ) -> RemovableEventHandle:
         """Intentionally empty"""
         pass

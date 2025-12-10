@@ -100,6 +100,7 @@ class FastaiLRFinder:
 
         # attach LRScheduler to trainer.
         if num_iter is None:
+            # pyrefly: ignore [unsupported-operation]
             num_iter = trainer.state.epoch_length * trainer.state.max_epochs
         else:
             max_iter = trainer.state.epoch_length * trainer.state.max_epochs  # type: ignore[operator]
@@ -183,6 +184,7 @@ class FastaiLRFinder:
         else:
             if smooth_f > 0:
                 loss = smooth_f * loss + (1 - smooth_f) * self._history["loss"][-1]
+            # pyrefly: ignore [unsupported-operation]
             if loss < self._best_loss:
                 self._best_loss = loss
         self._history["loss"].append(loss)
