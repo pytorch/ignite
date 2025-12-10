@@ -18,7 +18,7 @@ def test_state_dict():
     def _test(state):
         engine.state = state
         sd = engine.state_dict()
-        assert isinstance(sd, Mapping) and len(sd) == len(engine._state_dict_all_req_keys) + 1
+        assert isinstance(sd, Mapping) and len(sd) == len(engine._state_dict_all_req_keys) + 2
         assert sd["iteration"] == engine.state.iteration
         assert sd["epoch_length"] == engine.state.epoch_length
         assert sd["max_epochs"] == engine.state.max_epochs
@@ -35,7 +35,7 @@ def test_state_dict_with_user_keys():
     def _test(state):
         engine.state = state
         sd = engine.state_dict()
-        assert isinstance(sd, Mapping) and len(sd) == len(engine._state_dict_all_req_keys) + 1 + len(
+        assert isinstance(sd, Mapping) and len(sd) == len(engine._state_dict_all_req_keys) + 2 + len(
             engine.state_dict_user_keys
         )
         assert sd["iteration"] == engine.state.iteration
@@ -52,7 +52,7 @@ def test_state_dict_integration():
     data = range(100)
     engine.run(data, max_epochs=10)
     sd = engine.state_dict()
-    assert isinstance(sd, Mapping) and len(sd) == len(engine._state_dict_all_req_keys) + 1
+    assert isinstance(sd, Mapping) and len(sd) == len(engine._state_dict_all_req_keys) + 2
     assert sd["iteration"] == engine.state.iteration == 10 * 100
     assert sd["epoch_length"] == engine.state.epoch_length == 100
     assert sd["max_epochs"] == engine.state.max_epochs == 10
@@ -67,7 +67,7 @@ def test_load_state_dict_asserts():
     with pytest.raises(ValueError, match=r"is absent in provided state_dict"):
         engine.load_state_dict({})
 
-    with pytest.raises(ValueError, match=r"state_dict should contain only one of"):
+    with pytest.raises(ValueError, match=r"state_dict should contain at least one of"):
         engine.load_state_dict({"max_epochs": 100, "epoch_length": 120})
 
     with pytest.raises(ValueError, match=r"state_dict should contain only one of"):
