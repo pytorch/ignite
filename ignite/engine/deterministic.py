@@ -85,7 +85,7 @@ class ReproducibleBatchSampler(BatchSampler):
 
 
 def _get_rng_states() -> List[Any]:
-    output = [random.getstate(), torch.get_rng_state()]
+    output: List[Any] = [random.getstate(), torch.get_rng_state()]
     try:
         import numpy as np
 

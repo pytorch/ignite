@@ -9,8 +9,7 @@ import warnings
 removed_in = "0.6.0"
 deprecation_warning = (
     f"{__file__} has been moved to /ignite/handlers/mlflow_logger.py"
-    # pyrefly: ignore [redundant-condition]
-    + (f" and will be removed in version {removed_in}" if removed_in else "")
+    + f" and will be removed in version {removed_in}"
     + ".\n Please refer to the documentation for more details."
 )
 warnings.warn(deprecation_warning, DeprecationWarning, stacklevel=2)
