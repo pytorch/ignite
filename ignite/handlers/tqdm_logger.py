@@ -223,7 +223,7 @@ class ProgressBar(BaseLogger):
         super(ProgressBar, self).attach(engine, log_handler, event_name)
         engine.add_event_handler(closing_event_name, self._close)
 
-    def attach_opt_params_handler(  # type: ignore[empty-body]
+    def attach_opt_params_handler(
         self,
         engine: Engine,
         event_name: Union[str, Events],

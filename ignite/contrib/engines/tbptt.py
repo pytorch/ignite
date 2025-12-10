@@ -117,6 +117,5 @@ def create_supervised_tbptt_trainer(
         return sum(loss_list) / len(loss_list)
 
     engine = Engine(_update)
-    # pyrefly: ignore [bad-argument-type]
     engine.register_events(*Tbptt_Events)
     return engine

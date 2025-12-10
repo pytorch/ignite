@@ -500,14 +500,14 @@ class HandlersTimeProfiler:
 
         self.dataflow_times: List[float] = []
         self.processing_times: List[float] = []
-        self.event_handlers_times: Dict[EventEnum, Dict[str, List[float]]] = {}
+        self.event_handlers_times: Dict[Union[str, EventEnum], Dict[str, List[float]]] = {}
 
     @staticmethod
     def _get_callable_name(handler: Callable) -> str:
         # get name of the callable handler
         return getattr(handler, "__qualname__", handler.__class__.__name__)
 
-    def _create_wrapped_handler(self, handler: Callable, event: EventEnum) -> Callable:
+    def _create_wrapped_handler(self, handler: Callable, event: Union[str, EventEnum]) -> Callable:
         @functools.wraps(handler)
         def _timeit_handler(*args: Any, **kwargs: Any) -> None:
             self._event_handlers_timer.reset()
@@ -532,7 +532,7 @@ class HandlersTimeProfiler:
         t = self._dataflow_timer.value()
         self.dataflow_times.append(t)
 
-    def _reset(self, event_handlers_names: Mapping[EventEnum, List[str]]) -> None:
+    def _reset(self, event_handlers_names: Mapping[Union[str, EventEnum], List[str]]) -> None:
         # reset the variables used for profiling
         self.dataflow_times = []
         self.processing_times = []

@@ -322,19 +322,15 @@ class Parallel:
             idist.initialize(self.backend, init_method=self.init_method)
 
         # The logger can be setup from now since idist.initialize() has been called (if needed)
-        self._logger = setup_logger(__name__ + "." + self.__class__.__name__)  # type: ignore[assignment]
+        self._logger = setup_logger(__name__ + "." + self.__class__.__name__)
 
         if self.backend is not None:
             if self._spawn_params is None:
-                self._logger.info(  # type: ignore[attr-defined]
-                    f"Initialized processing group with backend: '{self.backend}'"
-                )
+                self._logger.info(f"Initialized processing group with backend: '{self.backend}'")
             else:
-                self._logger.info(  # type: ignore[attr-defined]
-                    f"Initialized distributed launcher with backend: '{self.backend}'"
-                )
+                self._logger.info(f"Initialized distributed launcher with backend: '{self.backend}'")
                 msg = "\n\t".join([f"{k}: {v}" for k, v in self._spawn_params.items() if v is not None])
-                self._logger.info(f"- Parameters to spawn processes: \n\t{msg}")  # type: ignore[attr-defined]
+                self._logger.info(f"- Parameters to spawn processes: \n\t{msg}")
 
         return self
 
