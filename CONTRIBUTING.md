@@ -40,7 +40,7 @@ into the following categories:
       - [Formatting the code with a pre-commit hook](#formatting-the-code-with-a-pre-commit-hook)
     - [Run tests](#run-tests)
       - [Run distributed tests only on CPU](#run-distributed-tests-only-on-cpu)
-    - [Run Mypy checks](#run-mypy-checks)
+    - [Run Pyrefly checks](#run-pyrefly-checks)
     - [Send a PR](#send-a-pr)
       - [Sync up with the upstream](#sync-up-with-the-upstream)
   - [Writing documentation](#writing-documentation)
@@ -214,15 +214,15 @@ export WORLD_SIZE=2
 CUDA_VISIBLE_DEVICES="" pytest --dist=each --tx $WORLD_SIZE*popen//python=python tests/ -m distributed -vvv
 ```
 
-#### Run Mypy checks:
+#### Run Pyrefly checks:
 
-To run mypy to check the optional static type:
+To run pyrefly to check the optional static type:
 
 ```bash
-mypy
+pyrefly check
 ```
 
-To change any config for specif folder, please see the file mypy.ini
+To change any config for specific folder, please see the file pyrefly.toml
 
 #### Send a PR
 
