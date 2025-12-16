@@ -1,0 +1,45 @@
+﻿PearsonCorrelation
+==================
+
+.. currentmodule:: ignite.metrics.regression
+
+.. autoclass:: PearsonCorrelation
+   :members:
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+   
+   
+   
+   
+   
+   
+   
+      ~PearsonCorrelation.compute
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+      ~PearsonCorrelation.reset
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
