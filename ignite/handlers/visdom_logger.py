@@ -1,7 +1,7 @@
 """Visdom logger and its helper handlers."""
 
 import os
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union, TYPE_CHECKING
 
 import torch
 import torch.nn as nn
@@ -165,7 +165,7 @@ class VisdomLogger(BaseLogger):
                 "pip install git+https://github.com/fossasia/visdom.git"
             )
 
-        if num_workers > 0:
+        if num_workers > 0 or TYPE_CHECKING:
             # If visdom is installed, one of its dependencies `tornado`
             # requires also `futures` to be installed.
             # Let's check anyway if we can import it.
@@ -199,7 +199,6 @@ class VisdomLogger(BaseLogger):
 
         self.executor: Union[_DummyExecutor, "ThreadPoolExecutor"] = _DummyExecutor()
         if num_workers > 0:
-            # pyrefly: ignore [unbound-name]
             self.executor = ThreadPoolExecutor(max_workers=num_workers)
 
     def _save(self) -> None:

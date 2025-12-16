@@ -11,7 +11,7 @@ on:
       - "tests/ignite/**"
       - "requirements-dev.txt"
       - "pyproject.toml"
-      - "mypy.ini"
+      - "pyrefly.toml"
       - ".github/workflows/typing-checks.yml"
   pull_request:
     paths:
@@ -20,7 +20,7 @@ on:
       - "tests/ignite/**"
       - "requirements-dev.txt"
       - "pyproject.toml"
-      - "mypy.ini"
+      - "pyrefly.toml"
       - ".github/workflows/typing-checks.yml"
   workflow_dispatch:
 
@@ -30,7 +30,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  mypy:
+  pyrefly:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -60,14 +60,7 @@ jobs:
         run: uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
       - name: Install dependencies
-        run: |
-          uv pip install -r requirements-dev.txt
-          uv pip install .
-          uv pip install mypy
-          uv pip install pyrefly
-
-      - name: Run MyPy type checking
-        run: mypy
+        run: uv pip install -r requirements-dev.txt
 
       - name: Run Pyrefly type checking
         run: pyrefly check

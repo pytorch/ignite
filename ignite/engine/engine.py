@@ -148,12 +148,11 @@ class Engine(Serializable):
         self.should_interrupt = False
         self.state = State()
         self._state_dict_user_keys: List[str] = []
-        self._allowed_events: List[EventEnum] = []
+        self._allowed_events: List[Union[str, EventEnum]] = []
 
         self._dataloader_iter: Optional[Iterator[Any]] = None
         self._init_iter: Optional[int] = None
 
-        # pyrefly: ignore [bad-argument-type]
         self.register_events(*Events)
 
         if self._process_function is None:
@@ -164,9 +163,7 @@ class Engine(Serializable):
         # generator provided by self._internal_run_as_gen
         self._internal_run_generator: Optional[Generator[Any, None, State]] = None
 
-    def register_events(
-        self, *event_names: Union[List[str], List[EventEnum]], event_to_attr: Optional[dict] = None
-    ) -> None:
+    def register_events(self, *event_names: Union[str, EventEnum], event_to_attr: Optional[dict] = None) -> None:
         """Add events that can be fired.
 
         Registering an event will let the user trigger these events at any point.
@@ -451,7 +448,7 @@ class Engine(Serializable):
                 first, others = ((resolved_engine,), args[1:])
             else:
                 # metrics do not provide engine when registered
-                first, others = (tuple(), args)  # type: ignore[assignment]
+                first, others = (tuple(), args)
 
             func(*first, *(event_args + others), **kwargs)
 
@@ -990,9 +987,9 @@ class Engine(Serializable):
     def _internal_run_as_gen(self) -> Generator[Any, None, State]:
         self.should_terminate = self.should_terminate_single_epoch = self.should_interrupt = False
         self._init_timers(self.state)
+        start_time = time.time()
         try:
             try:
-                start_time = time.time()
                 self._fire_event(Events.STARTED)
                 yield from self._maybe_terminate_or_interrupt()
 
@@ -1011,7 +1008,7 @@ class Engine(Serializable):
                     # time is available for handlers but must be updated after fire
                     self.state.times[Events.EPOCH_COMPLETED.name] = epoch_time_taken
 
-                    if self.should_terminate_single_epoch != "skip_epoch_completed":  # type: ignore[comparison-overlap]
+                    if self.should_terminate_single_epoch != "skip_epoch_completed":
                         handlers_start_time = time.time()
                         self._fire_event(Events.EPOCH_COMPLETED)
                         epoch_time_taken += time.time() - handlers_start_time
@@ -1039,13 +1036,12 @@ class Engine(Serializable):
                     "https://github.com/pytorch/ignite/issues/new/choose"
                 )
 
-            # pyrefly: ignore [unbound-name]
             time_taken = time.time() - start_time
             # time is available for handlers but must be updated after fire
             self.state.times[Events.COMPLETED.name] = time_taken
 
             # do not fire Events.COMPLETED if we terminated the run with flag `skip_completed=True`
-            if self.should_terminate != "skip_completed":  # type: ignore[comparison-overlap]
+            if self.should_terminate != "skip_completed":
                 handlers_start_time = time.time()
                 self._fire_event(Events.COMPLETED)
                 time_taken += time.time() - handlers_start_time
@@ -1191,9 +1187,9 @@ class Engine(Serializable):
         # internal_run without generator for BC
         self.should_terminate = self.should_terminate_single_epoch = self.should_interrupt = False
         self._init_timers(self.state)
+        start_time = time.time()
         try:
             try:
-                start_time = time.time()
                 self._fire_event(Events.STARTED)
                 self._maybe_terminate_legacy()
 
@@ -1212,7 +1208,7 @@ class Engine(Serializable):
                     # time is available for handlers but must be updated after fire
                     self.state.times[Events.EPOCH_COMPLETED.name] = epoch_time_taken
 
-                    if self.should_terminate_single_epoch != "skip_epoch_completed":  # type: ignore[comparison-overlap]
+                    if self.should_terminate_single_epoch != "skip_epoch_completed":
                         handlers_start_time = time.time()
                         self._fire_event(Events.EPOCH_COMPLETED)
                         epoch_time_taken += time.time() - handlers_start_time
@@ -1240,13 +1236,12 @@ class Engine(Serializable):
                     "https://github.com/pytorch/ignite/issues/new/choose"
                 )
 
-            # pyrefly: ignore [unbound-name]
             time_taken = time.time() - start_time
             # time is available for handlers but must be updated after fire
             self.state.times[Events.COMPLETED.name] = time_taken
 
             # do not fire Events.COMPLETED if we terminated the run with flag `skip_completed=True`
-            if self.should_terminate != "skip_completed":  # type: ignore[comparison-overlap]
+            if self.should_terminate != "skip_completed":
                 handlers_start_time = time.time()
                 self._fire_event(Events.COMPLETED)
                 time_taken += time.time() - handlers_start_time

@@ -98,16 +98,18 @@ class FastaiLRFinder:
         self._best_loss = None
         self._diverge_flag = False
 
+        assert trainer.state.epoch_length is not None
+        assert trainer.state.max_epochs is not None
+
         # attach LRScheduler to trainer.
         if num_iter is None:
-            # pyrefly: ignore [unsupported-operation]
             num_iter = trainer.state.epoch_length * trainer.state.max_epochs
         else:
-            max_iter = trainer.state.epoch_length * trainer.state.max_epochs  # type: ignore[operator]
+            max_iter = trainer.state.epoch_length * trainer.state.max_epochs
             if max_iter < num_iter:
                 max_iter = num_iter
                 trainer.state.max_iters = num_iter
-                trainer.state.max_epochs = ceil(num_iter / trainer.state.epoch_length)  # type: ignore[operator]
+                trainer.state.max_epochs = ceil(num_iter / trainer.state.epoch_length)
 
         if not trainer.has_event_handler(self._reached_num_iterations):
             trainer.add_event_handler(Events.ITERATION_COMPLETED, self._reached_num_iterations, num_iter)
@@ -179,18 +181,14 @@ class FastaiLRFinder:
         loss = idist.all_reduce(loss)
         lr = self._lr_schedule.get_param()
         self._history["lr"].append(lr)
-        if trainer.state.iteration == 1:
-            self._best_loss = loss  # type: ignore[assignment]
-        else:
-            if smooth_f > 0:
-                loss = smooth_f * loss + (1 - smooth_f) * self._history["loss"][-1]
-            # pyrefly: ignore [unsupported-operation]
-            if loss < self._best_loss:
-                self._best_loss = loss
+        if trainer.state.iteration != 1 and smooth_f > 0:
+            loss = smooth_f * loss + (1 - smooth_f) * self._history["loss"][-1]
+        if self._best_loss is None or loss < self._best_loss:
+            self._best_loss = loss
         self._history["loss"].append(loss)
 
         # Check if the loss has diverged; if it has, stop the trainer
-        if self._history["loss"][-1] > diverge_th * self._best_loss:  # type: ignore[operator]
+        if self._history["loss"][-1] > diverge_th * self._best_loss:
             self._diverge_flag = True
             self.logger.info("Stopping early, the loss has diverged")
             trainer.terminate()

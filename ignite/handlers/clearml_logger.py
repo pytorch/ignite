@@ -862,7 +862,7 @@ class ClearMLSaver(DiskSaver):
         except ImportError:
             try:
                 # Backwards-compatibility for legacy Trains SDK
-                from trains import Task  # type: ignore[no-redef]
+                from trains import Task
             except ImportError:
                 raise ModuleNotFoundError(
                     "This contrib module requires clearml to be installed. "
@@ -937,7 +937,7 @@ class ClearMLSaver(DiskSaver):
         except ImportError:
             try:
                 # Backwards-compatibility for legacy Trains SDK
-                from trains.binding.frameworks import WeightsFileHandler  # type: ignore[no-redef]
+                from trains.binding.frameworks import WeightsFileHandler
             except ImportError:
                 raise ModuleNotFoundError(
                     "This contrib module requires clearml to be installed. "
