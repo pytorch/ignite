@@ -242,7 +242,10 @@ class Accuracy(_BaseClassification):
         self._check_type(output)
         y_pred, y = output[0].detach(), output[1].detach()
 
-        if self._type == "binary":
+        if y_pred.size(0) == 0:
+            # ignore empty predictions
+            correct = torch.tensor([])
+        elif self._type == "binary":
             correct = torch.eq(y_pred.view(-1).to(y), y.view(-1))
         elif self._type == "multiclass":
             indices = torch.argmax(y_pred, dim=1)
