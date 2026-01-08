@@ -317,7 +317,7 @@ class FastaiLRFinder:
             lrs = lrs[skip_start:-skip_end]
             losses = losses[skip_start:-skip_end]
 
-        plt.legend(legends)
+        plt.legend(legends)  # pyrefly: ignore
         # Plot loss as a function of the learning rate
         ax.plot(lrs, losses)
         if log_lr:
