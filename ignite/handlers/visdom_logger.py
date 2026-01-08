@@ -1,7 +1,7 @@
 """Visdom logger and its helper handlers."""
 
 import os
-from typing import Any, Callable, Dict, List, Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
 import torch
 import torch.nn as nn
@@ -14,7 +14,6 @@ from ignite.handlers.base_logger import (
     BaseOutputHandler,
     BaseWeightsScalarHandler,
 )
-
 from ignite.handlers.utils import global_step_from_engine  # noqa
 
 __all__ = [
@@ -361,7 +360,7 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
     def __init__(
         self,
         tag: str,
-        metric_names: Optional[str] = None,
+        metric_names: Optional[Union[List[str], str]] = None,
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable[[Engine, Union[str, Events]], int]] = None,
         show_legend: bool = False,
@@ -382,8 +381,7 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
 
         if not isinstance(global_step, int):
             raise TypeError(
-                f"global_step must be int, got {type(global_step)}."
-                " Please check the output of global_step_transform."
+                f"global_step must be int, got {type(global_step)}. Please check the output of global_step_transform."
             )
 
         for key, value in metrics.items():

@@ -5,7 +5,6 @@ from typing import Any, Callable, List, Optional, Union
 from torch.optim import Optimizer
 
 from ignite.engine import Engine, Events
-
 from ignite.handlers.base_logger import (
     BaseLogger,
     BaseOptimizerParamsHandler,
@@ -322,7 +321,7 @@ class OutputHandler(BaseOutputHandler):
     def __init__(
         self,
         tag: str,
-        metric_names: Optional[List[str]] = None,
+        metric_names: Optional[Union[List[str], str]] = None,
         output_transform: Optional[Callable] = None,
         global_step_transform: Optional[Callable[[Engine, Union[str, Events]], int]] = None,
         state_attributes: Optional[List[str]] = None,
@@ -340,8 +339,7 @@ class OutputHandler(BaseOutputHandler):
         global_step = self.global_step_transform(engine, event_name)
         if not isinstance(global_step, int):
             raise TypeError(
-                f"global_step must be int, got {type(global_step)}."
-                " Please check the output of global_step_transform."
+                f"global_step must be int, got {type(global_step)}. Please check the output of global_step_transform."
             )
 
         for key, value in metrics.items():
