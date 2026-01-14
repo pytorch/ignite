@@ -7,7 +7,7 @@ import random
 import shutil
 import warnings
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, List, Optional, TextIO, Tuple, Type, TypeVar, Union
+from typing import Any, Callable, cast, Dict, List, TextIO, Tuple, Type, TypeVar, Union
 
 import torch
 
@@ -25,7 +25,7 @@ __all__ = [
 
 def convert_tensor(
     x: Union[torch.Tensor, collections.Sequence, collections.Mapping, str, bytes],
-    device: Optional[Union[str, torch.device]] = None,
+    device: str | torch.device | None = None,
     non_blocking: bool = False,
 ) -> Union[torch.Tensor, collections.Sequence, collections.Mapping, str, bytes]:
     """Move tensors to relevant device.
@@ -81,7 +81,7 @@ def apply_to_type(
 
 
 def _tree_map(
-    func: Callable, x: Union[Any, collections.Sequence, collections.Mapping], key: Optional[Union[int, str]] = None
+    func: Callable, x: Union[Any, collections.Sequence, collections.Mapping], key: int | str | None = None
 ) -> Union[Any, collections.Sequence, collections.Mapping]:
     if isinstance(x, collections.Mapping):
         return cast(Callable, type(x))({k: _tree_map(func, sample, key=k) for k, sample in x.items()})
@@ -129,7 +129,7 @@ def _to_str_list(data: Any) -> List[str]:
     """
     formatted_items: List[str] = []
 
-    def format_item(item: Any, prefix: str = "") -> Optional[str]:
+    def format_item(item: Any, prefix: str = "") -> str | None:
         if isinstance(item, numbers.Number):
             return f"{prefix}{item:.4f}"
         elif torch.is_tensor(item):
@@ -234,14 +234,14 @@ def to_onehot(indices: torch.Tensor, num_classes: int) -> torch.Tensor:
 
 
 def setup_logger(
-    name: Optional[str] = "ignite",
+    name: str | None = "ignite",
     level: int = logging.INFO,
-    stream: Optional[TextIO] = None,
+    stream: TextIO | None = None,
     format: str = "%(asctime)s %(name)s %(levelname)s: %(message)s",
-    filepath: Optional[str] = None,
-    distributed_rank: Optional[int] = None,
+    filepath: str | None = None,
+    distributed_rank: int | None = None,
     reset: bool = False,
-    encoding: Optional[str] = "utf-8",
+    encoding: str | None = "utf-8",
 ) -> logging.Logger:
     """Setups logger: name, level, format etc.
 
