@@ -1,4 +1,4 @@
-from typing import Callable, Sequence, Union
+from typing import Callable, Sequence
 
 import torch
 
@@ -91,9 +91,9 @@ class PSNR(Metric):
 
     def __init__(
         self,
-        data_range: Union[int, float],
+        data_range: int | float,
         output_transform: Callable = lambda x: x,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
     ):
         super().__init__(output_transform=output_transform, device=device, skip_unrolling=skip_unrolling)
