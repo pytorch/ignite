@@ -1,5 +1,4 @@
 import math
-from typing import Union
 
 import torch
 
@@ -65,6 +64,6 @@ class RootMeanSquaredError(MeanSquaredError):
         ``skip_unrolling`` argument is added.
     """
 
-    def compute(self) -> Union[torch.Tensor, float]:
+    def compute(self) -> torch.Tensor | float:
         mse = super(RootMeanSquaredError, self).compute()
         return math.sqrt(mse)
