@@ -29,6 +29,7 @@ on:
       - "!docs/**"
       - "!conda.recipe"
   workflow_dispatch:
+  merge_group:
 
 concurrency:
   # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>
