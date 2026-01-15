@@ -3,7 +3,7 @@ from __future__ import annotations
 import numbers
 import warnings
 from functools import partial
-from typing import Any, Callable, cast, Dict, Iterable, Mapping, Sequence
+from typing import Any, Callable, cast, Iterable, Mapping, Sequence
 
 import torch
 import torch.nn as nn
@@ -288,8 +288,8 @@ def setup_any_logging(
     logger: BaseLogger,
     logger_module: Any,
     trainer: Engine,
-    optimizers: Optimizer | Dict[str, Optimizer] | Dict[None, Optimizer] | None,
-    evaluators: Engine | Dict[str, Engine] | None,
+    optimizers: Optimizer | dict[str, Optimizer] | dict[None, Optimizer] | None,
+    evaluators: Engine | dict[str, Engine] | None,
     log_every_iters: int,
 ) -> None:
     pass
@@ -298,8 +298,8 @@ def setup_any_logging(
 def _setup_logging(
     logger: BaseLogger,
     trainer: Engine,
-    optimizers: Optimizer | Dict[str, Optimizer] | Dict[None, Optimizer] | None,
-    evaluators: Engine | Dict[str, Engine] | None,
+    optimizers: Optimizer | dict[str, Optimizer] | dict[None, Optimizer] | None,
+    evaluators: Engine | dict[str, Engine] | None,
     log_every_iters: int,
 ) -> None:
     if optimizers is not None:
@@ -343,8 +343,8 @@ def _setup_logging(
 def setup_tb_logging(
     output_path: str,
     trainer: Engine,
-    optimizers: Optimizer | Dict[str, Optimizer] | None = None,
-    evaluators: Engine | Dict[str, Engine] | None = None,
+    optimizers: Optimizer | dict[str, Optimizer] | None = None,
+    evaluators: Engine | dict[str, Engine] | None = None,
     log_every_iters: int = 100,
     **kwargs: Any,
 ) -> TensorboardLogger:
@@ -375,8 +375,8 @@ def setup_tb_logging(
 
 def setup_visdom_logging(
     trainer: Engine,
-    optimizers: Optimizer | Dict[str, Optimizer] | None = None,
-    evaluators: Engine | Dict[str, Engine] | None = None,
+    optimizers: Optimizer | dict[str, Optimizer] | None = None,
+    evaluators: Engine | dict[str, Engine] | None = None,
     log_every_iters: int = 100,
     **kwargs: Any,
 ) -> VisdomLogger:
@@ -406,8 +406,8 @@ def setup_visdom_logging(
 
 def setup_mlflow_logging(
     trainer: Engine,
-    optimizers: Optimizer | Dict[str, Optimizer] | None = None,
-    evaluators: Engine | Dict[str, Engine] | None = None,
+    optimizers: Optimizer | dict[str, Optimizer] | None = None,
+    evaluators: Engine | dict[str, Engine] | None = None,
     log_every_iters: int = 100,
     **kwargs: Any,
 ) -> MLflowLogger:
@@ -437,8 +437,8 @@ def setup_mlflow_logging(
 
 def setup_neptune_logging(
     trainer: Engine,
-    optimizers: Optimizer | Dict[str, Optimizer] | None = None,
-    evaluators: Engine | Dict[str, Engine] | None = None,
+    optimizers: Optimizer | dict[str, Optimizer] | None = None,
+    evaluators: Engine | dict[str, Engine] | None = None,
     log_every_iters: int = 100,
     **kwargs: Any,
 ) -> NeptuneLogger:
@@ -468,8 +468,8 @@ def setup_neptune_logging(
 
 def setup_wandb_logging(
     trainer: Engine,
-    optimizers: Optimizer | Dict[str, Optimizer] | None = None,
-    evaluators: Engine | Dict[str, Engine] | None = None,
+    optimizers: Optimizer | dict[str, Optimizer] | None = None,
+    evaluators: Engine | dict[str, Engine] | None = None,
     log_every_iters: int = 100,
     **kwargs: Any,
 ) -> WandBLogger:
@@ -499,8 +499,8 @@ def setup_wandb_logging(
 
 def setup_plx_logging(
     trainer: Engine,
-    optimizers: Optimizer | Dict[str, Optimizer] | None = None,
-    evaluators: Engine | Dict[str, Engine] | None = None,
+    optimizers: Optimizer | dict[str, Optimizer] | None = None,
+    evaluators: Engine | dict[str, Engine] | None = None,
     log_every_iters: int = 100,
     **kwargs: Any,
 ) -> PolyaxonLogger:
@@ -530,8 +530,8 @@ def setup_plx_logging(
 
 def setup_clearml_logging(
     trainer: Engine,
-    optimizers: Optimizer | Dict[str, Optimizer] | None = None,
-    evaluators: Engine | Dict[str, Engine] | None = None,
+    optimizers: Optimizer | dict[str, Optimizer] | None = None,
+    evaluators: Engine | dict[str, Engine] | None = None,
     log_every_iters: int = 100,
     **kwargs: Any,
 ) -> ClearMLLogger:
@@ -561,8 +561,8 @@ def setup_clearml_logging(
 
 def setup_trains_logging(
     trainer: Engine,
-    optimizers: Optimizer | Dict[str, Optimizer] | None = None,
-    evaluators: Engine | Dict[str, Engine] | None = None,
+    optimizers: Optimizer | dict[str, Optimizer] | None = None,
+    evaluators: Engine | dict[str, Engine] | None = None,
     log_every_iters: int = 100,
     **kwargs: Any,
 ) -> ClearMLLogger:
@@ -577,7 +577,7 @@ get_default_score_fn = Checkpoint.get_default_score_fn
 def gen_save_best_models_by_val_score(
     save_handler: Callable | BaseSaveHandler,
     evaluator: Engine,
-    models: torch.nn.Module | Dict[str, torch.nn.Module],
+    models: torch.nn.Module | dict[str, torch.nn.Module],
     metric_name: str,
     n_saved: int = 3,
     trainer: Engine | None = None,
@@ -617,7 +617,7 @@ def gen_save_best_models_by_val_score(
         global_step_transform = global_step_from_engine(trainer)
 
     if isinstance(models, nn.Module):
-        to_save: Dict[str, nn.Module] = {"model": models}
+        to_save: dict[str, nn.Module] = {"model": models}
     else:
         to_save = models
 
