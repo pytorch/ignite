@@ -16,6 +16,7 @@ on:
       - "tests/run_cpu_tests.sh"
       - ".github/workflows/hvd-tests.yml"
   workflow_dispatch:
+  merge_group:
 
 concurrency:
   # <workflow_name>-<branch_name>-<true || commit_sha (if branch is protected)>
