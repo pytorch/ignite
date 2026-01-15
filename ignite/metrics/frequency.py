@@ -1,4 +1,4 @@
-from typing import Callable, Union
+from typing import Callable
 
 import torch
 
@@ -56,7 +56,7 @@ class Frequency(Metric):
     def __init__(
         self,
         output_transform: Callable = lambda x: x,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
     ) -> None:
         super(Frequency, self).__init__(output_transform=output_transform, device=device, skip_unrolling=skip_unrolling)
