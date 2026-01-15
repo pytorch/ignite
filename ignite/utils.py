@@ -9,7 +9,7 @@ import random
 import shutil
 import warnings
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, List, TextIO, Tuple, Type, TypeVar
+from typing import Any, Callable, cast, TextIO, TypeVar
 
 import torch
 
@@ -59,7 +59,7 @@ def apply_to_tensor(
 
 def apply_to_type(
     x: Any | collections.Sequence | collections.Mapping | str | bytes,
-    input_type: Type | Tuple[Type[Any], Any],
+    input_type: type | tuple[type[Any], Any],
     func: Callable,
 ) -> Any | collections.Sequence | collections.Mapping | str | bytes:
     """Apply a function on an object of `input_type` or mapping, or sequence of objects of `input_type`.
@@ -94,7 +94,7 @@ def _tree_map(
     return func(x, key=key)
 
 
-def _to_str_list(data: Any) -> List[str]:
+def _to_str_list(data: Any) -> list[str]:
     """
     Recursively flattens and formats complex data structures, including keys for
     dictionaries, into a list of human-readable strings.
@@ -129,7 +129,7 @@ def _to_str_list(data: Any) -> List[str]:
         A list of formatted strings, each representing a part of the input data
         structure.
     """
-    formatted_items: List[str] = []
+    formatted_items: list[str] = []
 
     def format_item(item: Any, prefix: str = "") -> str | None:
         if isinstance(item, numbers.Number):
@@ -171,9 +171,9 @@ def _to_str_list(data: Any) -> List[str]:
 
 
 class _CollectionItem:
-    types_as_collection_item: Tuple = (int, float, torch.Tensor)
+    types_as_collection_item: tuple = (int, float, torch.Tensor)
 
-    def __init__(self, collection: Dict | List, key: int | str) -> None:
+    def __init__(self, collection: dict | list, key: int | str) -> None:
         if not isinstance(collection, (dict, list)):
             raise TypeError(
                 f"Input type is expected to be a mapping or list, but got {type(collection)} " f"for input key '{key}'."
@@ -191,7 +191,7 @@ class _CollectionItem:
         return self.collection[self.key]  # type: ignore[index]
 
     @staticmethod
-    def wrap(object: Dict | List, key: int | str, value: Any) -> Any | "_CollectionItem":
+    def wrap(object: dict | list, key: int | str, value: Any) -> Any | "_CollectionItem":
         return (
             _CollectionItem(object, key)
             if value is None or isinstance(value, _CollectionItem.types_as_collection_item)
@@ -201,7 +201,7 @@ class _CollectionItem:
 
 def _tree_apply2(
     func: Callable,
-    x: Any | List | Dict,
+    x: Any | list | dict,
     y: Any | collections.Sequence | collections.Mapping,
 ) -> None:
     if isinstance(x, dict) and isinstance(y, collections.Mapping):
@@ -395,7 +395,7 @@ def manual_seed(seed: int) -> None:
 
 
 def deprecated(
-    deprecated_in: str, removed_in: str = "", reasons: Tuple[str, ...] = (), raise_exception: bool = False
+    deprecated_in: str, removed_in: str = "", reasons: tuple[str, ...] = (), raise_exception: bool = False
 ) -> Callable:
     F = TypeVar("F", bound=Callable[..., Any])
 
@@ -408,7 +408,7 @@ def deprecated(
         )
 
         @functools.wraps(func)
-        def wrapper(*args: Any, **kwargs: Dict[str, Any]) -> Callable:
+        def wrapper(*args: Any, **kwargs: dict[str, Any]) -> Callable:
             if raise_exception:
                 raise DeprecationWarning(deprecation_warning)
             warnings.warn(deprecation_warning, DeprecationWarning, stacklevel=2)
@@ -424,7 +424,7 @@ def deprecated(
     return decorator
 
 
-def hash_checkpoint(checkpoint_path: str | Path, output_dir: str | Path) -> Tuple[Path, str]:
+def hash_checkpoint(checkpoint_path: str | Path, output_dir: str | Path) -> tuple[Path, str]:
     """
     Hash the checkpoint file in the format of ``<filename>-<hash>.<ext>``
     to be used with ``check_hash`` of :func:`torch.hub.load_state_dict_from_url`.
