@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import collections.abc as collections
 import functools
 import hashlib
@@ -7,7 +9,7 @@ import random
 import shutil
 import warnings
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, List, Optional, TextIO, Tuple, Type, TypeVar, Union
+from typing import Any, Callable, cast, TextIO, TypeVar
 
 import torch
 
@@ -24,10 +26,10 @@ __all__ = [
 
 
 def convert_tensor(
-    x: Union[torch.Tensor, collections.Sequence, collections.Mapping, str, bytes],
-    device: Optional[Union[str, torch.device]] = None,
+    x: torch.Tensor | collections.Sequence | collections.Mapping | str | bytes,
+    device: str | torch.device | None = None,
     non_blocking: bool = False,
-) -> Union[torch.Tensor, collections.Sequence, collections.Mapping, str, bytes]:
+) -> torch.Tensor | collections.Sequence | collections.Mapping | str | bytes:
     """Move tensors to relevant device.
 
     Args:
@@ -44,8 +46,8 @@ def convert_tensor(
 
 
 def apply_to_tensor(
-    x: Union[torch.Tensor, collections.Sequence, collections.Mapping, str, bytes], func: Callable
-) -> Union[torch.Tensor, collections.Sequence, collections.Mapping, str, bytes]:
+    x: torch.Tensor | collections.Sequence | collections.Mapping | str | bytes, func: Callable
+) -> torch.Tensor | collections.Sequence | collections.Mapping | str | bytes:
     """Apply a function on a tensor or mapping, or sequence of tensors.
 
     Args:
@@ -56,10 +58,10 @@ def apply_to_tensor(
 
 
 def apply_to_type(
-    x: Union[Any, collections.Sequence, collections.Mapping, str, bytes],
-    input_type: Union[Type, Tuple[Type[Any], Any]],
+    x: Any | collections.Sequence | collections.Mapping | str | bytes,
+    input_type: type | tuple[type[Any], Any],
     func: Callable,
-) -> Union[Any, collections.Sequence, collections.Mapping, str, bytes]:
+) -> Any | collections.Sequence | collections.Mapping | str | bytes:
     """Apply a function on an object of `input_type` or mapping, or sequence of objects of `input_type`.
 
     Args:
@@ -81,8 +83,8 @@ def apply_to_type(
 
 
 def _tree_map(
-    func: Callable, x: Union[Any, collections.Sequence, collections.Mapping], key: Optional[Union[int, str]] = None
-) -> Union[Any, collections.Sequence, collections.Mapping]:
+    func: Callable, x: Any | collections.Sequence | collections.Mapping, key: int | str | None = None
+) -> Any | collections.Sequence | collections.Mapping:
     if isinstance(x, collections.Mapping):
         return cast(Callable, type(x))({k: _tree_map(func, sample, key=k) for k, sample in x.items()})
     if isinstance(x, tuple) and hasattr(x, "_fields"):  # namedtuple
@@ -92,7 +94,7 @@ def _tree_map(
     return func(x, key=key)
 
 
-def _to_str_list(data: Any) -> List[str]:
+def _to_str_list(data: Any) -> list[str]:
     """
     Recursively flattens and formats complex data structures, including keys for
     dictionaries, into a list of human-readable strings.
@@ -127,9 +129,9 @@ def _to_str_list(data: Any) -> List[str]:
         A list of formatted strings, each representing a part of the input data
         structure.
     """
-    formatted_items: List[str] = []
+    formatted_items: list[str] = []
 
-    def format_item(item: Any, prefix: str = "") -> Optional[str]:
+    def format_item(item: Any, prefix: str = "") -> str | None:
         if isinstance(item, numbers.Number):
             return f"{prefix}{item:.4f}"
         elif torch.is_tensor(item):
@@ -169,9 +171,9 @@ def _to_str_list(data: Any) -> List[str]:
 
 
 class _CollectionItem:
-    types_as_collection_item: Tuple = (int, float, torch.Tensor)
+    types_as_collection_item: tuple = (int, float, torch.Tensor)
 
-    def __init__(self, collection: Union[Dict, List], key: Union[int, str]) -> None:
+    def __init__(self, collection: dict | list, key: int | str) -> None:
         if not isinstance(collection, (dict, list)):
             raise TypeError(
                 f"Input type is expected to be a mapping or list, but got {type(collection)} " f"for input key '{key}'."
@@ -189,7 +191,7 @@ class _CollectionItem:
         return self.collection[self.key]  # type: ignore[index]
 
     @staticmethod
-    def wrap(object: Union[Dict, List], key: Union[int, str], value: Any) -> Union[Any, "_CollectionItem"]:
+    def wrap(object: dict | list, key: int | str, value: Any) -> Any | "_CollectionItem":
         return (
             _CollectionItem(object, key)
             if value is None or isinstance(value, _CollectionItem.types_as_collection_item)
@@ -199,8 +201,8 @@ class _CollectionItem:
 
 def _tree_apply2(
     func: Callable,
-    x: Union[Any, List, Dict],
-    y: Union[Any, collections.Sequence, collections.Mapping],
+    x: Any | list | dict,
+    y: Any | collections.Sequence | collections.Mapping,
 ) -> None:
     if isinstance(x, dict) and isinstance(y, collections.Mapping):
         for k, v in x.items():
@@ -234,14 +236,14 @@ def to_onehot(indices: torch.Tensor, num_classes: int) -> torch.Tensor:
 
 
 def setup_logger(
-    name: Optional[str] = "ignite",
+    name: str | None = "ignite",
     level: int = logging.INFO,
-    stream: Optional[TextIO] = None,
+    stream: TextIO | None = None,
     format: str = "%(asctime)s %(name)s %(levelname)s: %(message)s",
-    filepath: Optional[str] = None,
-    distributed_rank: Optional[int] = None,
+    filepath: str | None = None,
+    distributed_rank: int | None = None,
     reset: bool = False,
-    encoding: Optional[str] = "utf-8",
+    encoding: str | None = "utf-8",
 ) -> logging.Logger:
     """Setups logger: name, level, format etc.
 
@@ -393,7 +395,7 @@ def manual_seed(seed: int) -> None:
 
 
 def deprecated(
-    deprecated_in: str, removed_in: str = "", reasons: Tuple[str, ...] = (), raise_exception: bool = False
+    deprecated_in: str, removed_in: str = "", reasons: tuple[str, ...] = (), raise_exception: bool = False
 ) -> Callable:
     F = TypeVar("F", bound=Callable[..., Any])
 
@@ -406,7 +408,7 @@ def deprecated(
         )
 
         @functools.wraps(func)
-        def wrapper(*args: Any, **kwargs: Dict[str, Any]) -> Callable:
+        def wrapper(*args: Any, **kwargs: dict[str, Any]) -> Callable:
             if raise_exception:
                 raise DeprecationWarning(deprecation_warning)
             warnings.warn(deprecation_warning, DeprecationWarning, stacklevel=2)
@@ -422,7 +424,7 @@ def deprecated(
     return decorator
 
 
-def hash_checkpoint(checkpoint_path: Union[str, Path], output_dir: Union[str, Path]) -> Tuple[Path, str]:
+def hash_checkpoint(checkpoint_path: str | Path, output_dir: str | Path) -> tuple[Path, str]:
     """
     Hash the checkpoint file in the format of ``<filename>-<hash>.<ext>``
     to be used with ``check_hash`` of :func:`torch.hub.load_state_dict_from_url`.
