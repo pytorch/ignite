@@ -323,7 +323,7 @@ class OutputHandler(BaseOutputHandler):
         tag: str,
         metric_names: list[str] | str | None = None,
         output_transform: Callable | None = None,
-        global_step_transform: Callable[[Engine, Union[str, Events]], int] | None = None,
+        global_step_transform: Callable[[Engine, str | Events], int] | None = None,
         state_attributes: list[str] | None = None,
     ):
         super(OutputHandler, self).__init__(
