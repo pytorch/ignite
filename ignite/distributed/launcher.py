@@ -242,8 +242,6 @@ class Parallel:
                 )
             else:
                 self._pg_init_kwargs = spawn_kwargs
-                if "init_method" in self._pg_init_kwargs:
-                    raise ValueError("Argument 'init_method' should not be specified in 'spawn_kwargs'")
 
 
         # The logger will be setup after the idist.initialize() call
