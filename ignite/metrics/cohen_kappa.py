@@ -1,4 +1,4 @@
-from typing import Callable, Literal, Optional, Union
+from typing import Callable, Literal
 
 import torch
 
@@ -56,9 +56,9 @@ class CohenKappa(EpochMetric):
     def __init__(
         self,
         output_transform: Callable = lambda x: x,
-        weights: Optional[Literal["linear", "quadratic"]] = None,
+        weights: Literal["linear", "quadratic"] | None = None,
         check_compute_fn: bool = False,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
     ):
         try:
