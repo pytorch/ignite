@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Sequence, Tuple, Union
+from typing import Callable, Sequence
 
 import torch
 
@@ -13,12 +13,12 @@ class _BaseClassification(Metric):
         self,
         output_transform: Callable = lambda x: x,
         is_multilabel: bool = False,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
     ):
         self._is_multilabel = is_multilabel
-        self._type: Optional[str] = None
-        self._num_classes: Optional[int] = None
+        self._type: str | None = None
+        self._num_classes: int | None = None
         super(_BaseClassification, self).__init__(
             output_transform=output_transform, device=device, skip_unrolling=skip_unrolling
         )
@@ -38,7 +38,7 @@ class _BaseClassification(Metric):
             )
 
         y_shape = y.shape
-        y_pred_shape: Tuple[int, ...] = y_pred.shape
+        y_pred_shape: tuple[int, ...] = y_pred.shape
 
         if y.ndimension() + 1 == y_pred.ndimension():
             y_pred_shape = (y_pred_shape[0],) + y_pred_shape[2:]
@@ -223,7 +223,7 @@ class Accuracy(_BaseClassification):
         self,
         output_transform: Callable = lambda x: x,
         is_multilabel: bool = False,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
     ):
         super(Accuracy, self).__init__(
