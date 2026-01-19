@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Sequence, Tuple
+from typing import Any, Callable, Sequence
 
 import torch
 
@@ -44,10 +44,10 @@ class MetricGroup(Metric):
         ``skip_unrolling`` argument is added.
     """
 
-    _state_dict_all_req_keys: Tuple[str, ...] = ("metrics",)
+    _state_dict_all_req_keys: tuple[str, ...] = ("metrics",)
 
     def __init__(
-        self, metrics: Dict[str, Metric], output_transform: Callable = lambda x: x, skip_unrolling: bool = False
+        self, metrics: dict[str, Metric], output_transform: Callable = lambda x: x, skip_unrolling: bool = False
     ):
         self.metrics = metrics
         super(MetricGroup, self).__init__(output_transform=output_transform, skip_unrolling=skip_unrolling)
@@ -60,5 +60,5 @@ class MetricGroup(Metric):
         for m in self.metrics.values():
             m.update(m._output_transform(output))
 
-    def compute(self) -> Dict[str, Any]:
+    def compute(self) -> dict[str, Any]:
         return {k: m.compute() for k, m in self.metrics.items()}
