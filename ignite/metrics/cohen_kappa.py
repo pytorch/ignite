@@ -68,7 +68,7 @@ class CohenKappa(EpochMetric):
         if weights not in (None, "linear", "quadratic"):
             raise ValueError("Kappa Weighting type must be None or linear or quadratic.")
 
-        # initalize weights
+        # initialize weights
         self.weights: Literal["linear", "quadratic"] | None = weights
 
         super(CohenKappa, self).__init__(
