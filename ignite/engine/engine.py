@@ -131,6 +131,23 @@ class Engine(Serializable):
     _state_dict_all_req_keys = ("epoch_length", "max_epochs")
     _state_dict_one_of_opt_keys = ("iteration", "epoch")
 
+    class debug_mode(EventEnum):
+        DEBUG_NONE = 0
+        DEBUG_EVENTS = 1
+        DEBUG_OUTPUT = 2
+        DEBUG_GRADS = 4
+
+        def __iter__(self) -> Iterator:
+            return iter(self.name)
+
+        def __int__(self) -> str:
+            return self.value
+
+    DEBUG_NONE = debug_mode.DEBUG_NONE
+    DEBUG_EVENTS = debug_mode.DEBUG_EVENTS
+    DEBUG_OUTPUT = debug_mode.DEBUG_OUTPUT
+    DEBUG_GRADS = debug_mode.DEBUG_GRADS
+
     # Flag to disable engine._internal_run as generator feature for BC
     interrupt_resume_enabled = True
 
@@ -152,6 +169,8 @@ class Engine(Serializable):
 
         self._dataloader_iter: Optional[Iterator[Any]] = None
         self._init_iter: Optional[int] = None
+
+        self.debug_level = 0
 
         self.register_events(*Events)
 
@@ -451,6 +470,28 @@ class Engine(Serializable):
                 first, others = (tuple(), args)
 
             func(*first, *(event_args + others), **kwargs)
+
+    def debug(self, level: debug_mode = DEBUG_NONE, config: Union[Dict, Any] = None) -> None:
+        if isinstance(level, int):
+            raise ValueError(
+                f"Unknown event name '{level}'. Level should be combinations of Engine.DEBUG_NONE, "
+                f"Engine.DEBUG_EVENTS, Engine.DEBUG_OUTPUT, Engine.DEBUG_GRADS"
+            )
+        self.lr = config["optimizer"].param_groups[0]["lr"]
+        self.layer = config["layer"]
+
+        log = ""
+        for item in level:
+            if item == Engine.DEBUG_NONE:
+                log += ""
+            elif item == Engine.DEBUG_EVENTS:
+                log += f"{self.state.epoch} | {self.state.iteration}, Firing handlers for event {self.last_event_name} "
+            elif item == Engine.DEBUG_OUTPUT:
+                log += f"Loss : {self.state.output}, LR : {self.lr} "
+            elif item == Engine.DEBUG_GRADS:
+                log += f"Gradients : {self.layer.weight.grad} "
+
+        self.logger.debug(log)
 
     def fire_event(self, event_name: Any) -> None:
         """Execute all the handlers associated with given event.
