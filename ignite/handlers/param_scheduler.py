@@ -869,7 +869,7 @@ class _CosineAnnealingWarmRestarts:
     def optimizer(self) -> torch.optim.Optimizer:
         return self._lr_scheduler.optimizer
 
-    def get_lr(self, epoch: Optional[int] = None) -> List[Union[torch.Tensor, float]]:
+    def get_lr(self, epoch: int | None = None) -> list[torch.Tensor | float]:
         T_mult = self._lr_scheduler.T_mult
         eta_min = self._lr_scheduler.eta_min
 
@@ -988,7 +988,7 @@ class LRScheduler(ParamScheduler):
         super(LRScheduler, self).__call__(engine, name)
         self.lr_scheduler.last_epoch += 1
 
-    def get_param(self) -> Union[torch.Tensor, float, List[Union[torch.Tensor, float]]]:  # type: ignore[override]
+    def get_param(self) -> torch.Tensor | float | list[torch.Tensor | float]:  # type: ignore[override]
         """Method to get current optimizer's parameter value"""
         # Emulate context manager for pytorch>=1.4
         self.lr_scheduler._get_lr_called_within_step = True  # type: ignore[union-attr]

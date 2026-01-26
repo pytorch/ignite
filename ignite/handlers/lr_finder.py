@@ -9,7 +9,12 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Union
 
 import torch
 from torch.optim import Optimizer
-from torch.optim.lr_scheduler import _LRScheduler
+
+# https://github.com/pytorch/ignite/issues/2773
+try:
+    from torch.optim.lr_scheduler import LRScheduler as _LRScheduler
+except ImportError:
+    from torch.optim.lr_scheduler import _LRScheduler
 
 import ignite.distributed as idist
 from ignite.engine import Engine, Events
@@ -533,7 +538,7 @@ class _ExponentialLR(_LRScheduler):
     """
 
     def __init__(
-        self, optimizer: Optimizer, start_lrs: List[float], end_lrs: List[float], num_iter: int, last_epoch: int = -1
+        self, optimizer: Optimizer, start_lrs: list[float], end_lrs: list[float], num_iter: int, last_epoch: int = -1
     ):
         self.end_lrs = end_lrs
         self.num_iter = num_iter
@@ -542,7 +547,7 @@ class _ExponentialLR(_LRScheduler):
         # override base_lrs
         self.base_lrs = start_lrs  # type: ignore[assignment]
 
-    def get_lr(self) -> List[Union[torch.Tensor, float]]:
+    def get_lr(self) -> list[torch.Tensor | float]:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
         return [base_lr * (end_lr / base_lr) ** r for end_lr, base_lr in zip(self.end_lrs, self.base_lrs)]  # type: ignore[misc]
