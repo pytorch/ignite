@@ -5,16 +5,11 @@ import tempfile
 import warnings
 from math import ceil
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Mapping, Optional, Union
+from typing import Any, Callable, Mapping
 
 import torch
 from torch.optim import Optimizer
-
-# https://github.com/pytorch/ignite/issues/2773
-try:
-    from torch.optim.lr_scheduler import LRScheduler as _LRScheduler
-except ImportError:
-    from torch.optim.lr_scheduler import _LRScheduler
+from torch.optim.lr_scheduler import LRScheduler as PyTorchLRScheduler
 
 import ignite.distributed as idist
 from ignite.engine import Engine, Events
@@ -79,11 +74,11 @@ class FastaiLRFinder:
     .. versionadded:: 0.4.6
     """
 
-    _lr_schedule: Union[LRScheduler, PiecewiseLinear, ParamGroupScheduler]
+    _lr_schedule: LRScheduler | PiecewiseLinear | ParamGroupScheduler
 
     def __init__(self) -> None:
         self._diverge_flag = False
-        self._history: Dict[str, List[Any]] = {}
+        self._history: dict[str, list[Any]] = {}
         self._best_loss = None
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
 
@@ -93,8 +88,8 @@ class FastaiLRFinder:
         optimizer: Optimizer,
         output_transform: Callable,
         num_iter: int,
-        start_lrs: List[float],
-        end_lrs: List[float],
+        start_lrs: list[float],
+        end_lrs: list[float],
         step_mode: str,
         smooth_f: float,
         diverge_th: float,
@@ -225,7 +220,7 @@ class FastaiLRFinder:
         if trainer.has_event_handler(self._reset, Events.COMPLETED):
             trainer.remove_event_handler(self._reset, Events.COMPLETED)
 
-    def get_results(self) -> Dict[str, List[Any]]:
+    def get_results(self) -> dict[str, list[Any]]:
         """
         Returns:
             Dictionary with loss and lr logs from the previous run
@@ -238,7 +233,7 @@ class FastaiLRFinder:
         skip_end: int = 5,
         log_lr: bool = True,
         display_suggestion: bool = True,
-        ax: Optional[Any] = None,
+        ax: Any | None = None,
         **kwargs: Any,
     ) -> None:
         """Plots the learning rate range test.
@@ -389,9 +384,9 @@ class FastaiLRFinder:
         trainer: Engine,
         to_save: Mapping,
         output_transform: Callable = lambda output: output,
-        num_iter: Optional[int] = None,
-        start_lr: Optional[Union[float, List[float]]] = None,
-        end_lr: Optional[Union[float, List[float]]] = 10.0,
+        num_iter: int | None = None,
+        start_lr: float | list[float] | None = None,
+        end_lr: float | list[float] | None = 10.0,
         step_mode: str = "exp",
         smooth_f: float = 0.05,
         diverge_th: float = 5.0,
@@ -524,7 +519,7 @@ class FastaiLRFinder:
                     to_save[k].load_state_dict(o)
 
 
-class _ExponentialLR(_LRScheduler):
+class _ExponentialLR(PyTorchLRScheduler):
     """Exponentially increases the learning rate between two boundaries over a number of
     iterations.
 
