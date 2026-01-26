@@ -540,9 +540,9 @@ class _ExponentialLR(_LRScheduler):
         super(_ExponentialLR, self).__init__(optimizer, last_epoch)
 
         # override base_lrs
-        self.base_lrs = start_lrs
+        self.base_lrs = start_lrs  # type: ignore[assignment]
 
-    def get_lr(self) -> List[float]:
+    def get_lr(self) -> List[Union[torch.Tensor, float]]:
         curr_iter = self.last_epoch + 1
         r = curr_iter / self.num_iter
-        return [base_lr * (end_lr / base_lr) ** r for end_lr, base_lr in zip(self.end_lrs, self.base_lrs)]
+        return [base_lr * (end_lr / base_lr) ** r for end_lr, base_lr in zip(self.end_lrs, self.base_lrs)]  # type: ignore[misc]
