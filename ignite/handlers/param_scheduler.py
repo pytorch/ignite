@@ -988,7 +988,7 @@ class LRScheduler(ParamScheduler):
         super(LRScheduler, self).__call__(engine, name)
         self.lr_scheduler.last_epoch += 1
 
-    def get_param(self) -> Union[torch.Tensor, float, List[Union[torch.Tensor, float]]]:
+    def get_param(self) -> Union[torch.Tensor, float, List[Union[torch.Tensor, float]]]:  # type: ignore[override]
         """Method to get current optimizer's parameter value"""
         # Emulate context manager for pytorch>=1.4
         self.lr_scheduler._get_lr_called_within_step = True  # type: ignore[union-attr]
