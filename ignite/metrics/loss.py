@@ -1,4 +1,4 @@
-from typing import Callable, cast, Sequence
+from typing import Callable, cast
 
 import torch
 
@@ -90,7 +90,7 @@ class Loss(Metric):
         self._num_examples = 0
 
     @reinit__is_reduced
-    def update(self, output: Sequence[torch.Tensor | dict]) -> None:
+    def update(self, output: tuple[torch.Tensor, torch.Tensor] | tuple[torch.Tensor, torch.Tensor, dict]) -> None:
         if len(output) == 2:
             y_pred, y = cast(tuple[torch.Tensor, torch.Tensor], output)
             kwargs: dict = {}
