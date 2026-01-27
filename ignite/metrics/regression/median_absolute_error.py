@@ -1,4 +1,4 @@
-from typing import Callable, Union
+from typing import Callable
 
 import torch
 
@@ -64,9 +64,7 @@ class MedianAbsoluteError(EpochMetric):
             0.625
     """
 
-    def __init__(
-        self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu")
-    ):
+    def __init__(self, output_transform: Callable = lambda x: x, device: str | torch.device = torch.device("cpu")):
         super(MedianAbsoluteError, self).__init__(
             median_absolute_error_compute_fn, output_transform=output_transform, device=device
         )
