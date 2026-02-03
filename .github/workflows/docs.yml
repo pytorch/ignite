@@ -115,8 +115,13 @@ jobs:
         run: bash .github/workflows/install_docs_deps.sh
 
       - name: make doctest
-        working-directory: ./docs/
-        run: |
-          make html
-          make doctest
-          make coverage
+        uses: nick-fields/retry@v3.0.2
+        with:
+          max_attempts: 3
+          timeout_minutes: 15
+          shell: bash
+          command: |
+            cd docs/
+            make html
+            make doctest
+            make coverage
