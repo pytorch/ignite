@@ -68,8 +68,11 @@ jobs:
           pip install mkl==2021.4.0
 
           ## Install torch & xla and torchvision
+          # Using the proper installation method from PyTorch/XLA documentation
+          # Install PyTorch nightly with CPU support
           pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cpu
-          pip install https://storage.googleapis.com/pytorch-xla-releases/wheels/tpuvm/torch_xla-nightly-cp310-cp310-linux_x86_64.whl
+          # Install torch_xla with tpu dependencies which includes libtpu for CPU testing
+          pip install --pre 'torch_xla[tpu]' -f https://storage.googleapis.com/libtpu-releases/index.html -f https://storage.googleapis.com/libtpu-wheels/index.html
 
           # Check installation
           python -c "import torch"
