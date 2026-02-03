@@ -6,7 +6,7 @@ import warnings
 import weakref
 from collections import defaultdict, OrderedDict
 from collections.abc import Mapping
-from typing import Any, Callable, Dict, Generator, Iterable, Iterator, List, Optional, Tuple, Union
+from typing import Any, Callable, Generator, Iterable, Iterator
 
 from torch.utils.data import DataLoader
 
@@ -135,23 +135,23 @@ class Engine(Serializable):
     interrupt_resume_enabled = True
 
     def __init__(self, process_function: Callable[["Engine", Any], Any]):
-        self._event_handlers: Dict[Any, List] = defaultdict(list)
+        self._event_handlers: dict[Any, list] = defaultdict(list)
         self.logger = logging.getLogger(__name__ + "." + self.__class__.__name__)
         self._process_function = process_function
-        self.last_event_name: Optional[Events] = None
+        self.last_event_name: Events | None = None
         # should_terminate flag: False - don't terminate, True - terminate,
         # "skip_completed" - terminate and skip the event "COMPLETED"
-        self.should_terminate: Union[bool, str] = False
+        self.should_terminate: bool | str = False
         # should_terminate_single_epoch flag: False - don't terminate, True - terminate,
         # "skip_epoch_completed" - terminate and skip the event "EPOCH_COMPLETED"
-        self.should_terminate_single_epoch: Union[bool, str] = False
+        self.should_terminate_single_epoch: bool | str = False
         self.should_interrupt = False
         self.state = State()
-        self._state_dict_user_keys: List[str] = []
-        self._allowed_events: List[Union[str, EventEnum]] = []
+        self._state_dict_user_keys: list[str] = []
+        self._allowed_events: list[str | EventEnum] = []
 
-        self._dataloader_iter: Optional[Iterator[Any]] = None
-        self._init_iter: Optional[int] = None
+        self._dataloader_iter: Iterator[Any] | None = None
+        self._init_iter: int | None = None
 
         self.register_events(*Events)
 
@@ -161,9 +161,9 @@ class Engine(Serializable):
         _check_signature(process_function, "process_function", self, None)
 
         # generator provided by self._internal_run_as_gen
-        self._internal_run_generator: Optional[Generator[Any, None, State]] = None
+        self._internal_run_generator: Generator[Any, None, State] | None = None
 
-    def register_events(self, *event_names: Union[str, EventEnum], event_to_attr: Optional[dict] = None) -> None:
+    def register_events(self, *event_names: str | EventEnum, event_to_attr: dict | None = None) -> None:
         """Add events that can be fired.
 
         Registering an event will let the user trigger these events at any point.
@@ -329,7 +329,7 @@ class Engine(Serializable):
 
         self._assert_allowed_event(event_name)
 
-        event_args: Tuple[Any, ...] = ()
+        event_args: tuple[Any, ...] = ()
         if event_name == Events.EXCEPTION_RAISED:
             event_args += (Exception(),)
         elif event_name == Events.TERMINATE_SINGLE_EPOCH:
@@ -345,7 +345,7 @@ class Engine(Serializable):
 
         return RemovableEventHandle(event_name, handler, self)
 
-    def has_event_handler(self, handler: Callable, event_name: Optional[Any] = None) -> bool:
+    def has_event_handler(self, handler: Callable, event_name: Any | None = None) -> bool:
         """Check if the specified event has the specified handler.
 
         Args:
@@ -356,7 +356,7 @@ class Engine(Serializable):
         if event_name is not None:
             if event_name not in self._event_handlers:
                 return False
-            events: Union[List[Any], Dict[Any, List]] = [event_name]
+            events: list[Any] | dict[Any, list] = [event_name]
         else:
             events = self._event_handlers
         for e in events:
@@ -678,7 +678,7 @@ class Engine(Serializable):
             raise e
 
     @property
-    def state_dict_user_keys(self) -> List:
+    def state_dict_user_keys(self) -> list:
         return self._state_dict_user_keys
 
     def state_dict(self) -> OrderedDict:
@@ -708,7 +708,7 @@ class Engine(Serializable):
                 a dictionary containing engine's state
 
         """
-        keys: Tuple[str, ...] = self._state_dict_all_req_keys + (self._state_dict_one_of_opt_keys[0],)
+        keys: tuple[str, ...] = self._state_dict_all_req_keys + (self._state_dict_one_of_opt_keys[0],)
         keys += tuple(self._state_dict_user_keys)
         return OrderedDict([(k, getattr(self.state, k)) for k in keys])
 
@@ -773,7 +773,7 @@ class Engine(Serializable):
         is_done_epochs = state.max_epochs is not None and state.epoch >= state.max_epochs
         return is_done_iters or is_done_count or is_done_epochs
 
-    def set_data(self, data: Union[Iterable, DataLoader]) -> None:
+    def set_data(self, data: Iterable | DataLoader) -> None:
         """Method to set data. After calling the method the next batch passed to `processing_function` is
         from newly provided data. Please, note that epoch length is not modified.
 
@@ -811,10 +811,10 @@ class Engine(Serializable):
 
     def run(
         self,
-        data: Optional[Iterable] = None,
-        max_epochs: Optional[int] = None,
-        max_iters: Optional[int] = None,
-        epoch_length: Optional[int] = None,
+        data: Iterable | None = None,
+        max_epochs: int | None = None,
+        max_iters: int | None = None,
+        epoch_length: int | None = None,
     ) -> State:
         """Runs the ``process_function`` over the passed data.
 
@@ -945,7 +945,7 @@ class Engine(Serializable):
         state.times[Events.EPOCH_COMPLETED.name] = 0.0
         state.times[Events.COMPLETED.name] = 0.0
 
-    def _get_data_length(self, data: Iterable) -> Optional[int]:
+    def _get_data_length(self, data: Iterable) -> int | None:
         try:
             if hasattr(data, "__len__"):
                 return len(data)  # type: ignore[arg-type]
