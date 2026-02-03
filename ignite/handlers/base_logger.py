@@ -326,4 +326,4 @@ class BaseLogger(metaclass=ABCMeta):
         self.close()
 
     def close(self) -> None:
-        pass    
+        pass
