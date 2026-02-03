@@ -68,7 +68,7 @@ class BaseOptimizerParamsHandler(BaseHandler):
         ):
             raise TypeError(
                 "Argument optimizer should be torch.optim.Optimizer or has attribute 'param_groups' as list/tuple, "
-                (f"but given {type(optimizer)}")
+                f"but given {type(optimizer)}"
             )
 
         self.optimizer = optimizer
@@ -326,5 +326,4 @@ class BaseLogger(metaclass=ABCMeta):
         self.close()
 
     def close(self) -> None:
-        pass
-    
+        pass    
