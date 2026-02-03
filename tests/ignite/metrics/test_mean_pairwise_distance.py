@@ -12,7 +12,7 @@ from ignite.metrics import MeanPairwiseDistance
 def test_zero_sample():
     mpd = MeanPairwiseDistance()
     with pytest.raises(
-        NotComputableError, match=r"MeanAbsoluteError must have at least one example before it can be computed"
+        NotComputableError, match=r"MeanPairwiseDistance must have at least one example before it can be computed"
     ):
         mpd.compute()
 
