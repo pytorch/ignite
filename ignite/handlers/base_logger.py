@@ -5,7 +5,7 @@ import numbers
 import warnings
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
-from typing import Any, Callable
+from typing import Any, Callable, Sequence
 
 import torch
 import torch.nn as nn
@@ -64,7 +64,7 @@ class BaseOptimizerParamsHandler(BaseHandler):
     def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: str | None = None):
         if not (
             isinstance(optimizer, Optimizer)
-            or (hasattr(optimizer, "param_groups") and isinstance(optimizer.param_groups, collections.Sequence))
+            or (hasattr(optimizer, "param_groups") and isinstance(optimizer.param_groups, Sequence))
         ):
             raise TypeError(
                 "Argument optimizer should be torch.optim.Optimizer or has attribute 'param_groups' as list/tuple, "
@@ -327,3 +327,4 @@ class BaseLogger(metaclass=ABCMeta):
 
     def close(self) -> None:
         pass
+    

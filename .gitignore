@@ -45,7 +45,7 @@ coverage.xml
 .venv/
 .python-version
 conda_build/
-venv/
+
 .neptune/
 pytest.ini
 
