@@ -1,4 +1,4 @@
-from typing import Callable, cast
+from typing import Callable
 
 import torch
 
@@ -92,10 +92,10 @@ class Loss(Metric):
     @reinit__is_reduced
     def update(self, output: tuple[torch.Tensor, torch.Tensor] | tuple[torch.Tensor, torch.Tensor, dict]) -> None:
         if len(output) == 2:
-            y_pred, y = cast(tuple[torch.Tensor, torch.Tensor], output)
+            y_pred, y = output
             kwargs: dict = {}
         else:
-            y_pred, y, kwargs = cast(tuple[torch.Tensor, torch.Tensor, dict], output)
+            y_pred, y, kwargs = output
         average_loss = self._loss_fn(y_pred, y, **kwargs).detach()
 
         if len(average_loss.shape) != 0:
