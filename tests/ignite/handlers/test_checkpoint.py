@@ -1897,3 +1897,29 @@ def test_disksaver_distrib(distributed_context_single_node_gloo, dirname, local_
 
     else:
         mocked_saver._save_func.assert_not_called()
+
+
+def test_checkpoint_on_exception(dirname):
+    model = DummyModel()
+    to_save = {"model": model}
+    save_handler = MagicMock(spec=BaseSaveHandler)
+    
+    checkpointer = Checkpoint(to_save, save_handler=save_handler)
+
+    def update_fn(engine, batch):
+        if engine.state.iteration == 1:
+            raise RuntimeError("training crash")
+        return None
+
+    trainer = Engine(update_fn)
+
+    # Attach Checkpoint to EXCEPTION_RAISED
+    trainer.add_event_handler(Events.EXCEPTION_RAISED, checkpointer)
+
+    trainer.run([0, 0, 0], max_epochs=1)
+
+    # Assert that save_handler was called
+    assert save_handler.call_count == 1
+    
+    metadata = {"basename": "model", "score_name": None, "priority": 1}
+    save_handler.assert_called_with(model.state_dict(), "model_1.pt", metadata)
