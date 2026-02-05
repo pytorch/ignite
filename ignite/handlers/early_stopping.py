@@ -21,7 +21,7 @@ class EarlyStopping(Serializable):
         cumulative_delta: It True, `min_delta` defines an increase since the last `patience` reset, otherwise,
             it defines an increase after the last event. Default value is False.
         min_delta_mode: Determine whether `min_delta` is an absolute increase or a relative increase.
-            Possible values are "abs" and "rel". Default value is "rel".
+            Possible values are "abs" and "rel". Default value is "abs".
 
     Examples:
         .. code-block:: python
@@ -51,7 +51,7 @@ class EarlyStopping(Serializable):
         trainer: Engine,
         min_delta: float = 0.0,
         cumulative_delta: bool = False,
-        min_delta_mode: Literal["abs", "rel"] = "rel",
+        min_delta_mode: Literal["abs", "rel"] = "abs",
     ):
         if not callable(score_function):
             raise TypeError("Argument score_function should be a function.")
@@ -85,7 +85,7 @@ class EarlyStopping(Serializable):
             self.best_score = score
             return
         upper_bound = (
-            self.best_score + self.min_delta if self.min_delta_mode == "abs" else self.best_score * (1 + self.min_delta)
+            self.best_score + self.min_delta if self.min_delta_mode == "abs" else self.best_score + abs(self.best_score) * self.min_delta
         )
         if score <= upper_bound:
             if not self.cumulative_delta and score > self.best_score:
