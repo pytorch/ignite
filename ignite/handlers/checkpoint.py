@@ -294,6 +294,22 @@ class Checkpoint(Serializable):
 
             trainer.add_event_handler(Events.EPOCH_COMPLETED, checkpoint_handler)
 
+        Attach the handler to an engine to save a checkpoint when an exception is raised:
+
+        .. code-block:: python
+
+            from ignite.engine import Engine, Events
+            from ignite.handlers import Checkpoint
+
+            trainer = ...
+            model = ...
+
+            handler = Checkpoint({"model": model}, "/tmp/models")
+
+            trainer.add_event_handler(Events.EXCEPTION_RAISED, handler)
+
+            trainer.run(data_loader)
+
     Attributes:
         SAVED_CHECKPOINT: Alias of ``SAVED_CHECKPOINT`` from
             :class:`~ignite.handlers.checkpoint.CheckpointEvents`.
@@ -438,7 +454,7 @@ class Checkpoint(Serializable):
         else:
             return new > self._saved[0].priority
 
-    def __call__(self, engine: Engine) -> None:
+    def __call__(self, engine: Engine, *args: Any, **kwargs: Any) -> None:
         if not engine.has_registered_events(CheckpointEvents.SAVED_CHECKPOINT):
             engine.register_events(*CheckpointEvents)
         global_step = None

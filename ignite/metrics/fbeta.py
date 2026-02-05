@@ -1,4 +1,4 @@
-from typing import Callable, cast, Optional, Union
+from typing import Callable, cast
 
 import torch
 
@@ -12,10 +12,10 @@ __all__ = ["Fbeta"]
 def Fbeta(
     beta: float,
     average: bool = True,
-    precision: Optional[Precision] = None,
-    recall: Optional[Recall] = None,
-    output_transform: Optional[Callable] = None,
-    device: Optional[Union[str, torch.device]] = None,
+    precision: Precision | None = None,
+    recall: Recall | None = None,
+    output_transform: Callable | None = None,
+    device: str | torch.device | None = None,
 ) -> MetricsLambda:
     r"""Calculates F-beta score.
 
@@ -162,7 +162,7 @@ def Fbeta(
         precision = Precision(
             output_transform=(lambda x: x) if output_transform is None else output_transform,
             average=False,
-            device=cast(Union[str, torch.device], recall._device if recall else device),
+            device=cast(str | torch.device, recall._device if recall else device),
         )
     elif precision._average:
         raise ValueError("Input precision metric should have average=False")
@@ -171,7 +171,7 @@ def Fbeta(
         recall = Recall(
             output_transform=(lambda x: x) if output_transform is None else output_transform,
             average=False,
-            device=cast(Union[str, torch.device], precision._device if precision else device),
+            device=cast(str | torch.device, precision._device if precision else device),
         )
     elif recall._average:
         raise ValueError("Input recall metric should have average=False")

@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Union
+from typing import Callable, Literal
 
 import torch
 
@@ -56,9 +56,9 @@ class CohenKappa(EpochMetric):
     def __init__(
         self,
         output_transform: Callable = lambda x: x,
-        weights: Optional[str] = None,
+        weights: Literal["linear", "quadratic"] | None = None,
         check_compute_fn: bool = False,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
     ):
         try:
@@ -68,8 +68,8 @@ class CohenKappa(EpochMetric):
         if weights not in (None, "linear", "quadratic"):
             raise ValueError("Kappa Weighting type must be None or linear or quadratic.")
 
-        # initalize weights
-        self.weights = weights
+        # initialize weights
+        self.weights: Literal["linear", "quadratic"] | None = weights
 
         super(CohenKappa, self).__init__(
             self._cohen_kappa_score,
