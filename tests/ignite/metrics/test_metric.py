@@ -1526,7 +1526,7 @@ def test_metrics_result_mode_parametrized(mode, expect_map, expect_keys):
 
 def test_metrics_result_mode_conflict_error():
     metric = MappingMetric({"map": 3}, metrics_result_mode="named")
-    engine = Engine(lambda x: 0)
+    engine = Engine(lambda e, x: 0)
     metric.attach(engine, "map")
     with pytest.raises(ValueError):
         engine.run([0], max_epochs=1)
