@@ -235,6 +235,12 @@ class Metric(Serializable, metaclass=ABCMeta):
         skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
             true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
             Alternatively, ``output_transform`` can be used to handle this.
+        metrics_result_mode: specifies how to put the computed metrics results into
+            ``engine.state.metrics`` dictionary. Valid values are: "flatten", "named", "both".
+            - "flatten": if the computed result is a mapping, its keys/values are put directly into the engine state metrics dictionary
+            - "named": if the computed result is a mapping, the whole mapping is put into the engine state metrics dictionary under the metric name
+            - "both": combination of "flatten" and "named".
+
 
             Examples:
                 The following example shows a custom loss metric that expects input from a multi-output model.
