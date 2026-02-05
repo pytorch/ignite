@@ -1903,7 +1903,7 @@ def test_checkpoint_on_exception(dirname):
     model = DummyModel()
     to_save = {"model": model}
     save_handler = MagicMock(spec=BaseSaveHandler)
-    
+
     checkpointer = Checkpoint(to_save, save_handler=save_handler)
 
     def update_fn(engine, batch):
@@ -1920,6 +1920,6 @@ def test_checkpoint_on_exception(dirname):
 
     # Assert that save_handler was called
     assert save_handler.call_count == 1
-    
+
     metadata = {"basename": "model", "score_name": None, "priority": 1}
     save_handler.assert_called_with(model.state_dict(), "model_1.pt", metadata)

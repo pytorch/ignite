@@ -293,7 +293,7 @@ class Checkpoint(Serializable):
                 print(f"Checkpoint saved at epoch {engine.state.epoch}")
 
             trainer.add_event_handler(Events.EPOCH_COMPLETED, checkpoint_handler)
-            
+
         Attach the handler to an engine to save a checkpoint when an exception is raised:
 
         .. code-block:: python
@@ -305,7 +305,7 @@ class Checkpoint(Serializable):
             model = ...
 
             handler = Checkpoint({"model": model}, "/tmp/models")
-            
+
             trainer.add_event_handler(Events.EXCEPTION_RAISED, handler)
 
             trainer.run(data_loader)
