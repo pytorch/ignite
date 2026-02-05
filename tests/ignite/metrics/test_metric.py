@@ -18,10 +18,10 @@ from ignite.metrics.metric import (
     BatchWise,
     EpochWise,
     Metric,
-    reinit__is_reduced,
     RunningBatchWise,
     RunningEpochWise,
     SingleEpochRunningBatchWise,
+    reinit__is_reduced,
     sync_all_reduce,
 )
 from ignite.utils import _tree_map
@@ -1475,3 +1475,62 @@ def test_output_transform_type_check():
     y = torch.zeros(2)
     with pytest.raises(TypeError, match="Argument output_transform should be callable"):
         DummyMetric1(true_output=(y_pred, y), output_transform=1)
+
+
+class MappingMetric(Metric):
+    def __init__(self, mapping, **kwargs):
+        super().__init__(**kwargs)
+        self._mapping = mapping
+
+    def reset(self):
+        pass
+
+    def update(self, output):
+        pass
+
+    def compute(self):
+        return dict(self._mapping)
+
+
+def _metrics_mode_run_and_get_metrics(metric: Metric, name: str):
+    def process_function(x):
+        return 0
+
+    engine = Engine(process_function)
+    metric.attach(engine, name)
+    engine.run([0], max_epochs=1)
+    return engine.state.metrics
+
+
+def test_metrics_result_mode_flatten():
+    metric = MappingMetric({"a": 1, "b": 2}, metrics_result_mode="flatten")
+    metrics = _metrics_mode_run_and_get_metrics(metric, "map")
+    assert metrics.get("a") == 1
+    assert metrics.get("b") == 2
+    assert "map" not in metrics
+
+
+def test_metrics_result_mode_named():
+    metric = MappingMetric({"a": 1, "b": 2}, metrics_result_mode="named")
+    metrics = _metrics_mode_run_and_get_metrics(metric, "map")
+    assert metrics.get("map") == {"a": 1, "b": 2}
+    assert "a" not in metrics and "b" not in metrics
+
+
+def test_metrics_result_mode_both():
+    metric = MappingMetric({"a": 1, "b": 2}, metrics_result_mode="both")
+    metrics = _metrics_mode_run_and_get_metrics(metric, "map")
+    assert metrics.get("map") == {"a": 1, "b": 2}
+    assert metrics.get("a") == 1 and metrics.get("b") == 2
+
+
+def test_metrics_result_mode_conflict_error():
+    metric = MappingMetric({"map": 3}, metrics_result_mode="named")
+
+    def process_function(x):
+        return 0
+
+    engine = Engine(process_function)
+    metric.attach(engine, "map")
+    with pytest.raises(ValueError):
+        engine.run([0], max_epochs=1)
