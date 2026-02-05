@@ -1492,45 +1492,41 @@ class MappingMetric(Metric):
         return dict(self._mapping)
 
 
-def _metrics_mode_run_and_get_metrics(metric: Metric, name: str):
-    def process_function(x):
-        return 0
-
-    engine = Engine(process_function)
+def _run_and_get_metrics(metric: Metric, name: str):
+    engine = Engine(lambda x: 0)
     metric.attach(engine, name)
     engine.run([0], max_epochs=1)
     return engine.state.metrics
 
 
-def test_metrics_result_mode_flatten():
-    metric = MappingMetric({"a": 1, "b": 2}, metrics_result_mode="flatten")
-    metrics = _metrics_mode_run_and_get_metrics(metric, "map")
-    assert metrics.get("a") == 1
-    assert metrics.get("b") == 2
-    assert "map" not in metrics
+@pytest.mark.parametrize(
+    "mode,expect_map,expect_keys",
+    [
+        ("flatten", False, {"a": 1, "b": 2}),
+        ("named", True, None),
+        ("both", True, {"a": 1, "b": 2}),
+    ],
+)
+def test_metrics_result_mode_parametrized(mode, expect_map, expect_keys):
+    mapping = {"a": 1, "b": 2}
+    metric = MappingMetric(mapping, metrics_result_mode=mode)
+    metrics = _run_and_get_metrics(metric, "map")
 
+    if expect_map:
+        assert metrics.get("map") == mapping
+    else:
+        assert "map" not in metrics
 
-def test_metrics_result_mode_named():
-    metric = MappingMetric({"a": 1, "b": 2}, metrics_result_mode="named")
-    metrics = _metrics_mode_run_and_get_metrics(metric, "map")
-    assert metrics.get("map") == {"a": 1, "b": 2}
-    assert "a" not in metrics and "b" not in metrics
-
-
-def test_metrics_result_mode_both():
-    metric = MappingMetric({"a": 1, "b": 2}, metrics_result_mode="both")
-    metrics = _metrics_mode_run_and_get_metrics(metric, "map")
-    assert metrics.get("map") == {"a": 1, "b": 2}
-    assert metrics.get("a") == 1 and metrics.get("b") == 2
+    if expect_keys is None:
+        assert all(k not in metrics for k in mapping)
+    else:
+        for k, v in expect_keys.items():
+            assert metrics.get(k) == v
 
 
 def test_metrics_result_mode_conflict_error():
     metric = MappingMetric({"map": 3}, metrics_result_mode="named")
-
-    def process_function(x):
-        return 0
-
-    engine = Engine(process_function)
+    engine = Engine(lambda x: 0)
     metric.attach(engine, "map")
     with pytest.raises(ValueError):
         engine.run([0], max_epochs=1)
