@@ -1493,7 +1493,7 @@ class MappingMetric(Metric):
 
 
 def _run_and_get_metrics(metric: Metric, name: str):
-    engine = Engine(lambda x: 0)
+    engine = Engine(lambda e, x: 0)
     metric.attach(engine, name)
     engine.run([0], max_epochs=1)
     return engine.state.metrics
