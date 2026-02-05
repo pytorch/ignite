@@ -18,10 +18,10 @@ from ignite.metrics.metric import (
     BatchWise,
     EpochWise,
     Metric,
-    reinit__is_reduced,
     RunningBatchWise,
     RunningEpochWise,
     SingleEpochRunningBatchWise,
+    reinit__is_reduced,
     sync_all_reduce,
 )
 from ignite.utils import _tree_map
@@ -1475,3 +1475,58 @@ def test_output_transform_type_check():
     y = torch.zeros(2)
     with pytest.raises(TypeError, match="Argument output_transform should be callable"):
         DummyMetric1(true_output=(y_pred, y), output_transform=1)
+
+
+class MappingMetric(Metric):
+    def __init__(self, mapping, **kwargs):
+        super().__init__(**kwargs)
+        self._mapping = mapping
+
+    def reset(self):
+        pass
+
+    def update(self, output):
+        pass
+
+    def compute(self):
+        return dict(self._mapping)
+
+
+def _run_and_get_metrics(metric: Metric, name: str):
+    engine = Engine(lambda e, x: 0)
+    metric.attach(engine, name)
+    engine.run([0], max_epochs=1)
+    return engine.state.metrics
+
+
+@pytest.mark.parametrize(
+    "mode,expect_map,expect_keys",
+    [
+        ("flatten", False, {"a": 1, "b": 2}),
+        ("named", True, None),
+        ("both", True, {"a": 1, "b": 2}),
+    ],
+)
+def test_metrics_result_mode_parametrized(mode, expect_map, expect_keys):
+    mapping = {"a": 1, "b": 2}
+    metric = MappingMetric(mapping, metrics_result_mode=mode)
+    metrics = _run_and_get_metrics(metric, "map")
+
+    if expect_map:
+        assert metrics.get("map") == mapping
+    else:
+        assert "map" not in metrics
+
+    if expect_keys is None:
+        assert all(k not in metrics for k in mapping)
+    else:
+        for k, v in expect_keys.items():
+            assert metrics.get(k) == v
+
+
+def test_metrics_result_mode_conflict_error():
+    metric = MappingMetric({"map": 3}, metrics_result_mode="named")
+    engine = Engine(lambda e, x: 0)
+    metric.attach(engine, "map")
+    with pytest.raises(ValueError):
+        engine.run([0], max_epochs=1)
