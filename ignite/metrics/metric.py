@@ -3,12 +3,11 @@ from collections import OrderedDict
 from collections.abc import Mapping
 from functools import wraps
 from numbers import Number
-from typing import Any, Callable, cast, Dict, List, Optional, Sequence, Tuple, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, Sequence, Tuple, Union, cast
 
 import torch
 
 import ignite.distributed as idist
-
 from ignite.base.mixins import Serializable
 from ignite.engine import CallableEventWithFilter, Engine, Events
 from ignite.utils import _CollectionItem, _tree_apply2, _tree_map
@@ -360,6 +359,7 @@ class Metric(Serializable, metaclass=ABCMeta):
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
         skip_unrolling: bool = False,
+        metrics_result_mode: Literal["flatten", "named", "both"] = "both",
     ):
         if not callable(output_transform):
             raise TypeError(f"Argument output_transform should be callable, got {type(output_transform)}")
@@ -372,6 +372,11 @@ class Metric(Serializable, metaclass=ABCMeta):
         # pyrefly: ignore [read-only]
         self._device = torch.device(device)
         self._skip_unrolling = skip_unrolling
+
+        valid_modes = ("flatten", "named", "both")
+        if not isinstance(metrics_result_mode, str) or metrics_result_mode not in valid_modes:
+            raise ValueError(f"Argument metrics_result_mode should be one of {valid_modes}, got {metrics_result_mode}")
+        self._metrics_result_mode = metrics_result_mode
 
         # MPS framework doesn't support float64, should use float32
         self._double_dtype = torch.float64
@@ -495,12 +500,16 @@ class Metric(Serializable, metaclass=ABCMeta):
         """
         result = self.compute()
         if isinstance(result, Mapping):
-            if name in result.keys():
+            # Only raise conflict when we will set the mapping under `name`.
+            if self._metrics_result_mode in ("named", "both") and name in result.keys():
                 raise ValueError(f"Argument name '{name}' is conflicting with mapping keys: {list(result.keys())}")
 
-            for key, value in result.items():
-                engine.state.metrics[key] = value
-            engine.state.metrics[name] = result
+            if self._metrics_result_mode in ("flatten", "both"):
+                for key, value in result.items():
+                    engine.state.metrics[key] = value
+
+            if self._metrics_result_mode in ("named", "both"):
+                engine.state.metrics[name] = result
         else:
             if isinstance(result, torch.Tensor):
                 if len(result.size()) == 0:
