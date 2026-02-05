@@ -147,7 +147,9 @@ class BaseOutputHandler(BaseHandler):
         metrics_state_attrs_dict: dict[Any, str | float | numbers.Number] = OrderedDict()
 
         def key_tuple_fn(parent_key: str | tuple[str, ...] | None, *args: str) -> tuple[str, ...]:
-            if parent_key is None or isinstance(parent_key, str):
+            if parent_key is None:
+                return args
+            if isinstance(parent_key, str):
                 return (parent_key,) + args
             return parent_key + args
 
@@ -158,7 +160,7 @@ class BaseOutputHandler(BaseHandler):
         key_fn = key_tuple_fn if key_tuple else key_str_fn
 
         def handle_value_fn(
-            value: str | int | float | numbers.Number | torch.Tensor
+            value: str | int | float | numbers.Number | torch.Tensor,
         ) -> None | str | float | numbers.Number:
             if isinstance(value, numbers.Number):
                 return value
