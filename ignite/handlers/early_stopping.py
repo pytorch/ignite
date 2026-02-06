@@ -21,6 +21,10 @@ class EarlyStopping(Serializable):
         cumulative_delta: It True, `min_delta` defines an increase since the last `patience` reset, otherwise,
             it defines an increase after the last event. Default value is False.
         min_delta_mode: Determine whether `min_delta` is an absolute increase or a relative increase.
+            In 'abs' mode, the threshold is min_delta,
+            i.e. an increase of less than or equal to min_delta, will count as no improvement.
+            In 'rel' mode, the threshold is abs(best_score) * min_delta,
+            i.e. an increase of less than or equal to abs(best_score) * min_delta, will count as no improvement.
             Possible values are "abs" and "rel". Default value is "abs".
 
     Examples:
