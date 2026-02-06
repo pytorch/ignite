@@ -17,7 +17,7 @@ class EarlyStopping(Serializable):
             object, and return a score `float`. An improvement is considered if the score is higher.
         trainer: Trainer engine to stop the run if no improvement.
         min_delta: A minimum increase in the score to qualify as an improvement,
-            i.e. an increase of less than or equal to `min_delta`, will count as no improvement.
+            i.e. an increase of less than or equal to the minimum delta threshold (as determined by min_delta and min_delta_mode), will count as no improvement.
         cumulative_delta: It True, `min_delta` defines an increase since the last `patience` reset, otherwise,
             it defines an increase after the last event. Default value is False.
         min_delta_mode: Determine whether `min_delta` is an absolute increase or a relative increase.
@@ -85,7 +85,9 @@ class EarlyStopping(Serializable):
             self.best_score = score
             return
         upper_bound = (
-            self.best_score + self.min_delta if self.min_delta_mode == "abs" else self.best_score + abs(self.best_score) * self.min_delta
+            self.best_score + self.min_delta
+            if self.min_delta_mode == "abs"
+            else self.best_score + abs(self.best_score) * self.min_delta
         )
         if score <= upper_bound:
             if not self.cumulative_delta and score > self.best_score:
