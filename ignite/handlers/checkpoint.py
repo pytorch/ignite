@@ -777,6 +777,7 @@ class Checkpoint(Serializable):
         Args:
             state_dict: a dict with "saved" key and list of ``(priority, filename)`` pairs as values.
         """
+        super().load_state_dict(state_dict)
         key = self._state_dict_all_req_keys[0]
         self._saved = [Checkpoint.Item(p, f) for p, f in state_dict[key]]
 
