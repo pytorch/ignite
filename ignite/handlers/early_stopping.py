@@ -14,18 +14,23 @@ class EarlyStopping(Serializable):
     Args:
         patience: Number of events to wait if no improvement and then stop the training.
         score_function: It should be a function taking a single argument, an :class:`~ignite.engine.engine.Engine`
-            object, and return a score `float`. An improvement is considered if the score is higher.
+            object, and return a score `float`. An improvement is considered if the score is higher (for mode='max')
+            or lower (for mode='min').
         trainer: Trainer engine to stop the run if no improvement.
-        min_delta: A minimum increase in the score to qualify as an improvement,
-            i.e. an increase of less than or equal to the minimum delta threshold (as determined by min_delta and min_delta_mode), will count as no improvement.
-        cumulative_delta: It True, `min_delta` defines an increase since the last `patience` reset, otherwise,
-            it defines an increase after the last event. Default value is False.
-        min_delta_mode: Determine whether `min_delta` is an absolute increase or a relative increase.
-            In 'abs' mode, the threshold is min_delta,
-            i.e. an increase of less than or equal to min_delta, will count as no improvement.
-            In 'rel' mode, the threshold is abs(best_score) * min_delta,
-            i.e. an increase of less than or equal to abs(best_score) * min_delta, will count as no improvement.
+        min_delta: A minimum change in the score to qualify as an improvement. For mode='max', it's a minimum
+            increase; for mode='min', it's a minimum decrease. An improvement is only considered if the change
+            exceeds the threshold determined by min_delta and min_delta_mode.
+        cumulative_delta: If True, `min_delta` defines the change since the last `patience` reset, otherwise,
+            it defines the change after the last event. Default value is False.
+        min_delta_mode: Determines whether `min_delta` is an absolute change or a relative change.
+            In 'abs' mode:
+                - For mode='max': improvement if score > best_score + min_delta
+                - For mode='min': improvement if score < best_score - min_delta
+            In 'rel' mode:
+                - For mode='max': improvement if score > best_score * (1 + min_delta)
+                - For mode='min': improvement if score < best_score * (1 - min_delta)
             Possible values are "abs" and "rel". Default value is "abs".
+        mode: Whether to maximize ('max') or minimize ('min') the score. Default is 'max'.
 
     Examples:
         .. code-block:: python
@@ -40,6 +45,10 @@ class EarlyStopping(Serializable):
             handler = EarlyStopping(patience=10, score_function=score_function, trainer=trainer)
             # Note: the handler is attached to an *Evaluator* (runs one epoch on validation dataset).
             evaluator.add_event_handler(Events.COMPLETED, handler)
+
+    .. versionchanged:: 0.6.0
+        Added ``mode`` parameter to support minimization in addition to maximization.
+        Added ``min_delta_mode`` parameter to support both absolute and relative improvements.
 
     """
 
@@ -56,6 +65,7 @@ class EarlyStopping(Serializable):
         min_delta: float = 0.0,
         cumulative_delta: bool = False,
         min_delta_mode: Literal["abs", "rel"] = "abs",
+        mode: Literal["min", "max"] = "max",
     ):
         if not callable(score_function):
             raise TypeError("Argument score_function should be a function.")
@@ -72,6 +82,9 @@ class EarlyStopping(Serializable):
         if min_delta_mode not in ("abs", "rel"):
             raise ValueError("Argument min_delta_mode should be either 'abs' or 'rel'.")
 
+        if mode not in ("min", "max"):
+            raise ValueError("Argument mode should be either 'min' or 'max'.")
+
         self.score_function = score_function
         self.patience = patience
         self.min_delta = min_delta
@@ -81,6 +94,7 @@ class EarlyStopping(Serializable):
         self.best_score: Optional[float] = None
         self.logger = setup_logger(__name__ + "." + self.__class__.__name__)
         self.min_delta_mode = min_delta_mode
+        self.mode = mode
 
     def __call__(self, engine: Engine) -> None:
         score = self.score_function(engine)
@@ -88,14 +102,22 @@ class EarlyStopping(Serializable):
         if self.best_score is None:
             self.best_score = score
             return
-        upper_bound = (
-            self.best_score + self.min_delta
-            if self.min_delta_mode == "abs"
-            else self.best_score + abs(self.best_score) * self.min_delta
-        )
-        if score <= upper_bound:
-            if not self.cumulative_delta and score > self.best_score:
-                self.best_score = score
+
+        if self.min_delta_mode == "abs":
+            improvement_threshold = (
+                self.best_score + self.min_delta if self.mode == "max" else self.best_score - self.min_delta
+            )
+
+        else:
+            improvement_threshold = (
+                self.best_score * (1 + self.min_delta) if self.mode == "max" else self.best_score * (1 - self.min_delta)
+            )
+
+        no_improvement = score <= improvement_threshold if self.mode == "max" else score >= improvement_threshold
+
+        if no_improvement:
+            if not self.cumulative_delta:
+                self.best_score = max(score, self.best_score) if self.mode == "max" else min(score, self.best_score)
             self.counter += 1
             self.logger.debug("EarlyStopping: %i / %i" % (self.counter, self.patience))
             if self.counter >= self.patience:
