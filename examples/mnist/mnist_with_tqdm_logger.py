@@ -91,8 +91,6 @@ def run(train_batch_size, val_batch_size, epochs, lr, momentum, display_gpu_info
             f"Validation Results - Epoch: {engine.state.epoch} Avg accuracy: {avg_accuracy:.2f} Avg loss: {avg_nll:.2f}"
         )
 
-        pbar.n = pbar.last_print_n = 0
-
     trainer.run(train_loader, max_epochs=epochs)
 
 
