@@ -23,12 +23,17 @@ class EarlyStopping(Serializable):
         cumulative_delta: If True, `min_delta` defines the change since the last `patience` reset, otherwise,
             it defines the change after the last event. Default value is False.
         min_delta_mode: Determines whether `min_delta` is an absolute change or a relative change.
-            In 'abs' mode:
-                - For mode='max': improvement if score > best_score + min_delta
-                - For mode='min': improvement if score < best_score - min_delta
-            In 'rel' mode:
-                - For mode='max': improvement if score > best_score * (1 + min_delta)
-                - For mode='min': improvement if score < best_score * (1 - min_delta)
+
+            - In 'abs' mode:
+
+              - For mode='max': improvement if score > best_score + min_delta
+              - For mode='min': improvement if score < best_score - min_delta
+
+            - In 'rel' mode:
+
+              - For mode='max': improvement if score > best_score * (1 + min_delta)
+              - For mode='min': improvement if score < best_score * (1 - min_delta)
+
             Possible values are "abs" and "rel". Default value is "abs".
         mode: Whether to maximize ('max') or minimize ('min') the score. Default is 'max'.
 
