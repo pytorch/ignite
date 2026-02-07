@@ -778,8 +778,7 @@ class Checkpoint(Serializable):
             state_dict: a dict with "saved" key and list of ``(priority, filename)`` pairs as values.
         """
         super().load_state_dict(state_dict)
-        key = self._state_dict_all_req_keys[0]
-        self._saved = [Checkpoint.Item(p, f) for p, f in state_dict[key]]
+        self._saved = [Checkpoint.Item(p, f) for p, f in state_dict["_saved"]]
 
     @staticmethod
     def get_default_score_fn(metric_name: str, score_sign: float = 1.0) -> Callable:
