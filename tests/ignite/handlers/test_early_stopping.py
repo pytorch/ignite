@@ -30,6 +30,9 @@ def test_args_validation():
     with pytest.raises(ValueError, match=r"Argument min_delta_mode should be either 'abs' or 'rel'."):
         EarlyStopping(patience=2, min_delta_mode="invalid_mode", score_function=lambda engine: 0, trainer=trainer)
 
+    with pytest.raises(ValueError, match=r"Argument mode should be either 'min' or 'max'."):
+        EarlyStopping(patience=2, mode="invalid_mode", score_function=lambda engine: 0, trainer=trainer)
+
 
 def test_simple_early_stopping():
     scores = iter([1.0, 0.8, 0.88])
@@ -294,6 +297,93 @@ def test_with_engine_no_early_stopping():
     trainer.run([0], max_epochs=10)
     assert n_epochs_counter.count == 10
     assert trainer.state.epoch == 10
+
+
+def test_simple_early_stopping_min_mode():
+    scores = iter([1.0, 1.2, 0.9])
+
+    def score_function(engine):
+        return next(scores)
+
+    trainer = Engine(do_nothing_update_fn)
+
+    h = EarlyStopping(patience=2, score_function=score_function, trainer=trainer, mode="min")
+    # Call 3 times and check if stopped
+    assert not trainer.should_terminate
+    h(None)  # best_score=1.0
+    assert not trainer.should_terminate
+    h(None)  # score=1.2 (no improvement)
+    assert not trainer.should_terminate
+    h(None)  # score=0.9 (improvement)
+    assert not trainer.should_terminate
+
+
+def test_early_stopping_min_mode_with_delta():
+    scores = iter([1.1, 0.95, 0.94, 0.93])
+
+    trainer = Engine(do_nothing_update_fn)
+
+    h = EarlyStopping(patience=2, min_delta=0.1, score_function=lambda _: next(scores), trainer=trainer, mode="min")
+
+    assert not trainer.should_terminate
+    h(None)  # best_score=1.1
+    assert not trainer.should_terminate
+    h(None)  # score=0.95 (improvement: 0.95 < 1.1 - 0.1 = 1.0)
+    assert not trainer.should_terminate
+    h(None)  # score=0.94 (no improvement: 0.94 >= 0.95 - 0.1 = 0.85)
+    assert not trainer.should_terminate
+    h(None)  # score=0.93 (no improvement: 0.93 >= 0.95 - 0.1 = 0.85)
+    assert trainer.should_terminate
+
+
+def test_early_stopping_min_mode_with_delta_cumulative():
+    scores = iter([1.1, 0.95, 0.94, 0.93])
+
+    trainer = Engine(do_nothing_update_fn)
+
+    h = EarlyStopping(
+        patience=2,
+        min_delta=0.1,
+        score_function=lambda _: next(scores),
+        trainer=trainer,
+        cumulative_delta=True,
+        mode="min",
+    )
+
+    assert not trainer.should_terminate
+    h(None)  # best_score=1.1
+    assert not trainer.should_terminate
+    h(None)  # score=0.95 (improvement: 0.95 < 1.1 - 0.1 = 1.0)
+    assert not trainer.should_terminate
+    h(None)  # score=0.94 (no improvement: 0.94 >= 0.95 - 0.1 = 0.85)
+    assert not trainer.should_terminate
+    h(None)  # score=0.93 (no improvement: 0.93 >= 0.94 - 0.1 = 0.84)
+    assert trainer.should_terminate
+
+
+def test_early_stopping_min_mode_rel_delta():
+    scores = iter([1.0, 0.8, 0.79, 0.78])
+
+    trainer = Engine(do_nothing_update_fn)
+
+    h = EarlyStopping(
+        patience=2,
+        min_delta=0.1,
+        min_delta_mode="rel",
+        score_function=lambda _: next(scores),
+        trainer=trainer,
+        mode="min",
+    )
+
+    assert not trainer.should_terminate
+    h(None)  # best_score=1.0
+    assert not trainer.should_terminate
+    h(None)  # score=0.8 (improvement: 0.8 < 1.0 * (1 - 0.1) = 0.9)
+    assert not trainer.should_terminate
+    h(None)  # score=0.79 (no improvement: 0.79 >= 0.8 * (1 - 0.1) = 0.72)
+    assert not trainer.should_terminate
+    h(None)  # score=0.78 (no improvement)
+    assert trainer.should_terminate
 
 
 def _test_distrib_with_engine_early_stopping(device):

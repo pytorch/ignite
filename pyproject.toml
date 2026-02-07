@@ -14,7 +14,7 @@ license-files = ["LICENSE"]
 classifiers = [
     "Programming Language :: Python :: 3",
 ]
-requires-python = ">=3.9,<=3.13"
+requires-python = ">=3.9,<=3.14"
 dependencies = [
     "torch>=1.10,<3",
     "packaging"
