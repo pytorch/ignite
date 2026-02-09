@@ -10,8 +10,6 @@ import torch
 @pytest.fixture(scope="session")
 def visdom_server():
     # Start Visdom server once and stop it with visdom_server_stop
-    # Visdom is unmaintained and cannot be installed with modern packages
-    pytest.skip("Visdom is unmaintained and cannot be installed with modern packages")
     
     from visdom import Visdom
     from visdom.server.build import download_scripts
