@@ -30,6 +30,11 @@ class VisdomLogger(BaseLogger):
     """
     VisdomLogger handler to log metrics, model/optimizer parameters, gradients during the training and validation.
 
+    .. warning::
+
+        This logger is currently untested due to the visdom package being unmaintained and difficult to install
+        with modern Python packages. Use at your own risk.
+
     This class requires `visdom <https://github.com/fossasia/visdom/>`_ package to be installed:
 
     .. code-block:: bash

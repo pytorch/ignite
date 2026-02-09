@@ -17,7 +17,7 @@ tqdm
 scikit-learn
 matplotlib
 tensorboardX
-visdom
+# visdom  # Removed: unmaintained package, cannot be installed with modern packages
 polyaxon
 wandb
 mlflow
