@@ -384,6 +384,11 @@ def setup_visdom_logging(
         - Learning rate(s)
         - Evaluation metrics
 
+    .. warning::
+
+        This function uses VisdomLogger which is currently untested due to the visdom package being
+        unmaintained and difficult to install with modern Python packages. Use at your own risk.
+
     Args:
         trainer: trainer engine
         optimizers: single or dictionary of
