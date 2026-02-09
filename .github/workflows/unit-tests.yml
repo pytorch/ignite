@@ -128,7 +128,7 @@ jobs:
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
           # 2) mnist_with_visdom.py
-          # Commented out: visdom is unmaintained and cannot be installed with modern packages
+          # Visdom is unmaintained and cannot be installed with modern packages
           # python -c "from visdom.server.build import download_scripts; download_scripts()" # download scripts : https://github.com/facebookresearch/visdom/blob/master/py/server.py#L929
           # python -m visdom.server &
           # sleep 10
