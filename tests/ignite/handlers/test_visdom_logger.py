@@ -16,9 +16,12 @@ from ignite.handlers.visdom_logger import (
     WeightsScalarHandler,
 )
 
-# Run tests on a single worker to avoid issues with connecting to the visdom
-# server This requires that the --dist=loadgroup option be passed to pytest.
-pytestmark = [pytest.mark.timeout(30), pytest.mark.xdist_group(name="visdom")]
+# Skip all tests in this module: visdom is unmaintained and cannot be installed with modern packages
+pytestmark = [
+    pytest.mark.skip(reason="Visdom is unmaintained and cannot be installed with modern packages"),
+    pytest.mark.timeout(30),
+    pytest.mark.xdist_group(name="visdom"),
+]
 
 
 def test_optimizer_params_handler_wrong_setup():
