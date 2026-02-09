@@ -14,8 +14,8 @@ class EarlyStopping(Serializable):
     Args:
         patience: Number of events to wait if no improvement and then stop the training.
         score_function: It should be a function taking a single argument, an :class:`~ignite.engine.engine.Engine`
-            object, and return a score `float`. An improvement is considered if the score is higher (for mode='max')
-            or lower (for mode='min').
+            object, and return a score `float`. An improvement is considered if the score is higher (for ``mode='max'``)
+            or lower (for ``mode='min'``).
         trainer: Trainer engine to stop the run if no improvement.
         min_delta: A minimum change in the score to qualify as an improvement. For mode='max', it's a minimum
             increase; for mode='min', it's a minimum decrease. An improvement is only considered if the change
@@ -108,15 +108,11 @@ class EarlyStopping(Serializable):
             self.best_score = score
             return
 
+        min_delta = -self.min_delta if self.mode == "min" else self.min_delta
         if self.min_delta_mode == "abs":
-            improvement_threshold = (
-                self.best_score + self.min_delta if self.mode == "max" else self.best_score - self.min_delta
-            )
-
+            improvement_threshold = self.best_score + min_delta
         else:
-            improvement_threshold = (
-                self.best_score * (1 + self.min_delta) if self.mode == "max" else self.best_score * (1 - self.min_delta)
-            )
+            improvement_threshold = self.best_score * (1 + min_delta)
 
         no_improvement = score <= improvement_threshold if self.mode == "max" else score >= improvement_threshold
 
