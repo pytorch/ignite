@@ -17,22 +17,22 @@ class EarlyStopping(Serializable):
             object, and return a score `float`. An improvement is considered if the score is higher (for ``mode='max'``)
             or lower (for ``mode='min'``).
         trainer: Trainer engine to stop the run if no improvement.
-        min_delta: A minimum change in the score to qualify as an improvement. For mode='max', it's a minimum
-            increase; for mode='min', it's a minimum decrease. An improvement is only considered if the change
-            exceeds the threshold determined by min_delta and min_delta_mode.
+        min_delta: A minimum change in the score to qualify as an improvement. For ``mode='max'``, it's a minimum
+            increase; for ``mode='min'``, it's a minimum decrease. An improvement is only considered if the change
+            exceeds the threshold determined by `min_delta` and `min_delta_mode`.
         cumulative_delta: If True, `min_delta` defines the change since the last `patience` reset, otherwise,
             it defines the change after the last event. Default value is False.
         min_delta_mode: Determines whether `min_delta` is an absolute change or a relative change.
 
             - In 'abs' mode:
 
-              - For mode='max': improvement if score > best_score + min_delta
-              - For mode='min': improvement if score < best_score - min_delta
+              - For ``mode='max'``: improvement if score > best_score + min_delta
+              - For ``mode='min'``: improvement if score < best_score - min_delta
 
             - In 'rel' mode:
 
-              - For mode='max': improvement if score > best_score * (1 + min_delta)
-              - For mode='min': improvement if score < best_score * (1 - min_delta)
+              - For ``mode='max'``: improvement if score > best_score * (1 + min_delta)
+              - For ``mode='min'``: improvement if score < best_score * (1 - min_delta)
 
             Possible values are "abs" and "rel". Default value is "abs".
         mode: Whether to maximize ('max') or minimize ('min') the score. Default is 'max'.
