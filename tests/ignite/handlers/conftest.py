@@ -6,37 +6,37 @@ from unittest.mock import Mock
 import pytest
 import torch
 
-# Visdom imports skipped: package is unmaintained and cannot be installed with modern packages
-# from visdom import Visdom
-# from visdom.server.build import download_scripts
-
 
 @pytest.fixture(scope="session")
 def visdom_server():
     # Start Visdom server once and stop it with visdom_server_stop
-    # Skipped: visdom is unmaintained and cannot be installed with modern packages
+    # Visdom is unmaintained and cannot be installed with modern packages
     pytest.skip("Visdom is unmaintained and cannot be installed with modern packages")
-    # vd_hostname = "localhost"
-    # if not (Path.home() / ".visdom").exists():
-    #     (Path.home() / ".visdom").mkdir(exist_ok=True)
-    #     download_scripts()
-    # vis = None
+    
+    from visdom import Visdom
+    from visdom.server.build import download_scripts
+    
+    vd_hostname = "localhost"
+    if not (Path.home() / ".visdom").exists():
+        (Path.home() / ".visdom").mkdir(exist_ok=True)
+        download_scripts()
+    vis = None
 
-    # vd_port = 29777
-    # vd_server_process = subprocess.Popen(
-    #     ["python", "-m", "visdom.server", "--hostname", vd_hostname, "-port", str(vd_port)]
-    # )
-    # time.sleep(2)
-    # for ii in range(5):
-    #     try:
-    #         time.sleep(1)
-    #         vis = Visdom(server=vd_hostname, port=vd_port, raise_exceptions=True)
-    #         break
-    #     except ConnectionError:
-    #         continue
+    vd_port = 29777
+    vd_server_process = subprocess.Popen(
+        ["python", "-m", "visdom.server", "--hostname", vd_hostname, "-port", str(vd_port)]
+    )
+    time.sleep(2)
+    for ii in range(5):
+        try:
+            time.sleep(1)
+            vis = Visdom(server=vd_hostname, port=vd_port, raise_exceptions=True)
+            break
+        except ConnectionError:
+            continue
 
-    # assert vis and vis.check_connection()
-    # yield (vd_hostname, vd_port)
+    assert vis and vis.check_connection()
+    yield (vd_hostname, vd_port)
     # Trying to clean up slows things down and sometimes causes hangs.
     # vis.close()
     # vd_server_process.kill()
