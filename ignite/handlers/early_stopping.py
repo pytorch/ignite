@@ -52,8 +52,8 @@ class EarlyStopping(Serializable):
             evaluator.add_event_handler(Events.COMPLETED, handler)
 
     .. versionchanged:: 0.6.0
-        Added ``mode`` parameter to support minimization in addition to maximization.
-        Added ``min_delta_mode`` parameter to support both absolute and relative improvements.
+        Added `mode` parameter to support minimization in addition to maximization.
+        Added `min_delta_mode` parameter to support both absolute and relative improvements.
 
     """
 
