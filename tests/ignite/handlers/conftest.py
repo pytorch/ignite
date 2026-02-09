@@ -5,13 +5,15 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-from visdom import Visdom
-from visdom.server.build import download_scripts
 
 
 @pytest.fixture(scope="session")
 def visdom_server():
     # Start Visdom server once and stop it with visdom_server_stop
+
+    from visdom import Visdom
+    from visdom.server.build import download_scripts
+
     vd_hostname = "localhost"
     if not (Path.home() / ".visdom").exists():
         (Path.home() / ".visdom").mkdir(exist_ok=True)

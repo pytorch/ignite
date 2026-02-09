@@ -14,7 +14,7 @@ license-files = ["LICENSE"]
 classifiers = [
     "Programming Language :: Python :: 3",
 ]
-requires-python = ">=3.9,<=3.13"
+requires-python = ">=3.9,<=3.14"
 dependencies = [
     "torch>=1.10,<3",
     "packaging"
@@ -73,8 +73,8 @@ exclude = [
 line-length = 120
 indent-width = 4
 
-# Assume Python 3.9
-target-version = "py39"
+# Assume Python 3.11
+target-version = "py311"
 
 [tool.ruff.lint]
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`) codes by default.
@@ -125,7 +125,7 @@ docstring-code-line-length = "dynamic"
 
 [tool.black]
 line-length = 120
-target-version = ['py39', 'py311']
+target-version = ['py311', 'py313']
 include = '\.pyi?$'
 exclude = '''
 
