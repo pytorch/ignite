@@ -17,7 +17,7 @@ tqdm
 scikit-learn
 matplotlib
 tensorboardX
-visdom
+# visdom  # Removed: unmaintained package, cannot be installed with modern packages
 polyaxon
 wandb
 mlflow
@@ -27,6 +27,8 @@ torchvision
 pynvml<12  # pynvml module was removed in 12.X, is not developed or maintained. We should replace pynvml with something else.
 clearml
 scikit-image
+# TODO: py-rouge is very old package and its code should vendored into our rouge tests and finally remove py-rouge dependency
+setuptools<82
 py-rouge
 pycocotools
 # temporary fix for python=3.12 and v3.8.1

@@ -505,6 +505,7 @@ def test_setup_tb_logging(dirname):
 
 
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Skip on Windows")
+@pytest.mark.skip(reason="Visdom is unmaintained and cannot be installed with modern packages")
 def test_setup_visdom_logging(visdom_offline_logfile):
     vis_logger = _test_setup_logging(
         setup_logging_fn=setup_visdom_logging,
