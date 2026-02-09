@@ -161,7 +161,7 @@ class VisdomLogger(BaseLogger):
         **kwargs: Any,
     ):
         try:
-            import visdom
+            import visdom  # pyrefly: ignore
         except ImportError:
             raise ModuleNotFoundError(
                 "This contrib module requires visdom package. "
