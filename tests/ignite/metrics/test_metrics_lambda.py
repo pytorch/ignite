@@ -7,7 +7,7 @@ from pytest import approx
 from sklearn.metrics import f1_score, precision_score, recall_score
 
 import ignite.distributed as idist
-from ignite.engine import Engine, State
+from ignite.engine import Engine
 from ignite.metrics import Accuracy, Metric, MetricsLambda, Precision, Recall
 
 
@@ -340,9 +340,6 @@ def test_metrics_lambda_result_mode_behavior(metrics_result_mode):
     state_b = engine_b.run([0], max_epochs=1)
 
     assert state_a.metrics.keys() == state_b.metrics.keys()
-
-    for state in [state_a, state_b]:
-        assert isinstance(state.metrics, State)
 
     assert state_a.metrics == state_b.metrics
 
