@@ -1451,3 +1451,38 @@ def test_create_lr_scheduler_with_warmup_cosine(warmup_end_value, T_0, T_mult):
     else:
         np.testing.assert_allclose(np.linspace(warm_start, lr, warm_steps), warm_lrs[:warm_steps])
         assert warm_lrs[real_warm_steps:] == cosine_lrs
+
+
+@pytest.mark.parametrize(
+    "scheduler_cls, kwargs",
+    [
+        (LinearCyclicalScheduler, {"param_name": "lr", "start_value": 1.0, "end_value": 0.0, "cycle_size": 10}),
+        (CosineAnnealingScheduler, {"param_name": "lr", "start_value": 0.0, "end_value": 1.0, "cycle_size": 10}),
+        (
+            PiecewiseLinear,
+            {"param_name": "lr", "milestones_values": [(5, 0.5), (15, 1.0), (25, 0.0), (35, 1.0), (40, 0.5)]},
+        ),
+    ],
+)
+def test_param_scheduler_attach_equivalence(scheduler_cls, kwargs):
+    def run(use_attach):
+        tensor = torch.zeros(1, requires_grad=True)
+        optimizer = torch.optim.SGD([tensor], lr=0.0)
+
+        scheduler = CosineAnnealingScheduler(optimizer, "lr", 0.0, 1.0, 10)
+        trainer = Engine(lambda e, b: None)
+
+        if use_attach:
+            scheduler.attach(trainer, Events.ITERATION_STARTED)
+        else:
+            trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+
+        lrs = []
+        trainer.add_event_handler(
+            Events.ITERATION_COMPLETED,
+            lambda e: lrs.append(optimizer.param_groups[0]["lr"]),
+        )
+        trainer.run([0] * 10, max_epochs=2)
+        return lrs
+
+    assert run(use_attach=False) == pytest.approx(run(use_attach=True))
