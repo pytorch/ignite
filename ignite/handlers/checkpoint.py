@@ -768,8 +768,8 @@ class Checkpoint(Serializable):
         """Method returns state dict with saved items: list of ``(priority, filename)`` pairs.
         Can be used to save internal state of the class.
         """
-        # TODO: this method should use _state_dict_all_req_keys
-        return OrderedDict([("_saved", [(p, f) for p, f in self._saved])])
+        keys = self._state_dict_all_req_keys
+        return OrderedDict([(k, [(p, f) for p, f in getattr(self, k)]) for k in keys])
 
     def load_state_dict(self, state_dict: Mapping) -> None:
         """Method replaces internal state of the class with provided state dict data.
