@@ -1,5 +1,5 @@
 import json
-from typing import Callable, Collection, Dict, List, Optional, Union
+from typing import Callable, Collection, Dict, List, Literal, Optional, Union
 
 import torch
 
@@ -18,6 +18,7 @@ def ClassificationReport(
     device: Union[str, torch.device] = torch.device("cpu"),
     is_multilabel: bool = False,
     labels: Optional[List[str]] = None,
+    metrics_result_mode: Literal["flatten", "named", "both"] = "both",
 ) -> MetricsLambda:
     r"""Build a text report showing the main classification metrics. The report resembles in functionality to
     `scikit-learn classification_report
@@ -144,4 +145,13 @@ def ClassificationReport(
     def _get_label_for_class(idx: int) -> str:
         return labels[idx] if labels else str(idx)
 
-    return MetricsLambda(_wrapper, recall, precision, fbeta, averaged_recall, averaged_precision, averaged_fbeta)
+    return MetricsLambda(
+        _wrapper,
+        recall,
+        precision,
+        fbeta,
+        averaged_recall,
+        averaged_precision,
+        averaged_fbeta,
+        metrics_result_mode=metrics_result_mode,
+    )
