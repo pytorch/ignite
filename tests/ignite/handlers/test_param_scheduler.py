@@ -1469,7 +1469,7 @@ def test_param_scheduler_attach_equivalence(scheduler_cls, kwargs):
         tensor = torch.zeros(1, requires_grad=True)
         optimizer = torch.optim.SGD([tensor], lr=0.0)
 
-        scheduler = scheduler_cls(optimizer, "lr", 0.0, 1.0, 10)
+        scheduler = scheduler_cls(optimizer, **kwargs)
         trainer = Engine(lambda e, b: None)
 
         if use_attach:
