@@ -1469,7 +1469,7 @@ def test_param_scheduler_attach_equivalence(scheduler_cls, kwargs):
         tensor = torch.zeros(1, requires_grad=True)
         optimizer = torch.optim.SGD([tensor], lr=0.0)
 
-        scheduler = CosineAnnealingScheduler(optimizer, "lr", 0.0, 1.0, 10)
+        scheduler = scheduler_cls(optimizer, "lr", 0.0, 1.0, 10)
         trainer = Engine(lambda e, b: None)
 
         if use_attach:
@@ -1484,5 +1484,81 @@ def test_param_scheduler_attach_equivalence(scheduler_cls, kwargs):
         )
         trainer.run([0] * 10, max_epochs=2)
         return lrs
+
+    assert run(use_attach=False) == pytest.approx(run(use_attach=True))
+
+@pytest.mark.parametrize(
+    "torch_lr_scheduler_cls, kwargs",
+    [
+        (ExponentialLR, ({"gamma": 0.78})),
+        (MultiplicativeLR if has_multiplicative_lr else None, ({"lr_lambda": lambda epoch: 0.95})),
+        (StepLR, ({"step_size": 5, "gamma": 0.5})),
+    ],
+)
+def test_lr_scheduler_attach(torch_lr_scheduler_cls, kwargs):
+    def run(use_attach):
+        tensor = torch.zeros([1], requires_grad=True)
+        optimizer = torch.optim.SGD([tensor], lr=0.01)
+
+        torch_lr_scheduler = torch_lr_scheduler_cls(optimizer=optimizer, **kwargs)
+        scheduler = LRScheduler(torch_lr_scheduler)
+        trainer = Engine(lambda e, b: None)
+
+        if use_attach:
+            scheduler.attach(trainer, Events.ITERATION_STARTED)
+        else:
+            trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+
+        lrs = []
+        trainer.add_event_handler(
+            Events.ITERATION_COMPLETED,
+            lambda e: lrs.append(optimizer.param_groups[0]["lr"]),
+        )
+        trainer.run([0] * 10, max_epochs=2)
+        return lrs
+
+    assert run(use_attach=False) == pytest.approx(run(use_attach=True))
+
+@pytest.mark.parametrize(
+    "scheduler_kwargs",
+    [
+        {"mode": "max", "factor": 0.5, "patience": 1, "threshold_mode": "abs", "threshold": 1.99},
+        {"mode": "min", "factor": 0.5, "patience": 2, "threshold_mode": "rel", "threshold": 0.1},
+    ],
+)
+def test_reduce_lr_on_plateau_scheduler_attach_equivalence(scheduler_kwargs):
+    def run(use_attach):
+        tensor = torch.zeros([1], requires_grad=True)
+        optimizer = torch.optim.SGD([tensor], lr=1.0)
+
+        trainer = Engine(lambda engine, batch: None)
+        evaluator = Engine(lambda engine, batch: None)
+        evaluator.state.metrics = {"acc": 0.0}
+
+        scheduler = ReduceLROnPlateauScheduler(
+            optimizer,
+            metric_name="acc",
+            save_history=True,
+            trainer=trainer,
+            **scheduler_kwargs,
+        )
+
+        generate_acc = iter([3, 7, 7, 9, 10, 11, 8, 8, 4, 7])
+
+        @trainer.on(Events.EPOCH_COMPLETED)
+        def evaluate():
+            evaluator.run([0])
+
+        @evaluator.on(Events.COMPLETED)
+        def set_acc():
+            evaluator.state.metrics["acc"] = next(generate_acc)
+
+        if use_attach:
+            scheduler.attach(evaluator, Events.COMPLETED)
+        else:
+            evaluator.add_event_handler(Events.COMPLETED, scheduler)
+
+        trainer.run([0] * 1, max_epochs=10)
+        return [param[0] for param in trainer.state.param_history["lr"]]
 
     assert run(use_attach=False) == pytest.approx(run(use_attach=True))
