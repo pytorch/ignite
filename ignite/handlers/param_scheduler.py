@@ -202,7 +202,7 @@ class ParamScheduler(BaseParamScheduler):
         Args:
             engine: trainer to which the handler will be attached.
             event: trigger event to update the param value.
-
+        .. versionadded:: 0.4.7
         """
         engine.add_event_handler(event, self)
 
