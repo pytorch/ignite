@@ -1487,6 +1487,7 @@ def test_param_scheduler_attach_equivalence(scheduler_cls, kwargs):
 
     assert run(use_attach=False) == pytest.approx(run(use_attach=True))
 
+
 @pytest.mark.parametrize(
     "torch_lr_scheduler_cls, kwargs",
     [
@@ -1518,6 +1519,7 @@ def test_lr_scheduler_attach(torch_lr_scheduler_cls, kwargs):
         return lrs
 
     assert run(use_attach=False) == pytest.approx(run(use_attach=True))
+
 
 @pytest.mark.parametrize(
     "scheduler_kwargs",
