@@ -19,7 +19,7 @@ try:
 except ImportError:
     from torch.optim.lr_scheduler import _LRScheduler as PyTorchLRScheduler
 
-from ignite.engine import Engine
+from ignite.engine import Engine, CallableEventWithFilter, EventsList, Events
 
 
 class BaseParamScheduler(metaclass=ABCMeta):
@@ -191,6 +191,21 @@ class ParamScheduler(BaseParamScheduler):
         self.optimizer = optimizer
         self.param_group_index = param_group_index
         self._state_attrs += ["param_group_index"]
+
+    def attach(
+        self,
+        engine: Engine,
+        event: str | Events | CallableEventWithFilter | EventsList = Events.ITERATION_STARTED,
+    ) -> None:
+        """Attach the handler to the engine.
+
+        Args:
+            engine: trainer to which the handler will be attached.
+            event: trigger event to update the param value.
+
+        .. versionadded:: 0.5.4
+        """
+        engine.add_event_handler(event, self)
 
     def __call__(self, engine: Engine | None, name: str | None = None) -> None:
         value = self._get_param()
