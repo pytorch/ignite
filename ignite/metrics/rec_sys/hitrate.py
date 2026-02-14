@@ -94,7 +94,7 @@ class HitRate(Metric):
 
     @reinit__is_reduced
     def update(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
-        if len(output[0]) != 2:
+        if len(output) != 2:
             raise ValueError(f"output should be in format `(y_pred,y)` but got tuple of {len(output)} tensors.")
 
         y_pred, y = output
