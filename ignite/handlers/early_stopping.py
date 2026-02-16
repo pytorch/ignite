@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Callable, cast, Mapping, Optional, Literal
+from typing import Callable, cast, Mapping, Literal
 
 from ignite.base import Serializable
 from ignite.engine import Engine
@@ -96,7 +96,7 @@ class EarlyStopping(Serializable):
         self.cumulative_delta = cumulative_delta
         self.trainer = trainer
         self.counter = 0
-        self.best_score: Optional[float] = None
+        self.best_score: float | None = None
         self.logger = setup_logger(__name__ + "." + self.__class__.__name__)
         self.min_delta_mode = min_delta_mode
         self.mode = mode
