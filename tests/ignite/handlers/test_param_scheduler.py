@@ -78,7 +78,8 @@ def test_linear_scheduler_asserts():
         LinearCyclicalScheduler(optimizer, "lr", 1, 0, cycle_size=2, warmup_duration=1)
 
 
-def test_linear_scheduler():
+@pytest.mark.parametrize("use_attach", [False, True])
+def test_linear_scheduler(use_attach):
     tensor = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([tensor], lr=0.0)
 
@@ -89,7 +90,10 @@ def test_linear_scheduler():
         lrs.append(optimizer.param_groups[0]["lr"])
 
     trainer = Engine(lambda engine, batch: None)
-    trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+    if use_attach:
+        scheduler.attach(trainer, Events.ITERATION_STARTED)
+    else:
+        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
     trainer.add_event_handler(Events.ITERATION_COMPLETED, save_lr)
     lr_values_in_cycle = [1.0, 0.8, 0.6, 0.4, 0.2, 0.0, 0.2, 0.4, 0.6, 0.8]
     for _ in range(2):
@@ -104,7 +108,10 @@ def test_linear_scheduler():
     state_dict = scheduler.state_dict()
 
     trainer = Engine(lambda engine, batch: None)
-    trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+    if use_attach:
+        scheduler.attach(trainer, Events.ITERATION_STARTED)
+    else:
+        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
     trainer.add_event_handler(Events.ITERATION_COMPLETED, save_lr)
 
     for _ in range(2):
@@ -280,8 +287,9 @@ def test_linear_scheduler_cycle_size_two():
     assert lrs == pytest.approx([v for i, v in simulated_values])
 
 
+@pytest.mark.parametrize("use_attach", [False, True])
 @pytest.mark.parametrize("cyclic_warmup", [False, True])
-def test_cosine_annealing_scheduler(cyclic_warmup):
+def test_cosine_annealing_scheduler(cyclic_warmup, use_attach):
     tensor = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([tensor], lr=0)
 
@@ -303,7 +311,10 @@ def test_cosine_annealing_scheduler(cyclic_warmup):
         lrs.append(optimizer.param_groups[0]["lr"])
 
     trainer = Engine(lambda engine, batch: None)
-    trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
+    if use_attach:
+        scheduler.attach(trainer, Events.ITERATION_STARTED)
+    else:
+        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler)
     trainer.add_event_handler(Events.ITERATION_COMPLETED, save_lr)
     lr_values_in_cycle = [
         0.0,
@@ -669,6 +680,7 @@ def test_lr_scheduler_asserts():
 
 @pytest.mark.xfail
 @pytest.mark.order(1)
+@pytest.mark.parametrize("use_attach", [False, True])
 @pytest.mark.parametrize(
     "torch_lr_scheduler_cls, kwargs",
     [
@@ -677,7 +689,7 @@ def test_lr_scheduler_asserts():
         (StepLR, ({"step_size": 5, "gamma": 0.5})),
     ],
 )
-def test_lr_scheduler(torch_lr_scheduler_cls, kwargs):
+def test_lr_scheduler(torch_lr_scheduler_cls, kwargs, use_attach):
     if torch_lr_scheduler_cls is None:
         return
 
@@ -710,7 +722,10 @@ def test_lr_scheduler(torch_lr_scheduler_cls, kwargs):
         optimizer3.step()
 
     trainer = Engine(dummy_update)
-    trainer.add_event_handler(Events.ITERATION_STARTED, scheduler1)
+    if use_attach:
+        scheduler1.attach(trainer, Events.ITERATION_STARTED)
+    else:
+        trainer.add_event_handler(Events.ITERATION_STARTED, scheduler1)
 
     @trainer.on(Events.ITERATION_STARTED)
     def save_lr1(engine):
@@ -777,8 +792,9 @@ def test_piecewiselinear_asserts():
         PiecewiseLinear(optimizer, "lr", milestones_values=[(0.5, 1)])
 
 
+@pytest.mark.parametrize("use_attach", [False, True])
 @pytest.mark.parametrize("milestones_as_np_int", [True, False])
-def test_piecewiselinear(milestones_as_np_int):
+def test_piecewiselinear(milestones_as_np_int, use_attach):
     tensor = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([tensor], lr=0)
 
@@ -793,7 +809,10 @@ def test_piecewiselinear(milestones_as_np_int):
         lrs.append(optimizer.param_groups[0]["lr"])
 
     trainer = Engine(lambda engine, batch: None)
-    trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
+    if use_attach:
+        scheduler.attach(trainer, Events.ITERATION_COMPLETED)
+    else:
+        trainer.add_event_handler(Events.ITERATION_COMPLETED, scheduler)
     trainer.add_event_handler(Events.ITERATION_COMPLETED, save_lr)
 
     for _ in range(2):
@@ -1326,7 +1345,8 @@ def test_lr_scheduling_on_non_torch_optimizers():
     )
 
 
-def test_reduce_lr_on_plateau_scheduler():
+@pytest.mark.parametrize("use_attach", [False, True])
+def test_reduce_lr_on_plateau_scheduler(use_attach):
     tensor1 = torch.zeros([1], requires_grad=True)
     tensor2 = torch.zeros([1], requires_grad=True)
     optimizer = torch.optim.SGD([{"params": [tensor1]}, {"params": [tensor2]}], lr=1)
@@ -1361,7 +1381,10 @@ def test_reduce_lr_on_plateau_scheduler():
     def set_acc():
         evaluator.state.metrics["acc"] = next(generate_acc)
 
-    evaluator.add_event_handler(Events.COMPLETED, scheduler)
+    if use_attach:
+        scheduler.attach(evaluator, Events.COMPLETED)
+    else:
+        evaluator.add_event_handler(Events.COMPLETED, scheduler)
 
     trainer.run(data, max_epochs=max_epochs)
 
