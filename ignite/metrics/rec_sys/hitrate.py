@@ -9,13 +9,12 @@ __all__ = ["HitRate"]
 
 
 class HitRate(Metric):
-    """
-    Calculates the Hit Rate at `k` for Recommendation Systems.
+    r"""Calculates the Hit Rate at `k` for Recommendation Systems.
 
     The Hit Rate measures the fraction of users for which the model was able
-    to predict atleast one correct recommendation.
+    to predict at least one correct recommendation.
     `Hit` for each user is either 0 or 1, irrespective of how many correct recommendations
-    our model was able to predict for that user.
+    the model was able to predict for that user.
 
     .. math:: \text{HR}@K = \frac{1}{N} \sum_{i=1}^{N} \mathbb{1}(\text{rank}_i \leq K)
 
@@ -25,10 +24,11 @@ class HitRate(Metric):
     - ``update`` must receive output of the form ``(y_pred, y)``.
     - ``y_pred`` is expected to be raw logits or probability score for each item in the catalog.
     - ``y`` is expected to be binary (only 0s and 1s) values where `1` indicates relevant item.
-    - ``y_pred`` and ``y`` are only allowed shape :math:`(batch,num_items)`.
+    - ``y_pred`` and ``y`` are only allowed shape :math:`(batch, num_items)`.
+    - returns a list of HitRate ordered by the sorted values of ``top_k``.
 
     Args:
-        top_k: a list of integers that specifies `k` for calculating hitrate@top-k.
+        top_k: a list of sorted positive integers that specifies `k` for calculating hitrate@top-k.
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric.
@@ -39,11 +39,7 @@ class HitRate(Metric):
             metric's device to be the same as your ``update`` arguments ensures the ``update`` method is
             non-blocking. By default, CPU.
         skip_unrolling: specifies whether input should be unrolled or not before being
-            processed. Should be true for multi-output models.
-
-    Attributes:
-        required_output_keys: dictionary defines required keys to be found in ``engine.state.output`` if the
-        latter is a dictionary. Default, ``("y_pred", "y")``.
+            processed. Should be true for multi-output models..
 
     Examples:
         To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
@@ -53,25 +49,29 @@ class HitRate(Metric):
 
         For more information on how metric works with :class:`~ignite.engine.engine.Engine`, visit :ref:`attach-engine`.
 
+        .. include:: defaults.rst
+            :start-after: :orphan:
+
         .. testcode::
 
-            metric = HitRate(top_k = [1,2,3,4])
-            metric.attach(default_evaluator,'hit_rate')
+            metric = HitRate(top_k=[1, 2, 3, 4])
+            metric.attach(default_evaluator,"hit_rate")
             y_pred=torch.Tensor([
                 [4.0, 2.0, 3.0, 1.0],
                 [1.0, 2.0, 3.0, 4.0]
-            ]),
-            y_true=torch.Tensor([
-                [0, 0, 1.0, 1.0],
-                [0, 0, 0.0, 0.0]
             ])
-            state = default_evaluator.run([[y_pred, y_true]])
-            print(state.metrics['hit_rate'])
+            y_true=torch.Tensor([
+                [0.0, 0.0, 1.0, 1.0],
+                [0.0, 0.0, 0.0, 0.0]
+            ])
+            state = default_evaluator.run([(y_pred, y_true)])
+            print(state.metrics["hit_rate"])
 
         .. testoutput::
 
-            {1: 0.0, 2: 0.5, 3: 0.5, 4: 0.5}
+            [0.0, 0.5, 0.5, 0.5]
 
+    .. versionadded:: 0.5.3
     """
 
     required_output_keys = ("y_pred", "y")
@@ -84,6 +84,9 @@ class HitRate(Metric):
         device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
     ):
+        if any(k <= 0 for k in top_k):
+            raise ValueError(" top_k must be list of positive integers only.")
+
         self.top_k = sorted(top_k)
         super(HitRate, self).__init__(output_transform, device=device, skip_unrolling=skip_unrolling)
 
@@ -113,9 +116,9 @@ class HitRate(Metric):
         self._num_examples += y.shape[0]
 
     @sync_all_reduce("_hits_per_k", "_num_examples")
-    def compute(self) -> dict[int, float]:
+    def compute(self) -> list[float]:
         if self._num_examples == 0:
             raise NotComputableError("HitRate must have at least one example.")
 
         rates = (self._hits_per_k / self._num_examples).tolist()
-        return {k: rate for k, rate in zip(self.top_k, rates)}
+        return rates

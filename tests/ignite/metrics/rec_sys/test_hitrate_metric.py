@@ -8,20 +8,21 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics.rec_sys.hitrate import HitRate
 
 
-def manual_hit_rate(y_pred: np.ndarray, y: np.ndarray, top_k: list[int]) -> dict:
+def manual_hit_rate(y_pred: np.ndarray, y: np.ndarray, top_k: list[int]) -> list[float]:
     """Manual implementation of HitRate using numpy for verification."""
     n_samples = y.shape[0]
-    results = {}
+    results = []
 
+    sorted_top_k = sorted(top_k)
     sorted_indices = np.argsort(-y_pred, axis=-1)
 
-    for k in top_k:
+    for k in sorted_top_k:
         k_indices = sorted_indices[:, :k]
         hits = 0
         for i in range(n_samples):
             if np.any(y[i, k_indices[i]] > 0):
                 hits += 1
-        results[k] = hits / n_samples
+        results.append(hits / n_samples)
     return results
 
 
@@ -50,8 +51,10 @@ def test_compute(top_k, available_device):
     res = metric.compute()
 
     expected = manual_hit_rate(y_pred.numpy(), y_true.numpy(), top_k)
-    for k in top_k:
-        assert res[k] == expected[k]
+
+    assert isinstance(res, list)
+    assert len(res) == len(top_k)
+    np.testing.assert_allclose(res, expected)
 
 
 def test_accumulator_detached(available_device):
@@ -104,8 +107,8 @@ class TestDistributed:
 
             true_res = manual_hit_rate(global_y_pred, global_y_true, top_k)
 
-            for k in top_k:
-                assert pytest.approx(true_res[k]) == res[k]
+            assert isinstance(res, list)
+            assert res == pytest.approx(true_res)
 
     def test_accumulator_device(self):
         device = idist.device()
