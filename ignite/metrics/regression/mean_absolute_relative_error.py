@@ -21,7 +21,7 @@ class MeanAbsoluteRelativeError(_BaseRegression):
     - ``update`` must receive output of the form ``(y_pred, y)`` or ``{'y_pred': y_pred, 'y': y}``.
     - `y` and `y_pred` must be of same shape `(N, )` or `(N, 1)`.
 
-    __ https://arxiv.org/ftp/arxiv/papers/1809/1809.03006.pdf
+    __ https://arxiv.org/abs/1809.03006
 
     Parameters are inherited from ``Metric.__init__``.
 
