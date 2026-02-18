@@ -113,12 +113,14 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
             raise ModuleNotFoundError("This metric requires torchvision to be installed.")
 
         if iou_thresholds is None:
-            iou_thresholds = torch.linspace(0.5, 0.95, 10, dtype=torch.double, device=device)
+            iou_thresholds = torch.linspace(0.5, 0.95, 10, dtype=torch.double)
+        iou_thresholds = torch.as_tensor(iou_thresholds, dtype=torch.double, device=device)
 
         self._iou_thresholds = self._setup_thresholds(iou_thresholds, "iou_thresholds")
 
         if rec_thresholds is None:
-            rec_thresholds = torch.linspace(0, 1, 101, dtype=torch.double, device=device)
+            rec_thresholds = torch.linspace(0, 1, 101, dtype=torch.double)
+        rec_thresholds = torch.as_tensor(rec_thresholds, dtype=torch.double, device=device)
 
         self._num_classes = num_classes
         self._area_range = area_range
