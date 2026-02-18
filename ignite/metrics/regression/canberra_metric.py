@@ -36,7 +36,7 @@ class CanberraMetric(_BaseRegression):
             non-blocking. By default, CPU.
 
     .. _`Botchkarev 2018`:
-        https://arxiv.org/abs/1809.03006
+        https://arxiv.org/ftp/arxiv/papers/1809/1809.03006.pdf
 
     Examples:
         To use with ``Engine`` and ``process_function``, simply attach the metric instance to the engine.
