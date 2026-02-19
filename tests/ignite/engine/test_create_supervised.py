@@ -1,6 +1,5 @@
 import os
 from importlib.util import find_spec
-from typing import Optional, Union
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
@@ -44,11 +43,11 @@ class DummyModel(torch.nn.Module):
 
 def _default_create_supervised_trainer(
     gradient_accumulation_steps: int = 1,
-    model_device: Optional[str] = None,
-    trainer_device: Optional[str] = None,
+    model_device: str | None = None,
+    trainer_device: str | None = None,
     trace: bool = False,
     amp_mode: str = None,
-    scaler: Union[bool, "torch.amp.GradScaler"] = False,
+    scaler: bool | "torch.amp.GradScaler" = False,
     with_model_transform: bool = False,
     with_model_fn: bool = False,
 ):
@@ -100,11 +99,11 @@ def _default_create_supervised_trainer(
 
 def _test_create_supervised_trainer(
     gradient_accumulation_steps: int = 1,
-    model_device: Optional[str] = None,
-    trainer_device: Optional[str] = None,
+    model_device: str | None = None,
+    trainer_device: str | None = None,
     trace: bool = False,
     amp_mode: str = None,
-    scaler: Union[bool, "torch.amp.GradScaler"] = False,
+    scaler: bool | "torch.amp.GradScaler" = False,
     with_model_transform: bool = False,
     with_model_fn: bool = False,
 ):
@@ -177,11 +176,11 @@ def test_create_supervised_training_scalar_assignment():
 
 
 def _test_create_mocked_supervised_trainer(
-    model_device: Optional[str] = None,
-    trainer_device: Optional[str] = None,
+    model_device: str | None = None,
+    trainer_device: str | None = None,
     trace: bool = False,
     amp_mode: str = None,
-    scaler: Union[bool, "torch.amp.GradScaler"] = False,
+    scaler: bool | "torch.amp.GradScaler" = False,
 ):
     with mock.patch("ignite.engine.supervised_training_step_amp") as training_step_amp_mock:
         with mock.patch("ignite.engine.supervised_training_step_apex") as training_step_apex_mock:
@@ -230,8 +229,8 @@ def _test_create_supervised_trainer_wrong_accumulation(
 
 
 def _default_create_supervised_evaluator(
-    model_device: Optional[str] = None,
-    evaluator_device: Optional[str] = None,
+    model_device: str | None = None,
+    evaluator_device: str | None = None,
     trace: bool = False,
     amp_mode: str = None,
     with_model_transform: bool = False,
@@ -275,8 +274,8 @@ def _default_create_supervised_evaluator(
 
 
 def _test_create_supervised_evaluator(
-    model_device: Optional[str] = None,
-    evaluator_device: Optional[str] = None,
+    model_device: str | None = None,
+    evaluator_device: str | None = None,
     trace: bool = False,
     amp_mode: str = None,
     with_model_transform: bool = False,
@@ -321,8 +320,8 @@ def _test_create_supervised_evaluator(
 
 
 def _test_mocked_supervised_evaluator(
-    model_device: Optional[str] = None,
-    evaluator_device: Optional[str] = None,
+    model_device: str | None = None,
+    evaluator_device: str | None = None,
     trace: bool = False,
     amp_mode: str = None,
 ):
@@ -349,8 +348,8 @@ def _test_mocked_supervised_evaluator(
 
 def _test_create_evaluation_step_amp(
     autocast_mock,
-    model_device: Optional[str] = None,
-    evaluator_device: Optional[str] = None,
+    model_device: str | None = None,
+    evaluator_device: str | None = None,
     trace: bool = False,
     amp_mode: str = None,
 ):
@@ -385,8 +384,8 @@ def _test_create_evaluation_step_amp(
 
 def _test_create_evaluation_step(
     mock_torch_cuda_amp_module,
-    model_device: Optional[str] = None,
-    evaluator_device: Optional[str] = None,
+    model_device: str | None = None,
+    evaluator_device: str | None = None,
     trace: bool = False,
     amp_mode: str = None,
 ):
