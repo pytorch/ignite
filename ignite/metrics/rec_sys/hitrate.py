@@ -29,6 +29,9 @@ class HitRate(Metric):
 
     Args:
         top_k: a list of sorted positive integers that specifies `k` for calculating hitrate@top-k.
+        ignore_zero_hits: if True, users with no relevant items (ground truth tensor being all zeros)
+            are ignored in computation of HitRate. if set False, such users are counted as a miss.
+            By default, True.
         output_transform: a callable that is used to transform the
             :class:`~ignite.engine.engine.Engine`'s ``process_function``'s output into the
             form expected by the metric.
@@ -52,7 +55,9 @@ class HitRate(Metric):
         .. include:: defaults.rst
             :start-after: :orphan:
 
-        .. testcode::
+        ignore_zero_hits=True case
+
+        .. testcode:: 1
 
             metric = HitRate(top_k=[1, 2, 3, 4])
             metric.attach(default_evaluator,"hit_rate")
@@ -67,11 +72,32 @@ class HitRate(Metric):
             state = default_evaluator.run([(y_pred, y_true)])
             print(state.metrics["hit_rate"])
 
-        .. testoutput::
+        .. testoutput:: 1
+
+            [0.0, 1.0, 1.0, 1.0]
+
+        ignore_zero_hits=False case
+
+        .. testcode:: 2
+
+            metric = HitRate(top_k=[1, 2, 3, 4])
+            metric.attach(default_evaluator,"hit_rate", ignore_zero_hits=False)
+            y_pred=torch.Tensor([
+                [4.0, 2.0, 3.0, 1.0],
+                [1.0, 2.0, 3.0, 4.0]
+            ])
+            y_true=torch.Tensor([
+                [0.0, 0.0, 1.0, 1.0],
+                [0.0, 0.0, 0.0, 0.0]
+            ])
+            state = default_evaluator.run([(y_pred, y_true)])
+            print(state.metrics["hit_rate"])
+
+        .. testoutput:: 2
 
             [0.0, 0.5, 0.5, 0.5]
 
-    .. versionadded:: 0.5.3
+    .. versionadded:: 0.6.0
     """
 
     required_output_keys = ("y_pred", "y")
@@ -80,6 +106,7 @@ class HitRate(Metric):
     def __init__(
         self,
         top_k: list[int],
+        ignore_zero_hits: bool = True,
         output_transform: Callable = lambda x: x,
         device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
@@ -88,6 +115,7 @@ class HitRate(Metric):
             raise ValueError(" top_k must be list of positive integers only.")
 
         self.top_k = sorted(top_k)
+        self.ignore_zero_hits = ignore_zero_hits
         super(HitRate, self).__init__(output_transform, device=device, skip_unrolling=skip_unrolling)
 
     @reinit__is_reduced
@@ -103,6 +131,14 @@ class HitRate(Metric):
         y_pred, y = output
         if y_pred.shape != y.shape:
             raise ValueError(f"y_pred and y must be in the same shape, got {y_pred.shape} != {y.shape}.")
+
+        if self.ignore_zero_hits:
+            valid_mask = torch.any(y > 0, dim=-1)
+            y_pred = y_pred[valid_mask]
+            y = y[valid_mask]
+
+        if y.shape[0] == 0:
+            return
 
         max_k = self.top_k[-1]
         _, indices = torch.topk(y_pred, k=max_k, dim=-1)
