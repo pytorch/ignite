@@ -80,8 +80,8 @@ class HitRate(Metric):
 
         .. testcode:: 2
 
-            metric = HitRate(top_k=[1, 2, 3, 4])
-            metric.attach(default_evaluator,"hit_rate", ignore_zero_hits=False)
+            metric = HitRate(top_k=[1, 2, 3, 4], ignore_zero_hits=False)
+            metric.attach(default_evaluator,"hit_rate")
             y_pred=torch.Tensor([
                 [4.0, 2.0, 3.0, 1.0],
                 [1.0, 2.0, 3.0, 4.0]
