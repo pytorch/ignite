@@ -56,7 +56,8 @@ class _BaseAveragePrecision:
                 'macro'
                   computes macro precision which is unweighted mean of AP computed across classes/labels. Default.
         """
-        self.__device__ = device
+        self._device = device
+        print("BaseAveragePrecision.__init__: self._device=", self._device)
         if rec_thresholds is not None:
             self.rec_thresholds: Optional[torch.Tensor] = self._setup_thresholds(rec_thresholds, "rec_thresholds")
         else:
@@ -82,8 +83,8 @@ class _BaseAveragePrecision:
 
         if min(thresholds) < 0 or max(thresholds) > 1:
             raise ValueError(f"{threshold_type} values should be between 0 and 1, given {thresholds}")
-
-        return thresholds.to(self.__device__)
+        print(f"BaseAveragePrecision._setup_thresholds: self._device={self._device}")
+        return thresholds.to(self._device)
 
     def _compute_average_precision(self, recall: torch.Tensor, precision: torch.Tensor) -> torch.Tensor:
         """Measuring average precision.

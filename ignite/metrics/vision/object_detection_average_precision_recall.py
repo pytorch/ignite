@@ -114,8 +114,6 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
 
         if iou_thresholds is None:
             iou_thresholds = torch.linspace(0.5, 0.95, 10, dtype=torch.double)
-
-
         if rec_thresholds is None:
             rec_thresholds = torch.linspace(0, 1, 101, dtype=torch.double)
 
