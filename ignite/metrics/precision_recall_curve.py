@@ -85,7 +85,7 @@ class PrecisionRecallCurve(EpochMetric):
         except ImportError:
             raise ModuleNotFoundError("This module requires scikit-learn to be installed.")
 
-        super(PrecisionRecallCurve, self).__init__(
+        super().__init__(
             precision_recall_curve_compute_fn,  # type: ignore[arg-type]
             output_transform=output_transform,
             check_compute_fn=check_compute_fn,

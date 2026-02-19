@@ -79,7 +79,7 @@ class AveragePrecision(EpochMetric):
         except ImportError:
             raise ModuleNotFoundError("This contrib module requires scikit-learn to be installed.")
 
-        super(AveragePrecision, self).__init__(
+        super().__init__(
             average_precision_compute_fn,
             output_transform=output_transform,
             check_compute_fn=check_compute_fn,

@@ -50,7 +50,7 @@ class MetricGroup(Metric):
         self, metrics: dict[str, Metric], output_transform: Callable = lambda x: x, skip_unrolling: bool = False
     ):
         self.metrics = metrics
-        super(MetricGroup, self).__init__(output_transform=output_transform, skip_unrolling=skip_unrolling)
+        super().__init__(output_transform=output_transform, skip_unrolling=skip_unrolling)
 
     def reset(self) -> None:
         for m in self.metrics.values():

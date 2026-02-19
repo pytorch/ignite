@@ -124,12 +124,12 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
         self._area_range = area_range
         self._max_detections_per_image_per_class = max_detections_per_image_per_class
 
-        super(ObjectDetectionAvgPrecisionRecall, self).__init__(
+        super().__init__(
             output_transform=output_transform,
             device=device,
             skip_unrolling=skip_unrolling,
         )
-        super(Metric, self).__init__(
+        super().__init__(
             rec_thresholds=rec_thresholds,
             class_mean=None,
         )

@@ -47,7 +47,7 @@ class GpuInfo(Metric):
 
         # Let it fail if no libnvidia drivers or NMVL library found
         self.nvsmi = nvidia_smi.getInstance()
-        super(GpuInfo, self).__init__()
+        super().__init__()
 
     def reset(self) -> None:
         pass

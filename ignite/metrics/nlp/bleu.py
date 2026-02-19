@@ -153,7 +153,7 @@ class Bleu(Metric):
         else:
             self._state_dict_all_req_keys = ("_sum_of_bleu", "_num_sentences")
 
-        super(Bleu, self).__init__(output_transform=output_transform, device=device)
+        super().__init__(output_transform=output_transform, device=device)
 
     def _n_gram_counter(
         self,
