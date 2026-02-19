@@ -22,7 +22,8 @@ class Timer:
     Note:
         When using ``Timer(average=True)`` do not forget to call ``timer.step()`` every time an event occurs. See
         the examples below.
-
+    Note:
+        Timer if attached to measure single epoch time, it can also record the time of all handlers attached prior to Timer. To obtain the actual time taken for the epoch completion, handlers will have to be rearranged.
     Examples:
         Measuring total time of the epoch:
 
