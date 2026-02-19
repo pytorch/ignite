@@ -92,7 +92,7 @@ class InceptionScore(_BaseInceptionMetric):
 
         self._eps = 1e-16
 
-        super(InceptionScore, self).__init__(
+        super().__init__(
             num_features=num_features,
             feature_extractor=feature_extractor,
             output_transform=output_transform,
