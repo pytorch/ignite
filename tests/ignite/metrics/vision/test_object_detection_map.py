@@ -1,7 +1,6 @@
 import sys
 from collections import namedtuple
 from math import ceil
-from typing import Dict, List, Tuple
 from unittest.mock import patch
 
 import numpy as np
@@ -26,7 +25,7 @@ manual_seed(12)
 np.set_printoptions(linewidth=200)
 
 
-def coco_val2017_sample() -> Tuple[List[Dict[str, torch.Tensor]], List[Dict[str, torch.Tensor]]]:
+def coco_val2017_sample() -> tuple[list[dict[str, torch.Tensor]], list[dict[str, torch.Tensor]]]:
     """
     Predictions are done using torchvision's `fasterrcnn_resnet50_fpn_v2`
     with the following snippet. Note that beforehand, COCO images and annotations
@@ -410,10 +409,10 @@ def coco_val2017_sample() -> Tuple[List[Dict[str, torch.Tensor]], List[Dict[str,
     ]
 
 
-def random_sample() -> Tuple[List[Dict[str, torch.Tensor]], List[Dict[str, torch.Tensor]]]:
+def random_sample() -> tuple[list[dict[str, torch.Tensor]], list[dict[str, torch.Tensor]]]:
     torch.manual_seed(12)
-    targets: List[torch.Tensor] = []
-    preds: List[torch.Tensor] = []
+    targets: list[torch.Tensor] = []
+    preds: list[torch.Tensor] = []
     for _ in range(30):
         # Generate some ground truth boxes
         n_gt_box = torch.randint(50, (1,)).item()
@@ -473,8 +472,8 @@ def random_sample() -> Tuple[List[Dict[str, torch.Tensor]], List[Dict[str, torch
 
 
 def create_coco_api(
-    predictions: List[Dict[str, torch.Tensor]], targets: List[Dict[str, torch.Tensor]]
-) -> Tuple[COCO, COCO]:
+    predictions: list[dict[str, torch.Tensor]], targets: list[dict[str, torch.Tensor]]
+) -> tuple[COCO, COCO]:
     """Create COCO objects from predictions and targets
 
     Args:
@@ -532,7 +531,7 @@ def create_coco_api(
     return coco_dt, coco_gt
 
 
-def pycoco_mAP(predictions: List[Dict[str, torch.Tensor]], targets: List[Dict[str, torch.Tensor]]) -> np.array:
+def pycoco_mAP(predictions: list[dict[str, torch.Tensor]], targets: list[dict[str, torch.Tensor]]) -> np.array:
     """
     Returned values are AP@.5...95, AP@.5, AP@.75, AP-S, AP-M, AP-L, AR-1, AR-10, AR-100, AR-S, AR-M, AR-L
     """
