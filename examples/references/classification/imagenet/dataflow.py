@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Callable, Optional, Tuple
+from typing import Callable
 
 import cv2
 
@@ -33,10 +33,10 @@ def get_train_val_loaders(
     val_transforms: Callable,
     batch_size: int = 16,
     num_workers: int = 8,
-    val_batch_size: Optional[int] = None,
-    limit_train_num_samples: Optional[int] = None,
-    limit_val_num_samples: Optional[int] = None,
-) -> Tuple[DataLoader, DataLoader, DataLoader]:
+    val_batch_size: int | None = None,
+    limit_train_num_samples: int | None = None,
+    limit_val_num_samples: int | None = None,
+) -> tuple[DataLoader, DataLoader, DataLoader]:
     train_ds = ImageFolder(
         Path(root_path) / "train",
         transform=lambda sample: train_transforms(image=sample)["image"],

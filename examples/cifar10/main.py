@@ -1,6 +1,6 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import fire
 import torch
@@ -144,11 +144,11 @@ def run(
     num_warmup_epochs: int = 4,
     validate_every: int = 3,
     checkpoint_every: int = 1000,
-    backend: Optional[str] = None,
-    resume_from: Optional[str] = None,
+    backend: str | None = None,
+    resume_from: str | None = None,
     log_every_iters: int = 15,
-    nproc_per_node: Optional[int] = None,
-    stop_iteration: Optional[int] = None,
+    nproc_per_node: int | None = None,
+    stop_iteration: int | None = None,
     with_clearml: bool = False,
     with_amp: bool = False,
     **spawn_kwargs: Any,
