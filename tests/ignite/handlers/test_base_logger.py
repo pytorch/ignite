@@ -1,4 +1,4 @@
-from typing import Any, Union
+from typing import Any
 from unittest.mock import call, MagicMock
 
 import pytest
@@ -40,12 +40,12 @@ class DummyLogger(BaseLogger):
 
 
 class DummyWeightsHandler(BaseWeightsHandler):
-    def __call__(self, engine: Engine, logger: Any, event_name: Union[str, Events]) -> None:
+    def __call__(self, engine: Engine, logger: Any, event_name: str | Events) -> None:
         pass
 
 
 class DummyWeightsScalarHandler(BaseWeightsScalarHandler):
-    def __call__(self, engine: Engine, logger: Any, event_name: Union[str, Events]) -> None:
+    def __call__(self, engine: Engine, logger: Any, event_name: str | Events) -> None:
         pass
 
 
