@@ -198,7 +198,7 @@ def test_compute_multilabel(n_times, available_device):
 @pytest.mark.skipif(Version(torch.__version__) < Version("1.7.0"), reason="Skip if < 1.7.0")
 def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
 
-    pytest.skip("Temporarily skip failing test. See https://github.com/pytorch/ignite/pull/3301")
+    # pytest.skip("Temporarily skip failing test. See https://github.com/pytorch/ignite/pull/3301")
     # When run with 2 devices:
     #  tests/ignite/metrics/test_classification_report.py::test_distrib_nccl_gpu Fatal Python error: Aborted
     # Thread 0x00007fac95c95700 (most recent call first):
