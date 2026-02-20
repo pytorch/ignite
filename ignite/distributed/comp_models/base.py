@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import ABCMeta, abstractmethod
 from numbers import Number
 from typing import Any, Callable, cast
@@ -72,12 +74,12 @@ class ComputationModel(metaclass=ABCMeta):
 
     @staticmethod
     @abstractmethod
-    def create_from_context() -> "ComputationModel" | None:
+    def create_from_context() -> ComputationModel | None:
         pass
 
     @staticmethod
     @abstractmethod
-    def create_from_backend(backend: str, **kwargs: Any) -> "ComputationModel":
+    def create_from_backend(backend: str, **kwargs: Any) -> ComputationModel:
         pass
 
     @staticmethod
@@ -347,11 +349,11 @@ class _SerialModel(ComputationModel):
         return 1
 
     @staticmethod
-    def create_from_context() -> "_SerialModel":
+    def create_from_context() -> _SerialModel:
         return _SerialModel()
 
     @staticmethod
-    def create_from_backend(backend: str | None = None, **kwargs: Any) -> "_SerialModel":
+    def create_from_backend(backend: str | None = None, **kwargs: Any) -> _SerialModel:
         return _SerialModel()
 
     @staticmethod
