@@ -1,4 +1,4 @@
-from typing import List, Tuple, Type, TYPE_CHECKING, Union
+from typing import Type, TYPE_CHECKING
 
 from ignite.distributed.comp_models.base import _SerialModel
 from ignite.distributed.comp_models.horovod import has_hvd_support
@@ -12,9 +12,9 @@ if TYPE_CHECKING:
 
 
 def setup_available_computation_models() -> (
-    Tuple[Type[Union[_SerialModel, "_NativeDistModel", "_XlaDistModel", "_HorovodDistModel"]], ...]
+    tuple[Type[_SerialModel | "_NativeDistModel" | "_XlaDistModel" | "_HorovodDistModel"], ...]
 ):
-    models: List[Type[Union[_SerialModel, "_NativeDistModel", "_XlaDistModel", "_HorovodDistModel"]]] = [
+    models: list[Type[_SerialModel | "_NativeDistModel" | "_XlaDistModel" | "_HorovodDistModel"]] = [
         _SerialModel,
     ]
     if has_native_dist_support:
