@@ -56,7 +56,7 @@ class _BaseAveragePrecision:
                 'macro'
                   computes macro precision which is unweighted mean of AP computed across classes/labels. Default.
         """
-        self._device = device
+        self._device = torch.device(device)
         if rec_thresholds is not None:
             self.rec_thresholds: Optional[torch.Tensor] = self._setup_thresholds(rec_thresholds, "rec_thresholds")
         else:

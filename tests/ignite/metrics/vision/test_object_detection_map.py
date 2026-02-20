@@ -717,25 +717,28 @@ def test_iou(sample, available_device):
 
 def test_iou_thresholding(available_device):
     metric = ObjectDetectionAvgPrecisionRecall(iou_thresholds=[0.0, 0.3, 0.5, 0.75], device=available_device)
-    assert metric._device == torch.device(available_device)
+    current_device = torch.device(available_device)
+    assert metric._device == current_device
+    # Checking whether the thresholds are properly assigned to a particular device.
+    assert metric._iou_thresholds.device.type == current_device.type
+    assert metric.rec_thresholds.device.type == current_device.type
+    pred = {
+        "bbox": torch.tensor([[0.0, 0.0, 100.0, 100.0]], device=current_device),
+        "scores": torch.tensor([0.8], device=current_device),
+        "labels": torch.tensor([1], device=current_device),
+    }
+    gt = {"bbox": torch.tensor([[0.0, 0.0, 50.0, 100.0]], device=current_device), "iscrowd": torch.zeros((1,), device=current_device), "labels": torch.tensor([1], device=current_device)}
+    metric.update(([pred], [gt]))
+    assert (metric._tps[0] == torch.tensor([[True], [True], [True], [False]], device=current_device)).all()
 
     pred = {
-        "bbox": torch.tensor([[0.0, 0.0, 100.0, 100.0]]),
-        "scores": torch.tensor([0.8]),
-        "labels": torch.tensor([1]),
+        "bbox": torch.tensor([[0.0, 0.0, 100.0, 100.0]], device=current_device),
+        "scores": torch.tensor([0.8], device=current_device),
+        "labels": torch.tensor([1], device=current_device),
     }
-    gt = {"bbox": torch.tensor([[0.0, 0.0, 50.0, 100.0]]), "iscrowd": torch.zeros((1,)), "labels": torch.tensor([1])}
+    gt = {"bbox": torch.tensor([[100.0, 0.0, 200.0, 100.0]], device=current_device), "iscrowd": torch.zeros((1,), device=current_device), "labels": torch.tensor([1], device=current_device)}
     metric.update(([pred], [gt]))
-    assert (metric._tps[0] == torch.tensor([[True], [True], [True], [False]], device=available_device)).all()
-
-    pred = {
-        "bbox": torch.tensor([[0.0, 0.0, 100.0, 100.0]]),
-        "scores": torch.tensor([0.8]),
-        "labels": torch.tensor([1]),
-    }
-    gt = {"bbox": torch.tensor([[100.0, 0.0, 200.0, 100.0]]), "iscrowd": torch.zeros((1,)), "labels": torch.tensor([1])}
-    metric.update(([pred], [gt]))
-    assert (metric._tps[1] == torch.tensor([[True], [False], [False], [False]], device=available_device)).all()
+    assert (metric._tps[1] == torch.tensor([[True], [False], [False], [False]], device=current_device)).all()
 
 
 def test_matching(available_device):
