@@ -126,7 +126,8 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
             device=device,
             skip_unrolling=skip_unrolling,
         )
-        super(Metric, self).__init__(
+        _BaseAveragePrecision.__init__(
+            self,
             rec_thresholds=rec_thresholds,
             class_mean=None,
             device=device
