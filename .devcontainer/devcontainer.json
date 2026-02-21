@@ -1,0 +1,23 @@
+{
+    "name": "PyTorch Ignite",
+    "image": "mcr.microsoft.com/devcontainers/python:3.11",
+    "postCreateCommand": "pip install -e . && pip install -r requirements-dev.txt && pre-commit install",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "charliermarsh.ruff",
+                "ms-python.black-formatter"
+            ],
+            "settings": {
+                "editor.formatOnSave": true,
+                "python.testing.pytestEnabled": true,
+                "[python]": {
+                    "editor.defaultFormatter": "ms-python.black-formatter"
+                },
+                "black-formatter.args": ["--line-length", "120"],
+                "editor.rulers": [80, 120]
+            }
+        }
+    }
+}
