@@ -1,0 +1,1119 @@
+
+
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="author" content="PyTorch-Ignite Contributors">
+  <meta name="creator" content="PyTorch-Ignite Contributors">
+  <meta name="publisher" content="PyTorch-Ignite Contributors">
+  <meta name="generator" content="Sphinx 5.3.0">
+  <meta name="description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+  <meta name="keywords" content="pytorch, pytorch ignite, ignite, engine, events, handlers, metrics">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#ee4c2c">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@pytorch_ignite">
+  <meta name="twitter:creator" content="@pytorch_ignite">
+  <meta name="twitter:description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+  <meta name="twitter:title" content="FAQ &mdash; PyTorch-Ignite v0.4.9 Documentation">
+  <meta name="twitter:image" content="https://raw.githubusercontent.com/pytorch/ignite/master/assets/logo/ignite_logo.png">
+  <meta name="twitter:image:alt" content="PyTorch-Ignite logo">
+
+  <meta property="og:title" content="FAQ &mdash; PyTorch-Ignite v0.4.9 Documentation">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://pytorch.org/ignite/">
+  <meta property="og:site_name" content="PyTorch-Ignite">
+  <meta property="og:image" content="https://raw.githubusercontent.com/pytorch/ignite/master/assets/logo/ignite_logo.png">
+  <meta property="og:image:alt" content="PyTorch-Ignite logo">
+  <meta property="og:description" content="High-level library to help with training and evaluating neural networks in PyTorch flexibly and transparently.">
+
+  <link rel="preconnect" href="https://BH4D9OD16A-dsn.algolia.net" crossorigin />
+
+  
+  <title>FAQ &mdash; PyTorch-Ignite v0.4.9 Documentation</title>
+  
+
+  
+  
+    <link rel="shortcut icon" type="image/svg+xml" href="_static/ignite_logomark.svg"/>
+  
+  
+  
+    <link rel="canonical" href="https://pytorch.org/ignite/faq.html"/>
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="preload" href="_static/css/theme.css" as="style" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="_static/pygments.css" type="text/css" /> -->
+  <link rel="preload" href="_static/pygments.css" as="style" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="preload" href="_static/css/theme.css" as="style" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="preload" href="_static/copybutton.css" as="style" />
+  <link rel="stylesheet" href="_static/copybutton.css" type="text/css" />
+  <link rel="preload" href="_static/togglebutton.css" as="style" />
+  <link rel="stylesheet" href="_static/togglebutton.css" type="text/css" />
+  <link rel="preload" href="_static/banner.css" as="style" />
+  <link rel="stylesheet" href="_static/banner.css" type="text/css" />
+  <link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" as="style" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" type="text/css" />
+  <link rel="preload" href="_static/katex-math.css" as="style" />
+  <link rel="stylesheet" href="_static/katex-math.css" type="text/css" />
+  <link rel="preload" href="_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" as="style" />
+  <link rel="stylesheet" href="_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" type="text/css" />
+    <link rel="preload" href="_static/css/ignite_theme.css" as="style" />
+    <link rel="stylesheet" href="_static/css/ignite_theme.css" type="text/css" />
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/@docsearch/css@3" as="style" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@docsearch/css@3" type="text/css" />
+    <link rel="author" title="About these documents" href="about.html" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="ignite.engine" href="engine.html" />
+    <link rel="prev" title="Examples" href="examples.html" /> 
+
+  <!-- katex links / this needs to be loaded before fonts.html -->
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/katex.min.css" crossorigin="anonymous">
+<script async src="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/katex.min.js" crossorigin="anonymous"></script>
+
+<!-- Preload the theme fonts -->
+
+<link rel="preload" href="_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="_static/fonts/IBMPlexMono/IBMPlexMono-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
+<!-- Preload the katex fonts -->
+
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Math-Italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Main-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Main-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size1-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size4-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size2-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Size3-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.13.20/dist/fonts/KaTeX_Caligraphic-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-5FELLLFHCP"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-5FELLLFHCP');
+  </script>
+</head>
+
+<div class="container-fluid header-holder tutorials-header" id="header-holder">
+  <div class="container">
+
+    <a class="header-logo" href="/ignite" aria-label="PyTorch-Ignite"></a>
+
+    <div class="header-container">
+
+      <div class="main-menu">
+        <ul>
+          <li>
+            <a href="https://pytorch-ignite.ai/tutorials/beginner/01-getting-started/">Quickstart</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch-ignite.ai/concepts/">Concepts</a>
+          </li>
+
+          <!-- <li>
+            <a href="https://pytorch-ignite.ai/tutorials/beginner/01-getting-started/#complete-code">Examples</a>
+          </li> -->
+
+          <li>
+            <a href="https://pytorch-ignite.ai/how-to-guides/">FAQ</a>
+          </li>
+
+          <li>
+            <a href="https://github.com/pytorch/ignite" target="_blank" rel="noopener noreferrer">GitHub</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch-ignite.ai/about/community/">About us</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch-ignite.ai">⊳ pytorch-ignite.ai</a>
+          </li>
+
+
+        </ul>
+      </div>
+
+      <!-- <a class="main-menu-open-button" href="#" data-behavior="open-mobile-menu"></a> -->
+    </div>
+
+  </div>
+</div>
+
+
+<body class="pytorch-body">
+
+   
+
+    
+
+    <div class="table-of-contents-link-wrapper">
+      <span>Table of Contents</span>
+      <div class="toggle-table-of-contents" data-behavior="toggle-table-of-contents"></div>
+    </div>
+
+    <nav data-toggle="wy-nav-shift" class="pytorch-left-menu" id="pytorch-left-menu">
+      <div class="pytorch-side-scroll">
+        <div class="pytorch-menu pytorch-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          <div class="pytorch-left-menu-search">
+            
+
+            
+              
+              
+                <div class="version">
+                  v0.4.9
+                </div>
+              
+            
+
+            <div id="docsearch"></div>
+
+            
+          </div>
+
+          
+            
+            
+              
+            
+            
+              <p class="caption" role="heading"><span class="caption-text">Notes</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="concepts.html">Concepts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">FAQ</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Package Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="engine.html">ignite.engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="handlers.html">ignite.handlers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="metrics.html">ignite.metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distributed.html">ignite.distributed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="exceptions.html">ignite.exceptions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">ignite.utils</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Contrib Package Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="contrib/engines.html">ignite.contrib.engines</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contrib/metrics.html">ignite.contrib.metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contrib/handlers.html">ignite.contrib.handlers</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Team</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://pytorch.org/ignite/master/about.html">About us</a></li>
+<li class="toctree-l1"><a class="reference internal" href="governance.html">PyTorch-Ignite governance</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+
+      <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: v0.4.9
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../v0.3.0/faq.html">v0.3.0</a></dd>
+            <dd><a href="../v0.4.0.post1/faq.html">v0.4.0.post1</a></dd>
+            <dd><a href="../v0.4.1/faq.html">v0.4.1</a></dd>
+            <dd><a href="../v0.4.10/faq.html">v0.4.10</a></dd>
+            <dd><a href="../v0.4.11/index.html">v0.4.11</a></dd>
+            <dd><a href="../v0.4.12/index.html">v0.4.12</a></dd>
+            <dd><a href="../v0.4.13/index.html">v0.4.13</a></dd>
+            <dd><a href="../v0.4.2/faq.html">v0.4.2</a></dd>
+            <dd><a href="../v0.4.3/faq.html">v0.4.3</a></dd>
+            <dd><a href="../v0.4.4.post1/faq.html">v0.4.4.post1</a></dd>
+            <dd><a href="../v0.4.5/faq.html">v0.4.5</a></dd>
+            <dd><a href="../v0.4.6/faq.html">v0.4.6</a></dd>
+            <dd><a href="../v0.4.7/faq.html">v0.4.7</a></dd>
+            <dd><a href="../v0.4.8/faq.html">v0.4.8</a></dd>
+            <dd><a href="faq.html">v0.4.9</a></dd>
+            <dd><a href="../v0.4rc.0.post1/faq.html">v0.4rc.0.post1</a></dd>
+            <dd><a href="../v0.5.0.post2/index.html">v0.5.0.post2</a></dd>
+            <dd><a href="../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../v0.5.2/index.html">v0.5.2</a></dd>
+            <dd><a href="../v0.5.3/index.html">v0.5.3</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="../master/index.html">master</a></dd>
+        </dl>
+    </div>
+</div>
+
+    </nav>
+
+    <div class="pytorch-container">
+      <div class="pytorch-page-level-bar" id="pytorch-page-level-bar">
+        <div class="pytorch-breadcrumbs-wrapper">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="pytorch-breadcrumbs">
+    
+      <li>
+        <a href="index.html">
+          
+            Docs
+          
+        </a> &gt;
+      </li>
+
+        
+      <li>FAQ</li>
+    
+    
+      <li class="pytorch-breadcrumbs-aside">
+        
+            
+            <a href="_sources/faq.rst.txt" rel="nofollow"><img src="_static/images/view-page-source-icon.svg"></a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+</div>
+        </div>
+
+        <div class="pytorch-shortcuts-wrapper" id="pytorch-shortcuts-wrapper">
+          Shortcuts
+        </div>
+      </div>
+
+      <section data-toggle="wy-nav-shift" id="pytorch-content-wrap" class="pytorch-content-wrap">
+        <div class="pytorch-content-left">
+
+        
+          
+          <div class="rst-content">
+          
+            <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
+             <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
+              
+  <section id="faq">
+<h1>FAQ<a class="headerlink" href="#faq" title="Permalink to this heading">#</a></h1>
+<p>In this section we grouped answers on frequently asked questions and some best practices of using <cite>ignite</cite>.</p>
+<section id="each-engine-has-its-own-events">
+<h2>Each engine has its own Events<a class="headerlink" href="#each-engine-has-its-own-events" title="Permalink to this heading">#</a></h2>
+<p>It is important to understand that engines have their own events. For example, we defined a trainer and an evaluator:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@trainer</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">EPOCH_COMPLETED</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">in_training_loop_on_epoch_completed</span><span class="p">(</span><span class="n">engine</span><span class="p">):</span>
+    <span class="n">evaluator</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">val_loader</span><span class="p">)</span> <span class="c1"># this starts another loop on validation dataset to compute metrics</span>
+
+<span class="nd">@evaluator</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">when_validation_loop_is_done</span><span class="p">(</span><span class="n">engine</span><span class="p">):</span>
+    <span class="c1"># do something with computed metrics etc</span>
+    <span class="c1"># -&gt; early stopping or reduce LR on plateau</span>
+    <span class="c1"># or just log them</span>
+</pre></div>
+</div>
+<p>Trainer engine has its own loop and runs multiple times over the training dataset. When a training epoch is over we
+launch evaluator engine and run a single time of over the validation dataset. <strong>Evaluator has its own loop</strong>. Therefore,
+it runs only one epoch and <cite>Events.EPOCH_COMPLETED</cite> is equivalent to <cite>Events.COMPLETED</cite>.
+As a consequence, the following code is correct too:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">handler</span> <span class="o">=</span> <span class="n">EarlyStopping</span><span class="p">(</span><span class="n">patience</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">score_function</span><span class="o">=</span><span class="n">score_function</span><span class="p">,</span> <span class="n">trainer</span><span class="o">=</span><span class="n">trainer</span><span class="p">)</span>
+<span class="n">evaluator</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">,</span> <span class="n">handler</span><span class="p">)</span>
+
+<span class="n">best_model_saver</span> <span class="o">=</span> <span class="n">ModelCheckpoint</span><span class="p">(</span><span class="s1">&#39;/tmp/models&#39;</span><span class="p">,</span> <span class="s1">&#39;best&#39;</span><span class="p">,</span> <span class="n">score_function</span><span class="o">=</span><span class="n">score_function</span><span class="p">)</span>
+<span class="n">evaluator</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">,</span> <span class="n">best_model_saver</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;mymodel&#39;</span><span class="p">:</span> <span class="n">model</span><span class="p">})</span>
+</pre></div>
+</div>
+<p>More details <a class="reference internal" href="concepts.html#events-and-handlers"><span class="std std-ref">Events and Handlers:</span></a>.</p>
+</section>
+<section id="creating-custom-events-based-on-forward-backward-pass">
+<h2>Creating Custom Events based on Forward/Backward Pass<a class="headerlink" href="#creating-custom-events-based-on-forward-backward-pass" title="Permalink to this heading">#</a></h2>
+<p>There are cases where the user might want to add events based on the loss calculation and backward pass. Ignite provides
+flexibility to the user to allow for this:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ignite.engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">EventEnum</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">BackpropEvents</span><span class="p">(</span><span class="n">EventEnum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Events based on back propagation</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">BACKWARD_STARTED</span> <span class="o">=</span> <span class="s1">&#39;backward_started&#39;</span>
+    <span class="n">BACKWARD_COMPLETED</span> <span class="o">=</span> <span class="s1">&#39;backward_completed&#39;</span>
+    <span class="n">OPTIM_STEP_COMPLETED</span> <span class="o">=</span> <span class="s1">&#39;optim_step_completed&#39;</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="n">engine</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+    <span class="n">opitmizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">process_batch</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+    <span class="n">y_pred</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_fn</span><span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+    <span class="n">engine</span><span class="o">.</span><span class="n">fire_event</span><span class="p">(</span><span class="n">BackpropEvents</span><span class="o">.</span><span class="n">BACKWARD_STARTED</span><span class="p">)</span>
+    <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+    <span class="n">engine</span><span class="o">.</span><span class="n">fire_event</span><span class="p">(</span><span class="n">BackpropEvents</span><span class="o">.</span><span class="n">BACKWARD_COMPLETED</span><span class="p">)</span>
+    <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+    <span class="n">engine</span><span class="o">.</span><span class="n">fire_event</span><span class="p">(</span><span class="n">BackpropEvents</span><span class="o">.</span><span class="n">OPTIM_STEP_COMPLETED</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+<span class="n">trainer</span> <span class="o">=</span> <span class="n">Engine</span><span class="p">(</span><span class="n">update</span><span class="p">)</span>
+<span class="n">trainer</span><span class="o">.</span><span class="n">register_events</span><span class="p">(</span><span class="o">*</span><span class="n">BackpropEvents</span><span class="p">)</span>
+
+<span class="nd">@trainer</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="n">BackpropEvents</span><span class="o">.</span><span class="n">BACKWARD_STARTED</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">function_before_backprop</span><span class="p">(</span><span class="n">engine</span><span class="p">):</span>
+    <span class="c1"># insert custom function here</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Events defined by user should inherit from <a class="reference internal" href="generated/ignite.engine.events.EventEnum.html#ignite.engine.events.EventEnum" title="ignite.engine.events.EventEnum"><code class="xref py py-class docutils literal notranslate"><span class="pre">EventEnum</span></code></a></p>
+</div>
+<p>More detailed implementation can be found in <a class="reference external" href="https://pytorch.org/ignite/master/_modules/ignite/contrib/engines/tbptt.html#create_supervised_tbptt_trainer">TBPTT Trainer</a>.</p>
+</section>
+<section id="gradients-accumulation">
+<h2>Gradients accumulation<a class="headerlink" href="#gradients-accumulation" title="Permalink to this heading">#</a></h2>
+<p>A best practice to use if we need to increase effectively the batch size on limited GPU resources. There several ways to
+do this, the most simple is the following:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">accumulation_steps</span> <span class="o">=</span> <span class="mi">4</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">update_fn</span><span class="p">(</span><span class="n">engine</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">prepare_batch</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">non_blocking</span><span class="o">=</span><span class="n">non_blocking</span><span class="p">)</span>
+    <span class="n">y_pred</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="n">criterion</span><span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="o">/</span> <span class="n">accumulation_steps</span>
+    <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">engine</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">iteration</span> <span class="o">%</span> <span class="n">accumulation_steps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+        <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+<span class="n">trainer</span> <span class="o">=</span> <span class="n">Engine</span><span class="p">(</span><span class="n">update_fn</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Based on <a class="reference external" href="https://medium.com/huggingface/training-larger-batches-practical-tips-on-1-gpu-multi-gpu-distributed-setups-ec88c3e51255">this blog article</a> and
+<a class="reference external" href="https://gist.github.com/thomwolf/ac7a7da6b1888c2eeac8ac8b9b05d3d3#file-gradient_accumulation-py">this code</a>.</p>
+</section>
+<section id="working-with-iterators">
+<h2>Working with iterators<a class="headerlink" href="#working-with-iterators" title="Permalink to this heading">#</a></h2>
+<p>If data provider for training or validation is an iterator (infinite or finite with known or unknown size), here are
+basic examples of how to setup trainer or evaluator.</p>
+<section id="infinite-iterator-for-training">
+<h3>Infinite iterator for training<a class="headerlink" href="#infinite-iterator-for-training" title="Permalink to this heading">#</a></h3>
+<p>Let’s use an infinite data iterator as training dataflow</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">Engine</span><span class="p">,</span> <span class="n">Events</span>
+
+<span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">infinite_iterator</span><span class="p">(</span><span class="n">batch_size</span><span class="p">):</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">batch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">batch</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">train_step</span><span class="p">(</span><span class="n">trainer</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+    <span class="c1"># ...</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">state</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">s</span><span class="o">.</span><span class="n">epoch</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">s</span><span class="o">.</span><span class="n">max_epochs</span><span class="si">}</span><span class="s2"> : </span><span class="si">{</span><span class="n">s</span><span class="o">.</span><span class="n">iteration</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="n">batch</span><span class="o">.</span><span class="n">norm</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="p">)</span>
+
+<span class="n">trainer</span> <span class="o">=</span> <span class="n">Engine</span><span class="p">(</span><span class="n">train_step</span><span class="p">)</span>
+<span class="c1"># We need to specify epoch_length to define the epoch</span>
+<span class="n">trainer</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">infinite_iterator</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span> <span class="n">epoch_length</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">max_epochs</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In this case we will obtain the following output:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>1/3 : 1 - 63.862
+1/3 : 2 - 64.042
+1/3 : 3 - 63.936
+1/3 : 4 - 64.141
+1/3 : 5 - 64.767
+2/3 : 6 - 63.791
+2/3 : 7 - 64.565
+2/3 : 8 - 63.602
+2/3 : 9 - 63.995
+2/3 : 10 - 63.943
+3/3 : 11 - 63.831
+3/3 : 12 - 64.276
+3/3 : 13 - 64.148
+3/3 : 14 - 63.920
+3/3 : 15 - 64.226
+</pre></div>
+</div>
+<p>If we do not specify <cite>epoch_length</cite>, we can stop the training explicitly by calling <a class="reference internal" href="generated/ignite.engine.engine.Engine.html#ignite.engine.engine.Engine.terminate" title="ignite.engine.engine.Engine.terminate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">terminate()</span></code></a>
+In this case, there will be only a single epoch defined.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">Engine</span><span class="p">,</span> <span class="n">Events</span>
+
+<span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">infinite_iterator</span><span class="p">(</span><span class="n">batch_size</span><span class="p">):</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">batch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">batch</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">train_step</span><span class="p">(</span><span class="n">trainer</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+    <span class="c1"># ...</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">state</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">s</span><span class="o">.</span><span class="n">epoch</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">s</span><span class="o">.</span><span class="n">max_epochs</span><span class="si">}</span><span class="s2"> : </span><span class="si">{</span><span class="n">s</span><span class="o">.</span><span class="n">iteration</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="n">batch</span><span class="o">.</span><span class="n">norm</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="p">)</span>
+
+<span class="n">trainer</span> <span class="o">=</span> <span class="n">Engine</span><span class="p">(</span><span class="n">train_step</span><span class="p">)</span>
+
+<span class="nd">@trainer</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">(</span><span class="n">once</span><span class="o">=</span><span class="mi">15</span><span class="p">))</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">stop_training</span><span class="p">():</span>
+    <span class="n">trainer</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span>
+
+<span class="n">trainer</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">infinite_iterator</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>We obtain the following output:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>1/1 : 1 - 63.862
+1/1 : 2 - 64.042
+1/1 : 3 - 63.936
+1/1 : 4 - 64.141
+1/1 : 5 - 64.767
+1/1 : 6 - 63.791
+1/1 : 7 - 64.565
+1/1 : 8 - 63.602
+1/1 : 9 - 63.995
+1/1 : 10 - 63.943
+1/1 : 11 - 63.831
+1/1 : 12 - 64.276
+1/1 : 13 - 64.148
+1/1 : 14 - 63.920
+1/1 : 15 - 64.226
+</pre></div>
+</div>
+<p>Same code can be used for validating models.</p>
+</section>
+<section id="finite-iterator-with-unknown-length">
+<h3>Finite iterator with unknown length<a class="headerlink" href="#finite-iterator-with-unknown-length" title="Permalink to this heading">#</a></h3>
+<p>Let’s use a finite data iterator but with unknown length (for user). In case of training, we would like to perform
+several passes over the dataflow and thus we need to restart the data iterator when it is exhausted.
+In the code, we do not specify <cite>epoch_length</cite> which will be automatically determined.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">Engine</span><span class="p">,</span> <span class="n">Events</span>
+
+<span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">finite_unk_size_data_iter</span><span class="p">():</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">11</span><span class="p">):</span>
+        <span class="k">yield</span> <span class="n">i</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">train_step</span><span class="p">(</span><span class="n">trainer</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+    <span class="c1"># ...</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">state</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">s</span><span class="o">.</span><span class="n">epoch</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">s</span><span class="o">.</span><span class="n">max_epochs</span><span class="si">}</span><span class="s2"> : </span><span class="si">{</span><span class="n">s</span><span class="o">.</span><span class="n">iteration</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="n">batch</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="p">)</span>
+
+<span class="n">trainer</span> <span class="o">=</span> <span class="n">Engine</span><span class="p">(</span><span class="n">train_step</span><span class="p">)</span>
+
+<span class="nd">@trainer</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">DATALOADER_STOP_ITERATION</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">restart_iter</span><span class="p">():</span>
+    <span class="n">trainer</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">dataloader</span> <span class="o">=</span> <span class="n">finite_unk_size_data_iter</span><span class="p">()</span>
+
+<span class="n">data_iter</span> <span class="o">=</span> <span class="n">finite_unk_size_data_iter</span><span class="p">()</span>
+<span class="n">trainer</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">data_iter</span><span class="p">,</span> <span class="n">max_epochs</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In case of validation, the code is simply</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">Engine</span><span class="p">,</span> <span class="n">Events</span>
+
+<span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">finite_unk_size_data_iter</span><span class="p">():</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">11</span><span class="p">):</span>
+        <span class="k">yield</span> <span class="n">i</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">val_step</span><span class="p">(</span><span class="n">evaluator</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+    <span class="c1"># ...</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">evaluator</span><span class="o">.</span><span class="n">state</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">s</span><span class="o">.</span><span class="n">epoch</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">s</span><span class="o">.</span><span class="n">max_epochs</span><span class="si">}</span><span class="s2"> : </span><span class="si">{</span><span class="n">s</span><span class="o">.</span><span class="n">iteration</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="n">batch</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="p">)</span>
+
+<span class="n">evaluator</span> <span class="o">=</span> <span class="n">Engine</span><span class="p">(</span><span class="n">val_step</span><span class="p">)</span>
+
+<span class="n">data_iter</span> <span class="o">=</span> <span class="n">finite_unk_size_data_iter</span><span class="p">()</span>
+<span class="n">evaluator</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">data_iter</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="finite-iterator-with-known-length">
+<h3>Finite iterator with known length<a class="headerlink" href="#finite-iterator-with-known-length" title="Permalink to this heading">#</a></h3>
+<p>Let’s use a finite data iterator with known size for training or validation.
+If we need to restart the data iterator, we can do this either as in case of
+unknown size by attaching the restart handler on <cite>&#64;trainer.on(Events.DATALOADER_STOP_ITERATION)</cite>,
+but here we will do this explicitly on iteration:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">Engine</span><span class="p">,</span> <span class="n">Events</span>
+
+<span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span>
+
+<span class="n">size</span> <span class="o">=</span> <span class="mi">11</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">finite_size_data_iter</span><span class="p">(</span><span class="n">size</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">size</span><span class="p">):</span>
+        <span class="k">yield</span> <span class="n">i</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">train_step</span><span class="p">(</span><span class="n">trainer</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+    <span class="c1"># ...</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">state</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">s</span><span class="o">.</span><span class="n">epoch</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">s</span><span class="o">.</span><span class="n">max_epochs</span><span class="si">}</span><span class="s2"> : </span><span class="si">{</span><span class="n">s</span><span class="o">.</span><span class="n">iteration</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="n">batch</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="p">)</span>
+
+<span class="n">trainer</span> <span class="o">=</span> <span class="n">Engine</span><span class="p">(</span><span class="n">train_step</span><span class="p">)</span>
+
+<span class="nd">@trainer</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_COMPLETED</span><span class="p">(</span><span class="n">every</span><span class="o">=</span><span class="n">size</span><span class="p">))</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">restart_iter</span><span class="p">():</span>
+    <span class="n">trainer</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">dataloader</span> <span class="o">=</span> <span class="n">finite_size_data_iter</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
+
+<span class="n">data_iter</span> <span class="o">=</span> <span class="n">finite_size_data_iter</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
+<span class="n">trainer</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">data_iter</span><span class="p">,</span> <span class="n">max_epochs</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In case of validation, the code is simply</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ignite.engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">Engine</span><span class="p">,</span> <span class="n">Events</span>
+
+<span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span>
+
+<span class="n">size</span> <span class="o">=</span> <span class="mi">11</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">finite_size_data_iter</span><span class="p">(</span><span class="n">size</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">size</span><span class="p">):</span>
+        <span class="k">yield</span> <span class="n">i</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">val_step</span><span class="p">(</span><span class="n">evaluator</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+    <span class="c1"># ...</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">evaluator</span><span class="o">.</span><span class="n">state</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">s</span><span class="o">.</span><span class="n">epoch</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">s</span><span class="o">.</span><span class="n">max_epochs</span><span class="si">}</span><span class="s2"> : </span><span class="si">{</span><span class="n">s</span><span class="o">.</span><span class="n">iteration</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="n">batch</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="p">)</span>
+
+<span class="n">evaluator</span> <span class="o">=</span> <span class="n">Engine</span><span class="p">(</span><span class="n">val_step</span><span class="p">)</span>
+
+<span class="n">data_iter</span> <span class="o">=</span> <span class="n">finite_size_data_iter</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
+<span class="n">evaluator</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">data_iter</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="switching-data-provider-during-the-training">
+<h2>Switching data provider during the training<a class="headerlink" href="#switching-data-provider-during-the-training" title="Permalink to this heading">#</a></h2>
+<p>User can easily switch data provider during the training using <a class="reference internal" href="generated/ignite.engine.engine.Engine.html#ignite.engine.engine.Engine.set_data" title="ignite.engine.engine.Engine.set_data"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_data()</span></code></a>.
+See an example in the documentation of the method.</p>
+</section>
+<section id="time-profiling-during-training">
+<h2>Time profiling during training<a class="headerlink" href="#time-profiling-during-training" title="Permalink to this heading">#</a></h2>
+<p>User can fetch times in several manners depending on complexity of required time profiling:</p>
+<section id="single-epoch-and-total-time">
+<h3>Single epoch and total time<a class="headerlink" href="#single-epoch-and-total-time" title="Permalink to this heading">#</a></h3>
+<p>Simpliest way to fetch time of single epoch and complete training is to use
+<code class="docutils literal notranslate"><span class="pre">engine.state.times[&quot;EPOCH_COMPLETED&quot;]</span></code> and <code class="docutils literal notranslate"><span class="pre">engine.state.times[&quot;COMPLETED&quot;]</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">trainer</span> <span class="o">=</span> <span class="o">...</span>
+
+<span class="nd">@trainer</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">EPOCH_COMPLETED</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">log_epoch_time</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">trainer</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">epoch</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">trainer</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">times</span><span class="p">[</span><span class="s1">&#39;EPOCH_COMPLETED&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="nd">@trainer</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">log_total_time</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total: </span><span class="si">{</span><span class="n">trainer</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">times</span><span class="p">[</span><span class="s1">&#39;COMPLETED&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>For details, see <a class="reference internal" href="generated/ignite.engine.events.State.html#ignite.engine.events.State" title="ignite.engine.events.State"><code class="xref py py-class docutils literal notranslate"><span class="pre">State</span></code></a>.</p>
+</section>
+<section id="basic-time-profiling">
+<h3>Basic time profiling<a class="headerlink" href="#basic-time-profiling" title="Permalink to this heading">#</a></h3>
+<p>User can setup <a class="reference internal" href="generated/ignite.handlers.time_profilers.BasicTimeProfiler.html#ignite.handlers.time_profilers.BasicTimeProfiler" title="ignite.handlers.time_profilers.BasicTimeProfiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">BasicTimeProfiler</span></code></a> to fetch times spent in data
+processing, training step, event handlers:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ignite.handlers</span><span class="w"> </span><span class="kn">import</span> <span class="n">BasicTimeProfiler</span>
+
+<span class="n">trainer</span> <span class="o">=</span> <span class="o">...</span>
+
+<span class="c1"># Create an object of the profiler and attach an engine to it</span>
+<span class="n">profiler</span> <span class="o">=</span> <span class="n">BasicTimeProfiler</span><span class="p">()</span>
+<span class="n">profiler</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">trainer</span><span class="p">)</span>
+
+<span class="nd">@trainer</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">EPOCH_COMPLETED</span><span class="p">(</span><span class="n">every</span><span class="o">=</span><span class="mi">10</span><span class="p">))</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">log_intermediate_results</span><span class="p">():</span>
+    <span class="n">profiler</span><span class="o">.</span><span class="n">print_results</span><span class="p">(</span><span class="n">profiler</span><span class="o">.</span><span class="n">get_results</span><span class="p">())</span>
+
+<span class="n">trainer</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">dataloader</span><span class="p">,</span> <span class="n">max_epochs</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Typical output:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span> ----------------------------------------------------
+| Time profiling stats (in seconds):                 |
+ ----------------------------------------------------
+total  |  min/index  |  max/index  |  mean  |  std
+
+Processing function:
+157.46292 | 0.01452/1501 | 0.26905/0 | 0.07730 | 0.01258
+
+Dataflow:
+6.11384 | 0.00008/1935 | 0.28461/1551 | 0.00300 | 0.02693
+
+Event handlers:
+2.82721
+
+- Events.STARTED: []
+0.00000
+
+- Events.EPOCH_STARTED: []
+0.00006 | 0.00000/0 | 0.00000/17 | 0.00000 | 0.00000
+
+- Events.ITERATION_STARTED: [&#39;PiecewiseLinear&#39;]
+0.03482 | 0.00001/188 | 0.00018/679 | 0.00002 | 0.00001
+
+- Events.ITERATION_COMPLETED: [&#39;TerminateOnNan&#39;]
+0.20037 | 0.00006/866 | 0.00089/1943 | 0.00010 | 0.00003
+
+- Events.EPOCH_COMPLETED: [&#39;empty_cuda_cache&#39;, &#39;training.&lt;locals&gt;.log_elapsed_time&#39;, ]
+2.57860 | 0.11529/0 | 0.14977/13 | 0.12893 | 0.00790
+
+- Events.COMPLETED: []
+not yet triggered
+</pre></div>
+</div>
+<p>For details, see <a class="reference internal" href="generated/ignite.handlers.time_profilers.BasicTimeProfiler.html#ignite.handlers.time_profilers.BasicTimeProfiler" title="ignite.handlers.time_profilers.BasicTimeProfiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">BasicTimeProfiler</span></code></a>.</p>
+</section>
+<section id="event-handlers-time-profiling">
+<h3>Event handlers time profiling<a class="headerlink" href="#event-handlers-time-profiling" title="Permalink to this heading">#</a></h3>
+<p>If you want to get time breakdown per handler basis then you can setup
+<a class="reference internal" href="generated/ignite.handlers.time_profilers.HandlersTimeProfiler.html#ignite.handlers.time_profilers.HandlersTimeProfiler" title="ignite.handlers.time_profilers.HandlersTimeProfiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">HandlersTimeProfiler</span></code></a>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ignite.handlers</span><span class="w"> </span><span class="kn">import</span> <span class="n">HandlersTimeProfiler</span>
+
+<span class="n">trainer</span> <span class="o">=</span> <span class="o">...</span>
+
+<span class="c1"># Create an object of the profiler and attach an engine to it</span>
+<span class="n">profiler</span> <span class="o">=</span> <span class="n">HandlersTimeProfiler</span><span class="p">()</span>
+<span class="n">profiler</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">trainer</span><span class="p">)</span>
+
+<span class="nd">@trainer</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">EPOCH_COMPLETED</span><span class="p">(</span><span class="n">every</span><span class="o">=</span><span class="mi">10</span><span class="p">))</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">log_intermediate_results</span><span class="p">():</span>
+    <span class="n">profiler</span><span class="o">.</span><span class="n">print_results</span><span class="p">(</span><span class="n">profiler</span><span class="o">.</span><span class="n">get_results</span><span class="p">())</span>
+
+<span class="n">trainer</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">dataloader</span><span class="p">,</span> <span class="n">max_epochs</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Typical output:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>-----------------------------------------  -----------------------  -------------- ...
+Handler                                    Event Name                     Total(s)
+-----------------------------------------  -----------------------  --------------
+run.&lt;locals&gt;.log_training_results          EPOCH_COMPLETED                19.43245
+run.&lt;locals&gt;.log_validation_results        EPOCH_COMPLETED                 2.55271
+run.&lt;locals&gt;.log_time                      EPOCH_COMPLETED                 0.00049
+run.&lt;locals&gt;.log_intermediate_results      EPOCH_COMPLETED                 0.00106
+run.&lt;locals&gt;.log_training_loss             ITERATION_COMPLETED               0.059
+run.&lt;locals&gt;.log_time                      COMPLETED                 not triggered
+-----------------------------------------  -----------------------  --------------
+Total                                                                     22.04571
+-----------------------------------------  -----------------------  --------------
+Processing took total 11.29543s [min/index: 0.00393s/1875, max/index: 0.00784s/0,
+ mean: 0.00602s, std: 0.00034s]
+Dataflow took total 16.24365s [min/index: 0.00533s/1874, max/index: 0.01129s/937,
+ mean: 0.00866s, std: 0.00113s]
+</pre></div>
+</div>
+<p>For details, see <a class="reference internal" href="generated/ignite.handlers.time_profilers.HandlersTimeProfiler.html#ignite.handlers.time_profilers.HandlersTimeProfiler" title="ignite.handlers.time_profilers.HandlersTimeProfiler"><code class="xref py py-class docutils literal notranslate"><span class="pre">HandlersTimeProfiler</span></code></a>.</p>
+</section>
+<section id="custom-time-measures">
+<h3>Custom time measures<a class="headerlink" href="#custom-time-measures" title="Permalink to this heading">#</a></h3>
+<p>Custom time measures can be performed using <a class="reference internal" href="generated/ignite.handlers.timing.Timer.html#ignite.handlers.timing.Timer" title="ignite.handlers.timing.Timer"><code class="xref py py-class docutils literal notranslate"><span class="pre">Timer</span></code></a>. See its docstring for details.</p>
+</section>
+</section>
+<section id="other-questions">
+<h2>Other questions<a class="headerlink" href="#other-questions" title="Permalink to this heading">#</a></h2>
+<p>Other questions and answers can be also found on the github among the issues labeled by
+<a class="reference external" href="https://github.com/pytorch/ignite/issues?utf8=%E2%9C%93&amp;q=is%3Aissue+label%3Aquestion+">question</a> and on the forum
+<a class="reference external" href="https://discuss.pytorch.org/c/ignite/15">Discuss.PyTorch</a>, category “Ignite”.</p>
+</section>
+</section>
+
+
+             </article>
+             
+            </div>
+            <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="engine.html" class="btn btn-neutral float-right" title="ignite.engine" accesskey="n" rel="next">Next
+          <img src="_static/images/chevron-right-orange.svg" alt="right arrow" class="next-page">
+        </a>
+      
+      
+        <a href="examples.html" class="btn btn-neutral" title="Examples" accesskey="p" rel="prev">
+          <img src="_static/images/chevron-right-orange.svg" alt="left arrow" class="previous-page"> Previous
+        </a>
+      
+    </div>
+  
+
+  
+
+    <hr>
+
+  
+
+  <div role="contentinfo">
+    <table>
+      <tr>
+        <td>
+            <p>
+                &copy; Copyright 2026, PyTorch-Ignite Contributors.
+              Last updated on 08/04/2021, 12:58:29 PM.
+            </p>
+            
+              <div>
+                Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+              </div>
+          
+        </td>
+        <td>
+            
+              <div>
+                <a href="https://www.netlify.com" target="_blank" rel="noopener noreferrer">
+                  <img
+                  src="_static/img/netlify-light.svg"
+                  alt="Deploys by Netlify"
+                  width=114
+                  height=51 />
+                </a>
+              </div>
+            
+        </td>
+      </tr>
+    </table>
+  </div> 
+
+</footer>
+          </div>
+        </div>
+
+        <div class="pytorch-content-right" id="pytorch-content-right">
+          <div class="pytorch-right-menu" id="pytorch-right-menu">
+            <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
+              <ul>
+<li><a class="reference internal" href="#">FAQ</a><ul>
+<li><a class="reference internal" href="#each-engine-has-its-own-events">Each engine has its own Events</a></li>
+<li><a class="reference internal" href="#creating-custom-events-based-on-forward-backward-pass">Creating Custom Events based on Forward/Backward Pass</a></li>
+<li><a class="reference internal" href="#gradients-accumulation">Gradients accumulation</a></li>
+<li><a class="reference internal" href="#working-with-iterators">Working with iterators</a><ul>
+<li><a class="reference internal" href="#infinite-iterator-for-training">Infinite iterator for training</a></li>
+<li><a class="reference internal" href="#finite-iterator-with-unknown-length">Finite iterator with unknown length</a></li>
+<li><a class="reference internal" href="#finite-iterator-with-known-length">Finite iterator with known length</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#switching-data-provider-during-the-training">Switching data provider during the training</a></li>
+<li><a class="reference internal" href="#time-profiling-during-training">Time profiling during training</a><ul>
+<li><a class="reference internal" href="#single-epoch-and-total-time">Single epoch and total time</a></li>
+<li><a class="reference internal" href="#basic-time-profiling">Basic time profiling</a></li>
+<li><a class="reference internal" href="#event-handlers-time-profiling">Event handlers time profiling</a></li>
+<li><a class="reference internal" href="#custom-time-measures">Custom time measures</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#other-questions">Other questions</a></li>
+</ul>
+</li>
+</ul>
+
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  
+
+     
+       <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+         <script src="_static/jquery.js"></script>
+         <script src="_static/underscore.js"></script>
+         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+         <script src="_static/doctools.js"></script>
+         <script src="_static/sphinx_highlight.js"></script>
+         <script src="_static/clipboard.min.js"></script>
+         <script src="_static/copybutton.js"></script>
+         <script>let toggleHintShow = 'Show default setup';</script>
+         <script>let toggleHintHide = 'Hide default setup';</script>
+         <script>let toggleOpenOnPrint = 'true';</script>
+         <script src="_static/togglebutton.js"></script>
+         <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+         <script src="_static/design-tabs.js"></script>
+     
+
+  
+
+  <script type="text/javascript" src="_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="_static/js/vendor/bootstrap.min.js"></script>
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+  <!-- Begin Footer -->
+
+  <!-- commented out for Ignite -->
+
+  <div class="container-fluid docs-tutorials-resources" id="docs-tutorials-resources">
+    <!-- <div class="container">
+      <div class="row">
+        <div class="text-center col-md-4">
+          <h2>Docs</h2>
+          <p>Access comprehensive developer documentation for PyTorch</p>
+          <a class="with-right-arrow" href="https://pytorch.org/ignite/index.html">View Docs</a>
+        </div>
+
+        <div class="text-center col-md-4">
+          <h2>Tutorials</h2>
+          <p>Get in-depth tutorials for beginners and advanced developers</p>
+          <a class="with-right-arrow" href="">View Tutorials</a>
+        </div>
+
+        <div class="text-center col-md-4">
+          <h2>Resources</h2>
+          <p>Find development resources and get your questions answered</p>
+          <a class="with-right-arrow" href="">View Resources</a>
+        </div>
+      </div>
+    </div> -->
+  </div>
+
+  <!-- <footer class="site-footer">
+    <div class="container footer-container">
+      <div class="footer-logo-wrapper">
+        <a href="https://pytorch-ignite.ai" class="footer-logo"></a>
+      </div>
+
+      <div class="footer-links-wrapper">
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="https://pytorch-ignite.ai">PyTorch</a></li>
+            <li><a href="">Get Started</a></li>
+            <li><a href="">Features</a></li>
+            <li><a href="">Ecosystem</a></li>
+            <li><a href="">Blog</a></li>
+            <li><a href="">Resources</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="">Support</a></li>
+            <li><a href="">Tutorials</a></li>
+            <li><a href="https://pytorch.org/ignite/index.html">Docs</a></li>
+            <li><a href="" target="_blank">Discuss</a></li>
+            <li><a href="https://github.com/pytorch/ignite/issues" target="_blank">Github Issues</a></li>
+            <li><a href="" target="_blank">Slack</a></li>
+            <li><a href="https://github.com/pytorch/ignite/blob/master/CONTRIBUTING.md" target="_blank">Contributing</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col follow-us-col">
+          <ul>
+            <li class="list-title">Follow Us</li>
+            <li>
+              <div id="mc_embed_signup">
+                <form
+                  action="https://twitter.us14.list-manage.com/subscribe/post?u=75419c71fe0a935e53dfa4a3f&id=91d0dccd39"
+                  method="post"
+                  id="mc-embedded-subscribe-form"
+                  name="mc-embedded-subscribe-form"
+                  class="email-subscribe-form validate"
+                  target="_blank"
+                  novalidate>
+                  <div id="mc_embed_signup_scroll" class="email-subscribe-form-fields-wrapper">
+                    <div class="mc-field-group">
+                      <label for="mce-EMAIL" style="display:none;">Email Address</label>
+                      <input type="email" value="" name="EMAIL" class="required email" id="mce-EMAIL" placeholder="Email Address">
+                    </div>
+
+                    <div id="mce-responses" class="clear">
+                      <div class="response" id="mce-error-response" style="display:none"></div>
+                      <div class="response" id="mce-success-response" style="display:none"></div>
+                    </div>    <!~~ real people should not fill this in and expect good things - do not remove this or risk form bot signups ~~>
+
+                    <div style="position: absolute; left: -5000px;" aria-hidden="true"><input type="text" name="b_75419c71fe0a935e53dfa4a3f_91d0dccd39" tabindex="-1" value=""></div>
+
+                    <div class="clear">
+                      <input type="submit" value="" name="subscribe" id="mc-embedded-subscribe" class="button email-subscribe-button">
+                    </div>
+                  </div>
+                </form>
+              </div>
+
+            </li>
+          </ul>
+
+          <div class="footer-social-icons">
+            <a href="" target="_blank" class="facebook"></a>
+            <a href="" target="_blank" class="twitter"></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer> -->
+
+
+  <!-- end of commented out for Ignite -->
+
+  <!-- <div class="cookie-banner-wrapper">
+  <div class="container">
+    <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
+    <img class="close-button" src="_static/images/pytorch-x.svg">
+  </div>
+</div> -->
+
+  <!-- End Footer -->
+
+  <!-- Begin Mobile Menu -->
+  <!--
+  <div class="mobile-main-menu">
+    <div class="container-fluid">
+      <div class="container">
+        <div class="mobile-main-menu-header-container">
+          <a class="header-logo" href="https://pytorch-ignite.ai" aria-label="PyTorch"></a>
+          <a class="main-menu-close-button" href="#" data-behavior="close-mobile-menu"></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="mobile-main-menu-links-container">
+      <div class="main-menu">
+        <ul>
+          <li>
+            <a href="#">Get Started</a>
+          </li>
+
+          <li>
+            <a href="#">Features</a>
+          </li>
+
+          <li>
+            <a href="#">Ecosystem</a>
+          </li>
+
+          <li>
+            <a href="">Blog</a>
+          </li>
+
+          <li>
+            <a href="">Tutorials</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch.org/ignite/index.html">Docs</a>
+          </li>
+
+          <li>
+            <a href="">Resources</a>
+          </li>
+
+          <li>
+            <a href="https://github.com/pytorch/ignite">Github</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  -->
+  <!-- End Mobile Menu -->
+
+  <script type="text/javascript" src="_static/js/vendor/anchor.min.js"></script>
+
+  <script type="text/javascript">
+    var collapsedSections = []
+    $(document).ready(function() {
+      mobileMenu.bind();
+      mobileTOC.bind();
+      pytorchAnchors.bind();
+      sideMenus.bind();
+      scrollToAnchor.bind();
+      highlightNavigation.bind();
+
+      // Add class to links that have code blocks, since we cannot create links in code blocks
+      $("article.pytorch-article a span.pre").each(function(e) {
+        $(this).closest("a").addClass("has-code");
+      });
+    })
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@docsearch/js@3"></script>
+  <script type="text/javascript">
+  let VERSION
+  if ('v0.4.9'.startsWith('v')) {
+    VERSION = 'v0.4.9'
+  } else {
+    VERSION = 'master'
+  }
+  docsearch({
+    container: '#docsearch',
+    appId: '7EWYE1JCT3',
+    apiKey: '841e93e60c16975ba1bd8c7c716eed82',
+    indexName: 'pytorch-ignite',
+    placeholder: 'Search PyTorch-Ignite docs',
+    searchParameters: {
+      facetFilters: [`version:${VERSION}`, 'tags:API-reference'],
+    }
+  });
+  </script>
+</body>
+</html>
