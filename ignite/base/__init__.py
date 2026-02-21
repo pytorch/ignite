@@ -1,1 +1,1 @@
-from ignite.base.mixins import Serializable
+from ignite.base.mixins import Serializable, ResettableHandler

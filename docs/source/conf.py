@@ -358,6 +358,7 @@ nitpick_ignore = [
     ("py:class", "torch.optim.lr_scheduler._LRScheduler"),
     ("py:class", "torch.optim.lr_scheduler.LRScheduler"),
     ("py:class", "torch.utils.data.dataloader.DataLoader"),
+    ("py:class", "ignite.base.mixins.ResettableHandler"),
 ]
 
 linkcheck_ignore = [

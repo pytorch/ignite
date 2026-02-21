@@ -1,5 +1,19 @@
+from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from collections.abc import Mapping
+
+
+class ResettableHandler(metaclass=ABCMeta):
+    """Interface for handlers whose internal state can be reset.
+
+    Subclasses must implement the :meth:`reset` method to clear any accumulated
+    state, typically at the beginning of a training run.
+    """
+
+    @abstractmethod
+    def reset(self) -> None:
+        """Reset the handler's internal state."""
+        pass
 
 
 class Serializable:
