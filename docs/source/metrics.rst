@@ -360,6 +360,7 @@ Complete list of metrics
     Entropy
     KLDivergence
     JSDivergence
+    MatthewsCorrCoef
     MaximumMeanDiscrepancy
     HSIC
     AveragePrecision
