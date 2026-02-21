@@ -45,7 +45,7 @@ if has_xla_support:
 
         def __init__(self, backend: Optional[str] = None, **kwargs: Any):
             """This is a private method. Please, use `create_from_backend` or `create_from_context`"""
-            super(_XlaDistModel, self).__init__()
+            super().__init__()
             if backend is not None:
                 self._create_from_backend(backend, **kwargs)
             else:

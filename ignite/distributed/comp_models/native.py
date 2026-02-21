@@ -82,7 +82,7 @@ if has_native_dist_support:
             **kwargs: Any,
         ) -> None:
             """This is a private method. Please, use `create_from_backend` or `create_from_context`"""
-            super(_NativeDistModel, self).__init__()
+            super().__init__()
             self._env_backup: Optional[Dict[str, str]] = None
             self._local_rank: Optional[int] = None
             self._master_port: Optional[int] = None
