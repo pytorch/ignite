@@ -390,6 +390,7 @@ Complete list of metrics
     clustering.SilhouetteScore
     clustering.DaviesBouldinScore
     clustering.CalinskiHarabaszScore
+    rec_sys.HitRate
 
 
 .. note::
