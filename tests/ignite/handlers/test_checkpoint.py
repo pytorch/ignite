@@ -1923,3 +1923,30 @@ def test_checkpoint_on_exception(dirname):
 
     metadata = {"basename": "model", "score_name": None, "priority": 1}
     save_handler.assert_called_with(model.state_dict(), "model_1.pt", metadata)
+
+
+def test_global_step_from_engine_fallback_for_unregistered_event(tmp_path):
+    import torch
+    from ignite.engine import Engine, Events
+    from ignite.handlers import Checkpoint, DiskSaver, global_step_from_engine
+
+    model = torch.nn.Linear(10, 10)
+    trainer = Engine(lambda e, b: 0)
+    evaluator = Engine(lambda e, b: 0)
+
+    to_save = {"model": model, "trainer": trainer}
+
+    checkpoint = Checkpoint(
+        to_save,
+        save_handler=DiskSaver(tmp_path, create_dir=True),
+        filename_prefix="test",
+        global_step_transform=global_step_from_engine(trainer),
+    )
+
+    evaluator.add_event_handler(Events.EPOCH_COMPLETED, checkpoint)
+
+    @trainer.on(Events.EPOCH_COMPLETED)
+    def run_eval(engine):
+        evaluator.run(range(2))
+
+    trainer.run(range(5), max_epochs=1)
