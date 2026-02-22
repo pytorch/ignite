@@ -1,6 +1,7 @@
 # coding: utf-8
 import collections.abc as collections
-from typing import Callable, Mapping, Optional, Sequence, Union
+from typing import Callable
+
 
 import torch
 import torch.nn as nn
@@ -22,8 +23,8 @@ class Tbptt_Events(EventEnum):
 
 
 def _detach_hidden(
-    hidden: Union[torch.Tensor, Sequence, Mapping, str, bytes]
-) -> Union[torch.Tensor, collections.Sequence, collections.Mapping, str, bytes]:
+    hidden: torch.Tensor | collections.Sequence | collections.Mapping | str | bytes,
+) -> torch.Tensor | collections.Sequence | collections.Mapping | str | bytes:
     """Cut backpropagation graph.
 
     Auxillary function to cut the backpropagation graph by detaching the hidden
@@ -38,7 +39,7 @@ def create_supervised_tbptt_trainer(
     loss_fn: nn.Module,
     tbtt_step: int,
     dim: int = 0,
-    device: Optional[str] = None,
+    device: str | None = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
 ) -> Engine:
@@ -85,7 +86,7 @@ def create_supervised_tbptt_trainer(
         * `PyTorch's Explanation <https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840>`_
     """
 
-    def _update(engine: Engine, batch: Sequence[torch.Tensor]) -> float:
+    def _update(engine: Engine, batch: collections.Sequence[torch.Tensor]) -> float:
         loss_list = []
         hidden = None
 

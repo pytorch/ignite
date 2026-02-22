@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Callable
 
 import numpy as np
 import torch
@@ -20,7 +20,7 @@ def make_grid(
     batch_img: torch.Tensor,
     batch_preds: torch.Tensor,
     img_denormalize_fn: Callable,
-    batch_gt: Optional[torch.Tensor] = None,
+    batch_gt: torch.Tensor | None = None,
 ):
     """Create a grid from batch image and mask as
 

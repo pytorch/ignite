@@ -16,7 +16,7 @@ class DummyInceptionMetric(_BaseInceptionMetric):
         output_transform: Callable = lambda x: x,
         device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
-        super(DummyInceptionMetric, self).__init__(
+        super().__init__(
             num_features=num_features,
             feature_extractor=feature_extractor,
             output_transform=output_transform,
