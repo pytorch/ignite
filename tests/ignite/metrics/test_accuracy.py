@@ -479,7 +479,7 @@ def test_skip_unrolling():
             device: Union[str, torch.device] = torch.device("cpu"),
             skip_unrolling: bool = False,
         ):
-            super(DummyAcc, self).__init__(
+            super().__init__(
                 output_transform=output_transform, is_multilabel=False, device=device, skip_unrolling=skip_unrolling
             )
             self.true_output = true_output

@@ -110,7 +110,7 @@ def test_to_onehot():
     # Test inside `torch.nn.Module`
     class SLP(torch.nn.Module):
         def __init__(self):
-            super(SLP, self).__init__()
+            super().__init__()
             self.linear = torch.nn.Linear(4, 1)
 
         def forward(self, x):

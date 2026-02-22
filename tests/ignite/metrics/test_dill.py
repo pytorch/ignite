@@ -6,7 +6,7 @@ from ignite.metrics import Metric
 class Accumulation(Metric):
     def __init__(self):
         self.value = 0
-        super(Accumulation, self).__init__()
+        super().__init__()
 
     def reset(self):
         self.value = 0

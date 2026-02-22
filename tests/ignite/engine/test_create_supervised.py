@@ -29,7 +29,7 @@ from tests.ignite import is_mps_available_and_functional
 
 class DummyModel(torch.nn.Module):
     def __init__(self, output_as_list=False):
-        super(DummyModel, self).__init__()
+        super().__init__()
         self.output_as_list = output_as_list
         self.fc = torch.nn.Linear(1, 1, bias=False)
 

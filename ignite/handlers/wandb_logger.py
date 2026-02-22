@@ -343,7 +343,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
     def __init__(
         self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None, sync: Optional[bool] = None
     ):
-        super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
+        super().__init__(optimizer, param_name, tag)
         if sync is not None:
             warn("The sync argument for the WandBLoggers is no longer used, and may be removed in the future")
 

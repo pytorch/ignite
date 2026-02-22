@@ -1,11 +1,10 @@
 from collections import OrderedDict
 from collections.abc import Mapping
-from typing import Tuple
 
 
 class Serializable:
-    _state_dict_all_req_keys: Tuple = ()
-    _state_dict_one_of_opt_keys: Tuple = ()
+    _state_dict_all_req_keys: tuple = ()
+    _state_dict_one_of_opt_keys: tuple = ()
 
     def state_dict(self) -> OrderedDict:
         raise NotImplementedError

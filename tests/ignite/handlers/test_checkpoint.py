@@ -21,7 +21,7 @@ _PREFIX = "PREFIX"
 
 class DummyModel(nn.Module):
     def __init__(self):
-        super(DummyModel, self).__init__()
+        super().__init__()
         self.net = nn.Linear(1, 1)
 
     def forward(self, x):
@@ -34,7 +34,7 @@ optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
 
 class DummyPretrainedModel(nn.Module):
     def __init__(self):
-        super(DummyPretrainedModel, self).__init__()
+        super().__init__()
         self.features = nn.Linear(4, 2, bias=False)
         self.fc = nn.Linear(2, 1)
 

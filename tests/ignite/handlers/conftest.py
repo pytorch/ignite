@@ -74,7 +74,7 @@ def norm_mock():
 def dummy_model_factory():
     class DummyModel(torch.nn.Module):
         def __init__(self):
-            super(DummyModel, self).__init__()
+            super().__init__()
             self.fc1 = torch.nn.Linear(10, 10)
             self.fc2 = torch.nn.Linear(12, 12)
             self.fc1.weight.data.zero_()

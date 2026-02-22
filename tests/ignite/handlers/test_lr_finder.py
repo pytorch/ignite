@@ -34,7 +34,7 @@ def no_site_packages():
 
 class DummyModel(nn.Module):
     def __init__(self, n_channels=10, out_channels=1, flatten_input=False):
-        super(DummyModel, self).__init__()
+        super().__init__()
 
         self.net = nn.Sequential(nn.Flatten() if flatten_input else nn.Identity(), nn.Linear(n_channels, out_channels))
 
@@ -44,7 +44,7 @@ class DummyModel(nn.Module):
 
 class DummyModelMulipleParamGroups(nn.Module):
     def __init__(self):
-        super(DummyModelMulipleParamGroups, self).__init__()
+        super().__init__()
         self.fc1 = nn.Linear(10, 20)
         self.fc2 = nn.Linear(20, 10)
         self.fc3 = nn.Linear(10, 10)
@@ -618,7 +618,7 @@ def _test_distrib_integration_mnist(dirname, device):
 
     class DummyModel(nn.Module):
         def __init__(self, n_channels=10, out_channels=1, flatten_input=False):
-            super(DummyModel, self).__init__()
+            super().__init__()
 
             self.net = nn.Sequential(
                 nn.Flatten() if flatten_input else nn.Identity(), nn.Linear(n_channels, out_channels)
