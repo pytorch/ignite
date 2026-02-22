@@ -2,7 +2,7 @@ import itertools
 import socket
 from contextlib import contextmanager
 from functools import wraps
-from typing import Any, Callable, cast, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, cast, Mapping, Sequence
 
 import torch
 
@@ -92,7 +92,7 @@ def device() -> torch.device:
     return _model.device()
 
 
-def backend() -> Optional[str]:
+def backend() -> str | None:
     """Returns computation model's backend.
 
     - `None` for no distributed configuration
@@ -112,9 +112,9 @@ def backend() -> Optional[str]:
     return _model.backend()
 
 
-def available_backends() -> Tuple[str, ...]:
+def available_backends() -> tuple[str, ...]:
     """Returns available backends."""
-    out: Tuple[str, ...] = ()
+    out: tuple[str, ...] = ()
     for m in registered_computation_models:
         out += m.available_backends
     return out
@@ -200,8 +200,8 @@ def hostname() -> str:
 def spawn(
     backend: str,
     fn: Callable,
-    args: Tuple,
-    kwargs_dict: Optional[Mapping] = None,
+    args: tuple,
+    kwargs_dict: Mapping | None = None,
     nproc_per_node: int = 1,
     **kwargs: Any,
 ) -> None:
@@ -327,8 +327,8 @@ def spawn(
 
 
 def all_reduce(
-    tensor: Union[torch.Tensor, float], op: str = "SUM", group: Optional[Union[Any, List[int]]] = None
-) -> Union[torch.Tensor, float]:
+    tensor: torch.Tensor | float, op: str = "SUM", group: Any | list[int] | None = None
+) -> torch.Tensor | float:
     """Helper method to perform all reduce operation.
 
     Args:
@@ -350,8 +350,8 @@ def all_reduce(
 
 
 def all_gather_tensors_with_shapes(
-    tensor: torch.Tensor, shapes: Sequence[Sequence[int]], group: Optional[Union[Any, List[int]]] = None
-) -> List[torch.Tensor]:
+    tensor: torch.Tensor, shapes: Sequence[Sequence[int]], group: Any | list[int] | None = None
+) -> list[torch.Tensor]:
     """Helper method to gather tensors of possibly different shapes but with the same number of dimensions
     across processes.
 
@@ -404,8 +404,8 @@ def all_gather_tensors_with_shapes(
 
 
 def all_gather(
-    tensor: Union[torch.Tensor, float, str, Any], group: Optional[Union[Any, List[int]]] = None
-) -> Union[torch.Tensor, float, List[float], List[str], List[Any]]:
+    tensor: torch.Tensor | float | str | Any, group: Any | list[int] | None = None
+) -> torch.Tensor | float | list[float] | list[str] | list[Any]:
     """Helper method to perform all gather operation.
 
     Args:
@@ -429,8 +429,8 @@ def all_gather(
 
 
 def broadcast(
-    tensor: Union[torch.Tensor, float, str, None], src: int = 0, safe_mode: bool = False
-) -> Union[torch.Tensor, float, str]:
+    tensor: torch.Tensor | float | str | None, src: int = 0, safe_mode: bool = False
+) -> torch.Tensor | float | str:
     """Helper method to perform broadcast operation.
 
     Args:
@@ -496,7 +496,7 @@ def barrier() -> None:
     _model.barrier()
 
 
-def new_group(ranks: List[int], **kwargs: Any) -> Any:
+def new_group(ranks: list[int], **kwargs: Any) -> Any:
     """Helper method to make group for each backend from ranks.
 
     Args:
@@ -678,7 +678,7 @@ def one_rank_only(rank: int = 0, with_barrier: bool = False) -> Callable:
 
     def _one_rank_only(func: Callable) -> Callable:
         @wraps(func)
-        def wrapper(*args: Any, **kwargs: Any) -> Optional[Any]:
+        def wrapper(*args: Any, **kwargs: Any) -> Any | None:
             ret = None
             if get_rank() == rank:
                 ret = func(*args, **kwargs)
@@ -732,7 +732,7 @@ def one_rank_first(rank: int = 0, local: bool = False) -> Any:
         barrier()
 
 
-def _rank_not_in_group(group: Optional[Union[Any, List[int]]]) -> bool:
+def _rank_not_in_group(group: Any | list[int] | None) -> bool:
     """Check if the current process's rank is not in a given group."""
     if group is None:
         return False
