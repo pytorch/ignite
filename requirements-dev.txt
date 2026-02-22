@@ -10,6 +10,7 @@ pytest-order
 pytest-timeout
 pytest-xdist
 setuptools
+ranx
 # Test contrib dependencies
 scipy
 pytorch_fid
