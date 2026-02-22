@@ -7,6 +7,7 @@ from packaging.version import Version
 
 import ignite.distributed as idist
 from ignite.engine import Engine
+from ignite.metrics import MetricsLambda
 from ignite.metrics.classification_report import ClassificationReport
 
 
@@ -157,6 +158,23 @@ def _test_integration_multiclass(device, output_dict):
                     _test_multiclass(metric_device, n_classes, output_dict, labels=labels[:n_classes], distributed=True)
 
 
+@pytest.mark.parametrize(
+    "metrics_result_mode",
+    [
+        "flatten",
+        "named",
+        "both",
+    ],
+)
+def test_metrics_result_mode(metrics_result_mode):
+    metric = ClassificationReport(output_dict=True, metrics_result_mode=metrics_result_mode)
+
+    assert isinstance(metric, MetricsLambda), "ClassificationReport should be an instance of MetricsLambda"
+    assert (
+        metric._metrics_result_mode == metrics_result_mode
+    ), f"Expected metrics_result_mode to be {metrics_result_mode}"
+
+
 def _test_integration_multilabel(device, output_dict):
     rank = idist.get_rank()
 
@@ -197,7 +215,6 @@ def test_compute_multilabel(n_times, available_device):
 @pytest.mark.skipif(torch.cuda.device_count() < 1, reason="Skip if no GPU")
 @pytest.mark.skipif(Version(torch.__version__) < Version("1.7.0"), reason="Skip if < 1.7.0")
 def test_distrib_nccl_gpu(distributed_context_single_node_nccl):
-
     pytest.skip("Temporarily skip failing test. See https://github.com/pytorch/ignite/pull/3301")
     # When run with 2 devices:
     #  tests/ignite/metrics/test_classification_report.py::test_distrib_nccl_gpu Fatal Python error: Aborted
