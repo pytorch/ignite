@@ -52,7 +52,7 @@ class VOCSegmentationOpencv(VOCSegmentation):
     ]
 
     def __init__(self, *args, return_meta=False, **kwargs):
-        super(VOCSegmentationOpencv, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.return_meta = return_meta
 
     def __getitem__(self, index):
@@ -73,7 +73,7 @@ class VOCSegmentationOpencv(VOCSegmentation):
 
 class SBDatasetOpencv(SBDataset):
     def __init__(self, *args, return_meta=False, **kwargs):
-        super(SBDatasetOpencv, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         assert self.mode == "segmentation", "SBDatasetOpencv should be in segmentation mode only"
         self.return_meta = return_meta
 

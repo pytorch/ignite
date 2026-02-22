@@ -32,7 +32,7 @@ class SiameseNetwork(nn.Module):
     """
 
     def __init__(self):
-        super(SiameseNetwork, self).__init__()
+        super().__init__()
         # get resnet model
         self.resnet = torchvision.models.resnet34(weights=None)
         fc_in_features = self.resnet.fc.in_features
@@ -82,7 +82,7 @@ class SiameseNetwork(nn.Module):
 class MatcherDataset(Dataset):
     # following class implements data downloading and handles preprocessing
     def __init__(self, root, train, download=False):
-        super(MatcherDataset, self).__init__()
+        super().__init__()
 
         # get CIFAR10 dataset
         self.dataset = datasets.CIFAR10(root, train=train, download=download)
