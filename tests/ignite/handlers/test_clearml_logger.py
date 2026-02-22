@@ -930,7 +930,7 @@ def test_clearml_saver_callbacks():
 
 class DummyModel(torch.nn.Module):
     def __init__(self):
-        super(DummyModel, self).__init__()
+        super().__init__()
         self.net = torch.nn.Linear(2, 2)
 
     def forward(self, x):

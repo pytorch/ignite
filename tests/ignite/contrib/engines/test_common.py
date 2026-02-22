@@ -31,7 +31,7 @@ from ignite.handlers import DiskSaver, TerminateOnNan
 
 class DummyModel(nn.Module):
     def __init__(self):
-        super(DummyModel, self).__init__()
+        super().__init__()
         self.net = nn.Linear(1, 1)
 
     def forward(self, x):

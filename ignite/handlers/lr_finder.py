@@ -537,7 +537,7 @@ class _ExponentialLR(PyTorchLRScheduler):
     ):
         self.end_lrs = end_lrs
         self.num_iter = num_iter
-        super(_ExponentialLR, self).__init__(optimizer, last_epoch)
+        super().__init__(optimizer, last_epoch)
 
         # override base_lrs
         self.base_lrs = start_lrs  # type: ignore[assignment]

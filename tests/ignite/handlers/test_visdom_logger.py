@@ -675,7 +675,7 @@ def test_weights_scalar_handler_wrong_setup():
 def test_weights_scalar_handler():
     class DummyModel(torch.nn.Module):
         def __init__(self):
-            super(DummyModel, self).__init__()
+            super().__init__()
             self.fc1 = torch.nn.Linear(10, 10)
             self.fc2 = torch.nn.Linear(12, 12)
             self.fc1.weight.data.zero_()
@@ -750,7 +750,7 @@ def test_weights_scalar_handler():
 def test_weights_scalar_handler_custom_reduction():
     class DummyModel(torch.nn.Module):
         def __init__(self):
-            super(DummyModel, self).__init__()
+            super().__init__()
             self.fc1 = torch.nn.Linear(10, 10)
             self.fc2 = torch.nn.Linear(12, 12)
             self.fc1.weight.data.zero_()

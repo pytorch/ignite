@@ -326,9 +326,7 @@ class OutputHandler(BaseOutputHandler):
         global_step_transform: Callable[[Engine, str | Events], int] | None = None,
         state_attributes: list[str] | None = None,
     ):
-        super(OutputHandler, self).__init__(
-            tag, metric_names, output_transform, global_step_transform, state_attributes
-        )
+        super().__init__(tag, metric_names, output_transform, global_step_transform, state_attributes)
 
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: str | Events) -> None:
         if not isinstance(logger, TensorboardLogger):
@@ -378,7 +376,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
     """
 
     def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: str | None = None):
-        super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
+        super().__init__(optimizer, param_name, tag)
 
     def __call__(self, engine: Engine, logger: TensorboardLogger, event_name: str | Events) -> None:
         if not isinstance(logger, TensorboardLogger):

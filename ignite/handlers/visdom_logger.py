@@ -371,9 +371,7 @@ class OutputHandler(BaseOutputHandler, _BaseVisDrawer):
         show_legend: bool = False,
         state_attributes: Optional[List[str]] = None,
     ):
-        super(OutputHandler, self).__init__(
-            tag, metric_names, output_transform, global_step_transform, state_attributes
-        )
+        super().__init__(tag, metric_names, output_transform, global_step_transform, state_attributes)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
     def __call__(self, engine: Engine, logger: VisdomLogger, event_name: Union[str, Events]) -> None:
@@ -430,7 +428,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler, _BaseVisDrawer):
     def __init__(
         self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None, show_legend: bool = False
     ):
-        super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
+        super().__init__(optimizer, param_name, tag)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
     def __call__(self, engine: Engine, logger: VisdomLogger, event_name: Union[str, Events]) -> None:
@@ -480,7 +478,7 @@ class WeightsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
     def __init__(
         self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None, show_legend: bool = False
     ):
-        super(WeightsScalarHandler, self).__init__(model, reduction, tag=tag)
+        super().__init__(model, reduction, tag=tag)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
     def __call__(self, engine: Engine, logger: VisdomLogger, event_name: Union[str, Events]) -> None:
@@ -528,7 +526,7 @@ class GradsScalarHandler(BaseWeightsScalarHandler, _BaseVisDrawer):
     def __init__(
         self, model: nn.Module, reduction: Callable = torch.norm, tag: Optional[str] = None, show_legend: bool = False
     ):
-        super(GradsScalarHandler, self).__init__(model, reduction, tag)
+        super().__init__(model, reduction, tag)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
     def __call__(self, engine: Engine, logger: VisdomLogger, event_name: Union[str, Events]) -> None:
