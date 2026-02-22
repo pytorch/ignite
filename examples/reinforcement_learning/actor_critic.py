@@ -27,7 +27,7 @@ class Policy(nn.Module):
     """
 
     def __init__(self):
-        super(Policy, self).__init__()
+        super().__init__()
         self.affine1 = nn.Linear(4, 128)
 
         # actor's layer

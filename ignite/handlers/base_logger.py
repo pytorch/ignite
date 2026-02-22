@@ -218,7 +218,7 @@ class BaseWeightsScalarHandler(BaseWeightsHandler):
         tag: str | None = None,
         whitelist: list[str] | Callable[[str, nn.Parameter], bool] | None = None,
     ):
-        super(BaseWeightsScalarHandler, self).__init__(model, tag=tag, whitelist=whitelist)
+        super().__init__(model, tag=tag, whitelist=whitelist)
 
         if not callable(reduction):
             raise TypeError(f"Argument reduction should be callable, but given {type(reduction)}")
