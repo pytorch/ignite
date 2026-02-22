@@ -1,4 +1,4 @@
-from typing import Callable, Tuple, Union
+from typing import Callable
 
 import torch
 
@@ -61,7 +61,7 @@ class PearsonCorrelation(_BaseRegression):
         self,
         eps: float = 1e-8,
         output_transform: Callable = lambda x: x,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
     ):
         super().__init__(output_transform, device)
 
@@ -85,7 +85,7 @@ class PearsonCorrelation(_BaseRegression):
         self._sum_of_products = torch.tensor(0.0, device=self._device)
         self._num_examples = 0
 
-    def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
+    def _update(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output[0].detach(), output[1].detach()
         self._sum_of_y_preds += y_pred.sum().to(self._device)
         self._sum_of_ys += y.sum().to(self._device)
