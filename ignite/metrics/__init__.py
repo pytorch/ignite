@@ -35,6 +35,7 @@ from ignite.metrics.nlp.rouge import Rouge, RougeL, RougeN
 from ignite.metrics.precision import Precision
 from ignite.metrics.precision_recall_curve import PrecisionRecallCurve
 from ignite.metrics.psnr import PSNR
+from ignite.metrics.recsys.ndcg import NDCG
 from ignite.metrics.recall import Recall
 from ignite.metrics.rec_sys.hitrate import HitRate
 from ignite.metrics.roc_auc import ROC_AUC, RocCurve
@@ -91,6 +92,7 @@ __all__ = [
     "Rouge",
     "RougeN",
     "RougeL",
+    "NDCG",
     "regression",
     "clustering",
     "AveragePrecision",
