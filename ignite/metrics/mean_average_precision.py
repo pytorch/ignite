@@ -16,6 +16,7 @@ class _BaseAveragePrecision:
         self,
         rec_thresholds: Optional[Union[Sequence[float], torch.Tensor]] = None,
         class_mean: Optional[Literal["micro", "macro", "weighted"]] = "macro",
+        device: Union[str, torch.device] = torch.device("cpu"),
     ) -> None:
         r"""Base class for Average Precision metric.
 
@@ -55,6 +56,7 @@ class _BaseAveragePrecision:
                 'macro'
                   computes macro precision which is unweighted mean of AP computed across classes/labels. Default.
         """
+        self._device = torch.device(device)
         if rec_thresholds is not None:
             self.rec_thresholds: Optional[torch.Tensor] = self._setup_thresholds(rec_thresholds, "rec_thresholds")
         else:
@@ -66,7 +68,7 @@ class _BaseAveragePrecision:
 
     def _setup_thresholds(self, thresholds: Union[Sequence[float], torch.Tensor], threshold_type: str) -> torch.Tensor:
         if isinstance(thresholds, Sequence):
-            thresholds = torch.tensor(thresholds, dtype=torch.double)
+            thresholds = torch.tensor(thresholds)
 
         if isinstance(thresholds, torch.Tensor):
             if thresholds.ndim != 1:
@@ -80,8 +82,8 @@ class _BaseAveragePrecision:
 
         if min(thresholds) < 0 or max(thresholds) > 1:
             raise ValueError(f"{threshold_type} values should be between 0 and 1, given {thresholds}")
-
-        return thresholds
+        appropriate_type = torch.float32 if self._device.type == "mps" else torch.float64
+        return thresholds.to(self._device, dtype=appropriate_type)
 
     def _compute_average_precision(self, recall: torch.Tensor, precision: torch.Tensor) -> torch.Tensor:
         """Measuring average precision.

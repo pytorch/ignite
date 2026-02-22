@@ -114,9 +114,6 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
 
         if iou_thresholds is None:
             iou_thresholds = torch.linspace(0.5, 0.95, 10, dtype=torch.double)
-
-        self._iou_thresholds = self._setup_thresholds(iou_thresholds, "iou_thresholds")
-
         if rec_thresholds is None:
             rec_thresholds = torch.linspace(0, 1, 101, dtype=torch.double)
 
@@ -129,10 +126,8 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
             device=device,
             skip_unrolling=skip_unrolling,
         )
-        super(Metric, self).__init__(
-            rec_thresholds=rec_thresholds,
-            class_mean=None,
-        )
+        _BaseAveragePrecision.__init__(self, rec_thresholds=rec_thresholds, class_mean=None, device=device)
+        self._iou_thresholds = self._setup_thresholds(iou_thresholds, "iou_thresholds")
         precision = torch.double if torch.device(device).type != "mps" else torch.float32
         self.rec_thresholds = cast(torch.Tensor, self.rec_thresholds).to(device=device, dtype=precision)
 
