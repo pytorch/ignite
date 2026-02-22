@@ -1,4 +1,4 @@
-from typing import Any, Callable, Tuple, Union
+from typing import Any, Callable
 
 import torch
 
@@ -81,7 +81,7 @@ class SpearmanRankCorrelation(EpochMetric):
         self,
         output_transform: Callable[..., Any] = lambda x: x,
         check_compute_fn: bool = True,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
     ) -> None:
         try:
@@ -91,7 +91,7 @@ class SpearmanRankCorrelation(EpochMetric):
 
         super().__init__(_spearman_r, output_transform, check_compute_fn, device, skip_unrolling)
 
-    def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
+    def update(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output[0].detach(), output[1].detach()
         if y_pred.ndim == 1:
             y_pred = y_pred.unsqueeze(1)
