@@ -18,7 +18,7 @@ from utils import Net, get_data_loaders, get_test_loader, load_data
 
 
 def train_with_ignite(config, data_dir=None, checkpoint_dir=None, num_epochs=10, num_workers=8):
-    device = config.get("device", "cuda" if torch.cuda.is_available() else "cpu")
+    device = config.get("device", "cpu")
     net = Net(config["l1"], config["l2"])
     net = net.to(device)
 
@@ -105,7 +105,7 @@ def tune_cifar(num_samples=10, num_epochs=10, gpus_per_trial=0, cpus_per_trial=2
         "l2": tune.choice([2**i for i in range(9)]),
         "lr": tune.loguniform(1e-4, 1e-1),
         "batch_size": tune.choice([2, 4, 8, 16]),
-        "device": "cuda" if torch.cuda.is_available() else "cpu",
+        "device": "cuda" if gpus_per_trial > 0 else "cpu",
     }
 
     scheduler = ASHAScheduler(
@@ -142,7 +142,7 @@ def tune_cifar(num_samples=10, num_epochs=10, gpus_per_trial=0, cpus_per_trial=2
 
     results = tuner.fit()
 
-    best_result = results.get_best_result("loss", "min")
+    best_result = results.get_best_result("accuracy", "max", filter_nan_and_inf=False)
     print(f"Best trial config: {best_result.config}")
     print(f"Best trial final validation loss: {best_result.metrics['loss']}")
     print(f"Best trial final validation accuracy: {best_result.metrics['accuracy']}")
