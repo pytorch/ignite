@@ -6,7 +6,7 @@ from typing_extensions import Literal
 
 import ignite.distributed as idist
 from ignite.distributed.utils import all_gather_tensors_with_shapes
-from ignite.metrics.metric import reinit__is_reduced
+from ignite.metrics.metric import Metric, reinit__is_reduced
 from ignite.metrics.precision import _BaseClassification
 from ignite.utils import to_onehot
 
@@ -220,13 +220,13 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
         .. versionadded:: 0.5.2
         """
 
-        super().__init__(
+        super(MeanAveragePrecision, self).__init__(
             output_transform=output_transform,
             is_multilabel=is_multilabel,
             device=device,
             skip_unrolling=skip_unrolling,
         )
-        super().__init__(rec_thresholds=rec_thresholds, class_mean=class_mean)
+        super(Metric, self).__init__(rec_thresholds=rec_thresholds, class_mean=class_mean)
 
     @reinit__is_reduced
     def reset(self) -> None:
