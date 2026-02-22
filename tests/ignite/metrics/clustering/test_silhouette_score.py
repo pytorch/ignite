@@ -1,5 +1,3 @@
-from typing import Tuple
-
 import numpy as np
 import pytest
 
@@ -87,7 +85,7 @@ def test_case(request):
 
 
 @pytest.mark.parametrize("n_times", range(5))
-def test_integration(n_times: int, test_case: Tuple[Tensor, Tensor, Tensor], available_device):
+def test_integration(n_times: int, test_case: tuple[Tensor, Tensor, int], available_device):
     features, labels, batch_size = test_case
 
     np_features = features.numpy()

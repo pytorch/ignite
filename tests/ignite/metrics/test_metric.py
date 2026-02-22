@@ -1,6 +1,5 @@
 import numbers
 import os
-from typing import Dict, List
 from unittest.mock import MagicMock
 
 import numpy as np
@@ -1206,7 +1205,7 @@ class DummyMetric4(Metric):
         self.metric._num_correct = self.expected_state["metric"]["_num_correct"]
         self.metric._num_examples = self.expected_state["metric"]["_num_examples"]
 
-        self.metric_dict: Dict[str, Metric] = {
+        self.metric_dict: dict[str, Metric] = {
             "m1": Accuracy(),
             "m2": Precision(),
             "n": self.expected_state["metric_dict"]["n"],
@@ -1218,7 +1217,7 @@ class DummyMetric4(Metric):
         self.metric_dict["m2"]._weight = self.expected_state["metric_dict"]["m2"]["_weight"]
         self.metric_dict["m2"]._updated = self.expected_state["metric_dict"]["m2"]["_updated"]
 
-        self.metric_list: List[Metric] = [
+        self.metric_list: list[Metric] = [
             Recall(),
             Precision(),
             self.expected_state["metric_list"][2],

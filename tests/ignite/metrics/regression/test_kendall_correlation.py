@@ -1,5 +1,3 @@
-from typing import Tuple
-
 import pytest
 
 import torch
@@ -101,7 +99,7 @@ def test_case(request):
     ],
 )
 def test_integration_kendall_rank_correlation(
-    n_times: int, variant: str, test_case: Tuple[torch.Tensor, torch.Tensor, int], available_device
+    n_times: int, variant: str, test_case: tuple[torch.Tensor, torch.Tensor, int], available_device
 ):
     y_pred, y, batch_size = test_case
 
