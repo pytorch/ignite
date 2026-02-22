@@ -178,7 +178,7 @@ class ParamScheduler(BaseParamScheduler):
         save_history: bool = False,
         param_group_index: int | None = None,
     ):
-        super(ParamScheduler, self).__init__(param_name, save_history)
+        super().__init__(param_name, save_history)
         if not (
             isinstance(optimizer, Optimizer)
             or (hasattr(optimizer, "param_groups") and isinstance(optimizer.param_groups, Sequence))
@@ -330,9 +330,7 @@ class CyclicalScheduler(ParamScheduler):
         save_history: bool = False,
         param_group_index: int | None = None,
     ):
-        super(CyclicalScheduler, self).__init__(
-            optimizer, param_name, save_history=save_history, param_group_index=param_group_index
-        )
+        super().__init__(optimizer, param_name, save_history=save_history, param_group_index=param_group_index)
         self.start_value = start_value
         self.end_value = end_value
         self.cycle_size = cycle_size
@@ -489,7 +487,7 @@ class LinearCyclicalScheduler(CyclicalScheduler):
     """
 
     def __init__(self, *args: Any, monotonic: bool = False, **kwagrs: Any):
-        super(LinearCyclicalScheduler, self).__init__(*args, **kwagrs)
+        super().__init__(*args, **kwagrs)
         self.monotonic = monotonic
         if self.warmup_duration > 0 and not self.monotonic:
             raise ValueError(
@@ -718,9 +716,7 @@ class ConcatScheduler(ParamScheduler):
         for s in schedulers:
             s.save_history = save_history
 
-        super(ConcatScheduler, self).__init__(
-            optimizer=optimizer[0], param_name=param_name[0], save_history=save_history
-        )
+        super().__init__(optimizer=optimizer[0], param_name=param_name[0], save_history=save_history)
 
         self._scheduler_index = 0
         self._setup_scheduler()
@@ -984,7 +980,7 @@ class LRScheduler(ParamScheduler):
         if isinstance(lr_scheduler, CosineAnnealingWarmRestarts):
             self.lr_scheduler = _CosineAnnealingWarmRestarts(lr_scheduler)
 
-        super(LRScheduler, self).__init__(
+        super().__init__(
             optimizer=self.lr_scheduler.optimizer,
             param_name="lr",
             save_history=save_history,
@@ -1322,7 +1318,7 @@ class PiecewiseLinear(ParamScheduler):
         save_history: bool = False,
         param_group_index: int | None = None,
     ):
-        super(PiecewiseLinear, self).__init__(optimizer, param_name, save_history, param_group_index=param_group_index)
+        super().__init__(optimizer, param_name, save_history, param_group_index=param_group_index)
 
         if not isinstance(milestones_values, Sequence):
             raise TypeError(
@@ -1661,9 +1657,7 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
         param_group_index: int | None = None,
         **scheduler_kwargs: Any,
     ):
-        super(ReduceLROnPlateauScheduler, self).__init__(
-            optimizer, "lr", save_history=save_history, param_group_index=param_group_index
-        )
+        super().__init__(optimizer, "lr", save_history=save_history, param_group_index=param_group_index)
         self.metric_name = metric_name
         self.trainer = trainer
         self.optimizer = optimizer

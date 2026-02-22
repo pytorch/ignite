@@ -28,7 +28,7 @@ from ignite.utils import _tree_map
 
 class DummyMetric1(Metric):
     def __init__(self, true_output, output_transform=lambda x: x):
-        super(DummyMetric1, self).__init__(output_transform=output_transform)
+        super().__init__(output_transform=output_transform)
         self.true_output = true_output
 
     def reset(self):
@@ -135,7 +135,7 @@ def test_arithmetics():
     class ListGatherMetric(Metric):
         def __init__(self, index):
             self.index = index
-            super(ListGatherMetric, self).__init__()
+            super().__init__()
 
         def reset(self):
             self.list_ = []
@@ -282,7 +282,7 @@ def test_attach():
     class CountMetric(Metric):
         def __init__(self, value):
             self.reset_count = 0
-            super(CountMetric, self).__init__()
+            super().__init__()
             self.reset_count = 0
             self.compute_count = 0
             self.update_count = 0
@@ -867,7 +867,7 @@ def test_usage_exception():
 
 class DummyAccumulateInListMetric(Metric):
     def __init__(self):
-        super(DummyAccumulateInListMetric, self).__init__()
+        super().__init__()
         self.value = []
 
     def reset(self):
@@ -900,7 +900,7 @@ def test_epochwise_usage(usage):
 
 class DummyAccumulateMetric(Metric):
     def __init__(self):
-        super(DummyAccumulateMetric, self).__init__()
+        super().__init__()
         self.value = 0
 
     def reset(self):
@@ -990,7 +990,7 @@ def test_single_epoch_running_batchwise_usage(usage):
 def test_batchfiltered_usage():
     class MyMetric(Metric):
         def __init__(self):
-            super(MyMetric, self).__init__()
+            super().__init__()
             self.value = []
 
         def reset(self):
@@ -1086,7 +1086,7 @@ def test_list_of_tensors_and_numbers(shapes):
 
     class MyMetric(Metric):
         def __init__(self, check_fn):
-            super(MyMetric, self).__init__()
+            super().__init__()
             self.check_fn = check_fn
 
         def reset(self):
@@ -1419,7 +1419,7 @@ def test_load_state_dict():
 
 class DummyMetric5(Metric):
     def __init__(self, true_output, output_transform=lambda x: x, skip_unrolling=False):
-        super(DummyMetric5, self).__init__(output_transform=output_transform, skip_unrolling=skip_unrolling)
+        super().__init__(output_transform=output_transform, skip_unrolling=skip_unrolling)
         self.true_output = true_output
 
     def reset(self):
