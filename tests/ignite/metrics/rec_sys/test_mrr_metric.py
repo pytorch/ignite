@@ -14,7 +14,7 @@ def ranx_mrr(
     top_k: list[int],
     ignore_zero_hits: bool = True,
 ) -> list[float]:
-    """Reference MRR implementation using ranx for verification."""
+    """Reference MRR implementation using ranx for verification. https://github.com/AmenRa/ranx """
     from ranx import Qrels, Run, evaluate
 
     sorted_top_k = sorted(top_k)
