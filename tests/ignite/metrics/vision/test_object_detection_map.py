@@ -1,3 +1,13 @@
+from ignite.utils import manual_seed
+from ignite.metrics.vision.object_detection_average_precision_recall import coco_tensor_list_to_dict_list
+from ignite.metrics import CommonObjectDetectionMetrics, ObjectDetectionAvgPrecisionRecall
+from ignite.engine import Engine
+import ignite.distributed as idist
+from torch.distributions.geometric import Geometric
+from pycocotools.cocoeval import COCOeval
+from pycocotools.coco import COCO
+import torch
+import pytest
 import sys
 from collections import namedtuple
 from math import ceil
@@ -9,17 +19,6 @@ from sklearn.utils.extmath import stable_cumsum
 
 np.float = float
 
-import pytest
-import torch
-from pycocotools.coco import COCO
-from pycocotools.cocoeval import COCOeval
-from torch.distributions.geometric import Geometric
-
-import ignite.distributed as idist
-from ignite.engine import Engine
-from ignite.metrics import CommonObjectDetectionMetrics, ObjectDetectionAvgPrecisionRecall
-from ignite.metrics.vision.object_detection_average_precision_recall import coco_tensor_list_to_dict_list
-from ignite.utils import manual_seed
 
 torch.set_printoptions(linewidth=200)
 manual_seed(12)
@@ -66,7 +65,8 @@ def coco_val2017_sample() -> Tuple[List[Dict[str, torch.Tensor]], List[Dict[str,
                 [175.1900, 252.0200, 209.2000, 278.7200, 23.0000, 0.0000],
             ]
         ),
-        torch.tensor([[196.7700, 199.6900, 301.8300, 373.2700, 2.0000, 0.0000]]),
+        torch.tensor(
+            [[196.7700, 199.6900, 301.8300, 373.2700, 2.0000, 0.0000]]),
         torch.tensor(
             [
                 [88.4500, 168.2700, 465.9800, 318.2000, 6.0000, 0.0000],
@@ -441,7 +441,8 @@ def random_sample() -> Tuple[List[Dict[str, torch.Tensor]], List[Dict[str, torch
         perturb_y1 = 640 * (torch.rand_like(y1, dtype=torch.float) - 0.5)
         perturb_w = 640 * (torch.rand_like(w, dtype=torch.float) - 0.5)
         perturb_h = 640 * (torch.rand_like(h, dtype=torch.float) - 0.5)
-        perturb_category = Geometric(0.7).sample((n_predicted_box, 1)) * (2 * torch.randint_like(category, 2) - 1)
+        perturb_category = Geometric(0.7).sample(
+            (n_predicted_box, 1)) * (2 * torch.randint_like(category, 2) - 1)
 
         x1 = (x1 + perturb_x1).clip(min=0, max=640)
         y1 = (y1 + perturb_y1).clip(min=0, max=640)
@@ -451,7 +452,8 @@ def random_sample() -> Tuple[List[Dict[str, torch.Tensor]], List[Dict[str, torch
         y2 = (y1 + h).clip(max=640)
         category = (category + perturb_category) % 80
         confidence = torch.rand_like(category, dtype=torch.double)
-        perturbed_gt_boxes = torch.cat((x1, y1, x2, y2, confidence, category), dim=1)
+        perturbed_gt_boxes = torch.cat(
+            (x1, y1, x2, y2, confidence, category), dim=1)
 
         # Generate some additional prediction boxes
         n_additional_pred_boxes = torch.randint(50, (1,)).item()
@@ -463,9 +465,11 @@ def random_sample() -> Tuple[List[Dict[str, torch.Tensor]], List[Dict[str, torch
         y2 = (y1 + h).clip(max=640)
         category = torch.randint(0, 80, (n_additional_pred_boxes, 1))
         confidence = torch.rand_like(category, dtype=torch.double)
-        additional_pred_boxes = torch.cat((x1, y1, x2, y2, confidence, category), dim=1)
+        additional_pred_boxes = torch.cat(
+            (x1, y1, x2, y2, confidence, category), dim=1)
 
-        preds.append(torch.cat((perturbed_gt_boxes, additional_pred_boxes), dim=0))
+        preds.append(
+            torch.cat((perturbed_gt_boxes, additional_pred_boxes), dim=0))
 
     return [{"bbox": p[:, :4], "scores": p[:, 4], "labels": p[:, 5]} for p in preds], [
         {"bbox": g[:, :4], "labels": g[:, 4].long(), "iscrowd": g[:, 5]} for g in targets
@@ -560,7 +564,8 @@ Sample = namedtuple("Sample", ["data", "mAP", "length"])
     ]
 )
 def sample(request) -> Sample:
-    data = coco_val2017_sample() if request.param[0] == "coco2017" else random_sample()
+    data = coco_val2017_sample(
+    ) if request.param[0] == "coco2017" else random_sample()
     if request.param[1] == "with_an_empty_pred":
         data[0][1] = {
             "bbox": torch.zeros(0, 4),
@@ -619,9 +624,11 @@ def test_wrong_input():
     with pytest.raises(ValueError, match="y_pred and y should contain at least one sample."):
         m.update(([], []))
     with pytest.raises(ValueError, match="y_pred sample dictionaries should have 'bbox', 'scores'"):
-        m.update(([{"bbox": None, "scores": None}], [{"bbox": None, "labels": None}]))
+        m.update(([{"bbox": None, "scores": None}],
+                 [{"bbox": None, "labels": None}]))
     with pytest.raises(ValueError, match="y sample dictionaries should have 'bbox', 'labels'"):
-        m.update(([{"bbox": None, "scores": None, "labels": None}], [{"labels": None}]))
+        m.update(
+            ([{"bbox": None, "scores": None, "labels": None}], [{"labels": None}]))
 
 
 def test_empty_data(available_device):
@@ -633,8 +640,10 @@ def test_empty_data(available_device):
     assert metric._device == torch.device(available_device)
     metric.update(
         (
-            [{"bbox": torch.zeros((0, 4)), "scores": torch.zeros((0,)), "labels": torch.zeros((0), dtype=torch.long)}],
-            [{"bbox": torch.zeros((0, 4)), "iscrowd": torch.zeros((0,)), "labels": torch.zeros((0), dtype=torch.long)}],
+            [{"bbox": torch.zeros((0, 4)), "scores": torch.zeros(
+                (0,)), "labels": torch.zeros((0), dtype=torch.long)}],
+            [{"bbox": torch.zeros((0, 4)), "iscrowd": torch.zeros(
+                (0,)), "labels": torch.zeros((0), dtype=torch.long)}],
         )
     )
     assert len(metric._tps) == 0
@@ -649,7 +658,8 @@ def test_empty_data(available_device):
                     "labels": torch.ones((1,), dtype=torch.long),
                 }
             ],
-            [{"bbox": torch.zeros((0, 4)), "iscrowd": torch.zeros((0,)), "labels": torch.zeros((0), dtype=torch.long)}],
+            [{"bbox": torch.zeros((0, 4)), "iscrowd": torch.zeros(
+                (0,)), "labels": torch.zeros((0), dtype=torch.long)}],
         )
     )
     assert metric.compute() == (-1, -1)
@@ -658,7 +668,8 @@ def test_empty_data(available_device):
     assert metric._device == torch.device(available_device)
     metric.update(
         (
-            [{"bbox": torch.zeros((0, 4)), "scores": torch.zeros((0,)), "labels": torch.zeros((0), dtype=torch.long)}],
+            [{"bbox": torch.zeros((0, 4)), "scores": torch.zeros(
+                (0,)), "labels": torch.zeros((0), dtype=torch.long)}],
             [
                 {
                     "bbox": torch.tensor([[0.0, 0.0, 100.0, 100.0]]),
@@ -680,7 +691,8 @@ def test_empty_data(available_device):
         "scores": torch.tensor([0.9]),
         "labels": torch.tensor([5]),
     }
-    target = {"bbox": torch.zeros((0, 4)), "iscrowd": torch.zeros((0,)), "labels": torch.zeros((0), dtype=torch.long)}
+    target = {"bbox": torch.zeros((0, 4)), "iscrowd": torch.zeros(
+        (0,)), "labels": torch.zeros((0), dtype=torch.long)}
     metric.update(([pred], [target]))
     assert len(metric._tps) == len(metric._fps) == 1
     pycoco_result = pycoco_mAP([pred], [target])
@@ -694,7 +706,8 @@ def test_no_torchvision():
 
 
 def test_iou(sample, available_device):
-    m = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=available_device)
+    m = ObjectDetectionAvgPrecisionRecall(
+        num_classes=91, device=available_device)
     assert m._device == torch.device(available_device)
     from pycocotools.mask import iou as pycoco_iou
 
@@ -709,14 +722,16 @@ def test_iou(sample, available_device):
 
         pred_bbox[:, 2:4] -= pred_bbox[:, :2]
         tgt_bbox[:, 2:4] -= tgt_bbox[:, :2]
-        pyc_iou = pycoco_iou(pred_bbox.numpy(), tgt_bbox.numpy(), iscrowd.int())
+        pyc_iou = pycoco_iou(
+            pred_bbox.numpy(), tgt_bbox.numpy(), iscrowd.int())
 
         equal = ignite_iou.numpy() == pyc_iou
         assert equal.all()
 
 
 def test_iou_thresholding(available_device):
-    metric = ObjectDetectionAvgPrecisionRecall(iou_thresholds=[0.0, 0.3, 0.5, 0.75], device=available_device)
+    metric = ObjectDetectionAvgPrecisionRecall(
+        iou_thresholds=[0.0, 0.3, 0.5, 0.75], device=available_device)
     current_device = torch.device(available_device)
     assert metric._device == current_device
     # Checking whether the thresholds are properly assigned to a particular device.
@@ -727,18 +742,22 @@ def test_iou_thresholding(available_device):
         "scores": torch.tensor([0.8], device=current_device),
         "labels": torch.tensor([1], device=current_device),
     }
-    gt = {"bbox": torch.tensor([[0.0, 0.0, 50.0, 100.0]], device=current_device), "iscrowd": torch.zeros((1,), device=current_device), "labels": torch.tensor([1], device=current_device)}
+    gt = {"bbox": torch.tensor([[0.0, 0.0, 50.0, 100.0]], device=current_device), "iscrowd": torch.zeros(
+        (1,), device=current_device), "labels": torch.tensor([1], device=current_device)}
     metric.update(([pred], [gt]))
-    assert (metric._tps[0] == torch.tensor([[True], [True], [True], [False]], device=current_device)).all()
+    assert (metric._tps[0] == torch.tensor(
+        [[True], [True], [True], [False]], device=current_device)).all()
 
     pred = {
         "bbox": torch.tensor([[0.0, 0.0, 100.0, 100.0]], device=current_device),
         "scores": torch.tensor([0.8], device=current_device),
         "labels": torch.tensor([1], device=current_device),
     }
-    gt = {"bbox": torch.tensor([[100.0, 0.0, 200.0, 100.0]], device=current_device), "iscrowd": torch.zeros((1,), device=current_device), "labels": torch.tensor([1], device=current_device)}
+    gt = {"bbox": torch.tensor([[100.0, 0.0, 200.0, 100.0]], device=current_device), "iscrowd": torch.zeros(
+        (1,), device=current_device), "labels": torch.tensor([1], device=current_device)}
     metric.update(([pred], [gt]))
-    assert (metric._tps[1] == torch.tensor([[True], [False], [False], [False]], device=current_device)).all()
+    assert (metric._tps[1] == torch.tensor(
+        [[True], [False], [False], [False]], device=current_device)).all()
 
 
 def test_matching(available_device):
@@ -759,7 +778,8 @@ def test_matching(available_device):
         7. Non-ignored ground truths are given priority over the ignored ones when matching with a prediction
             even if their IOU is lower.
     """
-    metric = ObjectDetectionAvgPrecisionRecall(iou_thresholds=[0.2], device=available_device)
+    metric = ObjectDetectionAvgPrecisionRecall(
+        iou_thresholds=[0.2], device=available_device)
     assert metric._device == torch.device(available_device)
 
     pred = {
@@ -774,44 +794,61 @@ def test_matching(available_device):
     }
     metric.update(([pred], [gt]))
     # Preds are sorted by their scores internally
-    assert (metric._tps[0] == torch.tensor([[True, False]], device=available_device)).all()
-    assert (metric._fps[0] == torch.tensor([[False, True]], device=available_device)).all()
-    assert (metric._scores[0] == torch.tensor([[0.9, 0.8]], device=available_device)).all()
+    assert (metric._tps[0] == torch.tensor(
+        [[True, False]], device=available_device)).all()
+    assert (metric._fps[0] == torch.tensor(
+        [[False, True]], device=available_device)).all()
+    assert (metric._scores[0] == torch.tensor(
+        [[0.9, 0.8]], device=available_device)).all()
 
     pred["scores"] = torch.tensor([0.9, 0.9])
     metric.update(([pred], [gt]))
-    assert (metric._tps[1] == torch.tensor([[True, False]], device=available_device)).all()
-    assert (metric._fps[1] == torch.tensor([[False, True]], device=available_device)).all()
+    assert (metric._tps[1] == torch.tensor(
+        [[True, False]], device=available_device)).all()
+    assert (metric._fps[1] == torch.tensor(
+        [[False, True]], device=available_device)).all()
 
     gt["iscrowd"] = torch.tensor([1])
     metric.update(([pred], [gt]))
-    assert (metric._tps[2] == torch.tensor([[False, False]], device=available_device)).all()
-    assert (metric._fps[2] == torch.tensor([[False, False]], device=available_device)).all()
+    assert (metric._tps[2] == torch.tensor(
+        [[False, False]], device=available_device)).all()
+    assert (metric._fps[2] == torch.tensor(
+        [[False, False]], device=available_device)).all()
 
-    pred["bbox"] = torch.tensor([[0.0, 0.0, 100.0, 100.0], [100.0, 0.0, 200.0, 100.0]])
-    gt["bbox"] = torch.tensor([[0.0, 0.0, 25.0, 50.0], [50.0, 0.0, 150.0, 100.0]])
+    pred["bbox"] = torch.tensor(
+        [[0.0, 0.0, 100.0, 100.0], [100.0, 0.0, 200.0, 100.0]])
+    gt["bbox"] = torch.tensor(
+        [[0.0, 0.0, 25.0, 50.0], [50.0, 0.0, 150.0, 100.0]])
     gt["iscrowd"] = torch.zeros((2,))
     gt["labels"] = torch.tensor([1, 1])
     metric.update(([pred], [gt]))
-    assert (metric._tps[3] == torch.tensor([[True, False]], device=available_device)).all()
-    assert (metric._fps[3] == torch.tensor([[False, True]], device=available_device)).all()
+    assert (metric._tps[3] == torch.tensor(
+        [[True, False]], device=available_device)).all()
+    assert (metric._fps[3] == torch.tensor(
+        [[False, True]], device=available_device)).all()
 
     metric._area_range = "small"
     pred["bbox"] = torch.tensor(
-        [[0.0, 0.0, 100.0, 10.0], [0.0, 0.0, 100.0, 10.0], [0.0, 0.0, 100.0, 11.0], [0.0, 0.0, 100.0, 10.0]]
+        [[0.0, 0.0, 100.0, 10.0], [0.0, 0.0, 100.0, 10.0], [
+            0.0, 0.0, 100.0, 11.0], [0.0, 0.0, 100.0, 10.0]]
     )
     pred["scores"] = torch.tensor([0.9, 0.9, 0.9, 0.9])
     pred["labels"] = torch.tensor([1, 1, 1, 1])
-    gt["bbox"] = torch.tensor([[0.0, 0.0, 100.0, 11.0], [0.0, 0.0, 100.0, 5.0]])
+    gt["bbox"] = torch.tensor(
+        [[0.0, 0.0, 100.0, 11.0], [0.0, 0.0, 100.0, 5.0]])
     metric.update(([pred], [gt]))
-    assert (metric._tps[4] == torch.tensor([[True, False, False, False]], device=available_device)).all()
-    assert (metric._fps[4] == torch.tensor([[False, False, False, True]], device=available_device)).all()
+    assert (metric._tps[4] == torch.tensor(
+        [[True, False, False, False]], device=available_device)).all()
+    assert (metric._fps[4] == torch.tensor(
+        [[False, False, False, True]], device=available_device)).all()
 
     pred["scores"] = torch.tensor([0.9, 1.0, 0.9, 0.9])
     metric._max_detections_per_image_per_class = 1
     metric.update(([pred], [gt]))
-    assert (metric._tps[5] == torch.tensor([[True]], device=available_device)).all()
-    assert (metric._fps[5] == torch.tensor([[False]], device=available_device)).all()
+    assert (metric._tps[5] == torch.tensor(
+        [[True]], device=available_device)).all()
+    assert (metric._fps[5] == torch.tensor(
+        [[False]], device=available_device)).all()
 
 
 def sklearn_precision_recall_curve_allowing_multiple_recalls_at_single_threshold(y_true, y_score):
@@ -879,16 +916,25 @@ def test_compute(sample):
         pytest.skip("Due to MPS backend out of memory")
 
     # AP@.5...95, AP@.5, AP@.75, AP-S, AP-M, AP-L, AR-1, AR-10, AR-100, AR-S, AR-M, AR-L
-    ap_50_95_ar_100 = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=device)
-    ap_50 = ObjectDetectionAvgPrecisionRecall(num_classes=91, iou_thresholds=[0.5], device=device)
-    ap_75 = ObjectDetectionAvgPrecisionRecall(num_classes=91, iou_thresholds=[0.75], device=device)
-    ap_ar_S = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=device, area_range="small")
-    ap_ar_M = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=device, area_range="medium")
-    ap_ar_L = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=device, area_range="large")
-    ar_1 = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=device, max_detections_per_image_per_class=1)
-    ar_10 = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=device, max_detections_per_image_per_class=10)
+    ap_50_95_ar_100 = ObjectDetectionAvgPrecisionRecall(
+        num_classes=91, device=device)
+    ap_50 = ObjectDetectionAvgPrecisionRecall(
+        num_classes=91, iou_thresholds=[0.5], device=device)
+    ap_75 = ObjectDetectionAvgPrecisionRecall(
+        num_classes=91, iou_thresholds=[0.75], device=device)
+    ap_ar_S = ObjectDetectionAvgPrecisionRecall(
+        num_classes=91, device=device, area_range="small")
+    ap_ar_M = ObjectDetectionAvgPrecisionRecall(
+        num_classes=91, device=device, area_range="medium")
+    ap_ar_L = ObjectDetectionAvgPrecisionRecall(
+        num_classes=91, device=device, area_range="large")
+    ar_1 = ObjectDetectionAvgPrecisionRecall(
+        num_classes=91, device=device, max_detections_per_image_per_class=1)
+    ar_10 = ObjectDetectionAvgPrecisionRecall(
+        num_classes=91, device=device, max_detections_per_image_per_class=10)
 
-    metrics = [ap_50_95_ar_100, ap_50, ap_75, ap_ar_S, ap_ar_M, ap_ar_L, ar_1, ar_10]
+    metrics = [ap_50_95_ar_100, ap_50, ap_75,
+               ap_ar_S, ap_ar_M, ap_ar_L, ar_1, ar_10]
     for metric in metrics:
         metric.update(sample.data)
 
@@ -905,11 +951,13 @@ def test_compute(sample):
     AP_L, AR_L = ignite_res[5]
     AR_1 = ignite_res[6][1]
     AR_10 = ignite_res[7][1]
-    all_res = [AP_50_95, AP_50, AP_75, AP_S, AP_M, AP_L, AR_1, AR_10, AR_100, AR_S, AR_M, AR_L]
+    all_res = [AP_50_95, AP_50, AP_75, AP_S, AP_M,
+               AP_L, AR_1, AR_10, AR_100, AR_S, AR_M, AR_L]
     print(all_res)
     assert np.allclose(all_res, sample.mAP)
 
-    common_metrics = CommonObjectDetectionMetrics(num_classes=91, device=device)
+    common_metrics = CommonObjectDetectionMetrics(
+        num_classes=91, device=device)
     common_metrics.update(sample.data)
     res = common_metrics.compute()
     common_metrics_res = [
@@ -945,7 +993,8 @@ def test_integration(sample):
     engine = Engine(update)
 
     metric_device = "cpu" if device.type == "xla" else device
-    metric_50_95 = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=metric_device)
+    metric_50_95 = ObjectDetectionAvgPrecisionRecall(
+        num_classes=91, device=metric_device)
     metric_50_95.attach(engine, name="mAP[50-95]")
 
     n_iter = ceil(sample.length / bs)
@@ -961,8 +1010,10 @@ def test_tensor_list_to_dict_list():
     y_preds = [
         [torch.randn((2, 6)), torch.randn((0, 6)), torch.randn((5, 6))],
         [
-            {"bbox": torch.randn((2, 4)), "confidence": torch.randn((2,)), "class": torch.randn((2,))},
-            {"bbox": torch.randn((5, 4)), "confidence": torch.randn((5,)), "class": torch.randn((5,))},
+            {"bbox": torch.randn((2, 4)), "confidence": torch.randn(
+                (2,)), "class": torch.randn((2,))},
+            {"bbox": torch.randn((5, 4)), "confidence": torch.randn(
+                (5,)), "class": torch.randn((5,))},
         ],
     ]
     ys = [
@@ -1002,7 +1053,8 @@ def test_tensor_list_to_dict_list():
 def test_distrib_update_compute(distributed, sample):
     rank_samples_cnt = ceil(sample.length / idist.get_world_size())
     rank = idist.get_rank()
-    rank_samples_range = slice(rank_samples_cnt * rank, rank_samples_cnt * (rank + 1))
+    rank_samples_range = slice(
+        rank_samples_cnt * rank, rank_samples_cnt * (rank + 1))
 
     device = idist.device()
 
@@ -1011,18 +1063,26 @@ def test_distrib_update_compute(distributed, sample):
 
     metric_device = "cpu" if device.type == "xla" else device
     # AP@.5...95, AP@.5, AP@.75, AP-S, AP-M, AP-L, AR-1, AR-10, AR-100, AR-S, AR-M, AR-L
-    ap_50_95_ar_100 = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=metric_device)
-    ap_50 = ObjectDetectionAvgPrecisionRecall(num_classes=91, iou_thresholds=[0.5], device=metric_device)
-    ap_75 = ObjectDetectionAvgPrecisionRecall(num_classes=91, iou_thresholds=[0.75], device=metric_device)
-    ap_ar_S = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=metric_device, area_range="small")
-    ap_ar_M = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=metric_device, area_range="medium")
-    ap_ar_L = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=metric_device, area_range="large")
-    ar_1 = ObjectDetectionAvgPrecisionRecall(num_classes=91, device=metric_device, max_detections_per_image_per_class=1)
+    ap_50_95_ar_100 = ObjectDetectionAvgPrecisionRecall(
+        num_classes=91, device=metric_device)
+    ap_50 = ObjectDetectionAvgPrecisionRecall(
+        num_classes=91, iou_thresholds=[0.5], device=metric_device)
+    ap_75 = ObjectDetectionAvgPrecisionRecall(
+        num_classes=91, iou_thresholds=[0.75], device=metric_device)
+    ap_ar_S = ObjectDetectionAvgPrecisionRecall(
+        num_classes=91, device=metric_device, area_range="small")
+    ap_ar_M = ObjectDetectionAvgPrecisionRecall(
+        num_classes=91, device=metric_device, area_range="medium")
+    ap_ar_L = ObjectDetectionAvgPrecisionRecall(
+        num_classes=91, device=metric_device, area_range="large")
+    ar_1 = ObjectDetectionAvgPrecisionRecall(
+        num_classes=91, device=metric_device, max_detections_per_image_per_class=1)
     ar_10 = ObjectDetectionAvgPrecisionRecall(
         num_classes=91, device=metric_device, max_detections_per_image_per_class=10
     )
 
-    metrics = [ap_50_95_ar_100, ap_50, ap_75, ap_ar_S, ap_ar_M, ap_ar_L, ar_1, ar_10]
+    metrics = [ap_50_95_ar_100, ap_50, ap_75,
+               ap_ar_S, ap_ar_M, ap_ar_L, ar_1, ar_10]
 
     y_pred_rank = sample.data[0][rank_samples_range]
     y_rank = sample.data[1][rank_samples_range]
@@ -1041,10 +1101,12 @@ def test_distrib_update_compute(distributed, sample):
     AP_L, AR_L = ignite_res[5]
     AR_1 = ignite_res[6][1]
     AR_10 = ignite_res[7][1]
-    all_res = [AP_50_95, AP_50, AP_75, AP_S, AP_M, AP_L, AR_1, AR_10, AR_100, AR_S, AR_M, AR_L]
+    all_res = [AP_50_95, AP_50, AP_75, AP_S, AP_M,
+               AP_L, AR_1, AR_10, AR_100, AR_S, AR_M, AR_L]
     assert np.allclose(all_res, sample.mAP)
 
-    common_metrics = CommonObjectDetectionMetrics(num_classes=91, device=device)
+    common_metrics = CommonObjectDetectionMetrics(
+        num_classes=91, device=device)
     common_metrics.update((y_pred_rank, y_rank))
     res = common_metrics.compute()
     common_metrics_res = [
