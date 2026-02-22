@@ -11,7 +11,7 @@ from ray import tune
 from ray.tune import Checkpoint
 from ray.tune.schedulers import ASHAScheduler
 
-from ignite.engine import Engine, Events
+from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import Loss, Accuracy
 
 from utils import Net, get_data_loaders, get_test_loader, load_data
@@ -39,33 +39,10 @@ def train_with_ignite(config, data_dir=None, checkpoint_dir=None, num_epochs=10,
 
     train_loader, val_loader = get_data_loaders(int(config["batch_size"]), data_dir, num_workers)
 
-    def train_step(engine, batch):
-        net.train()
-        inputs, labels = batch
-        inputs, labels = inputs.to(device), labels.to(device)
-
-        optimizer.zero_grad()
-        outputs = net(inputs)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
-
-        return loss.item()
-
-    def eval_step(engine, batch):
-        net.eval()
-        with torch.no_grad():
-            inputs, labels = batch
-            inputs, labels = inputs.to(device), labels.to(device)
-            outputs = net(inputs)
-            return outputs, labels
-
-    trainer = Engine(train_step)
-    evaluator = Engine(eval_step)
+    trainer = create_supervised_trainer(net, optimizer, criterion, device=device)
 
     metrics = {"accuracy": Accuracy(), "loss": Loss(criterion)}
-    for name, metric in metrics.items():
-        metric.attach(evaluator, name=name)
+    evaluator = create_supervised_evaluator(net, metrics=metrics, device=device)
 
     state = {"epoch": start_epoch}
 
