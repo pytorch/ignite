@@ -360,6 +360,7 @@ Complete list of metrics
     Entropy
     KLDivergence
     JSDivergence
+    MatthewsCorrCoef
     MaximumMeanDiscrepancy
     HSIC
     AveragePrecision
@@ -389,6 +390,7 @@ Complete list of metrics
     clustering.SilhouetteScore
     clustering.DaviesBouldinScore
     clustering.CalinskiHarabaszScore
+    rec_sys.HitRate
 
 
 .. note::
