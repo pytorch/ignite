@@ -81,7 +81,7 @@ class EpochWise(MetricUsage):
     usage_name: str = "epoch_wise"
 
     def __init__(self) -> None:
-        super().__init__(
+        super(EpochWise, self).__init__(
             started=Events.EPOCH_STARTED,
             completed=Events.EPOCH_COMPLETED,
             iteration_completed=Events.ITERATION_COMPLETED,
@@ -108,7 +108,7 @@ class RunningEpochWise(EpochWise):
     usage_name: str = "running_epoch_wise"
 
     def __init__(self) -> None:
-        super().__init__(
+        super(EpochWise, self).__init__(
             started=Events.STARTED,
             completed=Events.EPOCH_COMPLETED,
             iteration_completed=Events.EPOCH_COMPLETED,
@@ -133,7 +133,7 @@ class BatchWise(MetricUsage):
     usage_name: str = "batch_wise"
 
     def __init__(self) -> None:
-        super().__init__(
+        super(BatchWise, self).__init__(
             started=Events.ITERATION_STARTED,
             completed=Events.ITERATION_COMPLETED,
             iteration_completed=Events.ITERATION_COMPLETED,
@@ -160,7 +160,7 @@ class RunningBatchWise(BatchWise):
     usage_name: str = "running_batch_wise"
 
     def __init__(self) -> None:
-        super().__init__(
+        super(BatchWise, self).__init__(
             started=Events.STARTED,
             completed=Events.ITERATION_COMPLETED,
             iteration_completed=Events.ITERATION_COMPLETED,
@@ -186,7 +186,7 @@ class SingleEpochRunningBatchWise(BatchWise):
     usage_name: str = "single_epoch_running_batch_wise"
 
     def __init__(self) -> None:
-        super().__init__(
+        super(BatchWise, self).__init__(
             started=Events.EPOCH_STARTED,
             completed=Events.ITERATION_COMPLETED,
             iteration_completed=Events.ITERATION_COMPLETED,
@@ -212,7 +212,7 @@ class BatchFiltered(MetricUsage):
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(
+        super(BatchFiltered, self).__init__(
             started=Events.EPOCH_STARTED,
             completed=Events.EPOCH_COMPLETED,
             iteration_completed=Events.ITERATION_COMPLETED(*args, **kwargs),
