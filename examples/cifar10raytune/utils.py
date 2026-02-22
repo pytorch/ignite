@@ -4,6 +4,7 @@ import torchvision.transforms as transforms
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class Net(nn.Module):
     def __init__(self, l1=120, l2=84):
         super(Net, self).__init__()
@@ -35,14 +36,11 @@ def load_data(data_dir="./data"):
         ]
     )
 
-    train_set = torchvision.datasets.CIFAR10(
-        root=data_dir, train=True, download=True, transform=transform
-    )
-    test_set = torchvision.datasets.CIFAR10(
-        root=data_dir, train=False, download=True, transform=transform
-    )
+    train_set = torchvision.datasets.CIFAR10(root=data_dir, train=True, download=True, transform=transform)
+    test_set = torchvision.datasets.CIFAR10(root=data_dir, train=False, download=True, transform=transform)
 
     return train_set, test_set
+
 
 def get_data_loaders(batch_size, data_dir="./data", num_workers=8):
     train_set, _ = load_data(data_dir)
@@ -50,16 +48,12 @@ def get_data_loaders(batch_size, data_dir="./data", num_workers=8):
     train_size = int(len(train_set) * 0.8)
     val_size = len(train_set) - train_size
 
-    train_subset, val_subset = torch.utils.data.random_split(
-        train_set, [train_size, val_size]
-    )
+    train_subset, val_subset = torch.utils.data.random_split(train_set, [train_size, val_size])
 
     train_loader = torch.utils.data.DataLoader(
         train_subset, batch_size=batch_size, shuffle=True, num_workers=num_workers
     )
-    val_loader = torch.utils.data.DataLoader(
-        val_subset, batch_size=batch_size, shuffle=True, num_workers=num_workers
-    )
+    val_loader = torch.utils.data.DataLoader(val_subset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
 
     return train_loader, val_loader
 
@@ -67,8 +61,6 @@ def get_data_loaders(batch_size, data_dir="./data", num_workers=8):
 def get_test_loader(batch_size, data_dir="./data", num_workers=8):
     _, test_set = load_data(data_dir)
 
-    test_loader = torch.utils.data.DataLoader(
-        test_set, batch_size=batch_size, shuffle=False, num_workers=num_workers
-    )
+    test_loader = torch.utils.data.DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
     return test_loader

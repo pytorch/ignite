@@ -32,13 +32,13 @@ python main.py
 
 ### Command-line arguments
 
-| Argument | Default | Description |
-|----------|---------|-------------|
-| `--num_samples` | 10 | Number of trials for Ray Tune |
-| `--num_epochs` | 10 | Number of epochs per trial |
-| `--gpus_per_trial` | 0 | GPUs per trial (0 for CPU) |
-| `--cpus_per_trial` | 2 | CPUs per trial |
-| `--data_dir` | `./data` | Path to CIFAR10 dataset |
+| Argument           | Default  | Description                   |
+| ------------------ | -------- | ----------------------------- |
+| `--num_samples`    | 10       | Number of trials for Ray Tune |
+| `--num_epochs`     | 10       | Number of epochs per trial    |
+| `--gpus_per_trial` | 0        | GPUs per trial (0 for CPU)    |
+| `--cpus_per_trial` | 2        | CPUs per trial                |
+| `--data_dir`       | `./data` | Path to CIFAR10 dataset       |
 
 ### Examples
 
@@ -64,11 +64,11 @@ python main.py --help
 
 The example searches over the following hyperparameters:
 
-| Parameter | Values                             |
-|-----------|------------------------------------|
-| `l1` | [1, 2, 4, 8, 16, 32, 64, 128, 256] |
-| `l2` | [1, 2, 4, 8, 16, 32, 64, 128, 256] |
-| `lr` | [1e-4, 1e-1]                       |
+| Parameter    | Values                             |
+| ------------ | ---------------------------------- |
+| `l1`         | [1, 2, 4, 8, 16, 32, 64, 128, 256] |
+| `l2`         | [1, 2, 4, 8, 16, 32, 64, 128, 256] |
+| `lr`         | [1e-4, 1e-1]                       |
 | `batch_size` | [2, 4, 8, 16]                      |
 
 - `l1`: First fully connected layer size
