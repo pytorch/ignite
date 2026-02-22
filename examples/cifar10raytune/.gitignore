@@ -1,5 +1,4 @@
-# CIFAR10 data
 /data/
-# Ray Tune outputs
+
 ray_tune_logs/
-ray_re
+ray_results/
