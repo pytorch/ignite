@@ -1,0 +1,5 @@
+ray[tune]
+torch
+torchvision
+pandas
+ipywidgets
