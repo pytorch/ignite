@@ -179,4 +179,3 @@ class MRR(Metric):
 
         rates = (self._sum_reciprocal_ranks_per_k / self._num_examples).tolist()
         return rates
-        
