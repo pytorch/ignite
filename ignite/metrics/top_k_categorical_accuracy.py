@@ -88,7 +88,7 @@ class TopKCategoricalAccuracy(Metric):
         device: Union[str, torch.device] = torch.device("cpu"),
         skip_unrolling: bool = False,
     ) -> None:
-        super(TopKCategoricalAccuracy, self).__init__(output_transform, device=device, skip_unrolling=skip_unrolling)
+        super().__init__(output_transform, device=device, skip_unrolling=skip_unrolling)
         self._k = k
 
     @reinit__is_reduced

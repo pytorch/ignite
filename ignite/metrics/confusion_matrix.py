@@ -125,9 +125,7 @@ class ConfusionMatrix(Metric):
         self.num_classes = num_classes
         self._num_examples = 0
         self.average = average
-        super(ConfusionMatrix, self).__init__(
-            output_transform=output_transform, device=device, skip_unrolling=skip_unrolling
-        )
+        super().__init__(output_transform=output_transform, device=device, skip_unrolling=skip_unrolling)
 
     @reinit__is_reduced
     def reset(self) -> None:

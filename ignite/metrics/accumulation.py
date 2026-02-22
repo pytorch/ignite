@@ -57,9 +57,7 @@ class VariableAccumulation(Metric):
 
         self._op = op
 
-        super(VariableAccumulation, self).__init__(
-            output_transform=output_transform, device=device, skip_unrolling=skip_unrolling
-        )
+        super().__init__(output_transform=output_transform, device=device, skip_unrolling=skip_unrolling)
 
     @reinit__is_reduced
     def reset(self) -> None:
@@ -191,9 +189,7 @@ class Average(VariableAccumulation):
                 x = x.sum(dim=0)
             return a + x
 
-        super(Average, self).__init__(
-            op=_mean_op, output_transform=output_transform, device=device, skip_unrolling=skip_unrolling
-        )
+        super().__init__(op=_mean_op, output_transform=output_transform, device=device, skip_unrolling=skip_unrolling)
 
     @sync_all_reduce("accumulator", "num_examples")
     def compute(self) -> float | torch.Tensor:
@@ -308,9 +304,7 @@ class GeometricAverage(VariableAccumulation):
                 x = x.sum(dim=0)
             return a + x
 
-        super(GeometricAverage, self).__init__(
-            op=_geom_op, output_transform=output_transform, device=device, skip_unrolling=skip_unrolling
-        )
+        super().__init__(op=_geom_op, output_transform=output_transform, device=device, skip_unrolling=skip_unrolling)
 
     @sync_all_reduce("accumulator", "num_examples")
     def compute(self) -> float | torch.Tensor:

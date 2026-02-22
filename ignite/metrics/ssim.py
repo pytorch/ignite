@@ -115,7 +115,7 @@ class SSIM(Metric):
         if any(y <= 0 for y in self.sigma):
             raise ValueError(f"Expected sigma to have positive number. Got {sigma}.")
 
-        super(SSIM, self).__init__(output_transform=output_transform, device=device, skip_unrolling=skip_unrolling)
+        super().__init__(output_transform=output_transform, device=device, skip_unrolling=skip_unrolling)
         self.gaussian = gaussian
         self.data_range = data_range
         self.c1 = (k1 * data_range) ** 2

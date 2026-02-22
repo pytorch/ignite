@@ -35,7 +35,7 @@ class _BasePrecisionRecall(_BaseClassification):
             self._average = average
         self.eps = 1e-20
         self._updated = False
-        super(_BasePrecisionRecall, self).__init__(
+        super().__init__(
             output_transform=output_transform, is_multilabel=is_multilabel, device=device, skip_unrolling=skip_unrolling
         )
 
