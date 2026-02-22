@@ -1,4 +1,4 @@
-from typing import Sequence, Union
+from typing import Sequence
 
 import numpy as np
 import pytest
@@ -110,10 +110,10 @@ def compare_ssim_ignite_skiimg(
     precision: float = 2e-5,  # default to float32 expected precision
     ndims: int = 2,
     *,
-    skimg_y_pred: Union[np.ndarray, None] = None,
-    skimg_y: Union[np.ndarray, None] = None,
+    skimg_y_pred: np.ndarray | None = None,
+    skimg_y: np.ndarray | None = None,
     data_range: float = 1.0,
-    kernel_size: Union[int, Sequence[int]] = 11,
+    kernel_size: int | Sequence[int] = 11,
     gaussian: bool = True,
     use_sample_covariance: bool = False,
 ):
