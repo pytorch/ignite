@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import warnings
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any
 
 import torch
 
@@ -52,11 +52,11 @@ class GpuInfo(Metric):
     def reset(self) -> None:
         pass
 
-    def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
+    def update(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
         pass
 
-    def compute(self) -> List[Dict[str, Any]]:
-        data: Dict[str, List[Dict[str, Any]]] = self.nvsmi.DeviceQuery("memory.used, memory.total, utilization.gpu")
+    def compute(self) -> list[dict[str, Any]]:
+        data: dict[str, list[dict[str, Any]]] = self.nvsmi.DeviceQuery("memory.used, memory.total, utilization.gpu")
         if len(data) == 0 or ("gpu" not in data):
             warnings.warn("No GPU information available")
             return []
@@ -101,6 +101,6 @@ class GpuInfo(Metric):
 
     # TODO: see issue https://github.com/pytorch/ignite/issues/1405
     def attach(  # type: ignore
-        self, engine: Engine, name: str = "gpu", event_name: Union[str, EventEnum] = Events.ITERATION_COMPLETED
+        self, engine: Engine, name: str = "gpu", event_name: str | EventEnum = Events.ITERATION_COMPLETED
     ) -> None:
         engine.add_event_handler(event_name, self.completed, name)
