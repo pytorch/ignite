@@ -1,5 +1,4 @@
 import os
-from typing import Tuple
 from unittest.mock import MagicMock
 
 import pytest
@@ -325,7 +324,7 @@ class CustomMultiMSELoss(nn.Module):
         super().__init__()
 
     def forward(
-        self, y_pred: Tuple[torch.Tensor, torch.Tensor], y_true: Tuple[torch.Tensor, torch.Tensor]
+        self, y_pred: tuple[torch.Tensor, torch.Tensor], y_true: tuple[torch.Tensor, torch.Tensor]
     ) -> torch.Tensor:
         a_true, b_true = y_true
         a_pred, b_pred = y_pred
