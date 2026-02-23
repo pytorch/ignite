@@ -77,23 +77,28 @@ The example searches over the following hyperparameters:
 
 ## Output
 
+If we run main.py an example output could look like: 
+
 ```
 ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │ Trial name                      status         l1     l2            lr     batch_size     iter     total time (s)      loss     accuracy │
 ├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ train_with_ignite_aac0d_00000   TERMINATED      4      8   0.0428552               16        5            46.1855   2.30856       0.1008 │
-│ train_with_ignite_aac0d_00001   TERMINATED     16      8   0.0212936               16        5            45.457    2.30575       0.0982 │
-│ train_with_ignite_aac0d_00002   TERMINATED    128     16   0.0284869                8        1            19.3755   2.31148       0.0961 │
-│ train_with_ignite_aac0d_00003   TERMINATED     16     16   0.0313472                2        1            67.4649   2.32548       0.1007 │
-│ train_with_ignite_aac0d_00004   TERMINATED     64      8   0.000166433             16        5            46.9896   1.63962       0.3944 │
-│ train_with_ignite_aac0d_00005   TERMINATED    256    256   0.000844781             16        5            45.4557   1.24878       0.5645 │
-│ train_with_ignite_aac0d_00006   TERMINATED    128     64   0.0023218               16        5            47.2906   1.18214       0.5909 │
-│ train_with_ignite_aac0d_00007   TERMINATED    256    256   0.000197742              8        5            83.0138   1.39471       0.4984 │
-│ train_with_ignite_aac0d_00008   TERMINATED     32    256   0.028539                 2        1            68.1283   2.32266       0.0988 │
-│ train_with_ignite_aac0d_00009   TERMINATED      8    256   0.000282717              2        5           334.082    1.20853       0.5667 │
+│ train_with_ignite_f740a_00000   TERMINATED     16    256   0.000174547              8       10           166.306    1.26467       0.5487 │
+│ train_with_ignite_f740a_00001   TERMINATED     64     32   0.0211235               16        1            10.6549   2.03642       0.3094 │
+│ train_with_ignite_f740a_00002   TERMINATED    128     32   0.000597011              4       10           351.698    1.16781       0.6184 │
+│ train_with_ignite_f740a_00003   TERMINATED     32     64   0.0898379               16        1            10.2487   2.32586       0.0985 │
+│ train_with_ignite_f740a_00004   TERMINATED     32     64   0.00243182               4        2            71.8534   1.52549       0.4728 │
+│ train_with_ignite_f740a_00005   TERMINATED    128     16   0.000177485              8        1            18.2198   1.96733       0.2845 │
+│ train_with_ignite_f740a_00006   TERMINATED    256     16   0.00147097               8       10           165.496    1.23385       0.6033 │
+│ train_with_ignite_f740a_00007   TERMINATED     16     16   0.0402147               16        1            10.5927   2.24759       0.1452 │
+│ train_with_ignite_f740a_00008   TERMINATED    256      8   0.000176101              4        2            71.1053   1.51049       0.4422 │
+│ train_with_ignite_f740a_00009   TERMINATED    128     32   0.000174279              4        4           139.638    1.31689       0.5304 │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
-Best trial config: {'l1': 128, 'l2': 64, 'lr': 0.0023218034489587073, 'batch_size': 16, 'device': '...'}
-Best trial final validation loss: 1.18213955078125
-Best trial final validation accuracy: 0.5909
+Best trial config: {'l1': 128, 'l2': 32, 'lr': 0.0005970108807327366, 'batch_size': 4, 'device': '...'}
+Best trial final validation loss: 1.16781484375
+Best trial final validation accuracy: 0.6184
+Best trial test set accuracy: 0.6154
 ```
+
+We see that most trials stop earlier than the number of maximum epochs (= 10, here). 
