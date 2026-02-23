@@ -1,11 +1,11 @@
 # Vendored from py-rouge 1.1 (https://github.com/Diego999/py-rouge)
 # Original license: Apache 2.0
-# Modifications: removed pkg_resources dependency; data files resolved via __file__;
-#                wordnet/stemmer loading made conditional on stemming=True.
 import collections
 import itertools
 import os
 import re
+import urllib.request
+from pathlib import Path
 
 import nltk
 
@@ -27,6 +27,12 @@ class Rouge:
     WORDNET_DB_FILEPATH_SPECIAL_CASE = "wordnet_key_value_special_cases.txt"
     WORDNET_DB_DELIMITER = "|"
     STEMMER = None
+
+    _WORDNET_BASE_URL = (
+        "https://raw.githubusercontent.com/Diego999/py-rouge/c0176770f94c0b18cc9d116101f7859a04706208/rouge/"
+    )
+    WORDNET_DB_URL = _WORDNET_BASE_URL + "wordnet_key_value.txt"
+    WORDNET_DB_SPECIAL_CASE_URL = _WORDNET_BASE_URL + "wordnet_key_value_special_cases.txt"
 
     def __init__(
         self,
@@ -90,17 +96,19 @@ class Rouge:
 
     @staticmethod
     def load_wordnet_db(ensure_compatibility):
-        files_to_load = [Rouge.WORDNET_DB_FILEPATH]
+        files_to_load = [(Rouge.WORDNET_DB_FILEPATH, Rouge.WORDNET_DB_URL)]
         if ensure_compatibility:
-            files_to_load.append(Rouge.WORDNET_DB_FILEPATH_SPECIAL_CASE)
+            files_to_load.append((Rouge.WORDNET_DB_FILEPATH_SPECIAL_CASE, Rouge.WORDNET_DB_SPECIAL_CASE_URL))
 
-        _data_dir = os.path.dirname(os.path.abspath(__file__))
-        for wordnet_db in files_to_load:
-            filepath = os.path.join(_data_dir, wordnet_db)
-            if not os.path.exists(filepath):
-                raise FileNotFoundError("The file '{}' does not exist".format(filepath))
+        cache_dir = Path(os.path.expanduser("~/.cache/ignite/pyrouge"))
+        cache_dir.mkdir(parents=True, exist_ok=True)
 
-            with open(filepath, "r", encoding="utf-8") as fp:
+        for filename, url in files_to_load:
+            cached_path = cache_dir / filename
+            if not cached_path.exists():
+                urllib.request.urlretrieve(url, str(cached_path))
+
+            with open(cached_path, "r", encoding="utf-8") as fp:
                 for line in fp:
                     k, v = line.strip().split(Rouge.WORDNET_DB_DELIMITER)
                     assert k not in Rouge.WORDNET_KEY_VALUE
