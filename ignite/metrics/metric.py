@@ -372,8 +372,8 @@ class Metric(Serializable, metaclass=ABCMeta):
             engine: the engine to which the metric must be attached
             name: the name of the metric to attach
             usage: the usage of the metric. Valid string values should be
-                :attr:`ignite.metrics.metric.EpochWise.usage_name` (default) or
-                :attr:`ignite.metrics.metric.BatchWise.usage_name`.
+                :attr:`~ignite.base.usage.EpochWise.usage_name` (default) or
+                :attr:`~ignite.base.usage.BatchWise.usage_name`.
 
         Examples:
 

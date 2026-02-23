@@ -151,18 +151,19 @@ class EarlyStopping(Serializable, ResettableHandler):
         Args:
             engine: The engine to attach the early stopping evaluation to (typically an evaluator).
             usage: The usage that encapsulates the evaluation events. Default is
-                :attr:`~ignite.base.usage.RunWise`.
+                :class:`~ignite.base.usage.RunWise`.
             reset_engine: The engine to attach the reset callback to (typically the trainer).
                 If ``None``, defaults to ``engine``.
-            **kwargs: Deprecated keyword arguments (``event`` and ``reset_event``) for backward compatibility.
+            **kwargs: Deprecated keyword argument (``event``) for backward compatibility.
         """
         if "event" in kwargs or "reset_event" in kwargs:
-            warnings.warn(
-                "The `event` and `reset_event` arguments are deprecated and will be removed in future releases. "
-                "Use `usage` instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
+            if "event" in kwargs:
+                warnings.warn(
+                    "The `event` argument is deprecated and will be removed in future releases. "
+                    "Use `usage` instead.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
             usage = Usage(
                 completed=kwargs.get("event", Events.COMPLETED),
                 started=kwargs.get("reset_event", Events.STARTED),

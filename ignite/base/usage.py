@@ -61,10 +61,10 @@ class EpochWise(Usage):
 
     Methods are triggered on the following engine events:
 
-    - :meth:`started` on every ``EPOCH_STARTED``
+    - :meth:`~ignite.metrics.metric.Metric.started` on every ``EPOCH_STARTED``
       (See :class:`~ignite.engine.events.Events`).
-    - :meth:`iteration_completed` on every ``ITERATION_COMPLETED``.
-    - :meth:`completed` on every ``EPOCH_COMPLETED``.
+    - :meth:`~ignite.metrics.metric.Metric.iteration_completed` on every ``ITERATION_COMPLETED``.
+    - :meth:`~ignite.metrics.metric.Metric.completed` on every ``EPOCH_COMPLETED``.
 
     Attributes:
         usage_name: usage name string
@@ -88,10 +88,10 @@ class RunningEpochWise(EpochWise):
 
     Methods are triggered on the following engine events:
 
-    - :meth:`started` on every ``STARTED``
+    - :meth:`~ignite.metrics.metric.Metric.started` on every ``STARTED``
       (See :class:`~ignite.engine.events.Events`).
-    - :meth:`iteration_completed` on every ``EPOCH_COMPLETED``.
-    - :meth:`completed` on every ``EPOCH_COMPLETED``.
+    - :meth:`~ignite.metrics.metric.Metric.iteration_completed` on every ``EPOCH_COMPLETED``.
+    - :meth:`~ignite.metrics.metric.Metric.completed` on every ``EPOCH_COMPLETED``.
 
     Attributes:
         usage_name: usage name string
@@ -113,10 +113,10 @@ class BatchWise(Usage):
 
     Methods are triggered on the following engine events:
 
-    - :meth:`started` on every ``ITERATION_STARTED``
+    - :meth:`~ignite.metrics.metric.Metric.started` on every ``ITERATION_STARTED``
       (See :class:`~ignite.engine.events.Events`).
-    - :meth:`iteration_completed` on every ``ITERATION_COMPLETED``.
-    - :meth:`completed` on every ``ITERATION_COMPLETED``.
+    - :meth:`~ignite.metrics.metric.Metric.iteration_completed` on every ``ITERATION_COMPLETED``.
+    - :meth:`~ignite.metrics.metric.Metric.completed` on every ``ITERATION_COMPLETED``.
 
     Attributes:
         usage_name: usage name string
@@ -140,10 +140,10 @@ class RunningBatchWise(BatchWise):
 
     Methods are triggered on the following engine events:
 
-    - :meth:`started` on every ``STARTED``
+    - :meth:`~ignite.metrics.metric.Metric.started` on every ``STARTED``
       (See :class:`~ignite.engine.events.Events`).
-    - :meth:`iteration_completed` on every ``ITERATION_COMPLETED``.
-    - :meth:`completed` on every ``ITERATION_COMPLETED``.
+    - :meth:`~ignite.metrics.metric.Metric.iteration_completed` on every ``ITERATION_COMPLETED``.
+    - :meth:`~ignite.metrics.metric.Metric.completed` on every ``ITERATION_COMPLETED``.
 
     Attributes:
         usage_name: usage name string
@@ -166,10 +166,10 @@ class SingleEpochRunningBatchWise(BatchWise):
 
     Methods are triggered on the following engine events:
 
-    - :meth:`started` on every ``EPOCH_STARTED``
+    - :meth:`~ignite.metrics.metric.Metric.started` on every ``EPOCH_STARTED``
       (See :class:`~ignite.engine.events.Events`).
-    - :meth:`iteration_completed` on every ``ITERATION_COMPLETED``.
-    - :meth:`completed` on every ``ITERATION_COMPLETED``.
+    - :meth:`~ignite.metrics.metric.Metric.iteration_completed` on every ``ITERATION_COMPLETED``.
+    - :meth:`~ignite.metrics.metric.Metric.completed` on every ``ITERATION_COMPLETED``.
 
     Attributes:
         usage_name: usage name string
@@ -191,19 +191,19 @@ class BatchFiltered(Usage):
 
     Methods are triggered on the following engine events:
 
-    - :meth:`started` on every ``EPOCH_STARTED``
+    - :meth:`~ignite.metrics.metric.Metric.started` on every ``EPOCH_STARTED``
       (See :class:`~ignite.engine.events.Events`).
-    - :meth:`iteration_completed` on filtered ``ITERATION_COMPLETED``.
-    - :meth:`completed` on every ``EPOCH_COMPLETED``.
+    - :meth:`~ignite.metrics.metric.Metric.iteration_completed` on filtered ``ITERATION_COMPLETED``.
+    - :meth:`~ignite.metrics.metric.Metric.completed` on every ``EPOCH_COMPLETED``.
 
     Args:
         args: Positional arguments to setup :attr:`~ignite.engine.events.Events.ITERATION_COMPLETED`
         kwargs: Keyword arguments to setup :attr:`~ignite.engine.events.Events.ITERATION_COMPLETED`
-            handled by :meth:`iteration_completed`.
+            handled by :meth:`~ignite.metrics.metric.Metric.iteration_completed`.
 
     """
 
-    def __init__(self, *args: any, **kwargs: any) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super(BatchFiltered, self).__init__(
             started=Events.EPOCH_STARTED,
             completed=Events.EPOCH_COMPLETED,
@@ -217,10 +217,10 @@ class RunWise(Usage):
 
     Methods are triggered on the following engine events:
 
-    - :meth:`started` on every ``STARTED``
+    - :meth:`~ignite.metrics.metric.Metric.started` on every ``STARTED``
       (See :class:`~ignite.engine.events.Events`).
-    - :meth:`iteration_completed` on every ``ITERATION_COMPLETED``.
-    - :meth:`completed` on every ``COMPLETED``.
+    - :meth:`~ignite.metrics.metric.Metric.iteration_completed` on every ``ITERATION_COMPLETED``.
+    - :meth:`~ignite.metrics.metric.Metric.completed` on every ``COMPLETED``.
 
     Attributes:
         usage_name: usage name string

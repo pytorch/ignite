@@ -295,6 +295,7 @@ Complete list of usages
     - :class:`~ignite.base.usage.RunningBatchWise`
     - :class:`~ignite.base.usage.SingleEpochRunningBatchWise`
     - :class:`~ignite.base.usage.BatchFiltered`
+    - :class:`~ignite.base.usage.RunWise`
 
 Metrics and distributed computations
 ------------------------------------
@@ -437,6 +438,10 @@ SingleEpochRunningBatchWise
 BatchFiltered
 ~~~~~~~~~~~~~
 .. autoclass:: ignite.base.usage.BatchFiltered
+
+RunWise
+~~~~~~~
+.. autoclass:: ignite.base.usage.RunWise
 
 .. currentmodule:: ignite.metrics.metric
 
