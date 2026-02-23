@@ -8,7 +8,7 @@ import torch.optim as optim
 
 import ray
 from ray import tune
-from ray.tune import Checkpoint
+from ray.tune import Checkpoint, CLIReporter
 from ray.tune.schedulers import ASHAScheduler
 
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
@@ -118,6 +118,11 @@ def tune_cifar(num_samples=10, num_epochs=10, gpus_per_trial=0, cpus_per_trial=2
 
     load_data(data_dir)
 
+    reporter = CLIReporter(
+        metric_columns={"loss": "loss", "accuracy": "accuracy"},
+        parameter_columns={"l1": "l1", "l2": "l2", "lr": "lr", "batch_size": "batch_size"},
+    )
+
     tuner = tune.Tuner(
         tune.with_resources(
             tune.with_parameters(
@@ -137,6 +142,7 @@ def tune_cifar(num_samples=10, num_epochs=10, gpus_per_trial=0, cpus_per_trial=2
         run_config=ray.tune.RunConfig(
             storage_path=None,
             name="cifar10_ray_tune",
+            progress_reporter=reporter,
         ),
     )
 
