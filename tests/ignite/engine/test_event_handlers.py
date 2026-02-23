@@ -11,7 +11,7 @@ from ignite.engine.events import EventsList
 
 class DummyEngine(Engine):
     def __init__(self):
-        super(DummyEngine, self).__init__(lambda e, b: 1)
+        super().__init__(lambda e, b: 1)
 
     def run(self, num_times):
         self.state = State()
