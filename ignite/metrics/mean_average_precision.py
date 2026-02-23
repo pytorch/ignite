@@ -1,5 +1,5 @@
 import warnings
-from typing import Callable, cast, List, Optional, Sequence, Tuple, Union
+from typing import Callable, cast, Optional, Sequence, Union
 
 import torch
 from typing_extensions import Literal
@@ -110,8 +110,8 @@ class _BaseAveragePrecision:
 
 
 def _cat_and_agg_tensors(
-    tensors: List[torch.Tensor],
-    tensor_shape_except_last_dim: Tuple[int],
+    tensors: list[torch.Tensor],
+    tensor_shape_except_last_dim: tuple[int],
     dtype: torch.dtype,
     device: Union[str, torch.device],
 ) -> torch.Tensor:
@@ -141,8 +141,8 @@ def _cat_and_agg_tensors(
 
 
 class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
-    _y_pred: List[torch.Tensor]
-    _y_true: List[torch.Tensor]
+    _y_pred: list[torch.Tensor]
+    _y_true: list[torch.Tensor]
 
     def __init__(
         self,
@@ -299,7 +299,7 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
         return yp, yt
 
     @reinit__is_reduced
-    def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
+    def update(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
         """Metric update function using prediction and target.
 
         Args:
@@ -317,7 +317,7 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
 
     def _compute_recall_and_precision(
         self, y_true: torch.Tensor, y_pred: torch.Tensor, y_true_positive_count: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         r"""Measuring recall & precision.
 
         Shape of function inputs and return values follow the table below.
@@ -369,7 +369,7 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
 
         y_true = _cat_and_agg_tensors(
             self._y_true,
-            cast(Tuple[int], ()) if self._type == "multiclass" else (num_classes,),
+            cast(tuple[int], ()) if self._type == "multiclass" else (num_classes,),
             torch.long if self._type == "multiclass" else torch.uint8,
             self._device,
         )
