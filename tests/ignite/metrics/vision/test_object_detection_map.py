@@ -532,7 +532,7 @@ def create_coco_api(
     return coco_dt, coco_gt
 
 
-def pycoco_mAP(predictions: list[dict[str, torch.Tensor]], targets: list[dict[str, torch.Tensor]]) -> np.array:
+def pycoco_mAP(predictions: list[dict[str, torch.Tensor]], targets: list[dict[str, torch.Tensor]]) -> np.ndarray:
     """
     Returned values are AP@.5...95, AP@.5, AP@.75, AP-S, AP-M, AP-L, AR-1, AR-10, AR-100, AR-S, AR-M, AR-L
     """
