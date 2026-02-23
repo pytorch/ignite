@@ -29,3 +29,16 @@ repos:
     rev: 24.10.0
     hooks:
       - id: black
+
+  # notebook JSON hygiene
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.7.1
+    hooks:
+      - id: nbstripout
+
+  # notebook code quality
+  - repo: https://github.com/nbQA-dev/nbQA
+    rev: 1.8.7
+    hooks:
+      - id: nbqa-ruff
+        args: ["--fix"]
