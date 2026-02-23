@@ -10,6 +10,14 @@ def global_step_from_engine(engine: Engine, custom_event_name: Optional[Events] 
 
     If the provided event is not registered in ``State.event_to_attr``,
     the function falls back to using ``engine.state.epoch``.
+
+    Args:
+        engine: engine which state is used to provide the global step
+        custom_event_name: registered event name. Optional argument, event name to use.
+
+    Returns:
+        global step based on provided engine
+
     """
 
     def wrapper(_: Any, event_name: Events) -> int:
