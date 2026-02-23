@@ -37,7 +37,7 @@ def train_with_ignite(config, data_dir=None, checkpoint_dir=None, num_epochs=10,
             net.load_state_dict(checkpoint_state["net_state_dict"])
             optimizer.load_state_dict(checkpoint_state["optimizer_state_dict"])
 
-    train_loader, val_loader = get_data_loaders(int(config["batch_size"]), data_dir, num_workers)
+    train_loader, val_loader = get_data_loaders(config["batch_size"], data_dir, num_workers)
 
     trainer = create_supervised_trainer(net, optimizer, criterion, device=device)
 
@@ -101,8 +101,8 @@ def tune_cifar(num_samples=10, num_epochs=10, gpus_per_trial=0, cpus_per_trial=2
     data_dir = os.path.abspath(data_dir)
 
     config = {
-        "l1": tune.choice([2**i for i in range(2,9)]),
-        "l2": tune.choice([2**i for i in range(2,9)]),
+        "l1": tune.choice([2**i for i in range(2, 9)]),
+        "l2": tune.choice([2**i for i in range(2, 9)]),
         "lr": tune.loguniform(1e-4, 1e-1),
         "batch_size": tune.choice([2, 4, 8, 16]),
         "device": "cuda" if gpus_per_trial > 0 else "cpu",

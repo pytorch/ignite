@@ -72,7 +72,7 @@ The example searches over the following hyperparameters:
 
 - `l1`: First fully connected layer size
 - `l2`: Second fully connected layer size
-- `lr`: Learning rate for SGD optimizer
+- `lr`: Log-uniformly sampled learning rate in [1e-4, 1e-1] for SGD optimizer
 - `batch_size`: Training batch size
 
 ## Output

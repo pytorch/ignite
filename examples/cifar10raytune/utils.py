@@ -53,7 +53,7 @@ def get_data_loaders(batch_size, data_dir="./data", num_workers=8):
     train_loader = torch.utils.data.DataLoader(
         train_subset, batch_size=batch_size, shuffle=True, num_workers=num_workers
     )
-    val_loader = torch.utils.data.DataLoader(val_subset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+    val_loader = torch.utils.data.DataLoader(val_subset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
     return train_loader, val_loader
 
