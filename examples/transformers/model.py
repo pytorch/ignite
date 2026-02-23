@@ -4,7 +4,7 @@ from transformers import AutoConfig, AutoModelForSequenceClassification
 
 class TransformerModel(nn.Module):
     def __init__(self, model_name, model_dir, dropout, n_fc, n_classes):
-        super(TransformerModel, self).__init__()
+        super().__init__()
         self.config = AutoConfig.from_pretrained(
             model_name,
             num_labels=n_classes,

@@ -1033,7 +1033,7 @@ class ModelCheckpoint(Checkpoint):
             **kwargs,
         )
 
-        super(ModelCheckpoint, self).__init__(
+        super().__init__(
             to_save={},
             save_handler=disk_saver,
             filename_prefix=filename_prefix,

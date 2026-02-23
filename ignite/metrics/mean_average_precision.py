@@ -82,8 +82,8 @@ class _BaseAveragePrecision:
 
         if min(thresholds) < 0 or max(thresholds) > 1:
             raise ValueError(f"{threshold_type} values should be between 0 and 1, given {thresholds}")
-        appropriate_type = torch.float32 if self._device.type == "mps" else torch.float64
-        return thresholds.to(self._device, dtype=appropriate_type)
+        precision = torch.float32 if self._device.type == "mps" else torch.float64
+        return thresholds.to(self._device, dtype=precision)
 
     def _compute_average_precision(self, recall: torch.Tensor, precision: torch.Tensor) -> torch.Tensor:
         """Measuring average precision.

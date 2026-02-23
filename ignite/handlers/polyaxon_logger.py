@@ -241,9 +241,7 @@ class OutputHandler(BaseOutputHandler):
         global_step_transform: Optional[Callable[[Engine, Union[str, Events]], int]] = None,
         state_attributes: Optional[List[str]] = None,
     ):
-        super(OutputHandler, self).__init__(
-            tag, metric_names, output_transform, global_step_transform, state_attributes
-        )
+        super().__init__(tag, metric_names, output_transform, global_step_transform, state_attributes)
 
     def __call__(self, engine: Engine, logger: PolyaxonLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, PolyaxonLogger):
@@ -295,7 +293,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
     """
 
     def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None):
-        super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
+        super().__init__(optimizer, param_name, tag)
 
     def __call__(self, engine: Engine, logger: PolyaxonLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, PolyaxonLogger):
