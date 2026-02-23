@@ -310,7 +310,7 @@ class _SerialModel(ComputationModel):
     available_backends = ()
 
     def __init__(self, _backend: Optional[str] = None, **kwargs: Any) -> None:
-        super(_SerialModel, self).__init__()
+        super().__init__()
 
     def get_local_rank(self) -> int:
         return 0

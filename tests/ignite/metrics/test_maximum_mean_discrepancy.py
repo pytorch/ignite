@@ -1,5 +1,3 @@
-from typing import Tuple
-
 import numpy as np
 import pytest
 import torch
@@ -70,7 +68,7 @@ def test_case(request):
 
 
 @pytest.mark.parametrize("n_times", range(5))
-def test_compute(n_times, test_case: Tuple[Tensor, Tensor, float, int], available_device):
+def test_compute(n_times, test_case: tuple[Tensor, Tensor, float, int], available_device):
     x, y, var, batch_size = test_case
 
     mmd = MaximumMeanDiscrepancy(var=var, device=available_device)
