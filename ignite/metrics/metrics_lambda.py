@@ -4,7 +4,8 @@ from typing import Any, Callable, Optional, Union
 import torch
 
 from ignite.engine import Engine
-from ignite.metrics.metric import EpochWise, Metric, MetricUsage, reinit__is_reduced
+from ignite.base.usage import Usage
+from ignite.metrics.metric import EpochWise, Metric, reinit__is_reduced
 
 __all__ = ["MetricsLambda"]
 
@@ -126,7 +127,7 @@ class MetricsLambda(Metric):
         materialized_kwargs = {k: _get_value_on_cpu(v) for k, v in self.kwargs.items()}
         return self.function(*materialized, **materialized_kwargs)
 
-    def _internal_attach(self, engine: Engine, usage: MetricUsage) -> None:
+    def _internal_attach(self, engine: Engine, usage: Usage) -> None:
         self.engine = engine
         for index, metric in enumerate(itertools.chain(self.args, self.kwargs.values())):
             if isinstance(metric, MetricsLambda):
@@ -139,7 +140,7 @@ class MetricsLambda(Metric):
                 if not engine.has_event_handler(metric.iteration_completed, usage.ITERATION_COMPLETED):
                     engine.add_event_handler(usage.ITERATION_COMPLETED, metric.iteration_completed)
 
-    def attach(self, engine: Engine, name: str, usage: Union[str, MetricUsage] = EpochWise()) -> None:
+    def attach(self, engine: Engine, name: str, usage: Union[str, Usage] = EpochWise()) -> None:
         if self._updated:
             raise ValueError(
                 "The underlying metrics are already updated, can't attach while using reset/update/compute API."
@@ -150,18 +151,18 @@ class MetricsLambda(Metric):
         # attach only handler on EPOCH_COMPLETED
         engine.add_event_handler(usage.COMPLETED, self.completed, name)
 
-    def detach(self, engine: Engine, usage: Union[str, MetricUsage] = EpochWise()) -> None:
+    def detach(self, engine: Engine, usage: Union[str, Usage] = EpochWise()) -> None:
         usage = self._check_usage(usage)
         # remove from engine
         super(MetricsLambda, self).detach(engine, usage)
         self.engine = None
 
-    def is_attached(self, engine: Engine, usage: Union[str, MetricUsage] = EpochWise()) -> bool:
+    def is_attached(self, engine: Engine, usage: Union[str, Usage] = EpochWise()) -> bool:
         usage = self._check_usage(usage)
         # check recursively the dependencies
         return super(MetricsLambda, self).is_attached(engine, usage) and self._internal_is_attached(engine, usage)
 
-    def _internal_is_attached(self, engine: Engine, usage: MetricUsage) -> bool:
+    def _internal_is_attached(self, engine: Engine, usage: Usage) -> bool:
         # if no engine, metrics is not attached
         if engine is None:
             return False
