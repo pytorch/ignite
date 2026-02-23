@@ -330,9 +330,7 @@ class OutputHandler(BaseOutputHandler):
         global_step_transform: Callable[[Engine, str | Events], int] | None = None,
         state_attributes: list[str] | None = None,
     ):
-        super(OutputHandler, self).__init__(
-            tag, metric_names, output_transform, global_step_transform, state_attributes
-        )
+        super().__init__(tag, metric_names, output_transform, global_step_transform, state_attributes)
 
     def __call__(self, engine: Engine, logger: ClearMLLogger, event_name: str | Events) -> None:
         if not isinstance(logger, ClearMLLogger):
@@ -393,7 +391,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
     """
 
     def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: str | None = None):
-        super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
+        super().__init__(optimizer, param_name, tag)
 
     def __call__(self, engine: Engine, logger: ClearMLLogger, event_name: str | Events) -> None:
         if not isinstance(logger, ClearMLLogger):
@@ -852,7 +850,7 @@ class ClearMLSaver(DiskSaver):
 
         self._checkpoint_slots: DefaultDict[str | tuple[str, str], list[Any]] = defaultdict(list)
 
-        super(ClearMLSaver, self).__init__(dirname=dirname, *args, **kwargs)  # type: ignore[misc]
+        super().__init__(dirname=dirname, *args, **kwargs)  # type: ignore[misc]
 
     @idist.one_rank_only()
     def _setup_check_clearml(self, logger: ClearMLLogger, output_uri: str) -> None:
