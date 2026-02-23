@@ -405,8 +405,8 @@ def coco_val2017_sample() -> tuple[list[dict[str, torch.Tensor]], list[dict[str,
         ),
     ]
 
-    return [{"bbox": p[:, :4].double(), "scores": p[:, 4].double(), "labels": p[:, 5]} for p in pred], [
-        {"bbox": g[:, :4].double(), "labels": g[:, 4].long(), "iscrowd": g[:, 5]} for g in gt
+    return [{"bbox": p[:, :4].float(), "scores": p[:, 4].float(), "labels": p[:, 5]} for p in pred], [
+        {"bbox": g[:, :4].float(), "labels": g[:, 4].long(), "iscrowd": g[:, 5]} for g in gt
     ]
 
 
@@ -450,7 +450,7 @@ def random_sample() -> tuple[list[dict[str, torch.Tensor]], list[dict[str, torch
         x2 = (x1 + w).clip(max=640)
         y2 = (y1 + h).clip(max=640)
         category = (category + perturb_category) % 80
-        confidence = torch.rand_like(category, dtype=torch.double)
+        confidence = torch.rand_like(category, dtype=torch.float)
         perturbed_gt_boxes = torch.cat((x1, y1, x2, y2, confidence, category), dim=1)
 
         # Generate some additional prediction boxes
@@ -462,13 +462,13 @@ def random_sample() -> tuple[list[dict[str, torch.Tensor]], list[dict[str, torch
         x2 = (x1 + w).clip(max=640)
         y2 = (y1 + h).clip(max=640)
         category = torch.randint(0, 80, (n_additional_pred_boxes, 1))
-        confidence = torch.rand_like(category, dtype=torch.double)
+        confidence = torch.rand_like(category, dtype=torch.float)
         additional_pred_boxes = torch.cat((x1, y1, x2, y2, confidence, category), dim=1)
 
         preds.append(torch.cat((perturbed_gt_boxes, additional_pred_boxes), dim=0))
 
-    return [{"bbox": p[:, :4], "scores": p[:, 4], "labels": p[:, 5]} for p in preds], [
-        {"bbox": g[:, :4], "labels": g[:, 4].long(), "iscrowd": g[:, 5]} for g in targets
+    return [{"bbox": p[:, :4].float(), "scores": p[:, 4].float(), "labels": p[:, 5]} for p in preds], [
+        {"bbox": g[:, :4].float(), "labels": g[:, 4].long(), "iscrowd": g[:, 5]} for g in targets
     ]
 
 
@@ -754,8 +754,8 @@ def test_iou(get_sample, available_device):
     from pycocotools.mask import iou as pycoco_iou
 
     for pred, tgt in zip(*sample.data):
-        pred_bbox = pred["bbox"].double()
-        tgt_bbox = tgt["bbox"].double()
+        pred_bbox = pred["bbox"].float()
+        tgt_bbox = tgt["bbox"].float()
         if not pred_bbox.shape[0] or not tgt_bbox.shape[0]:
             continue
         iscrowd = tgt["iscrowd"]
