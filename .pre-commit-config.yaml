@@ -1,4 +1,5 @@
 exclude: "^conda.recipe|assets|docs"
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
@@ -29,3 +30,9 @@ repos:
     rev: 24.10.0
     hooks:
       - id: black
+
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.7.1
+    hooks:
+      - id: nbstripout
+        types: [jupyter]
