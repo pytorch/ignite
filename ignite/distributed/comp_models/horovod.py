@@ -51,7 +51,7 @@ if has_hvd_support:
             return rank
 
         @staticmethod
-        def create_from_context() -> "_HorovodDistModel" | None:
+        def create_from_context() -> _HorovodDistModel | None:
             rank = _HorovodDistModel._get_hvd_rank()
             # hvd must be initialized
             if not rank > -1:
