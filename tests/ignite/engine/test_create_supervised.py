@@ -7,9 +7,14 @@ import pytest
 import torch
 from packaging.version import Version
 from pytest import approx
-from torch.amp import GradScaler
 from torch.nn.functional import mse_loss
 from torch.optim import SGD
+
+try:
+    from torch.amp import GradScaler
+except ImportError:
+    from torch.cuda.amp import GradScaler
+
 
 import ignite.distributed as idist
 from ignite.engine import (
