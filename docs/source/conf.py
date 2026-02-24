@@ -359,6 +359,7 @@ nitpick_ignore = [
     ("py:class", "Sampler"),
     ("py:class", "torch.utils.data.distributed.DistributedSampler"),
     ("py:class", "torch.amp.grad_scaler.GradScaler"),
+    ("py:class", "torch.amp.GradScaler"),
     ("py:class", "torch.optim.lr_scheduler._LRScheduler"),
     ("py:class", "torch.optim.lr_scheduler.LRScheduler"),
     ("py:class", "torch.utils.data.dataloader.DataLoader"),
