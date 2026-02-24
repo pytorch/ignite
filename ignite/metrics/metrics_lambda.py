@@ -1,5 +1,5 @@
 import itertools
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional, Union, Literal
 
 import torch
 
@@ -92,14 +92,22 @@ class MetricsLambda(Metric):
 
     _state_dict_all_req_keys = ("_updated", "args", "kwargs")
 
-    def __init__(self, f: Callable, *args: Any, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        f: Callable,
+        *args: Any,
+        skip_unrolling: bool = False,
+        metrics_result_mode: Literal["flatten", "named", "both"] = "both",
+        **kwargs: Any,
+    ) -> None:
         self.function = f
         self.args = list(args)  # we need args to be a list instead of a tuple for state_dict/load_state_dict feature
         self.kwargs = kwargs
         self.engine: Optional[Engine] = None
         self._updated = False
-        metrics_result_mode = kwargs["metrics_result_mode"] if "metrics_result_mode" in kwargs else "both"
-        super(MetricsLambda, self).__init__(device="cpu", metrics_result_mode=metrics_result_mode)
+        super(MetricsLambda, self).__init__(
+            device="cpu", metrics_result_mode=metrics_result_mode, skip_unrolling=skip_unrolling
+        )
 
     @reinit__is_reduced
     def reset(self) -> None:
