@@ -22,6 +22,7 @@ def train_with_ignite(config, data_dir=None, checkpoint_dir=None, num_epochs=10,
     net = Net(config["l1"], config["l2"])
     net = net.to(device)
 
+    # TODO: fix this.
     if torch.cuda.device_count() > 1:
         net = nn.DataParallel(net)
 
@@ -80,21 +81,12 @@ def train_with_ignite(config, data_dir=None, checkpoint_dir=None, num_epochs=10,
 
 def test_accuracy(model, device, data_dir):
     test_loader = get_test_loader(4, data_dir)
+    model = model.to(device)
 
-    model.eval()
-    correct = 0
-    total = 0
+    evaluator = create_supervised_evaluator(model, metrics={"accuracy": Accuracy()}, device=device)
+    evaluator.run(test_loader)
 
-    with torch.no_grad():
-        for data in test_loader:
-            images, labels = data
-            images, labels = images.to(device), labels.to(device)
-            outputs = model(images)
-            _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
-
-    return correct / total
+    return evaluator.state.metrics["accuracy"]
 
 
 def tune_cifar(num_samples=10, num_epochs=10, gpus_per_trial=0, cpus_per_trial=2, data_dir="./data"):
