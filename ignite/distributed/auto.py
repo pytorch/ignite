@@ -307,12 +307,7 @@ class DistributedProxySampler(DistributedSampler):
         if not hasattr(sampler, "__len__"):
             raise TypeError("Argument sampler should have length")
 
-        super(DistributedProxySampler, self).__init__(
-            sampler,
-            num_replicas=num_replicas,
-            rank=rank,
-            shuffle=False,  # type: ignore[arg-type]
-        )
+        super().__init__(sampler, num_replicas=num_replicas, rank=rank, shuffle=False)  # type: ignore[arg-type]
         self.sampler = sampler
 
     def __iter__(self) -> Iterator:
@@ -356,7 +351,7 @@ if idist.has_xla_support:
 
     class _XLADistributedOptimizer(Optimizer):
         def __init__(self, optimizer: Optimizer) -> None:
-            super(self.__class__, self).__init__(optimizer.param_groups)  # type: ignore[call-arg]
+            super().__init__(optimizer.param_groups)  # type: ignore[call-arg]
             self.wrapped_optimizer = optimizer
 
         def step(self, closure: Any = None) -> Any:

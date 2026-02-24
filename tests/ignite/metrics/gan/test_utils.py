@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Union
+from typing import Callable
 from unittest.mock import patch
 
 import pytest
@@ -11,12 +11,12 @@ from ignite.metrics.gan.utils import _BaseInceptionMetric, InceptionModel
 class DummyInceptionMetric(_BaseInceptionMetric):
     def __init__(
         self,
-        num_features: Optional[int] = None,
-        feature_extractor: Optional[torch.nn.Module] = None,
+        num_features: int | None = None,
+        feature_extractor: torch.nn.Module | None = None,
         output_transform: Callable = lambda x: x,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
     ) -> None:
-        super(DummyInceptionMetric, self).__init__(
+        super().__init__(
             num_features=num_features,
             feature_extractor=feature_extractor,
             output_transform=output_transform,

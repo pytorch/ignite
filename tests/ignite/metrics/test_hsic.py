@@ -1,5 +1,4 @@
 import math
-from typing import Tuple
 
 import numpy as np
 import pytest
@@ -58,7 +57,7 @@ def test_invalid_batch():
 
 
 @pytest.fixture(params=[0, 1, 2])
-def test_case(request) -> Tuple[Tensor, Tensor, int]:
+def test_case(request) -> tuple[Tensor, Tensor, int]:
     if request.param == 0:
         # independent
         N = 100
@@ -87,7 +86,7 @@ def test_case(request) -> Tuple[Tensor, Tensor, int]:
 @pytest.mark.parametrize("n_times", range(3))
 @pytest.mark.parametrize("sigma_x", [-1.0, 1.0])
 @pytest.mark.parametrize("sigma_y", [-1.0, 1.0])
-def test_compute(n_times, sigma_x: float, sigma_y: float, test_case: Tuple[Tensor, Tensor, int], available_device):
+def test_compute(n_times, sigma_x: float, sigma_y: float, test_case: tuple[Tensor, Tensor, int], available_device):
     x, y, batch_size = test_case
 
     hsic = HSIC(sigma_x=sigma_x, sigma_y=sigma_y, device=available_device)

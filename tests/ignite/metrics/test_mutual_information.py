@@ -1,5 +1,3 @@
-from typing import Tuple
-
 import numpy as np
 import pytest
 import torch
@@ -51,7 +49,7 @@ def test_case(request):
 
 
 @pytest.mark.parametrize("n_times", range(5))
-def test_compute(n_times, test_case: Tuple[Tensor, Tensor, int], available_device):
+def test_compute(n_times, test_case: tuple[Tensor, Tensor, int], available_device):
     mi = MutualInformation(device=available_device)
     assert mi._device == torch.device(available_device)
 
