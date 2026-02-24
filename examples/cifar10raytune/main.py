@@ -59,7 +59,11 @@ def train_with_ignite(config, data_dir=None, checkpoint_dir=None, num_epochs=10,
 
         with tempfile.TemporaryDirectory() as temp_checkpoint_dir:
             to_save = {"net": net, "optimizer": optimizer, "trainer": trainer}
-            chkpt_handler = IgniteCheckpoint(to_save, save_handler=DiskSaver(temp_checkpoint_dir, create_dir=True))
+            chkpt_handler = IgniteCheckpoint(
+                to_save,
+                save_handler=DiskSaver(temp_checkpoint_dir, create_dir=True),
+                filename_pattern="checkpoint.pt",
+            )
             chkpt_handler(engine)
 
             checkpoint = RayCheckpoint.from_directory(temp_checkpoint_dir)
