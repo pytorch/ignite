@@ -1,7 +1,15 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
+
+if TYPE_CHECKING:
+    # GradScaler is imported here rather than used as a string literal ("torch.amp.GradScaler")
+    # because from __future__ import annotations causes Sphinx's autodoc to process annotations
+    # as raw strings. String literals inside | unions trigger unresolvable cross-reference warnings
+    # that the -W flag in docs/Makefile turns into errors. Importing under TYPE_CHECKING lets
+    # autodoc trace GradScaler back to torch.amp.GradScaler, which is in nitpick_ignore.
+    from torch.amp import GradScaler
 
 import torch
 
@@ -135,7 +143,7 @@ def supervised_training_step_amp(
     prepare_batch: Callable = _prepare_batch,
     model_transform: Callable[[Any], Any] = lambda output: output,
     output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
-    scaler: "torch.amp.GradScaler" | None = None,
+    scaler: GradScaler | None = None,
     gradient_accumulation_steps: int = 1,
     model_fn: Callable[[torch.nn.Module, Any], Any] = lambda model, x: model(x),
 ) -> Callable:
@@ -395,8 +403,8 @@ def supervised_training_step_tpu(
 
 
 def _check_arg(
-    on_tpu: bool, on_mps: bool, amp_mode: str | None, scaler: bool | "torch.amp.GradScaler" | None
-) -> tuple[str | None, "torch.amp.GradScaler" | None]:
+    on_tpu: bool, on_mps: bool, amp_mode: str | None, scaler: bool | GradScaler | None
+) -> tuple[str | None, GradScaler | None]:
     """Checking tpu, mps, amp and GradScaler instance combinations."""
     if on_mps and amp_mode:
         raise ValueError("amp_mode cannot be used with mps device. Consider using amp_mode=None or device='cuda'.")
@@ -436,7 +444,7 @@ def create_supervised_trainer(
     output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
     deterministic: bool = False,
     amp_mode: str | None = None,
-    scaler: bool | "torch.amp.GradScaler" = False,
+    scaler: bool | GradScaler = False,
     gradient_accumulation_steps: int = 1,
     model_fn: Callable[[torch.nn.Module, Any], Any] = lambda model, x: model(x),
 ) -> Engine:
