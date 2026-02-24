@@ -9,7 +9,11 @@ if TYPE_CHECKING:
     # as raw strings. String literals inside | unions trigger unresolvable cross-reference warnings
     # that the -W flag in docs/Makefile turns into errors. Importing under TYPE_CHECKING lets
     # autodoc trace GradScaler back to torch.amp.GradScaler, which is in nitpick_ignore.
-    from torch.amp import GradScaler
+    # Min pytorch version support is 2.2.2
+    try:
+        from torch.amp import GradScaler
+    except ImportError:
+        from torch.cuda.amp import GradScaler
 
 import torch
 
