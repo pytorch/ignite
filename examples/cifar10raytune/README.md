@@ -63,12 +63,12 @@ python main.py --help
 
 The example searches over the following hyperparameters:
 
-| Parameter    | Values                             |
-| ------------ | ---------------------------------- |
+| Parameter    | Values                       |
+| ------------ | ---------------------------- |
 | `l1`         | [4, 8, 16, 32, 64, 128, 256] |
 | `l2`         | [4, 8, 16, 32, 64, 128, 256] |
-| `lr`         | [1e-4, 1e-1]                       |
-| `batch_size` | [2, 4, 8, 16]                      |
+| `lr`         | [1e-4, 1e-1]                 |
+| `batch_size` | [2, 4, 8, 16]                |
 
 - `l1`: First fully connected layer size
 - `l2`: Second fully connected layer size
@@ -77,7 +77,7 @@ The example searches over the following hyperparameters:
 
 ## Output
 
-If we run main.py an example output could look like: 
+If we run main.py an example output could look like:
 
 ```
 ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
@@ -101,4 +101,4 @@ Best trial final validation accuracy: 0.6184
 Best trial test set accuracy: 0.6154
 ```
 
-We see that most trials stop earlier than the number of maximum epochs (= 10, here). 
+We see that most trials stop earlier than the number of maximum epochs (= 10, here).

@@ -8,11 +8,12 @@ import torch.optim as optim
 
 import ray
 from ray import tune
-from ray.tune import Checkpoint, CLIReporter
+from ray.tune import Checkpoint as RayCheckpoint, CLIReporter
 from ray.tune.schedulers import ASHAScheduler
 
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import Loss, Accuracy
+from ignite.handlers import Checkpoint as IgniteCheckpoint, DiskSaver
 
 from utils import Net, get_data_loaders, get_test_loader, load_data
 
@@ -29,15 +30,6 @@ def train_with_ignite(config, data_dir=None, checkpoint_dir=None, num_epochs=10,
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=config["lr"], momentum=0.9)
 
-    start_epoch = 0
-    if checkpoint_dir:
-        checkpoint_path = os.path.join(checkpoint_dir, "checkpoint.pt")
-        if os.path.exists(checkpoint_path):
-            checkpoint_state = torch.load(checkpoint_path)
-            start_epoch = checkpoint_state["epoch"]
-            net.load_state_dict(checkpoint_state["net_state_dict"])
-            optimizer.load_state_dict(checkpoint_state["optimizer_state_dict"])
-
     train_loader, val_loader = get_data_loaders(config["batch_size"], data_dir, num_workers)
 
     trainer = create_supervised_trainer(net, optimizer, criterion, device=device)
@@ -45,12 +37,19 @@ def train_with_ignite(config, data_dir=None, checkpoint_dir=None, num_epochs=10,
     metrics = {"accuracy": Accuracy(), "loss": Loss(criterion)}
     evaluator = create_supervised_evaluator(net, metrics=metrics, device=device)
 
-    state = {"epoch": start_epoch}
+    if checkpoint_dir:
+        checkpoint_path = os.path.join(checkpoint_dir, "checkpoint.pt")
+        if os.path.exists(checkpoint_path):
+            to_load = {"net": net, "optimizer": optimizer, "trainer": trainer}
+            load_handler = IgniteCheckpoint(
+                to_load,
+                save_handler=DiskSaver(checkpoint_dir, create_dir=False),
+            )
+            load_handler.load_objects(to_load=to_load, checkpoint=checkpoint_path)
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_and_report(engine):
-        state["epoch"] += 1
-        epoch = state["epoch"]
+        epoch = engine.state.epoch
 
         evaluator.run(val_loader)
         val_loss = evaluator.state.metrics["loss"]
@@ -58,25 +57,18 @@ def train_with_ignite(config, data_dir=None, checkpoint_dir=None, num_epochs=10,
 
         print(f"Epoch {epoch}: loss={val_loss:.4f}, accuracy={val_accuracy:.4f}")
 
-        with tempfile.TemporaryDirectory() as tmp_chkpt_dir:
-            tmp_chkpt_path = os.path.join(tmp_chkpt_dir, "checkpoint.pt")
-            torch.save(
-                {
-                    "epoch": epoch,
-                    "net_state_dict": net.state_dict(),
-                    "optimizer_state_dict": optimizer.state_dict(),
-                },
-                tmp_chkpt_path,
-            )
+        with tempfile.TemporaryDirectory() as temp_checkpoint_dir:
+            to_save = {"net": net, "optimizer": optimizer, "trainer": trainer}
+            chkpt_handler = IgniteCheckpoint(to_save, save_handler=DiskSaver(temp_checkpoint_dir, create_dir=True))
+            chkpt_handler(engine)
 
-            checkpoint = Checkpoint.from_directory(tmp_chkpt_dir)
+            checkpoint = RayCheckpoint.from_directory(temp_checkpoint_dir)
             tune.report(
                 {"loss": val_loss, "accuracy": val_accuracy},
                 checkpoint=checkpoint,
             )
 
-    if num_epochs - start_epoch > 0:
-        trainer.run(train_loader, num_epochs - start_epoch)
+    trainer.run(train_loader, num_epochs)
 
 
 def test_accuracy(model, device, data_dir):
@@ -153,7 +145,7 @@ def tune_cifar(num_samples=10, num_epochs=10, gpus_per_trial=0, cpus_per_trial=2
     with best_checkpoint.as_directory() as checkpoint_dir:
         checkpoint_path = os.path.join(checkpoint_dir, "checkpoint.pt")
         best_checkpoint_data = torch.load(checkpoint_path, map_location=device)
-        best_trained_model.load_state_dict(best_checkpoint_data["net_state_dict"])
+        best_trained_model.load_state_dict(best_checkpoint_data["net"])
 
         test_acc = test_accuracy(best_trained_model, device, data_dir)
         print(f"Best trial test set accuracy: {test_acc}")
