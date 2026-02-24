@@ -379,7 +379,6 @@ linkcheck_allowed_redirects = {
     r"https://ui\.neptune\.ai/.*": r"https://app\.neptune\.ai/.*",
     r"https://pytorch\.org/docs/.*": r"https://docs\.pytorch\.org/docs/.*",
     r"https://github\.com/allegroai/clearml": r"https://github\.com/clearml/clearml",
-    r"https://horovod\.readthedocs\.io/?$": r"https://horovod\.readthedocs\.io/.*",
     r"https://docs\.wandb\.ai/ref/.*": r"https://docs\.wandb\.ai/models/.*",
 }
 
