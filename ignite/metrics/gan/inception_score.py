@@ -23,7 +23,7 @@ class InceptionScore(_BaseInceptionMetric):
 
     More details can be found in `Barratt et al. 2018`__.
 
-    __ https://arxiv.org/pdf/1801.01973.pdf
+    __ https://arxiv.org/abs/1801.01973
 
     Args:
         num_features: number of features predicted by the model or number of classes of the model. Default
