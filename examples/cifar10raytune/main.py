@@ -13,7 +13,7 @@ from ray.tune.schedulers import ASHAScheduler
 
 from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
 from ignite.metrics import Loss, Accuracy
-from ignite.handlers import Checkpoint as IgniteCheckpoint, DiskSaver
+from ignite.handlers import Checkpoint, DiskSaver
 
 from utils import Net, get_data_loaders, get_test_loader, load_data
 
@@ -41,7 +41,7 @@ def train_with_ignite(config, data_dir=None, checkpoint_dir=None, num_epochs=10,
         checkpoint_path = os.path.join(checkpoint_dir, "checkpoint.pt")
         if os.path.exists(checkpoint_path):
             to_load = {"net": net, "optimizer": optimizer, "trainer": trainer}
-            load_handler = IgniteCheckpoint(
+            load_handler = Checkpoint(
                 to_load,
                 save_handler=DiskSaver(checkpoint_dir, create_dir=False),
             )
@@ -59,7 +59,7 @@ def train_with_ignite(config, data_dir=None, checkpoint_dir=None, num_epochs=10,
 
         with tempfile.TemporaryDirectory() as temp_checkpoint_dir:
             to_save = {"net": net, "optimizer": optimizer, "trainer": trainer}
-            chkpt_handler = IgniteCheckpoint(
+            chkpt_handler = Checkpoint(
                 to_save,
                 save_handler=DiskSaver(temp_checkpoint_dir, create_dir=True),
                 filename_pattern="checkpoint.pt",
