@@ -10,7 +10,7 @@ from pytest import approx
 from torch.nn.functional import mse_loss
 from torch.optim import SGD
 
-# Min pytorch version support is 2.2.2 
+# Min pytorch version support is 2.2.2
 try:
     from torch.amp import GradScaler
 except ImportError:
