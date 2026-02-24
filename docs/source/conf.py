@@ -354,6 +354,8 @@ nitpick_ignore = [
     ("py:class", "torch.optim.optimizer.Optimizer"),
     ("py:class", "torch.utils.data.dataset.Dataset"),
     ("py:class", "torch.utils.data.sampler.BatchSampler"),
+    ("py:class", "torch.utils.data.sampler.Sampler"),
+    ("py:class", "torch.utils.data.distributed.DistributedSampler"),
     ("py:class", "torch.amp.grad_scaler.GradScaler"),
     ("py:class", "torch.optim.lr_scheduler._LRScheduler"),
     ("py:class", "torch.optim.lr_scheduler.LRScheduler"),
@@ -367,6 +369,7 @@ linkcheck_ignore = [
     "https://machinelearningmastery.com/gentle-introduction-backpropagation-time/",
     "https://github.com/pytorch/pytorch/issues/7844#issuecomment-503713840",
     "https://github.com/pytorch/pytorch/issues/23430#issuecomment-562350407",
+    r"https://pytorch\.org/xla/release/.*",
 ]
 
 
