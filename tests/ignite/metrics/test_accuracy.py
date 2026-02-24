@@ -1,4 +1,4 @@
-from typing import Callable, Union
+from typing import Callable
 from unittest.mock import MagicMock
 
 import pytest
@@ -476,10 +476,10 @@ def test_skip_unrolling():
             true_output,
             output_transform: Callable = lambda x: x,
             is_multilabel: bool = False,
-            device: Union[str, torch.device] = torch.device("cpu"),
+            device: str | torch.device = torch.device("cpu"),
             skip_unrolling: bool = False,
         ):
-            super(DummyAcc, self).__init__(
+            super().__init__(
                 output_transform=output_transform, is_multilabel=False, device=device, skip_unrolling=skip_unrolling
             )
             self.true_output = true_output

@@ -26,7 +26,7 @@ class StateParamScheduler(BaseParamScheduler):
     """
 
     def __init__(self, param_name: str, save_history: bool = False, create_new: bool = False):
-        super(StateParamScheduler, self).__init__(param_name, save_history)
+        super().__init__(param_name, save_history)
         self.create_new = create_new
 
     def attach(
@@ -190,7 +190,7 @@ class LambdaStateScheduler(StateParamScheduler):
         save_history: bool = False,
         create_new: bool = False,
     ):
-        super(LambdaStateScheduler, self).__init__(param_name, save_history, create_new)
+        super().__init__(param_name, save_history, create_new)
 
         if not callable(lambda_obj):
             raise ValueError("Expected lambda_obj to be callable.")
@@ -272,7 +272,7 @@ class PiecewiseLinearStateScheduler(StateParamScheduler):
         save_history: bool = False,
         create_new: bool = False,
     ):
-        super(PiecewiseLinearStateScheduler, self).__init__(param_name, save_history, create_new)
+        super().__init__(param_name, save_history, create_new)
 
         if not isinstance(milestones_values, Sequence):
             raise TypeError(
@@ -382,7 +382,7 @@ class ExpStateScheduler(StateParamScheduler):
     def __init__(
         self, initial_value: float, gamma: float, param_name: str, save_history: bool = False, create_new: bool = False
     ):
-        super(ExpStateScheduler, self).__init__(param_name, save_history, create_new)
+        super().__init__(param_name, save_history, create_new)
         self.initial_value = initial_value
         self.gamma = gamma
         self._state_attrs += ["initial_value", "gamma"]
@@ -460,7 +460,7 @@ class StepStateScheduler(StateParamScheduler):
         save_history: bool = False,
         create_new: bool = False,
     ):
-        super(StepStateScheduler, self).__init__(param_name, save_history, create_new)
+        super().__init__(param_name, save_history, create_new)
         self.initial_value = initial_value
         self.gamma = gamma
         self.step_size = step_size
@@ -547,7 +547,7 @@ class MultiStepStateScheduler(StateParamScheduler):
         save_history: bool = False,
         create_new: bool = False,
     ):
-        super(MultiStepStateScheduler, self).__init__(param_name, save_history, create_new)
+        super().__init__(param_name, save_history, create_new)
         self.initial_value = initial_value
         self.gamma = gamma
         self.milestones = milestones

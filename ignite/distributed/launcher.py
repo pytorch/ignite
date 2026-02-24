@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable
 
 from ignite.distributed import utils as idist
 from ignite.utils import setup_logger
@@ -211,13 +211,13 @@ class Parallel:
 
     def __init__(
         self,
-        backend: Optional[str] = None,
-        nproc_per_node: Optional[int] = None,
-        nnodes: Optional[int] = None,
-        node_rank: Optional[int] = None,
-        master_addr: Optional[str] = None,
-        master_port: Optional[int] = None,
-        init_method: Optional[str] = None,
+        backend: str | None = None,
+        nproc_per_node: int | None = None,
+        nnodes: int | None = None,
+        node_rank: int | None = None,
+        master_addr: str | None = None,
+        master_port: int | None = None,
+        init_method: str | None = None,
         **spawn_kwargs: Any,
     ) -> None:
         if backend is not None:
@@ -246,13 +246,13 @@ class Parallel:
     @staticmethod
     def _setup_spawn_params(
         nproc_per_node: int,
-        nnodes: Optional[int] = None,
-        node_rank: Optional[int] = None,
-        master_addr: Optional[str] = None,
-        master_port: Optional[int] = None,
-        init_method: Optional[str] = None,
+        nnodes: int | None = None,
+        node_rank: int | None = None,
+        master_addr: str | None = None,
+        master_port: int | None = None,
+        init_method: str | None = None,
         **spawn_kwargs: Any,
-    ) -> Dict:
+    ) -> dict:
         if nproc_per_node < 1:
             raise ValueError(f"Argument nproc_per_node should positive, but given {nproc_per_node}")
         if nnodes is None:
