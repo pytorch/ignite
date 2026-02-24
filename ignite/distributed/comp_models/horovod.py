@@ -1,7 +1,9 @@
+from __future__ import annotations
 import os
 import warnings
 from collections.abc import Callable, Mapping
 from typing import Any, cast, TYPE_CHECKING
+
 
 import torch
 
@@ -49,7 +51,7 @@ if has_hvd_support:
             return rank
 
         @staticmethod
-        def create_from_context() -> _HorovodDistModel | None: 
+        def create_from_context() -> "_HorovodDistModel" | None:
             rank = _HorovodDistModel._get_hvd_rank()
             # hvd must be initialized
             if not rank > -1:
