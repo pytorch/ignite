@@ -19,7 +19,7 @@ def global_step_from_engine(
     Args:
         engine: engine which state is used to provide the global step
         custom_event_name: registered event name. Optional argument, event name to use.
-        fallback_attr: State attribute used when event is not registered.
+        fallback_attr: ``State`` attribute used when event is not registered. Default, "epoch".
 
     Returns:
         Callable returning global step value.
