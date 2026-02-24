@@ -23,7 +23,7 @@ def global_step_from_engine(
     Returns:
         Callable returning global step value.
 
-    .. versionchanged:: 0.6.0
+    .. versionchanged:: 0.5.4
         added ``fallback_attr`` argument as fallback ``State`` attribute.
     """
 
