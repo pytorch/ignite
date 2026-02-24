@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import warnings
-from typing import Any, Iterator, List, Optional, Union
+from typing import Any, Iterator
 
 import torch
 import torch.nn as nn
@@ -9,13 +11,15 @@ from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import Sampler
 
 from ignite.distributed import utils as idist
-from ignite.distributed.comp_models import horovod as idist_hvd, native as idist_native, xla as idist_xla
+from ignite.distributed.comp_models import horovod as idist_hvd
+from ignite.distributed.comp_models import native as idist_native
+from ignite.distributed.comp_models import xla as idist_xla
 from ignite.utils import setup_logger
 
 __all__ = ["auto_dataloader", "auto_model", "auto_optim", "DistributedProxySampler"]
 
 
-def auto_dataloader(dataset: Dataset, **kwargs: Any) -> Union[DataLoader, "_MpDeviceLoader"]:
+def auto_dataloader(dataset: Dataset, **kwargs: Any) -> DataLoader | _MpDeviceLoader:
     """Helper method to create a dataloader adapted for non-distributed and distributed configurations (supporting
     all available backends from :meth:`~ignite.distributed.utils.available_backends()`).
 
@@ -82,8 +86,8 @@ def auto_dataloader(dataset: Dataset, **kwargs: Any) -> Union[DataLoader, "_MpDe
                     "Please, make sure that the dataset itself produces different data on different ranks."
                 )
             else:
-                sampler: Optional[Union[DistributedProxySampler, DistributedSampler, Sampler]]
-                sampler = kwargs.get("sampler", None)
+                sampler: DistributedProxySampler | DistributedSampler | Sampler | None
+                sampler = kwargs.get("sampler")
                 if isinstance(sampler, DistributedSampler):
                     if sampler.rank != rank:
                         warnings.warn(f"Found distributed sampler with rank={sampler.rank}, but process rank is {rank}")
@@ -293,7 +297,7 @@ class DistributedProxySampler(DistributedSampler):
         Input sampler is assumed to have a constant size.
     """
 
-    def __init__(self, sampler: Sampler, num_replicas: Optional[int] = None, rank: Optional[int] = None) -> None:
+    def __init__(self, sampler: Sampler, num_replicas: int | None = None, rank: int | None = None) -> None:
         if not isinstance(sampler, Sampler):
             raise TypeError(f"Argument sampler should be instance of torch Sampler, but given: {type(sampler)}")
 
@@ -310,7 +314,7 @@ class DistributedProxySampler(DistributedSampler):
         # deterministically shuffle based on epoch
         torch.manual_seed(self.epoch)
 
-        indices: List = []
+        indices: list = []
         while len(indices) < self.total_size:
             indices += list(self.sampler)
 
