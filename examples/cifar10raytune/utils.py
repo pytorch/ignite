@@ -4,6 +4,8 @@ import torchvision.transforms as transforms
 import torch.nn as nn
 import torch.nn.functional as F
 
+import ignite.distributed as idist
+
 
 class Net(nn.Module):
     def __init__(self, l1=120, l2=84):
@@ -50,10 +52,10 @@ def get_data_loaders(batch_size, data_dir="./data", num_workers=8):
 
     train_subset, val_subset = torch.utils.data.random_split(train_set, [train_size, val_size])
 
-    train_loader = torch.utils.data.DataLoader(
-        train_subset, batch_size=batch_size, shuffle=True, num_workers=num_workers
+    train_loader = idist.auto_dataloader(
+        train_subset, batch_size=batch_size, shuffle=True, num_workers=num_workers, drop_last=True
     )
-    val_loader = torch.utils.data.DataLoader(val_subset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+    val_loader = idist.auto_dataloader(val_subset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
     return train_loader, val_loader
 
@@ -61,6 +63,6 @@ def get_data_loaders(batch_size, data_dir="./data", num_workers=8):
 def get_test_loader(batch_size, data_dir="./data", num_workers=8):
     _, test_set = load_data(data_dir)
 
-    test_loader = torch.utils.data.DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+    test_loader = idist.auto_dataloader(test_set, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
     return test_loader
