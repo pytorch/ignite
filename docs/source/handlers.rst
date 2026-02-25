@@ -34,6 +34,17 @@ Complete list of generic handlers
     param_scheduler.ParamScheduler
     state_param_scheduler.StateParamScheduler
 
+Interfaces
+----------
+
+.. currentmodule:: ignite.base.mixins
+
+.. autosummary::
+    :nosignatures:
+    :toctree: generated
+
+    ResettableHandler
+
 
 Loggers
 --------

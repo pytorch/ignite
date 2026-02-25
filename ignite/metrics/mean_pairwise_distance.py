@@ -75,7 +75,7 @@ class MeanPairwiseDistance(Metric):
         device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
     ) -> None:
-        super(MeanPairwiseDistance, self).__init__(output_transform, device=device, skip_unrolling=False)
+        super().__init__(output_transform, device=device, skip_unrolling=False)
         self._p = p
         self._eps = eps
 

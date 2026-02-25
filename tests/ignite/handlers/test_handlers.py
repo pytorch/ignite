@@ -17,3 +17,9 @@ def test_global_step_from_engine():
 
     gst = global_step_from_engine(trainer, custom_event_name=Events.ITERATION_COMPLETED)
     assert gst(MagicMock(), Events.EPOCH_COMPLETED) == iteration
+
+    gst = global_step_from_engine(trainer)
+    assert gst(MagicMock(), "UNREGISTERED_EVENT") == epoch
+
+    gst = global_step_from_engine(trainer, fallback_attr="iteration")
+    assert gst(MagicMock(), "UNREGISTERED_EVENT") == iteration

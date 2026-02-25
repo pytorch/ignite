@@ -65,6 +65,4 @@ class MedianAbsolutePercentageError(EpochMetric):
     def __init__(
         self, output_transform: Callable = lambda x: x, device: Union[str, torch.device] = torch.device("cpu")
     ):
-        super(MedianAbsolutePercentageError, self).__init__(
-            median_absolute_percentage_error_compute_fn, output_transform=output_transform, device=device
-        )
+        super().__init__(median_absolute_percentage_error_compute_fn, output_transform=output_transform, device=device)
