@@ -1,6 +1,5 @@
 import warnings
 from copy import deepcopy
-from typing import Optional, Union
 
 import torch.nn as nn
 
@@ -152,16 +151,16 @@ class EMAHandler:
         self,
         model: nn.Module,
         momentum: float = 0.0002,
-        momentum_warmup: Optional[float] = None,
-        warmup_iters: Optional[int] = None,
+        momentum_warmup: float | None = None,
+        warmup_iters: int | None = None,
         handle_buffers: str = "copy",
     ) -> None:
         if not 0 < momentum < 1:
             raise ValueError(f"Invalid momentum: {momentum}")
         self.momentum = momentum
-        self._momentum_lambda_obj: Optional[EMAWarmUp] = None
+        self._momentum_lambda_obj: EMAWarmUp | None = None
         if momentum_warmup is not None and warmup_iters is not None:
-            self.momentum_scheduler: Optional[BaseParamScheduler] = None
+            self.momentum_scheduler: BaseParamScheduler | None = None
             self._momentum_lambda_obj = EMAWarmUp(momentum_warmup, warmup_iters, momentum)
 
         if not isinstance(model, nn.Module):
@@ -216,7 +215,7 @@ class EMAHandler:
         engine: Engine,
         name: str = "ema_momentum",
         warn_if_exists: bool = True,
-        event: Union[str, Events, CallableEventWithFilter, EventsList] = Events.ITERATION_COMPLETED,
+        event: str | Events | CallableEventWithFilter | EventsList = Events.ITERATION_COMPLETED,
     ) -> None:
         """Attach the handler to engine. After the handler is attached, the ``Engine.state`` will add an new attribute
         with name ``name`` if the attribute does not exist. Then, the current momentum can be retrieved from
