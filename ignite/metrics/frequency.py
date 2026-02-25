@@ -59,7 +59,7 @@ class Frequency(Metric):
         device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
     ) -> None:
-        super(Frequency, self).__init__(output_transform=output_transform, device=device, skip_unrolling=skip_unrolling)
+        super().__init__(output_transform=output_transform, device=device, skip_unrolling=skip_unrolling)
 
     @reinit__is_reduced
     def reset(self) -> None:

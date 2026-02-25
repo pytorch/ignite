@@ -80,7 +80,7 @@ class Loss(Metric):
         device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
     ):
-        super(Loss, self).__init__(output_transform, device=device, skip_unrolling=skip_unrolling)
+        super().__init__(output_transform, device=device, skip_unrolling=skip_unrolling)
         self._loss_fn = loss_fn
         self._batch_size = batch_size
 

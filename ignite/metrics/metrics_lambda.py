@@ -116,9 +116,7 @@ class MetricsLambda(Metric):
         self.kwargs = kwargs
         self.engine: Optional[Engine] = None
         self._updated = False
-        super(MetricsLambda, self).__init__(
-            device="cpu", metrics_result_mode=metrics_result_mode, skip_unrolling=skip_unrolling
-        )
+        super().__init__(device="cpu", metrics_result_mode=metrics_result_mode, skip_unrolling=skip_unrolling)
 
     @reinit__is_reduced
     def reset(self) -> None:
