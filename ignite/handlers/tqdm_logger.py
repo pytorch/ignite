@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """TQDM logger."""
 from collections import OrderedDict
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from ignite.engine import Engine, Events
 from ignite.engine.events import CallableEventWithFilter, RemovableEventHandle
