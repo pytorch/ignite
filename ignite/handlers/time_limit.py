@@ -1,6 +1,5 @@
 import time
 
-
 from ignite.engine import Engine
 
 __all__ = ["TimeLimit"]
@@ -29,7 +28,6 @@ class TimeLimit:
     """
 
     def __init__(self, limit_sec: int | None = 28800):
-
         if not isinstance(limit_sec, int):
             raise TypeError("Argument limit_sec should be an integer.")
         if limit_sec <= 0:
