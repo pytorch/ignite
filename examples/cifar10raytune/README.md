@@ -11,9 +11,9 @@ In this example, we show how to use _Ignite_ to train a neural network with:
 ## Requirements
 
 - pytorch-ignite: `pip install pytorch-ignite`
+- torch: `pip install torch`
 - torchvision: `pip install torchvision`
 - [Ray Tune](https://docs.ray.io/): `pip install ray[tune]`
-- ipywidgets: `pip install ipywidgets`
 
 Alternatively, please see `requirements.txt`
 
