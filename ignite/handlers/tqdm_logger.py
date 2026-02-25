@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """TQDM logger."""
-
 from collections import OrderedDict
 from typing import Any, Callable
 
