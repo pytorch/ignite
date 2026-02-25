@@ -1,5 +1,3 @@
-from typing import Tuple
-
 import torch
 
 from ignite.exceptions import NotComputableError
@@ -66,7 +64,7 @@ class MaximumAbsoluteError(_BaseRegression):
     def reset(self) -> None:
         self._max_of_absolute_errors: float = -1
 
-    def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
+    def _update(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output[0].detach(), output[1].detach()
         mae = torch.abs(y_pred - y.view_as(y_pred)).max().item()
         if self._max_of_absolute_errors < mae:

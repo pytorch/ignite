@@ -1,4 +1,4 @@
-from typing import cast, List, Tuple
+from typing import cast
 
 import torch
 
@@ -74,10 +74,10 @@ class GeometricMeanRelativeAbsoluteError(_BaseRegression):
 
     @reinit__is_reduced
     def reset(self) -> None:
-        self._predictions: List[torch.Tensor] = []
-        self._targets: List[torch.Tensor] = []
+        self._predictions: list[torch.Tensor] = []
+        self._targets: list[torch.Tensor] = []
 
-    def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
+    def _update(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
         y_pred, y = output[0].detach(), output[1].detach()
 
         y_pred = y_pred.clone().to(self._device)
