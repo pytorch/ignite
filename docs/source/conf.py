@@ -359,6 +359,8 @@ nitpick_ignore = [
     ("py:class", "Sampler"),
     ("py:class", "torch.utils.data.distributed.DistributedSampler"),
     ("py:class", "torch.amp.grad_scaler.GradScaler"),
+    ("py:class", "torch.amp.GradScaler"),
+    ("py:class", "GradScaler"),
     ("py:class", "torch.optim.lr_scheduler._LRScheduler"),
     ("py:class", "torch.optim.lr_scheduler.LRScheduler"),
     ("py:class", "torch.utils.data.dataloader.DataLoader"),
@@ -377,6 +379,10 @@ linkcheck_ignore = [
 
 linkcheck_allowed_redirects = {
     r"https://ui\.neptune\.ai/.*": r"https://app\.neptune\.ai/.*",
+    r"https://pytorch\.org/docs/.*": r"https://docs\.pytorch\.org/docs/.*",
+    r"https://github\.com/allegroai/clearml": r"https://github\.com/clearml/clearml",
+    r"https://horovod\.readthedocs\.io/?$": r"https://horovod\.readthedocs\.io/.*",
+    r"https://docs\.wandb\.ai/ref/.*": r"https://docs\.wandb\.ai/models/.*",
 }
 
 
