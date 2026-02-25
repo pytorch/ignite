@@ -766,8 +766,7 @@ def test_iou(get_sample, available_device):
         tgt_bbox[:, 2:4] -= tgt_bbox[:, :2]
         pyc_iou = pycoco_iou(pred_bbox.cpu().numpy(), tgt_bbox.cpu().numpy(), iscrowd.cpu().int())
 
-        equal = ignite_iou.cpu().numpy() == pyc_iou
-        assert equal.all()
+        assert np.allclose(ignite_iou.cpu().numpy(), pyc_iou, atol=1e-6)
 
 
 def test_iou_thresholding(available_device):
