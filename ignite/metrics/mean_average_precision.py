@@ -1,5 +1,5 @@
 import warnings
-from typing import Callable, cast, List, Optional, Sequence, Tuple, Union
+from typing import Callable, List, Optional, Sequence, Tuple, Union, cast
 
 import torch
 from typing_extensions import Literal
