@@ -1,7 +1,8 @@
 import numbers
 import warnings
 from bisect import bisect_right
-from typing import Any, Callable, Sequence
+from collections.abc import Callable, Sequence
+from typing import Any
 
 from ignite.engine import CallableEventWithFilter, Engine, Events, EventsList
 from ignite.handlers.param_scheduler import BaseParamScheduler
