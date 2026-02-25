@@ -3,7 +3,6 @@ from copy import deepcopy
 
 import torch.nn as nn
 
-
 from ignite.engine import CallableEventWithFilter, Engine, Events, EventsList
 from ignite.handlers.param_scheduler import BaseParamScheduler
 from ignite.handlers.state_param_scheduler import LambdaStateScheduler
