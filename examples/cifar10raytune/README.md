@@ -6,7 +6,6 @@ In this example, we show how to use _Ignite_ to train a neural network with:
 
 - hyperparameter search using Ray Tune,
 - ASHA scheduler for early stopping
-- multi-GPU support
 
 ## Requirements
 

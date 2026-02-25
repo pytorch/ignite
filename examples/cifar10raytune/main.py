@@ -1,6 +1,5 @@
 import argparse
 import os
-import tempfile
 
 import torch
 import torch.nn as nn
@@ -23,10 +22,6 @@ def train_with_ignite(config, data_dir=None, checkpoint_dir=None, num_epochs=10,
     net = Net(config["l1"], config["l2"])
     net = net.to(device)
 
-    # TODO: fix this.
-    if torch.cuda.device_count() > 1:
-        net = nn.DataParallel(net)
-
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=config["lr"], momentum=0.9)
 
@@ -37,15 +32,15 @@ def train_with_ignite(config, data_dir=None, checkpoint_dir=None, num_epochs=10,
     metrics = {"accuracy": Accuracy(), "loss": Loss(criterion)}
     evaluator = create_supervised_evaluator(net, metrics=metrics, device=device)
 
-    if checkpoint_dir:
-        checkpoint_path = os.path.join(checkpoint_dir, "checkpoint.pt")
-        if os.path.exists(checkpoint_path):
-            to_load = {"net": net, "optimizer": optimizer, "trainer": trainer}
-            load_handler = Checkpoint(
-                to_load,
-                save_handler=DiskSaver(checkpoint_dir, create_dir=False),
-            )
-            load_handler.load_objects(to_load=to_load, checkpoint=checkpoint_path)
+    checkpoint_dir = tune.get_context().get_trial_dir()
+    save_handler = DiskSaver(checkpoint_dir, create_dir=True)
+    to_save = {"net": net, "optimizer": optimizer, "trainer": trainer}
+    checkpoint_handler = Checkpoint(to_save, save_handler=save_handler, filename_pattern="checkpoint.pt")
+    trainer.add_event_handler(Events.EPOCH_COMPLETED, checkpoint_handler)
+
+    if checkpoint_dir and os.path.exists(os.path.join(checkpoint_dir, "checkpoint.pt")):
+        load_handler = Checkpoint(to_save, save_handler=DiskSaver(checkpoint_dir, create_dir=False))
+        load_handler.load_objects(checkpoint=os.path.join(checkpoint_dir, "checkpoint.pt"))
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_and_report(engine):
@@ -57,20 +52,11 @@ def train_with_ignite(config, data_dir=None, checkpoint_dir=None, num_epochs=10,
 
         print(f"Epoch {epoch}: loss={val_loss:.4f}, accuracy={val_accuracy:.4f}")
 
-        with tempfile.TemporaryDirectory() as temp_checkpoint_dir:
-            to_save = {"net": net, "optimizer": optimizer, "trainer": trainer}
-            chkpt_handler = Checkpoint(
-                to_save,
-                save_handler=DiskSaver(temp_checkpoint_dir, create_dir=True),
-                filename_pattern="checkpoint.pt",
-            )
-            chkpt_handler(engine)
-
-            checkpoint = RayCheckpoint.from_directory(temp_checkpoint_dir)
-            tune.report(
-                {"loss": val_loss, "accuracy": val_accuracy},
-                checkpoint=checkpoint,
-            )
+        checkpoint = RayCheckpoint.from_directory(checkpoint_dir)
+        tune.report(
+            {"loss": val_loss, "accuracy": val_accuracy},
+            checkpoint=checkpoint,
+        )
 
     trainer.run(train_loader, num_epochs)
 
