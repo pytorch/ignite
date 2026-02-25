@@ -50,5 +50,3 @@ conda_build/
 pytest.ini
 
 .vscode/*
-
-venv/
