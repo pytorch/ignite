@@ -8,11 +8,9 @@ import threading
 import time
 from pathlib import Path
 
-
 import pytest
 import torch
 import torch.distributed as dist
-
 
 import ignite.distributed as idist
 from tests.ignite import is_mps_available_and_functional
@@ -50,12 +48,9 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "distributed: run distributed")
     config.addinivalue_line("markers", "multinode_distributed: distributed")
     config.addinivalue_line("markers", "tpu: run on tpu")
-    try:
-        if config.option.treat_unrun_as_failed:
-            unrun_tracker = UnrunTracker()
-            config.pluginmanager.register(unrun_tracker, "unrun_tracker_plugin")
-    except AttributeError:
-        pass  # Option not available in this pytest version
+    if config.option.treat_unrun_as_failed:
+        unrun_tracker = UnrunTracker()
+        config.pluginmanager.register(unrun_tracker, "unrun_tracker_plugin")
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -183,20 +178,24 @@ def _create_dist_context(dist_info, lrank):
 
 def _destroy_dist_context():
     if dist.get_rank() == 0:
+        # To support Python 3.7; Otherwise we could do `.unlink(missing_ok=True)`
         try:
             Path("/tmp/free_port").unlink()
         except FileNotFoundError:
             pass
 
     dist.barrier()
+
     dist.destroy_process_group()
 
     from ignite.distributed.utils import _SerialModel, _set_model
 
+    # We need to set synced model to initial state
     _set_model(_SerialModel())
 
 
 def _find_free_port():
+    # Taken from https://github.com/facebookresearch/detectron2/blob/master/detectron2/engine/launch.py
     import socket
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -248,6 +247,7 @@ def distributed_context_single_node_gloo(local_rank, world_size):
 
     if sys.platform.startswith("win"):
         temp_file = tempfile.NamedTemporaryFile(delete=False)
+        # can't use backslashes in f-strings
         backslash = "\\"
         init_method = f'file:///{temp_file.name.replace(backslash, "/")}'
     else:
@@ -299,6 +299,7 @@ def _destroy_mnodes_dist_context():
 
     from ignite.distributed.utils import _SerialModel, _set_model
 
+    # We need to set synced model to initial state
     _set_model(_SerialModel())
 
 
@@ -378,6 +379,10 @@ def _hvd_task_with_init(func, args):
 
     func(*args)
 
+    # Added a sleep to avoid flaky failures on circle ci
+    # Sometimes a rank is terminated before final collective
+    # op is finished.
+    # https://github.com/pytorch/ignite/pull/2357
     time.sleep(2)
 
     hvd.shutdown()
@@ -385,8 +390,10 @@ def _hvd_task_with_init(func, args):
 
 def _gloo_hvd_execute(func, args, np=1, do_init=False):
     try:
+        # old API
         from horovod.run.runner import run
     except ImportError:
+        # new API: https://github.com/horovod/horovod/pull/2099
         from horovod import run
 
     kwargs = dict(use_gloo=True, num_proc=np)
@@ -412,6 +419,12 @@ skip_if_has_not_horovod_support = pytest.mark.skipif(
 )
 
 
+# Unlike other backends, Horovod and multi-process XLA run user code by
+# providing a utility function which accepts user code as a callable argument.
+# To keep distributed tests backend-agnostic, we mark Horovod and multi-process XLA
+# tests during fixture preparation and replace their function with the proper one
+# just before running the test. PyTest stash is a safe way to share state between
+# different stages of tool runtime and we use it to mark the tests.
 is_horovod_stash_key = pytest.StashKey[bool]()
 is_xla_stash_key = pytest.StashKey[bool]()
 is_xla_single_device_stash_key = pytest.StashKey[bool]()
@@ -455,6 +468,7 @@ def distributed(request, local_rank, world_size):
     if request.param in ("nccl", "gloo_cpu", "gloo"):
         if "gloo" in request.param and sys.platform.startswith("win"):
             temp_file = tempfile.NamedTemporaryFile(delete=False)
+            # can't use backslashes in f-strings
             backslash = "\\"
             init_method = f'file:///{temp_file.name.replace(backslash, "/")}'
         else:
@@ -507,6 +521,7 @@ class UnrunTracker:
         self.unrun_tests = []
 
     def pytest_collection_finish(self, session):
+        # At the end of the collection, add all items to the unrun_tests list
         self.unrun_tests.extend(session.items)
 
     def pytest_runtest_teardown(self, item):
@@ -514,18 +529,24 @@ class UnrunTracker:
             self.unrun_tests.remove(item)
 
     def record_unrun_as_failed(self, session, exitstatus):
+        # Get current lastfailed entries (if any)
         lastfailed = session.config.cache.get("cache/lastfailed", {})
 
+        # Add unrun tests to lastfailed
         for test in self.unrun_tests:
             lastfailed[test.nodeid] = True
 
+        # Update the cache with the new lastfailed
         session.config.cache.set("cache/lastfailed", lastfailed)
 
 
 @pytest.hookimpl
 def pytest_pyfunc_call(pyfuncitem: pytest.Function) -> None:
     if any(fx in pyfuncitem.fixturenames for fx in ["distributed", "multinode_distributed"]):
+        # Run distributed tests on a single worker to avoid RACE conditions
+        # This requires that the --dist=loadgroup option be passed to pytest.
         pyfuncitem.add_marker(pytest.mark.xdist_group("distributed"))
+        # Add timeouts to prevent hanging
         if "tpu" in pyfuncitem.fixturenames:
             pyfuncitem.add_marker(pytest.mark.timeout(60))
         else:
@@ -547,8 +568,10 @@ def pytest_pyfunc_call(pyfuncitem: pytest.Function) -> None:
                 hvd.shutdown()
 
             try:
+                # old API
                 from horovod.run.runner import run
             except ImportError:
+                # new API: https://github.com/horovod/horovod/pull/2099
                 from horovod import run
 
             nproc = 4 if not torch.cuda.is_available() else torch.cuda.device_count()
@@ -587,9 +610,7 @@ def pytest_sessionfinish(session, exitstatus):
     This is a pytest hook (due to its name) and is called after the whole test
     run finished, right before returning the exit status to the system.
     """
-    try:
-        if session.config.option.treat_unrun_as_failed:
-            unrun_tracker = session.config.pluginmanager.get_plugin("unrun_tracker_plugin")
-            unrun_tracker.record_unrun_as_failed(session, exitstatus)
-    except AttributeError:
-        pass  # Option not available in this pytest version
+    # If requested by the user, track all unrun tests and add them to the lastfailed cache
+    if session.config.option.treat_unrun_as_failed:
+        unrun_tracker = session.config.pluginmanager.get_plugin("unrun_tracker_plugin")
+        unrun_tracker.record_unrun_as_failed(session, exitstatus)
