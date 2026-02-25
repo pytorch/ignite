@@ -15,16 +15,13 @@ def global_step_from_engine(
     If the provided event is not registered in ``State.event_to_attr``,
     the function falls back to using ``engine.state.<fallback_attr>``.
 
-
     Args:
         engine: engine which state is used to provide the global step
         custom_event_name: registered event name. Optional argument, event name to use.
         fallback_attr: ``State`` attribute used when event is not registered. Default, "epoch".
 
-
     Returns:
         Callable returning global step value.
-
 
     .. versionchanged:: 0.5.4
         added ``fallback_attr`` argument as fallback ``State`` attribute.

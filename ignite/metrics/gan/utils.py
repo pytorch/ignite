@@ -23,7 +23,7 @@ class InceptionModel(torch.nn.Module):
             from torchvision import models
         except ImportError:
             raise ModuleNotFoundError("This module requires torchvision to be installed.")
-        super(InceptionModel, self).__init__()
+        super().__init__()
         self._device = device
         if Version(torchvision.__version__) < Version("0.13.0"):
             model_kwargs = {"pretrained": True}
@@ -74,7 +74,7 @@ class _BaseInceptionMetric(Metric):
         self._num_features = num_features
         self._feature_extractor = feature_extractor.to(device)
 
-        super(_BaseInceptionMetric, self).__init__(output_transform=output_transform, device=device)
+        super().__init__(output_transform=output_transform, device=device)
 
     def _check_feature_shapes(self, samples: torch.Tensor) -> None:
         if samples.dim() != 2:
