@@ -546,3 +546,39 @@ def _test_distrib_xla_nprocs(index):
 def test_distrib_xla_nprocs(xmp_executor):
     n = int(os.environ["NUM_TPU_WORKERS"])
     xmp_executor(_test_distrib_xla_nprocs, args=(), nprocs=n)
+
+
+def test_early_stopping_reset():
+    trainer = Engine(do_nothing_update_fn)
+    handler = EarlyStopping(patience=5, score_function=lambda engine: engine.state.iteration, trainer=trainer)
+
+    handler.best_score = 99.0
+    handler.counter = 3
+
+    handler.reset()
+    assert handler.best_score is None
+    assert handler.counter == 0
+
+
+def test_early_stopping_attach():
+    trainer = Engine(do_nothing_update_fn)
+    handler = EarlyStopping(patience=5, score_function=lambda engine: engine.state.iteration, trainer=trainer)
+
+    handler.attach(trainer)
+
+    assert trainer.has_event_handler(handler, Events.COMPLETED)
+    assert trainer.has_event_handler(handler.reset, Events.STARTED)
+
+
+def test_early_stopping_attach_cross_engine():
+    trainer = Engine(do_nothing_update_fn)
+    evaluator = Engine(do_nothing_update_fn)
+    handler = EarlyStopping(patience=5, score_function=lambda engine: engine.state.iteration, trainer=trainer)
+
+    handler.attach(engine=evaluator, event=Events.EPOCH_COMPLETED, reset_engine=trainer, reset_event=Events.STARTED)
+
+    assert evaluator.has_event_handler(handler, Events.EPOCH_COMPLETED)
+    assert not trainer.has_event_handler(handler, Events.EPOCH_COMPLETED)
+
+    assert trainer.has_event_handler(handler.reset, Events.STARTED)
+    assert not evaluator.has_event_handler(handler.reset, Events.STARTED)

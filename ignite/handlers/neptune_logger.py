@@ -662,7 +662,7 @@ class NeptuneSaver(BaseSaveHandler):
             npt_logger.close()
 
     For example, you can access model checkpoints and download them from here:
-    https://ui.neptune.ai/o/shared/org/pytorch-ignite-integration/e/PYTOR1-18/charts
+    https://app.neptune.ai/o/shared/org/pytorch-ignite-integration/e/PYTOR1-18/charts
 
     """
 
