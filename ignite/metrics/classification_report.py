@@ -35,6 +35,11 @@ def ClassificationReport(
         is_multilabel: If True, the tensors are assumed to be multilabel.
         device: optional device specification for internal storage.
         labels: Optional list of label indices to include in the report
+        metrics_result_mode: specifies how to put the computed metrics results into
+            ``engine.state.metrics`` dictionary. Valid values are: "flatten", "named", "both".
+            - "flatten": if the computed result is a mapping, its keys/values are put directly into the engine state metrics dictionary
+            - "named": if the computed result is a mapping, the whole mapping is put into the engine state metrics dictionary under the metric name
+            - "both": combination of "flatten" and "named".
 
     Examples:
 
@@ -108,6 +113,8 @@ def ClassificationReport(
             {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0}
             {'precision': 0.2333..., 'recall': 0.6666..., 'f1-score': 0.3333...}
 
+    .. versionchanged:: 0.5.4
+        added ``metrics_result_mode`` argument.
     """
 
     # setup all the underlying metrics
