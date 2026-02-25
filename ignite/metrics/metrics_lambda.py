@@ -1,5 +1,5 @@
 import itertools
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional, Union, Literal
 
 import torch
 
@@ -24,6 +24,14 @@ class MetricsLambda(Metric):
         f: the function that defines the computation
         args: Sequence of other metrics or something
             else that will be fed to ``f`` as arguments.
+        skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
+            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            Alternatively, ``output_transform`` can be used to handle this.
+        metrics_result_mode: specifies how to put the computed metrics results into
+            ``engine.state.metrics`` dictionary. Valid values are: "flatten", "named", "both".
+            - "flatten": if the computed result is a mapping, its keys/values are put directly into the engine state metrics dictionary
+            - "named": if the computed result is a mapping, the whole mapping is put into the engine state metrics dictionary under the metric name
+            - "both": combination of "flatten" and "named".
         kwargs: Sequence of other metrics or something
             else that will be fed to ``f`` as keyword arguments.
 
@@ -88,17 +96,27 @@ class MetricsLambda(Metric):
             assert not aP.is_attached(engine)
             # fully attached
             assert not precision.is_attached(engine)
+
+    .. versionchanged:: 0.5.4
+        added ``skip_unrolling`` and ``metrics_result_mode`` arguments.
     """
 
     _state_dict_all_req_keys = ("_updated", "args", "kwargs")
 
-    def __init__(self, f: Callable, *args: Any, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        f: Callable,
+        *args: Any,
+        skip_unrolling: bool = False,
+        metrics_result_mode: Literal["flatten", "named", "both"] = "both",
+        **kwargs: Any,
+    ) -> None:
         self.function = f
         self.args = list(args)  # we need args to be a list instead of a tuple for state_dict/load_state_dict feature
         self.kwargs = kwargs
         self.engine: Optional[Engine] = None
         self._updated = False
-        super().__init__(device="cpu")
+        super().__init__(device="cpu", metrics_result_mode=metrics_result_mode, skip_unrolling=skip_unrolling)
 
     @reinit__is_reduced
     def reset(self) -> None:
