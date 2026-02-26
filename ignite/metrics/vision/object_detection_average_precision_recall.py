@@ -1,4 +1,5 @@
-from typing import Callable, cast, Dict, List, Optional, Sequence, Tuple, Union
+from collections.abc import Callable, Sequence
+from typing import cast
 
 import torch
 from typing_extensions import Literal
@@ -10,11 +11,11 @@ from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
 
 def coco_tensor_list_to_dict_list(
-    output: Tuple[
-        Union[List[torch.Tensor], List[Dict[str, torch.Tensor]]],
-        Union[List[torch.Tensor], List[Dict[str, torch.Tensor]]],
+    output: tuple[
+        Union[list[torch.Tensor], list[dict[str, torch.Tensor]]],
+        Union[list[torch.Tensor], list[dict[str, torch.Tensor]]],
     ]
-) -> Tuple[List[Dict[str, torch.Tensor]], List[Dict[str, torch.Tensor]]]:
+) -> tuple[list[dict[str, torch.Tensor]], list[dict[str, torch.Tensor]]]:
     """Convert either of output's `y_pred` or `y` from list of `(N, 6)` tensors to list of str-to-tensor dictionaries,
     or keep them unchanged if they're already in the deisred format.
 
@@ -31,32 +32,32 @@ def coco_tensor_list_to_dict_list(
     """
     y_pred, y = output
     if len(y_pred) > 0 and isinstance(y_pred[0], torch.Tensor):
-        y_pred = [{"bbox": t[:, :4], "confidence": t[:, 4], "class": t[:, 5]} for t in cast(List[torch.Tensor], y_pred)]
+        y_pred = [{"bbox": t[:, :4], "confidence": t[:, 4], "class": t[:, 5]} for t in cast(list[torch.Tensor], y_pred)]
     if len(y) > 0 and isinstance(y[0], torch.Tensor):
         if y[0].size(1) == 5:
-            y = [{"bbox": t[:, :4], "class": t[:, 4]} for t in cast(List[torch.Tensor], y)]
+            y = [{"bbox": t[:, :4], "class": t[:, 4]} for t in cast(list[torch.Tensor], y)]
         else:
-            y = [{"bbox": t[:, :4], "class": t[:, 4], "iscrowd": t[:, 5]} for t in cast(List[torch.Tensor], y)]
-    return cast(Tuple[List[Dict[str, torch.Tensor]], List[Dict[str, torch.Tensor]]], (y_pred, y))
+            y = [{"bbox": t[:, :4], "class": t[:, 4], "iscrowd": t[:, 5]} for t in cast(list[torch.Tensor], y)]
+    return cast(tuple[list[dict[str, torch.Tensor]], list[dict[str, torch.Tensor]]], (y_pred, y))
 
 
 class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
-    _tps: List[torch.Tensor]
-    _fps: List[torch.Tensor]
-    _scores: List[torch.Tensor]
-    _y_pred_labels: List[torch.Tensor]
+    _tps: list[torch.Tensor]
+    _fps: list[torch.Tensor]
+    _scores: list[torch.Tensor]
+    _y_pred_labels: list[torch.Tensor]
     _y_true_count: torch.Tensor
     _num_classes: int
 
     def __init__(
         self,
-        iou_thresholds: Optional[Union[Sequence[float], torch.Tensor]] = None,
-        rec_thresholds: Optional[Union[Sequence[float], torch.Tensor]] = None,
+        iou_thresholds: Optional[Sequence[float] | torch.Tensor] = None,
+        rec_thresholds: Optional[Sequence[float] | torch.Tensor] = None,
         num_classes: int = 80,
         max_detections_per_image_per_class: int = 100,
         area_range: Literal["small", "medium", "large", "all"] = "all",
         output_transform: Callable = lambda x: x,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
     ) -> None:
         r"""Calculate mean average precision & recall for evaluating an object detector in the COCO way.
@@ -166,7 +167,7 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
         return torch.logical_and(areas >= min_area, areas <= max_area)
 
     def _check_matching_input(
-        self, output: Tuple[List[Dict[str, torch.Tensor]], List[Dict[str, torch.Tensor]]]
+        self, output: tuple[list[dict[str, torch.Tensor]], list[dict[str, torch.Tensor]]]
     ) -> None:
         y_pred, y = output
         if len(y_pred) != len(y):
@@ -190,7 +191,7 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
 
     def _compute_recall_and_precision(
         self, TP: torch.Tensor, FP: torch.Tensor, scores: torch.Tensor, y_true_count: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         r"""Measuring recall & precision
 
         This method is different from that of MeanAveragePrecision since in the pycocotools reference implementation,
@@ -267,7 +268,7 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
         return torch.sum(precision_integrand, dim=-1) / len(cast(torch.Tensor, self.rec_thresholds))
 
     @reinit__is_reduced
-    def update(self, output: Tuple[List[Dict[str, torch.Tensor]], List[Dict[str, torch.Tensor]]]) -> None:
+    def update(self, output: tuple[list[dict[str, torch.Tensor]], list[dict[str, torch.Tensor]]]) -> None:
         r"""Metric update method using prediction and target.
 
         Args:
@@ -369,11 +370,11 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
 
     @sync_all_reduce("_y_true_count")
     def _compute(self) -> torch.Tensor:
-        pred_labels = _cat_and_agg_tensors(self._y_pred_labels, cast(Tuple[int], ()), torch.int, self._device)
+        pred_labels = _cat_and_agg_tensors(self._y_pred_labels, cast(tuple[int], ()), torch.int, self._device)
         TP = _cat_and_agg_tensors(self._tps, (len(self._iou_thresholds),), torch.uint8, self._device)
         FP = _cat_and_agg_tensors(self._fps, (len(self._iou_thresholds),), torch.uint8, self._device)
         fp_precision = torch.double if self._device.type != "mps" else torch.float32
-        scores = _cat_and_agg_tensors(self._scores, cast(Tuple[int], ()), fp_precision, self._device)
+        scores = _cat_and_agg_tensors(self._scores, cast(tuple[int], ()), fp_precision, self._device)
 
         average_precisions_recalls = -torch.ones(
             (2, self._num_classes, len(self._iou_thresholds)),
@@ -397,7 +398,7 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
             average_precisions_recalls[1, cls] = recall[..., -1]
         return average_precisions_recalls
 
-    def compute(self) -> Tuple[float, float]:
+    def compute(self) -> tuple[float, float]:
         average_precisions_recalls = self._compute()
         if (average_precisions_recalls == -1).all():
             return -1.0, -1.0
@@ -443,7 +444,7 @@ class CommonObjectDetectionMetrics(MetricGroup):
         self,
         num_classes: int = 80,
         output_transform: Callable = lambda x: x,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = True,
     ):
         self.ap_50_95 = ObjectDetectionAvgPrecisionRecall(num_classes=num_classes, device=device)
@@ -472,7 +473,7 @@ class CommonObjectDetectionMetrics(MetricGroup):
         super().update(output)
         self.ap_50_95.update(output)
 
-    def compute(self) -> Dict[str, float]:
+    def compute(self) -> dict[str, float]:
         average_precisions_recalls = self.ap_50_95._compute()
 
         average_precisions_50 = average_precisions_recalls[0, :, 0]
