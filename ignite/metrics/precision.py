@@ -1,5 +1,6 @@
 import warnings
-from typing import Callable, cast, Optional, Sequence, Union
+from collections.abc import Callable, Sequence
+from typing import cast
 
 import torch
 
@@ -18,9 +19,9 @@ class _BasePrecisionRecall(_BaseClassification):
     def __init__(
         self,
         output_transform: Callable = lambda x: x,
-        average: Optional[Union[bool, str]] = False,
+        average: bool | str | None = False,
         is_multilabel: bool = False,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
     ):
         if not (average is None or isinstance(average, bool) or average in ["macro", "micro", "weighted", "samples"]):
@@ -30,7 +31,7 @@ class _BasePrecisionRecall(_BaseClassification):
             )
 
         if average is True:
-            self._average: Optional[Union[bool, str]] = "macro"
+            self._average: bool | str | None = "macro"
         else:
             self._average = average
         self.eps = 1e-20
@@ -116,15 +117,15 @@ class _BasePrecisionRecall(_BaseClassification):
             class/label.
         """
 
-        self._numerator: Union[int, torch.Tensor] = 0
-        self._denominator: Union[int, torch.Tensor] = 0
-        self._weight: Union[int, torch.Tensor] = 0
+        self._numerator: int | torch.Tensor = 0
+        self._denominator: int | torch.Tensor = 0
+        self._weight: int | torch.Tensor = 0
         self._updated = False
 
         super(_BasePrecisionRecall, self).reset()
 
     @sync_all_reduce("_numerator", "_denominator")
-    def compute(self) -> Union[torch.Tensor, float]:
+    def compute(self) -> torch.Tensor | float:
         r"""
         Return value of the metric for `average` options `'weighted'` and `'macro'` is computed as follows.
 
