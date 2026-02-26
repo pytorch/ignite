@@ -1,5 +1,4 @@
 from torch import Tensor
-
 from ignite.exceptions import NotComputableError
 from ignite.metrics.epoch_metric import EpochMetric
 
