@@ -265,9 +265,9 @@ class OutputHandler(BaseOutputHandler):
     def __init__(
         self,
         tag: str,
-        metric_names: Optional[str | list[str]] = None,
+        metric_names: str | list[str] | None = None,
         output_transform: Callable | None = None,
-        global_step_transform: Optional[Callable[[Engine, str | Events], int]] = None,
+        global_step_transform: Callable[[Engine, str | Events], int] | None = None,
         state_attributes: list[str] | None = None,
     ) -> None:
         super().__init__(tag, metric_names, output_transform, global_step_transform, state_attributes)
