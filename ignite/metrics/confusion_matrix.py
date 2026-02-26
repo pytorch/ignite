@@ -1,5 +1,5 @@
 import numbers
-from typing import Callable, Optional, Sequence, Tuple, Union
+from collections.abc import Callable, Sequence
 
 import torch
 
@@ -111,9 +111,9 @@ class ConfusionMatrix(Metric):
     def __init__(
         self,
         num_classes: int,
-        average: Optional[str] = None,
+        average: str | None = None,
         output_transform: Callable = lambda x: x,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = True,
     ):
         if average is not None and average not in ("samples", "recall", "precision"):
@@ -152,7 +152,7 @@ class ConfusionMatrix(Metric):
             )
 
         y_shape = y.shape
-        y_pred_shape: Tuple[int, ...] = y_pred.shape
+        y_pred_shape: tuple[int, ...] = y_pred.shape
 
         if y.ndimension() + 1 == y_pred.ndimension():
             y_pred_shape = (y_pred_shape[0],) + y_pred_shape[2:]
@@ -202,7 +202,7 @@ class ConfusionMatrix(Metric):
             raise ValueError("Argument average should be one of 'samples', 'recall', 'precision'")
 
 
-def IoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambda:
+def IoU(cm: ConfusionMatrix, ignore_index: int | None = None) -> MetricsLambda:
     r"""Calculates Intersection over Union using :class:`~ignite.metrics.confusion_matrix.ConfusionMatrix` metric.
 
     .. math:: \text{J}(A, B) = \frac{ \lvert A \cap B \rvert }{ \lvert A \cup B \rvert }
@@ -271,7 +271,7 @@ def IoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambd
         return iou
 
 
-def mIoU(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambda:
+def mIoU(cm: ConfusionMatrix, ignore_index: int | None = None) -> MetricsLambda:
     """Calculates mean Intersection over Union using :class:`~ignite.metrics.confusion_matrix.ConfusionMatrix` metric.
 
     Args:
@@ -365,7 +365,7 @@ def cmRecall(cm: ConfusionMatrix, average: bool = True) -> MetricsLambda:
     return recall
 
 
-def DiceCoefficient(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambda:
+def DiceCoefficient(cm: ConfusionMatrix, ignore_index: int | None = None) -> MetricsLambda:
     """Calculates Dice Coefficient for a given :class:`~ignite.metrics.confusion_matrix.ConfusionMatrix` metric.
 
     Args:
@@ -430,7 +430,7 @@ def DiceCoefficient(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> 
         return dice
 
 
-def JaccardIndex(cm: ConfusionMatrix, ignore_index: Optional[int] = None) -> MetricsLambda:
+def JaccardIndex(cm: ConfusionMatrix, ignore_index: int | None = None) -> MetricsLambda:
     r"""Calculates the Jaccard Index using :class:`~ignite.metrics.confusion_matrix.ConfusionMatrix` metric.
     Implementation is based on :meth:`~ignite.metrics.IoU`.
 
