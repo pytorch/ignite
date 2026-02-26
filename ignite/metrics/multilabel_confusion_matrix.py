@@ -1,4 +1,4 @@
-from typing import Callable, Sequence, Union
+from collections.abc import Callable, Sequence
 
 import torch
 
@@ -92,7 +92,7 @@ class MultiLabelConfusionMatrix(Metric):
         self,
         num_classes: int,
         output_transform: Callable = lambda x: x,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
         normalized: bool = False,
         skip_unrolling: bool = False,
     ):
