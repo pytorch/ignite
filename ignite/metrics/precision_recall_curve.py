@@ -1,4 +1,5 @@
-from typing import Any, Callable, cast, Tuple, Union
+from collections.abc import Callable
+from typing import Any, cast
 
 import torch
 
@@ -7,7 +8,7 @@ from ignite.exceptions import NotComputableError
 from ignite.metrics.epoch_metric import EpochMetric
 
 
-def precision_recall_curve_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor) -> Tuple[Any, Any, Any]:
+def precision_recall_curve_compute_fn(y_preds: torch.Tensor, y_targets: torch.Tensor) -> tuple[Any, Any, Any]:
     from sklearn.metrics import precision_recall_curve
 
     y_true = y_targets.cpu().numpy()
@@ -77,7 +78,7 @@ class PrecisionRecallCurve(EpochMetric):
         self,
         output_transform: Callable = lambda x: x,
         check_compute_fn: bool = False,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
     ) -> None:
         try:
@@ -93,7 +94,7 @@ class PrecisionRecallCurve(EpochMetric):
             skip_unrolling=skip_unrolling,
         )
 
-    def compute(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:  # type: ignore[override]
+    def compute(self) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:  # type: ignore[override]
         if len(self._predictions) < 1 or len(self._targets) < 1:
             raise NotComputableError("PrecisionRecallCurve must have at least one example before it can be computed.")
 
@@ -126,4 +127,4 @@ class PrecisionRecallCurve(EpochMetric):
 
             self._result = (precision, recall, thresholds)  # type: ignore[assignment]
 
-        return cast(Tuple[torch.Tensor, torch.Tensor, torch.Tensor], self._result)
+        return cast(tuple[torch.Tensor, torch.Tensor, torch.Tensor], self._result)
