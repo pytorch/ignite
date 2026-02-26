@@ -7,7 +7,7 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from copy import copy
 from pathlib import Path
-from typing import Any, Mapping, Sequence, Type
+from typing import Any, Mapping, Sequence
 
 import torch
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, ReduceLROnPlateau
@@ -1750,7 +1750,7 @@ class ReduceLROnPlateauScheduler(ParamScheduler):
 
 
 def _get_fake_optimizer(
-    optimizer_cls: Type[Optimizer] | Type[torch.optim.SGD] | None = None, **kwargs: Any
+    optimizer_cls: type[Optimizer] | type[torch.optim.SGD] | None = None, **kwargs: Any
 ) -> Optimizer | torch.optim.SGD:
     t = torch.zeros([1], requires_grad=True)
     if optimizer_cls is None:
