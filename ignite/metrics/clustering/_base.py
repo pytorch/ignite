@@ -1,5 +1,3 @@
-
-
 from torch import Tensor
 
 from ignite.exceptions import NotComputableError
