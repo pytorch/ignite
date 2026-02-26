@@ -175,9 +175,9 @@ class ComputationModel(metaclass=ABCMeta):
                 out_dtype = tensor.dtype
                 tensor = tensor.to(self._collective_op_dtype)
 
-        # Work on a cloned tensor so backend implementations that perform in-place
-        # operations do not mutate the original tensor passed by the caller.
-        tensor = tensor.clone()
+        # Clone tensor only for operations that modify the input tensor in-place like all_reduce.
+        if fn is self._do_all_reduce:
+            tensor = tensor.clone()
         tensor = fn(tensor, *args, **kwargs)
 
         if out_dtype is not None and tensor_device is not None:

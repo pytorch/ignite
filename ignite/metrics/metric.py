@@ -855,10 +855,6 @@ def sync_all_reduce(*attrs: Any) -> Callable:
                             f"number or tensor but `{attr}` has type {type(t)}"
                         )
                     unreduced_attrs[attr] = t
-                    # Backends should not mutate the caller's tensor; idist implementations
-                    # are normalized to operate on a cloned tensor. We can therefore pass
-                    # the original tensor and rely on the distributed layer to avoid
-                    # in-place modifications and always return the reduced value.
                     t_reduced = idist.all_reduce(cast(float, t) if isinstance(t, Number) else t, **op_kwargs)
                     setattr(self, attr, t_reduced)
 
