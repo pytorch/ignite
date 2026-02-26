@@ -12,8 +12,8 @@ from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
 def coco_tensor_list_to_dict_list(
     output: tuple[
-        Union[list[torch.Tensor], list[dict[str, torch.Tensor]]],
-        Union[list[torch.Tensor], list[dict[str, torch.Tensor]]],
+        list[torch.Tensor] | list[dict[str, torch.Tensor]],
+        list[torch.Tensor] | list[dict[str, torch.Tensor]],
     ]
 ) -> tuple[list[dict[str, torch.Tensor]], list[dict[str, torch.Tensor]]]:
     """Convert either of output's `y_pred` or `y` from list of `(N, 6)` tensors to list of str-to-tensor dictionaries,
@@ -51,8 +51,8 @@ class ObjectDetectionAvgPrecisionRecall(Metric, _BaseAveragePrecision):
 
     def __init__(
         self,
-        iou_thresholds: Optional[Sequence[float] | torch.Tensor] = None,
-        rec_thresholds: Optional[Sequence[float] | torch.Tensor] = None,
+        iou_thresholds: Sequence[float] | torch.Tensor | None = None,
+        rec_thresholds: Sequence[float] | torch.Tensor | None = None,
         num_classes: int = 80,
         max_detections_per_image_per_class: int = 100,
         area_range: Literal["small", "medium", "large", "all"] = "all",
