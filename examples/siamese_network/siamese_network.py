@@ -24,15 +24,15 @@ class SiameseNetwork(nn.Module):
     The network is composed of two identical networks, one for each input.
     The output of each network is concatenated and passed to a linear layer.
     The output of the linear layer passed through a sigmoid function.
-    `"FaceNet" <https://arxiv.org/pdf/1503.03832.pdf>`_ is a variant of the Siamese network.
+    `"FaceNet" <https://arxiv.org/abs/1503.03832>`_ is a variant of the Siamese network.
     This implementation varies from FaceNet as we use the `ResNet-18` model from
-    `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`
+    `"Deep Residual Learning for Image Recognition" <https://arxiv.org/abs/1512.03385>`
     as our feature extractor.
     In addition we use CIFAR10 dataset along with TripletMarginLoss
     """
 
     def __init__(self):
-        super(SiameseNetwork, self).__init__()
+        super().__init__()
         # get resnet model
         self.resnet = torchvision.models.resnet34(weights=None)
         fc_in_features = self.resnet.fc.in_features
@@ -82,7 +82,7 @@ class SiameseNetwork(nn.Module):
 class MatcherDataset(Dataset):
     # following class implements data downloading and handles preprocessing
     def __init__(self, root, train, download=False):
-        super(MatcherDataset, self).__init__()
+        super().__init__()
 
         # get CIFAR10 dataset
         self.dataset = datasets.CIFAR10(root, train=train, download=download)

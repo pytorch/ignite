@@ -1,5 +1,3 @@
-from typing import Optional
-
 import numpy as np
 
 import pytest
@@ -46,7 +44,7 @@ def test_base_regression_shapes():
 
 
 @pytest.mark.parametrize("size", [100, 101, (30, 3), (31, 3)])
-def test_torch_median_numpy(size, device: Optional[str] = None):
+def test_torch_median_numpy(size, device: str | None = None):
     data = torch.rand(size).to(device)
     assert _torch_median(data) == np.median(data.cpu().numpy())
 

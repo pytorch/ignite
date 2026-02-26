@@ -211,7 +211,7 @@ specific condition (e.g. ignore user-defined classes):
             self.ignored_class = ignored_class
             self._num_correct = None
             self._num_examples = None
-            super(CustomAccuracy, self).__init__(output_transform=output_transform, device=device)
+            super().__init__(output_transform=output_transform, device=device)
 
         @reinit__is_reduced
         def reset(self):
@@ -361,6 +361,7 @@ Complete list of metrics
     Entropy
     KLDivergence
     JSDivergence
+    MatthewsCorrCoef
     MaximumMeanDiscrepancy
     HSIC
     AveragePrecision

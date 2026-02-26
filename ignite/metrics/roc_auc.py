@@ -91,7 +91,7 @@ class ROC_AUC(EpochMetric):
         except ImportError:
             raise ModuleNotFoundError("This contrib module requires scikit-learn to be installed.")
 
-        super(ROC_AUC, self).__init__(
+        super().__init__(
             roc_auc_compute_fn,
             output_transform=output_transform,
             check_compute_fn=check_compute_fn,
@@ -174,7 +174,7 @@ class RocCurve(EpochMetric):
         except ImportError:
             raise ModuleNotFoundError("This contrib module requires scikit-learn to be installed.")
 
-        super(RocCurve, self).__init__(
+        super().__init__(
             roc_auc_curve_compute_fn,  # type: ignore[arg-type]
             output_transform=output_transform,
             check_compute_fn=check_compute_fn,
