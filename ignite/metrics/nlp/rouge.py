@@ -387,7 +387,7 @@ class Rouge(Metric):
 
     def __init__(
         self,
-        variants: Optional[Sequence[str | int]] = None,
+        variants: Sequence[str | int] | None = None,
         multiref: str = "average",
         alpha: float = 0,
         output_transform: Callable = lambda x: x,
