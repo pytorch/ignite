@@ -426,9 +426,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler, _BaseVisDrawer):
             )
     """
 
-    def __init__(
-        self, optimizer: Optimizer, param_name: str = "lr", tag: str | None = None, show_legend: bool = False
-    ):
+    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: str | None = None, show_legend: bool = False):
         super().__init__(optimizer, param_name, tag)
         _BaseVisDrawer.__init__(self, show_legend=show_legend)
 
