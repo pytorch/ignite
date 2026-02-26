@@ -1,5 +1,19 @@
-from collections.abc import Mapping
-from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
+from __future__ import annotations
+
+from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Callable
+
+if TYPE_CHECKING:
+    # GradScaler is imported here rather than used as a string literal ("torch.amp.GradScaler")
+    # because from __future__ import annotations causes Sphinx's autodoc to process annotations
+    # as raw strings. String literals inside | unions trigger unresolvable cross-reference warnings
+    # that the -W flag in docs/Makefile turns into errors. Importing under TYPE_CHECKING lets
+    # autodoc trace GradScaler back to torch.amp.GradScaler, which is in nitpick_ignore.
+    # Min pytorch version support is 2.2.2
+    try:
+        from torch.amp import GradScaler
+    except ImportError:
+        from torch.cuda.amp import GradScaler
 
 import torch
 
@@ -31,8 +45,8 @@ __all__ = [
 
 
 def _prepare_batch(
-    batch: Sequence[torch.Tensor], device: Optional[Union[str, torch.device]] = None, non_blocking: bool = False
-) -> Tuple[Union[torch.Tensor, Sequence, Mapping, str, bytes], ...]:
+    batch: Sequence[torch.Tensor], device: str | torch.device | None = None, non_blocking: bool = False
+) -> tuple[torch.Tensor | Sequence | Mapping | str | bytes, ...]:
     """Prepare batch for training or evaluation: pass to a device with options."""
     x, y = batch
     return (
@@ -44,8 +58,8 @@ def _prepare_batch(
 def supervised_training_step(
     model: torch.nn.Module,
     optimizer: torch.optim.Optimizer,
-    loss_fn: Union[Callable[[Any, Any], torch.Tensor], torch.nn.Module],
-    device: Optional[Union[str, torch.device]] = None,
+    loss_fn: Callable[[Any, Any], torch.Tensor] | torch.nn.Module,
+    device: str | torch.device | None = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
     model_transform: Callable[[Any], Any] = lambda output: output,
@@ -106,7 +120,7 @@ def supervised_training_step(
             "No gradient accumulation if the value set to one (default)."
         )
 
-    def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
+    def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Any | tuple[torch.Tensor]:
         if (engine.state.iteration - 1) % gradient_accumulation_steps == 0:
             optimizer.zero_grad()
         model.train()
@@ -127,13 +141,13 @@ def supervised_training_step(
 def supervised_training_step_amp(
     model: torch.nn.Module,
     optimizer: torch.optim.Optimizer,
-    loss_fn: Union[Callable[[Any, Any], torch.Tensor], torch.nn.Module],
-    device: Optional[Union[str, torch.device]] = None,
+    loss_fn: Callable[[Any, Any], torch.Tensor] | torch.nn.Module,
+    device: str | torch.device | None = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
     model_transform: Callable[[Any], Any] = lambda output: output,
     output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
-    scaler: Optional["torch.amp.GradScaler"] = None,
+    scaler: GradScaler | None = None,
     gradient_accumulation_steps: int = 1,
     model_fn: Callable[[torch.nn.Module, Any], Any] = lambda model, x: model(x),
 ) -> Callable:
@@ -195,7 +209,7 @@ def supervised_training_step_amp(
             "No gradient accumulation if the value set to one (default)."
         )
 
-    def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
+    def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Any | tuple[torch.Tensor]:
         if (engine.state.iteration - 1) % gradient_accumulation_steps == 0:
             optimizer.zero_grad()
         model.train()
@@ -223,8 +237,8 @@ def supervised_training_step_amp(
 def supervised_training_step_apex(
     model: torch.nn.Module,
     optimizer: torch.optim.Optimizer,
-    loss_fn: Union[Callable[[Any, Any], torch.Tensor], torch.nn.Module],
-    device: Optional[Union[str, torch.device]] = None,
+    loss_fn: Callable[[Any, Any], torch.Tensor] | torch.nn.Module,
+    device: str | torch.device | None = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
     model_transform: Callable[[Any], Any] = lambda output: output,
@@ -288,7 +302,7 @@ def supervised_training_step_apex(
             "No gradient accumulation if the value set to one (default)."
         )
 
-    def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
+    def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Any | tuple[torch.Tensor]:
         if (engine.state.iteration - 1) % gradient_accumulation_steps == 0:
             optimizer.zero_grad()
         model.train()
@@ -310,8 +324,8 @@ def supervised_training_step_apex(
 def supervised_training_step_tpu(
     model: torch.nn.Module,
     optimizer: torch.optim.Optimizer,
-    loss_fn: Union[Callable[[Any, Any], torch.Tensor], torch.nn.Module],
-    device: Optional[Union[str, torch.device]] = None,
+    loss_fn: Callable[[Any, Any], torch.Tensor] | torch.nn.Module,
+    device: str | torch.device | None = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
     model_transform: Callable[[Any], Any] = lambda output: output,
@@ -374,7 +388,7 @@ def supervised_training_step_tpu(
             "No gradient accumulation if the value set to one (default)."
         )
 
-    def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
+    def update(engine: Engine, batch: Sequence[torch.Tensor]) -> Any | tuple[torch.Tensor]:
         if (engine.state.iteration - 1) % gradient_accumulation_steps == 0:
             optimizer.zero_grad()
         model.train()
@@ -393,8 +407,8 @@ def supervised_training_step_tpu(
 
 
 def _check_arg(
-    on_tpu: bool, on_mps: bool, amp_mode: Optional[str], scaler: Optional[Union[bool, "torch.amp.GradScaler"]]
-) -> Tuple[Optional[str], Optional["torch.amp.GradScaler"]]:
+    on_tpu: bool, on_mps: bool, amp_mode: str | None, scaler: bool | GradScaler | None
+) -> tuple[str | None, GradScaler | None]:
     """Checking tpu, mps, amp and GradScaler instance combinations."""
     if on_mps and amp_mode:
         raise ValueError("amp_mode cannot be used with mps device. Consider using amp_mode=None or device='cuda'.")
@@ -426,15 +440,15 @@ def _check_arg(
 def create_supervised_trainer(
     model: torch.nn.Module,
     optimizer: torch.optim.Optimizer,
-    loss_fn: Union[Callable[[Any, Any], torch.Tensor], torch.nn.Module],
-    device: Optional[Union[str, torch.device]] = None,
+    loss_fn: Callable[[Any, Any], torch.Tensor] | torch.nn.Module,
+    device: str | torch.device | None = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
     model_transform: Callable[[Any], Any] = lambda output: output,
     output_transform: Callable[[Any, Any, Any, torch.Tensor], Any] = lambda x, y, y_pred, loss: loss.item(),
     deterministic: bool = False,
-    amp_mode: Optional[str] = None,
-    scaler: Union[bool, "torch.amp.GradScaler"] = False,
+    amp_mode: str | None = None,
+    scaler: bool | GradScaler = False,
     gradient_accumulation_steps: int = 1,
     model_fn: Callable[[torch.nn.Module, Any], Any] = lambda model, x: model(x),
 ) -> Engine:
@@ -623,7 +637,7 @@ def create_supervised_trainer(
 
 def supervised_evaluation_step(
     model: torch.nn.Module,
-    device: Optional[Union[str, torch.device]] = None,
+    device: str | torch.device | None = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
     model_transform: Callable[[Any], Any] = lambda output: output,
@@ -668,7 +682,7 @@ def supervised_evaluation_step(
         Added `model_fn` to customize model's application on the sample
     """
 
-    def evaluate_step(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
+    def evaluate_step(engine: Engine, batch: Sequence[torch.Tensor]) -> Any | tuple[torch.Tensor]:
         model.eval()
         with torch.no_grad():
             x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
@@ -681,7 +695,7 @@ def supervised_evaluation_step(
 
 def supervised_evaluation_step_amp(
     model: torch.nn.Module,
-    device: Optional[Union[str, torch.device]] = None,
+    device: str | torch.device | None = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
     model_transform: Callable[[Any], Any] = lambda output: output,
@@ -730,7 +744,7 @@ def supervised_evaluation_step_amp(
     except ImportError:
         raise ImportError("Please install torch>=1.12.0 to use amp_mode='amp'.")
 
-    def evaluate_step(engine: Engine, batch: Sequence[torch.Tensor]) -> Union[Any, Tuple[torch.Tensor]]:
+    def evaluate_step(engine: Engine, batch: Sequence[torch.Tensor]) -> Any | tuple[torch.Tensor]:
         model.eval()
         with torch.no_grad():
             x, y = prepare_batch(batch, device=device, non_blocking=non_blocking)
@@ -744,13 +758,13 @@ def supervised_evaluation_step_amp(
 
 def create_supervised_evaluator(
     model: torch.nn.Module,
-    metrics: Optional[Dict[str, Metric]] = None,
-    device: Optional[Union[str, torch.device]] = None,
+    metrics: dict[str, Metric] | None = None,
+    device: str | torch.device | None = None,
     non_blocking: bool = False,
     prepare_batch: Callable = _prepare_batch,
     model_transform: Callable[[Any], Any] = lambda output: output,
     output_transform: Callable[[Any, Any, Any], Any] = lambda x, y, y_pred: (y_pred, y),
-    amp_mode: Optional[str] = None,
+    amp_mode: str | None = None,
     model_fn: Callable[[torch.nn.Module, Any], Any] = lambda model, x: model(x),
 ) -> Engine:
     """

@@ -19,9 +19,7 @@ class _BaseClassification(Metric):
         self._is_multilabel = is_multilabel
         self._type: str | None = None
         self._num_classes: int | None = None
-        super(_BaseClassification, self).__init__(
-            output_transform=output_transform, device=device, skip_unrolling=skip_unrolling
-        )
+        super().__init__(output_transform=output_transform, device=device, skip_unrolling=skip_unrolling)
 
     def reset(self) -> None:
         self._type = None
@@ -226,7 +224,7 @@ class Accuracy(_BaseClassification):
         device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
     ):
-        super(Accuracy, self).__init__(
+        super().__init__(
             output_transform=output_transform, is_multilabel=is_multilabel, device=device, skip_unrolling=skip_unrolling
         )
 
