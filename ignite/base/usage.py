@@ -28,6 +28,8 @@ class Usage:
             :meth:`~ignite.metrics.metric.Metric.completed`.
         iteration_completed: optional event when the metric/handler updates. This event will be associated to
             :meth:`~ignite.metrics.metric.Metric.iteration_completed`.
+
+    .. versionadded:: 0.6.0
     """
 
     usage_name: str
@@ -68,6 +70,8 @@ class EpochWise(Usage):
 
     Attributes:
         usage_name: usage name string
+
+    .. versionadded:: 0.6.0
     """
 
     usage_name: str = "epoch_wise"
@@ -95,6 +99,8 @@ class RunningEpochWise(EpochWise):
 
     Attributes:
         usage_name: usage name string
+
+    .. versionadded:: 0.6.0
     """
 
     usage_name: str = "running_epoch_wise"
@@ -120,6 +126,8 @@ class BatchWise(Usage):
 
     Attributes:
         usage_name: usage name string
+
+    .. versionadded:: 0.6.0
     """
 
     usage_name: str = "batch_wise"
@@ -147,6 +155,8 @@ class RunningBatchWise(BatchWise):
 
     Attributes:
         usage_name: usage name string
+
+    .. versionadded:: 0.6.0
     """
 
     usage_name: str = "running_batch_wise"
@@ -173,6 +183,8 @@ class SingleEpochRunningBatchWise(BatchWise):
 
     Attributes:
         usage_name: usage name string
+
+    .. versionadded:: 0.6.0
     """
 
     usage_name: str = "single_epoch_running_batch_wise"
@@ -201,6 +213,7 @@ class BatchFiltered(Usage):
         kwargs: Keyword arguments to setup :attr:`~ignite.engine.events.Events.ITERATION_COMPLETED`
             handled by :meth:`~ignite.metrics.metric.Metric.iteration_completed`.
 
+    .. versionadded:: 0.6.0
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -224,6 +237,8 @@ class RunWise(Usage):
 
     Attributes:
         usage_name: usage name string
+
+    .. versionadded:: 0.6.0
     """
 
     usage_name: str = "run_wise"

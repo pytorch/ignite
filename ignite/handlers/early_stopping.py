@@ -131,15 +131,19 @@ class EarlyStopping(Serializable, ResettableHandler):
             self.counter = 0
 
     def reset(self) -> None:
-        """Reset the early stopping state, including the counter and best score."""
+        """Reset the early stopping state, including the counter and best score.
+
+        .. versionadded:: 0.6.0
+        """
         self.counter = 0
         self.best_score = None
 
-    def attach(
+    def attach(  # type: ignore[override]
         self,
         engine: Engine,
         usage: Usage | None = None,
         reset_engine: Engine | None = None,
+        *args: Any,
         **kwargs: Any,
     ) -> None:
         """Attaches the early stopping handler to an engine and registers its reset callback.
@@ -155,6 +159,8 @@ class EarlyStopping(Serializable, ResettableHandler):
             reset_engine: The engine to attach the reset callback to (typically the trainer).
                 If ``None``, defaults to ``engine``.
             **kwargs: Deprecated keyword argument (``event``) for backward compatibility.
+
+        .. versionadded:: 0.6.0
         """
         if "event" in kwargs or "reset_event" in kwargs:
             if "event" in kwargs:

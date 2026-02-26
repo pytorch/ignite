@@ -1,6 +1,10 @@
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from collections.abc import Mapping
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ignite.engine import Engine
 
 
 class ResettableHandler(metaclass=ABCMeta):
@@ -8,11 +12,18 @@ class ResettableHandler(metaclass=ABCMeta):
 
     Subclasses must implement the :meth:`reset` method to clear any accumulated
     state, typically at the beginning of a training run.
+
+    .. versionadded:: 0.6.0
     """
 
     @abstractmethod
     def reset(self) -> None:
         """Reset the handler's internal state."""
+        pass
+
+    @abstractmethod
+    def attach(self, engine: "Engine", *args: Any, **kwargs: Any) -> None:
+        """Attach the handler to an engine."""
         pass
 
 
