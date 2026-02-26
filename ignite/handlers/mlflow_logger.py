@@ -1,7 +1,8 @@
 """MLflow logger and its helper handlers."""
 
 import warnings
-from typing import Any, Callable, List, Optional, Union
+from collections.abc import Callable
+from typing import Any
 
 from torch.optim import Optimizer
 
@@ -129,7 +130,7 @@ class MLflowLogger(BaseLogger):
             # }
     """
 
-    def __init__(self, tracking_uri: Optional[str] = None):
+    def __init__(self, tracking_uri: str | None = None):
         try:
             import mlflow
         except ImportError:
@@ -264,14 +265,14 @@ class OutputHandler(BaseOutputHandler):
     def __init__(
         self,
         tag: str,
-        metric_names: Optional[Union[str, List[str]]] = None,
-        output_transform: Optional[Callable] = None,
-        global_step_transform: Optional[Callable[[Engine, Union[str, Events]], int]] = None,
-        state_attributes: Optional[List[str]] = None,
+        metric_names: Optional[str | list[str]] = None,
+        output_transform: Callable | None = None,
+        global_step_transform: Optional[Callable[[Engine, str | Events], int]] = None,
+        state_attributes: list[str] | None = None,
     ) -> None:
         super().__init__(tag, metric_names, output_transform, global_step_transform, state_attributes)
 
-    def __call__(self, engine: Engine, logger: MLflowLogger, event_name: Union[str, Events]) -> None:
+    def __call__(self, engine: Engine, logger: MLflowLogger, event_name: str | Events) -> None:
         if not isinstance(logger, MLflowLogger):
             raise TypeError("Handler 'OutputHandler' works only with MLflowLogger")
 
@@ -337,10 +338,10 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
             )
     """
 
-    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None):
+    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: str | None = None):
         super().__init__(optimizer, param_name, tag)
 
-    def __call__(self, engine: Engine, logger: MLflowLogger, event_name: Union[str, Events]) -> None:
+    def __call__(self, engine: Engine, logger: MLflowLogger, event_name: str | Events) -> None:
         if not isinstance(logger, MLflowLogger):
             raise TypeError("Handler OptimizerParamsHandler works only with MLflowLogger")
 
