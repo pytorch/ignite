@@ -1,6 +1,7 @@
 """WandB logger and its helper handlers."""
 
-from typing import Any, Callable, List, Optional, Union
+from collections.abc import Callable
+from typing import Any
 from warnings import warn
 
 from torch.optim import Optimizer
@@ -276,17 +277,17 @@ class OutputHandler(BaseOutputHandler):
     def __init__(
         self,
         tag: str,
-        metric_names: Optional[Union[List[str], str]] = None,
-        output_transform: Optional[Callable] = None,
-        global_step_transform: Optional[Callable[[Engine, Union[str, Events]], int]] = None,
-        sync: Optional[bool] = None,
-        state_attributes: Optional[List[str]] = None,
+        metric_names: Optional[list[str] | str] = None,
+        output_transform: Callable | None = None,
+        global_step_transform: Optional[Callable[[Engine, str | Events], int]] = None,
+        sync: bool | None = None,
+        state_attributes: list[str] | None = None,
     ):
         super().__init__(tag, metric_names, output_transform, global_step_transform, state_attributes)
         if sync is not None:
             warn("The sync argument for the WandBLoggers is no longer used, and may be removed in the future")
 
-    def __call__(self, engine: Engine, logger: WandBLogger, event_name: Union[str, Events]) -> None:
+    def __call__(self, engine: Engine, logger: WandBLogger, event_name: str | Events) -> None:
         if not isinstance(logger, WandBLogger):
             raise RuntimeError(f"Handler '{self.__class__.__name__}' works only with WandBLogger.")
 
@@ -341,13 +342,13 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
     """
 
     def __init__(
-        self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None, sync: Optional[bool] = None
+        self, optimizer: Optimizer, param_name: str = "lr", tag: str | None = None, sync: bool | None = None
     ):
         super().__init__(optimizer, param_name, tag)
         if sync is not None:
             warn("The sync argument for the WandBLoggers is no longer used, and may be removed in the future")
 
-    def __call__(self, engine: Engine, logger: WandBLogger, event_name: Union[str, Events]) -> None:
+    def __call__(self, engine: Engine, logger: WandBLogger, event_name: str | Events) -> None:
         if not isinstance(logger, WandBLogger):
             raise RuntimeError("Handler OptimizerParamsHandler works only with WandBLogger")
 
