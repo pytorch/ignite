@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractmethod
-from typing import Any, Callable, List, Mapping, NamedTuple, Optional, Sequence, Tuple, Union
+from collections.abc import Callable, Mapping, Sequence
+from typing import Any, NamedTuple
 
 import torch
 
@@ -128,7 +129,7 @@ class _BaseRouge(Metric):
         multiref: str = "average",
         alpha: float = 0,
         output_transform: Callable = lambda x: x,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
     ) -> None:
         super().__init__(output_transform=output_transform, device=device)
         self._alpha = alpha
@@ -153,7 +154,7 @@ class _BaseRouge(Metric):
         self._num_examples = 0
 
     @reinit__is_reduced
-    def update(self, output: Tuple[Sequence[Sequence[Any]], Sequence[Sequence[Sequence[Any]]]]) -> None:
+    def update(self, output: tuple[Sequence[Sequence[Any]], Sequence[Sequence[Sequence[Any]]]]) -> None:
         candidates, references = output
         for _candidate, _reference in zip(candidates, references):
             multiref_scores = [self._compute_score(candidate=_candidate, reference=_ref) for _ref in _reference]
@@ -247,7 +248,7 @@ class RougeN(_BaseRouge):
         multiref: str = "average",
         alpha: float = 0,
         output_transform: Callable = lambda x: x,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
     ):
         super().__init__(multiref=multiref, alpha=alpha, output_transform=output_transform, device=device)
         self._ngram = ngram
@@ -318,7 +319,7 @@ class RougeL(_BaseRouge):
         multiref: str = "average",
         alpha: float = 0,
         output_transform: Callable = lambda x: x,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
     ):
         super().__init__(multiref=multiref, alpha=alpha, output_transform=output_transform, device=device)
 
@@ -386,17 +387,17 @@ class Rouge(Metric):
 
     def __init__(
         self,
-        variants: Optional[Sequence[Union[str, int]]] = None,
+        variants: Optional[Sequence[str | int]] = None,
         multiref: str = "average",
         alpha: float = 0,
         output_transform: Callable = lambda x: x,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
     ):
         if variants is None or len(variants) == 0:
             variants = [1, 2, 4, "L"]
-        self.internal_metrics: List[_BaseRouge] = []
+        self.internal_metrics: list[_BaseRouge] = []
         for m in variants:
-            variant: Optional[_BaseRouge] = None
+            variant: _BaseRouge | None = None
             if isinstance(m, str) and m == "L":
                 variant = RougeL(multiref=multiref, alpha=alpha, output_transform=output_transform, device=device)
             elif isinstance(m, int):
@@ -414,7 +415,7 @@ class Rouge(Metric):
             m.reset()
 
     @reinit__is_reduced
-    def update(self, output: Tuple[Sequence[Sequence[Any]], Sequence[Sequence[Sequence[Any]]]]) -> None:
+    def update(self, output: tuple[Sequence[Sequence[Any]], Sequence[Sequence[Sequence[Any]]]]) -> None:
         for m in self.internal_metrics:
             m.update(output)
 
