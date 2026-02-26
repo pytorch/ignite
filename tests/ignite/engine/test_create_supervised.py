@@ -1,6 +1,5 @@
 import os
 from importlib.util import find_spec
-from typing import Optional, Union
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
@@ -11,25 +10,31 @@ from pytest import approx
 from torch.nn.functional import mse_loss
 from torch.optim import SGD
 
+# Min pytorch version support is 2.2.2
+try:
+    from torch.amp import GradScaler
+except ImportError:
+    from torch.cuda.amp import GradScaler
+
+
 import ignite.distributed as idist
 from ignite.engine import (
+    Engine,
+    Events,
     _check_arg,
     create_supervised_evaluator,
     create_supervised_trainer,
-    Engine,
-    Events,
     supervised_evaluation_step,
     supervised_evaluation_step_amp,
     supervised_training_step_tpu,
 )
 from ignite.metrics import MeanSquaredError
-
 from tests.ignite import is_mps_available_and_functional
 
 
 class DummyModel(torch.nn.Module):
     def __init__(self, output_as_list=False):
-        super(DummyModel, self).__init__()
+        super().__init__()
         self.output_as_list = output_as_list
         self.fc = torch.nn.Linear(1, 1, bias=False)
 
@@ -44,11 +49,11 @@ class DummyModel(torch.nn.Module):
 
 def _default_create_supervised_trainer(
     gradient_accumulation_steps: int = 1,
-    model_device: Optional[str] = None,
-    trainer_device: Optional[str] = None,
+    model_device: str | None = None,
+    trainer_device: str | None = None,
     trace: bool = False,
     amp_mode: str = None,
-    scaler: Union[bool, "torch.amp.GradScaler"] = False,
+    scaler: bool | GradScaler = False,
     with_model_transform: bool = False,
     with_model_fn: bool = False,
 ):
@@ -100,11 +105,11 @@ def _default_create_supervised_trainer(
 
 def _test_create_supervised_trainer(
     gradient_accumulation_steps: int = 1,
-    model_device: Optional[str] = None,
-    trainer_device: Optional[str] = None,
+    model_device: str | None = None,
+    trainer_device: str | None = None,
     trace: bool = False,
     amp_mode: str = None,
-    scaler: Union[bool, "torch.amp.GradScaler"] = False,
+    scaler: bool | GradScaler = False,
     with_model_transform: bool = False,
     with_model_fn: bool = False,
 ):
@@ -170,18 +175,18 @@ def _test_create_supervised_trainer(
 @pytest.mark.skipif(Version(torch.__version__) < Version("2.3.1"), reason="Skip if < 2.3.1")
 def test_create_supervised_training_scalar_assignment():
     with mock.patch("ignite.engine._check_arg") as check_arg_mock:
-        check_arg_mock.return_value = None, torch.amp.GradScaler(enabled=False)
+        check_arg_mock.return_value = None, GradScaler(enabled=False)
         trainer, _ = _default_create_supervised_trainer(model_device="cpu", trainer_device="cpu", scaler=True)
         assert hasattr(trainer.state, "scaler")
-        assert isinstance(trainer.state.scaler, torch.amp.GradScaler)
+        assert isinstance(trainer.state.scaler, GradScaler)
 
 
 def _test_create_mocked_supervised_trainer(
-    model_device: Optional[str] = None,
-    trainer_device: Optional[str] = None,
+    model_device: str | None = None,
+    trainer_device: str | None = None,
     trace: bool = False,
     amp_mode: str = None,
-    scaler: Union[bool, "torch.amp.GradScaler"] = False,
+    scaler: bool | GradScaler = False,
 ):
     with mock.patch("ignite.engine.supervised_training_step_amp") as training_step_amp_mock:
         with mock.patch("ignite.engine.supervised_training_step_apex") as training_step_apex_mock:
@@ -230,8 +235,8 @@ def _test_create_supervised_trainer_wrong_accumulation(
 
 
 def _default_create_supervised_evaluator(
-    model_device: Optional[str] = None,
-    evaluator_device: Optional[str] = None,
+    model_device: str | None = None,
+    evaluator_device: str | None = None,
     trace: bool = False,
     amp_mode: str = None,
     with_model_transform: bool = False,
@@ -275,8 +280,8 @@ def _default_create_supervised_evaluator(
 
 
 def _test_create_supervised_evaluator(
-    model_device: Optional[str] = None,
-    evaluator_device: Optional[str] = None,
+    model_device: str | None = None,
+    evaluator_device: str | None = None,
     trace: bool = False,
     amp_mode: str = None,
     with_model_transform: bool = False,
@@ -321,8 +326,8 @@ def _test_create_supervised_evaluator(
 
 
 def _test_mocked_supervised_evaluator(
-    model_device: Optional[str] = None,
-    evaluator_device: Optional[str] = None,
+    model_device: str | None = None,
+    evaluator_device: str | None = None,
     trace: bool = False,
     amp_mode: str = None,
 ):
@@ -349,8 +354,8 @@ def _test_mocked_supervised_evaluator(
 
 def _test_create_evaluation_step_amp(
     autocast_mock,
-    model_device: Optional[str] = None,
-    evaluator_device: Optional[str] = None,
+    model_device: str | None = None,
+    evaluator_device: str | None = None,
     trace: bool = False,
     amp_mode: str = None,
 ):
@@ -385,8 +390,8 @@ def _test_create_evaluation_step_amp(
 
 def _test_create_evaluation_step(
     mock_torch_cuda_amp_module,
-    model_device: Optional[str] = None,
-    evaluator_device: Optional[str] = None,
+    model_device: str | None = None,
+    evaluator_device: str | None = None,
     trace: bool = False,
     amp_mode: str = None,
 ):
@@ -462,7 +467,7 @@ def test_create_supervised_trainer_amp_error(mock_torch_cuda_amp_module):
 
 @pytest.mark.skipif(Version(torch.__version__) < Version("2.3.1"), reason="Skip if < 2.3.1")
 def test_create_supervised_trainer_scaler_not_amp():
-    scaler = torch.amp.GradScaler(enabled=torch.cuda.is_available())
+    scaler = GradScaler(enabled=torch.cuda.is_available())
 
     with pytest.raises(ValueError, match=f"scaler argument is {scaler}, but amp_mode is None."):
         _test_create_supervised_trainer(amp_mode=None, scaler=scaler)
@@ -540,7 +545,7 @@ def test_create_supervised_trainer_on_cuda_amp_scaler():
     _test_create_mocked_supervised_trainer(
         model_device=model_device, trainer_device=trainer_device, amp_mode="amp", scaler=True
     )
-    scaler = torch.amp.GradScaler(enabled=torch.cuda.is_available())
+    scaler = GradScaler(enabled=torch.cuda.is_available())
     _test_create_supervised_trainer(
         gradient_accumulation_steps=1,
         model_device=model_device,

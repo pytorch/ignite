@@ -1,4 +1,4 @@
-from ignite.base.mixins import ResettableHandler, Serializable
+from ignite.base.mixins import Serializable, ResettableHandler
 from ignite.base.usage import (
     BatchFiltered,
     BatchWise,

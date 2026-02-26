@@ -13,7 +13,7 @@ from ignite.metrics import Accuracy, Metric, MetricsLambda, Precision, Recall
 
 class ListGatherMetric(Metric):
     def __init__(self, index):
-        super(ListGatherMetric, self).__init__()
+        super().__init__()
         self.index = index
 
     def reset(self):
@@ -297,6 +297,51 @@ def test_load_state_dict():
     error.load_state_dict(metric_state)
     e2 = error.compute()
     assert e2 == e
+
+
+@pytest.mark.parametrize(
+    "metrics_result_mode",
+    [
+        "flatten",
+        "named",
+        "both",
+    ],
+)
+def test_metrics_lambda_result_mode_behavior(metrics_result_mode):
+    # dummy for now
+    def dummy_compute_fn(*args, **kwargs):
+        return {
+            "precision": 0.5,
+            "recall": 0.5,
+            "f1-score": 0.5,
+        }
+
+    class DummyMetric(Metric):
+        def __init__(self, output_transform=lambda x: x):
+            super().__init__(output_transform=output_transform, metrics_result_mode=metrics_result_mode)
+
+        def reset(self): ...
+
+        def update(self, output): ...
+
+        def compute(self):
+            return dummy_compute_fn()
+
+    metric_a = MetricsLambda(dummy_compute_fn, metrics_result_mode=metrics_result_mode)
+    metric_b = DummyMetric()
+
+    engine_a = Engine(lambda e, b: b)
+    metric_a.attach(engine_a, "dummy_metric")
+
+    engine_b = Engine(lambda e, b: b)
+    metric_b.attach(engine_b, "dummy_metric")
+
+    state_a = engine_a.run([0], max_epochs=1)
+    state_b = engine_b.run([0], max_epochs=1)
+
+    assert state_a.metrics.keys() == state_b.metrics.keys()
+
+    assert state_a.metrics == state_b.metrics
 
 
 def test_state_metrics():

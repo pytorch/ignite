@@ -177,7 +177,7 @@ class DeterministicEngine(Engine):
     """
 
     def __init__(self, process_function: Callable[[Engine, Any], Any]):
-        super(DeterministicEngine, self).__init__(process_function)
+        super().__init__(process_function)
         self.state_dict_user_keys.append("rng_states")
         if not hasattr(self.state, "rng_states"):
             setattr(self.state, "rng_states", None)

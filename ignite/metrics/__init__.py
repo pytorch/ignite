@@ -25,6 +25,7 @@ from ignite.metrics.mean_average_precision import MeanAveragePrecision
 from ignite.metrics.mean_pairwise_distance import MeanPairwiseDistance
 from ignite.metrics.mean_squared_error import MeanSquaredError
 from ignite.metrics.metric import BatchFiltered, BatchWise, EpochWise, Metric, MetricUsage, Usage
+from ignite.metrics.matthews_corrcoef import MatthewsCorrCoef
 from ignite.metrics.metric_group import MetricGroup
 from ignite.metrics.metrics_lambda import MetricsLambda
 from ignite.metrics.multilabel_confusion_matrix import MultiLabelConfusionMatrix
@@ -56,6 +57,7 @@ __all__ = [
     "MeanAbsoluteError",
     "MeanPairwiseDistance",
     "MeanSquaredError",
+    "MatthewsCorrCoef",
     "ConfusionMatrix",
     "CosineSimilarity",
     "ClassificationReport",

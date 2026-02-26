@@ -4,7 +4,7 @@ import filelock
 
 import nltk
 import pytest
-import rouge as pyrouge
+from . import _pyrouge as pyrouge
 import torch
 
 import ignite.distributed as idist
@@ -16,13 +16,14 @@ from . import CorpusForTest
 
 
 @pytest.fixture(scope="session", autouse=True)
-def download_nltk_punkt(worker_id, tmp_path_factory):
+def download_nltk_punkt(tmp_path_factory):
     root_tmp_dir = tmp_path_factory.getbasetemp().parent
     while True:
         try:
             with filelock.FileLock(root_tmp_dir / "nltk_download.lock", timeout=0.2) as fn:
                 fn.acquire()
                 nltk.download("punkt")
+                nltk.download("punkt_tab")
                 fn.release()
                 break
         except filelock._error.Timeout:

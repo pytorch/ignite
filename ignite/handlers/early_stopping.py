@@ -1,6 +1,6 @@
 import warnings
 from collections import OrderedDict
-from typing import Any, Callable, Literal, Mapping, cast
+from typing import Any, Callable, cast, Mapping, Literal
 
 from ignite.base import Serializable, ResettableHandler
 from ignite.base.usage import RunWise, Usage

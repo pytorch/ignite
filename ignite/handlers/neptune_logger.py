@@ -324,9 +324,7 @@ class OutputHandler(BaseOutputHandler):
         global_step_transform: Optional[Callable[[Engine, Union[str, Events]], int]] = None,
         state_attributes: Optional[List[str]] = None,
     ):
-        super(OutputHandler, self).__init__(
-            tag, metric_names, output_transform, global_step_transform, state_attributes
-        )
+        super().__init__(tag, metric_names, output_transform, global_step_transform, state_attributes)
 
     def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, NeptuneLogger):
@@ -386,7 +384,7 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
     """
 
     def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None):
-        super(OptimizerParamsHandler, self).__init__(optimizer, param_name, tag)
+        super().__init__(optimizer, param_name, tag)
 
     def __call__(self, engine: Engine, logger: NeptuneLogger, event_name: Union[str, Events]) -> None:
         if not isinstance(logger, NeptuneLogger):
@@ -664,7 +662,7 @@ class NeptuneSaver(BaseSaveHandler):
             npt_logger.close()
 
     For example, you can access model checkpoints and download them from here:
-    https://ui.neptune.ai/o/shared/org/pytorch-ignite-integration/e/PYTOR1-18/charts
+    https://app.neptune.ai/o/shared/org/pytorch-ignite-integration/e/PYTOR1-18/charts
 
     """
 
