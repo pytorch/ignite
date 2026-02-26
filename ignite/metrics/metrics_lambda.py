@@ -4,8 +4,8 @@ from typing import Any, Callable, Optional, Union
 import torch
 
 from ignite.engine import Engine
-from ignite.base.usage import Usage
-from ignite.metrics.metric import EpochWise, Metric, reinit__is_reduced
+from ignite.base.usage import EpochWise, Usage
+from ignite.metrics.metric import Metric, reinit__is_reduced
 
 __all__ = ["MetricsLambda"]
 

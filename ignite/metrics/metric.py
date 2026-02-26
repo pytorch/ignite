@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "Metric",
+    "Usage",
     "MetricUsage",
     "EpochWise",
     "BatchWise",
@@ -347,23 +348,23 @@ class Metric(Serializable, metaclass=ABCMeta):
 
             engine.state.metrics[name] = result
 
-    def _check_usage(self, usage: Union[str, MetricUsage]) -> MetricUsage:
+    def _check_usage(self, usage: Union[str, Usage]) -> Usage:
         if isinstance(usage, str):
             usages = [EpochWise, RunningEpochWise, BatchWise, RunningBatchWise, SingleEpochRunningBatchWise]
             for usage_cls in usages:
                 if usage == usage_cls.usage_name:
                     usage = usage_cls()
                     break
-            if not isinstance(usage, MetricUsage):
+            if not isinstance(usage, Usage):
                 raise ValueError(
                     "Argument usage should be '(Running)EpochWise.usage_name' or "
                     f"'((SingleEpoch)Running)BatchWise.usage_name', got {usage}"
                 )
-        if not isinstance(usage, MetricUsage):
+        if not isinstance(usage, Usage):
             raise TypeError(f"Unhandled usage type {type(usage)}")
         return usage
 
-    def attach(self, engine: Engine, name: str, usage: Union[str, MetricUsage] = EpochWise()) -> None:
+    def attach(self, engine: Engine, name: str, usage: Union[str, Usage] = EpochWise()) -> None:
         """
         Attaches current metric to provided engine. On the end of engine's run, `engine.state.metrics` dictionary will
         contain computed metric's value under provided name.
@@ -407,7 +408,7 @@ class Metric(Serializable, metaclass=ABCMeta):
         if usage.COMPLETED is not None:
             engine.add_event_handler(usage.COMPLETED, self.completed, name)
 
-    def detach(self, engine: Engine, usage: Union[str, MetricUsage] = EpochWise()) -> None:
+    def detach(self, engine: Engine, usage: Union[str, Usage] = EpochWise()) -> None:
         """
         Detaches current metric from the engine and no metric's computation is done during the run.
         This method in conjunction with :meth:`~ignite.metrics.metric.Metric.attach` can be useful if several
@@ -452,7 +453,7 @@ class Metric(Serializable, metaclass=ABCMeta):
         ):
             engine.remove_event_handler(self.iteration_completed, usage.ITERATION_COMPLETED)
 
-    def is_attached(self, engine: Engine, usage: Union[str, MetricUsage] = EpochWise()) -> bool:
+    def is_attached(self, engine: Engine, usage: Union[str, Usage] = EpochWise()) -> bool:
         """
         Checks if current metric is attached to provided engine. If attached, metric's computed
         value is written to `engine.state.metrics` dictionary.

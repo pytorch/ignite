@@ -24,7 +24,8 @@ from ignite.metrics.mean_absolute_error import MeanAbsoluteError
 from ignite.metrics.mean_average_precision import MeanAveragePrecision
 from ignite.metrics.mean_pairwise_distance import MeanPairwiseDistance
 from ignite.metrics.mean_squared_error import MeanSquaredError
-from ignite.metrics.metric import BatchFiltered, BatchWise, EpochWise, Metric, MetricUsage, Usage
+from ignite.base.usage import BatchFiltered, BatchWise, EpochWise, Usage
+from ignite.metrics.metric import Metric, MetricUsage
 from ignite.metrics.metric_group import MetricGroup
 from ignite.metrics.metrics_lambda import MetricsLambda
 from ignite.metrics.multilabel_confusion_matrix import MultiLabelConfusionMatrix
