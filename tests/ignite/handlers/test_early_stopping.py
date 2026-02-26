@@ -4,6 +4,7 @@ import pytest
 import torch
 
 import ignite.distributed as idist
+from ignite.base.usage import Usage
 from ignite.engine import Engine, Events
 from ignite.handlers import EarlyStopping
 
@@ -575,7 +576,15 @@ def test_early_stopping_attach_cross_engine():
     evaluator = Engine(do_nothing_update_fn)
     handler = EarlyStopping(patience=5, score_function=lambda engine: engine.state.iteration, trainer=trainer)
 
-    handler.attach(engine=evaluator, event=Events.EPOCH_COMPLETED, reset_engine=trainer, reset_event=Events.STARTED)
+    handler.attach(
+        engine=evaluator,
+        usage=Usage(
+            started=Events.STARTED,
+            completed=Events.EPOCH_COMPLETED,
+            iteration_completed=Events.ITERATION_COMPLETED,
+        ),
+        reset_engine=trainer,
+    )
 
     assert evaluator.has_event_handler(handler, Events.EPOCH_COMPLETED)
     assert not trainer.has_event_handler(handler, Events.EPOCH_COMPLETED)

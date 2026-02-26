@@ -9,7 +9,7 @@ import torch
 
 import ignite.distributed as idist
 from ignite.base.mixins import Serializable
-from ignite.engine import CallableEventWithFilter, Engine, Events
+from ignite.engine import Engine
 from ignite.utils import _CollectionItem, _tree_apply2, _tree_map
 
 if TYPE_CHECKING:
@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "Metric",
+    "Usage",
     "MetricUsage",
     "EpochWise",
     "BatchWise",
@@ -27,196 +28,18 @@ __all__ = [
 ]
 
 
-class MetricUsage:
-    """
-    Base class for all usages of metrics.
+from ignite.base.usage import (
+    BatchFiltered,
+    BatchWise,
+    EpochWise,
+    RunningBatchWise,
+    RunningEpochWise,
+    SingleEpochRunningBatchWise,
+    Usage,
+)
 
-    A usage of metric defines the events when a metric starts to compute, updates and completes.
-    Valid events are from :class:`~ignite.engine.events.Events`.
-
-    Args:
-        started: event when the metric starts to compute. This event will be associated to
-            :meth:`~ignite.metrics.metric.Metric.started`.
-        completed: event when the metric completes. This event will be associated to
-            :meth:`~ignite.metrics.metric.Metric.completed`.
-        iteration_completed: event when the metric updates. This event will be associated to
-            :meth:`~ignite.metrics.metric.Metric.iteration_completed`.
-    """
-
-    usage_name: str
-
-    def __init__(self, started: Events, completed: Events, iteration_completed: CallableEventWithFilter) -> None:
-        self.__started = started
-        self.__completed = completed
-        self.__iteration_completed = iteration_completed
-
-    @property
-    def STARTED(self) -> Events:
-        return self.__started
-
-    @property
-    def COMPLETED(self) -> Events:
-        return self.__completed
-
-    @property
-    def ITERATION_COMPLETED(self) -> CallableEventWithFilter:
-        return self.__iteration_completed
-
-
-class EpochWise(MetricUsage):
-    """
-    Epoch-wise usage of Metrics. It's the default and most common usage of metrics.
-
-    Metric's methods are triggered on the following engine events:
-
-    - :meth:`~ignite.metrics.metric.Metric.started` on every ``EPOCH_STARTED``
-      (See :class:`~ignite.engine.events.Events`).
-    - :meth:`~ignite.metrics.metric.Metric.iteration_completed` on every ``ITERATION_COMPLETED``.
-    - :meth:`~ignite.metrics.metric.Metric.completed` on every ``EPOCH_COMPLETED``.
-
-    Attributes:
-        usage_name: usage name string
-    """
-
-    usage_name: str = "epoch_wise"
-
-    def __init__(self) -> None:
-        super(EpochWise, self).__init__(
-            started=Events.EPOCH_STARTED,
-            completed=Events.EPOCH_COMPLETED,
-            iteration_completed=Events.ITERATION_COMPLETED,
-        )
-
-
-class RunningEpochWise(EpochWise):
-    """
-    Running epoch-wise usage of Metrics. It's the running version of the :class:`~.metrics.metric.EpochWise` metric
-    usage. A metric with such a usage most likely accompanies an :class:`~.metrics.metric.EpochWise` one to compute
-    a running measure of it e.g. running average.
-
-    Metric's methods are triggered on the following engine events:
-
-    - :meth:`~ignite.metrics.metric.Metric.started` on every ``STARTED``
-      (See :class:`~ignite.engine.events.Events`).
-    - :meth:`~ignite.metrics.metric.Metric.iteration_completed` on every ``EPOCH_COMPLETED``.
-    - :meth:`~ignite.metrics.metric.Metric.completed` on every ``EPOCH_COMPLETED``.
-
-    Attributes:
-        usage_name: usage name string
-    """
-
-    usage_name: str = "running_epoch_wise"
-
-    def __init__(self) -> None:
-        super(EpochWise, self).__init__(
-            started=Events.STARTED,
-            completed=Events.EPOCH_COMPLETED,
-            iteration_completed=Events.EPOCH_COMPLETED,
-        )
-
-
-class BatchWise(MetricUsage):
-    """
-    Batch-wise usage of Metrics.
-
-    Metric's methods are triggered on the following engine events:
-
-    - :meth:`~ignite.metrics.metric.Metric.started` on every ``ITERATION_STARTED``
-      (See :class:`~ignite.engine.events.Events`).
-    - :meth:`~ignite.metrics.metric.Metric.iteration_completed` on every ``ITERATION_COMPLETED``.
-    - :meth:`~ignite.metrics.metric.Metric.completed` on every ``ITERATION_COMPLETED``.
-
-    Attributes:
-        usage_name: usage name string
-    """
-
-    usage_name: str = "batch_wise"
-
-    def __init__(self) -> None:
-        super(BatchWise, self).__init__(
-            started=Events.ITERATION_STARTED,
-            completed=Events.ITERATION_COMPLETED,
-            iteration_completed=Events.ITERATION_COMPLETED,
-        )
-
-
-class RunningBatchWise(BatchWise):
-    """
-    Running batch-wise usage of Metrics. It's the running version of the :class:`~.metrics.metric.EpochWise` metric
-    usage. A metric with such a usage could for example accompany a :class:`~.metrics.metric.BatchWise` one to compute
-    a running measure of it e.g. running average.
-
-    Metric's methods are triggered on the following engine events:
-
-    - :meth:`~ignite.metrics.metric.Metric.started` on every ``STARTED``
-      (See :class:`~ignite.engine.events.Events`).
-    - :meth:`~ignite.metrics.metric.Metric.iteration_completed` on every ``ITERATION_COMPLETED``.
-    - :meth:`~ignite.metrics.metric.Metric.completed` on every ``ITERATION_COMPLETED``.
-
-    Attributes:
-        usage_name: usage name string
-    """
-
-    usage_name: str = "running_batch_wise"
-
-    def __init__(self) -> None:
-        super(BatchWise, self).__init__(
-            started=Events.STARTED,
-            completed=Events.ITERATION_COMPLETED,
-            iteration_completed=Events.ITERATION_COMPLETED,
-        )
-
-
-class SingleEpochRunningBatchWise(BatchWise):
-    """
-    Running batch-wise usage of Metrics in a single epoch. It's like :class:`~.metrics.metric.RunningBatchWise` metric
-    usage with the difference that is used during a single epoch.
-
-    Metric's methods are triggered on the following engine events:
-
-    - :meth:`~ignite.metrics.metric.Metric.started` on every ``EPOCH_STARTED``
-      (See :class:`~ignite.engine.events.Events`).
-    - :meth:`~ignite.metrics.metric.Metric.iteration_completed` on every ``ITERATION_COMPLETED``.
-    - :meth:`~ignite.metrics.metric.Metric.completed` on every ``ITERATION_COMPLETED``.
-
-    Attributes:
-        usage_name: usage name string
-    """
-
-    usage_name: str = "single_epoch_running_batch_wise"
-
-    def __init__(self) -> None:
-        super(BatchWise, self).__init__(
-            started=Events.EPOCH_STARTED,
-            completed=Events.ITERATION_COMPLETED,
-            iteration_completed=Events.ITERATION_COMPLETED,
-        )
-
-
-class BatchFiltered(MetricUsage):
-    """
-    Batch filtered usage of Metrics. This usage is similar to epoch-wise but update event is filtered.
-
-    Metric's methods are triggered on the following engine events:
-
-    - :meth:`~ignite.metrics.metric.Metric.started` on every ``EPOCH_STARTED``
-      (See :class:`~ignite.engine.events.Events`).
-    - :meth:`~ignite.metrics.metric.Metric.iteration_completed` on filtered ``ITERATION_COMPLETED``.
-    - :meth:`~ignite.metrics.metric.Metric.completed` on every ``EPOCH_COMPLETED``.
-
-    Args:
-        args: Positional arguments to setup :attr:`~ignite.engine.events.Events.ITERATION_COMPLETED`
-        kwargs: Keyword arguments to setup :attr:`~ignite.engine.events.Events.ITERATION_COMPLETED`
-            handled by :meth:`~ignite.metrics.metric.Metric.iteration_completed`.
-
-    """
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super(BatchFiltered, self).__init__(
-            started=Events.EPOCH_STARTED,
-            completed=Events.EPOCH_COMPLETED,
-            iteration_completed=Events.ITERATION_COMPLETED(*args, **kwargs),
-        )
+# Alias for backward compatibility
+MetricUsage = Usage
 
 
 class Metric(Serializable, metaclass=ABCMeta):
@@ -525,23 +348,23 @@ class Metric(Serializable, metaclass=ABCMeta):
 
             engine.state.metrics[name] = result
 
-    def _check_usage(self, usage: Union[str, MetricUsage]) -> MetricUsage:
+    def _check_usage(self, usage: Union[str, Usage]) -> Usage:
         if isinstance(usage, str):
             usages = [EpochWise, RunningEpochWise, BatchWise, RunningBatchWise, SingleEpochRunningBatchWise]
             for usage_cls in usages:
                 if usage == usage_cls.usage_name:
                     usage = usage_cls()
                     break
-            if not isinstance(usage, MetricUsage):
+            if not isinstance(usage, Usage):
                 raise ValueError(
                     "Argument usage should be '(Running)EpochWise.usage_name' or "
                     f"'((SingleEpoch)Running)BatchWise.usage_name', got {usage}"
                 )
-        if not isinstance(usage, MetricUsage):
+        if not isinstance(usage, Usage):
             raise TypeError(f"Unhandled usage type {type(usage)}")
         return usage
 
-    def attach(self, engine: Engine, name: str, usage: Union[str, MetricUsage] = EpochWise()) -> None:
+    def attach(self, engine: Engine, name: str, usage: Union[str, Usage] = EpochWise()) -> None:
         """
         Attaches current metric to provided engine. On the end of engine's run, `engine.state.metrics` dictionary will
         contain computed metric's value under provided name.
@@ -550,8 +373,8 @@ class Metric(Serializable, metaclass=ABCMeta):
             engine: the engine to which the metric must be attached
             name: the name of the metric to attach
             usage: the usage of the metric. Valid string values should be
-                :attr:`ignite.metrics.metric.EpochWise.usage_name` (default) or
-                :attr:`ignite.metrics.metric.BatchWise.usage_name`.
+                :attr:`~ignite.base.usage.EpochWise.usage_name` (default) or
+                :attr:`~ignite.base.usage.BatchWise.usage_name`.
 
         Examples:
 
@@ -576,13 +399,16 @@ class Metric(Serializable, metaclass=ABCMeta):
                 assert metric.is_attached(engine, usage=BatchWise.usage_name)
         """
         usage = self._check_usage(usage)
-        if not engine.has_event_handler(self.started, usage.STARTED):
+        if usage.STARTED is not None and not engine.has_event_handler(self.started, usage.STARTED):
             engine.add_event_handler(usage.STARTED, self.started)
-        if not engine.has_event_handler(self.iteration_completed, usage.ITERATION_COMPLETED):
+        if usage.ITERATION_COMPLETED is not None and not engine.has_event_handler(
+            self.iteration_completed, usage.ITERATION_COMPLETED
+        ):
             engine.add_event_handler(usage.ITERATION_COMPLETED, self.iteration_completed)
-        engine.add_event_handler(usage.COMPLETED, self.completed, name)
+        if usage.COMPLETED is not None:
+            engine.add_event_handler(usage.COMPLETED, self.completed, name)
 
-    def detach(self, engine: Engine, usage: Union[str, MetricUsage] = EpochWise()) -> None:
+    def detach(self, engine: Engine, usage: Union[str, Usage] = EpochWise()) -> None:
         """
         Detaches current metric from the engine and no metric's computation is done during the run.
         This method in conjunction with :meth:`~ignite.metrics.metric.Metric.attach` can be useful if several
@@ -618,14 +444,16 @@ class Metric(Serializable, metaclass=ABCMeta):
                 assert not metric.is_attached(engine, usage="batch_wise")
         """
         usage = self._check_usage(usage)
-        if engine.has_event_handler(self.completed, usage.COMPLETED):
+        if usage.COMPLETED is not None and engine.has_event_handler(self.completed, usage.COMPLETED):
             engine.remove_event_handler(self.completed, usage.COMPLETED)
-        if engine.has_event_handler(self.started, usage.STARTED):
+        if usage.STARTED is not None and engine.has_event_handler(self.started, usage.STARTED):
             engine.remove_event_handler(self.started, usage.STARTED)
-        if engine.has_event_handler(self.iteration_completed, usage.ITERATION_COMPLETED):
+        if usage.ITERATION_COMPLETED is not None and engine.has_event_handler(
+            self.iteration_completed, usage.ITERATION_COMPLETED
+        ):
             engine.remove_event_handler(self.iteration_completed, usage.ITERATION_COMPLETED)
 
-    def is_attached(self, engine: Engine, usage: Union[str, MetricUsage] = EpochWise()) -> bool:
+    def is_attached(self, engine: Engine, usage: Union[str, Usage] = EpochWise()) -> bool:
         """
         Checks if current metric is attached to provided engine. If attached, metric's computed
         value is written to `engine.state.metrics` dictionary.

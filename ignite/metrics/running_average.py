@@ -5,7 +5,8 @@ import torch
 
 import ignite.distributed as idist
 from ignite.engine import Engine, Events
-from ignite.metrics.metric import Metric, MetricUsage, reinit__is_reduced, RunningBatchWise, SingleEpochRunningBatchWise
+from ignite.base.usage import RunningBatchWise, SingleEpochRunningBatchWise, Usage
+from ignite.metrics.metric import Metric, reinit__is_reduced
 
 __all__ = ["RunningAverage"]
 
@@ -163,7 +164,7 @@ class RunningAverage(Metric):
     def compute(self) -> Union[torch.Tensor, float]:
         return cast(Union[torch.Tensor, float], self._value)
 
-    def attach(self, engine: Engine, name: str, usage: Union[str, MetricUsage] = RunningBatchWise()) -> None:
+    def attach(self, engine: Engine, name: str, usage: Union[str, Usage] = RunningBatchWise()) -> None:
         r"""
         Attach the metric to the ``engine`` using the events determined by the ``usage``.
 
@@ -171,30 +172,30 @@ class RunningAverage(Metric):
             engine: the engine to get attached to.
             name: by which, the metric is inserted into ``engine.state.metrics`` dictionary.
             usage: the usage determining on which events the metric is reset, updated and computed. It should be an
-                instance of the :class:`~ignite.metrics.metric.MetricUsage`\ s in the following table.
+                instance of the :class:`~ignite.base.usage.Usage`\\ s in the following table.
 
-                ======================================================= ===========================================
-                ``usage`` **class**                                     **Description**
-                ======================================================= ===========================================
-                :class:`~.metrics.metric.RunningBatchWise`              Running average of the ``src`` metric or
-                                                                        ``engine.state.output`` is computed across
-                                                                        batches. In the former case, on each batch,
-                                                                        ``src`` is reset, updated and computed then
-                                                                        its value is retrieved. Default.
-                :class:`~.metrics.metric.SingleEpochRunningBatchWise`   Same as above but the running average is
-                                                                        computed across batches in an epoch so it
-                                                                        is reset at the end of the epoch.
-                :class:`~.metrics.metric.RunningEpochWise`              Running average of the ``src`` metric or
-                                                                        ``engine.state.output`` is computed across
-                                                                        epochs. In the former case, ``src`` works
-                                                                        as if it was attached in a
-                                                                        :class:`~ignite.metrics.metric.EpochWise`
-                                                                        manner and its computed value is retrieved
-                                                                        at the end of the epoch. The latter case
-                                                                        doesn't make much sense for this usage as
-                                                                        the ``engine.state.output`` of the last
-                                                                        batch is retrieved then.
-                ======================================================= ===========================================
+                ================================================================= ==============================================
+                ``usage`` **class**                                               **Description**
+                ================================================================= ==============================================
+                :class:`~ignite.base.usage.RunningBatchWise`                      Running average of the ``src`` metric or
+                                                                                  ``engine.state.output`` is computed across
+                                                                                  batches. In the former case, on each batch,
+                                                                                  ``src`` is reset, updated and computed then
+                                                                                  its value is retrieved. Default.
+                :class:`~ignite.base.usage.SingleEpochRunningBatchWise`           Same as above but the running average is
+                                                                                  computed across batches in an epoch so it
+                                                                                  is reset at the end of the epoch.
+                :class:`~ignite.base.usage.RunningEpochWise`                      Running average of the ``src`` metric or
+                                                                                  ``engine.state.output`` is computed across
+                                                                                  epochs. In the former case, ``src`` works
+                                                                                  as if it was attached in a
+                                                                                  :class:`~ignite.base.usage.EpochWise`
+                                                                                  manner and its computed value is retrieved
+                                                                                  at the end of the epoch. The latter case
+                                                                                  doesn't make much sense for this usage as
+                                                                                  the ``engine.state.output`` of the last
+                                                                                  batch is retrieved then.
+                ================================================================= ==============================================
 
         ``RunningAverage`` retrieves ``engine.state.output`` at ``usage.ITERATION_COMPLETED`` if the ``src`` is not
         given and it's computed and updated using ``src``, by manually calling its ``compute`` method, or
@@ -217,7 +218,7 @@ class RunningAverage(Metric):
 
         super().attach(engine, name, usage)
 
-    def detach(self, engine: Engine, usage: Union[str, MetricUsage] = RunningBatchWise()) -> None:
+    def detach(self, engine: Engine, usage: Union[str, Usage] = RunningBatchWise()) -> None:
         usage = self._check_usage(usage)
         if self.epoch_bound is not None:
             usage = SingleEpochRunningBatchWise() if self.epoch_bound else RunningBatchWise()

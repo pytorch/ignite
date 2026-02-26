@@ -1,7 +1,9 @@
+import warnings
 from collections import OrderedDict
 from typing import Any, Callable, cast, Mapping, Literal
 
 from ignite.base import Serializable, ResettableHandler
+from ignite.base.usage import RunWise, Usage
 from ignite.engine import Engine, Events
 from ignite.utils import setup_logger
 
@@ -139,33 +141,48 @@ class EarlyStopping(Serializable, ResettableHandler):
     def attach(  # type: ignore[override]
         self,
         engine: Engine,
-        event: Any = Events.COMPLETED,
+        usage: Usage | None = None,
         reset_engine: Engine | None = None,
-        reset_event: Any = Events.STARTED,
         *args: Any,
         **kwargs: Any,
     ) -> None:
         """Attaches the early stopping handler to an engine and registers its reset callback.
 
         This method will:
-        1. Add the early stopping evaluation logic (``self``) to ``engine`` on the given ``event``.
-        2. Add the ``reset`` method to ``reset_engine`` (or ``engine`` if not provided) on the given ``reset_event``.
+        1. Add the early stopping evaluation logic (``self``) to ``engine`` on the given ``usage.COMPLETED`` event.
+        2. Add the ``reset`` method to ``reset_engine`` (or ``engine`` if not provided) on the given ``usage.STARTED`` event.
 
         Args:
             engine: The engine to attach the early stopping evaluation to (typically an evaluator).
-            event: The event on ``engine`` that triggers the early stopping check. Default is
-                :attr:`~ignite.engine.events.Events.COMPLETED`.
+            usage: The usage that encapsulates the evaluation events. Default is
+                :class:`~ignite.base.usage.RunWise`.
             reset_engine: The engine to attach the reset callback to (typically the trainer).
                 If ``None``, defaults to ``engine``.
-            reset_event: The event on ``reset_engine`` that triggers the handler state reset.
-                Default is :attr:`~ignite.engine.events.Events.STARTED`.
+            **kwargs: Deprecated keyword argument (``event``) for backward compatibility.
 
         .. versionadded:: 0.6.0
         """
-        engine.add_event_handler(event, self)
+        if "event" in kwargs or "reset_event" in kwargs:
+            if "event" in kwargs:
+                warnings.warn(
+                    "The `event` argument is deprecated and will be removed in future releases. "
+                    "Use `usage` instead.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+            usage = Usage(
+                completed=kwargs.get("event", Events.COMPLETED),
+                started=kwargs.get("reset_event", Events.STARTED),
+            )
+        elif usage is None:
+            usage = RunWise()
+
+        if usage.COMPLETED is not None:
+            engine.add_event_handler(usage.COMPLETED, self)
 
         target_reset_engine = reset_engine or engine
-        target_reset_engine.add_event_handler(reset_event, self.reset)
+        if usage.STARTED is not None:
+            target_reset_engine.add_event_handler(usage.STARTED, self.reset)
 
     def state_dict(self) -> "OrderedDict[str, float]":
         """Method returns state dict with ``counter`` and ``best_score``.

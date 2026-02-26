@@ -283,18 +283,19 @@ By default, `Metrics` are epoch-wise, it means
 - :meth:`~ignite.metrics.metric.Metric.update()` is triggered every ``ITERATION_COMPLETED``.
 - :meth:`~ignite.metrics.metric.Metric.compute()` is triggered every ``EPOCH_COMPLETED``.
 
-Usages can be user defined by creating a class inheriting from :class:`~ignite.metrics.metric.MetricUsage`. See the list below of usages.
+Usages can be user defined by creating a class inheriting from :class:`~ignite.base.usage.Usage`. See the list below of usages.
 
 Complete list of usages
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-    - :class:`~ignite.metrics.metric.MetricUsage`
-    - :class:`~ignite.metrics.metric.EpochWise`
-    - :class:`~ignite.metrics.metric.RunningEpochWise`
-    - :class:`~ignite.metrics.metric.BatchWise`
-    - :class:`~ignite.metrics.metric.RunningBatchWise`
-    - :class:`~ignite.metrics.metric.SingleEpochRunningBatchWise`
-    - :class:`~ignite.metrics.metric.BatchFiltered`
+    - :class:`~ignite.base.usage.Usage`
+    - :class:`~ignite.base.usage.EpochWise`
+    - :class:`~ignite.base.usage.RunningEpochWise`
+    - :class:`~ignite.base.usage.BatchWise`
+    - :class:`~ignite.base.usage.RunningBatchWise`
+    - :class:`~ignite.base.usage.SingleEpochRunningBatchWise`
+    - :class:`~ignite.base.usage.BatchFiltered`
+    - :class:`~ignite.base.usage.RunWise`
 
 Metrics and distributed computations
 ------------------------------------
@@ -403,33 +404,45 @@ Complete list of metrics
 Helpers for customizing metrics
 -------------------------------
 
+Usage
+~~~~~~~~~~~
+.. autoclass:: ignite.base.usage.Usage
+
 MetricUsage
 ~~~~~~~~~~~
+
+.. warning::
+    `MetricUsage` is deprecated and will be removed in future versions. Please use :class:`~ignite.base.usage.Usage` instead.
+
 .. autoclass:: ignite.metrics.metric.MetricUsage
 
 EpochWise
 ~~~~~~~~~
-.. autoclass:: ignite.metrics.metric.EpochWise
+.. autoclass:: ignite.base.usage.EpochWise
 
 RunningEpochWise
 ~~~~~~~~~~~~~~~~
-.. autoclass:: ignite.metrics.metric.RunningEpochWise
+.. autoclass:: ignite.base.usage.RunningEpochWise
 
 BatchWise
 ~~~~~~~~~
-.. autoclass:: ignite.metrics.metric.BatchWise
+.. autoclass:: ignite.base.usage.BatchWise
 
 RunningBatchWise
 ~~~~~~~~~~~~~~~~
-.. autoclass:: ignite.metrics.metric.RunningBatchWise
+.. autoclass:: ignite.base.usage.RunningBatchWise
 
 SingleEpochRunningBatchWise
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autoclass:: ignite.metrics.metric.SingleEpochRunningBatchWise
+.. autoclass:: ignite.base.usage.SingleEpochRunningBatchWise
 
 BatchFiltered
 ~~~~~~~~~~~~~
-.. autoclass:: ignite.metrics.metric.BatchFiltered
+.. autoclass:: ignite.base.usage.BatchFiltered
+
+RunWise
+~~~~~~~
+.. autoclass:: ignite.base.usage.RunWise
 
 .. currentmodule:: ignite.metrics.metric
 
