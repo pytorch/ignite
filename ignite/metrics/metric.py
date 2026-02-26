@@ -640,9 +640,7 @@ class Metric(Serializable, metaclass=ABCMeta):
         return engine.has_event_handler(self.completed, usage.COMPLETED)
 
     def _state_dict_per_rank(self) -> OrderedDict:
-        def func(
-            x: torch.Tensor | Metric | None | float, **kwargs: Any
-        ) -> torch.Tensor | float | OrderedDict | None:
+        def func(x: torch.Tensor | Metric | None | float, **kwargs: Any) -> torch.Tensor | float | OrderedDict | None:
             if isinstance(x, Metric):
                 return x._state_dict_per_rank()
             if x is None or isinstance(x, (int, float, torch.Tensor)):
