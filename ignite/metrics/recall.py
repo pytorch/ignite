@@ -222,8 +222,10 @@ class Recall(_BasePrecisionRecall):
 
     @reinit__is_reduced
     def update(self, output: Sequence[torch.Tensor]) -> None:
-        self._check_shape(output)
-        self._check_type(output)
+        if not getattr(self, "_skip_checks", False):
+            self._check_shape(output)
+            self._check_type(output)
+
         _, y, correct = self._prepare_output(output)
 
         if self._average == "samples":

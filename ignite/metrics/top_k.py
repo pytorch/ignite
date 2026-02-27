@@ -25,8 +25,6 @@ class TopK(Metric):
             masked.scatter_(-1, top_indices, 1.0)
             return (masked, y)
 
-        raise ValueError(f"{type(self._base_metric).__name__} is not supported by TopK.")
-
     @reinit__is_reduced
     def reset(self):
         self._states = {k: {} for k in self._ks}
@@ -43,8 +41,8 @@ class TopK(Metric):
             for attr in self._base_metric._state_dict_all_req_keys:
                 setattr(self._base_metric, attr, self._states[k].get(attr, getattr(self._base_metric, attr)))
 
-            modified_output = self._wrap_prepare_output(output, k)
-            self._base_metric.update(modified_output)
+            k_output = self._wrap_prepare_output(output, k)
+            self._base_metric.update(k_output)
 
             # save state for this k
             for attr in self._base_metric._state_dict_all_req_keys:
