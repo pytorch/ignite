@@ -1,7 +1,8 @@
 import numbers
 import warnings
 from bisect import bisect_right
-from typing import Any, Callable, List, Sequence, Tuple, Union
+from collections.abc import Callable, Sequence
+from typing import Any
 
 from ignite.engine import CallableEventWithFilter, Engine, Events, EventsList
 from ignite.handlers.param_scheduler import BaseParamScheduler
@@ -32,7 +33,7 @@ class StateParamScheduler(BaseParamScheduler):
     def attach(
         self,
         engine: Engine,
-        event: Union[str, Events, CallableEventWithFilter, EventsList] = Events.ITERATION_COMPLETED,
+        event: str | Events | CallableEventWithFilter | EventsList = Events.ITERATION_COMPLETED,
     ) -> None:
         """Attach the handler to the engine. Once the handler is attached, the ``Engine.state`` will have a new
         attribute with the name ``param_name``. Then the current value of the parameter can be retrieved from
@@ -73,7 +74,7 @@ class StateParamScheduler(BaseParamScheduler):
             engine.state.param_history[self.param_name].append(value)  # type: ignore[attr-defined]
 
     @classmethod
-    def simulate_values(cls, num_events: int, **scheduler_kwargs: Any) -> List[List[int]]:
+    def simulate_values(cls, num_events: int, **scheduler_kwargs: Any) -> list[list[int]]:
         """Method to simulate scheduled engine state parameter values during `num_events` events.
 
         Args:
@@ -185,7 +186,7 @@ class LambdaStateScheduler(StateParamScheduler):
 
     def __init__(
         self,
-        lambda_obj: Callable[[int], Union[List[float], float]],
+        lambda_obj: Callable[[int], list[float] | float],
         param_name: str,
         save_history: bool = False,
         create_new: bool = False,
@@ -198,7 +199,7 @@ class LambdaStateScheduler(StateParamScheduler):
         self.lambda_obj = lambda_obj
         self._state_attrs += ["lambda_obj"]
 
-    def get_param(self) -> Union[List[float], float]:
+    def get_param(self) -> list[float] | float:
         return self.lambda_obj(self.event_index)
 
 
@@ -267,7 +268,7 @@ class PiecewiseLinearStateScheduler(StateParamScheduler):
 
     def __init__(
         self,
-        milestones_values: List[Tuple[int, float]],
+        milestones_values: list[tuple[int, float]],
         param_name: str,
         save_history: bool = False,
         create_new: bool = False,
@@ -283,8 +284,8 @@ class PiecewiseLinearStateScheduler(StateParamScheduler):
                 f"Argument milestones_values should be with at least one value, but given {milestones_values}"
             )
 
-        values: List[float] = []
-        milestones: List[int] = []
+        values: list[float] = []
+        milestones: list[int] = []
         for pair in milestones_values:
             if not isinstance(pair, tuple) or len(pair) != 2:
                 raise ValueError("Argument milestones_values should be a list of pairs (milestone, param_value)")
@@ -303,7 +304,7 @@ class PiecewiseLinearStateScheduler(StateParamScheduler):
         self._index = 0
         self._state_attrs += ["values", "milestones", "_index"]
 
-    def _get_start_end(self) -> Tuple[int, int, float, float]:
+    def _get_start_end(self) -> tuple[int, int, float, float]:
         if self.milestones[0] > self.event_index:
             return self.event_index - 1, self.event_index, self.values[0], self.values[0]
         elif self.milestones[-1] <= self.event_index:
@@ -319,7 +320,7 @@ class PiecewiseLinearStateScheduler(StateParamScheduler):
             self._index += 1
             return self._get_start_end()
 
-    def get_param(self) -> Union[List[float], float]:
+    def get_param(self) -> list[float] | float:
         start_index, end_index, start_value, end_value = self._get_start_end()
         return start_value + (end_value - start_value) * (self.event_index - start_index) / (end_index - start_index)
 
@@ -387,7 +388,7 @@ class ExpStateScheduler(StateParamScheduler):
         self.gamma = gamma
         self._state_attrs += ["initial_value", "gamma"]
 
-    def get_param(self) -> Union[List[float], float]:
+    def get_param(self) -> list[float] | float:
         return self.initial_value * self.gamma**self.event_index
 
 
@@ -466,7 +467,7 @@ class StepStateScheduler(StateParamScheduler):
         self.step_size = step_size
         self._state_attrs += ["initial_value", "gamma", "step_size"]
 
-    def get_param(self) -> Union[List[float], float]:
+    def get_param(self) -> list[float] | float:
         return self.initial_value * self.gamma ** (self.event_index // self.step_size)
 
 
@@ -542,7 +543,7 @@ class MultiStepStateScheduler(StateParamScheduler):
         self,
         initial_value: float,
         gamma: float,
-        milestones: List[int],
+        milestones: list[int],
         param_name: str,
         save_history: bool = False,
         create_new: bool = False,
@@ -553,5 +554,5 @@ class MultiStepStateScheduler(StateParamScheduler):
         self.milestones = milestones
         self._state_attrs += ["initial_value", "gamma", "milestones"]
 
-    def get_param(self) -> Union[List[float], float]:
+    def get_param(self) -> list[float] | float:
         return self.initial_value * self.gamma ** bisect_right(self.milestones, self.event_index)
