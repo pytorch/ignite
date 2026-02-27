@@ -15,7 +15,7 @@ from ignite.utils import to_onehot
 class _BaseAveragePrecision:
     def __init__(
         self,
-        rec_thresholds: Optional[Sequence[float] | torch.Tensor] = None,
+        rec_thresholds: Sequence[float] | torch.Tensor | None = None,
         class_mean: Literal["micro", "macro", "weighted"] | None = "macro",
     ) -> None:
         r"""Base class for Average Precision metric.
@@ -145,7 +145,7 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
 
     def __init__(
         self,
-        rec_thresholds: Optional[Sequence[float] | torch.Tensor] = None,
+        rec_thresholds: Sequence[float] | torch.Tensor | None = None,
         class_mean: "Literal['micro', 'macro', 'weighted']" | None = "macro",
         is_multilabel: bool = False,
         output_transform: Callable = lambda x: x,
