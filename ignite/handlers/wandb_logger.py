@@ -277,9 +277,9 @@ class OutputHandler(BaseOutputHandler):
     def __init__(
         self,
         tag: str,
-        metric_names: Optional[list[str] | str] = None,
+        metric_names: list[str] | str | None = None,
         output_transform: Callable | None = None,
-        global_step_transform: Optional[Callable[[Engine, str | Events], int]] = None,
+        global_step_transform: Callable[[Engine, str | Events], int] | None = None,
         sync: bool | None = None,
         state_attributes: list[str] | None = None,
     ):
