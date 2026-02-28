@@ -1,4 +1,5 @@
-from typing import Any, Callable, List, Optional
+from collections.abc import Callable
+from typing import Any
 
 from ignite.engine import Engine, Events
 
@@ -41,7 +42,7 @@ class EpochOutputStore:
     """
 
     def __init__(self, output_transform: Callable = lambda x: x):
-        self.data: List[Any] = []
+        self.data: list[Any] = []
         self.output_transform = output_transform
 
     def reset(self) -> None:
@@ -57,7 +58,7 @@ class EpochOutputStore:
         """Store `self.data` on `engine.state.{self.name}`"""
         setattr(engine.state, self.name, self.data)
 
-    def attach(self, engine: Engine, name: Optional[str] = None) -> None:
+    def attach(self, engine: Engine, name: str | None = None) -> None:
         """Attaching `reset` method at EPOCH_STARTED and
         `update` method at ITERATION_COMPLETED.
 
