@@ -1,5 +1,6 @@
 import itertools
-from typing import Any, Callable, Optional, Union, Literal
+from collections.abc import Callable
+from typing import Any, Literal
 
 import torch
 
@@ -114,7 +115,7 @@ class MetricsLambda(Metric):
         self.function = f
         self.args = list(args)  # we need args to be a list instead of a tuple for state_dict/load_state_dict feature
         self.kwargs = kwargs
-        self.engine: Optional[Engine] = None
+        self.engine: Engine | None = None
         self._updated = False
         super().__init__(device="cpu", metrics_result_mode=metrics_result_mode, skip_unrolling=skip_unrolling)
 
@@ -157,7 +158,7 @@ class MetricsLambda(Metric):
                 if not engine.has_event_handler(metric.iteration_completed, usage.ITERATION_COMPLETED):
                     engine.add_event_handler(usage.ITERATION_COMPLETED, metric.iteration_completed)
 
-    def attach(self, engine: Engine, name: str, usage: Union[str, MetricUsage] = EpochWise()) -> None:
+    def attach(self, engine: Engine, name: str, usage: str | MetricUsage = EpochWise()) -> None:
         if self._updated:
             raise ValueError(
                 "The underlying metrics are already updated, can't attach while using reset/update/compute API."
@@ -168,13 +169,13 @@ class MetricsLambda(Metric):
         # attach only handler on EPOCH_COMPLETED
         engine.add_event_handler(usage.COMPLETED, self.completed, name)
 
-    def detach(self, engine: Engine, usage: Union[str, MetricUsage] = EpochWise()) -> None:
+    def detach(self, engine: Engine, usage: str | MetricUsage = EpochWise()) -> None:
         usage = self._check_usage(usage)
         # remove from engine
         super(MetricsLambda, self).detach(engine, usage)
         self.engine = None
 
-    def is_attached(self, engine: Engine, usage: Union[str, MetricUsage] = EpochWise()) -> bool:
+    def is_attached(self, engine: Engine, usage: str | MetricUsage = EpochWise()) -> bool:
         usage = self._check_usage(usage)
         # check recursively the dependencies
         return super(MetricsLambda, self).is_attached(engine, usage) and self._internal_is_attached(engine, usage)

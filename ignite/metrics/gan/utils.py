@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Union
+from collections.abc import Callable
 
 import torch
 from packaging.version import Version
@@ -17,7 +17,7 @@ class InceptionModel(torch.nn.Module):
             non-blocking. By default, CPU.
     """
 
-    def __init__(self, return_features: bool, device: Union[str, torch.device] = "cpu") -> None:
+    def __init__(self, return_features: bool, device: str | torch.device = "cpu") -> None:
         try:
             import torchvision
             from torchvision import models
@@ -52,10 +52,10 @@ class InceptionModel(torch.nn.Module):
 class _BaseInceptionMetric(Metric):
     def __init__(
         self,
-        num_features: Optional[int],
-        feature_extractor: Optional[torch.nn.Module],
+        num_features: int | None,
+        feature_extractor: torch.nn.Module | None,
         output_transform: Callable = lambda x: x,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
     ) -> None:
         if num_features is None:
             raise ValueError("Argument num_features must be provided, if feature_extractor is specified.")

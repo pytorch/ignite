@@ -1,5 +1,4 @@
 import time
-from typing import Optional
 
 from ignite.engine import Engine
 
@@ -28,7 +27,7 @@ class TimeLimit:
     .. versionadded:: 0.4.3
     """
 
-    def __init__(self, limit_sec: Optional[int] = 28800):
+    def __init__(self, limit_sec: int | None = 28800):
         if not isinstance(limit_sec, int):
             raise TypeError("Argument limit_sec should be an integer.")
         if limit_sec <= 0:
