@@ -1,5 +1,6 @@
 import math
-from typing import Any, Callable, Sequence, Tuple, Union
+from collections.abc import Callable, Sequence
+from typing import Any
 
 import torch
 from torch import Tensor
@@ -135,7 +136,7 @@ class Bleu(Metric):
         ngram: int = 4,
         smooth: str = "no_smooth",
         output_transform: Callable = lambda x: x,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
         average: str = "macro",
     ):
         if ngram <= 0:
@@ -161,7 +162,7 @@ class Bleu(Metric):
         candidates: Sequence[Sequence[Any]],
         p_numerators: torch.Tensor,
         p_denominators: torch.Tensor,
-    ) -> Tuple[int, int]:
+    ) -> tuple[int, int]:
         if len(references) != len(candidates):
             raise ValueError(
                 f"nb of candidates should be equal to nb of reference lists ({len(candidates)} != "
@@ -247,7 +248,7 @@ class Bleu(Metric):
             self.ref_length_sum = 0
 
     @reinit__is_reduced
-    def update(self, output: Tuple[Sequence[Sequence[Any]], Sequence[Sequence[Sequence[Any]]]]) -> None:
+    def update(self, output: tuple[Sequence[Sequence[Any]], Sequence[Sequence[Sequence[Any]]]]) -> None:
         y_pred, y = output
 
         if self.average == "macro":
@@ -279,7 +280,7 @@ class Bleu(Metric):
         )
         return bleu_score
 
-    def compute(self) -> Union[None, Tensor, float]:
+    def compute(self) -> None | Tensor | float:
         if self.average == "macro":
             return self._compute_macro()
         elif self.average == "micro":
