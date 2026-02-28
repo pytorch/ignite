@@ -37,7 +37,9 @@ def fid_score(
     diff = mu1 - mu2
 
     # Product might be almost singular
-    covmean, _ = scipy.linalg.sqrtm(sigma1.mm(sigma2).numpy(), disp=False)
+    covmean = scipy.linalg.sqrtm(sigma1.mm(sigma2).numpy(), disp=False)
+    if isinstance(covmean, tuple):
+        covmean = covmean[0]
     # Numerical error might give slight imaginary component
     if np.iscomplexobj(covmean):
         if not np.allclose(np.diagonal(covmean).imag, 0, atol=1e-3):
