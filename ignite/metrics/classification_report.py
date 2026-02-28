@@ -1,5 +1,5 @@
 import json
-from typing import Callable, Collection, Dict, List, Optional, Union
+from typing import Callable, Collection, Dict, List, Literal, Optional, Union
 
 import torch
 
@@ -18,6 +18,7 @@ def ClassificationReport(
     device: Union[str, torch.device] = torch.device("cpu"),
     is_multilabel: bool = False,
     labels: Optional[List[str]] = None,
+    metrics_result_mode: Literal["flatten", "named", "both"] = "both",
 ) -> MetricsLambda:
     r"""Build a text report showing the main classification metrics. The report resembles in functionality to
     `scikit-learn classification_report
@@ -34,6 +35,11 @@ def ClassificationReport(
         is_multilabel: If True, the tensors are assumed to be multilabel.
         device: optional device specification for internal storage.
         labels: Optional list of label indices to include in the report
+        metrics_result_mode: specifies how to put the computed metrics results into
+            ``engine.state.metrics`` dictionary. Valid values are: "flatten", "named", "both".
+            - "flatten": if the computed result is a mapping, its keys/values are put directly into the engine state metrics dictionary
+            - "named": if the computed result is a mapping, the whole mapping is put into the engine state metrics dictionary under the metric name
+            - "both": combination of "flatten" and "named".
 
     Examples:
 
@@ -107,6 +113,8 @@ def ClassificationReport(
             {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0}
             {'precision': 0.2333..., 'recall': 0.6666..., 'f1-score': 0.3333...}
 
+    .. versionchanged:: 0.5.4
+        added ``metrics_result_mode`` argument.
     """
 
     # setup all the underlying metrics
@@ -144,4 +152,13 @@ def ClassificationReport(
     def _get_label_for_class(idx: int) -> str:
         return labels[idx] if labels else str(idx)
 
-    return MetricsLambda(_wrapper, recall, precision, fbeta, averaged_recall, averaged_precision, averaged_fbeta)
+    return MetricsLambda(
+        _wrapper,
+        recall,
+        precision,
+        fbeta,
+        averaged_recall,
+        averaged_precision,
+        averaged_fbeta,
+        metrics_result_mode=metrics_result_mode,
+    )
