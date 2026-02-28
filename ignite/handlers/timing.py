@@ -1,5 +1,5 @@
 from time import perf_counter
-from typing import Any, Optional
+from typing import Any
 
 from ignite.engine import Engine, Events
 
@@ -96,8 +96,8 @@ class Timer:
         engine: Engine,
         start: Events = Events.STARTED,
         pause: Events = Events.COMPLETED,
-        resume: Optional[Events] = None,
-        step: Optional[Events] = None,
+        resume: Events | None = None,
+        step: Events | None = None,
     ) -> "Timer":
         """Register callbacks to control the timer.
 
