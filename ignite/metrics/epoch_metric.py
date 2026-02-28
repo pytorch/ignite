@@ -86,9 +86,7 @@ class EpochMetric(Metric):
         self.compute_fn = compute_fn
         self._check_compute_fn = check_compute_fn
 
-        super(EpochMetric, self).__init__(
-            output_transform=output_transform, device=device, skip_unrolling=skip_unrolling
-        )
+        super().__init__(output_transform=output_transform, device=device, skip_unrolling=skip_unrolling)
 
     @reinit__is_reduced
     def reset(self) -> None:
