@@ -1,6 +1,7 @@
 """Polyaxon logger and its helper handlers."""
 
-from typing import Any, Callable, List, Optional, Union
+from collections.abc import Callable
+from typing import Any
 
 from torch.optim import Optimizer
 
@@ -236,14 +237,14 @@ class OutputHandler(BaseOutputHandler):
     def __init__(
         self,
         tag: str,
-        metric_names: Optional[Union[List[str], str]] = None,
-        output_transform: Optional[Callable] = None,
-        global_step_transform: Optional[Callable[[Engine, Union[str, Events]], int]] = None,
-        state_attributes: Optional[List[str]] = None,
+        metric_names: list[str] | str | None = None,
+        output_transform: Callable | None = None,
+        global_step_transform: Callable[[Engine, str | Events], int] | None = None,
+        state_attributes: list[str] | None = None,
     ):
         super().__init__(tag, metric_names, output_transform, global_step_transform, state_attributes)
 
-    def __call__(self, engine: Engine, logger: PolyaxonLogger, event_name: Union[str, Events]) -> None:
+    def __call__(self, engine: Engine, logger: PolyaxonLogger, event_name: str | Events) -> None:
         if not isinstance(logger, PolyaxonLogger):
             raise RuntimeError("Handler 'OutputHandler' works only with PolyaxonLogger")
 
@@ -292,10 +293,10 @@ class OptimizerParamsHandler(BaseOptimizerParamsHandler):
             )
     """
 
-    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: Optional[str] = None):
+    def __init__(self, optimizer: Optimizer, param_name: str = "lr", tag: str | None = None):
         super().__init__(optimizer, param_name, tag)
 
-    def __call__(self, engine: Engine, logger: PolyaxonLogger, event_name: Union[str, Events]) -> None:
+    def __call__(self, engine: Engine, logger: PolyaxonLogger, event_name: str | Events) -> None:
         if not isinstance(logger, PolyaxonLogger):
             raise RuntimeError("Handler OptimizerParamsHandler works only with PolyaxonLogger")
 
