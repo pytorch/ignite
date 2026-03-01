@@ -1,4 +1,4 @@
-from typing import Callable, Sequence, Union
+from collections.abc import Callable, Sequence
 
 import torch
 
@@ -85,10 +85,10 @@ class TopKCategoricalAccuracy(Metric):
         self,
         k: int = 5,
         output_transform: Callable = lambda x: x,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
     ) -> None:
-        super(TopKCategoricalAccuracy, self).__init__(output_transform, device=device, skip_unrolling=skip_unrolling)
+        super().__init__(output_transform, device=device, skip_unrolling=skip_unrolling)
         self._k = k
 
     @reinit__is_reduced
@@ -107,7 +107,7 @@ class TopKCategoricalAccuracy(Metric):
         self._num_examples += correct.shape[0]
 
     @sync_all_reduce("_num_correct", "_num_examples")
-    def compute(self) -> Union[float, torch.Tensor]:
+    def compute(self) -> float | torch.Tensor:
         if self._num_examples == 0:
             raise NotComputableError(
                 "TopKCategoricalAccuracy must have at least one example before it can be computed."

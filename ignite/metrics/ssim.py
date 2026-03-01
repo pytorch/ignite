@@ -1,5 +1,5 @@
 import warnings
-from typing import Callable, Optional, Sequence, Union
+from collections.abc import Callable, Sequence
 
 import torch
 import torch.nn.functional as F
@@ -77,14 +77,14 @@ class SSIM(Metric):
 
     def __init__(
         self,
-        data_range: Union[int, float],
-        kernel_size: Union[int, Sequence[int]] = 11,
-        sigma: Union[float, Sequence[float]] = 1.5,
+        data_range: int | float,
+        kernel_size: int | Sequence[int] = 11,
+        sigma: float | Sequence[float] = 1.5,
         k1: float = 0.01,
         k2: float = 0.03,
         gaussian: bool = True,
         output_transform: Callable = lambda x: x,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
         ndims: int = 2,
     ):
@@ -115,7 +115,7 @@ class SSIM(Metric):
         if any(y <= 0 for y in self.sigma):
             raise ValueError(f"Expected sigma to have positive number. Got {sigma}.")
 
-        super(SSIM, self).__init__(output_transform=output_transform, device=device, skip_unrolling=skip_unrolling)
+        super().__init__(output_transform=output_transform, device=device, skip_unrolling=skip_unrolling)
         self.gaussian = gaussian
         self.data_range = data_range
         self.c1 = (k1 * data_range) ** 2
@@ -129,7 +129,7 @@ class SSIM(Metric):
         self._kernel_nd = self._gaussian_or_uniform_kernel(
             kernel_size=self.kernel_size, sigma=self.sigma, ndims=self.ndims
         )
-        self._kernel: Optional[torch.Tensor] = None
+        self._kernel: torch.Tensor | None = None
 
     @reinit__is_reduced
     def reset(self) -> None:

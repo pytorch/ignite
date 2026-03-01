@@ -1,5 +1,5 @@
 import warnings
-from typing import Callable, Optional, Sequence, Union
+from collections.abc import Callable, Sequence
 
 import torch
 from packaging.version import Version
@@ -64,11 +64,11 @@ class FID(_BaseInceptionMetric):
 
     More details can be found in `Heusel et al. 2017`__
 
-    __ https://arxiv.org/pdf/1706.08500.pdf
+    __ https://arxiv.org/abs/1706.08500
 
     In addition, a faster and online computation approach can be found in `Mathiasen et al. 2020`__
 
-    __ https://arxiv.org/pdf/2009.14075.pdf
+    __ https://arxiv.org/abs/2009.14075
 
     Remark:
 
@@ -168,10 +168,10 @@ class FID(_BaseInceptionMetric):
 
     def __init__(
         self,
-        num_features: Optional[int] = None,
-        feature_extractor: Optional[torch.nn.Module] = None,
+        num_features: int | None = None,
+        feature_extractor: torch.nn.Module | None = None,
         output_transform: Callable = lambda x: x,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
     ) -> None:
         try:
             import numpy as np  # noqa: F401
@@ -189,7 +189,7 @@ class FID(_BaseInceptionMetric):
 
         self._eps = 1e-6
 
-        super(FID, self).__init__(
+        super().__init__(
             num_features=num_features,
             feature_extractor=feature_extractor,
             output_transform=output_transform,

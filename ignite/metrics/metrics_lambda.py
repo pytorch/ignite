@@ -1,5 +1,6 @@
 import itertools
-from typing import Any, Callable, Optional, Union
+from collections.abc import Callable
+from typing import Any, Literal
 
 import torch
 
@@ -24,6 +25,14 @@ class MetricsLambda(Metric):
         f: the function that defines the computation
         args: Sequence of other metrics or something
             else that will be fed to ``f`` as arguments.
+        skip_unrolling: specifies whether output should be unrolled before being fed to update method. Should be
+            true for multi-output model, for example, if ``y_pred`` contains multi-ouput as ``(y_pred_a, y_pred_b)``
+            Alternatively, ``output_transform`` can be used to handle this.
+        metrics_result_mode: specifies how to put the computed metrics results into
+            ``engine.state.metrics`` dictionary. Valid values are: "flatten", "named", "both".
+            - "flatten": if the computed result is a mapping, its keys/values are put directly into the engine state metrics dictionary
+            - "named": if the computed result is a mapping, the whole mapping is put into the engine state metrics dictionary under the metric name
+            - "both": combination of "flatten" and "named".
         kwargs: Sequence of other metrics or something
             else that will be fed to ``f`` as keyword arguments.
 
@@ -88,17 +97,27 @@ class MetricsLambda(Metric):
             assert not aP.is_attached(engine)
             # fully attached
             assert not precision.is_attached(engine)
+
+    .. versionchanged:: 0.5.4
+        added ``skip_unrolling`` and ``metrics_result_mode`` arguments.
     """
 
     _state_dict_all_req_keys = ("_updated", "args", "kwargs")
 
-    def __init__(self, f: Callable, *args: Any, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        f: Callable,
+        *args: Any,
+        skip_unrolling: bool = False,
+        metrics_result_mode: Literal["flatten", "named", "both"] = "both",
+        **kwargs: Any,
+    ) -> None:
         self.function = f
         self.args = list(args)  # we need args to be a list instead of a tuple for state_dict/load_state_dict feature
         self.kwargs = kwargs
-        self.engine: Optional[Engine] = None
+        self.engine: Engine | None = None
         self._updated = False
-        super(MetricsLambda, self).__init__(device="cpu")
+        super().__init__(device="cpu", metrics_result_mode=metrics_result_mode, skip_unrolling=skip_unrolling)
 
     @reinit__is_reduced
     def reset(self) -> None:
@@ -139,7 +158,7 @@ class MetricsLambda(Metric):
                 if not engine.has_event_handler(metric.iteration_completed, usage.ITERATION_COMPLETED):
                     engine.add_event_handler(usage.ITERATION_COMPLETED, metric.iteration_completed)
 
-    def attach(self, engine: Engine, name: str, usage: Union[str, MetricUsage] = EpochWise()) -> None:
+    def attach(self, engine: Engine, name: str, usage: str | MetricUsage = EpochWise()) -> None:
         if self._updated:
             raise ValueError(
                 "The underlying metrics are already updated, can't attach while using reset/update/compute API."
@@ -150,13 +169,13 @@ class MetricsLambda(Metric):
         # attach only handler on EPOCH_COMPLETED
         engine.add_event_handler(usage.COMPLETED, self.completed, name)
 
-    def detach(self, engine: Engine, usage: Union[str, MetricUsage] = EpochWise()) -> None:
+    def detach(self, engine: Engine, usage: str | MetricUsage = EpochWise()) -> None:
         usage = self._check_usage(usage)
         # remove from engine
         super(MetricsLambda, self).detach(engine, usage)
         self.engine = None
 
-    def is_attached(self, engine: Engine, usage: Union[str, MetricUsage] = EpochWise()) -> bool:
+    def is_attached(self, engine: Engine, usage: str | MetricUsage = EpochWise()) -> bool:
         usage = self._check_usage(usage)
         # check recursively the dependencies
         return super(MetricsLambda, self).is_attached(engine, usage) and self._internal_is_attached(engine, usage)

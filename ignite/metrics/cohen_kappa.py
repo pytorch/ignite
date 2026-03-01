@@ -71,7 +71,7 @@ class CohenKappa(EpochMetric):
         # initialize weights
         self.weights: Literal["linear", "quadratic"] | None = weights
 
-        super(CohenKappa, self).__init__(
+        super().__init__(
             self._cohen_kappa_score,
             output_transform=output_transform,
             check_compute_fn=check_compute_fn,

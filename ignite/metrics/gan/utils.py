@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Union
+from collections.abc import Callable
 
 import torch
 from packaging.version import Version
@@ -17,13 +17,13 @@ class InceptionModel(torch.nn.Module):
             non-blocking. By default, CPU.
     """
 
-    def __init__(self, return_features: bool, device: Union[str, torch.device] = "cpu") -> None:
+    def __init__(self, return_features: bool, device: str | torch.device = "cpu") -> None:
         try:
             import torchvision
             from torchvision import models
         except ImportError:
             raise ModuleNotFoundError("This module requires torchvision to be installed.")
-        super(InceptionModel, self).__init__()
+        super().__init__()
         self._device = device
         if Version(torchvision.__version__) < Version("0.13.0"):
             model_kwargs = {"pretrained": True}
@@ -52,10 +52,10 @@ class InceptionModel(torch.nn.Module):
 class _BaseInceptionMetric(Metric):
     def __init__(
         self,
-        num_features: Optional[int],
-        feature_extractor: Optional[torch.nn.Module],
+        num_features: int | None,
+        feature_extractor: torch.nn.Module | None,
         output_transform: Callable = lambda x: x,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
     ) -> None:
         if num_features is None:
             raise ValueError("Argument num_features must be provided, if feature_extractor is specified.")
@@ -74,7 +74,7 @@ class _BaseInceptionMetric(Metric):
         self._num_features = num_features
         self._feature_extractor = feature_extractor.to(device)
 
-        super(_BaseInceptionMetric, self).__init__(output_transform=output_transform, device=device)
+        super().__init__(output_transform=output_transform, device=device)
 
     def _check_feature_shapes(self, samples: torch.Tensor) -> None:
         if samples.dim() != 2:

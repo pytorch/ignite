@@ -1,5 +1,4 @@
 import os
-from typing import Tuple
 from unittest.mock import patch
 
 import pytest
@@ -174,7 +173,7 @@ def _test_distrib_compute(device):
 
         res = prc.compute()
 
-        assert isinstance(res, Tuple)
+        assert isinstance(res, tuple)
         assert precision_recall_curve(np_y, np_y_pred)[0] == pytest.approx(res[0].cpu().numpy())
         assert precision_recall_curve(np_y, np_y_pred)[1] == pytest.approx(res[1].cpu().numpy())
         assert precision_recall_curve(np_y, np_y_pred)[2] == pytest.approx(res[2].cpu().numpy())

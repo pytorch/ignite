@@ -1,6 +1,9 @@
+from __future__ import annotations
 import os
 import warnings
-from typing import Any, Callable, cast, List, Mapping, Optional, Tuple, TYPE_CHECKING
+from collections.abc import Callable, Mapping
+from typing import Any, cast, TYPE_CHECKING
+
 
 import torch
 
@@ -48,7 +51,7 @@ if has_hvd_support:
             return rank
 
         @staticmethod
-        def create_from_context() -> Optional["_HorovodDistModel"]:
+        def create_from_context() -> _HorovodDistModel | None:
             rank = _HorovodDistModel._get_hvd_rank()
             # hvd must be initialized
             if not rank > -1:
@@ -66,9 +69,9 @@ if has_hvd_support:
                 raise RuntimeError("Can not re-initialize Horovod if it is already initialized")
             return _HorovodDistModel(backend, **kwargs)
 
-        def __init__(self, backend: Optional[str] = None, **kwargs: Any) -> None:
+        def __init__(self, backend: str | None = None, **kwargs: Any) -> None:
             """This is a private method. Please, use `create_from_backend` or `create_from_context`"""
-            super(_HorovodDistModel, self).__init__()
+            super().__init__()
             if backend is not None:
                 self._create_from_backend(backend, **kwargs)
             else:
@@ -126,7 +129,7 @@ if has_hvd_support:
             hvd.shutdown()
 
         @staticmethod
-        def _dist_worker_task_fn(backend: str, fn: Callable, args: Tuple, kwargs_dict: Mapping) -> None:
+        def _dist_worker_task_fn(backend: str, fn: Callable, args: tuple, kwargs_dict: Mapping) -> None:
             from ignite.distributed.utils import _set_model, finalize
 
             model = _HorovodDistModel.create_from_backend(backend)
@@ -138,10 +141,10 @@ if has_hvd_support:
         # pyrefly: ignore [bad-override]
         def spawn(
             fn: Callable,
-            args: Tuple,
-            kwargs_dict: Optional[Mapping] = None,
+            args: tuple,
+            kwargs_dict: Mapping | None = None,
             nproc_per_node: int = 1,
-            hosts: Optional[str] = None,
+            hosts: str | None = None,
             backend: str = HOROVOD,
             **kwargs: Any,
         ) -> None:
@@ -183,7 +186,7 @@ if has_hvd_support:
 
         _manual_reduce_op_map = {"MIN": torch.min, "MAX": torch.max, "PRODUCT": torch.prod}
 
-        def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM", group: Optional[Any] = None) -> torch.Tensor:
+        def _do_all_reduce(self, tensor: torch.Tensor, op: str = "SUM", group: Any | None = None) -> torch.Tensor:
             if group is not None:
                 raise NotImplementedError("all_reduce with group for horovod is not implemented")
             if op in self._manual_reduce_op_map:
@@ -205,7 +208,7 @@ if has_hvd_support:
             # output can also torch min/max_return_type: (min/max_vals, indices)
             return reduced_res[0]
 
-        def _do_all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None) -> torch.Tensor:
+        def _do_all_gather(self, tensor: torch.Tensor, group: Any | None = None) -> torch.Tensor:
             if group is not None:
                 group = self._setup_group(group)
             if self._rank_not_in_group(group):
@@ -217,13 +220,13 @@ if has_hvd_support:
             else:
                 return hvd.allgather(tensor)
 
-        def _do_all_gather_object(self, tensor: Any, group: Optional[Any] = None) -> List[Any]:
+        def _do_all_gather_object(self, tensor: Any, group: Any | None = None) -> list[Any]:
             if group is not None:
                 raise NotImplementedError("all_gather with group for horovod is not implemented")
 
             return hvd.allgather_object(tensor)
 
-        def _do_new_group(self, ranks: List[int], **kwargs: Any) -> hvd.ProcessSet:
+        def _do_new_group(self, ranks: list[int], **kwargs: Any) -> hvd.ProcessSet:
             return hvd.add_process_set(ranks)
 
         def _do_broadcast(self, tensor: torch.Tensor, src: int) -> torch.Tensor:
@@ -234,7 +237,7 @@ if has_hvd_support:
             # hvd.allreduce(torch.tensor(0, device=self.device()), name="barrier")
             hvd.allreduce(torch.tensor(0, device="cpu"), name="barrier")
 
-        def _rank_not_in_group(self, group: Optional[Any]) -> bool:
+        def _rank_not_in_group(self, group: Any | None) -> bool:
             if group is None:
                 return False
             return not group.included()

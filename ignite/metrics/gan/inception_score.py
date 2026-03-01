@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Union
+from collections.abc import Callable
 
 import torch
 
@@ -23,7 +23,7 @@ class InceptionScore(_BaseInceptionMetric):
 
     More details can be found in `Barratt et al. 2018`__.
 
-    __ https://arxiv.org/pdf/1801.01973.pdf
+    __ https://arxiv.org/abs/1801.01973
 
     Args:
         num_features: number of features predicted by the model or number of classes of the model. Default
@@ -81,10 +81,10 @@ class InceptionScore(_BaseInceptionMetric):
 
     def __init__(
         self,
-        num_features: Optional[int] = None,
-        feature_extractor: Optional[torch.nn.Module] = None,
+        num_features: int | None = None,
+        feature_extractor: torch.nn.Module | None = None,
         output_transform: Callable = lambda x: x,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
     ) -> None:
         if num_features is None and feature_extractor is None:
             num_features = 1000
@@ -92,7 +92,7 @@ class InceptionScore(_BaseInceptionMetric):
 
         self._eps = 1e-16
 
-        super(InceptionScore, self).__init__(
+        super().__init__(
             num_features=num_features,
             feature_extractor=feature_extractor,
             output_transform=output_transform,
