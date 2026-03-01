@@ -2,7 +2,8 @@
 
 import os
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any
+from concurrent.futures import ThreadPoolExecutor
+from typing import Any
 
 import torch
 import torch.nn as nn
@@ -97,7 +98,7 @@ class VisdomLogger(BaseLogger):
                 event_name=Events.EPOCH_COMPLETED,
                 tag="validation",
                 metric_names=["nll", "accuracy"],
-                global_step_transform=global_step_from_engine(trainer)),
+                global_step_transform=global_step_from_engine(trainer),
             )
 
             # Attach the logger to the trainer to log optimizer's parameters, e.g. learning rate at each iteration
@@ -170,19 +171,6 @@ class VisdomLogger(BaseLogger):
                 "pip install git+https://github.com/fossasia/visdom.git"
             )
 
-        if num_workers > 0 or TYPE_CHECKING:
-            # If visdom is installed, one of its dependencies `tornado`
-            # requires also `futures` to be installed.
-            # Let's check anyway if we can import it.
-            try:
-                from concurrent.futures import ThreadPoolExecutor
-            except ImportError:
-                raise ModuleNotFoundError(
-                    "This contrib module requires concurrent.futures module"
-                    "Please install it with command:\n"
-                    "pip install futures"
-                )
-
         if server is None:
             server = os.environ.get("VISDOM_SERVER_URL", "localhost")
 
@@ -202,7 +190,7 @@ class VisdomLogger(BaseLogger):
         if not self.vis.offline and not self.vis.check_connection():  # type: ignore[attr-defined]
             raise RuntimeError(f"Failed to connect to Visdom server at {server}. Did you run python -m visdom.server ?")
 
-        self.executor: _DummyExecutor | "ThreadPoolExecutor" = _DummyExecutor()
+        self.executor: _DummyExecutor | ThreadPoolExecutor = _DummyExecutor()
         if num_workers > 0:
             self.executor = ThreadPoolExecutor(max_workers=num_workers)
 
