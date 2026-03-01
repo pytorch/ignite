@@ -11,7 +11,7 @@ repos:
         types: [jupyter]
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v4.6.0
     hooks:
       - id: check-toml
       - id: check-yaml
@@ -25,22 +25,12 @@ repos:
         exclude_types: ["python", "jupyter", "shell", "gitignore"]
 
   - repo: https://github.com/psf/black
-    rev: 24.10.0
+    rev: 24.4.2
     hooks:
       - id: black
-        types_or: [python, pyi, jupyter]
+        types_or: [python, pyi]
 
   - repo: https://github.com/yzhang-gh/black-nb
     rev: v0.7.0
     hooks:
       - id: black-nb
-
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.13
-    hooks:
-      - id: ruff
-        name: ruff-check
-        types_or: [python, pyi, jupyter]
-      # TODO: Enable when black and ruff format converge
-      # - id: ruff-format
-      #   types_or: [python, pyi]
