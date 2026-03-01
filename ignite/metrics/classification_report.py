@@ -1,5 +1,6 @@
 import json
-from typing import Callable, Collection, Dict, List, Literal, Optional, Union
+from collections.abc import Callable, Collection
+from typing import Literal
 
 import torch
 
@@ -15,9 +16,9 @@ def ClassificationReport(
     beta: int = 1,
     output_dict: bool = False,
     output_transform: Callable = lambda x: x,
-    device: Union[str, torch.device] = torch.device("cpu"),
+    device: str | torch.device = torch.device("cpu"),
     is_multilabel: bool = False,
-    labels: Optional[List[str]] = None,
+    labels: list[str] | None = None,
     metrics_result_mode: Literal["flatten", "named", "both"] = "both",
 ) -> MetricsLambda:
     r"""Build a text report showing the main classification metrics. The report resembles in functionality to
@@ -127,7 +128,7 @@ def ClassificationReport(
 
     def _wrapper(
         re: torch.Tensor, pr: torch.Tensor, f: torch.Tensor, a_re: torch.Tensor, a_pr: torch.Tensor, a_f: torch.Tensor
-    ) -> Union[Collection[str], Dict]:
+    ) -> Collection[str] | Dict:
         if pr.shape != re.shape:
             raise ValueError(
                 "Internal error: Precision and Recall have mismatched shapes: "
