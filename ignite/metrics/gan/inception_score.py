@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Union
+from collections.abc import Callable
 
 import torch
 
@@ -81,10 +81,10 @@ class InceptionScore(_BaseInceptionMetric):
 
     def __init__(
         self,
-        num_features: Optional[int] = None,
-        feature_extractor: Optional[torch.nn.Module] = None,
+        num_features: int | None = None,
+        feature_extractor: torch.nn.Module | None = None,
         output_transform: Callable = lambda x: x,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
     ) -> None:
         if num_features is None and feature_extractor is None:
             num_features = 1000
