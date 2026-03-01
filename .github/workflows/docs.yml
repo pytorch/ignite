@@ -23,16 +23,22 @@ jobs:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest"]
-        python-version: ["3.10"]
+        python-version: ["3.12"]
     steps:
       - uses: actions/checkout@v6
+
+      - name: Get year & week number
+        id: get-date
+        run: |
+          echo "date=$(/bin/date "+%Y-%U")" >> $GITHUB_OUTPUT
+
       - uses: astral-sh/setup-uv@v7
         with:
           version: "latest"
           python-version: "${{ matrix.python-version }}"
           activate-environment: true
           enable-cache: true
-          cache-suffix: "${{ hashFiles('requirements-dev.txt') }}-${{ hashFiles('docs/requirements.txt') }}"
+          cache-suffix: "${{ steps.get-date.outputs.date }}-${{ hashFiles('requirements-dev.txt') }}-${{ hashFiles('docs/requirements.txt') }}"
           cache-dependency-glob: |
             **/docs/requirements.txt
             **/requirements-dev.txt
@@ -64,16 +70,22 @@ jobs:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest"]
-        python-version: ["3.10"]
+        python-version: ["3.12"]
     steps:
       - uses: actions/checkout@v6
+
+      - name: Get year & week number
+        id: get-date
+        run: |
+          echo "date=$(/bin/date "+%Y-%U")" >> $GITHUB_OUTPUT
+
       - uses: astral-sh/setup-uv@v7
         with:
           version: "latest"
           python-version: ${{ matrix.python-version }}
           activate-environment: true
           enable-cache: true
-          cache-suffix: "${{ hashFiles('requirements-dev.txt') }}-${{ hashFiles('docs/requirements.txt') }}"
+          cache-suffix: "${{ steps.get-date.outputs.date }}-${{ hashFiles('requirements-dev.txt') }}-${{ hashFiles('docs/requirements.txt') }}"
           cache-dependency-glob: |
             **/docs/requirements.txt
             **/requirements-dev.txt
@@ -97,16 +109,22 @@ jobs:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest"]
-        python-version: ["3.10"]
+        python-version: ["3.12"]
     steps:
       - uses: actions/checkout@v6
+
+      - name: Get year & week number
+        id: get-date
+        run: |
+          echo "date=$(/bin/date "+%Y-%U")" >> $GITHUB_OUTPUT
+
       - uses: astral-sh/setup-uv@v7
         with:
           version: "latest"
           python-version: "${{ matrix.python-version }}"
           activate-environment: true
           enable-cache: true
-          cache-suffix: "${{ hashFiles('requirements-dev.txt') }}-${{ hashFiles('docs/requirements.txt') }}"
+          cache-suffix: "${{ steps.get-date.outputs.date }}-${{ hashFiles('requirements-dev.txt') }}-${{ hashFiles('docs/requirements.txt') }}"
           cache-dependency-glob: |
             **/docs/requirements.txt
             **/requirements-dev.txt
