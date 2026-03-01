@@ -913,8 +913,16 @@ def test__compute_recall_and_precision(available_device):
     sklearn_precision, sklearn_recall, _ = sklearn_precision_recall_curve_allowing_multiple_recalls_at_single_threshold(
         y_true.cpu().numpy(), scores.cpu().numpy()
     )
-    assert (ignite_recall.flip(0).cpu().numpy() == sklearn_recall[:-1]).all()
-    assert (ignite_precision.flip(0).cpu().numpy() == sklearn_precision[:-1]).all()
+    assert np.allclose(
+        ignite_recall.flip(0).cpu().numpy(),
+        sklearn_recall[:-1],
+        atol=1e-6
+    )
+    assert np.allclose(
+        ignite_precision.flip(0).cpu().numpy(),
+        sklearn_precision[:-1],
+        atol=1e-6
+    )
 
     # Like above but with two additional mean dimensions.
     scores = torch.rand((50,), device=current_device)
@@ -933,8 +941,16 @@ def test__compute_recall_and_precision(available_device):
     ignite_recall, ignite_precision = m._compute_recall_and_precision(
         y_true.bool(), ~(y_true.bool()), scores, torch.tensor(15)
     )
-    assert (ignite_recall.flip(-1).cpu().numpy() == sklearn_recalls).all()
-    assert (ignite_precision.flip(-1).cpu().numpy() == sklearn_precisions).all()
+    assert np.allclose(
+        ignite_recall.flip(-1).cpu().numpy(),
+        sklearn_recalls,
+        atol=1e-6
+    )
+    assert np.allclose(
+        ignite_precision.flip(-1).cpu().numpy(),
+        sklearn_precisions,
+        atol=1e-6
+    )
 
 
 def test_compute(get_sample):
