@@ -1,5 +1,6 @@
 import warnings
-from typing import Callable, List, Optional, Sequence, Tuple, Union, cast
+from collections.abc import Callable, Sequence
+from typing import cast
 
 import torch
 from typing_extensions import Literal
@@ -14,8 +15,8 @@ from ignite.utils import to_onehot
 class _BaseAveragePrecision:
     def __init__(
         self,
-        rec_thresholds: Optional[Union[Sequence[float], torch.Tensor]] = None,
-        class_mean: Optional[Literal["micro", "macro", "weighted"]] = "macro",
+        rec_thresholds: Sequence[float] | torch.Tensor | None = None,
+        class_mean: Literal["micro", "macro", "weighted"] | None = "macro",
     ) -> None:
         r"""Base class for Average Precision metric.
 
@@ -56,7 +57,7 @@ class _BaseAveragePrecision:
                   computes macro precision which is unweighted mean of AP computed across classes/labels. Default.
         """
         if rec_thresholds is not None:
-            self.rec_thresholds: Optional[torch.Tensor] = self._setup_thresholds(rec_thresholds, "rec_thresholds")
+            self.rec_thresholds: torch.Tensor | None = self._setup_thresholds(rec_thresholds, "rec_thresholds")
         else:
             self.rec_thresholds = None
 
@@ -64,7 +65,7 @@ class _BaseAveragePrecision:
             raise ValueError(f"Wrong `class_mean` parameter, given {class_mean}")
         self.class_mean = class_mean
 
-    def _setup_thresholds(self, thresholds: Union[Sequence[float], torch.Tensor], threshold_type: str) -> torch.Tensor:
+    def _setup_thresholds(self, thresholds: Sequence[float] | torch.Tensor, threshold_type: str) -> torch.Tensor:
         if isinstance(thresholds, Sequence):
             thresholds = torch.tensor(thresholds, dtype=torch.double)
 
@@ -108,10 +109,10 @@ class _BaseAveragePrecision:
 
 
 def _cat_and_agg_tensors(
-    tensors: List[torch.Tensor],
-    tensor_shape_except_last_dim: Tuple[int],
+    tensors: list[torch.Tensor],
+    tensor_shape_except_last_dim: tuple[int],
     dtype: torch.dtype,
-    device: Union[str, torch.device],
+    device: str | torch.device,
 ) -> torch.Tensor:
     """
     Concatenate tensors in ``tensors`` at their last dimension and gather all tensors from across all processes.
@@ -139,16 +140,16 @@ def _cat_and_agg_tensors(
 
 
 class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
-    _y_pred: List[torch.Tensor]
-    _y_true: List[torch.Tensor]
+    _y_pred: list[torch.Tensor]
+    _y_true: list[torch.Tensor]
 
     def __init__(
         self,
-        rec_thresholds: Optional[Union[Sequence[float], torch.Tensor]] = None,
-        class_mean: Optional["Literal['micro', 'macro', 'weighted']"] = "macro",
+        rec_thresholds: Sequence[float] | torch.Tensor | None = None,
+        class_mean: "Literal['micro', 'macro', 'weighted']" | None = "macro",
         is_multilabel: bool = False,
         output_transform: Callable = lambda x: x,
-        device: Union[str, torch.device] = torch.device("cpu"),
+        device: str | torch.device = torch.device("cpu"),
         skip_unrolling: bool = False,
     ) -> None:
         r"""Calculate the mean average precision metric i.e. mean of the averaged-over-recall precision for
@@ -297,7 +298,7 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
         return yp, yt
 
     @reinit__is_reduced
-    def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
+    def update(self, output: tuple[torch.Tensor, torch.Tensor]) -> None:
         """Metric update function using prediction and target.
 
         Args:
@@ -315,7 +316,7 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
 
     def _compute_recall_and_precision(
         self, y_true: torch.Tensor, y_pred: torch.Tensor, y_true_positive_count: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         r"""Measuring recall & precision.
 
         Shape of function inputs and return values follow the table below.
@@ -357,7 +358,7 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
         precision = tp_summation / torch.where(predicted_positive == 0, 1, predicted_positive)
         return recall, precision
 
-    def compute(self) -> Union[torch.Tensor, float]:
+    def compute(self) -> torch.Tensor | float:
         """
         Compute method of the metric
         """
@@ -367,7 +368,7 @@ class MeanAveragePrecision(_BaseClassification, _BaseAveragePrecision):
 
         y_true = _cat_and_agg_tensors(
             self._y_true,
-            cast(Tuple[int], ()) if self._type == "multiclass" else (num_classes,),
+            cast(tuple[int], ()) if self._type == "multiclass" else (num_classes,),
             torch.long if self._type == "multiclass" else torch.uint8,
             self._device,
         )
