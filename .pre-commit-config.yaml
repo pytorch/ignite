@@ -1,10 +1,13 @@
 exclude: "^conda.recipe|assets|docs"
 
 repos:
-  - repo: https://github.com/kynan/nbstripout
-    rev: 0.7.1
+  - repo: https://github.com/srstevenson/nb-clean
+    rev: 3.2.0
     hooks:
-      - id: nbstripout
+      - id: nb-clean
+        args:
+          - --preserve-cell-outputs
+          - --remove-empty-cells
         types: [jupyter]
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -24,11 +27,12 @@ repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.11.13
     hooks:
-      - id: ruff-check
-        types_or: [python, pyi, jupyter]
+      - id: ruff
+        args: [--fix]
+        types_or: [python, pyi]
 
   - repo: https://github.com/psf/black
-    rev: 24.10.0
+    rev: 24.4.2
     hooks:
       - id: black
-        types_or: [python, pyi, jupyter]
+        types_or: [python, pyi]
